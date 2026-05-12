@@ -29,6 +29,8 @@ from __future__ import annotations
 
 import json
 import logging
+import platform
+import tempfile
 import threading
 import time
 from dataclasses import dataclass
@@ -105,6 +107,40 @@ def learner_config_from_cfg(cfg: dict[str, Any]) -> LearnerConfig:
     )
 
 
+# ─── Atomic File Write Helper ──────────────────────────────────────────────────
+
+def _atomic_write_state(file_path: Path, content: str) -> None:
+    """
+    Write JSON content to file atomically using temp file + rename.
+    
+    This prevents corruption if multiple processes write simultaneously.
+    Pattern: write to temp → flush → rename → done.
+    
+    Raises:
+        OSError: If write or rename fails
+    """
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Write to temp file in same directory (ensures same filesystem for atomic rename)
+    with tempfile.NamedTemporaryFile(
+        mode='w',
+        dir=file_path.parent,
+        prefix='.tmp_',
+        suffix='.json',
+        delete=False,
+        encoding='utf-8'
+    ) as tmp:
+        tmp_path = Path(tmp.name)
+        try:
+            tmp.write(content)
+            tmp.flush()
+            # Atomic rename (fails if target exists on some platforms, but creates new atomically on most)
+            tmp_path.replace(file_path)
+        except Exception as e:
+            tmp_path.unlink(missing_ok=True)
+            raise OSError(f"Atomic write to {file_path} failed: {e}")
+
+
 # ─── AutoLearner ──────────────────────────────────────────────────────────────
 
 class AutoLearner:
@@ -179,12 +215,11 @@ class AutoLearner:
             clamp_learning_state(self._global_state)
 
     def save(self) -> None:
-        """Persist current learning state to file."""
+        """Persist current learning state to file (atomic write)."""
         if not self._cfg.enabled:
             return
         with self._lock:
             state_path = Path(self._cfg.state_file)
-            state_path.parent.mkdir(parents=True, exist_ok=True)
             out = {
                 **self._global_state,
                 "symbol_states": self._symbol_states,
@@ -192,7 +227,8 @@ class AutoLearner:
                 "saved_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
             }
             try:
-                state_path.write_text(json.dumps(out, indent=2), encoding="utf-8")
+                content = json.dumps(out, indent=2)
+                _atomic_write_state(state_path, content)
             except Exception as exc:
                 self._log(f"[LEARNER] State save failed: {exc}")
 

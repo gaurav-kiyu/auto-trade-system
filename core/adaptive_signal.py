@@ -851,6 +851,24 @@ def evaluate_adaptive_signal(
         except Exception:
             pass  # always optional
 
+    # ── Apply max penalty cap (v2.45: safety guard) ────────────────────────────
+    # Total penalty (adjusted_score - raw_score) must not exceed config maximum.
+    # This prevents penalty stacking from suppressing valid signals.
+    _max_penalty = int(_scfg.get("ADAPTIVE_SIGNAL_MAX_TOTAL_PENALTY", -50))
+    total_penalty = adjusted_score - raw_score
+    if total_penalty < _max_penalty:
+        old_score = adjusted_score
+        adjusted_score = max(0, raw_score + _max_penalty)  # Clamp to max penalty
+        if _scfg.get("ADAPTIVE_SIGNAL_PENALTY_ALERT_THRESHOLD"):
+            _pen_alert_thr = float(_scfg.get("ADAPTIVE_SIGNAL_PENALTY_ALERT_THRESHOLD", 0.6))
+            _rej_rate = total_penalty / max(1, raw_score) if raw_score > 0 else 0
+            if _rej_rate < -_pen_alert_thr:  # More than 60% of score rejected
+                log.warning(
+                    "[ADAPTIVE] Penalty cap applied: %d -> %d (total_penalty=%d, raw=%d)",
+                    old_score, adjusted_score, total_penalty, raw_score
+                )
+        # Don't reject signal; just cap the penalty
+
     return AdaptiveSignal(
         tier=tier,
         score=adjusted_score,
