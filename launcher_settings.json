@@ -1,0 +1,12 @@
+{
+  "_note_1": "Launcher preferences — edit this file, no code change needed.",
+  "_note_2": "default_mode: PAPER (simulate trades) or MANUAL (signals only).",
+  "_note_3": "auto_launch: true skips the button click and launches immediately.",
+  "_note_4": "extra_args: additional CLI flags passed to the app, e.g. ['--debug'].",
+
+  "default_mode":      "PAPER",
+  "auto_launch":       false,
+  "python_preference": ["py", "python", "python3"],
+  "app_script":        "INDEX_OPTION_BUYING_APP_1.0.py",
+  "extra_args":        []
+}

@@ -1,0 +1,25 @@
+{
+    "_NOTE_PROFILE": "DEV profile — safe-by-default overrides for local development and testing. Merge this on top of config.json at load time. Never use in a live session. Keys not listed here inherit from config.json.",
+
+    "EXECUTION_MODE": "MANUAL",
+    "MANUAL_SIGNALS_ONLY": true,
+    "BROKER_API_ENABLED": false,
+
+    "BASE_CAPITAL": 1000,
+    "MAX_DAILY_LOSS": -100,
+    "MAX_TRADES_DAY": 0,
+    "MAX_OPEN": 0,
+
+    "TG_STARTUP_ALERT": false,
+    "TG_QUIET_MODE": true,
+    "TG_TRADE_ONLY": true,
+
+    "AUDIT_LOG_ENABLED": true,
+    "STRUCTURED_EVENTS_ENABLED": true,
+
+    "AUTO_TUNE_ENABLED": false,
+    "AUTO_TUNE_DRY_RUN": true,
+    "AI_ENGINE_ENABLED": false,
+    "AUTO_LEARNER_ENABLED": false,
+    "ADAPTIVE_THRESHOLD_ENABLED": false
+}

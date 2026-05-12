@@ -1,0 +1,20 @@
+# OPB Dev / CI — install after requirements.txt
+# Usage: pip install -r requirements.txt -r requirements-dev.txt
+#        pytest tests/ -q          ← 554 tests, ~2 min
+
+# Test runner
+pytest>=8.0
+
+# Schema validation (used by test_config_schema.py)
+jsonschema>=4.20
+
+# ML deps — needed for test_ml_classifier.py
+lightgbm>=4.0.0
+scikit-learn>=1.3.0
+
+# Reporting deps — needed for test_report_generator.py
+reportlab>=4.0.0
+
+# Linter (optional)
+# python -m ruff check index_app core scripts tests
+ruff>=0.4

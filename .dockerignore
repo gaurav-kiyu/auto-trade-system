@@ -1,0 +1,75 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .dockerignore — OPB Bot v2.43
+# Excludes files that should NOT be copied into the Docker build context.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Secrets and local config (must be supplied via environment variables)
+.env
+*.env
+config.local.json
+config.dev.json
+secrets/
+
+# Credentials and API tokens (never bake into image)
+*.pem
+*.key
+*.crt
+*.p12
+
+# Runtime data (mounted as Docker volumes)
+trades.db
+oi_snapshots.db
+ml_tracker.db
+trader_state.json
+models/
+reports/
+logs/
+
+# Test artefacts
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation and notebooks
+docs/
+*.ipynb
+*.md
+
+# CI
+.github/
+
+# Temporary files
+tmp/
+temp/
+STOP_TRADING

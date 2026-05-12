@@ -1,0 +1,93 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OPB Index Options Buying Bot v2.43 — Docker Compose
+#
+# Usage:
+#   docker compose up -d          # start in paper mode (safe default)
+#   docker compose logs -f opb    # tail logs
+#   docker compose down           # stop
+#
+# Sensitive values (broker keys, Telegram token) are read from a .env file
+# or from host environment variables — NEVER hard-coded here.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  opb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: opb-bot:2.43
+    container_name: opb_bot
+    restart: unless-stopped
+
+    # Paper mode is the default.  Override OPBUYING_EXECUTION_MODE=LIVE to go live.
+    environment:
+      # ── Core ──────────────────────────────────────────────────────────────
+      OPBUYING_EXECUTION_MODE:        ${OPBUYING_EXECUTION_MODE:-PAPER}
+      OPBUYING_BASE_CAPITAL:          ${OPBUYING_BASE_CAPITAL:-5000}
+
+      # ── Telegram ──────────────────────────────────────────────────────────
+      OPBUYING_BOT_TOKEN:             ${OPBUYING_BOT_TOKEN:-}
+      OPBUYING_CHAT_ID:               ${OPBUYING_CHAT_ID:-}
+
+      # ── Broker (Kite) ──────────────────────────────────────────────────────
+      OPBUYING_KITE_API_KEY:          ${OPBUYING_KITE_API_KEY:-}
+      OPBUYING_KITE_ACCESS_TOKEN:     ${OPBUYING_KITE_ACCESS_TOKEN:-}
+
+      # ── Broker (Angel) ─────────────────────────────────────────────────────
+      OPBUYING_ANGEL_API_KEY:         ${OPBUYING_ANGEL_API_KEY:-}
+      OPBUYING_ANGEL_CLIENT_ID:       ${OPBUYING_ANGEL_CLIENT_ID:-}
+      OPBUYING_ANGEL_PASSWORD:        ${OPBUYING_ANGEL_PASSWORD:-}
+      OPBUYING_ANGEL_TOTP_KEY:        ${OPBUYING_ANGEL_TOTP_KEY:-}
+
+      # ── Config file override ───────────────────────────────────────────────
+      OPBUYING_INDEX_CONFIG:          ${OPBUYING_INDEX_CONFIG:-/app/config.json}
+
+      # ── Paths (set in Dockerfile; listed here for documentation) ──────────
+      OPBUYING_TRADES_DB:             /data/db/trades.db
+      OPBUYING_OI_SNAPSHOT_DB_PATH:   /data/db/oi_snapshots.db
+      OPBUYING_ML_TRACKER_DB_PATH:    /data/db/ml_tracker.db
+      OPBUYING_ML_MODEL_PATH:         /data/models/signal_classifier.pkl
+      OPBUYING_REPORT_OUTPUT_DIR:     /data/reports
+
+      TZ:                             Asia/Kolkata
+      PYTHONUNBUFFERED:               "1"
+
+    volumes:
+      # Persistent data — survives container rebuilds
+      - opb_db:/data/db
+      - opb_models:/data/models
+      - opb_reports:/data/reports
+      - opb_logs:/data/logs
+      # Optional: mount a custom config.json without rebuilding the image
+      # - ./config.local.json:/app/config.local.json:ro
+
+    ports:
+      # Web dashboard (disabled by default in config; expose when enabled)
+      - "${OPB_DASHBOARD_PORT:-8765}:8765"
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import sqlite3, os; db=os.environ.get('OPBUYING_TRADES_DB','/data/db/trades.db'); "
+             "sqlite3.connect(db) if os.path.exists(db) else exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+volumes:
+  opb_db:
+  opb_models:
+  opb_reports:
+  opb_logs:

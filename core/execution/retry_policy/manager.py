@@ -1,0 +1,41 @@
+"""
+Retry Policy Manager for Order Execution.
+
+Implements exponential backoff and retry logic for broker communications.
+"""
+
+from __future__ import annotations
+import time
+import logging
+from typing import Callable, Any, Optional
+
+log = logging.getLogger("retry_policy")
+
+class RetryPolicy:
+    def __init__(self, max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 10.0, exponential_base: float = 2.0):
+        self.max_retries = max_retries
+        self.base_delay = base_delay
+        self.max_delay = max_delay
+        self.exponential_base = exponential_base
+
+    def execute_with_retry(self, operation: Callable, *args, **kwargs) -> Any:
+        last_exception = None
+        
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                if attempt > 1:
+                    delay = min(
+                        self.base_delay * (self.exponential_base ** (attempt - 2)),
+                        self.max_delay
+                    )
+                    log.debug(f"Retry attempt {attempt} after {delay:.1f}s delay")
+                    time.sleep(delay)
+                
+                return operation(*args, **kwargs)
+            except Exception as e:
+                last_exception = e
+                log.warning(f"Operation attempt {attempt} failed: {e}")
+                if attempt == self.max_retries:
+                    break
+        
+        raise last_exception if last_exception else RuntimeError("Operation failed after max retries")

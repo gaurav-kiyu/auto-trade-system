@@ -1,0 +1,282 @@
+# OPB_FINAL_MT Trading System – Complete User Guide
+
+> Last updated: 12 May 2026 | Version: 2.45
+
+---
+
+## 1. System Overview
+
+**Architecture:** Clean Architecture (Ports & Adapters) with DI container
+**Modules:** 100+ core modules, 1500+ tests
+**Brokers:** Multi-broker support (Kite, Angel, Paper mode)
+**Deployment:** Docker, Windows EXE (`build_exe.bat`)
+**Safety:** Paper mode default, auto-trading disabled unless explicitly enabled, risk controls (drawdown, circuit breakers, kill switches)
+
+### What This Bot Does
+The bot automatically:
+- Scans NSE index options (NIFTY / BANKNIFTY / FINNIFTY) every 30 seconds
+- Generates trade signals based on RSI, MACD, ADX, volume, breakout, VWAP
+- Scores each signal (0-100) and assigns a tier (STRONG / MODERATE / WEAK)
+- Places trades automatically in PAPER mode (no real money)
+- Sends Telegram alerts for every signal and exit
+- Tracks P&L, drawdown, win rate in SQLite databases
+
+### Entry Points
+
+| Command | Purpose |
+|---|---|
+| `run_low_capital.bat` | Rs.5,000 PAPER mode launcher (recommended start) |
+| `build_exe.bat` | Build Windows .exe launcher |
+| `python index_app/index_trader.py --paper` | Manual PAPER mode start |
+| `docker compose up -d` | Docker deployment (Linux/VPS) |
+
+---
+
+## 2. How to Start (Step by Step)
+
+### Step 1 — First Time Setup
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Build the Windows executable (one-time)
+build_exe.bat
+copy dist\OPBuying_INDEX_Launcher.exe .
+
+# 3. Rotate Telegram secrets in .env
+BOT_TOKEN=YOUR_REAL_TELEGRAM_BOT_TOKEN
+CHAT_ID=YOUR_REAL_CHAT_ID
+```
+
+### Step 2 — Start Paper Trading
+
+```bash
+# Option A: Launcher (GUI)
+double-click OPBuying_INDEX_Launcher.exe
+
+# Option B: Low capital launcher (Rs.5,000)
+run_low_capital.bat
+
+# Option C: Command line
+python index_app/index_trader.py --paper
+```
+
+### Step 3 — Verify It's Working
+
+Look for these in the terminal output:
+```
+✅ Connected to broker (PAPER mode)
+✅ Signal engine ready
+✅ Telegram alerts enabled
+```
+
+You will receive a Telegram message: *"Bot started in PAPER mode"*
+
+---
+
+## 3. Workflow – How Trades Execute
+
+```
+Market Data Feed → NSE index options data ingested (1m/5m/15m bars)
+
+IV Rank Check → VIX level checked (VIX > 27 = block all entries)
+
+Session Check → Time of day evaluated
+  09:20–10:15 IST = OPENING (-10 score penalty)
+  10:15–11:30 IST = TRENDING (+5 score bonus) ← BEST WINDOW
+  11:30–13:30 IST = CHOPPY (-15 score penalty) ← AVOID
+  13:30–14:15 IST = RECOVERY (neutral)
+  14:15–15:00 IST = PRE_CLOSE (-5 penalty)
+
+Signal Engine → Pure indicators evaluated:
+  • RSI: 40–60 bullish zone
+  • MACD: Histogram positive = momentum
+  • Breakout: Price above VWAP + volume > 1.2x
+  • ADX: > 16 = trend confirmed
+  • Volume ratio: > 1.2x average
+
+Signal Score Computed (0–100) → Tier Assigned:
+  Score 80+  → STRONG  tier (1 lot, 100% size)
+  Score 70-79→ MODERATE tier (0.6 lot, 60% size)
+  Score 60-69→ WEAK tier (0.3 lot, 30% size) — disabled by default
+  Score <60  → IGNORE (no trade)
+
+Risk Engine → Exposure limits checked:
+  Daily loss < Rs.300? ✅
+  Capital available ≥ lot cost? ✅
+  Not in cooldown? ✅
+
+Execution Engine → Order placed:
+  PAPER mode = simulated fill (no real order)
+  LIVE mode = real broker order
+
+Trade Record → SQLite DB updated
+Telegram Alert → Signal details sent to your phone
+
+Exit Priority:
+  1. Stop Loss    → Exit if option drops 8%
+  2. Target Profit→ Exit if option rises 30%
+  3. Trailing SL  → After +12% gain, trail at -5% from peak
+  4. Time Exit    → Exit after 40 minutes max
+```
+
+---
+
+## 4. Example Trade Signal
+
+```
+Signal: Buy NIFTY 22500 CE, expiry this Thursday, 1 lot
+Direction: CALL
+Entry price: Rs.75/lot (ATM)
+Total cost: Rs.75 × 25 lot = Rs.1,875 (37.5% of Rs.5,000 capital)
+Stop loss: Rs.69/lot (-8%)
+Target: Rs.97.50/lot (+30%)
+Max hold time: 40 minutes
+
+Exit scenarios:
+  ✅ Target hit → +Rs.562/lot profit
+  ❌ Stop loss hit → -Rs.150/lot loss
+  ⏱ Time exit → varies
+```
+
+---
+
+## 5. Capital Settings for Rs.5,000
+
+Edit `config.lowcap.json`:
+
+```json
+{
+    "BASE_CAPITAL": 5000,
+    "MAX_DAILY_LOSS": -300,
+    "MAX_DRAWDOWN": 0.15,
+    "MAX_TRADES_DAY": 1,
+    "MAX_LOT_CAPITAL_PCT": 0.50,
+    "AI_THRESHOLD": 60,
+    "EXECUTION_MODE": "PAPER",
+    "INDEX_PRIORITY": ["NIFTY", "BANKNIFTY"]
+}
+```
+
+| Setting | Value | Meaning |
+|---|---|---|
+| BASE_CAPITAL | Rs.5,000 | Starting capital |
+| MAX_DAILY_LOSS | -Rs.300 | Hard stop: bot stops if you lose Rs.300 in a day |
+| MAX_DRAWDOWN | 15% | Bot stops if capital drops 15% from peak |
+| MAX_TRADES_DAY | 1 | Only 1 trade per day (safe for small capital) |
+| MAX_LOT_CAPITAL_PCT | 50% | Max Rs.2,500 per trade (50% of capital) |
+| AI_THRESHOLD | 60 | Signal score must be 60+ to trade |
+
+---
+
+## 6. Safety Controls (Never Disable)
+
+| Safety Feature | What It Does |
+|---|---|
+| **Paper Mode invariant** | PAPER mode never reaches real broker API |
+| **_HARD_HALT** | Kills all entries when capital breach detected |
+| **MAX_DAILY_LOSS** | Stops trading after Rs.300 daily loss |
+| **MAX_DRAWDOWN** | Stops trading at 15% drawdown from peak |
+| **Circuit Breaker** | Blocks entries if NSE/YF failure rate > 50% |
+| **Expiry Cutoff** | No new entries after 13:30 IST on expiry day |
+| **Session Blocks** | No entries after 15:00 IST daily |
+| **Kill File** | Drop `STOP_TRADING` in project root → immediate halt |
+| **VIX Block** | No entries when VIX > 27 |
+| **Capital Lock** | Prevents double-spend on concurrent entries |
+
+---
+
+## 7. Telegram Alerts
+
+Enable by adding real credentials to `.env`:
+```
+BOT_TOKEN=your_real_bot_token
+CHAT_ID=your_real_chat_id
+```
+
+Alerts you receive:
+- Bot startup / shutdown
+- Every signal generated (direction, index, score, tier)
+- Entry confirmation (fill price, lots)
+- Exit confirmation (PnL, exit reason)
+- Daily summary (trades, P&L, win rate)
+- Emergency alerts (hard halt, circuit breaker trip)
+
+---
+
+## 8. Operational Commands
+
+```bash
+# Paper trading (safe, no real orders)
+python index_app/index_trader.py --paper
+
+# Custom config
+OPBUYING_INDEX_CONFIG=config.lowcap.json python index_app/index_trader.py --paper
+
+# Health check (run every Sunday EOD)
+python -m core.health_checker
+
+# Live readiness check (before switching PAPER→LIVE)
+python -m core.live_readiness_checker
+
+# Generate PDF report
+python -m core.report_generator --days 30 --mode PAPER
+
+# Trade replay (last 5 trades in ASCII)
+python -m core.trade_replayer --last 5
+
+# Parameter sensitivity analysis
+python -m core.sensitivity_analyzer --param SL_PCT --days 60
+
+# Web dashboard (port 8765, browser monitoring)
+# Set web_dashboard_enabled: true in config.json
+python core/web_dashboard.py
+
+# Full regression tests
+python -m pytest tests/ -q
+```
+
+---
+
+## 9. Pros
+
+- **Feature-rich:** ML signal classifier, Monte Carlo, walk-forward validation, regime detection
+- **Safety-first:** Paper mode invariant, circuit breakers, watchdogs, kill file
+- **Config-driven:** 490+ keys, no hardcoded values, all adjustable without code changes
+- **Strong test coverage:** 1500+ tests ensure reliability
+- **Multi-broker:** Kite, Angel, Paper mode — broker agnostic
+- **Thread-safe:** ML cache, VIX history, capital manager all protected by locks
+- **Observability:** Telegram priority queue, health checks, trade replay, PDF reports
+
+## 10. Cons
+
+- **Complexity:** 100+ modules, steep learning curve for new users
+- **Config overload:** ~490 config keys can overwhelm beginners
+- **Legacy code:** Some old monolith scripts still present (marked deprecated)
+- **Capital requirement:** Even 1 NIFTY lot costs Rs.1,875; Rs.2,000 capital is too tight
+
+---
+
+## 11. Final Notes
+
+1. **Rotate secrets immediately** — edit `.env` with real Telegram credentials before LIVE mode
+2. **Always start with PAPER mode** — run for at least 2 weeks to validate signals
+3. **Rs.5,000 is the minimum** for NIFTY/BANKNIFTY 1-lot trading
+4. **Never go LIVE without rotating secrets** — `.env` with live credentials + LIVE mode = real orders
+5. **Check health weekly** — run `python -m core.health_checker` every Sunday
+6. **Respect the hard stop** — if `MAX_DAILY_LOSS = -Rs.300`, stop the bot and review
+7. **Scale up gradually** — after 2 weeks consistent profit, increase `BASE_CAPITAL`
+
+### Trading Hours (IST)
+| Window | Purpose |
+|---|---|
+| 09:15–09:20 IST | Pre-market, no entries |
+| 09:20–10:15 IST | OPENING (volatile, -10 score) |
+| 10:15–11:30 IST | **TRENDING (best, +5 bonus)** |
+| 11:30–13:30 IST | CHOPPY (avoid, -15 penalty) |
+| 13:30–14:15 IST | RECOVERY (neutral) |
+| 14:15–15:00 IST | PRE_CLOSE (-5 penalty) |
+| 15:00+ IST | CLOSED (no new entries) |
+
+> **Best trading window: 10:15–11:30 IST** — most signals fire during this period with highest win rate.

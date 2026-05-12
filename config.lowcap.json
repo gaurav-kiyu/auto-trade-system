@@ -1,0 +1,35 @@
+{
+    "_NOTE_PROFILE": "LOW CAPITAL PROFILE — Rs.5,000 capital (recommended minimum). Max 1 lot per trade. PAPER mode only. Daily loss hard stop: Rs.300 (6%).",
+    "EXECUTION_MODE": "PAPER",
+    "MANUAL_SIGNALS_ONLY": false,
+    "BROKER_API_ENABLED": false,
+
+    "_NOTE_CAPITAL": "Rs.5,000 starting capital. MAX_DAILY_LOSS = -Rs.300 (6% hard stop). Rs.2,000 is too small for even 1 NIFTY lot (Rs.1,875 per lot).",
+    "BASE_CAPITAL": 5000,
+    "MAX_DAILY_LOSS": -300,
+    "MAX_DRAWDOWN": 0.15,
+    "DAILY_TARGET": 300,
+
+    "_NOTE_RISK": "Conservative for small capital.",
+    "RISK_MODE": "FIXED",
+    "RISK_FIXED_AMOUNT": 150,
+    "RISK_PER_TRADE": 0.05,
+    "MAX_LOT_CAPITAL_PCT": 0.50,
+    "MAX_OPEN": 1,
+    "MAX_TRADES_DAY": 1,
+
+    "_NOTE_ENTRY": "Only NIFTY or BANKNIFTY at 1 lot max. FINNIFTY needs Rs.3,000/lot (too big for 5k).",
+    "AI_THRESHOLD": 65,
+    "INDEX_PRIORITY": ["NIFTY", "BANKNIFTY"],
+    "SL_PCT": 0.92,
+    "TARGET_PCT": 1.30,
+    "TRAIL_PCT": 0.93,
+    "TRAIL_ACTIVATE": 1.12,
+    "PARTIAL_EXIT_ENABLED": true,
+    "PARTIAL_EXIT_MULT": 1.15,
+
+    "_NOTE_TELEGRAM": "Startup + trade alerts only.",
+    "TG_QUIET_MODE": false,
+    "TG_TRADE_ONLY": true,
+    "TG_STARTUP_ALERT": true
+}

@@ -1,0 +1,80 @@
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.py[cod]
+*.pyc
+*.pyo
+*.egg-info/
+
+# ── Editors / OS ──────────────────────────────────────────────────────────────
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
+*.bak
+*.orig
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.cursor/
+.claude/
+
+# ── Environment / Secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+config.local.json
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+
+# ── Test / Coverage ───────────────────────────────────────────────────────────
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+
+# ── Build artifacts ───────────────────────────────────────────────────────────
+dist/
+build/
+*.exe
+*.spec
+
+# ── Reports ───────────────────────────────────────────────────────────────────
+reports/*.txt
+reports/*.jsonl
+reports/_tmp*
+reports/*.json
+_regression_bad_stock_config.json
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs/*.log
+logs/*.bak
+logs/*.jsonl
+logs/metrics_report.json
+config_audit.log
+tg_fallback_alerts.log
+
+# ── State / DB ────────────────────────────────────────────────────────────────
+trader_state.json
+trader_state.json.bak
+stock_trader_state.json
+stock_trader_state.json.bak
+/trades.db
+/stock_trades.db
+*.sqlite
+*.sqlite3
+backups/*.json
+nonexistent*.db
+stock_trades.db
+
+# ── ML models (generated at runtime) ──────────────────────────────────────────
+models/*
+!models/.gitkeep

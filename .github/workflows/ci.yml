@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Verify release bundle (no secrets / DB / backup dirs in tree)
+        run: python scripts/verify_release_bundle.py --ship-check
+
+      - name: Config JSON schemas in sync with defaults
+        run: python scripts/generate_config_schemas.py --check
+
+      - name: Validate defaults and templates against schemas
+        run: python scripts/validate_config_schema.py --all
+
+      - name: Ruff lint
+        run: python -m ruff check index_app core scripts tests
+
+      - name: Tests
+        run: pytest tests -q

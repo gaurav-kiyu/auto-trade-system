@@ -1,0 +1,8 @@
+{
+  "NIFTY": {
+    "5m": {
+      "rows": 120,
+      "source": "fixture"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "_comment": "OPB Index Options Buying Bot - Default Configuration",
+  "_comment": "ALL SECRETS MUST COME FROM ENVIRONMENT VARIABLES WITH OPBUYING_* PREFIX",
+  "_comment": "Never store secrets in this file or any config file!",
+
+  "BASE_CAPITAL": 50000,
+  "MAX_DAILY_LOSS": 1000,
+  "MAX_DRAWDOWN": 0.20,
+  "MAX_OPEN": 2,
+  "MAX_TRADES_DAY": 15,
+  "BASE_LOTS": 2,
+  "PAPER_MODE": true,
+  "EXECUTION_MODE": "PAPER",
+  "MANUAL_SIGNALS_ONLY": true,
+
+  "SL_PCT": 0.15,
+  "TARGET_PCT": 0.30,
+  "TRAIL_PCT": 0.08,
+  "PORTFOLIO_MAX_SL_RISK_PCT": 0.75,
+
+  "SIGNAL_THRESHOLD_STRONG": 0.7,
+  "SIGNAL_THRESHOLD_MODERATE": 0.5,
+  "SCAN_INTERVAL": 60,
+
+  "ML_CLASSIFIER_ENABLED": true,
+  "ML_MIN_TRADES_TO_TRAIN": 50,
+  "ML_MODEL_PATH": "data/ml_model.pkl",
+  "ML_RETRAIN_INTERVAL_HOURS": 24,
+
+  "TELEGRAM_ENABLED": true,
+  "WEB_DASHBOARD_ENABLED": false,
+  "WEB_DASHBOARD_PORT": 8765,
+  "METRICS_ENABLED": false,
+  "METRICS_PORT": 9090,
+
+  "LOG_LEVEL": "INFO",
+  "LOG_ROTATION_MB": 50,
+  "LOG_BACKUP_COUNT": 5
+}
