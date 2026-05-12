@@ -946,6 +946,35 @@ def setup_di_container() -> None:
     container._singleton_instances[MetricsPort] = metrics_service
 
 
+# Backwards-compatible, read-only shim exports (use index_trader_interface for new code)
+try:
+    from .index_trader_interface import (
+        start_trader as start_trader_shim,
+        get_state_snapshot as get_state_snapshot_shim,
+        generate_signal_snapshot as generate_signal_snapshot_shim,
+        health_check as health_check_shim,
+    )
+except Exception:
+    # In case the interface isn't available during early import, provide no-op fallbacks
+    def start_trader_shim(*args, **kwargs):
+        raise RuntimeError("index_trader_interface not initialized")
+
+    def get_state_snapshot_shim(*args, **kwargs):
+        return {}
+
+    def generate_signal_snapshot_shim(*args, **kwargs):
+        return []
+
+    def health_check_shim(*args, **kwargs):
+        return {"ok": False, "reason": "shim not available"}
+
+# Export the shim names to preserve old callers
+start_trader = start_trader_shim
+get_state_snapshot = get_state_snapshot_shim
+generate_signal_snapshot = generate_signal_snapshot_shim
+health_check = health_check_shim
+
+
 def main() -> None:
     """Main entry point that sets up DI container for production use."""
     setup_di_container()
