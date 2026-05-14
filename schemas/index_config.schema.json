@@ -399,6 +399,18 @@
     "FIB_TP3_RATIO": {
       "type": "number"
     },
+    "FINNIFTY_MIN_IV_RANK": {
+      "type": "number"
+    },
+    "FINNIFTY_MIN_SCORE_OFFSET": {
+      "type": "integer"
+    },
+    "FINNIFTY_REGIME_REQUIRE_TRENDING": {
+      "type": "boolean"
+    },
+    "FINNIFTY_SPECIFIC_ENABLED": {
+      "type": "boolean"
+    },
     "FORCE_EXIT_AFTER_SHUTDOWN": {
       "type": "boolean"
     },
@@ -630,6 +642,21 @@
     "PORTFOLIO_MAX_SL_RISK_PCT": {
       "type": "number"
     },
+    "REAL_TIME_ALERT_ON_DRAWDOWN_PCT": {
+      "type": "number"
+    },
+    "REAL_TIME_ALERT_ON_LOSS_STREAK": {
+      "type": "integer"
+    },
+    "REAL_TIME_ALERT_WEBHOOK_URL": {
+      "type": "string"
+    },
+    "REAL_TIME_DASHBOARD_ENABLED": {
+      "type": "boolean"
+    },
+    "REAL_TIME_DASHBOARD_PORT": {
+      "type": "integer"
+    },
     "RECONCILE_HALT_ON_QTY_MISMATCH": {
       "type": "boolean"
     },
@@ -855,6 +882,18 @@
     "TG_TRADE_ONLY": {
       "type": "boolean"
     },
+    "TIME_OF_DAY_ALLOW_TRENDING_ONLY": {
+      "type": "boolean"
+    },
+    "TIME_OF_DAY_BLOCK_END_HOUR": {
+      "type": "integer"
+    },
+    "TIME_OF_DAY_BLOCK_START_HOUR": {
+      "type": "integer"
+    },
+    "TIME_OF_DAY_FILTER_ENABLED": {
+      "type": "boolean"
+    },
     "TRAIL_ACTIVATE": {
       "type": "number"
     },
@@ -867,6 +906,9 @@
     "USER_TIPS_ON_START": {
       "type": "boolean"
     },
+    "VIX_ADAPTIVE_THRESHOLDS_ENABLED": {
+      "type": "boolean"
+    },
     "VIX_BLOCK_THRESHOLD": {
       "type": "number"
     },
@@ -877,6 +919,18 @@
       "type": "number"
     },
     "VIX_HALT_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_HIGH_PENALTY": {
+      "type": "integer"
+    },
+    "VIX_HIGH_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_LOW_BONUS": {
+      "type": "integer"
+    },
+    "VIX_LOW_THRESHOLD": {
       "type": "number"
     },
     "VIX_RISING_THRESHOLD_BONUS": {
