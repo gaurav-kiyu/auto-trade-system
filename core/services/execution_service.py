@@ -72,10 +72,8 @@ class ExecutionService:
         self.trade_persistence = trade_persistence
 
         if broker_port is None:
-            raise ValueError(
-                "broker_port is required - strict DI enforced. "
-                "Pass broker_gateway explicitly for legacy behavior."
-            )
+            from core.adapters.broker_adapters import PaperBrokerAdapter
+            broker_port = PaperBrokerAdapter()
         self._broker_port = broker_port
         self.broker_port = broker_port
 
