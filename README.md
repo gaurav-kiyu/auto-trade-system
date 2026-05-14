@@ -1,12 +1,22 @@
-# OPB Index Options Buying Bot v2.47
+# OPB Index Options Buying Bot v2.48
 
 ## Overview
 
 OPB (Options Buying Bot) is an automated NSE index options trading system supporting NIFTY, BANKNIFTY, and FINNIFTY. The system implements algorithmic signal generation, risk management, and execution with broker integration.
 
-**Version:** 2.47 (Production Ready - Enhanced)  
+**Version:** 2.48 (Mandate Compliant)  
 **Platform:** Windows (primary), Linux/Docker compatible  
 **Python:** 3.10-3.19
+
+## Primary Mandate
+
+**Survive first. Compound second. Never reverse that order.**
+
+- Risk per trade: 1.5% (not 2% or 3%)
+- Daily hard stop: 2.5%
+- Weekly circuit: 5%
+- Max drawdown protection: 12%
+- Loss streak cooldown: 2 hours after 3 losses
 
 ---
 

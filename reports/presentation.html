@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OPB Trading Bot v2.47 - Performance Review</title>
+    <title>OPB Trading Bot v2.48 - Trade Mandate Compliance</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
@@ -19,19 +19,16 @@
         .metric { display: inline-block; background: #1a1a2e; padding: 15px 25px; border-radius: 10px; margin: 10px; text-align: center; }
         .metric-value { font-size: 2em; font-weight: bold; color: #00d4ff; }
         .metric-label { font-size: 0.9em; color: #aaa; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
-        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
         .card { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; text-align: center; }
         .card h4 { color: #ffd700; margin-bottom: 10px; }
         .card .value { font-size: 1.8em; font-weight: bold; }
         .positive { color: #00ff88; }
         .negative { color: #ff6b6b; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2); }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2); font-size: 0.95em; }
         th { background: rgba(0,212,255,0.2); color: #00d4ff; }
         .footer { text-align: center; color: #666; margin-top: 20px; font-size: 0.9em; }
-        .progress-bar { height: 20px; background: #333; border-radius: 10px; overflow: hidden; margin: 5px 0; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #00d4ff, #00ff88); border-radius: 10px; }
         .tag { display: inline-block; padding: 5px 15px; border-radius: 15px; font-size: 0.85em; margin: 3px; }
         .tag-green { background: rgba(0,255,136,0.2); color: #00ff88; }
         .tag-yellow { background: rgba(255,215,0,0.2); color: #ffd700; }
@@ -43,266 +40,267 @@
 
 <div class="slide">
     <h1>OPB Index Options Buying Bot</h1>
-    <p style="color: #aaa; font-size: 1.3em;">v2.47 - Deep Backtest Analysis & Enhancements</p>
+    <p style="color: #aaa; font-size: 1.3em;">v2.48 - Trade Mandate Implementation</p>
     <p style="margin-top: 30px;">May 14, 2026</p>
-    <div class="footer">Backtest Period: April 14 - May 11, 2026 (27 days)</div>
+    <div class="footer">PRIMARY MANDATE: Survive First. Compound Second.</div>
 </div>
 
 <div class="slide">
-    <h2>Executive Summary</h2>
+    <h2>Trade Mandate Summary</h2>
+    <p style="font-size:1.2em; margin-bottom:20px;">"A day with no trade is neutral. A day with a bad trade is a losing day that compounds."</p>
     <div class="grid">
         <div class="card">
-            <h4>Total Trades</h4>
-            <div class="value">55</div>
+            <h4>Risk Per Trade</h4>
+            <div class="value">1.5%</div>
+            <p style="color:#aaa;">Not 2% or 3%</p>
         </div>
         <div class="card">
-            <h4>Win Rate</h4>
-            <div class="value positive">54.5%</div>
+            <h4>Daily Hard Stop</h4>
+            <div class="value">2.5%</div>
+            <p style="color:#aaa;">Max daily loss</p>
         </div>
         <div class="card">
-            <h4>Total P&L</h4>
-            <div class="value positive">+INR 3,389.50</div>
-        </div>
-    </div>
-    <div class="grid">
-        <div class="card">
-            <h4>Avg P&L/Trade</h4>
-            <div class="value positive">+INR 61.63</div>
-        </div>
-        <div class="card">
-            <h4>Sharpe-like</h4>
-            <div class="value positive">2.05</div>
+            <h4>Weekly Circuit</h4>
+            <div class="value">5%</div>
+            <p style="color:#aaa;">Reduce sizing</p>
         </div>
         <div class="card">
             <h4>Max Drawdown</h4>
-            <div class="value negative">INR 97.50</div>
+            <div class="value">12%</div>
+            <p style="color:#aaa;">Protection</p>
         </div>
     </div>
-    <p style="margin-top: 20px; text-align: center; font-size: 1.3em;">
-        <span class="tag tag-green">POSITIVE EXPECTANCY</span>
-        <span class="tag tag-green">EXCELLENT SHARPE</span>
-        <span class="tag tag-blue">v2.47 ENHANCED</span>
-    </p>
 </div>
 
 <div class="slide">
-    <h2>Deep Signal Analysis</h2>
-    <h3>Signal Accuracy by Score Band</h3>
+    <h2>PART 1: When to Trade (5 Conditions)</h2>
+    <ol style="margin-left:20px; line-height:2;">
+        <li><strong>Regime Confirmed</strong> - Confidence ≥ 0.65, clear TRENDING/SIDEWAYS/RANGE</li>
+        <li><strong>Independent Signals</strong> - 2 of 3 pillars: Price/Momentum, Options, Institutional</li>
+        <li><strong>Execution Conditions</strong> - VIX 12-28, Time 9:20-11:30 & 13:00-14:45 IST</li>
+        <li><strong>Risk Budget Allows</strong> - Daily stop not hit, <2 positions, no event cooldown</li>
+        <li><strong>Expected Value ≥ ₹40</strong> - (Win% × AvgWin) - (Loss% × AvgLoss) - Friction</li>
+    </ol>
+    <p style="margin-top:15px;"><span class="tag tag-green">ANY SINGLE FAILURE = NO TRADE</span></p>
+</div>
+
+<div class="slide">
+    <h2>Signal Independence Validation</h2>
+    <p>RSI/MACD/ADX = ONE pillar (not three)</p>
     <table>
         <tr>
-            <th>Score Band</th>
-            <th>Trades</th>
-            <th>Win Rate</th>
-            <th>Avg P&L</th>
-            <th>Assessment</th>
+            <th>Pillar</th>
+            <th>Components</th>
+            <th>Status</th>
         </tr>
         <tr>
-            <td>80-90 (Strong)</td>
-            <td>10</td>
-            <td class="positive">60.0%</td>
-            <td class="positive">+85.20</td>
-            <td><span class="tag tag-green">BEST</span></td>
+            <td>Price/Momentum</td>
+            <td>RSI + MACD + ADX</td>
+            <td class="positive">1 signal</td>
         </tr>
         <tr>
-            <td>70-80</td>
-            <td>30</td>
-            <td>53.3%</td>
-            <td class="positive">+57.83</td>
-            <td>Consistent</td>
+            <td>Options Market</td>
+            <td>IV Rank + OI Change + PCR</td>
+            <td class="positive">Independent</td>
         </tr>
         <tr>
-            <td>60-70</td>
-            <td>15</td>
-            <td>53.3%</td>
-            <td class="positive">+53.50</td>
-            <td>Acceptable</td>
+            <td>Institutional Flow</td>
+            <td>FII/DII Net + GEX</td>
+            <td class="positive">Independent</td>
+        </tr>
+        <tr>
+            <td>Structural</td>
+            <td>Session + Time + Event Calendar</td>
+            <td class="positive">Independent</td>
         </tr>
     </table>
-    <h3>Insight</h3>
-    <p>Higher signal scores strongly correlate with better win rates. 80+ signals achieve 60% accuracy.</p>
+    <p style="margin-top:15px;"><strong>Rule:</strong> Need consensus from at least 2 pillars (2+ bullish OR 2+ bearish)</p>
 </div>
 
 <div class="slide">
-    <h2>False Signals Analysis (Key Finding)</h2>
-    <div class="grid-2">
-        <div class="card">
-            <h4>False Signal Rate</h4>
-            <div class="value danger">32.7%</div>
-            <p style="color:#aaa;">18 of 55 trades</p>
-        </div>
-        <div class="card">
-            <h4>Definition</h4>
-            <div style="font-size:0.9em;">Score >=70 but resulted in loss</div>
-        </div>
-    </div>
-    <h3>False Signal Pattern</h3>
-    <ul>
-        <li><strong>IV Correlation:</strong> Avg IV during false signals = 25.2 (HIGH)</li>
-        <li><strong>Regime Distribution:</strong> Evenly split TRENDING/SIDEWAYS/RANGE (6 each)</li>
-        <li><strong>Root Cause:</strong> High IV combined with high score leads to false signals</li>
-    </ul>
-    <p style="margin-top:15px;"><span class="tag tag-red">ACTION:</span> Added false signal filter in v2.47 - blocks signals when score >=75 AND IV >=26</p>
-</div>
-
-<div class="slide">
-    <h2>Performance by Regime</h2>
+    <h2>PART 2: Position Sizing</h2>
     <table>
         <tr>
+            <th>Base Risk</th>
+            <td colspan="2">1.5% of current capital</td>
+        </tr>
+        <tr>
             <th>Regime</th>
-            <th>Trades</th>
-            <th>Win Rate</th>
-            <th>Avg P&L</th>
-            <th>Assessment</th>
+            <th>Multiplier</th>
+            <th>Risk %</th>
         </tr>
         <tr>
             <td>TRENDING</td>
-            <td>19</td>
-            <td class="positive">57.9%</td>
-            <td class="positive">+77.76</td>
-            <td><span class="tag tag-green">BEST</span></td>
+            <td>1.2×</td>
+            <td class="positive">1.8%</td>
         </tr>
         <tr>
             <td>SIDEWAYS</td>
-            <td>18</td>
-            <td class="positive">55.6%</td>
-            <td class="positive">+61.50</td>
-            <td>Good</td>
+            <td>0.85×</td>
+            <td>1.275%</td>
         </tr>
         <tr>
             <td>RANGE</td>
-            <td>18</td>
-            <td>50.0%</td>
-            <td class="positive">+44.72</td>
-            <td>Acceptable</td>
+            <td>0.75×</td>
+            <td>1.125%</td>
+        </tr>
+        <tr>
+            <td>UNCERTAINTY</td>
+            <td>0.5×</td>
+            <td class="negative">0.75%</td>
         </tr>
     </table>
-    <h3>Consistency Assessment</h3>
-    <p>Performance varies by regime: TRENDING yields best results (+77.76/trade), RANGE lowest (+44.72).</p>
+    <p style="margin-top:15px;"><span class="tag tag-yellow">NOTE:</span> Regime multipliers need 200+ trades validation before use</p>
 </div>
 
 <div class="slide">
-    <h2>v2.47 Enhancements Implemented</h2>
-    <div class="grid-2">
-        <div>
-            <h3>Signal Refinement</h3>
-            <ul>
-                <li>Volatility confirmation filters</li>
-                <li>Multi-indicator alignment (RSI, MACD, ADX)</li>
-                <li>False signal filter (blocks score>=75 + IV>=26)</li>
-                <li>Regime-aware threshold adjustment</li>
-            </ul>
-        </div>
-        <div>
-            <h3>Risk Management</h3>
-            <ul>
-                <li>Dynamic position sizing enabled</li>
-                <li>TRENDING: 1.2x risk (3.6%)</li>
-                <li>SIDEWAYS: 0.8x risk (2.4%)</li>
-                <li>RANGE: 0.7x risk (2.1%)</li>
-            </ul>
-        </div>
-    </div>
-    <div class="grid-2">
-        <div>
-            <h3>Data Quality</h3>
-            <ul>
-                <li>Price anomaly detection (5% max)</li>
-                <li>Volume spike detection (5x)</li>
-                <li>Spread anomaly detection (3%)</li>
-            </ul>
-        </div>
-        <div>
-            <h3>Config Externalization</h3>
-            <ul>
-                <li>15 new config keys added</li>
-                <li>Easy tuning without code changes</li>
-                <li>500+ total config parameters</li>
-            </ul>
-        </div>
-    </div>
+    <h2>PART 3: Risk Rules (Non-Negotiable)</h2>
+    <table>
+        <tr>
+            <th>Rule</th>
+            <th>Threshold</th>
+            <th>Action</th>
+        </tr>
+        <tr>
+            <td>Per-trade max</td>
+            <td>1.5%</td>
+            <td>Auto-exit at stop</td>
+        </tr>
+        <tr>
+            <td>Daily hard stop</td>
+            <td>2.5%</td>
+            <td class="negative">No more trades</td>
+        </tr>
+        <tr>
+            <td>Weekly circuit</td>
+            <td>5%</td>
+            <td>0.75× sizing 5 days</td>
+        </tr>
+        <tr>
+            <td>Max drawdown</td>
+            <td>12%</td>
+            <td>Paper mode until recovery</td>
+        </tr>
+        <tr>
+            <td>Loss streak</td>
+            <td>3 losses</td>
+            <td>2-hour cooldown</td>
+        </tr>
+        <tr>
+            <td>VIX hard block</td>
+            <td>>30</td>
+            <td class="negative">Zero entries</td>
+        </tr>
+        <tr>
+            <td>Data staleness</td>
+            <td>>30s</td>
+            <td class="negative">No new entries</td>
+        </tr>
+    </table>
+    <p style="margin-top:15px;"><strong>NEVER</strong> increase position to recover losses. The math doesn't work.</p>
 </div>
 
 <div class="slide">
-    <h2>System Components Status</h2>
-    <div class="grid-2">
-        <div>
-            <h3>Production Ready</h3>
-            <ul>
-                <li><span class="positive">✓</span> Signal Generation (IV Rank, RSI, MACD, ADX)</li>
-                <li><span class="positive">✓</span> Signal Refinement v2.47</li>
-                <li><span class="positive">✓</span> Dynamic Position Sizing</li>
-                <li><span class="positive">✓</span> Data Quality Monitor</li>
-                <li><span class="positive">✓</span> Risk Management (SL, Target, Dynamic)</li>
-                <li><span class="positive">✓</span> ML Classifier (LightGBM, 14 features)</li>
-            </ul>
-        </div>
-        <div>
-            <h3>Future Enhancements</h3>
-            <ul>
-                <li><span class="tag tag-yellow">◐</span> Reinforcement learning</li>
-                <li><span class="tag tag-yellow">◐</span> Regime-specific ML models</li>
-                <li><span class="tag tag-yellow">◐</span> Auto-threshold optimization</li>
-            </ul>
-        </div>
-    </div>
+    <h2>PART 4: Signal Quality Standards</h2>
+    <table>
+        <tr>
+            <th>Regime</th>
+            <th>Min Score</th>
+            <th>Notes</th>
+        </tr>
+        <tr>
+            <td>TRENDING</td>
+            <td class="positive">68</td>
+            <td>Lowest threshold</td>
+        </tr>
+        <tr>
+            <td>SIDEWAYS</td>
+            <td>73</td>
+            <td>Requires more evidence</td>
+        </tr>
+        <tr>
+            <td>RANGE</td>
+            <td class="negative">78</td>
+            <td>Highest threshold</td>
+        </tr>
+    </table>
+    <h3>False Signal Suppression</h3>
+    <p><strong>Block:</strong> Score ≥75 AND IV >26</p>
+    <p><strong>IV Filter:</strong> Only buy when IV Rank ≥20%</p>
+    <h3>FINNIFTY Rules</h3>
+    <p>Score ≥72 AND IV Rank ≥25% AND TRENDING regime required</p>
+    <p style="color:#aaa;"><em>Needs validation before enable (18 trades insufficient)</em></p>
 </div>
 
 <div class="slide">
-    <h2>Pros and Cons</h2>
-    <div class="grid-2">
-        <div>
-            <h3 style="color:#00ff88">PROS</h3>
-            <ul>
-                <li>Positive expectancy (+61.63/trade)</li>
-                <li>Excellent Sharpe ratio (2.05)</li>
-                <li>Low max drawdown (97.50)</li>
-                <li>Strong signals (80+) achieve 60% WR</li>
-                <li>Consistent across NIFTY/BANKNIFTY/FINNIFTY</li>
-                <li>TRENDING regime best (+77.76/trade)</li>
-            </ul>
-        </div>
-        <div>
-            <h3 style="color:#ff6b6b">CONS</h3>
-            <ul>
-                <li>32.7% false signal rate</li>
-                <li>Limited backtest (27 days)</li>
-                <li>Win rate just above breakeven (54.5%)</li>
-                <li>No extreme VIX data to test</li>
-                <li>FINNIFTY underperforms vs others</li>
-            </ul>
-        </div>
-    </div>
+    <h2>PART 5: Validation Gates</h2>
+    <ol style="line-height:2;">
+        <li><strong>Walk-forward test:</strong> Performance in B ≥80% of A (max 20% degradation)</li>
+        <li><strong>Cost-adjusted:</strong> Net PnL includes STT, brokerage, exchange fees, GST, bid-ask</li>
+        <li><strong>Regime robustness:</strong> Positive in at least 2 of 3 regimes</li>
+        <li><strong>Sample size:</strong> Minimum 80 observations per condition</li>
+    </ol>
+    <p style="margin-top:15px;"><span class="tag tag-red">IMPORTANT:</span> Weekday multipliers (Mon 1.1×) and FINNIFTY filters are <strong>NOT YET VALIDATED</strong> - need 300+ and 80+ trades respectively.</p>
 </div>
 
 <div class="slide">
-    <h2>Recommendations</h2>
-    <h3>Immediate Actions (1-2 months)</h3>
+    <h2>Operating Modes by Condition</h2>
+    <table>
+        <tr>
+            <th>Condition</th>
+            <th>Mode</th>
+            <th>Risk/Trade</th>
+            <th>Max/Day</th>
+        </tr>
+        <tr>
+            <td>VIX 12-20, clear regime</td>
+            <td class="tag tag-green">STANDARD</td>
+            <td>1.5%</td>
+            <td>4</td>
+        </tr>
+        <tr>
+            <td>VIX 20-28, mixed regime</td>
+            <td class="tag tag-yellow">CAUTIOUS</td>
+            <td>0.75%</td>
+            <td>2</td>
+        </tr>
+        <tr>
+            <td>VIX 28-30, loss streak</td>
+            <td class="tag tag-red">HIGH_STRESS</td>
+            <td>0.5%</td>
+            <td>1</td>
+        </tr>
+        <tr>
+            <td>VIX >30, drawdown >8%</td>
+            <td class="tag tag-red">EXTREME/OBSERVE</td>
+            <td>0%</td>
+            <td>0</td>
+        </tr>
+    </table>
+    <p style="margin-top:15px;">Mode determined at market open, can only downgrade (never upgrade).</p>
+</div>
+
+<div class="slide">
+    <h2>System What It Does NOT Yet Know</h2>
     <ul>
-        <li>Deploy v2.47 in paper mode</li>
-        <li>Monitor false signal rate (target: &lt;25%)</li>
-        <li>Validate dynamic position sizing</li>
+        <li>Performance in VIX >25 environment</li>
+        <li>True cost-adjusted net PnL (gross only so far)</li>
+        <li>Walk-forward validated regime multipliers</li>
+        <li>FINNIFTY filter effectiveness (18 trades insufficient)</li>
+        <li>System behavior during gap-open/circuit-breaker</li>
+        <li>Real fill quality vs simulated fills</li>
     </ul>
-    <h3>Short-term (1-3 months)</h3>
-    <ul>
-        <li>Collect more data (target: 3-6 months backtest)</li>
-        <li>A/B test false signal filter effectiveness</li>
-        <li>Tune dynamic risk multipliers</li>
-    </ul>
-    <h3>Medium-term (3-6 months)</h3>
-    <ul>
-        <li>Implement reinforcement learning</li>
-        <li>Train regime-specific ML models</li>
-        <li>Add auto-threshold optimization</li>
-    </ul>
+    <p style="margin-top:20px;"><span class="tag tag-green">A system that knows its unknowns is safer than one that doesn't.</span></p>
 </div>
 
 <div class="slide" style="text-align: center;">
     <h1 style="font-size: 3em; color: #00ff88;">FINAL VERDICT</h1>
-    <p style="font-size: 2em; margin: 30px 0;"><span class="tag tag-green" style="font-size: 1.5em; padding: 10px 30px;">PRODUCTION READY (v2.47 Paper Mode)</span></p>
-    <p style="color: #aaa; margin-top: 30px;">Enhanced with signal refinement, dynamic sizing, and data quality monitoring.</p>
-    <p style="color: #aaa;">Deep analysis confirms positive expectancy with 2.05 Sharpe ratio.</p>
+    <p style="font-size: 2em; margin: 30px 0;"><span class="tag tag-green" style="font-size: 1.5em; padding: 10px 30px;">MANDATE COMPLIANT (v2.48)</span></p>
+    <p style="color: #aaa; margin-top: 20px;">Survive First. Compound Second.</p>
+    <p style="color: #aaa;">All non-negotiable risk rules implemented.</p>
+    <p style="color: #aaa; margin-top: 30px;">Weekday multipliers and FINNIFTY filters locked until validation.</p>
     <div class="footer" style="margin-top: 50px;">
-        <p>OPB Index Options Buying Bot v2.47</p>
+        <p>OPB Index Options Buying Bot v2.48</p>
         <p>Generated: May 14, 2026</p>
     </div>
 </div>
