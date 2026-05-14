@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 from dataclasses import dataclass
 from core.safety_state import trip_hard_halt
-from core.common.kernels.models import RiskDecision, RiskEvaluation
+from core.ports.risk.risk_port import RiskDecision, RiskEvaluation
 
 @dataclass
 class LimitConfig:

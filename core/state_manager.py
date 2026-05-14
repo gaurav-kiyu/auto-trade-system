@@ -4,7 +4,7 @@ import os
 import shutil
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 from dataclasses import dataclass
 from core.time_provider import time_provider
 
@@ -29,12 +29,24 @@ class StateManager:
         self,
         state_file: str = "trader_state.json",
         db_path: str = "trades.db",
+        save_fn: Callable[[], None] | None = None,
+        load_fn: Callable[[], None] | None = None,
+        local_positions_fn: Callable[[], dict[str, Any]] | None = None,
+        broker_positions_fn: Callable[[], dict[str, Any]] | None = None,
         **kwargs # Preserve compatibility with old init
     ):
         self.state_path = Path(state_file)
         self.db_path = Path(db_path)
         self._state: Dict[str, Any] = {}
-        self.load_state()
+        self._save_fn = save_fn
+        self._load_fn = load_fn
+        self._local_positions_fn = local_positions_fn
+        self._broker_positions_fn = broker_positions_fn
+
+        if self._load_fn is not None:
+            self._load_fn()
+        else:
+            self.load_state()
 
     def load_state(self):
         """Loads state from disk with fallback to recovery."""
@@ -85,11 +97,18 @@ class StateManager:
         except Exception as e:
             log.critical(f"DB Recovery failed: {e}")
 
-    def session_recovery_report(self, broker_positions: dict = None) -> SessionRecoveryReport:
+    def session_recovery_report(self, broker_positions: dict | None = None) -> SessionRecoveryReport:
         """Compares local state with broker reality."""
-        local_pos = self.get("active_positions", {})
-        broker_pos = broker_positions or {}
-        
+        if self._local_positions_fn is not None:
+            local_pos = self._local_positions_fn() or {}
+        else:
+            local_pos = self.get("active_positions", {}) or {}
+
+        if broker_positions is None:
+            broker_pos = self._broker_positions_fn() if self._broker_positions_fn is not None else {}
+        else:
+            broker_pos = broker_positions or {}
+
         local_keys = set(local_pos.keys())
         broker_keys = set(broker_pos.keys())
         matched = len(local_keys & broker_keys)
@@ -106,3 +125,7 @@ class StateManager:
     # Compatibility aliases for old code
     def save(self): self.save_state()
     def load(self): self.load_state()
+
+
+# Compatibility alias for legacy imports and global access
+state_manager = StateManager()

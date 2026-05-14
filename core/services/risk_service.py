@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from core.risk.limits.manager import RiskLimitsManager
+from core.risk.limits.manager import LimitConfig, RiskLimitsManager
 from core.risk.sizing.manager import PositionSizingManager
 from core.ports.persistence.persistence_port import TradePersistencePort
 from core.ports.risk.risk_port import PortfolioRiskMetrics, PositionSizingInput, RiskDecision, RiskEvaluation, RiskPort

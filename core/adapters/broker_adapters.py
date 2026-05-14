@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from core.ports.broker import BrokerPort
+
 
 def _flatten_effective_broker_config(cfg: dict[str, Any]) -> dict[str, Any]:
     """BROKER_CONFIG merged with top-level KITE/ANGEL keys (legacy single-bucket view)."""
@@ -70,8 +72,11 @@ class BrokerAdapter:
         self._port = port
 
     def place_order(self, name, direction, qty, strike) -> str | None:
-        # Convert legacy call to structured OrderRequest
-        # This is a simplified mapping; in a full migration, this would be more robust
+        # Convert legacy call to structured OrderRequest if the underlying port
+        # expects the newer port interface.
+        if isinstance(self._port, PaperBrokerAdapter):
+            return self._port.place_order(name, direction, qty, strike)
+
         from core.adapters.base_adapter import OrderRequest
         request = OrderRequest(
             symbol=f"{name}_{strike}_{'CE' if direction == 'CALL' else 'PE'}",
@@ -86,6 +91,9 @@ class BrokerAdapter:
         return response.order_id if response.status != "REJECTED" else None
 
     def exit_order(self, name, direction, qty, strike) -> str | None:
+        if isinstance(self._port, PaperBrokerAdapter):
+            return self._port.exit_order(name, direction, qty, strike)
+
         from core.adapters.base_adapter import OrderRequest
         request = OrderRequest(
             symbol=f"{name}_{strike}_{'CE' if direction == 'CALL' else 'PE'}",
@@ -701,9 +709,9 @@ def create_broker_adapter(
     context: BrokerRuntimeContext,
 ) -> BrokerAdapter:
     if manual_signals_only or execution_mode == "SIGNAL_ONLY":
-        return BrokerAdapter(PaperBrokerAdapter())
+        return PaperBrokerAdapter()
     if not (broker_api_enabled and not paper_mode):
-        return BrokerAdapter(PaperBrokerAdapter())
+        return PaperBrokerAdapter()
 
     cfg = context.cfg
     custom_spec = str(cfg.get("BROKER_CUSTOM_FACTORY") or "").strip()
@@ -713,11 +721,11 @@ def create_broker_adapter(
             port = factory(context)
             if not isinstance(port, BrokerPort):
                 context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY returned {type(port)!r}, not BrokerPort — using paper")
-                return BrokerAdapter(PaperBrokerAdapter())
+                return PaperBrokerAdapter()
             return BrokerAdapter(port)
         except Exception as exc:
             context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY failed: {exc} — using paper adapter")
-            return BrokerAdapter(PaperBrokerAdapter())
+            return PaperBrokerAdapter()
 
     normalized = str(driver or "GENERIC").upper()
     if normalized == "KITE":

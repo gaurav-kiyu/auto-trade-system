@@ -1,7 +1,33 @@
 import time
 import logging
 from typing import Dict, Any, Optional
-from prometheus_client import start_http_server, Counter, Gauge, Histogram, Summary
+
+try:
+    from prometheus_client import start_http_server, Counter, Gauge, Histogram, Summary
+    _prometheus_available = True
+except ImportError:
+    _prometheus_available = False
+
+    def start_http_server(port: int):
+        return None
+
+    class _NoOpMetric:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def labels(self, *args, **kwargs):
+            return self
+
+        def set(self, value):
+            return None
+
+        def inc(self, amount: int = 1):
+            return None
+
+        def observe(self, value):
+            return None
+
+    Counter = Gauge = Histogram = Summary = _NoOpMetric
 
 log = logging.getLogger("observability")
 

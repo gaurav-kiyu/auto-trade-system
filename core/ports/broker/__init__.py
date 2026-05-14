@@ -14,6 +14,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from enum import Enum
 
 from core.common.kernels.models import Fill as SharedFill
 
@@ -25,10 +26,22 @@ from core.common.kernels.models import Quote as SharedQuote
 
 # Use shared models from shared kernels
 Order = SharedOrder
+OrderRequest = SharedOrder
 OrderResult = SharedOrderResult
 Position = SharedPosition
 Quote = SharedQuote
 Fill = SharedFill
+
+class OrderStatus(Enum):
+    """Standardized order statuses."""
+    SUBMITTED = "SUBMITTED"
+    PENDING = "PENDING"
+    FILLED = "FILLED"
+    PARTIALLY_FILLED = "PARTIALLY_FILLED"
+    CANCELLED = "CANCELLED"
+    REJECTED = "REJECTED"
+    ERROR = "ERROR"
+    EXPIRED = "EXPIRED"
 
 
 class OrderResult:

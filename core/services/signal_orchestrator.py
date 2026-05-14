@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from core.time_provider import time_provider
 from core.ml_inference import ml_engine
 from core.risk.risk_engine import risk_engine

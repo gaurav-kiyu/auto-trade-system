@@ -189,21 +189,6 @@ def get_effective_config(
         # For now, we log and proceed with a warning
         
     return effective_dict
-                except ValueError:
-                    # Keep as string if conversion fails
-                    config[key] = env_value
-            elif isinstance(default_value, float):
-                try:
-                    config[key] = float(env_value)
-                except ValueError:
-                    # Keep as string if conversion fails
-                    config[key] = env_value
-            else:
-                # For strings and other types, use as-is
-                config[key] = env_value
-            count += 1
-
-    return count
 
 
 @dataclass(frozen=True)
@@ -345,6 +330,58 @@ CONFIG_B64_SECRET_KEYS_STOCK: frozenset[str] = frozenset({
 # For backward compatibility, we'll define these as empty frozensets
 # since the secure config system handles secrets differently
 CONFIG_B64_SECRET_KEYS_INDEX: frozenset[str] = frozenset()
+
+
+def apply_env_overrides(
+    cfg: dict[str, Any],
+    defaults: Mapping[str, Any],
+    prefix: str = "OPBUYING_",
+) -> int:
+    """Apply environment variable overrides to a config dict.
+
+    Only environment variables with the specified prefix are considered.
+    The target key is matched case-insensitively against the config dict.
+
+    Returns the number of overrides applied.
+    """
+    if not prefix:
+        return 0
+
+    lower_keys = {key.lower(): key for key in cfg}
+    applied = 0
+
+    for env_key, env_value in os.environ.items():
+        if not env_key.lower().startswith(prefix.lower()):
+            continue
+
+        raw_key = env_key[len(prefix) :]
+        if not raw_key:
+            continue
+
+        target_key = lower_keys.get(raw_key.lower())
+        if target_key is None:
+            continue
+
+        current_value = cfg.get(target_key)
+        new_value: Any = env_value
+
+        if isinstance(current_value, bool):
+            new_value = env_value.strip().lower() in ("true", "1", "yes", "on")
+        elif isinstance(current_value, int) and not isinstance(current_value, bool):
+            try:
+                new_value = int(env_value)
+            except ValueError:
+                pass
+        elif isinstance(current_value, float):
+            try:
+                new_value = float(env_value)
+            except ValueError:
+                pass
+
+        cfg[target_key] = new_value
+        applied += 1
+
+    return applied
 
 
 def merge_bot_config(

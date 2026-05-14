@@ -28,6 +28,7 @@ Public API
 
 Config keys (index_config.defaults.json)
 -----------------------------------------
+    BASE_CAPITAL                     : float default 5000.0
     live_readiness_check_on_startup  : bool  default true
     live_readiness_min_paper_trades  : int   default 50
     live_readiness_min_win_rate      : float default 0.50
@@ -35,6 +36,7 @@ Config keys (index_config.defaults.json)
     live_readiness_max_drawdown_pct  : float default 15.0
     live_readiness_min_trading_days  : int   default 10
     live_readiness_days_window       : int   default 30
+    live_readiness_min_sharpe        : float default 0.5
 """
 from __future__ import annotations
 

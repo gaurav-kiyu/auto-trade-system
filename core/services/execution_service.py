@@ -1,106 +1,162 @@
+import hashlib
 import logging
+import threading
+import time
+from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, List
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
+
 from core.execution.idempotency.manager import IdempotencyManager
-from core.execution.retry_policy.manager import RetryPolicy
 from core.execution.order_submission.manager import OrderSubmissionManager
+from core.execution.retry_policy.manager import RetryPolicy
 from core.execution.broker_gateway import broker_gateway
-# ...existing code...
+from core.execution.reconciliation.service import (
+    ReconciliationService,
+    TradingFreezeReason,
+)
+from core.ports.execution.execution_port import (
+    ExecutionAuditTrail,
+    ExecutionContext,
+    ExecutionMode,
+    OrderRequest,
+    OrderResult,
+    OrderStatus,
+    OrderType,
+)
+
+@dataclass
+class ExecutionServiceConfig:
+    """Configuration for the Execution Service."""
+    enable_duplicate_prevention: bool = True
+    idempotency_db_path: Optional[str] = None
+    idempotency_cache_size: int = 1000
+    idempotency_expiry_hours: int = 24
+    enable_audit_trail: bool = True
+    audit_log_path: str = "logs/execution_audit.jsonl"
+    max_retries: int = 3
+    base_retry_delay: float = 1.0
+    max_retry_delay: float = 10.0
+    retry_exponential_base: float = 2.0
+    paper_fill_delay_ms: int = 50
+    paper_fill_slippage_pct: float = 0.05
+
 class ExecutionService:
     """
     Hardened Execution Service.
     Orchestrates the flow from Risk Validation -> Order Management -> Broker Gateway.
     """
-    
-    def __init__(self, portfolio_service=None):
+
+    def __init__(
+        self,
+        portfolio_service=None,
+        config=None,
+        broker_port=None,
+        trade_persistence=None,
+        reconciliation_db_path: str = "trades.db",
+    ):
         self.portfolio = portfolio_service
-        self.idempotency = IdempotencyManager()
-        self.retry_policy = RetryPolicy()
-        self.submission = OrderSubmissionManager(broker_gateway)
 
-    def execute_trade(self, symbol: str, qty: int, price: float, 
-                      direction: str, risk_per_trade: float) -> ExecutionResult:
-        # ...existing code...
+        if config is None:
+            config = ExecutionServiceConfig()
+        elif isinstance(config, dict):
+            config = ExecutionServiceConfig(**config)
 
+        self.config = config
+        self.config_obj = config
 
-    def execute_trade(self, symbol: str, qty: int, price: float, 
-                      direction: str, risk_per_trade: float) -> ExecutionResult:
-        """
-        The primary execution pipeline.
-        Implements the 'Safe-by-Default' flow.
-        """
-        start_time = time.time()
-        
-        # 1. Risk Validation Gate
-        if risk_engine:
-            risk_check = risk_engine.validate_trade_intent(
-                symbol=symbol, 
-                qty=qty, 
-                price=price, 
-                direction=direction, 
-                risk_per_trade=risk_per_trade
+        persistence_path = self.config.idempotency_db_path
+        cache_size = self.config.idempotency_cache_size
+        expiry_hours = self.config.idempotency_expiry_hours
+
+        self.trade_persistence = trade_persistence
+
+        if broker_port is None:
+            raise ValueError(
+                "broker_port is required - strict DI enforced. "
+                "Pass broker_gateway explicitly for legacy behavior."
             )
-            
-            if not risk_check.is_allowed:
-                log.warning(f"Trade blocked by RiskEngine: {risk_check.reason}")
-                return ExecutionResult(False, error=risk_check.reason)
-            
-            if risk_check.suggested_qty is not None:
-                qty = risk_check.suggested_qty
-        
-        # 2. Create Deterministic Intent
-        request = OrderRequest(
-            symbol=symbol,
-            qty=qty,
-            price=price,
-            order_type="MARKET",
-            direction=direction,
-            product="MIS",
-            variety="REGULAR"
+        self._broker_port = broker_port
+        self.broker_port = broker_port
+
+        self.idempotency = IdempotencyManager(
+            cache_size=cache_size,
+            expiry_hours=expiry_hours,
+            persistence_path=persistence_path
         )
-        intent_id = order_manager.create_order_intent(request)
 
-        # 3. Execute via OrderManager -> BrokerGateway
-        response = order_manager.execute_intent(intent_id, request)
-        
-        # 4. Telemetry & Observability
-        obs_manager.record_order_latency(start_time)
-        if response.status == OrderStatus.FILLED:
-            obs_manager.record_slippage(symbol, direction, price, response.avg_price)
+        self.retry_policy = RetryPolicy()
+        self.submission = OrderSubmissionManager(self._broker_port)
 
-        if response.status == OrderStatus.FILLED or response.order_id != "ERROR":
-            return ExecutionResult(
-                success=True, 
-                order_id=response.order_id, 
-                fill_price=response.avg_price, 
-                filled_qty=response.filled_qty
-            )
-        
-        return ExecutionResult(False, error=response.error)
-
-    def cancel_trade(self, order_id: str) -> bool:
-        """Safe cancellation of an existing order."""
-        response = broker_gateway.cancel_order(order_id)
-        return response.status == OrderStatus.CANCELLED
-
-        # Execution tracking
-        self._executions: dict[str, ExecutionAuditTrail] = {}
+        self._executions: dict[str, Any] = {}
         self._execution_counter = 0
+        self._idempotency_cache = OrderedDict()
+        self._lock = threading.Lock()
 
-        # Paper trading price cache (for simulating realistic fills)
         self._paper_price_cache: dict[str, float] = {}
 
-        self._logger = LoggingService(
-            log_dir="logs",
-            log_filename_prefix="execution_service_",
-            retain_days=30,
-            json_log_file="",
-            version="UNKNOWN",
-            enable_correlation_ids=True,
-            enable_contextual_logging=True
+        self._logger = logging.getLogger("execution_service")
+
+        self._reconciliation_service = ReconciliationService(
+            db_path=reconciliation_db_path,
+            freeze_callback=self._on_reconciliation_freeze,
+            enable_auto_repair=True,
         )
 
+        self._is_reconciliation_frozen = False
         self._logger.info("ExecutionService initialized")
+
+    def _on_reconciliation_freeze(self, reason: TradingFreezeReason, details: str):
+        """Callback when reconciliation detects ambiguous state."""
+        self._is_reconciliation_frozen = True
+        self._logger.critical(
+            f"Trading frozen due to reconciliation: {reason.value} - {details}"
+        )
+
+    def is_trading_frozen(self) -> bool:
+        """Check if trading is frozen due to reconciliation issues."""
+        return self._is_reconciliation_frozen
+
+    def unfreeze_trading(self):
+        """Manually unfreeze trading after issue resolution."""
+        self._reconciliation_service.unfreeze()
+        self._is_reconciliation_frozen = False
+        self._logger.warning("Trading manually unfrozen")
+
+    def reconcile_pending_orders(self) -> dict:
+        """
+        Startup reconciliation: scan for non-terminal orders and update status.
+
+        Returns:
+            dict with reconciliation results
+        """
+        self._logger.info("Starting execution reconciliation...")
+
+        result = self._reconciliation_service.reconcile(self._broker_port)
+
+        if not result.is_clean:
+            self._logger.warning(
+                f"Reconciliation found {len(result.issues)} issues"
+            )
+            for issue in result.issues:
+                self._logger.warning(f"  - {issue.issue_type.value}: {issue.description}")
+        else:
+            self._logger.info("Reconciliation complete: CLEAN")
+
+        if result.freeze_reason:
+            self._is_reconciliation_frozen = True
+            self._logger.critical(
+                f"Trading frozen: {result.freeze_reason.value}"
+            )
+
+        return {
+            "is_clean": result.is_clean,
+            "issues_count": len(result.issues),
+            "repaired_count": result.repaired_count,
+            "freeze_reason": result.freeze_reason.value if result.freeze_reason else None,
+            "broker_positions": result.broker_positions_count,
+            "internal_orders": result.internal_orders_count,
+        }
 
     def execute_order(
         self,
@@ -131,18 +187,14 @@ class ExecutionService:
                 order_request, execution_context
             )
 
-        # Check for duplicate execution if enabled
+        # Check for duplicate execution if enabled (delegate to IdempotencyManager)
         if self.config.enable_duplicate_prevention:
-            if self.is_duplicate_order(order_request.idempotency_key):
-                self._logger.warning(
-                    f"Duplicate order prevented: {order_request.idempotency_key}"
-                )
-                # Return the cached result for the duplicate order
-                cached_result = self._get_idempotency_result(order_request.idempotency_key)
+            if self.idempotency.is_duplicate(order_request.idempotency_key):
+                self._logger.warning(f"Duplicate order prevented: {order_request.idempotency_key}")
+                cached_result = self.idempotency.get_result(order_request.idempotency_key)
                 if cached_result is not None:
                     return cached_result
                 else:
-                    # Fallback: return a rejected duplicate result
                     return OrderResult(
                         order_id="duplicate",
                         status=OrderStatus.REJECTED,
@@ -168,7 +220,7 @@ class ExecutionService:
 
             # Handle successful execution
             if order_result.status in [OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED]:
-                # Store in idempotency cache to prevent future duplicates
+                # Store idempotency result in both persistence and local cache
                 self._store_idempotency_key(order_request.idempotency_key, order_result)
 
                 # Persist trade if we have persistence and the order was filled
@@ -359,17 +411,17 @@ class ExecutionService:
         Returns:
             True if order is duplicate, False otherwise
         """
-        with self._lock:
-            # Clean expired entries first
-            self._cleanup_idempotency_cache()
-
-            # Check if key exists in cache
-            is_duplicate = idempotency_key in self._idempotency_cache
-
-            if is_duplicate:
-                self._logger.debug(f"Duplicate order detected: {idempotency_key}")
-
-            return is_duplicate
+        # Delegate to IdempotencyManager for duplicate checks
+        try:
+            return bool(self.idempotency.is_duplicate(idempotency_key))
+        except Exception:
+            # Fallback to local cache
+            with self._lock:
+                self._cleanup_idempotency_cache()
+                is_duplicate = idempotency_key in getattr(self, '_idempotency_cache', {})
+                if is_duplicate:
+                    self._logger.debug(f"Duplicate order detected (fallback): {idempotency_key}")
+                return is_duplicate
 
     def record_execution_audit(
         self,
@@ -507,14 +559,17 @@ class ExecutionService:
             key: The idempotency key to store
             order_result: The order result to associate with the key
         """
-        with self._lock:
-            # Add to cache (front of OrderedDict) as a tuple (timestamp, order_result)
-            self._idempotency_cache[key] = (datetime.now(), order_result)
-            self._idempotency_cache.move_to_end(key, last=False)  # Most recent at front
+        # Prefer IdempotencyManager for storage, but keep a local fallback cache for backwards compatibility.
+        try:
+            self.idempotency.store_result(key, order_result)
+        except Exception:
+            self._logger.exception(f"Failed to persist idempotency key {key}")
 
-            # Trim cache if too large
+        with self._lock:
+            self._idempotency_cache[key] = (datetime.now(), order_result)
+            self._idempotency_cache.move_to_end(key, last=False)
             while len(self._idempotency_cache) > self.config.idempotency_cache_size:
-                self._idempotency_cache.popitem(last=True)  # Remove oldest (last)
+                self._idempotency_cache.popitem(last=True)
 
     def _get_idempotency_result(self, key: str) -> OrderResult | None:
         """
@@ -523,31 +578,35 @@ class ExecutionService:
         Returns:
             The cached OrderResult if found, None otherwise.
         """
-        with self._lock:
-            self._cleanup_idempotency_cache()
-            if key in self._idempotency_cache:
-                return self._idempotency_cache[key][1]  # return the order_result
-            return None
+        # Delegate to IdempotencyManager
+        try:
+            return self.idempotency.get_result(key)
+        except Exception:
+            with self._lock:
+                self._cleanup_idempotency_cache()
+                if key in self._idempotency_cache:
+                    return self._idempotency_cache[key][1]
+                return None
 
     def _cleanup_idempotency_cache(self) -> None:
         """
         Remove expired entries from the idempotency cache.
         """
-        with self._lock:
-            expiry_time = datetime.now() - timedelta(hours=self.config.idempotency_expiry_hours)
-
-            # Find expired keys - note: value is now (timestamp, order_result)
-            expired_keys = [
-                key for key, (timestamp, _) in self._idempotency_cache.items()
-                if timestamp < expiry_time
-            ]
-
-            # Remove expired keys
-            for key in expired_keys:
-                del self._idempotency_cache[key]
-
-            if expired_keys:
-                self._logger.debug(f"Cleaned up {len(expired_keys)} expired idempotency keys")
+        # IdempotencyManager handles cleanup; keep local cleanup for fallback cache
+        try:
+            self.idempotency._cleanup()
+            return
+        except Exception:
+            with self._lock:
+                expiry_time = datetime.now() - timedelta(hours=self.config.idempotency_expiry_hours)
+                expired_keys = [
+                    key for key, (timestamp, _) in self._idempotency_cache.items()
+                    if timestamp < expiry_time
+                ]
+                for key in expired_keys:
+                    del self._idempotency_cache[key]
+                if expired_keys:
+                    self._logger.debug(f"Cleaned up {len(expired_keys)} expired idempotency keys (fallback)")
 
     def _execute_with_retries(
         self,

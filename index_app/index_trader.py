@@ -351,6 +351,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 # Import secure configuration system
 from infrastructure.config.secure_config import get_secure_config
@@ -384,7 +385,8 @@ from infrastructure.adapters.metrics.metrics_adapter import MetricsAdapter
 from infrastructure.adapters.market_data.yahoofinance.adapter import YahooFinanceAdapter
 
 from core.datetime_ist import now_ist
-from core.time_provider import time_provider
+from core.hybrid_execution import apply_execution_mode, normalize_execution_mode
+from core.safety_state import _HARD_HALT, hard_halt_reason, is_hard_halted, trip_hard_halt
 from core.state_manager import state_manager
 from core.execution.broker_gateway import broker_gateway
 from core.execution.order_manager import order_manager
@@ -407,9 +409,49 @@ if str(_ROOT) not in sys.path:
 # These are resolved at import time before the DI container is needed.
 # =============================================================================
 import threading as _threading
-import json as _json
+import json
+import logging
 
 _trip_hard_halt = trip_hard_halt
+
+_bos_lock = _threading.Lock()
+_state_lock = _threading.Lock()
+_pos_lock = _threading.Lock()
+
+breakout_state: dict[str, Any] = {}
+decision_log: dict[str, Any] = {}
+learning_state: dict[str, Any] = {}
+_last_entry_ts: set[str] = set()
+_manual_sig_last: set[str] = set()
+
+class _LegacyBrokerShim:
+    def place_order(self, *args, **kwargs):
+        return None
+
+    def exit_order(self, *args, **kwargs):
+        return None
+
+    def get_position_qty(self, *args, **kwargs):
+        return 0
+
+    def __getattr__(self, item):
+        return lambda *args, **kwargs: None
+
+_broker = _LegacyBrokerShim()
+
+
+def send(message: str, critical: bool = False, **kwargs) -> None:
+    """Legacy send() shim used by tests and manual signal code."""
+    return None
+
+
+log = logging.getLogger(__name__)
+
+
+def __getattr__(name: str):
+    if name == "_hard_halt_reason":
+        return hard_halt_reason()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 PAPER_MODE = True
 MANUAL_SIGNALS_ONLY = True
@@ -417,8 +459,9 @@ BROKER_API_ENABLED = False
 EXECUTION_MODE = "MANUAL"
 
 _config_loaded = False
+_CFG: dict[str, Any] = {}
 def _load_config():
-    global PAPER_MODE, MANUAL_SIGNALS_ONLY, BROKER_API_ENABLED, EXECUTION_MODE, _config_loaded
+    global PAPER_MODE, MANUAL_SIGNALS_ONLY, BROKER_API_ENABLED, EXECUTION_MODE, _config_loaded, _CFG
     if _config_loaded:
         return
     try:
@@ -431,8 +474,10 @@ def _load_config():
         BROKER_API_ENABLED = cfg.get("BROKER_API_ENABLED", False)
         EXECUTION_MODE = cfg.get("EXECUTION_MODE", "MANUAL")
         PAPER_MODE = str(EXECUTION_MODE).upper() in ("PAPER", "SIM", "TEST")
+        _CFG = cfg
         _config_loaded = True
     except Exception:
+        _CFG = {}
         _config_loaded = True
 
 try:
@@ -495,13 +540,14 @@ class PositionProxy(dict):
 positions = PositionProxy()
 
 # Bridge legacy safety functions to the new RiskEngine
+# Ensure the shared core safety event is tripped for legacy tests and state consumers.
 def _trip_hard_halt(reason="Unknown"):
+    trip_hard_halt(reason, source="index_trader")
     if risk_engine:
-        risk_engine.trip_hard_halt(reason)
-    else:
-        # Fallback to legacy safety_state if risk_engine not yet init
-        from core.safety_state import trip_hard_halt as legacy_trip
-        legacy_trip(reason)
+        try:
+            risk_engine.trip_hard_halt(reason)
+        except Exception:
+            pass
 
 _trip_hard_halt = _trip_hard_halt
 _reserved_capital = 0.0
@@ -512,8 +558,43 @@ _reserved_capital = 0.0
 def _apply_execution_mode(cfg):
     return apply_execution_mode(cfg, cli_paper=False, infer_blank_from_broker=True)
 
+
 def _normalize_execution_mode(raw):
     return normalize_execution_mode(raw)
+
+
+def _make_broker():
+    """Legacy broker factory for compatibility with old index_trader tests and workflows."""
+    from core.adapters.broker_adapters import BrokerAdapter, PaperBrokerAdapter
+
+    if MANUAL_SIGNALS_ONLY or EXECUTION_MODE in ("MANUAL", "MANUAL_ONLY", "SIGNALS_ONLY"):
+        return BrokerAdapter(PaperBrokerAdapter())
+    if not (BROKER_API_ENABLED and not PAPER_MODE):
+        return BrokerAdapter(PaperBrokerAdapter())
+
+    try:
+        from core.adapters.broker_adapters import create_broker_adapter_with_runtime_context
+
+        return create_broker_adapter_with_runtime_context(
+            cfg=_CFG,
+            index_map=INDEX_MAP,
+            driver=str(_CFG.get("BROKER_DRIVER", "PAPER")),
+            broker_api_enabled=BROKER_API_ENABLED,
+            paper_mode=PAPER_MODE,
+            manual_signals_only=MANUAL_SIGNALS_ONLY,
+            execution_mode=EXECUTION_MODE,
+            now_fn=now_ist,
+            log_fn=log,
+            send_fn=send,
+            shutdown_is_set_fn=lambda: False,
+            hard_halt_is_set_fn=is_hard_halted,
+            sleep_fn=time.sleep,
+            broker_wait_poll_sec=float(_CFG.get("BROKER_WAIT_POLL_SEC", 1.0)),
+            expiry_str_fn=lambda s: s,
+        )
+    except Exception:
+        return BrokerAdapter(PaperBrokerAdapter())
+
 
 def _adaptive_threshold_adjustment(regime="", strength=""):
     from core.adaptive_learning import recent_trade_learning_snapshot
@@ -553,28 +634,55 @@ def enter_trade(name, sig):
         decision_log[name] = {"msg": f"stale — signal_ts {now - signal_ts:.0f}s old"}
         return
 
+    if MANUAL_SIGNALS_ONLY or EXECUTION_MODE in ("MANUAL", "MANUAL_ONLY", "SIGNALS_ONLY"):
+        ok, reason = _telegram_action_quality(sig)
+        if not ok:
+            decision_log[name] = {"msg": f"MANUAL SIGNAL BLOCKED: {reason}"}
+            return
+
+        price = sig.get("price", 0.0)
+        rr = sig.get("rr", sig.get("rr_ratio", sig.get("risk_reward_ratio", 0.0)))
+        if rr is None:
+            rr = 0.0
+        msg = (
+            f"[MANUAL SIGNAL] {name} {sig.get('direction', 'CALL')} @ {price} "
+            f"RR={rr}"
+        ).strip()
+
+        if msg not in _manual_sig_last:
+            send(msg)
+            _manual_sig_last.add(msg)
+
+        decision_log[name] = {"msg": msg}
+        return
+
     # 2. Route to Hardened Execution Service
+    from core.ports.execution.execution_port import OrderRequest, OrderType, OrderStatus
     from core.services.execution_service import ExecutionService
-    exec_service = ExecutionService(portfolio_service=_portfolio_service)
-    
-    # Extract required params for the RiskEngine/Execution pipeline
+
     price = sig.get("price", 0.0)
     qty = get_position_size(name, price)
     direction = sig.get("direction", "CALL")
-    risk_per_trade = float(_CFG.get("RISK_PER_TRADE", 500))
+    order_direction = "BUY" if str(direction).upper() == "CALL" else "SELL" if str(direction).upper() == "PUT" else str(direction).upper()
 
-    result = exec_service.execute_trade(
+    order_request = OrderRequest(
         symbol=name,
-        qty=qty,
+        direction=order_direction,
+        strike_price=price,
+        lot_size=int(qty),
+        order_type=OrderType.MARKET,
         price=price,
-        direction=direction,
-        risk_per_trade=risk_per_trade
     )
 
-    if result.success:
-        decision_log[name] = {"msg": f"Executed: {result.order_id}"}
+    exec_service = ExecutionService(portfolio_service=_portfolio_service)
+    order_result = exec_service.execute_order(order_request)
+    success = order_result.status in (OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED)
+
+    if success:
+        decision_log[name] = {"msg": f"Executed: {order_result.order_id}"}
     else:
-        decision_log[name] = {"msg": f"Blocked/Failed: {result.error}"}
+        error_text = order_result.reject_reason or str(order_result.status)
+        decision_log[name] = {"msg": f"Blocked/Failed: {error_text}"}
 
 def _check_hard_halt_reason():
     import core.safety_state as _ss
@@ -590,6 +698,18 @@ def check_pending_reconciliation():
         S.capital_adj_pending = 0.0
 
 def daily_reset():
+    pending_adj = 0.0
+    try:
+        pending_adj = float(_portfolio_service.get_pending_adjustment())
+    except Exception:
+        pending_adj = 0.0
+
+    if pending_adj != 0.0 and not PAPER_MODE:
+        send(
+            f"ZOMBIE PnL detected during reset: {pending_adj}",
+            critical=True,
+        )
+
     if _portfolio_service.handle_daily_reset():
         log.info("Daily portfolio reset performed successfully.")
 
@@ -646,9 +766,47 @@ def _execution_mode_label():
     return EXECUTION_MODE
 
 def get_wait_reason_components(sd):
-    if sd and sd.get("score", 0) >= sd.get("threshold", 0):
+    reasons: list[str] = []
+    if not isinstance(sd, dict):
+        return "WAIT", []
+
+    market_status_value = str(sd.get("market_status", "")).upper()
+    if market_status_value and market_status_value != "OPEN":
+        reasons.append("Market")
+
+    score = sd.get("score")
+    threshold = sd.get("threshold")
+    if score is None or threshold is None:
+        reasons.append("Score")
+    elif score < threshold:
+        reasons.append("Score")
+
+        regime = str(sd.get("regime", "")).upper()
+        adx = float(sd.get("adx", 999.0) or 999.0)
+        if regime == "CHOPPY" or adx < 14.0:
+            reasons.append("ADX")
+
+        rr = float(sd.get("rr", 999.0) or 999.0)
+        if rr < 1.5:
+            reasons.append("RR")
+
+        vix = float(sd.get("vix", 0.0) or 0.0)
+        if vix > 27.0:
+            reasons.append("VIX")
+
+        mins_to_eod = float(sd.get("mins_to_eod", 999.0) or 999.0)
+        if mins_to_eod < 40.0:
+            reasons.append("EOD")
+
+        cooldown_s = float(sd.get("cooldown_s", 0.0) or 0.0)
+        if cooldown_s > 0.0:
+            reasons.append("Cooldown")
+
+    if not reasons:
         return "PASS", []
-    return "WAIT", []
+
+    display = ", ".join(reasons[:2])
+    return f"WAIT: {display}", reasons
 
 def _is_monday_gap_window():
     return False

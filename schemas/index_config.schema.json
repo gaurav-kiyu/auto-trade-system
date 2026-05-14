@@ -6,6 +6,24 @@
     "ADAPTIVE_HISTORY_LOOKBACK": {
       "type": "integer"
     },
+    "ADAPTIVE_LEARNING_LOSS_STREAK_HALT": {
+      "type": "integer"
+    },
+    "ADAPTIVE_LEARNING_MAX_BONUS": {
+      "type": "integer"
+    },
+    "ADAPTIVE_LEARNING_MAX_DISCOUNT": {
+      "type": "integer"
+    },
+    "ADAPTIVE_SIGNAL_MAX_TOTAL_PENALTY": {
+      "type": "integer"
+    },
+    "ADAPTIVE_SIGNAL_PENALTY_ALERT_THRESHOLD": {
+      "type": "number"
+    },
+    "ADAPTIVE_SIGNAL_SOFT_BLOCK_ON_PENALTY": {
+      "type": "boolean"
+    },
     "ADAPTIVE_THRESHOLD_ENABLED": {
       "type": "boolean"
     },
@@ -67,6 +85,75 @@
       "type": "string"
     },
     "AUDIT_RETENTION_DAYS": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_AI_JOURNAL_WEIGHT": {
+      "type": "number"
+    },
+    "AUTO_LEARNER_ATOMIC_WRITE": {
+      "type": "boolean"
+    },
+    "AUTO_LEARNER_CONFIDENCE_LOSS_DEC": {
+      "type": "number"
+    },
+    "AUTO_LEARNER_CONFIDENCE_WIN_INC": {
+      "type": "number"
+    },
+    "AUTO_LEARNER_DAILY_AUDIT": {
+      "type": "boolean"
+    },
+    "AUTO_LEARNER_ENABLED": {
+      "type": "boolean"
+    },
+    "AUTO_LEARNER_LOOKBACK": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_LOSS_SCORE_INC": {
+      "type": "number"
+    },
+    "AUTO_LEARNER_LOSS_STREAK_HALT": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_MAX_BONUS": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_MAX_DISCOUNT": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_PER_SYMBOL": {
+      "type": "boolean"
+    },
+    "AUTO_LEARNER_REGIME_DECAY": {
+      "type": "number"
+    },
+    "AUTO_LEARNER_STATE_FILE": {
+      "type": "string"
+    },
+    "AUTO_LEARNER_STATE_LOCK_FILE": {
+      "type": "string"
+    },
+    "AUTO_LEARNER_STREAK_BOOST_AT": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_WIN_SCORE_DECAY": {
+      "type": "number"
+    },
+    "AUTO_TUNER_COOLDOWN_DAYS": {
+      "type": "integer"
+    },
+    "AUTO_TUNER_DRY_RUN": {
+      "type": "boolean"
+    },
+    "AUTO_TUNER_ENABLED": {
+      "type": "boolean"
+    },
+    "AUTO_TUNER_MIN_TRADES": {
+      "type": "integer"
+    },
+    "AUTO_TUNER_MIN_WIN_RATE_POST_TUNE": {
+      "type": "number"
+    },
+    "AUTO_TUNER_POST_TUNE_VALIDATION_DAYS": {
       "type": "integer"
     },
     "BACKTEST_COMMISSION_PER_TRADE": {
@@ -878,6 +965,9 @@
       "type": "string"
     },
     "_comment_v244_item9": {
+      "type": "string"
+    },
+    "_comment_v245_adaptive": {
       "type": "string"
     },
     "_comment_v245_sprintA": {

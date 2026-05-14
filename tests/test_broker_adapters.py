@@ -142,5 +142,5 @@ def test_unknown_driver_without_custom_falls_back_to_paper() -> None:
         manual_signals_only=False,
         context=ctx,
     )
-    assert isinstance(adapter, PaperBrokerAdapter)
+    assert hasattr(adapter, '_port') and isinstance(adapter._port, PaperBrokerAdapter)
     assert any("Unknown BROKER_DRIVER" in m for m in logs)
