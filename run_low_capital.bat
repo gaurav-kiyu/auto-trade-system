@@ -6,7 +6,8 @@ color 0A
 echo.
 echo  ============================================================
 echo    OPBuying Index App  —  Rs.5,000 LOW CAPITAL Mode
-echo    v2.47 - Enhanced with Signal Refinement
+echo    v2.48 - Trade Mandate Compliant
+echo    Risk: 1.5% | Daily Stop: 2.5% | Survive First
 echo    PAPER TRADING ONLY — No Real Orders
 echo  ============================================================
 echo.
