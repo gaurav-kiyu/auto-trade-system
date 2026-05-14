@@ -30,7 +30,7 @@ from core.datetime_ist import now_ist
 from infrastructure.adapters.notifications.telegram_adapter import TelegramNotificationAdapter
 
 # Import the new LoggingService
-from trading_system.core.logging.service import LoggingService
+from core.logging import LoggingService
 
 
 class ServiceStatus(Enum):

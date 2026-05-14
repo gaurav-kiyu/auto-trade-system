@@ -18,7 +18,7 @@ from datetime import datetime
 from typing import Any
 
 from core.ports.rate_limiting.rate_limit_port import LimitResult, RateLimitConfig, RateLimitPort, RateLimitStatus
-from trading_system.core.logging.service import LoggingService
+from core.logging import LoggingService
 
 
 @dataclass

@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Dict, List, Optional, Any
-from trading_system.core.datetime_ist import now_ist
+from core.datetime_ist import now_ist
 
 # Import shared models from common kernels to avoid duplication
 from core.common.kernels.models import (

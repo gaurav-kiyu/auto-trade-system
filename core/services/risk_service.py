@@ -26,7 +26,7 @@ from core.safety_state import trip_hard_halt, is_hard_halted
 from core.datetime_ist import now_ist
 from core.utils_numeric import safe_num as _safe_num
 
-from trading_system.core.logging.service import LoggingService
+from core.logging import LoggingService
 
 
 @dataclass

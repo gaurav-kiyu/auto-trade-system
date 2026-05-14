@@ -1,6 +1,6 @@
 if not _TK_AVAILABLE or ttk is None:
     # Import LoggingService here to avoid circular imports during early initialization
-    from trading_system.core.logging.service import LoggingService
+    from core.logging import LoggingService
     _gui_logger = LoggingService(
         log_dir="logs",
         log_filename_prefix="gui_",

@@ -44,7 +44,7 @@ except ImportError:
 
 
 # Import LoggingService
-from trading_system.core.logging.service import LoggingService
+from core.logging import LoggingService
 
 
 class YahooFinanceAdapter(MarketDataPort):

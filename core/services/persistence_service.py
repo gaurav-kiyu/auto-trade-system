@@ -23,7 +23,7 @@ from core.ports.persistence.persistence_port import (
     ValidationError,
 )
 from infrastructure.adapters.persistence.sqlite_adapter import SQLiteAdapter
-from trading_system.core.logging.service import LoggingService
+from core.logging import LoggingService
 
 
 @dataclass

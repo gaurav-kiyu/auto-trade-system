@@ -26,7 +26,7 @@ from core.ports.broker.health_port import (
     FailoverConfig,
     HealthCheckType,
 )
-from trading_system.core.logging.service import LoggingService
+from core.logging import LoggingService
 
 
 @dataclass
