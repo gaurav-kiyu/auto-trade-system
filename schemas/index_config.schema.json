@@ -493,6 +493,162 @@
     "MACD_BONUS": {
       "type": "integer"
     },
+    "MANDATE_BLOCK_HIGH_IV_SCORE": {
+      "type": "integer"
+    },
+    "MANDATE_BLOCK_HIGH_IV_THRESHOLD": {
+      "type": "number"
+    },
+    "MANDATE_COST_BID_ASK_ESTIMATE": {
+      "type": "number"
+    },
+    "MANDATE_COST_BROKERAGE": {
+      "type": "number"
+    },
+    "MANDATE_COST_EXCHANGE_GST": {
+      "type": "number"
+    },
+    "MANDATE_COST_STT_PCT": {
+      "type": "number"
+    },
+    "MANDATE_DAILY_HARD_STOP": {
+      "type": "number"
+    },
+    "MANDATE_DATA_STALENESS_SEC": {
+      "type": "integer"
+    },
+    "MANDATE_EVENT_COOLDOWN_MINUTES": {
+      "type": "integer"
+    },
+    "MANDATE_FINNIFTY_MIN_IV_RANK": {
+      "type": "number"
+    },
+    "MANDATE_FINNIFTY_MIN_SCORE": {
+      "type": "integer"
+    },
+    "MANDATE_FINNIFTY_REGIME_REQUIRED": {
+      "type": "boolean"
+    },
+    "MANDATE_HARD_HALT_ENABLED": {
+      "type": "boolean"
+    },
+    "MANDATE_HARD_HALT_ON_LOSS_STREAK": {
+      "type": "integer"
+    },
+    "MANDATE_LIMIT_ORDER_TIMEOUT_SEC": {
+      "type": "integer"
+    },
+    "MANDATE_LOSS_STREAK_COOLDOWN_HOURS": {
+      "type": "integer"
+    },
+    "MANDATE_LOSS_STREAK_THRESHOLD": {
+      "type": "integer"
+    },
+    "MANDATE_MAX_DRAWDOWN_PROTECTION": {
+      "type": "number"
+    },
+    "MANDATE_MAX_POSITIONS_SAME_TIME": {
+      "type": "integer"
+    },
+    "MANDATE_MAX_TRADES_PER_DAY_CAUTIOUS": {
+      "type": "integer"
+    },
+    "MANDATE_MAX_TRADES_PER_DAY_EXTREME": {
+      "type": "integer"
+    },
+    "MANDATE_MAX_TRADES_PER_DAY_HIGH_STRESS": {
+      "type": "integer"
+    },
+    "MANDATE_MAX_TRADES_PER_DAY_NORMAL": {
+      "type": "integer"
+    },
+    "MANDATE_MIN_EXPECTED_VALUE": {
+      "type": "number"
+    },
+    "MANDATE_MIN_IV_RANK": {
+      "type": "number"
+    },
+    "MANDATE_MIN_SCORE_RANGE": {
+      "type": "integer"
+    },
+    "MANDATE_MIN_SCORE_SIDEWAYS": {
+      "type": "integer"
+    },
+    "MANDATE_MIN_Score_TRENDING": {
+      "type": "integer"
+    },
+    "MANDATE_MIN_WIN_RATE_THRESHOLD": {
+      "type": "number"
+    },
+    "MANDATE_NEGATIVE_WEEKS_THRESHOLD": {
+      "type": "integer"
+    },
+    "MANDATE_OPERATING_MODE": {
+      "type": "string"
+    },
+    "MANDATE_REGIME_CONFIDENCE_MIN": {
+      "type": "number"
+    },
+    "MANDATE_REGIME_SIZING_RANGE": {
+      "type": "number"
+    },
+    "MANDATE_REGIME_SIZING_SIDEWAYS": {
+      "type": "number"
+    },
+    "MANDATE_REGIME_SIZING_TRENDING": {
+      "type": "number"
+    },
+    "MANDATE_RISK_PER_TRADE": {
+      "type": "number"
+    },
+    "MANDATE_SIZING_UNCERTAINTY": {
+      "type": "number"
+    },
+    "MANDATE_SKIP_FIRST_20_MINUTES": {
+      "type": "boolean"
+    },
+    "MANDATE_SKIP_LAST_45_MINUTES": {
+      "type": "boolean"
+    },
+    "MANDATE_SLIPPAGE_ASSUME_PCT": {
+      "type": "number"
+    },
+    "MANDATE_TIME_WINDOW_AFTERNOON_END": {
+      "type": "string"
+    },
+    "MANDATE_TIME_WINDOW_AFTERNOON_START": {
+      "type": "string"
+    },
+    "MANDATE_TIME_WINDOW_MORNING_END": {
+      "type": "string"
+    },
+    "MANDATE_TIME_WINDOW_MORNING_START": {
+      "type": "string"
+    },
+    "MANDATE_VALIDATION_MIN_OBSERVATIONS": {
+      "type": "integer"
+    },
+    "MANDATE_VIX_HARD_BLOCK": {
+      "type": "number"
+    },
+    "MANDATE_VIX_MAX": {
+      "type": "number"
+    },
+    "MANDATE_VIX_MIN": {
+      "type": "number"
+    },
+    "MANDATE_WALKFORWARD_DEGRADATION_MAX": {
+      "type": "number"
+    },
+    "MANDATE_WEEKDAY_MULTIPLIER_FROZEN": {
+      "type": "boolean"
+    },
+    "MANDATE_WEEKLY_CIRCUIT_BREAKER": {
+      "type": "number"
+    },
+    "MANDATE_WIN_REDUCTION_PCT": {
+      "type": "number"
+    },
     "MANUAL_SIGNALS_ONLY": {
       "type": "boolean"
     },
