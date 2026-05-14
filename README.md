@@ -1,10 +1,10 @@
-# OPB Index Options Buying Bot v2.46
+# OPB Index Options Buying Bot v2.47
 
 ## Overview
 
 OPB (Options Buying Bot) is an automated NSE index options trading system supporting NIFTY, BANKNIFTY, and FINNIFTY. The system implements algorithmic signal generation, risk management, and execution with broker integration.
 
-**Version:** 2.46 (Production Ready)  
+**Version:** 2.47 (Production Ready - Enhanced)  
 **Platform:** Windows (primary), Linux/Docker compatible  
 **Python:** 3.10-3.19
 

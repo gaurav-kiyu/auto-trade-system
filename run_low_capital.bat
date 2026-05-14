@@ -6,6 +6,7 @@ color 0A
 echo.
 echo  ============================================================
 echo    OPBuying Index App  —  Rs.5,000 LOW CAPITAL Mode
+echo    v2.47 - Enhanced with Signal Refinement
 echo    PAPER TRADING ONLY — No Real Orders
 echo  ============================================================
 echo.
