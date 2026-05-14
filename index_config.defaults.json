@@ -154,11 +154,11 @@
   "VIX_SIZE_HIGH_THRESHOLD": 35.0,
   "VIX_SIZE_MED_THRESHOLD": 25.0,
   "WEEKDAY_BIAS": {
-    "Monday": 0.88,
+    "Monday": 1.1,
     "Tuesday": 1.0,
-    "Wednesday": 1.0,
-    "Thursday": 1.0,
-    "Friday": 0.92
+    "Wednesday": 0.9,
+    "Thursday": 0.9,
+    "Friday": 0.9
   },
   "VIX_RISING_THRESHOLD_BONUS": 5,
   "VIX_FALLING_COOLDOWN_MULT": 0.5,
