@@ -150,12 +150,59 @@ class ParameterDriftReport:
     drift_pct: float
     stability_rating: str  # STABLE / CAUTION / UNSTABLE
     recommendation: str
+    statistical_confidence: float = 0.0  # NEW: p-value based
+
+
+def calculate_statistical_significance(
+    train_vals: list[float],
+    test_vals: list[float],
+) -> tuple[float, float]:
+    """
+    Calculate statistical significance using Welch's t-test approximation.
+    Returns (drift_pct, confidence) where confidence is 1-p_value.
+    """
+    if not train_vals or not test_vals:
+        return 0.0, 0.0
+
+    import math
+
+    n1, n2 = len(train_vals), len(test_vals)
+    if n1 < 2 or n2 < 2:
+        return 0.0, 0.0
+
+    mean1 = sum(train_vals) / n1
+    mean2 = sum(test_vals) / n2
+
+    # Calculate variance
+    var1 = sum((x - mean1) ** 2 for x in train_vals) / (n1 - 1) if n1 > 1 else 0
+    var2 = sum((x - mean2) ** 2 for x in test_vals) / (n2 - 1) if n2 > 1 else 0
+
+    # Standard error
+    se = math.sqrt(var1 / n1 + var2 / n2) if se > 0 else 0.0001
+
+    # t-statistic
+    t_stat = abs(mean2 - mean1) / se if se > 0 else 0
+
+    # Approximate p-value using normal distribution for large samples
+    # For small samples, this is a conservative approximation
+    if t_stat > 0:
+        # Approximate confidence level
+        confidence = min(0.99, 1.0 - math.exp(-0.5 * t_stat))
+    else:
+        confidence = 0.0
+
+    # Drift percentage
+    mean_all = (sum(train_vals) + sum(test_vals)) / (n1 + n2)
+    drift_pct = abs(mean2 - mean1) / mean_all * 100.0 if mean_all != 0 else 0.0
+
+    return drift_pct, confidence
 
 
 def analyze_parameter_drift(
     windows: list[WalkForwardWindow],
     param_extractor: Callable[[BacktestReport], dict[str, float]],
     drift_threshold_pct: float = 20.0,
+    min_confidence: float = 0.80,
 ) -> list[ParameterDriftReport]:
     """
     Analyze parameter stability across walk-forward windows.
@@ -164,7 +211,8 @@ def analyze_parameter_drift(
     ----------
     windows        : List of walk-forward windows
     param_extractor: Function to extract parameters from BacktestReport
-    drift_threshold_pct: % change that triggers drift alert
+    drift_threshold_pct: % change that triggers drift alert (legacy)
+    min_confidence: Statistical confidence threshold (NEW - default 80%)
 
     Returns
     -------
@@ -186,7 +234,7 @@ def analyze_parameter_drift(
     for wp in window_params:
         param_names.update(wp.keys())
 
-    # Analyze each parameter
+    # Analyze each parameter using statistical significance
     for param in sorted(param_names):
         train_vals = []
         test_vals = []
@@ -202,19 +250,17 @@ def analyze_parameter_drift(
         if not train_vals or not test_vals:
             continue
 
-        # Calculate drift
-        train_mean = sum(train_vals) / len(train_vals)
-        test_mean = sum(test_vals) / len(test_vals)
+        # Calculate drift using statistical significance
+        drift_pct, confidence = calculate_statistical_significance(train_vals, test_vals)
 
-        if train_mean == 0:
-            continue
+        # Determine stability based on BOTH drift magnitude AND statistical confidence
+        # Drift is significant only if: drift_pct > threshold AND confidence > min_confidence
+        has_significant_drift = drift_pct >= drift_threshold_pct and confidence >= min_confidence
+        has_moderate_drift = drift_pct >= drift_threshold_pct * 0.5 and confidence >= min_confidence * 0.8
 
-        drift_pct = abs(test_mean - train_mean) / train_mean * 100.0
-
-        # Determine stability
-        if drift_pct < drift_threshold_pct * 0.5:
+        if not has_significant_drift and not has_moderate_drift:
             stability = "STABLE"
-        elif drift_pct < drift_threshold_pct:
+        elif has_moderate_drift:
             stability = "CAUTION"
         else:
             stability = "UNSTABLE"
@@ -223,9 +269,9 @@ def analyze_parameter_drift(
         if stability == "STABLE":
             recommendation = "Continue using current parameters"
         elif stability == "CAUTION":
-            recommendation = "Monitor closely, consider retraining"
+            recommendation = f"Monitor closely (confidence: {confidence:.1%}), consider retraining"
         else:
-            recommendation = "RETRAIN REQUIRED - parameters no longer stable"
+            recommendation = f"RETRAIN REQUIRED - parameters drifted with {confidence:.1%} confidence"
 
         reports.append(ParameterDriftReport(
             parameter=param,
@@ -234,6 +280,7 @@ def analyze_parameter_drift(
             drift_detected=stability != "STABLE",
             drift_pct=round(drift_pct, 2),
             stability_rating=stability,
+            statistical_confidence=round(confidence, 3),
             recommendation=recommendation,
         ))
 

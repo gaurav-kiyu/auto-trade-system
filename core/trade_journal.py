@@ -18,6 +18,7 @@ import sqlite3
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -558,3 +559,71 @@ class TradeJournal:
         except Exception:
             pass
         log.info("[TradeJournal] Shutdown complete.")
+
+    def export_to_json(self, filepath: str, mode: str = "PAPER") -> dict[str, Any]:
+        """
+        Export trade journal to JSON format.
+
+        Parameters
+        ----------
+        filepath : str
+            Path to output JSON file
+        mode     : str
+            Filter by mode (PAPER/LIVE), default: PAPER
+
+        Returns
+        -------
+        dict with: export_status, trade_count, filepath
+        """
+        try:
+            with self._lock, self._connect() as conn:
+                # Fetch all trades for the mode
+                sql = """
+                    SELECT * FROM journal WHERE mode = ? ORDER BY entry_ts DESC
+                """
+                cursor = conn.execute(sql, (mode,))
+                columns = [desc[0] for desc in cursor.description]
+                rows = cursor.fetchall()
+
+                # Convert to list of dicts
+                trades = []
+                for row in rows:
+                    trade = dict(zip(columns, row))
+                    # Convert soft_blocks from JSON string if present
+                    if trade.get('soft_blocks'):
+                        try:
+                            trade['soft_blocks'] = json.loads(trade['soft_blocks'])
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                    trades.append(trade)
+
+                # Create export data
+                export_data = {
+                    "export_metadata": {
+                        "mode": mode,
+                        "trade_count": len(trades),
+                        "exported_at": str(datetime.now().isoformat()),
+                        "schema_version": "1.0"
+                    },
+                    "trades": trades
+                }
+
+                # Write to file
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    json.dump(export_data, f, indent=2, default=str)
+
+                log.info(f"[TradeJournal] Exported {len(trades)} trades to {filepath}")
+
+                return {
+                    "export_status": "SUCCESS",
+                    "trade_count": len(trades),
+                    "filepath": filepath
+                }
+
+        except Exception as exc:
+            log.error(f"[TradeJournal] JSON export failed: {exc}")
+            return {
+                "export_status": "FAILED",
+                "trade_count": 0,
+                "error": str(exc)
+            }
