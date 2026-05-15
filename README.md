@@ -1,10 +1,10 @@
-# OPB Index Options Buying Bot v2.49
+# OPB Index Options Buying Bot v2.50
 
 ## Overview
 
 OPB (Options Buying Bot) is an automated NSE index options trading system supporting NIFTY, BANKNIFTY, and FINNIFTY. The system implements algorithmic signal generation, risk management, and execution with broker integration.
 
-**Version:** 2.49 (Production Hardened - Audit Fixed)  
+**Version:** 2.50 (Production Hardened - Startup Reconciliation Added)  
 **Platform:** Windows (primary), Linux/Docker compatible  
 **Python:** 3.10-3.19
 
@@ -12,18 +12,21 @@ OPB (Options Buying Bot) is an automated NSE index options trading system suppor
 
 **Survive first. Compound second. Never reverse that order.**
 
-All mandate rules are ACTUALLY ENFORCED in v2.49:
+All mandate rules are ACTUALLY ENFORCED in v2.50:
 - Risk per trade: 1.5% (not 2% or 3%)
 - Daily hard stop: 2.5% of capital
 - Weekly circuit: 5% → 0.75× sizing
 - Max drawdown protection: 12%
 - Loss streak cooldown: 2 hours after 3 losses
 
-### v2.49 Audit Fixes (Critical)
+### v2.50 Critical Fixes
+- **Startup Reconciliation**: On restart, scans for non-terminal orders and reconciles with broker state (prevents zombie positions after crash)
 - Position sizing: Fixed from hardcoded 25 to risk-based (1.5% × regime)
 - Signal pillars: RSI+MACD+ADX now counted as ONE pillar (not three)
 - Cost accounting: Added STT, brokerage, GST, stamp duty, bid-ask
 - Mandate wired: All MANDATE_* config now actually enforced
+- **Deterministic State Machine**: Prevents duplicate orders after broker timeout/ambiguity
+- **Margin Validation**: Uses actual intended quantity, not test values
 
 ---
 

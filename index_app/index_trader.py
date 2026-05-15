@@ -514,6 +514,16 @@ init_signal_orchestrator(_CFG)
 # Initialize Execution Service
 _execution_service = ExecutionService(portfolio_service=_portfolio_service)
 
+# CRITICAL FIX: Run startup reconciliation to recover non-terminal orders from crash
+if _execution_service:
+    try:
+        recon_result = _execution_service.reconcile_pending_orders()
+        log.info(f"Startup reconciliation: {recon_result.get('issues_count', 0)} issues, frozen={recon_result.get('freeze_reason')}")
+        if recon_result.get('freeze_reason'):
+            trip_hard_halt(f"Startup reconciliation freeze: {recon_result['freeze_reason']}")
+    except Exception as e:
+        log.error(f"Startup reconciliation failed: {e}")
+
 # Initialize Production Mandate Enforcer (v2.49 - actually enforces mandate)
 _MANDATE_ENFORCER = get_mandate_enforcer(_CFG)
 
