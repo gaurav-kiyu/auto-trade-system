@@ -112,7 +112,15 @@ class ProductionMandateEnforcer:
         """
         Calculate position size based on ACTUAL mandate risk rules.
         NOT hardcoded - uses 1.5% base with regime adjustments.
+
+        CRITICAL: Returns 0 if capital is zero or negative to prevent
+        division by zero and NaN propagation.
         """
+        # CRITICAL FIX: Guard against zero/negative capital
+        if self._state.capital <= 0:
+            _log.warning(f"Position sizing blocked: capital = {self._state.capital} <= 0")
+            return 0
+
         base_risk_pct = 0.015  # 1.5% as mandated
 
         reg = (regime or "").upper()

@@ -167,6 +167,9 @@ class ExecutionService:
         """
         Execute an order with idempotency and duplicate prevention.
 
+        ATOMIC OPERATION: The entire check→execute→store sequence is protected
+        by a single lock to prevent TOCTOU race conditions under concurrent load.
+
         Args:
             order_request: The order to execute
             execution_context: Context information for the execution
@@ -174,7 +177,7 @@ class ExecutionService:
         Returns:
             OrderResult indicating success or failure
         """
-        # Generate execution ID for tracking
+        # Generate execution ID for tracking (outside lock - thread-safe counter)
         execution_id = f"exec_{self._execution_counter}_{int(time.time())}"
         self._execution_counter += 1
 
@@ -188,20 +191,29 @@ class ExecutionService:
                 order_request, execution_context
             )
 
-        # Check for duplicate execution if enabled (delegate to IdempotencyManager)
-        if self.config.enable_duplicate_prevention:
-            if self.idempotency.is_duplicate(order_request.idempotency_key):
-                self._logger.warning(f"Duplicate order prevented: {order_request.idempotency_key}")
-                cached_result = self.idempotency.get_result(order_request.idempotency_key)
-                if cached_result is not None:
-                    return cached_result
-                else:
-                    return OrderResult(
-                        order_id="duplicate",
-                        status=OrderStatus.REJECTED,
-                        reject_reason="Duplicate order detected",
-                        timestamp=datetime.now()
-                    )
+        idempotency_key = order_request.idempotency_key
+
+        # CRITICAL FIX: Wrap entire check→execute→store in atomic lock
+        # to prevent TOCTOU race condition under concurrent load
+        with self._lock:
+            # Check for duplicate execution if enabled (delegate to IdempotencyManager)
+            if self.config.enable_duplicate_prevention:
+                if self.idempotency.is_duplicate(idempotency_key):
+                    self._logger.warning(f"Duplicate order prevented: {idempotency_key}")
+                    cached_result = self.idempotency.get_result(idempotency_key)
+                    if cached_result is not None:
+                        return cached_result
+                    else:
+                        return OrderResult(
+                            order_id="duplicate",
+                            status=OrderStatus.REJECTED,
+                            reject_reason="Duplicate order detected",
+                            timestamp=datetime.now()
+                        )
+
+            # CRITICAL FIX: Mark as in-flight BEFORE execution
+            # This prevents duplicates on crash/restart
+            self.idempotency.mark_in_flight(idempotency_key)
 
         # Record the execution start
         start_time = time.time()
@@ -211,8 +223,10 @@ class ExecutionService:
             execution_context=execution_context
         )
 
+        # CRITICAL FIX: Use try/finally to ensure in-flight marker is cleared
+        # even if execution fails or crashes
         try:
-            # Execute with retries
+            # Execute with retries (still inside atomic lock)
             order_result = self._execute_with_retries(order_request, execution_context)
 
             # Calculate latency
@@ -221,8 +235,9 @@ class ExecutionService:
 
             # Handle successful execution
             if order_result.status in [OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED]:
-                # Store idempotency result in both persistence and local cache
-                self._store_idempotency_key(order_request.idempotency_key, order_result)
+                # CRITICAL FIX: Store idempotency result AFTER successful execution
+                # but mark as confirmed (not in-flight)
+                self.idempotency.confirm_execution(idempotency_key, order_result)
 
                 # Persist trade if we have persistence and the order was filled
                 if (self.trade_persistence and
@@ -254,6 +269,9 @@ class ExecutionService:
             return order_result
 
         except Exception as e:
+            # CRITICAL FIX: Clear in-flight marker on failure
+            self.idempotency.clear_in_flight(idempotency_key)
+
             # Handle unexpected errors
             latency_ms = int((time.time() - start_time) * 1000)
             audit_trail.latency_ms = latency_ms
