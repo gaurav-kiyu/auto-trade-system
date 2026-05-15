@@ -134,3 +134,277 @@ class WalkForwardEngine:
             avg_win_rate=avg_wr,
             mode="anchored" if anchored else "rolling",
         )
+
+
+# ============================================================================
+# PARAMETER DRIFT MONITORING - v2.50 ENHANCEMENT
+# ============================================================================
+
+@dataclass
+class ParameterDriftReport:
+    """Parameter drift analysis results."""
+    parameter: str
+    train_values: list[float]
+    test_values: list[float]
+    drift_detected: bool
+    drift_pct: float
+    stability_rating: str  # STABLE / CAUTION / UNSTABLE
+    recommendation: str
+
+
+def analyze_parameter_drift(
+    windows: list[WalkForwardWindow],
+    param_extractor: Callable[[BacktestReport], dict[str, float]],
+    drift_threshold_pct: float = 20.0,
+) -> list[ParameterDriftReport]:
+    """
+    Analyze parameter stability across walk-forward windows.
+
+    Parameters
+    ----------
+    windows        : List of walk-forward windows
+    param_extractor: Function to extract parameters from BacktestReport
+    drift_threshold_pct: % change that triggers drift alert
+
+    Returns
+    -------
+    List of ParameterDriftReport for each parameter
+    """
+    reports = []
+
+    # Collect parameters from all windows
+    window_params = []
+    for window in windows:
+        params = param_extractor(window.report)
+        window_params.append(params)
+
+    if not window_params:
+        return reports
+
+    # Get all parameter names
+    param_names = set()
+    for wp in window_params:
+        param_names.update(wp.keys())
+
+    # Analyze each parameter
+    for param in sorted(param_names):
+        train_vals = []
+        test_vals = []
+
+        for i, wp in enumerate(window_params):
+            if param in wp:
+                # First half = train, second half = test (simplified)
+                if i < len(window_params) // 2:
+                    train_vals.append(wp[param])
+                else:
+                    test_vals.append(wp[param])
+
+        if not train_vals or not test_vals:
+            continue
+
+        # Calculate drift
+        train_mean = sum(train_vals) / len(train_vals)
+        test_mean = sum(test_vals) / len(test_vals)
+
+        if train_mean == 0:
+            continue
+
+        drift_pct = abs(test_mean - train_mean) / train_mean * 100.0
+
+        # Determine stability
+        if drift_pct < drift_threshold_pct * 0.5:
+            stability = "STABLE"
+        elif drift_pct < drift_threshold_pct:
+            stability = "CAUTION"
+        else:
+            stability = "UNSTABLE"
+
+        # Recommendation
+        if stability == "STABLE":
+            recommendation = "Continue using current parameters"
+        elif stability == "CAUTION":
+            recommendation = "Monitor closely, consider retraining"
+        else:
+            recommendation = "RETRAIN REQUIRED - parameters no longer stable"
+
+        reports.append(ParameterDriftReport(
+            parameter=param,
+            train_values=train_vals,
+            test_values=test_vals,
+            drift_detected=stability != "STABLE",
+            drift_pct=round(drift_pct, 2),
+            stability_rating=stability,
+            recommendation=recommendation,
+        ))
+
+    return reports
+
+
+def calculate_adaptive_retrain_trigger(
+    current_window_pnl: float,
+    rolling_avg_pnl: float,
+    consecutive_losses: int,
+    max_consecutive_losses: int = 3,
+    pnl_decline_threshold: float = 0.3,
+) -> dict[str, Any]:
+    """
+    Determine when to trigger adaptive retraining.
+
+    Returns
+    -------
+    dict with: should_retrain, trigger_reason, urgency
+    """
+    # Trigger if:
+    # 1. Current window P&L < 30% of rolling average
+    # 2. Consecutive losses exceed threshold
+
+    pnl_ratio = current_window_pnl / rolling_avg_pnl if rolling_avg_pnl > 0 else 0
+
+    should_retrain = False
+    trigger_reason = "NONE"
+    urgency = "LOW"
+
+    if consecutive_losses >= max_consecutive_losses:
+        should_retrain = True
+        trigger_reason = f"Consecutive losses ({consecutive_losses}) >= threshold"
+        urgency = "HIGH"
+    elif pnl_ratio < (1.0 - pnl_decline_threshold):
+        should_retrain = True
+        trigger_reason = f"P&L ratio {pnl_ratio:.2%} < threshold"
+        urgency = "MEDIUM"
+
+    return {
+        "should_retrain": should_retrain,
+        "trigger_reason": trigger_reason,
+        "urgency": urgency,
+        "consecutive_losses": consecutive_losses,
+        "pnl_ratio": round(pnl_ratio, 3),
+    }
+
+
+class WalkForwardDriftMonitor:
+    """
+    Complete walk-forward validation with drift monitoring.
+    """
+
+    def __init__(
+        self,
+        strategy_engine: StrategyEngine,
+        replay_config: ReplayConfig | None = None,
+        backtest_config: BacktestConfig | None = None,
+    ):
+        self._engine = WalkForwardEngine(
+            strategy_engine,
+            replay_config=replay_config,
+            backtest_config=backtest_config,
+        )
+        self._drift_reports: list[ParameterDriftReport] = []
+        self._retrain_history: list[dict] = []
+
+    def run_with_drift_analysis(
+        self,
+        name: str,
+        base_df: pd.DataFrame,
+        *,
+        train_bars: int,
+        test_bars: int,
+        step_bars: int | None = None,
+        vix: float = 0.0,
+        anchored: bool = False,
+        param_extractor: Callable[[BacktestReport], dict[str, float]] | None = None,
+    ) -> tuple[WalkForwardReport, list[ParameterDriftReport]]:
+        """
+        Run walk-forward with integrated drift analysis.
+
+        Returns
+        -------
+        (WalkForwardReport, drift_reports)
+        """
+        # Run standard walk-forward
+        report = self._engine.run(
+            name=name,
+            base_df=base_df,
+            train_bars=train_bars,
+            test_bars=test_bars,
+            step_bars=step_bars,
+            vix=vix,
+            anchored=anchored,
+        )
+
+        # Default param extractor if none provided
+        if param_extractor is None:
+            def default_extractor(r: BacktestReport) -> dict[str, float]:
+                return {
+                    "win_rate": r.win_rate,
+                    "sharpe": getattr(r, 'sharpe_ratio', 0) or 0,
+                    "max_drawdown": getattr(r, 'max_drawdown_pct', 0) or 0,
+                }
+            param_extractor = default_extractor
+
+        # Analyze drift
+        drift_reports = analyze_parameter_drift(
+            report.windows,
+            param_extractor,
+            drift_threshold_pct=20.0,
+        )
+
+        self._drift_reports = drift_reports
+        return report, drift_reports
+
+    def should_adaptive_retrain(
+        self,
+        recent_windows: list[WalkForwardWindow],
+    ) -> dict[str, Any]:
+        """Check if adaptive retraining is recommended."""
+        if len(recent_windows) < 3:
+            return {"should_retrain": False, "reason": "Insufficient data"}
+
+        # Calculate recent P&L trend
+        pnls = [w.report.net_pnl for w in recent_windows]
+        avg_pnl = sum(pnls) / len(pnls)
+        current_pnl = pnls[-1]
+
+        # Count consecutive losses
+        consecutive_losses = 0
+        for pnl in reversed(pnls):
+            if pnl < 0:
+                consecutive_losses += 1
+            else:
+                break
+
+        return calculate_adaptive_retrain_trigger(
+            current_window_pnl=current_pnl,
+            rolling_avg_pnl=avg_pnl,
+            consecutive_losses=consecutive_losses,
+        )
+
+    def get_drift_summary(self) -> dict[str, Any]:
+        """Get summary of all drift analysis."""
+        if not self._drift_reports:
+            return {"status": "NO_ANALYSIS"}
+
+        unstable = [r for r in self._drift_reports if r.stability_rating == "UNSTABLE"]
+        caution = [r for r in self._drift_reports if r.stability_rating == "CAUTION"]
+
+        return {
+            "total_parameters": len(self._drift_reports),
+            "stable_count": len(self._drift_reports) - len(unstable) - len(caution),
+            "caution_count": len(caution),
+            "unstable_count": len(unstable),
+            "unstable_parameters": [r.parameter for r in unstable],
+            "overall_status": "UNSTABLE" if unstable else "CAUTION" if caution else "STABLE",
+        }
+
+
+WALKFORWARD_CAPABILITIES = {
+    "train": True,
+    "validate": True,
+    "forward_test": True,
+    "rolling_windows": True,
+    "anchored_windows": True,
+    "out_of_sample": True,
+    "adaptive_retraining": True,
+    "parameter_drift_monitoring": True,
+    "drift_alerts": True,
+    "retrain_triggers": True,
+}
