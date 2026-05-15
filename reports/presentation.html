@@ -325,6 +325,73 @@
     <p style="margin-top:15px;"><span class="tag tag-green">743 TESTS PASSED (99.7%)</span></p>
 </div>
 
+<div class="slide">
+    <h2>Audit Findings: Fixed vs Remaining</h2>
+    <table>
+        <tr>
+            <th>Issue</th>
+            <th>Previous</th>
+            <th>Current</th>
+        </tr>
+        <tr>
+            <td>Duplicate Execution</td>
+            <td class="danger">CRITICAL</td>
+            <td class="positive">FIXED major</td>
+        </tr>
+        <tr>
+            <td>Margin Validation</td>
+            <td class="danger">FAILED</td>
+            <td class="positive">FIXED</td>
+        </tr>
+        <tr>
+            <td>Partial Refactor</td>
+            <td class="danger">HIGH</td>
+            <td class="positive">Largely resolved</td>
+        </tr>
+        <tr>
+            <td>Broker Exceptions</td>
+            <td class="tag-yellow">weak</td>
+            <td class="tag-yellow">partial</td>
+        </tr>
+        <tr>
+            <td>Synthetic OI</td>
+            <td class="danger">HIGH</td>
+            <td class="tag-red">unresolved</td>
+        </tr>
+        <tr>
+            <td>Option Realism</td>
+            <td class="tag-yellow">weak</td>
+            <td class="tag-red">unresolved</td>
+        </tr>
+    </table>
+    <p style="margin-top:15px;"><span class="tag tag-yellow">Remaining: Synthetic OI, Option Realism, Walk-forward</span></p>
+</div>
+
+<div class="slide">
+    <h2>Production Verdict</h2>
+    <div class="grid">
+        <div class="card">
+            <h4>Paper Trading</h4>
+            <div class="value positive">APPROVED</div>
+        </div>
+        <div class="card">
+            <h4>Micro Live</h4>
+            <div class="value positive">APPROVED</div>
+            <p style="color:#aaa;">with monitoring</p>
+        </div>
+        <div class="card">
+            <h4>Moderate Live</h4>
+            <div class="value" style="color:#ffd700">CAUTION</div>
+            <p style="color:#aaa;">after broker hardening</p>
+        </div>
+        <div class="card">
+            <h4>Serious Capital</h4>
+            <div class="value danger">NOT YET</div>
+            <p style="color:#aaa;">quant validation needed</p>
+        </div>
+    </div>
+</div>
+
 <div class="slide" style="text-align: center;">
     <h1 style="font-size: 3em; color: #00ff88;">FINAL VERDICT</h1>
     <p style="font-size: 2em; margin: 30px 0;"><span class="tag tag-green" style="font-size: 1.5em; padding: 10px 30px;">PRODUCTION HARDENED (v2.49)</span></p>
