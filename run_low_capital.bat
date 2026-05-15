@@ -1,14 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
-title OPBuying — Low Capital Launcher (Rs.5,000)
+title OPBuying - Low Capital Launcher (Rs.5,000)
 color 0A
 
 echo.
 echo  ============================================================
-echo    OPBuying Index App  —  Rs.5,000 LOW CAPITAL Mode
-echo    v2.48 - Trade Mandate Compliant
+echo    OPBuying Index App  -  Rs.5,000 LOW CAPITAL Mode
+echo    v2.45 - Safety Hardened (TOCTOU Race Fix Applied)
 echo    Risk: 1.5% | Daily Stop: 2.5% | Survive First
-echo    PAPER TRADING ONLY — No Real Orders
+echo    PAPER TRADING ONLY - No Real Orders
 echo  ============================================================
 echo.
 
