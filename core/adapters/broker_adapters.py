@@ -380,6 +380,10 @@ class _PollingBrokerAdapter(BrokerAdapter):
 
 
 class KiteBrokerAdapter(_PollingBrokerAdapter):
+    _rate_limit_lock = threading.Lock()
+    _last_api_call = 0.0
+    _min_interval_ms = 500  # Minimum 500ms between API calls
+
     def __init__(self, context: BrokerRuntimeContext) -> None:
         super().__init__(context)
         self._kite = None
@@ -387,6 +391,16 @@ class KiteBrokerAdapter(_PollingBrokerAdapter):
         self._token_date = None
         self._kite_lock = threading.Lock()
         self._connect()
+
+    def _rate_limit_wait(self) -> None:
+        """Enforce rate limiting to prevent API ban."""
+        with self._rate_limit_lock:
+            now = time.time()
+            elapsed_ms = (now - self._last_api_call) * 1000
+            if elapsed_ms < self._min_interval_ms:
+                sleep_ms = (self._min_interval_ms - elapsed_ms) / 1000.0
+                time.sleep(sleep_ms)
+            self._last_api_call = time.time()
 
     def _connect(self):
         try:
@@ -453,11 +467,13 @@ class KiteBrokerAdapter(_PollingBrokerAdapter):
     def place_order(self, name, direction, qty, strike):
         from kiteconnect import KiteConnect  # type: ignore
 
+        self._rate_limit_wait()  # Rate limiting to prevent API ban
         return self._kite_order(name, direction, qty, strike, KiteConnect.TRANSACTION_TYPE_BUY)
 
     def exit_order(self, name, direction, qty, strike):
         from kiteconnect import KiteConnect  # type: ignore
 
+        self._rate_limit_wait()  # Rate limiting to prevent API ban
         return self._kite_order(name, direction, qty, strike, KiteConnect.TRANSACTION_TYPE_SELL)
 
     def _order_record(self, order_id):

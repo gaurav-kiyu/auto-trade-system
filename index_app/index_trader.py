@@ -752,10 +752,12 @@ def enter_trade(name, sig):
         lot_size=int(qty),
         order_type=OrderType.MARKET,
         price=price,
+        idempotency_key=idempotency_key,  # Broker-side idempotency key
     )
 
-    exec_service = ExecutionService(portfolio_service=_portfolio_service)
-    order_result = exec_service.execute_order(order_request)
+    # CRITICAL FIX: Use existing _execution_service (singleton), not new instance
+    # Creating new instances causes inefficient execution and potential state confusion
+    order_result = _execution_service.execute_order(order_request)
     success = order_result.status in (OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED)
 
     if success:

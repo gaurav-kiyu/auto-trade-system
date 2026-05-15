@@ -26,6 +26,7 @@ class OrderRequest:
     product: str    # MIS, CNC, NRML
     variety: str    # REGULAR, AMO, etc.
     tag: str = "OPB_BOT"
+    idempotency_key: str = ""  # Broker-side idempotency key for duplicate prevention
 
 @dataclass
 class OrderResponse:
