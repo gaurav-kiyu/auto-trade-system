@@ -495,6 +495,7 @@ _SIGNAL_CFG = SIGNAL_CFG  # alias for test compatibility
 from core.services.portfolio_service import PortfolioService
 from core.services.execution_service import ExecutionService
 from core.services.signal_orchestrator import signal_orchestrator, init_signal_orchestrator
+from core.mandate_enforcer import get_mandate_enforcer, reset_mandate_enforcer
 
 # Initialize PortfolioService with config
 _portfolio_service = PortfolioService(_CFG)
@@ -502,6 +503,9 @@ _portfolio_service = PortfolioService(_CFG)
 init_signal_orchestrator(_CFG)
 # Initialize Execution Service
 _execution_service = ExecutionService(portfolio_service=_portfolio_service)
+
+# Initialize Production Mandate Enforcer (v2.49 - actually enforces mandate)
+_MANDATE_ENFORCER = get_mandate_enforcer(_CFG)
 
 # Legacy S object is now fully replaced by the PortfolioService
 # We keep the name 'S' as a proxy for backward compatibility with legacy code
@@ -863,7 +867,61 @@ def calc_dynamic_slippage(vix, vol_r):
     return 0.0
 
 def get_position_size(name, entry, vix=0.0):
-    return 25
+    """v2.49: Use production mandate enforcer for risk-based sizing"""
+    global _MANDATE_ENFORCER
+    if _MANDATE_ENFORCER is None:
+        _MANDATE_ENFORCER = get_mandate_enforcer(_CFG)
+
+    regime = "SIDEWAYS"  # Default - would be passed from signal
+    sl_pct = 1 - SL_PCT  # Use actual SL_PCT from config
+    return _MANDATE_ENFORCER.get_position_size(entry, regime, sl_pct)
+
+
+def check_mandate_trade_allowed(regime: str = "SIDEWAYS", score: int = 70, iv_rank: float = 25.0) -> tuple[bool, str]:
+    """v2.49: Called BEFORE every potential trade entry to enforce mandate"""
+    global _MANDATE_ENFORCER
+    if _MANDATE_ENFORCER is None:
+        _MANDATE_ENFORCER = get_mandate_enforcer(_CFG)
+
+    # 1. Check basic can_trade (hard stops, VIX, data)
+    can_trade, reason = _MANDATE_ENFORCER.can_trade()
+    if not can_trade:
+        return False, f"MANDATE_BLOCK: {reason}"
+
+    # 2. Check trading window (9:20-11:30, 13:00-14:45)
+    if not _MANDATE_ENFORCER.is_in_trading_window():
+        return False, "MANDATE_BLOCK: Outside trading window"
+
+    # 3. Check skip first 20 min
+    if _MANDATE_ENFORCER.should_skip_first_20_min():
+        return False, "MANDATE_BLOCK: First 20 minutes"
+
+    # 4. Check skip last 45 min
+    if _MANDATE_ENFORCER.should_skip_last_45_min():
+        return False, "MANDATE_BLOCK: Last 45 minutes"
+
+    # 5. Check score threshold by regime
+    min_score = _MANDATE_ENFORCER.get_min_score(regime)
+    if score < min_score:
+        return False, f"MANDATE_BLOCK: Score {score} < {min_score} for {regime}"
+
+    # 6. Check false signal filter
+    if _MANDATE_ENFORCER.should_block_false_signal(score, iv_rank):
+        return False, f"MANDATE_BLOCK: False signal (score={score}, iv={iv_rank})"
+
+    # 7. Check max trades today
+    if _MANDATE_ENFORCER.get_status()["trades_today"] >= _MANDATE_ENFORCER.get_max_trades_today():
+        return False, f"MANDATE_BLOCK: Max trades today reached"
+
+    return True, "MANDATE_ALLOWED"
+
+
+def get_mandate_status() -> dict:
+    """v2.49: For observability - current mandate state"""
+    global _MANDATE_ENFORCER
+    if _MANDATE_ENFORCER is None:
+        return {"error": "Not initialized"}
+    return _MANDATE_ENFORCER.get_status()
 
 def _get_trade_history_snapshot():
     return []
