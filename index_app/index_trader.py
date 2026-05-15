@@ -923,6 +923,51 @@ def get_mandate_status() -> dict:
         return {"error": "Not initialized"}
     return _MANDATE_ENFORCER.get_status()
 
+
+def validate_signal_pillars(
+    rsi: float = None,
+    macd: str = None,
+    adx: float = None,
+    iv_rank: float = None,
+    oi_change: float = None,
+    pcr: float = None,
+    fii_net: float = None,
+    dii_net: float = None,
+    gex: float = None,
+    session_score: float = None,
+) -> tuple[bool, str]:
+    """
+    v2.49: Validate signal independence - RSI/MACD/ADX = 1 pillar (NOT 3!)
+    Must have consensus from 2 independent pillars for trade.
+    """
+    from core.signal_independence import SignalIndependenceValidator
+
+    validator = SignalIndependenceValidator()
+
+    # PILLAR 1: Price/Momentum (RSI+MACD+ADX = ONE pillar - not three!)
+    if rsi is not None and macd is not None and adx is not None:
+        validator.set_price_momentum_signal(rsi, macd, adx)
+
+    # PILLAR 2: Options Market (IV+OI+PCR = independent)
+    if iv_rank is not None and oi_change is not None and pcr is not None:
+        validator.set_options_market_signal(iv_rank, oi_change, pcr)
+
+    # PILLAR 3: Institutional Flow (FII+DII+GEX = independent)
+    if fii_net is not None and dii_net is not None:
+        validator.set_institutional_flow_signal(fii_net, dii_net, gex or 0)
+
+    # PILLAR 4: Structural (session+time+events = independent)
+    if session_score is not None:
+        validator.set_structural_signal(session_score, "normal", True)
+
+    # Validate: Need 2 pillars agreeing
+    valid, reason, pillars = validator.validate_independence()
+    if not valid:
+        return False, f"PILLAR_FAIL: {reason} (have {pillars} pillars)"
+
+    direction = validator.get_consensus_direction()
+    return True, f"PILLAR_OK: {direction} consensus from {pillars} pillars"
+
 def _get_trade_history_snapshot():
     return []
 

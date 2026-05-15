@@ -1,6 +1,14 @@
 """
 Signal Independence Validator - Ensures signals come from independent sources
 PART 1 - Condition 2: RSI/MACD/ADX count as ONE pillar, need 2 of 3 pillars
+
+MUST BE CALLED during signal generation to validate:
+- RSI + MACD + ADX = 1 pillar (price/momentum)
+- Options Market (IV, OI, PCR) = 1 pillar
+- Institutional Flow (FII, DII, GEX) = 1 pillar
+- Structural (session, time, events) = 1 pillar
+
+At least 2 pillars must agree for trade to be allowed.
 """
 from __future__ import annotations
 from dataclasses import dataclass
@@ -21,15 +29,23 @@ class SignalIndependenceValidator:
     def __init__(self):
         self._pillars: dict[str, SignalPillar] = {}
 
+    def reset(self):
+        """Clear pillars for new signal evaluation"""
+        self._pillars = {}
+
     def set_price_momentum_signal(
         self,
         rsi: float,
         macd: str,
         adx: float,
     ):
+        """
+        RSI + MACD + ADX = ONE pillar (not three!)
+        These are all derived from same price data - not independent
+        """
         if rsi and macd and adx:
             self._pillars["price_momentum"] = SignalPillar(
-                name="Price/Momentum",
+                name="Price/Momentum (RSI+MACD+ADX = 1 pillar)",
                 direction=self._get_direction_from_rsi_macd(rsi, macd),
                 strength=min(adx / 50, 1.0),
             )
@@ -40,10 +56,14 @@ class SignalIndependenceValidator:
         oi_change_pct: float,
         pcr: float,
     ):
+        """
+        Options Market = INDEPENDENT pillar
+        IV rank, OI changes, PCR are derived from options data
+        """
         if iv_rank is not None and oi_change_pct is not None and pcr is not None:
             direction = "BULLISH" if pcr < 1.0 else "BEARISH" if pcr > 1.2 else "NEUTRAL"
             self._pillars["options_market"] = SignalPillar(
-                name="Options Market",
+                name="Options Market (IV+OI+PCR)",
                 direction=direction,
                 strength=min(iv_rank / 50, 1.0),
             )
