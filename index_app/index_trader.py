@@ -394,6 +394,16 @@ from core.risk.risk_engine import risk_engine, init_risk_engine
 from core.ml_inference import ml_engine, init_ml_engine
 from core.observability import obs_manager
 
+# v2.49 CRITICAL FIX imports
+from core.risk.margin_validator import get_margin_validator, MarginValidator
+from core.execution.broker_truth_reconciliation import get_broker_truth_reconciler, BrokerTruthReconciler
+from core.execution.idempotency_alerts import get_idempotency_alert_manager, IdempotencyAlertManager
+from core.execution.deterministic_state_machine import ExecutionStateMachine, get_execution_state_manager
+from core.execution.broker_exceptions import (
+    PermanentBrokerError, AuthExpiredError, OrderRejectedError,
+    AmbiguousExecutionStateError, TransientBrokerError, classify_broker_exception
+)
+
 # Capture the original main before any shims overwrite it.
 # The real trading logic lives in the DI container + stub exports.
 # We just need main() to set up the container and print config.
@@ -506,6 +516,21 @@ _execution_service = ExecutionService(portfolio_service=_portfolio_service)
 
 # Initialize Production Mandate Enforcer (v2.49 - actually enforces mandate)
 _MANDATE_ENFORCER = get_mandate_enforcer(_CFG)
+
+# Initialize v2.49 CRITICAL FIX components
+_margin_validator = get_margin_validator(_CFG)
+_idempotency_alert_manager = get_idempotency_alert_manager(freeze_on_critical=True)
+_deterministic_state_machine = get_execution_state_manager()
+
+# Broker truth reconciler will be initialized when broker is available
+_broker_truth_reconciler = None
+
+def _init_broker_truth_reconciler(broker_port):
+    """Lazy initialization of broker truth reconciler"""
+    global _broker_truth_reconciler
+    if _broker_truth_reconciler is None:
+        _broker_truth_reconciler = get_broker_truth_reconciler(broker_port, _CFG)
+    return _broker_truth_reconciler
 
 # Legacy S object is now fully replaced by the PortfolioService
 # We keep the name 'S' as a proxy for backward compatibility with legacy code
@@ -669,6 +694,47 @@ def enter_trade(name, sig):
     direction = sig.get("direction", "CALL")
     order_direction = "BUY" if str(direction).upper() == "CALL" else "SELL" if str(direction).upper() == "PUT" else str(direction).upper()
 
+    # CRITICAL FIX #2: Validate margin BEFORE placing order
+    if not PAPER_MODE:
+        try:
+            available_margin = _portfolio_service.get_available_margin()
+            required_margin_per_lot = risk_engine.get_required_margin_per_lot(name, price) if risk_engine else price * qty * 0.2
+            margin_result = _margin_validator.validate(
+                available_margin=available_margin,
+                required_margin_per_lot=required_margin_per_lot,
+                intended_quantity=int(qty),
+                price_per_lot=price,
+                instrument_name=name,
+            )
+            if not margin_result.allowed:
+                decision_log[name] = {"msg": f"MARGIN_BLOCK: {margin_result.error_message}"}
+                send(f"MARGIN_BLOCK: {name} - {margin_result.error_message}", critical=True)
+                return
+            if margin_result.warning_message:
+                send(margin_result.warning_message, critical=False)
+        except Exception as e:
+            # CRITICAL FIX #5: Use broker-specific exception taxonomy
+            classified = classify_broker_exception(e)
+            if isinstance(classified, (AuthExpiredError, OrderRejectedError)):
+                decision_log[name] = {"msg": f"BROKER_ERROR: {classified.__class__.__name__}"}
+                trip_hard_halt(f"Margin check failed: {classified.__class__.__name__}")
+                return
+
+    # Check idempotency before placing order (CRITICAL FIX #1)
+    # Use ExecutionStateMachineManager's create_or_get for idempotency
+    idempotency_key = f"{name}_{direction}_{price}_{qty}"
+    state_machine, is_new = _deterministic_state_machine.create_or_get(
+        intent_id=idempotency_key,
+        symbol=name,
+        quantity=int(qty),
+        price=price,
+        direction=order_direction,
+    )
+    if not is_new:
+        # Order already exists - idempotent return, don't place again
+        decision_log[name] = {"msg": f"IDEMPOTENCY_BLOCK: Order {idempotency_key} already exists (state: {state_machine.state.value})"}
+        return
+
     order_request = OrderRequest(
         symbol=name,
         direction=order_direction,
@@ -684,9 +750,13 @@ def enter_trade(name, sig):
 
     if success:
         decision_log[name] = {"msg": f"Executed: {order_result.order_id}"}
+        # CRITICAL FIX #1: Record state transition to FILLED
+        state_machine.record_fill(qty, price)
     else:
         error_text = order_result.reject_reason or str(order_result.status)
         decision_log[name] = {"msg": f"Blocked/Failed: {error_text}"}
+        # Mark as failed
+        state_machine.try_transition_to(state_machine.state.__class__.FAILED)
 
 def _check_hard_halt_reason():
     import core.safety_state as _ss
@@ -719,20 +789,37 @@ def daily_reset():
 
 def _reconcile_positions_live():
     if BROKER_API_ENABLED and RECONCILE_HALT_ON_QTY_MISMATCH:
-        with _pos_lock:
-            for name, pos in list(positions.items()):
-                broker_qty = 0
-                try:
-                    broker_qty = _broker.get_position_qty(
-                        name, pos.get("signal", ""), pos.get("strike", 0)
-                    )
-                except Exception:
-                    pass
-                local_qty = pos.get("qty", 0)
-                if broker_qty != local_qty and broker_qty > 0 and local_qty > 0:
-                    reason = f"qty mismatch: broker={broker_qty} vs local={local_qty} for {name}"
-                    trip_hard_halt(reason)
-                    return
+        # CRITICAL FIX #6: Use broker truth reconciler for authoritative positions
+        if _broker_truth_reconciler is not None:
+            try:
+                broker_positions = _broker_truth_reconciler.get_all_authoritative_positions()
+                with _pos_lock:
+                    for name, pos in list(positions.items()):
+                        local_qty = pos.get("qty", 0)
+                        broker_pos = broker_positions.get(name)
+                        broker_qty = broker_pos.get("qty", 0) if broker_pos else 0
+                        if broker_qty != local_qty and broker_qty > 0 and local_qty > 0:
+                            reason = f"qty mismatch: broker={broker_qty} vs local={local_qty} for {name}"
+                            trip_hard_halt(reason)
+                            return
+            except Exception as e:
+                log.error(f"Broker truth reconciliation failed: {e}")
+        else:
+            # Fallback to legacy method
+            with _pos_lock:
+                for name, pos in list(positions.items()):
+                    broker_qty = 0
+                    try:
+                        broker_qty = _broker.get_position_qty(
+                            name, pos.get("signal", ""), pos.get("strike", 0)
+                        )
+                    except Exception:
+                        pass
+                    local_qty = pos.get("qty", 0)
+                    if broker_qty != local_qty and broker_qty > 0 and local_qty > 0:
+                        reason = f"qty mismatch: broker={broker_qty} vs local={local_qty} for {name}"
+                        trip_hard_halt(reason)
+                        return
 
 def _periodic_reconcile():
     pass
@@ -1133,6 +1220,7 @@ max_daily_loss = 0.0
 
 def setup_di_container() -> None:
     """Set up the dependency injection container with all service implementations."""
+    from core.di_container import get_container
     from infrastructure.config.secure_config_adapter import SecureConfigAdapter
     from core.services.execution_service import ExecutionService
     from core.services.risk_service import RiskService
@@ -1149,6 +1237,7 @@ def setup_di_container() -> None:
     from infrastructure.config.logging_adapter import StructuredLoggerAdapter
     from infrastructure.adapters.metrics.metrics_adapter import MetricsAdapter
 
+    container = get_container()
     config_adapter = SecureConfigAdapter()
     container.register_singleton(ConfigPort, type(config_adapter))
     container._singleton_instances[ConfigPort] = config_adapter
@@ -1238,7 +1327,9 @@ health_check = health_check_shim
 
 def main() -> None:
     """Main entry point that sets up DI container for production use."""
+    from core.di_container import get_container
     setup_di_container()
+    container = get_container()
     config = container.resolve(ConfigPort)
     if __name__ == "__main__":
         print("=== SECURE CONFIGURATION LOADED ===")
