@@ -726,8 +726,17 @@ class BrokerHealthService(BrokerHealthPort):
         # Record the failure in the failover manager
         failover_triggered = self.failover_manager.record_failure(broker_name)
         if failover_triggered:
+            next_broker = self.failover_manager.get_active_broker()
             self._logger.warning(f"Failover triggered for broker {broker_name} due to consecutive errors")
-            # TODO: Send alert/notification about failover
+            # Send CRITICAL alert for failover - this goes to Telegram if configured
+            alert_msg = f"🔄 BROKER FAILOVER: Switched from {broker_name} to {next_broker} due to consecutive failures"
+            self._logger.critical(alert_msg)
+            # Also try to send via notification service if available
+            try:
+                if hasattr(self, '_notification_service') and self._notification_service:
+                    self._notification_service.send_alert(alert_msg, priority="CRITICAL")
+            except Exception:
+                pass  # Non-blocking - notification service may not be initialized
 
     def _monitoring_loop(self) -> None:
         """Main monitoring loop that runs in a separate thread."""
