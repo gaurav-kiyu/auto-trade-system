@@ -647,71 +647,44 @@ class ExecutionService:
         # Mark as validated
         state_machine.try_transition_to(ExecutionState.VALIDATED)
 
-        # Single attempt only - NO RETRY after PARTIALLY_FILLED to prevent duplicates
-        last_exception = None
+        # CRITICAL: Single attempt ONLY - NO RETRY to prevent duplicate orders
+        # This is the ONLY execution path - state machine guarantees idempotency
+        try:
+            # Attempt order execution - ONE TIME ONLY
+            result = self._attempt_order_execution(order_request, execution_context)
 
-        for attempt in range(1, self.config.max_retries + 1):
-            try:
-                # Calculate delay for this attempt (exponential backoff)
-                if attempt > 1:
-                    delay = min(
-                        self.config.base_retry_delay * (self.config.retry_exponential_base ** (attempt - 2)),
-                        self.config.max_retry_delay
-                    )
-                    self._logger.debug(f"Retry attempt {attempt} after {delay:.1f}s delay")
-                    time.sleep(delay)
+            # Record state transitions based on result
+            if result.status == OrderStatus.FILLED:
+                state_machine.record_fill(order_request.lot_size, order_request.strike_price)
+                return result
 
-                # Attempt order execution
-                result = self._attempt_order_execution(order_request, execution_context)
+            elif result.status == OrderStatus.PARTIALLY_FILLED:
+                # Record partial fill and return - NO RETRY to prevent duplicates
+                state_machine.record_partial_fill(result.filled_quantity or 0, result.average_fill_price or 0)
+                return result
 
-                # If successful, return immediately and record state
-                if result.status == OrderStatus.FILLED:
-                    state_machine.record_fill(order_request.lot_size, order_request.strike_price)
-                    return result
+            elif result.status == OrderStatus.REJECTED:
+                state_machine.try_transition_to(ExecutionState.REJECTED)
+                return result
 
-                # CRITICAL: Do NOT retry PARTIALLY_FILLED - this causes duplicate orders!
-                # Only SUBMITTED and PENDING can be retried (broker acknowledged, not filled)
-                if result.status == OrderStatus.PARTIALLY_FILLED:
-                    # Record partial fill and return - NO RETRY to prevent duplicates
-                    state_machine.record_partial_fill(result.filled_quantity or 0, result.average_fill_price or 0)
-                    return result
+            elif result.status == OrderStatus.SUBMITTED:
+                state_machine.record_submission(result.order_id or "unknown")
+                return result
 
-                # Retryable statuses: PENDING, SUBMITTED only (not PARTIALLY_FILLED)
-                if result.status in [OrderStatus.SUBMITTED, OrderStatus.PENDING]:
-                    if last_exception is None:
-                        last_exception = Exception(f"Order status {result.status.value} may be retryable")
-                # REJECTED could be from broker throwing exception with error message in reject_reason
-                # Preserve the original error message from the broker's REJECTED result
-                elif result.status == OrderStatus.REJECTED and result.reject_reason:
-                    if last_exception is None:
-                        last_exception = Exception(result.reject_reason)
+            else:
+                # Unknown status - fail safe
+                state_machine.try_transition_to(ExecutionState.FAILED)
+                return result
 
-            except Exception as e:
-                last_exception = e
-                self._logger.warning(f"Order execution attempt {attempt} failed: {e}")
-
-                # If this is the last attempt, we'll fall through to return the error
-                if attempt == self.config.max_retries:
-                    break
-
-        # If we exhausted all retries, return the last error
-        if last_exception:
+        except Exception as e:
+            # Execution failed - record failure
             state_machine.try_transition_to(ExecutionState.FAILED)
             return OrderResult(
-                order_id="retry_exhausted",
+                order_id="execution_failed",
                 status=OrderStatus.REJECTED,
-                reject_reason=f"Max retries ({self.config.max_retries}) exceeded: {str(last_exception)}",
+                reject_reason=f"Execution failed: {str(e)}",
                 timestamp=datetime.now()
             )
-
-        # Fallback (shouldn't reach here)
-        state_machine.try_transition_to(ExecutionState.FAILED)
-        return OrderResult(
-            order_id="unknown_error",
-            status=OrderStatus.REJECTED,
-            reject_reason="Unknown error during order execution retries",
-            timestamp=datetime.now()
-        )
 
     def _attempt_order_execution(
         self,

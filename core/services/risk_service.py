@@ -542,8 +542,7 @@ class RiskService(RiskPort):
         signal_data: dict[str, Any],
         portfolio_metrics: PortfolioRiskMetrics
     ) -> RiskEvaluation:
-        """Check margin requirements."""
-        # Get ACTUAL intended quantity from signal data (NOT test_quantity = 1)
+        """Check margin requirements using ACTUAL position size, not test_quantity=1."""
         entry_price = _safe_num(signal_data.get("price", 0), 0)
         if entry_price <= 0:
             return RiskEvaluation(
@@ -552,13 +551,31 @@ class RiskService(RiskPort):
                 risk_score=0.5
             )
 
-        # CRITICAL FIX: Use actual intended quantity from signal
         lot_size = self._get_lot_size(symbol)
-        intended_quantity = _safe_num(signal_data.get("quantity", 1), 1)
-        if intended_quantity <= 0:
-            intended_quantity = 1  # Default to 1 if invalid
 
-        # Validate margin with ACTUAL intended quantity
+        # CRITICAL FIX: Calculate quantity from position sizing (NOT test_quantity=1)
+        # Priority: 1) signal_data.quantity, 2) calculate from risk-based sizing, 3) 1 lot minimum
+        intended_quantity = _safe_num(signal_data.get("quantity"), None)
+
+        if intended_quantity is None or intended_quantity <= 0:
+            # Calculate from position sizing using risk-based approach
+            risk_amount = portfolio_metrics.available_capital * self.config.default_risk_per_trade
+            stop_loss_pct = _safe_num(signal_data.get("stop_loss_pct"), 0.05)
+
+            if stop_loss_pct > 0 and entry_price > 0:
+                # Calculate max quantity based on risk
+                max_risk_amount = risk_amount
+                risk_per_share = entry_price * stop_loss_pct
+                calculated_qty = int(max_risk_amount / risk_per_share) if risk_per_share > 0 else 1
+                intended_quantity = max(1, min(calculated_qty, lot_size * 5))  # Cap at 5 lots
+            else:
+                intended_quantity = 1  # Minimum 1 lot
+
+        # Ensure at least 1 lot
+        if intended_quantity <= 0:
+            intended_quantity = 1
+
+        # Validate margin with ACTUAL calculated quantity (not test_quantity=1)
         if not self.validate_margin_requirements(symbol, intended_quantity, portfolio_metrics.available_capital):
             return RiskEvaluation(
                 decision=RiskDecision.DENIED,
