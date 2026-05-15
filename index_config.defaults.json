@@ -1041,5 +1041,10 @@
   "telegram_signal_format": "RICH",
   "signal_importer_enabled": false,
   "signal_importer_watch_dir": "incoming_signals",
-  "signal_importer_poll_secs": 30
+  "signal_importer_poll_secs": 30,
+
+  "STRICT_OI_VALIDATION": true,
+  "STRICT_OI_COVERAGE_THRESHOLD": 0.80,
+  "STRICT_OI_ABORT_ON_SYNTHETIC": true,
+  "STRICT_OI_REPORT_CONTAMINATION": true
 }

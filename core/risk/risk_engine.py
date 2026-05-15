@@ -101,5 +101,10 @@ class RiskEngine:
 risk_engine: Optional[RiskEngine] = None
 
 def init_risk_engine(config: Dict[str, Any]):
+    """
+    DEPRECATED: Use core.services.risk_service.RiskService instead.
+    This module exists for backward compatibility only.
+    All new code should use RiskService.
+    """
     global risk_engine
     risk_engine = RiskEngine(config)
