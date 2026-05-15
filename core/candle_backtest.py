@@ -125,7 +125,7 @@ class CandleBacktestConfig:
     disable_adaptive: bool  = True
     use_regime_rr: bool     = True        # True → adjust TP/SL per regime
     oi_snapshot_db: str     = ""          # path to oi_snapshots.db; "" = use synthetic OI
-    strict_oi: bool         = False       # abort if OI coverage < 80%
+    strict_oi: bool         = True        # abort if OI coverage < 80% (v2.49 default)
     oi_fallback_warn_pct: float = 0.20    # warn in report header if > this fraction used synthetic
 
 
