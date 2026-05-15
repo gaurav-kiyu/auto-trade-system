@@ -11,6 +11,7 @@ from core.execution.idempotency.manager import IdempotencyManager
 from core.execution.order_submission.manager import OrderSubmissionManager
 from core.execution.retry_policy.manager import RetryPolicy
 from core.execution.broker_gateway import broker_gateway
+from core.execution.deterministic_state_machine import get_execution_state_manager, ExecutionState
 from core.execution.reconciliation.service import (
     ReconciliationService,
     TradingFreezeReason,
@@ -80,8 +81,10 @@ class ExecutionService:
         self.idempotency = IdempotencyManager(
             cache_size=cache_size,
             expiry_hours=expiry_hours,
-            persistence_path=persistence_path
         )
+
+        # CRITICAL FIX: Deterministic state machine for idempotency
+        self._state_machine = get_execution_state_manager()
 
         self.retry_policy = RetryPolicy()
         self.submission = OrderSubmissionManager(self._broker_port)
@@ -612,7 +615,7 @@ class ExecutionService:
         execution_context: ExecutionContext
     ) -> OrderResult:
         """
-        Execute an order with retry mechanism and exponential backoff.
+        Execute an order with deterministic state machine - NO RETRY after ambiguous states.
 
         Args:
             order_request: The order to execute
@@ -621,6 +624,30 @@ class ExecutionService:
         Returns:
             OrderResult from the execution attempt
         """
+        # CRITICAL FIX: Check idempotency using deterministic state machine BEFORE any attempt
+        intent_id = f"{order_request.symbol}_{order_request.direction}_{order_request.strike_price}_{order_request.lot_size}"
+        state_machine, is_new = self._state_machine.create_or_get(
+            intent_id=intent_id,
+            symbol=order_request.symbol,
+            quantity=order_request.lot_size,
+            price=order_request.strike_price,
+            direction=order_request.direction,
+        )
+
+        # If order already exists in non-terminal state, BLOCK duplicate
+        if not is_new and state_machine.state not in [ExecutionState.FILLED, ExecutionState.REJECTED, ExecutionState.CANCELLED, ExecutionState.FAILED]:
+            self._logger.warning(f"BLOCKED: Order {intent_id} already in progress (state: {state_machine.state.value})")
+            return OrderResult(
+                order_id=state_machine.client_order_id,
+                status=OrderStatus.REJECTED,
+                reject_reason=f"Duplicate order blocked - order already in {state_machine.state.value} state",
+                timestamp=datetime.now()
+            )
+
+        # Mark as validated
+        state_machine.try_transition_to(ExecutionState.VALIDATED)
+
+        # Single attempt only - NO RETRY after PARTIALLY_FILLED to prevent duplicates
         last_exception = None
 
         for attempt in range(1, self.config.max_retries + 1):
@@ -637,12 +664,20 @@ class ExecutionService:
                 # Attempt order execution
                 result = self._attempt_order_execution(order_request, execution_context)
 
-                # If successful, return immediately
+                # If successful, return immediately and record state
                 if result.status == OrderStatus.FILLED:
+                    state_machine.record_fill(order_request.lot_size, order_request.strike_price)
                     return result
-                # Retryable statuses: PENDING, PARTIALLY_FILLED, SUBMITTED
-                # These indicate the order was accepted but not yet filled.
-                if result.status in [OrderStatus.PARTIALLY_FILLED, OrderStatus.SUBMITTED, OrderStatus.PENDING]:
+
+                # CRITICAL: Do NOT retry PARTIALLY_FILLED - this causes duplicate orders!
+                # Only SUBMITTED and PENDING can be retried (broker acknowledged, not filled)
+                if result.status == OrderStatus.PARTIALLY_FILLED:
+                    # Record partial fill and return - NO RETRY to prevent duplicates
+                    state_machine.record_partial_fill(result.filled_quantity or 0, result.average_fill_price or 0)
+                    return result
+
+                # Retryable statuses: PENDING, SUBMITTED only (not PARTIALLY_FILLED)
+                if result.status in [OrderStatus.SUBMITTED, OrderStatus.PENDING]:
                     if last_exception is None:
                         last_exception = Exception(f"Order status {result.status.value} may be retryable")
                 # REJECTED could be from broker throwing exception with error message in reject_reason
@@ -661,6 +696,7 @@ class ExecutionService:
 
         # If we exhausted all retries, return the last error
         if last_exception:
+            state_machine.try_transition_to(ExecutionState.FAILED)
             return OrderResult(
                 order_id="retry_exhausted",
                 status=OrderStatus.REJECTED,
@@ -669,6 +705,7 @@ class ExecutionService:
             )
 
         # Fallback (shouldn't reach here)
+        state_machine.try_transition_to(ExecutionState.FAILED)
         return OrderResult(
             order_id="unknown_error",
             status=OrderStatus.REJECTED,

@@ -14,6 +14,20 @@ from datetime import datetime
 # Import the broker port interface this adapter implements
 from core.ports.broker import BrokerPort, Order, OrderResult, Position, Quote, Fill
 
+# Import broker exception taxonomy - CRITICAL FIX #5
+from core.execution.broker_exceptions import (
+    BrokerException,
+    BrokerExceptionType,
+    TransientBrokerError,
+    PermanentBrokerError,
+    AuthExpiredError,
+    RateLimitError,
+    OrderRejectedError,
+    NetworkError,
+    BrokerTimeoutError,
+    classify_broker_exception,
+)
+
 # Import Kite Connect (would be imported conditionally in real implementation)
 # For this example, we'll show the structure without actual Kite dependency
 try:
@@ -209,7 +223,20 @@ class KiteBrokerAdapter(BrokerPort):
             return order_id
 
         except Exception as e:
-            raise Exception(f"Failed to place order: {str(e)}") from e
+            # CRITICAL FIX #5: Use broker-specific exception taxonomy
+            classified = classify_broker_exception(e)
+            if classified:
+                raise classified
+            # Fallback: classify based on error message
+            error_msg = str(e).lower()
+            if 'auth' in error_msg or 'token' in error_msg:
+                raise AuthExpiredError(f"Authentication failed: {e}", original=e)
+            elif 'margin' in error_msg or 'insufficient' in error_msg:
+                raise PermanentBrokerError(f"Insufficient margin: {e}", original=e)
+            elif 'rejected' in error_msg:
+                raise OrderRejectedError(f"Order rejected: {e}", original=e)
+            else:
+                raise BrokerException(str(e), BrokerExceptionType.PERMANENT, False, original=e)
 
     def cancel_order(self, order_id: str) -> bool:
         """
@@ -312,7 +339,10 @@ class KiteBrokerAdapter(BrokerPort):
 
             return positions
         except Exception as e:
-            raise Exception(f"Failed to get positions: {str(e)}") from e
+            classified = classify_broker_exception(e)
+            if classified:
+                raise classified
+            raise NetworkError(f"Failed to get positions: {e}", original=e)
 
     def get_quote(self, symbol: str) -> Quote:
         """
@@ -345,7 +375,10 @@ class KiteBrokerAdapter(BrokerPort):
                 timestamp=datetime.now()
             )
         except Exception as e:
-            raise Exception(f"Failed to get quote for {symbol}: {str(e)}") from e
+            classified = classify_broker_exception(e)
+            if classified:
+                raise classified
+            raise BrokerTimeoutError(f"Failed to get quote for {symbol}: {e}", original=e)
 
     def subscribe_to_market_data(self, symbols: List[str],
                                callback: Callable[[Quote], None]) -> bool:
@@ -428,7 +461,10 @@ class KiteBrokerAdapter(BrokerPort):
             return historical_data
 
         except Exception as e:
-            raise Exception(f"Failed to get historical data for {symbol}: {str(e)}") from e
+            classified = classify_broker_exception(e)
+            if classified:
+                raise classified
+            raise BrokerTimeoutError(f"Failed to get historical data for {symbol}: {e}", original=e)
 
 
 # Factory function for creating Kite broker adapter instances

@@ -543,7 +543,7 @@ class RiskService(RiskPort):
         portfolio_metrics: PortfolioRiskMetrics
     ) -> RiskEvaluation:
         """Check margin requirements."""
-        # Estimate position size for margin check
+        # Get ACTUAL intended quantity from signal data (NOT test_quantity = 1)
         entry_price = _safe_num(signal_data.get("price", 0), 0)
         if entry_price <= 0:
             return RiskEvaluation(
@@ -552,11 +552,14 @@ class RiskService(RiskPort):
                 risk_score=0.5
             )
 
-        # Use a reasonable test size (1 lot) to check margin requirements
+        # CRITICAL FIX: Use actual intended quantity from signal
         lot_size = self._get_lot_size(symbol)
-        test_quantity = 1  # Check margin for 1 lot
+        intended_quantity = _safe_num(signal_data.get("quantity", 1), 1)
+        if intended_quantity <= 0:
+            intended_quantity = 1  # Default to 1 if invalid
 
-        if not self.validate_margin_requirements(symbol, test_quantity, portfolio_metrics.available_capital):
+        # Validate margin with ACTUAL intended quantity
+        if not self.validate_margin_requirements(symbol, intended_quantity, portfolio_metrics.available_capital):
             return RiskEvaluation(
                 decision=RiskDecision.DENIED,
                 reason="Insufficient margin for position",
