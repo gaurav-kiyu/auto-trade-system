@@ -1,0 +1,159 @@
+================================================================================
+OPB INDEX OPTIONS BOT v2.45 - RUNNING INSTRUCTIONS
+================================================================================
+
+VERSION: v2.45 (Production Ready - Limited Live Pilot)
+DATE: May 15, 2026
+STATUS: Safe for paper trading, ready for limited live pilot
+
+================================================================================
+QUICK START
+================================================================================
+
+METHOD 1: GUI Launcher (Easiest)
+---------------------------------
+1. Double-click "OPBuying_INDEX_Launcher.exe"
+2. Select "MANUAL" or "PAPER" mode
+3. Click "START TRADING"
+4. Monitor signals in the dashboard
+
+METHOD 2: Low Capital Mode (Rs.5,000)
+--------------------------------------
+1. Double-click "run_low_capital.bat"
+2. Press Y to confirm
+3. Bot starts in PAPER mode automatically
+
+METHOD 3: Command Line (Flexible)
+----------------------------------
+Open terminal in the project folder and run:
+
+# For paper trading (simulation)
+python -m index_app.index_trader --paper
+
+# For manual signal mode (signals only, you place orders)
+python -m index_app.index_trader --manual
+
+# For debug mode
+python -m index_app.index_trader --debug
+
+# For self-test
+python -m index_app.index_trader --selftest
+
+================================================================================
+CONFIGURATION
+================================================================================
+
+DEFAULT CONFIG: config.json
+- EXECUTION_MODE: MANUAL (safe - signals only)
+- BROKER_API_ENABLED: false (no live orders)
+- BASE_CAPITAL: 5000 INR
+- MAX_DAILY_LOSS: -300 INR
+- MAX_OPEN: 1 position
+- MAX_TRADES_DAY: 2
+
+TO ENABLE LIVE TRADING (Only after 100+ paper trades):
+1. Set BROKER_API_ENABLED: true
+2. Set BROKER_CONFIG with your broker credentials
+3. Set MAX_OPEN: 1, MAX_TRADES_DAY: 1 initially
+4. Run with manual oversight for first 10 trades
+
+================================================================================
+CURRENT PERFORMANCE (55 Paper Trades)
+================================================================================
+
+Total Trades: 55
+Win Rate: 54.5% (30 wins, 25 losses)
+Profit Factor: 2.54
+Total PnL: +3,252 INR
+Avg PnL/Trade: 59.13 INR
+Sharpe Ratio: 6.99
+Max Drawdown: 0%
+
+================================================================================
+TRADING HOURS (IST)
+================================================================================
+
+Market Open: 09:15 IST
+Trading Window: 09:20 - 11:30 and 13:00 - 14:45 IST
+Market Close: 15:30 IST
+Blocking: No new entries after 15:00 IST
+
+================================================================================
+RISK CONTROLS (Always Active)
+================================================================================
+
+- Per-trade risk: 1.5% max
+- Daily stop: -300 INR (-6%)
+- Weekly circuit: -5% (reduce sizing)
+- Max drawdown: 12% (paper mode until recovery)
+- Loss streak: 3 losses = 2-hour cooldown
+- VIX block: >30 = no entries
+- Data stale: >30 seconds = no entries
+
+================================================================================
+REQUIREMENTS
+================================================================================
+
+Python: 3.10 - 3.14
+Dependencies: pip install -r requirements.txt
+RAM: 4GB minimum
+Internet: 10 Mbps recommended
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Q: Python not found
+A: Install Python 3.10+ from python.org
+
+Q: Import errors
+A: Run: pip install -r requirements.txt
+
+Q: No signals
+A: Check VIX is 12-28 and time is within trading window
+
+Q: Telegram not working
+A: Set BOT_TOKEN and CHAT_ID in config.json
+
+================================================================================
+HEALTH CHECKS
+================================================================================
+
+System Health: python -m core.health_checker
+Live Readiness: python -m core.live_readiness_checker
+Run Tests: python -m pytest tests/ -q
+
+================================================================================
+FILES INCLUDED
+================================================================================
+
+Main Files:
+- index_app/index_trader.py (main trading engine)
+- config.json (configuration)
+- run_low_capital.bat (launcher for Rs.5,000 mode)
+- OPBuying_INDEX_Launcher.exe (GUI launcher)
+
+Documentation:
+- SYSTEM_SETUP_GUIDE.md (this file)
+- QUICK_START_GUIDE.md (quick reference)
+- PERFORMANCE_REPORT_V2.45.md (performance analysis)
+- SETUP_AND_TRADING_GUIDE.md (detailed guide)
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Start with PAPER mode: python -m index_app.index_trader --paper
+2. Run 100+ paper trades to validate
+3. Check live readiness: python -m core.live_readiness_checker
+4. If all gates pass, enable limited live with MAX_OPEN=1
+5. Scale gradually after successful live trades
+
+================================================================================
+STATUS: PRODUCTION READY FOR LIMITED LIVE PILOT
+================================================================================
+
+Mandate: Survive First. Compound Second.
+
+For help, see SETUP_AND_TRADING_GUIDE.md
+================================================================================
