@@ -1,9 +1,9 @@
 import logging
-from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
-from core.time_provider import time_provider
+from typing import Any
+
 from core.ml_inference import ml_engine
-from core.risk.risk_engine import risk_engine
+from core.time_provider import time_provider
 
 log = logging.getLogger("signal_orchestrator")
 
@@ -25,20 +25,20 @@ class SignalOrchestrator:
     
     Flow: Market Data -> Technical Analysis -> ML Validation -> Risk Gating -> Signal Intent
     """
-    
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
-        self._signal_cache: Dict[str, Any] = {}
 
-    def process_market_data(self, symbol: str, data_frames: Dict[str, Any], 
-                            additional_info: Dict[str, Any]) -> Optional[SignalIntent]:
+    def __init__(self, config: dict[str, Any]):
+        self.config = config
+        self._signal_cache: dict[str, Any] = {}
+
+    def process_market_data(self, symbol: str, data_frames: dict[str, Any],
+                            additional_info: dict[str, Any]) -> SignalIntent | None:
         """
         The primary pipeline for turning raw data into a validated signal intent.
         """
         # 1. Technical Analysis (Delegated to signal_engine.py)
         # In a full refactor, we would move signal_engine.py logic into a Strategy class
         from signal_engine import build_full_signal
-        
+
         signal = build_full_signal(
             symbol=symbol,
             df1m=data_frames.get("df1m"),
@@ -61,7 +61,7 @@ class SignalOrchestrator:
         # We use the Hardened ML Inference Engine to validate the technical signal
         features = self._extract_ml_features(signal, data_frames)
         ml_pred = ml_engine.predict(features, regime=signal.get("regime", "NEUTRAL"))
-        
+
         # ML Veto: If ML probability is extremely low, we block the signal
         if ml_pred.win_probability < 0.3:
             log.info(f"ML Veto: {symbol} signal blocked. Prob: {ml_pred.win_probability:.2f}")
@@ -78,7 +78,7 @@ class SignalOrchestrator:
             regime=signal.get("regime", "NEUTRAL")
         )
 
-    def _extract_ml_features(self, signal: Dict[str, Any], data_frames: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_ml_features(self, signal: dict[str, Any], data_frames: dict[str, Any]) -> dict[str, Any]:
         """
         Maps the signal and data to the 14-feature vector required by the ML model.
         """
@@ -101,8 +101,8 @@ class SignalOrchestrator:
         }
 
 # Singleton instance
-signal_orchestrator: Optional[SignalOrchestrator] = None
+signal_orchestrator: SignalOrchestrator | None = None
 
-def init_signal_orchestrator(config: Dict[str, Any]):
+def init_signal_orchestrator(config: dict[str, Any]):
     global signal_orchestrator
     signal_orchestrator = SignalOrchestrator(config)

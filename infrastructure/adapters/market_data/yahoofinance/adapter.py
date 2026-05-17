@@ -80,6 +80,9 @@ class YahooFinanceAdapter(MarketDataPort):
         self._ticker_cache_time: Dict[str, float] = {}
         self._cache_ttl = 300  # 5 minutes
 
+        # Track last fetch time per symbol for freshness checks
+        self._last_fetch_time: Dict[str, float] = {}
+
         logger = self._get_logger()
         self._logger = LoggingService(
             log_dir="logs",
@@ -232,6 +235,7 @@ class YahooFinanceAdapter(MarketDataPort):
                         'volume': latest.get('Volume', 0)
                     }
 
+            self._last_fetch_time[symbol] = time.time()
             return self._convert_to_quote(symbol, quote_data)
 
         except Exception as e:
@@ -261,29 +265,27 @@ class YahooFinanceAdapter(MarketDataPort):
         try:
             ticker = self._get_ticker(symbol)
             data = self._make_request_with_retry(lambda: ticker.info)
+            self._last_fetch_time[symbol] = time.time()
             return data
         except Exception as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get latest data for {symbol}: {e}")
             return {}
 
-    def is_data_fresh(self, market_data: Any, max_age_seconds: int = 30) -> bool:
+    def is_data_fresh(self, market_data: Any, symbol: str = "") -> bool:
         """
         Check if market data is fresh enough for trading decisions.
 
         Args:
-            market_data: Market data structure from get_latest_data
-            max_age_seconds: Maximum age in seconds for data to be considered fresh
+            market_data: Market data structure from get_latest_data (unused, kept for compatibility)
+            symbol: Symbol to check freshness for
 
         Returns:
-            True if data is fresh, False otherwise
+            True if data was fetched within the last 30 seconds, False otherwise
         """
-        # For Yahoo Finance data, we consider it fresh if we have data
-        # In a more sophisticated implementation, we might check timestamps
-        if isinstance(market_data, dict) and market_data:
-            # Yahoo Finance doesn't always provide timestamps in info
-            # For now, we'll assume data is fresh if we got it recently
-            return True
+        if symbol and symbol in self._last_fetch_time:
+            age = time.time() - self._last_fetch_time[symbol]
+            return age < 30  # 30 seconds max staleness
         return False
 
     def subscribe_to_market_data(

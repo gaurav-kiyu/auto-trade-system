@@ -12,10 +12,14 @@ import json
 import logging
 import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+
+from core.datetime_ist import now_ist
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 from dataclasses import dataclass, asdict, field
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -218,7 +222,7 @@ class AuditLogger:
                 # Create the audit event
                 event = AuditEvent(
                     event_id=str(uuid.uuid4()),
-                    timestamp=datetime.utcnow().isoformat() + 'Z',
+                    timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                     event_type=event_type,
                     user_id=user_id,
                     session_id=session_id,
@@ -264,13 +268,13 @@ class AuditLogger:
         )
 
         # Initialize trade audit trail
-        trade_id = f"trade_{signal_data.get('symbol', 'UNKNOWN')}_{int(datetime.now().timestamp())}"
+        trade_id = f"trade_{signal_data.get('symbol', 'UNKNOWN')}_{int(now_ist().timestamp())}"
         with self._trade_trail_lock:
             self._trade_trails[trade_id] = TradeAuditTrail(
                 trade_id=trade_id,
                 signal_generated=AuditEvent(
                     event_id=event_id,
-                    timestamp=datetime.utcnow().isoformat() + 'Z',
+                    timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                     event_type="signal_generated",
                     user_id=user_id,
                     session_id=session_id,
@@ -311,12 +315,12 @@ class AuditLogger:
         )
 
         # Update trade audit trail
-        trade_id = f"trade_{signal_data.get('symbol', 'UNKNOWN')}_{int(datetime.now().timestamp())}"
+        trade_id = f"trade_{signal_data.get('symbol', 'UNKNOWN')}_{int(now_ist().timestamp())}"
         with self._trade_trail_lock:
             if trade_id in self._trade_trails:
                 self._trade_trails[trade_id].signal_validated = AuditEvent(
                     event_id=event_id,
-                    timestamp=datetime.utcnow().isoformat() + 'Z',
+                    timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                     event_type="signal_validated",
                     user_id=user_id,
                     session_id=session_id,
@@ -359,12 +363,12 @@ class AuditLogger:
         )
 
         # Update trade audit trail
-        trade_id = f"trade_{signal_data.get('symbol', 'UNKNOWN')}_{int(datetime.now().timestamp())}"
+        trade_id = f"trade_{signal_data.get('symbol', 'UNKNOWN')}_{int(now_ist().timestamp())}"
         with self._trade_trail_lock:
             if trade_id in self._trade_trails:
                 self._trade_trails[trade_id].risk_approved = AuditEvent(
                     event_id=event_id,
-                    timestamp=datetime.utcnow().isoformat() + 'Z',
+                    timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                     event_type="risk_approved",
                     user_id=user_id,
                     session_id=session_id,
@@ -403,12 +407,12 @@ class AuditLogger:
         )
 
         # Update trade audit trail
-        trade_id = f"trade_{order_data.get('symbol', 'UNKNOWN')}_{int(datetime.now().timestamp())}"
+        trade_id = f"trade_{order_data.get('symbol', 'UNKNOWN')}_{int(now_ist().timestamp())}"
         with self._trade_trail_lock:
             if trade_id in self._trade_trails:
                 self._trade_trails[trade_id].order_submitted = AuditEvent(
                     event_id=event_id,
-                    timestamp=datetime.utcnow().isoformat() + 'Z',
+                    timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                     event_type="order_submitted",
                     user_id=user_id,
                     session_id=session_id,
@@ -448,12 +452,12 @@ class AuditLogger:
         )
 
         # Update trade audit trail
-        trade_id = f"trade_{order_data.get('symbol', 'UNKNOWN')}_{int(datetime.now().timestamp())}"
+        trade_id = f"trade_{order_data.get('symbol', 'UNKNOWN')}_{int(now_ist().timestamp())}"
         with self._trade_trail_lock:
             if trade_id in self._trade_trails:
                 self._trade_trails[trade_id].order_filled = AuditEvent(
                     event_id=event_id,
-                    timestamp=datetime.utcnow().isoformat() + 'Z',
+                    timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                     event_type="order_filled",
                     user_id=user_id,
                     session_id=session_id,
@@ -505,12 +509,12 @@ class AuditLogger:
         )
 
         # Update trade audit trail
-        trade_id = f"trade_{position_data.get('symbol', 'UNKNOWN')}_{int(datetime.now().timestamp())}"
+        trade_id = f"trade_{position_data.get('symbol', 'UNKNOWN')}_{int(now_ist().timestamp())}"
         with self._trade_trail_lock:
             if trade_id in self._trade_trails:
                 self._trade_trails[trade_id].position_updated = AuditEvent(
                     event_id=event_id,
-                    timestamp=datetime.utcnow().isoformat() + 'Z',
+                    timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                     event_type="position_updated",
                     user_id=user_id,
                     session_id=session_id,
@@ -546,12 +550,12 @@ class AuditLogger:
         )
 
         # Update trade audit trail
-        trade_id = f"trade_{trade_data.get('symbol', 'UNKNOWN')}_{int(datetime.now().timestamp())}"
+        trade_id = f"trade_{trade_data.get('symbol', 'UNKNOWN')}_{int(now_ist().timestamp())}"
         with self._trade_trail_lock:
             if trade_id in self._trade_trails:
                 self._trade_trails[trade_id].trade_closed = AuditEvent(
                     event_id=event_id,
-                    timestamp=datetime.utcnow().isoformat() + 'Z',
+                    timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                     event_type="trade_closed",
                     user_id=user_id,
                     session_id=session_id,
@@ -672,7 +676,7 @@ class AuditLogger:
         Returns:
             Number of trails cleaned up
         """
-        cutoff_time = datetime.now() - timedelta(hours=max_age_hours)
+        cutoff_time = now_ist() - timedelta(hours=max_age_hours)
         cleaned_count = 0
 
         with self._trade_trail_lock:
@@ -696,13 +700,14 @@ class AuditLogger:
                 cleaned_count += 1
 
         if cleaned_count > 0:
-            logger.info(f"Cleaned up {cleaned_count} old trade audit trails")
+            log.info(f"Cleaned up {cleaned_count} old trade audit trails")
 
         return cleaned_count
 
-    # Global audit logger instance
-    _audit_logger: Optional[AuditLogger] = None
-    _audit_logger_lock = threading.Lock()
+
+# Module-level globals for singleton access
+_audit_logger_lock: threading.Lock = threading.Lock()
+_audit_logger: Optional[AuditLogger] = None
 
 
 def get_audit_logger() -> AuditLogger:

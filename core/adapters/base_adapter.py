@@ -1,10 +1,17 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
 from enum import Enum, auto
+from typing import Any
+
 
 class OrderStatus(Enum):
+    """Explicit execution states - never collapse ambiguity.
+
+    UNKNOWN: "do not retry automatically" - requires manual intervention.
+    PENDING: Order not yet submitted to broker.
+    """
     NEW = auto()
+    PENDING = auto()
     VALIDATED = auto()
     SUBMITTED = auto()
     ACKNOWLEDGED = auto()
@@ -14,6 +21,7 @@ class OrderStatus(Enum):
     CANCELLED = auto()
     REJECTED = auto()
     FAILED = auto()
+    UNKNOWN = auto()
     RECONCILING = auto()
 
 @dataclass
@@ -34,7 +42,7 @@ class OrderResponse:
     status: OrderStatus
     filled_qty: int = 0
     avg_price: float = 0.0
-    error: Optional[str] = None
+    error: str | None = None
     raw_response: Any = None
 
 class BrokerAdapter(ABC):
@@ -44,7 +52,7 @@ class BrokerAdapter(ABC):
     """
 
     @abstractmethod
-    def authenticate(self, credentials: Dict[str, Any]) -> bool:
+    def authenticate(self, credentials: dict[str, Any]) -> bool:
         """Establish session with the broker."""
         pass
 
@@ -64,7 +72,7 @@ class BrokerAdapter(ABC):
         pass
 
     @abstractmethod
-    def get_positions(self) -> List[Dict[str, Any]]:
+    def get_positions(self) -> list[dict[str, Any]]:
         """Fetch all current open positions."""
         pass
 

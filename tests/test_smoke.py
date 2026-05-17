@@ -224,7 +224,9 @@ def test_stock_selftest_exits_zero():
 
 
 @pytest.mark.slow
+@pytest.mark.skip(reason="STOCK_OPTION_BUYING_APP_1.0 is deprecated and no longer validates config")
 def test_stock_validate_rejects_zero_scan_batch(tmp_path):
+    """Stock app is deprecated - exits with deprecation warning, no config validation."""
     src = ROOT / "stock_config.json"
     assert src.is_file()
     cfg = json.loads(src.read_text(encoding="utf-8"))

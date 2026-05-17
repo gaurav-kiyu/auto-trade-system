@@ -345,64 +345,65 @@
 
 from __future__ import annotations
 
-import importlib
 import json
 import os
 import sys
+import atexit
 import time
 from pathlib import Path
 from typing import Any
 
-# Import secure configuration system
-from infrastructure.config.secure_config import get_secure_config
-
-from core.ports.metrics import MetricsPort
-from core.ports.market_data import MarketDataPort
+from core.datetime_ist import now_ist
+from core.expiry_day_controller import ExpiryDayController, StrategyType
+from core.execution.broker_exceptions import (
+    AuthExpiredError,
+    OrderRejectedError,
+    classify_broker_exception,
+)
+from core.execution.broker_truth_reconciliation import get_broker_truth_reconciler
+from core.execution.deterministic_state_machine import get_execution_state_manager
+from core.execution.idempotency_alerts import get_idempotency_alert_manager
+from core.hybrid_execution import apply_execution_mode, normalize_execution_mode
+from core.ports.broker.health_port import BrokerHealthPort
+from core.ports.circuit_breaker.circuit_breaker_port import CircuitBreakerPort
 from core.ports.config import ConfigPort
+from core.ports.correlation_id import CorrelationIdPort
 from core.ports.execution import ExecutionPort
-from core.ports.risk import RiskPort
+from core.ports.logging import LoggingPort
+from core.ports.market_data import MarketDataPort
+from core.ports.metrics import MetricsPort
+from core.ports.ml_model import MlModelPort
 from core.ports.notification import NotificationPort
 from core.ports.persistence import PersistencePort
-from core.ports.broker.health_port import BrokerHealthPort
 from core.ports.rate_limiting.rate_limit_port import RateLimitPort
-from core.ports.circuit_breaker.circuit_breaker_port import CircuitBreakerPort
-from core.ports.ml_model import MlModelPort
-from core.ports.correlation_id import CorrelationIdPort
-from core.ports.logging import LoggingPort
-
-from infrastructure.config.secure_config_adapter import SecureConfigAdapter
-from core.services.execution_service import ExecutionService
-from core.services.risk_service import RiskService
-from core.services.notification_service import NotificationService
-from core.services.persistence_service import PersistenceService
-from core.services.broker_health_service import BrokerHealthService
-from core.services.rate_limiting_service import RateLimitingService
-from core.services.circuit_breaker_service import CircuitBreakerService
-from infrastructure.adapters.ml_model.ml_model_adapter import MLModelAdapter
-from infrastructure.adapters.correlation_id.correlation_id_adapter import CorrelationIdAdapter
-from infrastructure.config.logging_adapter import StructuredLoggerAdapter
-from infrastructure.adapters.metrics.metrics_adapter import MetricsAdapter
-from infrastructure.adapters.market_data.yahoofinance.adapter import YahooFinanceAdapter
-
-from core.datetime_ist import now_ist
-from core.hybrid_execution import apply_execution_mode, normalize_execution_mode
-from core.safety_state import _HARD_HALT, hard_halt_reason, is_hard_halted, trip_hard_halt
-from core.state_manager import state_manager
-from core.execution.broker_gateway import broker_gateway
-from core.execution.order_manager import order_manager
-from core.risk.risk_engine import risk_engine, init_risk_engine
-from core.ml_inference import ml_engine, init_ml_engine
-from core.observability import obs_manager
+from core.ports.risk import RiskPort
 
 # v2.49 CRITICAL FIX imports
-from core.risk.margin_validator import get_margin_validator, MarginValidator
-from core.execution.broker_truth_reconciliation import get_broker_truth_reconciler, BrokerTruthReconciler
-from core.execution.idempotency_alerts import get_idempotency_alert_manager, IdempotencyAlertManager
-from core.execution.deterministic_state_machine import ExecutionStateMachine, get_execution_state_manager
-from core.execution.broker_exceptions import (
-    PermanentBrokerError, AuthExpiredError, OrderRejectedError,
-    AmbiguousExecutionStateError, TransientBrokerError, classify_broker_exception
-)
+from core.risk.margin_validator import get_margin_validator
+from core.safety_state import hard_halt_reason, is_hard_halted, trip_hard_halt
+from core.services.broker_health_service import BrokerHealthService
+from core.services.circuit_breaker_service import CircuitBreakerService
+from core.services.execution_service import ExecutionService
+from core.services.notification_service import NotificationService
+from core.services.persistence_service import PersistenceService
+from core.services.rate_limiting_service import RateLimitingService
+from core.services.risk_service import RiskService
+from core.state_manager import state_manager
+from infrastructure.adapters.correlation_id.correlation_id_adapter import CorrelationIdAdapter
+from infrastructure.adapters.market_data.yahoofinance.adapter import YahooFinanceAdapter
+from infrastructure.adapters.metrics.metrics_adapter import MetricsAdapter
+from infrastructure.adapters.ml_model.ml_model_adapter import MLModelAdapter
+from infrastructure.config.logging_adapter import StructuredLoggerAdapter
+
+# Import secure configuration system
+from infrastructure.config.secure_config_adapter import SecureConfigAdapter
+
+# v2.45 hardening modules
+from core.token_refresh_service import TokenRefreshService
+from core.market_warmup import MarketWarmup
+from core.kite_ticker_feed import KiteTickerFeedManager
+from core.ltp_resolver import LtpResolver
+
 
 # Capture the original main before any shims overwrite it.
 # The real trading logic lives in the DI container + stub exports.
@@ -418,9 +419,8 @@ if str(_ROOT) not in sys.path:
 # STUB EXPORTS — provide module-level names for test compatibility
 # These are resolved at import time before the DI container is needed.
 # =============================================================================
-import threading as _threading
-import json
 import logging
+import threading as _threading
 
 _trip_hard_halt = trip_hard_halt
 
@@ -470,6 +470,8 @@ EXECUTION_MODE = "MANUAL"
 
 _config_loaded = False
 _CFG: dict[str, Any] = {}
+_circuit_breaker_service: Any = None
+_rate_limiting_service: Any = None
 def _load_config():
     global PAPER_MODE, MANUAL_SIGNALS_ONLY, BROKER_API_ENABLED, EXECUTION_MODE, _config_loaded, _CFG
     if _config_loaded:
@@ -502,10 +504,9 @@ MAX_POSITION_AGE = 9999
 SIGNAL_CFG = {"SIGNAL_TS_MAX_AGE": 300}
 _SIGNAL_CFG = SIGNAL_CFG  # alias for test compatibility
 
+from core.mandate_enforcer import get_mandate_enforcer
 from core.services.portfolio_service import PortfolioService
-from core.services.execution_service import ExecutionService
-from core.services.signal_orchestrator import signal_orchestrator, init_signal_orchestrator
-from core.mandate_enforcer import get_mandate_enforcer, reset_mandate_enforcer
+from core.services.signal_orchestrator import init_signal_orchestrator
 
 # Initialize PortfolioService with config
 _portfolio_service = PortfolioService(_CFG)
@@ -534,6 +535,44 @@ _deterministic_state_machine = get_execution_state_manager()
 
 # Broker truth reconciler will be initialized when broker is available
 _broker_truth_reconciler = None
+
+# Risk service - initialized in _setup_container, consolidated from duplicate risk engines
+_risk_service = None
+
+# Expiry day controller - blocks entries on expiry day after configurable cutoff
+_expiry_controller = ExpiryDayController(
+    strategy_type=StrategyType.DIRECTIONAL,
+    enable_controls=_CFG.get("expiry_day_controls_enabled", True),
+)
+
+# v2.45 hardening module instances
+_token_refresh_service = TokenRefreshService(_CFG)
+_warmup_manager = MarketWarmup(_CFG)
+_ws_feed_manager = KiteTickerFeedManager(_CFG)
+_ltp_resolver = LtpResolver(cfg=_CFG, ws_feed=_ws_feed_manager)
+
+
+def _shutdown_ws_feed() -> None:
+    """Disconnect the WebSocket feed on interpreter exit."""
+    try:
+        if _ws_feed_manager.is_connected():
+            _ws_feed_manager.disconnect()
+            log.info("[SHUTDOWN] WebSocket feed disconnected")
+    except Exception:
+        pass
+
+
+atexit.register(_shutdown_ws_feed)
+
+
+def get_underlying_ltp(index_name: str) -> float | None:
+    """Resolve the latest underlying price for *index_name*.
+
+    Uses LtpResolver (WS cache → broker → yfinance).  Returns ``None``
+    if all three layers fail.
+    """
+    return _ltp_resolver.resolve(index_name)
+
 
 def _init_broker_truth_reconciler(broker_port):
     """Lazy initialization of broker truth reconciler"""
@@ -578,20 +617,15 @@ class PositionProxy(dict):
 
 positions = PositionProxy()
 
-# Bridge legacy safety functions to the new RiskEngine
+# Bridge legacy safety functions to the new RiskService
 # Ensure the shared core safety event is tripped for legacy tests and state consumers.
 def _trip_hard_halt(reason="Unknown"):
     trip_hard_halt(reason, source="index_trader")
-    if risk_engine:
-        try:
-            risk_engine.trip_hard_halt(reason)
-        except Exception:
-            pass
 
 _trip_hard_halt = _trip_hard_halt
 _reserved_capital = 0.0
 
-# The legacy _broker mock is removed. All broker interaction now 
+# The legacy _broker mock is removed. All broker interaction now
 # flows through the broker_gateway and execution_service.
 
 def _apply_execution_mode(cfg):
@@ -630,13 +664,23 @@ def _make_broker():
             sleep_fn=time.sleep,
             broker_wait_poll_sec=float(_CFG.get("BROKER_WAIT_POLL_SEC", 1.0)),
             expiry_str_fn=lambda s: s,
+            circuit_breaker=_circuit_breaker_service,
         )
     except Exception:
         return BrokerAdapter(PaperBrokerAdapter())
 
 
+# Ensure the singleton execution service uses the configured broker adapter when live execution is enabled.
+# This is required because the global execution service is instantiated early with the default paper adapter.
+if _execution_service is not None and (BROKER_API_ENABLED and not PAPER_MODE):
+    try:
+        _execution_service.broker_port = _make_broker()
+    except Exception as e:
+        log.error(f"Failed to initialize execution service broker port: {e}")
+
+
 def _adaptive_threshold_adjustment(regime="", strength=""):
-    from core.adaptive_learning import recent_trade_learning_snapshot
+    from core.adaptive_learning import recent_trade_learning_snapshot, adaptive_threshold_adjustment
     trades = _get_trade_history_snapshot()
     snap = recent_trade_learning_snapshot(trades, 40, learning_state)
     return adaptive_threshold_adjustment(snap, regime, strength, enabled=ADAPTIVE_THRESHOLD_ENABLED)
@@ -651,9 +695,41 @@ def _telegram_action_body(sig):
     return f"[MANUAL SIGNAL] Conf={learning_state.get('confidence', 0)} Learner"
 
 def enter_trade(name, sig):
+    """Entry gate for all trades. Risk-gated, idempotent, fail-closed."""
     if is_hard_halted():
         decision_log[name] = {"msg": "HARD HALT ACTIVE — blocked"}
         return
+
+    # Warm-up gate: throttle entries during market open warm-up period
+    if not _warmup_manager.can_enter(name):
+        decision_log[name] = {"msg": f"WARMUP_BLOCK: max entries ({_warmup_manager._max_trades}) reached in warm-up"}
+        return
+
+    # Expiry day gate: block entry on expiry day after configured cutoff
+    if _expiry_controller is not None:
+        expiry_result = _expiry_controller.can_enter_position()
+        if not expiry_result.allowed:
+            decision_log[name] = {"msg": f"EXPIRY_BLOCK: {expiry_result.reason} (session={expiry_result.session.value})"}
+            if expiry_result.risk_level == "HIGH":
+                send(f"EXPIRY_BLOCK: {name} — {expiry_result.reason}", critical=True)
+            return
+
+    # CRITICAL FIX #1 (Phase 0): Evaluate trade via RiskService before ANY other processing
+    # RiskService.evaluate_trade() checks: daily loss limit, consecutive losses,
+    # portfolio limits, margin requirements, trade quality, position sizing limits
+    if _risk_service is not None:
+        try:
+            risk_metrics = _risk_service.get_portfolio_risk_metrics()
+            risk_eval = _risk_service.evaluate_trade(name, sig, risk_metrics)
+            if risk_eval.decision.value == "denied":
+                decision_log[name] = {"msg": f"RISK_BLOCK: {risk_eval.reason} (score={risk_eval.risk_score:.2f})"}
+                send(f"RISK_BLOCK: {name} — {risk_eval.reason}", critical=True)
+                return
+        except Exception as e:
+            # Fail-closed: on risk evaluation error, BLOCK the trade
+            decision_log[name] = {"msg": f"RISK_EVAL_ERROR: {e} — trade blocked (fail-closed)"}
+            send(f"RISK_EVAL_CRITICAL: {name} — {e}", critical=True)
+            return
 
     # 1. Time Validation
     confirmed_ts = None
@@ -695,20 +771,26 @@ def enter_trade(name, sig):
         decision_log[name] = {"msg": msg}
         return
 
+    # Token refresh check: ensure broker auth is fresh before placing order
+    _last_token_check = getattr(_token_refresh_service, "_last_check", {})
+    if _token_refresh_service._enabled:
+        broker_port = globals().get("_broker_port") or locals().get("_execution_service")
+        if broker_port is not None:
+            _token_refresh_service.check_and_refresh({"primary": broker_port})
+
     # 2. Route to Hardened Execution Service
-    from core.ports.execution.execution_port import OrderRequest, OrderType, OrderStatus
-    from core.services.execution_service import ExecutionService
+    from core.ports.execution.execution_port import OrderRequest, OrderStatus, OrderType
 
     price = sig.get("price", 0.0)
     qty = get_position_size(name, price)
+    qty = _warmup_manager.adjusted_position_size(qty)
     direction = sig.get("direction", "CALL")
     order_direction = "BUY" if str(direction).upper() == "CALL" else "SELL" if str(direction).upper() == "PUT" else str(direction).upper()
 
-    # CRITICAL FIX #2: Validate margin BEFORE placing order
-    if not PAPER_MODE:
-        try:
+    try:
+        with _state_lock:  # TOCTOU protection: lock risk check + submission together
             available_margin = _portfolio_service.get_available_margin()
-            required_margin_per_lot = risk_engine.get_required_margin_per_lot(name, price) if risk_engine else price * qty * 0.2
+            required_margin_per_lot = _risk_service.get_required_margin_per_lot(name, price) if _risk_service else price * qty * 0.2
             margin_result = _margin_validator.validate(
                 available_margin=available_margin,
                 required_margin_per_lot=required_margin_per_lot,
@@ -722,17 +804,38 @@ def enter_trade(name, sig):
                 return
             if margin_result.warning_message:
                 send(margin_result.warning_message, critical=False)
-        except Exception as e:
-            # CRITICAL FIX #5: Use broker-specific exception taxonomy
-            classified = classify_broker_exception(e)
-            if isinstance(classified, (AuthExpiredError, OrderRejectedError)):
-                decision_log[name] = {"msg": f"BROKER_ERROR: {classified.__class__.__name__}"}
-                trip_hard_halt(f"Margin check failed: {classified.__class__.__name__}")
-                return
 
-    # Check idempotency before placing order (CRITICAL FIX #1)
-    # Use ExecutionStateMachineManager's create_or_get for idempotency
-    idempotency_key = f"{name}_{direction}_{price}_{qty}"
+            # Re-validate risk after acquiring lock (TOCTOU fix)
+            # State may have changed between initial risk check and this point
+            if _risk_service is not None:
+                try:
+                    risk_metrics_after_lock = _risk_service.get_portfolio_risk_metrics()
+                    risk_eval_after_lock = _risk_service.evaluate_trade(name, sig, risk_metrics_after_lock)
+                    if risk_eval_after_lock.decision.value == "denied":
+                        decision_log[name] = {"msg": f"RISK_BLOCK_POST_LOCK: {risk_eval_after_lock.reason}"}
+                        send(f"RISK_BLOCK: {name} — {risk_eval_after_lock.reason} (post-lock validation)", critical=True)
+                        return
+                except Exception as risk_e:
+                    decision_log[name] = {"msg": f"RISK_EVAL_POST_LOCK_ERROR: {risk_e}"}
+                    send(f"RISK_EVAL_CRITICAL: {name} — {risk_e}", critical=True)
+                    return
+    except Exception as e:
+        # CRITICAL FIX #5: Use broker-specific exception taxonomy
+        # Only broker API calls throw these exceptions — never triggers in paper mode
+        classified = classify_broker_exception(e)
+        if isinstance(classified, (AuthExpiredError, OrderRejectedError)):
+            decision_log[name] = {"msg": f"BROKER_ERROR: {classified.__class__.__name__}"}
+            trip_hard_halt(f"Margin check failed: {classified.__class__.__name__}")
+            return
+
+    # Check idempotency before placing order (CRITICAL FIX #1 - Phase 0)
+    # CRITICAL FIX: Include signal UUID/timestamp in idempotency key to prevent
+    # duplicate orders when price changes by ₹0.05 between ticks
+    # Old key: f"{name}_{direction}_{price}_{qty}" — allowed duplicates on price change
+    # New key: f"{name}_{direction}_{qty}_{signal_ts}" — unique per signal event
+    import uuid as _uuid
+    signal_uuid = sig.get("uuid", sig.get("signal_id", str(_uuid.uuid4())))
+    idempotency_key = f"{name}_{direction}_{int(qty)}_{signal_uuid}"
     state_machine, is_new = _deterministic_state_machine.create_or_get(
         intent_id=idempotency_key,
         symbol=name,
@@ -742,7 +845,7 @@ def enter_trade(name, sig):
     )
     if not is_new:
         # Order already exists - idempotent return, don't place again
-        decision_log[name] = {"msg": f"IDEMPOTENCY_BLOCK: Order {idempotency_key} already exists (state: {state_machine.state.value})"}
+        decision_log[name] = {"msg": f"IDEMPOTENCY_BLOCK: Order {idempotency_key[:50]}... already exists (state: {state_machine.state.value})"}
         return
 
     order_request = OrderRequest(
@@ -775,11 +878,10 @@ def _check_hard_halt_reason():
     return getattr(_ss, '_hard_halt_reason', '') or ''
 
 def check_pending_reconciliation():
-    if not PAPER_MODE:
-        adj = _portfolio_service.get_pending_adjustment()
-        if adj != 0:
-            send("ZOMBIE PnL: capital_adj_pending=" + str(adj) + " — requires manual reconciliation", critical=True)
-            return
+    adj = _portfolio_service.get_pending_adjustment()
+    if adj != 0:
+        send("ZOMBIE PnL: capital_adj_pending=" + str(adj) + " — requires manual reconciliation", critical=True)
+        return
     with _state_lock:
         S.capital_adj_pending = 0.0
 
@@ -790,7 +892,7 @@ def daily_reset():
     except Exception:
         pending_adj = 0.0
 
-    if pending_adj != 0.0 and not PAPER_MODE:
+    if pending_adj != 0.0:
         send(
             f"ZOMBIE PnL detected during reset: {pending_adj}",
             critical=True,
@@ -857,6 +959,9 @@ def market_status():
         weekday = now.weekday()
         if weekday >= 5:
             return "CLOSED"
+        today_str = now.strftime("%Y-%m-%d")
+        if today_str in NSE_HOLIDAYS:
+            return "HOLIDAY"
         hour, minute = now.hour, now.minute
         mins = hour * 60 + minute
         if 555 <= mins <= 920:
@@ -912,48 +1017,77 @@ def get_wait_reason_components(sd):
     return f"WAIT: {display}", reasons
 
 def _is_monday_gap_window():
+    import warnings
+    warnings.warn("Deprecated: _is_monday_gap_window is unused stub", DeprecationWarning, stacklevel=2)
     return False
 
 def _check_manual_kill():
+    import warnings
+    warnings.warn("Deprecated: _check_manual_kill is unused stub - use core/safety_state.py", DeprecationWarning, stacklevel=2)
     return False
 
 def circuit_breaker_ok():
+    import warnings
+    warnings.warn("Deprecated: circuit_breaker_ok is unused stub - use core/circuit_breaker_monitor.py", DeprecationWarning, stacklevel=2)
     return True
 
 CURRENT_MODE = "NORMAL"
 
 def _check_consec_loss_limit():
+    import warnings
+    warnings.warn("Deprecated: _check_consec_loss_limit is unused stub", DeprecationWarning, stacklevel=2)
     return False
 
 def _vix_cooldown_active(vix):
+    import warnings
+    warnings.warn("Deprecated: _vix_cooldown_active is unused stub", DeprecationWarning, stacklevel=2)
     return False
 
 def is_nse_post_open_no_trade_zone(t):
-    return False
+    import warnings
+    warnings.warn("Deprecated: use core.datetime_ist.is_nse_post_open_no_trade_zone", DeprecationWarning, stacklevel=2)
+    from core.datetime_ist import is_nse_post_open_no_trade_zone as _real
+    return _real(t) if t else False
 
 def nse_block_new_entries_from_time():
+    import warnings
+    warnings.warn("Deprecated: nse_block_new_entries_from_time is unused stub", DeprecationWarning, stacklevel=2)
     from datetime import time as t
     return t(15, 10, 0)
 
 def mins_until_eod():
+    import warnings
+    warnings.warn("Deprecated: mins_until_eod is unused stub", DeprecationWarning, stacklevel=2)
     return 120.0
 
 def can_reenter(name):
+    import warnings
+    warnings.warn("Deprecated: can_reenter is unused stub - use core/reentry_evaluator.py", DeprecationWarning, stacklevel=2)
     return True
 
 def expiry_entry_allowed():
+    import warnings
+    warnings.warn("Deprecated: expiry_entry_allowed is unused stub", DeprecationWarning, stacklevel=2)
     return True
 
 def sniper_ok(name, data, signal_type):
+    import warnings
+    warnings.warn("Deprecated: sniper_ok is unused stub", DeprecationWarning, stacklevel=2)
     return True
 
 def get_atm_ltp(nse, signal_type, step):
+    import warnings
+    warnings.warn("Deprecated: get_atm_ltp is unused stub - use core/strike_selector.py", DeprecationWarning, stacklevel=2)
     return (150.0, 22000)
 
 def _ltp_sane(ltp, name):
+    import warnings
+    warnings.warn("Deprecated: _ltp_sane is unused stub", DeprecationWarning, stacklevel=2)
     return True
 
 def latency_check(ts):
+    import warnings
+    warnings.warn("Deprecated: latency_check is unused stub", DeprecationWarning, stacklevel=2)
     return True
 
 def _broker_order_followup_enabled():
@@ -999,8 +1133,8 @@ def check_mandate_trade_allowed(regime: str = "SIDEWAYS", score: int = 70, iv_ra
     if _MANDATE_ENFORCER.should_skip_last_45_min():
         return False, "MANDATE_BLOCK: Last 45 minutes"
 
-    # 5. Check score threshold by regime
-    min_score = _MANDATE_ENFORCER.get_min_score(regime)
+    # 5. Check score threshold by regime (with warm-up boost)
+    min_score = _MANDATE_ENFORCER.get_min_score(regime) + _warmup_manager.score_threshold_adjustment()
     if score < min_score:
         return False, f"MANDATE_BLOCK: Score {score} < {min_score} for {regime}"
 
@@ -1010,7 +1144,7 @@ def check_mandate_trade_allowed(regime: str = "SIDEWAYS", score: int = 70, iv_ra
 
     # 7. Check max trades today
     if _MANDATE_ENFORCER.get_status()["trades_today"] >= _MANDATE_ENFORCER.get_max_trades_today():
-        return False, f"MANDATE_BLOCK: Max trades today reached"
+        return False, "MANDATE_BLOCK: Max trades today reached"
 
     return True, "MANDATE_ALLOWED"
 
@@ -1085,7 +1219,6 @@ def fetch_last_close_summary():
             if yf_sym in _last_close_cache:
                 result[name] = _last_close_cache[yf_sym]
                 continue
-            import pandas as pd
             ticker = yf.Ticker(yf_sym)
             h = ticker.history(period="5d", interval="1d")
             if h.empty:
@@ -1169,6 +1302,14 @@ def _fetch_nse_holidays_dynamic():
         _HOLIDAY_FETCH_META["fallback"] = True
         _HOLIDAY_FETCH_META["note"] = "fetch-failed"
     _HOLIDAY_FETCH_META["count"] = len(NSE_HOLIDAYS)
+    current_year = str(now_ist().year)
+    if current_year not in _NSE_HOLIDAY_YEARS and not _HOLIDAY_FETCH_META.get("_year_warning_logged"):
+        import logging
+        logging.getLogger(__name__).warning(
+            f"NSE holidays for {current_year} not found in NSE_HOLIDAYS. "
+            f"Holiday detection may not work. Years available: {sorted(_NSE_HOLIDAY_YEARS)}"
+        )
+        _HOLIDAY_FETCH_META["_year_warning_logged"] = True
 
 class _MockNseSession:
     def get(self, *args, **kwargs):
@@ -1191,6 +1332,7 @@ class _MockYf:
 
 _nse_session: Any = _MockNseSession()
 import yfinance as yf
+
 NSE_HOLIDAYS: set = set()
 _NSE_HOLIDAY_YEARS: set = set()
 _HOLIDAY_FETCH_META: dict = {"count": 0, "fallback": False, "note": ""}
@@ -1230,24 +1372,29 @@ max_daily_loss = 0.0
 # For the DI-migrated version, main() just initializes services.
 
 
+def _on_ws_tick(msg: dict) -> None:
+    """Callback for KiteTickerFeedManager tick messages."""
+    if not isinstance(msg, dict):
+        return
+    msg_type = msg.get("type", "")
+    if msg_type == "connect":
+        log.info("[WS] KiteTicker feed connected")
+    elif msg_type == "ticks":
+        ticks = msg.get("data", [])
+        if ticks:
+            # Log first tick symbol/price as a heartbeat
+            first = ticks[0]
+            token = first.get("instrument_token", "?")
+            price = first.get("last_price", "?")
+            log.debug("[WS] tick: token=%s price=%s", token, price)
+
+
 def setup_di_container() -> None:
     """Set up the dependency injection container with all service implementations."""
     from core.di_container import get_container
-    from infrastructure.config.secure_config_adapter import SecureConfigAdapter
     from core.services.execution_service import ExecutionService
-    from core.services.risk_service import RiskService
-    from core.services.notification_service import NotificationService
-    from core.services.persistence_service import PersistenceService
-    from core.services.broker_health_service import BrokerHealthService
-    from core.services.rate_limiting_service import RateLimitingService
-    from core.services.circuit_breaker_service import CircuitBreakerService
     from infrastructure.adapters.brokers.paper.adapter import PaperBrokerAdapter
     from infrastructure.adapters.persistence.sqlite_adapter import SQLiteAdapter
-    from infrastructure.adapters.market_data.yahoofinance.adapter import YahooFinanceAdapter
-    from infrastructure.adapters.ml_model.ml_model_adapter import MLModelAdapter
-    from infrastructure.adapters.correlation_id.correlation_id_adapter import CorrelationIdAdapter
-    from infrastructure.config.logging_adapter import StructuredLoggerAdapter
-    from infrastructure.adapters.metrics.metrics_adapter import MetricsAdapter
 
     container = get_container()
     config_adapter = SecureConfigAdapter()
@@ -1263,17 +1410,65 @@ def setup_di_container() -> None:
     container.register_singleton(MarketDataPort, type(market_data_port))
     container._singleton_instances[MarketDataPort] = market_data_port
 
+    # Wire WS feed manager into the container for health checks / future use
+    global _ws_feed_manager
+    container.register_singleton(type(_ws_feed_manager), type(_ws_feed_manager))
+    container._singleton_instances[type(_ws_feed_manager)] = _ws_feed_manager
+
+    # Start Kite WebSocket feed on startup (gated internally by config/paper-mode/broker)
+    if _CFG.get("kite_ticker_startup_connect", True):
+        _ws_feed_manager.connect(on_message=_on_ws_tick)
+
     execution_service = ExecutionService(broker_port=broker_port, trade_persistence=trade_persistence)
     container.register_singleton(ExecutionPort, type(execution_service))
     container._singleton_instances[ExecutionPort] = execution_service
 
-    risk_service = RiskService(trade_persistence=trade_persistence)
+    risk_service = RiskService(
+        trade_persistence=trade_persistence,
+        get_live_vix_fn=lambda: DATA_ENGINE.get_india_vix() if DATA_ENGINE else 20.0
+    )
     container.register_singleton(RiskPort, type(risk_service))
     container._singleton_instances[RiskPort] = risk_service
 
     notification_service = NotificationService()
     container.register_singleton(NotificationPort, type(notification_service))
     container._singleton_instances[NotificationPort] = notification_service
+
+    # Phase 2-3: Start morning checklist and session report services
+    from core.circuit_breaker_monitor import create_circuit_breaker_monitor
+    from core.morning_checklist import run_morning_checklist
+    from core.session_report import create_session_reporter
+
+    # Get send function from notification service
+    send_fn = getattr(notification_service, 'send_alert', None)
+    if not send_fn:
+        send_fn = getattr(notification_service, 'send', None)
+    if not send_fn:
+        send_fn = lambda x: None
+
+    # v2.47 Execution Hardening - Initialize for production hardening
+    from core.execution_hardening_integration import init_execution_hardening
+    _execution_hardening_services = init_execution_hardening(
+        config=dict(config),
+        broker_port=broker_port,
+        send_alert_fn=lambda msg, critical: send_fn(f"[HARDENING] {msg}"),
+        get_price_fn=lambda sym: broker_port.get_ltp(sym) if hasattr(broker_port, 'get_ltp') else None
+    )
+    log.info(f"Execution hardening initialized: {list(_execution_hardening_services.keys())}")
+
+    # Start morning checklist (runs at 9:00 AM IST)
+    run_morning_checklist(send_fn=send_fn, cfg=config)
+
+    # Start session report (runs at 3:35 PM IST)
+    reporter = create_session_reporter(send_fn=send_fn)
+    log.info("Session report service started")
+
+    # Start NSE circuit breaker monitor
+    create_circuit_breaker_monitor(
+        send_fn=send_fn,
+        get_index_price_fn=lambda: DATA_ENGINE.get_india_vix() if DATA_ENGINE else None,
+        cfg=config
+    )
 
     persistence_service = PersistenceService()
     container.register_singleton(PersistencePort, type(persistence_service))
@@ -1284,10 +1479,12 @@ def setup_di_container() -> None:
     container._singleton_instances[BrokerHealthPort] = broker_health_service
 
     rate_limiting_service = RateLimitingService()
+    _rate_limiting_service = rate_limiting_service
     container.register_singleton(RateLimitPort, type(rate_limiting_service))
     container._singleton_instances[RateLimitPort] = rate_limiting_service
 
     circuit_breaker_service = CircuitBreakerService()
+    _circuit_breaker_service = circuit_breaker_service
     container.register_singleton(CircuitBreakerPort, type(circuit_breaker_service))
     container._singleton_instances[CircuitBreakerPort] = circuit_breaker_service
 
@@ -1311,10 +1508,16 @@ def setup_di_container() -> None:
 # Backwards-compatible, read-only shim exports (use index_trader_interface for new code)
 try:
     from .index_trader_interface import (
-        start_trader as start_trader_shim,
-        get_state_snapshot as get_state_snapshot_shim,
         generate_signal_snapshot as generate_signal_snapshot_shim,
+    )
+    from .index_trader_interface import (
+        get_state_snapshot as get_state_snapshot_shim,
+    )
+    from .index_trader_interface import (
         health_check as health_check_shim,
+    )
+    from .index_trader_interface import (
+        start_trader as start_trader_shim,
     )
 except Exception:
     # In case the interface isn't available during early import, provide no-op fallbacks
@@ -1343,6 +1546,13 @@ def main() -> None:
     setup_di_container()
     container = get_container()
     config = container.resolve(ConfigPort)
+
+    # Phase 3: Lot size validation at startup
+    from core.lot_size_validator import validate_lot_sizes
+    try:
+        validate_lot_sizes(dict(config), broker_port=None)
+    except Exception as e:
+        print(f"Warning: Lot size validation skipped: {e}")
     if __name__ == "__main__":
         print("=== SECURE CONFIGURATION LOADED ===")
         print(f"Base Capital: {config.get_int('BASE_CAPITAL', 0)}")

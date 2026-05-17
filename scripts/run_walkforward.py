@@ -10,7 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core import BacktestConfig, CsvReplaySource, ReplayConfig, StrategyEngine, WalkForwardEngine
-from scripts.run_backtest_replay import _load_json, _load_index_strategy, _replay_config, _smoke_strategy
+from scripts.run_backtest_replay import _load_index_strategy, _load_json, _replay_config, _smoke_strategy
 
 
 def _backtest_config(cfg: dict) -> BacktestConfig:

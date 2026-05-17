@@ -4,6 +4,10 @@ Risk Engine — Unified entry-quality, portfolio-risk, and capital management.
 Consolidates:
   - risk_engine.py (v1 — QualityEngine pattern with injected callbacks)
   - risk_engine_v2.py (v2 — Dict-based RiskEngineV2 evaluates capital/drawdown/cooldown)
+  - core/risk/risk_engine.py (DEPRECATED, migrated to this module)
+
+SINGLE SOURCE OF TRUTH: This module is the ONLY authoritative risk engine.
+All other risk_engine modules are deprecated.
 
 Usage:
     # Via DI container (preferred):
@@ -13,15 +17,31 @@ Usage:
     # Direct:
     from core.risk_engine import evaluate_risk
     result = evaluate_risk(state, config)
+
+Startup Validation:
+    Set environment variable OPBUYING_ACTIVE_RISK_ENGINE=risk_engine
+    or configure in index_config.defaults.json as active_risk_engine
 """
 from __future__ import annotations
+
+import logging
+import os
+
+log = logging.getLogger("risk_engine")
+
+ACTIVE_RISK_ENGINE = os.environ.get("OPBUYING_ACTIVE_RISK_ENGINE", "risk_engine")
+assert ACTIVE_RISK_ENGINE == "risk_engine", (
+    f"CRITICAL: ACTIVE_RISK_ENGINE must be 'risk_engine', got '{ACTIVE_RISK_ENGINE}'. "
+    f"Multiple risk engines detected. Use ONLY core.risk_engine."
+)
+log.warning(f"RISK ENGINE VALIDATION: ACTIVE_RISK_ENGINE = '{ACTIVE_RISK_ENGINE}'")
 
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from core.safety_state import trip_hard_halt, is_hard_halted
+from core.safety_state import trip_hard_halt
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 

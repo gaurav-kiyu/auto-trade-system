@@ -10,12 +10,12 @@ Adds:
 
 from __future__ import annotations
 
+import logging
 import re
 import time
-import logging
-from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import Any
 
 _log = logging.getLogger(__name__)
 
@@ -279,7 +279,7 @@ class DangerousCommandShield:
         args: list[str],
         user_id: str,
         is_admin: bool,
-    ) -> tuple[bool, Optional[str], str]:
+    ) -> tuple[bool, str | None, str]:
         """
         Process a dangerous command with confirmation flow.
 

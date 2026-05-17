@@ -2,11 +2,12 @@
 Real-Time Performance Monitor - Tracks performance and alerts on anomalies
 """
 from __future__ import annotations
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Optional
-import logging
+
 import json
+import logging
+from dataclasses import dataclass
+from datetime import datetime
+from core.datetime_ist import now_ist
 
 _log = logging.getLogger(__name__)
 
@@ -34,14 +35,14 @@ class RealtimePerformanceMonitor:
     def __init__(self, config: PerformanceConfig):
         self.config = config
         self._trades: list[dict] = []
-        self._last_alert_time: Optional[datetime] = None
+        self._last_alert_time: datetime | None = None
         self._current_streak = 0
-        self._streak_type: Optional[str] = None
+        self._streak_type: str | None = None
 
     def add_trade(self, pnl: float):
         self._trades.append({
             "pnl": pnl,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": now_ist().isoformat(),
         })
         self._update_streak(pnl)
         self._check_alerts()
@@ -63,7 +64,7 @@ class RealtimePerformanceMonitor:
     def get_current_snapshot(self) -> PerformanceSnapshot:
         if not self._trades:
             return PerformanceSnapshot(
-                timestamp=datetime.utcnow(),
+                timestamp=now_ist(),
                 total_trades=0,
                 win_rate=0.0,
                 total_pnl=0.0,
@@ -86,7 +87,7 @@ class RealtimePerformanceMonitor:
         loss_streak = self._current_streak if self._streak_type == "lose" else 0
 
         return PerformanceSnapshot(
-            timestamp=datetime.utcnow(),
+            timestamp=now_ist(),
             total_trades=len(self._trades),
             win_rate=wins / len(self._trades) * 100,
             total_pnl=total_pnl,

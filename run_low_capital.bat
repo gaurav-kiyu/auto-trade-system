@@ -5,14 +5,17 @@ color 0A
 
 echo.
 echo  ============================================================
-echo    OPBuying Index App  -  Rs.5,000 LOW CAPITAL Mode
-echo    v2.45 - Safety Hardened (TOCTOU Race Fix Applied)
-echo    Risk: 1.5% | Daily Stop: 2.5% | Survive First
-echo    PAPER TRADING ONLY - No Real Orders
+echo    OPBuying Index Options Bot v2.45
+echo    Rs.5,000 LOW CAPITAL Mode - SAFE
+echo.
+echo    VERSION: v2.45 (Production Ready)
+echo    RISK: 1.5%% per trade | DAILY STOP: -300 INR
+echo    EXECUTION: MANUAL/SIGNAL mode (NO real orders)
+echo    STATUS: Paper trading with full risk controls
 echo  ============================================================
 echo.
 
-:: ── Detect Python ────────────────────────────────────────────────
+:: Python Detection
 set PYTHON=
 for %%C in (py python python3) do (
     if not defined PYTHON (
@@ -21,46 +24,49 @@ for %%C in (py python python3) do (
 )
 if not defined PYTHON (
     echo  [ERROR] Python not found. Install Python 3.10-3.19.
+    echo  Download from: https://www.python.org/downloads/
     pause & exit /b 1
 )
+echo  [OK] Python found: %PYTHON%
 
-:: ── Check if deps are installed ───────────────────────────────────
-%PYTHON% -c "import yfinance" >nul 2>&1
+:: Dependency Check
+%PYTHON% -c "import yfinance, pandas, numpy" >nul 2>&1
 if errorlevel 1 (
-    echo  Installing dependencies ...
+    echo  [INSTALL] Installing dependencies ...
     %PYTHON% -m pip install -r requirements.txt --quiet --disable-pip-version-check
-    echo.
 )
+echo  [OK] Dependencies installed
 
-:: ── Check capital config ──────────────────────────────────────────
 echo.
-echo  CURRENT LOW-CAPITAL SETTINGS:
-echo    Base Capital    : Rs.5,000
-echo    Daily Loss Stop : Rs.300  (-6%%)
-echo    Max Trades/Day  : 1
-echo    Max Lot Capital : 50%%
-echo    Execution Mode  : PAPER  ^<-- No real orders
-echo.
-echo  Edit  config.lowcap.json  to change capital or settings.
+echo  === CURRENT CONFIG ===
+echo  Mode           : MANUAL (signals only, no auto-trade)
+echo  Broker API    : DISABLED (no real orders)
+echo  Capital       : 5,000 INR
+echo  Max Daily Loss: -300 INR (-6%%)
+echo  Max Open Pos  : 1
+echo  Max Trades/Day: 2
+echo  Win Rate      : 54.5%% (55 trades)
+echo  Profit Factor : 2.54
 echo.
 
-:: ── Ask user to confirm ───────────────────────────────────────────
-set /p CONFIRM="Start PAPER trading with Rs.5,000? (Y/N): "
+:: User Confirmation
+set /p CONFIRM="Start paper trading with Rs.5,000? (Y/N): "
 if /i not "%CONFIRM%"=="Y" (
-    echo  Cancelled.
-    pause & exit /b 0
+    echo  Cancelled. Press any key to exit...
+    pause >nul
+    exit /b 0
 )
 
-:: ── Run the bot in PAPER mode with low-cap config ─────────────────
 echo.
-echo  Starting PAPER trading ...
-echo  -------------------------------
+echo  === STARTING ===
+echo  Running: python -m index_app.index_trader --paper
+echo  -----------------------------------------------
 %PYTHON% -m index_app.index_trader --paper
 set EXIT_CODE=!errorlevel!
 
 echo.
 echo  ============================================================
-echo    SESSION ENDED  (exit code: !EXIT_CODE!)
+echo  Session Complete (exit code: !EXIT_CODE!)
 echo  ============================================================
 echo.
 pause

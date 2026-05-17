@@ -19,7 +19,8 @@ import sqlite3
 import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import timedelta
+from core.datetime_ist import now_ist
 from typing import Any
 
 _log = logging.getLogger(__name__)
@@ -275,7 +276,7 @@ class StrategyPerformanceAnalytics:
 
     def get_recent_performance(self, days: int = 30) -> dict[str, Any]:
         """Get recent performance summary"""
-        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        cutoff = (now_ist() - timedelta(days=days)).strftime("%Y-%m-%d")
 
         with self._lock:
             recent = [t for t in self._trades if t.entry_time >= cutoff]

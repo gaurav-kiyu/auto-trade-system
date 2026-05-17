@@ -18,6 +18,7 @@ import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from core.datetime_ist import now_ist
 
 log = logging.getLogger("market_data_fallback")
 
@@ -138,7 +139,7 @@ class DualSourceMarketData:
                     "primary": primary_price,
                     "fallback": fallback_price
                 }
-                self._last_check[symbol] = datetime.now()
+                self._last_check[symbol] = now_ist()
 
             if mismatch_pct > self._mismatch_threshold_pct:
                 log.warning(

@@ -12,6 +12,12 @@ Metrics exported
   opb_active_positions      — gauge:   current open positions
   opb_signal_score_last     — gauge:   last signal score
   opb_daily_loss_pct        — gauge:   today's loss as % of capital
+  opb_token_refresh_count   — gauge:   cumulative token refresh count
+  opb_token_valid           — gauge:   broker token validity (1=valid)
+  opb_warmup_active         — gauge:   warm-up mode active (1=active)
+  opb_warmup_entries        — gauge:   entries in current warm-up period
+  opb_ws_connected          — gauge:   WebSocket connected (1=connected)
+  opb_ws_reconnect_count    — gauge:   cumulative WebSocket reconnects
 
 Public API
 ----------
@@ -49,10 +55,16 @@ def _init_prometheus() -> bool:
         with _REGISTRY_LOCK:
             if not _prom_ok:
                 _gauges = {
-                    "pnl_today":        Gauge("opb_pnl_today",        "Today net P&L"),
-                    "active_positions": Gauge("opb_active_positions",  "Open positions"),
-                    "signal_score":     Gauge("opb_signal_score_last", "Last signal score"),
-                    "daily_loss_pct":   Gauge("opb_daily_loss_pct",    "Daily loss pct"),
+                    "pnl_today":          Gauge("opb_pnl_today",          "Today net P&L"),
+                    "active_positions":   Gauge("opb_active_positions",   "Open positions"),
+                    "signal_score":       Gauge("opb_signal_score_last",  "Last signal score"),
+                    "daily_loss_pct":     Gauge("opb_daily_loss_pct",     "Daily loss pct"),
+                    "token_refresh_count":Gauge("opb_token_refresh_count","Cumulative token refreshes"),
+                    "token_valid":        Gauge("opb_token_valid",        "Broker token validity (1=valid)"),
+                    "warmup_active":      Gauge("opb_warmup_active",      "Warm-up mode active (1=active)"),
+                    "warmup_entries":     Gauge("opb_warmup_entries",     "Entries in warm-up"),
+                    "ws_connected":       Gauge("opb_ws_connected",       "WebSocket connected (1=connected)"),
+                    "ws_reconnect_count": Gauge("opb_ws_reconnect_count", "Cumulative WebSocket reconnects"),
                 }
                 _counters = {
                     "trades_total": Counter("opb_trades_total", "Total trades"),
@@ -97,6 +109,28 @@ def start_metrics_server(cfg: dict[str, Any] | None = None) -> bool:
     except Exception as e:
         _log.warning("[METRICS] start failed: %s", e)
         return False
+
+
+def update_hardening_metrics(
+    token_refresh_count: int = 0,
+    token_valid: bool = False,
+    warmup_active: bool = False,
+    warmup_entries: int = 0,
+    ws_connected: bool = False,
+    ws_reconnect_count: int = 0,
+) -> None:
+    """Update hardening-related Prometheus metrics in one call."""
+    if not _prom_ok and not _init_prometheus():
+        return
+    try:
+        _gauges["token_refresh_count"].set(float(token_refresh_count))
+        _gauges["token_valid"].set(1.0 if token_valid else 0.0)
+        _gauges["warmup_active"].set(1.0 if warmup_active else 0.0)
+        _gauges["warmup_entries"].set(float(warmup_entries))
+        _gauges["ws_connected"].set(1.0 if ws_connected else 0.0)
+        _gauges["ws_reconnect_count"].set(float(ws_reconnect_count))
+    except Exception as e:
+        _log.debug("[METRICS] update_hardening_metrics failed: %s", e)
 
 
 def update_metrics(metrics: dict[str, float]) -> None:

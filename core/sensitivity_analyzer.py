@@ -96,8 +96,9 @@ def load_trades_for_sensitivity(
             params: list[Any] = []
             where = ["net_pnl IS NOT NULL", "entry IS NOT NULL"]
             if days and days > 0:
-                import datetime as dt
-                cutoff = (dt.datetime.utcnow() - dt.timedelta(days=days)).isoformat()
+                from core.datetime_ist import now_ist
+                from datetime import timedelta
+                cutoff = (now_ist() - timedelta(days=days)).isoformat()
                 where.append("ts >= ?")
                 params.append(cutoff)
             sql = f"SELECT * FROM trades WHERE {' AND '.join(where)} ORDER BY ts"

@@ -5,9 +5,9 @@ Records all incoming commands and their outcomes for security and compliance.
 """
 
 from __future__ import annotations
+
 import logging
-from datetime import datetime
-from typing import Any
+from core.datetime_ist import now_ist
 
 _log = logging.getLogger("tg_audit")
 
@@ -23,7 +23,7 @@ class TelegramAuditManager:
 
     def record_command(self, user_id: str, username: str, command: str, args: list[str], result: str):
         """Log a command execution event."""
-        timestamp = datetime.now().isoformat()
+        timestamp = now_ist().isoformat()
         audit_entry = (
             f"[{timestamp}] USER:{user_id} NAME:{username} "
             f"CMD:{command} ARGS:{args} RESULT:{result}"
@@ -35,7 +35,7 @@ class TelegramAuditManager:
 
     def record_unauthorized_attempt(self, user_id: str, username: str, command: str):
         """Log an unauthorized access attempt."""
-        timestamp = datetime.now().isoformat()
+        timestamp = now_ist().isoformat()
         entry = f"[{timestamp}] UNAUTHORIZED ATTEMPT: USER:{user_id} NAME:{username} CMD:{command}"
         _log.warning(f"SECURITY: {entry}")
         with open(self.log_file, "a", encoding="utf-8") as f:

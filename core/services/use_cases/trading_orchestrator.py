@@ -15,8 +15,14 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from core.datetime_ist import now_ist
 from typing import Any
 
+# Import shared kernels and utilities
+from core.common.kernels.correlation_id import CorrelationIdManager
+from core.common.utilities.logging import StructuredLogger
+from core.common.utilities.metrics import MetricsCollector
+from core.common.utilities.result import Failure, Result, Success
 from core.domains.execution.model import Fill, Order, OrderResult
 from core.domains.ml.model import MLConfidence, MLPrediction
 from core.domains.risk.model import RiskDecision
@@ -34,12 +40,6 @@ from core.ports.ml_model import MlModelPort
 from core.ports.notification import NotificationPort
 from core.ports.persistence import PersistencePort
 from core.ports.risk import RiskPort
-
-# Import shared kernels and utilities
-from core.common.kernels.correlation_id import CorrelationIdManager
-from core.common.utilities.logging import StructuredLogger
-from core.common.utilities.metrics import MetricsCollector
-from core.common.utilities.result import Failure, Result, Success
 
 
 @dataclass
@@ -453,7 +453,7 @@ class TradingOrchestrator:
                 price=None,  # Market order
                 strategy_id=strategy_decision.strategy_name,
                 risk_decision_id=risk_decision.reason,  # Simplified
-                timestamp=datetime.now()
+                timestamp=now_ist()
             )
 
             self.logger.debug("Execution order created",
@@ -497,11 +497,11 @@ class TradingOrchestrator:
             fills = [
                 Fill(
                     order_id=order_result.order_id,
-                    fill_id=f"fill_{order_result.order_id}_{int(datetime.now().timestamp())}",
+                    fill_id=f"fill_{order_result.order_id}_{int(now_ist().timestamp())}",
                     symbol=symbol,
                     quantity=order_result.filled_quantity,
                     price=order_result.average_price or 0.0,
-                    timestamp=datetime.now(),
+                    timestamp=now_ist(),
                     commission=order_result.commission or 0.0,
                     liquidity_flag="unknown"
                 )
@@ -536,7 +536,7 @@ class TradingOrchestrator:
         try:
             # Create state snapshot
             state_snapshot = TradingState(
-                timestamp=datetime.now(),
+                timestamp=now_ist(),
                 last_order=order,
                 last_fills=fills,
                 last_strategy_decision=strategy_decision,
@@ -693,7 +693,7 @@ class TradingOrchestrator:
             "quantity": sum(f.quantity for f in fills),
             "price": sum(f.price * f.quantity for f in fills) / sum(f.quantity for f in fills) if fills else 0,
             "strategy": strategy_decision.strategy_name,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": now_ist().isoformat()
         }
 
     def _send_risk_rejection_notification(
@@ -708,7 +708,7 @@ class TradingOrchestrator:
                 "symbol": strategy_decision.direction,  # Simplified
                 "reason": risk_decision.reason,
                 "strategy": strategy_decision.strategy_name,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": now_ist().isoformat()
             }
             self.notification.send_notification(notification)
         except Exception:
@@ -755,7 +755,7 @@ class TradingOrchestrator:
             strength=strength,
             direction=direction,
             quality=quality,
-            timestamp=datetime.now(),
+            timestamp=now_ist(),
             metadata={"generated_by": "demo_orchestrator"}
         )
 

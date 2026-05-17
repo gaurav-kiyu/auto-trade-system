@@ -17,9 +17,9 @@ from typing import Any
 
 def build_index_orchestrator():
     """Return an :class:`~core.Orchestrator` after engines exist (post-``_init_runtime_engines()``)."""
-    import index_app.index_trader as m
-
     from core import Orchestrator, ReconciliationEngine, RiskEngineV2
+
+    import index_app.index_trader as m
 
     if m.DATA_ENGINE is None or m.STRATEGY_ENGINE is None or m.RISK_ENGINE is None:
         raise RuntimeError("Engines not initialized — call build_index_orchestrator() after _init_runtime_engines().")
@@ -62,6 +62,22 @@ def build_index_orchestrator():
     def _entry_gate(_name: str, _signal: dict[str, Any]) -> bool:
         return True
 
+    def _system_mode() -> str:
+        try:
+            from core.system_mode import get_system_mode_manager
+            mgr = get_system_mode_manager()
+            return str(mgr.get_current_mode())
+        except Exception:
+            return "NORMAL"
+
+    def _circuit_breaker_allows() -> bool:
+        try:
+            from core.circuit_breaker_detector import create_circuit_breaker_detector
+            cb = create_circuit_breaker_detector()
+            return cb.is_trading_allowed() if hasattr(cb, 'is_trading_allowed') else True
+        except Exception:
+            return True
+
     _mh = os.environ.get("OPB_ORCHESTRATOR_MARKET_HOURS", "1").strip().lower()
     enforce_ist = _mh not in ("0", "false", "no", "off")
 
@@ -80,4 +96,6 @@ def build_index_orchestrator():
         execution_mode_fn=_exec_mode,
         market_vix_fn=m.get_india_vix,
         audit_engine=getattr(m, "_AUDIT_ENGINE", None),
+        system_mode_fn=_system_mode,
+        circuit_breaker_fn=_circuit_breaker_allows,
     )

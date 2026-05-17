@@ -5,10 +5,14 @@ Handles all operations related to saving and retrieving trade records.
 """
 
 from __future__ import annotations
-from typing import Any, List, Optional
+
 from datetime import datetime
-from core.ports.persistence.persistence_port import TradePersistencePort, ConnectionError, ValidationError
+from core.datetime_ist import now_ist
+from typing import Any
+
+from core.ports.persistence.persistence_port import ConnectionError, ValidationError
 from infrastructure.adapters.persistence.sqlite_adapter import SQLiteAdapter
+
 
 class TradesPersistenceManager:
     def __init__(self, db_path: str):
@@ -18,7 +22,7 @@ class TradesPersistenceManager:
     def _initialize_table(self):
         if not self._adapter.connect():
             raise ConnectionError(f"Failed to connect to trades database: {self._adapter.db_path}")
-        
+
         if not self._adapter.table_exists('trades'):
             schema = {
                 'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
@@ -45,15 +49,15 @@ class TradesPersistenceManager:
                 raise ValidationError(f"Missing required field: {field}")
 
         if 'timestamp' not in trade_data:
-            trade_data['timestamp'] = datetime.now().isoformat()
+            trade_data['timestamp'] = now_ist().isoformat()
 
         return self._adapter.create('trades', trade_data)
 
-    def get_trade(self, trade_id: str) -> Optional[dict[str, Any]]:
+    def get_trade(self, trade_id: str) -> dict[str, Any] | None:
         return self._adapter.read('trades', trade_id)
 
-    def get_trades(self, symbol: Optional[str] = None, start_date: Optional[datetime] = None, 
-                  end_date: Optional[datetime] = None, limit: Optional[int] = None) -> List[dict[str, Any]]:
+    def get_trades(self, symbol: str | None = None, start_date: datetime | None = None,
+                  end_date: datetime | None = None, limit: int | None = None) -> list[dict[str, Any]]:
         filters = {}
         if symbol: filters['symbol'] = symbol
         if start_date: filters['timestamp__gte'] = start_date.isoformat()

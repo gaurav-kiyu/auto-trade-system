@@ -36,6 +36,7 @@ Config keys (all optional — safe defaults built in)
 from __future__ import annotations
 
 import datetime
+from core.datetime_ist import now_ist
 import logging
 from dataclasses import dataclass
 from enum import Enum
@@ -391,7 +392,7 @@ def session_summary(
     Keys: session, score_adj, entry_allowed, boundaries
     """
     c = cfg or {}
-    t = now or datetime.datetime.now().time()
+    t = now or now_ist().time()
     sess = classify_session(t, c)
     adj  = get_session_score_adj(sess, c)
     allowed = session_entry_allowed(sess, c)

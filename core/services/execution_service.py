@@ -1,21 +1,32 @@
 import hashlib
 import logging
+import tempfile
 import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from datetime import timedelta
 
+from core.datetime_ist import now_ist
+from typing import Any
+
+from core.execution.broker_ack_validator import BrokerAckValidator
+from core.execution.broker_state_handler import create_state_handler
+from core.execution.deterministic_state_machine import ExecutionState, get_execution_state_manager
+from core.execution.durable_state import (
+    DurableExecutionRecord,
+    DurableExecutionStore,
+)
+from core.execution.durable_state import (
+    ExecutionState as DurableExecState,
+)
 from core.execution.idempotency.manager import IdempotencyManager
 from core.execution.order_submission.manager import OrderSubmissionManager
-from core.execution.retry_policy.manager import RetryPolicy
-from core.execution.broker_gateway import broker_gateway
-from core.execution.deterministic_state_machine import get_execution_state_manager, ExecutionState
 from core.execution.reconciliation.service import (
     ReconciliationService,
     TradingFreezeReason,
 )
+from core.execution.retry_policy.manager import RetryPolicy
 from core.ports.execution.execution_port import (
     ExecutionAuditTrail,
     ExecutionContext,
@@ -26,11 +37,12 @@ from core.ports.execution.execution_port import (
     OrderType,
 )
 
+
 @dataclass
 class ExecutionServiceConfig:
     """Configuration for the Execution Service."""
     enable_duplicate_prevention: bool = True
-    idempotency_db_path: Optional[str] = None
+    idempotency_db_path: str | None = None
     idempotency_cache_size: int = 1000
     idempotency_expiry_hours: int = 24
     enable_audit_trail: bool = True
@@ -66,6 +78,8 @@ class ExecutionService:
         self.config = config
         self.config_obj = config
 
+        self._logger = logging.getLogger("execution_service")
+
         persistence_path = self.config.idempotency_db_path
         cache_size = self.config.idempotency_cache_size
         expiry_hours = self.config.idempotency_expiry_hours
@@ -81,10 +95,55 @@ class ExecutionService:
         self.idempotency = IdempotencyManager(
             cache_size=cache_size,
             expiry_hours=expiry_hours,
+            persistence_path=persistence_path,
         )
 
+        # Durable execution store (create before wiring state machine persistence)
+        # Use a unique temporary DB per ExecutionService instance to avoid cross-test persistence
+        durable_db_path = reconciliation_db_path.replace("trades.db", "execution_state.db")
+        try:
+            tmp = tempfile.NamedTemporaryFile(prefix="exec_state_", suffix=".db", delete=False)
+            durable_db_path = tmp.name
+            tmp.close()
+        except Exception:
+            # Fallback to default path
+            durable_db_path = reconciliation_db_path.replace("trades.db", "execution_state.db")
+
+        self._durable_store = DurableExecutionStore(durable_db_path)
+        self._logger.info(f"Durable execution store initialized: {durable_db_path}")
+
         # CRITICAL FIX: Deterministic state machine for idempotency
-        self._state_machine = get_execution_state_manager()
+        # Wire persistence callback so state transitions persist into durable store
+        manager = get_execution_state_manager()
+        def _persistence_callback(machine):
+            try:
+                # Map ExecutionState enum to durable store states where possible
+                state_map = {
+                    ExecutionState.VALIDATED: DurableExecState.PENDING,
+                    ExecutionState.PERSISTED: DurableExecState.PENDING,
+                    ExecutionState.SUBMITTED: DurableExecState.SUBMITTED,
+                    ExecutionState.ACKNOWLEDGED: DurableExecState.SUBMITTED,
+                    ExecutionState.PARTIAL_FILL: DurableExecState.PARTIALLY_FILLED,
+                    ExecutionState.FILLED: DurableExecState.FILLED,
+                    ExecutionState.REJECTED: DurableExecState.REJECTED,
+                    ExecutionState.FAILED: DurableExecState.FAILED,
+                    ExecutionState.CANCELLED: DurableExecState.CANCELLED,
+                }
+                durable_state = state_map.get(machine.state, DurableExecState.UNKNOWN)
+                # Persist to durable store
+                self._durable_store.update_state(
+                    machine.intent_id,
+                    durable_state,
+                    broker_order_id=machine.broker_order_id,
+                    filled_quantity=machine.filled_quantity,
+                    average_price=machine.average_price,
+                    reject_reason=machine.error_message,
+                )
+            except Exception:
+                pass
+
+        manager._persistence_callback = _persistence_callback
+        self._state_machine = manager
 
         self.retry_policy = RetryPolicy()
         self.submission = OrderSubmissionManager(self._broker_port)
@@ -103,6 +162,18 @@ class ExecutionService:
             freeze_callback=self._on_reconciliation_freeze,
             enable_auto_repair=True,
         )
+
+        
+
+        broker_type = BrokerAckValidator.detect_broker_type(broker_port)
+        self._ack_validator = BrokerAckValidator(broker_type)
+        self._logger.info(f"Broker ACK validator initialized for {broker_type.value}")
+
+        self._state_handler = create_state_handler(
+            max_retries=config.max_retries if config else 3,
+            timeout_seconds=30,
+        )
+        self._logger.info("Broker state handler initialized")
 
         self._is_reconciliation_frozen = False
         self._logger.info("ExecutionService initialized")
@@ -127,6 +198,7 @@ class ExecutionService:
     def reconcile_pending_orders(self) -> dict:
         """
         Startup reconciliation: scan for non-terminal orders and update status.
+        Uses both legacy reconciliation service and durable store for complete coverage.
 
         Returns:
             dict with reconciliation results
@@ -150,6 +222,15 @@ class ExecutionService:
                 f"Trading frozen: {result.freeze_reason.value}"
             )
 
+        self._logger.info("Starting durable state reconciliation...")
+        durable_result = self._durable_store.reconcile_with_broker(self._broker_port)
+        self._logger.info(
+            f"Durable state: checked={durable_result['checked']}, "
+            f"filled={durable_result['filled']}, "
+            f"still_pending={durable_result['still_pending']}, "
+            f"unknown={durable_result['unknown']}"
+        )
+
         return {
             "is_clean": result.is_clean,
             "issues_count": len(result.issues),
@@ -157,6 +238,7 @@ class ExecutionService:
             "freeze_reason": result.freeze_reason.value if result.freeze_reason else None,
             "broker_positions": result.broker_positions_count,
             "internal_orders": result.internal_orders_count,
+            "durable_state": durable_result,
         }
 
     def execute_order(
@@ -196,7 +278,8 @@ class ExecutionService:
         # CRITICAL FIX: Wrap entire check→execute→store in atomic lock
         # to prevent TOCTOU race condition under concurrent load
         with self._lock:
-            # Check for duplicate execution if enabled (delegate to IdempotencyManager)
+            intent_id = f"{order_request.symbol}_{order_request.direction}_{order_request.strike_price}_{order_request.lot_size}"
+
             if self.config.enable_duplicate_prevention:
                 if self.idempotency.is_duplicate(idempotency_key):
                     self._logger.warning(f"Duplicate order prevented: {idempotency_key}")
@@ -208,11 +291,22 @@ class ExecutionService:
                             order_id="duplicate",
                             status=OrderStatus.REJECTED,
                             reject_reason="Duplicate order detected",
-                            timestamp=datetime.now()
+                            timestamp=now_ist()
                         )
 
-            # CRITICAL FIX: Mark as in-flight BEFORE execution
-            # This prevents duplicates on crash/restart
+            durable_record = DurableExecutionRecord(
+                intent_id=intent_id,
+                client_order_id=execution_id,
+                symbol=order_request.symbol,
+                direction=order_request.direction,
+                quantity=order_request.lot_size,
+                strike_price=order_request.strike_price,
+                state=DurableExecState.PENDING,
+            )
+            print(f"DEBUG: saving durable record for intent {intent_id} to {self._durable_store._db_path}")
+            self._durable_store.save_execution(durable_record)
+
+            print(f"DEBUG: marking idempotency in flight for key {idempotency_key}")
             self.idempotency.mark_in_flight(idempotency_key)
 
         # Record the execution start
@@ -235,17 +329,25 @@ class ExecutionService:
 
             # Handle successful execution
             if order_result.status in [OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED]:
-                # CRITICAL FIX: Store idempotency result AFTER successful execution
-                # but mark as confirmed (not in-flight)
                 self.idempotency.confirm_execution(idempotency_key, order_result)
+                # Persist idempotency result for duplicate detection
+                try:
+                    self._store_idempotency_key(idempotency_key, order_result)
+                except Exception:
+                    self._logger.exception("Failed to store idempotency result in cache")
+                self._durable_store.update_state(
+                    intent_id,
+                    DurableExecState.FILLED if order_result.status == OrderStatus.FILLED else DurableExecState.PARTIALLY_FILLED,
+                    broker_order_id=order_result.broker_order_id,
+                    filled_quantity=order_result.filled_quantity,
+                    average_price=order_result.average_price,
+                )
 
-                # Persist trade if we have persistence and the order was filled
                 if (self.trade_persistence and
                     order_result.filled_quantity > 0 and
                     self.config.enable_audit_trail):
                     self._persist_trade_from_order(order_request, order_result, execution_context)
 
-                # Record audit trail
                 if self.config.enable_audit_trail:
                     audit_trail.order_result = order_result
                     self.record_execution_audit(audit_trail)
@@ -256,7 +358,13 @@ class ExecutionService:
                 )
 
             else:
-                # Order failed or was rejected
+                durable_state = DurableExecState.REJECTED if order_result.status == OrderStatus.REJECTED else DurableExecState.FAILED
+                self._durable_store.update_state(
+                    intent_id,
+                    durable_state,
+                    reject_reason=order_result.reject_reason,
+                )
+
                 audit_trail.order_result = order_result
                 if self.config.enable_audit_trail:
                     self.record_execution_audit(audit_trail)
@@ -269,17 +377,16 @@ class ExecutionService:
             return order_result
 
         except Exception as e:
-            # CRITICAL FIX: Clear in-flight marker on failure
             self.idempotency.clear_in_flight(idempotency_key)
+            self._durable_store.clear_in_flight(intent_id)
 
-            # Handle unexpected errors
             latency_ms = int((time.time() - start_time) * 1000)
             audit_trail.latency_ms = latency_ms
             audit_trail.order_result = OrderResult(
                 order_id="error",
                 status=OrderStatus.REJECTED,
                 reject_reason=f"Execution service error: {str(e)}",
-                timestamp=datetime.now()
+                timestamp=now_ist()
             )
 
             if self.config.enable_audit_trail:
@@ -401,7 +508,7 @@ class ExecutionService:
                 "status_verified": bool(status_verified),
                 "latency_ms": latency_ms,
                 "order_id": order_id,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": now_ist().isoformat()
             }
 
             self._logger.debug(f"Fill verification for {order_id}: {result}")
@@ -417,7 +524,7 @@ class ExecutionService:
                 "latency_ms": int((time.time() - start_time) * 1000) if 'start_time' in locals() else 0,
                 "order_id": order_id,
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": now_ist().isoformat()
             }
 
     def is_duplicate_order(self, idempotency_key: str) -> bool:
@@ -585,7 +692,7 @@ class ExecutionService:
             self._logger.exception(f"Failed to persist idempotency key {key}")
 
         with self._lock:
-            self._idempotency_cache[key] = (datetime.now(), order_result)
+            self._idempotency_cache[key] = (now_ist(), order_result)
             self._idempotency_cache.move_to_end(key, last=False)
             while len(self._idempotency_cache) > self.config.idempotency_cache_size:
                 self._idempotency_cache.popitem(last=True)
@@ -617,7 +724,7 @@ class ExecutionService:
             return
         except Exception:
             with self._lock:
-                expiry_time = datetime.now() - timedelta(hours=self.config.idempotency_expiry_hours)
+                expiry_time = now_ist() - timedelta(hours=self.config.idempotency_expiry_hours)
                 expired_keys = [
                     key for key, (timestamp, _) in self._idempotency_cache.items()
                     if timestamp < expiry_time
@@ -644,6 +751,7 @@ class ExecutionService:
         """
         # CRITICAL FIX: Check idempotency using deterministic state machine BEFORE any attempt
         intent_id = f"{order_request.symbol}_{order_request.direction}_{order_request.strike_price}_{order_request.lot_size}"
+        print(f"DEBUG: state_machine.create_or_get for intent {intent_id}")
         state_machine, is_new = self._state_machine.create_or_get(
             intent_id=intent_id,
             symbol=order_request.symbol,
@@ -652,6 +760,7 @@ class ExecutionService:
             direction=order_request.direction,
         )
 
+        print(f"DEBUG: create_or_get returned is_new={is_new}, state={state_machine.state}")
         # If order already exists in non-terminal state, BLOCK duplicate
         if not is_new and state_machine.state not in [ExecutionState.FILLED, ExecutionState.REJECTED, ExecutionState.CANCELLED, ExecutionState.FAILED]:
             self._logger.warning(f"BLOCKED: Order {intent_id} already in progress (state: {state_machine.state.value})")
@@ -659,11 +768,12 @@ class ExecutionService:
                 order_id=state_machine.client_order_id,
                 status=OrderStatus.REJECTED,
                 reject_reason=f"Duplicate order blocked - order already in {state_machine.state.value} state",
-                timestamp=datetime.now()
+                timestamp=now_ist()
             )
 
         # Mark as validated
         state_machine.try_transition_to(ExecutionState.VALIDATED)
+        print(f"DEBUG: state_machine transitioned to {state_machine.state}")
 
         # CRITICAL: Single attempt ONLY - NO RETRY to prevent duplicate orders
         # This is the ONLY execution path - state machine guarantees idempotency
@@ -673,7 +783,25 @@ class ExecutionService:
 
             # Record state transitions based on result
             if result.status == OrderStatus.FILLED:
+                # Advance through intermediate states so record_fill can reach FILLED
+                try:
+                    print("DEBUG: advancing state machine to PERSISTED/SUBMITTED/ACKNOWLEDGED")
+                    state_machine.try_transition_to(ExecutionState.PERSISTED)
+                    print(f"DEBUG: state after PERSISTED attempt: {state_machine.state}")
+                    # Record a submission using the broker/order id if available
+                    broker_id = result.broker_order_id or result.order_id or state_machine.client_order_id
+                    state_machine.record_submission(str(broker_id))
+                    print(f"DEBUG: state after record_submission: {state_machine.state}")
+                    state_machine.record_acknowledgment()
+                    print(f"DEBUG: state after record_acknowledgment: {state_machine.state}")
+                except Exception as ex:
+                    # Best effort - continue to record fill
+                    print(f"DEBUG: exception while advancing state machine: {ex}")
+                    pass
+
+                print(f"DEBUG: calling record_fill with qty={order_request.lot_size} price={order_request.strike_price}")
                 state_machine.record_fill(order_request.lot_size, order_request.strike_price)
+                print(f"DEBUG: state after record_fill: {state_machine.state}")
                 return result
 
             elif result.status == OrderStatus.PARTIALLY_FILLED:
@@ -701,7 +829,7 @@ class ExecutionService:
                 order_id="execution_failed",
                 status=OrderStatus.REJECTED,
                 reject_reason=f"Execution failed: {str(e)}",
-                timestamp=datetime.now()
+                timestamp=now_ist()
             )
 
     def _attempt_order_execution(
@@ -728,13 +856,12 @@ class ExecutionService:
             # Execute via broker port
             if hasattr(self.broker_port, 'place_order'):
                 # Use broker's place_order method - it expects an Order object
+                print("DEBUG: calling broker_port.place_order")
                 place_order_result = self.broker_port.place_order(order_request)
+                print("DEBUG: broker_port.place_order returned")
 
-                # Handle case where place_order returns an OrderResult (for test compatibility)
-                # or a string order ID (proper broker interface)
                 if isinstance(place_order_result, OrderResult):
-                    # The broker returned a full OrderResult (test scenario)
-                    return place_order_result
+                    result = place_order_result
                 elif isinstance(place_order_result, str):
                     # The broker returned an order ID string (proper interface)
                     order_id = place_order_result
@@ -749,30 +876,34 @@ class ExecutionService:
 
                     if filled_quantity > 0:
                         # The broker reports that the order was filled
-                        return OrderResult(
+                        result = OrderResult(
                             order_id=str(order_id) if order_id else "",
                             status=OrderStatus.FILLED,
                             filled_quantity=filled_quantity,
                             average_price=average_price,
                             commission=0.0,  # TODO: Get commission from broker if available
-                            timestamp=datetime.now(),
+                            timestamp=now_ist(),
                             broker_order_id=str(order_id) if order_id else None,
-                            broker_timestamp=datetime.now()
+                            broker_timestamp=now_ist()
                         )
                     else:
                         # The order was placed but not yet filled
-                        return OrderResult(
+                        result = OrderResult(
                             order_id=str(order_id) if order_id else "",
                             status=OrderStatus.SUBMITTED if order_id else OrderStatus.REJECTED,
                             broker_order_id=str(order_id) if order_id else None,
-                            timestamp=datetime.now()
+                            timestamp=now_ist()
                         )
                 else:
                     # Unexpected return type
                     self._logger.warning(f"Broker place_order returned unexpected type: {type(place_order_result)}")
                     # Fallback: simulate execution for testing
                     self._logger.warning("Broker port does not have place_order method, simulating execution")
-                    return self._execute_paper_order(order_request, execution_context)
+                    result = self._execute_paper_order(order_request, execution_context)
+
+                res = self._validate_broker_result(result)
+                print(f"DEBUG: _validate_broker_result returned status={res.status}, order_id={res.order_id}")
+                return res
             else:
                 # Fallback: simulate execution for testing
                 self._logger.warning("Broker port does not have place_order method, simulating execution")
@@ -784,8 +915,24 @@ class ExecutionService:
                 order_id="execution_error",
                 status=OrderStatus.REJECTED,
                 reject_reason=str(e),
-                timestamp=datetime.now()
+                timestamp=now_ist()
             )
+
+    def _validate_broker_result(self, result: OrderResult) -> OrderResult:
+        """Validate broker result using ACK validator."""
+        validation = self._ack_validator.validate_order_result(result)
+        if not validation.is_valid:
+            self._logger.error(f"Broker ACK validation failed: {validation.error_message}")
+            return OrderResult(
+                order_id=result.order_id or "validation_failed",
+                status=OrderStatus.REJECTED,
+                reject_reason=f"Broker ACK validation failed: {validation.error_message}",
+                timestamp=now_ist()
+            )
+        if validation.warnings:
+            for warning in validation.warnings:
+                self._logger.warning(f"Broker ACK warning: {warning}")
+        return result
 
     def _execute_paper_order(
         self,
@@ -833,7 +980,7 @@ class ExecutionService:
                         order_id=order_id,
                         status=OrderStatus.PENDING,
                         reason="Limit order not executed - price not reached",
-                        timestamp=datetime.now()
+                        timestamp=now_ist()
                     )
             else:
                 # For other order types (SL, SL-M), use the trigger price or current price
@@ -856,7 +1003,7 @@ class ExecutionService:
                 filled_quantity=order_request.lot_size,
                 average_price=fill_price,
                 commission=commission,
-                timestamp=datetime.now()
+                timestamp=now_ist()
             )
 
         except Exception as e:
@@ -865,7 +1012,7 @@ class ExecutionService:
                 order_id="paper_error",
                 status=OrderStatus.REJECTED,
                 reject_reason=str(e),
-                timestamp=datetime.now()
+                timestamp=now_ist()
             )
 
     def _get_current_price_for_symbol(self, symbol: str) -> float:

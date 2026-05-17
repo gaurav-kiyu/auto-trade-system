@@ -5,9 +5,10 @@ Handles the actual interaction with the BrokerPort to submit orders.
 """
 
 from __future__ import annotations
-from typing import Any, Optional
-from core.ports.broker import BrokerPort, OrderRequest, OrderResult, OrderStatus
+
 import logging
+
+from core.ports.broker import BrokerPort, OrderRequest, OrderResult, OrderStatus
 
 log = logging.getLogger("order_submission")
 
@@ -18,7 +19,7 @@ class OrderSubmissionManager:
     def submit(self, request: OrderRequest) -> OrderResult:
         try:
             result = self.broker_port.place_order(request)
-            
+
             # Handle cases where broker returns a string ID instead of OrderResult
             if isinstance(result, str):
                 return OrderResult(

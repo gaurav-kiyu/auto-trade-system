@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+import random
 import sys
 import threading
 import time
@@ -114,7 +115,7 @@ class BrokerAdapter:
     def get_fill_price(self, order_id) -> float | None:
         # The new port returns OrderResult; we might need a separate method for fills
         # For now, we simulate the legacy return
-        return 0.0 
+        return 0.0
 
     def get_filled_quantity(self, order_id) -> int | None:
         return 0
@@ -144,6 +145,7 @@ class BrokerRuntimeContext:
     sleep_fn: Callable[[float], None]
     broker_wait_poll_sec: float
     expiry_str_fn: Callable[[str], str]
+    circuit_breaker: Any = None  # CircuitBreakerService instance (optional)
 
 
 def build_broker_runtime_context(
@@ -158,6 +160,7 @@ def build_broker_runtime_context(
     sleep_fn: Callable[[float], None],
     broker_wait_poll_sec: float,
     expiry_str_fn: Callable[[str], str],
+    circuit_breaker: Any = None,
 ) -> BrokerRuntimeContext:
     """Build the context object passed to :func:`create_broker_adapter` (shared by index and stock bots)."""
     return BrokerRuntimeContext(
@@ -171,6 +174,7 @@ def build_broker_runtime_context(
         sleep_fn=sleep_fn,
         broker_wait_poll_sec=broker_wait_poll_sec,
         expiry_str_fn=expiry_str_fn,
+        circuit_breaker=circuit_breaker,
     )
 
 
@@ -217,11 +221,16 @@ class PaperBrokerAdapter(BrokerAdapter):
         price_getter: Callable[[str, str, int], float | None] | None = None,
         oi_getter: Callable[[str, str, int], tuple[int, int] | None] | None = None,
         cfg: dict[str, Any] | None = None,
+        seed: int | None = None,
     ) -> None:
         self._price_getter = price_getter
         self._oi_getter = oi_getter
         self._cfg: dict[str, Any] = dict(cfg) if cfg else {}
         self._fills: dict[str, PaperFill] = {}
+        if seed is not None:
+            self._rng = random.Random(seed)
+        else:
+            self._rng = random.Random()
 
     def configure_paper_simulation(
         self,
@@ -402,6 +411,29 @@ class KiteBrokerAdapter(_PollingBrokerAdapter):
                 time.sleep(sleep_ms)
             self._last_api_call = time.time()
 
+    def _cb_protected(self, key: str, func: Callable, *args, **kwargs) -> Any:
+        """Execute a function protected by the circuit breaker if configured."""
+        cb = self._context.circuit_breaker
+        if cb is not None:
+            try:
+                return cb.call_with_key(f"broker.{key}", func, *args, **kwargs)
+            except Exception as exc:
+                if "Circuit breaker is OPEN" in str(exc):
+                    self._context.log_fn(f"[CB] {key} BLOCKED - circuit open")
+                    return None
+                raise
+        return func(*args, **kwargs)
+
+    def _rate_limit_wait(self) -> None:
+        """Enforce rate limiting to prevent API ban."""
+        with self._rate_limit_lock:
+            now = time.time()
+            elapsed_ms = (now - self._last_api_call) * 1000
+            if elapsed_ms < self._min_interval_ms:
+                sleep_ms = (self._min_interval_ms - elapsed_ms) / 1000.0
+                time.sleep(sleep_ms)
+            self._last_api_call = time.time()
+
     def _connect(self):
         try:
             from kiteconnect import KiteConnect  # type: ignore
@@ -449,7 +481,7 @@ class KiteBrokerAdapter(_PollingBrokerAdapter):
         if not kite:
             return None
         try:
-            oid = kite.place_order(
+            oid = self._cb_protected("place_order", kite.place_order,
                 variety=kite.VARIETY_REGULAR,
                 exchange=kite.EXCHANGE_NFO,
                 tradingsymbol=self._symbol(name, direction, strike),
@@ -458,8 +490,9 @@ class KiteBrokerAdapter(_PollingBrokerAdapter):
                 product=kite.PRODUCT_MIS,
                 order_type=kite.ORDER_TYPE_MARKET,
             )
-            self._context.log_fn(f"[KITE] {txn_type} order: {oid}")
-            return str(oid)
+            if oid:
+                self._context.log_fn(f"[KITE] {txn_type} order: {oid}")
+            return str(oid) if oid else None
         except Exception as exc:
             self._context.send_fn(f"Order failed: {exc}")
             return None
@@ -483,9 +516,11 @@ class KiteBrokerAdapter(_PollingBrokerAdapter):
         if not connected or not kite or not order_id:
             return None
         try:
-            for row in kite.orders():
-                if str(row.get("order_id", "")) == str(order_id):
-                    return row
+            orders = self._cb_protected("get_order_status", lambda: kite.orders())
+            if orders:
+                for row in orders:
+                    if str(row.get("order_id", "")) == str(order_id):
+                        return row
         except Exception as exc:
             self._context.log_fn(f"[KITE] orders() {exc}")
         return None
@@ -501,7 +536,8 @@ class KiteBrokerAdapter(_PollingBrokerAdapter):
         if not connected or not kite or not order_id:
             return False
         try:
-            kite.cancel_order(variety=kite.VARIETY_REGULAR, order_id=order_id)
+            self._cb_protected("cancel_order", kite.cancel_order,
+                variety=kite.VARIETY_REGULAR, order_id=order_id)
             return True
         except Exception as exc:
             self._context.log_fn(f"[KITE CANCEL] {exc}")
@@ -526,6 +562,20 @@ class KiteBrokerAdapter(_PollingBrokerAdapter):
         except Exception:
             return None
 
+    def validate_token(self) -> bool:
+        """Check if the current token is still valid."""
+        with self._kite_lock:
+            return self._connected and self._token_date is not None
+
+    def check_auth(self) -> dict:
+        """Return auth status dict for health checks."""
+        with self._kite_lock:
+            return {
+                "valid": self._connected,
+                "broker": "kite",
+                "token_date": str(self._token_date or ""),
+            }
+
 
 class AngelBrokerAdapter(_PollingBrokerAdapter):
     def __init__(self, context: BrokerRuntimeContext) -> None:
@@ -534,6 +584,19 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
         self._connected = False
         self._lock = threading.Lock()
         self._connect()
+
+    def _cb_protected(self, key: str, func: Callable, *args, **kwargs) -> Any:
+        """Execute a function protected by the circuit breaker if configured."""
+        cb = self._context.circuit_breaker
+        if cb is not None:
+            try:
+                return cb.call_with_key(f"broker.{key}", func, *args, **kwargs)
+            except Exception as exc:
+                if "Circuit breaker is OPEN" in str(exc):
+                    self._context.log_fn(f"[CB] {key} BLOCKED - circuit open")
+                    return None
+                raise
+        return func(*args, **kwargs)
 
     def _connect(self):
         try:
@@ -591,7 +654,7 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
                 "stoploss": "0",
                 "quantity": str(int(qty)),
             }
-            result = client.placeOrder(payload)
+            result = self._cb_protected("place_order", client.placeOrder, payload)
             if not result:
                 return None
             # SmartApi returns {"status": True, "data": {"orderid": "XXXXXX"}, ...}
@@ -617,7 +680,7 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
         if not connected or not client:
             return []
         try:
-            book = client.orderBook() or {}
+            book = self._cb_protected("get_order_book", lambda: client.orderBook() or {})
             return book.get("data") if isinstance(book, dict) else book
         except Exception as exc:
             self._context.log_fn(f"[SMARTAPI BOOK] {exc}")
@@ -647,6 +710,19 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
                 except Exception:
                     return None
         return None
+
+    def validate_token(self) -> bool:
+        """Check if the current Angel session token is still valid."""
+        with self._lock:
+            return self._connected and self._client is not None
+
+    def check_auth(self) -> dict:
+        """Return auth status dict for health checks."""
+        with self._lock:
+            return {
+                "valid": self._connected,
+                "broker": "angel",
+            }
 
     def get_positions(self):
         with self._lock:
@@ -732,6 +808,9 @@ def create_broker_adapter(
     cfg = context.cfg
     custom_spec = str(cfg.get("BROKER_CUSTOM_FACTORY") or "").strip()
     factory = load_broker_factory_from_spec(custom_spec) if custom_spec else None
+    if custom_spec and factory is None:
+        context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY={custom_spec!r} not found — using paper adapter")
+        return PaperBrokerAdapter()
     if factory is not None:
         try:
             port = factory(context)
@@ -775,6 +854,7 @@ def create_broker_adapter_with_runtime_context(
     sleep_fn: Callable[[float], None],
     broker_wait_poll_sec: float,
     expiry_str_fn: Callable[[str], str],
+    circuit_breaker: Any = None,
 ) -> BrokerAdapter:
     """Combine :func:`build_broker_runtime_context` and :func:`create_broker_adapter` (shared by index + stock)."""
     context = build_broker_runtime_context(
@@ -788,6 +868,7 @@ def create_broker_adapter_with_runtime_context(
         sleep_fn=sleep_fn,
         broker_wait_poll_sec=broker_wait_poll_sec,
         expiry_str_fn=expiry_str_fn,
+        circuit_breaker=circuit_breaker,
     )
     return create_broker_adapter(
         driver=driver,

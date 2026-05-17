@@ -86,6 +86,8 @@ def create_app(
     db_path:       str                    = "trades.db",
     pause_event:   threading.Event | None = None,
     signal_queue:  Any | None            = None,
+    ws_feed_manager: Any | None          = None,
+    rate_limiter:  Any | None            = None,
 ) -> Any:
     """
     Create and return a FastAPI application.
@@ -114,6 +116,7 @@ def create_app(
 
     c         = cfg or {}
     auth_tok  = str(c.get("web_dashboard_auth_token", "") or "")
+    webhook_auth_tok = str(c.get("webhook_auth_token", "") or "")
     _state_p  = Path(state_path or c.get("trader_state_path", "trader_state.json"))
     _sig_log  = signal_log or SignalLog()
     _db       = str(db_path or c.get("trades_db", "trades.db"))
@@ -164,7 +167,7 @@ def create_app(
     @app.get("/health")
     def health() -> dict:
         state = _read_state()
-        return {
+        resp: dict[str, Any] = {
             "status": "ok",
             "paused": _pause.is_set(),
             "daily_pnl": state.get("daily_pnl", 0),
@@ -172,6 +175,12 @@ def create_app(
             "hard_halt": state.get("hard_halt", False),
             "ts": time.time(),
         }
+        if ws_feed_manager is not None:
+            try:
+                resp["ws_feed"] = ws_feed_manager.status()
+            except Exception as exc:
+                resp["ws_feed"] = {"error": str(exc)}
+        return resp
 
     @app.get("/state")
     def state() -> dict:
@@ -454,19 +463,33 @@ def create_app(
     @app.post("/signals/inject")
     def inject_signal(
         body: dict = Body(default_factory=dict),
+        authorization: str | None = Header(default=None),
     ) -> dict:
         if not c.get("webhook_enabled", False):
             return {"status": "disabled"}
-        rate_limit = int(c.get("webhook_rate_limit_per_min", 5))
-        now_ts = time.time()
-        _webhook_times[:] = [t for t in _webhook_times if now_ts - t < 60.0]
-        if len(_webhook_times) >= rate_limit:
-            return {"status": "rate_limited", "calls_last_min": len(_webhook_times)}
+        # Auth check: use dedicated webhook token if set, else fall back to dashboard token
+        if webhook_auth_tok or auth_tok:
+            expected = webhook_auth_tok or auth_tok
+            if authorization != f"Bearer {expected}":
+                raise HTTPException(status_code=401, detail="Unauthorised")
+        # Rate limit via RateLimitingService if available, else fallback to inline
+        if rate_limiter is not None:
+            from core.ports.rate_limiting.rate_limit_port import LimitResult
+            result = rate_limiter.is_allowed("webhook", cost=1)
+            if result == LimitResult.DENIED:
+                retry_after = rate_limiter.get_retry_after("webhook")
+                return {"status": "rate_limited", "retry_after": retry_after}
+        else:
+            rate_limit = int(c.get("webhook_rate_limit_per_min", 5))
+            now_ts = time.time()
+            _webhook_times[:] = [t for t in _webhook_times if now_ts - t < 60.0]
+            if len(_webhook_times) >= rate_limit:
+                return {"status": "rate_limited", "calls_last_min": len(_webhook_times)}
         payload = body or {}
-        _webhook_times.append(now_ts)
+        _webhook_times.append(now_ts if 'now_ts' in dir() else time.time())
         _sig_log.append({**payload, "source": "webhook"})
         _log.info("[DASH] /signals/inject received: %s", payload.get("symbol", "?"))
-        return {"status": "queued", "ts": now_ts}
+        return {"status": "queued", "ts": time.time()}
 
     # ── v2.45 Item 22: Options chain visualization ────────────────────────────
 
@@ -531,6 +554,8 @@ def maybe_start_dashboard(
     db_path:       str                    = "trades.db",
     pause_event:   threading.Event | None = None,
     signal_queue:  Any | None            = None,
+    ws_feed_manager: Any | None          = None,
+    rate_limiter:  Any | None            = None,
 ) -> Any | None:
     """
     Start the web dashboard server if ``web_dashboard_enabled=true``.
@@ -542,7 +567,7 @@ def maybe_start_dashboard(
     if not c.get("web_dashboard_enabled", False):
         return None
     try:
-        app = create_app(c, state_path, signal_log, db_path, pause_event, signal_queue)
+        app = create_app(c, state_path, signal_log, db_path, pause_event, signal_queue, ws_feed_manager, rate_limiter)
         host = str(c.get("web_dashboard_host", _DEFAULT_HOST))
         port = int(c.get("web_dashboard_port", _DEFAULT_PORT))
         serve(app, host=host, port=port)

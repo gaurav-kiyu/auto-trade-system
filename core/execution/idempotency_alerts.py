@@ -3,11 +3,12 @@ Idempotency Failure Alerts - CRITICAL FIX #7
 Alerts when persistence fails - NO silent degradation.
 """
 from __future__ import annotations
+
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
-from typing import Callable, Optional, List
+
 from core.time_provider import time_provider
 
 _log = logging.getLogger(__name__)
@@ -27,8 +28,8 @@ class IdempotencyAlert:
     severity: str    # CRITICAL, HIGH, MEDIUM
     message: str
     timestamp: str
-    affected_key: Optional[str] = None
-    recovery_action: Optional[str] = None
+    affected_key: str | None = None
+    recovery_action: str | None = None
 
 
 class IdempotencyAlertManager:
@@ -40,11 +41,11 @@ class IdempotencyAlertManager:
     def __init__(
         self,
         freeze_execution_on_critical: bool = True,
-        alert_callback: Optional[Callable] = None,
+        alert_callback: Callable | None = None,
     ):
         self._freeze_on_critical = freeze_execution_on_critical
         self._alert_callback = alert_callback
-        self._alerts: List[IdempotencyAlert] = []
+        self._alerts: list[IdempotencyAlert] = []
         self._mode = DegradationMode.NORMAL
         self._critical_failures_count = 0
 
@@ -134,7 +135,7 @@ class IdempotencyAlertManager:
             _log.warning("Operating in DEGRADED mode - idempotency persistence failed")
         return True, "OK"
 
-    def get_recent_alerts(self, count: int = 10) -> List[IdempotencyAlert]:
+    def get_recent_alerts(self, count: int = 10) -> list[IdempotencyAlert]:
         """Get recent alerts"""
         return self._alerts[-count:]
 
@@ -156,12 +157,12 @@ class IdempotencyAlertManager:
 
 
 # Singleton
-_alert_manager: Optional[IdempotencyAlertManager] = None
+_alert_manager: IdempotencyAlertManager | None = None
 
 
 def get_idempotency_alert_manager(
     freeze_on_critical: bool = True,
-    alert_callback: Optional[Callable] = None,
+    alert_callback: Callable | None = None,
 ) -> IdempotencyAlertManager:
     global _alert_manager
     if _alert_manager is None:

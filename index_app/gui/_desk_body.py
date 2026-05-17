@@ -13,7 +13,8 @@ if not _TK_AVAILABLE or ttk is None:
     def _gui_log(msg:str, **extra)->None:
         _gui_logger.log(msg, **extra)
     _gui_log("[GUI] tkinter not available — running headless")
-    return
+    import sys
+    sys.exit(0)
 _gui_alive.set()
 _GT=dict(GUI_THEME) if isinstance(GUI_THEME,dict) else {}
 _GW=dict(GUI_WINDOW) if isinstance(GUI_WINDOW,dict) else {}
@@ -41,7 +42,7 @@ _gui_layout_path=pathlib.Path(_GUI_PROJECT_ROOT)/str(_GW.get("layout_filename","
 def _read_gui_layout()->dict:
     try:
         if _gui_layout_path.is_file():
-            with open(_gui_layout_path,"r",encoding="utf-8") as f: return json.load(f)
+            with open(_gui_layout_path,encoding="utf-8") as f: return json.load(f)
     except Exception as e:
         if _gui_layout_path.is_file():
             _gui_log(f"[GUI] index_trader_gui_layout.json unreadable ({e!s}) — using defaults")
@@ -78,6 +79,7 @@ if _wst_saved=="zoomed":
     root.after(int(_GW.get("restore_zoom_delay_ms",250)),_restore_maximized)
 
 import tkinter.font as tkfont
+
 try:
     _fam_avail=set(x.lower() for x in tkfont.families(root))
 except Exception:
@@ -862,6 +864,7 @@ def _update():
         pass
 
 from tkinter import messagebox as tkmsg
+
 
 def _on_close():
     if SHUTDOWN_ON_UI_CLOSE and GUI_CONFIRM_EXIT:

@@ -15,7 +15,7 @@ import logging
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from core.datetime_ist import now_ist
 from typing import Any
 
 _log = logging.getLogger(__name__)
@@ -104,7 +104,7 @@ class FeatureFlagManager:
             if name in self._flags:
                 old_value = self._flags[name].enabled
                 self._flags[name].enabled = True
-                self._flags[name].updated_at = datetime.now().isoformat()
+                self._flags[name].updated_at = now_ist().isoformat()
                 self._save_flags()
 
                 if old_value != True:
@@ -120,7 +120,7 @@ class FeatureFlagManager:
             if name in self._flags:
                 old_value = self._flags[name].enabled
                 self._flags[name].enabled = False
-                self._flags[name].updated_at = datetime.now().isoformat()
+                self._flags[name].updated_at = now_ist().isoformat()
                 self._save_flags()
 
                 if old_value != False:
@@ -167,7 +167,7 @@ class FeatureFlagManager:
         with self._lock:
             if name in self._flags:
                 self._flags[name].rollout_pct = max(0, min(100, rollout_pct))
-                self._flags[name].updated_at = datetime.now().isoformat()
+                self._flags[name].updated_at = now_ist().isoformat()
                 self._save_flags()
                 _log.info(f"Set rollout for {name}: {rollout_pct}%")
                 return True

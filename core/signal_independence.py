@@ -11,9 +11,9 @@ MUST BE CALLED during signal generation to validate:
 At least 2 pillars must agree for trade to be allowed.
 """
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Optional
+
 import logging
+from dataclasses import dataclass
 
 _log = logging.getLogger(__name__)
 
@@ -122,7 +122,7 @@ class SignalIndependenceValidator:
             return []
         return [p.name for p in self._pillars.values() if p.direction in [direction, "NEUTRAL"]]
 
-    def get_consensus_direction(self) -> Optional[str]:
+    def get_consensus_direction(self) -> str | None:
         valid, direction, _ = self.validate_independence()
         if valid:
             return direction

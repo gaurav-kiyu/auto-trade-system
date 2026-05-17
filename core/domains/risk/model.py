@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.datetime_ist import now_ist
 from typing import Any
 
 
@@ -59,7 +60,7 @@ class Position:
 
     def __post_init__(self):
         if self.timestamp is None:
-            self.timestamp = datetime.now()
+            self.timestamp = now_ist()
         # Set direction based on quantity
         self.direction = "LONG" if self.quantity > 0 else "SHORT" if self.quantity < 0 else "NEUTRAL"
 

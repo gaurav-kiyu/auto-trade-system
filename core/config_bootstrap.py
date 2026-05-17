@@ -6,9 +6,11 @@ Updated to use SecureConfig for enhanced security.
 from __future__ import annotations
 
 import json
+import logging
 import os
-from collections.abc import Mapping
-from dataclasses import dataclass
+import types
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -173,22 +175,40 @@ def get_effective_config(
         defaults_path=defaults_path,
         config_dir=config_dir
     )
-    
+
     # 2. Convert to dict for backward compatibility with legacy modules
     effective_dict = secure_cfg._merged_config
-    
+
     # 3. Validate the final result
     from core.config_engine import ConfigValidator
     validator = ConfigValidator(effective_dict)
     result = validator.validate()
-    
+
     if not result.ok:
-        for err in result.errors:
-            _log.error(f"CONFIG ERROR: {err.key} - {err.message}")
-        # In a real production environment, we might raise an exception here
-        # For now, we log and proceed with a warning
-        
-    return effective_dict
+        error_msgs = [f"{err.key} - {err.message}" for err in result.errors]
+        for msg in error_msgs:
+            _log.error(f"CONFIG ERROR: {msg}")
+        raise RuntimeError(
+            f"Config validation FAILED — {len(result.errors)} error(s). "
+            f"Fix config or set OPBUYING_SKIP_CONFIG_VALIDATION=1 to bypass.\n"
+            + "\n".join(error_msgs)
+        )
+
+    # Freeze config to prevent runtime mutation by any module
+    return _freeze_config(effective_dict)
+
+
+def _freeze_config(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Recursively freeze a config dict to prevent runtime mutation."""
+    frozen: dict[str, Any] = {}
+    for k, v in cfg.items():
+        if isinstance(v, dict):
+            frozen[k] = types.MappingProxyType(_freeze_config(v))
+        elif isinstance(v, list):
+            frozen[k] = tuple(v)
+        else:
+            frozen[k] = v
+    return types.MappingProxyType(frozen)  # type: ignore[return-value]
 
 
 @dataclass(frozen=True)

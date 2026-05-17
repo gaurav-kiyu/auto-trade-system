@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from core.datetime_ist import now_ist
 from typing import Any
 
 # Import domain models and value objects
@@ -483,7 +484,7 @@ class RiskService:
             'direction': direction,
             'estimated_risk': size * 0.01,  # Simplified - 1% risk per share
             'portfolio_impact': size * 0.005,  # Simplified impact
-            'timestamp': datetime.now().isoformat()
+            'timestamp': now_ist().isoformat()
         }
 
     def update_portfolio_risk(self, positions: list[Position]) -> PortfolioRiskMetrics:

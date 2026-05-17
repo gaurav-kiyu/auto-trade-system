@@ -3,10 +3,12 @@ Trade Mandate Enforcer - Comprehensive trading rules based on mandate
 PART 1-10: All conditions, position sizing, risk rules, signal standards
 """
 from __future__ import annotations
+
+import logging
 from dataclasses import dataclass
 from datetime import datetime, time
-from typing import Optional
-import logging
+
+from core.datetime_ist import now_ist
 
 _log = logging.getLogger(__name__)
 
@@ -76,10 +78,10 @@ class TradeEligibility:
 class TradeMandateEnforcer:
     def __init__(self, config: dict):
         self.cfg = self._load_config(config)
-        self._current_vix: Optional[float] = None
-        self._last_data_time: Optional[datetime] = None
+        self._current_vix: float | None = None
+        self._last_data_time: datetime | None = None
         self._loss_streak: int = 0
-        self._last_trade_time: Optional[datetime] = None
+        self._last_trade_time: datetime | None = None
         self._trades_today: int = 0
         self._daily_pnl: float = 0.0
         self._weekly_pnl: float = 0.0
@@ -184,8 +186,8 @@ class TradeMandateEnforcer:
         if self._loss_streak >= self.cfg.loss_streak_threshold and self._last_trade_time:
             from datetime import timedelta
             cooldown_end = self._last_trade_time + timedelta(hours=self.cfg.loss_streak_cooldown_hours)
-            if datetime.utcnow() < cooldown_end:
-                return TradeEligibility(TradeDecision.BLOCKED, f"Loss streak cooldown active", mode=mode)
+            if now_ist() < cooldown_end:
+                return TradeEligibility(TradeDecision.BLOCKED, "Loss streak cooldown active", mode=mode)
 
         if self._current_vix is not None:
             if self._current_vix < self.cfg.vix_min:
@@ -225,8 +227,8 @@ class TradeMandateEnforcer:
         return TradeEligibility(TradeDecision.ALLOWED, "All mandate checks passed", risk_amount=risk_amount, expected_value=expected_value, mode=mode)
 
     def _is_trading_window(self) -> bool:
-        now = datetime.utcnow()
-        ist_hour = (now.hour + 5) % 24
+        now = now_ist()
+        ist_hour = now.hour
         ist_minute = now.minute
 
         morning_start = time(9, 20)

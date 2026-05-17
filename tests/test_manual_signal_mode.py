@@ -476,9 +476,10 @@ print("ok")
 
 _GOLDEN_PATH_SETUP = r"""
 import time, datetime as _dt
+from core.safety_state import clear_hard_halt
 
 # ── module state ──────────────────────────────────────────────────────────
-mod._HARD_HALT.clear()
+clear_hard_halt()
 mod.MANUAL_SIGNALS_ONLY = True
 mod.BROKER_API_ENABLED  = False
 mod.PAPER_MODE          = False

@@ -332,8 +332,9 @@ def load_pnl_from_db(
         params: list[Any] = []
         where_parts: list[str] = ["net_pnl IS NOT NULL"]
         if days and days > 0:
-            import datetime
-            cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=days)).isoformat()
+            from core.datetime_ist import now_ist
+            from datetime import timedelta
+            cutoff = (now_ist() - timedelta(days=days)).isoformat()
             where_parts.append("ts >= ?")
             params.append(cutoff)
         if mode and mode.upper() != "ALL":

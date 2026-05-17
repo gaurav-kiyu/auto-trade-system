@@ -69,3 +69,23 @@ class SecureConfigAdapter(ConfigPort):
     def get_safe_config(self) -> dict[str, Any]:
         """Get a safe copy of the configuration with all secrets redacted."""
         return self._secure_config.get_safe_config()
+
+    def get_all(self) -> dict[str, Any]:
+        """Get all configuration as a dictionary."""
+        return self._secure_config.get_all()
+
+    def __iter__(self):
+        """Make the adapter iterable."""
+        return iter(self._secure_config.get_all())
+
+    def __getitem__(self, key: str) -> Any:
+        """Allow dict-like access."""
+        return self._secure_config.get(key)
+
+    def __len__(self) -> int:
+        """Return the number of config keys."""
+        return len(self._secure_config.get_all())
+
+    def __dict__(self) -> dict:
+        """Return config as dict for dict() conversion."""
+        return self._secure_config.get_all()

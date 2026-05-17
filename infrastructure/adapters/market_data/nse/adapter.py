@@ -8,6 +8,7 @@ It provides market data retrieval using NSE's public APIs or available Python li
 from __future__ import annotations
 
 import time
+import logging
 import json
 from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime, timedelta
@@ -195,10 +196,10 @@ class NSEAdapter(MarketDataPort):
             Quote object
         """
         # Extract data with fallbacks for different API response formats
-        bid = float(data.get('bidPrice', data.get('bid', data.get('bp', 0.0))) or 0.0
-        ask = float(data.get('askPrice', data.get('ask', data.get('sp', 0.0))) or 0.0
-        last_price = float(data.get('lastPrice', data.get('ltp', data.get('last', 0.0))) or 0.0
-        volume = int(data.get('volume', data.get('tradedVolume', data.get('volume', 0))) or 0
+        bid = float(data.get('bidPrice', data.get('bid', data.get('bp', 0.0))) or 0.0)
+        ask = float(data.get('askPrice', data.get('ask', data.get('sp', 0.0))) or 0.0)
+        last_price = float(data.get('lastPrice', data.get('ltp', data.get('last', 0.0))) or 0.0)
+        volume = int(data.get('volume', data.get('tradedVolume', data.get('volume', 0))) or 0)
 
         # If we don't have bid/ask, estimate from last price
         if bid == 0.0 and ask == 0.0 and last_price > 0:
@@ -229,7 +230,7 @@ class NSEAdapter(MarketDataPort):
                 try:
                     data = nse_get_index_quote("NIFTY 50")
                     return data is not None
-                except:
+                except Exception:
                     pass
 
             # Test direct API
@@ -374,7 +375,7 @@ class NSEAdapter(MarketDataPort):
                 data_time = datetime.fromisoformat(market_data['timestamp'].replace('Z', '+00:00'))
                 age_seconds = (datetime.now() - data_time.replace(tzinfo=None)).total_seconds()
                 return age_seconds <= max_age_seconds
-            except:
+            except Exception:
                 pass
         # If we can't determine freshness, assume it's fresh if we have data
         return bool(market_data)
@@ -458,6 +459,8 @@ class NSEAdapter(MarketDataPort):
             # This is a limitation of the free NSE API
             return self._get_fallback_historical_data(symbol, from_date, to_date, interval)
 
+        except RuntimeError:
+            raise
         except Exception as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get historical data for {symbol}: {e}")
@@ -530,60 +533,15 @@ class NSEAdapter(MarketDataPort):
         return self._simulate_historical_data(symbol, from_date, to_date, interval)
 
     def _simulate_historical_data(self, symbol: str, from_date: datetime, to_date: datetime, interval: str) -> List[Dict[str, Any]]:
-        """
-        Simulate historical data as last resort.
-        """
-        import random
-        random.seed(42)  # For reproducible simulation
-
-        historical_data = []
-        current_date = from_date
-
-        # Get a base price for the symbol
-        base_price = 100.0  # Default
-        if symbol.upper() == "NIFTY":
-            base_price = 22000.0
-        elif symbol.upper() == "BANKNIFTY":
-            base_price = 47000.0
-        elif symbol.upper() == "FINNIFTY":
-            base_price = 20000.0
-
-        # Volatility based on symbol type
-        volatility = 0.015  # 1.5% daily volatility default
-        if "NIFTY" in symbol.upper():
-            volatility = 0.01
-        elif symbol.upper() in ["RELIANCE", "TCS", "INFY"]:
-            volatility = 0.02
-
-        price = base_price
-        while current_date <= to_date:
-            # Skip weekends for simplicity (NSE is closed Sat/Sun)
-            if current_date.weekday() >= 5:  # Saturday=5, Sunday=6
-                current_date += timedelta(days=1)
-                continue
-
-            # Generate OHLCV data
-            daily_volatility = volatility * price
-            open_price = price * (1 + random.gauss(0, daily_volatility))
-            close_price = open_price * (1 + random.gauss(0, daily_volatility))
-            high_price = max(open_price, close_price) * (1 + abs(random.gauss(0, daily_volatility * 0.5)))
-            low_price = min(open_price, close_price) * (1 - abs(random.gauss(0, daily_volatility * 0.5)))
-            volume = random.randint(100000, 5000000)  # Reasonable volume range
-
-            historical_data.append({
-                'timestamp': current_date,
-                'open': round(open_price, 2),
-                'high': round(high_price, 2),
-                'low': round(low_price, 2),
-                'close': round(close_price, 2),
-                'volume': volume
-            })
-
-            # Update price for next day (random walk)
-            price = close_price
-            current_date += timedelta(days=1)
-
-        return historical_data
+        self._logger.critical(
+            f"NSE API and yfinance both failed for {symbol} - "
+            "cannot provide simulated data for trading. "
+            "This would have returned fictional random data."
+        )
+        raise RuntimeError(
+            f"NSE API and yfinance both failed for {symbol} - "
+            "cannot provide simulated data for trading"
+        )
 
     def get_option_chain(
         self,
@@ -698,7 +656,6 @@ class NSEAdapter(MarketDataPort):
                             'optionType': 'PUT'
                         })
 
-        except Exception as e:
         except Exception as e:
             self._logger.error(f"Failed to parse option chain data: {e}")
 

@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
+
 from core.state_manager import state_manager
 from core.time_provider import time_provider
 
@@ -16,8 +17,8 @@ class PortfolioService:
     - Session lifecycle (daily resets).
     - Exposure monitoring.
     """
-    
-    def __init__(self, config: Dict[str, Any]):
+
+    def __init__(self, config: dict[str, Any]):
         self.config = config
         self._base_capital = float(config.get("BASE_CAPITAL", 100000.0))
 
@@ -54,25 +55,25 @@ class PortfolioService:
         """
         today = time_provider.today()
         last_reset = state_manager.get("last_reset_day")
-        
+
         if last_reset and last_reset != str(today):
             # Check for zombie PnL before resetting
             adj = state_manager.get("capital_adj_pending", 0.0)
             if adj != 0:
                 log.warning(f"ZOMBIE PnL detected during reset: {adj}")
                 # We don't block the reset, but we log it for the operator
-            
+
             state_manager.set("net_daily_pnl", 0.0)
             state_manager.set("trade_count", 0)
             state_manager.set("capital_adj_pending", 0.0)
             state_manager.set("last_reset_day", str(today))
             log.info(f"Daily reset performed for {today}")
             return True
-        
+
         # Update last_reset_day if it was None (first run)
         if not last_reset:
             state_manager.set("last_reset_day", str(today))
-            
+
         return False
 
     def get_pending_adjustment(self) -> float:
@@ -83,7 +84,7 @@ class PortfolioService:
         """Clears the pending adjustment flag."""
         state_manager.set("capital_adj_pending", 0.0)
 
-    def get_session_state(self) -> Dict[str, Any]:
+    def get_session_state(self) -> dict[str, Any]:
         """Returns a snapshot of the current portfolio state."""
         return {
             "capital": self.get_capital(),

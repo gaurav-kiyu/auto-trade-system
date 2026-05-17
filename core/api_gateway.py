@@ -18,6 +18,8 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
+
+from core.datetime_ist import now_ist
 from enum import Enum
 from typing import Any
 
@@ -41,7 +43,7 @@ class ControlRequest:
     """Control request from API"""
     action: ControlAction
     payload: dict[str, Any] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=now_ist)
     request_id: str = ""
 
 
@@ -51,7 +53,7 @@ class ControlResponse:
     success: bool
     message: str
     data: dict[str, Any] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=now_ist)
 
 
 class ControlPlane:

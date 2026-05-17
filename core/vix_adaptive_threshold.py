@@ -2,8 +2,9 @@
 VIX Adaptive Threshold Engine - Adjusts signal thresholds based on volatility
 """
 from __future__ import annotations
-from dataclasses import dataclass
+
 import logging
+from dataclasses import dataclass
 
 _log = logging.getLogger(__name__)
 

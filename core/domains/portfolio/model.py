@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -73,10 +73,10 @@ class PortfolioSnapshot:
     timestamp: datetime = field(default_factory=datetime.now)
     total_value: float = 0.0
     cash: float = 0.0
-    positions: Dict[str, PositionSnapshot] = field(default_factory=dict)
+    positions: dict[str, PositionSnapshot] = field(default_factory=dict)
     daily_pnl: float = 0.0
     total_pnl: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Calculate derived fields and validate after initialization."""

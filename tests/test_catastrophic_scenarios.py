@@ -31,8 +31,10 @@ class TestDuplicateOrderPrevention:
         )
         assert is_new1 is True
         
-        # Simulate submitted state
-        machine1.try_transition_to(ExecutionState.SUBMITTED)
+        # Simulate submitted state through valid path
+        machine1.try_transition_to(ExecutionState.VALIDATED)
+        machine1.try_transition_to(ExecutionState.PERSISTED)
+        machine1.record_submission("BROKER_ORDER_123")
         
         # Second call - should be blocked (same intent, not terminal)
         machine2, is_new2 = manager.create_or_get(
@@ -104,7 +106,6 @@ class TestMarginValidation:
     def test_margin_uses_intended_quantity_not_test(self):
         """Margin validation should use actual intended quantity"""
         from core.services.risk_service import RiskService
-        from core.domains.portfolio.metrics import PortfolioRiskMetrics
         
         # Create risk service
         service = RiskService()
@@ -117,12 +118,10 @@ class TestMarginValidation:
         }
         
         # Verify the code calculates from signal, not test_quantity=1
-        import inspect
-        source = inspect.getsource(service._check_margin_requirements)
-        
-        # Should NOT contain test_quantity = 1
-        assert "test_quantity" not in source
-        assert "intended_quantity" in source
+        code = service._check_margin_requirements.__code__
+        # Should reference intended_quantity as a local variable, not test_quantity
+        assert "intended_quantity" in code.co_varnames
+        assert "test_quantity" not in code.co_varnames
 
 
 class TestBrokerExceptionHandling:
@@ -166,6 +165,9 @@ class TestExecutionStateTransitions:
         
         machine.record_submission("BROKER_ORDER_123")
         assert machine.state == ExecutionState.SUBMITTED
+        
+        machine.record_acknowledgment()
+        assert machine.state == ExecutionState.ACKNOWLEDGED
         
         machine.record_fill(1, 100.0)
         assert machine.state == ExecutionState.FILLED

@@ -29,7 +29,8 @@ import json
 import logging
 import math
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import timedelta
+from core.datetime_ist import now_ist
 from pathlib import Path
 from typing import Any
 
@@ -64,7 +65,7 @@ def load_trades(
                 clauses.append("mode = ?")
                 params.append(mode.upper())
             if days:
-                since = (datetime.utcnow() - timedelta(days=days)).isoformat()
+                since = (now_ist() - timedelta(days=days)).isoformat()
                 clauses.append("ts >= ?")
                 params.append(since)
             where = ("WHERE " + " AND ".join(clauses)) if clauses else ""

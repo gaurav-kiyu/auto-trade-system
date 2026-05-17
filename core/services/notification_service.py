@@ -14,10 +14,13 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from core.datetime_ist import now_ist
 from enum import Enum
 from queue import Empty, PriorityQueue
 from threading import Event, Thread
 
+# Import the new LoggingService
+from core.logging import LoggingService
 from core.ports.notification.notification_port import (
     Notification,
     NotificationChannel,
@@ -26,11 +29,7 @@ from core.ports.notification.notification_port import (
     NotificationResult,
     NotificationStatus,
 )
-from core.datetime_ist import now_ist
 from infrastructure.adapters.notifications.telegram_adapter import TelegramNotificationAdapter
-
-# Import the new LoggingService
-from core.logging import LoggingService
 
 
 class ServiceStatus(Enum):
@@ -226,7 +225,7 @@ class NotificationService:
             with self._metrics_lock:
                 if self._metrics.start_time:
                     self._metrics.uptime_seconds = (
-                        datetime.now() - self._metrics.start_time
+                        now_ist() - self._metrics.start_time
                     ).total_seconds()
 
             self._status = ServiceStatus.STOPPED
@@ -344,7 +343,7 @@ class NotificationService:
             if (self._status == ServiceStatus.RUNNING and
                 self._metrics.start_time):
                 self._metrics.uptime_seconds = (
-                    datetime.now() - self._metrics.start_time
+                    now_ist() - self._metrics.start_time
                 ).total_seconds()
             return ServiceMetrics(
                 notifications_sent=self._metrics.notifications_sent,

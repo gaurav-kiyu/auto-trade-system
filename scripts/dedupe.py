@@ -1,9 +1,10 @@
 import re
 
+
 def refactor_file(file_path, funcs_to_replace):
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, encoding='utf-8') as f:
         content = f.read()
-    
+
     # Ensure FeatureEngine is imported
     if 'FeatureEngine' not in content:
         import_stmt = 'from core.feature_engine import FeatureEngine\n'
@@ -15,8 +16,8 @@ def refactor_file(file_path, funcs_to_replace):
         # This matches 'def func_name(' until the next 'def ' at the same or lesser indentation
         # Actually, simpler: replace the whole function block with the alias
         pattern = re.compile(rf'^def {func}\b.*?(?=\n(?:def |# ═|class |[A-Z_]+ =|$))', re.MULTILINE | re.DOTALL)
-        
-        # In signal_engine.py, it's mostly top level. 
+
+        # In signal_engine.py, it's mostly top level.
         # In index_trader.py, it's also top level.
         match = pattern.search(content)
         if match:

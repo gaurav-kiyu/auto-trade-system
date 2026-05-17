@@ -3,9 +3,9 @@ Mandate Validation Rules - PART 5
 Four gates that any new parameter must pass before live deployment
 """
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Optional
+
 import logging
+from dataclasses import dataclass
 
 _log = logging.getLogger(__name__)
 
@@ -43,9 +43,9 @@ class MandateValidator:
         self,
         parameter_name: str,
         observations: list[dict],
-        period_a_results: Optional[dict] = None,
-        period_b_results: Optional[dict] = None,
-        regime_breakdown: Optional[dict[str, list]] = None,
+        period_a_results: dict | None = None,
+        period_b_results: dict | None = None,
+        regime_breakdown: dict[str, list] | None = None,
     ) -> tuple[str, str]:
         if len(observations) < self.cfg.min_observations:
             return ValidationResult.INSUFFICIENT_DATA, (

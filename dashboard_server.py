@@ -47,12 +47,22 @@ VERSION = "1.1"
 BASE_DIR = Path(__file__).parent
 CONFIG_FILE = BASE_DIR / "dashboard_config.json"
 
-NSE_HOLIDAYS = {
-    "2026-01-26","2026-03-14","2026-03-30","2026-03-31","2026-04-03",
-    "2026-04-14","2026-04-18","2026-05-01","2026-08-15","2026-08-27",
-    "2026-10-02","2026-10-20","2026-10-21","2026-11-09","2026-11-12",
-    "2026-12-25",
-}
+NSE_HOLIDAYS: set = set()
+
+def _init_holidays():
+    """Initialize NSE holidays dynamically with year support."""
+    import datetime
+    current_year = datetime.datetime.now().year
+    base_holidays = {
+        "01-26", "03-14", "03-30", "03-31", "04-03",
+        "04-14", "04-18", "05-01", "08-15", "08-27",
+        "10-02", "10-20", "10-21", "11-09", "11-12", "12-25",
+    }
+    for year in range(current_year - 1, current_year + 2):
+        for hd in base_holidays:
+            NSE_HOLIDAYS.add(f"{year}-{hd}")
+
+_init_holidays()
 
 STOCK_MAP = {
     "RELIANCE":   {"yf":"RELIANCE.NS","nse":"RELIANCE","lot":250,"step":20,"sector":"ENERGY","tags":["BLUE_CHIP","LONG_TERM"],"div_yield":0.7,"category":"LARGE_CAP"},
@@ -278,6 +288,7 @@ def _scan_all_instruments():
 
 def _background_scanner(interval: int = 5):
     """Continuous background scanner thread."""
+    _token_refresh_counter = 0
     while not _shutdown.is_set():
         try:
             now = time_provider.now()
@@ -294,6 +305,15 @@ def _background_scanner(interval: int = 5):
             if weekday >= 5 or is_holiday or not is_market_hours:
                 _shutdown.wait(off_hours_sleep)
                 continue
+
+            # Periodic token refresh check (every ~60 cycles = ~5 min)
+            _token_refresh_counter += 1
+            if _token_refresh_counter % 60 == 0:
+                try:
+                    from index_app.index_trader import _token_refresh_service
+                    _token_refresh_service.check_and_refresh({})
+                except Exception:
+                    pass
 
             results = _scan_all_instruments()
             if results:

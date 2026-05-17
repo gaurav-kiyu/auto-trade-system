@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import json
 import logging
-import platform
 import tempfile
 import threading
 import time
@@ -120,7 +119,7 @@ def _atomic_write_state(file_path: Path, content: str) -> None:
         OSError: If write or rename fails
     """
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Write to temp file in same directory (ensures same filesystem for atomic rename)
     with tempfile.NamedTemporaryFile(
         mode='w',

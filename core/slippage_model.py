@@ -24,6 +24,8 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Any
 
+from core.datetime_ist import now_ist
+
 _log = logging.getLogger(__name__)
 
 
@@ -116,12 +118,7 @@ def calibrate_model(
     y  = [r[2] for r in rows]           # slippage_pct
     coefs, r2 = _ols(X, y)
 
-    try:
-        from core.datetime_ist import now_ist
-        ts = now_ist().isoformat(timespec="seconds")
-    except Exception:
-        import datetime
-        ts = datetime.datetime.now().isoformat(timespec="seconds")
+    ts = now_ist().isoformat(timespec="seconds")
 
     return SlippageModel(
         intercept=round(coefs[0], 6),

@@ -9,6 +9,7 @@ from __future__ import annotations
 import sqlite3
 import json
 import logging
+import threading
 from datetime import datetime
 from typing import List, Optional, Dict, Any, Iterator, Union
 from pathlib import Path
@@ -45,6 +46,7 @@ class SQLiteAdapter(PersistencePort):
         self.database_path = Path(database_path)
         self._connection: Optional[sqlite3.Connection] = None
         self._transaction_depth = 0
+        self._lock = threading.Lock()
 
         # Ensure the directory exists
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,21 +135,23 @@ class SQLiteAdapter(PersistencePort):
         """Execute a query and return the cursor."""
         if not self.is_connected():
             raise ConnectionError("Not connected to database")
-        try:
-            return self._connection.execute(query, parameters)
-        except Exception as e:
-            logger.error(f"SQLite query failed: {query} with params {parameters}")
-            raise PersistenceError(f"SQLite query failed: {e}")
+        with self._lock:
+            try:
+                return self._connection.execute(query, parameters)
+            except Exception as e:
+                logger.error(f"SQLite query failed: {query} with params {parameters}")
+                raise PersistenceError(f"SQLite query failed: {e}")
 
     def _execute_many(self, query: str, parameters_list: List[Union[tuple, dict]]) -> sqlite3.Cursor:
         """Execute a query multiple times with different parameters."""
         if not self.is_connected():
             raise ConnectionError("Not connected to database")
-        try:
-            return self._connection.executemany(query, parameters_list)
-        except Exception as e:
-            logger.error(f"SQLite executemany failed: {query}")
-            raise PersistenceError(f"SQLite executemany failed: {e}")
+        with self._lock:
+            try:
+                return self._connection.executemany(query, parameters_list)
+            except Exception as e:
+                logger.error(f"SQLite executemany failed: {query}")
+                raise PersistenceError(f"SQLite executemany failed: {e}")
 
     def _commit_if_needed(self):
         """Commit if not in a transaction."""

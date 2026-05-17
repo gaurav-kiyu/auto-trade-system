@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 from .audit_engine import AuditEngine
 from .data_engine import DataEngine, MarketDataSnapshot
@@ -11,7 +14,6 @@ from .datetime_ist import is_nse_cash_session
 from .execution_engine import ExecutionEngine, ExecutionFill, ExecutionResult
 from .reconciliation_engine import ReconciliationEngine, ReconciliationReport
 from .risk_engine import RiskDecision, RiskEngine
-from .risk_engine_v2 import RiskEngineV2
 from .safety_engine import SafetyContext, SafetyDecision, SafetyEngine
 from .state_manager import StateManager
 from .strategy_engine import StrategyEngine
@@ -62,6 +64,9 @@ class Orchestrator:
         risk_engine_v2: RiskEngineV2 | None = None,
         enforce_market_hours: bool = False,
         market_hours_fn: Callable[[], bool] | None = None,
+        system_mode_fn: Callable[[], str] | None = None,
+        circuit_breaker_fn: Callable[[], bool] | None = None,
+        idempotency_check_fn: Callable[[str], bool] | None = None,
     ) -> None:
         self._data_engine = data_engine
         self._strategy_engine = strategy_engine
@@ -82,6 +87,12 @@ class Orchestrator:
         self._risk_engine_v2 = risk_engine_v2
         self._enforce_market_hours = bool(enforce_market_hours)
         self._market_hours_fn = market_hours_fn or is_nse_cash_session
+        self._system_mode_fn = system_mode_fn
+        self._circuit_breaker_fn = circuit_breaker_fn
+        self._idempotency_check_fn = idempotency_check_fn
+
+    def _capture(self, payload: dict[str, Any]) -> None:
+        _log.warning("ORCHESTRATOR: %s", payload.get("event", "unknown"))
 
     @staticmethod
     def _default_order_builder(name: str, signal: dict[str, Any]) -> dict[str, Any]:
@@ -130,12 +141,27 @@ class Orchestrator:
                 executed = False
                 mode = str(self._execution_mode_fn() or "MANUAL").upper()
                 if allowed.allowed and mode == "AUTO" and self._execution_engine and self._entry_gate_fn(name, signal):
+                    # System mode gate: block if system is halted/degraded/broker_down
+                    if self._system_mode_fn:
+                        system_mode = self._system_mode_fn()
+                        if system_mode in ("BROKER_DOWN", "SAFE_MODE", "MARKET_HALTED"):
+                            self._capture({"event": "system_mode_blocked", "symbol": name, "mode": system_mode})
+                            allowed = RiskDecision(False, f"SYSTEM_MODE_BLOCKED: {system_mode}")
+
+                    # Circuit breaker gate: block if market-wide circuit breaker triggered
+                    if allowed.allowed and self._circuit_breaker_fn:
+                        if not self._circuit_breaker_fn():
+                            self._capture({"event": "circuit_breaker_blocked", "symbol": name})
+                            allowed = RiskDecision(False, "CIRCUIT_BREAKER_ACTIVE")
+
                     order = self._order_builder_fn(name, signal)
+                    intent_id = str(order.get("intent_id") or f"{name}_{int(time.time())}")
                     execution_result = self._execution_engine.place_order(
                         name=str(order.get("name") or name),
                         direction=str(order.get("direction") or signal.get("direction") or "CALL"),
                         qty=int(order.get("qty") or 1),
                         strike=int(order.get("strike") or 0),
+                        intent_id=intent_id,
                     )
                     if execution_result and execution_result.ok and execution_result.order_id:
                         execution_fill = self._execution_engine.verify_fill(str(execution_result.order_id))

@@ -12,6 +12,7 @@ import sqlite3
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.datetime_ist import now_ist
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -43,8 +44,8 @@ class DurableExecutionRecord:
     filled_quantity: int = 0
     average_price: float = 0.0
     reject_reason: str | None = None
-    created_at: datetime = field(default_factory=datetime.now)
-    updated_at: datetime = field(default_factory=datetime.now)
+    created_at: datetime = field(default_factory=now_ist)
+    updated_at: datetime = field(default_factory=now_ist)
     retry_count: int = 0
 
 
@@ -194,7 +195,7 @@ class DurableExecutionStore:
             with self._lock:
                 with sqlite3.connect(self._db_path) as conn:
                     updates = ["state = ?", "updated_at = ?"]
-                    params = [state.value, datetime.now().isoformat()]
+                    params = [state.value, now_ist().isoformat()]
 
                     if broker_order_id is not None:
                         updates.append("broker_order_id = ?")
@@ -228,7 +229,7 @@ class DurableExecutionStore:
                 with sqlite3.connect(self._db_path) as conn:
                     cursor = conn.execute(
                         "UPDATE execution_state SET retry_count = retry_count + 1, updated_at = ? WHERE intent_id = ?",
-                        (datetime.now().isoformat(), intent_id)
+                        (now_ist().isoformat(), intent_id)
                     )
                     conn.commit()
                     if cursor.rowcount > 0:

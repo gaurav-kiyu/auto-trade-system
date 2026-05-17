@@ -32,6 +32,9 @@ class CircuitBreakerConfig:
     expected_exception: type = Exception  # Exception type that counts as failure
     sliding_window_size: int = 10       # For sliding window failure counting
     sliding_window_type: str = "time"   # "count" or "time"
+    failure_rate_threshold: float = 0.5 # Failure rate threshold (0.0 to 1.0) to trip
+    half_open_max_requests: int = 0     # Max requests in half-open (0 = unlimited)
+    timeout_exponential_base: float = 2.0  # Exponential backoff base for timeout
 
 
 @dataclass

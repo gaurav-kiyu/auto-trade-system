@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
+from core.datetime_ist import now_ist
 from enum import Enum
 from typing import Any
 
@@ -59,7 +60,7 @@ class Notification:
         self.recipient = recipient
         self.subject = subject
         self.metadata = metadata or {}
-        self.timestamp = timestamp or datetime.now()
+        self.timestamp = timestamp or now_ist()
         self.status = NotificationStatus.PENDING
         self.error_message: str | None = None
 

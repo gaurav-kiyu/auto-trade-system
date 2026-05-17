@@ -11,7 +11,6 @@ All _trip_hard_halt() calls must come through here.
 from __future__ import annotations
 
 import threading
-import time
 from typing import Final
 
 # ── Process-wide kill switches ────────────────────────────────────

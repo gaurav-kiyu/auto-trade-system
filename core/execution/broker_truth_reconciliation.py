@@ -4,11 +4,14 @@ Implements broker-authoritative state reconciliation.
 Risk engine must never rely solely on stale internal assumptions.
 """
 from __future__ import annotations
+
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, List, Callable
+
+from core.datetime_ist import now_ist
 from core.time_provider import time_provider
 
 _log = logging.getLogger(__name__)
@@ -28,9 +31,9 @@ class ReconciliationStatus(Enum):
 class ReconciliationResult:
     """Result of reconciliation between internal and broker state"""
     status: ReconciliationStatus
-    internal_position: Optional[Dict] = None
-    broker_position: Optional[Dict] = None
-    mismatch_details: Optional[str] = None
+    internal_position: dict | None = None
+    broker_position: dict | None = None
+    mismatch_details: str | None = None
     reconciled_at: str = ""
     broker_source: str = ""
 
@@ -50,16 +53,16 @@ class BrokerTruthReconciler:
         self._broker_port = broker_port
         self._max_staleness_seconds = max_staleness_seconds
         self._reconciliation_interval = reconciliation_interval_seconds
-        self._last_reconciliation: Optional[datetime] = None
-        self._cached_positions: Dict[str, Dict] = {}
-        self._cached_positions_time: Optional[datetime] = None
-        self._alert_callback: Optional[Callable] = None
+        self._last_reconciliation: datetime | None = None
+        self._cached_positions: dict[str, dict] = {}
+        self._cached_positions_time: datetime | None = None
+        self._alert_callback: Callable | None = None
 
     def set_alert_callback(self, callback: Callable):
         """Set callback for reconciliation alerts"""
         self._alert_callback = callback
 
-    def _fetch_broker_positions(self) -> Dict[str, Dict]:
+    def _fetch_broker_positions(self) -> dict[str, dict]:
         """Fetch positions from broker (authoritative source)"""
         try:
             positions = self._broker_port.get_positions()
@@ -68,7 +71,7 @@ class BrokerTruthReconciler:
             _log.error(f"Failed to fetch broker positions: {e}")
             return {}
 
-    def _fetch_broker_orders(self) -> Dict[str, Dict]:
+    def _fetch_broker_orders(self) -> dict[str, dict]:
         """Fetch orders from broker (authoritative source)"""
         try:
             orders = self._broker_port.get_orders()
@@ -82,7 +85,7 @@ class BrokerTruthReconciler:
         Get authoritative position for a symbol from broker.
         This is what risk calculations should use.
         """
-        now = datetime.utcnow()
+        now = now_ist()
 
         # Check if cache is fresh
         cache_age = None
@@ -115,9 +118,9 @@ class BrokerTruthReconciler:
 
         return result
 
-    def get_all_authoritative_positions(self) -> Dict[str, Dict]:
+    def get_all_authoritative_positions(self) -> dict[str, dict]:
         """Get all positions from broker (authoritative)"""
-        now = datetime.utcnow()
+        now = now_ist()
 
         cache_age = None
         if self._cached_positions_time:
@@ -129,7 +132,7 @@ class BrokerTruthReconciler:
 
         return self._cached_positions
 
-    def get_authoritative_balance(self) -> Dict[str, float]:
+    def get_authoritative_balance(self) -> dict[str, float]:
         """Get authoritative account balance from broker"""
         try:
             funds = self._broker_port.get_funds()
@@ -193,12 +196,12 @@ class BrokerTruthReconciler:
     def force_refresh(self):
         """Force refresh of cached positions"""
         self._cached_positions = self._fetch_broker_positions()
-        self._cached_positions_time = datetime.utcnow()
+        self._cached_positions_time = now_ist()
         _log.info("Forced refresh of broker positions cache")
 
 
 # Singleton
-_reconciler: Optional[BrokerTruthReconciler] = None
+_reconciler: BrokerTruthReconciler | None = None
 
 
 def get_broker_truth_reconciler(broker_port, config: dict = None) -> BrokerTruthReconciler:

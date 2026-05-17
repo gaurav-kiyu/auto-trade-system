@@ -20,6 +20,7 @@ import threading
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.datetime_ist import now_ist
 from enum import Enum
 from typing import Any
 
@@ -182,7 +183,7 @@ class RegimeDetector:
 
     def _check_special_regimes(self, regime: MarketRegime) -> None:
         """Check for special regimes like expiry, event day"""
-        now = datetime.now()
+        now = now_ist()
 
         if now.weekday() == 4 and now.hour >= 14:
             self._current_regime = MarketRegime.EXPIRY_REGIME

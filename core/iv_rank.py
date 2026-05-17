@@ -30,7 +30,9 @@ from __future__ import annotations
 import json
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+from core.datetime_ist import now_ist
 from pathlib import Path
 from typing import Any
 
@@ -87,7 +89,7 @@ def _fetch_vix_history() -> list[float]:
     """Download ~52-week daily VIX closes from Yahoo Finance ^INDIAVIX."""
     try:
         import yfinance as yf  # already in requirements
-        end   = datetime.utcnow()
+        end   = now_ist()
         start = end - timedelta(days=_HISTORY_DAYS)
         ticker = yf.Ticker(_SYMBOL)
         df = ticker.history(

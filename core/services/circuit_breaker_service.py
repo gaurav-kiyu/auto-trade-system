@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
+from core.datetime_ist import now_ist
 from core.ports.circuit_breaker.circuit_breaker_port import (
     CircuitBreakerConfig,
     CircuitBreakerOpenException,
@@ -23,7 +24,6 @@ from core.ports.circuit_breaker.circuit_breaker_port import (
     CircuitBreakerStats,
     CircuitState,
 )
-from core.datetime_ist import now_ist
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,9 @@ class _CircuitBreakerState:
     # For sliding window failure counting
     failure_timestamps: deque[float] = field(default_factory=deque)
     success_timestamps: deque[float] = field(default_factory=deque)
+    # v2 circuit breaker state
+    _consecutive_open_count: int = 0
+    _half_open_requests: int = 0
 
 
 class CircuitBreakerService(CircuitBreakerPort):
@@ -225,6 +228,8 @@ class CircuitBreakerService(CircuitBreakerPort):
             breaker.next_attempt_time = None
             breaker.failure_timestamps.clear()
             breaker.success_timestamps.clear()
+            breaker._consecutive_open_count = 0
+            breaker._half_open_requests = 0
 
             logger.info(f"Circuit breaker reset for key: {key}")
 
@@ -244,6 +249,7 @@ class CircuitBreakerService(CircuitBreakerPort):
             breaker = self._breakers[key]
             breaker.state = CircuitState.OPEN
             breaker.next_attempt_time = now_ist() + timedelta(seconds=breaker.config.timeout)
+            breaker._consecutive_open_count += 1
 
             logger.warning(f"Circuit breaker forced OPEN for key: {key}")
 
@@ -269,6 +275,8 @@ class CircuitBreakerService(CircuitBreakerPort):
             breaker.next_attempt_time = None
             breaker.failure_timestamps.clear()
             breaker.success_timestamps.clear()
+            breaker._consecutive_open_count = 0
+            breaker._half_open_requests = 0
 
             logger.info(f"Circuit breaker forced CLOSED for key: {key}")
 
@@ -337,13 +345,18 @@ class CircuitBreakerService(CircuitBreakerPort):
                 # Time to try half-open
                 breaker.state = CircuitState.HALF_OPEN
                 breaker.success_count = 0  # Reset success count for half-open trial
+                breaker._half_open_requests = 0
                 logger.info("Circuit breaker transitioning to HALF_OPEN")
                 return True
             else:
                 # Still in timeout period
                 return False
         elif breaker.state == CircuitState.HALF_OPEN:
-            # Allow limited calls to test if service is recovered
+            # Check half-open max requests cap
+            max_reqs = getattr(breaker.config, "half_open_max_requests", 0)
+            half_open_reqs = getattr(breaker, "_half_open_requests", 0)
+            if max_reqs > 0 and half_open_reqs >= max_reqs:
+                return False
             return True
         else:
             # Unknown state - fail closed for safety
@@ -359,10 +372,15 @@ class CircuitBreakerService(CircuitBreakerPort):
         """
         breaker.last_success_time = now_ist()
         breaker.success_count += 1
+        getattr(breaker, "_half_open_requests", 0)
+
+        if breaker.state == CircuitState.HALF_OPEN:
+            # Track half-open request count
+            breaker._half_open_requests = getattr(breaker, "_half_open_requests", 0) + 1
 
         # Add to success timestamps for sliding window
         breaker.success_timestamps.append(time.time())
-        self._trim_timestamps(breaker.success_timestamps, breaker.config.sliding_window_size)
+        self._trim_timestamps(breaker.success_timestamps, breaker.config.sliding_window_size, breaker)
 
         if breaker.state == CircuitState.HALF_OPEN:
             # In half-open state, check if we've had enough successes to close
@@ -370,10 +388,30 @@ class CircuitBreakerService(CircuitBreakerPort):
                 breaker.state = CircuitState.CLOSED
                 breaker.failure_count = 0  # Reset failure count on successful recovery
                 breaker.next_attempt_time = None
+                breaker._consecutive_open_count = 0
                 logger.info("Circuit breaker CLOSED after successful recovery")
         elif breaker.state == CircuitState.CLOSED:
             # In closed state, reset failure count on success
             breaker.failure_count = 0
+
+    def _compute_timeout(self, breaker: _CircuitBreakerState) -> timedelta:
+        """Compute timeout with optional exponential backoff.
+
+        Args:
+            breaker: Circuit breaker state
+
+        Returns:
+            timedelta for the next attempt wait
+        """
+        base = float(breaker.config.timeout)
+        exp_base = float(getattr(breaker.config, "timeout_exponential_base", 2.0))
+        consecutive_open = breaker._consecutive_open_count + 1
+        breaker._consecutive_open_count = consecutive_open
+        delay = base * (exp_base ** (consecutive_open - 1))
+        # Cap at reasonable maximum (8 hours)
+        max_delay = 28800.0
+        delay = min(delay, max_delay)
+        return timedelta(seconds=delay)
 
     def _on_failure(self, breaker: _CircuitBreakerState, elapsed_time: float, exception: Exception) -> None:
         """
@@ -389,18 +427,18 @@ class CircuitBreakerService(CircuitBreakerPort):
 
         # Add to failure timestamps for sliding window
         breaker.failure_timestamps.append(time.time())
-        self._trim_timestamps(breaker.failure_timestamps, breaker.config.sliding_window_size)
+        self._trim_timestamps(breaker.failure_timestamps, breaker.config.sliding_window_size, breaker)
 
         if breaker.state == CircuitState.HALF_OPEN:
             # Any failure in half-open state goes back to open
             breaker.state = CircuitState.OPEN
-            breaker.next_attempt_time = now_ist() + timedelta(seconds=breaker.config.timeout)
+            breaker.next_attempt_time = now_ist() + self._compute_timeout(breaker)
             logger.warning("Circuit breaker OPEN again after failure in half-open state")
         elif breaker.state == CircuitState.CLOSED:
             # Check if we've reached the failure threshold
             if self._should_trip_breaker(breaker):
                 breaker.state = CircuitState.OPEN
-                breaker.next_attempt_time = now_ist() + timedelta(seconds=breaker.config.timeout)
+                breaker.next_attempt_time = now_ist() + self._compute_timeout(breaker)
                 logger.warning(f"Circuit breaker OPEN after {breaker.failure_count} failures")
 
     def _should_trip_breaker(self, breaker: _CircuitBreakerState) -> bool:
@@ -420,8 +458,8 @@ class CircuitBreakerService(CircuitBreakerPort):
         # Check based on failure rate in sliding window (if configured)
         if breaker.config.sliding_window_size > 0:
             failure_rate = self._calculate_failure_rate(breaker)
-            # Trip if failure rate exceeds 50% (configurable threshold)
-            if failure_rate > 0.5:
+            rate_threshold = getattr(breaker.config, "failure_rate_threshold", 0.5)
+            if failure_rate > rate_threshold:
                 return True
 
         return False
@@ -499,15 +537,16 @@ class CircuitBreakerService(CircuitBreakerPort):
             # Assume window of 60 seconds for approximation
             return total_requests / 60.0 if total_requests > 0 else 0.0
 
-    def _trim_timestamps(self, timestamps: deque[float], max_size: int) -> None:
+    def _trim_timestamps(self, timestamps: deque[float], max_size: int, breaker: _CircuitBreakerState | None = None) -> None:
         """
         Trim timestamps deque to maximum size.
 
         Args:
             timestamps: Deque of timestamps to trim
             max_size: Maximum number of timestamps to keep
+            breaker: Breaker state to determine sliding window type (optional)
         """
-        if breaker.config.sliding_window_type == "time":
+        if breaker and breaker.config.sliding_window_type == "time":
             # Time-based sliding window - remove old entries
             cutoff_time = time.time() - breaker.config.sliding_window_size
             while timestamps and timestamps[0] < cutoff_time:

@@ -6,6 +6,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from core.execution.retry_policy.classifier import BrokerErrorClassifier, RetryDecision
+from core.execution.execution_state import get_formal_order_manager, ExecState
+
 
 @dataclass(frozen=True)
 class ExecutionFill:
@@ -37,6 +40,7 @@ class ExecutionEngine:
         sleep_fn: Callable[[float], None] | None = None,
         max_backoff_s: float = 8.0,
         jitter_pct: float = 0.25,
+        idempotency_check_fn: Callable[[str], bool] | None = None,
     ) -> None:
         self._broker_getter = broker_getter
         self._verify_terminal_ok_fn = verify_terminal_ok_fn
@@ -45,6 +49,7 @@ class ExecutionEngine:
         self._sleep_fn = sleep_fn or time.sleep
         self._max_backoff_s = max_backoff_s
         self._jitter_pct = jitter_pct
+        self._idempotency_check_fn = idempotency_check_fn
 
     def _broker(self) -> Any:
         return self._broker_getter()
@@ -64,23 +69,68 @@ class ExecutionEngine:
         direction: str,
         qty: int,
         strike: int,
+        intent_id: str = "",
         retries: int = 3,
         retry_wait_s: float = 1.0,
         is_exit: bool = False,
     ) -> ExecutionResult:
+        # Idempotency check: if intent already submitted, block duplicate
+        if intent_id and self._idempotency_check_fn:
+            already_submitted = self._idempotency_check_fn(intent_id)
+            if already_submitted:
+                self._capture({"event": "duplicate_intent_blocked", "intent_id": intent_id, "symbol": name})
+                return ExecutionResult(False, reason=f"DUPLICATE_INTENT_BLOCKED: intent {intent_id} already submitted")
+
         broker = self._broker()
         if broker is None:
             self._capture({"event": "place_order_failed", "symbol": name, "direction": direction, "qty": qty, "strike": strike, "note": "broker unavailable"})
             return ExecutionResult(False, reason="broker unavailable")
         action = broker.exit_order if is_exit else broker.place_order
         last_reason = "broker returned no order id"
+        last_exception: Exception | None = None
+
         for attempt in range(1, max(1, retries) + 1):
             start = time.monotonic()
             try:
                 order_id = action(name, direction, qty, strike)
             except Exception as exc:
                 order_id = None
+                last_exception = exc
                 last_reason = str(exc)
+
+                # Classify the error to determine retry strategy (Phase 0 fix)
+                decision = BrokerErrorClassifier.classify(exc)
+
+                if decision == RetryDecision.PERMANENT:
+                    # PERMANENT errors should never be retried - could cause duplicates
+                    self._capture({
+                        "event": "place_order_permanent_failure",
+                        "symbol": name,
+                        "direction": direction,
+                        "qty": qty,
+                        "strike": strike,
+                        "note": f"PERMANENT error - not retrying: {last_reason}",
+                        "retry_decision": "PERMANENT",
+                    })
+                    self._capture({"event": "place_order_failed", "symbol": name, "direction": direction, "qty": qty, "strike": strike, "note": last_reason})
+                    return ExecutionResult(False, broker_latency_ms=0, reason=f"PERMANENT: {last_reason}")
+
+                if decision == RetryDecision.UNKNOWN:
+                    # UNKNOWN errors require manual intervention - alert but don't retry blindly
+                    self._capture({
+                        "event": "place_order_unknown_failure",
+                        "symbol": name,
+                        "direction": direction,
+                        "qty": qty,
+                        "strike": strike,
+                        "note": f"UNKNOWN error - manual intervention required: {last_reason}",
+                        "retry_decision": "UNKNOWN",
+                    })
+                    self._capture({"event": "place_order_failed", "symbol": name, "direction": direction, "qty": qty, "strike": strike, "note": last_reason})
+                    return ExecutionResult(False, broker_latency_ms=0, reason=f"UNKNOWN - needs investigation: {last_reason}")
+
+                # RETRYABLE errors continue with backoff
+
             latency_ms = int(round((time.monotonic() - start) * 1000))
             if order_id:
                 self._capture(

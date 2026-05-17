@@ -5,12 +5,14 @@ Handles JSON-based state persistence for the trading bot.
 """
 
 from __future__ import annotations
+
 import json
 import os
 import threading
+from core.datetime_ist import now_ist
 from pathlib import Path
-from typing import Any, Optional
-from datetime import datetime
+from typing import Any
+
 
 class StatePersistenceManager:
     def __init__(self, file_path: str):
@@ -39,7 +41,7 @@ class StatePersistenceManager:
                 state_with_metadata = {
                     **state,
                     '_metadata': {
-                        'saved_at': datetime.now().isoformat(),
+                        'saved_at': now_ist().isoformat(),
                         'version': '2.45'
                     }
                 }
@@ -48,7 +50,7 @@ class StatePersistenceManager:
         except Exception:
             return False
 
-    def load_state(self) -> Optional[dict[str, Any]]:
+    def load_state(self) -> dict[str, Any] | None:
         try:
             with self._lock:
                 if not self.file_path.exists():
@@ -82,5 +84,14 @@ class StatePersistenceManager:
         }
 
     def _write_state(self, state: dict[str, Any]) -> None:
-        with open(self.file_path, 'w', encoding='utf-8') as f:
-            json.dump(state, f, indent=2, default=str, ensure_ascii=False)
+        temp_path = self.file_path.with_suffix('.tmp')
+        try:
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                json.dump(state, f, indent=2, default=str, ensure_ascii=False)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_path, self.file_path)
+        except Exception:
+            if temp_path.exists():
+                temp_path.unlink(missing_ok=True)
+            raise

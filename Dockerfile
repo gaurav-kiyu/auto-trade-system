@@ -76,5 +76,24 @@ VOLUME ["/data/db", "/data/models", "/data/reports", "/data/logs"]
 
 USER opb
 
+# Health check: verify core + hardening modules are importable
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "
+import sys
+modules = [
+    'core.token_refresh_service',
+    'core.market_warmup',
+    'core.ws_feed_manager',
+    'core.kite_ticker_feed',
+    'core.ltp_resolver',
+    'core.metrics_exporter',
+    'core.safety_state',
+    'core.health_checker',
+]
+for m in modules:
+    __import__(m)
+print('OK')
+" || exit 1
+
 # Default: run via supervisord (manages bot + optional dashboard)
 CMD ["supervisord", "-c", "/etc/supervisor/conf.d/opb.conf", "-n"]

@@ -16,9 +16,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+
+from core.datetime_ist import now_ist
+from typing import Any
 
 log = logging.getLogger("adaptive_governance")
 
@@ -67,7 +68,7 @@ class AdaptiveBehaviorGovernor:
     def __init__(
         self,
         config: dict[str, Any],
-        governance_config: Optional[GovernanceConfig] = None,
+        governance_config: GovernanceConfig | None = None,
     ):
         self._config = config
         self._governance = governance_config or self._create_from_config(config)
@@ -157,14 +158,14 @@ class AdaptiveBehaviorGovernor:
             return False, f"ℹ️ DRY_RUN: Would suggest {param}={suggested_value} (not applied)"
 
         if self._governance.adaptive_mode == AdaptiveMode.SUGGEST:
-            approval_id = f"{param}:{datetime.now().isoformat()}"
+            approval_id = f"{param}:{now_ist().isoformat()}"
             self._pending_approvals[approval_id] = {
                 "param": param,
                 "current": current_value,
                 "suggested": suggested_value,
                 "reason": reason,
                 "source": source,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": now_ist().isoformat(),
             }
             self._record_action(
                 source=source,
@@ -177,14 +178,14 @@ class AdaptiveBehaviorGovernor:
 
         if self._governance.adaptive_mode == AdaptiveMode.ENABLED:
             if self._governance.require_approval_for_live:
-                approval_id = f"{param}:{datetime.now().isoformat()}"
+                approval_id = f"{param}:{now_ist().isoformat()}"
                 self._pending_approvals[approval_id] = {
                     "param": param,
                     "current": current_value,
                     "suggested": suggested_value,
                     "reason": reason,
                     "source": source,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": now_ist().isoformat(),
                 }
                 return False, f"⚠️ LIVE mode: Approval required. Use approve_param('{approval_id}') to apply."
 
@@ -255,7 +256,7 @@ class AdaptiveBehaviorGovernor:
             "can_auto_apply": self.can_auto_apply(),
             "is_allowed": self.is_allowed(),
             "pending_approvals": len(self._pending_approvals),
-            "actions_today": len([a for a in self._actions if a.timestamp.startswith(datetime.now().strftime("%Y-%m-%d"))]),
+            "actions_today": len([a for a in self._actions if a.timestamp.startswith(now_ist().strftime("%Y-%m-%d"))]),
         }
 
     def _record_action(
@@ -268,7 +269,7 @@ class AdaptiveBehaviorGovernor:
     ):
         """Record an action to the audit log."""
         action = AdaptiveAction(
-            timestamp=datetime.now().isoformat(),
+            timestamp=now_ist().isoformat(),
             source=source,
             action_type=action_type,
             details=details,

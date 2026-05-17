@@ -5,8 +5,9 @@ Handles user identity verification and permission levels (USER vs ADMIN).
 """
 
 from __future__ import annotations
-from typing import Set, Any
+
 from dataclasses import dataclass
+
 
 @dataclass
 class UserPermissions:
@@ -14,7 +15,7 @@ class UserPermissions:
     is_admin: bool
 
 class TelegramAuthManager:
-    def __init__(self, authorized_ids: Set[str], admin_ids: Set[str]):
+    def __init__(self, authorized_ids: set[str], admin_ids: set[str]):
         self._authorized_ids = authorized_ids
         self._admin_ids = admin_ids
 

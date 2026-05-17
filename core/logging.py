@@ -13,8 +13,6 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import Optional
-
 
 # Singleton logging configuration
 _configured = False
@@ -25,7 +23,7 @@ def _configure_root_logger():
     global _configured
     if _configured:
         return
-    
+
     root = logging.getLogger()
     if not root.handlers:
         handler = logging.StreamHandler(sys.stdout)
@@ -36,7 +34,7 @@ def _configure_root_logger():
         handler.setFormatter(formatter)
         root.addHandler(handler)
         root.setLevel(logging.INFO)
-    
+
     _configured = True
 
 
@@ -61,41 +59,41 @@ class StructuredLogger:
     """
     Structured logging wrapper with context support.
     """
-    
+
     def __init__(self, name: str):
         self._logger = get_logger(name)
         self._context: dict = {}
-    
+
     def set_context(self, **kwargs):
         """Set logging context."""
         self._context.update(kwargs)
-    
+
     def clear_context(self):
         """Clear logging context."""
         self._context = {}
-    
+
     def _format(self, msg: str) -> str:
         """Format message with context."""
         if self._context:
             ctx_str = " | ".join(f"{k}={v}" for k, v in self._context.items())
             return f"{msg} [{ctx_str}]"
         return msg
-    
+
     def debug(self, msg: str, **kwargs):
         self._logger.debug(self._format(msg), **kwargs)
-    
+
     def info(self, msg: str, **kwargs):
         self._logger.info(self._format(msg), **kwargs)
-    
+
     def warning(self, msg: str, **kwargs):
         self._logger.warning(self._format(msg), **kwargs)
-    
+
     def error(self, msg: str, **kwargs):
         self._logger.error(self._format(msg), **kwargs)
-    
+
     def critical(self, msg: str, **kwargs):
         self._logger.critical(self._format(msg), **kwargs)
-    
+
     def exception(self, msg: str, **kwargs):
         self._logger.exception(self._format(msg), **kwargs)
 
@@ -115,30 +113,30 @@ class LoggingService:
     Backward compatibility wrapper.
     All new code should use get_logger() directly.
     """
-    
-    def __init__(self, log_dir: str = "logs", log_filename_prefix: str = "trader_", 
+
+    def __init__(self, log_dir: str = "logs", log_filename_prefix: str = "trader_",
                  retain_days: int = 30, json_log_file: str = "", version: str = "UNKNOWN",
                  enable_correlation_ids: bool = True, enable_contextual_logging: bool = True):
         self._logger = get_logger(f"service.{log_filename_prefix}")
-    
+
     def log(self, level: int, message: str, **kwargs):
         """Log a message at the specified level."""
         self._logger.log(level, message, **kwargs)
-    
+
     def debug(self, message: str, **kwargs):
         self._logger.debug(message, **kwargs)
-    
+
     def info(self, message: str, **kwargs):
         self._logger.info(message, **kwargs)
-    
+
     def warning(self, message: str, **kwargs):
         self._logger.warning(message, **kwargs)
-    
+
     def error(self, message: str, **kwargs):
         self._logger.error(message, **kwargs)
-    
+
     def critical(self, message: str, **kwargs):
         self._logger.critical(message, **kwargs)
-    
+
     def exception(self, message: str, **kwargs):
         self._logger.exception(message, **kwargs)

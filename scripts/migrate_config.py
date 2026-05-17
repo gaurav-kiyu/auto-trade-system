@@ -1,7 +1,6 @@
 import json
-import os
 
-with open('config.json', 'r') as f:
+with open('config.json') as f:
     flat = json.load(f)
 
 v2 = {

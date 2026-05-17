@@ -257,7 +257,7 @@ def get_market_status(
         from core.datetime_ist import now_ist
         now = check_dt or now_ist()
     except Exception:
-        now = check_dt or datetime.datetime.now()
+        now = check_dt or now_ist()
 
     today = now.date()
     current_time = now.time()
@@ -289,7 +289,7 @@ def get_next_market_open(
         from core.datetime_ist import now_ist
         now = from_dt or now_ist()
     except Exception:
-        now = from_dt or datetime.datetime.now()
+        now = from_dt or now_ist()
 
     candidate = now.date()
     # If today is trading day and open hasn't happened yet, return today's open
@@ -315,7 +315,7 @@ def get_time_until_market_open(
         from core.datetime_ist import now_ist
         now = now_ist()
     except Exception:
-        now = datetime.datetime.now()
+        now = now_ist()
     next_open = get_next_market_open(cfg, now)
     return next_open - now
 
@@ -331,7 +331,7 @@ def sleep_until(target_dt: datetime.datetime, stop_event=None) -> None:
             from core.datetime_ist import now_ist
             now = now_ist()
         except Exception:
-            now = datetime.datetime.now()
+            now = now_ist()
 
         remaining = (target_dt - now).total_seconds()
         if remaining <= 0:

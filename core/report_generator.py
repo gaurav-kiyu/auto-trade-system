@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+from core.datetime_ist import now_ist
 import logging
 from pathlib import Path
 from typing import Any
@@ -281,7 +282,7 @@ def generate_pdf_report(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if output_path is None:
-        stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        stamp = now_ist().strftime("%Y%m%d_%H%M%S")
         output_path = out_dir / f"trade_report_{stamp}.pdf"
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -334,7 +335,7 @@ def generate_pdf_report(
                                     leading=12, leftIndent=8, spaceBefore=2)
 
     period_label = f"Last {days} days" if days > 0 else "All time"
-    title_date   = datetime.datetime.now().strftime("%d %b %Y %H:%M")
+    title_date   = now_ist().strftime("%d %b %Y %H:%M")
 
     story = []
 

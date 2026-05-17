@@ -13,8 +13,9 @@ It decouples the trading logic from specific broker implementations.
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from core.datetime_ist import now_ist
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from core.common.kernels.models import Fill as SharedFill
 
@@ -62,7 +63,7 @@ class OrderResult:
         self.filled_quantity = filled_quantity
         self.average_price = average_price
         self.commission = commission
-        self.timestamp = timestamp or datetime.now()
+        self.timestamp = timestamp or now_ist()
         self.reject_reason = reject_reason
 
 
@@ -85,7 +86,7 @@ class Position:
         self.market_value = market_value
         self.unrealized_pnl = unrealized_pnl
         self.realized_pnl = realized_pnl
-        self.timestamp = timestamp or datetime.now()
+        self.timestamp = timestamp or now_ist()
 
 
 class Quote:
@@ -105,7 +106,7 @@ class Quote:
         self.ask = ask
         self.last = last
         self.volume = volume
-        self.timestamp = timestamp or datetime.now()
+        self.timestamp = timestamp or now_ist()
 
 
 class Fill:
@@ -124,7 +125,7 @@ class Fill:
         self.symbol = symbol
         self.quantity = quantity
         self.price = price
-        self.timestamp = timestamp or datetime.now()
+        self.timestamp = timestamp or now_ist()
         self.commission = commission
 
 

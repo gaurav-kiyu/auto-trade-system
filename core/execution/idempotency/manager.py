@@ -8,16 +8,18 @@ duplicates on crash/restart scenarios.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Dict, Tuple, Optional, Any, List
-import threading
+
 import hashlib
 import logging
+import threading
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from core.datetime_ist import now_ist
+from typing import Any
 
 log = logging.getLogger(__name__)
-import sqlite3
 import json
+import sqlite3
 from pathlib import Path
 
 
@@ -36,9 +38,9 @@ class IdempotencyManager:
     after execution completes.
     """
 
-    def __init__(self, cache_size: int = 1000, expiry_hours: int = 24, persistence_path: Optional[str] = None):
-        self._cache: Dict[str, Tuple[datetime, Any]] = {}
-        self._in_flight: Dict[str, datetime] = {}  # Keys currently being executed
+    def __init__(self, cache_size: int = 1000, expiry_hours: int = 24, persistence_path: str | None = None):
+        self._cache: dict[str, tuple[datetime, Any]] = {}
+        self._in_flight: dict[str, datetime] = {}  # Keys currently being executed
         self._cache_size = cache_size
         self._expiry_hours = expiry_hours
         self._lock = threading.Lock()
@@ -130,7 +132,7 @@ class IdempotencyManager:
         and handle appropriately.
         """
         with self._lock:
-            now = datetime.now()
+            now = now_ist()
             self._in_flight[key] = now
 
             # Persist in-flight state (thread-safe)
@@ -153,7 +155,7 @@ class IdempotencyManager:
         Moves key from in-flight to confirmed cache and persists result.
         """
         with self._lock:
-            now = datetime.now()
+            now = now_ist()
 
             # Remove from in-flight
             if key in self._in_flight:
@@ -203,7 +205,7 @@ class IdempotencyManager:
                 except Exception as e:
                     log.error(f"Failed to clear in-flight key {key}: {e}")
 
-    def get_result(self, key: str) -> Optional[Any]:
+    def get_result(self, key: str) -> Any | None:
         """Get cached result for key if available."""
         with self._lock:
             self._cleanup()
@@ -217,13 +219,13 @@ class IdempotencyManager:
 
     def _cleanup(self):
         """Remove expired entries from cache."""
-        expiry_time = datetime.now() - timedelta(hours=self._expiry_hours)
+        expiry_time = now_ist() - timedelta(hours=self._expiry_hours)
         expired_keys = [k for k, (t, _) in self._cache.items() if t < expiry_time]
         for k in expired_keys:
             del self._cache[k]
 
         # Also cleanup in-flight entries older than 1 hour (stale crashes)
-        stale_time = datetime.now() - timedelta(hours=1)
+        stale_time = now_ist() - timedelta(hours=1)
         stale_keys = [k for k, t in self._in_flight.items() if t < stale_time]
         for k in stale_keys:
             del self._in_flight[k]

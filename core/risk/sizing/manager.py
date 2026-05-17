@@ -5,8 +5,11 @@ Calculates appropriate trade sizes based on risk, volatility, and capital.
 """
 
 from __future__ import annotations
-from typing import Any, Dict, Optional
+
+from typing import Any
+
 from core.ports.risk.risk_port import PositionSizingInput
+
 
 class PositionSizingManager:
     def __init__(self, config: Any):
@@ -26,7 +29,7 @@ class PositionSizingManager:
             base_lots = max(1, int(raw_lots))
 
             adjusted_lots = int(base_lots * volatility_multiplier)
-            
+
             # Apply portfolio and capital constraints (simplified)
             # In a full implementation, this would call back to RiskLimitsManager
             return max(0, adjusted_lots)

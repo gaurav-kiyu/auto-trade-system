@@ -78,11 +78,23 @@
     "ATR_SL_MULTIPLIER": {
       "type": "number"
     },
+    "AUDIT_FILENAME_PREFIX": {
+      "type": "string"
+    },
+    "AUDIT_LOG_DIR": {
+      "type": "string"
+    },
     "AUDIT_LOG_ENABLED": {
       "type": "boolean"
     },
     "AUDIT_LOG_FILE": {
       "type": "string"
+    },
+    "AUDIT_MAX_FILE_SIZE_MB": {
+      "type": "integer"
+    },
+    "AUDIT_RETAIN_DAYS": {
+      "type": "integer"
     },
     "AUDIT_RETENTION_DAYS": {
       "type": "integer"
@@ -252,6 +264,9 @@
     },
     "CONSEC_LOSS_LIMIT": {
       "type": "integer"
+    },
+    "CONTINUOUS_RECONCILIATION_ENABLED": {
+      "type": "boolean"
     },
     "COOLDOWN": {
       "type": "integer"
@@ -435,6 +450,18 @@
       "additionalProperties": true,
       "type": "object"
     },
+    "INCIDENT_ALERTING_ENABLED": {
+      "type": "boolean"
+    },
+    "INCIDENT_COOLDOWN_SECONDS": {
+      "type": "integer"
+    },
+    "INCIDENT_DEQUEUE_INTERVAL_SEC": {
+      "type": "integer"
+    },
+    "INCIDENT_MAX_QUEUE_SIZE": {
+      "type": "integer"
+    },
     "INDEX_MAP": {
       "additionalProperties": true,
       "type": "object"
@@ -471,6 +498,12 @@
     },
     "LATENCY_BUDGET_MS": {
       "type": "integer"
+    },
+    "LATE_SESSION_SIZE_MULT": {
+      "type": "number"
+    },
+    "LATE_SESSION_THRESHOLD": {
+      "type": "string"
     },
     "LEARNING_SCORE_ADJ_CLAMP": {
       "type": "integer"
@@ -655,6 +688,9 @@
     "MAX_BREAKOUT_DISTANCE": {
       "type": "number"
     },
+    "MAX_CONSECUTIVE_LOSSES": {
+      "type": "integer"
+    },
     "MAX_DAILY_LOSS": {
       "type": "integer"
     },
@@ -670,10 +706,16 @@
     "MAX_POSITION_AGE": {
       "type": "integer"
     },
+    "MAX_QUOTE_AGE_SECONDS": {
+      "type": "number"
+    },
     "MAX_SINGLE_TRADE_LOSS_PCT": {
       "type": "number"
     },
     "MAX_TRADES_DAY": {
+      "type": "integer"
+    },
+    "MAX_TRADES_PER_DAY": {
       "type": "integer"
     },
     "METRICS_BIND": {
@@ -689,6 +731,9 @@
       "type": "number"
     },
     "MIN_TRADE_DURATION_MINS": {
+      "type": "integer"
+    },
+    "MIN_TRADE_INTERVAL_SECONDS": {
       "type": "integer"
     },
     "MODERATE_THRESHOLD": {
@@ -819,6 +864,15 @@
     "RECONCILE_INTERVAL": {
       "type": "integer"
     },
+    "RECONCILIATION_ACTIVE_INTERVAL_SEC": {
+      "type": "integer"
+    },
+    "RECONCILIATION_IDLE_INTERVAL_SEC": {
+      "type": "integer"
+    },
+    "RECONCILIATION_MAX_STALENESS_SEC": {
+      "type": "integer"
+    },
     "REGIME_AWARE_THRESHOLDS_ENABLED": {
       "type": "boolean"
     },
@@ -913,6 +967,12 @@
     "SCAN_INTERVAL": {
       "type": "integer"
     },
+    "SECRET_HYGIENE_ENABLED": {
+      "type": "boolean"
+    },
+    "SECRET_HYGIENE_SCAN_ON_STARTUP": {
+      "type": "boolean"
+    },
     "SHUTDOWN_ON_UI_CLOSE": {
       "type": "boolean"
     },
@@ -923,6 +983,9 @@
       "type": "number"
     },
     "SLIPPAGE_ALERT_PCT": {
+      "type": "number"
+    },
+    "SLIPPAGE_GUARD_THRESHOLD_PCT": {
       "type": "number"
     },
     "SLIPPAGE_LOW_VOL_EXTRA": {
@@ -940,6 +1003,18 @@
     "SPREAD_MAX_PCT": {
       "type": "number"
     },
+    "STRICT_OI_ABORT_ON_SYNTHETIC": {
+      "type": "boolean"
+    },
+    "STRICT_OI_COVERAGE_THRESHOLD": {
+      "type": "number"
+    },
+    "STRICT_OI_REPORT_CONTAMINATION": {
+      "type": "boolean"
+    },
+    "STRICT_OI_VALIDATION": {
+      "type": "boolean"
+    },
     "STRONG_THRESHOLD": {
       "type": "integer"
     },
@@ -956,6 +1031,12 @@
       "type": "array"
     },
     "SUMMARY_INTERVAL": {
+      "type": "integer"
+    },
+    "SYSTEM_MODE_BROKER_FAILURE_THRESHOLD": {
+      "type": "integer"
+    },
+    "SYSTEM_MODE_DEGRADED_TIMEOUT_SECONDS": {
       "type": "integer"
     },
     "TAKE_PROFIT_AND_STOP": {
@@ -1138,6 +1219,9 @@
       "additionalProperties": true,
       "type": "object"
     },
+    "_comment_circuit_breaker": {
+      "type": "string"
+    },
     "_comment_correlation_guard": {
       "type": "string"
     },
@@ -1163,6 +1247,9 @@
       "type": "string"
     },
     "_comment_paper_fill": {
+      "type": "string"
+    },
+    "_comment_rate_limiter": {
       "type": "string"
     },
     "_comment_reporting": {
@@ -1267,6 +1354,9 @@
     "_comment_v246_sprint1": {
       "type": "string"
     },
+    "_comment_v247_execution_hardening": {
+      "type": "string"
+    },
     "_comment_walkforward": {
       "type": "string"
     },
@@ -1309,6 +1399,18 @@
     },
     "chain_viz_enabled": {
       "type": "boolean"
+    },
+    "circuit_breaker_failure_threshold": {
+      "type": "integer"
+    },
+    "circuit_breaker_sliding_window_size": {
+      "type": "integer"
+    },
+    "circuit_breaker_success_threshold": {
+      "type": "integer"
+    },
+    "circuit_breaker_timeout_secs": {
+      "type": "integer"
     },
     "confidence_band_enabled": {
       "type": "boolean"
@@ -1630,6 +1732,24 @@
     "kelly_window_trades": {
       "type": "integer"
     },
+    "kite_ticker_enabled": {
+      "type": "boolean"
+    },
+    "kite_ticker_index_tokens": {
+      "items": {
+        "type": "integer"
+      },
+      "type": "array"
+    },
+    "kite_ticker_mode": {
+      "type": "string"
+    },
+    "kite_ticker_startup_connect": {
+      "type": "boolean"
+    },
+    "kite_ticker_subscribe_tokens": {
+      "type": "array"
+    },
     "limit_order_enabled": {
       "type": "boolean"
     },
@@ -1715,7 +1835,28 @@
       "additionalProperties": true,
       "type": "object"
     },
+    "market_data_mismatch_threshold_pct": {
+      "type": "number"
+    },
+    "market_data_secondary_enabled": {
+      "type": "boolean"
+    },
+    "market_data_secondary_provider": {
+      "type": "string"
+    },
     "max_entry_spread_pct": {
+      "type": "number"
+    },
+    "max_exposure_per_direction_pct": {
+      "type": "number"
+    },
+    "max_exposure_per_expiry_pct": {
+      "type": "number"
+    },
+    "max_exposure_per_strategy_pct": {
+      "type": "number"
+    },
+    "max_exposure_per_symbol_pct": {
       "type": "number"
     },
     "max_otm_steps": {
@@ -1869,6 +2010,15 @@
       "type": "boolean"
     },
     "pre_market_buffer_mins": {
+      "type": "integer"
+    },
+    "rate_limiter_algorithm": {
+      "type": "string"
+    },
+    "rate_limiter_limit": {
+      "type": "integer"
+    },
+    "rate_limiter_window_secs": {
       "type": "integer"
     },
     "reentry_cooldown_mins": {
@@ -2121,6 +2271,18 @@
     "timeframe_divergence_bonus": {
       "type": "integer"
     },
+    "token_refresh_enabled": {
+      "type": "boolean"
+    },
+    "token_refresh_grace_period_mins": {
+      "type": "integer"
+    },
+    "token_refresh_interval_mins": {
+      "type": "integer"
+    },
+    "token_refresh_retry_count": {
+      "type": "integer"
+    },
     "trade_replayer_bar_width": {
       "type": "integer"
     },
@@ -2181,6 +2343,21 @@
     "walkforward_train_bars": {
       "type": "integer"
     },
+    "warmup_duration_mins": {
+      "type": "integer"
+    },
+    "warmup_enabled": {
+      "type": "boolean"
+    },
+    "warmup_max_trades": {
+      "type": "integer"
+    },
+    "warmup_score_boost": {
+      "type": "integer"
+    },
+    "warmup_size_mult": {
+      "type": "number"
+    },
     "web_dashboard_auth_token": {
       "type": "string"
     },
@@ -2196,11 +2373,29 @@
     "webhook_allow_live": {
       "type": "boolean"
     },
+    "webhook_auth_token": {
+      "type": "string"
+    },
     "webhook_enabled": {
       "type": "boolean"
     },
     "webhook_rate_limit_per_min": {
       "type": "integer"
+    },
+    "ws_heartbeat_interval_s": {
+      "type": "number"
+    },
+    "ws_reconnect_base_delay_s": {
+      "type": "number"
+    },
+    "ws_reconnect_jitter_pct": {
+      "type": "number"
+    },
+    "ws_reconnect_max_attempts": {
+      "type": "integer"
+    },
+    "ws_reconnect_max_delay_s": {
+      "type": "number"
     }
   },
   "title": "Index bot merged config (config.json over index_config.defaults.json)",

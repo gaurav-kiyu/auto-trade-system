@@ -21,21 +21,26 @@ Key guarantees:
 - Stale acknowledgment recovery
 """
 from __future__ import annotations
+
 import logging
 import threading
-import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, Any, Callable
+
 from core.time_provider import time_provider
 
 _log = logging.getLogger(__name__)
 
 
 class ExecutionState(Enum):
-    """Deterministic execution states - no ambiguity allowed"""
+    """Deterministic execution states - no ambiguity allowed.
+
+    UNKNOWN means: "do not retry automatically" - requires manual intervention.
+    RECONCILING means: "awaiting broker sync" - reconciliation in progress.
+    """
     INIT = "INIT"
+    PENDING_SUBMISSION = "PENDING_SUBMISSION"
     VALIDATED = "VALIDATED"
     PERSISTED = "PERSISTED"
     SUBMITTED = "SUBMITTED"
@@ -46,6 +51,8 @@ class ExecutionState(Enum):
     CANCEL_PENDING = "CANCEL_PENDING"
     CANCELLED = "CANCELLED"
     FAILED = "FAILED"
+    UNKNOWN = "UNKNOWN"
+    RECONCILING = "RECONCILING"
 
 
 class TransitionResult(Enum):
@@ -55,19 +62,22 @@ class TransitionResult(Enum):
     PERSISTENCE_FAILED = "PERSISTENCE_FAILED"
 
 
-VALID_TRANSITIONS: Dict[ExecutionState, list[ExecutionState]] = {
+VALID_TRANSITIONS: dict[ExecutionState, list[ExecutionState]] = {
     ExecutionState.INIT: [ExecutionState.VALIDATED, ExecutionState.FAILED],
+    ExecutionState.PENDING_SUBMISSION: [ExecutionState.VALIDATED, ExecutionState.FAILED, ExecutionState.UNKNOWN],
     ExecutionState.VALIDATED: [ExecutionState.PERSISTED, ExecutionState.FAILED],
     ExecutionState.PERSISTED: [ExecutionState.SUBMITTED, ExecutionState.FAILED],
-    ExecutionState.SUBMITTED: [ExecutionState.ACKNOWLEDGED, ExecutionState.REJECTED, ExecutionState.FAILED],
-    ExecutionState.ACKNOWLEDGED: [ExecutionState.PARTIAL_FILL, ExecutionState.FILLED, ExecutionState.CANCEL_PENDING, ExecutionState.FAILED],
-    ExecutionState.PARTIAL_FILL: [ExecutionState.PARTIAL_FILL, ExecutionState.FILLED, ExecutionState.CANCEL_PENDING, ExecutionState.FAILED],
+    ExecutionState.SUBMITTED: [ExecutionState.ACKNOWLEDGED, ExecutionState.REJECTED, ExecutionState.FAILED, ExecutionState.UNKNOWN],
+    ExecutionState.ACKNOWLEDGED: [ExecutionState.PARTIAL_FILL, ExecutionState.FILLED, ExecutionState.CANCEL_PENDING, ExecutionState.FAILED, ExecutionState.UNKNOWN],
+    ExecutionState.PARTIAL_FILL: [ExecutionState.PARTIAL_FILL, ExecutionState.FILLED, ExecutionState.CANCEL_PENDING, ExecutionState.FAILED, ExecutionState.UNKNOWN],
     ExecutionState.CANCEL_PENDING: [ExecutionState.CANCELLED, ExecutionState.FILLED, ExecutionState.FAILED],
     # Terminal states - no further transitions
     ExecutionState.FILLED: [],
     ExecutionState.REJECTED: [],
     ExecutionState.CANCELLED: [],
     ExecutionState.FAILED: [],
+    ExecutionState.UNKNOWN: [ExecutionState.RECONCILING],
+    ExecutionState.RECONCILING: [ExecutionState.FILLED, ExecutionState.CANCELLED, ExecutionState.FAILED, ExecutionState.UNKNOWN],
 }
 
 
@@ -85,20 +95,20 @@ class ExecutionStateMachine:
     direction: str  # BUY/SELL
 
     state: ExecutionState = ExecutionState.INIT
-    broker_order_id: Optional[str] = None
+    broker_order_id: str | None = None
     filled_quantity: int = 0
     average_price: float = 0.0
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
     created_at: str = field(default_factory=lambda: time_provider.format_ts())
     updated_at: str = field(default_factory=lambda: time_provider.format_ts())
-    submitted_at: Optional[str] = None
-    acknowledged_at: Optional[str] = None
-    filled_at: Optional[str] = None
+    submitted_at: str | None = None
+    acknowledged_at: str | None = None
+    filled_at: str | None = None
 
     # Persistence hook
-    _persistence_callback: Optional[Callable] = None
-    _lock: threading.Lock = field(default_factory=threading.Lock)
+    _persistence_callback: Callable | None = None
+    _lock: threading.RLock = field(default_factory=threading.RLock)
 
     def validate_transition(self, new_state: ExecutionState) -> tuple[TransitionResult, str]:
         """Validate and execute state transition deterministically"""
@@ -109,14 +119,9 @@ class ExecutionStateMachine:
             if new_state not in VALID_TRANSITIONS.get(self.state, []):
                 return TransitionResult.INVALID_TRANSITION, f"Cannot transition from {self.state.value} to {new_state.value}"
 
-            # Execute transition
             old_state = self.state
-            self.state = new_state
-            self.updated_at = time_provider.format_ts()
 
-            _log.info(f"State transition: {old_state.value} -> {new_state.value} for intent {self.client_order_id}")
-
-            # Persistence hook for critical transitions
+            # Persist FIRST, then mutate in-memory state (avoids inconsistency on crash)
             if self._persistence_callback and new_state in [
                 ExecutionState.PERSISTED,
                 ExecutionState.SUBMITTED,
@@ -129,6 +134,11 @@ class ExecutionStateMachine:
                 except Exception as e:
                     _log.critical(f"PERSISTENCE FAILURE on transition to {new_state.value}: {e}")
                     return TransitionResult.PERSISTENCE_FAILED, f"Critical: {e}"
+
+            self.state = new_state
+            self.updated_at = time_provider.format_ts()
+
+            _log.info(f"State transition: {old_state.value} -> {new_state.value} for intent {self.client_order_id}")
 
             return TransitionResult.SUCCESS, f"Transitioned to {new_state.value}"
 
@@ -222,8 +232,8 @@ class ExecutionStateMachineManager:
     Ensures idempotency across the system.
     """
 
-    def __init__(self, persistence_callback: Optional[Callable] = None):
-        self._machines: Dict[str, ExecutionStateMachine] = {}  # client_order_id -> machine
+    def __init__(self, persistence_callback: Callable | None = None):
+        self._machines: dict[str, ExecutionStateMachine] = {}  # client_order_id -> machine
         self._lock = threading.Lock()
         self._persistence_callback = persistence_callback
 
@@ -265,14 +275,14 @@ class ExecutionStateMachineManager:
         # Use intent_id directly - no random component for true idempotency
         return f"OPB-{intent_id}"
 
-    def get_machine(self, client_order_id: str) -> Optional[ExecutionStateMachine]:
+    def get_machine(self, client_order_id: str) -> ExecutionStateMachine | None:
         """Get existing machine"""
         return self._machines.get(client_order_id)
 
     def record_broker_query_result(
         self,
         client_order_id: str,
-        broker_order_id: Optional[str],
+        broker_order_id: str | None,
         status: str,
         filled_qty: int = 0,
         avg_price: float = 0.0,
@@ -306,11 +316,11 @@ class ExecutionStateMachineManager:
 
 
 # Singleton instance
-_state_machine_manager: Optional[ExecutionStateMachineManager] = None
+_state_machine_manager: ExecutionStateMachineManager | None = None
 _manager_lock = threading.Lock()
 
 
-def get_execution_state_manager(persistence_callback: Optional[Callable] = None) -> ExecutionStateMachineManager:
+def get_execution_state_manager(persistence_callback: Callable | None = None) -> ExecutionStateMachineManager:
     """Get singleton execution state machine manager"""
     global _state_machine_manager
     with _manager_lock:

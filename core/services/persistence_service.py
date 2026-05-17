@@ -13,17 +13,18 @@ import os
 import threading
 from dataclasses import dataclass
 from datetime import datetime
+from core.datetime_ist import now_ist
 from pathlib import Path
 from typing import Any
 
-from core.persistence.trades.manager import TradesPersistenceManager
+from core.logging import LoggingService
 from core.persistence.state.manager import StatePersistenceManager
+from core.persistence.trades.manager import TradesPersistenceManager
 from core.ports.persistence.persistence_port import (
     ConnectionError,
     ValidationError,
 )
 from infrastructure.adapters.persistence.sqlite_adapter import SQLiteAdapter
-from core.logging import LoggingService
 
 
 @dataclass
@@ -65,7 +66,7 @@ class PersistenceService:
         # Initialize specialized managers
         self._trades_manager = TradesPersistenceManager(self.config.trades_db_path)
         self._state_manager = StatePersistenceManager(self.config.state_db_path)
-        
+
         # Market data still uses raw adapter for now
         self._market_data_adapter = SQLiteAdapter(self.config.market_data_db_path)
 
@@ -269,7 +270,7 @@ class PersistenceService:
 
         # Add timestamp if not provided
         if 'timestamp' not in trade_data:
-            trade_data['timestamp'] = datetime.now().isoformat()
+            trade_data['timestamp'] = now_ist().isoformat()
 
         # Save to trades table
         return self._trades_adapter.create('trades', trade_data)
@@ -368,7 +369,7 @@ class PersistenceService:
 
         market_data_record = {
             'symbol': symbol,
-            'timestamp': (timestamp or datetime.now()).isoformat(),
+            'timestamp': (timestamp or now_ist()).isoformat(),
             **data
         }
 
@@ -453,7 +454,7 @@ class PersistenceService:
             state_with_metadata = {
                 **state,
                 '_metadata': {
-                    'saved_at': datetime.now().isoformat(),
+                    'saved_at': now_ist().isoformat(),
                     'version': '2.45'
                 }
             }

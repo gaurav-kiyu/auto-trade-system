@@ -3,8 +3,8 @@ Broker-Specific Exception Taxonomy - CRITICAL FIX #5
 Implements broker-specific exception handling for proper retry classification.
 """
 from __future__ import annotations
+
 from enum import Enum
-from typing import Optional
 
 
 class BrokerExceptionType(Enum):
@@ -27,8 +27,8 @@ class BrokerException(Exception):
         message: str,
         exception_type: BrokerExceptionType,
         retryable: bool,
-        broker_code: Optional[str] = None,
-        original_exception: Optional[Exception] = None,
+        broker_code: str | None = None,
+        original_exception: Exception | None = None,
     ):
         super().__init__(message)
         self.message = message
@@ -55,7 +55,7 @@ class BrokerException(Exception):
 class TransientBrokerError(BrokerException):
     """Temporary error - retry likely works"""
 
-    def __init__(self, message: str, broker_code: Optional[str] = None, original: Exception = None):
+    def __init__(self, message: str, broker_code: str | None = None, original: Exception = None):
         super().__init__(
             message=message,
             exception_type=BrokerExceptionType.TRANSIENT,
@@ -68,7 +68,7 @@ class TransientBrokerError(BrokerException):
 class PermanentBrokerError(BrokerException):
     """Permanent error - no retry"""
 
-    def __init__(self, message: str, broker_code: Optional[str] = None, original: Exception = None):
+    def __init__(self, message: str, broker_code: str | None = None, original: Exception = None):
         super().__init__(
             message=message,
             exception_type=BrokerExceptionType.PERMANENT,
@@ -81,7 +81,7 @@ class PermanentBrokerError(BrokerException):
 class AuthExpiredError(BrokerException):
     """Authentication expired - need to refresh"""
 
-    def __init__(self, message: str, broker_code: Optional[str] = None, original: Exception = None):
+    def __init__(self, message: str, broker_code: str | None = None, original: Exception = None):
         super().__init__(
             message=message,
             exception_type=BrokerExceptionType.AUTH_EXPIRED,
@@ -94,7 +94,7 @@ class AuthExpiredError(BrokerException):
 class RateLimitError(BrokerException):
     """Rate limit hit - back off"""
 
-    def __init__(self, message: str, broker_code: Optional[str] = None, original: Exception = None):
+    def __init__(self, message: str, broker_code: str | None = None, original: Exception = None):
         super().__init__(
             message=message,
             exception_type=BrokerExceptionType.RATE_LIMIT,
@@ -110,8 +110,8 @@ class OrderRejectedError(BrokerException):
     def __init__(
         self,
         message: str,
-        broker_code: Optional[str] = None,
-        reason: Optional[str] = None,
+        broker_code: str | None = None,
+        reason: str | None = None,
         original: Exception = None,
     ):
         super().__init__(
@@ -130,8 +130,8 @@ class AmbiguousExecutionStateError(BrokerException):
     def __init__(
         self,
         message: str,
-        broker_code: Optional[str] = None,
-        broker_order_id: Optional[str] = None,
+        broker_code: str | None = None,
+        broker_order_id: str | None = None,
         original: Exception = None,
     ):
         super().__init__(
@@ -147,7 +147,7 @@ class AmbiguousExecutionStateError(BrokerException):
 class NetworkError(BrokerException):
     """Network connectivity issue"""
 
-    def __init__(self, message: str, broker_code: Optional[str] = None, original: Exception = None):
+    def __init__(self, message: str, broker_code: str | None = None, original: Exception = None):
         super().__init__(
             message=message,
             exception_type=BrokerExceptionType.NETWORK_ERROR,
@@ -160,7 +160,7 @@ class NetworkError(BrokerException):
 class BrokerTimeoutError(BrokerException):
     """Request timeout"""
 
-    def __init__(self, message: str, broker_code: Optional[str] = None, original: Exception = None):
+    def __init__(self, message: str, broker_code: str | None = None, original: Exception = None):
         super().__init__(
             message=message,
             exception_type=BrokerExceptionType.TIMEOUT,

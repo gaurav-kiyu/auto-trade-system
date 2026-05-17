@@ -18,9 +18,10 @@ import sqlite3
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
+
+from core.datetime_ist import now_ist
 from enum import Enum
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -48,11 +49,11 @@ class TradingFreezeReason(Enum):
 class ReconciliationIssue:
     """Single reconciliation issue."""
     issue_type: ReconciliationState
-    order_id: Optional[str]
+    order_id: str | None
     internal_value: Any
     broker_value: Any
     description: str
-    timestamp: datetime = field(default_factory=datetime.now)
+timestamp: datetime = field(default_factory=now_ist)
 
 
 @dataclass
@@ -60,8 +61,8 @@ class ReconciliationResult:
     """Result of reconciliation run."""
     is_clean: bool
     issues: list[ReconciliationIssue]
-    freeze_reason: Optional[TradingFreezeReason]
-    timestamp: datetime = field(default_factory=datetime.now)
+    freeze_reason: TradingFreezeReason | None
+    timestamp: datetime = field(default_factory=now_ist)
     broker_positions_count: int = 0
     internal_orders_count: int = 0
     repaired_count: int = 0
@@ -74,11 +75,11 @@ class ReconciliationService:
     Critical: On ambiguity, freezes trading to prevent double-execution or
     position divergence.
     """
-    
+
     def __init__(
         self,
         db_path: str = "trades.db",
-        freeze_callback: Optional[Callable[[TradingFreezeReason, str], None]] = None,
+        freeze_callback: Callable[[TradingFreezeReason, str], None] | None = None,
         enable_auto_repair: bool = True,
     ):
         self._db_path = db_path
@@ -86,10 +87,10 @@ class ReconciliationService:
         self._enable_auto_repair = enable_auto_repair
         self._lock = threading.Lock()
         self._is_frozen = False
-        self._freeze_reason: Optional[TradingFreezeReason] = None
-        self._last_reconciliation: Optional[ReconciliationResult] = None
+        self._freeze_reason: TradingFreezeReason | None = None
+        self._last_reconciliation: ReconciliationResult | None = None
         self._init_orders_table()
-    
+
     def _init_orders_table(self):
         """Initialize orders tracking table if not exists."""
         try:
@@ -125,19 +126,19 @@ class ReconciliationService:
         except Exception as e:
             log.error(f"Failed to initialize orders table: {e}")
             raise
-    
-    def is_frozen(self) -> tuple[bool, Optional[TradingFreezeReason]]:
+
+    def is_frozen(self) -> tuple[bool, TradingFreezeReason | None]:
         """Check if trading is frozen and why."""
         with self._lock:
             return self._is_frozen, self._freeze_reason
-    
+
     def unfreeze(self):
         """Manually unfreeze trading after issue resolution."""
         with self._lock:
             self._is_frozen = False
             self._freeze_reason = None
             log.warning("Trading manually unfrozen")
-    
+
     def _freeze_trading(self, reason: TradingFreezeReason, details: str):
         """Freeze trading due to reconciliation failure."""
         with self._lock:
@@ -149,7 +150,7 @@ class ReconciliationService:
                     self._freeze_callback(reason, details)
                 except Exception as e:
                     log.error(f"Freeze callback failed: {e}")
-    
+
     def record_order(
         self,
         order_id: str,
@@ -158,11 +159,11 @@ class ReconciliationService:
         direction: str,
         quantity: int,
         status: str,
-        broker_order_id: Optional[str] = None,
-        idempotency_key: Optional[str] = None,
+        broker_order_id: str | None = None,
+        idempotency_key: str | None = None,
     ):
         """Record a new order in internal state."""
-        now = datetime.now().isoformat()
+        now = now_ist().isoformat()
         try:
             with sqlite3.connect(self._db_path) as conn:
                 conn.execute("""
@@ -176,7 +177,7 @@ class ReconciliationService:
                 conn.commit()
         except Exception as e:
             log.error(f"Failed to record order {order_id}: {e}")
-    
+
     def update_order_fill(
         self,
         order_id: str,
@@ -185,7 +186,7 @@ class ReconciliationService:
         status: str,
     ):
         """Update order fill information."""
-        now = datetime.now().isoformat()
+        now = now_ist().isoformat()
         try:
             with sqlite3.connect(self._db_path) as conn:
                 conn.execute("""
@@ -197,7 +198,7 @@ class ReconciliationService:
                 conn.commit()
         except Exception as e:
             log.error(f"Failed to update order fill {order_id}: {e}")
-    
+
     def get_pending_orders(self) -> list[dict]:
         """Get all orders that are not in terminal state."""
         terminal_states = {"FILLED", "CANCELLED", "REJECTED", "EXPIRED", "COMPLETE"}
@@ -213,7 +214,7 @@ class ReconciliationService:
         except Exception as e:
             log.error(f"Failed to get pending orders: {e}")
             return []
-    
+
     def get_all_orders(self) -> list[dict]:
         """Get all orders from internal state."""
         try:
@@ -224,7 +225,7 @@ class ReconciliationService:
         except Exception as e:
             log.error(f"Failed to get all orders: {e}")
             return []
-    
+
     def reconcile(
         self,
         broker_adapter: Any,
@@ -237,55 +238,55 @@ class ReconciliationService:
         """
         issues: list[ReconciliationIssue] = []
         repaired_count = 0
-        
+
         log.info("Starting execution reconciliation...")
-        
+
         try:
             broker_orders = self._fetch_broker_orders(broker_adapter)
             broker_positions = self._fetch_broker_positions(broker_adapter)
             internal_orders = self.get_all_orders()
-            
+
             log.info(
                 f"Reconciliation: {len(broker_orders)} broker orders, "
                 f"{len(broker_positions)} broker positions, "
                 f"{len(internal_orders)} internal orders"
             )
-            
+
             pending_internal = self.get_pending_orders()
-            
+
             stale_orders = self._detect_stale_orders(
                 pending_internal, broker_orders
             )
             for issue in stale_orders:
                 issues.append(issue)
                 log.warning(f"Stale order detected: {issue.description}")
-            
+
             orphan_positions = self._detect_orphan_positions(
                 broker_positions, internal_orders
             )
             for issue in orphan_positions:
                 issues.append(issue)
                 log.warning(f"Orphan position detected: {issue.description}")
-            
+
             quantity_mismatches = self._detect_quantity_mismatches(
                 broker_orders, internal_orders
             )
             for issue in quantity_mismatches:
                 issues.append(issue)
                 log.warning(f"Quantity mismatch: {issue.description}")
-            
+
             unrecorded_fills = self._detect_unrecorded_fills(
                 broker_orders, internal_orders
             )
             for issue in unrecorded_fills:
                 issues.append(issue)
                 log.warning(f"Unrecorded fill: {issue.description}")
-            
+
             if self._enable_auto_repair:
                 repaired_count = self._auto_repair(issues, broker_adapter)
-            
+
             is_clean = len(issues) == 0
-            
+
             if not is_clean and self._detect_ambiguity(issues):
                 freeze_reason = self._determine_freeze_reason(issues)
                 self._freeze_trading(freeze_reason, self._format_issues(issues))
@@ -293,7 +294,7 @@ class ReconciliationService:
                 log.warning(
                     f"Reconciliation found {len(issues)} issues but not ambiguous"
                 )
-            
+
             result = ReconciliationResult(
                 is_clean=is_clean,
                 issues=issues,
@@ -302,16 +303,16 @@ class ReconciliationService:
                 internal_orders_count=len(internal_orders),
                 repaired_count=repaired_count,
             )
-            
+
             self._last_reconciliation = result
             self._log_reconciliation_result(result)
-            
+
             return result
-            
+
         except Exception as e:
             log.exception(f"Reconciliation failed: {e}")
             self._freeze_trading(
-                TradingFreezeReason.RECONCILIATION_FAILED, 
+                TradingFreezeReason.RECONCILIATION_FAILED,
                 str(e)
             )
             return ReconciliationResult(
@@ -325,7 +326,7 @@ class ReconciliationService:
                 )],
                 freeze_reason=TradingFreezeReason.RECONCILIATION_FAILED,
             )
-    
+
     def _fetch_broker_orders(self, broker_adapter: Any) -> list[dict]:
         """Fetch orders from broker."""
         try:
@@ -345,7 +346,7 @@ class ReconciliationService:
         except Exception as e:
             log.error(f"Failed to fetch broker orders: {e}")
             return []
-    
+
     def _fetch_broker_positions(self, broker_adapter: Any) -> list[dict]:
         """Fetch positions from broker."""
         try:
@@ -357,7 +358,7 @@ class ReconciliationService:
         except Exception as e:
             log.error(f"Failed to fetch broker positions: {e}")
             return []
-    
+
     def _detect_stale_orders(
         self,
         internal_pending: list[dict],
@@ -365,13 +366,13 @@ class ReconciliationService:
     ) -> list[ReconciliationIssue]:
         """Detect orders in internal state but not in broker."""
         issues = []
-        broker_order_ids = {str(o.get('orderid', o.get('order_id', ''))) 
+        broker_order_ids = {str(o.get('orderid', o.get('order_id', '')))
                           for o in broker_orders}
-        
+
         for order in internal_pending:
             internal_id = order.get('order_id', '')
             broker_id = order.get('broker_order_id', '')
-            
+
             if broker_id and broker_id not in broker_order_ids:
                 issues.append(ReconciliationIssue(
                     issue_type=ReconciliationState.STALE_ORDER,
@@ -380,9 +381,9 @@ class ReconciliationService:
                     broker_value='NOT_FOUND',
                     description=f"Order {internal_id} (broker: {broker_id}) not found in broker"
                 ))
-        
+
         return issues
-    
+
     def _detect_orphan_positions(
         self,
         broker_positions: list[dict],
@@ -390,17 +391,17 @@ class ReconciliationService:
     ) -> list[ReconciliationIssue]:
         """Detect positions in broker but not in internal state."""
         issues = []
-        
+
         internal_symbols = set()
         for order in internal_orders:
             sym = order.get('symbol', '')
             if sym:
                 internal_symbols.add(sym)
-        
+
         for pos in broker_positions:
             symbol = pos.get('symbol', pos.get('tradingsymbol', ''))
             qty = pos.get('quantity', pos.get('net_quantity', 0))
-            
+
             if qty != 0 and symbol not in internal_symbols:
                 issues.append(ReconciliationIssue(
                     issue_type=ReconciliationState.ORPHAN_POSITION,
@@ -409,9 +410,9 @@ class ReconciliationService:
                     broker_value=qty,
                     description=f"Orphan position: {symbol} x {qty} in broker but no internal order"
                 ))
-        
+
         return issues
-    
+
     def _detect_quantity_mismatches(
         self,
         broker_orders: list[dict],
@@ -419,20 +420,20 @@ class ReconciliationService:
     ) -> list[ReconciliationIssue]:
         """Detect quantity mismatches between broker and internal."""
         issues = []
-        
+
         internal_by_broker_id = {}
         for order in internal_orders:
             bid = order.get('broker_order_id')
             if bid:
                 internal_by_broker_id[str(bid)] = order
-        
+
         for broker_order in broker_orders:
             bid = str(broker_order.get('orderid', broker_order.get('order_id', '')))
             if bid in internal_by_broker_id:
                 internal = internal_by_broker_id[bid]
                 broker_qty = broker_order.get('filledshares', broker_order.get('filled_quantity', 0))
                 internal_qty = internal.get('filled_quantity', 0)
-                
+
                 if int(broker_qty) != int(internal_qty):
                     issues.append(ReconciliationIssue(
                         issue_type=ReconciliationState.QUANTITY_MISMATCH,
@@ -441,9 +442,9 @@ class ReconciliationService:
                         broker_value=broker_qty,
                         description=f"Mismatch for {bid}: internal={internal_qty}, broker={broker_qty}"
                     ))
-        
+
         return issues
-    
+
     def _detect_unrecorded_fills(
         self,
         broker_orders: list[dict],
@@ -451,17 +452,17 @@ class ReconciliationService:
     ) -> list[ReconciliationIssue]:
         """Detect fills in broker that weren't recorded internally."""
         issues = []
-        
+
         internal_by_broker_id = {}
         for order in internal_orders:
             bid = order.get('broker_order_id')
             if bid:
                 internal_by_broker_id[str(bid)] = order
-        
+
         for broker_order in broker_orders:
             bid = str(broker_order.get('orderid', broker_order.get('order_id', '')))
             status = str(broker_order.get('orderstatus', broker_order.get('status', ''))).upper()
-            
+
             if 'COMPLETE' in status or 'FILLED' in status:
                 if bid not in internal_by_broker_id:
                     qty = broker_order.get('filledshares', broker_order.get('filled_quantity', 0))
@@ -473,26 +474,26 @@ class ReconciliationService:
                         broker_value={'filled_qty': qty, 'price': price},
                         description=f"Fill in broker not recorded internally: {bid} x {qty} @ {price}"
                     ))
-        
+
         return issues
-    
+
     def _detect_ambiguity(self, issues: list[ReconciliationIssue]) -> bool:
         """Determine if issues are ambiguous enough to warrant freeze."""
         if len(issues) > 3:
             return True
-        
+
         ambiguous_types = {
             ReconciliationState.AMBIGUOUS,
             ReconciliationState.ORPHAN_POSITION,
             ReconciliationState.QUANTITY_MISMATCH,
         }
-        
+
         ambiguous_count = sum(1 for i in issues if i.issue_type in ambiguous_types)
         if ambiguous_count > 0:
             return True
-        
+
         return False
-    
+
     def _determine_freeze_reason(
         self,
         issues: list[ReconciliationIssue],
@@ -502,7 +503,7 @@ class ReconciliationService:
         for issue in issues:
             t = issue.issue_type
             type_counts[t] = type_counts.get(t, 0) + 1
-        
+
         if ReconciliationState.ORPHAN_POSITION in type_counts:
             return TradingFreezeReason.ORPHAN_POSITIONS_DETECTED
         elif ReconciliationState.STALE_ORDER in type_counts:
@@ -511,7 +512,7 @@ class ReconciliationService:
             return TradingFreezeReason.QUANTITY_MISMATCH_UNRESOLVED
         else:
             return TradingFreezeReason.RECONCILIATION_FAILED
-    
+
     def _auto_repair(
         self,
         issues: list[ReconciliationIssue],
@@ -519,7 +520,7 @@ class ReconciliationService:
     ) -> int:
         """Attempt to automatically repair certain issues."""
         repaired = 0
-        
+
         for issue in issues:
             if issue.issue_type == ReconciliationState.STALE_ORDER:
                 try:
@@ -528,7 +529,7 @@ class ReconciliationService:
                     log.info(f"Auto-repaired stale order: {issue.order_id}")
                 except Exception as e:
                     log.error(f"Failed to repair stale order {issue.order_id}: {e}")
-            
+
             elif issue.issue_type == ReconciliationState.UNRECORDED_FILL:
                 try:
                     self._record_unrecorded_fill(issue)
@@ -536,12 +537,12 @@ class ReconciliationService:
                     log.info(f"Auto-repaired unrecorded fill: {issue.order_id}")
                 except Exception as e:
                     log.error(f"Failed to repair unrecorded fill {issue.order_id}: {e}")
-        
+
         return repaired
-    
+
     def _mark_order_terminal(self, order_id: str, status: str):
         """Mark an order as terminal state."""
-        now = datetime.now().isoformat()
+        now = now_ist().isoformat()
         with sqlite3.connect(self._db_path) as conn:
             conn.execute("""
                 UPDATE execution_orders 
@@ -549,12 +550,12 @@ class ReconciliationService:
                 WHERE order_id = ?
             """, (status, now, order_id))
             conn.commit()
-    
+
     def _record_unrecorded_fill(self, issue: ReconciliationIssue):
         """Record a fill that wasn't in internal state."""
         if not issue.order_id or not issue.broker_value:
             return
-        
+
         broker_val = issue.broker_value
         if isinstance(broker_val, dict):
             qty = broker_val.get('filled_qty', 0)
@@ -562,14 +563,14 @@ class ReconciliationService:
         else:
             qty = 0
             price = 0.0
-        
+
         self.update_order_fill(
             order_id=issue.order_id,
             filled_quantity=int(qty),
             average_price=float(price),
             status='FILLED'
         )
-    
+
     def _format_issues(self, issues: list[ReconciliationIssue]) -> str:
         """Format issues for logging/freeze notification."""
         lines = [f"Total issues: {len(issues)}"]
@@ -578,7 +579,7 @@ class ReconciliationService:
         if len(issues) > 10:
             lines.append(f"  ... and {len(issues) - 10} more")
         return "\n".join(lines)
-    
+
     def _log_reconciliation_result(self, result: ReconciliationResult):
         """Log reconciliation result."""
         if result.is_clean:

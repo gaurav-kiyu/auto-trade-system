@@ -30,6 +30,7 @@ def configure_nse_cash_session(
     block_new_entries_from_hm: tuple[int, int] | None = None,
     post_open_no_trade_minutes: int | None = None,
     early_session_end_hm: tuple[int, int] | None = None,
+    saturday_allowed: bool | None = None,
 ) -> None:
     """
     Set NSE cash hours for :func:`is_nse_cash_session` and related helpers.
@@ -39,6 +40,7 @@ def configure_nse_cash_session(
     """
     global _NSE_OPEN, _NSE_CLOSE, _NSE_CONTINUOUS_OPEN, _NSE_SCHEDULE_CLOSED
     global _NSE_BLOCK_ENTRIES_FROM, _NSE_POST_OPEN_NO_TRADE_MINS, _NSE_EARLY_SESSION_END
+    global _SATURDAY_ALLOWED
     _NSE_OPEN = (int(open_hm[0]), int(open_hm[1]))
     _NSE_CLOSE = (int(close_hm[0]), int(close_hm[1]))
     if continuous_open_hm is not None:
@@ -51,6 +53,8 @@ def configure_nse_cash_session(
         _NSE_POST_OPEN_NO_TRADE_MINS = max(0, int(post_open_no_trade_minutes))
     if early_session_end_hm is not None:
         _NSE_EARLY_SESSION_END = (int(early_session_end_hm[0]), int(early_session_end_hm[1]))
+    if saturday_allowed is not None:
+        _SATURDAY_ALLOWED = bool(saturday_allowed)
 
 
 def apply_nse_session_from_cfg(cfg: dict) -> None:
@@ -82,6 +86,7 @@ def apply_nse_session_from_cfg(cfg: dict) -> None:
                 int(cfg.get("NSE_EARLY_SESSION_END_HOUR", 10)),
                 int(cfg.get("NSE_EARLY_SESSION_END_MINUTE", 15)),
             ),
+            saturday_allowed=bool(cfg.get("NSE_SATURDAY_ALLOWED", False)),
         )
     except Exception:
         configure_nse_cash_session(
@@ -119,6 +124,20 @@ def nse_early_session_end_time() -> datetime.time:
     return _hm_to_time(_NSE_EARLY_SESSION_END)
 
 
+# Allow trading on Saturdays (e.g. Muhurat trading session during Diwali).
+# Set via configure_nse_cash_session(saturday_allowed=True) or config key.
+_SATURDAY_ALLOWED: bool = False
+
+
+def set_saturday_allowed(allowed: bool) -> None:
+    global _SATURDAY_ALLOWED
+    _SATURDAY_ALLOWED = allowed
+
+
+def is_saturday_allowed() -> bool:
+    return _SATURDAY_ALLOWED
+
+
 def now_ist() -> datetime.datetime:
     """Naive datetime in IST for logs and filenames — not a tzinfo-aware value."""
     return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + IST_OFFSET
@@ -128,10 +147,14 @@ def is_nse_cash_session(now: datetime.datetime | None = None) -> bool:
     """
     True during NSE cash / index cash hours (Mon–Fri, IST), using bounds from
     :func:`configure_nse_cash_session` (defaults 09:15–15:20).
+    Allows Saturday trading when _SATURDAY_ALLOWED is set (e.g. Muhurat session).
     """
     dt = now or now_ist()
     if dt.weekday() >= 5:
-        return False
+        if dt.weekday() == 5 and _SATURDAY_ALLOWED:
+            pass  # Muhurat / special Saturday session
+        else:
+            return False
     t = dt.time()
     open_ = nse_cash_open_time()
     close = nse_cash_close_time()

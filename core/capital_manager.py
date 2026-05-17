@@ -23,7 +23,7 @@ import threading
 from dataclasses import dataclass
 from typing import Any
 
-from core.safety_state import trip_hard_halt, is_hard_halted
+from core.safety_state import trip_hard_halt
 
 log = logging.getLogger("capital_manager")
 

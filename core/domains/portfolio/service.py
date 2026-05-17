@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from core.datetime_ist import now_ist
+
 # Import shared kernels
 
 # Import domain models and value objects (simplified for this example)
@@ -97,7 +99,7 @@ class PortfolioService:
     def __post_init__(self):
         """Initialize portfolio manager."""
         self._last_equity = 0.0
-        self._last_update = datetime.now()
+        self._last_update = now_ist()
 
     def update_position(self, fill: Any) -> Position:
         """
@@ -268,7 +270,7 @@ class PortfolioService:
             quantity=abs(position.quantity),
             direction="BUY" if position.quantity > 0 else "SELL",
             entry_time=position.timestamp,
-            exit_time=datetime.now(),
+            exit_time=now_ist(),
             realized_pnl=realized_pnl,
             commission=commission,
             strategy_id=getattr(position, 'strategy_id', 'unknown')
@@ -437,7 +439,7 @@ class PortfolioService:
         total_realized_pnl = sum(pos.realized_pnl for pos in self._positions.values())
 
         return {
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': now_ist().isoformat(),
             'base_currency': self.base_currency,
             'positions': {
                 symbol: {
@@ -457,7 +459,7 @@ class PortfolioService:
                 'total_equity': total_market_value + total_realized_pnl
             },
             'recent_trades_count': len([t for t in self._trade_history
-                                      if (datetime.now() - t.exit_time).days < 7])
+                                      if (now_ist() - t.exit_time).days < 7])
         }
 
     def get_equity_curve(self) -> list[float]:
@@ -468,7 +470,7 @@ class PortfolioService:
         """Update the equity curve with a new value."""
         self._equity_curve.append(equity_value)
         self._last_equity = equity_value
-        self._last_update = datetime.now()
+        self._last_update = now_ist()
 
     def calculate_daily_return(self, todays_equity: float, yesterdays_equity: float) -> float:
         """Calculate daily return."""
@@ -497,8 +499,6 @@ if __name__ == "__main__":
     portfolio_service = create_portfolio_service({})
 
     # Simulate some trades
-    from datetime import datetime
-
     # Create mock fill objects
     class MockFill:
         def __init__(self, symbol, quantity, price, direction, timestamp=None, commission=0.0, strategy_id=''):
@@ -506,7 +506,7 @@ if __name__ == "__main__":
             self.quantity = quantity
             self.price = price
             self.direction = direction
-            self.timestamp = timestamp or datetime.now()
+            self.timestamp = timestamp or now_ist()
             self.commission = commission
             self.strategy_id = strategy_id
 

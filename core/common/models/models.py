@@ -8,19 +8,11 @@ from __future__ import annotations
 import datetime
 import time
 from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Dict, List, Optional, Any
-from core.datetime_ist import now_ist
+from enum import Enum
+from typing import Any
 
 # Import shared models from common kernels to avoid duplication
-from core.common.kernels.models import (
-    Order as SharedOrder,
-    OrderResult as SharedOrderResult,
-    Position as SharedPosition,
-    Quote as SharedQuote,
-    Fill as SharedFill,
-    Signal as SharedSignal
-)
+from core.datetime_ist import now_ist
 
 # ...existing code...
 
@@ -109,16 +101,16 @@ class TradingSignal:
     timestamp: datetime.datetime = field(default_factory=now_ist)
 
     # Optional calculated values (must come after required fields)
-    stop_loss: Optional[float] = None
-    target: Optional[float] = None
-    trail_stop: Optional[float] = None
+    stop_loss: float | None = None
+    target: float | None = None
+    trail_stop: float | None = None
 
     # Optional metadata
-    sector: Optional[str] = None
-    lot_size: Optional[int] = None
-    bid_ask_spread: Optional[float] = None
+    sector: str | None = None
+    lot_size: int | None = None
+    bid_ask_spread: float | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "symbol": self.symbol,
@@ -157,8 +149,8 @@ class OrderRequest:
     stop_loss: float
     target: float
     trail_activate: bool = False
-    trail_percent: Optional[float] = None
-    price: Optional[float] = None  # For limit orders
+    trail_percent: float | None = None
+    price: float | None = None  # For limit orders
     timestamp: datetime.datetime = field(default_factory=now_ist)
 
     # Broker-specific fields
@@ -166,7 +158,7 @@ class OrderRequest:
     product_type: str = "OPTIONS"
     validity: str = "DAY"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "symbol": self.symbol,
@@ -196,8 +188,8 @@ class OrderFill:
     lot_size: int
     fill_price: float
     fill_time: datetime.datetime
-    broker_order_id: Optional[str] = None
-    broker_timestamp: Optional[datetime.datetime] = None
+    broker_order_id: str | None = None
+    broker_timestamp: datetime.datetime | None = None
 
     # Financials
     gross_pnl: float = 0.0
@@ -208,7 +200,7 @@ class OrderFill:
     # Metadata
     exchange: str = "NSE"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "order_id": self.order_id,
@@ -239,7 +231,7 @@ class Position:
     entry_time: datetime.datetime
     stop_loss: float
     target: float
-    trail_stop: Optional[float] = None
+    trail_stop: float | None = None
     trailing_activated: bool = False
 
     # Current state
@@ -249,7 +241,7 @@ class Position:
 
     # Metadata
     strategy: str = "OPTIONS_BUYING"
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
     def update_current_price(self, price: float) -> None:
         """Update current price and calculate unrealized P&L."""
@@ -259,7 +251,7 @@ class Position:
         else:  # PUT
             self.unrealized_pnl = (self.entry_price - price) * self.lot_size
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "symbol": self.symbol,
@@ -301,11 +293,11 @@ class Trade:
 
     # Metadata
     strategy: str = "OPTIONS_BUYING"
-    tags: List[str] = field(default_factory=list)
-    regime_at_entry: Optional[MarketRegime] = None
-    session_at_entry: Optional[SessionType] = None
+    tags: list[str] = field(default_factory=list)
+    regime_at_entry: MarketRegime | None = None
+    session_at_entry: SessionType | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "symbol": self.symbol,
@@ -351,27 +343,27 @@ class TradingState:
     eod_report_sent: bool = False
 
     # Tracking
-    eod_report_sent_date: Optional[datetime.date] = None
+    eod_report_sent_date: datetime.date | None = None
     ltp_frozen_sent: set = field(default_factory=set)
-    last_reset_day: Optional[datetime.date] = None
+    last_reset_day: datetime.date | None = None
     last_heartbeat: float = 0.0
     last_summary_ts: float = 0.0
-    last_state_msg: Optional[str] = None
+    last_state_msg: str | None = None
     last_loop_heartbeat: float = field(default_factory=time.monotonic)
     last_market_status: str = ""
-    last_lot_sizes: Dict[str, int] = field(default_factory=dict)
-    saved_config: Dict[str, Any] = field(default_factory=dict)
+    last_lot_sizes: dict[str, int] = field(default_factory=dict)
+    saved_config: dict[str, Any] = field(default_factory=dict)
     checkpoints_fired: set = field(default_factory=set)
-    exception_counts: Dict[str, int] = field(default_factory=dict)
+    exception_counts: dict[str, int] = field(default_factory=dict)
     exception_alerted: set = field(default_factory=set)
-    last_prices: Dict[str, float] = field(default_factory=dict)
+    last_prices: dict[str, float] = field(default_factory=dict)
 
     def is_new_day(self) -> bool:
         """Check if today is a new day compared to last reset."""
         today = now_ist().date()
         return self.last_reset_day != today
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "capital": self.capital,

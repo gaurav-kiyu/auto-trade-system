@@ -99,12 +99,13 @@ def extract_features(signal: dict[str, Any]) -> dict[str, float]:
     All values are floats for compatibility with LightGBM.
     """
     import datetime as _dt
+    from core.datetime_ist import now_ist
 
     entry_ts = signal.get("signal_ts") or signal.get("entry_ts") or 0.0
     try:
         dt = _dt.datetime.fromtimestamp(float(entry_ts))
     except (ValueError, OSError, TypeError):
-        dt = _dt.datetime.now()
+        dt = now_ist()
 
     tier = str(signal.get("tier") or signal.get("strength") or "").upper()
     direction = str(signal.get("direction") or signal.get("signal") or "CALL").upper()
@@ -187,6 +188,7 @@ def load_training_data(
         return None
 
     import datetime as _dt
+    from core.datetime_ist import now_ist
 
     X: list[list[float]] = []
     y: list[int] = []
@@ -201,7 +203,7 @@ def load_training_data(
         try:
             dt = _dt.datetime.fromisoformat(str(entry_ts_str))
         except Exception:
-            dt = _dt.datetime.now()
+            dt = now_ist()
         direction = str(direction or "CALL").upper()
         tier = str(tier or "").upper()
         try:

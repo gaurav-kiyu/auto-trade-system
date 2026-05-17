@@ -16,9 +16,9 @@ import json
 import logging
 import sqlite3
 import threading
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait as _wait_futures
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from core.datetime_ist import now_ist
 from pathlib import Path
 from typing import Any
 
@@ -552,7 +552,11 @@ class TradeJournal:
     def shutdown(self) -> None:
         """Flush any pending writes and release resources. Safe to call multiple times."""
         try:
-            # Ensure any in-flight writes are committed by opening and closing a connection
+            # Drain pending async writes before closing
+            self._pool.shutdown(wait=True)
+        except Exception:
+            pass
+        try:
             conn = self._connect()
             conn.commit()
             conn.close()
@@ -602,7 +606,7 @@ class TradeJournal:
                     "export_metadata": {
                         "mode": mode,
                         "trade_count": len(trades),
-                        "exported_at": str(datetime.now().isoformat()),
+                        "exported_at": str(now_ist().isoformat()),
                         "schema_version": "1.0"
                     },
                     "trades": trades

@@ -2,8 +2,9 @@
 FINNIFTY Specific Filter - Additional filters for FINNIFTY underperformance
 """
 from __future__ import annotations
-from dataclasses import dataclass
+
 import logging
+from dataclasses import dataclass
 
 _log = logging.getLogger(__name__)
 

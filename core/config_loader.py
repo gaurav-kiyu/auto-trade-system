@@ -18,10 +18,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
@@ -33,11 +33,11 @@ SCHEMA_PATH = Path("schemas")
 
 class ConfigLoader:
     """Unified configuration loader with YAML support."""
-    
+
     def __init__(self, config_dir: Path = CONFIG_DIR):
         self.config_dir = config_dir
         self._cache: dict[str, dict] = {}
-    
+
     def load(self, environment: str = "base") -> dict[str, Any]:
         """
         Load configuration for specified environment.
@@ -50,9 +50,9 @@ class ConfigLoader:
         """
         if environment in self._cache:
             return self._cache[environment]
-        
+
         config = {}
-        
+
         # Load base config first
         base_path = self.config_dir / "base.yaml"
         if base_path.exists():
@@ -60,7 +60,7 @@ class ConfigLoader:
                 base_cfg = yaml.safe_load(f) or {}
                 config = self._deep_merge(config, base_cfg)
                 logger.info(f"Loaded base config from {base_path}")
-        
+
         # Load environment-specific config
         if environment != "base":
             env_path = self.config_dir / f"{environment}.yaml"
@@ -71,15 +71,15 @@ class ConfigLoader:
                     logger.info(f"Loaded {environment} config from {env_path}")
             else:
                 logger.warning(f"Config file not found: {env_path}")
-        
+
         # Apply environment variable overrides
         config = self._apply_env_overrides(config)
-        
+
         # Store in cache
         self._cache[environment] = config
-        
+
         return config
-    
+
     def _deep_merge(self, base: dict, override: dict) -> dict:
         """Deep merge two dictionaries."""
         result = dict(base)
@@ -89,7 +89,7 @@ class ConfigLoader:
             else:
                 result[key] = value
         return result
-    
+
     def _apply_env_overrides(self, config: dict) -> dict:
         """Apply OPBUYING_* environment variable overrides."""
         result = dict(config)
@@ -101,7 +101,7 @@ class ConfigLoader:
                 result[config_key] = parsed
                 logger.debug(f"Env override: {config_key} = {parsed}")
         return result
-    
+
     def _parse_env_value(self, value: str) -> Any:
         """Parse environment variable value to appropriate type."""
         # Try bool
@@ -109,33 +109,33 @@ class ConfigLoader:
             return True
         if value.lower() in ("false", "no", "0"):
             return False
-        
+
         # Try int
         try:
             return int(value)
         except ValueError:
             pass
-        
+
         # Try float
         try:
             return float(value)
         except ValueError:
             pass
-        
+
         # Return as string
         return value
-    
+
     def validate_schema(self, config: dict, schema_name: str = "index_config") -> bool:
         """Validate configuration against schema."""
         schema_path = SCHEMA_PATH / f"{schema_name}.schema.json"
         if not schema_path.exists():
             logger.warning(f"Schema not found: {schema_path}")
             return True
-        
+
         # Schema validation would go here
         # For now, just return True
         return True
-    
+
     def get_effective_config(self, environment: str = "base") -> dict[str, Any]:
         """Get effective configuration with validation."""
         config = self.load(environment)
@@ -144,7 +144,7 @@ class ConfigLoader:
 
 
 # Singleton instance
-_loader: Optional[ConfigLoader] = None
+_loader: ConfigLoader | None = None
 
 
 def get_loader() -> ConfigLoader:

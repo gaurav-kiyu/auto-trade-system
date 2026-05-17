@@ -19,6 +19,7 @@ import logging
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.datetime_ist import now_ist
 from typing import Any
 
 log = logging.getLogger("exposure_limits")
@@ -32,7 +33,7 @@ class ExposureSnapshot:
     by_expiry: dict[str, float] = field(default_factory=dict)
     by_direction: dict[str, float] = field(default_factory=dict)  # CALL/PUT
     by_strategy: dict[str, float] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=now_ist)
 
 
 @dataclass
@@ -81,7 +82,7 @@ class ExposureConcentrationLimiter:
                     "direction": direction,
                     "strategy": strategy,
                     "value": value,
-                    "updated_at": datetime.now()
+                    "updated_at": now_ist()
                 }
 
     def remove_position(self, symbol: str) -> None:

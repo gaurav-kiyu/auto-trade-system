@@ -18,7 +18,7 @@ def get_ema_series(series, span):
     except: return series
 """
 
-with open('signal_engine.py', 'r', encoding='utf-8') as f:
+with open('signal_engine.py', encoding='utf-8') as f:
     text = f.read()
 
 text = re.sub(r'get_open = FeatureEngine\.get_open\n?', '', text)

@@ -1,7 +1,6 @@
 import datetime
-from datetime import timezone
-from typing import Callable
 import logging
+from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +13,7 @@ class TimeProvider:
     Prevents time-drift and ensures consistency across signals, 
     risk checks, and order execution.
     """
-    
+
     _now_fn: Callable[[], datetime.datetime] = datetime.datetime.now
 
     @classmethod

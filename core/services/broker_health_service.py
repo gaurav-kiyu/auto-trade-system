@@ -19,6 +19,7 @@ from typing import Any
 
 from core.broker_failover import BrokerFailoverManager
 from core.datetime_ist import now_ist
+from core.logging import LoggingService
 from core.ports.broker.health_port import (
     BrokerHealthMetrics,
     BrokerHealthPort,
@@ -26,7 +27,6 @@ from core.ports.broker.health_port import (
     FailoverConfig,
     HealthCheckType,
 )
-from core.logging import LoggingService
 
 
 @dataclass

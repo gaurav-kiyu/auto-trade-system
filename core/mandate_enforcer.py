@@ -1,12 +1,15 @@
 """
-PRODUCTION MANDATE ENFORCER v2.49
+PRODUCTION MANDATE ENFORCER v2.50
 Wired directly into execution path - not decorative config
 """
 from __future__ import annotations
-from dataclasses import dataclass, field
-from datetime import datetime, time
-from typing import Optional
+
 import logging
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+
+from core.datetime_ist import now_ist
+from core.safety_state import trip_hard_halt as _trip_hard_halt
 
 _log = logging.getLogger(__name__)
 
@@ -18,9 +21,9 @@ class MandateState:
     daily_pnl: float = 0.0
     weekly_pnl: float = 0.0
     loss_streak: int = 0
-    last_trade_time: Optional[datetime] = None
+    last_trade_time: datetime | None = None
     trades_today: int = 0
-    last_event_time: Optional[datetime] = None
+    last_event_time: datetime | None = None
     vix: float = 20.0
     data_stale_seconds: int = 0
     is_hard_halted: bool = False
@@ -54,10 +57,10 @@ class ProductionMandateEnforcer:
         if pnl < 0:
             self._state.loss_streak += 1
             if self._state.loss_streak >= 3:
-                self._trigger_hard_halt(f"3 consecutive losses")
+                self._trigger_hard_halt("3 consecutive losses")
         else:
             self._state.loss_streak = 0
-        self._state.last_trade_time = datetime.utcnow()
+        self._state.last_trade_time = now_ist()
         self._state.trades_today += 1
 
     def reset_daily(self):
@@ -66,6 +69,7 @@ class ProductionMandateEnforcer:
     def _trigger_hard_halt(self, reason: str):
         self._state.is_hard_halted = True
         _log.critical(f"MANDATE HARD HALT: {reason}")
+        _trip_hard_halt(reason, source="ProductionMandateEnforcer")
 
     # =================================================================
     # ACTUAL ENFORCEMENT METHODS - CALLED FROM EXECUTION PATH
@@ -78,7 +82,7 @@ class ProductionMandateEnforcer:
 
         drawdown = (self._state.equity_peak - self._state.capital) / self._state.equity_peak
         if drawdown >= 0.12:
-            self._trigger_hard_halt(f"Max drawdown 12% reached")
+            self._trigger_hard_halt("Max drawdown 12% reached")
             return False, "MAX_DRAWDOWN: 12% protection triggered"
 
         daily_loss_pct = -self._state.daily_pnl / self._state.capital
@@ -87,12 +91,12 @@ class ProductionMandateEnforcer:
 
         weekly_loss_pct = -self._state.weekly_pnl / self._state.capital
         if weekly_loss_pct >= 0.05:
-            return False, f"WEEKLY_CIRCUIT: 5% hit, use 0.75x sizing"
+            self._trigger_hard_halt("Weekly circuit breaker 5% hit")
+            return False, "WEEKLY_CIRCUIT: 5% hit - trading halted"
 
         if self._state.loss_streak >= 3 and self._state.last_trade_time:
-            from datetime import timedelta
             cooldown = self._state.last_trade_time + timedelta(hours=2)
-            if datetime.utcnow() < cooldown:
+            if now_ist() < cooldown:
                 return False, "LOSS_STREAK_COOLDOWN: 2 hours"
 
         if self._state.vix >= 30:
@@ -157,34 +161,28 @@ class ProductionMandateEnforcer:
 
     def should_skip_first_20_min(self) -> bool:
         """Skip first 20 minutes as mandated"""
-        now = datetime.utcnow()
-        ist_hour = (now.hour + 5) % 24
-        ist_minute = now.minute
-        current_mins = ist_hour * 60 + ist_minute
+        now = now_ist()
+        current_mins = now.hour * 60 + now.minute
         market_open_mins = 9 * 60 + 20  # 9:20 IST
         return current_mins < market_open_mins + 20
 
     def should_skip_last_45_min(self) -> bool:
         """Skip last 45 minutes as mandated"""
-        now = datetime.utcnow()
-        ist_hour = (now.hour + 5) % 24
-        ist_minute = now.minute
-        current_mins = ist_hour * 60 + ist_minute
+        now = now_ist()
+        current_mins = now.hour * 60 + now.minute
         market_close_mins = 15 * 60 + 20  # 15:20 IST
         return current_mins > market_close_mins - 45
 
     def is_in_trading_window(self) -> bool:
         """Only 9:20-11:30 and 13:00-14:45 IST"""
-        now = datetime.utcnow()
-        ist_hour = (now.hour + 5) % 24
-        ist_minute = now.minute
+        now = now_ist()
 
         morning_start = 9 * 60 + 20
         morning_end = 11 * 60 + 30
         afternoon_start = 13 * 60
         afternoon_end = 14 * 60 + 45
 
-        current = ist_hour * 60 + ist_minute
+        current = now.hour * 60 + now.minute
         return (morning_start <= current <= morning_end) or (afternoon_start <= current <= afternoon_end)
 
     def get_min_score(self, regime: str) -> int:
@@ -216,7 +214,7 @@ class ProductionMandateEnforcer:
         }
 
 
-_production_enforcer: Optional[ProductionMandateEnforcer] = None
+_production_enforcer: ProductionMandateEnforcer | None = None
 
 
 def get_mandate_enforcer(config: dict = None) -> ProductionMandateEnforcer:

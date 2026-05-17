@@ -38,8 +38,8 @@ from collections.abc import Callable
 from typing import Any
 
 from core.safety_state import hard_halt_reason, is_hard_halted
-from core.telegram.auth.manager import TelegramAuthManager
 from core.telegram.audit.manager import TelegramAuditManager
+from core.telegram.auth.manager import TelegramAuthManager
 
 _log = logging.getLogger(__name__)
 
@@ -412,14 +412,14 @@ class TelegramCommander:
 
         self._token           = str(cfg.get("BOT_TOKEN", ""))
         self._chat_id         = str(cfg.get("CHAT_ID", ""))
-        
+
         # Security Managers
         self._auth = TelegramAuthManager(
             authorized_ids=set(str(x) for x in cfg.get("telegram_authorized_user_ids", [])),
             admin_ids=set(str(x) for x in cfg.get("telegram_admin_user_ids", []))
         )
         self._audit = TelegramAuditManager()
-        
+
         self._poll_secs       = int(cfg.get("telegram_poll_interval_secs", 5))
         self._rate_limit      = int(cfg.get("telegram_cmd_rate_limit_per_min", 10))
         self._live_pos_cmds   = bool(cfg.get("telegram_allow_live_position_cmds", False))

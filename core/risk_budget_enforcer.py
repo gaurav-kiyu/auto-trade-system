@@ -3,10 +3,13 @@ Risk Budget Enforcer - Non-negotiable risk rules from mandate
 PART 3 - Hard stops, circuit breakers, drawdown protection
 """
 from __future__ import annotations
+
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional
-import logging
+
+from core.datetime_ist import now_ist
+from core.safety_state import trip_hard_halt as _trip_hard_halt
 
 _log = logging.getLogger(__name__)
 
@@ -40,8 +43,8 @@ class RiskBudgetEnforcer:
         self._daily_loss: float = 0.0
         self._weekly_loss: float = 0.0
         self._loss_streak: int = 0
-        self._last_trade_time: Optional[datetime] = None
-        self._last_event_time: Optional[datetime] = None
+        self._last_trade_time: datetime | None = None
+        self._last_event_time: datetime | None = None
         self._current_state: str = RiskState.NORMAL
         self._hard_halt_active: bool = False
 
@@ -79,6 +82,7 @@ class RiskBudgetEnforcer:
         self._hard_halt_active = True
         self._current_state = RiskState.HARD_HALT
         _log.critical(f"HARD HALT TRIGGERED: {reason}")
+        _trip_hard_halt(reason, source="RiskBudgetEnforcer")
 
     def can_trade(self) -> tuple[bool, str]:
         if self._hard_halt_active:
@@ -102,14 +106,14 @@ class RiskBudgetEnforcer:
         if self._loss_streak >= self.cfg.loss_streak_threshold:
             if self._last_trade_time:
                 cooldown_end = self._last_trade_time + timedelta(hours=self.cfg.loss_streak_cooldown_hours)
-                if datetime.utcnow() < cooldown_end:
-                    remaining = (cooldown_end - datetime.utcnow()).total_seconds() / 60
+                if now_ist() < cooldown_end:
+                    remaining = (cooldown_end - now_ist()).total_seconds() / 60
                     self._current_state = RiskState.LOSS_STREAK_COOLDOWN
                     return False, f"Loss streak cooldown: {remaining:.0f} min remaining"
 
         if self._last_event_time:
             event_cooldown_end = self._last_event_time + timedelta(minutes=self.cfg.event_cooldown_minutes)
-            if datetime.utcnow() < event_cooldown_end:
+            if now_ist() < event_cooldown_end:
                 self._current_state = RiskState.EVENT_COOLDOWN
                 return False, "High-impact event cooldown active"
 
@@ -118,7 +122,7 @@ class RiskBudgetEnforcer:
 
     def record_event(self, event_type: str, timestamp: datetime = None):
         if timestamp is None:
-            timestamp = datetime.utcnow()
+            timestamp = now_ist()
         if event_type.upper() in ["RBI", "CPI", "FOMC", "BUDGET", "EXPIRY"]:
             self._last_event_time = timestamp
             _log.info(f"Recorded high-impact event: {event_type}")
@@ -146,9 +150,9 @@ class RiskBudgetEnforcer:
         self._weekly_loss = 0.0
 
     def reset_hard_halt(self):
-        self._hard_halt_active = False
-        self._loss_streak = 0
-        self._current_state = RiskState.NORMAL
+        """Hard halt cannot be auto-cleared. Requires operator intervention."""
+        _log.warning("reset_hard_halt() called but hard halt requires manual operator reset via safety_state.trip_hard_halt()")
+        # Global halt is set - only manual restart can clear it
 
     def get_max_position_size_pct(self) -> float:
         drawdown = (self._equity_peak - self._capital) / self._equity_peak if self._equity_peak > 0 else 0

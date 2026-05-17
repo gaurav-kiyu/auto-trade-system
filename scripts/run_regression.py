@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import contextlib
+import csv
 import importlib.util
 import json
 import os
 import subprocess
 import sys
 import uuid
-from datetime import datetime
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 from unittest import mock
-
 
 ROOT = Path(__file__).resolve().parent.parent
 INDEX = ROOT / "INDEX_OPTION_BUYING_APP_1.0.py"
@@ -67,7 +65,18 @@ def _compile_target(path: Path) -> str:
 
 def _check_core_imports() -> str:
     sys.dont_write_bytecode = True
-    from core import AuditEngine, ConfigValidator, DataEngine, ExecutionEngine, RetentionEngine, RiskConfig, RiskEngine, SafetyEngine, StateManager, StrategyEngine
+    from core import (
+        AuditEngine,
+        ConfigValidator,
+        DataEngine,
+        ExecutionEngine,
+        RetentionEngine,
+        RiskConfig,
+        RiskEngine,
+        SafetyEngine,
+        StateManager,
+        StrategyEngine,
+    )
 
     assert AuditEngine and ConfigValidator and DataEngine and ExecutionEngine and RetentionEngine and RiskConfig and RiskEngine and SafetyEngine and StateManager and StrategyEngine
     return "core package imports ok"

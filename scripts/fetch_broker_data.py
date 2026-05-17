@@ -39,10 +39,9 @@ from __future__ import annotations
 import argparse
 import csv
 import sys
+from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Sequence
-
 
 # ---------------------------------------------------------------------------
 # Column schema produced by every fetch path
@@ -176,8 +175,8 @@ def fetch_angel(
     interval: str,
 ) -> list[dict]:
     try:
-        import pyotp                          # type: ignore
-        from SmartApi import SmartConnect     # type: ignore
+        import pyotp  # type: ignore
+        from SmartApi import SmartConnect  # type: ignore
     except ImportError:
         sys.exit("Angel One dependencies not installed. Run: pip install smartapi-python pyotp")
 

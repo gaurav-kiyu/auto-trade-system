@@ -28,6 +28,13 @@ Thumbs.db
 .env.*
 !.env.example
 config.local.json
+config.*.json
+!config.template.json
+secrets.json
+secrets.enc
+*.pem
+*.key
+*.crt
 
 # ── Virtual environments ──────────────────────────────────────────────────────
 .venv/
@@ -63,18 +70,21 @@ config_audit.log
 tg_fallback_alerts.log
 
 # ── State / DB ────────────────────────────────────────────────────────────────
-trader_state.json
-trader_state.json.bak
-stock_trader_state.json
-stock_trader_state.json.bak
-/trades.db
-/stock_trades.db
+*.db
 *.sqlite
 *.sqlite3
-backups/*.json
-nonexistent*.db
-stock_trades.db
+trader_state.json
+trader_state*.json
+stock_trader_state.json
+stock_trader_state.json.bak
+backups/
+
+# ── Secrets / Migration ──────────────────────────────────────────────────────
+secrets_migration*.py
 
 # ── ML models (generated at runtime) ──────────────────────────────────────────
 models/*
 !models/.gitkeep
+
+# ── Audit report (generated) ──────────────────────────────────────────────────
+FORENSIC_AUDIT_REPORT.md

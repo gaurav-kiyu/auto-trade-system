@@ -2,9 +2,9 @@
 Data Quality Monitor - Detects anomalies in market data (price, volume, spread)
 """
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Optional
+
 import logging
+from dataclasses import dataclass
 
 _log = logging.getLogger(__name__)
 
@@ -20,8 +20,8 @@ class DataQualityConfig:
 class DataQualityMonitor:
     def __init__(self, config: DataQualityConfig):
         self.config = config
-        self._last_price: Optional[float] = None
-        self._last_volume: Optional[float] = None
+        self._last_price: float | None = None
+        self._last_volume: float | None = None
 
     def check_price_anomaly(
         self,

@@ -2,9 +2,9 @@
 Signal Refiner - Multi-indicator confirmation and false signal filtering
 """
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Optional
+
 import logging
+from dataclasses import dataclass
 
 _log = logging.getLogger(__name__)
 
@@ -34,10 +34,10 @@ class SignalRefiner:
         score: int,
         regime: str,
         iv_rank: float,
-        rsi: Optional[float] = None,
-        macd: Optional[str] = None,
-        adx: Optional[float] = None,
-        vix: Optional[float] = None,
+        rsi: float | None = None,
+        macd: str | None = None,
+        adx: float | None = None,
+        vix: float | None = None,
     ) -> tuple[bool, str]:
         if not self.config.enabled:
             return False, ""

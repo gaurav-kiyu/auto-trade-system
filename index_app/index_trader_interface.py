@@ -17,7 +17,7 @@ instances from the DI container and calls read-only methods on them.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from index_app.index_trader import container, setup_di_container
 
@@ -46,16 +46,16 @@ def start_trader(*, paper: bool = True) -> Any:
     persist = container.resolve("PersistencePort")
 
     class Controller:
-        def get_positions(self) -> List[Dict[str, Any]]:
+        def get_positions(self) -> list[dict[str, Any]]:
             return getattr(exec_svc, "list_positions", lambda: [])()
 
-        def get_state(self) -> Dict[str, Any]:
+        def get_state(self) -> dict[str, Any]:
             return getattr(persist, "export_state", lambda: {})()
 
-        def scan_signals(self) -> List[Dict[str, Any]]:
+        def scan_signals(self) -> list[dict[str, Any]]:
             return getattr(exec_svc, "scan_and_score", lambda: [])()
 
-        def health(self) -> Dict[str, Any]:
+        def health(self) -> dict[str, Any]:
             hb = {}
             for svc_name, svc in ("execution", exec_svc), ("risk", risk_svc):
                 try:
@@ -67,18 +67,18 @@ def start_trader(*, paper: bool = True) -> Any:
     return Controller()
 
 
-def get_state_snapshot() -> Dict[str, Any]:
+def get_state_snapshot() -> dict[str, Any]:
     _ensure_initialized()
     persist = container.resolve("PersistencePort")
     return getattr(persist, "export_state", lambda: {})()
 
 
-def generate_signal_snapshot() -> List[Dict[str, Any]]:
+def generate_signal_snapshot() -> list[dict[str, Any]]:
     _ensure_initialized()
     exec_svc = container.resolve("ExecutionPort")
     return getattr(exec_svc, "scan_and_score", lambda: [])()
 
 
-def health_check() -> Dict[str, Any]:
+def health_check() -> dict[str, Any]:
     _ensure_initialized()
     return start_trader().health()

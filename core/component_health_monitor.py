@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.datetime_ist import now_ist
 from typing import Any
 
 log = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class ComponentHealthMonitor:
     def check_all(self) -> list[ComponentHealth]:
         """Check health of all registered components."""
         results = []
-        self._last_check = datetime.now()
+        self._last_check = now_ist()
 
         for name, component in self._components.items():
             health = self._check_component(name, component)

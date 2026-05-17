@@ -5,10 +5,12 @@ Handles daily loss limits, consecutive loss protection, and portfolio-level cons
 """
 
 from __future__ import annotations
-from typing import Any, Dict, Optional
+
 from dataclasses import dataclass
-from core.safety_state import trip_hard_halt
+
 from core.ports.risk.risk_port import RiskDecision, RiskEvaluation
+from core.safety_state import trip_hard_halt
+
 
 @dataclass
 class LimitConfig:

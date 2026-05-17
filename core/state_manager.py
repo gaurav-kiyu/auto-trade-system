@@ -3,9 +3,12 @@ import logging
 import os
 import shutil
 import sqlite3
-from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+import threading
+from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
 from core.time_provider import time_provider
 
 log = logging.getLogger("state_manager")
@@ -24,7 +27,7 @@ class StateManager:
     Ensures atomic updates to trader state and provides a bridge 
     between the JSON state file and the SQLite trade database.
     """
-    
+
     def __init__(
         self,
         state_file: str = "trader_state.json",
@@ -37,11 +40,12 @@ class StateManager:
     ):
         self.state_path = Path(state_file)
         self.db_path = Path(db_path)
-        self._state: Dict[str, Any] = {}
+        self._state: dict[str, Any] = {}
         self._save_fn = save_fn
         self._load_fn = load_fn
         self._local_positions_fn = local_positions_fn
         self._broker_positions_fn = broker_positions_fn
+        self._lock = threading.Lock()
 
         if self._load_fn is not None:
             self._load_fn()
@@ -52,12 +56,12 @@ class StateManager:
         """Loads state from disk with fallback to recovery."""
         try:
             if self.state_path.exists():
-                with open(self.state_path, "r") as f:
+                with open(self.state_path) as f:
                     self._state = json.load(f)
                 log.info(f"State loaded from {self.state_path}")
             else:
                 self._state = {}
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             log.error(f"State corrupted: {e}. Recovering from DB...")
             self.recover_state_from_db()
 
@@ -65,8 +69,9 @@ class StateManager:
         return self._state.get(key, default)
 
     def set(self, key: str, value: Any):
-        self._state[key] = value
-        self.save_state()
+        with self._lock:
+            self._state[key] = value
+            self.save_state()
 
     def save_state(self):
         """Atomic write: Write to tmp -> Flush -> Rename."""
@@ -76,19 +81,42 @@ class StateManager:
                 json.dump(self._state, f, indent=4)
                 f.flush()
                 os.fsync(f.fileno())
-            shutil.move(str(tmp_path), str(self.state_path))
+            # Only rename if tmp and target are on same filesystem
+            if tmp_path.exists():
+                shutil.move(str(tmp_path), str(self.state_path))
         except Exception as e:
             log.error(f"Atomic save failed: {e}")
 
-    def recover_state_from_db(self):
-        """Reconstructs positions from trades.db where exit_ts is NULL."""
+    def recover_state_from_db(self, broker_positions: dict[str, Any] | None = None):
+        """Reconstructs positions from trades.db where exit_ts is NULL.
+        
+        If broker_positions is provided, cross-checks DB positions against
+        broker reality to eliminate phantom positions from stale NULL exit_ts.
+        """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute("SELECT symbol, qty, entry_price FROM trades WHERE exit_ts IS NULL")
             open_pos = cursor.fetchall()
-            
+
             recovered = {row[0]: {"qty": row[1], "entry_price": row[2]} for row in open_pos}
+
+            # Cross-check against broker positions if available
+            if broker_positions is not None:
+                broker_symbols = set(str(k) for k in (broker_positions or {}).keys())
+                db_symbols = set(recovered.keys())
+                phantom = db_symbols - broker_symbols
+                if phantom:
+                    log.warning(
+                        f"PHANTOM POSITIONS DETECTED (in DB but not on broker): {phantom}. "
+                        f"Removing from recovered state."
+                    )
+                    for sym in phantom:
+                        del recovered[sym]
+                matched = db_symbols & broker_symbols
+                if matched:
+                    log.info(f"Broker-confirmed positions: {matched}")
+
             self._state["active_positions"] = recovered
             self._state["recovery_mode"] = True
             self._state["last_recovery_ts"] = time_provider.format_ts()
@@ -113,7 +141,7 @@ class StateManager:
         broker_keys = set(broker_pos.keys())
         matched = len(local_keys & broker_keys)
         aligned = (matched == len(local_keys))
-        
+
         return SessionRecoveryReport(
             local_positions=len(local_keys),
             broker_positions=len(broker_keys),

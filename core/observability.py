@@ -1,9 +1,8 @@
-import time
 import logging
-from typing import Dict, Any, Optional
+import time
 
 try:
-    from prometheus_client import start_http_server, Counter, Gauge, Histogram, Summary
+    from prometheus_client import Counter, Gauge, Histogram, Summary, start_http_server
     _prometheus_available = True
 except ImportError:
     _prometheus_available = False
@@ -37,38 +36,38 @@ log = logging.getLogger("observability")
 
 # Execution Latency: Signal -> Order Submission
 ORDER_LATENCY = Histogram(
-    "opb_order_latency_seconds", 
+    "opb_order_latency_seconds",
     "Time from signal generation to broker submission",
     buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0)
 )
 
 # Slippage: Expected Price vs Actual Fill Price
 ORDER_SLIPPAGE = Gauge(
-    "opb_order_slippage_pct", 
+    "opb_order_slippage_pct",
     "Percentage slippage on last filled order",
     ["symbol", "direction"]
 )
 
 # System Health
 BROKER_HEALTH = Gauge(
-    "opb_broker_health_status", 
+    "opb_broker_health_status",
     "Broker connectivity status (1=Healthy, 0=Down)",
     ["broker_name"]
 )
 
 ML_FALLBACK_COUNT = Counter(
-    "opb_ml_fallback_total", 
+    "opb_ml_fallback_total",
     "Number of times ML engine triggered fallback logic"
 )
 
 # Risk Metrics
 DAILY_PNL = Gauge(
-    "opb_daily_pnl_amount", 
+    "opb_daily_pnl_amount",
     "Current realized + unrealized daily PnL"
 )
 
 RISK_LIMIT_PROXIMITY = Gauge(
-    "opb_risk_limit_proximity_pct", 
+    "opb_risk_limit_proximity_pct",
     "How close the system is to the daily loss limit (0-100%)"
 )
 
@@ -77,7 +76,7 @@ class ObservabilityManager:
     Central hub for system monitoring.
     Integrates Prometheus metrics and structured logging.
     """
-    
+
     def __init__(self, port: int = 9090):
         self.port = port
         self._server_started = False

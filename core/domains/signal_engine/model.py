@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.datetime_ist import now_ist
 from enum import Enum
 from typing import Any
 
@@ -45,7 +46,7 @@ class TradingSignal:
 
     def __post_init__(self):
         if self.timestamp is None:
-            self.timestamp = datetime.now()
+            self.timestamp = now_ist()
 
     def is_valid(self) -> bool:
         """Validate the trading signal.
@@ -70,7 +71,7 @@ class MarketData:
 
     def __post_init__(self):
         if self.timestamp is None:
-            self.timestamp = datetime.now()
+            self.timestamp = now_ist()
 
 
 @dataclass

@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.datetime_ist import now_ist
 from datetime import time as dt_time
 from typing import Any
 
@@ -85,7 +86,7 @@ class DailySessionReporter:
     def generate_report(self, date: datetime | None = None) -> SessionReport:
         """Generate session report for given date."""
         if date is None:
-            date = datetime.now()
+            date = now_ist()
 
         date_str = date.strftime("%Y-%m-%d")
         report = SessionReport(
@@ -99,7 +100,7 @@ class DailySessionReporter:
             self._calculate_pnl(report, date_str)
             self._calculate_risk_metrics(report)
             self._calculate_performance(report)
-            report.ended_at = datetime.now()
+            report.ended_at = now_ist()
             report.duration_minutes = (report.ended_at - report.started_at).total_seconds() / 60
         except Exception as e:
             log.error(f"Failed to generate session report: {e}")

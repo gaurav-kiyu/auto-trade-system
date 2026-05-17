@@ -3,9 +3,9 @@ Margin Validator - CRITICAL FIX #2
 Fixed to validate using ACTUAL intended quantity, not test quantity.
 """
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Optional, Tuple
+
 import logging
+from dataclasses import dataclass
 
 _log = logging.getLogger(__name__)
 
@@ -18,8 +18,8 @@ class MarginValidationResult:
     available_margin: float
     post_trade_buffer: float
     safety_reserve: float
-    error_message: Optional[str] = None
-    warning_message: Optional[str] = None
+    error_message: str | None = None
+    warning_message: str | None = None
 
 
 class MarginValidator:
@@ -163,7 +163,7 @@ class MarginValidator:
 
 
 # Singleton
-_margin_validator: Optional[MarginValidator] = None
+_margin_validator: MarginValidator | None = None
 
 
 def get_margin_validator(config: dict = None) -> MarginValidator:

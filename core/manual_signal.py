@@ -25,7 +25,9 @@ import sqlite3
 import threading
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+from core.datetime_ist import now_ist
 from typing import Any
 
 _log = logging.getLogger(__name__)
@@ -228,7 +230,7 @@ class ManualSignalQueue:
             direction=direction.upper(),
             score=max(0, min(100, int(score))),
             reason=str(reason),
-            submitted_at=datetime.utcnow().isoformat(),
+            submitted_at=now_ist().isoformat(),
             expiry=expiry,
             lots_override=lots_override,
             sl_override=sl_override,
@@ -262,7 +264,7 @@ class ManualSignalQueue:
         sl_override: float | None = None,
     ) -> bool:
         """Approve a pending signal. Returns True if state changed."""
-        now = datetime.utcnow().isoformat()
+        now = now_ist().isoformat()
         with self._lock:
             sig = self._get(signal_id)
             if sig is None or sig.status != PENDING:
@@ -280,7 +282,7 @@ class ManualSignalQueue:
 
     def reject(self, signal_id: str, reviewer: str = "Operator", reason: str = "") -> bool:
         """Reject a pending signal. Returns True if state changed."""
-        now = datetime.utcnow().isoformat()
+        now = now_ist().isoformat()
         with self._lock:
             sig = self._get(signal_id)
             if sig is None or sig.status != PENDING:
@@ -307,14 +309,14 @@ class ManualSignalQueue:
             self._update(signal_id, {
                 "status": CANCELLED,
                 "reject_reason": reason or "Cancelled",
-                "reviewed_at": datetime.utcnow().isoformat(),
+                "reviewed_at": now_ist().isoformat(),
             })
         _log.info("[MANUAL_Q] Cancelled %s: %s", signal_id, reason)
         return True
 
     def expire_old(self) -> int:
         """Expire PENDING signals older than timeout_mins. Returns count expired."""
-        cutoff = (datetime.utcnow() - timedelta(minutes=self._timeout_mins)).isoformat()
+        cutoff = (now_ist() - timedelta(minutes=self._timeout_mins)).isoformat()
         with self._lock:
             cur = self._conn.execute(
                 "UPDATE manual_signals SET status=? WHERE status=? AND submitted_at<?",
@@ -330,7 +332,7 @@ class ManualSignalQueue:
         """Auto-approve signals whose auto_approve_after_secs window has elapsed."""
         if self._auto_approve_secs <= 0:
             return []
-        cutoff = (datetime.utcnow() - timedelta(seconds=self._auto_approve_secs)).isoformat()
+        cutoff = (now_ist() - timedelta(seconds=self._auto_approve_secs)).isoformat()
         approved: list[ManualSignal] = []
         with self._lock:
             rows = self._conn.execute(
@@ -343,7 +345,7 @@ class ManualSignalQueue:
                 self._update(sig.signal_id, {
                     "status": APPROVED,
                     "reviewed_by": "AUTO",
-                    "reviewed_at": datetime.utcnow().isoformat(),
+                    "reviewed_at": now_ist().isoformat(),
                 })
                 approved.append(sig)
         return approved

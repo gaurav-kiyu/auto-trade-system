@@ -16,17 +16,16 @@ from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from core.datetime_ist import now_ist
 from typing import Any
 
-from core.risk.limits.manager import LimitConfig, RiskLimitsManager
-from core.risk.sizing.manager import PositionSizingManager
+from core.logging import LoggingService
 from core.ports.persistence.persistence_port import TradePersistencePort
 from core.ports.risk.risk_port import PortfolioRiskMetrics, PositionSizingInput, RiskDecision, RiskEvaluation, RiskPort
-from core.safety_state import trip_hard_halt, is_hard_halted
-from core.datetime_ist import now_ist
+from core.risk.limits.manager import LimitConfig, RiskLimitsManager
+from core.risk.sizing.manager import PositionSizingManager
+from core.safety_state import trip_hard_halt
 from core.utils_numeric import safe_num as _safe_num
-
-from core.logging import LoggingService
 
 
 @dataclass
@@ -82,7 +81,8 @@ class RiskService(RiskPort):
         get_open_positions_fn: Callable[[], int] | None = None,
         get_daily_pnl_fn: Callable[[], float] | None = None,
         get_volatility_fn: Callable[[str], float] | None = None,
-        get_margin_fn: Callable[[str, int], float] | None = None
+        get_margin_fn: Callable[[str, int], float] | None = None,
+        get_live_vix_fn: Callable[[], float] | None = None
     ):
         self.config = config or RiskServiceConfig()
         self.limits = RiskLimitsManager(LimitConfig(
@@ -100,6 +100,7 @@ class RiskService(RiskPort):
         self._get_daily_pnl = get_daily_pnl_fn or (lambda: 0.0)
         self._get_volatility = get_volatility_fn or (lambda symbol: 20.0)  # Default VIX 20
         self._get_margin = get_margin_fn or (lambda symbol, qty: 0.0)  # Default no margin
+        self._get_live_vix = get_live_vix_fn or (lambda: 20.0)  # Live VIX for real-time risk adjustment
 
         # Persistence for historical data
         self._trade_persistence = trade_persistence
@@ -109,7 +110,7 @@ class RiskService(RiskPort):
 
         # Loss tracking
         self._consecutive_losses = 0
-        self._last_loss_reset = datetime.now()
+        self._last_loss_reset = now_ist()
         self._recent_losses: list[datetime] = []
         self._peak_pnl = 0.0
         self._max_drawdown = 0.0
@@ -431,6 +432,7 @@ class RiskService(RiskPort):
             capital = self._get_capital()
             daily_pnl = self._get_daily_pnl()
             open_positions = self._get_open_positions()
+            live_vix = self.get_live_vix()
 
             # If we get here, basic components work, get full metrics
             metrics = self.get_portfolio_risk_metrics()
@@ -448,7 +450,8 @@ class RiskService(RiskPort):
                     "daily_pnl": metrics.daily_pnl,
                     "open_positions": metrics.open_positions_count,
                     "consecutive_losses": metrics.consecutive_losses,
-                    "available_capital": metrics.available_capital
+                    "available_capital": metrics.available_capital,
+                    "live_vix": live_vix
                 }
             }
         except Exception as e:
@@ -647,6 +650,23 @@ class RiskService(RiskPort):
             risk_score=0.0
         )
 
+    def get_live_vix(self) -> float:
+        """Get live India VIX for real-time risk adjustment (Phase 2)."""
+        try:
+            return self._get_live_vix()
+        except Exception:
+            return 20.0  # Default fallback
+
+    def _lazy_vix_getter(self) -> float:
+        """Lazy VIX getter that imports from index_trader after it's initialized."""
+        try:
+            import index_app.index_trader as m
+            if m.DATA_ENGINE is not None:
+                return m.DATA_ENGINE.get_india_vix()
+        except Exception:
+            pass
+        return 20.0
+
     def _get_lot_size(self, symbol: str) -> int:
         """Get lot size for a symbol."""
         # In a real implementation, this would come from reference data
@@ -774,7 +794,6 @@ class RiskService(RiskPort):
 
     def _get_sector_for_symbol(self, symbol: str) -> str:
         """Get sector for a symbol (simplified mapping)."""
-        # This would ideally come from reference data
         sector_map = {
             "NIFTY": "INDEX",
             "BANKNIFTY": "INDEX",
@@ -794,3 +813,12 @@ class RiskService(RiskPort):
             "AXISBANK": "FINANCIAL"
         }
         return sector_map.get(symbol, "OTHER")
+
+    def get_required_margin_per_lot(self, symbol: str, price: float) -> float:
+        """
+        Get required margin per lot for a symbol.
+        This is a simplified estimation - in production, broker API provides actual margin.
+        """
+        lot_size = self._get_lot_size(symbol)
+        margin_percentage = 0.20  # Assume 20% margin requirement
+        return price * lot_size * margin_percentage

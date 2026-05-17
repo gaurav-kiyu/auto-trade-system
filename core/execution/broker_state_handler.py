@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from core.datetime_ist import now_ist
 from enum import Enum
 
 log = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class StateResolution:
     message: str
     can_retry: bool
     is_terminal: bool
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=now_ist)
 
 
 class BrokerStateHandler:
@@ -115,7 +116,7 @@ class BrokerStateHandler:
             )
 
         if status_upper in ("OPEN", "PENDING", "TRIGGER PENDING", "SUBMITTED"):
-            if last_update and (datetime.now() - last_update).total_seconds() > self._timeout_seconds:
+            if last_update and (now_ist() - last_update).total_seconds() > self._timeout_seconds:
                 return StateResolution(
                     category=BrokerStateCategory.TIMEOUT,
                     action=ActionRecommendation.RETRY,
