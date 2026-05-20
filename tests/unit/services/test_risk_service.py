@@ -7,6 +7,7 @@ import pytest
 from unittest.mock import Mock, patch
 from datetime import datetime, timedelta
 
+from core.safety_state import get_consecutive_losses, record_trade_outcome, reset_consecutive_losses
 from core.services.risk_service import RiskService, RiskServiceConfig
 from core.ports.risk.risk_port import (
     RiskPort,
@@ -23,6 +24,7 @@ class TestRiskService:
 
     def setup_method(self):
         """Set up test fixtures."""
+        reset_consecutive_losses()  # Ensure clean centralized counter
         self.persistence_mock = Mock(spec=TradePersistencePort)
         self.config = RiskServiceConfig()
         self.service = RiskService(
@@ -34,7 +36,7 @@ class TestRiskService:
         """Test service initialization."""
         assert self.service.config == self.config
         assert self.service._trade_persistence == self.persistence_mock
-        assert self.service._consecutive_losses == 0
+        assert get_consecutive_losses() == 0
         assert self.service._lock is not None
         assert self.service._logger is not None
 
@@ -426,17 +428,21 @@ class TestRiskService:
         # Setup
         self.service._peak_pnl = 5000.0
         self.service._max_drawdown = 2000.0
-        self.service._consecutive_losses = 3
+        # Set consecutive losses via centralized counter
+        for _ in range(3):
+            record_trade_outcome(was_profit=False)
         self.service._last_loss_reset = datetime.now() - timedelta(hours=10)
-        
+
         # Execute
         self.service.reset_daily_metrics()
-        
+
         # Verify
         assert self.service._peak_pnl == 0.0
         assert self.service._max_drawdown == 0.0
         # Since 10 hours > loss_reset_hours (6), consecutive losses should reset
-        assert self.service._consecutive_losses == 0
+        assert get_consecutive_losses() == 0
+        # Cleanup
+        reset_consecutive_losses()
 
     def test_health_check_healthy(self):
         """Test health check when service is healthy."""

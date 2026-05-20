@@ -82,10 +82,10 @@ class IdempotencyManager:
                         res = json.loads(res_json)
                         self._cache[key] = (ts, res)
 
-                    # Clean up old in-flight keys from previous sessions
+                    # Clean up old in-flight keys from previous sessions (24h expiry)
                     conn.execute(
                         "DELETE FROM idempotency_keys WHERE status = 'in_flight' "
-                        "AND timestamp < datetime('now', '-1 hour')"
+                        "AND timestamp < datetime('now', '-24 hours')"
                     )
                     conn.commit()
             log.info(f"Loaded {len(self._cache)} idempotency keys from persistence")

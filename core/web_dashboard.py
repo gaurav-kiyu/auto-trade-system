@@ -473,6 +473,7 @@ def create_app(
             if authorization != f"Bearer {expected}":
                 raise HTTPException(status_code=401, detail="Unauthorised")
         # Rate limit via RateLimitingService if available, else fallback to inline
+        now_ts = time.time()
         if rate_limiter is not None:
             from core.ports.rate_limiting.rate_limit_port import LimitResult
             result = rate_limiter.is_allowed("webhook", cost=1)
@@ -481,15 +482,14 @@ def create_app(
                 return {"status": "rate_limited", "retry_after": retry_after}
         else:
             rate_limit = int(c.get("webhook_rate_limit_per_min", 5))
-            now_ts = time.time()
             _webhook_times[:] = [t for t in _webhook_times if now_ts - t < 60.0]
             if len(_webhook_times) >= rate_limit:
                 return {"status": "rate_limited", "calls_last_min": len(_webhook_times)}
         payload = body or {}
-        _webhook_times.append(now_ts if 'now_ts' in dir() else time.time())
+        _webhook_times.append(now_ts)
         _sig_log.append({**payload, "source": "webhook"})
         _log.info("[DASH] /signals/inject received: %s", payload.get("symbol", "?"))
-        return {"status": "queued", "ts": time.time()}
+        return {"status": "queued", "ts": now_ts}
 
     # ── v2.45 Item 22: Options chain visualization ────────────────────────────
 
@@ -567,6 +567,20 @@ def maybe_start_dashboard(
     if not c.get("web_dashboard_enabled", False):
         return None
     try:
+        # Auto-configure rate limiter from config if not explicitly provided
+        if rate_limiter is None:
+            try:
+                from core.services.rate_limiting_service import RateLimitingService
+                from core.ports.rate_limiting.rate_limit_port import RateLimitConfig
+                rl = RateLimitingService()
+                rl.update_config("webhook", RateLimitConfig(
+                    limit=int(c.get("rate_limiter_webhook_limit", c.get("webhook_rate_limit_per_min", 5))),
+                    window=int(c.get("rate_limiter_webhook_window_secs", c.get("webhook_rate_limit_per_min", 5) > 0 and 60 or 60)),
+                    algorithm="fixed_window",
+                ))
+                rate_limiter = rl
+            except Exception:
+                pass
         app = create_app(c, state_path, signal_log, db_path, pause_event, signal_queue, ws_feed_manager, rate_limiter)
         host = str(c.get("web_dashboard_host", _DEFAULT_HOST))
         port = int(c.get("web_dashboard_port", _DEFAULT_PORT))

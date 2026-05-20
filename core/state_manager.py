@@ -75,6 +75,8 @@ class StateManager:
 
     def save_state(self):
         """Atomic write: Write to tmp -> Flush -> Rename."""
+        if self._save_fn is not None:
+            self._save_fn()
         tmp_path = self.state_path.with_suffix(".tmp")
         try:
             with open(tmp_path, "w") as f:

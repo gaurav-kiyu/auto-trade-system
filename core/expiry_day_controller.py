@@ -24,7 +24,7 @@ class StrategyType(str, Enum):
     DIRECTIONAL = "DIRECTIONAL"
     SPREAD = "SPREAD"
     STRADDLE = "STRADDLE"
-    iron_condor = "IRON_CONDOR"
+    IRON_CONDOR = "IRON_CONDOR"
     OPTIONS_SELLING = "OPTIONS_SELLING"
     UNKNOWN = "UNKNOWN"
 

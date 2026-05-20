@@ -30,11 +30,11 @@ import os
 log = logging.getLogger("risk_engine")
 
 ACTIVE_RISK_ENGINE = os.environ.get("OPBUYING_ACTIVE_RISK_ENGINE", "risk_engine")
-assert ACTIVE_RISK_ENGINE == "risk_engine", (
-    f"CRITICAL: ACTIVE_RISK_ENGINE must be 'risk_engine', got '{ACTIVE_RISK_ENGINE}'. "
-    f"Multiple risk engines detected. Use ONLY core.risk_engine."
-)
-log.warning(f"RISK ENGINE VALIDATION: ACTIVE_RISK_ENGINE = '{ACTIVE_RISK_ENGINE}'")
+if ACTIVE_RISK_ENGINE != "risk_engine":
+    raise RuntimeError(
+        f"ACTIVE_RISK_ENGINE must be 'risk_engine', got '{ACTIVE_RISK_ENGINE}'. "
+        f"Multiple risk engines detected. Use ONLY core.risk_engine."
+    )
 
 import time
 from collections.abc import Callable
@@ -135,12 +135,13 @@ class RiskEngine:
         return bool(self._latency_check_fn(start_ts))
 
     def current_loss_streak(self) -> int:
-        if not self._consecutive_loss_fn:
-            return 0
-        try:
-            return max(0, int(self._consecutive_loss_fn()))
-        except Exception:
-            return 0
+        if self._consecutive_loss_fn is not None:
+            try:
+                return max(0, int(self._consecutive_loss_fn()))
+            except Exception:
+                return 999
+        from core.safety_state import get_consecutive_losses
+        return get_consecutive_losses()
 
     def quality_check(
         self,
@@ -226,6 +227,9 @@ def evaluate_risk(
     symbol: str = "",
 ) -> dict[str, Any]:
     """
+    DEPRECATED: Use RiskEngine.evaluate() or RiskService.evaluate_trade() instead.
+    This standalone function is kept for backward compatibility in tests.
+
     Standalone risk evaluation (backward-compatible with RiskEngineV2 API).
 
     Args:

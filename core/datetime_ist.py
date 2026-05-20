@@ -204,3 +204,19 @@ def format_weekday_bias_str(weekday_bias: Any) -> str:
     if not isinstance(weekday_bias, dict):
         return "WEEKDAY_BIAS: (invalid)"
     return "WEEKDAY_BIAS: " + ", ".join(f"{k}={v}" for k, v in sorted(weekday_bias.items()))
+
+
+def is_in_auction_session(now: datetime.datetime | None = None) -> bool:
+    """True during NSE pre-open call auction (09:00-09:15) or post-close auction (15:30-15:45).
+
+    During these windows, NSE uses single-price matching and quotes are not tradable.
+    All order entry should be blocked.
+    """
+    if now is None:
+        now = now_ist()
+    t = now.time()
+    if datetime.time(9, 0) <= t < datetime.time(9, 15):
+        return True
+    if datetime.time(15, 30) <= t < datetime.time(15, 45):
+        return True
+    return False

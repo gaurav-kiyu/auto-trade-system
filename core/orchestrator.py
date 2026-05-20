@@ -104,6 +104,8 @@ class Orchestrator:
         }
 
     def run_cycle(self) -> OrchestratorCycle:
+        from core.safety_state import check_kill_file_and_halt
+        check_kill_file_and_halt()
         names = list(self._names_provider() or [])
         snapshot = self._data_engine.fetch_market_snapshot(names)
         signals: list[OrchestratorSignal] = []

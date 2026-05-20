@@ -353,7 +353,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from core.datetime_ist import now_ist
+from core.datetime_ist import now_ist, is_in_auction_session
 from core.expiry_day_controller import ExpiryDayController, StrategyType
 from core.execution.broker_exceptions import (
     AuthExpiredError,
@@ -380,10 +380,15 @@ from core.ports.risk import RiskPort
 
 # v2.49 CRITICAL FIX imports
 from core.risk.margin_validator import get_margin_validator
-from core.safety_state import hard_halt_reason, is_hard_halted, trip_hard_halt
+from core.safety_state import (
+    check_intraday_pnl_and_halt,
+    hard_halt_reason,
+    is_hard_halted,
+    is_shutting_down,
+    trip_hard_halt,
+)
 from core.services.broker_health_service import BrokerHealthService
 from core.services.circuit_breaker_service import CircuitBreakerService
-from core.services.execution_service import ExecutionService
 from core.services.notification_service import NotificationService
 from core.services.persistence_service import PersistenceService
 from core.services.rate_limiting_service import RateLimitingService
@@ -450,9 +455,11 @@ class _LegacyBrokerShim:
 _broker = _LegacyBrokerShim()
 
 
+_send_impl = lambda msg, critical=False, **kw: None  # wired at init
+
 def send(message: str, critical: bool = False, **kwargs) -> None:
-    """Legacy send() shim used by tests and manual signal code."""
-    return None
+    """Legacy send() shim. Wired to NotificationService after init."""
+    _send_impl(message, critical=critical, **kwargs)
 
 
 log = logging.getLogger(__name__)
@@ -461,6 +468,12 @@ log = logging.getLogger(__name__)
 def __getattr__(name: str):
     if name == "_hard_halt_reason":
         return hard_halt_reason()
+    if name == "_HARD_HALT":
+        from core.safety_state import _HARD_HALT
+        return _HARD_HALT
+    if name == "_shutdown":
+        from core.safety_state import _shutdown
+        return _shutdown
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 PAPER_MODE = True
@@ -478,9 +491,33 @@ def _load_config():
         return
     try:
         cfg_path = os.environ.get("OPBUYING_INDEX_CONFIG", "config.json")
-        with open(cfg_path) as f:
-            raw_cfg = json.load(f)
+        # Validate config path is within project directory
+        from pathlib import Path as _Path
+        _resolved = _Path(cfg_path).resolve()
+        _project_root = _Path(__file__).resolve().parent.parent
+        try:
+            _resolved.relative_to(_project_root)
+        except ValueError:
+            print(f"WARNING: Config path '{cfg_path}' resolves outside project root '{_project_root}' — using defaults")
+            _CFG = {}
+            _config_loaded = True
+            return
+        # Config checksum verification: load raw bytes, compute SHA-256,
+        # compare against stored _checksum field (if present).
+        with open(cfg_path, "rb") as _f:
+            _raw_bytes = _f.read()
+        _computed_checksum = __import__("hashlib").sha256(_raw_bytes).hexdigest()
+        raw_cfg = json.loads(_raw_bytes.decode("utf-8"))
         cfg = dict(raw_cfg)
+        _stored_checksum = cfg.pop("_checksum", None)
+        if _stored_checksum and _computed_checksum != _stored_checksum:
+            print(
+                f"ERROR: Config checksum mismatch for '{cfg_path}'. "
+                f"File may be corrupted or tampered with. Using defaults."
+            )
+            _CFG = {}
+            _config_loaded = True
+            return
         apply_execution_mode(cfg, cli_paper=False, infer_blank_from_broker=True)
         MANUAL_SIGNALS_ONLY = cfg.get("MANUAL_SIGNALS_ONLY", True)
         BROKER_API_ENABLED = cfg.get("BROKER_API_ENABLED", False)
@@ -488,14 +525,27 @@ def _load_config():
         PAPER_MODE = str(EXECUTION_MODE).upper() in ("PAPER", "SIM", "TEST")
         _CFG = cfg
         _config_loaded = True
-    except Exception:
+        print(f"INFO: Config loaded from {_resolved}")
+        # Secret hygiene check: warn if config contains potential secrets
+        try:
+            from core.secret_hygiene import check_config_secrets
+            _secret_result = check_config_secrets(cfg)
+            if _secret_result.issues_found and _secret_result.issues:
+                print(f"WARNING: {_secret_result.issues[0].message}")
+        except Exception:
+            pass
+    except FileNotFoundError:
+        print(f"WARNING: Config file '{cfg_path}' not found. Using default configuration.")
         _CFG = {}
         _config_loaded = True
-
-try:
-    _load_config()
-except Exception:
-    pass
+    except json.JSONDecodeError as _jex:
+        print(f"ERROR: Config file '{cfg_path}' is not valid JSON: {_jex}. Using default configuration.")
+        _CFG = {}
+        _config_loaded = True
+    except Exception as _ex:
+        print(f"ERROR: Failed to load config '{cfg_path}': {_ex}. Using default configuration.")
+        _CFG = {}
+        _config_loaded = True
 SIGNAL_MAX_AGE = 65
 RECONCILE_HALT_ON_QTY_MISMATCH = True
 ADAPTIVE_THRESHOLD_ENABLED = True
@@ -512,18 +562,6 @@ from core.services.signal_orchestrator import init_signal_orchestrator
 _portfolio_service = PortfolioService(_CFG)
 # Initialize Signal Orchestrator
 init_signal_orchestrator(_CFG)
-# Initialize Execution Service
-_execution_service = ExecutionService(portfolio_service=_portfolio_service)
-
-# CRITICAL FIX: Run startup reconciliation to recover non-terminal orders from crash
-if _execution_service:
-    try:
-        recon_result = _execution_service.reconcile_pending_orders()
-        log.info(f"Startup reconciliation: {recon_result.get('issues_count', 0)} issues, frozen={recon_result.get('freeze_reason')}")
-        if recon_result.get('freeze_reason'):
-            trip_hard_halt(f"Startup reconciliation freeze: {recon_result['freeze_reason']}")
-    except Exception as e:
-        log.error(f"Startup reconciliation failed: {e}")
 
 # Initialize Production Mandate Enforcer (v2.49 - actually enforces mandate)
 _MANDATE_ENFORCER = get_mandate_enforcer(_CFG)
@@ -535,6 +573,9 @@ _deterministic_state_machine = get_execution_state_manager()
 
 # Broker truth reconciler will be initialized when broker is available
 _broker_truth_reconciler = None
+
+# Execution service - initialized in _setup_container
+_execution_service = None
 
 # Risk service - initialized in _setup_container, consolidated from duplicate risk engines
 _risk_service = None
@@ -550,6 +591,18 @@ _token_refresh_service = TokenRefreshService(_CFG)
 _warmup_manager = MarketWarmup(_CFG)
 _ws_feed_manager = KiteTickerFeedManager(_CFG)
 _ltp_resolver = LtpResolver(cfg=_CFG, ws_feed=_ws_feed_manager)
+
+# NewsSentinel — background RSS risk scanner
+from core.news_sentinel import NewsSentinel
+_news_sentinel = NewsSentinel(_CFG)
+_news_sentinel.start()
+
+# Structured audit trail — JSONL event log
+from core.audit_engine import AuditEngine
+_audit_engine = AuditEngine(
+    path=_CFG.get("AUDIT_LOG_PATH", "audit_trail.jsonl"),
+    enabled=bool(_CFG.get("AUDIT_LOG_ENABLED", True)),
+)
 
 
 def _shutdown_ws_feed() -> None:
@@ -640,6 +693,18 @@ def _make_broker():
     """Legacy broker factory for compatibility with old index_trader tests and workflows."""
     from core.adapters.broker_adapters import BrokerAdapter, PaperBrokerAdapter
 
+    # Validate broker selection against execution mode
+    driver = str(_CFG.get("BROKER_DRIVER", "PAPER")).upper()
+    is_real_driver = driver not in ("PAPER", "SIM", "TEST", "")
+    if is_real_driver and (MANUAL_SIGNALS_ONLY or not BROKER_API_ENABLED or PAPER_MODE):
+        log.warning(
+            f"[BROKER_CFG] BROKER_DRIVER={driver} but "
+            f"MANUAL_SIGNALS_ONLY={MANUAL_SIGNALS_ONLY}, "
+            f"BROKER_API_ENABLED={BROKER_API_ENABLED}, "
+            f"PAPER_MODE={PAPER_MODE} — forcing PAPER adapter"
+        )
+        return BrokerAdapter(PaperBrokerAdapter())
+
     if MANUAL_SIGNALS_ONLY or EXECUTION_MODE in ("MANUAL", "MANUAL_ONLY", "SIGNALS_ONLY"):
         return BrokerAdapter(PaperBrokerAdapter())
     if not (BROKER_API_ENABLED and not PAPER_MODE):
@@ -651,7 +716,7 @@ def _make_broker():
         return create_broker_adapter_with_runtime_context(
             cfg=_CFG,
             index_map=INDEX_MAP,
-            driver=str(_CFG.get("BROKER_DRIVER", "PAPER")),
+            driver=driver,
             broker_api_enabled=BROKER_API_ENABLED,
             paper_mode=PAPER_MODE,
             manual_signals_only=MANUAL_SIGNALS_ONLY,
@@ -659,9 +724,9 @@ def _make_broker():
             now_fn=now_ist,
             log_fn=log,
             send_fn=send,
-            shutdown_is_set_fn=lambda: False,
+            shutdown_is_set_fn=is_shutting_down,
             hard_halt_is_set_fn=is_hard_halted,
-            sleep_fn=time.sleep,
+            sleep_fn=lambda secs: time.sleep(secs),
             broker_wait_poll_sec=float(_CFG.get("BROKER_WAIT_POLL_SEC", 1.0)),
             expiry_str_fn=lambda s: s,
             circuit_breaker=_circuit_breaker_service,
@@ -696,9 +761,30 @@ def _telegram_action_body(sig):
 
 def enter_trade(name, sig):
     """Entry gate for all trades. Risk-gated, idempotent, fail-closed."""
+    from core.safety_state import check_kill_file_and_halt
+    check_kill_file_and_halt()
+    _audit_engine.record("enter_trade", symbol=name,
+                         direction=sig.get("direction"), price=sig.get("price"),
+                         score=sig.get("score"))
     if is_hard_halted():
         decision_log[name] = {"msg": "HARD HALT ACTIVE — blocked"}
+        _audit_engine.record("blocked", symbol=name, reason="HARD_HALT")
         return
+
+    # Intraday P&L gate: trip hard halt if running loss exceeds intraday limit
+    if check_intraday_pnl_and_halt(source="enter_trade"):
+        decision_log[name] = {"msg": "INTRADAY_LOSS_LIMIT — hard halt tripped"}
+        return
+
+    # News risk gate: block entry during HIGH/EXTREME news risk levels
+    try:
+        news_risk = _news_sentinel.get_current_risk()
+        if news_risk.risk_level in ("HIGH", "EXTREME"):
+            decision_log[name] = {"msg": f"NEWS_BLOCK: {news_risk.risk_level} — {news_risk.headline}"}
+            log.warning(f"[NEWS_BLOCK] {name} blocked: {news_risk.risk_level} — {news_risk.headline}")
+            return
+    except Exception:
+        pass  # Fail-open: allow entry if news sentinel unavailable
 
     # Warm-up gate: throttle entries during market open warm-up period
     if not _warmup_manager.can_enter(name):
@@ -714,6 +800,12 @@ def enter_trade(name, sig):
                 send(f"EXPIRY_BLOCK: {name} — {expiry_result.reason}", critical=True)
             return
 
+    # Auction session gate: block entry during NSE pre-open/post-close auctions
+    if is_in_auction_session():
+        decision_log[name] = {"msg": "AUCTION_BLOCK: Entry blocked during NSE auction session"}
+        send(f"AUCTION_BLOCK: {name} — Entry blocked during NSE auction session", critical=True)
+        return
+
     # CRITICAL FIX #1 (Phase 0): Evaluate trade via RiskService before ANY other processing
     # RiskService.evaluate_trade() checks: daily loss limit, consecutive losses,
     # portfolio limits, margin requirements, trade quality, position sizing limits
@@ -724,6 +816,9 @@ def enter_trade(name, sig):
             if risk_eval.decision.value == "denied":
                 decision_log[name] = {"msg": f"RISK_BLOCK: {risk_eval.reason} (score={risk_eval.risk_score:.2f})"}
                 send(f"RISK_BLOCK: {name} — {risk_eval.reason}", critical=True)
+                _audit_engine.record("risk_block", symbol=name,
+                                     reason=risk_eval.reason,
+                                     risk_score=risk_eval.risk_score)
                 return
         except Exception as e:
             # Fail-closed: on risk evaluation error, BLOCK the trade
@@ -774,7 +869,7 @@ def enter_trade(name, sig):
     # Token refresh check: ensure broker auth is fresh before placing order
     _last_token_check = getattr(_token_refresh_service, "_last_check", {})
     if _token_refresh_service._enabled:
-        broker_port = globals().get("_broker_port") or locals().get("_execution_service")
+        broker_port = getattr(_execution_service, "broker_port", None)
         if broker_port is not None:
             _token_refresh_service.check_and_refresh({"primary": broker_port})
 
@@ -935,8 +1030,32 @@ def _reconcile_positions_live():
                         trip_hard_halt(reason)
                         return
 
+try:
+    _load_config()
+except Exception as _cfg_err:
+    log.warning("Config loading failed (non-fatal): %s", _cfg_err)
+
 def _periodic_reconcile():
-    pass
+    """
+    Periodic reconciliation: compare internal state with broker, fix mismatches.
+    Runs ACK watchdog for stuck orders and reconciles pending positions.
+    """
+    global _execution_service
+    if _execution_service is not None:
+        try:
+            ack_result = _execution_service.run_ack_watchdog(max_ack_age_seconds=30.0)
+            if ack_result["acknowledged"] > 0:
+                log.info(f"[RECONCILE] Recovered {ack_result['acknowledged']} stuck orders via ACK watchdog")
+            if ack_result["errors"] > 0:
+                log.warning(f"[RECONCILE] ACK watchdog errors: {ack_result['errors']}")
+
+            # Reconcile pending orders with broker positions
+            if hasattr(_execution_service, 'reconcile_pending_orders'):
+                recon_result = _execution_service.reconcile_pending_orders()
+                if not recon_result.get("is_clean", True):
+                    log.warning(f"[RECONCILE] Pending order reconciliation found {recon_result.get('issues_count', 0)} issues")
+        except Exception as exc:
+            log.warning(f"[RECONCILE] Error during reconciliation: {exc}", exc_info=True)
 
 def _broker_positions_snapshot():
     return {}
@@ -1027,15 +1146,26 @@ def _check_manual_kill():
     return False
 
 def circuit_breaker_ok():
-    import warnings
-    warnings.warn("Deprecated: circuit_breaker_ok is unused stub - use core/circuit_breaker_monitor.py", DeprecationWarning, stacklevel=2)
+    """Check if the new CircuitBreakerService allows broker calls.
+
+    Returns True if the circuit breaker is CLOSED or not configured for broker keys.
+    """
+    cb = _circuit_breaker_service
+    if cb is None:
+        return True
+    for key in ("broker.place_order", "broker.get_order_status", "broker.cancel_order"):
+        try:
+            st = cb.get_stats(key)
+            if st.state.value == "open":
+                return False
+        except Exception:
+            continue
     return True
 
 CURRENT_MODE = "NORMAL"
 
 def _check_consec_loss_limit():
-    import warnings
-    warnings.warn("Deprecated: _check_consec_loss_limit is unused stub", DeprecationWarning, stacklevel=2)
+    """Stub — real check handled by core/risk/limits/manager.py RiskLimitsManager."""
     return False
 
 def _vix_cooldown_active(vix):
@@ -1344,11 +1474,12 @@ RISK_ENGINE: Any = None
 _REGIME_POSITION_SIZING = False
 RISK_MODE = "FIXED"
 RISK_FIXED_AMOUNT = 500
-MAX_DAILY_LOSS = -800
+_raw_mdl = _CFG.get("MAX_DAILY_LOSS", -2000)
+MAX_DAILY_LOSS = -abs(float(_raw_mdl))  # always negative (loss limit)
 PORTFOLIO_MAX_SL_RISK_PCT = 0.75
-MIN_NET_RR = 1.5
-SL_PCT = 0.92
-TARGET_PCT = 1.3
+MIN_NET_RR = float(_CFG.get("MIN_NET_RR", 1.5))
+SL_PCT = float(_CFG.get("SL_PCT", 0.92))
+TARGET_PCT = float(_CFG.get("TARGET_PCT", 1.3))
 MAX_LOT_CAPITAL_PCT = 0.85
 BROKERAGE_PER_TRADE = 40
 PARTIAL_EXIT_ENABLED = False
@@ -1361,8 +1492,7 @@ STRATEGY_ENGINE: Any = None
 EXECUTION_ENGINE: Any = None
 _AUDIT_ENGINE: Any = None
 
-_max_intraday_loss = 0.0
-max_daily_loss = 0.0
+# max_daily_loss is read from _CFG via MAX_DAILY_LOSS (line 1373)
 # =============================================================================
 # END STUB EXPORTS
 # =============================================================================
@@ -1392,7 +1522,7 @@ def _on_ws_tick(msg: dict) -> None:
 def setup_di_container() -> None:
     """Set up the dependency injection container with all service implementations."""
     from core.di_container import get_container
-    from core.services.execution_service import ExecutionService
+    from core.services.execution_service import ExecutionService, ExecutionServiceConfig
     from infrastructure.adapters.brokers.paper.adapter import PaperBrokerAdapter
     from infrastructure.adapters.persistence.sqlite_adapter import SQLiteAdapter
 
@@ -1419,16 +1549,34 @@ def setup_di_container() -> None:
     if _CFG.get("kite_ticker_startup_connect", True):
         _ws_feed_manager.connect(on_message=_on_ws_tick)
 
-    execution_service = ExecutionService(broker_port=broker_port, trade_persistence=trade_persistence)
+    global _execution_service
+    execution_service = ExecutionService(
+        broker_port=broker_port,
+        trade_persistence=trade_persistence,
+        config=ExecutionServiceConfig(idempotency_db_path="execution_state.db"),
+    )
+    _execution_service = execution_service
     container.register_singleton(ExecutionPort, type(execution_service))
     container._singleton_instances[ExecutionPort] = execution_service
 
+    from core.services.risk_service import RiskServiceConfig
+    _risk_config = RiskServiceConfig(
+        max_daily_loss=float(_CFG.get("MAX_DAILY_LOSS", -2000)),
+        max_daily_trades=int(_CFG.get("MAX_TRADES_DAY", 10)),
+        max_open_positions=int(_CFG.get("MAX_OPEN", 5)),
+        max_consecutive_losses=int(_CFG.get("MAX_CONSECUTIVE_LOSSES", 3)),
+    )
     risk_service = RiskService(
+        config=_risk_config,
         trade_persistence=trade_persistence,
         get_live_vix_fn=lambda: DATA_ENGINE.get_india_vix() if DATA_ENGINE else 20.0
     )
     container.register_singleton(RiskPort, type(risk_service))
     container._singleton_instances[RiskPort] = risk_service
+
+    # Configure intraday P&L monitoring from config
+    from core.safety_state import set_intraday_loss_limit
+    set_intraday_loss_limit(float(_CFG.get("INTRADAY_LOSS_LIMIT", _CFG.get("MAX_DAILY_LOSS", -2000))))
 
     notification_service = NotificationService()
     container.register_singleton(NotificationPort, type(notification_service))
@@ -1445,6 +1593,10 @@ def setup_di_container() -> None:
         send_fn = getattr(notification_service, 'send', None)
     if not send_fn:
         send_fn = lambda x: None
+
+    # Wire legacy send() to the real notification service
+    global _send_impl
+    _send_impl = send_fn
 
     # v2.47 Execution Hardening - Initialize for production hardening
     from core.execution_hardening_integration import init_execution_hardening
@@ -1485,8 +1637,42 @@ def setup_di_container() -> None:
 
     circuit_breaker_service = CircuitBreakerService()
     _circuit_breaker_service = circuit_breaker_service
+
+    # Configure broker-specific circuit breaker keys from config
+    raw_cfg = dict(config)
+    cb_enabled = raw_cfg.get("circuit_breaker_broker_enabled", True)
+    if cb_enabled:
+        from core.ports.circuit_breaker.circuit_breaker_port import CircuitBreakerConfig as CBCfg
+        broker_cfg = CBCfg(
+            failure_threshold=int(raw_cfg.get("circuit_breaker_broker_failure_threshold", 3)),
+            success_threshold=int(raw_cfg.get("circuit_breaker_success_threshold", 3)),
+            timeout=int(raw_cfg.get("circuit_breaker_broker_timeout_secs", 30)),
+            sliding_window_size=int(raw_cfg.get("circuit_breaker_sliding_window_size", 10)),
+            failure_rate_threshold=float(raw_cfg.get("circuit_breaker_failure_rate_threshold", 0.5)),
+            half_open_max_requests=int(raw_cfg.get("circuit_breaker_broker_half_open_max_requests", 2)),
+            timeout_exponential_base=float(raw_cfg.get("circuit_breaker_timeout_exponential_base", 2.0)),
+        )
+        for key in ("broker.place_order", "broker.exit_order", "broker.get_order_status", "broker.cancel_order"):
+            circuit_breaker_service.update_config(key, broker_cfg)
+        log.info("Broker circuit breaker configured with threshold=%d timeout=%d",
+                 broker_cfg.failure_threshold, broker_cfg.timeout)
+
     container.register_singleton(CircuitBreakerPort, type(circuit_breaker_service))
     container._singleton_instances[CircuitBreakerPort] = circuit_breaker_service
+
+    # Configure webhook rate limiter
+    if raw_cfg.get("rate_limiter_webhook_enabled", True) and _rate_limiting_service is not None:
+        try:
+            from core.ports.rate_limiting.rate_limit_port import RateLimitConfig as RLCfg
+            webhook_rl = RLCfg(
+                limit=int(raw_cfg.get("rate_limiter_webhook_limit", 5)),
+                window=int(raw_cfg.get("rate_limiter_webhook_window_secs", 60)),
+                algorithm="fixed_window",
+            )
+            _rate_limiting_service.update_config("webhook", webhook_rl)
+            log.info("Webhook rate limiter configured: %d req/%ds", webhook_rl.limit, webhook_rl.window)
+        except Exception as exc:
+            log.warning("Failed to configure webhook rate limiter: %s", exc)
 
     ml_model_service = MLModelAdapter()
     container.register_singleton(MlModelPort, type(ml_model_service))
@@ -1543,6 +1729,22 @@ health_check = health_check_shim
 def main() -> None:
     """Main entry point that sets up DI container for production use."""
     from core.di_container import get_container
+    from core.python_runtime import register_shutdown_callback
+    from core.safety_state import start_kill_file_watcher
+
+    # Register shutdown callbacks for graceful shutdown
+    # 1. Flush trader state to disk
+    register_shutdown_callback(
+        lambda: _portfolio_service.save() if hasattr(_portfolio_service, 'save') else None
+    )
+    # 2. Flush state machines to disk
+    register_shutdown_callback(
+        lambda: _deterministic_state_machine.flush() if hasattr(_deterministic_state_machine, 'flush') else None
+    )
+    # 3. Disconnect WebSocket feed
+    register_shutdown_callback(_shutdown_ws_feed)
+
+    start_kill_file_watcher()
     setup_di_container()
     container = get_container()
     config = container.resolve(ConfigPort)

@@ -20,7 +20,7 @@ def test_run_candle_backtest_on_fixture_csv():
         regime_params=PureIndexRegimeParams(99.0, 5.0, 50.0),
         iv_spike_threshold=99.0,
         vol_ratio_min=0.01,
-        backtest_cfg=CandleBacktestConfig(warmup_bars=30, base_ai_threshold=25, latency_bars=0, fee_per_lot=0.0),
+        backtest_cfg=CandleBacktestConfig(warmup_bars=30, base_ai_threshold=25, latency_bars=0, fee_per_lot=0.0, strict_oi=False),
         symbol="NIFTY",
     )
     assert res.ending_capital >= 0

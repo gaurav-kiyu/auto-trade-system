@@ -500,6 +500,8 @@ mod.S.target_hit                      = False
 mod.can_reenter                       = lambda name: True
 mod.expiry_entry_allowed              = lambda: True
 mod._last_entry_ts.clear()
+# Disable expiry controller so entry isn't blocked by time-of-day gates
+mod._expiry_controller._enable_controls = False
 
 # ── positions: empty ─────────────────────────────────────────────────────
 with mod._pos_lock:

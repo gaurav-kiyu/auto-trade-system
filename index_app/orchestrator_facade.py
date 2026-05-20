@@ -60,7 +60,13 @@ def build_index_orchestrator():
         return m._execution_mode_label()
 
     def _entry_gate(_name: str, _signal: dict[str, Any]) -> bool:
-        return True
+        # Block entry if hard halt, intraday loss, or kill file detected
+        from core.safety_state import check_intraday_pnl_and_halt, check_kill_file_and_halt, is_hard_halted
+        check_kill_file_and_halt()
+        if is_hard_halted():
+            return False
+        check_intraday_pnl_and_halt(source="orchestrator_entry_gate")
+        return not is_hard_halted()
 
     def _system_mode() -> str:
         try:

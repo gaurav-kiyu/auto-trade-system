@@ -24,7 +24,11 @@ from core.ports.persistence.persistence_port import TradePersistencePort
 from core.ports.risk.risk_port import PortfolioRiskMetrics, PositionSizingInput, RiskDecision, RiskEvaluation, RiskPort
 from core.risk.limits.manager import LimitConfig, RiskLimitsManager
 from core.risk.sizing.manager import PositionSizingManager
-from core.safety_state import trip_hard_halt
+from core.safety_state import (
+    get_consecutive_losses,
+    reset_consecutive_losses,
+    trip_hard_halt,
+)
 from core.utils_numeric import safe_num as _safe_num
 
 
@@ -40,7 +44,7 @@ class RiskServiceConfig:
     max_daily_trades: int = 10            # Maximum trades per day
 
     # Portfolio limits
-    max_open_positions: int = 5           # Maximum concurrent positions
+    max_open_positions: int = 1           # Maximum concurrent positions (default 1, config via MAX_OPEN)
     max_portfolio_risk: float = 0.25      # 25% of capital at risk
 
     # Loss protection
@@ -108,8 +112,7 @@ class RiskService(RiskPort):
         # Thread safety
         self._lock = threading.RLock()
 
-        # Loss tracking
-        self._consecutive_losses = 0
+        # Loss tracking — single source of truth in safety_state
         self._last_loss_reset = now_ist()
         self._recent_losses: list[datetime] = []
         self._peak_pnl = 0.0
@@ -138,7 +141,10 @@ class RiskService(RiskPort):
         portfolio_metrics: PortfolioRiskMetrics
     ) -> RiskEvaluation:
         """
-        Evaluate whether a trade should be allowed based on risk parameters.
+        NOTE: Primary evaluate_trade. This is the authoritative implementation.
+        See also: core/risk_engine.py::RiskEngine.evaluate() for the
+        unified risk engine variant, and core/domains/risk/service.py for
+        the clean-architecture variant. All should produce consistent results.
 
         Args:
             symbol: Trading symbol
@@ -334,26 +340,26 @@ class RiskService(RiskPort):
                     max_drawdown=self._max_drawdown,
                     open_positions_count=open_positions,
                     max_open_positions=self.config.max_open_positions,
-                    consecutive_losses=self._consecutive_losses,
+                    consecutive_losses=get_consecutive_losses(),
                     max_consecutive_losses=self.config.max_consecutive_losses,
                     sector_exposure=dict(sector_exposure),
                     symbol_exposure=symbol_exposure
                 )
 
             except Exception as e:
-                self._logger.error(f"Error getting portfolio risk metrics: {e}")
-                # Return safe defaults
+                self._logger.error(f"Error getting portfolio risk metrics: {e}", exc_info=True)
+                # Fail-closed: return metrics that will block trading
                 return PortfolioRiskMetrics(
-                    total_capital=100000.0,
+                    total_capital=0.0,
                     used_capital=0.0,
-                    available_capital=100000.0,
-                    daily_pnl=0.0,
+                    available_capital=0.0,
+                    daily_pnl=-999999.0,
                     max_daily_loss=self.config.max_daily_loss,
-                    current_drawdown=0.0,
+                    current_drawdown=1.0,
                     max_drawdown=0.0,
-                    open_positions_count=0,
-                    max_open_positions=self.config.max_open_positions,
-                    consecutive_losses=0,
+                    open_positions_count=999,
+                    max_open_positions=0,
+                    consecutive_losses=999,
                     max_consecutive_losses=self.config.max_consecutive_losses,
                     sector_exposure={},
                     symbol_exposure={}
@@ -416,7 +422,7 @@ class RiskService(RiskPort):
             # Reset loss counter if enough time has passed
             hours_since_reset = (now_ist() - self._last_loss_reset).total_seconds() / 3600
             if hours_since_reset >= self.config.loss_reset_hours:
-                self._consecutive_losses = 0
+                reset_consecutive_losses()
                 self._last_loss_reset = now_ist()
             self._logger.info("Daily risk metrics reset")
 
@@ -663,8 +669,8 @@ class RiskService(RiskPort):
             import index_app.index_trader as m
             if m.DATA_ENGINE is not None:
                 return m.DATA_ENGINE.get_india_vix()
-        except Exception:
-            pass
+        except Exception as _ex:
+            self._logger.debug(f"Could not fetch live VIX: {_ex}")
         return 20.0
 
     def _get_lot_size(self, symbol: str) -> int:

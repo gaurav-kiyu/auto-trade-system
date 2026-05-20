@@ -89,6 +89,9 @@ class ExecutionEngine:
         last_reason = "broker returned no order id"
         last_exception: Exception | None = None
 
+        _consecutive_retryable: int = 0
+        _last_retryable_type: str = ""
+
         for attempt in range(1, max(1, retries) + 1):
             start = time.monotonic()
             try:
@@ -100,6 +103,31 @@ class ExecutionEngine:
 
                 # Classify the error to determine retry strategy (Phase 0 fix)
                 decision = BrokerErrorClassifier.classify(exc)
+
+                # Circuit breaker: if 2 consecutive RETRYABLE failures with the
+                # same error type, escalate to UNKNOWN (stop retrying).
+                if decision == RetryDecision.RETRY:
+                    _exc_type = type(exc).__name__
+                    if _exc_type == _last_retryable_type:
+                        _consecutive_retryable += 1
+                    else:
+                        _consecutive_retryable = 1
+                        _last_retryable_type = _exc_type
+                    if _consecutive_retryable >= 2:
+                        decision = RetryDecision.UNKNOWN
+                        last_reason = (
+                            f"CIRCUIT_BREAKER: {_consecutive_retryable}x consecutive "
+                            f"{_exc_type} errors — retry stopped"
+                        )
+                        self._capture({
+                            "event": "retry_circuit_breaker_opened",
+                            "symbol": name,
+                            "direction": direction,
+                            "qty": qty,
+                            "strike": strike,
+                            "error_type": _exc_type,
+                            "consecutive_failures": _consecutive_retryable,
+                        })
 
                 if decision == RetryDecision.PERMANENT:
                     # PERMANENT errors should never be retried - could cause duplicates

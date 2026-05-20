@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.safety_state import trip_hard_halt
 from core.logging import LoggingService
 
 
@@ -107,15 +108,19 @@ class NSECircuitBreakerMonitor:
                 time.sleep(60)
 
     def _check_circuit_breaker(self) -> None:
-        """Check current circuit breaker level."""
+        """Check current circuit breaker level against previous close baseline."""
         try:
             current_price = self._get_index_price()
             if current_price is None:
                 return
 
-            # Set baseline on first call
+            # Set baseline from previous close (using first-tick fallback if unavailable)
             if self._baseline_price is None:
                 self._baseline_price = current_price
+                self._logger.warning(
+                    "Circuit breaker baseline set from first intraday tick (prev close unavailable). "
+                    "Gap openings will be invisible to circuit breaker until market open baseline is configured."
+                )
                 return
 
             # Calculate percentage change from baseline
@@ -153,7 +158,7 @@ class NSECircuitBreakerMonitor:
             self._logger.error(f"Error checking circuit breaker: {e}")
 
     def _handle_market_halt(self, level: str) -> None:
-        """Handle market halt event."""
+        """Handle market halt event — blocks ALL new entries."""
         self._last_halt_time = now_ist()
 
         alert = f"""
@@ -170,8 +175,11 @@ Check: https://www.nseindia.com/market-data/live-market-indices
 """
         self._send_fn(alert)
 
-        # Note: Do not halt - position monitoring should continue
-        # but no new entries should be allowed
+        # Trip hard halt — block all new entries until manually cleared
+        trip_hard_halt(
+            f"NSE circuit breaker triggered: {level} drop at {self._last_halt_time.strftime('%H:%M:%S')}",
+            source="NSECircuitBreakerMonitor._handle_market_halt",
+        )
 
     def reset_baseline(self) -> None:
         """Reset baseline price (call at market open)."""

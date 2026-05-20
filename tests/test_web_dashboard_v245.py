@@ -173,3 +173,32 @@ def test_control_pause_still_works():
     client = TestClient(app)
     resp = client.post("/control/pause")
     assert resp.status_code == 200
+
+
+def test_inject_uses_rate_limiter_when_provided():
+    """When RateLimitingService is passed to create_app, it's used for rate limiting."""
+    try:
+        from fastapi.testclient import TestClient
+    except ImportError:
+        pytest.skip("fastapi not installed")
+    try:
+        from core.services.rate_limiting_service import RateLimitingService
+        from core.ports.rate_limiting.rate_limit_port import RateLimitConfig
+        from core.web_dashboard import create_app
+        rl = RateLimitingService()
+        rl.update_config("webhook", RateLimitConfig(limit=1, window=60, algorithm="fixed_window"))
+        cfg = {
+            "webhook_enabled": True,
+            "rate_limiter_webhook_enabled": True,
+            "web_dashboard_enabled": True,
+        }
+        app = create_app(cfg, rate_limiter=rl)
+        client = TestClient(app)
+        # First call allowed
+        resp = client.post("/signals/inject", json={"symbol": "TEST"})
+        assert resp.json()["status"] == "queued"
+        # Second call rate-limited
+        resp = client.post("/signals/inject", json={"symbol": "TEST"})
+        assert resp.json()["status"] == "rate_limited"
+    except ImportError:
+        pytest.skip("fastapi not installed")

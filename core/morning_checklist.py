@@ -81,7 +81,8 @@ class MorningChecklist:
 
     def _run_loop(self) -> None:
         """Main loop that checks if it's 9:00 AM and runs the checklist."""
-        while self._running:
+        from core.safety_state import is_shutting_down
+        while self._running and not is_shutting_down():
             try:
                 current_time = now_ist()
                 today_str = current_time.strftime("%Y-%m-%d")

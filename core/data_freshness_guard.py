@@ -2,19 +2,26 @@
 Data Freshness Guard — validates market data freshness before trading.
 
 Ensures trading decisions are based on current, not stale data.
-All configurable via config keys:
+Configurable via config keys:
 
     data_freshness_max_age_1m_sec   : int   default 90   (1m bar max age in sec)
     data_freshness_max_age_5m_sec   : int   default 300  (5m bar max age in sec)
     data_freshness_max_age_15m_sec  : int   default 600  (15m bar max age in sec)
     data_freshness_vix_max_age_sec  : int   default 300  (VIX data max age in sec)
     data_freshness_guard_enabled    : bool  default true
+
+NOTE: Setting data_freshness_guard_enabled to false logs a WARNING and still
+refuses to trade. The guard cannot be disabled via configuration — this is a
+safety invariant enforced by code.
 """
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -32,6 +39,10 @@ def check_data_freshness(
 ) -> FreshnessResult:
     """Check that all market data frames are recent enough for trading.
 
+    The freshness guard is ALWAYS active regardless of config setting.
+    If data_freshness_guard_enabled=false is set, a WARNING is logged and
+    the guard still enforces freshness checks. This is a safety invariant.
+
     Args:
         frames: Dict of {timeframe_name: DataFrame} with a DatetimeIndex or
                 'timestamp' column. DatetimeIndex is preferred (no code change
@@ -44,7 +55,10 @@ def check_data_freshness(
     """
     c = cfg or {}
     if not c.get("data_freshness_guard_enabled", True):
-        return FreshnessResult(passed=True)
+        _log.warning(
+            "data_freshness_guard_enabled=false is IGNORED — freshness guard "
+            "is always active for safety. Set it to true in config to suppress this warning."
+        )
 
     max_ages = {
         "1m":  int(c.get("data_freshness_max_age_1m_sec",  90)),

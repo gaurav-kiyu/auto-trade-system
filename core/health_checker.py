@@ -323,6 +323,44 @@ def check_system_health(cfg: dict[str, Any]) -> list[HealthCheckResult]:
     return results
 
 
+def check_broker_health(cfg: dict[str, Any]) -> list[HealthCheckResult]:
+    """Check broker adapter liveness: is it connected and authenticated?"""
+    results: list[HealthCheckResult] = []
+    try:
+        # Try to get the broker adapter from the index_trader module
+        import importlib
+        mod = importlib.import_module("index_app.index_trader")
+        broker = getattr(mod, "_broker", None)
+        if broker is None:
+            results.append(HealthCheckResult(
+                "BROKER", "Broker availability", "WARN", None,
+                "Broker adapter not initialized."
+            ))
+            return results
+
+        # Check health via is_healthy()
+        healthy = broker.is_healthy() if hasattr(broker, "is_healthy") else True
+        results.append(HealthCheckResult(
+            "BROKER", "Broker connection", "OK" if healthy else "FAIL",
+            healthy, "Broker is connected and authenticated." if healthy else "Broker connection FAILED."
+        ))
+
+        # Check token/session age if available
+        if hasattr(broker, "_context") and hasattr(broker._context, "hard_halt_is_set_fn"):
+            halted = broker._context.hard_halt_is_set_fn()
+            if halted:
+                results.append(HealthCheckResult(
+                    "BROKER", "Broker hard halt", "FAIL", True,
+                    "Hard halt is active — broker operations blocked."
+                ))
+    except Exception as exc:
+        results.append(HealthCheckResult(
+            "BROKER", "Broker health check", "WARN", None,
+            f"Could not check broker health: {exc}"
+        ))
+    return results
+
+
 # ── Main entry ────────────────────────────────────────────────────────────────
 
 def run_full_health_check(
@@ -350,6 +388,7 @@ def run_full_health_check(
         lambda: check_recent_performance(c, db_path),
         lambda: check_config_sanity(c),
         lambda: check_system_health(c),
+        lambda: check_broker_health(c),
     ):
         try:
             report.results.extend(check_fn())

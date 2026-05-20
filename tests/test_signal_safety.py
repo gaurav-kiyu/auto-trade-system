@@ -80,6 +80,8 @@ class TestSignalStaleness:
         code = _preamble() + """
 # Bypass day-of-week checks so only the staleness gate is exercised
 mod._is_monday_gap_window = lambda: False
+# Disable expiry controls so the tests aren't blocked by time-of-day gates
+mod._expiry_controller._enable_controls = False
 
 # Set a stale confirmed_ts (SIGNAL_MAX_AGE + 30 seconds ago)
 stale_ts = time.time() - mod.SIGNAL_MAX_AGE - 30
@@ -112,6 +114,8 @@ print("STATUS:PASS")
         code = _preamble() + """
 # Bypass day-of-week checks so only the staleness gate is exercised
 mod._is_monday_gap_window = lambda: False
+# Disable expiry controls so the tests aren't blocked by time-of-day gates
+mod._expiry_controller._enable_controls = False
 # Bypass sniper gate (needs price/sup/res fields we don't need here) — not what this test checks
 mod.sniper_ok = lambda name, data, signal_type: False
 
@@ -137,6 +141,8 @@ print("STATUS:PASS")
         code = _preamble() + """
 # Bypass day-of-week checks so only the staleness gate is exercised
 mod._is_monday_gap_window = lambda: False
+# Disable expiry controls so the tests aren't blocked by time-of-day gates
+mod._expiry_controller._enable_controls = False
 # Bypass sniper gate (needs price/sup/res fields we don't need here) — not what this test checks
 mod.sniper_ok = lambda name, data, signal_type: False
 
@@ -191,6 +197,8 @@ assert mod.MANUAL_SIGNALS_ONLY is True, "Test requires MANUAL mode"
 
 # Bypass day-of-week checks so only the staleness gate is exercised
 mod._is_monday_gap_window = lambda: False
+# Disable expiry controls so the tests aren't blocked by time-of-day gates
+mod._expiry_controller._enable_controls = False
 
 stale_ts = time.time() - mod.SIGNAL_MAX_AGE - 60
 with mod._bos_lock:
@@ -203,10 +211,15 @@ sig = {"score": 80, "direction": "PUT", "vix": 15.0, "signal_ts": stale_ts,
        "strength": "STRONG", "name": "BANKNIFTY", "threshold": 60}
 mod.enter_trade("BANKNIFTY", sig)
 
-# Telegram must NOT have been called for the stale signal
-assert not telegram_sent, (
-    f"Telegram was called for stale signal: {telegram_sent[:1]}"
+# Telegram must NOT have been called with a signal message for the stale signal
+signal_msgs = [m for m in telegram_sent if "SIGNAL" in m.upper() or "manual" in m.lower()]
+assert not signal_msgs, (
+    f"Signal Telegram sent for stale signal: {signal_msgs[:1]}"
 )
+# Verify staleness was recorded in the decision log
+dlog = mod.decision_log.get("BANKNIFTY", {})
+msg = dlog.get("msg", "") if isinstance(dlog, dict) else str(dlog)
+assert "stale" in msg.lower(), f"Expected stale marker in decision_log: {msg!r}"
 print("STATUS:PASS")
 """
         r = _run(code)

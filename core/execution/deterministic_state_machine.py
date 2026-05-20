@@ -155,32 +155,41 @@ class ExecutionStateMachine:
                 return False
 
             self.broker_order_id = broker_order_id
+            self.submitted_at = time_provider.format_ts()
             return self.try_transition_to(ExecutionState.SUBMITTED)
 
     def record_acknowledgment(self) -> bool:
         """Record broker acknowledgment"""
-        if self.state == ExecutionState.SUBMITTED:
-            self.acknowledged_at = time_provider.format_ts()
-            return self.try_transition_to(ExecutionState.ACKNOWLEDGED)
+        with self._lock:
+            if self.state == ExecutionState.SUBMITTED:
+                self.acknowledged_at = time_provider.format_ts()
+                return self.try_transition_to(ExecutionState.ACKNOWLEDGED)
         return False
 
     def record_fill(self, filled_qty: int, price: float) -> bool:
-        """Record complete fill"""
-        self.filled_quantity = filled_qty
-        self.average_price = price
-        self.filled_at = time_provider.format_ts()
+        """Record complete fill — accumulative (handles multiple fills)"""
+        with self._lock:
+            # Accumulate filled qty and compute weighted average price
+            total_value = (self.average_price * self.filled_quantity) + (price * filled_qty)
+            new_total_qty = self.filled_quantity + filled_qty
+            self.average_price = total_value / new_total_qty if new_total_qty > 0 else 0.0
+            self.filled_quantity = new_total_qty
+            self.filled_at = time_provider.format_ts()
 
-        if self.state == ExecutionState.ACKNOWLEDGED:
-            return self.try_transition_to(ExecutionState.FILLED)
-        elif self.state == ExecutionState.PARTIAL_FILL:
-            if filled_qty >= self.quantity:
-                return self.try_transition_to(ExecutionState.FILLED)
+            if self.state == ExecutionState.ACKNOWLEDGED:
+                if filled_qty >= self.quantity:
+                    return self.try_transition_to(ExecutionState.FILLED)
+                else:
+                    return self.try_transition_to(ExecutionState.PARTIAL_FILL)
+            elif self.state == ExecutionState.PARTIAL_FILL:
+                if self.filled_quantity >= self.quantity:
+                    return self.try_transition_to(ExecutionState.FILLED)
+                return True  # Stay in PARTIAL_FILL, no state change needed
         return False
 
     def record_partial_fill(self, filled_qty: int, price: float) -> bool:
-        """Record partial fill"""
-        self.filled_quantity = filled_qty
-        self.average_price = price
+        """Record partial fill — delegates to record_fill for consistency"""
+        return self.record_fill(filled_qty, price)
 
         if self.state == ExecutionState.ACKNOWLEDGED:
             return self.try_transition_to(ExecutionState.PARTIAL_FILL)
@@ -278,6 +287,11 @@ class ExecutionStateMachineManager:
     def get_machine(self, client_order_id: str) -> ExecutionStateMachine | None:
         """Get existing machine"""
         return self._machines.get(client_order_id)
+
+    def get_all(self) -> list[ExecutionStateMachine]:
+        """Return a snapshot copy of all machines."""
+        with self._lock:
+            return list(self._machines.values())
 
     def record_broker_query_result(
         self,

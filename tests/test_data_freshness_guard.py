@@ -41,9 +41,10 @@ class TestDataFreshnessGuard:
         result = check_data_freshness(frames, cfg={"data_freshness_guard_enabled": True})
         assert not result.passed
 
-    def test_disabled_guard_always_passes(self) -> None:
+    def test_disabled_guard_still_enforces(self) -> None:
         result = check_data_freshness(None, cfg={"data_freshness_guard_enabled": False})
-        assert result.passed
+        assert not result.passed
+        assert "no market data" in result.reject_reason.lower()
 
     def test_vix_stale_fails(self) -> None:
         frames = {"5m": _make_frame(10)}

@@ -18,11 +18,9 @@ log = logging.getLogger("startup_validation")
 # The authoritative risk engine module
 AUTHORITATIVE_RISK_ENGINE = "core.services.risk_service"
 
-# Deprecated risk engine modules that should NOT be used
+# Deprecated risk engine modules — kept for backward compatibility
 DEPRECATED_RISK_MODULES = {
-    "core.risk_engine": "Use core.risk.risk_engine or core.services.risk_service instead",
-    "core.risk_engine_v2": "Use core.risk.risk_engine or core.services.risk_service instead",
-    "core.risk.risk_engine": "Use core.services.risk_service instead",
+    "core.risk_engine_v2": "Thin wrapper; use core.risk_engine.RiskEngine directly",
 }
 
 # Modules that should NOT be imported together (conflicts)
@@ -34,9 +32,9 @@ def validate_risk_engine() -> tuple[bool, str]:
     Validate that the correct risk engine is being used.
     Returns (is_valid, message).
     
-    Note: Legacy shim modules (core.risk_engine, core.risk_engine_v2, core.risk.risk_engine) 
-    may be imported but they redirect to core.services.risk_service. This is intentional 
-    for backward compatibility. The key validation is that RiskService is available.
+    Note: Legacy shim module core.risk_engine_v2 may still be imported but 
+    it is a thin wrapper over core.risk_engine.RiskEngine. The key 
+    validation is that RiskService is available.
     """
     # Check if the authoritative risk service is available (this is the canonical source)
     try:

@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from typing import Any, Callable
+from typing import Any
 
 _log = logging.getLogger(__name__)
 
@@ -73,8 +73,14 @@ class LtpResolver:
         if price is not None:
             return price
 
-        # Layer 3: yfinance last close (cached)
+        # Layer 3: yfinance last close (cached) — with staleness warning
         price = self._resolve_yfinance(index_name)
+        if price is not None:
+            _log.warning(
+                "[LTP] yfinance fallback price used for %s: %.2f. "
+                "This is the last daily close — may be stale during live hours.",
+                index_name, price,
+            )
         return price
 
     def resolve_token(self, instrument_token: int) -> float | None:
@@ -82,8 +88,8 @@ class LtpResolver:
         if self._ws_feed is not None:
             try:
                 return self._ws_feed.get_ltp(instrument_token)
-            except Exception:
-                pass
+            except Exception as _ex:
+                _log.debug(f"LTP resolve via WS failed for token {instrument_token}: {_ex}")
         return None
 
     def warm_cache(self, index_name: str) -> None:

@@ -1,5 +1,7 @@
 """
-Dynamic Risk Sizer - Regime-aware position sizing with configurable risk adjustments
+DEPRECATED — Use mandate_enforcer.ProductionMandateEnforcer or RiskService instead.
+This module duplicates functionality in core/mandate_enforcer.py and core/risk/sizing/manager.py.
+Do NOT use in new code.
 """
 from __future__ import annotations
 

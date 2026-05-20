@@ -10,6 +10,7 @@ This interface defines the contract that all broker adapters must implement.
 It decouples the trading logic from specific broker implementations.
 """
 
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
@@ -89,8 +90,15 @@ class Position:
         self.timestamp = timestamp or now_ist()
 
 
+_log_quote = logging.getLogger(__name__)
+
+
 class Quote:
-    """Market quote."""
+    """Market quote with bid ≤ ask enforcement.
+
+    Raises ValueError if bid > ask or bid/ask is NaN/inf — corrupted ticks
+    are rejected at the adapter boundary and cannot propagate through the system.
+    """
 
     def __init__(
         self,
@@ -101,6 +109,19 @@ class Quote:
         volume: int,
         timestamp: datetime | None = None
     ):
+        # Reject quotes with NaN or inf prices
+        _bid_valid = isinstance(bid, (int, float)) and not (bid != bid or bid in (float('inf'), float('-inf')))
+        _ask_valid = isinstance(ask, (int, float)) and not (ask != ask or ask in (float('inf'), float('-inf')))
+        if not _bid_valid or not _ask_valid:
+            raise ValueError(
+                f"Invalid bid/ask for {symbol}: bid={bid!r}, ask={ask!r} "
+                f"(NaN or Inf detected and rejected at adapter boundary)"
+            )
+        if bid > ask:
+            raise ValueError(
+                f"Inverted market detected for {symbol}: bid={bid} > ask={ask}. "
+                f"Corrupted tick rejected at adapter boundary."
+            )
         self.symbol = symbol
         self.bid = bid
         self.ask = ask

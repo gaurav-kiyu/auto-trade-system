@@ -416,7 +416,8 @@ class TelegramCommander:
         # Security Managers
         self._auth = TelegramAuthManager(
             authorized_ids=set(str(x) for x in cfg.get("telegram_authorized_user_ids", [])),
-            admin_ids=set(str(x) for x in cfg.get("telegram_admin_user_ids", []))
+            admin_ids=set(str(x) for x in cfg.get("telegram_admin_user_ids", [])),
+            authorized_chat_ids=set(str(x) for x in cfg.get("telegram_authorized_chat_ids", []))
         )
         self._audit = TelegramAuditManager()
 
@@ -486,8 +487,15 @@ class TelegramCommander:
         from_user = msg.get("from", {})
         user_id   = str(from_user.get("id", ""))
         username  = from_user.get("username", from_user.get("first_name", "Unknown"))
+        chat_id   = str(msg.get("chat", {}).get("id", ""))
 
-        # ── Security Gate ──────────────────────────────────────────────────
+        # ── Security Gate 1: chat_id allowlist ─────────────────────────────
+        if not self._auth.verify_chat(chat_id):
+            self._audit.record_unauthorized_attempt(user_id, username, text)
+            _log.warning("[TG_CMD] Unauthorized chat_id=%s from user_id=%s", chat_id, user_id)
+            return
+
+        # ── Security Gate 2: user_id allowlist ─────────────────────────────
         perms = self._auth.verify_user(user_id)
         if not perms.is_authorized:
             self._audit.record_unauthorized_attempt(user_id, username, text)
@@ -560,6 +568,8 @@ class TelegramCommander:
                 return
             self._reply(f"ℹ️ {cmd} not yet wired in this version. "
                         "Coming in a future release.", critical=False)
+        elif cmd == "/emergency_stop":
+            self._cmd_emergency_stop(user_id, username)
 
         # ── Help ──────────────────────────────────────────────────────────
         elif cmd in ("/help", "/start"):
@@ -777,6 +787,15 @@ class TelegramCommander:
                 critical=False,
             )
 
+    def _cmd_emergency_stop(self, user_id: str, username: str) -> None:
+        """Emergency stop: trip hard halt immediately."""
+        from core.safety_state import trip_hard_halt, is_hard_halted
+        if is_hard_halted():
+            self._reply("🚨 System is already halted.", critical=True)
+            return
+        trip_hard_halt(f"Emergency stop triggered by Telegram user {username} ({user_id})", source="telegram_emergency_stop")
+        self._reply("🚨 EMERGENCY STOP ACTIVATED. All trading halted.", critical=True)
+
     def _cmd_help(self) -> None:
         lines = [
             "📋 *Available Commands*",
@@ -798,6 +817,9 @@ class TelegramCommander:
             "  /positions — open positions",
             "  /pnl       — today's P&L",
             "  /signals   — recent signals",
+            f"{'─'*28}",
+            "🚨 *Bot Control*",
+            "  /emergency_stop — halt ALL trading immediately",
             f"{'─'*28}",
             "🔒 Position mgmt (/exit etc.) requires",
             "   telegram_allow_live_position_cmds=true",

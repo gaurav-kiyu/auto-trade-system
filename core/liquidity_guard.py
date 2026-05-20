@@ -7,7 +7,7 @@ Runs synchronously in the entry gate; never raises.
 Config keys
 -----------
   liquidity_guard_enabled   : bool   default true
-  max_entry_spread_pct      : float  default 8.0   (ask-bid)/mid*100
+   max_entry_spread_pct      : float  default 3.0   (ask-bid)/mid*100
   min_option_premium        : float  default 5.0   rejects worthless deep-OTM
   min_entry_oi              : int    default 100
   min_entry_volume          : int    default 10
@@ -20,7 +20,7 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
-_DEF_MAX_SPREAD_PCT  = 8.0
+_DEF_MAX_SPREAD_PCT  = 3.0
 _DEF_MIN_PREMIUM     = 5.0
 _DEF_MIN_OI          = 100
 _DEF_MIN_VOLUME      = 10

@@ -10,8 +10,11 @@ All _trip_hard_halt() calls must come through here.
 """
 from __future__ import annotations
 
+import logging
 import threading
 from typing import Final
+
+_log = logging.getLogger(__name__)
 
 # ── Process-wide kill switches ────────────────────────────────────
 # _HARD_HALT: tripped when capital breach or critical risk threshold is hit.
@@ -22,6 +25,36 @@ _HARD_HALT: Final[threading.Event] = threading.Event()
 # _shutdown: graceful stop signal. Allows position monitoring to continue.
 #           Set by SIGTERM/SIGINT handler or kill file detection.
 _shutdown: Final[threading.Event] = threading.Event()
+
+# ── Background kill file watcher ──────────────────────────────────
+_KILL_FILE_POLL_INTERVAL: float = 1.0  # Check every 1 second
+_kill_watcher_started: bool = False
+_kill_watcher_lock: threading.Lock = threading.Lock()
+
+
+def _kill_file_watcher() -> None:
+    """Background thread that polls for STOP_TRADING file every second."""
+    while not _shutdown.is_set():
+        try:
+            if is_kill_file_present():
+                _log.warning("[KILL_WATCHER] STOP_TRADING file detected — tripping hard halt")
+                trip_hard_halt("STOP_TRADING file found in project root", source="kill_file_watcher")
+                break
+        except Exception:
+            pass
+        _shutdown.wait(_KILL_FILE_POLL_INTERVAL)
+
+
+def start_kill_file_watcher() -> None:
+    """Start the background kill file polling thread (idempotent)."""
+    global _kill_watcher_started
+    with _kill_watcher_lock:
+        if _kill_watcher_started:
+            return
+        _kill_watcher_started = True
+        t = threading.Thread(target=_kill_file_watcher, name="kill-file-watcher", daemon=True)
+        t.start()
+        _log.info("[KILL_WATCHER] Background kill file watcher started (interval=%ss)", _KILL_FILE_POLL_INTERVAL)
 
 # Human-readable reason for the most recent hard halt trip.
 _hard_halt_reason: str = ""
@@ -58,6 +91,107 @@ def trip_hard_halt(reason: str, *, source: str = "") -> None:
     # Caller is responsible for logging before calling this function.
 
 
+# ── Centralized consecutive loss counter ────────────────────────────
+# Multiple risk engines track consecutive losses independently.
+# This is the single source of truth.
+_consecutive_losses: int = 0
+_consecutive_losses_lock = threading.Lock()
+
+
+def get_consecutive_losses() -> int:
+    """Return the centralized consecutive loss count."""
+    with _consecutive_losses_lock:
+        return _consecutive_losses
+
+
+def record_trade_outcome(was_profit: bool) -> int:
+    """
+    Record a trade outcome and update the centralized consecutive loss counter.
+
+    Args:
+        was_profit: True if the trade was profitable, False otherwise.
+
+    Returns:
+        The updated consecutive loss count.
+    """
+    global _consecutive_losses
+    with _consecutive_losses_lock:
+        if was_profit:
+            _consecutive_losses = 0
+        else:
+            _consecutive_losses += 1
+        return _consecutive_losses
+
+
+def reset_consecutive_losses() -> None:
+    """Reset the consecutive loss counter (e.g. at session start)."""
+    global _consecutive_losses
+    with _consecutive_losses_lock:
+        _consecutive_losses = 0
+
+
+# ── Intraday P&L monitoring ────────────────────────────────────────
+# Running P&L tracked throughout the session. Used to trip hard halt
+# when intraday loss limit is breached (before MAX_DAILY_LOSS).
+_intraday_pnl: float = 0.0
+_intraday_pnl_lock = threading.Lock()
+_intraday_loss_limit: float = -float("inf")  # set via set_intraday_loss_limit()
+
+
+def set_intraday_pnl(pnl: float) -> None:
+    """Update the running intraday P&L."""
+    global _intraday_pnl
+    with _intraday_pnl_lock:
+        _intraday_pnl = pnl
+
+
+def get_intraday_pnl() -> float:
+    """Return the current intraday P&L."""
+    with _intraday_pnl_lock:
+        return _intraday_pnl
+
+
+def set_intraday_loss_limit(limit: float) -> None:
+    """Set the intraday loss limit (negative number)."""
+    global _intraday_loss_limit
+    _intraday_loss_limit = -abs(limit)
+
+
+def get_intraday_loss_limit() -> float:
+    """Return the intraday loss limit."""
+    return _intraday_loss_limit
+
+
+def check_intraday_pnl_and_halt(*, source: str = "intraday_pnl_monitor") -> bool:
+    """
+    Check if intraday P&L has breached the loss limit.
+    Trips hard halt if breached.
+
+    Returns:
+        True if hard halt was tripped, False otherwise.
+    """
+    if is_hard_halted():
+        return True
+    limit = _intraday_loss_limit
+    if limit == -float("inf"):
+        return False  # no limit configured
+    pnl = get_intraday_pnl()
+    if pnl < limit:
+        trip_hard_halt(
+            f"Intraday loss limit breached: P&L={pnl:.0f} < limit={limit:.0f}",
+            source=source,
+        )
+        return True
+    return False
+
+
+def reset_intraday_pnl() -> None:
+    """Reset intraday P&L at session start."""
+    global _intraday_pnl
+    with _intraday_pnl_lock:
+        _intraday_pnl = 0.0
+
+
 def clear_hard_halt() -> None:
     """
     Clear the hard halt (manual intervention required).
@@ -73,12 +207,23 @@ def request_shutdown(reason: str = "User requested shutdown") -> None:
     """
     Signal graceful shutdown. Positions are allowed to be monitored/closed.
 
+    Shutdown sequence:
+      1. Set _shutdown event (blocks new entries)
+      2. Execute all registered shutdown callbacks (drain queues, flush state,
+         cancel pending orders, close DB connections)
+
     Args:
         reason: Why shutdown was requested.
     """
     if _shutdown.is_set():
         return
     _shutdown.set()
+    # Execute registered shutdown callbacks from python_runtime
+    try:
+        from core.python_runtime import execute_shutdown
+        execute_shutdown()
+    except Exception as exc:
+        _log.warning("[SHUTDOWN] Error during callback execution: %s", exc)
 
 
 def hard_halt_reason() -> str:

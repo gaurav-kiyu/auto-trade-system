@@ -124,10 +124,10 @@ class TestPriceSanityChecks:
         result = check_data_freshness(frames=None, vix_ts=None, cfg={})
         assert result.passed is False
 
-    def test_freshness_guard_can_be_disabled(self):
+    def test_freshness_guard_cannot_be_disabled(self):
         result = check_data_freshness(
             frames=None,
             vix_ts=None,
             cfg={"data_freshness_guard_enabled": False}
         )
-        assert result.passed is True
+        assert result.passed is False  # Guard is always active — safety invariant

@@ -27,6 +27,7 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+config.json
 config.local.json
 config.*.json
 !config.template.json
@@ -88,3 +89,12 @@ models/*
 
 # ── Audit report (generated) ──────────────────────────────────────────────────
 FORENSIC_AUDIT_REPORT.md
+
+# ── Pip installer bootstrap ───────────────────────────────────────────────────
+get-pip.py
+
+# ── Generated benchmark cache ─────────────────────────────────────────────────
+data/benchmark_cache.json
+audit_trail.jsonl
+benchmark_cache*.json
+trader_state.json

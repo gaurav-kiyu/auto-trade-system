@@ -22,6 +22,11 @@ from datetime import datetime
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.safety_state import (
+    get_consecutive_losses,
+    record_trade_outcome,
+    reset_consecutive_losses,
+)
 
 log = logging.getLogger("execution_guards")
 
@@ -65,9 +70,8 @@ class ExecutionGuards:
         self._min_trade_interval_seconds = self._config.get("MIN_TRADE_INTERVAL_SECONDS", 30)
         self._trade_history: deque[TradeFrequencyRecord] = deque(maxlen=1000)
 
-        # Consecutive loss config
+        # Consecutive loss config — centralized in safety_state
         self._max_consecutive_losses = self._config.get("MAX_CONSECUTIVE_LOSSES", 3)
-        self._consecutive_losses = 0
         self._last_trade_time: datetime | None = None
 
         # Time-based risk reduction config
@@ -233,15 +237,16 @@ class ExecutionGuards:
         return GuardResult(True, details={"trades_today": trades_today})
 
     def _check_consecutive_losses(self) -> GuardResult:
-        """Check max consecutive losses limit."""
-        if self._consecutive_losses >= self._max_consecutive_losses:
+        """Check max consecutive losses limit (centralized counter)."""
+        streak = get_consecutive_losses()
+        if streak >= self._max_consecutive_losses:
             return GuardResult(
                 False,
-                f"Consecutive losses: {self._consecutive_losses} >= {self._max_consecutive_losses} limit",
-                {"consecutive_losses": self._consecutive_losses, "limit": self._max_consecutive_losses}
+                f"Consecutive losses: {streak} >= {self._max_consecutive_losses} limit",
+                {"consecutive_losses": streak, "limit": self._max_consecutive_losses}
             )
 
-        return GuardResult(True, details={"consecutive_losses": self._consecutive_losses})
+        return GuardResult(True, details={"consecutive_losses": streak})
 
     def _get_time_based_multiplier(self) -> float:
         """Get position size multiplier based on time of day."""
@@ -251,8 +256,8 @@ class ExecutionGuards:
 
             if now >= threshold:
                 return self._late_session_size_mult
-        except Exception:
-            pass
+        except Exception as _ex:
+            log.debug(f"Late session threshold check failed: {_ex}")
 
         return 1.0
 
@@ -275,27 +280,22 @@ class ExecutionGuards:
             self._trade_history.append(record)
             self._last_trade_time = now_ist()
 
-            # Update consecutive losses
-            if pnl < 0:
-                self._consecutive_losses += 1
-            else:
-                self._consecutive_losses = 0
+            # Update centralized consecutive loss counter
+            record_trade_outcome(was_profit=(pnl >= 0))
 
     def record_win(self) -> None:
         """Record a winning trade to reset consecutive loss counter."""
-        with self._lock:
-            self._consecutive_losses = 0
+        record_trade_outcome(was_profit=True)
 
     def record_loss(self) -> None:
         """Record a losing trade."""
-        with self._lock:
-            self._consecutive_losses += 1
+        record_trade_outcome(was_profit=False)
 
     def reset_daily(self) -> None:
         """Reset daily counters (call at start of trading day)."""
         with self._lock:
             self._trade_history.clear()
-            self._consecutive_losses = 0
+            reset_consecutive_losses()
             self._last_trade_time = None
 
     def get_trades_today(self) -> int:
@@ -309,7 +309,7 @@ class ExecutionGuards:
         """Return guard status."""
         with self._lock:
             return {
-                "consecutive_losses": self._consecutive_losses,
+                "consecutive_losses": get_consecutive_losses(),
                 "max_consecutive_losses": self._max_consecutive_losses,
                 "trades_today": self.get_trades_today(),
                 "max_trades_per_day": self._max_trades_per_day,

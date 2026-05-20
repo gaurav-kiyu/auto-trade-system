@@ -300,3 +300,102 @@ def test_update_config_replaces_existing():
     cb.reset("global")
     st = cb.get_stats("global")
     assert st.state == CircuitState.CLOSED
+
+
+# ── v2 Circuit Breaker features ──────────────────────────────────────────────
+
+def test_failure_rate_threshold_configurable():
+    """failure_rate_threshold below current rate should trip breaker."""
+    cb = CircuitBreakerService()
+    config = CircuitBreakerConfig(
+        failure_threshold=100,
+        sliding_window_size=10,
+        failure_rate_threshold=0.5,
+        sliding_window_type="count",
+    )
+    cb.update_config("test", config)
+    fn = MagicMock()
+    fn.side_effect = ValueError("boom")
+
+    with pytest.raises(ValueError):
+        cb.call_with_key("test", fn)
+
+    st = cb.get_stats("test")
+    assert st.state == CircuitState.OPEN
+    assert st.failure_rate > 0.5
+
+
+def test_half_open_max_requests_cap():
+    """half_open_max_requests limits calls in half-open state."""
+    cb = CircuitBreakerService()
+    config = CircuitBreakerConfig(
+        failure_threshold=1,
+        timeout=1,
+        sliding_window_size=0,
+        half_open_max_requests=2,
+        success_threshold=3,
+    )
+    cb.update_config("test", config)
+
+    with pytest.raises(ValueError):
+        cb.call_with_key("test", MagicMock(side_effect=ValueError("boom")))
+    st = cb.get_stats("test")
+    assert st.state == CircuitState.OPEN
+
+    breaker = cb._breakers["test"]
+    from datetime import timedelta
+    breaker.next_attempt_time = breaker.next_attempt_time - timedelta(seconds=10)
+
+    result = cb.call_with_key("test", MagicMock(return_value="ok1"))
+    assert result == "ok1"
+    assert breaker._half_open_requests == 1
+
+    cb.call_with_key("test", MagicMock(return_value="ok2"))
+    assert breaker._half_open_requests == 2
+
+    from core.ports.circuit_breaker.circuit_breaker_port import CircuitBreakerOpenException
+    with pytest.raises(CircuitBreakerOpenException):
+        cb.call_with_key("test", MagicMock(return_value="ok3"))
+
+
+def test_exponential_backoff_timeout():
+    """Exponential backoff increases timeout after consecutive opens."""
+    cb = CircuitBreakerService()
+    config = CircuitBreakerConfig(
+        failure_threshold=1, timeout=5, sliding_window_size=0, timeout_exponential_base=2.0,
+    )
+    cb.update_config("test", config)
+
+    # First failure trip → timeout = 5 * 2^0 = 5s
+    with pytest.raises(ValueError):
+        cb.call_with_key("test", MagicMock(side_effect=ValueError("boom1")))
+    st = cb.get_stats("test")
+    first_timeout = (st.next_attempt_time - st.last_failure_time).total_seconds()
+    assert 4.0 <= first_timeout <= 6.0, f"Expected ~5s, got {first_timeout}s"
+
+    # Reset to force a second trip via failure (reset clears _consecutive_open_count,
+    # but we can verify _compute_timeout directly)
+    cb.reset("test")
+    breaker = cb._breakers["test"]
+    breaker._consecutive_open_count = 1  # simulate prior open
+
+    with pytest.raises(ValueError):
+        cb.call_with_key("test", MagicMock(side_effect=ValueError("boom2")))
+    st = cb.get_stats("test")
+    second_timeout = (st.next_attempt_time - st.last_failure_time).total_seconds()
+    # With consecutive_open_count=1 before this trip, count becomes 2.
+    # timeout = 5 * 2^(2-1) = 10s
+    assert 9.0 <= second_timeout <= 11.0, f"Expected ~10s, got {second_timeout}s"
+
+
+def test_v2_reset_clears_consecutive_open_count():
+    """reset clears consecutive_open_count for fresh exponential backoff."""
+    cb = CircuitBreakerService()
+    config = CircuitBreakerConfig(failure_threshold=1, sliding_window_size=0, timeout=5)
+    cb.update_config("test", config)
+
+    with pytest.raises(ValueError):
+        cb.call_with_key("test", MagicMock(side_effect=ValueError("boom")))
+    cb.reset("test")
+    breaker = cb._breakers["test"]
+    assert breaker._consecutive_open_count == 0

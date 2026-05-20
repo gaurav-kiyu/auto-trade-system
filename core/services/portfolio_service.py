@@ -26,6 +26,22 @@ class PortfolioService:
         """Returns current available capital."""
         return float(state_manager.get("capital", self._base_capital))
 
+    def get_available_margin(self) -> float:
+        """Returns available margin (capital minus blocked margin for open positions)."""
+        capital = self.get_capital()
+        blocked = float(state_manager.get("blocked_margin", 0.0))
+        return max(0.0, capital - blocked)
+
+    def block_margin(self, amount: float) -> None:
+        """Block margin for a new position."""
+        current = float(state_manager.get("blocked_margin", 0.0))
+        state_manager.set("blocked_margin", current + amount)
+
+    def release_margin(self, amount: float) -> None:
+        """Release margin when a position is closed."""
+        current = float(state_manager.get("blocked_margin", 0.0))
+        state_manager.set("blocked_margin", max(0.0, current - amount))
+
     def set_capital(self, value: float):
         """Updates the current capital."""
         state_manager.set("capital", value)

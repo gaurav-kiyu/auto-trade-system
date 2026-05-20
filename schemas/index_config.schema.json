@@ -42,6 +42,9 @@
     "AI_THRESHOLD": {
       "type": "integer"
     },
+    "ALLOW_ZERO_PRICE": {
+      "type": "boolean"
+    },
     "ANGEL_API_KEY": {
       "type": "string"
     },
@@ -88,6 +91,9 @@
       "type": "boolean"
     },
     "AUDIT_LOG_FILE": {
+      "type": "string"
+    },
+    "AUDIT_LOG_PATH": {
       "type": "string"
     },
     "AUDIT_MAX_FILE_SIZE_MB": {
@@ -167,6 +173,33 @@
     },
     "AUTO_TUNER_POST_TUNE_VALIDATION_DAYS": {
       "type": "integer"
+    },
+    "AUTO_TUNE_COOLDOWN_DAYS": {
+      "type": "integer"
+    },
+    "AUTO_TUNE_DRY_RUN": {
+      "type": "boolean"
+    },
+    "AUTO_TUNE_ENABLED": {
+      "type": "boolean"
+    },
+    "AUTO_TUNE_MAX_SUGGESTIONS": {
+      "type": "integer"
+    },
+    "AUTO_TUNE_MIN_EDGE_DELTA": {
+      "type": "number"
+    },
+    "AUTO_TUNE_MIN_SAMPLES_PER_SEGMENT": {
+      "type": "integer"
+    },
+    "AUTO_TUNE_MIN_TRADES": {
+      "type": "integer"
+    },
+    "AUTO_TUNE_MODE": {
+      "type": "string"
+    },
+    "AUTO_TUNE_REQUIRE_APPROVAL": {
+      "type": "boolean"
     },
     "BACKTEST_COMMISSION_PER_TRADE": {
       "type": "number"
@@ -261,6 +294,9 @@
     },
     "CONFIG_DRIFT_AUTO_RELOAD": {
       "type": "boolean"
+    },
+    "CONFIG_VERSION": {
+      "type": "string"
     },
     "CONSEC_LOSS_LIMIT": {
       "type": "integer"
@@ -472,6 +508,9 @@
       },
       "type": "array"
     },
+    "INTRADAY_LOSS_LIMIT": {
+      "type": "integer"
+    },
     "IV_SPIKE_THRESHOLD": {
       "type": "number"
     },
@@ -532,6 +571,9 @@
     "MANDATE_BLOCK_HIGH_IV_THRESHOLD": {
       "type": "number"
     },
+    "MANDATE_COST_BID_ASK": {
+      "type": "number"
+    },
     "MANDATE_COST_BID_ASK_ESTIMATE": {
       "type": "number"
     },
@@ -541,7 +583,13 @@
     "MANDATE_COST_EXCHANGE_GST": {
       "type": "number"
     },
+    "MANDATE_COST_GST_PCT": {
+      "type": "number"
+    },
     "MANDATE_COST_STT_PCT": {
+      "type": "number"
+    },
+    "MANDATE_COST_STT_SHORT_EXPIRY_PCT": {
       "type": "number"
     },
     "MANDATE_DAILY_HARD_STOP": {
@@ -685,6 +733,12 @@
     "MANUAL_SIGNALS_ONLY": {
       "type": "boolean"
     },
+    "MARGIN_SAFETY_RESERVE_PCT": {
+      "type": "number"
+    },
+    "MARGIN_WARNING_PCT": {
+      "type": "number"
+    },
     "MAX_BREAKOUT_DISTANCE": {
       "type": "number"
     },
@@ -792,6 +846,9 @@
       "minimum": 0,
       "type": "integer"
     },
+    "NSE_HOLIDAYS": {
+      "type": "array"
+    },
     "NSE_MARKET_STATUS_CLOSED_HOUR": {
       "maximum": 23,
       "minimum": 0,
@@ -806,6 +863,9 @@
       "maximum": 240,
       "minimum": 0,
       "type": "integer"
+    },
+    "NSE_SATURDAY_ALLOWED": {
+      "type": "boolean"
     },
     "NSE_SESSION_RESET_THRESHOLD": {
       "type": "integer"
@@ -843,6 +903,9 @@
     "PORTFOLIO_MAX_SL_RISK_PCT": {
       "type": "number"
     },
+    "QUALITY_MIN_SCORE": {
+      "type": "integer"
+    },
     "REAL_TIME_ALERT_ON_DRAWDOWN_PCT": {
       "type": "number"
     },
@@ -868,6 +931,9 @@
       "type": "integer"
     },
     "RECONCILIATION_IDLE_INTERVAL_SEC": {
+      "type": "integer"
+    },
+    "RECONCILIATION_INTERVAL_SEC": {
       "type": "integer"
     },
     "RECONCILIATION_MAX_STALENESS_SEC": {
@@ -1000,6 +1066,9 @@
     "SL_WARN_PCT": {
       "type": "number"
     },
+    "SOVEREIGNTY_BROKER_BLOCK": {
+      "type": "boolean"
+    },
     "SPREAD_MAX_PCT": {
       "type": "number"
     },
@@ -1118,6 +1187,18 @@
     },
     "TG_TRADE_ONLY": {
       "type": "boolean"
+    },
+    "TIER_MODERATE_MIN": {
+      "type": "integer"
+    },
+    "TIER_STRONG_MIN": {
+      "type": "integer"
+    },
+    "TIER_TRADE_WEAK": {
+      "type": "boolean"
+    },
+    "TIER_WEAK_MIN": {
+      "type": "integer"
     },
     "TIME_OF_DAY_ALLOW_TRENDING_ONLY": {
       "type": "boolean"
@@ -1400,7 +1481,25 @@
     "chain_viz_enabled": {
       "type": "boolean"
     },
+    "circuit_breaker_broker_enabled": {
+      "type": "boolean"
+    },
+    "circuit_breaker_broker_failure_threshold": {
+      "type": "integer"
+    },
+    "circuit_breaker_broker_half_open_max_requests": {
+      "type": "integer"
+    },
+    "circuit_breaker_broker_timeout_secs": {
+      "type": "integer"
+    },
+    "circuit_breaker_failure_rate_threshold": {
+      "type": "number"
+    },
     "circuit_breaker_failure_threshold": {
+      "type": "integer"
+    },
+    "circuit_breaker_half_open_max_requests": {
       "type": "integer"
     },
     "circuit_breaker_sliding_window_size": {
@@ -1408,6 +1507,9 @@
     },
     "circuit_breaker_success_threshold": {
       "type": "integer"
+    },
+    "circuit_breaker_timeout_exponential_base": {
+      "type": "number"
     },
     "circuit_breaker_timeout_secs": {
       "type": "integer"
@@ -2016,6 +2118,15 @@
       "type": "string"
     },
     "rate_limiter_limit": {
+      "type": "integer"
+    },
+    "rate_limiter_webhook_enabled": {
+      "type": "boolean"
+    },
+    "rate_limiter_webhook_limit": {
+      "type": "integer"
+    },
+    "rate_limiter_webhook_window_secs": {
       "type": "integer"
     },
     "rate_limiter_window_secs": {

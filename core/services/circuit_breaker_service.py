@@ -248,8 +248,7 @@ class CircuitBreakerService(CircuitBreakerPort):
 
             breaker = self._breakers[key]
             breaker.state = CircuitState.OPEN
-            breaker.next_attempt_time = now_ist() + timedelta(seconds=breaker.config.timeout)
-            breaker._consecutive_open_count += 1
+            breaker.next_attempt_time = now_ist() + self._compute_timeout(breaker)
 
             logger.warning(f"Circuit breaker forced OPEN for key: {key}")
 

@@ -246,8 +246,8 @@ def apply_recommendations(
         applied.append(change)
 
         tag = "[DRY-RUN]" if dry_run else "[APPLIED]"
-        log.info("[AUTO-TUNE] %s %s: %s -> %s", tag, rec.param, old, new)
-        print(f"[AUTO-TUNE] {tag} {rec.param}: {old} -> {new}  ({rec.reason[:80]}…)")
+        log.info("[AUTO-TUNE] %s %s: %s -> %s  (restart required to take effect)", tag, rec.param, old, new)
+        print(f"[AUTO-TUNE] {tag} {rec.param}: {old} -> {new}  (restart required)  ({rec.reason[:80]}…)")
 
     if not applied:
         log.info("[AUTO-TUNE] No changes applied — all actionable params in cooldown or already at target")

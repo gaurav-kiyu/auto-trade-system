@@ -91,9 +91,17 @@ def is_active(state: ExecState) -> bool:
 @dataclass
 class FormalOrderState:
     """
+    DEPRECATED: Use deterministic_state_machine.ExecutionStateMachine instead.
+
     Formal state machine for order execution lifecycle.
     Enforces strict legal transitions only.
+
+    NOTE: This class is kept for backward compatibility with tests.
+    Production code uses deterministic_state_machine.py (ExecutionStateMachineManager)
+    as the single source of truth for order state transitions.
+    Do NOT use this class in new code.
     """
+    _deprecated = True
     intent_id: str
     client_order_id: str
     symbol: str

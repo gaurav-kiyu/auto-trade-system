@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import threading
 from typing import Any
 
 _log = logging.getLogger(__name__)
@@ -206,11 +207,76 @@ class MarketStatus(str, Enum):
 _NSE_OPEN  = datetime.time(9, 15)
 _NSE_CLOSE = datetime.time(15, 30)
 
+# NSE holiday API URL
+_NSE_HOLIDAY_API  = "https://www.nseindia.com/api/holiday-master?type=trading"
+# In-memory cache for live holidays
+_LIVE_HOLIDAYS: set[datetime.date] | None = None
+_LIVE_HOLIDAYS_TS: float = 0.0
+_LIVE_HOLIDAYS_TTL: float = 3600.0  # 1 hour cache
+_LIVE_HOLIDAYS_LOCK = threading.Lock()
+
+
+def _fetch_nse_holidays() -> set[datetime.date]:
+    """Fetch NSE trading holiday calendar from the NSE holiday-master API.
+
+    Falls back to empty set if the API is unreachable.
+    """
+    try:
+        import json, urllib.request
+        req = urllib.request.Request(
+            _NSE_HOLIDAY_API,
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Accept": "application/json",
+            }
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+
+        holidays: set[datetime.date] = set()
+        # NSE returns list of holiday objects with "tradingDate" field
+        entries = data if isinstance(data, list) else data.get("holidays", data.get("data", []))
+        for entry in entries:
+            raw_date = entry.get("tradingDate") or entry.get("date", "")
+            try:
+                holidays.add(datetime.date.fromisoformat(str(raw_date)[:10]))
+            except (ValueError, TypeError):
+                continue
+        if holidays:
+            _log.info("[HOLIDAY] Fetched %d NSE trading holidays from API", len(holidays))
+        return holidays
+    except Exception as exc:
+        _log.warning("[HOLIDAY] Could not fetch from NSE API: %s — using config-based holidays", exc)
+        return set()
+
+
+def _get_live_holidays() -> set[datetime.date]:
+    """Return cached live NSE holidays, refreshing from API if stale."""
+    global _LIVE_HOLIDAYS, _LIVE_HOLIDAYS_TS
+    now = _time.time()
+    with _LIVE_HOLIDAYS_LOCK:
+        if _LIVE_HOLIDAYS is None or (now - _LIVE_HOLIDAYS_TS) > _LIVE_HOLIDAYS_TTL:
+            fetched = _fetch_nse_holidays()
+            if fetched:
+                _LIVE_HOLIDAYS = fetched
+                _LIVE_HOLIDAYS_TS = now
+            elif _LIVE_HOLIDAYS is None:
+                _LIVE_HOLIDAYS = set()  # empty fallback if never fetched
+        return set(_LIVE_HOLIDAYS)
+
 
 def _nse_holidays(cfg: dict[str, Any]) -> set[datetime.date]:
-    """Extract holiday dates from event_dates where block_entries=True."""
+    """Extract holiday dates from event_dates where block_entries=True,
+    merged with live NSE API data."""
+    # Config-based holidays from event_dates
     index = _build_index(cfg)
-    return {d for d, ev in index.items() if ev.block_entries}
+    holidays = {d for d, ev in index.items() if ev.block_entries}
+
+    # Merge with live NSE API holidays
+    live = _get_live_holidays()
+    holidays.update(live)
+
+    return holidays
 
 
 def is_market_day(
@@ -219,7 +285,7 @@ def is_market_day(
 ) -> bool:
     """
     Returns True if check_date (default: today IST) is a trading day.
-    Checks: not Saturday, not Sunday, not in NSE holiday list.
+    Checks: not Saturday, not Sunday, not in NSE holiday list (live + config).
     """
     c   = cfg or {}
     try:
@@ -236,8 +302,8 @@ def is_market_day(
     for raw in c.get("NSE_HOLIDAYS", []):
         try:
             holidays.add(datetime.date.fromisoformat(str(raw)))
-        except Exception:
-            pass
+        except Exception as _ex:
+            logging.getLogger(__name__).debug(f"Invalid NSE_HOLIDAY entry: {raw} — {_ex}")
     return today not in holidays
 
 

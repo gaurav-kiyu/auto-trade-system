@@ -475,17 +475,39 @@ PERCENTAGE_PRECISION: int = 2
 
 def get_market_status():
     """Get current market status."""
-    from trading_system.core.datetime_ist import market_status as _market_status
-    status_str = _market_status()
-    # Convert string to enum
-    from core.common.models.models import MarketStatus
-    return MarketStatus(status_str)
+    from core.datetime_ist import now_ist, nse_cash_open_time, nse_cash_close_time
+    now = now_ist()
+
+    if now.weekday() >= 5:
+        return "WEEKEND"
+
+    current_time = now.time()
+    open_time = nse_cash_open_time()
+    close_time = nse_cash_close_time()
+
+    if current_time < open_time:
+        return "PRE"
+    elif current_time < close_time:
+        return "OPEN"
+    else:
+        return "CLOSED"
 
 
 def get_session_type():
     """Get current session type."""
-    from trading_system.core.datetime_ist import get_regime as _get_regime
-    regime_str = _get_regime()
+    from core.datetime_ist import now_ist
+    now = now_ist()
+    current_time = now.time()
+
+    morning_end = datetime.time(10, 0)
+    midday_end = datetime.time(14, 30)
+
+    if current_time < morning_end:
+        regime_str = "MORNING"
+    elif current_time < midday_end:
+        regime_str = "MIDDAY"
+    else:
+        regime_str = "CLOSING"
     # Map regime to session type (simplified mapping)
     from core.common.models.models import SessionType
     regime_map = {
@@ -515,6 +537,8 @@ def calculate_position_size(
     entry_price: float
 ) -> int:
     """
+    DEPRECATED: Use mandate_enforcer.ProductionMandateEnforcer or RiskService instead.
+
     Calculate position size based on risk parameters.
 
     Args:

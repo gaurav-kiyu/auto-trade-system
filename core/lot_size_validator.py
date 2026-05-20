@@ -1,15 +1,23 @@
 """
 Lot Size Live Validation (Phase 1).
 
-At startup and runtime, fetches the lot size from broker API
-and validates it matches the config value. Halts on mismatch.
+At startup and runtime, fetches the lot size from the broker API
+(or NSE API as fallback) and validates it matches the config value.
+Halts on mismatch.
+
+Live lot sizes are fetched in this priority order:
+1. Broker API (get_instruments or get_lot_size)
+2. NSE API (lot size from NSE derivative contract info)
+3. Hardcoded defaults (with warning)
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import threading
 import time
+import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
@@ -24,6 +32,8 @@ DEFAULT_INDEX_LOT_SIZES = {
     "SENSEX": 10,
     "BANKEX": 10,
 }
+
+_NSE_LOT_API_URL = "https://www.nseindia.com/api/derivatives/contracts?instrumentType=OPTIDX"
 
 
 @dataclass
@@ -173,26 +183,65 @@ class LotSizeValidator:
         return live_lot
 
     def _get_live_lot_size(self, index_name: str, broker_port=None) -> int | None:
-        """Fetch live lot size from broker API."""
-        if broker_port is None:
-            return None
+        """Fetch live lot size from broker API or NSE API as fallback."""
+        # Priority 1: Broker API
+        if broker_port is not None:
+            try:
+                if hasattr(broker_port, "get_instruments"):
+                    instruments = broker_port.get_instruments()
+                    for inst in instruments:
+                        symbol = inst.get("tradingsymbol", "")
+                        if symbol.startswith(index_name):
+                            lot_size = inst.get("lot_size", 0)
+                            if lot_size:
+                                return int(lot_size)
 
+                if hasattr(broker_port, "get_lot_size"):
+                    return broker_port.get_lot_size(index_name)
+
+            except Exception as e:
+                log.warning(f"Could not fetch live lot size for {index_name} from broker: {e}")
+
+        # Priority 2: NSE API fallback
         try:
-            if hasattr(broker_port, "get_instruments"):
-                instruments = broker_port.get_instruments()
-                for inst in instruments:
-                    symbol = inst.get("tradingsymbol", "")
-                    if symbol.startswith(index_name):
-                        lot_size = inst.get("lot_size", 0)
-                        if lot_size:
-                            return int(lot_size)
-
-            if hasattr(broker_port, "get_lot_size"):
-                return broker_port.get_lot_size(index_name)
-
+            lot_size = self._fetch_from_nse_api(index_name)
+            if lot_size is not None:
+                return lot_size
         except Exception as e:
-            log.warning(f"Could not fetch live lot size for {index_name}: {e}")
+            log.warning(f"Could not fetch live lot size for {index_name} from NSE API: {e}")
 
+        # Priority 3: Hardcoded default (with warning)
+        default = DEFAULT_INDEX_LOT_SIZES.get(index_name)
+        if default is not None:
+            log.warning(
+                "Using hardcoded lot size for %s: %d — "
+                "consider configuring broker_port for live validation",
+                index_name, default
+            )
+            return default
+
+        return None
+
+    def _fetch_from_nse_api(self, index_name: str) -> int | None:
+        """Fetch lot size from NSE derivative contracts API."""
+        req = urllib.request.Request(
+            _NSE_LOT_API_URL,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept": "application/json",
+            }
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+
+        contracts = data.get("data", [])
+        for contract in contracts:
+            symbol = (contract.get("tradingSymbol") or contract.get("symbol", "")).upper()
+            underlying = contract.get("underlying", "").upper()
+            if underlying == index_name.upper() or symbol.startswith(index_name.upper()):
+                lot = contract.get("marketLot")
+                if lot:
+                    return int(lot)
         return None
 
     def invalidate_cache(self) -> None:

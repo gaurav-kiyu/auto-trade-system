@@ -14,7 +14,7 @@ from core.adapters.broker_adapters import (
 )
 
 
-def _minimal_ctx(cfg: dict | None = None, log_fn=None) -> BrokerRuntimeContext:
+def _minimal_ctx(cfg: dict | None = None, log_fn=None, circuit_breaker=None) -> BrokerRuntimeContext:
     return build_broker_runtime_context(
         cfg=dict(cfg or {}),
         index_map={"NIFTY": {"nse": "NIFTY"}},
@@ -26,6 +26,7 @@ def _minimal_ctx(cfg: dict | None = None, log_fn=None) -> BrokerRuntimeContext:
         sleep_fn=lambda secs: None,
         broker_wait_poll_sec=0.01,
         expiry_str_fn=lambda name: "25JAN",
+        circuit_breaker=circuit_breaker,
     )
 
 
@@ -144,3 +145,20 @@ def test_unknown_driver_without_custom_falls_back_to_paper() -> None:
     )
     assert hasattr(adapter, '_port') and isinstance(adapter._port, PaperBrokerAdapter)
     assert any("Unknown BROKER_DRIVER" in m for m in logs)
+
+
+def test_circuit_breaker_in_context_does_not_break_paper_adapter() -> None:
+    """Passing a circuit breaker in BrokerRuntimeContext should not break PaperBrokerAdapter."""
+    from core.services.circuit_breaker_service import CircuitBreakerService
+    cb = CircuitBreakerService()
+    ctx = _minimal_ctx({"BROKER_DRIVER": "PAPER"}, circuit_breaker=cb)
+    adapter = create_broker_adapter(
+        driver="PAPER",
+        broker_api_enabled=False,
+        paper_mode=True,
+        manual_signals_only=False,
+        context=ctx,
+    )
+    assert isinstance(adapter, BrokerAdapter)
+    oid = adapter.place_order("NIFTY", "CALL", 75, 20000)
+    assert oid is not None and oid.startswith("PAPER_")

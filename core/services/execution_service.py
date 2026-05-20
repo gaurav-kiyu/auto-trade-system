@@ -1,11 +1,10 @@
 import hashlib
 import logging
-import tempfile
 import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from core.datetime_ist import now_ist
 from typing import Any
@@ -98,16 +97,8 @@ class ExecutionService:
             persistence_path=persistence_path,
         )
 
-        # Durable execution store (create before wiring state machine persistence)
-        # Use a unique temporary DB per ExecutionService instance to avoid cross-test persistence
+        # Durable execution store — use fixed path so state survives restarts
         durable_db_path = reconciliation_db_path.replace("trades.db", "execution_state.db")
-        try:
-            tmp = tempfile.NamedTemporaryFile(prefix="exec_state_", suffix=".db", delete=False)
-            durable_db_path = tmp.name
-            tmp.close()
-        except Exception:
-            # Fallback to default path
-            durable_db_path = reconciliation_db_path.replace("trades.db", "execution_state.db")
 
         self._durable_store = DurableExecutionStore(durable_db_path)
         self._logger.info(f"Durable execution store initialized: {durable_db_path}")
@@ -139,8 +130,8 @@ class ExecutionService:
                     average_price=machine.average_price,
                     reject_reason=machine.error_message,
                 )
-            except Exception:
-                pass
+            except Exception as _ex:
+                self._logger.error(f"Persistence callback failed for {machine.intent_id}: {_ex}")
 
         manager._persistence_callback = _persistence_callback
         self._state_machine = manager
@@ -177,6 +168,67 @@ class ExecutionService:
 
         self._is_reconciliation_frozen = False
         self._logger.info("ExecutionService initialized")
+
+    def run_ack_watchdog(self, max_ack_age_seconds: float = 30.0) -> dict:
+        """
+        ACK timeout watchdog: find orders stuck in SUBMITTED state without ACK.
+
+        Queries the broker for current order status. If the order has been
+        acknowledged/rejected/filled by the broker, updates the state machine.
+        If still pending, logs a warning.
+
+        Args:
+            max_ack_age_seconds: Maximum time to wait for broker ACK.
+
+        Returns:
+            dict with keys: checked, acknowledged, still_pending, errors
+        """
+        result = {"checked": 0, "acknowledged": 0, "still_pending": 0, "errors": 0}
+        manager = get_execution_state_manager()
+        now = now_ist()
+        for machine in manager.get_all():
+            with machine._lock:
+                if machine.state != ExecutionState.SUBMITTED:
+                    continue
+                if machine.submitted_at is None:
+                    continue
+                try:
+                    submitted_dt = datetime.fromisoformat(machine.submitted_at)
+                except Exception:
+                    result["errors"] += 1
+                    continue
+                age = (now - submitted_dt).total_seconds()
+                if age < max_ack_age_seconds:
+                    continue
+            result["checked"] += 1
+            try:
+                broker_id = machine.broker_order_id
+                if not broker_id:
+                    result["errors"] += 1
+                    continue
+                status = self._broker_port.get_order_status(broker_id)
+                if status is None:
+                    result["still_pending"] += 1
+                    continue
+                status_upper = status.upper()
+                if status_upper in ("COMPLETE", "FILLED", "EXECUTED"):
+                    qty = machine.quantity
+                    price = machine.price
+                    with machine._lock:
+                        machine.record_acknowledgment()
+                        machine.record_fill(qty, price)
+                    result["acknowledged"] += 1
+                elif status_upper in ("REJECTED", "CANCELLED", "EXPIRED"):
+                    with machine._lock:
+                        machine.try_transition_to(ExecutionState.REJECTED)
+                    result["acknowledged"] += 1
+                elif status_upper in ("OPEN", "PENDING", "TRIGGER PENDING", "SUBMITTED"):
+                    result["still_pending"] += 1
+                else:
+                    result["still_pending"] += 1
+            except Exception:
+                result["errors"] += 1
+        return result
 
     def _on_reconciliation_freeze(self, reason: TradingFreezeReason, details: str):
         """Callback when reconciliation detects ambiguous state."""
@@ -897,17 +949,26 @@ class ExecutionService:
                 else:
                     # Unexpected return type
                     self._logger.warning(f"Broker place_order returned unexpected type: {type(place_order_result)}")
-                    # Fallback: simulate execution for testing
-                    self._logger.warning("Broker port does not have place_order method, simulating execution")
-                    result = self._execute_paper_order(order_request, execution_context)
+                    # CRITICAL SAFETY: Never simulate execution for a real broker None response
+                    result = OrderResult(
+                        order_id="",
+                        status=OrderStatus.REJECTED,
+                        reject_reason=f"Broker returned unexpected type: {type(place_order_result)}",
+                        timestamp=now_ist()
+                    )
 
                 res = self._validate_broker_result(result)
                 print(f"DEBUG: _validate_broker_result returned status={res.status}, order_id={res.order_id}")
                 return res
             else:
-                # Fallback: simulate execution for testing
-                self._logger.warning("Broker port does not have place_order method, simulating execution")
-                return self._execute_paper_order(order_request, execution_context)
+                # CRITICAL SAFETY: Never simulate execution for real broker
+                self._logger.warning("Broker port does not have place_order method, rejecting order")
+                return OrderResult(
+                    order_id="",
+                    status=OrderStatus.REJECTED,
+                    reject_reason="Broker port has no place_order method",
+                    timestamp=now_ist()
+                )
 
         except Exception as e:
             self._logger.error(f"Error during order execution attempt: {e}", exc_info=True)
