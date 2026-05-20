@@ -110,17 +110,54 @@ default_logger = get_logger("core")
 # Backward compatibility alias for existing code using LoggingService
 class LoggingService:
     """
-    Backward compatibility wrapper.
+    Logging service with rotating file handler and optional JSON output.
     All new code should use get_logger() directly.
     """
 
     def __init__(self, log_dir: str = "logs", log_filename_prefix: str = "trader_",
                  retain_days: int = 30, json_log_file: str = "", version: str = "UNKNOWN",
                  enable_correlation_ids: bool = True, enable_contextual_logging: bool = True):
-        self._logger = get_logger(f"service.{log_filename_prefix}")
+        import os as _os
+        from logging.handlers import RotatingFileHandler as _RotatingFileHandler
+
+        logger_name = f"service.{log_filename_prefix}"
+        self._logger = logging.getLogger(logger_name)
+        self._logger.setLevel(logging.INFO)
+
+        # Only add file handlers if log_dir is provided and writable
+        if log_dir:
+            log_path = _os.path.join(log_dir, f"{log_filename_prefix}app.log")
+            try:
+                _os.makedirs(log_dir, exist_ok=True)
+                max_bytes = 50 * 1024 * 1024  # 50 MB per file
+                self._handler = _RotatingFileHandler(log_path, maxBytes=max_bytes, backupCount=retain_days)
+                self._handler.setFormatter(logging.Formatter(
+                    '%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S'
+                ))
+                self._logger.addHandler(self._handler)
+
+                # Optional JSON log file
+                if json_log_file:
+                    import json as _json
+                    class _JsonFormatter(logging.Formatter):
+                        def format(self, record):
+                            return _json.dumps({
+                                "ts": self.formatTime(record),
+                                "level": record.levelname,
+                                "logger": record.name,
+                                "message": record.getMessage(),
+                                "module": record.module,
+                                "line": record.lineno,
+                            })
+                    json_path = _os.path.join(log_dir, json_log_file)
+                    self._json_handler = _RotatingFileHandler(json_path, maxBytes=max_bytes, backupCount=3)
+                    self._json_handler.setFormatter(_JsonFormatter())
+                    self._logger.addHandler(self._json_handler)
+            except Exception:
+                pass  # Silently degrade to console-only logging
 
     def log(self, level: int, message: str, **kwargs):
-        """Log a message at the specified level."""
         self._logger.log(level, message, **kwargs)
 
     def debug(self, message: str, **kwargs):

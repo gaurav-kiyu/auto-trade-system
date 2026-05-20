@@ -161,7 +161,7 @@ class BlueGreenDeployment:
             if p_price == 0:
                 return 0.0
             return abs((s_price - p_price) / p_price) * 100
-        except:
+        except Exception:
             return 0.0
 
     def _get_diff_description(self, primary: dict, shadow: dict) -> str:

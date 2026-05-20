@@ -90,7 +90,6 @@ class ExecutionEngine:
         last_exception: Exception | None = None
 
         _consecutive_retryable: int = 0
-        _last_retryable_type: str = ""
 
         for attempt in range(1, max(1, retries) + 1):
             start = time.monotonic()
@@ -104,20 +103,15 @@ class ExecutionEngine:
                 # Classify the error to determine retry strategy (Phase 0 fix)
                 decision = BrokerErrorClassifier.classify(exc)
 
-                # Circuit breaker: if 2 consecutive RETRYABLE failures with the
-                # same error type, escalate to UNKNOWN (stop retrying).
+                # Circuit breaker: if 2 consecutive RETRYABLE failures
+                # (regardless of exception type), escalate to UNKNOWN.
                 if decision == RetryDecision.RETRY:
-                    _exc_type = type(exc).__name__
-                    if _exc_type == _last_retryable_type:
-                        _consecutive_retryable += 1
-                    else:
-                        _consecutive_retryable = 1
-                        _last_retryable_type = _exc_type
+                    _consecutive_retryable += 1
                     if _consecutive_retryable >= 2:
                         decision = RetryDecision.UNKNOWN
                         last_reason = (
                             f"CIRCUIT_BREAKER: {_consecutive_retryable}x consecutive "
-                            f"{_exc_type} errors — retry stopped"
+                            f"retryable errors — retry stopped: {type(exc).__name__}"
                         )
                         self._capture({
                             "event": "retry_circuit_breaker_opened",
@@ -125,7 +119,7 @@ class ExecutionEngine:
                             "direction": direction,
                             "qty": qty,
                             "strike": strike,
-                            "error_type": _exc_type,
+                            "error_type": type(exc).__name__,
                             "consecutive_failures": _consecutive_retryable,
                         })
 

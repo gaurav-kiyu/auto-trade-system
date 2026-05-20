@@ -93,9 +93,10 @@ class TestExecutionEngineRetry:
         broker = MagicMock()
         broker.place_order.side_effect = [RuntimeError("API timeout"), ConnectionError("connection refused"), "order_789"]
         engine = ExecutionEngine(broker_getter=lambda: broker)
+        # 2 consecutive retryable errors open circuit breaker (C2 fix)
         result = engine.place_order(name="NIFTY", direction="CALL", qty=50, strike=25000, retries=3)
-        assert result.ok
-        assert result.order_id == "order_789"
+        assert not result.ok
+        assert "CIRCUIT_BREAKER" in result.reason
 
     def test_cancel_order_returns_bool(self) -> None:
         broker = MagicMock()

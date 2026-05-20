@@ -57,7 +57,7 @@ def temp_db():
     # Try to clean up, but don't fail on Windows locking
     try:
         Path(db_path).unlink(missing_ok=True)
-    except:
+    except OSError:
         pass  # Ignore cleanup errors on Windows
 
 
@@ -337,6 +337,38 @@ class TestRestartRecovery:
 
         assert len(pending) == 1
         assert pending[0]["order_id"] == "order_1"
+
+    def test_db_failure_does_not_crash_service(self, temp_db):
+        """Test that SQLite OperationalError during reconcile is handled gracefully."""
+        service = ReconciliationService(db_path=temp_db)
+        service.record_order(
+            order_id="order_db_fail", intent_id="intent_db_fail",
+            symbol="NIFTY", direction="CALL", quantity=50,
+            status="SUBMITTED", broker_order_id="broker_db",
+        )
+        # Corrupt the DB by closing then removing the WAL
+        import os as _os
+        _os.remove(temp_db + "-wal") if _os.path.exists(temp_db + "-wal") else None
+        _os.remove(temp_db + "-shm") if _os.path.exists(temp_db + "-shm") else None
+        # Write garbage to simulate corruption
+        with open(temp_db, "wb") as f:
+            f.write(b"GARBAGE")
+        # Should not crash — gracefully returns empty or raises caught exception
+        result = service.get_pending_orders()
+        assert isinstance(result, list)
+
+    def test_crash_restart_recover_pending_orders(self, temp_db):
+        """Crash → restart recovers orders that were in-flight before crash."""
+        service = ReconciliationService(db_path=temp_db)
+        service.record_order(
+            order_id="pre_crash_1", intent_id="pre_crash_intent",
+            symbol="NIFTY", direction="CALL", quantity=50,
+            status="SUBMITTED", broker_order_id="broker_1",
+        )
+        # Simulate crash by creating a new service instance on same DB
+        service2 = ReconciliationService(db_path=temp_db)
+        pending = service2.get_pending_orders()
+        assert any(o["order_id"] == "pre_crash_1" for o in pending)
 
 
 if __name__ == "__main__":
