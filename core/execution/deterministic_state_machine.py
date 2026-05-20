@@ -121,7 +121,9 @@ class ExecutionStateMachine:
 
             old_state = self.state
 
-            # Persist FIRST, then mutate in-memory state (avoids inconsistency on crash)
+            # Set state FIRST so persistence callback sees the new state
+            self.state = new_state
+
             if self._persistence_callback and new_state in [
                 ExecutionState.PERSISTED,
                 ExecutionState.SUBMITTED,
@@ -132,10 +134,10 @@ class ExecutionStateMachine:
                 try:
                     self._persistence_callback(self)
                 except Exception as e:
+                    self.state = old_state  # Revert on persistence failure
                     _log.critical(f"PERSISTENCE FAILURE on transition to {new_state.value}: {e}")
                     return TransitionResult.PERSISTENCE_FAILED, f"Critical: {e}"
 
-            self.state = new_state
             self.updated_at = time_provider.format_ts()
 
             _log.info(f"State transition: {old_state.value} -> {new_state.value} for intent {self.client_order_id}")

@@ -19,6 +19,8 @@ import threading
 import time
 from typing import Any
 
+import pandas as pd
+
 _log = logging.getLogger(__name__)
 
 # Map index display names → Kite instrument tokens
@@ -32,8 +34,8 @@ _INDEX_TO_TOKEN: dict[str, int] = {
 # Map index names → yfinance symbols (mirrors INDEX_MAP in index_trader.py)
 _INDEX_TO_YF: dict[str, str] = {
     "NIFTY": "^NSEI",
-    "BANKNIFTY": "^NSEMDCP",
-    "FINNIFTY": "^NSEI",
+    "BANKNIFTY": "^NSEBANK",
+    "FINNIFTY": "^NIFTYFIN",
 }
 
 
@@ -137,7 +139,11 @@ class LtpResolver:
             hist = ticker.history(period="2d", interval="1d")
             if hist.empty:
                 return None
-            last_close = float(hist.iloc[-1]["Close"])
+            last_close_val = hist.iloc[-1]["Close"]
+            if pd.isna(last_close_val):
+                _log.debug("[LTP] yfinance close is NaN for %s — skipping", yf_sym)
+                return None
+            last_close = float(last_close_val)
             with self._cache_lock:
                 self._yf_cache[index_name] = last_close
                 self._yf_cache_ts = now

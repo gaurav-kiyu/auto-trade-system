@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from core import AuditEngine, JsonlCaptureWriter, Orchestrator, PresentationEngine, ReconciliationEngine, RiskEngineV2, SafetyConfig, SafetyContext, SafetyEngine
+from core import AuditEngine, JsonlCaptureWriter, Orchestrator, PresentationEngine, ReconciliationEngine, SafetyConfig, SafetyContext, SafetyEngine
 from core import DataEngine, ExecutionEngine, RiskConfig, RiskEngine, StateManager, StrategyEngine
 
 
@@ -240,21 +240,18 @@ def test_orchestrator_reconciliation_uses_local_positions_not_broker():
     assert cycle.reconciliation.mismatches >= 1
 
 
-def test_orchestrator_risk_v2_blocks_before_execution():
+def test_orchestrator_risk_engine_blocks_trade():
+    """Risk gate through single risk_engine (v2 consolidated into main engine)."""
     data_engine = DataEngine(fetch_all_frames_fn=lambda names: {"NIFTY": {"1m": [1], "5m": [1], "15m": [1]}})
     strategy_engine = StrategyEngine(
-        generate_signal_fn=lambda name, frames, vix=0.0: {"name": name, "direction": "CALL", "vol_ratio": 2.0}
+        generate_signal_fn=lambda name, frames, vix=0.0: {"name": name, "direction": "CALL", "vol_ratio": 0.1}
     )
     risk_engine = RiskEngine(
         config=RiskConfig(min_volume_ratio=1.0, max_consecutive_losses=3),
         position_size_fn=lambda name, ltp, vix=0.0: 1,
         portfolio_risk_fn=lambda: 0.0,
-        consecutive_loss_fn=lambda: 0,
+        consecutive_loss_fn=lambda: 3,
         latency_check_fn=lambda start_ts: True,
-    )
-    v2 = RiskEngineV2(
-        {"risk": {"max_daily_loss": -100, "max_open": 1, "max_trades_day": 2}, "timing": {"cooldown": 300}},
-        lambda: {"daily_pnl": -500.0, "open_positions": 0, "trade_count": 0, "last_trade_time": {}},
     )
     orchestrator = Orchestrator(
         data_engine=data_engine,
@@ -264,12 +261,11 @@ def test_orchestrator_risk_v2_blocks_before_execution():
         state_manager=StateManager(save_fn=lambda: None, load_fn=lambda: None),
         names_provider=lambda: ["NIFTY"],
         execution_mode_fn=lambda: "AUTO",
-        risk_engine_v2=v2,
         entry_gate_fn=lambda name, sig: True,
     )
     cycle = orchestrator.run_cycle()
+    # Blocked due to low vol_ratio (0.1 < min_volume_ratio 1.0) or consecutive losses
     assert cycle.signals[0].risk.allowed is False
-    assert "daily loss" in cycle.signals[0].risk.reason.lower()
 
 
 class _FillBrokerSimple:

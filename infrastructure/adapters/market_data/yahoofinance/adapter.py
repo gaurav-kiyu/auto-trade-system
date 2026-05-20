@@ -241,15 +241,7 @@ class YahooFinanceAdapter(MarketDataPort):
         except Exception as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get quote for {symbol}: {e}")
-            # Return empty quote on failure
-            return Quote(
-                symbol=symbol,
-                bid=0.0,
-                ask=0.0,
-                last=0.0,
-                volume=0,
-                timestamp=datetime.now()
-            )
+            return None  # Caller must handle None vs zero-price
 
     def get_latest_data(self, symbol: str) -> Any:
         """

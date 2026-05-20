@@ -61,7 +61,6 @@ class Orchestrator:
         audit_engine: AuditEngine | None = None,
         now_fn: Callable[[], float] | None = None,
         local_positions_fn: Callable[[], dict[str, Any]] | None = None,
-        risk_engine_v2: RiskEngineV2 | None = None,
         enforce_market_hours: bool = False,
         market_hours_fn: Callable[[], bool] | None = None,
         system_mode_fn: Callable[[], str] | None = None,
@@ -84,7 +83,6 @@ class Orchestrator:
         self._audit_engine = audit_engine
         self._now_fn = now_fn or time.time
         self._local_positions_fn = local_positions_fn
-        self._risk_engine_v2 = risk_engine_v2
         self._enforce_market_hours = bool(enforce_market_hours)
         self._market_hours_fn = market_hours_fn or is_nse_cash_session
         self._system_mode_fn = system_mode_fn
@@ -132,11 +130,6 @@ class Orchestrator:
                     allowed = latency
                 if allowed.allowed and not safety.allowed:
                     allowed = RiskDecision(False, safety.reason)
-
-                if allowed.allowed and self._risk_engine_v2:
-                    v2 = self._risk_engine_v2.evaluate(name)
-                    if not v2.get("allowed", True):
-                        allowed = RiskDecision(False, str(v2.get("reason") or "risk v2 gate"))
 
                 execution_result: ExecutionResult | None = None
                 execution_fill: ExecutionFill | None = None

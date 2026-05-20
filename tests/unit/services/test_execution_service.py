@@ -26,6 +26,9 @@ class TestExecutionService:
 
     def setup_method(self):
         """Set up test fixtures."""
+        from core.safety_state import clear_hard_halt
+        clear_hard_halt()  # Ensure hard halt is clear before each test
+
         self.broker_mock = Mock(spec=BrokerPort)
         self.persistence_mock = Mock(spec=TradePersistencePort)
         self.config = ExecutionServiceConfig()

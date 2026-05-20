@@ -269,8 +269,11 @@ class KiteTickerFeedManager(WebSocketFeedManager):
                 token = tick.get("instrument_token")
                 if token is None:
                     continue
+                ltp_val = float(tick.get("last_price", 0))
+                if ltp_val <= 0:
+                    continue  # Skip zero/invalid ticks — don't poison cache
                 self._ltp_cache[token] = {
-                    "last_price": float(tick.get("last_price", 0)),
+                    "last_price": ltp_val,
                     "timestamp": now,
                     "mode": tick.get("mode", self._tick_mode),
                 }

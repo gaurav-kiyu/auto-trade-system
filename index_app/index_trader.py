@@ -350,6 +350,7 @@ import os
 import sys
 import atexit
 import time
+import requests
 from pathlib import Path
 from typing import Any
 
@@ -434,7 +435,17 @@ _state_lock = _threading.Lock()
 _pos_lock = _threading.Lock()
 
 breakout_state: dict[str, Any] = {}
-decision_log: dict[str, Any] = {}
+class _DecisionLog(dict):
+    """Append-only decision log that preserves history for crash recovery."""
+    def __init__(self):
+        super().__init__()
+        self._history: list[dict[str, Any]] = []
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self._history.append({"ts": time.time(), "symbol": key, "msg": value.get("msg", "")})
+
+decision_log: _DecisionLog = _DecisionLog()
 learning_state: dict[str, Any] = {}
 _last_entry_ts: set[str] = set()
 _manual_sig_last: set[str] = set()
@@ -763,12 +774,17 @@ def enter_trade(name, sig):
     """Entry gate for all trades. Risk-gated, idempotent, fail-closed."""
     from core.safety_state import check_kill_file_and_halt
     check_kill_file_and_halt()
-    _audit_engine.record("enter_trade", symbol=name,
+
+    # Build deterministic trace_id before any gates
+    _trace_ts = str(sig.get("signal_ts", sig.get("timestamp", time.time()))).replace(".", "_")
+    trace_id = f"{name}_{str(sig.get('direction', 'CALL'))}_{_trace_ts}"
+
+    _audit_engine.record("enter_trade", trace_id=trace_id, symbol=name,
                          direction=sig.get("direction"), price=sig.get("price"),
                          score=sig.get("score"))
     if is_hard_halted():
         decision_log[name] = {"msg": "HARD HALT ACTIVE — blocked"}
-        _audit_engine.record("blocked", symbol=name, reason="HARD_HALT")
+        _audit_engine.record("blocked", trace_id=trace_id, symbol=name, reason="HARD_HALT")
         return
 
     # Intraday P&L gate: trip hard halt if running loss exceeds intraday limit
@@ -816,7 +832,7 @@ def enter_trade(name, sig):
             if risk_eval.decision.value == "denied":
                 decision_log[name] = {"msg": f"RISK_BLOCK: {risk_eval.reason} (score={risk_eval.risk_score:.2f})"}
                 send(f"RISK_BLOCK: {name} — {risk_eval.reason}", critical=True)
-                _audit_engine.record("risk_block", symbol=name,
+                _audit_engine.record("risk_block", trace_id=trace_id, symbol=name,
                                      reason=risk_eval.reason,
                                      risk_score=risk_eval.risk_score)
                 return
@@ -882,8 +898,13 @@ def enter_trade(name, sig):
     direction = sig.get("direction", "CALL")
     order_direction = "BUY" if str(direction).upper() == "CALL" else "SELL" if str(direction).upper() == "PUT" else str(direction).upper()
 
+    # Build deterministic idempotency key before entering lock
+    signal_ts_str = str(sig.get("signal_ts", sig.get("timestamp", time.time()))).replace(".", "_")
+    idempotency_key = f"{name}_{direction}_{int(qty)}_{signal_ts_str}"
+
+    # CRITICAL: lock covers risk-check + broker submission (TOCTOU fix)
     try:
-        with _state_lock:  # TOCTOU protection: lock risk check + submission together
+        with _state_lock:
             available_margin = _portfolio_service.get_available_margin()
             required_margin_per_lot = _risk_service.get_required_margin_per_lot(name, price) if _risk_service else price * qty * 0.2
             margin_result = _margin_validator.validate(
@@ -901,7 +922,6 @@ def enter_trade(name, sig):
                 send(margin_result.warning_message, critical=False)
 
             # Re-validate risk after acquiring lock (TOCTOU fix)
-            # State may have changed between initial risk check and this point
             if _risk_service is not None:
                 try:
                     risk_metrics_after_lock = _risk_service.get_portfolio_risk_metrics()
@@ -914,59 +934,34 @@ def enter_trade(name, sig):
                     decision_log[name] = {"msg": f"RISK_EVAL_POST_LOCK_ERROR: {risk_e}"}
                     send(f"RISK_EVAL_CRITICAL: {name} — {risk_e}", critical=True)
                     return
+
+            # Submit order under lock — NO TOCTOU window between risk check and broker call
+            order_request = OrderRequest(
+                symbol=name,
+                direction=order_direction,
+                strike_price=price,
+                lot_size=int(qty),
+                order_type=OrderType.MARKET,
+                price=price,
+                idempotency_key=idempotency_key,
+            )
+            order_result = _execution_service.execute_order(order_request)
     except Exception as e:
-        # CRITICAL FIX #5: Use broker-specific exception taxonomy
-        # Only broker API calls throw these exceptions — never triggers in paper mode
         classified = classify_broker_exception(e)
         if isinstance(classified, (AuthExpiredError, OrderRejectedError)):
             decision_log[name] = {"msg": f"BROKER_ERROR: {classified.__class__.__name__}"}
             trip_hard_halt(f"Margin check failed: {classified.__class__.__name__}")
             return
-
-    # Check idempotency before placing order (CRITICAL FIX #1 - Phase 0)
-    # CRITICAL FIX: Include signal UUID/timestamp in idempotency key to prevent
-    # duplicate orders when price changes by ₹0.05 between ticks
-    # Old key: f"{name}_{direction}_{price}_{qty}" — allowed duplicates on price change
-    # New key: f"{name}_{direction}_{qty}_{signal_ts}" — unique per signal event
-    import uuid as _uuid
-    signal_uuid = sig.get("uuid", sig.get("signal_id", str(_uuid.uuid4())))
-    idempotency_key = f"{name}_{direction}_{int(qty)}_{signal_uuid}"
-    state_machine, is_new = _deterministic_state_machine.create_or_get(
-        intent_id=idempotency_key,
-        symbol=name,
-        quantity=int(qty),
-        price=price,
-        direction=order_direction,
-    )
-    if not is_new:
-        # Order already exists - idempotent return, don't place again
-        decision_log[name] = {"msg": f"IDEMPOTENCY_BLOCK: Order {idempotency_key[:50]}... already exists (state: {state_machine.state.value})"}
+        decision_log[name] = {"msg": f"ORDER_FAILED: {e}"}
         return
 
-    order_request = OrderRequest(
-        symbol=name,
-        direction=order_direction,
-        strike_price=price,
-        lot_size=int(qty),
-        order_type=OrderType.MARKET,
-        price=price,
-        idempotency_key=idempotency_key,  # Broker-side idempotency key
-    )
-
-    # CRITICAL FIX: Use existing _execution_service (singleton), not new instance
-    # Creating new instances causes inefficient execution and potential state confusion
-    order_result = _execution_service.execute_order(order_request)
     success = order_result.status in (OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED)
 
     if success:
         decision_log[name] = {"msg": f"Executed: {order_result.order_id}"}
-        # CRITICAL FIX #1: Record state transition to FILLED
-        state_machine.record_fill(qty, price)
     else:
         error_text = order_result.reject_reason or str(order_result.status)
         decision_log[name] = {"msg": f"Blocked/Failed: {error_text}"}
-        # Mark as failed
-        state_machine.try_transition_to(state_machine.state.__class__.FAILED)
 
 def _check_hard_halt_reason():
     import core.safety_state as _ss
@@ -1066,8 +1061,8 @@ def _local_positions_snapshot():
 INDEX_PRIORITY = ["NIFTY", "BANKNIFTY", "FINNIFTY"]
 INDEX_MAP: dict = {
     "NIFTY": {"yf": "^NSEI"},
-    "BANKNIFTY": {"yf": "^NSEMDCP"},
-    "FINNIFTY": {"yf": "^NSEI"},
+    "BANKNIFTY": {"yf": "^NSEBANK"},
+    "FINNIFTY": {"yf": "^NIFTYFIN"},
 }
 performance: dict = {"wins": 0, "loss": 0}
 _signal_cache: dict = {}
@@ -1395,7 +1390,7 @@ _display_snapshot: dict = {"struct": {"headline": "ok"}}
 def _fetch_nse_holidays_dynamic():
     global _nse_session, NSE_HOLIDAYS, _HOLIDAY_FETCH_META, _NSE_HOLIDAY_YEARS
     try:
-        resp = _nse_session.get("https://www.nseindia.com/marketinfo/holidays/holidaySchedule.jsp")
+        resp = _nse_session.get("https://www.nseindia.com/api/holidaymaster", timeout=15)
         if resp.status_code != 200:
             raise ValueError("Non-200 response")
         try:
@@ -1460,7 +1455,8 @@ class _MockYf:
             import pandas as pd
             return pd.DataFrame()
 
-_nse_session: Any = _MockNseSession()
+_nse_session: Any = requests.Session()
+_nse_session.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application/json, text/plain, */*"})
 import yfinance as yf
 
 NSE_HOLIDAYS: set = set()
@@ -1521,6 +1517,9 @@ def _on_ws_tick(msg: dict) -> None:
 
 def setup_di_container() -> None:
     """Set up the dependency injection container with all service implementations."""
+    # Fetch NSE holidays before any trading decision
+    _fetch_nse_holidays_dynamic()
+
     from core.di_container import get_container
     from core.services.execution_service import ExecutionService, ExecutionServiceConfig
     from infrastructure.adapters.brokers.paper.adapter import PaperBrokerAdapter

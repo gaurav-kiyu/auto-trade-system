@@ -801,9 +801,20 @@ class ExecutionService:
         Returns:
             OrderResult from the execution attempt
         """
+        # Halt gate — block execution if hard halt active (catches webhook/CLI/API paths)
+        from core.safety_state import is_hard_halted
+        if is_hard_halted():
+            self._logger.critical(f"EXECUTION BLOCKED: Hard halt active for {order_request.symbol}")
+            return OrderResult(
+                order_id="",
+                status=OrderStatus.REJECTED,
+                reject_reason="Hard halt active",
+                timestamp=now_ist(),
+            )
+
         # CRITICAL FIX: Check idempotency using deterministic state machine BEFORE any attempt
-        intent_id = f"{order_request.symbol}_{order_request.direction}_{order_request.strike_price}_{order_request.lot_size}"
-        print(f"DEBUG: state_machine.create_or_get for intent {intent_id}")
+        # Use caller-provided key if available (for cross-layer consistency), else derive locally
+        intent_id = order_request.idempotency_key or f"{order_request.symbol}_{order_request.direction}_{order_request.strike_price}_{order_request.lot_size}"
         state_machine, is_new = self._state_machine.create_or_get(
             intent_id=intent_id,
             symbol=order_request.symbol,

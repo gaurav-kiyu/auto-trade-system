@@ -187,18 +187,20 @@ class MorningChecklist:
             )
 
     def _check_token_validity(self) -> tuple[bool, str]:
-        """Check if broker auth token is valid."""
+        """Check if broker auth token is valid (synchronous forced refresh at pre-open)."""
         if not self._broker_port:
             return True, "Broker token (no broker configured)"
 
+        # Force synchronous auth check at pre-open — bypasses TokenRefreshService interval
         try:
             if hasattr(self._broker_port, "_ensure_token_fresh"):
                 if self._broker_port._ensure_token_fresh():
-                    return True, "Broker token valid"
+                    return True, "Broker token valid (fresh)"
                 else:
-                    return False, "Broker token expired"
+                    return False, "Broker token EXPIRED — refresh failed"
         except Exception as e:
             self._logger.warning(f"Token check failed: {e}")
+            return False, f"Token check error: {e}"
 
         return True, "Broker token OK (no fresh check)"
 

@@ -80,10 +80,11 @@ class ProductionMandateEnforcer:
         if self._state.is_hard_halted:
             return False, "HARD_HALT: System halted"
 
+        max_dd = float(self._cfg.get("MANDATE_MAX_DRAWDOWN_PROTECTION", 0.12))
         drawdown = (self._state.equity_peak - self._state.capital) / self._state.equity_peak
-        if drawdown >= 0.12:
-            self._trigger_hard_halt("Max drawdown 12% reached")
-            return False, "MAX_DRAWDOWN: 12% protection triggered"
+        if drawdown >= max_dd:
+            self._trigger_hard_halt(f"Max drawdown {max_dd:.0%} reached")
+            return False, f"MAX_DRAWDOWN: {max_dd:.0%} protection triggered"
 
         daily_loss_pct = -self._state.daily_pnl / self._state.capital
         if daily_loss_pct >= 0.025:
