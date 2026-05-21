@@ -1,0 +1,192 @@
+[
+  {
+    "severity": "BLOCKER",
+    "category": "INDIA_SPECIFIC",
+    "file": "index_app/index_trader.py",
+    "line": 1466,
+    "issue": "NSE holiday detection is effectively dead code: `_fetch_nse_holidays_dynamic()` is defined at L1395 but NEVER called in any startup or run path. The mock NSE session `_MockNseSession` (L1463) is the default, and no real requests.Session is substituted. `NSE_HOLIDAYS` is an empty set at L1466. `market_status()` (L1082) checks `today_str in NSE_HOLIDAYS` against an always-empty set.",
+    "scenario": "The bot operates normally on Republic Day, Independence Day, Gandhi Jayanti, Diwali, etc. The bot enters trades on declared market holidays when NSE is closed.",
+    "impact": "Trades placed on NSE holidays will be rejected by the exchange. If `BROKER_API_ENABLED=true` in AUTO mode, orders are submitted to a closed market — fill never occurs, orders stay pending, risk of stale orders bleeding into next session. The bot may interpret rejection as a broker error and could accumulate API failure circuit-breaker trips.",
+    "fix": "Call `_fetch_nse_holidays_dynamic()` during startup in `initialize_services()` after the NSE session is established. Replace the mock session with `requests.Session()` with proper headers (User-Agent, Accept). Add a hardcoded fallback set for current-year NSE holidays if the API fetch fails. Wire the call into the pre-market checklist."
+  },
+  {
+    "severity": "CRITICAL",
+    "category": "INDIA_SPECIFIC",
+    "file": "index_app/index_trader.py",
+    "line": 1082,
+    "issue": "Even if `_fetch_nse_holidays_dynamic()` were called, the NSE API endpoint is wrong: it fetches `https://www.nseindia.com/marketinfo/holidays/holidaySchedule.jsp` which is an HTML page, not a JSON API. NSE changed their API; the correct endpoint for machine-readable holiday data is now `https://www.nseindia.com/api/holiday-master?type=trading`. The current code will always throw a JSON parse error.",
+    "scenario": "The NSE holiday fetch function finally runs (perhaps after a fix), but always fails to parse the HTML response as JSON. Holidays never load.",
+    "impact": "Same as above — trades on holidays. Additionally, the error handling swallows the issue silently (L1431: `except Exception: _HOLIDAY_FETCH_META['fallback'] = True`), so no alert fires.",
+    "fix": "Update URL to `https://www.nseindia.com/api/holiday-master?type=trading`. Update JSON parsing to match the NSE API response format. Add a hardcoded fallback set with NSE 2026 holidays."
+  },
+  {
+    "severity": "CRITICAL",
+    "category": "INDIA_SPECIFIC",
+    "file": "index_app/index_trader.py",
+    "line": 803,
+    "issue": "Auction session gate checks `is_in_auction_session()` for pre-open (09:00-09:15) and post-close (15:30-15:45). However, there is NO pre-open authentication validation — no check at 09:00-09:15 verifying broker token freshness BEFORE the continuous session starts. `TokenRefreshService.check_and_refresh()` runs on its own interval (default 60 min), not synchronously at market open.",
+    "scenario": "Zerodha token expires at 06:00 IST. If the bot started before 06:00 or the token refresh cycle is mis-timed, the first trade attempt at 09:20+ uses a stale/missing token. The first order fails with 401/403. The entire session's first trade is wasted.",
+    "impact": "First trade of the day fails. In AUTO mode, this triggers circuit-breaker accumulation. Position entry delay. Session could be entirely blocked if the circuit breaker opens early.",
+    "fix": "Add a synchronous `validate_and_refresh_token()` call in the startup sequence, gated on the pre-open window (09:00-09:15). The call should be blocking and must complete before continuous trading begins at 09:20. Add Telegram alert if token refresh fails."
+  },
+  {
+    "severity": "HIGH",
+    "category": "INDIA_SPECIFIC",
+    "file": "core/hybrid_execution.py",
+    "line": 38,
+    "issue": "Dangerous implicit default: when `infer_blank_from_broker=True` and `EXECUTION_MODE` is blank/missing but `BROKER_API_ENABLED=True`, the mode silently defaults to `AUTO`. This means an operator who fills in broker credentials but forgets to set EXECUTION_MODE gets automatic real-money order placement.",
+    "scenario": "Operator configures a KITE broker for testing, sets BROKER_API_ENABLED=true to test connection, forgets to set EXECUTION_MODE (which defaults to MANUAL). The bot starts in AUTO mode and places live orders.",
+    "impact": "Real money orders placed without explicit operator confirmation. Potential financial loss from unintended entries.",
+    "fix": "Never auto-default to AUTO. Treat blank EXECUTION_MODE as MANUAL regardless of BROKER_API_ENABLED. Require explicit EXECUTION_MODE=AUTO string in config to enable automated trading. Log a CRITICAL-level warning if BROKER_API_ENABLED=true but EXECUTION_MODE is not explicitly 'AUTO'."
+  },
+  {
+    "severity": "HIGH",
+    "category": "INDIA_SPECIFIC",
+    "file": "core/stt_cost_model.py",
+    "line": 53,
+    "issue": "STT rate for short options is hardcoded at 0.001 (0.1%) which is DOUBLE the actual NSE rate of 0.05% (0.0005) for options sell side. This causes trade cost estimates to be inflated by 100%, affecting position sizing and profitability calculations.",
+    "scenario": "A trade that would be profitable after actual STT costs is rejected or sized down because the model overestimates costs by 2x.",
+    "impact": "Missed profitable trades due to overestimated costs. Inconsistent with the other STT model in `cost_accountant.py` which uses the correct 0.0005 rate.",
+    "fix": "Align `STT_SHORT_OPTIONS_PCT` with the actual NSE rate of 0.0005 (0.05%). Consolidate to a single STT model rather than maintaining two (stt_cost_model.py and cost_accountant.py) with different rates."
+  },
+  {
+    "severity": "HIGH",
+    "category": "INDIA_SPECIFIC",
+    "file": "index_app/index_trader.py",
+    "line": 549,
+    "issue": "SIGNAL_MAX_AGE is hardcoded at 65 seconds, overriding the defaults.json value of 90. If this module-level assignment takes precedence over config, all stale-signal guards use the wrong threshold. The operator who changes `SIGNAL_MAX_AGE` in config will see no effect.",
+    "scenario": "Operator adjusts SIGNAL_MAX_AGE in config.json to 120 seconds to accommodate slow data feed. The bot continues using the hardcoded 65 seconds, rejecting signals that are still valid.",
+    "impact": "Silent config override — operator has false confidence in their configuration. Signals rejected prematurely or accepted for too long depending on direction of mismatch.",
+    "fix": "Remove the hardcoded line 549. Read SIGNAL_MAX_AGE from the config dict at the point of use, respecting the merged config."
+  },
+  {
+    "severity": "HIGH",
+    "category": "CONFIG",
+    "file": "core/config_bootstrap.py",
+    "line": 164,
+    "issue": "Two co-existing config systems: `config_bootstrap.py` has both a new `SecureConfig` path (L172-179) and a legacy `merge_bot_config` path (L406-449). Depending on which entry point calls which function, the merged config may differ. The SecureConfig path (L173) reads config files from `config_dir` (defaulting to `config/` at L248), while the legacy path reads from the project root. Both paths can disagree.",
+    "scenario": "One module loads config via SecureConfig (config/ subdirectory), another uses legacy merge (root directory). They have different values for the same keys. The bot behaves inconsistently.",
+    "impact": "Config inconsistency across modules. Trading decisions made with different parameter values than intended. Hard to debug.",
+    "fix": "Eliminate the legacy `merge_bot_config` path entirely. Route all config loading through `get_effective_config()` which always uses SecureConfig. Ensure config_dir is correctly set to the project root, not a `config/` subdirectory."
+  },
+  {
+    "severity": "HIGH",
+    "category": "CONFIG",
+    "file": "core/config_bootstrap.py",
+    "line": 245,
+    "issue": "SecureConfig path defaults config_dir to `config/` (Path(__file__).parent.parent / 'config'), but the project layout stores config.json in the project root, not a `config/` subdirectory. This means SecureConfig silently loads no config files and falls back entirely to defaults, ignoring the actual config.json.",
+    "scenario": "Operator removes config.json (or uses SecureConfig path which looks in the wrong directory). The bot starts with all defaults — MAX_DAILY_LOSS from defaults (-2000) instead of config (-300), effectively allowing 6.7x more daily loss.",
+    "impact": "Incorrect config loaded silently. Financial loss limits are far wider than configured.",
+    "fix": "Fix the default config_dir to the project root: `Path(__file__).resolve().parent.parent` (not `/config`). Or remove the broken default and require explicit config_dir."
+  },
+  {
+    "severity": "HIGH",
+    "category": "CONFIG",
+    "file": "index_app/index_trader.py",
+    "line": 505,
+    "issue": "Config checksum verification (SHA-256) exists but only verifies the raw bytes of `config.json`. When `config.json` is missing or checksum fails (L517), the bot silently falls back to an EMPTY dict `_CFG = {}` (L518). Empty dict means ALL config reads fall to hardcoded defaults (e.g., MAX_DAILY_LOSS=-2000, L1477). No Telegram alert fires for config load failure.",
+    "scenario": "config.json is corrupted during write. The bot starts with all defaults — MAX_DAILY_LOSS goes from the configured -300 to -2000 (6.7x increase). Operator is unaware.",
+    "impact": "Silent massive increase in loss tolerance. Operator believes they are protected by current config limits but the bot uses far larger limits.",
+    "fix": "On config load failure (checksum mismatch, parse error, file not found): (1) Send CRITICAL Telegram alert, (2) Do NOT allow AUTO mode to proceed — force fallback to MANUAL mode, (3) Log all overridden values, (4) Consider refusing to start at all if config is missing/corrupt."
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "CONFIG",
+    "file": "core/config_bootstrap.py",
+    "line": 196,
+    "issue": "Runtime config freeze (`_freeze_config`) converts dicts to `MappingProxyType` and lists to tuples, making the frozen config immutable. However, frozen config is only used in the `get_effective_config()` path (L197). Legacy `merge_bot_config()` callers return mutable dicts that CAN be altered at runtime by any module.",
+    "scenario": "A buggy module or plugin mutates the running config (e.g., sets SL_PCT=0.5 to reduce stop-loss aggressiveness). The legacy path has no protection.",
+    "impact": "Runtime config injection/tampering possible in legacy code path.",
+    "fix": "Ensure ALL config callers receive frozen config. Move freeze into the merge function itself, not just in get_effective_config()."
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "CONFIG",
+    "file": "index_config.defaults.json",
+    "line": 4,
+    "issue": "Defaults file ships with BASE_CAPITAL=5000 and MAX_DAILY_LOSS=-2000. MAX_DAILY_LOSS is -40% of BASE_CAPITAL. While config.json overrides this to -300 (6%), if config.json is ever lost, corrupted, or bypassed, the bot allows losing 40% of capital in a single day with no alert.",
+    "scenario": "See HIGH finding — config load failure silently uses -2000 daily loss limit. Combined with SIGNAL_ONLY mode (defaults line 73), this means only signal generation, no trading. But if operator switches to MANUAL/AUTO without fixing config, the -2000 loss limit applies.",
+    "impact": "Excessive daily loss exposure when config is unavailable.",
+    "fix": "Reduce default MAX_DAILY_LOSS to a conservative value like -300 (6% of default capital). Or remove the default entirely and require explicit configuration."
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "CONFIG",
+    "file": "core/config_bootstrap.py",
+    "line": 354,
+    "issue": "Config drift detection: `system_parity.py` has a `generate_runtime_checksum()` method but it is NEVER called during startup or main loop. The config audit trail (`write_config_changes_jsonl`) only logs changes, it does not detect when the live config differs from the defaults file (e.g., after an update adds new keys). The schema regeneration script (`generate_config_schemas.py`) has a `--check` flag but it's a manual CI step.",
+    "scenario": "A defaults.json update adds `NEW_FEATURE_ENABLED: false` with expected behavior. Config.json doesn't have this key. The bot uses `false` (safe default). Next defaults update changes it to `NEW_FEATURE_ENABLED: true`. Since the operator never added the key to config.json, the new behavior takes effect silently.",
+    "impact": "Silent behavior change after defaults.json update. Feature enabled without operator awareness.",
+    "fix": "Add startup config drift check: compare all keys in merged config against defaults.json. Log WARNING for any key in defaults.json not present in the merged config (new features). Log WARNING for any key in merged config not in defaults (deprecated/removed keys). Send Telegram alert for CRITICAL/HIGH risk changes."
+  },
+  {
+    "severity": "HIGH",
+    "category": "OPERATIONS",
+    "file": "core/health_checker.py",
+    "line": 11,
+    "issue": "Health checker is documented as 'Runs automatically on Sunday EOD' but there is NO scheduler, cron job, or background thread that triggers `run_full_health_check()`. It is only accessible via CLI (`python -m core.health_checker`) or web dashboard endpoint. No periodic health monitoring occurs.",
+    "scenario": "DB grows to 2GB, disk fills up, ML model Brier score drifts to 0.45, WAL files accumulate to 500MB. The health checker never runs because no cron job was set up. The operator only discovers the problem when the bot crashes.",
+    "impact": "Degraded performance goes undetected until catastrophic failure. Logs fill disk. DB corruption goes unnoticed. ML predictions become unreliable.",
+    "fix": "Add a background thread in the main trading loop that runs the health check on the configured `health_check_day` (default Sunday) at market close. Or integrate with the session report service. Document that a cron/systemd timer is required if in-app scheduling is not used."
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "OPERATIONS",
+    "file": "core/morning_checklist.py",
+    "line": 189,
+    "issue": "Token validity check in morning checklist silently passes on any exception. If `_ensure_token_fresh()` doesn't exist on the broker port or raises, the method returns `True, 'Broker token OK (no fresh check)'`. This means token failures can be silently ignored.",
+    "scenario": "Broker token expired at 06:00. Morning checklist runs at 09:00. The `_ensure_token_fresh()` method raises (or doesn't exist). The checklist reports 'Broker token OK (no fresh check)' and allows trading to proceed. First trade attempt gets 401.",
+    "impact": "First trade of the day fails. In AUTO mode, circuit breaker accumulates failure count.",
+    "fix": "Make token validation explicit and fail-closed: (1) Call `TokenRefreshService.validate_token()` directly, (2) If the method doesn't exist or raises, return False with a clear error message, (3) Mark the check as CRITICAL failure that blocks trading."
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "OPERATIONS",
+    "file": "core/safety_state.py",
+    "line": 35,
+    "issue": "Kill file watcher thread polls every 1 second for the `STOP_TRADING` file. However, this is a polling-based mechanism with no inotify/ReadDirectoryChangesW support on Windows. On a system with high disk I/O, the 1-second poll interval is reasonable. But the thread is a daemon thread (L55) — it will be killed abruptly on interpreter exit, potentially without flushing the hard halt reason to logs.",
+    "scenario": "STOP_TRADING file is created. Kill file watcher trips hard halt. But at the exact same moment, the process receives SIGTERM and exits. The daemon thread is killed before `trip_hard_halt()` completes. The halt reason is never logged.",
+    "impact": "Lost shutdown reason. Operator sees the process exited but doesn't know why.",
+    "fix": "Make the kill file watcher a non-daemon thread and ensure the main thread waits for it during shutdown. Or use a more reliable mechanism like `ReadDirectoryChangesW` on Windows. Log the kill file detection before calling trip_hard_halt."
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "OPERATIONS",
+    "file": "core/python_runtime.py",
+    "line": 28,
+    "issue": "Graceful shutdown signal handlers (SIGINT/SIGTERM) set a threading.Event but do NOT call `execute_shutdown()` immediately. The shutdown callbacks only execute via `atexit.register(execute_shutdown)` (L69). On some interpreter exit paths (e.g., `os._exit()`, force kill), atexit handlers are not called. Queue drains and state flushes are skipped.",
+    "scenario": "Operator presses Ctrl+C. SIGINT fires, sets the shutdown event. But if the main thread is stuck in an infinite loop or blocking I/O, the event might not be checked. If the process uses `sys.exit()` or a crash occurs, atexit may not run.",
+    "impact": "Telegram queue not drained — pending alerts lost. Trader state not flushed to disk. DB connections not closed.",
+    "fix": "Make signal handlers call `execute_shutdown()` directly in addition to setting the event. Consider using a try/finally in the main function to ensure shutdown runs even on exception."
+  },
+  {
+    "severity": "LOW",
+    "category": "INDIA_SPECIFIC",
+    "file": "index_app/index_trader.py",
+    "line": 795,
+    "issue": "Expiry day controller uses generic time-based cutoffs (CAUTION at 12:30, BLOCKED at 13:00) but does not differentiate by index expiry day. NIFTY, BANKNIFTY, and FINNIFTY all expire on Thursday, but the controller applies the same rules regardless of which index's expiry day it is. On non-expiry days, the controller still applies afternoon cutoffs.",
+    "scenario": "On a Wednesday (non-expiry day for all indices), the controller still applies CAUTION/BLOCKED afternoon restrictions, potentially blocking valid entries.",
+    "impact": "Reduced trading opportunities on non-expiry days due to over-broad restrictions.",
+    "fix": "Make expiry day controller index-aware: check `is_expiry_day(index_name)` before applying special expiry restrictions. On non-expiry days, use only the standard time-based cutoffs, not the more restrictive expiry ones."
+  },
+  {
+    "severity": "LOW",
+    "category": "INDIA_SPECIFIC",
+    "file": "core/datetime_ist.py",
+    "line": 141,
+    "issue": "`now_ist()` returns a naive datetime (no tzinfo) with IST offset hardcoded. Python's `datetime.utcnow()` is deprecated in 3.12+. While this works correctly (UTC→IST offset is fixed), the lack of tzinfo means any comparison with timezone-aware datetimes will raise TypeError across the 8,200 lines of the codebase.",
+    "scenario": "A third-party library (e.g., pandas, yfinance) returns a timezone-aware timestamp. Comparing it with `now_ist()` raises `TypeError: can't subtract offset-naive and offset-aware datetimes`. The trade loop crashes.",
+    "impact": "Hard crash on any mixed datetime comparison. This is a fragile design choice that makes integration with modern libraries dangerous.",
+    "fix": "Either (a) make now_ist() return a proper tzinfo-aware datetime with IST timezone, or (b) add a second function `now_ist_aware()` that returns aware datetimes, and migrate comparisons to use it."
+  },
+  {
+    "severity": "LOW",
+    "category": "CONFIG",
+    "file": "core/secret_hygiene.py",
+    "line": 163,
+    "issue": "`check_file()` method explicitly skips .py files (line 163: `skip_extensions = {'.py', '.md', '.txt', '.log', ...}`). This means secrets hardcoded in .py files are never detected. A developer accidentally committing a test file with `API_KEY = 'xxx'` would not be caught.",
+    "scenario": "Developer adds a debug script with a hardcoded API key. Secret hygiene scan runs and skips it because .py is excluded. The API key gets committed to git.",
+    "impact": "Credential exposure in source code not detected by automated scan.",
+    "fix": "Remove .py from skip_extensions. Instead, only skip __pycache__, .git, .venv directories. For .py files, scan for assignment patterns like `KEY = '...'` or `TOKEN = '...'` with non-placeholder values."
+  }
+]
