@@ -2314,5 +2314,29 @@
     "sharpe_ratio": -2.239,
     "data_source": "cached",
     "fetched_at": 1779345732.2170208
+  },
+  "^NSEI_TEST_1845359857552_2024-01-01_2024-03-31": {
+    "symbol": "^NSEI_TEST_1845359857552",
+    "start_date": "2024-01-01",
+    "end_date": "2024-03-31",
+    "total_return_pct": 2.56,
+    "annualized_return_pct": 10.31,
+    "max_drawdown_pct": 1.63,
+    "volatility_pct": 3.83,
+    "sharpe_ratio": -1.029,
+    "data_source": "cached",
+    "fetched_at": 1779347756.2716815
+  },
+  "^NSEI_TEST_2113105825696_2024-01-01_2024-03-31": {
+    "symbol": "^NSEI_TEST_2113105825696",
+    "start_date": "2024-01-01",
+    "end_date": "2024-03-31",
+    "total_return_pct": -0.4,
+    "annualized_return_pct": -1.54,
+    "max_drawdown_pct": 2.79,
+    "volatility_pct": 3.85,
+    "sharpe_ratio": -1.792,
+    "data_source": "cached",
+    "fetched_at": 1779348127.2412214
   }
 }
