@@ -536,3 +536,65 @@ if __name__ == "__main__":
     print(f"Total equity: {summary['summary']['total_equity']:.2f}")
 
     print("\\n✅ Portfolio service working correctly!")
+
+
+class PortfolioDataService:
+    """Wraps PortfolioService as a data-source interface for PortfolioAuthority."""
+
+    def __init__(self, portfolio_service: Any = None):
+        self._portfolio = portfolio_service or PortfolioService()
+        self._strategy_budgets: dict[str, Any] = {}
+
+    def get_exposures(self) -> dict[str, Any]:
+        """Return per-asset-class exposure snapshot."""
+        from core.domains.portfolio.model import ExposureRecord
+        exposures: dict[str, ExposureRecord] = {}
+        for symbol, pos in self._portfolio._positions.items():
+            asset_class = symbol.split("_")[0] if "_" in symbol else "EQUITY"
+            if asset_class not in exposures:
+                exposures[asset_class] = ExposureRecord(asset_class=asset_class)
+            rec = exposures[asset_class]
+            if pos.quantity > 0:
+                rec.long_exposure += abs(pos.market_value)
+            elif pos.quantity < 0:
+                rec.short_exposure += abs(pos.market_value)
+            rec.net_exposure = rec.long_exposure - rec.short_exposure
+            rec.gross_exposure = rec.long_exposure + rec.short_exposure
+            rec.pnl += pos.unrealized_pnl + pos.realized_pnl
+        return {k: vars(v) for k, v in exposures.items()}
+
+    def get_margin_requirements(self) -> dict[str, Any]:
+        """Return margin requirement estimate."""
+        from core.domains.portfolio.model import MarginRequirement
+        total_exposure = sum(abs(p.market_value) for p in self._portfolio._positions.values())
+        summary = self._portfolio.get_portfolio_summary()
+        equity = summary.get("summary", {}).get("total_equity", 0) if isinstance(summary, dict) else 0
+        mr = MarginRequirement(
+            span_margin=total_exposure * 0.12,
+            exposure_margin=total_exposure * 0.03,
+            available_cash=equity,
+        )
+        mr.total = mr.span_margin + mr.exposure_margin + mr.premium
+        return vars(mr)
+
+    def get_strategy_budgets(self) -> dict[str, Any]:
+        """Return per-strategy budget snapshot."""
+        return {sid: vars(sb) for sid, sb in self._strategy_budgets.items()} if self._strategy_budgets else {}
+
+    def set_strategy_budget(self, strategy_id: str, allocated_capital: float, **kwargs) -> None:
+        """Set or update a strategy budget."""
+        from core.domains.portfolio.model import StrategyBudget
+        self._strategy_budgets[strategy_id] = StrategyBudget(
+            strategy_id=strategy_id, allocated_capital=allocated_capital, **kwargs,
+        )
+
+    def total_exposure(self) -> float:
+        """Return total gross exposure."""
+        return sum(abs(p.market_value) for p in self._portfolio._positions.values())
+
+    def net_exposure(self) -> float:
+        """Return net exposure (long - short)."""
+        net = 0.0
+        for p in self._portfolio._positions.values():
+            net += p.market_value if p.quantity > 0 else -p.market_value
+        return net

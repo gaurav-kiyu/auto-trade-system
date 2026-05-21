@@ -162,9 +162,58 @@ class PortfolioPerformance:
             # So we allow them to be positive
 
 
+@dataclass
+class ExposureRecord:
+    """Per-asset-class exposure tracking."""
+    asset_class: str          # "NIFTY", "BANKNIFTY", "FINNIFTY", "EQUITY"
+    long_exposure: float = 0.0
+    short_exposure: float = 0.0
+    net_exposure: float = 0.0
+    gross_exposure: float = 0.0
+    margin_used: float = 0.0
+    pnl: float = 0.0
+
+
+@dataclass
+class MarginRequirement:
+    """Broker-margin requirement breakdown."""
+    initial_margin: float = 0.0
+    exposure_margin: float = 0.0
+    span_margin: float = 0.0
+    premium: float = 0.0
+    total: float = 0.0
+    available_cash: float = 0.0
+
+
+@dataclass
+class StrategyBudget:
+    """Capital budget allocated to a single strategy."""
+    strategy_id: str
+    allocated_capital: float
+    used_capital: float = 0.0
+    max_positions: int = 5
+    current_positions: int = 0
+    max_risk_per_trade_pct: float = 2.0
+    daily_loss_limit: float = 0.0
+    is_active: bool = True
+
+    @property
+    def available_capital(self) -> float:
+        return self.allocated_capital - self.used_capital
+
+    @property
+    def utilization_pct(self) -> float:
+        if self.allocated_capital <= 0:
+            return 0.0
+        return (self.used_capital / self.allocated_capital) * 100.0
+
+
 # Export all models
 __all__ = [
     "PositionSnapshot",
     "PortfolioSnapshot",
     "PortfolioPerformance",
+    "ExposureRecord",
+    "MarginRequirement",
+    "StrategyBudget",
 ]
