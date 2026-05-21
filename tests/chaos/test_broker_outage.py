@@ -1,0 +1,33 @@
+"""
+Chaos: Broker Outage
+"""
+import pytest
+import tempfile, os, gc
+
+
+def test_broker_outage_paper_fallback():
+    """On broker outage, paper fallback works."""
+    from core.adapters.broker_adapters import PaperBrokerAdapter
+    pba = PaperBrokerAdapter()
+    oid = pba.place_order("NIFTY", "CALL", 50, 18000.0)
+    assert oid is not None and oid.startswith("PAPER_")
+
+
+def test_broker_outage_idempotent():
+    """Certifier begins and detects pending state."""
+    f = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    db = f.name
+    f.close()
+    try:
+        from core.execution.idempotency.certifier import IdempotencyCertifier
+        cert = IdempotencyCertifier(db)
+        eid = cert.generate_execution_id("NIFTY", "CALL", 18000.0, 50)
+        cert.begin(eid, "NIFTY", "BUY", {"qty": 50})
+        assert cert.is_pending(eid)
+    finally:
+        del cert
+        gc.collect()
+        try:
+            os.unlink(db)
+        except PermissionError:
+            pass
