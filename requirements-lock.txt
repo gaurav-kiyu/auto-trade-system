@@ -20,7 +20,7 @@ SmartApi>=1.0,<2     # optional — only needed for Angel
 pytest>=8.0,<9
 ruff>=0.1,<1
 build>=1.0,<2
-pip-audit>=2.0,<3   # security audit
+pip-audit>=2.10.0,<3   # security audit
 
 # Optional
 fastapi>=0.100,<1    # admin control plane + web dashboard
