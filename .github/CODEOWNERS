@@ -1,0 +1,51 @@
+# AD-KIYU Code Ownership Map
+# Each domain has a single authoritative module.
+# Pattern: <path> <owner(s)>
+
+# Strategy — single orchestrator
+/core/strategy/orchestrator.py @gaurav-kiyu
+
+# Risk — single authority
+/core/risk/authoritative_engine.py @gaurav-kiyu
+
+# Execution — one execution path
+/core/services/execution_service.py @gaurav-kiyu
+/core/execution/ @gaurav-kiyu
+
+# Portfolio — single engine
+/core/portfolio/ @gaurav-kiyu
+/core/domains/portfolio/ @gaurav-kiyu
+
+# Market data — single data engine
+/core/data/ @gaurav-kiyu
+
+# Persistence — single persistence layer
+/core/wal/ @gaurav-kiyu
+/core/domains/persistence/ @gaurav-kiyu
+
+# Ops — system mode + operating mode + control plane
+/core/operating_mode.py @gaurav-kiyu
+/core/admin_control_plane.py @gaurav-kiyu
+/core/system_mode.py @gaurav-kiyu
+
+# AI — governance board
+/core/ai/ @gaurav-kiyu
+
+# Auth — RBAC
+/core/auth/ @gaurav-kiyu
+
+# Broker adapters
+/infrastructure/adapters/brokers/ @gaurav-kiyu
+/core/adapters/broker_adapters.py @gaurav-kiyu
+
+# Telemetry
+/core/telemetry/ @gaurav-kiyu
+
+# Invariants
+/core/invariants/ @gaurav-kiyu
+
+# Tests
+/tests/ @gaurav-kiyu
+
+# CI/CD
+/.github/ @gaurav-kiyu
