@@ -1,6 +1,6 @@
 from typing import Any
 
-from .strategy_engine_v2 import (
+from core.strategy.strategies import (
     ATRStrategy,
     BaseStrategy,
     MeanReversionStrategy,

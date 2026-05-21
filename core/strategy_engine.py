@@ -1,8 +1,26 @@
+"""
+AD-KIYU StrategyEngine compatibility shim.
+
+Preserves the original callback-based StrategyEngine API for backward
+compatibility with backtest engine and existing code. New code should
+use core.strategy.orchestrator directly.
+
+Original API:
+  StrategyEngine(generate_signal_fn, top_signals_fn, detect_regime_fn, ...)
+  .generate_signal(name, frames, vix) -> SignalDict | None
+  .get_top_signals(limit) -> list[tuple[str, SignalDict]]
+  .detect_regime(*args, **kwargs) -> str
+  .detect_regime_and_adx(*args, **kwargs) -> tuple[str, float]
+  .snapshot(name, signal) -> StrategySnapshot
+"""
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 SignalDict = dict[str, Any]
 
@@ -18,23 +36,27 @@ class StrategySnapshot:
 
 
 class StrategyEngine:
-    """Thin strategy boundary around the existing signal logic."""
+    """DEPRECATED: Use StrategyOrchestrator from core.strategy.orchestrator."""
 
     def __init__(
         self,
         *,
-        generate_signal_fn: Callable[[str, dict[str, Any], float], SignalDict | None],
+        generate_signal_fn: Callable[[str, dict[str, Any], float], SignalDict | None] | None = None,
         top_signals_fn: Callable[[int], list[tuple[str, SignalDict]]] | None = None,
         detect_regime_fn: Callable[..., str] | None = None,
         detect_regime_and_adx_fn: Callable[..., tuple[str, float]] | None = None,
-    ) -> None:
+        **kwargs,
+    ):
         self._generate_signal_fn = generate_signal_fn
         self._top_signals_fn = top_signals_fn
         self._detect_regime_fn = detect_regime_fn
         self._detect_regime_and_adx_fn = detect_regime_and_adx_fn
+        _log.warning("StrategyEngine is DEPRECATED — use StrategyOrchestrator")
 
     def generate_signal(self, name: str, frames: dict[str, Any], vix: float = 0.0) -> SignalDict | None:
-        return self._generate_signal_fn(name, frames, vix)
+        if self._generate_signal_fn:
+            return self._generate_signal_fn(name, frames, vix)
+        return None
 
     def get_top_signals(self, limit: int = 5) -> list[tuple[str, SignalDict]]:
         if not self._top_signals_fn:
@@ -62,3 +84,9 @@ class StrategyEngine:
             regime=str(sig.get("regime") or sig.get("mkt_regime") or ""),
             strength=str(sig.get("strength") or ""),
         )
+
+    def get_status(self) -> dict:
+        return {
+            "has_generate_signal_fn": self._generate_signal_fn is not None,
+            "has_top_signals_fn": self._top_signals_fn is not None,
+        }
