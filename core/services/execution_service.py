@@ -157,6 +157,10 @@ class ExecutionService:
         
 
         broker_type = BrokerAckValidator.detect_broker_type(broker_port)
+
+        # Phase 1A — Operating mode manager (injected by init code)
+        self._operating_mode_manager = None
+
         self._ack_validator = BrokerAckValidator(broker_type)
         self._logger.info(f"Broker ACK validator initialized for {broker_type.value}")
 
@@ -165,6 +169,13 @@ class ExecutionService:
             timeout_seconds=30,
         )
         self._logger.info("Broker state handler initialized")
+
+    def set_operating_mode_manager(self, manager) -> None:
+        """Inject operating mode manager for execution gating."""
+        self._operating_mode_manager = manager
+        if manager is not None:
+            mode = manager.current_mode
+            self._logger.info("Operating mode set: %s", mode.value if hasattr(mode, 'value') else mode)
 
         self._is_reconciliation_frozen = False
         self._logger.info("ExecutionService initialized")
@@ -300,17 +311,27 @@ class ExecutionService:
     ) -> OrderResult:
         """
         Execute an order with idempotency and duplicate prevention.
-
-        ATOMIC OPERATION: The entire check→execute→store sequence is protected
-        by a single lock to prevent TOCTOU race conditions under concurrent load.
-
-        Args:
-            order_request: The order to execute
-            execution_context: Context information for the execution
-
-        Returns:
-            OrderResult indicating success or failure
         """
+        # ─── Operating Mode Gate (Phase 1A) ─────────────────────────────────
+        from core.operating_mode import OperatingModeManager
+        _mode_manager: OperatingModeManager | None = getattr(self, '_operating_mode_manager', None)
+        if _mode_manager is not None:
+            allowed, msg = _mode_manager.allows_execution()
+            if not allowed:
+                self._logger.warning("Order blocked by operating mode: %s", msg)
+                return OrderResult(
+                    order_id="blocked",
+                    status=OrderStatus.REJECTED,
+                    reject_reason=f"BLOCKED_{msg}",
+                    timestamp=now_ist()
+                )
+            if _mode_manager.requires_manual_approval():
+                from core.operating_mode import ExecutionAction
+                live_allowed, live_msg = _mode_manager.can_perform_live(ExecutionAction.SUBMIT_ORDER)
+                if live_allowed:
+                    self._logger.info("Manual approval required for order %s", order_request.symbol)
+        # ─────────────────────────────────────────────────────────────────────
+
         # Generate execution ID for tracking (outside lock - thread-safe counter)
         execution_id = f"exec_{self._execution_counter}_{int(time.time())}"
         self._execution_counter += 1
