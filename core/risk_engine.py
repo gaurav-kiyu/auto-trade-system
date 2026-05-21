@@ -3,7 +3,7 @@ Risk Engine — Unified entry-quality, portfolio-risk, and capital management.
 
 Consolidates:
   - risk_engine.py (v1 — QualityEngine pattern with injected callbacks)
-  - risk_engine_v2.py (v2 — Dict-based RiskEngineV2 evaluates capital/drawdown/cooldown)
+  - (removed) — was Dict-based RiskEngineV2; RiskService now covers that path
   - core/risk/risk_engine.py (DEPRECATED, migrated to this module)
 
 SINGLE SOURCE OF TRUTH: This module is the ONLY authoritative risk engine.

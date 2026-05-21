@@ -72,7 +72,7 @@ class RiskService(RiskPort):
 
     Consolidates functionality from:
     - core/risk_engine.py
-    - core/risk_engine_v2.py
+    - core/risk_engine.py
     - core/trading_risk.py
     - Various risk checks throughout the codebase
     """

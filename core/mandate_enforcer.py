@@ -9,7 +9,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from core.datetime_ist import now_ist
-from core.safety_state import trip_hard_halt as _trip_hard_halt
+from core.safety_state import (
+    get_consecutive_losses,
+    record_trade_outcome,
+    trip_hard_halt as _trip_hard_halt,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -20,7 +24,6 @@ class MandateState:
     equity_peak: float = 5000.0
     daily_pnl: float = 0.0
     weekly_pnl: float = 0.0
-    loss_streak: int = 0
     last_trade_time: datetime | None = None
     trades_today: int = 0
     last_event_time: datetime | None = None
@@ -54,14 +57,11 @@ class ProductionMandateEnforcer:
             self._state.equity_peak = capital
 
     def record_trade(self, pnl: float):
-        if pnl < 0:
-            self._state.loss_streak += 1
-            if self._state.loss_streak >= 3:
-                self._trigger_hard_halt("3 consecutive losses")
-        else:
-            self._state.loss_streak = 0
         self._state.last_trade_time = now_ist()
         self._state.trades_today += 1
+        updated = record_trade_outcome(was_profit=(pnl >= 0))
+        if updated >= 3:
+            self._trigger_hard_halt(f"{updated} consecutive losses")
 
     def reset_daily(self):
         self._state.trades_today = 0
@@ -95,7 +95,7 @@ class ProductionMandateEnforcer:
             self._trigger_hard_halt("Weekly circuit breaker 5% hit")
             return False, "WEEKLY_CIRCUIT: 5% hit - trading halted"
 
-        if self._state.loss_streak >= 3 and self._state.last_trade_time:
+        if get_consecutive_losses() >= 3 and self._state.last_trade_time:
             cooldown = self._state.last_trade_time + timedelta(hours=2)
             if now_ist() < cooldown:
                 return False, "LOSS_STREAK_COOLDOWN: 2 hours"
@@ -154,7 +154,7 @@ class ProductionMandateEnforcer:
 
     def get_max_trades_today(self) -> int:
         """Operating mode based on VIX and conditions"""
-        if self._state.vix > 28 or self._state.loss_streak >= 2:
+        if self._state.vix > 28 or get_consecutive_losses() >= 2:
             return 1
         elif self._state.vix > 20:
             return 2
@@ -208,7 +208,7 @@ class ProductionMandateEnforcer:
             "equity_peak": self._state.equity_peak,
             "drawdown_pct": (self._state.equity_peak - self._state.capital) / self._state.equity_peak,
             "daily_pnl": self._state.daily_pnl,
-            "loss_streak": self._state.loss_streak,
+            "consecutive_losses": get_consecutive_losses(),
             "vix": self._state.vix,
             "hard_halted": self._state.is_hard_halted,
             "trades_today": self._state.trades_today,

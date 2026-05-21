@@ -82,7 +82,6 @@ from .reconciliation_engine import ReconciliationEngine, ReconciliationItem, Rec
 from .replay_engine import ReplayEngine
 from .retention_engine import RetentionEngine, RetentionPolicy
 from .risk_engine import RiskConfig, RiskDecision, RiskEngine
-from .risk_engine_v2 import RiskEngineV2
 from .safety_engine import SafetyConfig, SafetyContext, SafetyDecision, SafetyEngine
 from .soft_reload_common import ignored_keys_warning
 from .startup_checklist import StartupCheckItem, StartupCheckResult, run_startup_checklist
@@ -163,7 +162,6 @@ __all__ = [
     "RiskConfig",
     "RiskDecision",
     "RiskEngine",
-    "RiskEngineV2",
     "SafetyConfig",
     "SafetyContext",
     "SafetyDecision",

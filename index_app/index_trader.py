@@ -1439,25 +1439,6 @@ def _fetch_nse_holidays_dynamic():
         )
         _HOLIDAY_FETCH_META["_year_warning_logged"] = True
 
-class _MockNseSession:
-    def get(self, *args, **kwargs):
-        return _MockResponse()
-
-class _MockResponse:
-    status_code = 200
-    headers = {}
-    def json(self):
-        return {}
-    text = ""
-
-class _MockYf:
-    class Ticker:
-        def __init__(self, symbol):
-            self.symbol = symbol
-        def history(self, period=None, interval=None):
-            import pandas as pd
-            return pd.DataFrame()
-
 _nse_session: Any = requests.Session()
 _nse_session.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application/json, text/plain, */*"})
 import yfinance as yf

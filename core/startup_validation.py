@@ -19,9 +19,7 @@ log = logging.getLogger("startup_validation")
 AUTHORITATIVE_RISK_ENGINE = "core.services.risk_service"
 
 # Deprecated risk engine modules — kept for backward compatibility
-DEPRECATED_RISK_MODULES = {
-    "core.risk_engine_v2": "Thin wrapper; use core.risk_engine.RiskEngine directly",
-}
+DEPRECATED_RISK_MODULES = {}
 
 # Modules that should NOT be imported together (conflicts)
 CONFLICTING_MODULES = {}
