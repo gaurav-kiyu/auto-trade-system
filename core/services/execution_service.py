@@ -355,10 +355,10 @@ class ExecutionService:
                 strike_price=order_request.strike_price,
                 state=DurableExecState.PENDING,
             )
-            print(f"DEBUG: saving durable record for intent {intent_id} to {self._durable_store._db_path}")
+            self._logger.debug("saving durable record for intent %s to %s", intent_id, self._durable_store._db_path)
             self._durable_store.save_execution(durable_record)
 
-            print(f"DEBUG: marking idempotency in flight for key {idempotency_key}")
+            self._logger.debug("marking idempotency in flight for key %s", idempotency_key)
             self.idempotency.mark_in_flight(idempotency_key)
 
         # Record the execution start
@@ -823,7 +823,7 @@ class ExecutionService:
             direction=order_request.direction,
         )
 
-        print(f"DEBUG: create_or_get returned is_new={is_new}, state={state_machine.state}")
+        self._logger.debug("create_or_get returned is_new=%s, state=%s", is_new, state_machine.state)
         # If order already exists in non-terminal state, BLOCK duplicate
         if not is_new and state_machine.state not in [ExecutionState.FILLED, ExecutionState.REJECTED, ExecutionState.CANCELLED, ExecutionState.FAILED]:
             self._logger.warning(f"BLOCKED: Order {intent_id} already in progress (state: {state_machine.state.value})")
@@ -836,7 +836,7 @@ class ExecutionService:
 
         # Mark as validated
         state_machine.try_transition_to(ExecutionState.VALIDATED)
-        print(f"DEBUG: state_machine transitioned to {state_machine.state}")
+        self._logger.debug("state_machine transitioned to %s", state_machine.state)
 
         # CRITICAL: Single attempt ONLY - NO RETRY to prevent duplicate orders
         # This is the ONLY execution path - state machine guarantees idempotency
@@ -848,23 +848,23 @@ class ExecutionService:
             if result.status == OrderStatus.FILLED:
                 # Advance through intermediate states so record_fill can reach FILLED
                 try:
-                    print("DEBUG: advancing state machine to PERSISTED/SUBMITTED/ACKNOWLEDGED")
+                    self._logger.debug("advancing state machine to PERSISTED/SUBMITTED/ACKNOWLEDGED")
                     state_machine.try_transition_to(ExecutionState.PERSISTED)
-                    print(f"DEBUG: state after PERSISTED attempt: {state_machine.state}")
+                    self._logger.debug("state after PERSISTED attempt: %s", state_machine.state)
                     # Record a submission using the broker/order id if available
                     broker_id = result.broker_order_id or result.order_id or state_machine.client_order_id
                     state_machine.record_submission(str(broker_id))
-                    print(f"DEBUG: state after record_submission: {state_machine.state}")
+                    self._logger.debug("state after record_submission: %s", state_machine.state)
                     state_machine.record_acknowledgment()
-                    print(f"DEBUG: state after record_acknowledgment: {state_machine.state}")
+                    self._logger.debug("state after record_acknowledgment: %s", state_machine.state)
                 except Exception as ex:
                     # Best effort - continue to record fill
-                    print(f"DEBUG: exception while advancing state machine: {ex}")
+                    self._logger.debug("exception while advancing state machine: %s", ex)
                     pass
 
-                print(f"DEBUG: calling record_fill with qty={order_request.lot_size} price={order_request.strike_price}")
+                self._logger.debug("calling record_fill with qty=%s price=%s", order_request.lot_size, order_request.strike_price)
                 state_machine.record_fill(order_request.lot_size, order_request.strike_price)
-                print(f"DEBUG: state after record_fill: {state_machine.state}")
+                self._logger.debug("state after record_fill: %s", state_machine.state)
                 return result
 
             elif result.status == OrderStatus.PARTIALLY_FILLED:
@@ -919,9 +919,9 @@ class ExecutionService:
             # Execute via broker port
             if hasattr(self.broker_port, 'place_order'):
                 # Use broker's place_order method - it expects an Order object
-                print("DEBUG: calling broker_port.place_order")
+                self._logger.debug("calling broker_port.place_order")
                 place_order_result = self.broker_port.place_order(order_request)
-                print("DEBUG: broker_port.place_order returned")
+                self._logger.debug("broker_port.place_order returned")
 
                 if isinstance(place_order_result, OrderResult):
                     result = place_order_result
@@ -969,7 +969,7 @@ class ExecutionService:
                     )
 
                 res = self._validate_broker_result(result)
-                print(f"DEBUG: _validate_broker_result returned status={res.status}, order_id={res.order_id}")
+                self._logger.debug("_validate_broker_result returned status=%s, order_id=%s", res.status, res.order_id)
                 return res
             else:
                 # CRITICAL SAFETY: Never simulate execution for real broker

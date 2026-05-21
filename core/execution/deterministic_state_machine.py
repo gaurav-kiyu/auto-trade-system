@@ -295,6 +295,30 @@ class ExecutionStateMachineManager:
         with self._lock:
             return list(self._machines.values())
 
+    def prune_terminals(self, max_age_hours: float = 24) -> int:
+        """Remove terminal-state machines older than max_age_hours to prevent unbounded growth."""
+        import time as _time
+        now_ts = _time.time()
+        terminal_states = {
+            ExecutionState.FILLED, ExecutionState.REJECTED,
+            ExecutionState.CANCELLED, ExecutionState.FAILED,
+        }
+        removed = 0
+        with self._lock:
+            keys = list(self._machines.keys())
+            for k in keys:
+                m = self._machines.get(k)
+                if m is None:
+                    continue
+                if m.state in terminal_states:
+                    created_ts = _time.mktime(_time.strptime(m.created_at)) if m.created_at else 0
+                    if created_ts > 0 and (now_ts - created_ts) > max_age_hours * 3600:
+                        del self._machines[k]
+                        removed += 1
+        if removed:
+            _log.info("Pruned %d terminal state machines", removed)
+        return removed
+
     def record_broker_query_result(
         self,
         client_order_id: str,

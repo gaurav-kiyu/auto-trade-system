@@ -436,7 +436,9 @@ _pos_lock = _threading.Lock()
 
 breakout_state: dict[str, Any] = {}
 class _DecisionLog(dict):
-    """Append-only decision log that preserves history for crash recovery."""
+    """Decision log with bounded history for crash recovery."""
+    _MAX_HISTORY = 10000
+
     def __init__(self):
         super().__init__()
         self._history: list[dict[str, Any]] = []
@@ -444,6 +446,8 @@ class _DecisionLog(dict):
     def __setitem__(self, key, value):
         super().__setitem__(key, value)
         self._history.append({"ts": time.time(), "symbol": key, "msg": value.get("msg", "")})
+        if len(self._history) > self._MAX_HISTORY:
+            self._history.pop(0)
 
 decision_log: _DecisionLog = _DecisionLog()
 learning_state: dict[str, Any] = {}
@@ -509,7 +513,7 @@ def _load_config():
         try:
             _resolved.relative_to(_project_root)
         except ValueError:
-            print(f"WARNING: Config path '{cfg_path}' resolves outside project root '{_project_root}' — using defaults")
+            log.warning("Config path '%s' resolves outside project root '%s' — using defaults", cfg_path, _project_root)
             _CFG = {}
             _config_loaded = True
             return
@@ -536,25 +540,25 @@ def _load_config():
         PAPER_MODE = str(EXECUTION_MODE).upper() in ("PAPER", "SIM", "TEST")
         _CFG = cfg
         _config_loaded = True
-        print(f"INFO: Config loaded from {_resolved}")
+        log.info("Config loaded from %s", _resolved)
         # Secret hygiene check: warn if config contains potential secrets
         try:
             from core.secret_hygiene import check_config_secrets
             _secret_result = check_config_secrets(cfg)
             if _secret_result.issues_found and _secret_result.issues:
-                print(f"WARNING: {_secret_result.issues[0].message}")
+                log.warning("%s", _secret_result.issues[0].message)
         except Exception:
             pass
     except FileNotFoundError:
-        print(f"WARNING: Config file '{cfg_path}' not found. Using default configuration.")
+        log.warning("Config file '%s' not found. Using default configuration.", cfg_path)
         _CFG = {}
         _config_loaded = True
     except json.JSONDecodeError as _jex:
-        print(f"ERROR: Config file '{cfg_path}' is not valid JSON: {_jex}. Using default configuration.")
+        log.error("Config file '%s' is not valid JSON: %s. Using default configuration.", cfg_path, _jex)
         _CFG = {}
         _config_loaded = True
     except Exception as _ex:
-        print(f"ERROR: Failed to load config '{cfg_path}': {_ex}. Using default configuration.")
+        log.error("Failed to load config '%s': %s. Using default configuration.", cfg_path, _ex)
         _CFG = {}
         _config_loaded = True
 SIGNAL_MAX_AGE = 65
@@ -1065,7 +1069,6 @@ INDEX_MAP: dict = {
     "FINNIFTY": {"yf": "^NIFTYFIN"},
 }
 performance: dict = {"wins": 0, "loss": 0}
-_signal_cache: dict = {}
 
 def market_status():
     try:
@@ -1753,7 +1756,7 @@ def main() -> None:
     try:
         validate_lot_sizes(dict(config), broker_port=None)
     except Exception as e:
-        print(f"Warning: Lot size validation skipped: {e}")
+        log.warning("Lot size validation skipped: %s", e)
     if __name__ == "__main__":
         print("=== SECURE CONFIGURATION LOADED ===")
         print(f"Base Capital: {config.get_int('BASE_CAPITAL', 0)}")
