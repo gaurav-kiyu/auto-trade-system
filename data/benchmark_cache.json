@@ -2422,5 +2422,53 @@
     "sharpe_ratio": -2.398,
     "data_source": "cached",
     "fetched_at": 1779355169.381673
+  },
+  "^NSEI_TEST_2836823658384_2024-01-01_2024-03-31": {
+    "symbol": "^NSEI_TEST_2836823658384",
+    "start_date": "2024-01-01",
+    "end_date": "2024-03-31",
+    "total_return_pct": 0.72,
+    "annualized_return_pct": 2.82,
+    "max_drawdown_pct": 2.43,
+    "volatility_pct": 4.01,
+    "sharpe_ratio": -1.441,
+    "data_source": "cached",
+    "fetched_at": 1779356219.2581503
+  },
+  "^NSEI_TEST_2811363364768_2024-01-01_2024-03-31": {
+    "symbol": "^NSEI_TEST_2811363364768",
+    "start_date": "2024-01-01",
+    "end_date": "2024-03-31",
+    "total_return_pct": -0.65,
+    "annualized_return_pct": -2.5,
+    "max_drawdown_pct": 2.55,
+    "volatility_pct": 4.18,
+    "sharpe_ratio": -1.711,
+    "data_source": "cached",
+    "fetched_at": 1779357055.7403712
+  },
+  "^NSEI_TEST_1425831432048_2024-01-01_2024-03-31": {
+    "symbol": "^NSEI_TEST_1425831432048",
+    "start_date": "2024-01-01",
+    "end_date": "2024-03-31",
+    "total_return_pct": -0.91,
+    "annualized_return_pct": -3.48,
+    "max_drawdown_pct": 2.5,
+    "volatility_pct": 4.25,
+    "sharpe_ratio": -1.744,
+    "data_source": "cached",
+    "fetched_at": 1779358656.3941143
+  },
+  "^NSEI_TEST_2014319628160_2024-01-01_2024-03-31": {
+    "symbol": "^NSEI_TEST_2014319628160",
+    "start_date": "2024-01-01",
+    "end_date": "2024-03-31",
+    "total_return_pct": -0.18,
+    "annualized_return_pct": -0.68,
+    "max_drawdown_pct": 1.0,
+    "volatility_pct": 3.12,
+    "sharpe_ratio": -2.141,
+    "data_source": "cached",
+    "fetched_at": 1779359262.7462127
   }
 }

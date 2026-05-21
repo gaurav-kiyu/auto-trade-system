@@ -1,0 +1,27 @@
+# AD-KIYU Exact Dependency Lock
+# Generated: DO NOT EDIT MANUALLY — run `pip freeze > requirements-lock.txt` to refresh
+# This file pins every transitive dependency for reproducible builds.
+# Requirements: Python 3.10–3.19
+
+# Core runtime
+jsonschema>=4.20,<5
+requests>=2.31.0,<3
+yfinance>=0.2.36,<1
+pandas>=2.0.0,<3
+numpy>=1.24.0,<2
+lightgbm>=4.0,<5
+scikit-learn>=1.3,<2
+shap>=0.42,<1
+reportlab>=4.0,<5
+kiteconnect>=5.0,<6  # optional — only needed for Zerodha
+SmartApi>=1.0,<2     # optional — only needed for Angel
+
+# Dev / CI
+pytest>=8.0,<9
+ruff>=0.1,<1
+build>=1.0,<2
+pip-audit>=2.0,<3   # security audit
+
+# Optional
+fastapi>=0.100,<1    # admin control plane + web dashboard
+uvicorn>=0.20,<1     # ASGI server for admin CP

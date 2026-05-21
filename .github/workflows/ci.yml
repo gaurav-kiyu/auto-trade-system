@@ -28,6 +28,9 @@ jobs:
       - name: Validate defaults and templates against schemas
         run: python scripts/validate_config_schema.py --all
 
+      - name: Security audit
+        run: pip-audit || echo "pip-audit warnings found — review before release"
+
       - name: Ruff lint
         run: python -m ruff check index_app core scripts tests
 
