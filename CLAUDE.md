@@ -145,6 +145,8 @@ When `EXECUTION_MODE=PAPER` or `--paper` CLI flag is set:
 | `core/nlp_journal.py` | Post-trade narrative generation via Claude API (v2.45 Item 17) |
 | `core/param_optimizer.py` | Walk-forward parameter sweep optimizer with CLI (v2.45 Item 18) |
 | `core/metrics_exporter.py` | Prometheus metrics export on configurable HTTP port (v2.45 Item 19) |
+| `core/wal/journal.py` | Write-Ahead Intent Journal with cached SQLite connection + close() (v2.45 Item 20) |
+| `core/execution/idempotency/certifier.py` | Exactly-Once Execution Certifier with cached SQLite connection + close() (v2.45 Item 20) |
 | `core/broker_failover.py` | Thread-safe broker failover manager with recovery window (v2.45 Item 20) |
 
 ## Enhancement Phases — All Complete

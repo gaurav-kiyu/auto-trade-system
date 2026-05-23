@@ -35,7 +35,10 @@ def test_no_capital_loss_on_corruption():
     """Idempotency via :memory: survives."""
     from core.execution.idempotency.certifier import IdempotencyCertifier
     cert = IdempotencyCertifier(":memory:")
-    eid = cert.generate_execution_id("NIFTY", "CALL", 18000.0, 50)
-    cid = cert.begin(eid, "NIFTY", "BUY", {"qty": 50})
-    cert.settle(cid)
-    assert cert.get_by_execution_id(eid).status == "SETTLED"
+    try:
+        eid = cert.generate_execution_id("NIFTY", "CALL", 18000.0, 50)
+        cid = cert.begin(eid, "NIFTY", "BUY", {"qty": 50})
+        cert.settle(cid)
+        assert cert.get_by_execution_id(eid).status == "SETTLED"
+    finally:
+        cert.close()

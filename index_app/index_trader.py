@@ -1,9 +1,9 @@
 # ================================================================
-# 🚀  TRADER BRAIN — PRODUCTION v2.42  (₹5 000 Capital Edition)
+# 🚀  TRADER BRAIN — PRODUCTION v2.53.0  (₹5 000 Capital Edition)
 #     v2.42: ExecutionRouter (AUTO + optional PAPER→adapter), chunked Yahoo quarter backtest, HOW_TO_USE refresh.
 #     v2.40: Final QA pass — pytest tests/test_smoke + --selftest OK; find dialog F3 + safer
 #            Unicode selection end index (chars not c).
-#     v2.50: Dependency injection container wired for core services.
+#     v2.53.0: Dependency injection container wired for core services.
 # ----------------------------------------------------------------
 # INSTALL : pip install requests yfinance pandas kiteconnect pyotp
 # RUN     : python INDEX_OPTION_BUYING_APP_1.0.py               ← LIVE (shim → index_app)
@@ -306,7 +306,7 @@
 #         FIX: Added `global nse_fail_count` / `global yf_fail_count`
 #         to every function that mutates them. Removed all globals().
 #
-# ── BEGIN SECURITY ENHANCEMENTS (v2.50) ──────────────────
+# ── BEGIN SECURITY ENHANCEMENTS (v2.53.0) ──────────────────
 #
 # RCA-SEC-01: Move secrets to environment variables with OPBUYING_* prefix
 #             All secrets (BOT_TOKEN, CHAT_ID, KITE_* etc.) must now come
@@ -317,11 +317,11 @@
 #             infrastructure.config.secure_config.SecureConfig
 #             Provides automatic secret redaction in logs and error messages
 #
-# ── END SECURITY ENHANCEMENTS (v2.50) ────────────────────
+# ── END SECURITY ENHANCEMENTS (v2.53.0) ────────────────────
 #
 # ================================================================
-# 🚀  TRADER BRAIN — PRODUCTION v2.50  (₹5 000 Capital Edition)
-#     v2.50: Security enhancements - secrets moved to environment
+# 🚀  TRADER BRAIN — PRODUCTION v2.53.0  (₹5 000 Capital Edition)
+#     v2.53.0: Security enhancements - secrets moved to environment
 #            variables, secure config loading implemented
 # ================================================================
 # INSTALL : pip install requests yfinance pandas kiteconnect pyotp
@@ -1875,7 +1875,7 @@ def main() -> None:
         print(f"Execution Mode: {config.get('EXECUTION_MODE', 'PAPER')}")
         print("Secrets: [REDACTED FOR SECURITY]")
         print("====================================")
-        print("OPB Index Trader v2.50 — DI container initialized.")
+        print("OPB Index Trader v2.53.0 — DI container initialized.")
         print("For live trading, use the Orchestrator cycle-based system.")
         print("Legacy monolithic mode is deprecated.")
         print("Run 'python -m index_app.index_trader' for standalone mode.")

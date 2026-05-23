@@ -1,14 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
-title Build OPBuying INDEX Launcher - v2.45
+title Build OPBuying INDEX Launcher - v2.53.0
 color 0A
 
 echo.
 echo  ============================================================
-echo    OPBuying Index Options Bot v2.45
+echo    OPBuying Index Options Bot v2.53.0
 echo    Build Launcher EXE
 echo  ============================================================
-echo  VERSION: v2.45 (Production Ready)
+echo  VERSION: v2.53.0 (Production Ready)
 echo  STATUS: Limited Live Pilot (7/10 confidence)
 echo.
 
@@ -58,7 +58,7 @@ if exist "OPBuying_INDEX_Launcher.spec" del /f /q "OPBuying_INDEX_Launcher.spec"
 
 echo.
 echo  ============================================================
-echo    BUILD SUCCESSFUL - v2.45
+echo    BUILD SUCCESSFUL - v2.53.0
 echo  ============================================================
 echo.
 echo    Output: dist\OPBuying_INDEX_Launcher.exe
@@ -68,7 +68,7 @@ echo      1. Copy EXE to project root (same as config.json)
 echo      2. Double-click to run GUI launcher
 echo      3. Select PAPER or MANUAL mode
 echo.
-echo    v2.45 Features:
+echo    v2.53.0 Features:
 echo      - TOCTOU race condition FIXED
 echo      - In-flight idempotency tracking
 echo      - Broker failover notification

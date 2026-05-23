@@ -73,12 +73,13 @@ class IdempotencyCertifier:
         _log.info("IdempotencyCertifier initialized (slot=%ds, db=%s)", slot_seconds, self._db_path)
 
     def _get_conn(self) -> sqlite3.Connection:
-        """Get SQLite connection — caches for :memory: mode so state persists."""
-        if self._is_memory:
-            if self._conn is None:
+        """Get SQLite connection — cache ensures state persists for :memory: mode."""
+        if self._conn is None:
+            if self._is_memory:
                 self._conn = sqlite3.connect(":memory:", check_same_thread=False)
-            return self._conn
-        return sqlite3.connect(self._db_path)
+            else:
+                self._conn = sqlite3.connect(self._db_path)
+        return self._conn
 
     def _init_db(self) -> None:
         with self._lock:
@@ -238,6 +239,13 @@ class IdempotencyCertifier:
             settled_at=row["settled_at"],
             error=row["error"] or "",
         )
+
+    def close(self) -> None:
+        """Close the underlying SQLite connection."""
+        with self._lock:
+            if self._conn is not None:
+                self._conn.close()
+                self._conn = None
 
     def health_check(self) -> dict:
         return {

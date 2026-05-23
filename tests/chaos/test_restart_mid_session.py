@@ -18,11 +18,15 @@ def test_idempotency_survives_restart():
         cid = cert1.begin(eid, "NIFTY", "BUY", {"qty": 50})
         cert1.settle(cid)
         assert cert1.get_by_execution_id(eid).status == "SETTLED"
+        cert1.close()
         del cert1
         gc.collect()
 
         cert2 = IdempotencyCertifier(db)
-        assert cert2.get_by_execution_id(eid).status == "SETTLED"
+        try:
+            assert cert2.get_by_execution_id(eid).status == "SETTLED"
+        finally:
+            cert2.close()
     finally:
         try:
             os.unlink(db)
@@ -40,12 +44,16 @@ def test_no_duplicate_orders_after_restart():
         eid = cert.generate_execution_id("NIFTY", "CALL", 18000.0, 50)
         cid = cert.begin(eid, "NIFTY", "BUY", {"qty": 50})
         cert.settle(cid)
+        cert.close()
         del cert
         gc.collect()
 
         cert2 = IdempotencyCertifier(db)
-        assert not cert2.is_pending(eid)
-        assert cert2.get_by_execution_id(eid).status == "SETTLED"
+        try:
+            assert not cert2.is_pending(eid)
+            assert cert2.get_by_execution_id(eid).status == "SETTLED"
+        finally:
+            cert2.close()
     finally:
         try:
             os.unlink(db)
@@ -77,13 +85,17 @@ def test_wal_persistence():
         assert len(matching) >= 1
         iid = matching[-1].intent_id
         wal1.commit(iid)
+        wal1.close()
         del wal1
         gc.collect()
 
         wal2 = WriteAheadJournal(db)
-        settled = wal2.get_intent(iid)
-        assert settled is not None
-        assert settled.status == "COMMITTED"
+        try:
+            settled = wal2.get_intent(iid)
+            assert settled is not None
+            assert settled.status == "COMMITTED"
+        finally:
+            wal2.close()
     finally:
         try:
             os.unlink(db)

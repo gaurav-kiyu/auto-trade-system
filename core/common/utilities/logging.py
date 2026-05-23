@@ -11,7 +11,7 @@ import logging
 import sys
 import threading
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 # Thread-local storage for contextual logging context
@@ -102,7 +102,7 @@ class StructuredLogger:
 
         # Build the structured log message
         log_data = {
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'timestamp': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             'level': logging.getLevelName(level),
             'logger': self.logger.name,
             'message': msg,

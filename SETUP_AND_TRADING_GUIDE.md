@@ -86,7 +86,7 @@ Expected output: `554 passed` (takes ~2 minutes).
 |------|-------------|
 | `STOCK_OPTION_BUYING_APP_1.0.py` | Scans **53 stocks** for options trading signals (CE/PE). Shows live prices, generates buy/sell signals with score, manages paper positions with SL/target/trailing. |
 | `INDEX_OPTION_BUYING_APP_1.0.py` | Legacy single-file entry point (do not modify — use `index_app/index_trader.py` for development). |
-| `index_app/index_trader.py` | **Main Index Bot brain v2.42** — 26-section, 8,000-line engine. Scans NIFTY/BANKNIFTY/FINNIFTY, runs the full signal pipeline, manages positions, enforces all risk rules. |
+| `index_app/index_trader.py` | **Main Index Bot brain v2.53.0** — 26-section, 8,000-line engine. Scans NIFTY/BANKNIFTY/FINNIFTY, runs the full signal pipeline, manages positions, enforces all risk rules. |
 | `launcher.py` | GUI launcher wrapper (Windows) |
 | `dashboard_server.py` | Flask web server — real-time browser dashboard for all 56 instruments. |
 
@@ -244,7 +244,7 @@ python STOCK_OPTION_BUYING_APP_1.0.py --print-config
 python STOCK_OPTION_BUYING_APP_1.0.py --report
 ```
 
-### 4B. Index Bot (v2.42)
+### 4B. Index Bot (v2.53.0)
 
 ```
 # Paper mode (recommended first — no real orders placed)
@@ -267,7 +267,7 @@ python scripts/generate_config_schemas.py
 ```
 
 > **Note:** `INDEX_OPTION_BUYING_APP_1.0.py` is the legacy single-file entry point.
-> Use `index_app/index_trader.py` for all v2.42 features.
+> Use `index_app/index_trader.py` for all v2.53.0 features.
 
 ### 4C. Web Dashboard
 
@@ -909,7 +909,7 @@ Step 5: Script will send EOD report automatically
 
 ## 14. ENHANCEMENT PHASES — ADVANCED FEATURES
 
-This section describes the eight enhancement phases built into v2.42. All features are **opt-in via config** — defaults are safe and conservative. Each phase is fully isolated; a crash or missing dependency in any phase never affects core signal generation or trade execution.
+This section describes the eight enhancement phases built into v2.53.0. All features are **opt-in via config** — defaults are safe and conservative. Each phase is fully isolated; a crash or missing dependency in any phase never affects core signal generation or trade execution.
 
 ---
 
@@ -1297,5 +1297,5 @@ The system validates this at startup and will refuse to start if the config is i
 ---
 
 *Last updated: April 2026*
-*Scripts: Stock Trader v1.4 + Index Trader v2.42*
+*Scripts: Stock Trader v1.4 + Index Trader v2.53.0*
 *Signal Engine v1.0 + Dashboard v1.0*

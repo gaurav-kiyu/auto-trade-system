@@ -157,6 +157,7 @@ def test_error_handler_level():
     handler = logging.FileHandler(os.devnull)
     handler.setLevel(logging.ERROR)
     assert handler.level == logging.ERROR
+    handler.close()
 
 
 def test_error_handler_filters_warning():

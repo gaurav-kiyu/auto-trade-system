@@ -16,7 +16,10 @@ def test_broker_outage_idempotent():
     """Certifier detects duplicate after begin."""
     from core.execution.idempotency.certifier import IdempotencyCertifier
     cert = IdempotencyCertifier(":memory:")
-    eid = cert.generate_execution_id("NIFTY", "CALL", 18000.0, 50)
-    cert.begin(eid, "NIFTY", "BUY", {"qty": 50})
-    assert cert.is_duplicate(eid)
-    assert cert.is_pending(eid)
+    try:
+        eid = cert.generate_execution_id("NIFTY", "CALL", 18000.0, 50)
+        cert.begin(eid, "NIFTY", "BUY", {"qty": 50})
+        assert cert.is_duplicate(eid)
+        assert cert.is_pending(eid)
+    finally:
+        cert.close()

@@ -77,7 +77,7 @@ def fetch_1m_bars_chunked_yfinance(
         raise ValueError("calendar_days must be positive")
     span = min(int(calendar_days), YAHOO_1M_MAX_LOOKBACK_DAYS)
     chunk = max(1, min(int(chunk_days), YAHOO_1M_CHUNK_DAYS))
-    end = pd.Timestamp.utcnow().floor("s").tz_localize(None)
+    end = pd.Timestamp.now("UTC").floor("s").tz_localize(None)
     start_limit = end - pd.Timedelta(days=span)
     parts: list[pd.DataFrame] = []
     cursor = end

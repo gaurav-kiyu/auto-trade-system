@@ -5,10 +5,10 @@ color 0A
 
 echo.
 echo  ============================================================
-echo    OPBuying Index Options Bot v2.45
+echo    OPBuying Index Options Bot v2.53.0
 echo    Rs.5,000 LOW CAPITAL Mode - SAFE
 echo.
-echo    VERSION: v2.45 (Production Ready)
+echo    VERSION: v2.53.0 (Production Ready)
 echo    RISK: 1.5%% per trade | DAILY STOP: -300 INR
 echo    EXECUTION: MANUAL/SIGNAL mode (NO real orders)
 echo    STATUS: Paper trading with full risk controls

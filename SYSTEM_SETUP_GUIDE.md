@@ -1,6 +1,6 @@
 # OPB Index Options Bot v2.53.0 - Complete Setup Guide
 
-## Version: 2.45 (Production Ready - Limited Live Pilot)
+## Version: 2.53.0 (Production Ready - Limited Live Pilot)
 ## Date: May 15, 2026
 
 ---
@@ -251,7 +251,7 @@ python -m core.live_readiness_checker
 ### Version History
 | Version | Date | Key Changes |
 |---------|-----|-------------|
-| v2.45 | May 2026 | TOCTOU fix, idempotency, failover alert |
+| v2.53.0 | May 2026 | TOCTOU fix, idempotency, failover alert |
 | v2.44 | Apr 2026 | Liquidity guard, reentry evaluator |
 | v2.43 | Mar 2026 | Session classifier, IV rank |
 
@@ -260,7 +260,7 @@ python -m core.live_readiness_checker
 ## Support
 
 - Documentation: SETUP_AND_TRADING_GUIDE.md
-- Performance: PERFORMANCE_REPORT_V2.45.md
+- Performance: PERFORMANCE_REPORT_V2.53.0.md
 - Quick Start: QUICK_START_GUIDE.md
 - Presentation: presentation_v245.html
 

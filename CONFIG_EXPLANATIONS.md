@@ -108,4 +108,4 @@ This document explains the magic numbers and critical values in `index_config.de
 | BROKER_FAILOVER_RECOVERY_MINS | 15 | Recovery attempt after 15 minutes |
 
 ---
-Updated: May 15, 2026 (v2.51)
+Updated: May 15, 2026 (v2.53)

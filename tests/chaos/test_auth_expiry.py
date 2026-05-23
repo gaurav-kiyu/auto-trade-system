@@ -8,9 +8,12 @@ def test_auth_expiry_detected():
     """Health check works with :memory:."""
     from core.execution.idempotency.certifier import IdempotencyCertifier
     cert = IdempotencyCertifier(":memory:")
-    hc = cert.health_check()
-    assert isinstance(hc, dict)
-    assert "by_status" in hc
+    try:
+        hc = cert.health_check()
+        assert isinstance(hc, dict)
+        assert "by_status" in hc
+    finally:
+        cert.close()
 
 
 def test_auth_expiry_blocks_orders():

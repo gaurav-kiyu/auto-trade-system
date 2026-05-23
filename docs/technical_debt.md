@@ -31,7 +31,7 @@ prioritized by impact severity and estimated remediation effort.
 | **Impact** | CRITICAL — Capital loss from inconsistent risk enforcement |
 | **Effort** | L |
 | **Status** | PLANNED |
-| **Target** | v2.52 |
+| **Target** | v2.53 |
 | **Notes** | AD-KIYU Phase 1B: consolidate into single `RiskAuthority` |
 
 ### DEBT-002: No Exactly-Once Execution Guarantee (Legacy Code Paths)
@@ -42,7 +42,7 @@ prioritized by impact severity and estimated remediation effort.
 | **Impact** | CRITICAL — Duplicate order submissions |
 | **Effort** | M |
 | **Status** | IN_PROGRESS |
-| **Target** | v2.52 |
+| **Target** | v2.53 |
 | **Notes** | Migration of legacy paths is ongoing |
 
 ### DEBT-003: Strategy Orchestration Fragmentation
@@ -79,7 +79,7 @@ prioritized by impact severity and estimated remediation effort.
 | **Impact** | HIGH — Misconfiguration not caught until runtime |
 | **Effort** | S |
 | **Status** | IDENTIFIED |
-| **Target** | v2.52 |
+| **Target** | v2.53 |
 | **Notes** | Add `validate_config_on_startup` gating |
 
 ### DEBT-006: Test Artifacts in Repository Root
@@ -90,7 +90,7 @@ prioritized by impact severity and estimated remediation effort.
 | **Impact** | HIGH — Cluttered repo, risk of accidental commit of test data |
 | **Effort** | M |
 | **Status** | PLANNED |
-| **Target** | v2.52 |
+| **Target** | v2.53 |
 
 ### DEBT-007: No Dependency Version Pinning
 | Field | Value |
@@ -147,7 +147,7 @@ prioritized by impact severity and estimated remediation effort.
 | **Impact** | MEDIUM — Regression risk in edge cases |
 | **Effort** | L |
 | **Status** | IN_PROGRESS |
-| **Target** | v2.52 |
+| **Target** | v2.53 |
 | **Notes** | Chaos test suite being built (Phase 6A) |
 
 ### DEBT-012: ML Performance Tracker Schema Migration Not Versioned
@@ -202,7 +202,7 @@ prioritized by impact severity and estimated remediation effort.
 | **Impact** | LOW — Slightly bloated cache file |
 | **Effort** | XS |
 | **Status** | IDENTIFIED |
-| **Target** | v2.52 |
+| **Target** | v2.53 |
 
 ---
 
