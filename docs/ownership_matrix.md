@@ -8,7 +8,7 @@ Last Updated: 2026-05-22
 
 | Module | Owner | Review Required | Notes |
 |--------|-------|----------------|-------|
-| `core/risk_engine.py` | Risk team | Always | Canonical risk authority |
+| `core/risk/authoritative_engine.py` | Risk team | Always | Canonical risk authority |
 | `core/safety_engine.py` | Risk team | Always | Safety context + decisions |
 | `core/safety_state.py` | Risk team | Always | Halt/shutdown state machine |
 | `core/exposure_limits.py` | Risk team | Always | Exposure calculation |

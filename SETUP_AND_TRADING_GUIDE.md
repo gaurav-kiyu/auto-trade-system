@@ -1,5 +1,5 @@
 # COMPLETE SETUP & TRADING GUIDE
-## NSE Index Options Buying Bot v2.42
+## NSE Index Options Buying Bot v2.53.0
 
 **Quick start:** see Section 4 (Running the Scripts) and Section 13 (Manual Trading Workflow).
 

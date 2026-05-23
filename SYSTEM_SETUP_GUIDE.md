@@ -1,4 +1,4 @@
-# OPB Index Options Bot v2.45 - Complete Setup Guide
+# OPB Index Options Bot v2.53.0 - Complete Setup Guide
 
 ## Version: 2.45 (Production Ready - Limited Live Pilot)
 ## Date: May 15, 2026

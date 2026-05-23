@@ -1,6 +1,6 @@
-# QUICK START GUIDE - OPB Index Options Bot v2.45
+# QUICK START GUIDE - OPB Index Options Bot v2.53.0
 
-## Current Version: v2.45 (May 2026)
+## Current Version: v2.53.0 (May 2026)
 **Status**: 🟡 Limited Live Pilot Ready (7/10 confidence)
 
 ---

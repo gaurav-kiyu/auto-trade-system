@@ -1,7 +1,7 @@
 # NSE Index Options Buying Bot — Claude Code Context
 
 ## Project Identity
-- **Name:** OPB Index Options Buying Bot v2.45
+- **Name:** OPB Index Options Buying Bot v2.53.0
 - **Purpose:** Automated NSE index options buying (NIFTY / BANKNIFTY / FINNIFTY)
 - **Python:** 3.10–3.19 (enforced at startup)
 - **Platform:** Windows (primary); Linux / Docker compatible
@@ -9,10 +9,10 @@
 ## Entry Points
 | Script | Purpose |
 |--------|---------|
-| `index_app/index_trader.py` | Main trading brain (~8,200 lines, 26 sections) |
+| `index_app/index_trader.py` | Main trading brain (~1,640 lines) |
 | `INDEX_OPTION_BUYING_APP_1.0.py` | Legacy single-file entry (do not modify) |
 | `launcher.py` | GUI launcher wrapper |
-| `dashboard_server.py` | Flask dashboard server |
+| `dashboard_server.py` | Legacy dashboard server (Flask, replaced by FastAPI) |
 | `run_backtest.py` | Offline backtest runner |
 | `run_analysis.py` | Simulation / analysis runner |
 
@@ -31,11 +31,11 @@
 
 ## Test Command
 ```bash
-python -m pytest tests/ -q          # full suite (1507 tests, ~2.5 min)
+python -m pytest tests/ -q          # full suite (2341 tests, ~4.5 min)
 python -m pytest tests/ -v          # verbose
 python -m pytest tests/test_X.py    # single file
 ```
-All 1507 tests must pass before committing any change.
+All 2341 tests must pass before committing any change.
 
 ## Config System — Critical Rules
 - **`index_config.defaults.json`** is the single source of truth for all default values
@@ -267,10 +267,10 @@ Set `web_dashboard_enabled: true` in config.json to activate.
 - Runs on port 8765 (configurable via `web_dashboard_port`)
 - Auth token via `web_dashboard_auth_token` (empty = no auth)
 - Endpoints: `/`, `/health`, `/state`, `/trades`, `/signals`, `/metrics`, `/autopsy`, `/monte-carlo`
-- v2.44 new: `GET /trades/{id}/replay`, `GET /analysis/sensitivity`, `GET /analysis/heatmap`, `GET /health/full`, `GET /readiness`
+- Additional: `GET /trades/{id}/replay`, `GET /analysis/sensitivity`, `GET /analysis/heatmap`, `GET /health/full`, `GET /readiness`
 - Control: `POST /control/pause`, `POST /control/resume`
 
-## v2.44 CLI Tools
+## CLI Tools
 ```bash
 # Replay a closed trade bar-by-bar in the terminal
 python -m core.trade_replayer --id 42
@@ -294,8 +294,8 @@ python -m core.ab_strategy_tester
 python -m core.ab_strategy_tester --reset
 ```
 
-## Governance Config Keys (v2.51+)
-Added to `index_config.defaults.json` (now ~850 keys total):
+## Governance Config Keys (v2.53+)
+Added to `index_config.defaults.json` (now ~860 keys total):
 - `ENVIRONMENT` — Deployment environment (dev/qa/paper/shadow/staging/production)
 - `environment_block_on_violation` — Block startup when prod config has placeholder values
 - `db_migration_enabled` — Enable automatic schema version migration on startup

@@ -1,4 +1,4 @@
-# Execution Hardening (v2.47)
+# Execution Hardening (v2.53)
 
 ## Overview
 
