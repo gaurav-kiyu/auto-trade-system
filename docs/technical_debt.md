@@ -30,9 +30,9 @@ prioritized by impact severity and estimated remediation effort.
 | **Description** | Risk logic is fragmented across ~3+ engines with overlapping responsibilities, increasing risk of inconsistent risk decisions. |
 | **Impact** | CRITICAL — Capital loss from inconsistent risk enforcement |
 | **Effort** | L |
-| **Status** | PLANNED |
+| **Status** | IN_PROGRESS |
 | **Target** | v2.53 |
-| **Notes** | AD-KIYU Phase 1B: consolidate into single `RiskAuthority` |
+| **Notes** | `core/risk/authoritative_engine.py` removed (unnecessary wrapper); `core/risk_engine.py` deprecated; `RiskService` via `RiskPort` is canonical. Remaining legacy paths in `index_trader.py` need migration. |
 
 ### DEBT-002: No Exactly-Once Execution Guarantee (Legacy Code Paths)
 | Field | Value |
@@ -52,9 +52,9 @@ prioritized by impact severity and estimated remediation effort.
 | **Description** | Signal generation spans ~8 modules with overlapping responsibilities and inconsistent scoring. |
 | **Impact** | CRITICAL — Conflicting signals, missed trades |
 | **Effort** | L |
-| **Status** | PLANNED |
+| **Status** | IN_PROGRESS |
 | **Target** | v2.53 |
-| **Notes** | AD-KIYU Phase 1C: consolidate into single `StrategyOrchestrator` |
+| **Notes** | StrategyOrchestrator v2.0 is canonical and integrates SignalApprovalWorkflow. `core/signal_approval_workflow.py` and `core/strategy_engine.py` are deprecated. `core/signal_router.py` and `core/strategy_engine_v2.py` removed. Legacy references in `index_trader.py`, `backtest_engine.py`, `walkforward_engine.py` still import deprecated `strategy_engine`. |
 
 ---
 

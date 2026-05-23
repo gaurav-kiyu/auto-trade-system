@@ -74,8 +74,24 @@ class SecureConfigAdapter(ConfigPort):
         """Get all configuration as a dictionary."""
         return self._secure_config.get_all()
 
+    def keys(self) -> list[str]:
+        """Return all config keys for dict() conversion."""
+        return list(self._secure_config.get_all().keys())
+
+    def values(self) -> list[Any]:
+        """Return all config values."""
+        return list(self._secure_config.get_all().values())
+
+    def items(self) -> list[tuple[str, Any]]:
+        """Return all config (key, value) pairs."""
+        return list(self._secure_config.get_all().items())
+
+    def __contains__(self, key: str) -> bool:
+        """Check if a key exists in config."""
+        return key in self._secure_config.get_all()
+
     def __iter__(self):
-        """Make the adapter iterable."""
+        """Iterate over config keys."""
         return iter(self._secure_config.get_all())
 
     def __getitem__(self, key: str) -> Any:

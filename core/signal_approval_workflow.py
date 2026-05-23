@@ -1,5 +1,13 @@
 """
-Signal Approval Workflow (v2.46 Sprint 1B).
+Signal Approval Workflow — DEPRECATED.
+
+This module is deprecated. New code should use StrategyOrchestrator from
+core.strategy.orchestrator which internally integrates SignalApprovalWorkflow.
+
+Kept for backward compatibility. Will be removed in a future release.
+
+
+Legacy docs (for reference):
 
 Defines how auto-generated and manual signals are routed:
   SIGNALS_ONLY      — generate + notify, NO execution (default — safest)
@@ -22,6 +30,8 @@ Config keys
     manual_signal_workflow_mode  : str  default "SIGNALS_ONLY"
     manual_signal_min_score      : int  default 50
     manual_signal_max_score      : int  default 100
+
+See core/strategy/orchestrator.py for the canonical implementation.
 """
 from __future__ import annotations
 

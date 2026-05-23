@@ -1,9 +1,13 @@
 """
-AD-KIYU StrategyEngine compatibility shim.
+AD-KIYU StrategyEngine — DEPRECATED.
+
+This module is deprecated. New code should use StrategyOrchestrator from
+core.strategy.orchestrator.
 
 Preserves the original callback-based StrategyEngine API for backward
-compatibility with backtest engine and existing code. New code should
-use core.strategy.orchestrator directly.
+compatibility with backtest engine and existing code.
+
+Will be removed in a future release.
 
 Original API:
   StrategyEngine(generate_signal_fn, top_signals_fn, detect_regime_fn, ...)
@@ -12,13 +16,23 @@ Original API:
   .detect_regime(*args, **kwargs) -> str
   .detect_regime_and_adx(*args, **kwargs) -> tuple[str, float]
   .snapshot(name, signal) -> StrategySnapshot
+
+See core/strategy/orchestrator.py for the canonical implementation.
 """
 from __future__ import annotations
 
-import logging
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
+
+warnings.warn(
+    "core.strategy_engine is DEPRECATED. Use core.strategy.orchestrator.StrategyOrchestrator instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+import logging
 
 _log = logging.getLogger(__name__)
 

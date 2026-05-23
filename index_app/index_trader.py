@@ -595,6 +595,9 @@ _execution_service = None
 # Risk service - initialized in _setup_container, consolidated from duplicate risk engines
 _risk_service = None
 
+# StrategyOrchestrator - initialized in setup_di_container
+_strategy_orchestrator = None
+
 # Expiry day controller - blocks entries on expiry day after configurable cutoff
 _expiry_controller = ExpiryDayController(
     strategy_type=StrategyType.DIRECTIONAL,
@@ -1506,13 +1509,15 @@ def setup_di_container() -> None:
 
     from core.di_container import get_container
     from core.services.execution_service import ExecutionService, ExecutionServiceConfig
+    from core.services.signal_orchestrator import signal_orchestrator as _sig_orch
+    from core.ports.strategy import StrategyPort
+    from core.strategy import StrategyOrchestrator
     from infrastructure.adapters.brokers.paper.adapter import PaperBrokerAdapter
     from infrastructure.adapters.persistence.sqlite_adapter import SQLiteAdapter
 
     container = get_container()
     config_adapter = SecureConfigAdapter()
-    container.register_singleton(ConfigPort, type(config_adapter))
-    container._singleton_instances[ConfigPort] = config_adapter
+    container.register_instance(ConfigPort, config_adapter)
 
     config = container.resolve(ConfigPort)
 
@@ -1520,13 +1525,11 @@ def setup_di_container() -> None:
     trade_persistence = SQLiteAdapter("trades.db")
     market_data_port = YahooFinanceAdapter()
 
-    container.register_singleton(MarketDataPort, type(market_data_port))
-    container._singleton_instances[MarketDataPort] = market_data_port
+    container.register_instance(MarketDataPort, market_data_port)
 
     # Wire WS feed manager into the container for health checks / future use
     global _ws_feed_manager
-    container.register_singleton(type(_ws_feed_manager), type(_ws_feed_manager))
-    container._singleton_instances[type(_ws_feed_manager)] = _ws_feed_manager
+    container.register_instance(type(_ws_feed_manager), _ws_feed_manager)
 
     # Start Kite WebSocket feed on startup (gated internally by config/paper-mode/broker)
     if _CFG.get("kite_ticker_startup_connect", True):
@@ -1539,8 +1542,7 @@ def setup_di_container() -> None:
         config=ExecutionServiceConfig(idempotency_db_path="execution_state.db"),
     )
     _execution_service = execution_service
-    container.register_singleton(ExecutionPort, type(execution_service))
-    container._singleton_instances[ExecutionPort] = execution_service
+    container.register_instance(ExecutionPort, execution_service)
 
     from core.services.risk_service import RiskServiceConfig
     _risk_config = RiskServiceConfig(
@@ -1554,8 +1556,7 @@ def setup_di_container() -> None:
         trade_persistence=trade_persistence,
         get_live_vix_fn=lambda: DATA_ENGINE.get_india_vix() if DATA_ENGINE else 20.0
     )
-    container.register_singleton(RiskPort, type(risk_service))
-    container._singleton_instances[RiskPort] = risk_service
+    container.register_instance(RiskPort, risk_service)
     global RISK_ENGINE
     RISK_ENGINE = risk_service
 
@@ -1564,8 +1565,7 @@ def setup_di_container() -> None:
     set_intraday_loss_limit(float(_CFG.get("INTRADAY_LOSS_LIMIT", _CFG.get("MAX_DAILY_LOSS", -2000))))
 
     notification_service = NotificationService()
-    container.register_singleton(NotificationPort, type(notification_service))
-    container._singleton_instances[NotificationPort] = notification_service
+    container.register_instance(NotificationPort, notification_service)
 
     # Phase 2-3: Start morning checklist and session report services
     from core.circuit_breaker_monitor import create_circuit_breaker_monitor
@@ -1608,17 +1608,14 @@ def setup_di_container() -> None:
     )
 
     persistence_service = PersistenceService()
-    container.register_singleton(PersistencePort, type(persistence_service))
-    container._singleton_instances[PersistencePort] = persistence_service
+    container.register_instance(PersistencePort, persistence_service)
 
     broker_health_service = BrokerHealthService(broker_adapters={"PAPER": broker_port})
-    container.register_singleton(BrokerHealthPort, type(broker_health_service))
-    container._singleton_instances[BrokerHealthPort] = broker_health_service
+    container.register_instance(BrokerHealthPort, broker_health_service)
 
     rate_limiting_service = RateLimitingService()
     _rate_limiting_service = rate_limiting_service
-    container.register_singleton(RateLimitPort, type(rate_limiting_service))
-    container._singleton_instances[RateLimitPort] = rate_limiting_service
+    container.register_instance(RateLimitPort, rate_limiting_service)
 
     circuit_breaker_service = CircuitBreakerService()
     _circuit_breaker_service = circuit_breaker_service
@@ -1642,8 +1639,7 @@ def setup_di_container() -> None:
         log.info("Broker circuit breaker configured with threshold=%d timeout=%d",
                  broker_cfg.failure_threshold, broker_cfg.timeout)
 
-    container.register_singleton(CircuitBreakerPort, type(circuit_breaker_service))
-    container._singleton_instances[CircuitBreakerPort] = circuit_breaker_service
+    container.register_instance(CircuitBreakerPort, circuit_breaker_service)
 
     # Configure webhook rate limiter
     if raw_cfg.get("rate_limiter_webhook_enabled", True) and _rate_limiting_service is not None:
@@ -1660,20 +1656,25 @@ def setup_di_container() -> None:
             log.warning("Failed to configure webhook rate limiter: %s", exc)
 
     ml_model_service = MLModelAdapter()
-    container.register_singleton(MlModelPort, type(ml_model_service))
-    container._singleton_instances[MlModelPort] = ml_model_service
+    container.register_instance(MlModelPort, ml_model_service)
 
     correlation_id_service = CorrelationIdAdapter()
-    container.register_singleton(CorrelationIdPort, type(correlation_id_service))
-    container._singleton_instances[CorrelationIdPort] = correlation_id_service
+    container.register_instance(CorrelationIdPort, correlation_id_service)
 
     logging_service = StructuredLoggerAdapter()
-    container.register_singleton(LoggingPort, type(logging_service))
-    container._singleton_instances[LoggingPort] = logging_service
+    container.register_instance(LoggingPort, logging_service)
 
     metrics_service = MetricsAdapter({})
-    container.register_singleton(MetricsPort, type(metrics_service))
-    container._singleton_instances[MetricsPort] = metrics_service
+    container.register_instance(MetricsPort, metrics_service)
+
+    # Wire StrategyOrchestrator into the container for the canonical strategy path
+    global _strategy_orchestrator
+    _strategy_orchestrator = StrategyOrchestrator(
+        signal_orchestrator=_sig_orch,
+        config=_CFG,
+    )
+    container.register_instance(StrategyPort, _strategy_orchestrator)
+    log.info("StrategyOrchestrator wired into DI container as StrategyPort")
 
 
 # Backwards-compatible, read-only shim exports (use index_trader_interface for new code)
@@ -1738,7 +1739,7 @@ def _init_admin_control_plane(cfg: dict) -> threading.Thread | None:
         log.info("Admin control plane disabled — skipping wiring")
         return None
 
-    from core.admin_control_plane import start_admin_control_plane
+    from core.control_plane import maybe_start_control_plane
     from core.operating_mode import OperatingModeManager
     from core.wal.journal import WriteAheadJournal
     from core.execution.idempotency.certifier import IdempotencyCertifier
@@ -1786,7 +1787,7 @@ def _init_admin_control_plane(cfg: dict) -> threading.Thread | None:
     # Wire invariants module as the engine reference
     import core.invariants.engine as invariant_engine_module
 
-    thread = start_admin_control_plane(
+    thread = maybe_start_control_plane(
         cfg=dict(cfg),
         mode_manager=mode_mgr,
         wal=wal,

@@ -47,6 +47,16 @@ class DIContainer:
         with self._lock:
             self._transients[interface] = implementation
 
+    def register_instance(self, interface: type[T], instance: T) -> None:
+        """
+        Register an already-created instance as a singleton for the given interface.
+        The same instance will be returned for every resolution.
+        This is useful when the instance requires complex construction logic.
+        """
+        with self._lock:
+            self._singletons[interface] = type(instance)
+            self._singleton_instances[interface] = instance
+
     def register_factory(self, interface: type[T], factory: Callable[[], T]) -> None:
         """
         Register a factory function for the given interface.

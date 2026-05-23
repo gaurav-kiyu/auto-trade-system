@@ -11,7 +11,7 @@ This runs at startup before any trading begins.
 
 ARCHITECTURE (declared in core/risk/__init__.py):
   Authoritative: core.services.risk_service.RiskService (implements RiskPort)
-  Deprecated:    core.risk_engine, core.risk.authoritative_engine
+  Deprecated:    core.risk_engine
 """
 from __future__ import annotations
 
@@ -27,7 +27,6 @@ AUTHORITATIVE_RISK_CLASS = "RiskService"
 # Deprecated risk engine modules — any loaded at startup is a violation
 DEPRECATED_RISK_MODULES = {
     "core.risk_engine": "Use core.services.risk_service.RiskService via RiskPort",
-    "core.risk.authoritative_engine": "Unnecessary wrapper; use RiskService directly",
     "core.predictive_risk": "Removed",
     "core.trading_risk": "Removed",
     "core.risk.risk_policy_engine": "Removed",

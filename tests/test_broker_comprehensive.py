@@ -616,8 +616,7 @@ class TestBrokerFailureInjection:
 
         # Register broker port implementations
         paper_adapter = PaperBrokerAdapter()
-        container.register_singleton(BrokerPort, type(paper_adapter))
-        container._singleton_instances[BrokerPort] = paper_adapter
+        container.register_instance(BrokerPort, paper_adapter)
 
         # Test resolution
         resolved_broker = container.resolve(BrokerPort)

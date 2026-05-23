@@ -362,6 +362,12 @@ class PaperBrokerAdapter(BrokerAdapter):
     def wait_for_fill(self, _, timeout=10) -> bool:
         return True
 
+    # ── Health check ───────────────────────────────────────────────────────────
+
+    def health_check(self) -> dict:
+        """Paper broker health check — always healthy."""
+        return {"status": "healthy", "adapter": "PaperBrokerAdapter", "mode": "PAPER"}
+
     # ── Analytics helpers ─────────────────────────────────────────────────────
 
     def get_paper_fill(self, order_id: str) -> PaperFill | None:

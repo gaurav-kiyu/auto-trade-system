@@ -11,7 +11,7 @@ if str(_ROOT) not in sys.path:
 MODULES = [
     "core.adaptive_signal",
     "core.pure_index_signal",
-    "core.risk_engine",
+    "core.services.risk_service",
     "core.position_sizer",
     "core.capital_manager",
     "core.execution_policy",

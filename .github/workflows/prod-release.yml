@@ -127,4 +127,4 @@ print('Artifact verification passed')
       - name: Import test
         run: |
           pip install dist/*.whl
-          python -c "from core.operating_mode import OperatingModeManager; from core.admin_control_plane import create_admin_app; print('Release import test passed')"
+          python -c "from core.operating_mode import OperatingModeManager; from core.control_plane import create_control_plane_app; print('Release import test passed')"

@@ -25,7 +25,7 @@ results.append(("WS4 Exactly-Once", exists("core/execution/idempotency/certifier
 results.append(("WS5 Invariants", all([exists("core/invariants/engine.py"), exists("core/invariants/checks.py")])))
 results.append(("WS6 Broker Contract", exists("tests/contract/broker/test_paper.py")))
 results.append(("WS7 AI Governance", all([exists("core/ai/model_registry.py"), exists("core/ai/governance.py"), exists("core/ai/rollback_controller.py")])))
-results.append(("WS8 Admin CP", all([grep_file("_require_permission","core/admin_control_plane.py"), grep_file("_audit_log","core/admin_control_plane.py")])))
+results.append(("WS8 Admin CP", all([grep_file("_require_permission","core/control_plane/server.py"), grep_file("_audit_log","core/control_plane/server.py")])))
 results.append(("WS9 Observability", exists("core/observability.py")))
 results.append(("WS10 Chaos", exists("tests/chaos/test_broker_outage.py")))
 results.append(("WS11 Regression", True))
@@ -58,7 +58,7 @@ print(f"  {'PASS' if pr_tpl else 'FAIL'} | PR template (.github/PULL_REQUEST_TEM
 print(f"  {'PASS' if exists('docs/branch_strategy.md') else 'FAIL'} | Branch strategy doc (docs/branch_strategy.md)")
 
 # 4. Config hot reload
-hr_endpoint = grep_file("config/reload", "core/admin_control_plane.py")
+hr_endpoint = grep_file("config/reload", "core/control_plane/server.py")
 hr_handler = grep_file("_reload_config_handler", "index_app/index_trader.py")
 print(f"  {'PASS' if (hr_endpoint and hr_handler) else 'FAIL'} | Config hot-reload (POST /config/reload)")
 

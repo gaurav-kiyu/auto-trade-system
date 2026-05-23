@@ -1,10 +1,11 @@
 # ADR 0010: Architecture Governance Framework
 
 ## Status
-Accepted
+Accepted (Updated 2026-05-22)
 
 ## Date
-2026-05-22
+2026-05-22 (Initial)
+2026-05-22 (Updated: Removed modules, canonical architecture state)
 
 ## Context
 The codebase has grown to ~300+ modules across multiple layers. With 20+ contributors and
@@ -87,6 +88,40 @@ Enforcement mechanisms:
 2. `docs/ownership_matrix.md` is reviewed monthly for stale entries.
 3. Technical debt register is reviewed during release planning.
 4. CI pipeline runs `scripts/check_architecture_compliance.py` (future work).
+
+## Current Architecture State (v2.53.0)
+
+### Canonical Modules (Single Entry Points)
+| Domain | Canonical Module | Status |
+|--------|-----------------|--------|
+| Risk | `core/services/risk_service.py` via `core/ports/risk/` | ✅ Active |
+| Strategy | `core/strategy/orchestrator.py` via `core/ports/strategy/` | ✅ Active |
+| Signal Generation | `core/services/signal_orchestrator.py` | ✅ Active |
+| Execution | `core/services/execution_service.py` via `core/ports/execution/` | ✅ Active |
+| Invariants | `core/invariants/engine.py` with `checks.py` | ✅ Active (5 checks) |
+| Operating Mode | `core/operating_mode.py` | ✅ Active (6 modes) |
+| Control Plane | `core/control_plane/` (auth + rbac + server) | ✅ Active |
+| Broker Contracts | `tests/contract/broker/` | ✅ Active (59 tests) |
+| WAL Journal | `core/wal/journal.py` | ✅ Active |
+| Idempotency | `core/execution/idempotency/certifier.py` | ✅ Active |
+
+### Removed Modules (Dead — Do Not Import)
+| Module | Replacement | Notes |
+|--------|-------------|-------|
+| `core/risk/authoritative_engine.py` | `core/services/risk_service.py` | File deleted — unnecessary wrapper |
+| `core/admin_control_plane.py` | `core/control_plane/server.py` | Replaced by new control plane package |
+| `core/signal_router.py` | `core/strategy/orchestrator.py` | Merged into orchestrator |
+| `core/strategy_engine_v2.py` | `core/strategy/orchestrator.py` | Dead — use StrategyOrchestrator |
+| `core/predictive_risk.py` | `core/services/risk_service.py` | Dead module |
+| `core/trading_risk.py` | `core/services/risk_service.py` | Dead module |
+| `core/risk/risk_policy_engine.py` | `core/services/risk_service.py` | Folded into RiskService |
+| `core/dynamic_risk_sizer.py` | `core/services/risk_service.py` | Dead module |
+
+### Deprecated Modules (Backward Compat Shims)
+- `core/strategy_engine.py` — Use `core.strategy.orchestrator.StrategyOrchestrator`
+- `core/signal_approval_workflow.py` — Merged into StrategyOrchestrator v2.0
+- `core/risk_engine.py` — Use `core.services.risk_service.RiskService` via `RiskPort`
+- `core/mandate_enforcer.py` — Use `core.services.risk_service.RiskService` via `RiskPort`
 
 ## References
 - ADR 0001: Formal State Machine

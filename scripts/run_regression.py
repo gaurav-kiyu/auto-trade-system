@@ -710,7 +710,7 @@ def main() -> int:
         ("compile core audit", lambda: _compile_target(ROOT / "core" / "audit_engine.py")),
         ("compile core strategy", lambda: _compile_target(ROOT / "core" / "strategy_engine.py")),
         ("compile core config", lambda: _compile_target(ROOT / "core" / "config_engine.py")),
-        ("compile core risk", lambda: _compile_target(ROOT / "core" / "risk_engine.py")),
+        ("compile core risk service", lambda: _compile_target(ROOT / "core" / "services" / "risk_service.py")),
         ("compile core execution", lambda: _compile_target(ROOT / "core" / "execution_engine.py")),
         ("compile core data", lambda: _compile_target(ROOT / "core" / "data_engine.py")),
         ("compile core orchestrator", lambda: _compile_target(ROOT / "core" / "orchestrator.py")),

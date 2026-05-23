@@ -62,7 +62,21 @@ reports/_tmp*
 reports/*.json
 reports/*.html
 reports/*.pdf
+reports/*.db
+reports/*.sqlite
 _regression_bad_stock_config.json
+audit_trail.jsonl
+config_audit.log
+crash_recovery.log
+
+# ── Generated data files ────────────────────────────────────────────────────
+data/*.db
+data/*.sqlite
+data/*.json
+!data/.gitkeep
+
+# ── Control plane audit ─────────────────────────────────────────────────────
+logs/control_plane_audit.jsonl
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 logs/*.log
@@ -76,11 +90,20 @@ tg_fallback_alerts.log
 *.db
 *.sqlite
 *.sqlite3
+*.sqlite-wal
+*.sqlite-shm
 trader_state.json
 trader_state*.json
 stock_trader_state.json
 stock_trader_state.json.bak
+ab_state.json
 backups/
+
+# ── Test artifact databases ─────────────────────────────────────────────────
+test_recon_*.db
+*_test.db
+test_*.sqlite
+data/benchmark_cache.json
 
 # ── Secrets / Migration ──────────────────────────────────────────────────────
 secrets_migration*.py

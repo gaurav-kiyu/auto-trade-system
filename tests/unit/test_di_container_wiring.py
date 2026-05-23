@@ -20,6 +20,7 @@ from core.ports.correlation_id import CorrelationIdPort
 from core.ports.logging import LoggingPort
 from core.ports.market_data import MarketDataPort
 from core.ports.metrics import MetricsPort
+from core.ports.strategy import StrategyPort
 
 
 class TestDIContainerWiring:
@@ -52,11 +53,15 @@ class TestDIContainerWiring:
              patch('infrastructure.config.logging_adapter.StructuredLoggerAdapter') as mock_logger_adapter, \
              patch('core.metrics_exporter.MetricsAdapter') as mock_metrics_adapter:
 
-            # Setup mock instances
+            # Setup mock instances with proper dict-like protocol
             mock_config_instance = Mock()
             mock_config_instance.get_int.return_value = 100000
             mock_config_instance.get_bool.return_value = False
             mock_config_instance.get.return_value = 'PAPER'
+            mock_config_instance.keys.return_value = []
+            mock_config_instance.items.return_value = []
+            mock_config_instance.get_all.return_value = {}
+            mock_config_instance.get_safe_config.return_value = {}
             mock_config_adapter.return_value = mock_config_instance
 
             # Mock other adapters to return mock instances
@@ -94,6 +99,7 @@ class TestDIContainerWiring:
             assert container.is_registered(LoggingPort)
             assert container.is_registered(MarketDataPort)
             assert container.is_registered(MetricsPort)
+            assert container.is_registered(StrategyPort)
 
             # Verify we can resolve instances
             config = container.resolve(ConfigPort)
@@ -130,34 +136,23 @@ class TestDIContainerWiring:
         mock_logging = Mock(spec=LoggingPort)
         mock_market_data = Mock(spec=MarketDataPort)
         mock_metrics = Mock(spec=MetricsPort)
+        mock_strategy = Mock(spec=StrategyPort)
 
-        # Register services using the same pattern as setup_di_container
-        container.register_singleton(ConfigPort, type(mock_config))
-        container._singleton_instances[ConfigPort] = mock_config
-        container.register_singleton(ExecutionPort, type(mock_execution))
-        container._singleton_instances[ExecutionPort] = mock_execution
-        container.register_singleton(RiskPort, type(mock_risk))
-        container._singleton_instances[RiskPort] = mock_risk
-        container.register_singleton(NotificationPort, type(mock_notification))
-        container._singleton_instances[NotificationPort] = mock_notification
-        container.register_singleton(PersistencePort, type(mock_persistence))
-        container._singleton_instances[PersistencePort] = mock_persistence
-        container.register_singleton(BrokerHealthPort, type(mock_broker_health))
-        container._singleton_instances[BrokerHealthPort] = mock_broker_health
-        container.register_singleton(RateLimitPort, type(mock_rate_limit))
-        container._singleton_instances[RateLimitPort] = mock_rate_limit
-        container.register_singleton(CircuitBreakerPort, type(mock_circuit_breaker))
-        container._singleton_instances[CircuitBreakerPort] = mock_circuit_breaker
-        container.register_singleton(MlModelPort, type(mock_ml_model))
-        container._singleton_instances[MlModelPort] = mock_ml_model
-        container.register_singleton(CorrelationIdPort, type(mock_correlation_id))
-        container._singleton_instances[CorrelationIdPort] = mock_correlation_id
-        container.register_singleton(LoggingPort, type(mock_logging))
-        container._singleton_instances[LoggingPort] = mock_logging
-        container.register_singleton(MarketDataPort, type(mock_market_data))
-        container._singleton_instances[MarketDataPort] = mock_market_data
-        container.register_singleton(MetricsPort, type(mock_metrics))
-        container._singleton_instances[MetricsPort] = mock_metrics
+        # Register services using register_instance (simpler one-step pattern)
+        container.register_instance(ConfigPort, mock_config)
+        container.register_instance(ExecutionPort, mock_execution)
+        container.register_instance(RiskPort, mock_risk)
+        container.register_instance(NotificationPort, mock_notification)
+        container.register_instance(PersistencePort, mock_persistence)
+        container.register_instance(BrokerHealthPort, mock_broker_health)
+        container.register_instance(RateLimitPort, mock_rate_limit)
+        container.register_instance(CircuitBreakerPort, mock_circuit_breaker)
+        container.register_instance(MlModelPort, mock_ml_model)
+        container.register_instance(CorrelationIdPort, mock_correlation_id)
+        container.register_instance(LoggingPort, mock_logging)
+        container.register_instance(MarketDataPort, mock_market_data)
+        container.register_instance(MetricsPort, mock_metrics)
+        container.register_instance(StrategyPort, mock_strategy)
 
         # Test resolution
         assert container.resolve(ConfigPort) is mock_config
@@ -173,6 +168,7 @@ class TestDIContainerWiring:
         assert container.resolve(LoggingPort) is mock_logging
         assert container.resolve(MarketDataPort) is mock_market_data
         assert container.resolve(MetricsPort) is mock_metrics
+        assert container.resolve(StrategyPort) is mock_strategy
 
     def test_container_try_resolve_unregistered_returns_none(self):
         """Test that try_resolve returns None for unregistered interfaces."""

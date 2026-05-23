@@ -1,8 +1,25 @@
 """
-PRODUCTION MANDATE ENFORCER v2.50
-Wired directly into execution path - not decorative config
+AD-KIYU Production Mandate Enforcer — DEPRECATED.
+
+This module is deprecated. Use ``core.services.risk_service.RiskService``
+(via ``core.ports.risk.RiskPort``) instead.
+
+All risk decisions MUST route through:
+    core.services.risk_service.RiskService.evaluate_trade()
+
+This file is retained for backward compatibility only.
+It will be removed in a future release.
 """
 from __future__ import annotations
+
+import warnings as _warnings
+
+_warnings.warn(
+    "core.mandate_enforcer is DEPRECATED. "
+    "Use core.services.risk_service.RiskService via core.ports.risk.RiskPort instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 import logging
 from dataclasses import dataclass
@@ -34,11 +51,14 @@ class MandateState:
 
 class ProductionMandateEnforcer:
     """
-    Real enforcement - this is what actually controls trading.
-    No decorative config - every check is wired to execution.
+    DEPRECATED — Use RiskService (via RiskPort) instead.
+
+    Retained for backward compatibility only.
+    All new code MUST use core.services.risk_service.RiskService.
     """
 
     def __init__(self, config: dict):
+        _log.warning("ProductionMandateEnforcer is DEPRECATED — use RiskService instead")
         self._cfg = config
         self._state = MandateState(
             capital=config.get("BASE_CAPITAL", 5000),
@@ -71,12 +91,9 @@ class ProductionMandateEnforcer:
         _log.critical(f"MANDATE HARD HALT: {reason}")
         _trip_hard_halt(reason, source="ProductionMandateEnforcer")
 
-    # =================================================================
-    # ACTUAL ENFORCEMENT METHODS - CALLED FROM EXECUTION PATH
-    # =================================================================
-
     def can_trade(self) -> tuple[bool, str]:
-        """Primary gate - called before EVERY potential trade"""
+        """DEPRECATED — Use RiskService.evaluate_trade() instead."""
+        _log.debug("ProductionMandateEnforcer.can_trade() called (deprecated)")
         if self._state.is_hard_halted:
             return False, "HARD_HALT: System halted"
 
@@ -108,26 +125,13 @@ class ProductionMandateEnforcer:
 
         return True, "MANDATE_CHECK_PASSED"
 
-    def get_position_size(
-        self,
-        entry_price: float,
-        regime: str,
-        sl_pct: float = 0.12,
-    ) -> int:
-        """
-        Calculate position size based on ACTUAL mandate risk rules.
-        NOT hardcoded - uses 1.5% base with regime adjustments.
-
-        CRITICAL: Returns 0 if capital is zero or negative to prevent
-        division by zero and NaN propagation.
-        """
-        # CRITICAL FIX: Guard against zero/negative capital
+    def get_position_size(self, entry_price: float, regime: str, sl_pct: float = 0.12) -> int:
+        """DEPRECATED — Use RiskService.calculate_position_size() instead."""
         if self._state.capital <= 0:
             _log.warning(f"Position sizing blocked: capital = {self._state.capital} <= 0")
             return 0
 
-        base_risk_pct = 0.015  # 1.5% as mandated
-
+        base_risk_pct = 0.015
         reg = (regime or "").upper()
         if reg in ["TRENDING", "BULLISH"]:
             risk_mult = 1.2
@@ -136,24 +140,20 @@ class ProductionMandateEnforcer:
         elif reg in ["RANGE", "CHOPPY"]:
             risk_mult = 0.75
         else:
-            risk_mult = 0.5  # Unknown regime = reduced
+            risk_mult = 0.5
 
         effective_risk = base_risk_pct * risk_mult
         risk_amount = self._state.capital * effective_risk
         risk_per_lot = entry_price * sl_pct
-
         if risk_per_lot > 0:
             lots = int(risk_amount / risk_per_lot)
-            return max(1, min(lots, 25))  # Cap at 25, minimum 1
-
+            return max(1, min(lots, 25))
         return 1
 
     def get_max_daily_loss(self) -> float:
-        """Daily stop as 2.5% of current capital - NOT fixed"""
         return -self._state.capital * 0.025
 
     def get_max_trades_today(self) -> int:
-        """Operating mode based on VIX and conditions"""
         if self._state.vix > 28 or get_consecutive_losses() >= 2:
             return 1
         elif self._state.vix > 20:
@@ -161,33 +161,27 @@ class ProductionMandateEnforcer:
         return 4
 
     def should_skip_first_20_min(self) -> bool:
-        """Skip first 20 minutes as mandated"""
         now = now_ist()
         current_mins = now.hour * 60 + now.minute
-        market_open_mins = 9 * 60 + 20  # 9:20 IST
+        market_open_mins = 9 * 60 + 20
         return current_mins < market_open_mins + 20
 
     def should_skip_last_45_min(self) -> bool:
-        """Skip last 45 minutes as mandated"""
         now = now_ist()
         current_mins = now.hour * 60 + now.minute
-        market_close_mins = 15 * 60 + 20  # 15:20 IST
+        market_close_mins = 15 * 60 + 20
         return current_mins > market_close_mins - 45
 
     def is_in_trading_window(self) -> bool:
-        """Only 9:20-11:30 and 13:00-14:45 IST"""
         now = now_ist()
-
         morning_start = 9 * 60 + 20
         morning_end = 11 * 60 + 30
         afternoon_start = 13 * 60
         afternoon_end = 14 * 60 + 45
-
         current = now.hour * 60 + now.minute
         return (morning_start <= current <= morning_end) or (afternoon_start <= current <= afternoon_end)
 
     def get_min_score(self, regime: str) -> int:
-        """Score thresholds by regime as mandated"""
         reg = (regime or "").upper()
         if reg in ["TRENDING", "BULLISH"]:
             return 68
@@ -198,11 +192,9 @@ class ProductionMandateEnforcer:
         return 73
 
     def should_block_false_signal(self, score: int, iv_rank: float) -> bool:
-        """False signal suppression: score >=75 AND IV > 26"""
         return score >= 75 and iv_rank > 26
 
     def get_status(self) -> dict:
-        """For observability - what's the current state?"""
         return {
             "capital": self._state.capital,
             "equity_peak": self._state.equity_peak,
@@ -219,7 +211,7 @@ _production_enforcer: ProductionMandateEnforcer | None = None
 
 
 def get_mandate_enforcer(config: dict = None) -> ProductionMandateEnforcer:
-    """Singleton - one enforcer for entire system"""
+    """DEPRECATED — Use RiskService via DI container instead."""
     global _production_enforcer
     if _production_enforcer is None:
         if config is None:

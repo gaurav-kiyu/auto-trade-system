@@ -15,7 +15,6 @@ ENFORCEMENT:
 
 DEPRECATED MODULES (do not import):
     - core/risk_engine.py                 → use RiskService via RiskPort
-    - core/risk/authoritative_engine.py   → unnecessary wrapper; use RiskService directly
     - core/risk/limits/manager.py         → internal to RiskService only
     - core/risk/sizing/manager.py         → internal to RiskService only
     - core/risk/margin_validator.py       → internal to RiskService only
@@ -48,7 +47,6 @@ AUTHORITATIVE_RISK_PORT = "core.ports.risk.RiskPort"
 
 DEPRECATED_RISK_MODULES = {
     "core.risk_engine": "Use core.services.risk_service.RiskService via RiskPort",
-    "core.risk.authoritative_engine": "Unnecessary wrapper; use RiskService directly",
     "core.predictive_risk": "Removed",
     "core.trading_risk": "Removed",
     "core.dynamic_risk_sizer": "Removed",

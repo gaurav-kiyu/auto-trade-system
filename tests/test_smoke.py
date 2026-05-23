@@ -23,7 +23,6 @@ def test_scripts_exist():
     assert (ROOT / "index_app" / "index_trader.py").is_file()
     assert (ROOT / "index_app" / "gui" / "trader_desk.py").is_file()
     assert (ROOT / "core" / "strategy_engine.py").is_file()
-    assert (ROOT / "core" / "risk_engine.py").is_file()
     assert (ROOT / "core" / "execution_engine.py").is_file()
     assert (ROOT / "core" / "data_engine.py").is_file()
     assert (ROOT / "core" / "state_manager.py").is_file()

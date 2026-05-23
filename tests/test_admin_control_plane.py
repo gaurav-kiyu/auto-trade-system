@@ -17,7 +17,7 @@ import pytest
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-from core.admin_control_plane import create_admin_app
+from core.control_plane import create_control_plane_app as create_admin_app
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -27,7 +27,7 @@ from core.admin_control_plane import create_admin_app
 @pytest.fixture(autouse=True)
 def _clean_state():
     """Clear shared mutable state between tests to prevent test pollution."""
-    from core.admin_control_plane import _AUDIT_EVENTS, _AUDIT_LOCK
+    from core.control_plane.server import _AUDIT_EVENTS, _AUDIT_LOCK
     with _AUDIT_LOCK:
         _AUDIT_EVENTS.clear()
     import core.invariants.engine as inv_engine
@@ -523,7 +523,7 @@ def test_config_reload_ok(reload_client):
 
 
 def test_config_reload_audit_event(reload_client):
-    from core.admin_control_plane import _AUDIT_EVENTS
+    from core.control_plane.server import _AUDIT_EVENTS
     _AUDIT_EVENTS.clear()
     resp = reload_client.post("/config/reload", headers=_auth())
     assert resp.status_code == 200

@@ -27,7 +27,6 @@ from core.data_freshness_guard import check_data_freshness
 from core.position_sizer import PositionSizer
 from core.tier_engine import classify_tier
 from core.capital_manager import CapitalManager
-from core.risk_engine import RiskConfig, RiskEngineV2Config, RiskEngine
 from core.execution_policy import ExecutionPolicy, ExecutionDecision
 from core.stress_tester import run_stress_test, StressResult
 from core.var_calculator import compute_var
@@ -161,23 +160,39 @@ print(f"  Tier: {tier}  |  Lots: {spec.lots}  |  Eff%: {spec.effective_pct:.1%}"
 
 # ── COMPONENT 6: RISK ENGINE ────────────────────────────────────
 print()
-print("[6/10] Risk Engine (unified v1+v2)...")
+print("[6/10] Risk Service (canonical engine)...")
 
-from core.risk_engine import evaluate_risk
+from core.services.risk_service import RiskService, RiskServiceConfig
+from core.ports.risk.risk_port import PortfolioRiskMetrics
 
-state = {
-    "daily_pnl": 0.0,
-    "open_positions": 0,
-    "trade_count": 0,
-    "last_trade_time": None,
-}
-config = {
-    "risk": {"max_daily_loss": -300.0, "max_open": 1, "max_trades_day": 1},
-    "timing": {"cooldown": 300},
-}
-risk_result = evaluate_risk(state, config, symbol="NIFTY")
-print(f"  Risk: {'ALLOWED' if risk_result['allowed'] else 'BLOCKED'} — {risk_result['reason']}")
-print(f"  Risk allowed: {risk_result['allowed']}")
+_risk_svc = RiskService(
+    config=RiskServiceConfig(
+        max_daily_loss=-300.0,
+        max_open_positions=1,
+        max_daily_trades=1,
+        max_consecutive_losses=3,
+    )
+)
+_metrics = PortfolioRiskMetrics(
+    total_capital=5000.0,
+    used_capital=0.0,
+    available_capital=5000.0,
+    daily_pnl=0.0,
+    max_daily_loss=-300.0,
+    current_drawdown=0.0,
+    max_drawdown=0.0,
+    open_positions_count=0,
+    max_open_positions=1,
+    consecutive_losses=0,
+    max_consecutive_losses=3,
+    sector_exposure={},
+    symbol_exposure={},
+)
+_signal = {"direction": "CALL", "price": 18000.0, "score": 70}
+_risk_eval = _risk_svc.evaluate_trade("NIFTY", _signal, _metrics)
+print(f"  Risk: {_risk_eval.decision.value} — {_risk_eval.reason}")
+print(f"  Risk score: {_risk_eval.risk_score:.2f}")
+print(f"  Recommended size: {_risk_eval.recommended_position_size} lots")
 
 # ── COMPONENT 7: CAPITAL MANAGER ────────────────────────────────
 print()

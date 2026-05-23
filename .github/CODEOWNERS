@@ -25,7 +25,7 @@
 
 # Ops — system mode + operating mode + control plane
 /core/operating_mode.py @gaurav-kiyu
-/core/admin_control_plane.py @gaurav-kiyu
+/core/control_plane/ @gaurav-kiyu
 /core/system_mode.py @gaurav-kiyu
 
 # AI — governance board

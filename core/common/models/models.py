@@ -537,7 +537,7 @@ def calculate_position_size(
     entry_price: float
 ) -> int:
     """
-    DEPRECATED: Use mandate_enforcer.ProductionMandateEnforcer or RiskService instead.
+    DEPRECATED: Use RiskService (via RiskPort) instead.
 
     Calculate position size based on risk parameters.
 
