@@ -98,12 +98,46 @@ stock_trader_state.json
 stock_trader_state.json.bak
 ab_state.json
 backups/
+!data/*.db                  # exception: data/ .db are legitimate
+!data/*.sqlite
 
 # ── Test artifact databases ─────────────────────────────────────────────────
 test_recon_*.db
 *_test.db
 test_*.sqlite
+nonexistent_*.db
+nonexistent_*.sqlite
 data/benchmark_cache.json
+
+# ── Python cache (all levels) ────────────────────────────────────────────────
+**/__pycache__/
+*.pyc
+*.pyo
+
+# ── Generated reports & temp artifacts ───────────────────────────────────────
+reports/backtest_results.json
+reports/*.csv
+audit_trail.jsonl
+config_audit.log
+crash_recovery.log
+
+# ── Trade debug / analysis scripts ───────────────────────────────────────────
+debug_dd.py
+check2.py
+check_sigs.py
+check_trades_db.py
+live_data_test.py
+live_signal_test.py
+live_smoke_test.py
+analyze_backtest.py
+full_sim_test.py
+run_analysis.py
+text.txt
+test.txt
+
+# ── Presentation deliverables (generated) ────────────────────────────────────
+docs/*.pdf
+docs/*.pptx
 
 # ── Secrets / Migration ──────────────────────────────────────────────────────
 secrets_migration*.py

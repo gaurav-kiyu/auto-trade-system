@@ -1,0 +1,163 @@
+{
+  "NIFTY": {
+    "symbol": "NIFTY",
+    "data_bars": 7117,
+    "data_start": "2026-04-27 03:45:00",
+    "data_end": "2026-05-22 09:59:00",
+    "total_trades": 10,
+    "wins": 1,
+    "losses": 9,
+    "win_rate": 10.0,
+    "profit_factor": 0.0082,
+    "expectancy_per_trade": -339.3,
+    "avg_win": 28.0,
+    "avg_loss": -380.11,
+    "avg_pct_win": 10.89,
+    "avg_pct_loss": -65.88,
+    "rr_ratio": 0.074,
+    "avg_rr_achieved": -1.869,
+    "max_drawdown_pct": 3.793,
+    "sharpe_ratio": -39.008,
+    "calmar_ratio": -1.0,
+    "ending_capital": 96207.0,
+    "net_return_pct": -3.7929999999999997,
+    "call_trades": 10,
+    "put_trades": 0,
+    "call_win_rate": 10.0,
+    "put_win_rate": 0.0,
+    "by_regime": {
+      "NEUTRAL": {
+        "trades": 1,
+        "wins": 0,
+        "win_rate": 0.0,
+        "avg_pnl": -333.5
+      },
+      "TRENDING": {
+        "trades": 9,
+        "wins": 1,
+        "win_rate": 11.11,
+        "avg_pnl": -339.94
+      }
+    },
+    "by_score": {
+      "65-69": {
+        "trades": 8,
+        "wins": 1,
+        "win_rate": 12.5,
+        "gross_pnl": -2630.0
+      },
+      "70-74": {
+        "trades": 2,
+        "wins": 0,
+        "win_rate": 0.0,
+        "gross_pnl": -763.0
+      }
+    },
+    "verdict": "NO EDGE"
+  },
+  "BANKNIFTY": {
+    "symbol": "BANKNIFTY",
+    "data_bars": 7117,
+    "data_start": "2026-04-27 03:45:00",
+    "data_end": "2026-05-22 09:59:00",
+    "total_trades": 0,
+    "wins": 0,
+    "losses": 0,
+    "win_rate": 0.0,
+    "profit_factor": 0.0,
+    "expectancy_per_trade": 0.0,
+    "avg_win": 0.0,
+    "avg_loss": 0.0,
+    "avg_pct_win": 0.0,
+    "avg_pct_loss": 0.0,
+    "rr_ratio": 0.0,
+    "avg_rr_achieved": 0.0,
+    "max_drawdown_pct": 0.0,
+    "sharpe_ratio": 0.0,
+    "calmar_ratio": 0.0,
+    "ending_capital": 100000.0,
+    "net_return_pct": 0.0,
+    "call_trades": 0,
+    "put_trades": 0,
+    "call_win_rate": 0.0,
+    "put_win_rate": 0.0,
+    "by_regime": {
+      "TRENDING": {
+        "trades": 0,
+        "wins": 0,
+        "win_rate": 0.0,
+        "avg_pnl": 0.0
+      },
+      "NEUTRAL": {
+        "trades": 0,
+        "wins": 0,
+        "win_rate": 0.0,
+        "avg_pnl": 0.0
+      },
+      "CHOPPY": {
+        "trades": 0,
+        "wins": 0,
+        "win_rate": 0.0,
+        "avg_pnl": 0.0
+      },
+      "EVENT": {
+        "trades": 0,
+        "wins": 0,
+        "win_rate": 0.0,
+        "avg_pnl": 0.0
+      }
+    },
+    "by_score": {},
+    "verdict": "NO EDGE"
+  },
+  "FINNIFTY": {
+    "symbol": "FINNIFTY",
+    "data_bars": 7117,
+    "data_start": "2026-04-27 03:45:00",
+    "data_end": "2026-05-22 09:59:00",
+    "total_trades": 8,
+    "wins": 0,
+    "losses": 8,
+    "win_rate": 0.0,
+    "profit_factor": 0.0,
+    "expectancy_per_trade": -417.875,
+    "avg_win": 0.0,
+    "avg_loss": -417.88,
+    "avg_pct_win": 0.0,
+    "avg_pct_loss": -53.84,
+    "rr_ratio": 0.0,
+    "avg_rr_achieved": -1.257,
+    "max_drawdown_pct": 3.663,
+    "sharpe_ratio": -27.664,
+    "calmar_ratio": -1.0,
+    "ending_capital": 96337.0,
+    "net_return_pct": -3.6630000000000003,
+    "call_trades": 8,
+    "put_trades": 0,
+    "call_win_rate": 0.0,
+    "put_win_rate": 0.0,
+    "by_regime": {
+      "NEUTRAL": {
+        "trades": 1,
+        "wins": 0,
+        "win_rate": 0.0,
+        "avg_pnl": -423.0
+      },
+      "TRENDING": {
+        "trades": 7,
+        "wins": 0,
+        "win_rate": 0.0,
+        "avg_pnl": -417.14
+      }
+    },
+    "by_score": {
+      "65-69": {
+        "trades": 8,
+        "wins": 0,
+        "win_rate": 0.0,
+        "gross_pnl": -3343.0
+      }
+    },
+    "verdict": "NO EDGE"
+  }
+}

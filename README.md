@@ -184,4 +184,42 @@ python -m pytest tests/test_smoke.py -v
 
 ---
 
-*Generated: May 2026 | Status: Production Ready*
+## Backtesting
+
+```bash
+# Run comprehensive backtest suite across all indices
+python scripts/run_backtest_suite.py
+
+# Single-index backtest (30-day Yahoo 1m)
+python run_backtest.py --yf-quarter --yf-symbol ^NSEI --yf-days 30
+
+# JSON output for machine processing
+python run_backtest.py --yf-quarter --json
+
+# Results saved to reports/backtest_results.json
+```
+
+## Deliverables
+
+| Document | Format | Content |
+|----------|--------|--------|
+| `docs/ARCHITECTURE_SUMMARY.pdf` | PDF | Deep analysis: strengths, weaknesses, improvement suggestions, backtesting |
+| `docs/ARCHITECTURE_PRESENTATION.pptx` | PPTX | Executive overview, comparative analysis, backtesting, recommendations |
+| `docs/REMEDIATION_REPORT.md` | MD | Fixes applied, enhancements, weaknesses |
+| `docs/REGRESSION_TEST_SUMMARY.md` | MD | Test coverage analysis with pass/fail rates |
+| `docs/BACKTESTING_REPORT.md` | MD | Multi-index backtest metrics and insights |
+| `docs/DOCUMENTATION_SYNC_LOG.md` | MD | All sync activity tracked |
+| `docs/RISK_MIGRATION_PLAN.md` | MD | Risk engine consolidation plan |
+
+## Repository Hygiene
+
+```bash
+# Archive old artifacts (logs, reports, backups)
+python scripts/archive_artifacts.py --dry-run  # preview first
+python scripts/archive_artifacts.py            # archive files >14 days
+
+# Clean Python cache
+python -c "from pathlib import Path; import shutil; [shutil.rmtree(d) for d in Path('.').rglob('__pycache__') if d.is_dir()]"
+```
+
+*Generated: May 21, 2026 | Status: Production Ready v2.53.0*
