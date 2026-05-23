@@ -73,7 +73,17 @@ from .datetime_ist import (
     nse_cash_close_time,
     nse_cash_open_time,
 )
+from .data_governance import CleanupScheduler, DataGovernor
+from .db_migration import (
+    Migration,
+    ensure_schema_version,
+    get_migration_log,
+    get_schema_version,
+    migrate_to_latest,
+    register_schema,
+)
 from .defaults_loader import load_defaults_file
+from .environment import Environment, guard_dev_config_in_production, guard_mode_env_compatibility, validate_environment
 from .execution_engine import ExecutionEngine, ExecutionFill, ExecutionResult
 from .hybrid_execution import apply_execution_mode, normalize_execution_mode
 from .orchestrator import Orchestrator, OrchestratorCycle, OrchestratorSignal
@@ -134,11 +144,23 @@ __all__ = [
     "ExecutionFill",
     "ExecutionResult",
     "JsonlCaptureWriter",
+    "CleanupScheduler",
     "CONFIG_B64_SECRET_KEYS_INDEX",
     "CONFIG_B64_SECRET_KEYS_STOCK",
     "coerce_config_values_to_defaults_types",
+    "DataGovernor",
+    "Environment",
+    "ensure_schema_version",
+    "get_migration_log",
+    "get_schema_version",
+    "guard_dev_config_in_production",
+    "guard_mode_env_compatibility",
     "load_defaults_file",
     "merge_bot_config",
+    "migrate_to_latest",
+    "Migration",
+    "register_schema",
+    "validate_environment",
     "live_signal_confidence",
     "MarketDataSnapshot",
     "normalize_execution_mode",

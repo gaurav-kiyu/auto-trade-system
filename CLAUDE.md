@@ -79,6 +79,19 @@ When `EXECUTION_MODE=PAPER` or `--paper` CLI flag is set:
 - SQLite migrations: use `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` with `OperationalError` catch
 - Never use `datetime.now()` — use `from core.datetime_ist import now_ist`
 
+## Governance & Compliance Modules
+| Module | Role |
+|--------|------|
+| `core/environment.py` | Environment separation — DEV/QA/PAPER/SHADOW/STAGING/PRODUCTION with guard rails |
+| `core/db_migration.py` | Schema versioning via PRAGMA user_version + migration registry + decorator |
+| `core/data_governance.py` | Retention policies per category (logs/audit/models/reports/telemetry) + cleanup scheduler |
+| `docs/adr/0010-architecture-governance.md` | Architecture governance framework — ADR chain, ownership, boundary rules |
+| `docs/ownership_matrix.md` | Module ownership matrix — every module has a named owner |
+| `docs/technical_debt.md` | Technical debt register — 16 items tracked by severity |
+| `docs/runbooks/` | Incident runbooks — broker outage, auth expiry, DB corruption, stale feed |
+| `docs/operations/runbook_template.md` | Runbook template for new scenarios |
+| `docs/operations/postmortem_template.md` | Postmortem template for incident analysis |
+
 ## Key Core Modules
 | Module | Role |
 |--------|------|
@@ -281,21 +294,16 @@ python -m core.ab_strategy_tester
 python -m core.ab_strategy_tester --reset
 ```
 
-## v2.44 Config Keys Added (index_config.defaults.json now has ~490 keys)
-New keys: `trade_replayer_frames_to_show`, `trade_replayer_bar_width`,
-`sensitivity_analyzer_enabled`, `sensitivity_report_days`, `sensitivity_in_pdf`,
-`heatmap_min_cell_trades`, `heatmap_in_eod_telegram`, `heatmap_eod_day`,
-`health_check_enabled`, `health_check_day`, `health_check_db_warn_mb`,
-`health_check_disk_warn_mb`, `health_check_brier_warn`, `health_check_accuracy_warn`,
-`health_check_spread_warn_pct`, `health_check_log_dir_warn_gb`, `health_check_wal_warn_mb`,
-`confidence_band_enabled`, `confidence_band_score_bin_width`, `confidence_band_in_telegram`,
-`confidence_band_high_threshold`, `confidence_band_moderate_threshold`,
-`live_readiness_check_on_startup`, `live_readiness_min_paper_trades`,
-`live_readiness_min_win_rate`, `live_readiness_min_profit_factor`,
-`live_readiness_max_drawdown_pct`, `live_readiness_min_trading_days`,
-`live_readiness_days_window`, `live_readiness_min_sharpe`,
-`ab_testing_enabled`, `ab_variant_name`, `ab_variant_overrides`,
-`ab_min_trades_for_significance`, `ab_state_path`
+## Governance Config Keys (v2.51+)
+Added to `index_config.defaults.json` (now ~850 keys total):
+- `ENVIRONMENT` — Deployment environment (dev/qa/paper/shadow/staging/production)
+- `environment_block_on_violation` — Block startup when prod config has placeholder values
+- `db_migration_enabled` — Enable automatic schema version migration on startup
+- `data_retention_*` — Per-category retention policies (logs/audit/models/reports/telemetry)
+- `cleanup_scheduler_enabled`, `cleanup_scheduler_interval_hours` — Background cleanup scheduler
+- `data_dir`, `models_dir`, `reports_dir`, `log_dir` — Directory paths for data governance
+
+## OI Snapshot Cold-Start
 
 ## OI Snapshot Cold-Start
 `oi_snapshots.db` accumulates live OI history during each session.

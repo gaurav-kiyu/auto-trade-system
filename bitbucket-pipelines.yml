@@ -1,0 +1,121 @@
+image: python:3.11
+
+options:
+  max-time: 30
+
+definitions:
+  caches:
+    pip: ~/.cache/pip
+
+  steps:
+    - step: &lint-step
+        name: Lint
+        caches: [pip]
+        script:
+          - pip install ruff mypy
+          - ruff check .
+          - mypy . --ignore-missing-imports || true
+        artifacts:
+          - reports/**
+
+    - step: &test-step
+        name: Test
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - python -m pytest tests/ -v --tb=short -q -k "not slow" -x --junitxml=reports/test-results.xml
+        artifacts:
+          - reports/**
+
+    - step: &slow-test-step
+        name: Slow Tests
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - python -m pytest tests/test_signal_safety.py tests/test_manual_signal_mode.py tests/test_smoke.py tests/test_production_extensions.py -v --tb=short -q --junitxml=reports/slow-test-results.xml
+        artifacts:
+          - reports/**
+
+    - step: &chaos-step
+        name: Chaos
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - python -m pytest tests/chaos/ -v --tb=short -q --junitxml=reports/chaos-results.xml
+        artifacts:
+          - reports/**
+
+    - step: &exactly-once-step
+        name: Exactly-Once
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - python -m pytest tests/test_exactly_once_certification.py -v --tb=short -q --junitxml=reports/exactly-once-results.xml
+        artifacts:
+          - reports/**
+
+    - step: &dist-step
+        name: Build & Checksum
+        caches: [pip]
+        script:
+          - pip install build
+          - make dist
+          - make checksum
+        artifacts:
+          - ../*.tar.gz
+          - ../*.sha256
+
+    - step: &release-step
+        name: Release
+        deployment: production
+        trigger: manual
+        script:
+          - make dist
+          - make checksum
+          - echo "Release $(cat VERSION) ready: sha256sum ../opbuying-$(cat VERSION).tar.gz"
+
+pipelines:
+  default:
+    - parallel:
+        - step: *lint-step
+        - step: *test-step
+    - step: *slow-test-step
+    - step: *chaos-step
+    - step: *exactly-once-step
+
+  pull-requests:
+    '**':
+      - parallel:
+          - step: *lint-step
+          - step: *test-step
+      - step: *chaos-step
+
+  branches:
+    main:
+      - parallel:
+          - step: *lint-step
+          - step: *test-step
+      - step: *slow-test-step
+      - step: *chaos-step
+      - step: *exactly-once-step
+      - step: *dist-step
+
+    develop:
+      - parallel:
+          - step: *lint-step
+          - step: *test-step
+      - step: *chaos-step
+
+    release/**:
+      - parallel:
+          - step: *lint-step
+          - step: *test-step
+      - step: *slow-test-step
+      - step: *chaos-step
+      - step: *exactly-once-step
+      - step: *dist-step
+      - step: *release-step
+
+  tags:
+    v*:
+      - step: *release-step

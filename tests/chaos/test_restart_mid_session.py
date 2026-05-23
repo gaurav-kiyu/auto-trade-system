@@ -4,6 +4,7 @@ Chaos: Restart Mid-Session
 import pytest
 import tempfile, os, gc
 from core.execution.idempotency.certifier import IdempotencyCertifier
+from core.wal.journal import WriteAheadJournal, Intent
 
 
 def test_idempotency_survives_restart():
@@ -23,8 +24,6 @@ def test_idempotency_survives_restart():
         cert2 = IdempotencyCertifier(db)
         assert cert2.get_by_execution_id(eid).status == "SETTLED"
     finally:
-        del cert2
-        gc.collect()
         try:
             os.unlink(db)
         except PermissionError:
@@ -48,30 +47,45 @@ def test_no_duplicate_orders_after_restart():
         assert not cert2.is_pending(eid)
         assert cert2.get_by_execution_id(eid).status == "SETTLED"
     finally:
-        del cert2
-        gc.collect()
         try:
             os.unlink(db)
         except PermissionError:
             pass
 
 
-def test_wal_persistence_via_sqlite():
-    """SQLite persistence works across sessions."""
+def test_wal_persistence():
+    """WriteAheadJournal persists via SQLite file."""
     f = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
     db = f.name
     f.close()
     try:
-        import sqlite3
-        conn = sqlite3.connect(db)
-        conn.execute("CREATE TABLE IF NOT EXISTS wal (k TEXT PRIMARY KEY, v TEXT)")
-        conn.execute("INSERT INTO wal VALUES ('test', 'value')")
-        conn.commit()
-        conn.close()
+        wal1 = WriteAheadJournal(db)
+        intent = Intent(
+            intent_id="",
+            action="BUY",
+            params={"sym": "NIFTY", "qty": 50},
+            risk_verdict=None,
+            config_snapshot_hash="abc",
+            correlation_id="test",
+            status="PENDING",
+            created_at="",
+        )
+        wal1.append(intent)
+        # find our PENDING intent
+        pending = wal1.get_pending()
+        matching = [i for i in pending if i.action == "BUY"]
+        assert len(matching) >= 1
+        iid = matching[-1].intent_id
+        wal1.commit(iid)
+        del wal1
+        gc.collect()
 
-        conn2 = sqlite3.connect(db)
-        row = conn2.execute("SELECT v FROM wal WHERE k='test'").fetchone()
-        assert row[0] == "value"
-        conn2.close()
+        wal2 = WriteAheadJournal(db)
+        settled = wal2.get_intent(iid)
+        assert settled is not None
+        assert settled.status == "COMMITTED"
     finally:
-        os.unlink(db)
+        try:
+            os.unlink(db)
+        except PermissionError:
+            pass

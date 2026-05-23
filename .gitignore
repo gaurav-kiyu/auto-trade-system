@@ -60,6 +60,8 @@ reports/*.txt
 reports/*.jsonl
 reports/_tmp*
 reports/*.json
+reports/*.html
+reports/*.pdf
 _regression_bad_stock_config.json
 
 # ── Logs ──────────────────────────────────────────────────────────────────────

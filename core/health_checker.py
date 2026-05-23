@@ -220,20 +220,29 @@ def check_recent_performance(
         n        = int(metrics.get("trades",        0))
         wr       = float(metrics.get("win_rate",     0.0))
         pf       = float(metrics.get("profit_factor", 0.0))
-        dd       = float(metrics.get("max_drawdown", 0.0))
+        dd_rel    = float(metrics.get("max_drawdown", 0.0))
 
+        # win_rate is already a percentage from compute_metrics (e.g. 55.3 = 55.3%)
+        wr_decimal = wr / 100.0  # convert to decimal for threshold check
         results.append(HealthCheckResult(
-            "PERF", "Win rate", "OK" if wr >= 0.45 else "WARN",
-            round(wr * 100, 1), f"Win rate {wr*100:.1f}% over last {days} days",
+            "PERF", "Win rate", "OK" if wr_decimal >= 0.45 else "WARN",
+            round(wr, 1), f"Win rate {wr:.1f}% over last {days} days",
         ))
         results.append(HealthCheckResult(
             "PERF", "Profit factor", "OK" if pf >= 1.0 else "WARN",
             round(pf, 3), f"Profit factor {pf:.3f}",
         ))
+
+        # max_drawdown from compute_metrics/capital_manager is in rupees, not %
+        # Convert to percentage of peak equity for a meaningful display
+        total_pnl = float(metrics.get("total_net_pnl", 0.0))
+        peak_approx = total_pnl + dd_rel if dd_rel > 0 else total_pnl
+        dd_pct = (dd_rel / peak_approx * 100) if peak_approx > 0 else 0.0
         results.append(HealthCheckResult(
-            "PERF", "Max drawdown", "OK" if abs(dd) <= 20 else "WARN",
-            round(dd, 2), f"Max drawdown {dd:.1f}%",
+            "PERF", "Max drawdown", "OK" if dd_pct <= 20 else "WARN",
+            round(dd_pct, 2), f"Max drawdown {dd_pct:.1f}% (\u20b9{dd_rel:.0f})",
         ))
+
         results.append(HealthCheckResult("PERF", "Trade count", "OK", n, f"{n} trades"))
     except Exception as exc:
         results.append(HealthCheckResult("PERF", "Performance check", "WARN", None, str(exc)))
@@ -260,13 +269,15 @@ def check_config_sanity(cfg: dict[str, Any]) -> list[HealthCheckResult]:
 
     max_loss = float(cfg.get("MAX_DAILY_LOSS", 0))
     capital  = float(cfg.get("BASE_CAPITAL",  100000))
-    if max_loss > 0 and capital > 0:
-        pct = max_loss / capital * 100
+    # MAX_DAILY_LOSS is stored as negative (e.g. -600 = limit losses to Rs 600)
+    loss_abs = abs(max_loss)
+    if loss_abs > 0 and capital > 0:
+        pct = loss_abs / capital * 100
         st  = "WARN" if pct > 5.0 else "OK"
         results.append(HealthCheckResult(
             "CONFIG", "Daily loss % of capital", st,
             round(pct, 2),
-            f"MAX_DAILY_LOSS is {pct:.1f}% of BASE_CAPITAL {'(>5% is high)' if st == 'WARN' else ''}",
+            f"MAX_DAILY_LOSS ({max_loss:.0f}) is {pct:.1f}% of BASE_CAPITAL {'(>5% is high)' if st == 'WARN' else ''}",
         ))
 
     threshold = int(cfg.get("AI_THRESHOLD", 60))

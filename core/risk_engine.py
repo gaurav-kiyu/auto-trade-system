@@ -1,26 +1,10 @@
 """
-Risk Engine — Unified entry-quality, portfolio-risk, and capital management.
+DEPRECATED — Use core.services.risk_service.RiskService (via core.ports.risk.RiskPort).
 
-Consolidates:
-  - risk_engine.py (v1 — QualityEngine pattern with injected callbacks)
-  - (removed) — was Dict-based RiskEngineV2; RiskService now covers that path
-  - core/risk/risk_engine.py (DEPRECATED, migrated to this module)
+This module is retained for backward compatibility only.
+All new code MUST import from core.services.risk_service.
 
-SINGLE SOURCE OF TRUTH: This module is the ONLY authoritative risk engine.
-All other risk_engine modules are deprecated.
-
-Usage:
-    # Via DI container (preferred):
-    engine = RiskEngine(config=RiskConfig(), ...)
-    decision = engine.evaluate(symbol, ltp, vix)
-
-    # Direct:
-    from core.risk_engine import evaluate_risk
-    result = evaluate_risk(state, config)
-
-Startup Validation:
-    Set environment variable OPBUYING_ACTIVE_RISK_ENGINE=risk_engine
-    or configure in index_config.defaults.json as active_risk_engine
+See core/risk/__init__.py for the authoritative architecture declaration.
 """
 from __future__ import annotations
 
@@ -31,9 +15,11 @@ log = logging.getLogger("risk_engine")
 
 ACTIVE_RISK_ENGINE = os.environ.get("OPBUYING_ACTIVE_RISK_ENGINE", "risk_engine")
 if ACTIVE_RISK_ENGINE != "risk_engine":
-    raise RuntimeError(
-        f"ACTIVE_RISK_ENGINE must be 'risk_engine', got '{ACTIVE_RISK_ENGINE}'. "
-        f"Multiple risk engines detected. Use ONLY core.risk_engine."
+    log.warning(
+        "ACTIVE_RISK_ENGINE=%r — this deprecated module is loaded alongside %r. "
+        "The authoritative risk engine is core.services.risk_service.RiskService. "
+        "See core/risk/__init__.py.",
+        ACTIVE_RISK_ENGINE, ACTIVE_RISK_ENGINE,
     )
 
 import time

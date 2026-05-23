@@ -3,6 +3,7 @@ import os
 import sqlite3
 import tempfile
 import pytest
+from datetime import datetime, timedelta
 from core.health_checker import (
     HealthCheckResult,
     HealthReport,
@@ -69,7 +70,7 @@ def test_check_db_sizes_missing_db_returns_ok():
     results = check_db_sizes({"health_check_db_warn_mb": {"nonexistent.db": 50.0}})
     # The function merges with _DB_WARN_MB_DEFAULTS, so multiple results are returned
     assert len(results) >= 1
-    # The nonexistent.db entry should be OK (no file → no warning)
+    # The nonexistent.db entry should be OK (no file -> no warning)
     nonexistent = [r for r in results if "nonexistent" in r.name]
     assert len(nonexistent) == 1
     assert nonexistent[0].status == "OK"
@@ -81,9 +82,7 @@ def test_check_db_sizes_small_file_is_ok():
         fpath = f.name
     try:
         cfg = {"health_check_db_warn_mb": {os.path.basename(fpath): 50.0}}
-        # Need to call from directory containing the file or adjust
         import core.health_checker as hc
-        from pathlib import Path
         orig_db = hc._DB_WARN_MB_DEFAULTS.copy()
         hc._DB_WARN_MB_DEFAULTS.clear()
         hc._DB_WARN_MB_DEFAULTS[fpath] = 50.0
@@ -125,7 +124,6 @@ def test_check_db_integrity_valid_db_passes():
 
 def test_check_db_integrity_missing_db_skipped():
     results = check_db_integrity({})
-    # Missing DBs should be silently skipped (no results for them)
     assert isinstance(results, list)
 
 
@@ -133,7 +131,6 @@ def test_check_db_integrity_missing_db_skipped():
 
 def test_check_db_wal_size_no_wal_returns_empty():
     results = check_db_wal_size({})
-    # No WAL files in test environment → empty list
     assert isinstance(results, list)
 
 
@@ -169,7 +166,6 @@ def test_check_config_sanity_returns_results():
 
 def test_check_config_high_daily_loss_warns():
     cfg = {"SL_PCT": 0.30, "TARGET_PCT": 0.60, "BASE_CAPITAL": 10000, "MAX_DAILY_LOSS": 1000, "AI_THRESHOLD": 65}
-    # 1000/10000 = 10% > 5% → WARN
     results = check_config_sanity(cfg)
     loss_check = next((r for r in results if "Daily loss" in r.name), None)
     if loss_check:
@@ -185,7 +181,6 @@ def test_check_system_health_returns_list():
 
 def test_check_system_health_disk_check_present():
     results = check_system_health({})
-    # Should have at least a disk-space check
     cats = [r.category for r in results]
     assert "SYS" in cats or len(results) >= 0
 
@@ -228,7 +223,6 @@ def test_run_full_health_check_with_good_config():
 def test_run_full_health_check_fail_config():
     cfg = {"SL_PCT": 0.70, "TARGET_PCT": 0.60}
     report = run_full_health_check(cfg)
-    # SL > TARGET should create at least one FAIL
     assert report.fail_count >= 1
     assert report.overall_status == "FAIL"
 
@@ -261,3 +255,140 @@ def test_format_health_report_empty_report():
     report = HealthReport()
     text = format_health_report(report)
     assert isinstance(text, str)
+
+
+# ── Drawdown percentage calculation ───────────────────────────────────────────
+
+def _recent_trade_ts(days_ago: int, hour: int = 10) -> str:
+    """Generate an ISO timestamp within the last N days."""
+    dt = datetime.utcnow() - timedelta(days=days_ago, hours=24 - hour)
+    return dt.isoformat()
+
+
+def test_drawdown_positive_pnl_shows_percentage():
+    """Drawdown should show as a percentage of peak equity, not raw rupees."""
+    # net_pnl values: +500, -200, +300, -100, +200
+    # Step1: cum=500  peak=500  dd=0
+    # Step2: cum=300  peak=500  dd=200
+    # Step3: cum=600  peak=600  dd=0
+    # Step4: cum=500  peak=600  dd=100
+    # Step5: cum=700  peak=700  dd=0
+    # max_dd_rupees = 200, total_pnl = 700
+    # peak_approx = 700+200 = 900, dd_pct = 200/900*100 = 22.2%
+    cfg = {
+        "SL_PCT": 0.30,
+        "TARGET_PCT": 0.60,
+        "BASE_CAPITAL": 100000,
+        "MAX_DAILY_LOSS": 2000,
+        "AI_THRESHOLD": 65,
+        "sensitivity_report_days": 30,
+    }
+    import tempfile, os, sqlite3
+    f = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
+    db = f.name
+    f.close()
+    try:
+        conn = sqlite3.connect(db)
+        conn.execute("""CREATE TABLE IF NOT EXISTS trades (
+            id INTEGER PRIMARY KEY, ts TEXT, index_name TEXT, direction TEXT,
+            entry REAL, exit_price REAL, qty INTEGER, gross_pnl REAL, net_pnl REAL,
+            reason TEXT, regime TEXT, score REAL, mode TEXT
+        )""")
+        trades = [
+            (500, _recent_trade_ts(1, 10)),
+            (-200, _recent_trade_ts(1, 11)),
+            (300, _recent_trade_ts(1, 12)),
+            (-100, _recent_trade_ts(1, 13)),
+            (200, _recent_trade_ts(1, 14)),
+        ]
+        for i, (pnl, ts) in enumerate(trades):
+            conn.execute("""INSERT INTO trades
+                (id, ts, index_name, direction, entry, exit_price, qty,
+                 gross_pnl, net_pnl, reason, mode)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (i+1, ts, 'NIFTY', 'CALL', 18000, 18100, 50, pnl, pnl, 'TP', 'PAPER'))
+        conn.commit()
+        conn.close()
+
+        from core.health_checker import check_recent_performance
+        results = check_recent_performance(cfg, db)
+        dd_check = next((r for r in results if 'drawdown' in r.name.lower()), None)
+        assert dd_check is not None, f"No drawdown check: {[r.name for r in results]}"
+        assert dd_check.value < 100, f"Value {dd_check.value} should be % not raw rupees"
+        assert dd_check.value > 0, "Drawdown should be > 0"
+        msg = dd_check.message
+        assert '%' in msg or u'\u20b9' in msg, f"Message should contain % or rupee: {msg}"
+    finally:
+        try:
+            os.unlink(db)
+        except PermissionError:
+            pass
+
+
+def test_drawdown_negative_pnl_does_not_crash():
+    """Net-loss scenario should not crash and should return a safe value."""
+    import tempfile, os, sqlite3
+    f = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
+    db = f.name
+    f.close()
+    try:
+        conn = sqlite3.connect(db)
+        conn.execute("""CREATE TABLE IF NOT EXISTS trades (
+            id INTEGER PRIMARY KEY, ts TEXT, index_name TEXT, direction TEXT,
+            entry REAL, exit_price REAL, qty INTEGER, gross_pnl REAL, net_pnl REAL,
+            reason TEXT, regime TEXT, score REAL, mode TEXT
+        )""")
+        trades = [
+            (-500, _recent_trade_ts(2, 10)),
+            (-200, _recent_trade_ts(2, 11)),
+            (100, _recent_trade_ts(2, 12)),
+        ]
+        for i, (pnl, ts) in enumerate(trades):
+            conn.execute("""INSERT INTO trades
+                (id, ts, index_name, direction, entry, exit_price, qty,
+                 gross_pnl, net_pnl, reason, mode)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (i+1, ts, 'NIFTY', 'PUT', 18000, 17900, 50, pnl, pnl, 'SL', 'PAPER'))
+        conn.commit()
+        conn.close()
+
+        from core.health_checker import check_recent_performance
+        cfg = {"SL_PCT": 0.30, "TARGET_PCT": 0.60, "BASE_CAPITAL": 100000,
+               "MAX_DAILY_LOSS": 2000, "AI_THRESHOLD": 65,
+               "sensitivity_report_days": 30}
+        results = check_recent_performance(cfg, db)
+        dd_check = next((r for r in results if 'drawdown' in r.name.lower()), None)
+        assert dd_check is not None, f"No drawdown check: {[r.name for r in results]}"
+        assert isinstance(dd_check.value, (int, float)), f"Value should be numeric: {dd_check.value}"
+    finally:
+        try:
+            os.unlink(db)
+        except PermissionError:
+            pass
+
+
+def test_drawdown_zero_trades_does_not_crash():
+    """Zero trades should return early without drawdown check."""
+    from core.health_checker import check_recent_performance
+    cfg = {"SL_PCT": 0.30, "TARGET_PCT": 0.60, "sensitivity_report_days": 30}
+    import tempfile, os
+    f = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
+    db = f.name
+    f.close()
+    try:
+        import sqlite3
+        conn = sqlite3.connect(db)
+        conn.execute("""CREATE TABLE IF NOT EXISTS trades (
+            id INTEGER PRIMARY KEY, ts TEXT, net_pnl REAL, mode TEXT
+        )""")
+        conn.commit()
+        conn.close()
+        results = check_recent_performance(cfg, db)
+        trade_count = next((r for r in results if 'trade' in r.name.lower()), None)
+        assert trade_count is not None
+        assert trade_count.status == 'WARN'
+    finally:
+        try:
+            os.unlink(db)
+        except PermissionError:
+            pass

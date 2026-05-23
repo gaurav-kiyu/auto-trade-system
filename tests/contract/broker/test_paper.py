@@ -25,14 +25,12 @@ class TestPaperBrokerContract:
         status = adapter.get_order_status(oid)
         assert status is not None
 
-    @pytest.mark.xfail(reason="PaperBrokerAdapter.cancel_order needs _port reference")
     def test_cancel_order(self):
         adapter = self.make_adapter()
         oid = adapter.place_order("NIFTY", "CALL", 50, 18000.0)
         result = adapter.cancel_order(oid)
         assert result is not None
 
-    @pytest.mark.xfail(reason="PaperBrokerAdapter.get_fill_price requires order_id arg")
     def test_get_fill_price(self):
         adapter = self.make_adapter()
         oid = adapter.place_order("NIFTY", "CALL", 50, 18000.0)

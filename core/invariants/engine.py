@@ -66,6 +66,26 @@ _lock = threading.Lock()
 _violations: list[InvariantViolation] = []
 _max_violations = 1000
 _halt_callback: Callable[[str], None] | None = None
+_disabled_checks: set[str] = set()
+
+
+def toggle_check(name: str) -> bool:
+    """Enable or disable an invariant check by name. Returns the new state (True=enabled)."""
+    global _disabled_checks
+    with _lock:
+        if name in _disabled_checks:
+            _disabled_checks.discard(name)
+            _log.info("Invariant check enabled: %s", name)
+            return True
+        _disabled_checks.add(name)
+        _log.info("Invariant check disabled: %s", name)
+        return False
+
+
+def is_check_enabled(name: str) -> bool:
+    """Return True if the named check is enabled (not disabled via toggle)."""
+    with _lock:
+        return name not in _disabled_checks
 
 
 def register_halt_callback(cb: Callable[[str], None]) -> None:
@@ -99,6 +119,8 @@ def check_all() -> list[InvariantCheck]:
     results = []
     with _lock:
         for inv in _INVARIANTS:
+            if inv.name in _disabled_checks:
+                continue
             try:
                 passed, message = inv.check_fn()
                 now = now_ist()
@@ -172,4 +194,5 @@ def get_state() -> dict:
                 for v in _violations[-50:]
             ],
             "violation_count": len(_violations),
+            "disabled_checks": sorted(_disabled_checks),
         }

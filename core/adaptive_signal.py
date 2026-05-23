@@ -33,6 +33,7 @@ from core.pure_index_signal import (
     _drop_partial_candle,  # resampling artifact cleaner
     _macd_bonus_delta,  # MACD histogram direction check
     compute_index_score,
+    evaluate_dual_direction_signal,
     evaluate_index_signal_partial,
 )
 from core.tier_engine import TIER_RULES, classify_tier
@@ -265,6 +266,7 @@ def _compute_features_and_score(
     learning_score_bonus: int,
     allow_tf_mismatch: bool,
     allow_choppy: bool,
+    force_direction: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Core feature extraction + scoring, with selectable relaxation of tf and regime gates.
@@ -289,15 +291,18 @@ def _compute_features_and_score(
     t5  = FeatureEngine.ema_trend(df5)
     t15 = FeatureEngine.ema_trend(df15)
 
-    if not allow_tf_mismatch:
+    if force_direction is not None:
+        # Direction is forced — use its corresponding trend for scoring
+        direction_tf = "UP" if force_direction == "CALL" else "DOWN"
+    elif not allow_tf_mismatch:
         if t5 == "FLAT" or t15 == "FLAT" or t5 != t15:
             return None
+        direction_tf = t5
     else:
         # Pick direction from the stronger (5m) timeframe; fall back to 15m
         if t5 == "FLAT" and t15 == "FLAT":
             return None  # no direction at all — irrecoverable
-
-    direction_tf = t5 if t5 != "FLAT" else t15
+        direction_tf = t5 if t5 != "FLAT" else t15
 
     price = FeatureEngine.get_price(df1)
     if price <= 0:
@@ -322,7 +327,7 @@ def _compute_features_and_score(
     if mkt_regime == "CHOPPY" and not allow_choppy:
         return None
 
-    direction = "CALL" if direction_tf == "UP" else "PUT"
+    direction = force_direction if force_direction is not None else ("CALL" if direction_tf == "UP" else "PUT")
 
     score = compute_index_score(
         direction_tf, t15, price, vwap_val, atr, vol_ratio, d1, d5_, pcr, smart,
@@ -483,37 +488,56 @@ def evaluate_adaptive_signal(
     learning_score_bonus: int = 0,
     max_lots: int = 1,
     capital: float = 100_000.0,
+    dual_direction_enabled: bool = True,
+    counter_trend_penalty: int = 10,
+    mean_reversion_enabled: bool = True,
+    tf_divergence_fallback: bool = True,
 ) -> tuple[AdaptiveSignal | None, str]:
     """
-    Evaluate signal with soft rejection for tf_mismatch and choppy.
+    Evaluate signal with dual-direction scoring and soft rejection.
 
-    Try the standard path first. If it fails with a soft-convertible reason
-    (tf_mismatch or choppy), re-evaluate with relaxed gates and apply penalties.
+    Uses evaluate_dual_direction_signal() as the primary path (evaluates both
+    CALL and PUT, picks the best with counter-trend penalty and mean-reversion
+    waive). Falls back to evaluate_index_signal_partial() with soft-rejection
+    gates if the dual path fails with tf_mismatch or choppy.
 
     Returns:
         (AdaptiveSignal, "")   on success (including soft-penalised paths)
         (None, reason_tag)     on hard block (data gap, iv_spike, etc.)
     """
-    # ── Try standard path ─────────────────────────────────────────────────
-    partial, reason = evaluate_index_signal_partial(
+    sc = dict(params.signal_cfg)
+    reasons: list[str] = []
+    soft_blocks: list[str] = []
+    confidence = 1.0
+    data: dict[str, Any] | None = None
+
+    # ── Try dual-direction path first (evaluates both CALL and PUT) ──────────
+    dual_partial, reason = evaluate_dual_direction_signal(
         params=params,
         df1=df1, df5=df5, df15=df15,
         vix=vix, iv=iv,
         oi_sup=oi_sup, oi_res=oi_res,
         pcr=pcr, smart=smart,
         learning_score_bonus=learning_score_bonus,
+        dual_direction_enabled=dual_direction_enabled,
+        counter_trend_penalty=counter_trend_penalty,
+        mean_reversion_enabled=mean_reversion_enabled,
+        tf_divergence_fallback=tf_divergence_fallback,
     )
 
-    soft_blocks: list[str] = []
-    confidence = 1.0
-
-    if partial is not None:
-        # Clean pass — no soft blocks
-        data = dict(partial)
+    if dual_partial is not None:
+        data = dict(dual_partial)
+        if data.get("_dual_direction_evaluated"):
+            reasons.append(f"[DUAL] chosen={data.get('_dual_chosen', '?')} "
+                           f"primary={data.get('_dual_primary_score', 0)} "
+                           f"opponent={data.get('_dual_opponent_score', 0)} "
+                           f"pen={data.get('_dual_penalty', 0)}")
+        if data.get("_tf_divergence_fallback"):
+            soft_blocks.append("tf_divergence_fallback")
+            confidence *= _CONF_MULT_TF_MISMATCH
+            reasons.append(f"[TF] divergence fallback → {data['_tf_divergence_fallback']}")
     elif reason == "tf_mismatch":
-        # Allow both tf_mismatch AND choppy — bars blocked by tf_mismatch are often also
-        # in a CHOPPY regime (misaligned trends happen when market is directionless).
-        # If both conditions are present, both penalties stack: -20 (tf) + -15 (choppy).
+        # Fall back to soft-rejection path — allow both tf_mismatch AND choppy
         data = _compute_features_and_score(
             params=params,
             df1=df1, df5=df5, df15=df15,
@@ -554,41 +578,34 @@ def evaluate_adaptive_signal(
     adjusted_score = max(0, adjusted_score)
 
     # ── IV Rank score multiplier ──────────────────────────────────────────
-    # High IV (expensive premiums) → reduce score so we are more selective.
-    # Low IV  (cheap premiums)     → boost score, ideal for option buying.
-    # Graceful no-op if iv_rank module unavailable or VIX data missing.
     _iv_rank_pts: int  = 0
-    _skew_adj_pts: int = 0
     if vix > 0:
         try:
             from core.iv_rank import get_score_multiplier as _iv_mult_fn
-            _iv_mult, _iv_rank_val, _iv_tag = _iv_mult_fn(vix, dict(params.signal_cfg))
+            _iv_mult, _iv_rank_val, _iv_tag = _iv_mult_fn(vix, sc)
             if _iv_mult != 1.0:
                 _pre_iv = adjusted_score
                 adjusted_score = max(0, min(100, int(round(adjusted_score * _iv_mult))))
                 _iv_rank_pts = adjusted_score - _pre_iv
-                soft_blocks = list(soft_blocks)  # ensure mutable copy
+                soft_blocks = list(soft_blocks)
                 if _iv_rank_pts < 0:
                     soft_blocks.append("high_iv")
                 reasons.append(f"[IV] {_iv_tag}")
         except Exception:
-            pass  # iv_rank is always optional — never block a signal on its failure
+            pass  # iv_rank is always optional
 
     # ── IV Skew score penalty (v2.44 Item 11) ────────────────────────────────
-    # EXTREME put skew → penalise CALL signals (market pricing in downside risk).
-    # Graceful no-op if iv_rank module / option chain unavailable.
     _skew_adj_pts: int = 0
-    if dict(params.signal_cfg).get("iv_skew_enabled", True):
+    if sc.get("iv_skew_enabled", True):
         try:
             from core.iv_rank import compute_iv_skew as _compute_skew
-            _option_chain = data.get("option_chain")  # {calls: {strike:prem}, puts: {strike:prem}}
+            _option_chain = data.get("option_chain")
             _spot         = float(data.get("price", 0.0))
             _dte          = int(data.get("dte", 7))
             if _option_chain and _spot > 0:
-                _scfg     = dict(params.signal_cfg)
-                _skew_dat = _compute_skew(_option_chain, _spot, _dte, _scfg)
+                _skew_dat = _compute_skew(_option_chain, _spot, _dte, sc)
                 if _skew_dat is not None and _skew_dat.regime == "EXTREME":
-                    _pen = int(_scfg.get("iv_skew_extreme_score_penalty", 5))
+                    _pen = int(sc.get("iv_skew_extreme_score_penalty", 5))
                     _direction = str(data.get("direction", "CALL")).upper()
                     if _direction in ("CALL", "CE"):
                         _pre_skew    = adjusted_score
@@ -601,11 +618,8 @@ def evaluate_adaptive_signal(
             pass  # iv_skew is always optional
 
     # ── Session Classifier score adjustment ───────────────────────────────────
-    # Applies per-session score delta (e.g. -15 for CHOPPY, +5 for TRENDING).
-    # Returns a hard-block soft_blocks entry when session_*_allowed=False in cfg.
-    # Graceful no-op if session_classifier module is unavailable.
     _session_adj_pts: int = 0
-    if dict(params.signal_cfg).get("session_classifier_enabled", True):
+    if sc.get("session_classifier_enabled", True):
         try:
             from core.datetime_ist import now_ist as _now_ist
             from core.session_classifier import (
@@ -617,11 +631,11 @@ def evaluate_adaptive_signal(
             from core.session_classifier import (
                 session_entry_allowed as _sess_allowed_fn,
             )
-            _session = _cls_session(_now_ist().time(), dict(params.signal_cfg))
-            if not _sess_allowed_fn(_session, dict(params.signal_cfg)):
+            _session = _cls_session(_now_ist().time(), sc)
+            if not _sess_allowed_fn(_session, sc):
                 soft_blocks = list(soft_blocks)
                 soft_blocks.append(f"session_{_session.value.lower()}_blocked")
-            _sess_adj = _sess_adj_fn(_session, dict(params.signal_cfg))
+            _sess_adj = _sess_adj_fn(_session, sc)
             if _sess_adj != 0:
                 _pre_sess   = adjusted_score
                 adjusted_score = max(0, min(100, adjusted_score + _sess_adj))
@@ -743,7 +757,7 @@ def evaluate_adaptive_signal(
     score_comps["ml_adj"]        = _ml_adj_pts
     features       = [k for k, v in score_comps.items() if v > 0]
 
-    reasons: list[str] = [f"{k}={v:+d}pts" for k, v in score_comps.items() if v != 0]
+    reasons += [f"{k}={v:+d}pts" for k, v in score_comps.items() if v != 0]
     if soft_blocks:
         reasons += [f"[SOFT] {b}" for b in soft_blocks]
 
@@ -854,16 +868,17 @@ def evaluate_adaptive_signal(
     # ── Apply max penalty cap (v2.45: safety guard) ────────────────────────────
     # Total penalty (adjusted_score - raw_score) must not exceed config maximum.
     # This prevents penalty stacking from suppressing valid signals.
-    _max_penalty = int(_scfg.get("ADAPTIVE_SIGNAL_MAX_TOTAL_PENALTY", -50))
+    _max_penalty = int(sc.get("ADAPTIVE_SIGNAL_MAX_TOTAL_PENALTY", -50))
     total_penalty = adjusted_score - raw_score
     if total_penalty < _max_penalty:
         old_score = adjusted_score
         adjusted_score = max(0, raw_score + _max_penalty)  # Clamp to max penalty
-        if _scfg.get("ADAPTIVE_SIGNAL_PENALTY_ALERT_THRESHOLD"):
-            _pen_alert_thr = float(_scfg.get("ADAPTIVE_SIGNAL_PENALTY_ALERT_THRESHOLD", 0.6))
+        if sc.get("ADAPTIVE_SIGNAL_PENALTY_ALERT_THRESHOLD"):
+            _pen_alert_thr = float(sc.get("ADAPTIVE_SIGNAL_PENALTY_ALERT_THRESHOLD", 0.6))
             _rej_rate = total_penalty / max(1, raw_score) if raw_score > 0 else 0
             if _rej_rate < -_pen_alert_thr:  # More than 60% of score rejected
-                log.warning(
+                import logging as _lg
+                _lg.getLogger(__name__).warning(
                     "[ADAPTIVE] Penalty cap applied: %d -> %d (total_penalty=%d, raw=%d)",
                     old_score, adjusted_score, total_penalty, raw_score
                 )

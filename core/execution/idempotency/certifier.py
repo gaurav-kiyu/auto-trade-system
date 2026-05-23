@@ -67,30 +67,40 @@ class IdempotencyCertifier:
         self._db_path = Path(db_path)
         self._slot_seconds = slot_seconds
         self._lock = threading.Lock()
+        self._is_memory = str(db_path) == ":memory:"
+        self._conn: sqlite3.Connection | None = None
         self._init_db()
         _log.info("IdempotencyCertifier initialized (slot=%ds, db=%s)", slot_seconds, self._db_path)
 
+    def _get_conn(self) -> sqlite3.Connection:
+        """Get SQLite connection — caches for :memory: mode so state persists."""
+        if self._is_memory:
+            if self._conn is None:
+                self._conn = sqlite3.connect(":memory:", check_same_thread=False)
+            return self._conn
+        return sqlite3.connect(self._db_path)
+
     def _init_db(self) -> None:
         with self._lock:
-            with sqlite3.connect(self._db_path) as conn:
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS certs (
-                        cert_id TEXT PRIMARY KEY,
-                        execution_id TEXT NOT NULL,
-                        symbol TEXT NOT NULL,
-                        action TEXT NOT NULL,
-                        params_hash TEXT NOT NULL,
-                        status TEXT NOT NULL DEFAULT 'PENDING',
-                        broker_order_id TEXT DEFAULT '',
-                        created_at TEXT NOT NULL,
-                        committed_at TEXT,
-                        settled_at TEXT,
-                        error TEXT DEFAULT ''
-                    )
-                """)
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_certs_exec_id ON certs(execution_id)")
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_certs_status ON certs(status)")
-                conn.commit()
+            conn = self._get_conn()
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS certs (
+                    cert_id TEXT PRIMARY KEY,
+                    execution_id TEXT NOT NULL,
+                    symbol TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    params_hash TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'PENDING',
+                    broker_order_id TEXT DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    committed_at TEXT,
+                    settled_at TEXT,
+                    error TEXT DEFAULT ''
+                )
+            """)
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_certs_exec_id ON certs(execution_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_certs_status ON certs(status)")
+            conn.commit()
 
     def generate_execution_id(self, symbol: str, direction: str, strike: float,
                               lot_size: int, timestamp_slot: int | None = None) -> str:
@@ -113,23 +123,23 @@ class IdempotencyCertifier:
 
         with self._lock:
             # Check if already exists as PENDING (crash recovery scenario)
-            with sqlite3.connect(self._db_path) as conn:
-                existing = conn.execute(
-                    "SELECT status FROM certs WHERE execution_id = ?",
-                    (execution_id,),
-                ).fetchone()
-                if existing:
-                    _log.warning("Execution %s already has status %s", execution_id, existing[0])
-                    return cert_id
+            conn = self._get_conn()
+            existing = conn.execute(
+                "SELECT status FROM certs WHERE execution_id = ?",
+                (execution_id,),
+            ).fetchone()
+            if existing:
+                _log.warning("Execution %s already has status %s", execution_id, existing[0])
+                return cert_id
 
-                conn.execute(
-                    """INSERT INTO certs
-                       (cert_id, execution_id, symbol, action, params_hash, status, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                    (cert_id, execution_id, symbol, action, params_hash,
-                     CertStatus.PENDING, now),
-                )
-                conn.commit()
+            conn.execute(
+                """INSERT INTO certs
+                   (cert_id, execution_id, symbol, action, params_hash, status, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (cert_id, execution_id, symbol, action, params_hash,
+                 CertStatus.PENDING, now),
+            )
+            conn.commit()
 
         return cert_id
 
@@ -137,83 +147,81 @@ class IdempotencyCertifier:
         """Mark execution as COMMITTED (broker acknowledged)."""
         now = str(now_ist())
         with self._lock:
-            with sqlite3.connect(self._db_path) as conn:
-                conn.execute(
-                    "UPDATE certs SET status = ?, committed_at = ?, broker_order_id = ? WHERE cert_id = ?",
-                    (CertStatus.COMMITTED, now, broker_order_id, cert_id),
-                )
-                conn.commit()
+            conn = self._get_conn()
+            conn.execute(
+                "UPDATE certs SET status = ?, committed_at = ?, broker_order_id = ? WHERE cert_id = ?",
+                (CertStatus.COMMITTED, now, broker_order_id, cert_id),
+            )
+            conn.commit()
 
     def settle(self, cert_id: str) -> None:
         """Mark execution as SETTLED (fully reconciled)."""
         now = str(now_ist())
         with self._lock:
-            with sqlite3.connect(self._db_path) as conn:
-                conn.execute(
-                    "UPDATE certs SET status = ?, settled_at = ? WHERE cert_id = ?",
-                    (CertStatus.SETTLED, now, cert_id),
-                )
-                conn.commit()
+            conn = self._get_conn()
+            conn.execute(
+                "UPDATE certs SET status = ?, settled_at = ? WHERE cert_id = ?",
+                (CertStatus.SETTLED, now, cert_id),
+            )
+            conn.commit()
 
     def fail(self, cert_id: str, error: str = "") -> None:
         """Mark execution as FAILED."""
         now = str(now_ist())
         with self._lock:
-            with sqlite3.connect(self._db_path) as conn:
-                conn.execute(
-                    "UPDATE certs SET status = ?, error = ? WHERE cert_id = ?",
-                    (CertStatus.FAILED, error, cert_id),
-                )
-                conn.commit()
+            conn = self._get_conn()
+            conn.execute(
+                "UPDATE certs SET status = ?, error = ? WHERE cert_id = ?",
+                (CertStatus.FAILED, error, cert_id),
+            )
+            conn.commit()
 
     def is_pending(self, execution_id: str) -> bool:
         """Check if an execution_id is still in PENDING state."""
         with self._lock:
-            with sqlite3.connect(self._db_path) as conn:
-                row = conn.execute(
-                    "SELECT status FROM certs WHERE execution_id = ?",
-                    (execution_id,),
-                ).fetchone()
-                return row is not None and row[0] == CertStatus.PENDING
+            conn = self._get_conn()
+            row = conn.execute(
+                "SELECT status FROM certs WHERE execution_id = ?",
+                (execution_id,),
+            ).fetchone()
+            return row is not None and row[0] == CertStatus.PENDING
 
     def is_duplicate(self, execution_id: str) -> bool:
-        """Check if an execution_id has already been processed (any non-FAILED status)."""
+        """Check if an execution_id already exists (any status)."""
         with self._lock:
-            with sqlite3.connect(self._db_path) as conn:
-                row = conn.execute(
-                    "SELECT status FROM certs WHERE execution_id = ?",
-                    (execution_id,),
-                ).fetchone()
-                if row is None:
-                    return False
-                return row[0] in (CertStatus.COMMITTED, CertStatus.SETTLED)
+            conn = self._get_conn()
+            row = conn.execute(
+                "SELECT status FROM certs WHERE execution_id = ?",
+                (execution_id,),
+            ).fetchone()
+            return row is not None
 
     def get_pending(self) -> list[ExecutionCert]:
         """Get all PENDING certs (for crash recovery)."""
         with self._lock:
-            with sqlite3.connect(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                rows = conn.execute(
-                    "SELECT * FROM certs WHERE status = ? ORDER BY created_at",
-                    (CertStatus.PENDING,),
-                ).fetchall()
+            conn = self._get_conn()
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT * FROM certs WHERE status = ? ORDER BY created_at",
+                (CertStatus.PENDING,),
+            ).fetchall()
             return [self._row_to_cert(r) for r in rows]
 
     def get_by_execution_id(self, execution_id: str) -> ExecutionCert | None:
         with self._lock:
-            with sqlite3.connect(self._db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                row = conn.execute(
-                    "SELECT * FROM certs WHERE execution_id = ?", (execution_id,)
-                ).fetchone()
+            conn = self._get_conn()
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT * FROM certs WHERE execution_id = ?", (execution_id,)
+            ).fetchone()
             return self._row_to_cert(row) if row else None
 
     def count_by_status(self) -> dict[str, int]:
         with self._lock:
-            with sqlite3.connect(self._db_path) as conn:
-                rows = conn.execute(
-                    "SELECT status, COUNT(*) as cnt FROM certs GROUP BY status"
-                ).fetchall()
+            conn = self._get_conn()
+            rows = conn.execute(
+                "SELECT status, COUNT(*) as cnt FROM certs GROUP BY status"
+            ).fetchall()
             return {r[0]: r[1] for r in rows}
 
     def _row_to_cert(self, row: sqlite3.Row) -> ExecutionCert:

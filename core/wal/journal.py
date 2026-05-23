@@ -223,7 +223,7 @@ class WriteAheadJournal:
             intent_id=row["intent_id"],
             action=row["action"],
             params=json.loads(row["params_json"]) if row["params_json"] else {},
-            risk_verdict=json.loads(row["risk_verdict_json"]) if row.get("risk_verdict_json") else None,
+            risk_verdict=json.loads(row["risk_verdict_json"]) if row["risk_verdict_json"] else None,
             config_snapshot_hash=row["config_snapshot_hash"] or "",
             correlation_id=row["correlation_id"] or "",
             status=row["status"],

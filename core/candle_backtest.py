@@ -29,6 +29,7 @@ from core.option_premium_model import (
 from core.pure_index_signal import (
     PureIndexRegimeParams,
     PureIndexSignalParams,
+    evaluate_dual_direction_signal,
     evaluate_index_signal_partial,
     finalize_index_signal_with_threshold,
 )
@@ -126,7 +127,12 @@ class CandleBacktestConfig:
     use_regime_rr: bool     = True        # True → adjust TP/SL per regime
     oi_snapshot_db: str     = ""          # path to oi_snapshots.db; "" = use synthetic OI
     strict_oi: bool         = True        # abort if OI coverage < 80% (v2.49 default)
-    oi_fallback_warn_pct: float = 0.20    # warn in report header if > this fraction used synthetic
+    oi_fallback_warn_pct: float = 0.20
+    # Dual-direction evaluation (v2.51.12)
+    dual_direction_enabled: bool = True    # evaluate both CALL and PUT, pick best
+    counter_trend_penalty: int = 10       # score penalty for counter-trend signals
+    mean_reversion_enabled: bool = True   # waive penalty at extreme RSI
+    tf_divergence_fallback: bool = True   # use stronger TF direction on mismatch    # warn in report header if > this fraction used synthetic
 
 
 # ---------------------------------------------------------------------------
@@ -335,7 +341,7 @@ class CandleBacktestEngine:
                 vol_ratio_min=self._vol_ratio_min,
                 is_early_session=bool(self._is_early_session_fn()),
             )
-            partial, _tag = evaluate_index_signal_partial(
+            partial, _tag = evaluate_dual_direction_signal(
                 params=params,
                 df1=df1, df5=df5, df15=df15,
                 vix=float(cfg.vix),
@@ -343,6 +349,10 @@ class CandleBacktestEngine:
                 oi_sup=sup, oi_res=res,
                 pcr=pcr, smart=smart,
                 learning_score_bonus=0,
+                dual_direction_enabled=bool(cfg.dual_direction_enabled),
+                counter_trend_penalty=int(cfg.counter_trend_penalty),
+                mean_reversion_enabled=bool(cfg.mean_reversion_enabled),
+                tf_divergence_fallback=bool(cfg.tf_divergence_fallback),
             )
             if partial is None:
                 continue

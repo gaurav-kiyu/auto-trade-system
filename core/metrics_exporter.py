@@ -65,6 +65,8 @@ def _init_prometheus() -> bool:
                     "warmup_entries":     Gauge("opb_warmup_entries",     "Entries in warm-up"),
                     "ws_connected":       Gauge("opb_ws_connected",       "WebSocket connected (1=connected)"),
                     "ws_reconnect_count": Gauge("opb_ws_reconnect_count", "Cumulative WebSocket reconnects"),
+                    "reconciliation_lag": Gauge("opb_reconciliation_lag_seconds", "Reconciliation lag in seconds"),
+                    "broker_uptime":      Gauge("opb_broker_uptime_seconds",      "Broker uptime in seconds", ["broker_name"]),
                 }
                 _counters = {
                     "trades_total": Counter("opb_trades_total", "Total trades"),
@@ -157,6 +159,15 @@ def update_metrics(metrics: dict[str, float]) -> None:
             _counters["trades_total"].inc(float(metrics["trades_total_inc"]))
         if "wins_total_inc" in metrics:
             _counters["wins_total"].inc(float(metrics["wins_total_inc"]))
+        if "reconciliation_lag" in metrics:
+            _gauges["reconciliation_lag"].set(float(metrics["reconciliation_lag"]))
+        if "broker_uptime" in metrics:
+            value = metrics["broker_uptime"]
+            if isinstance(value, (int, float)):
+                _gauges["broker_uptime"].labels(broker_name="default").set(float(value))
+            elif isinstance(value, dict):
+                for broker, uptime in value.items():
+                    _gauges["broker_uptime"].labels(broker_name=broker).set(float(uptime))
     except Exception as e:
         _log.debug("[METRICS] update failed: %s", e)
 

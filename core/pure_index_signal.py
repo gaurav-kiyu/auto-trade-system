@@ -199,6 +199,7 @@ def evaluate_index_signal_partial(
     pcr: float,
     smart: str,
     learning_score_bonus: int = 0,
+    force_direction: str | None = None,
 ) -> tuple[dict[str, Any] | None, str]:
     """
     Structural + scoring path only (no threshold pass/fail, no wall-clock stale checks).
@@ -227,8 +228,9 @@ def evaluate_index_signal_partial(
 
     t5 = FeatureEngine.ema_trend(df5)
     t15 = FeatureEngine.ema_trend(df15)
-    if t5 == "FLAT" or t15 == "FLAT" or t5 != t15:
-        return None, "tf_mismatch"
+    if force_direction is None:
+        if t5 == "FLAT" or t15 == "FLAT" or t5 != t15:
+            return None, "tf_mismatch"
 
     price = FeatureEngine.get_price(df1)
     vwap_val = FeatureEngine.get_vwap(df1)
@@ -252,25 +254,30 @@ def evaluate_index_signal_partial(
     if mkt_regime == "CHOPPY":
         return None, "choppy"
 
-    direction = "CALL" if t5 == "UP" else "PUT"
+    if force_direction is not None:
+        direction = force_direction
+        t5_scoring = "UP" if direction == "CALL" else "DOWN"
+    else:
+        direction = "CALL" if t5 == "UP" else "PUT"
+        t5_scoring = t5
     if iv > 0 and iv > float(params.iv_spike_threshold):
         return None, "iv_spike"
 
     score = compute_index_score(
-        t5, t15, price, vwap_val, atr, vol_ratio, d1, d5_, pcr, smart,
+        t5_scoring, t15, price, vwap_val, atr, vol_ratio, d1, d5_, pcr, smart,
         signal_cfg=sc, vol_ratio_min=params.vol_ratio_min,
         learning_score_bonus=learning_score_bonus, rsi=rsi_val,
     )
 
     # Component-level breakdown — must mirror compute_index_score formulas exactly
     _vwap_ref_ = max(float(vwap_val), 1.0)
-    if (t5 == "UP" and price > _vwap_ref_) or (t5 == "DOWN" and price < _vwap_ref_):
+    if (t5_scoring == "UP" and price > _vwap_ref_) or (t5_scoring == "DOWN" and price < _vwap_ref_):
         _vwap_dist_ = abs(price - _vwap_ref_) / _vwap_ref_
         _vwap_pts = min(20, 8 + int(min(1.0, _vwap_dist_ / 0.005) * 12))
     else:
         _vwap_pts = 0
-    _d1_pts   = 15 if (t5 == "UP" and d1 > 0) or (t5 == "DOWN" and d1 < 0) else 0
-    _d5_pts   = 10 if (t5 == "UP" and d5_ > 0) or (t5 == "DOWN" and d5_ < 0) else 0
+    _d1_pts   = 15 if (t5_scoring == "UP" and d1 > 0) or (t5_scoring == "DOWN" and d1 < 0) else 0
+    _d5_pts   = 10 if (t5_scoring == "UP" and d5_ > 0) or (t5_scoring == "DOWN" and d5_ < 0) else 0
     if vol_ratio >= params.vol_ratio_min:
         _vol_excess_ = (vol_ratio - params.vol_ratio_min) / max(params.vol_ratio_min, 0.5)
         _vol_pts = min(14, 4 + int(min(1.0, _vol_excess_) * 10))
@@ -281,12 +288,12 @@ def evaluate_index_signal_partial(
     _rsi_hh_c = float(sc.get("INDEX_RSI_HEALTHY_HIGH_CALL", 70))
     _rsi_hl_p = float(sc.get("INDEX_RSI_HEALTHY_LOW_PUT", 30))
     _rsi_hh_p = float(sc.get("INDEX_RSI_HEALTHY_HIGH_PUT", 60))
-    _rsi_pts  = (_rsi_b if (t5 == "UP" and _rsi_hl_c <= rsi_val <= _rsi_hh_c)
-                 or (t5 == "DOWN" and _rsi_hl_p <= rsi_val <= _rsi_hh_p) else 0)
-    _sm_pts   = 10 if (t5 == "UP" and smart == "BULLISH") or (t5 == "DOWN" and smart == "BEARISH") else 0
+    _rsi_pts  = (_rsi_b if (t5_scoring == "UP" and _rsi_hl_c <= rsi_val <= _rsi_hh_c)
+                 or (t5_scoring == "DOWN" and _rsi_hl_p <= rsi_val <= _rsi_hh_p) else 0)
+    _sm_pts   = 10 if (t5_scoring == "UP" and smart == "BULLISH") or (t5_scoring == "DOWN" and smart == "BEARISH") else 0
     _pcr_bull = float(sc.get("PCR_BULLISH", 1.2))
     _pcr_bear = float(sc.get("PCR_BEARISH", 0.8))
-    _pcr_pts  = 5 if (t5 == "UP" and pcr > _pcr_bull) or (t5 == "DOWN" and pcr < _pcr_bear) else 0
+    _pcr_pts  = 5 if (t5_scoring == "UP" and pcr > _pcr_bull) or (t5_scoring == "DOWN" and pcr < _pcr_bear) else 0
     _score_components: dict[str, int] = {
         "tf_aligned":  20 if t5 == t15 else 0,
         "vwap":        _vwap_pts,
@@ -379,10 +386,12 @@ def evaluate_index_signal_partial(
             if len(_orb_df) >= 5:
                 _orb_high = float(_orb_df["High"].max())
                 _orb_low = float(_orb_df["Low"].min())
-                if direction == "CALL" and price > _orb_high * 1.001:
+                _is_call = (force_direction is not None and force_direction == "CALL") or (force_direction is None and direction == "CALL")
+                _is_put = (force_direction is not None and force_direction == "PUT") or (force_direction is None and direction == "PUT")
+                if _is_call and price > _orb_high * 1.001:
                     _orb_pts = _orb_bonus
                     score = min(100, score + _orb_pts)
-                elif direction == "PUT" and price < _orb_low * 0.999:
+                elif _is_put and price < _orb_low * 0.999:
                     _orb_pts = _orb_bonus
                     score = min(100, score + _orb_pts)
     except Exception:
@@ -440,6 +449,183 @@ def evaluate_index_signal_partial(
         "signal_ts": signal_ts,
         "signal_reason": f"score={score} regime={mkt_regime} dir={direction}",
     }, ""
+
+
+def evaluate_dual_direction_signal(
+    *,
+    params: PureIndexSignalParams,
+    df1: pd.DataFrame,
+    df5: pd.DataFrame,
+    df15: pd.DataFrame,
+    vix: float,
+    iv: float,
+    oi_sup: float,
+    oi_res: float,
+    pcr: float,
+    smart: str,
+    learning_score_bonus: int = 0,
+    dual_direction_enabled: bool = True,
+    counter_trend_penalty: int = 10,
+    mean_reversion_enabled: bool = True,
+    tf_divergence_fallback: bool = True,
+) -> tuple[dict[str, Any] | None, str]:
+    """
+    Evaluates signals for both CALL and PUT directions and picks the best.
+
+    Implements three enhancement modes:
+    - **Dual-direction scoring:** evaluate both CALL and PUT, pick higher score
+      with a configurable counter-trend penalty
+    - **Mean-reversion mode:** waive counter-trend penalty when RSI is extreme
+      (oversold for CALL, overbought for PUT), treating it as a reversion
+      opportunity rather than a trend violation
+    - **TF divergence fallback:** when 5m and 15m trends diverge (tf_mismatch),
+      use the stronger (5m) timeframe direction instead of blocking
+
+    Returns (payload, "") on success; (None, reason_tag) on hard block.
+    """
+    sc = params.signal_cfg
+
+    # ── Primary evaluation (standard path) ───────────────────────────────────
+    partial, reason = evaluate_index_signal_partial(
+        params=params,
+        df1=df1, df5=df5, df15=df15,
+        vix=vix, iv=iv,
+        oi_sup=oi_sup, oi_res=oi_res,
+        pcr=pcr, smart=smart,
+        learning_score_bonus=learning_score_bonus,
+    )
+
+    # ── TF divergence fallback (Option C) ────────────────────────────────────
+    if partial is None and reason == "tf_mismatch" and tf_divergence_fallback:
+        # Determine the stronger direction from whichever timeframe has a clear trend
+        t5 = FeatureEngine.ema_trend(df5)
+        t15 = FeatureEngine.ema_trend(df15)
+        if t5 != "FLAT":
+            fallback_dir = "CALL" if t5 == "UP" else "PUT"
+        elif t15 != "FLAT":
+            fallback_dir = "CALL" if t15 == "UP" else "PUT"
+        else:
+            return None, "tf_mismatch"
+
+        partial, reason = evaluate_index_signal_partial(
+            params=params,
+            df1=df1, df5=df5, df15=df15,
+            vix=vix, iv=iv,
+            oi_sup=oi_sup, oi_res=oi_res,
+            pcr=pcr, smart=smart,
+            learning_score_bonus=learning_score_bonus,
+            force_direction=fallback_dir,
+        )
+        if partial is not None:
+            partial = dict(partial)
+            partial["_tf_divergence_fallback"] = fallback_dir
+            partial["signal_reason"] = (
+                f"score={partial['score']} dir={fallback_dir} (tf_fallback)"
+            )
+
+    if partial is None:
+        return None, reason
+
+    # ── Determine real 5m trend for counter-trend detection ──────────────────
+    t5 = FeatureEngine.ema_trend(df5)
+    primary_dir = str(partial["direction"])
+
+    # Check if the primary direction is counter-trend
+    is_counter_primary = (
+        (primary_dir == "CALL" and t5 == "DOWN")
+        or (primary_dir == "PUT" and t5 == "UP")
+    )
+    # If TF fallback fired, the direction might be counter-trend — mark it
+    if is_counter_primary and partial.get("_tf_divergence_fallback"):
+        comps = dict(partial.get("score_components", {}))
+        comps["counter_trend_penalty"] = -counter_trend_penalty
+        partial["score_components"] = comps
+        partial["score"] = max(0, int(partial["score"]) - counter_trend_penalty)
+        partial["signal_reason"] = (
+            f"score={partial['score']} dir={primary_dir} "
+            f"(tf_fallback, ctr_pen={counter_trend_penalty})"
+        )
+
+    partial = dict(partial)
+    partial["_dual_direction_evaluated"] = False
+
+    # ── Dual-direction evaluation (Option A) ─────────────────────────────────
+    if not dual_direction_enabled:
+        return partial, ""
+
+    opposite_dir = "PUT" if primary_dir == "CALL" else "CALL"
+
+    # Check if TF fallback already fired — if so, the "primary" is already
+    # the forced direction, so evaluate the original trend direction as well
+    opp_partial, opp_reason = evaluate_index_signal_partial(
+        params=params,
+        df1=df1, df5=df5, df15=df15,
+        vix=vix, iv=iv,
+        oi_sup=oi_sup, oi_res=oi_res,
+        pcr=pcr, smart=smart,
+        learning_score_bonus=learning_score_bonus,
+        force_direction=opposite_dir,
+    )
+
+    if opp_partial is None:
+        return partial, ""
+
+    primary_score = int(partial["score"])
+    opp_score = int(opp_partial["score"])
+
+    # Check if opposite direction is counter-trend
+    is_counter_opp = (
+        (opposite_dir == "CALL" and t5 == "DOWN")
+        or (opposite_dir == "PUT" and t5 == "UP")
+    )
+
+    # Apply counter-trend penalty (Option A)
+    penalty = 0
+    if is_counter_opp:
+        penalty = counter_trend_penalty
+        # Mean-reversion mode (Option B): waive penalty when RSI is extreme
+        # — overbought = PUT opportunity, oversold = CALL opportunity
+        if mean_reversion_enabled:
+            rsi_val = FeatureEngine.get_rsi(df5)
+            _rsi_ob = float(sc.get("INDEX_RSI_OVERBOUGHT", 75))
+            _rsi_os = float(sc.get("INDEX_RSI_OVERSOLD", 25))
+            if (
+                (opposite_dir == "PUT" and rsi_val >= _rsi_ob)
+                or (opposite_dir == "CALL" and rsi_val <= _rsi_os)
+            ):
+                penalty = 0  # Waive — mean-reversion opportunity
+
+    adjusted_opp_score = opp_score - penalty
+
+    # Pick the better direction
+    if adjusted_opp_score > primary_score:
+        # Opposite direction wins
+        best = dict(opp_partial)
+        best["score"] = adjusted_opp_score
+        comps = dict(best.get("score_components", {}))
+        if penalty > 0:
+            comps["counter_trend_penalty"] = -penalty
+        best["score_components"] = comps
+        best["signal_reason"] = (
+            f"score={adjusted_opp_score} dir={opposite_dir} "
+            f"(dual, primary={primary_score} opp={opp_score} pen={penalty})"
+        )
+        best["_dual_direction_evaluated"] = True
+        best["_dual_chosen"] = opposite_dir
+        best["_dual_primary_score"] = primary_score
+        best["_dual_opponent_score"] = adjusted_opp_score
+        best["_dual_counter_trend"] = is_counter_opp
+        best["_dual_penalty"] = penalty
+        return best, ""
+    else:
+        # Primary direction wins
+        partial["_dual_direction_evaluated"] = True
+        partial["_dual_chosen"] = primary_dir
+        partial["_dual_primary_score"] = primary_score
+        partial["_dual_opponent_score"] = adjusted_opp_score
+        partial["_dual_counter_trend"] = is_counter_primary
+        partial["_dual_penalty"] = 0
+        return partial, ""
 
 
 def finalize_index_signal_with_threshold(

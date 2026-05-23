@@ -34,6 +34,7 @@ Config keys (all optional — safe defaults built in)
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import pickle
@@ -276,12 +277,41 @@ def save_model(model: Any, path: str | Path) -> bool:
     try:
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
+        model_bytes = pickle.dumps(model)
         with open(p, "wb") as f:
-            pickle.dump(model, f)
+            f.write(model_bytes)
+        _register_in_registry(p, model_bytes)
         return True
     except Exception as exc:
         _log.warning("[ML] Save failed: %s", exc)
         return False
+
+
+def _register_in_registry(path: Path, model_bytes: bytes) -> None:
+    """Register model in AI governance registry (best-effort)."""
+    try:
+        from core.ai.model_registry import ModelRegistry
+        registry = ModelRegistry()
+        checksum = hashlib.sha256(model_bytes).hexdigest()
+        name = "win_prob_lgbm"
+        existing = registry.get_active(name)
+        next_ver = "0.1.0"
+        if existing:
+            parts = existing.version.split(".")
+            next_ver = f"{int(parts[0])}.{int(parts[1])}.{int(parts[2]) + 1}"
+        model_id = f"{name}_v{next_ver.replace('.', '_')}_{int(time.time())}"
+        registry.register(
+            model_id=model_id,
+            version=next_ver,
+            name=name,
+            source_path=str(path),
+            checksum=checksum,
+            metrics={},
+            metadata={"feature_cols": FEATURE_COLS, "saved_at": time.time()},
+        )
+        _log.info("[ML-GOV] Registered model %s v%s in registry", name, next_ver)
+    except Exception as exc:
+        _log.debug("[ML-GOV] Registry registration skipped: %s", exc)
 
 
 def load_model(path: str | Path) -> Any | None:

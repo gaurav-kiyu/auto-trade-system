@@ -44,12 +44,19 @@ def _register_broker_positions_match(safety_state_module=None):
 def _register_single_risk_engine():
     def _check():
         loaded_modules = list(sys.modules.keys())
-        risk_engines = [m for m in loaded_modules if "mandate_enforcer" in m or "predictive_risk" in m or "trading_risk" in m]
-        if len(risk_engines) > 0:
-            return False, f"Deprecated risk modules still loaded: {risk_engines}"
-        return True, "Only authoritative risk engine loaded"
+        deprecated = {m for m in loaded_modules if m in DEPRECATED}
+        authoritative = [m for m in loaded_modules if m == AUTHORITATIVE_MODULE]
+        if deprecated:
+            return False, f"Deprecated risk modules still loaded: {deprecated}"
+        if not authoritative and not any("services.risk_service" in m for m in loaded_modules):
+            return False, "No authoritative risk engine (core.services.risk_service) loaded"
+        return True, f"Only authoritative risk engine loaded (authoritative={bool(authoritative)})"
 
     import sys
+    from core.risk import DEPRECATED_RISK_MODULES, AUTHORITATIVE_RISK_MODULE
+    DEPRECATED = DEPRECATED_RISK_MODULES
+    AUTHORITATIVE_MODULE = AUTHORITATIVE_RISK_MODULE
+
     register_invariant(
         "single_risk_engine",
         "Only one authoritative risk engine must be loaded",

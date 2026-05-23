@@ -71,6 +71,33 @@ RISK_LIMIT_PROXIMITY = Gauge(
     "How close the system is to the daily loss limit (0-100%)"
 )
 
+# Order Lifecycle Latency: Submission -> ACK
+ORDER_ACK_LATENCY = Histogram(
+    "opb_order_ack_latency_seconds",
+    "Time from order submission to broker ACK",
+    buckets=(0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0)
+)
+
+# Order Lifecycle Latency: ACK -> Fill
+ORDER_FILL_LATENCY = Histogram(
+    "opb_order_fill_latency_seconds",
+    "Time from broker ACK to fill confirmation",
+    buckets=(0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0)
+)
+
+# Reconciliation Lag
+RECONCILIATION_LAG = Gauge(
+    "opb_reconciliation_lag_seconds",
+    "How far behind reconciliation is (seconds since last reconciliation)"
+)
+
+# Broker Uptime (seconds since last disconnect or session start)
+BROKER_UPTIME = Gauge(
+    "opb_broker_uptime_seconds",
+    "Seconds since broker last disconnected or session started",
+    ["broker_name"]
+)
+
 class ObservabilityManager:
     """
     Central hub for system monitoring.
@@ -114,6 +141,24 @@ class ObservabilityManager:
         if max_loss == 0: return
         proximity = (current_pnl - max_loss) / abs(max_loss) * 100
         RISK_LIMIT_PROXIMITY.set(max(0, min(100, proximity)))
+
+    def record_ack_latency(self, start_time: float):
+        """Records time from order submission to broker ACK."""
+        latency = time.time() - start_time
+        ORDER_ACK_LATENCY.observe(latency)
+
+    def record_fill_latency(self, ack_time: float):
+        """Records time from broker ACK to fill confirmation."""
+        latency = time.time() - ack_time
+        ORDER_FILL_LATENCY.observe(latency)
+
+    def set_reconciliation_lag(self, lag_seconds: float):
+        """Sets the reconciliation lag gauge."""
+        RECONCILIATION_LAG.set(lag_seconds)
+
+    def set_broker_uptime(self, broker_name: str, uptime_seconds: float):
+        """Sets broker uptime (seconds since last disconnect)."""
+        BROKER_UPTIME.labels(broker_name=broker_name).set(uptime_seconds)
 
 # Singleton instance
 obs_manager = ObservabilityManager()

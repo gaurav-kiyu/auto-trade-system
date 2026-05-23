@@ -386,6 +386,9 @@
     "EMAIL_USER": {
       "type": "string"
     },
+    "ENVIRONMENT": {
+      "type": "string"
+    },
     "EXCEPTION_ALERT_THRESHOLD": {
       "type": "integer"
     },
@@ -1438,6 +1441,9 @@
     "_comment_v247_execution_hardening": {
       "type": "string"
     },
+    "_comment_v251_dual_direction": {
+      "type": "string"
+    },
     "_comment_walkforward": {
       "type": "string"
     },
@@ -1457,6 +1463,37 @@
       "type": "string"
     },
     "ab_variant_overrides": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "admin_assets": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "admin_control_plane_auth_token": {
+      "type": "string"
+    },
+    "admin_control_plane_enabled": {
+      "type": "boolean"
+    },
+    "admin_control_plane_host": {
+      "type": "string"
+    },
+    "admin_control_plane_port": {
+      "type": "integer"
+    },
+    "admin_default_role": {
+      "type": "string"
+    },
+    "admin_feature_flags": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "admin_roles": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "admin_strategies": {
       "additionalProperties": true,
       "type": "object"
     },
@@ -1512,6 +1549,12 @@
       "type": "number"
     },
     "circuit_breaker_timeout_secs": {
+      "type": "integer"
+    },
+    "cleanup_scheduler_enabled": {
+      "type": "boolean"
+    },
+    "cleanup_scheduler_interval_hours": {
       "type": "integer"
     },
     "confidence_band_enabled": {
@@ -1583,9 +1626,63 @@
     "correlation_warn_threshold": {
       "type": "number"
     },
+    "counter_trend_penalty": {
+      "type": "integer"
+    },
+    "data_dir": {
+      "type": "string"
+    },
+    "data_retention_audit_days": {
+      "type": "integer"
+    },
+    "data_retention_audit_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_audit_max_files": {
+      "type": "integer"
+    },
+    "data_retention_logs_days": {
+      "type": "integer"
+    },
+    "data_retention_logs_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_logs_max_files": {
+      "type": "integer"
+    },
+    "data_retention_models_days": {
+      "type": "integer"
+    },
+    "data_retention_models_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_models_max_files": {
+      "type": "integer"
+    },
+    "data_retention_reports_days": {
+      "type": "integer"
+    },
+    "data_retention_reports_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_reports_max_files": {
+      "type": "integer"
+    },
+    "data_retention_telemetry_days": {
+      "type": "integer"
+    },
+    "data_retention_telemetry_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_telemetry_max_files": {
+      "type": "integer"
+    },
     "data_source_urls": {
       "additionalProperties": true,
       "type": "object"
+    },
+    "db_migration_enabled": {
+      "type": "boolean"
     },
     "delta_per_step": {
       "type": "number"
@@ -1610,6 +1707,12 @@
     },
     "drift_ref_days": {
       "type": "integer"
+    },
+    "dual_direction_enabled": {
+      "type": "boolean"
+    },
+    "environment_block_on_violation": {
+      "type": "boolean"
     },
     "event_calendar_enabled": {
       "type": "boolean"
@@ -1749,6 +1852,12 @@
       "type": "boolean"
     },
     "ic_wing_width_steps": {
+      "type": "integer"
+    },
+    "idempotency_db_path": {
+      "type": "string"
+    },
+    "idempotency_slot_seconds": {
       "type": "integer"
     },
     "implied_move_enabled": {
@@ -1897,6 +2006,9 @@
     "log_compress_after_days": {
       "type": "integer"
     },
+    "log_dir": {
+      "type": "string"
+    },
     "log_error_file_enabled": {
       "type": "boolean"
     },
@@ -1973,6 +2085,9 @@
     "max_var_pct": {
       "type": "number"
     },
+    "mean_reversion_enabled": {
+      "type": "boolean"
+    },
     "metrics_enabled": {
       "type": "boolean"
     },
@@ -2026,6 +2141,12 @@
     },
     "ml_tracker_enabled": {
       "type": "boolean"
+    },
+    "model_registry_db_path": {
+      "type": "string"
+    },
+    "models_dir": {
+      "type": "string"
     },
     "monte_carlo_n_simulations": {
       "type": "integer"
@@ -2160,6 +2281,9 @@
       "type": "string"
     },
     "report_output_dir": {
+      "type": "string"
+    },
+    "reports_dir": {
       "type": "string"
     },
     "scalein_enabled": {
@@ -2355,6 +2479,9 @@
     "telegram_signal_format": {
       "type": "string"
     },
+    "tf_divergence_fallback": {
+      "type": "boolean"
+    },
     "tg_low_drop_threshold": {
       "type": "integer"
     },
@@ -2441,6 +2568,9 @@
     },
     "vega_cap_vix_threshold": {
       "type": "number"
+    },
+    "wal_journal_db_path": {
+      "type": "string"
     },
     "walkforward_anchored": {
       "type": "boolean"

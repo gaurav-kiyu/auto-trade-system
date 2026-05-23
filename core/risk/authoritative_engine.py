@@ -1,10 +1,15 @@
 """
-AD-KIYU RiskAuthority v1.0 — Single authoritative risk decision path.
+DEPRECATED — Unnecessary wrapper around core.services.risk_service.RiskService.
 
-This module is the ONE place where risk decisions are made.
-All other risk engines are deprecated and must route through here.
+All risk decisions MUST route directly to:
+    core.services.risk_service.RiskService.evaluate_trade()
+via the contract port:
+    core.ports.risk.RiskPort
 
-Delegates to core.services.risk_service.RiskService as canonical engine.
+This module is retained for backward compatibility.
+It will be removed in a future release.
+
+See core/risk/__init__.py for the authoritative architecture declaration.
 """
 from __future__ import annotations
 

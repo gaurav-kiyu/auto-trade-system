@@ -1060,6 +1060,11 @@
   "ADAPTIVE_SIGNAL_MAX_TOTAL_PENALTY": -50,
   "ADAPTIVE_SIGNAL_SOFT_BLOCK_ON_PENALTY": false,
   "ADAPTIVE_SIGNAL_PENALTY_ALERT_THRESHOLD": 0.6,
+  "_comment_v251_dual_direction": "v2.51.12 — Dual-direction signal: evaluate both CALL and PUT, pick best with counter-trend penalty & mean-reversion waive",
+  "dual_direction_enabled": true,
+  "counter_trend_penalty": 10,
+  "mean_reversion_enabled": true,
+  "tf_divergence_fallback": true,
   "ADAPTIVE_LEARNING_LOSS_STREAK_HALT": 3,
   "ADAPTIVE_LEARNING_MAX_BONUS": 8,
   "ADAPTIVE_LEARNING_MAX_DISCOUNT": 3,
@@ -1158,5 +1163,48 @@
   "max_exposure_per_strategy_pct": 40.0,
 
   "SECRET_HYGIENE_ENABLED": true,
-  "SECRET_HYGIENE_SCAN_ON_STARTUP": true
+  "SECRET_HYGIENE_SCAN_ON_STARTUP": true,
+
+  "admin_control_plane_enabled": false,
+  "admin_control_plane_port": 7080,
+  "admin_control_plane_host": "127.0.0.1",
+  "admin_control_plane_auth_token": "",
+  "admin_default_role": "observer",
+  "admin_roles": {},
+  "admin_strategies": {},
+  "admin_assets": {},
+  "admin_feature_flags": {},
+  "wal_journal_db_path": "data/wal_journal.db",
+  "idempotency_db_path": "execution_state.db",
+  "idempotency_slot_seconds": 300,
+  "model_registry_db_path": "data/model_registry.db",
+
+  "ENVIRONMENT": "dev",
+  "environment_block_on_violation": true,
+
+  "data_retention_logs_enabled": true,
+  "data_retention_logs_days": 30,
+  "data_retention_logs_max_files": 30,
+  "data_retention_audit_enabled": true,
+  "data_retention_audit_days": 90,
+  "data_retention_audit_max_files": 90,
+  "data_retention_models_enabled": true,
+  "data_retention_models_days": 180,
+  "data_retention_models_max_files": 20,
+  "data_retention_reports_enabled": true,
+  "data_retention_reports_days": 90,
+  "data_retention_reports_max_files": 60,
+  "data_retention_telemetry_enabled": true,
+  "data_retention_telemetry_days": 30,
+  "data_retention_telemetry_max_files": 10,
+
+  "db_migration_enabled": true,
+
+  "data_dir": "data",
+  "models_dir": "models",
+  "reports_dir": "reports",
+  "log_dir": "logs",
+
+  "cleanup_scheduler_enabled": false,
+  "cleanup_scheduler_interval_hours": 24
 }

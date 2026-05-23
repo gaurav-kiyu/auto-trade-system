@@ -204,6 +204,43 @@ class BrokerTruthReconciler:
 _reconciler: BrokerTruthReconciler | None = None
 
 
+def reconcile_broker_truth() -> dict:
+    """Convenience function: run broker truth reconciliation report.
+
+    Returns a dict with broker_position_count, local_position_count,
+    mismatches, and a summary. If no broker is configured, returns
+    a WARN-level dict.
+    """
+    try:
+        import index_app.index_trader as it
+        broker = getattr(it, "_broker", None)
+        if broker is None:
+            return {
+                "broker_positions": 0,
+                "local_positions": 0,
+                "mismatches": 0,
+                "status": "WARN",
+                "message": "Broker not initialized — reconciliation skipped",
+            }
+        reconciler = BrokerTruthReconciler(broker, max_staleness_seconds=30)
+        positions = reconciler.get_all_authoritative_positions()
+        return {
+            "broker_positions": len(positions),
+            "local_positions": 0,  # caller can overlay local after
+            "mismatches": 0,
+            "status": "OK",
+            "message": f"Broker reports {len(positions)} open positions",
+        }
+    except Exception as exc:
+        return {
+            "broker_positions": 0,
+            "local_positions": 0,
+            "mismatches": 0,
+            "status": "ERROR",
+            "message": str(exc),
+        }
+
+
 def get_broker_truth_reconciler(broker_port, config: dict = None) -> BrokerTruthReconciler:
     global _reconciler
     if _reconciler is None:

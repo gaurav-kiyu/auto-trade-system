@@ -499,6 +499,7 @@ mod.mins_until_eod                    = lambda: 120.0
 mod.S.target_hit                      = False
 mod.can_reenter                       = lambda name: True
 mod.expiry_entry_allowed              = lambda: True
+mod.is_in_auction_session            = lambda: False
 mod._last_entry_ts.clear()
 # Disable expiry controller so entry isn't blocked by time-of-day gates
 mod._expiry_controller._enable_controls = False

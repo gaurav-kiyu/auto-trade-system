@@ -218,7 +218,7 @@ def check_live_readiness(
         message=f"{pf:.3f} (need >= {min_pf:.2f})",
     ))
     criteria.append(CriterionResult(
-        name="Max drawdown ≤ threshold",
+        name="Max drawdown <= threshold",
         passed=(actual_dd <= max_dd),
         blocking=True,
         actual=round(actual_dd, 2),

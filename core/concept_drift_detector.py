@@ -332,13 +332,13 @@ def format_drift_report(results: dict[str, DriftResult]) -> str:
     n_ok    = sum(1 for r in results.values() if r.status == "OK")
 
     lines = [
-        f"Concept Drift Report — {len(results)} features "
+        f"Concept Drift Report - {len(results)} features "
         f"[ALERT:{n_alert} WARN:{n_warn} OK:{n_ok}]"
     ]
     for feat, r in sorted_items:
-        icon = "🔴" if r.status == "ALERT" else "🟡" if r.status == "WARN" else "🟢"
+        icon = "!!" if r.status == "ALERT" else "~~" if r.status == "WARN" else "OK"
         lines.append(
-            f"  {icon} {feat:<22} PSI={r.psi:.4f}  KS={r.ks:.4f}  "
+            f"  [{icon}] {feat:<22} PSI={r.psi:.4f}  KS={r.ks:.4f}  "
             f"ref={r.ref_n}  recent={r.recent_n}"
         )
     return "\n".join(lines)

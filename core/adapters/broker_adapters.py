@@ -110,7 +110,19 @@ class BrokerAdapter:
 
     def cancel_order(self, order_id) -> bool:
         response = self._port.cancel_order(order_id)
-        return response.status == "CANCELLED"
+        if hasattr(response, 'status'):
+            return response.status == "CANCELLED"
+        return bool(response)
+
+    def modify_order(self, order_id, qty=None, price=None) -> bool:
+        """Modify order via port."""
+        try:
+            response = self._port.modify_order(order_id, qty, price)
+            if hasattr(response, 'status'):
+                return response.status in ("MODIFIED", "ACCEPTED")
+            return bool(response)
+        except AttributeError:
+            return False
 
     def get_fill_price(self, order_id) -> float | None:
         # The new port returns OrderResult; we might need a separate method for fills
@@ -325,6 +337,14 @@ class PaperBrokerAdapter(BrokerAdapter):
         oid = f"PAPER_EXIT_{int(time.time() * 1000)}_{PaperBrokerAdapter._counter}"
         self._record_fill(oid, name, direction, int(strike), int(qty), is_entry=False)
         return oid
+
+    def cancel_order(self, order_id) -> bool:
+        """Cancel a paper order (always succeeds)."""
+        return True
+
+    def modify_order(self, order_id, qty=None, price=None) -> bool:
+        """Modify an existing paper order (always succeeds)."""
+        return True
 
     def get_order_status(self, _) -> str:
         return "COMPLETE"

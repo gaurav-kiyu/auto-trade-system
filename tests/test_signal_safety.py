@@ -82,6 +82,8 @@ class TestSignalStaleness:
 mod._is_monday_gap_window = lambda: False
 # Disable expiry controls so the tests aren't blocked by time-of-day gates
 mod._expiry_controller._enable_controls = False
+# Bypass auction session gate (flaky during 09:00-09:15 / 15:30-15:45 IST)
+mod.is_in_auction_session = lambda now=None: False
 
 # Set a stale confirmed_ts (SIGNAL_MAX_AGE + 30 seconds ago)
 stale_ts = time.time() - mod.SIGNAL_MAX_AGE - 30
@@ -116,6 +118,8 @@ print("STATUS:PASS")
 mod._is_monday_gap_window = lambda: False
 # Disable expiry controls so the tests aren't blocked by time-of-day gates
 mod._expiry_controller._enable_controls = False
+# Bypass auction session gate (flaky during 09:00-09:15 / 15:30-15:45 IST)
+mod.is_in_auction_session = lambda now=None: False
 # Bypass sniper gate (needs price/sup/res fields we don't need here) — not what this test checks
 mod.sniper_ok = lambda name, data, signal_type: False
 
@@ -143,6 +147,8 @@ print("STATUS:PASS")
 mod._is_monday_gap_window = lambda: False
 # Disable expiry controls so the tests aren't blocked by time-of-day gates
 mod._expiry_controller._enable_controls = False
+# Bypass auction session gate (flaky during 09:00-09:15 / 15:30-15:45 IST)
+mod.is_in_auction_session = lambda now=None: False
 # Bypass sniper gate (needs price/sup/res fields we don't need here) — not what this test checks
 mod.sniper_ok = lambda name, data, signal_type: False
 
@@ -199,6 +205,8 @@ assert mod.MANUAL_SIGNALS_ONLY is True, "Test requires MANUAL mode"
 mod._is_monday_gap_window = lambda: False
 # Disable expiry controls so the tests aren't blocked by time-of-day gates
 mod._expiry_controller._enable_controls = False
+# Bypass auction session gate (flaky during 09:00-09:15 / 15:30-15:45 IST)
+mod.is_in_auction_session = lambda now=None: False
 
 stale_ts = time.time() - mod.SIGNAL_MAX_AGE - 60
 with mod._bos_lock:
@@ -533,6 +541,7 @@ assert mod._HARD_HALT.is_set()
 
 # Suppress Telegram
 mod.send = lambda msg, critical=False, **kw: None
+mod.is_in_auction_session = lambda: False
 
 # Attempt to enter a trade
 sig = {"score": 95, "direction": "CALL", "vix": 15.0, "signal_ts": __import__('time').time(),
