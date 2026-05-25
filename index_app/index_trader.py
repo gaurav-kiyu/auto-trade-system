@@ -353,6 +353,11 @@ import time
 from pathlib import Path
 from typing import Any
 
+# ── Inject project root into sys.path BEFORE any core imports ──
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import requests
 from core.datetime_ist import is_in_auction_session, now_ist
 from core.execution.broker_exceptions import (
@@ -416,10 +421,6 @@ from infrastructure.config.secure_config_adapter import SecureConfigAdapter
 # We just need main() to set up the container and print config.
 def _original_main() -> None:
     pass  # Real main is the DI container setup
-
-_ROOT = Path(__file__).resolve().parent.parent
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
 
 # =============================================================================
 # STUB EXPORTS — provide module-level names for test compatibility
