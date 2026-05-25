@@ -3,7 +3,7 @@ Cleanup test artifacts and runtime DB files.
 
 Run this before creating release builds to remove:
 - test_recon_*.db files
-- test_*.db files  
+- test_*.db files
 - temporary DB files
 - __pycache__ directories
 - .pyc files

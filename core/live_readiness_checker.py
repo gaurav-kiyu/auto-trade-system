@@ -172,7 +172,7 @@ def check_live_readiness(
     pnls   = [float(t.get("net_pnl") or 0) for t in trades]
 
     wins   = sum(1 for p in pnls if p > 0)
-    losses = n - wins
+    n - wins
     wr     = (wins / n) if n > 0 else 0.0
 
     gross_wins   = sum(p for p in pnls if p > 0)

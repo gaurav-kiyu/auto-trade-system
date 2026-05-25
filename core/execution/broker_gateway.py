@@ -8,7 +8,7 @@ log = logging.getLogger("broker_gateway")
 class BrokerGateway:
     """
     The 'Air Gap' between the Trading Brain and the Broker SDKs.
-    Handles routing, failover, and ensures no broker-specific logic 
+    Handles routing, failover, and ensures no broker-specific logic
     leaks into the core strategy.
     """
 

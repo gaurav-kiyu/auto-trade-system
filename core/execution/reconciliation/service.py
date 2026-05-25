@@ -71,7 +71,7 @@ class ReconciliationResult:
 class ReconciliationService:
     """
     Reconciles internal order state with broker orders and positions.
-    
+
     Critical: On ambiguity, freezes trading to prevent double-execution or
     position divergence.
     """
@@ -114,11 +114,11 @@ class ReconciliationService:
                     )
                 """)
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_orders_status 
+                    CREATE INDEX IF NOT EXISTS idx_orders_status
                     ON execution_orders(status)
                 """)
                 conn.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_orders_reconciled 
+                    CREATE INDEX IF NOT EXISTS idx_orders_reconciled
                     ON execution_orders(is_reconciled)
                 """)
                 conn.commit()
@@ -167,9 +167,9 @@ class ReconciliationService:
         try:
             with sqlite3.connect(self._db_path) as conn:
                 conn.execute("""
-                    INSERT OR REPLACE INTO execution_orders 
-                    (order_id, intent_id, symbol, direction, quantity, filled_quantity, 
-                     average_price, status, broker_order_id, created_at, updated_at, 
+                    INSERT OR REPLACE INTO execution_orders
+                    (order_id, intent_id, symbol, direction, quantity, filled_quantity,
+                     average_price, status, broker_order_id, created_at, updated_at,
                      idempotency_key, is_reconciled)
                     VALUES (?, ?, ?, ?, ?, 0, 0.0, ?, ?, ?, ?, ?, 0)
                 """, (order_id, intent_id, symbol, direction, quantity, status,
@@ -190,8 +190,8 @@ class ReconciliationService:
         try:
             with sqlite3.connect(self._db_path) as conn:
                 conn.execute("""
-                    UPDATE execution_orders 
-                    SET filled_quantity = ?, average_price = ?, 
+                    UPDATE execution_orders
+                    SET filled_quantity = ?, average_price = ?,
                         status = ?, updated_at = ?, is_reconciled = 0
                     WHERE order_id = ?
                 """, (filled_quantity, average_price, status, now, order_id))
@@ -206,7 +206,7 @@ class ReconciliationService:
             with sqlite3.connect(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute("""
-                    SELECT * FROM execution_orders 
+                    SELECT * FROM execution_orders
                     WHERE status NOT IN (?, ?, ?, ?, ?)
                     ORDER BY created_at
                 """, tuple(terminal_states))
@@ -232,7 +232,7 @@ class ReconciliationService:
     ) -> ReconciliationResult:
         """
         Main reconciliation entry point.
-        
+
         Compares internal order state with broker orders and positions.
         Detects issues and optionally auto-repairs or freezes trading.
         """
@@ -545,7 +545,7 @@ class ReconciliationService:
         now = now_ist().isoformat()
         with sqlite3.connect(self._db_path) as conn:
             conn.execute("""
-                UPDATE execution_orders 
+                UPDATE execution_orders
                 SET status = ?, updated_at = ?, is_reconciled = 1
                 WHERE order_id = ?
             """, (status, now, order_id))

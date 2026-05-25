@@ -10,7 +10,7 @@ IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
 class TimeProvider:
     """
     Authoritative time source for the entire trading system.
-    Prevents time-drift and ensures consistency across signals, 
+    Prevents time-drift and ensures consistency across signals,
     risk checks, and order execution.
     """
 
@@ -19,7 +19,7 @@ class TimeProvider:
     @classmethod
     def set_now_fn(cls, fn: Callable[[], datetime.datetime]):
         """
-        Allows overriding the time source for deterministic backtesting 
+        Allows overriding the time source for deterministic backtesting
         or simulation.
         """
         cls._now_fn = fn

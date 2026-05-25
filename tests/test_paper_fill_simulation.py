@@ -298,7 +298,7 @@ class TestTradeJournalMigration:
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
         from core.trade_journal import TradeJournal
-        j = TradeJournal(db_path)
+        TradeJournal(db_path)
         conn = sqlite3.connect(db_path)
         cursor = conn.execute("PRAGMA table_info(journal)")
         columns = {row[1] for row in cursor.fetchall()}
@@ -363,7 +363,7 @@ class TestTradeJournalMigration:
         conn.close()
         # TradeJournal._init_db() migration must add slippage_drift
         from core.trade_journal import TradeJournal
-        j = TradeJournal(db_path)
+        TradeJournal(db_path)
         conn = sqlite3.connect(db_path)
         cursor = conn.execute("PRAGMA table_info(journal)")
         columns = {row[1] for row in cursor.fetchall()}

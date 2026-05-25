@@ -195,7 +195,6 @@ class TelegramQueue:
     # ── Drain loop ─────────────────────────────────────────────────────────────
 
     def _drain_loop(self) -> None:
-        c = self._cfg
         while not self._stop.is_set() or self._heap:
             with self._cond:
                 while not self._heap and not self._stop.is_set():

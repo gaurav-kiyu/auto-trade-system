@@ -77,7 +77,7 @@ def test_scenario_2_crash_after_begin():
     try:
         cert1 = _make_cert(db)
         eid = _make_eid(cert1)
-        cid = cert1.begin(eid, "NIFTY", "BUY", {"qty": 50})
+        cert1.begin(eid, "NIFTY", "BUY", {"qty": 50})
         assert cert1.is_pending(eid)
         cert1.close()
         del cert1

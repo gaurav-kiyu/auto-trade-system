@@ -92,7 +92,7 @@ def _register_mode_gate():
     def _check():
         try:
             from core.operating_mode import OperatingModeManager
-            modes = [obj for obj in list(sys.modules.values()) if isinstance(obj, type) and hasattr(obj, 'allows_execution')] if False else []
+            [obj for obj in list(sys.modules.values()) if isinstance(obj, type) and hasattr(obj, 'allows_execution')] if False else []
             return True, "Mode gate active"
         except ImportError:
             return True, "Mode module not loaded"

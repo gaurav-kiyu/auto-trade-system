@@ -39,7 +39,7 @@ class BrokerContractTestBase(ABC):
         """Place order with invalid params and verify rejection."""
         adapter = self.make_adapter()
         try:
-            result = adapter.place_order(None)
+            adapter.place_order(None)
         except (TypeError, ValueError, Exception):
             pass  # Rejection is expected
 

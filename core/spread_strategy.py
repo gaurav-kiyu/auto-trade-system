@@ -325,7 +325,7 @@ def evaluate_spread_exit(
     stop_pct         = float(c.get("spread_stop_pct",           0.80))
     partial_exit_pct = float(c.get("spread_partial_exit_pct",   0.75))
     partial_lots_pct = float(c.get("spread_partial_lots_pct",   0.50))
-    theta_dte        = int(  c.get("spread_theta_exit_dte",     0))
+    int(  c.get("spread_theta_exit_dte",     0))
     theta_exit_time  = str(  c.get("spread_theta_exit_time",    "14:00"))
 
     # 1. Hard stop

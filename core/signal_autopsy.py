@@ -517,7 +517,6 @@ def render_ascii_heatmap(heatmap: TimeHeatmap) -> str:
         (c.hour, c.day_of_week): c for c in heatmap.cells
     }
 
-    col_w = 8
     header = "Day\\Hour  " + "".join(f"{h:>7}" for h in heatmap.hours)
     lines  = ["  " + header, "  " + "-" * len(header)]
 

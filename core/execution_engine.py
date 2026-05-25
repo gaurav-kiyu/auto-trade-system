@@ -100,7 +100,6 @@ class ExecutionEngine:
             return ExecutionResult(False, reason="broker unavailable")
         action = broker.exit_order if is_exit else broker.place_order
         last_reason = "broker returned no order id"
-        last_exception: Exception | None = None
 
         _consecutive_retryable: int = 0
 
@@ -110,7 +109,6 @@ class ExecutionEngine:
                 order_id = action(name, direction, qty, strike)
             except Exception as exc:
                 order_id = None
-                last_exception = exc
                 last_reason = str(exc)
 
                 # Classify the error to determine retry strategy (Phase 0 fix)

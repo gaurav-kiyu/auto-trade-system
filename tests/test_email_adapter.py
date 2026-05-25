@@ -311,7 +311,7 @@ class TestEmailAdapterSubject:
 
     def test_subject_uses_explicit_subject(self):
         """When notification has a subject, the adapter should use it."""
-        adapter = EmailNotificationAdapter()
+        EmailNotificationAdapter()
         notification = Notification(
             channel=NotificationChannel.EMAIL,
             message="Body text here",

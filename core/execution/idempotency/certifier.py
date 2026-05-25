@@ -167,7 +167,7 @@ class IdempotencyCertifier:
 
     def fail(self, cert_id: str, error: str = "") -> None:
         """Mark execution as FAILED."""
-        now = str(now_ist())
+        str(now_ist())
         with self._lock:
             conn = self._get_conn()
             conn.execute(

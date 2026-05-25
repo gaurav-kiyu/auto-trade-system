@@ -175,7 +175,7 @@ class ExpiryDayController:
         warnings = []
 
         if current_time >= self._block_after:
-            session_label = _get_session_label(now)
+            _get_session_label(now)
             return ExpiryControlResult(
                 allowed=False,
                 session=ExpirySession.BLOCKED,

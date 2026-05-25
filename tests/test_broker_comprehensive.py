@@ -24,7 +24,7 @@ class TestBrokerFailureInjection:
     def test_paper_broker_network_timeout_simulation(self):
         """Test PaperBrokerAdapter behavior under simulated network timeouts."""
         # Test with core PaperBrokerAdapter (used in DI container)
-        context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -53,7 +53,7 @@ class TestBrokerFailureInjection:
 
     def test_paper_broker_exception_injection(self):
         """Test PaperBrokerAdapter when exceptions are injected."""
-        context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -248,7 +248,7 @@ class TestBrokerFailureInjection:
         import queue
         import threading
 
-        context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={"PAPER_SLIPPAGE_PCT": 0.5},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -307,7 +307,7 @@ class TestBrokerFailureInjection:
         def shutdown_check():
             return shutdown_flag[0]
 
-        context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -347,7 +347,7 @@ class TestBrokerFailureInjection:
         def hard_halt_check():
             return hard_halt_flag[0]
 
-        context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -381,7 +381,7 @@ class TestBrokerFailureInjection:
 
     def test_broker_timeout_scenarios(self):
         """Test broker adapter timeout handling."""
-        context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -419,7 +419,7 @@ class TestBrokerFailureInjection:
 
     def test_broker_edge_case_parameters(self):
         """Test broker adapter behavior with edge case parameters."""
-        context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -474,7 +474,7 @@ class TestBrokerFailureInjection:
         """Test thread safety of broker adapter operations."""
         import threading
 
-        context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -529,7 +529,7 @@ class TestBrokerFailureInjection:
 
     def test_broker_state_consistency_after_failures(self):
         """Test that broker adapter state remains consistent after failures."""
-        context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={"PAPER_SLIPPAGE_PCT": 0.5, "FILL_PROBABILITY": 0.0},  # 0% fill rate
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -577,7 +577,7 @@ class TestBrokerFailureInjection:
         # Test with core PaperBrokerAdapter which doesn't take context in place_order
         # The configuration is handled differently in the core vs infrastructure adapters
 
-        base_context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -640,7 +640,7 @@ class TestBrokerFailureInjection:
         assert broker1 is not broker2  # Different instances (transient)
 
         # Both should work
-        context2 = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,

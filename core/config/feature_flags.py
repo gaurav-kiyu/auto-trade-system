@@ -108,7 +108,7 @@ class FeatureFlagManager:
                 self._flags[name].updated_at = now_ist().isoformat()
                 self._save_flags()
 
-                if old_value != True:
+                if not old_value:
                     self._notify_change(name, True)
 
                 _log.info(f"Enabled feature flag: {name}")
@@ -124,7 +124,7 @@ class FeatureFlagManager:
                 self._flags[name].updated_at = now_ist().isoformat()
                 self._save_flags()
 
-                if old_value != False:
+                if old_value:
                     self._notify_change(name, False)
 
                 _log.info(f"Disabled feature flag: {name}")
@@ -147,7 +147,7 @@ class FeatureFlagManager:
     def is_enabled_for_user(self, name: str, user_id: str = "default") -> bool:
         """
         Check if feature is enabled for specific user (for gradual rollout).
-        
+
         Uses deterministic hashing for consistent rollout.
         """
         flag = self._flags.get(name)

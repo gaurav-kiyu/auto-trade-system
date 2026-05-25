@@ -504,7 +504,7 @@ def merge_bot_config(
     debug: bool = False,
 ) -> Dict[str, Any]:
     """Legacy function kept for compatibility - delegates to secure config.
-    
+
     DEPRECATED: New callers should use get_effective_config() which routes through
     SecureConfig and freezes the result. This function is maintained for backward
     compatibility with existing callers in _reload_config_handler (now updated to

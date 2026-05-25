@@ -280,7 +280,7 @@ def _eval_skip_rule(
     """
     score    = int(signal.get("score", 0))
     breakout = bool(signal.get("breakout_ok", False))
-    vol_rat  = float(signal.get("vol_ratio", 0.0))
+    float(signal.get("vol_ratio", 0.0))
     tier     = classify_tier(score)
 
     tier_order = {"IGNORE": 0, "WEAK": 1, "MODERATE": 2, "STRONG": 3}

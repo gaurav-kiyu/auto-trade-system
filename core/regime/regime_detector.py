@@ -172,7 +172,7 @@ class RegimeDetector:
         sum_x = sum(x)
         sum_y = sum(prices)
         sum_xy = sum(x[i] * prices[i] for i in range(n))
-        sum_xx = sum(x[i] * x[i] for i in range(n))
+        sum(x[i] * x[i] for i in range(n))
 
         slope = (n * sum_xy - sum_x * sum_y) / (n * sumxx - sum_x * sum_x) if (n * sumxx - sum_x * sum_x) != 0 else 0
 
@@ -249,7 +249,7 @@ class RegimeDetector:
     ) -> dict[str, float]:
         """
         Apply regime-based adjustments to trading parameters.
-        
+
         Returns adjusted position size, stop loss, and target.
         """
         regime = self.get_current_regime()

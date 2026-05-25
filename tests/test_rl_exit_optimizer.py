@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import tempfile
-
 from core.rl_exit_optimizer import RLAction, RLExitOptimizer
 
 

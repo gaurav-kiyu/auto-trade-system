@@ -10,7 +10,7 @@ class PortfolioService:
     """
     Domain Service responsible for managing the financial state of the trading session.
     Replaces the legacy 'S' (SessionState) object and associated locks.
-    
+
     Responsibilities:
     - Capital tracking and adjustments.
     - Daily PnL accounting.

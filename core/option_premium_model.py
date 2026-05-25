@@ -349,13 +349,12 @@ def black_scholes_greeks(
         time_to_expiry_days = 0.001  # Prevent divide by zero
 
     t = time_to_expiry_days / 365.0  # Convert to years
-    r = risk_free_rate
 
     # moneyness
     if direction == "CALL":
-        fwd = spot
+        pass
     else:
-        fwd = spot
+        pass
 
     # Intrinsic value
     if direction == "CALL":

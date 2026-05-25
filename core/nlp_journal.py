@@ -150,7 +150,7 @@ def generate_trade_narrative(
 
     text      = _build_prompt(trade_data)
     sentiment = _extract_sentiment(text)
-    net_pnl   = float(trade_data.get("net_pnl", 0.0) or 0.0)
+    float(trade_data.get("net_pnl", 0.0) or 0.0)
 
     return TradeNarrative(
         trade_id=trade_data.get("id", "?"),

@@ -41,10 +41,10 @@ class ConfigLoader:
     def load(self, environment: str = "base") -> dict[str, Any]:
         """
         Load configuration for specified environment.
-        
+
         Args:
             environment: 'base', 'dev', 'paper', 'live'
-            
+
         Returns:
             Merged configuration dictionary
         """

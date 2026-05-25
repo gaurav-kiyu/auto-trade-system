@@ -69,7 +69,7 @@ class HMMRegimeDetector:
         # Low Variance + Low Return = CHOPPY
         # Med Variance + Consistent Direction = TRENDING
         for i in range(self.n_components):
-            mean = np.mean(self.model.means_[i])
+            np.mean(self.model.means_[i])
             var = np.mean(self.model.covars_[i])
 
             if var > np.percentile([np.mean(c) for c in self.model.covars_], 75):

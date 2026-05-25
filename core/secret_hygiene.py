@@ -114,7 +114,7 @@ class SecretHygieneChecker:
     def check_config(self, config: dict) -> SecretHygieneResult:
         """
         Check a config dict for exposed secrets.
-        
+
         Returns:
             SecretHygieneResult with any secrets found
         """
@@ -153,7 +153,7 @@ class SecretHygieneChecker:
     def check_file(self, file_path: Path) -> SecretHygieneResult:
         """
         Check a file for exposed secrets.
-        
+
         Only checks files that might contain config (JSON, YAML, env).
         """
         if not file_path.exists():
@@ -191,7 +191,7 @@ class SecretHygieneChecker:
     def check_directory(self, directory: Path, patterns: list[str] = None) -> SecretHygieneResult:
         """
         Check a directory for exposed secrets in config files.
-        
+
         Args:
             directory: Root directory to check
             patterns: Glob patterns for files to check (default: common config files)

@@ -174,7 +174,7 @@ class PortfolioService:
             if old_quantity * quantity > 0:
                 # Same direction - weighted average
                 total_cost = (old_quantity * old_avg_price) + (quantity * price)
-                new_avg_price = total_cost / new_quantity
+                total_cost / new_quantity
             else:
                 # Opposite direction - partial close
                 if abs(quantity) < abs(old_quantity):

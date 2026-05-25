@@ -12,7 +12,7 @@ Simulate various failure scenarios:
 Usage:
     with FailureInjector.inject("ack_timeout"):
         # Test code here
-    
+
     # Or register specific failures
     fi = FailureInjector()
     fi.register_failure("partial_fill", probability=0.5)
@@ -160,7 +160,7 @@ class FailureInjector:
     def context(self, failure_type: FailureType, probability: float = 1.0):
         """
         Context manager for injecting failures.
-        
+
         Usage:
             with fi.context(FailureType.ACK_TIMEOUT, probability=1.0):
                 # Test code that should handle timeout

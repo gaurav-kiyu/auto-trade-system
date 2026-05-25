@@ -40,7 +40,7 @@ def load_config_v2(config_path: str = "config_v2.json") -> dict[str, Any]:
 
 def get_legacy_flat_config(v2_cfg: dict[str, Any]) -> dict[str, Any]:
     """
-    Returns a flattened dictionary containing the legacy keys so that 
+    Returns a flattened dictionary containing the legacy keys so that
     older modules (like index_trader.py) don't break during the transition.
     """
     flat = dict(v2_cfg.get("legacy_flat", {}))

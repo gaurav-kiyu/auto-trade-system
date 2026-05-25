@@ -35,6 +35,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from datetime import datetime
+
 from core.performance_metrics import (
     compute_drawdown,
     compute_metrics,

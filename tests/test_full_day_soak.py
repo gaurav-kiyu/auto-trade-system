@@ -9,7 +9,7 @@ Runs complete paper trading sessions to measure:
 
 Usage:
     python -m pytest tests/test_full_day_soak.py -v -k "test_full_day"
-    
+
 Or run directly:
     python tests/test_full_day_soak.py --days 5 --paper
 """

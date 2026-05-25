@@ -129,9 +129,9 @@ class TokenRefreshService:
 
             client = SmartConnect(api_key=api_key)
             if client_id and password and totp_key:
-                session = client.generateSession(client_id, password, totp_key)
+                client.generateSession(client_id, password, totp_key)
             elif refresh_token:
-                session = client.generateToken(refresh_token)
+                client.generateToken(refresh_token)
             else:
                 _log.warning("[TOKEN_REFRESH] Angel: no refresh_token or full creds")
                 return False

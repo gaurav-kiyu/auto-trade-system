@@ -4,14 +4,11 @@ from __future__ import annotations
 
 from unittest import mock
 
-import pytest
-
 from core.time_of_day_filter import (
     TimeOfDayConfig,
     TimeOfDayFilter,
     create_time_of_day_filter,
 )
-
 
 # ── TimeOfDayConfig ───────────────────────────────────────────────────────────
 

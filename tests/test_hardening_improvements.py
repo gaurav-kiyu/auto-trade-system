@@ -150,7 +150,7 @@ class TestTradeJournalExitReason:
         import datetime
         import time
         ts = datetime.datetime.utcnow().isoformat()
-        entry = j.open_trade(
+        j.open_trade(
             trade_id="T-SLIP-001",
             symbol="NIFTY",
             direction="CALL",

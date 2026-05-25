@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import datetime
 from unittest import mock
-
-import pytest
 
 from core.datetime_ist import now_ist
 from core.trade_mandate import (

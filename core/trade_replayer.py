@@ -372,7 +372,6 @@ def replay_trade(
     pnl    = float(trade.get("net_pnl")    or 0)
     score  = int(trade.get("score")        or 0)
     entry_ts = str(trade.get("ts")         or "")
-    exit_ts  = ""  # trades.db stores only entry ts; exit_ts not stored
     regime   = str(trade.get("regime")     or "UNKNOWN")
     direction = str(trade.get("direction") or "")
     index_name = str(trade.get("index_name") or "")

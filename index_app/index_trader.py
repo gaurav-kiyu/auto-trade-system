@@ -429,8 +429,8 @@ def _original_main() -> None:
 import logging
 import threading as _threading
 
+from core.correlation_guard import check_portfolio_correlation, update_closes
 from core.reentry_evaluator import build_reentry_trackers
-from core.correlation_guard import update_closes, check_portfolio_correlation
 
 _trip_hard_halt = trip_hard_halt
 
@@ -474,7 +474,8 @@ class _LegacyBrokerShim:
 _broker = _LegacyBrokerShim()
 
 
-_send_impl = lambda msg, critical=False, **kw: None  # wired at init
+def _send_impl(msg, critical=False, **kw):
+    return None  # wired at init
 
 def send(message: str, critical: bool = False, **kwargs) -> None:
     """Legacy send() shim. Wired to NotificationService after init."""
@@ -1606,7 +1607,7 @@ def _fetch_intraday_data(name: str) -> tuple:
 def _generate_trading_signal(name: str, frames: dict, vix: float = 0.0):
     """Generate a trading signal dict using the (deprecated) signal_engine."""
     from core.iv_rank import get_iv_rank
-    from core.oi_snapshot_store import get_pcr_at, get_oi_at
+    from core.oi_snapshot_store import get_oi_at, get_pcr_at
 
     log.warning(
         "SIGNAL PATH: using root-level signal_engine.build_full_signal "
@@ -1986,7 +1987,8 @@ def setup_di_container() -> None:
     if not send_fn:
         send_fn = getattr(notification_service, 'send', None)
     if not send_fn:
-        send_fn = lambda x, critical=False, **kw: None
+        def send_fn(x, critical=False, **kw):
+            return None
 
     # Wire legacy send() to the real notification service
     global _send_impl, _send_wired
@@ -2015,7 +2017,7 @@ def setup_di_container() -> None:
     run_morning_checklist(send_fn=send_fn, cfg=config)
 
     # Start session report (runs at 3:35 PM IST)
-    reporter = create_session_reporter(send_fn=send_fn)
+    create_session_reporter(send_fn=send_fn)
     log.info("Session report service started")
 
     # Start NSE circuit breaker monitor

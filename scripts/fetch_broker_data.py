@@ -281,7 +281,7 @@ def fetch_dhan(
     sym_upper = symbol.upper().replace(" ", "")
     if sym_upper not in _DHAN_SYMBOL_MAP:
         raise ValueError(f"Dhan: unknown symbol {symbol!r}. Add it to _DHAN_SYMBOL_MAP.")
-    security_id = _DHAN_SYMBOL_MAP[sym_upper]
+    _DHAN_SYMBOL_MAP[sym_upper]
 
     dhan = dhanhq(client_id, access_token)
 

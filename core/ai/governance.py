@@ -56,7 +56,7 @@ class AIGovernanceBoard:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         """Register a new model as DRAFT."""
-        rec = self.model_registry.register(
+        self.model_registry.register(
             model_id=model_id,
             version=version,
             name=name,

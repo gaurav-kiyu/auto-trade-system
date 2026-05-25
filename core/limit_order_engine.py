@@ -89,7 +89,7 @@ def compute_limit_price(
     else:  # ADAPTIVE
         step_pct = float(c.get("limit_step_pct",          0.05))
         interval = float(c.get("limit_step_interval_secs", 5.0))
-        timeout  = float(c.get("limit_timeout_secs",       30.0))
+        float(c.get("limit_timeout_secs",       30.0))
         steps    = math.floor(elapsed_secs / max(interval, 1)) if interval > 0 else 0
         frac     = 0.30 + steps * step_pct
         frac     = min(1.0, frac)   # cap at ask

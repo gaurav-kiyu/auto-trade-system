@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 class ExecutionSafetyWiring:
     """
     Central wiring for all execution safety components.
-    
+
     Use this class to initialize all safety components together
     and get references to individual components.
     """

@@ -42,7 +42,7 @@ def register_graceful_shutdown_signals(shutdown_event: threading.Event) -> None:
 
 def register_shutdown_callback(cb: Callable[[], None]) -> None:
     """Register a callback to be invoked during graceful shutdown.
-    
+
     Callbacks are invoked in LIFO order. Common uses:
       - flush TradeJournal thread pool
       - save trader state
@@ -70,7 +70,7 @@ def execute_shutdown() -> None:
 
 def setup_graceful_shutdown(shutdown_event: threading.Event | None = None) -> threading.Event:
     """One-call setup: register signals + atexit handler.
-    
+
     Returns the shutdown Event that gets set on SIGTERM/SIGINT.
     """
     if shutdown_event is None:

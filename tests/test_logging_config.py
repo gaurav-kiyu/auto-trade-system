@@ -57,12 +57,11 @@ def _run_compress(log_dir, older_than_days=0):
     """Helper: call _compress_old_logs with overridden config and log dir."""
     import index_app.index_trader as _t
     orig_cfg = _t._CFG
-    orig_isdir = os.path.isdir
     try:
         _t._CFG = dict(orig_cfg, log_compress_after_days=older_than_days)
         # Patch os.path.isdir and os.listdir to use our temp dir
         import unittest.mock as _mock
-        cutoff_ts = 0 if older_than_days == 0 else (time.time() + 86400 * older_than_days)
+        0 if older_than_days == 0 else (time.time() + 86400 * older_than_days)
         with _mock.patch.object(_t.os.path, "isdir", return_value=True), \
              _mock.patch.object(_t.os, "listdir", return_value=[os.path.basename(f) for f in os.listdir(log_dir)]), \
              _mock.patch.object(_t.os.path, "getmtime", return_value=0.0), \
@@ -83,7 +82,6 @@ def test_compress_creates_gz_file():
             f.write("log content line 1\nlog content line 2\n")
 
         orig_cfg = _t._CFG
-        orig_isdir = _t.os.path.isdir
         try:
             _t._CFG = dict(orig_cfg, log_compress_after_days=0)
             # Make file appear old by patching mtime
@@ -91,7 +89,7 @@ def test_compress_creates_gz_file():
             with _patch("os.path.getmtime", return_value=0.0):
                 # Call with modified internal behavior: redirect logs dir to tmp
                 import gzip as _gz
-                cutoff_ts = _time.time()
+                _time.time()
                 for fname in os.listdir(tmp):
                     if fname.endswith(".log") or fname.endswith(".log.1"):
                         fpath = os.path.join(tmp, fname)
@@ -159,7 +157,6 @@ def test_error_handler_level():
 
 
 def test_error_handler_filters_warning():
-    records = []
     handler = logging.handlers.MemoryHandler(capacity=100)
     handler.setLevel(logging.ERROR)
     logger = logging.getLogger("test_filter")

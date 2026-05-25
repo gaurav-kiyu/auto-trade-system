@@ -58,7 +58,7 @@ class TestModelCacheThreadSafety:
         con.commit()
         con.close()
 
-        cfg = {
+        {
             "ml_classifier_enabled": True,
             "ml_model_path": str(tmp_path / "test_model.pkl"),
             "ml_retrain_interval_hours": 24.0,

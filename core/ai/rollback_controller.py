@@ -67,7 +67,7 @@ class RollbackController:
 
         rollback_to = model_id
         if self._model_registry is not None:
-            prev = self._model_registry.get(model_id)  # fallback: same model
+            self._model_registry.get(model_id)  # fallback: same model
             # find last ACTIVE model with same name
             all_models = self._model_registry.list_by_name(name)
             for m in all_models:

@@ -24,7 +24,7 @@ class SessionRecoveryReport:
 class StateManager:
     """
     Authoritative State Manager for the trading system.
-    Ensures atomic updates to trader state and provides a bridge 
+    Ensures atomic updates to trader state and provides a bridge
     between the JSON state file and the SQLite trade database.
     """
 
@@ -91,7 +91,7 @@ class StateManager:
 
     def recover_state_from_db(self, broker_positions: dict[str, Any] | None = None):
         """Reconstructs positions from trades.db where exit_ts is NULL.
-        
+
         If broker_positions is provided, cross-checks DB positions against
         broker reality to eliminate phantom positions from stale NULL exit_ts.
         """

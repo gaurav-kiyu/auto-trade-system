@@ -167,7 +167,7 @@ def test_eod_close_both():
 def test_inverted_pnl_profit_on_decay():
     # Value decreasing = good for us (sold premium)
     pos = _make_ic()
-    dec_early = evaluate_ic_exit(pos, 25.0, 25.0, _cfg())
+    evaluate_ic_exit(pos, 25.0, 25.0, _cfg())
     dec_late  = evaluate_ic_exit(pos,  5.0,  5.0, _cfg())
     # Late should exit (profit); early might hold
     assert dec_late.action == "FULL_EXIT"

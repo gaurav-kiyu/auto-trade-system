@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
 from core.vix_adaptive_threshold import (
     VIXAdaptiveConfig,
     VIXAdaptiveThreshold,
     create_vix_adaptive_threshold,
 )
-
 
 # ── VIXAdaptiveConfig ─────────────────────────────────────────────────────────
 

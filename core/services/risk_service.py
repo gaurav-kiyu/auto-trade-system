@@ -160,8 +160,8 @@ class RiskService(RiskPort):
                 direction = signal_data.get("direction", "").upper()
                 entry_price = _safe_num(signal_data.get("price", 0), 0)
                 stop_loss = _safe_num(signal_data.get("stop_loss", 0), 0)
-                target = _safe_num(signal_data.get("target", 0), 0)
-                signal_strength = _safe_num(signal_data.get("strength", 0), 0)
+                _safe_num(signal_data.get("target", 0), 0)
+                _safe_num(signal_data.get("strength", 0), 0)
 
                 if not direction or entry_price <= 0:
                     return RiskEvaluation(
@@ -435,9 +435,9 @@ class RiskService(RiskPort):
         """
         try:
             # Check critical components directly to catch errors
-            capital = self._get_capital()
-            daily_pnl = self._get_daily_pnl()
-            open_positions = self._get_open_positions()
+            self._get_capital()
+            self._get_daily_pnl()
+            self._get_open_positions()
             live_vix = self.get_live_vix()
 
             # If we get here, basic components work, get full metrics

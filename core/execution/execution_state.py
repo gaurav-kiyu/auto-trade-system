@@ -19,7 +19,7 @@ Recovery states: UNKNOWN, RECONCILING
 Benefits:
 - Prevents invalid transitions
 - Easier debugging
-- Easier testing  
+- Easier testing
 - Easier recovery
 """
 from __future__ import annotations

@@ -22,7 +22,7 @@ class SignalOrchestrator:
     """
     Orchestrates the signal generation pipeline.
     Decouples the 'Scanning' logic from the 'Trading' logic.
-    
+
     Flow: Market Data -> Technical Analysis -> ML Validation -> Risk Gating -> Signal Intent
     """
 

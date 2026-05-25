@@ -7,7 +7,6 @@ from core.signal_independence import (
     create_signal_validator,
 )
 
-
 # ── Initial state ─────────────────────────────────────────────────────────────
 
 class TestInitialState:

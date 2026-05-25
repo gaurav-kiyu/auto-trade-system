@@ -108,11 +108,6 @@ class TestMarginValidation:
         service = RiskService()
 
         # Test signal data with quantity
-        signal_data = {
-            "price": 100.0,
-            "quantity": 5,  # Intended quantity
-            "stop_loss_pct": 0.05,
-        }
 
         # Verify the code calculates from signal, not test_quantity=1
         code = service._check_margin_requirements.__code__

@@ -77,7 +77,6 @@ class RealtimePerformanceMonitor:
         wins = sum(1 for t in self._trades if t["pnl"] > 0)
         total_pnl = sum(t["pnl"] for t in self._trades)
 
-        running_max = 0
         current_drawdown = 0
         peak = 0
         for t in self._trades:

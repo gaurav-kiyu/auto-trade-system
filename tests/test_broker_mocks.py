@@ -19,7 +19,7 @@ from core.adapters.broker_adapters import (
 def test_paper_broker_successful_order():
     """Test that PaperBrokerAdapter handles successful orders."""
     # Setup
-    context = BrokerRuntimeContext(
+    BrokerRuntimeContext(
         cfg={},
         index_map={"NIFTY": {"nse": "NIFTY"}},
         now_fn=lambda: 0,
@@ -52,7 +52,7 @@ def test_paper_broker_successful_order():
 def test_paper_broker_order_with_retry_logic():
     """Test PaperBrokerAdapter with simulated transient failures."""
     # Setup
-    context = BrokerRuntimeContext(
+    BrokerRuntimeContext(
         cfg={},
         index_map={"NIFTY": {"nse": "NIFTY"}},
         now_fn=lambda: 0,
@@ -89,7 +89,6 @@ def test_paper_broker_order_with_retry_logic():
 def test_broker_adapter_creation_with_mocks():
     """Test creating broker adapters with mocked dependencies."""
     # Test with paper driver (should always work)
-    cfg = {"BROKER": {"driver": "paper"}}
     adapter = create_broker_adapter(
         driver="paper",
         broker_api_enabled=False,
@@ -113,7 +112,6 @@ def test_broker_adapter_creation_with_mocks():
     assert isinstance(adapter, PaperBrokerAdapter)
 
     # Test with invalid driver (should fall back to paper)
-    cfg = {"BROKER": {"driver": "invalid_driver"}}
     adapter = create_broker_adapter(
         driver="invalid_driver",
         broker_api_enabled=False,
@@ -177,7 +175,7 @@ def test_broker_runtime_context_creation():
 def test_simulated_broker_failure_scenarios():
     """Test various simulated failure scenarios."""
     # Test 1: Network timeout simulation
-    context = BrokerRuntimeContext(
+    BrokerRuntimeContext(
         cfg={},
         index_map={"NIFTY": {"nse": "NIFTY"}},
         now_fn=lambda: 0,
@@ -196,7 +194,7 @@ def test_simulated_broker_failure_scenarios():
     # Test 2: Exception during order processing
     with patch.object(PaperBrokerAdapter, 'place_order', side_effect=Exception("Simulated broker error")):
         adapter = PaperBrokerAdapter()
-        context = BrokerRuntimeContext(
+        BrokerRuntimeContext(
             cfg={},
             index_map={"NIFTY": {"nse": "NIFTY"}},
             now_fn=lambda: 0,
@@ -213,18 +211,6 @@ def test_simulated_broker_failure_scenarios():
         direction = "BUY"
         qty = 50
         strike = 18000
-        order_params = {
-            "tradingsymbol": "NIFTY25JANC18000",
-            "exchange": "NFO",
-            "transaction_type": "BUY",
-            "quantity": 50,
-            "product": "MIS",
-            "order_type": "MARKET",
-            "price": 0.0,
-            "trigger_price": 0.0,
-            "variety": "regular",
-            "strike": 18000,
-        }
 
         # Should propagate the exception
         with pytest.raises(Exception, match="Simulated broker error"):
@@ -237,7 +223,6 @@ def test_broker_failover_simulation():
     # that we can create different adapter types
 
     # Test paper adapter
-    cfg_paper = {"BROKER": {"driver": "paper"}}
     adapter_paper = create_broker_adapter(driver="paper", broker_api_enabled=False, paper_mode=True, manual_signals_only=False, execution_mode="MANUAL", context=BrokerRuntimeContext(
         cfg={},
         index_map={"NIFTY": {"nse": "NIFTY"}},

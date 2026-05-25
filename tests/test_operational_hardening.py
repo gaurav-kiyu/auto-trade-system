@@ -60,7 +60,7 @@ def test_retention_engine_prunes_old_files(tmp_path):
     for idx in range(4):
         path = target / f"regression_{idx}.txt"
         path.write_text(f"r{idx}", encoding="utf-8")
-        ts = time.time() - (idx * 86400)
+        time.time() - (idx * 86400)
         path.touch()
         path.chmod(0o666)
         files.append(path)

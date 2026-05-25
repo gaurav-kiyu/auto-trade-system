@@ -80,7 +80,7 @@ def test_check_db_sizes_small_file_is_ok():
         f.write(b"x" * 100)
         fpath = f.name
     try:
-        cfg = {"health_check_db_warn_mb": {os.path.basename(fpath): 50.0}}
+        {"health_check_db_warn_mb": {os.path.basename(fpath): 50.0}}
         import core.health_checker as hc
         orig_db = hc._DB_WARN_MB_DEFAULTS.copy()
         hc._DB_WARN_MB_DEFAULTS.clear()

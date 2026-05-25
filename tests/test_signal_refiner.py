@@ -8,7 +8,6 @@ from core.signal_refiner import (
     create_signal_refiner,
 )
 
-
 # ── SignalRefinerConfig ───────────────────────────────────────────────────────
 
 class TestConfig:

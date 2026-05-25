@@ -26,7 +26,7 @@ class MLPrediction:
 
 class MLInferenceEngine:
     """
-    Abstraction layer for ML models. 
+    Abstraction layer for ML models.
     Decouples the strategy from the specific ML implementation (LightGBM, PyTorch, etc.)
     and provides safety gates for feature validation.
     """

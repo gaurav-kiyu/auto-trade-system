@@ -53,7 +53,6 @@ def build_rich_signal_message(signal: dict[str, Any], cfg: dict[str, Any] | None
     decision: market context, technical picture, risk parameters, and a command
     shortcut to submit the signal.
     """
-    c = cfg or {}
     idx       = signal.get("index_name", signal.get("index", "?"))
     direction = str(signal.get("direction", "?")).upper()
     score     = signal.get("score", 0)
@@ -344,7 +343,7 @@ def build_positions_message(positions: list[dict], cfg: dict[str, Any] | None = 
         entry   = p.get("entry_price", p.get("entry", 0))
         ltp     = p.get("ltp", p.get("current_price", 0))
         sl      = p.get("sl_price", p.get("sl", 0))
-        tp      = p.get("target_price", p.get("target", 0))
+        p.get("target_price", p.get("target", 0))
         unrealised = p.get("unrealised_pnl", (ltp - entry) if ltp and entry else 0)
         dir_e   = "🟢" if dirn == "CALL" else "🔴"
         pnl_e   = "✅" if unrealised >= 0 else "❌"

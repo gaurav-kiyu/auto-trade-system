@@ -111,10 +111,10 @@ def learner_config_from_cfg(cfg: dict[str, Any]) -> LearnerConfig:
 def _atomic_write_state(file_path: Path, content: str) -> None:
     """
     Write JSON content to file atomically using temp file + rename.
-    
+
     This prevents corruption if multiple processes write simultaneously.
     Pattern: write to temp → flush → rename → done.
-    
+
     Raises:
         OSError: If write or rename fails
     """

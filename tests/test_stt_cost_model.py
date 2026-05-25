@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from core.stt_cost_model import (
     OptionPositionType,
-    OptionStyle,
     STTCostBreakdown,
     STTCostModel,
     create_stt_model,

@@ -168,7 +168,7 @@ def _apply_exit_param(
             # else: trade would not have been taken — skip
 
         elif param == "IV_SPIKE_THRESHOLD":
-            base_iv = float(base_cfg.get("IV_SPIKE_THRESHOLD", 1.5))
+            float(base_cfg.get("IV_SPIKE_THRESHOLD", 1.5))
             # Higher threshold → fewer IV-spike filtered-out trades pass
             if iv <= value * entry * 0.01:  # rough check
                 pnls.append(pnl)

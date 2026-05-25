@@ -66,7 +66,7 @@ class SystemState:
 class SystemModeManager:
     """
     Thread-safe system mode manager with state transitions.
-    
+
     This is the central authority for what operations are allowed
     based on system state.
     """

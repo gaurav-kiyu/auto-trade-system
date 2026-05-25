@@ -41,11 +41,11 @@ def _configure_root_logger():
 def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
     Get a configured logger instance.
-    
+
     Args:
         name: Logger name (typically __name__)
         level: Logging level
-        
+
     Returns:
         Configured logger instance
     """

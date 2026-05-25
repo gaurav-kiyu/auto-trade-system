@@ -25,7 +25,7 @@ def init_execution_hardening(
 ) -> dict:
     """
     Initialize all execution hardening modules.
-    
+
     Returns dict with initialized services for reference.
     """
     services = {}

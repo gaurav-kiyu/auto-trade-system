@@ -123,7 +123,8 @@ class TestMarketDataFallbackSmoke:
     def test_price_retrieval(self):
         from core.market_data_fallback import DualSourceMarketData
 
-        primary = lambda s: 100.0
+        def primary(s):
+            return 100.0
         md = DualSourceMarketData(primary, None, {})
 
         price, source = md.get_price("NIFTY")

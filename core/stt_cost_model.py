@@ -104,7 +104,6 @@ class STTCostModel:
             settlement_value = strike_price * quantity * lot_size
             stt_rate = self.STT_EXERCISE_PCT
             stt_amount = settlement_value * stt_rate
-            is_expiry_stt = True
             log.info(f"STT exercise: {stt_amount:.2f} (rate: {stt_rate*100:.3f}%)")
             return STTCostBreakdown(
                 stt_rate=stt_rate,
@@ -118,7 +117,6 @@ class STTCostModel:
             settlement_value = strike_price * quantity * lot_size
             stt_rate = self.STT_EXERCISE_PCT
             stt_amount = settlement_value * stt_rate
-            is_expiry_stt = True
             log.warning(
                 f"EXPIRY STT WARNING: {stt_amount:.2f} vs premium {total_premium:.2f} "
                 f"(STT is {stt_amount/total_premium*100:.1f}% of premium)"
@@ -172,7 +170,7 @@ class STTCostModel:
 
         if position_type == OptionPositionType.SHORT_CALL:
             if underlying_price > strike_price:
-                itm_amount = (underlying_price - strike_price) * lot_size
+                (underlying_price - strike_price) * lot_size
                 risk_ratio = expiry_stt / max(premium_received, 1)
                 return {
                     "risk_level": "HIGH" if risk_ratio > 0.5 else "MEDIUM",
@@ -189,7 +187,7 @@ class STTCostModel:
 
         if position_type == OptionPositionType.SHORT_PUT:
             if underlying_price < strike_price:
-                itm_amount = (strike_price - underlying_price) * lot_size
+                (strike_price - underlying_price) * lot_size
                 risk_ratio = expiry_stt / max(premium_received, 1)
                 return {
                     "risk_level": "HIGH" if risk_ratio > 0.5 else "MEDIUM",

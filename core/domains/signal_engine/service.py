@@ -198,8 +198,8 @@ class SignalService:
 
         # Calculate price trends
         closes = [c.close for c in recent_candles]
-        highs = [c.high for c in recent_candles]
-        lows = [c.low for c in recent_candles]
+        [c.high for c in recent_candles]
+        [c.low for c in recent_candles]
         volumes = [c.volume for c in recent_candles]
 
         # Trend strength (linear regression slope)
@@ -537,7 +537,7 @@ class SignalService:
         """Calculate MACD, Signal line, and Histogram."""
         if len(data) < 26:
             return None, None, None
-        closes = [c.close for c in data]
+        [c.close for c in data]
         ema_12 = self._calculate_ema(data, 12)
         ema_26 = self._calculate_ema(data, 26)
         if ema_12 is None or ema_26 is None:

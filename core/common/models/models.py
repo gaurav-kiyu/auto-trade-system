@@ -9,7 +9,12 @@ import datetime
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+# Lazy imports for type annotations (avoid circular imports)
+if TYPE_CHECKING:
+    from core.domains.strategy.model import SignalStrength
+    from core.regime.regime_detector import MarketRegime
 
 # Import shared models from common kernels to avoid duplication
 from core.datetime_ist import now_ist
@@ -62,6 +67,12 @@ class PositionSide(Enum):
 
     LONG = "LONG"
     SHORT = "SHORT"
+
+
+class SignalDirection(Enum):
+    """Signal direction."""
+    CALL = "CALL"
+    PUT = "PUT"
 
 
 class ExitReason(Enum):

@@ -159,7 +159,7 @@ class TestRiskService:
             mock_sizing.return_value = allowed_evaluation
 
             # Mock position sizing calculation
-            with patch.object(self.service, 'calculate_position_size', return_value=25) as mock_sizing_calc, \
+            with patch.object(self.service, 'calculate_position_size', return_value=25), \
                  patch.object(self.service, '_get_lot_size', return_value=50), \
                  patch.object(self.service, '_get_volatility', return_value=20.0), \
                  patch.object(self.service, '_get_volatility_multiplier', return_value=1.0), \

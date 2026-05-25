@@ -59,7 +59,7 @@ class ControlResponse:
 class ControlPlane:
     """
     API Gateway / Control Plane for runtime control.
-    
+
     Provides endpoints for:
     - Strategy pause/resume
     - Emergency kill switch

@@ -137,7 +137,7 @@ EventHandler = Callable[[TradingEvent], None]
 class EventStore:
     """
     Event Store - Item 3 (Event Sourcing)
-    
+
     Persists all events for:
     - Perfect replay
     - Debugging

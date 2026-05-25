@@ -198,7 +198,7 @@ class TestReconciliationRecovery:
             )
 
         broker = MockBrokerAdapter(orders=[], positions=[])
-        result = reconciliation_service.reconcile(broker)
+        reconciliation_service.reconcile(broker)
 
         is_frozen, reason = reconciliation_service.is_frozen()
         assert is_frozen is True

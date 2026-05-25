@@ -228,7 +228,7 @@ class TestAuthExpiry:
             def connect(self): return True
             def disconnect(self): pass
             def place_order(self, req):
-                result = mock_kite.place_order(req)
+                mock_kite.place_order(req)
                 return "MOCK_ORDER"
             def cancel_order(self, order_id): return MagicMock(status="CANCELLED")
             def modify_order(self, order_id, qty=None, price=None, trigger_price=None): return True
@@ -240,7 +240,7 @@ class TestAuthExpiry:
             def get_historical_data(self, symbol, from_date, to_date, interval="day"): return []
             def health_check(self): return {"status": "error"}
 
-        port = ExpiryPort()
+        ExpiryPort()
         with pytest.raises(Exception, match="TokenExpired"):
             mock_kite.place_order(MagicMock())
 

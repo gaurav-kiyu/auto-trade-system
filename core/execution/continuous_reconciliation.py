@@ -109,7 +109,7 @@ class ContinuousReconciliation:
         """Main reconciliation loop."""
         while self._running:
             try:
-                cycle_start = now_ist()
+                now_ist()
 
                 # Check system mode
                 can_trade_result, _ = can_trade()

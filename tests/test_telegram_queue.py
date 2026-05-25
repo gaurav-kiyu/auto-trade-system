@@ -158,8 +158,6 @@ def test_retries_on_failure_then_succeeds():
 
 
 def test_critical_gets_more_retries_than_normal():
-    crit_attempts = [0]
-    norm_attempts = [0]
     def always_fail(_):
         return False
 

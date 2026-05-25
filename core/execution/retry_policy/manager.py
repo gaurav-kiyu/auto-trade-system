@@ -69,11 +69,10 @@ class RetryPolicy:
     ) -> tuple[Any, bool, RetrySafety]:
         """
         Execute operation with retry logic.
-        
+
         Returns:
             tuple: (result, succeeded, safety_classification)
         """
-        last_exception = None
         last_safety = RetrySafety.UNKNOWN
 
         for attempt in range(1, self.max_retries + 1):
@@ -90,7 +89,6 @@ class RetryPolicy:
                 return result, True, RetrySafety.SAFE
 
             except Exception as e:
-                last_exception = e
                 safety = self.classify_error(e)
                 last_safety = safety
 
