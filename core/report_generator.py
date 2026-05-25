@@ -423,8 +423,8 @@ def generate_pdf_report(
                 _bm_start = datetime.date.fromtimestamp(min(_ts_list))
                 _bm_end   = datetime.date.fromtimestamp(max(_ts_list))
             else:
-                _bm_start = datetime.date.today()
-                _bm_end   = datetime.date.today()
+                _bm_start = now_ist().date()
+                _bm_end   = now_ist().date()
 
             _bm_symbol    = str(c.get("benchmark_symbol", "^NSEI"))
             _bm_risk_free = float(c.get("benchmark_risk_free_rate", 0.065))

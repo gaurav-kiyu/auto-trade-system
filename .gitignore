@@ -158,16 +158,26 @@ get-pip.py
 data/benchmark_cache.json
 benchmark_cache*.json
 
-# Generated audit/certification reports (per-run)  
-/ZERO_TRUST_CERTIFICATION_REPORT.md  
-/FORENSIC_AUDIT_REPORT.md  
+# Generated audit/certification reports (per-run)
+/ZERO_TRUST_CERTIFICATION_REPORT.md
+/FORENSIC_AUDIT_REPORT.md
 
-# Legacy migration scripts (never re-add)  
-secrets_migration*.py  
+# Legacy migration scripts (never re-add)
+secrets_migration*.py
 
-# Large build binaries  
-/OPBuying_INDEX_Launcher.exe  
+# Large build binaries
+/OPBuying_INDEX_Launcher.exe
 /dist/OPBuying_INDEX_Launcher.exe  
 
-# Remove problematic re-inclusion of data/*.db  
+# Remove problematic re-inclusion of data/*.db
 # (Already covered by *.db above; ensure no !data/*.db exception)
+
+# Generated certification reports
+FINAL_SYSTEM_SCAN_REPORT.md
+ZERO_TRUST_FINAL_CERTIFICATION.md
+PRODUCTION_READINESS_REPORT.md
+*.report.md
+
+# Generated documentation artifacts
+*.pptx
+*.pdf

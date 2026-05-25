@@ -69,21 +69,21 @@ get_atr = FeatureEngine.get_atr
 get_vol_ratio = FeatureEngine.get_vol_ratio
 price_delta = FeatureEngine.price_delta
 
-def get_open(df):
+def get_open(df: pd.DataFrame) -> float:
     try: return float(df['Open'].iloc[-1])
-    except: return 0.0
+    except Exception: return 0.0
 
-def get_high(df):
+def get_high(df: pd.DataFrame) -> float:
     try: return float(df['High'].iloc[-1])
-    except: return 0.0
+    except Exception: return 0.0
 
-def get_low(df):
+def get_low(df: pd.DataFrame) -> float:
     try: return float(df['Low'].iloc[-1])
-    except: return 0.0
+    except Exception: return 0.0
 
-def get_ema_series(series, span):
+def get_ema_series(series: pd.Series, span: int) -> pd.Series:
     try: return series.ewm(span=span, adjust=False).mean()
-    except: return series
+    except Exception: return series
 
 
 def breakout_strength_ok(df: pd.DataFrame) -> bool:

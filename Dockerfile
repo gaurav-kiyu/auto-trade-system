@@ -1,4 +1,4 @@
-# OPB Index Options Buying Bot v2.43
+# OPB Index Options Buying Bot v2.53.0
 # ─────────────────────────────────────────────────────────────────────────────
 # Multi-stage build:
 #   builder  — installs heavy ML/science deps into a venv
@@ -31,7 +31,7 @@ RUN pip install --upgrade pip wheel && \
 FROM python:3.11-slim AS runtime
 
 LABEL maintainer="OPB Bot"
-LABEL version="2.43"
+LABEL version="2.53.0"
 
 # Runtime shared libs required by lightgbm / numpy
 RUN apt-get update && apt-get install -y --no-install-recommends \

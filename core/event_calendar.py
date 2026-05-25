@@ -293,7 +293,7 @@ def is_market_day(
         from core.datetime_ist import now_ist
         today = check_date or now_ist().date()
     except Exception:
-        today = check_date or datetime.date.today()
+        today = check_date or datetime.date.today()  # nosec — safe fallback when import fails
 
     if today.weekday() in (5, 6):   # Saturday=5, Sunday=6
         return False

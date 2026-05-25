@@ -12,7 +12,7 @@ def test_log_rotation_max_bytes_default_in_config():
     defaults_path = os.path.join(root, "index_config.defaults.json")
     with open(defaults_path) as f:
         cfg = json.load(f)
-    assert cfg.get("log_rotation_max_bytes") == 50_000_000
+    assert cfg.get("log_rotation_max_bytes") == 52_428_800  # 50 MiB (50 × 1024 × 1024)
 
 
 def test_log_rotation_backup_count_default():

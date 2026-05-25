@@ -8,11 +8,14 @@ interfaces, making this service easy to test and maintain.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
 from core.datetime_ist import now_ist
+
+_log = logging.getLogger(__name__)
 
 # Import domain models and value objects
 from core.domains.risk.model import MarketConditions, PortfolioRiskMetrics, Position, RiskDecision, RiskLimits
@@ -272,31 +275,31 @@ class RiskService:
     ) -> int:
         """Calculate final position size after all risk adjustments."""
         size = base_size
-        print(f"DEBUG _calculate_final_position_size: use_kelly_sizing={self.risk_limits.use_kelly_sizing}, base_size={base_size}")
+        _log.debug("_calculate_final_position_size: use_kelly_sizing=%s, base_size=%s", self.risk_limits.use_kelly_sizing, base_size)
 
         # Apply volatility adjustment
         volatility_multiplier = self._calculate_volatility_adjustment(market_conditions)
         size = int(size * volatility_multiplier)
-        print(f"DEBUG _calculate_final_position_size: after vol adj, size={size}")
+        _log.debug("_calculate_final_position_size: after vol adj, size=%s", size)
 
         # Apply portfolio heat adjustment
         heat_multiplier = self._calculate_portfolio_heat_adjustment(portfolio_state)
         size = int(size * heat_multiplier)
-        print(f"DEBUG _calculate_final_position_size: after heat adj, size={size}")
+        _log.debug("_calculate_final_position_size: after heat adj, size=%s", size)
 
         # Apply Kelly criterion if enabled
-        print(f"DEBUG _calculate_final_position_size: checking Kelly condition: {self.risk_limits.use_kelly_sizing}")
+        _log.debug("_calculate_final_position_size: checking Kelly condition: %s", self.risk_limits.use_kelly_sizing)
         if self.risk_limits.use_kelly_sizing:
             kelly_size = self._calculate_kelly_size(symbol, direction, portfolio_state)
-            print(f"DEBUG _calculate_final_position_size: Kelly size={kelly_size}, size before Kelly={size}")
+            _log.debug("_calculate_final_position_size: Kelly size=%s, size before Kelly=%s", kelly_size, size)
             size = min(size, kelly_size)
-            print(f"DEBUG _calculate_final_position_size: after Kelly adj, size={size}")
+            _log.debug("_calculate_final_position_size: after Kelly adj, size=%s", size)
         else:
-            print("DEBUG _calculate_final_position_size: Kelly SKIPPED")
+            _log.debug("_calculate_final_position_size: Kelly SKIPPED")
 
         # Ensure we don't go below minimum
         final_size = max(size, self.risk_limits.min_position_size)
-        print(f"DEBUG _calculate_final_position_size: final size={final_size}")
+        _log.debug("_calculate_final_position_size: final size=%s", final_size)
         return final_size
 
     def _calculate_volatility_adjustment(self, market_conditions: MarketConditions) -> float:
@@ -551,8 +554,8 @@ class RiskService:
 # Factory function for creating risk service instances
 def create_risk_service(config: dict[str, Any]) -> RiskService:
     """Factory function to create a RiskService from configuration."""
-    print(f"DEBUG create_risk_service: config received: {config}")
-    print(f"DEBUG create_risk_service: use_kelly_sizing in config: {config.get('use_kelly_sizing', 'KEY_NOT_FOUND')}")
+    _log.debug("create_risk_service: config received: %s", config)
+    _log.debug("create_risk_service: use_kelly_sizing in config: %s", config.get('use_kelly_sizing', 'KEY_NOT_FOUND'))
     risk_limits = RiskLimits(
         max_position_size=config.get('max_position_size', 100),
         max_daily_loss=config.get('max_daily_loss', 1000.0),
@@ -569,7 +572,7 @@ def create_risk_service(config: dict[str, Any]) -> RiskService:
         min_position_size=config.get('min_position_size', 1),
         account_equity=config.get('account_equity', 100000.0)
     )
-    print(f"DEBUG create_risk_service: risk_limits use_kelly_sizing: {risk_limits.use_kelly_sizing}")
+    _log.debug("create_risk_service: risk_limits use_kelly_sizing: %s", risk_limits.use_kelly_sizing)
 
     return RiskService(risk_limits=risk_limits)
 
