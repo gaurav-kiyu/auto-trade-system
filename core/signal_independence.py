@@ -117,15 +117,30 @@ class SignalIndependenceValidator:
         return False, "No consensus (mixed directions)", num_pillars
 
     def get_aligned_pillars(self) -> list[str]:
-        valid, direction, _ = self.validate_independence()
+        valid, _, _ = self.validate_independence()
         if not valid:
             return []
-        return [p.name for p in self._pillars.values() if p.direction in [direction, "NEUTRAL"]]
+        # Determine consensus from pillar directions, not from the reason string
+        consensus = self._resolve_consensus_direction()
+        if consensus is None:
+            return []
+        return [p.name for p in self._pillars.values() if p.direction in [consensus, "NEUTRAL"]]
 
     def get_consensus_direction(self) -> str | None:
-        valid, direction, _ = self.validate_independence()
-        if valid:
-            return direction
+        valid, _, _ = self.validate_independence()
+        if not valid:
+            return None
+        return self._resolve_consensus_direction()
+
+    def _resolve_consensus_direction(self) -> str | None:
+        """Resolve consensus direction from pillar directions."""
+        directions = [p.direction for p in self._pillars.values()]
+        bullish_count = directions.count("BULLISH")
+        bearish_count = directions.count("BEARISH")
+        if bullish_count >= 2:
+            return "BULLISH"
+        if bearish_count >= 2:
+            return "BEARISH"
         return None
 
     def reset(self):
