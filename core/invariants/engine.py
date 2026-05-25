@@ -17,10 +17,10 @@ from __future__ import annotations
 
 import logging
 import threading
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable
 
 from core.datetime_ist import now_ist
 

@@ -12,14 +12,13 @@ Covers:
 from __future__ import annotations
 
 import datetime
-import pytest
 
 from core.event_calendar import (
-    get_event,
+    EventRecord,
     event_entry_allowed,
     event_size_multiplier,
     event_summary,
-    EventRecord,
+    get_event,
 )
 
 TODAY = datetime.date(2026, 2, 1)

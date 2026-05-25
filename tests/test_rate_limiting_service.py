@@ -3,13 +3,9 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 from core.ports.rate_limiting.rate_limit_port import LimitResult, RateLimitConfig
 from core.services.rate_limiting_service import RateLimitingService
-
 
 # ── Constructor ──────────────────────────────────────────────────────────
 

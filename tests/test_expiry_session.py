@@ -1,12 +1,11 @@
 """Tests for expiry day session functions in core/session_classifier.py (v2.44 Item 4)."""
+from datetime import date, datetime
+
 import pytest
-from datetime import datetime, date
-from unittest.mock import patch
 from core.session_classifier import (
-    ExpirySession,
     ExpirySessionName,
-    is_expiry_day,
     get_expiry_session,
+    is_expiry_day,
 )
 
 CFG = {

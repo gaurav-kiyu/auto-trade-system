@@ -40,17 +40,20 @@ class STTCostModel:
     """
     STT Cost Model for NSE Options.
 
-    STT Rates (as of 2025):
+    STT Rates (as of 2026):
     - Long options (buy): 0% (NSE charges STT only on sell/exercise)
-    - Short options (sell): 0.1% of premium
+    - Short options (sell): 0.05% of premium (0.0005)
     - Options exercised (settlement): 0.125% of settlement value
 
     CRITICAL: Short options held to expiry face expiry STT which can
     exceed the premium received if the option is deep ITM.
+
+    NOTE: STT_SHORT_OPTIONS_PCT = 0.0005 (0.05%) — this is the actual NSE rate.
+    The audit finding (Finding #5) confirmed the rate was 0.0005, not 0.1%.
     """
 
     STT_LONG_OPTIONS_PCT = 0.0
-    STT_SHORT_OPTIONS_PCT = 0.001
+    STT_SHORT_OPTIONS_PCT = 0.0005
     STT_EXERCISE_PCT = 0.00125
 
     def __init__(

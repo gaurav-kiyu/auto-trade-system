@@ -570,8 +570,8 @@ def maybe_start_dashboard(
         # Auto-configure rate limiter from config if not explicitly provided
         if rate_limiter is None:
             try:
-                from core.services.rate_limiting_service import RateLimitingService
                 from core.ports.rate_limiting.rate_limit_port import RateLimitConfig
+                from core.services.rate_limiting_service import RateLimitingService
                 rl = RateLimitingService()
                 rl.update_config("webhook", RateLimitConfig(
                     limit=int(c.get("rate_limiter_webhook_limit", c.get("webhook_rate_limit_per_min", 5))),

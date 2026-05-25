@@ -3,12 +3,11 @@
 import logging
 import os
 import threading
-import time
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 try:
-    from core.retention_engine import RetentionEngine as _RetentionEngine, RetentionPolicy
+    from core.retention_engine import RetentionEngine as _RetentionEngine
+    from core.retention_engine import RetentionPolicy
 except ImportError:
     _RetentionEngine = None
     # Define a minimal stub so the module can still be imported
@@ -149,7 +148,7 @@ class CleanupScheduler:
         self._governor = governor
         self._interval_hours = interval_hours
         self._stop_event = threading.Event()
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
 
     def start(self) -> None:
@@ -161,7 +160,7 @@ class CleanupScheduler:
             self._thread.start()
         log.info("CleanupScheduler started (interval=%dh)", self._interval_hours)
 
-    def stop(self, timeout: Optional[float] = None) -> None:
+    def stop(self, timeout: float | None = None) -> None:
         """Signal the scheduler to stop and wait for the thread to finish.
 
         After a successful stop(), start() can be called again to restart

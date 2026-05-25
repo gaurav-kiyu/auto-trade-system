@@ -8,9 +8,7 @@ Covers:
 """
 from __future__ import annotations
 
-import pytest
 from core.config_validator import validate_config
-
 
 # ---------------------------------------------------------------------------
 # Shared minimal valid config

@@ -23,9 +23,9 @@ Architecture:
 """
 
 from core.control_plane.server import (
+    ControlPlaneServer,
     create_control_plane_app,
     maybe_start_control_plane,
-    ControlPlaneServer,
 )
 
 __all__ = [

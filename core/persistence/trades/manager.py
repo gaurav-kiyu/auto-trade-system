@@ -7,9 +7,9 @@ Handles all operations related to saving and retrieving trade records.
 from __future__ import annotations
 
 from datetime import datetime
-from core.datetime_ist import now_ist
 from typing import Any
 
+from core.datetime_ist import now_ist
 from core.ports.persistence.persistence_port import ConnectionError, ValidationError
 from infrastructure.adapters.persistence.sqlite_adapter import SQLiteAdapter
 

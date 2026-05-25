@@ -143,6 +143,17 @@ def now_ist() -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + IST_OFFSET
 
 
+def now_ist_aware() -> datetime.datetime:
+    """
+    Timezone-aware datetime in IST (tzinfo=UTC+05:30).
+
+    Use for all comparisons with third-party libraries that return
+    timezone-aware datetimes (pandas, yfinance, etc.) to avoid
+    ``TypeError: can't subtract offset-naive and offset-aware datetimes``.
+    """
+    return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
+
+
 def is_nse_cash_session(now: datetime.datetime | None = None) -> bool:
     """
     True during NSE cash / index cash hours (Mon–Fri, IST), using bounds from

@@ -22,10 +22,12 @@ from __future__ import annotations
 import random
 import threading
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable, Dict, List, Optional, Any
+from typing import Any
+
 import pytest
 
 
@@ -49,7 +51,7 @@ class FailureScenario:
     probability: float  # 0-1
     delay_ms: int = 0
     error_message: str = "Injected failure"
-    custom_data: Dict[str, Any] = field(default_factory=dict)
+    custom_data: dict[str, Any] = field(default_factory=dict)
 
 
 class FailureInjector:
@@ -57,58 +59,58 @@ class FailureInjector:
     Configurable failure injection for testing.
     Can be used as context manager or registered for probabilistic injection.
     """
-    
-    _instance: Optional['FailureInjector'] = None
+
+    _instance: FailureInjector | None = None
     _lock = threading.Lock()
-    
+
     def __init__(self):
         self._enabled = False
-        self._scenarios: Dict[FailureType, FailureScenario] = {}
-        self._callbacks: Dict[FailureType, Callable] = {}
-        self._injection_count: Dict[FailureType, int] = {}
-    
+        self._scenarios: dict[FailureType, FailureScenario] = {}
+        self._callbacks: dict[FailureType, Callable] = {}
+        self._injection_count: dict[FailureType, int] = {}
+
     @classmethod
-    def get_instance(cls) -> 'FailureInjector':
+    def get_instance(cls) -> FailureInjector:
         """Get singleton instance."""
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = cls()
         return cls._instance
-    
+
     def enable(self) -> None:
         """Enable failure injection."""
         self._enabled = True
-    
+
     def disable(self) -> None:
         """Disable failure injection."""
         self._enabled = False
-    
+
     def register_scenario(self, scenario: FailureScenario) -> None:
         """Register a failure scenario."""
         self._scenarios[scenario.failure_type] = scenario
         self._injection_count[scenario.failure_type] = 0
-    
+
     def register_callback(self, failure_type: FailureType, callback: Callable) -> None:
         """Register callback for a specific failure type."""
         self._callbacks[failure_type] = callback
-    
+
     def should_inject(self, failure_type: FailureType) -> bool:
         """Determine if failure should be injected."""
         if not self._enabled:
             return False
-        
+
         scenario = self._scenarios.get(failure_type)
         if scenario is None:
             return False
-        
+
         # Check probability
         if random.random() < scenario.probability:
             self._injection_count[failure_type] = self._injection_count.get(failure_type, 0) + 1
             return True
-        
+
         return False
-    
+
     def inject(self, failure_type: FailureType) -> Any:
         """
         Inject a failure of the given type.
@@ -117,19 +119,19 @@ class FailureInjector:
         scenario = self._scenarios.get(failure_type)
         if scenario and scenario.delay_ms > 0:
             time.sleep(scenario.delay_ms / 1000.0)
-        
+
         # Call registered callback if present
         callback = self._callbacks.get(failure_type)
         if callback:
             return callback(failure_type, scenario)
-        
+
         # Return appropriate error based on type
         return self._create_error_payload(failure_type, scenario)
-    
-    def _create_error_payload(self, failure_type: FailureType, scenario: Optional[FailureScenario]) -> Any:
+
+    def _create_error_payload(self, failure_type: FailureType, scenario: FailureScenario | None) -> Any:
         """Create appropriate error payload for failure type."""
         error_msg = scenario.error_message if scenario else "Injected failure"
-        
+
         if failure_type == FailureType.ACK_TIMEOUT:
             return {"error": "timeout", "message": error_msg}
         elif failure_type == FailureType.PARTIAL_FILL:
@@ -139,21 +141,21 @@ class FailureInjector:
         elif failure_type == FailureType.STALE_QUOTE:
             return {"error": "stale_data", "quote_age_seconds": 10}
         elif failure_type == FailureType.DB_WRITE_FAIL:
-            raise IOError(error_msg)
+            raise OSError(error_msg)
         elif failure_type == FailureType.BROKER_DISCONNECT:
             return {"error": "connection_lost", "message": error_msg}
         else:
             return {"error": "unknown", "message": error_msg}
-    
+
     def reset_counts(self) -> None:
         """Reset injection counts."""
         for k in self._injection_count:
             self._injection_count[k] = 0
-    
-    def get_stats(self) -> Dict[str, int]:
+
+    def get_stats(self) -> dict[str, int]:
         """Get injection statistics."""
         return dict(self._injection_count)
-    
+
     @contextmanager
     def context(self, failure_type: FailureType, probability: float = 1.0):
         """
@@ -165,13 +167,13 @@ class FailureInjector:
         """
         old_enabled = self._enabled
         old_scenario = self._scenarios.get(failure_type)
-        
+
         self.enable()
         self.register_scenario(FailureScenario(
             failure_type=failure_type,
             probability=probability
         ))
-        
+
         try:
             yield self
         finally:
@@ -268,11 +270,11 @@ def test_probabilistic_failure():
         failure_type=FailureType.INVALID_ORDER_STATE,
         probability=0.5
     ))
-    
+
     # Run many times and check probability is roughly correct
     results = [fi.should_inject(FailureType.INVALID_ORDER_STATE) for _ in range(1000)]
     injected_count = sum(results)
-    
+
     # Should be around 50% +/- some margin
     assert 400 < injected_count < 600, f"Expected ~500, got {injected_count}"
 

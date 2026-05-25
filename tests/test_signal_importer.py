@@ -1,11 +1,14 @@
 """Tests for core/signal_importer.py (v2.46 Sprint 1F)."""
-import pytest
 from unittest.mock import MagicMock
-from core.signal_importer import (
-    parse_signal_text, import_from_csv, import_from_csv_text,
-    import_from_text, ImportResult,
-)
 
+import pytest
+from core.signal_importer import (
+    ImportResult,
+    import_from_csv,
+    import_from_csv_text,
+    import_from_text,
+    parse_signal_text,
+)
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 

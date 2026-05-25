@@ -18,6 +18,7 @@ import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+
 from core.datetime_ist import now_ist
 
 log = logging.getLogger("market_data_fallback")

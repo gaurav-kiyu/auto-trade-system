@@ -42,8 +42,8 @@ class DecisionEngine:
         strong_thr   = int(thresholds.get("strong",   self.config.get("TIER_STRONG_MIN",   TIER_STRONG_MIN)))
         moderate_thr = int(thresholds.get("moderate", self.config.get("TIER_MODERATE_MIN", TIER_MODERATE_MIN)))
         early_thr    = int(thresholds.get("early",    self.config.get("TIER_WEAK_MIN",     TIER_WEAK_MIN)))
-        # Guard: thresholds must be monotonically decreasing; fix and warn if misconfigured
-        if not (strong_thr > moderate_thr > early_thr > 0):
+        # Guard: thresholds must be monotonically non-increasing; fix and warn if misconfigured
+        if not (strong_thr >= moderate_thr >= early_thr > 0):
             log.warning(
                 "[DECISION] Thresholds not monotonic (strong=%d moderate=%d early=%d) — clamping to safe defaults",
                 strong_thr, moderate_thr, early_thr,

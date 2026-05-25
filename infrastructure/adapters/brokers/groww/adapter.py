@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from core.ports.broker import BrokerPort, Order, OrderResult, Position, Quote
+from core.ports.broker import BrokerPort, Order, Position, Quote
 
 logger = logging.getLogger(__name__)
 

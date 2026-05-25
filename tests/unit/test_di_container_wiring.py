@@ -3,23 +3,23 @@ Test for DI container wiring in index_trader module.
 """
 from __future__ import annotations
 
-import pytest
 from unittest.mock import Mock, patch
 
+import pytest
 from core.di_container import container
-from core.ports.config import ConfigPort
-from core.ports.execution import ExecutionPort
-from core.ports.risk import RiskPort
-from core.ports.notification import NotificationPort
-from core.ports.persistence import PersistencePort
 from core.ports.broker.health_port import BrokerHealthPort
-from core.ports.rate_limiting.rate_limit_port import RateLimitPort
 from core.ports.circuit_breaker.circuit_breaker_port import CircuitBreakerPort
-from core.ports.ml_model import MlModelPort
+from core.ports.config import ConfigPort
 from core.ports.correlation_id import CorrelationIdPort
+from core.ports.execution import ExecutionPort
 from core.ports.logging import LoggingPort
 from core.ports.market_data import MarketDataPort
 from core.ports.metrics import MetricsPort
+from core.ports.ml_model import MlModelPort
+from core.ports.notification import NotificationPort
+from core.ports.persistence import PersistencePort
+from core.ports.rate_limiting.rate_limit_port import RateLimitPort
+from core.ports.risk import RiskPort
 from core.ports.strategy import StrategyPort
 
 

@@ -17,19 +17,16 @@ Covers:
 """
 from __future__ import annotations
 
-import math
 import pytest
-
 from core.correlation_guard import (
-    pearson_r,
+    _closes_cache,
     are_correlated_pair,
-    update_closes,
-    get_closes,
     check_portfolio_correlation,
     correlation_summary,
-    _closes_cache,
+    get_closes,
+    pearson_r,
+    update_closes,
 )
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

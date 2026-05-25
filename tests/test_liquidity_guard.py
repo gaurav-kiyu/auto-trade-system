@@ -2,7 +2,6 @@
 import pytest
 from core.liquidity_guard import LiquidityCheck, check_entry_liquidity
 
-
 CFG_DEFAULT = {
     "max_entry_spread_pct": 8.0,
     "min_option_premium": 5.0,

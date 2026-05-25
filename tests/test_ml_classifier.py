@@ -12,28 +12,23 @@ Covers:
 """
 from __future__ import annotations
 
-import json
-import pickle
 import sqlite3
 import time
 from pathlib import Path
 
-import pytest
-
 from core.ml_classifier import (
     FEATURE_COLS,
+    _model_cache,
+    _model_ts,
     extract_features,
+    get_classifier,
+    load_model,
     load_training_data,
     predict_win_prob,
     save_model,
-    load_model,
     score_adj_from_prob,
-    get_classifier,
     train,
-    _model_cache,
-    _model_ts,
 )
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

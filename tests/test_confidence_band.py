@@ -2,13 +2,13 @@
 import os
 import sqlite3
 import tempfile
+
 import pytest
 from core.adaptive_signal import (
     SignalConfidenceBand,
-    compute_confidence_band,
     _wilson_ci,
+    compute_confidence_band,
 )
-
 
 # ── Wilson CI ─────────────────────────────────────────────────────────────────
 

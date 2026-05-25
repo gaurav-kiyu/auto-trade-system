@@ -1,7 +1,6 @@
 """
 Chaos: Stale Feed
 """
-import pytest
 
 
 def test_stale_feed_ignored():

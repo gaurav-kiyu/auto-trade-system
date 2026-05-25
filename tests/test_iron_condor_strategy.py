@@ -1,8 +1,9 @@
 """Tests for core/iron_condor_strategy.py (v2.45 Item 11)."""
-import pytest
 from core.iron_condor_strategy import (
-    IronCondorPosition, ICExitDecision,
-    build_iron_condor, evaluate_ic_exit, check_ic_conditions,
+    IronCondorPosition,
+    build_iron_condor,
+    check_ic_conditions,
+    evaluate_ic_exit,
 )
 
 

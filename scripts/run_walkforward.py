@@ -117,9 +117,9 @@ def main() -> int:
     report = engine.run(
         args.name,
         base_df,
-        train_bars=int(args.train_bars or cfg.get("WALKFORWARD_TRAIN_BARS", 15)),
-        test_bars=int(args.test_bars or cfg.get("WALKFORWARD_TEST_BARS", 10)),
-        step_bars=int(args.step_bars or cfg.get("WALKFORWARD_STEP_BARS", 10)),
+        train_bars=int(args.train_bars or cfg.get("walkforward_train_bars", 200)),
+        test_bars=int(args.test_bars or cfg.get("walkforward_test_bars", 50)),
+        step_bars=int(args.step_bars or cfg.get("walkforward_step_bars", 50)),
         vix=float(cfg.get("BACKTEST_FIXED_VIX", 0.0)),
     )
     payload = report.to_dict()

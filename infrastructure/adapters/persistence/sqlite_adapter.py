@@ -6,24 +6,20 @@ Implements the PersistencePort interface using SQLite for structured data storag
 
 from __future__ import annotations
 
-import sqlite3
 import json
 import logging
+import sqlite3
 import threading
 from datetime import datetime
-from typing import List, Optional, Dict, Any, Iterator, Union
 from pathlib import Path
+from typing import Any
 
+from core.datetime_ist import now_ist
 from core.ports.persistence.persistence_port import (
-    PersistencePort,
-    PersistenceError,
     ConnectionError,
+    PersistenceError,
+    PersistencePort,
     ValidationError,
-    NotFoundError,
-    StatePersistencePort,
-    TradePersistencePort,
-    MarketDataPersistencePort,
-    CSVPersistencePort
 )
 
 logger = logging.getLogger(__name__)
@@ -35,7 +31,7 @@ class SQLiteAdapter(PersistencePort):
     Provides methods for all specialized ports through interface compliance.
     """
 
-    def __init__(self, database_path: Union[str, Path]):
+    def __init__(self, database_path: str | Path):
         """
         Initialize the SQLite adapter.
 
@@ -44,7 +40,7 @@ class SQLiteAdapter(PersistencePort):
         """
         super().__init__(str(database_path))
         self.database_path = Path(database_path)
-        self._connection: Optional[sqlite3.Connection] = None
+        self._connection: sqlite3.Connection | None = None
         self._transaction_depth = 0
         self._lock = threading.Lock()
 
@@ -131,7 +127,7 @@ class SQLiteAdapter(PersistencePort):
             self._connection.rollback()
 
     # Helper methods
-    def _execute(self, query: str, parameters: Union[tuple, dict] = ()) -> sqlite3.Cursor:
+    def _execute(self, query: str, parameters: tuple | dict = ()) -> sqlite3.Cursor:
         """Execute a query and return the cursor."""
         if not self.is_connected():
             raise ConnectionError("Not connected to database")
@@ -142,7 +138,7 @@ class SQLiteAdapter(PersistencePort):
                 logger.error(f"SQLite query failed: {query} with params {parameters}")
                 raise PersistenceError(f"SQLite query failed: {e}")
 
-    def _execute_many(self, query: str, parameters_list: List[Union[tuple, dict]]) -> sqlite3.Cursor:
+    def _execute_many(self, query: str, parameters_list: list[tuple | dict]) -> sqlite3.Cursor:
         """Execute a query multiple times with different parameters."""
         if not self.is_connected():
             raise ConnectionError("Not connected to database")
@@ -181,7 +177,7 @@ class SQLiteAdapter(PersistencePort):
             logger.error(f"Failed to check if table {table} exists: {e}")
             raise PersistenceError(f"Failed to check if table {table} exists: {e}")
 
-    def create_table(self, table: str, schema: Dict[str, Any]) -> bool:
+    def create_table(self, table: str, schema: dict[str, Any]) -> bool:
         """
         Create a table with the specified schema.
 
@@ -237,7 +233,7 @@ class SQLiteAdapter(PersistencePort):
             raise PersistenceError(f"Failed to drop table {table}: {e}")
 
     # CRUD operations
-    def create(self, table: str, data: Dict[str, Any]) -> Any:
+    def create(self, table: str, data: dict[str, Any]) -> Any:
         """
         Create a new record.
 
@@ -266,7 +262,7 @@ class SQLiteAdapter(PersistencePort):
             logger.error(f"Failed to create record in {table}: {e}")
             raise PersistenceError(f"Failed to create record in {table}: {e}")
 
-    def create_many(self, table: str, data_list: List[Dict[str, Any]]) -> List[Any]:
+    def create_many(self, table: str, data_list: list[dict[str, Any]]) -> list[Any]:
         """
         Create multiple records.
 
@@ -307,7 +303,7 @@ class SQLiteAdapter(PersistencePort):
             logger.error(f"Failed to create multiple records in {table}: {e}")
             raise PersistenceError(f"Failed to create multiple records in {table}: {e}")
 
-    def read(self, table: str, record_id: Any) -> Optional[Dict[str, Any]]:
+    def read(self, table: str, record_id: Any) -> dict[str, Any] | None:
         """
         Read a record by ID.
 
@@ -334,11 +330,11 @@ class SQLiteAdapter(PersistencePort):
     def read_many(
         self,
         table: str,
-        filters: Optional[Dict[str, Any]] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        order_by: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        filters: dict[str, Any] | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+        order_by: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Read multiple records with filtering and pagination.
 
@@ -398,8 +394,8 @@ class SQLiteAdapter(PersistencePort):
     def read_one(
         self,
         table: str,
-        filters: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        filters: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """
         Read a single record matching filters.
 
@@ -416,7 +412,7 @@ class SQLiteAdapter(PersistencePort):
     def count(
         self,
         table: str,
-        filters: Optional[Dict[str, Any]] = None
+        filters: dict[str, Any] | None = None
     ) -> int:
         """
         Count records matching filters.
@@ -454,7 +450,7 @@ class SQLiteAdapter(PersistencePort):
         self,
         table: str,
         record_id: Any,
-        data: Dict[str, Any]
+        data: dict[str, Any]
     ) -> bool:
         """
         Update a record by ID.
@@ -488,8 +484,8 @@ class SQLiteAdapter(PersistencePort):
     def update_many(
         self,
         table: str,
-        filters: Dict[str, Any],
-        data: Dict[str, Any]
+        filters: dict[str, Any],
+        data: dict[str, Any]
     ) -> int:
         """
         Update multiple records matching filters.
@@ -553,7 +549,7 @@ class SQLiteAdapter(PersistencePort):
     def delete_many(
         self,
         table: str,
-        filters: Dict[str, Any]
+        filters: dict[str, Any]
     ) -> int:
         """
         Delete multiple records matching filters.
@@ -584,7 +580,7 @@ class SQLiteAdapter(PersistencePort):
             raise PersistenceError(f"Failed to delete multiple records from {table}: {e}")
 
     # StatePersistencePort implementation
-    def save_state(self, state: Dict[str, Any]) -> bool:
+    def save_state(self, state: dict[str, Any]) -> bool:
         """
         Save application state to a JSON blob in a dedicated table.
 
@@ -619,7 +615,7 @@ class SQLiteAdapter(PersistencePort):
             logger.error(f"Failed to save application state: {e}")
             raise PersistenceError(f"Failed to save application state: {e}")
 
-    def load_state(self) -> Optional[Dict[str, Any]]:
+    def load_state(self) -> dict[str, Any] | None:
         """
         Load application state from the database.
 
@@ -661,7 +657,7 @@ class SQLiteAdapter(PersistencePort):
             raise PersistenceError(f"Failed to delete application state: {e}")
 
     # TradePersistencePort implementation
-    def save_trade(self, trade_data: Dict[str, Any]) -> str:
+    def save_trade(self, trade_data: dict[str, Any]) -> str:
         """
         Save a trade record.
 
@@ -709,7 +705,7 @@ class SQLiteAdapter(PersistencePort):
             logger.error(f"Failed to save trade: {e}")
             raise PersistenceError(f"Failed to save trade: {e}")
 
-    def get_trade(self, trade_id: str) -> Optional[Dict[str, Any]]:
+    def get_trade(self, trade_id: str) -> dict[str, Any] | None:
         """
         Get a trade by ID.
 
@@ -739,11 +735,11 @@ class SQLiteAdapter(PersistencePort):
 
     def get_trades(
         self,
-        symbol: Optional[str] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-        limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        symbol: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get trades with optional filtering.
 
@@ -808,7 +804,7 @@ class SQLiteAdapter(PersistencePort):
             logger.error(f"Failed to get trades: {e}")
             raise PersistenceError(f"Failed to get trades: {e}")
 
-    def update_trade(self, trade_id: str, trade_data: Dict[str, Any]) -> bool:
+    def update_trade(self, trade_id: str, trade_data: dict[str, Any]) -> bool:
         """
         Update a trade record.
 
@@ -838,8 +834,8 @@ class SQLiteAdapter(PersistencePort):
     def save_market_data(
         self,
         symbol: str,
-        data: Dict[str, Any],
-        timestamp: Optional[datetime] = None
+        data: dict[str, Any],
+        timestamp: datetime | None = None
     ) -> bool:
         """
         Save market data point.
@@ -869,7 +865,7 @@ class SQLiteAdapter(PersistencePort):
                 })
 
             if timestamp is None:
-                timestamp = datetime.now()
+                timestamp = now_ist()
 
             # Ensure timestamp is in ISO format for storage
             if isinstance(timestamp, datetime):
@@ -896,10 +892,10 @@ class SQLiteAdapter(PersistencePort):
     def get_market_data(
         self,
         symbol: str,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
-        limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get market data for a symbol.
 
@@ -937,7 +933,7 @@ class SQLiteAdapter(PersistencePort):
             logger.error(f"Failed to get market data for {symbol}: {e}")
             raise PersistenceError(f"Failed to get market data for {symbol}: {e}")
 
-    def get_latest_market_data(self, symbol: str) -> Optional[Dict[str, Any]]:
+    def get_latest_market_data(self, symbol: str) -> dict[str, Any] | None:
         """
         Get the latest market data point for a symbol.
 
@@ -967,7 +963,7 @@ class SQLiteAdapter(PersistencePort):
 
     # CSVPersistencePort implementation - we'll implement basic CSV operations
     # Note: For CSV, we don't use the database, so we'll implement file-based methods
-    def append_row(self, file_path: Union[str, Path], row: Dict[str, Any]) -> bool:
+    def append_row(self, file_path: str | Path, row: dict[str, Any]) -> bool:
         """
         Append a row to a CSV file.
 
@@ -998,7 +994,7 @@ class SQLiteAdapter(PersistencePort):
             logger.error(f"Failed to append row to CSV {file_path}: {e}")
             raise PersistenceError(f"Failed to append row to CSV {file_path}: {e}")
 
-    def write_rows(self, file_path: Union[str, Path], rows: List[Dict[str, Any]], headers: List[str]) -> bool:
+    def write_rows(self, file_path: str | Path, rows: list[dict[str, Any]], headers: list[str]) -> bool:
         """
         Write rows to a CSV file.
 
@@ -1026,7 +1022,7 @@ class SQLiteAdapter(PersistencePort):
             logger.error(f"Failed to write rows to CSV {file_path}: {e}")
             raise PersistenceError(f"Failed to write rows to CSV {file_path}: {e}")
 
-    def read_rows(self, file_path: Union[str, Path]) -> List[Dict[str, Any]]:
+    def read_rows(self, file_path: str | Path) -> list[dict[str, Any]]:
         """
         Read rows from a CSV file.
 
@@ -1042,14 +1038,14 @@ class SQLiteAdapter(PersistencePort):
                 return []
 
             import csv
-            with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+            with open(file_path, newline='', encoding='utf-8') as csvfile:
                 reader = csv.DictReader(csvfile)
                 return [row for row in reader]
         except Exception as e:
             logger.error(f"Failed to read rows from CSV {file_path}: {e}")
             raise PersistenceError(f"Failed to read rows from CSV {file_path}: {e}")
 
-    def file_exists(self, file_path: Union[str, Path]) -> bool:
+    def file_exists(self, file_path: str | Path) -> bool:
         """
         Check if a CSV file exists.
 
@@ -1061,7 +1057,7 @@ class SQLiteAdapter(PersistencePort):
         """
         return Path(file_path).exists()
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """
         Perform a health check on the SQLite database.
 
@@ -1090,7 +1086,7 @@ class SQLiteAdapter(PersistencePort):
 
 
 # Factory function for easy instantiation
-def create_sqlite_persistence(database_path: Union[str, Path]) -> SQLiteAdapter:
+def create_sqlite_persistence(database_path: str | Path) -> SQLiteAdapter:
     """
     Factory function to create and connect an SQLite adapter.
 

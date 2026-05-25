@@ -1,9 +1,9 @@
 """Tests for spread partial exit logic in core/spread_strategy.py (v2.44 Item 3)."""
-import pytest
-from unittest.mock import patch, MagicMock
 from datetime import time as dtime
-from core.spread_strategy import SpreadPosition, SpreadLeg, SpreadExitDecision, evaluate_spread_exit
+from unittest.mock import MagicMock, patch
 
+import pytest
+from core.spread_strategy import SpreadLeg, SpreadPosition, evaluate_spread_exit
 
 CFG = {
     "spread_exit_pnl_pct": 0.50,      # full target at 50% of max_profit

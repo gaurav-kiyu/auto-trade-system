@@ -1,4 +1,4 @@
-from .strategy_port import StrategyPort, StrategyDecision
+from .strategy_port import StrategyDecision, StrategyPort
 
 __all__ = [
     "StrategyPort",

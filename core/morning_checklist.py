@@ -187,22 +187,47 @@ class MorningChecklist:
             )
 
     def _check_token_validity(self) -> tuple[bool, str]:
-        """Check if broker auth token is valid (synchronous forced refresh at pre-open)."""
+        """Check if broker auth token is valid (synchronous forced refresh at pre-open).
+
+        FAIL-CLOSED: If token cannot be validated, returns (False, reason) to block
+        trading. Silent pass-through on exception is NOT allowed.
+        """
         if not self._broker_port:
             return True, "Broker token (no broker configured)"
 
-        # Force synchronous auth check at pre-open — bypasses TokenRefreshService interval
+        # Try multiple token freshness paths — fail-closed on all exceptions
+        try:
+            # Preferred: TokenRefreshService.validate_token()
+            from core.services.token_refresh_service import TokenRefreshService
+            svc = TokenRefreshService.get_instance() if hasattr(TokenRefreshService, 'get_instance') else None
+            if svc is not None:
+                valid = svc.validate_token()
+                if valid:
+                    return True, "Broker token valid (TokenRefreshService)"
+                # Try refresh
+                refreshed = svc.force_refresh()
+                if refreshed:
+                    return True, "Broker token refreshed successfully"
+                return False, "Broker token EXPIRED — refresh via TokenRefreshService failed"
+        except ImportError:
+            pass  # TokenRefreshService not available, try _ensure_token_fresh
+        except Exception as e:
+            self._logger.warning(f"TokenRefreshService check failed: {e}")
+            # Fall through to _ensure_token_fresh
+
+        # Fallback: _ensure_token_fresh on broker port
         try:
             if hasattr(self._broker_port, "_ensure_token_fresh"):
                 if self._broker_port._ensure_token_fresh():
                     return True, "Broker token valid (fresh)"
                 else:
-                    return False, "Broker token EXPIRED — refresh failed"
+                    return False, "Broker token EXPIRED — _ensure_token_fresh failed"
         except Exception as e:
-            self._logger.warning(f"Token check failed: {e}")
-            return False, f"Token check error: {e}"
+            self._logger.warning(f"Token check failed (fallback): {e}")
+            return False, f"Token check FAILED — cannot validate: {e}"
 
-        return True, "Broker token OK (no fresh check)"
+        # No method to check — fail-closed for safety
+        return False, "Broker token UNVERIFIABLE — no validation method available"
 
     def _check_broker_reachable(self) -> tuple[bool, str]:
         """Check if broker API is reachable."""

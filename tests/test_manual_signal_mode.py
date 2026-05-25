@@ -24,7 +24,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from core.hybrid_execution import apply_execution_mode, normalize_execution_mode
 from core.presentation_engine import PresentationEngine
 

@@ -11,10 +11,9 @@ The service name used for all credentials is "opb_trading_platform".
 
 from __future__ import annotations
 
+import base64
 import json
 import os
-import base64
-from typing import Optional
 from pathlib import Path
 
 # Try to import keyring
@@ -56,7 +55,7 @@ class CredentialStorage:
     DEFAULT_ENCRYPTED_FILE_PATH = Path.home() / ".config" / "opb" / "secrets.json.enc"
 
     def __init__(self,
-                 encrypted_file_path: Optional[Path] = None,
+                 encrypted_file_path: Path | None = None,
                  env_var_for_encryption_key: str = "OPBUYING_SECURE_CONFIG_KEY"):
         """
         Initialize the credential storage.
@@ -72,14 +71,14 @@ class CredentialStorage:
         # Take a snapshot of the environment to avoid recursion issues
         self._environment = dict(os.environ)
         # Read the encryption key from the environment snapshot once to avoid repeated access
-        self._encryption_key: Optional[str] = None
+        self._encryption_key: str | None = None
         if CRYPTOGRAPHY_AVAILABLE:
             self._encryption_key = self._environment.get(self.env_var_for_encryption_key)
 
         # Ensure the directory for the encrypted file exists
         self.encrypted_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def get_credential(self, username: str) -> Optional[str]:
+    def get_credential(self, username: str) -> str | None:
         """
         Retrieve a credential for the given username.
 
@@ -122,7 +121,7 @@ class CredentialStorage:
 
         return None
 
-    def _get_from_encrypted_file(self, username: str) -> Optional[str]:
+    def _get_from_encrypted_file(self, username: str) -> str | None:
         """
         Retrieve a credential from the encrypted file.
 
@@ -205,7 +204,7 @@ class CredentialStorage:
         # If we get here, neither backend worked (or encryption key not set for encrypted file)
         raise CredentialStorageError(
             "Unable to store credential: keyring not available or encryption key not set for encrypted file backend. "
-            "Please set up keyring or define the environment variable '{}' to use encrypted file storage.".format(self.env_var_for_encryption_key)
+            f"Please set up keyring or define the environment variable '{self.env_var_for_encryption_key}' to use encrypted file storage."
         )
 
     def _set_in_encrypted_file(self, username: str, credential: str) -> None:

@@ -1,8 +1,10 @@
 """Tests for core/slippage_model.py (v2.45 Item 14)."""
-import pytest
 from core.slippage_model import (
-    SlippageModel, calibrate_model, predict_slippage, format_slippage_summary,
+    SlippageModel,
     _ols,
+    calibrate_model,
+    format_slippage_summary,
+    predict_slippage,
 )
 
 

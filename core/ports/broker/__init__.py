@@ -14,7 +14,6 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
-from core.datetime_ist import now_ist
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -25,6 +24,7 @@ from core.common.kernels.models import Order as SharedOrder
 from core.common.kernels.models import OrderResult as SharedOrderResult
 from core.common.kernels.models import Position as SharedPosition
 from core.common.kernels.models import Quote as SharedQuote
+from core.datetime_ist import now_ist
 
 # Use shared models from shared kernels
 Order = SharedOrder

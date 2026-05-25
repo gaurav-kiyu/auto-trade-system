@@ -10,7 +10,7 @@ import logging
 import sqlite3
 import threading
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 

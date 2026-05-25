@@ -29,14 +29,24 @@ def apply_execution_mode(
 ) -> dict:
     """Set EXECUTION_MODE and derived MANUAL_SIGNALS_ONLY / BROKER_API_ENABLED.
 
-    When infer_blank_from_broker is True (stock legacy): missing or blank EXECUTION_MODE
-    becomes AUTO if BROKER_API_ENABLED else MANUAL before normalization.
+    CRITICAL SAFETY: infer_blank_from_broker defaults to False. When True (stock legacy),
+    missing or blank EXECUTION_MODE becomes MANUAL regardless of BROKER_API_ENABLED.
+    Never auto-default to AUTO — explicit EXECUTION_MODE=AUTO is required.
     cli_paper forces PAPER (``--paper``), matching index _CLI_PAPER_MODE / stock PAPER_MODE.
     """
     if infer_blank_from_broker:
         _ex = cfg.get("EXECUTION_MODE")
         if _ex is None or (isinstance(_ex, str) and not str(_ex).strip()):
-            cfg["EXECUTION_MODE"] = "AUTO" if cfg.get("BROKER_API_ENABLED") else "MANUAL"
+            # SAFETY: Never auto-default to AUTO. Explicit EXECUTION_MODE=AUTO required.
+            cfg["EXECUTION_MODE"] = "MANUAL"
+            import logging
+            _log = logging.getLogger(__name__)
+            _log.critical(
+                "[HYBRID_EXECUTION] CRITICAL: EXECUTION_MODE is blank/missing and "
+                "BROKER_API_ENABLED=%s. Defaulting to MANUAL — never auto-AUTO. "
+                "Set EXECUTION_MODE=AUTO explicitly to enable automated trading.",
+                cfg.get("BROKER_API_ENABLED"),
+            )
     mode = "PAPER" if cli_paper else normalize_execution_mode(cfg.get("EXECUTION_MODE", "MANUAL"))
     cfg["EXECUTION_MODE"] = mode
     if mode == "PAPER":

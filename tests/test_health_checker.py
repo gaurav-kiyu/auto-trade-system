@@ -2,20 +2,19 @@
 import os
 import sqlite3
 import tempfile
-import pytest
 from datetime import datetime, timedelta
+
 from core.health_checker import (
     HealthCheckResult,
     HealthReport,
-    check_db_sizes,
-    check_db_integrity,
-    check_db_wal_size,
     check_config_sanity,
+    check_db_integrity,
+    check_db_sizes,
+    check_db_wal_size,
     check_system_health,
-    run_full_health_check,
     format_health_report,
+    run_full_health_check,
 )
-
 
 # ── HealthCheckResult ─────────────────────────────────────────────────────────
 
@@ -283,7 +282,9 @@ def test_drawdown_positive_pnl_shows_percentage():
         "AI_THRESHOLD": 65,
         "sensitivity_report_days": 30,
     }
-    import tempfile, os, sqlite3
+    import os
+    import sqlite3
+    import tempfile
     f = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
     db = f.name
     f.close()
@@ -317,7 +318,7 @@ def test_drawdown_positive_pnl_shows_percentage():
         assert dd_check.value < 100, f"Value {dd_check.value} should be % not raw rupees"
         assert dd_check.value > 0, "Drawdown should be > 0"
         msg = dd_check.message
-        assert '%' in msg or u'\u20b9' in msg, f"Message should contain % or rupee: {msg}"
+        assert '%' in msg or '\u20b9' in msg, f"Message should contain % or rupee: {msg}"
     finally:
         try:
             os.unlink(db)
@@ -327,7 +328,9 @@ def test_drawdown_positive_pnl_shows_percentage():
 
 def test_drawdown_negative_pnl_does_not_crash():
     """Net-loss scenario should not crash and should return a safe value."""
-    import tempfile, os, sqlite3
+    import os
+    import sqlite3
+    import tempfile
     f = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
     db = f.name
     f.close()
@@ -371,7 +374,8 @@ def test_drawdown_zero_trades_does_not_crash():
     """Zero trades should return early without drawdown check."""
     from core.health_checker import check_recent_performance
     cfg = {"SL_PCT": 0.30, "TARGET_PCT": 0.60, "sensitivity_report_days": 30}
-    import tempfile, os
+    import os
+    import tempfile
     f = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
     db = f.name
     f.close()

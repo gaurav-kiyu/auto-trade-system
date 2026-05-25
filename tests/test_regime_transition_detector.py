@@ -4,7 +4,6 @@ from __future__ import annotations
 import threading
 
 import pytest
-
 from core.regime_transition_detector import (
     TransitionSignal,
     _VixHistoryTracker,
@@ -12,7 +11,6 @@ from core.regime_transition_detector import (
     get_transition_score_adj,
     reset_vix_history,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

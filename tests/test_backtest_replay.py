@@ -2,8 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from core import BacktestConfig, BacktestEngine, CsvReplaySource, ProviderChain, ReplayConfig, ReplayEngine, StrategyEngine
-
+from core import (
+    BacktestConfig,
+    BacktestEngine,
+    CsvReplaySource,
+    ProviderChain,
+    ReplayConfig,
+    ReplayEngine,
+    StrategyEngine,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"

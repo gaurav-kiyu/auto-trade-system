@@ -3,7 +3,7 @@ import os
 import sqlite3
 import tempfile
 from datetime import date, timedelta
-import pytest
+
 from core.var_calculator import VaRResult, compute_var, format_var_summary
 
 

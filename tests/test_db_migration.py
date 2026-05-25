@@ -1,16 +1,14 @@
 """Tests for core/db_migration.py — schema version registry + migration framework."""
 
+import os
 import sqlite3
 import tempfile
-import os
-
-import pytest
 
 from core.db_migration import (
+    ensure_schema_version,
     get_migration_log,
     get_schema_version,
     migrate_to_latest,
-    ensure_schema_version,
 )
 
 

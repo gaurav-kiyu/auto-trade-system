@@ -1,7 +1,6 @@
 """
 Chaos: Reconnect Storm
 """
-import pytest
 
 
 def test_reconnect_storm_idempotency():

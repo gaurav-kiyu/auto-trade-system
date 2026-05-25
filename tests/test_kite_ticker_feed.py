@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import sys
-import time
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.kite_ticker_feed import KiteTickerFeedManager
 
 # kiteconnect is not installed in test env — fake it via sys.modules

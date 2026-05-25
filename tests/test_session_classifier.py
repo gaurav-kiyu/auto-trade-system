@@ -15,9 +15,6 @@ Covers:
 from __future__ import annotations
 
 import datetime
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 from core.session_classifier import (
     SessionType,
@@ -26,7 +23,6 @@ from core.session_classifier import (
     session_entry_allowed,
     session_summary,
 )
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -229,8 +225,8 @@ class TestAdaptiveSignalSessionWiring:
 
     def test_session_adj_in_score_components(self):
         """Smoke test: evaluate_adaptive_signal emits session_adj in score_components."""
-        import pandas as pd
         import numpy as np
+        import pandas as pd
         from core.adaptive_signal import evaluate_adaptive_signal
         from core.pure_index_signal import PureIndexSignalParams
 
@@ -273,8 +269,8 @@ class TestAdaptiveSignalSessionWiring:
 
     def test_session_classifier_disabled_no_session_adj(self):
         """When session_classifier_enabled=False, session_adj should not appear."""
-        import pandas as pd
         import numpy as np
+        import pandas as pd
         from core.adaptive_signal import evaluate_adaptive_signal
         from core.pure_index_signal import PureIndexSignalParams
 

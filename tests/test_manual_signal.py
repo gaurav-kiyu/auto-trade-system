@@ -1,13 +1,20 @@
 """Tests for core/manual_signal.py (v2.46 Sprint 1A)."""
-import time
 import threading
+import time
+
 import pytest
 from core.manual_signal import (
-    ManualSignal, ManualSignalQueue, build_signal_queue,
-    PENDING, APPROVED, REJECTED, EXECUTED, EXPIRED, CANCELLED,
+    APPROVED,
+    CANCELLED,
+    EXECUTED,
+    EXPIRED,
+    PENDING,
+    REJECTED,
+    ManualSignal,
+    ManualSignalQueue,
     _make_signal_id,
+    build_signal_queue,
 )
-
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 

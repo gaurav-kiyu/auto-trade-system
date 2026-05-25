@@ -100,6 +100,7 @@ def extract_features(signal: dict[str, Any]) -> dict[str, float]:
     All values are floats for compatibility with LightGBM.
     """
     import datetime as _dt
+
     from core.datetime_ist import now_ist
 
     entry_ts = signal.get("signal_ts") or signal.get("entry_ts") or 0.0
@@ -189,6 +190,7 @@ def load_training_data(
         return None
 
     import datetime as _dt
+
     from core.datetime_ist import now_ist
 
     X: list[list[float]] = []

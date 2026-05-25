@@ -7,8 +7,8 @@ This allows the trading logic to depend on the abstraction (ConfigPort) rather t
 
 from __future__ import annotations
 
-from typing import Any, Optional, Union
 from pathlib import Path
+from typing import Any
 
 # Import the port interface
 from core.ports.config import ConfigPort
@@ -26,8 +26,8 @@ class SecureConfigAdapter(ConfigPort):
     """
 
     def __init__(self,
-                 defaults_path: Optional[Union[str, Path]] = None,
-                 config_dir: Optional[Union[str, Path]] = None,
+                 defaults_path: str | Path | None = None,
+                 config_dir: str | Path | None = None,
                  env_prefix: str = "OPBUYING_",
                  enable_secret_redaction: bool = True):
         """

@@ -6,10 +6,7 @@ import time
 from datetime import date, datetime, timedelta
 from unittest.mock import patch
 
-import pytest
-
 from core.market_warmup import MarketWarmup
-
 
 # ── Constructor ──────────────────────────────────────────────────────────
 
@@ -60,8 +57,9 @@ def test_warmup_active_during_period():
     m._warmup_end = five_min_ago + timedelta(minutes=60)
     m._current_day = date.today()
     # Current time is within 60 mins of 9:15
-    with patch("core.market_warmup.datetime") as mock_dt:
-        mock_dt.now.return_value = datetime.now().replace(hour=9, minute=20)
+    # NOTE: code now uses now_ist() instead of datetime.now(), so mock now_ist
+    with patch("core.market_warmup.now_ist") as mock_now:
+        mock_now.return_value = datetime.now().replace(hour=9, minute=20)
         assert m.is_warmup_active() is True
 
 

@@ -122,8 +122,9 @@ def load_autopsy_data(
             params: list[Any] = []
             where  = ["net_pnl IS NOT NULL"]
             if days and days > 0:
-                from core.datetime_ist import now_ist
                 from datetime import timedelta
+
+                from core.datetime_ist import now_ist
                 cutoff = (now_ist() - timedelta(days=days)).isoformat()
                 where.append("ts >= ?")
                 params.append(cutoff)

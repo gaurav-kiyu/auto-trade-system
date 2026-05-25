@@ -12,12 +12,12 @@ import json
 import logging
 import threading
 import uuid
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
 
 from core.datetime_ist import now_ist
-from pathlib import Path
-from typing import Any, Dict, Optional, List
-from dataclasses import dataclass, asdict, field
 
 log = logging.getLogger(__name__)
 
@@ -28,17 +28,17 @@ class AuditEvent:
     event_id: str
     timestamp: str  # ISO format timestamp
     event_type: str
-    user_id: Optional[str]
-    session_id: Optional[str]
-    ip_address: Optional[str]
+    user_id: str | None
+    session_id: str | None
+    ip_address: str | None
     resource: str
     action: str
     outcome: str  # success, failure, error
-    details: Dict[str, Any]
+    details: dict[str, Any]
     severity: str  # info, warning, error, critical
-    correlation_id: Optional[str] = None  # For tracing related events
+    correlation_id: str | None = None  # For tracing related events
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return asdict(self)
 
@@ -51,14 +51,14 @@ class AuditEvent:
 class TradeAuditTrail:
     """Complete audit trail for a trade from signal to fill."""
     trade_id: str
-    signal_generated: Optional[AuditEvent] = None
-    signal_validated: Optional[AuditEvent] = None
-    risk_approved: Optional[AuditEvent] = None
-    order_submitted: Optional[AuditEvent] = None
-    order_filled: Optional[AuditEvent] = None
-    position_updated: Optional[AuditEvent] = None
-    trade_closed: Optional[AuditEvent] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    signal_generated: AuditEvent | None = None
+    signal_validated: AuditEvent | None = None
+    risk_approved: AuditEvent | None = None
+    order_submitted: AuditEvent | None = None
+    order_filled: AuditEvent | None = None
+    position_updated: AuditEvent | None = None
+    trade_closed: AuditEvent | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class AuditLogger:
@@ -75,7 +75,7 @@ class AuditLogger:
     """
 
     def __init__(self,
-                 log_file: Optional[Path] = None,
+                 log_file: Path | None = None,
                  max_file_size: int = 10 * 1024 * 1024,  # 10 MB
                  backup_count: int = 5,
                  enable_console_output: bool = False):
@@ -95,7 +95,7 @@ class AuditLogger:
         self._lock = threading.RLock()
 
         # Trade audit trail tracking
-        self._trade_trails: Dict[str, TradeAuditTrail] = {}
+        self._trade_trails: dict[str, TradeAuditTrail] = {}
         self._trade_trail_lock = threading.RLock()
 
         # Ensure the log directory exists
@@ -190,12 +190,12 @@ class AuditLogger:
                   resource: str,
                   action: str,
                   outcome: str = "success",
-                  details: Optional[Dict[str, Any]] = None,
+                  details: dict[str, Any] | None = None,
                   severity: str = "info",
-                  user_id: Optional[str] = None,
-                  session_id: Optional[str] = None,
-                  ip_address: Optional[str] = None,
-                  correlation_id: Optional[str] = None) -> str:
+                  user_id: str | None = None,
+                  session_id: str | None = None,
+                  ip_address: str | None = None,
+                  correlation_id: str | None = None) -> str:
         """
         Log an audit event.
 
@@ -248,10 +248,10 @@ class AuditLogger:
                 return str(uuid.uuid4())
 
     def log_signal_generated(self,
-                           signal_data: Dict[str, Any],
-                           user_id: Optional[str] = None,
-                           session_id: Optional[str] = None,
-                           ip_address: Optional[str] = None) -> str:
+                           signal_data: dict[str, Any],
+                           user_id: str | None = None,
+                           session_id: str | None = None,
+                           ip_address: str | None = None) -> str:
         """Log a signal generation event."""
         correlation_id = str(uuid.uuid4())
         event_id = self.log_event(
@@ -291,12 +291,12 @@ class AuditLogger:
         return event_id
 
     def log_signal_validated(self,
-                           signal_data: Dict[str, Any],
-                           validation_result: Dict[str, Any],
+                           signal_data: dict[str, Any],
+                           validation_result: dict[str, Any],
                            correlation_id: str,
-                           user_id: Optional[str] = None,
-                           session_id: Optional[str] = None,
-                           ip_address: Optional[str] = None) -> str:
+                           user_id: str | None = None,
+                           session_id: str | None = None,
+                           ip_address: str | None = None) -> str:
         """Log a signal validation event."""
         event_id = self.log_event(
             event_type="signal_validated",
@@ -339,12 +339,12 @@ class AuditLogger:
         return event_id
 
     def log_risk_approved(self,
-                        signal_data: Dict[str, Any],
-                        risk_evaluation: Dict[str, Any],
+                        signal_data: dict[str, Any],
+                        risk_evaluation: dict[str, Any],
                         correlation_id: str,
-                        user_id: Optional[str] = None,
-                        session_id: Optional[str] = None,
-                        ip_address: Optional[str] = None) -> str:
+                        user_id: str | None = None,
+                        session_id: str | None = None,
+                        ip_address: str | None = None) -> str:
         """Log a risk approval event."""
         event_id = self.log_event(
             event_type="risk_approved",
@@ -387,11 +387,11 @@ class AuditLogger:
         return event_id
 
     def log_order_submitted(self,
-                          order_data: Dict[str, Any],
+                          order_data: dict[str, Any],
                           correlation_id: str,
-                          user_id: Optional[str] = None,
-                          session_id: Optional[str] = None,
-                          ip_address: Optional[str] = None) -> str:
+                          user_id: str | None = None,
+                          session_id: str | None = None,
+                          ip_address: str | None = None) -> str:
         """Log an order submission event."""
         event_id = self.log_event(
             event_type="order_submitted",
@@ -428,12 +428,12 @@ class AuditLogger:
         return event_id
 
     def log_order_filled(self,
-                       order_data: Dict[str, Any],
-                       fill_data: Dict[str, Any],
+                       order_data: dict[str, Any],
+                       fill_data: dict[str, Any],
                        correlation_id: str,
-                       user_id: Optional[str] = None,
-                       session_id: Optional[str] = None,
-                       ip_address: Optional[str] = None) -> str:
+                       user_id: str | None = None,
+                       session_id: str | None = None,
+                       ip_address: str | None = None) -> str:
         """Log an order fill event."""
         event_id = self.log_event(
             event_type="order_filled",
@@ -489,11 +489,11 @@ class AuditLogger:
         return event_id
 
     def log_position_updated(self,
-                           position_data: Dict[str, Any],
+                           position_data: dict[str, Any],
                            correlation_id: str,
-                           user_id: Optional[str] = None,
-                           session_id: Optional[str] = None,
-                           ip_address: Optional[str] = None) -> str:
+                           user_id: str | None = None,
+                           session_id: str | None = None,
+                           ip_address: str | None = None) -> str:
         """Log a position update event."""
         event_id = self.log_event(
             event_type="position_updated",
@@ -530,11 +530,11 @@ class AuditLogger:
         return event_id
 
     def log_trade_closed(self,
-                       trade_data: Dict[str, Any],
+                       trade_data: dict[str, Any],
                        correlation_id: str,
-                       user_id: Optional[str] = None,
-                       session_id: Optional[str] = None,
-                       ip_address: Optional[str] = None) -> str:
+                       user_id: str | None = None,
+                       session_id: str | None = None,
+                       ip_address: str | None = None) -> str:
         """Log a trade closure event."""
         event_id = self.log_event(
             event_type="trade_closed",
@@ -570,7 +570,7 @@ class AuditLogger:
 
         return event_id
 
-    def get_trade_audit_trail(self, trade_id: str) -> Optional[TradeAuditTrail]:
+    def get_trade_audit_trail(self, trade_id: str) -> TradeAuditTrail | None:
         """
         Get the complete audit trail for a trade.
 
@@ -584,8 +584,8 @@ class AuditLogger:
             return self._trade_trails.get(trade_id)
 
     def log_trade_execution(self, user_id: str, symbol: str, action: str, quantity: int,
-                           order_id: str, outcome: str, details: Optional[Dict[str, Any]] = None,
-                           session_id: Optional[str] = None, ip_address: Optional[str] = None) -> str:
+                           order_id: str, outcome: str, details: dict[str, Any] | None = None,
+                           session_id: str | None = None, ip_address: str | None = None) -> str:
         """Log a trade execution event (backward compatibility)."""
         return self.log_event(
             event_type="trade_execution",
@@ -604,8 +604,8 @@ class AuditLogger:
             ip_address=ip_address
         )
 
-    def log_authentication(self, user_id: str, outcome: str, details: Optional[Dict[str, Any]] = None,
-                          session_id: Optional[str] = None, ip_address: Optional[str] = None) -> str:
+    def log_authentication(self, user_id: str, outcome: str, details: dict[str, Any] | None = None,
+                          session_id: str | None = None, ip_address: str | None = None) -> str:
         """Log an authentication event."""
         return self.log_event(
             event_type="authentication",
@@ -620,7 +620,7 @@ class AuditLogger:
         )
 
     def log_config_change(self, user_id: str, config_key: str, old_value: Any, new_value: Any,
-                         session_id: Optional[str] = None, ip_address: Optional[str] = None) -> str:
+                         session_id: str | None = None, ip_address: str | None = None) -> str:
         """Log a configuration change event."""
         # Sanitize values for logging (don't log secrets in plaintext)
         sanitized_old = "[REDACTED]" if self._is_secret_key(config_key) else old_value
@@ -643,10 +643,10 @@ class AuditLogger:
         )
 
     def log_security_violation(self, event_type: str, resource: str, action: str,
-                              details: Optional[Dict[str, Any]] = None,
-                              user_id: Optional[str] = None,
-                              session_id: Optional[str] = None,
-                              ip_address: Optional[str] = None) -> str:
+                              details: dict[str, Any] | None = None,
+                              user_id: str | None = None,
+                              session_id: str | None = None,
+                              ip_address: str | None = None) -> str:
         """Log a security violation event."""
         return self.log_event(
             event_type=f"security:{event_type}",
@@ -707,7 +707,7 @@ class AuditLogger:
 
 # Module-level globals for singleton access
 _audit_logger_lock: threading.Lock = threading.Lock()
-_audit_logger: Optional[AuditLogger] = None
+_audit_logger: AuditLogger | None = None
 
 
 def get_audit_logger() -> AuditLogger:
@@ -720,7 +720,7 @@ def get_audit_logger() -> AuditLogger:
     return _audit_logger
 
 
-def init_audit_logger(log_file: Optional[Path] = None,
+def init_audit_logger(log_file: Path | None = None,
                      max_file_size: int = 10 * 1024 * 1024,
                      backup_count: int = 5,
                      enable_console_output: bool = False) -> AuditLogger:
@@ -737,101 +737,101 @@ def init_audit_logger(log_file: Optional[Path] = None,
 
 
 # Convenience functions for common audit events
-def log_authentication(user_id: str, outcome: str, details: Optional[Dict[str, Any]] = None,
-                      session_id: Optional[str] = None, ip_address: Optional[str] = None) -> str:
+def log_authentication(user_id: str, outcome: str, details: dict[str, Any] | None = None,
+                      session_id: str | None = None, ip_address: str | None = None) -> str:
     """Log an authentication event using the global audit logger."""
     return get_audit_logger().log_authentication(user_id, outcome, details, session_id, ip_address)
 
 
 def log_config_change(user_id: str, config_key: str, old_value: Any, new_value: Any,
-                     session_id: Optional[str] = None, ip_address: Optional[str] = None) -> str:
+                     session_id: str | None = None, ip_address: str | None = None) -> str:
     """Log a configuration change event using the global audit logger."""
     return get_audit_logger().log_config_change(user_id, config_key, old_value, new_value, session_id, ip_address)
 
 
 def log_trade_execution(user_id: str, symbol: str, action: str, quantity: int,
-                       order_id: str, outcome: str, details: Optional[Dict[str, Any]] = None,
-                      session_id: Optional[str] = None, ip_address: Optional[str] = None) -> str:
+                       order_id: str, outcome: str, details: dict[str, Any] | None = None,
+                      session_id: str | None = None, ip_address: str | None = None) -> str:
     """Log a trade execution event using the global audit logger."""
     return get_audit_logger().log_trade_execution(user_id, symbol, action, quantity, order_id, outcome, details, session_id, ip_address)
 
 
 def log_security_violation(event_type: str, resource: str, action: str,
-                          details: Optional[Dict[str, Any]] = None,
-                          user_id: Optional[str] = None,
-                          session_id: Optional[str] = None,
-                          ip_address: Optional[str] = None) -> str:
+                          details: dict[str, Any] | None = None,
+                          user_id: str | None = None,
+                          session_id: str | None = None,
+                          ip_address: str | None = None) -> str:
     """Log a security violation event using the global audit logger."""
     return get_audit_logger().log_security_violation(event_type, resource, action, details, user_id, session_id, ip_address)
 
 
 # Convenience functions for signal-to-fill audit trail
-def log_signal_generated(signal_data: Dict[str, Any],
-                        user_id: Optional[str] = None,
-                        session_id: Optional[str] = None,
-                        ip_address: Optional[str] = None) -> str:
+def log_signal_generated(signal_data: dict[str, Any],
+                        user_id: str | None = None,
+                        session_id: str | None = None,
+                        ip_address: str | None = None) -> str:
     """Log a signal generation event using the global audit logger."""
     return get_audit_logger().log_signal_generated(signal_data, user_id, session_id, ip_address)
 
 
-def log_signal_validated(signal_data: Dict[str, Any],
-                        validation_result: Dict[str, Any],
+def log_signal_validated(signal_data: dict[str, Any],
+                        validation_result: dict[str, Any],
                         correlation_id: str,
-                        user_id: Optional[str] = None,
-                        session_id: Optional[str] = None,
-                        ip_address: Optional[str] = None) -> str:
+                        user_id: str | None = None,
+                        session_id: str | None = None,
+                        ip_address: str | None = None) -> str:
     """Log a signal validation event using the global audit logger."""
     return get_audit_logger().log_signal_validated(signal_data, validation_result, correlation_id, user_id, session_id, ip_address)
 
 
-def log_risk_approved(signal_data: Dict[str, Any],
-                     risk_evaluation: Dict[str, Any],
+def log_risk_approved(signal_data: dict[str, Any],
+                     risk_evaluation: dict[str, Any],
                      correlation_id: str,
-                     user_id: Optional[str] = None,
-                     session_id: Optional[str] = None,
-                     ip_address: Optional[str] = None) -> str:
+                     user_id: str | None = None,
+                     session_id: str | None = None,
+                     ip_address: str | None = None) -> str:
     """Log a risk approval event using the global audit logger."""
     return get_audit_logger().log_risk_approved(signal_data, risk_evaluation, correlation_id, user_id, session_id, ip_address)
 
 
-def log_order_submitted(order_data: Dict[str, Any],
+def log_order_submitted(order_data: dict[str, Any],
                        correlation_id: str,
-                       user_id: Optional[str] = None,
-                       session_id: Optional[str] = None,
-                       ip_address: Optional[str] = None) -> str:
+                       user_id: str | None = None,
+                       session_id: str | None = None,
+                       ip_address: str | None = None) -> str:
     """Log an order submission event using the global audit logger."""
     return get_audit_logger().log_order_submitted(order_data, correlation_id, user_id, session_id, ip_address)
 
 
-def log_order_filled(order_data: Dict[str, Any],
-                    fill_data: Dict[str, Any],
+def log_order_filled(order_data: dict[str, Any],
+                    fill_data: dict[str, Any],
                     correlation_id: str,
-                    user_id: Optional[str] = None,
-                    session_id: Optional[str] = None,
-                    ip_address: Optional[str] = None) -> str:
+                    user_id: str | None = None,
+                    session_id: str | None = None,
+                    ip_address: str | None = None) -> str:
     """Log an order fill event using the global audit logger."""
     return get_audit_logger().log_order_filled(order_data, fill_data, correlation_id, user_id, session_id, ip_address)
 
 
-def log_position_updated(position_data: Dict[str, Any],
+def log_position_updated(position_data: dict[str, Any],
                         correlation_id: str,
-                        user_id: Optional[str] = None,
-                        session_id: Optional[str] = None,
-                        ip_address: Optional[str] = None) -> str:
+                        user_id: str | None = None,
+                        session_id: str | None = None,
+                        ip_address: str | None = None) -> str:
     """Log a position update event using the global audit logger."""
     return get_audit_logger().log_position_updated(position_data, correlation_id, user_id, session_id, ip_address)
 
 
-def log_trade_closed(trade_data: Dict[str, Any],
+def log_trade_closed(trade_data: dict[str, Any],
                     correlation_id: str,
-                    user_id: Optional[str] = None,
-                    session_id: Optional[str] = None,
-                    ip_address: Optional[str] = None) -> str:
+                    user_id: str | None = None,
+                    session_id: str | None = None,
+                    ip_address: str | None = None) -> str:
     """Log a trade closure event using the global audit logger."""
     return get_audit_logger().log_trade_closed(trade_data, correlation_id, user_id, session_id, ip_address)
 
 
-def get_trade_audit_trail(trade_id: str) -> Optional[TradeAuditTrail]:
+def get_trade_audit_trail(trade_id: str) -> TradeAuditTrail | None:
     """Get the complete audit trail for a trade using the global audit logger."""
     return get_audit_logger().get_trade_audit_trail(trade_id)
 

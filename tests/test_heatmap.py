@@ -1,15 +1,13 @@
 """Tests for heatmap extensions in core/signal_autopsy.py (v2.44 Item 16)."""
 import pytest
 from core.signal_autopsy import (
+    AutopsyReport,
     HeatmapCell,
     TimeHeatmap,
-    AutopsyReport,
     compute_time_heatmap,
     render_ascii_heatmap,
     run_autopsy,
-    load_autopsy_data,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

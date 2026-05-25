@@ -31,10 +31,10 @@ import json
 import logging
 import time
 from datetime import timedelta
-
-from core.datetime_ist import now_ist
 from pathlib import Path
 from typing import Any
+
+from core.datetime_ist import now_ist
 
 _log = logging.getLogger(__name__)
 
@@ -168,6 +168,10 @@ def get_iv_rank(
     Returns:
         Float in [0, 100], or -1.0 if insufficient history.
     """
+    try:
+        current_vix = float(current_vix)
+    except (TypeError, ValueError):
+        return -1.0
     if current_vix <= 0:
         return -1.0
     cfg = config or {}
@@ -203,6 +207,10 @@ def get_iv_percentile(
     Returns:
         Float in [0, 100], or -1.0 if insufficient history.
     """
+    try:
+        current_vix = float(current_vix)
+    except (TypeError, ValueError):
+        return -1.0
     if current_vix <= 0:
         return -1.0
     cfg = config or {}
@@ -240,6 +248,10 @@ def get_score_multiplier(
     if not cfg.get("iv_rank_enabled", True):
         return 1.0, -1.0, "iv_rank_disabled"
 
+    try:
+        current_vix = float(current_vix)
+    except (TypeError, ValueError):
+        return 1.0, -1.0, "iv_rank_unavailable(vix=invalid)"
     if current_vix <= 0:
         return 1.0, -1.0, "iv_rank_unavailable(vix=0)"
 

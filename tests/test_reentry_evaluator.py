@@ -1,6 +1,6 @@
 """Tests for core/reentry_evaluator.py (v2.44 Item 2)."""
 import time
-import pytest
+
 from core.reentry_evaluator import (
     ReentryDecision,
     ReentryTracker,

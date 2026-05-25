@@ -789,7 +789,7 @@ class TelegramCommander:
 
     def _cmd_emergency_stop(self, user_id: str, username: str) -> None:
         """Emergency stop: trip hard halt immediately."""
-        from core.safety_state import trip_hard_halt, is_hard_halted
+        from core.safety_state import is_hard_halted, trip_hard_halt
         if is_hard_halted():
             self._reply("🚨 System is already halted.", critical=True)
             return

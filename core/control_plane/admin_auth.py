@@ -10,13 +10,13 @@ import hashlib
 import hmac
 import json
 import logging
-import time
 import threading
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
 from core.auth.permissions import Role
-from core.auth.session_store import SessionStore, Session
+from core.auth.session_store import Session, SessionStore
 
 _log = logging.getLogger(__name__)
 

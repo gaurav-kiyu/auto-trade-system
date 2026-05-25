@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from core.config_bootstrap import (
     CONFIG_B64_SECRET_KEYS_STOCK,
     apply_env_overrides,

@@ -9,15 +9,17 @@ the trading system.
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from core.datetime_ist import now_ist
 from enum import Enum
 from queue import Empty, PriorityQueue
 from threading import Event, Thread
+
+from core.datetime_ist import now_ist
 
 # Import the new LoggingService
 from core.logging import LoggingService
@@ -29,6 +31,7 @@ from core.ports.notification.notification_port import (
     NotificationResult,
     NotificationStatus,
 )
+from infrastructure.adapters.notifications.email_adapter import EmailNotificationAdapter
 from infrastructure.adapters.notifications.telegram_adapter import TelegramNotificationAdapter
 
 
@@ -382,8 +385,40 @@ class NotificationService:
         except Exception as e:
             self._logger.warning(f"Could not initialize Telegram adapter: {e}")
 
-        # TODO: Initialize other adapters (email, SMS, webhook, etc.)
-        # For now, we'll rely on the Telegram adapter being available
+        # Initialize email adapter if SMTP credentials are configured
+        try:
+            # These values would ideally come from secure config / environment variables
+            # Defaults match index_config.defaults.json EMAIL_* keys
+            smtp_host = os.environ.get("OPBUYING_EMAIL_SMTP", "smtp.gmail.com")
+            smtp_port = int(os.environ.get("OPBUYING_EMAIL_PORT", "587"))
+            smtp_user = os.environ.get("OPBUYING_EMAIL_USER", "")
+            smtp_pass = os.environ.get("OPBUYING_EMAIL_PASS", "")
+            smtp_to = os.environ.get("OPBUYING_EMAIL_TO", "")
+            email_enabled = os.environ.get("OPBUYING_EMAIL_ENABLED", "false").lower() == "true"
+
+            if smtp_user and smtp_pass and email_enabled:
+                email_adapter = EmailNotificationAdapter(
+                    smtp_host=smtp_host,
+                    smtp_port=smtp_port,
+                    smtp_user=smtp_user,
+                    smtp_pass=smtp_pass,
+                    default_recipient=smtp_to,
+                    enabled=True,
+                )
+                self._adapters[NotificationChannel.EMAIL] = email_adapter
+                self._logger.info(
+                    "Email notification adapter initialized (host=%s, user=%s, to=%s)",
+                    smtp_host, smtp_user, smtp_to or "default",
+                )
+            else:
+                self._logger.info(
+                    "Email credentials not configured (OPBUYING_EMAIL_USER/PASS) "
+                    "or EMAIL_ENABLED=false - email notifications disabled"
+                )
+        except Exception as e:
+            self._logger.warning("Could not initialize email adapter: %s", e)
+
+        # Placeholder for future adapters (SMS, webhook, etc.)
 
     def _start_workers(self):
         """Start worker threads for processing notifications."""

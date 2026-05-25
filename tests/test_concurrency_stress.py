@@ -6,8 +6,6 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
-import pytest
-
 from core.adapters.base_adapter import OrderRequest, OrderResponse, OrderStatus
 from core.execution.order_manager import OrderManager
 

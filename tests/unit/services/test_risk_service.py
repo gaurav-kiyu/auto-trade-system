@@ -3,20 +3,14 @@ Unit tests for Risk Service.
 """
 from __future__ import annotations
 
-import pytest
-from unittest.mock import Mock, patch
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 
+import pytest
+from core.ports.persistence.persistence_port import TradePersistencePort
+from core.ports.risk.risk_port import PortfolioRiskMetrics, PositionSizingInput, RiskDecision, RiskEvaluation
 from core.safety_state import get_consecutive_losses, record_trade_outcome, reset_consecutive_losses
 from core.services.risk_service import RiskService, RiskServiceConfig
-from core.ports.risk.risk_port import (
-    RiskPort,
-    RiskEvaluation,
-    RiskDecision,
-    PositionSizingInput,
-    PortfolioRiskMetrics
-)
-from core.ports.persistence.persistence_port import TradePersistencePort
 
 
 class TestRiskService:
@@ -47,7 +41,7 @@ class TestRiskService:
         get_daily_pnl = Mock(return_value=-500.0)
         get_volatility = Mock(return_value=25.0)
         get_margin = Mock(return_value=1000.0)
-        
+
         service = RiskService(
             config=self.config,
             trade_persistence=self.persistence_mock,
@@ -57,7 +51,7 @@ class TestRiskService:
             get_volatility_fn=get_volatility,
             get_margin_fn=get_margin
         )
-        
+
         assert service._get_capital == get_capital
         assert service._get_open_positions == get_positions
         assert service._get_daily_pnl == get_daily_pnl
@@ -86,7 +80,7 @@ class TestRiskService:
                 symbol_exposure={}
             )
         )
-        
+
         assert evaluation.decision == RiskDecision.DENIED
         assert "Invalid signal data" in evaluation.reason
         assert evaluation.risk_score == 0.0
@@ -112,7 +106,7 @@ class TestRiskService:
                 symbol_exposure={}
             )
         )
-        
+
         assert evaluation.decision == RiskDecision.DENIED
         assert "Invalid signal data" in evaluation.reason
 
@@ -126,7 +120,7 @@ class TestRiskService:
             "target": 22400.0,
             "strength": 0.8
         }
-        
+
         portfolio_metrics = PortfolioRiskMetrics(
             total_capital=100000.0,
             used_capital=20000.0,
@@ -142,7 +136,7 @@ class TestRiskService:
             sector_exposure={"FINANCE": 15000.0, "TECH": 5000.0},
             symbol_exposure={"NIFTY24SepFUT": 10000.0, "BANKNIFTY24SepFUT": 10000.0}
         )
-        
+
         # Mock the internal check methods to return ALLOWED
         with patch.object(self.service, '_check_daily_loss_limit') as mock_daily_loss, \
              patch.object(self.service, '_check_consecutive_losses') as mock_consecutive, \
@@ -150,7 +144,7 @@ class TestRiskService:
              patch.object(self.service, '_check_margin_requirements') as mock_margin, \
              patch.object(self.service, '_check_trade_quality') as mock_quality, \
              patch.object(self.service, '_check_position_sizing_limits') as mock_sizing:
-            
+
             # All checks return ALLOWED
             allowed_evaluation = RiskEvaluation(
                 decision=RiskDecision.ALLOWED,
@@ -163,7 +157,7 @@ class TestRiskService:
             mock_margin.return_value = allowed_evaluation
             mock_quality.return_value = allowed_evaluation
             mock_sizing.return_value = allowed_evaluation
-            
+
             # Mock position sizing calculation
             with patch.object(self.service, 'calculate_position_size', return_value=25) as mock_sizing_calc, \
                  patch.object(self.service, '_get_lot_size', return_value=50), \
@@ -174,14 +168,14 @@ class TestRiskService:
                  patch.object(self.service, '_get_max_lots_per_trade', return_value=50), \
                  patch.object(self.service, '_calculate_max_lots_by_capital', return_value=40), \
                  patch.object(self.service, '_calculate_risk_score', return_value=0.25):
-                
+
                 # Execute
                 evaluation = self.service.evaluate_trade(
                     symbol="NIFTY24SepFUT",
                     signal_data=signal_data,
                     portfolio_metrics=portfolio_metrics
                 )
-                
+
                 # Verify
                 assert evaluation.decision == RiskDecision.ALLOWED
                 assert evaluation.reason == "All risk checks passed"
@@ -208,14 +202,14 @@ class TestRiskService:
             sector_exposure={},
             symbol_exposure={}
         )
-        
+
         # Execute
         evaluation = self.service.evaluate_trade(
             symbol="NIFTY24SepFUT",
             signal_data=signal_data,
             portfolio_metrics=portfolio_metrics
         )
-        
+
         # Verify
         assert evaluation.decision == RiskDecision.DENIED
         assert "Daily loss limit reached" in evaluation.reason
@@ -239,14 +233,14 @@ class TestRiskService:
             sector_exposure={},
             symbol_exposure={}
         )
-        
+
         # Execute
         evaluation = self.service.evaluate_trade(
             symbol="NIFTY24SepFUT",
             signal_data=signal_data,
             portfolio_metrics=portfolio_metrics
         )
-        
+
         # Verify
         assert evaluation.decision == RiskDecision.DENIED
         assert "Consecutive loss limit reached" in evaluation.reason
@@ -270,14 +264,14 @@ class TestRiskService:
             sector_exposure={"FINANCE": 95000.0},
             symbol_exposure={"NIFTY24SepFUT": 50000.0}
         )
-        
+
         # Execute
         evaluation = self.service.evaluate_trade(
             symbol="NIFTY24SepFUT",
             signal_data=signal_data,
             portfolio_metrics=portfolio_metrics
         )
-        
+
         # Verify
         assert evaluation.decision == RiskDecision.DENIED
         assert ("Maximum open positions reached" in evaluation.reason or
@@ -319,10 +313,10 @@ class TestRiskService:
             volatility=20.0,
             existing_exposure=0.0
         )
-        
+
         # Execute
         size = self.service.calculate_position_size(sizing_input)
-        
+
         # Verify
         assert size == 0
 
@@ -339,10 +333,10 @@ class TestRiskService:
             volatility=40.0,  # High volatility
             existing_exposure=0.0
         )
-        
+
         # Execute
         size = self.service.calculate_position_size(sizing_input)
-        
+
         # Verify - high volatility should reduce position size
         # (Based on config: vix_threshold_high=35.0, vix_size_multiplier_high=0.6)
         assert size >= 0  # Should be calculated
@@ -351,14 +345,14 @@ class TestRiskService:
         """Test margin validation with sufficient margin."""
         # Setup
         self.service._get_margin = Mock(return_value=8000.0)
-        
+
         # Execute
         result = self.service.validate_margin_requirements(
             symbol="NIFTY24SepFUT",
             quantity=10,
             capital_available=20000.0
         )
-        
+
         # Verify
         assert result is True  # 8000 <= 20000 * 0.8 (margin_safety_factor)
 
@@ -366,14 +360,14 @@ class TestRiskService:
         """Test margin validation with insufficient margin."""
         # Setup
         self.service._get_margin = Mock(return_value=20000.0)
-        
+
         # Execute
         result = self.service.validate_margin_requirements(
             symbol="NIFTY24SepFUT",
             quantity=10,
             capital_available=20000.0
         )
-        
+
         # Verify
         assert result is False  # 20000 > 20000 * 0.8 = 16000
 
@@ -383,10 +377,10 @@ class TestRiskService:
         self.service._get_capital = Mock(return_value=100000.0)
         self.service._get_daily_pnl = Mock(return_value=1500.0)
         self.service._get_open_positions = Mock(return_value=3)
-        
+
         # Execute
         metrics = self.service.get_portfolio_risk_metrics()
-        
+
         # Verify
         assert isinstance(metrics, PortfolioRiskMetrics)
         assert metrics.total_capital == 100000.0
@@ -400,10 +394,10 @@ class TestRiskService:
         quantity = 50
         entry_price = 22000.0
         timestamp = datetime.now()
-        
+
         # Execute
         self.service.update_position(symbol, quantity, entry_price, timestamp)
-        
+
         # Verify internal state was updated
         assert symbol in self.service._positions
         position = self.service._positions[symbol]
@@ -416,10 +410,10 @@ class TestRiskService:
         # Setup
         symbol = "NIFTY24SepFUT"
         self.service._positions[symbol] = {'quantity': 50, 'entry_price': 22000.0}
-        
+
         # Execute
         self.service.remove_position(symbol)
-        
+
         # Verify
         assert symbol not in self.service._positions
 
@@ -451,10 +445,10 @@ class TestRiskService:
         self.service._get_daily_pnl = Mock(return_value=0.0)
         self.service._get_open_positions = Mock(return_value=2)
         self.persistence_mock.health_check.return_value = {"status": "healthy"}
-        
+
         # Execute
         result = self.service.health_check()
-        
+
         # Verify
         assert result["status"] == "healthy"
         assert result["service"] == "RiskService"
@@ -466,7 +460,7 @@ class TestRiskService:
         """Test health check when error occurs."""
         # Setup
         self.service._get_capital = Mock(side_effect=Exception("Capital error"))
-        
+
         # Execute
         result = self.service.health_check()
 

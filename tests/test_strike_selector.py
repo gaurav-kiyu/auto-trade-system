@@ -14,18 +14,14 @@ Covers:
 """
 from __future__ import annotations
 
-import pytest
-
 from core.strike_selector import (
-    select_strike,
-    dte_entry_check,
-    strike_summary,
-    _otm_steps_for_tier,
-    _otm_steps_for_delta,
     _apply_vega_cap,
-    _apply_otm_direction,
+    _otm_steps_for_delta,
+    _otm_steps_for_tier,
+    dte_entry_check,
+    select_strike,
+    strike_summary,
 )
-
 
 # ── Common fixtures ───────────────────────────────────────────────────────────
 

@@ -9,16 +9,15 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from datetime import datetime
 
 ROOT = Path(__file__).resolve().parent.parent
 
 try:
     from pptx import Presentation
-    from pptx.util import Inches, Pt, Emu
     from pptx.dml.color import RGBColor
-    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
     from pptx.enum.shapes import MSO_SHAPE
+    from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+    from pptx.util import Emu, Inches, Pt
 except ImportError:
     print("python-pptx not installed. Run: pip install python-pptx")
     sys.exit(1)
@@ -56,7 +55,7 @@ def _add_title_bar(slide, text: str, prs):
     shape.fill.solid()
     shape.fill.fore_color.rgb = DARK_BLUE
     shape.line.fill.background()
-    
+
     tf = shape.text_frame
     tf.word_wrap = True
     p = tf.paragraphs[0]
@@ -86,7 +85,7 @@ def _add_bullet_box(slide, left, top, width, height, items, font_size=13, color=
     txBox = slide.shapes.add_textbox(left, top, width, height)
     tf = txBox.text_frame
     tf.word_wrap = True
-    
+
     for i, item in enumerate(items):
         if i == 0:
             p = tf.paragraphs[0]
@@ -103,13 +102,13 @@ def build_pptx(output_path: Path) -> None:
     prs = Presentation()
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
-    
+
     bt = _load_backtest_results()
 
     # ── Slide 1: Title ──────────────────────────────────────────────
     slide = prs.slides.add_slide(prs.slide_layouts[6])  # Blank layout
     _add_slide_bg(slide, prs)
-    
+
     # Big centered title
     _add_text_box(slide, Inches(1), Inches(1.5), Inches(11.333), Inches(1.5),
                   "OPBuying Index Options Bot", font_size=44, bold=True, color=DARK_BLUE,
@@ -118,14 +117,14 @@ def build_pptx(output_path: Path) -> None:
                   "Architecture Presentation — v2.53.0", font_size=28, color=MEDIUM_BLUE,
                   alignment=PP_ALIGN.CENTER)
     _add_text_box(slide, Inches(1), Inches(4.5), Inches(11.333), Inches(0.8),
-                  f"May 21, 2026  |  Production Ready  |  NIFTY / BANKNIFTY / FINNIFTY",
+                  "May 21, 2026  |  Production Ready  |  NIFTY / BANKNIFTY / FINNIFTY",
                   font_size=16, color=RGBColor(0x7F, 0x8C, 0x8D), alignment=PP_ALIGN.CENTER)
 
     # ── Slide 2: Current Architecture Overview ──────────────────────
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _add_slide_bg(slide, prs)
     _add_title_bar(slide, "Current Architecture Overview", prs)
-    
+
     _add_text_box(slide, Inches(0.5), Inches(1.2), Inches(5.5), Inches(0.5),
                   "Core Components", font_size=20, bold=True, color=DARK_BLUE)
     _add_bullet_box(slide, Inches(0.5), Inches(1.8), Inches(5.5), Inches(4.5), [
@@ -140,7 +139,7 @@ def build_pptx(output_path: Path) -> None:
         "Dashboard — FastAPI web dashboard (opt-in)",
         "Telegram — Command interface with security",
     ], font_size=13)
-    
+
     _add_text_box(slide, Inches(6.8), Inches(1.2), Inches(5.5), Inches(0.5),
                   "Key Metrics", font_size=20, bold=True, color=DARK_BLUE)
     _add_bullet_box(slide, Inches(6.8), Inches(1.8), Inches(5.5), Inches(4.5), [
@@ -159,12 +158,12 @@ def build_pptx(output_path: Path) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _add_slide_bg(slide, prs)
     _add_title_bar(slide, "Comparative Analysis — Previous vs Current", prs)
-    
+
     # Table
     rows, cols = 8, 3
     table_shape = slide.shapes.add_table(rows, cols, Inches(0.5), Inches(1.3), Inches(12.333), Inches(5.5))
     table = table_shape.table
-    
+
     headers = ["Dimension", "Previous (v2.44)", "Current (v2.53.0)"]
     data_rows = [
         ["Signal Generation", "Basic RSI/MACD/ADX", "14-feature ML + SHAP + IV rank + PCR + GEX"],
@@ -175,7 +174,7 @@ def build_pptx(output_path: Path) -> None:
         ["Testing Coverage", "~500 tests", "2,397 tests (stress, catastrophic, failover, reconciliation)"],
         ["Governance", "Minimal", "Env separation, migration, retention, audit, security review"],
     ]
-    
+
     for i, h in enumerate(headers):
         cell = table.cell(0, i)
         cell.text = h
@@ -185,7 +184,7 @@ def build_pptx(output_path: Path) -> None:
             p.font.color.rgb = WHITE
         cell.fill.solid()
         cell.fill.fore_color.rgb = DARK_BLUE
-    
+
     for r, row_data in enumerate(data_rows, 1):
         for c, val in enumerate(row_data):
             cell = table.cell(r, c)
@@ -201,7 +200,7 @@ def build_pptx(output_path: Path) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _add_slide_bg(slide, prs)
     _add_title_bar(slide, "Architecture Strengths", prs)
-    
+
     _add_bullet_box(slide, Inches(0.5), Inches(1.3), Inches(12), Inches(5.5), [
         "Execution Reconciliation — Deterministic state machine prevents duplicate orders after broker timeout/ambiguity. True broker-vs-internal state sync on startup eliminates zombie positions.",
         "Broker Abstraction — Clean ports-and-adapters pattern. Paper mode NEVER touches real broker APIs. Thread-safe failover manager with recovery windows.",
@@ -215,7 +214,7 @@ def build_pptx(output_path: Path) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _add_slide_bg(slide, prs)
     _add_title_bar(slide, "Architecture Weaknesses & Improvement Areas", prs)
-    
+
     weaknesses = [
         ("🔴 Risk Engine Fragmentation", "~10 risk modules need consolidation into single RiskAuthority"),
         ("🔴 Backend Data Quality", "Yahoo Finance lacks OI/PCR; 30-day 1m cap; no corporate actions"),
@@ -224,7 +223,7 @@ def build_pptx(output_path: Path) -> None:
         ("🟢 Test Debris", "Reconciliation tests leave orphan .db files"),
         ("🟢 Documentation Drift", "Some inline comments reference outdated versions"),
     ]
-    
+
     y = Inches(1.3)
     for title, desc in weaknesses:
         _add_text_box(slide, Inches(0.5), y, Inches(12), Inches(0.5),
@@ -237,12 +236,12 @@ def build_pptx(output_path: Path) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _add_slide_bg(slide, prs)
     _add_title_bar(slide, "Backtesting Results", prs)
-    
+
     if bt:
         rows = 4
         table_shape = slide.shapes.add_table(rows, 8, Inches(0.5), Inches(1.3), Inches(12.333), Inches(2.5))
         table = table_shape.table
-        
+
         headers = ["Index", "Trades", "Win%", "PF", "Sharpe", "MaxDD", "NetRet", "Verdict"]
         for i, h in enumerate(headers):
             cell = table.cell(0, i)
@@ -253,7 +252,7 @@ def build_pptx(output_path: Path) -> None:
                 p.font.color.rgb = WHITE
             cell.fill.solid()
             cell.fill.fore_color.rgb = DARK_BLUE
-        
+
         for r, label in enumerate(["NIFTY", "BANKNIFTY", "FINNIFTY"], 1):
             res = bt.get(label, {})
             if res and "error" not in res:
@@ -274,7 +273,7 @@ def build_pptx(output_path: Path) -> None:
                 if r % 2 == 0:
                     cell.fill.solid()
                     cell.fill.fore_color.rgb = LIGHT_GRAY
-    
+
     _add_text_box(slide, Inches(0.5), Inches(4.0), Inches(12), Inches(3.0),
                   "⚠️ Critical Caveat: Results are based on 30-day Yahoo 1m data with synthetic OI/PCR.\n"
                   "0-10 trades per index — statistically insignificant.\n"
@@ -286,7 +285,7 @@ def build_pptx(output_path: Path) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _add_slide_bg(slide, prs)
     _add_title_bar(slide, "Recommendations for Future Scalability", prs)
-    
+
     recs = [
         ("1️⃣  RiskAuthority Consolidation", "HIGH",
          "Merge ~10 risk modules into single canonical RiskAuthority service"),
@@ -301,17 +300,17 @@ def build_pptx(output_path: Path) -> None:
         ("6️⃣  Pre-commit Hygiene", "LOW",
          "Fix reconciliation tests to clean up .db artifacts; enforce via CI"),
     ]
-    
+
     y = Inches(1.3)
     for title, priority, desc in recs:
         # Determine color based on priority
         pri_color = RED if "HIGH" in priority else (ORANGE if "MEDIUM" in priority else GREEN)
-        
+
         _add_text_box(slide, Inches(0.5), y, Inches(8), Inches(0.4),
                       title, font_size=16, bold=True, color=DARK_BLUE)
         _add_text_box(slide, Inches(0.7), y + Inches(0.35), Inches(8), Inches(0.3),
                       desc, font_size=13, color=RGBColor(0x7F, 0x8C, 0x8D))
-        
+
         # Priority badge
         badge = slide.shapes.add_shape(
             MSO_SHAPE.ROUNDED_RECTANGLE,
@@ -328,23 +327,23 @@ def build_pptx(output_path: Path) -> None:
         p.font.bold = True
         p.alignment = PP_ALIGN.CENTER
         tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-        
+
         y += Inches(0.95)
 
     # ── Slide 8: Conclusion ─────────────────────────────────────────
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _add_slide_bg(slide, prs)
     _add_title_bar(slide, "Conclusion & Next Steps", prs)
-    
+
     _add_text_box(slide, Inches(0.5), Inches(1.3), Inches(12), Inches(0.5),
                   "Status: Production Ready — v2.53.0", font_size=22, bold=True, color=GREEN)
-    
+
     _add_text_box(slide, Inches(0.5), Inches(2.0), Inches(12), Inches(1.5),
                   "The OPBuying system demonstrates production-grade architecture with strong execution "
                   "reconciliation, broker abstraction, ML pipeline, and comprehensive testing. "
                   "Primary weaknesses are risk engine fragmentation and data quality limitations.",
                   font_size=14, color=DARK_TEXT)
-    
+
     _add_text_box(slide, Inches(0.5), Inches(3.5), Inches(12), Inches(0.5),
                   "Immediate Next Steps (Next 30 Days):", font_size=16, bold=True, color=DARK_BLUE)
     _add_bullet_box(slide, Inches(0.5), Inches(4.0), Inches(12), Inches(3), [

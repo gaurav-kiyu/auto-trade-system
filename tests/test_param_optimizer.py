@@ -1,10 +1,11 @@
 """Tests for core/param_optimizer.py (v2.45 Item 18)."""
-import pytest
 from core.param_optimizer import (
-    OptimizationResult, _compute_metric, _simulate_filter,
-    optimize_param, format_optimization_report,
+    OptimizationResult,
+    _compute_metric,
+    _simulate_filter,
+    format_optimization_report,
+    optimize_param,
 )
-
 
 _PNLS = [100.0, 200.0, -50.0, 150.0, -30.0, 300.0, -80.0, 250.0]
 

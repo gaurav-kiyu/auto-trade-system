@@ -5,15 +5,14 @@ These tests show how to simulate various broker failure scenarios.
 
 from __future__ import annotations
 
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import pytest
-
 from core.adapters.broker_adapters import (
-    PaperBrokerAdapter,
     BrokerRuntimeContext,
-    create_broker_adapter,
+    PaperBrokerAdapter,
     build_broker_runtime_context,
+    create_broker_adapter,
 )
 
 

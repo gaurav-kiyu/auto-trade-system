@@ -15,12 +15,11 @@ import os
 import sys
 import tempfile
 import threading
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Generator
-from unittest.mock import patch
+from typing import Any
 
 import pytest
-
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:

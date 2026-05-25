@@ -15,11 +15,11 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from typing import Any, Callable
+from typing import Any
 
-from core.ai.model_registry import ModelRegistry
 from core.ai.canary_manager import CanaryManager
-from core.ai.rollback_controller import RollbackController, RollbackEvent
+from core.ai.model_registry import ModelRegistry
+from core.ai.rollback_controller import RollbackController
 
 _log = logging.getLogger(__name__)
 

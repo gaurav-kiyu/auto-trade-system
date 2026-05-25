@@ -1,8 +1,10 @@
 """Tests for core/nlp_journal.py (v2.45 Item 17) — template-based, no AI API required."""
-import pytest
 from core.nlp_journal import (
-    TradeNarrative, _build_prompt, _extract_sentiment,
-    generate_trade_narrative, format_narrative,
+    TradeNarrative,
+    _build_prompt,
+    _extract_sentiment,
+    format_narrative,
+    generate_trade_narrative,
 )
 
 

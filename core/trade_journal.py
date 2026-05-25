@@ -16,11 +16,12 @@ import json
 import logging
 import sqlite3
 import threading
-from concurrent.futures import ThreadPoolExecutor, wait as _wait_futures
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
-from core.datetime_ist import now_ist
 from pathlib import Path
 from typing import Any
+
+from core.datetime_ist import now_ist
 
 log = logging.getLogger("trade_journal")
 

@@ -18,17 +18,17 @@ The adapter implements the BrokerPort interface defined in core/ports/broker.py
 
 from __future__ import annotations
 
-import time
 import logging
-from typing import Dict, Any, List, Optional, Callable
+from collections.abc import Callable
 from datetime import datetime
+from typing import Any
+
+# Import shared exceptions for consistent error handling
+from core.common.exceptions import BrokerError
 
 # Import the broker port interface this adapter implements
 # WARNING: Do NOT modify this import - it's the contract we must follow
-from core.ports.broker import BrokerPort, Order, OrderResult, Position, Quote, Fill
-
-# Import shared exceptions for consistent error handling
-from core.common.exceptions import BrokerError, ConfigurationError
+from core.ports.broker import BrokerPort, Order, Position, Quote
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class TemplateBrokerAdapter(BrokerPort):
     4. Implement proper authentication and error handling
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the broker adapter with configuration.
 
@@ -307,9 +307,9 @@ class TemplateBrokerAdapter(BrokerPort):
     def modify_order(
         self,
         order_id: str,
-        quantity: Optional[int] = None,
-        price: Optional[float] = None,
-        trigger_price: Optional[float] = None
+        quantity: int | None = None,
+        price: float | None = None,
+        trigger_price: float | None = None
     ) -> bool:
         """
         Modify an existing order.
@@ -404,7 +404,7 @@ class TemplateBrokerAdapter(BrokerPort):
         logger.warning(f"get_order_status() called on TemplateBrokerAdapter for order {order_id} - not implemented")
         return 'UNKNOWN'
 
-    def get_positions(self) -> List[Position]:
+    def get_positions(self) -> list[Position]:
         """
         Get current positions from the broker.
 
@@ -496,7 +496,7 @@ class TemplateBrokerAdapter(BrokerPort):
 
     def subscribe_to_market_data(
         self,
-        symbols: List[str],
+        symbols: list[str],
         callback: Callable[[Quote], None]
     ) -> bool:
         """
@@ -592,7 +592,7 @@ class TemplateBrokerAdapter(BrokerPort):
         from_date: datetime,
         to_date: datetime,
         interval: str = "day"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get historical market data for backtesting and analysis.
 
@@ -763,13 +763,13 @@ class BrokerFactory:
             adapter_class: Class that implements BrokerPort
         """
         if not issubclass(adapter_class, BrokerPort):
-            raise ValueError(f"Adapter class must inherit from BrokerPort")
+            raise ValueError("Adapter class must inherit from BrokerPort")
 
         cls._adapters[broker_type.lower()] = adapter_class
         logger.info(f"Registered broker adapter: {broker_type}")
 
     @classmethod
-    def create_broker(cls, broker_type: str, config: Dict[str, Any]) -> BrokerPort:
+    def create_broker(cls, broker_type: str, config: dict[str, Any]) -> BrokerPort:
         """
         Create a broker adapter instance.
 
@@ -802,7 +802,7 @@ class BrokerFactory:
             raise
 
     @classmethod
-    def list_available_brokers(cls) -> List[str]:
+    def list_available_brokers(cls) -> list[str]:
         """
         Get list of registered broker types.
 

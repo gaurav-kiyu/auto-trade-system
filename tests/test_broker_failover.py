@@ -1,6 +1,6 @@
 """Tests for core/broker_failover.py (v2.45 Item 20)."""
 import time
-import pytest
+
 from core.broker_failover import BrokerFailoverManager
 
 

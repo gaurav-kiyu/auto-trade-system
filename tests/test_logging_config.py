@@ -3,9 +3,6 @@ import gzip
 import logging
 import os
 import tempfile
-import pytest
-from unittest.mock import patch, MagicMock
-
 
 # ── Log rotation size ─────────────────────────────────────────────────────────
 
@@ -76,7 +73,9 @@ def _run_compress(log_dir, older_than_days=0):
 
 
 def test_compress_creates_gz_file():
-    import gzip, shutil, time as _time
+    import shutil
+    import time as _time
+
     import index_app.index_trader as _t
     with tempfile.TemporaryDirectory() as tmp:
         log_file = os.path.join(tmp, "test.log.1")
@@ -108,7 +107,7 @@ def test_compress_creates_gz_file():
 
 
 def test_compress_removes_original():
-    import gzip, shutil
+    import shutil
     with tempfile.TemporaryDirectory() as tmp:
         log_file = os.path.join(tmp, "test.log.1")
         with open(log_file, "w") as f:
@@ -122,7 +121,7 @@ def test_compress_removes_original():
 
 
 def test_compress_gz_readable():
-    import gzip, shutil
+    import shutil
     with tempfile.TemporaryDirectory() as tmp:
         log_file = os.path.join(tmp, "test.log.1")
         content = "log content line\n"
@@ -147,7 +146,6 @@ def test_compress_skips_already_gz():
 
 def test_compress_function_reachable():
     """Compression logic is tested inline above (test_compress_* 4 tests)."""
-    import gzip
     assert callable(gzip.open)
 
 

@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
-
 from core.metrics_exporter import MetricsAdapter
 
 

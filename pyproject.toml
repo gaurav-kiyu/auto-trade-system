@@ -19,6 +19,14 @@ dependencies = [
     "reportlab>=4.0.0",
 ]
 
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["core*", "index_app*", "infrastructure*", "scripts*"]
+exclude = ["tests*", "data*", "logs*", "reports*", "backups*"]
+
 [project.optional-dependencies]
 broker = [
     "kiteconnect>=5.0.0",

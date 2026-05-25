@@ -7,6 +7,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
+.tox/
 
 # ── Editors / OS ──────────────────────────────────────────────────────────────
 *.tmp
@@ -22,6 +23,10 @@ Thumbs.db
 .vscode/
 .cursor/
 .claude/
+
+# ── Windows artifacts ─────────────────────────────────────────────────────────
+nul
+nul.*
 
 # ── Environment / Secrets ─────────────────────────────────────────────────────
 .env
@@ -47,7 +52,6 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
-.tox/
 
 # ── Build artifacts ───────────────────────────────────────────────────────────
 dist/
@@ -98,8 +102,6 @@ stock_trader_state.json
 stock_trader_state.json.bak
 ab_state.json
 backups/
-!data/*.db                  # exception: data/ .db are legitimate
-!data/*.sqlite
 
 # ── Test artifact databases ─────────────────────────────────────────────────
 test_recon_*.db
@@ -107,7 +109,6 @@ test_recon_*.db
 test_*.sqlite
 nonexistent_*.db
 nonexistent_*.sqlite
-data/benchmark_cache.json
 
 # ── Python cache (all levels) ────────────────────────────────────────────────
 **/__pycache__/
@@ -148,12 +149,25 @@ models/*
 
 # ── Audit report (generated) ──────────────────────────────────────────────────
 FORENSIC_AUDIT_REPORT.md
+ZERO_TRUST_CERTIFICATION_REPORT.md
 
 # ── Pip installer bootstrap ───────────────────────────────────────────────────
 get-pip.py
 
 # ── Generated benchmark cache ─────────────────────────────────────────────────
 data/benchmark_cache.json
-audit_trail.jsonl
 benchmark_cache*.json
-trader_state.json
+
+# Generated audit/certification reports (per-run)  
+/ZERO_TRUST_CERTIFICATION_REPORT.md  
+/FORENSIC_AUDIT_REPORT.md  
+
+# Legacy migration scripts (never re-add)  
+secrets_migration*.py  
+
+# Large build binaries  
+/OPBuying_INDEX_Launcher.exe  
+/dist/OPBuying_INDEX_Launcher.exe  
+
+# Remove problematic re-inclusion of data/*.db  
+# (Already covered by *.db above; ensure no !data/*.db exception)

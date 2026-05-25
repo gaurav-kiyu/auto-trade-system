@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from core.execution_engine import ExecutionEngine, ExecutionResult
+from core.execution_engine import ExecutionEngine
 
 
 class TestExecutionEngineRetry:

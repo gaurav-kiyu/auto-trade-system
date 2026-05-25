@@ -5,12 +5,10 @@ Tests for anomaly_detector module.
 from __future__ import annotations
 
 import json
-import tempfile
 import os
-from pathlib import Path
+import tempfile
 
 import pytest
-
 from core.anomaly_detector import AnomalyDetector, detect_anomaly
 
 

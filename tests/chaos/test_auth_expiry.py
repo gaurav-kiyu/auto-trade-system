@@ -1,7 +1,6 @@
 """
 Chaos: Auth Expiry
 """
-import pytest
 
 
 def test_auth_expiry_detected():

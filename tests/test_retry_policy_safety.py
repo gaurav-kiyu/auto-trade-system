@@ -2,11 +2,9 @@
 Tests for retry policy safety classification.
 Verifies that safe vs unsafe retries are properly classified.
 """
-import pytest
 from core.execution.retry_policy.manager import (
     RetryPolicy,
     RetrySafety,
-    RetryResult,
     safe_retry_operation,
 )
 

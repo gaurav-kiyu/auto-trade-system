@@ -10,13 +10,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from core.services.risk_service import RiskService, RiskServiceConfig
 from core.ports.risk.risk_port import (
     PortfolioRiskMetrics,
     PositionSizingInput,
     RiskDecision,
     RiskEvaluation,
 )
+from core.services.risk_service import RiskService, RiskServiceConfig
 
 
 def _default_metrics(**overrides: Any) -> PortfolioRiskMetrics:

@@ -1,5 +1,6 @@
 """Adversarial gap audit script — run with: python scripts/gap_audit.py"""
-import os, sys
+import os
+
 
 def exists(p):
     return os.path.exists(p)
@@ -7,7 +8,7 @@ def exists(p):
 def grep_file(pat, fp):
     if not os.path.isfile(fp):
         return False
-    with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+    with open(fp, encoding="utf-8", errors="ignore") as f:
         return pat in f.read()
 
 def grep_dir(pat, d):

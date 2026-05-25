@@ -3,22 +3,19 @@ Unit tests for Execution Service.
 """
 from __future__ import annotations
 
-import pytest
-from unittest.mock import Mock, patch
 from datetime import datetime
+from unittest.mock import Mock
 
-from core.services.execution_service import ExecutionService, ExecutionServiceConfig
+import pytest
+from core.ports.broker import BrokerPort
 from core.ports.execution.execution_port import (
-    ExecutionPort,
     OrderRequest,
     OrderResult,
-    OrderType,
     OrderStatus,
-    ExecutionMode,
-    ExecutionContext
+    OrderType,
 )
-from core.ports.broker import BrokerPort
 from core.ports.persistence.persistence_port import TradePersistencePort
+from core.services.execution_service import ExecutionService, ExecutionServiceConfig
 
 
 class TestExecutionService:
@@ -90,7 +87,7 @@ class TestExecutionService:
             strategy_id="test_strategy",
             idempotency_key=idempotency_key
         )
-        
+
         expected_result = OrderResult(
             order_id="order_123",
             status=OrderStatus.FILLED,
@@ -98,15 +95,15 @@ class TestExecutionService:
             average_price=22000.0,
             timestamp=datetime.now()
         )
-        
+
         self.broker_mock.place_order.return_value = expected_result
-        
+
         # Execute first time
         result1 = self.service.execute_order(order_request)
-        
+
         # Execute second time with same idempotency key
         result2 = self.service.execute_order(order_request)
-        
+
         # Verify
         assert result1 == expected_result
         assert result2 == expected_result
@@ -126,7 +123,7 @@ class TestExecutionService:
             strategy_id="test_strategy",
             idempotency_key="key_1"
         )
-        
+
         order_request2 = OrderRequest(
             symbol="NIFTY24SepFUT",
             direction="BUY",
@@ -136,7 +133,7 @@ class TestExecutionService:
             strategy_id="test_strategy",
             idempotency_key="key_2"
         )
-        
+
         expected_result1 = OrderResult(
             order_id="order_123",
             status=OrderStatus.FILLED,
@@ -144,7 +141,7 @@ class TestExecutionService:
             average_price=22000.0,
             timestamp=datetime.now()
         )
-        
+
         expected_result2 = OrderResult(
             order_id="order_124",
             status=OrderStatus.FILLED,
@@ -152,13 +149,13 @@ class TestExecutionService:
             average_price=22000.0,
             timestamp=datetime.now()
         )
-        
+
         self.broker_mock.place_order.side_effect = [expected_result1, expected_result2]
-        
+
         # Execute both orders
         result1 = self.service.execute_order(order_request1)
         result2 = self.service.execute_order(order_request2)
-        
+
         # Verify
         assert result1 == expected_result1
         assert result2 == expected_result2
@@ -191,10 +188,10 @@ class TestExecutionService:
         order_id = "order_123"
         expected_status = OrderStatus.FILLED
         self.broker_mock.get_order_status.return_value = expected_status
-        
+
         # Execute
         result = self.service.get_order_status(order_id)
-        
+
         # Verify
         assert result == expected_status
         self.broker_mock.get_order_status.assert_called_once_with(order_id)
@@ -209,10 +206,10 @@ class TestExecutionService:
             timestamp=datetime.now()
         )
         self.broker_mock.cancel_order.return_value = expected_result
-        
+
         # Execute
         result = self.service.cancel_order(order_id)
-        
+
         # Verify
         assert result == expected_result
         self.broker_mock.cancel_order.assert_called_once_with(order_id)
@@ -222,10 +219,10 @@ class TestExecutionService:
         # Setup
         self.broker_mock.health_check.return_value = {"status": "healthy"}
         self.persistence_mock.health_check.return_value = {"status": "healthy"}
-        
+
         # Execute
         result = self.service.health_check()
-        
+
         # Verify
         assert result["status"] == "healthy"
         assert "ExecutionService" in result["service"]
@@ -237,10 +234,10 @@ class TestExecutionService:
         # Setup
         self.broker_mock.health_check.return_value = {"status": "unhealthy", "error": "Connection failed"}
         self.persistence_mock.health_check.return_value = {"status": "healthy"}
-        
+
         # Execute
         result = self.service.health_check()
-        
+
         # Verify
         assert result["status"] == "unhealthy"
         assert result["broker_healthy"] is False
@@ -251,10 +248,10 @@ class TestExecutionService:
         # Setup
         self.broker_mock.health_check.return_value = {"status": "healthy"}
         self.persistence_mock.health_check.return_value = {"status": "unhealthy", "error": "DB connection failed"}
-        
+
         # Execute
         result = self.service.health_check()
-        
+
         # Verify
         assert result["status"] == "unhealthy"
         assert result["broker_healthy"] is True

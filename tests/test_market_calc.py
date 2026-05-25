@@ -5,7 +5,6 @@ from __future__ import annotations
 import time
 
 import pandas as pd
-
 from core.market_calc import (
     calc_adx,
     calc_dynamic_slippage,

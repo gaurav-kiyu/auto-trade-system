@@ -30,9 +30,10 @@ import logging
 import math
 import sqlite3
 from datetime import timedelta
-from core.datetime_ist import now_ist
 from pathlib import Path
 from typing import Any
+
+from core.datetime_ist import now_ist
 
 log = logging.getLogger("performance_metrics")
 

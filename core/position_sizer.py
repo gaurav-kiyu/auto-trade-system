@@ -69,13 +69,16 @@ class PositionSizer:
         """
         Calculate position size for a given signal.
 
+        Capital-aware sizing: max_lots is reduced proportionally when capital
+        is below BASE_CAPITAL threshold, preventing over-leverage on small accounts.
+
         Args:
             score:     Final adjusted signal score (0-100)
             tier:      Signal tier (STRONG / MODERATE / WEAK / IGNORE)
             regime:    Market regime string
             max_lots:  Maximum configured lots per trade
             atr:       Current ATR (unused numerically, available for future ATR-scaling)
-            capital:   Available capital (unused numerically, available for risk-% sizing)
+            capital:   Available capital — used to cap lots when below BASE_CAPITAL
 
         Returns:
             PositionSpec with lots=0 for IGNORE tier.
@@ -100,6 +103,14 @@ class PositionSizer:
 
         effective_pct = tier_base * regime_adj * score_adj
         effective_pct = max(0.0, min(1.0, round(effective_pct, 4)))
+
+        # ── Capital constraint (Phase 5E / C12) ─────────────────────────────
+        # Scale down max_lots when capital is below the baseline.
+        # Baseline matches index_config.defaults.json BASE_CAPITAL default.
+        _BASE_CAPITAL = 100_000.0
+        if capital < _BASE_CAPITAL and capital > 0:
+            capital_ratio = capital / BASE_CAPITAL
+            max_lots = max(1, int(max_lots * capital_ratio))
 
         # Always at least 1 lot if tier is tradeable and max_lots >= 1
         lots = max(1, int(effective_pct * max(1, max_lots)))

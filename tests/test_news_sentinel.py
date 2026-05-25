@@ -1,13 +1,13 @@
 """Tests for core/news_sentinel.py (v2.44 Item 12)."""
 import time
+
 import pytest
-from unittest.mock import patch, MagicMock
 from core.news_sentinel import (
-    NewsRiskAssessment,
-    NewsSentinel,
+    ELEVATED_KEYWORDS,
     EXTREME_KEYWORDS,
     HIGH_KEYWORDS,
-    ELEVATED_KEYWORDS,
+    NewsRiskAssessment,
+    NewsSentinel,
     _classify_headline,
 )
 

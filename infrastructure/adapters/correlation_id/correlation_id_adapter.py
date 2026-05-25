@@ -7,7 +7,6 @@ Adapter that implements the CorrelationIdPort interface using threading.local.
 from __future__ import annotations
 
 import threading
-from typing import Optional
 
 # Import the port interface
 from core.ports.correlation_id import CorrelationIdPort

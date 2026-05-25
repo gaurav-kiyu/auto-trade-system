@@ -4,7 +4,6 @@ from __future__ import annotations
 import time
 
 import pandas as pd
-
 from core.data_freshness_guard import check_data_freshness
 
 

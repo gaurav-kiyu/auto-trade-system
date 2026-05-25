@@ -72,9 +72,15 @@ class BrokerAdapter:
     def __init__(self, port: Any):
         self._port = port
 
-    def place_order(self, name, direction, qty, strike) -> str | None:
-        # Convert legacy call to structured OrderRequest if the underlying port
-        # expects the newer port interface.
+    def place_order(self, name, direction=None, qty=None, strike=None) -> str | None:
+        # Support both legacy (name, direction, qty, strike) and OrderRequest call patterns.
+        # ExecutionService._attempt_order_execution() passes an OrderRequest object.
+        if hasattr(name, 'symbol'):  # It's an OrderRequest from execution_port.py
+            req = name
+            name = req.symbol
+            direction = "CALL" if req.direction.upper() == "BUY" else "PUT"
+            qty = req.lot_size
+            strike = req.strike_price
         if isinstance(self._port, PaperBrokerAdapter):
             return self._port.place_order(name, direction, qty, strike)
 

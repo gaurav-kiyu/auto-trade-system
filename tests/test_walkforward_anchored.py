@@ -19,10 +19,8 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-
 from core import StrategyEngine
-from core.walkforward_engine import WalkForwardEngine, WalkForwardReport
-
+from core.walkforward_engine import WalkForwardEngine
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

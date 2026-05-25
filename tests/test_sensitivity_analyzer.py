@@ -1,17 +1,14 @@
 """Tests for core/sensitivity_analyzer.py (v2.44 Item 15)."""
 import pytest
 from core.sensitivity_analyzer import (
-    ParameterTestPoint,
-    SensitivityResult,
     DEFAULT_SENSITIVITY_PARAMS,
-    run_single_parameter_sensitivity,
-    run_sensitivity_analysis,
-    format_sensitivity_report,
-    load_trades_for_sensitivity,
+    SensitivityResult,
     _apply_exit_param,
     _compute_stats,
+    format_sensitivity_report,
+    run_sensitivity_analysis,
+    run_single_parameter_sensitivity,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -196,7 +193,9 @@ def test_run_sensitivity_no_trades_returns_list():
 
 
 def test_run_sensitivity_returns_one_per_param():
-    import os, sqlite3, tempfile
+    import os
+    import sqlite3
+    import tempfile
     tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
     tmp.close()
     conn = sqlite3.connect(tmp.name)

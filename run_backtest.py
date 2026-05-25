@@ -57,7 +57,6 @@ if hasattr(sys.stdout, "reconfigure"):
 from core.candle_backtest import (
     CandleBacktestConfig,
     CandleBacktestResult,
-    PerformanceMetrics,
     run_candle_backtest,
 )
 from core.pure_index_signal import PureIndexRegimeParams
@@ -163,7 +162,7 @@ def _print_rich_report(
 
     # ── Core performance ───────────────────────────────────────────────
     print(f"\n{_SEP2}")
-    print(f"  TASK 7 — CORE PERFORMANCE METRICS")
+    print("  TASK 7 — CORE PERFORMANCE METRICS")
     print(_SEP2)
     if m.total_trades == 0:
         print("  [!] No trades generated — try relaxing threshold or score-gap.")
@@ -194,7 +193,7 @@ def _print_rich_report(
 
     # ── Directional breakdown (Task 6) ─────────────────────────────────
     print(f"\n{_SEP2}")
-    print(f"  TASK 6 — DIRECTIONAL BREAKDOWN (CALL vs PUT)")
+    print("  TASK 6 — DIRECTIONAL BREAKDOWN (CALL vs PUT)")
     print(_SEP2)
     print(f"  CALL trades : {m.call_trades:>3}  |  Win rate: {_bar(m.call_win_rate, 20)}")
     print(f"  PUT  trades : {m.put_trades:>3}  |  Win rate: {_bar(m.put_win_rate, 20)}")
@@ -203,13 +202,13 @@ def _print_rich_report(
     print(f"  Split       : {call_pct:.0f}% CALL / {put_pct:.0f}% PUT")
     if call_pct > 80:
         print(f"  [!] Heavy CALL bias ({call_pct:.0f}%) — likely testing a bull-trend period.")
-        print(f"      Run on a bear-market window to validate PUT signal quality.")
+        print("      Run on a bear-market window to validate PUT signal quality.")
     elif put_pct > 80:
         print(f"  [!] Heavy PUT bias ({put_pct:.0f}%) — likely testing a bear-trend period.")
 
     # ── Regime breakdown (Task 5) ──────────────────────────────────────
     print(f"\n{_SEP2}")
-    print(f"  TASK 5 — MARKET REGIME BREAKDOWN")
+    print("  TASK 5 — MARKET REGIME BREAKDOWN")
     print(_SEP2)
     print(f"  {'Regime':<12} {'Trades':>6} {'Wins':>5} {'Win%':>7} {'Avg PnL':>10}")
     print(f"  {_LINE}")
@@ -220,13 +219,13 @@ def _print_rich_report(
     for regime_name, rs in m.by_regime.items():
         if regime_name not in ("TRENDING", "NEUTRAL", "CHOPPY", "EVENT") and rs.trades > 0:
             print(f"  {rs.regime:<12} {rs.trades:>6} {rs.wins:>5} {rs.win_rate:>6.1f}%  Rs{rs.avg_pnl:>8,.2f}")
-    print(f"\n  Key insight: TRENDING should be your best regime.")
-    print(f"  If CHOPPY win rate > TRENDING → mean-reversion strategy is dominant.")
-    print(f"  Consider disabling entries when regime=CHOPPY (ADX < chop_threshold).")
+    print("\n  Key insight: TRENDING should be your best regime.")
+    print("  If CHOPPY win rate > TRENDING → mean-reversion strategy is dominant.")
+    print("  Consider disabling entries when regime=CHOPPY (ADX < chop_threshold).")
 
     # ── Score distribution (Task 3) ────────────────────────────────────
     print(f"\n{_SEP2}")
-    print(f"  TASK 3 — SCORE DISTRIBUTION (5-pt buckets)")
+    print("  TASK 3 — SCORE DISTRIBUTION (5-pt buckets)")
     print(_SEP2)
     if m.by_score:
         print(f"  {'Score':>8} {'Trades':>6} {'Wins':>5} {'Win%':>7} {'Avg PnL':>10}  Bar")
@@ -241,14 +240,14 @@ def _print_rich_report(
             print(f"\n  Score range: {min(all_scores)} – {max(all_scores)}  "
                   f"Mean: {sum(all_scores)/len(all_scores):.1f}  "
                   f"StdDev: {(sum((x - sum(all_scores)/len(all_scores))**2 for x in all_scores)/len(all_scores))**0.5:.1f}")
-        print(f"\n  Target: scores should spread 65-95.  If clustered at threshold,")
-        print(f"  the OI/PCR data is synthetic (backtest limitation) — add real option chain.")
+        print("\n  Target: scores should spread 65-95.  If clustered at threshold,")
+        print("  the OI/PCR data is synthetic (backtest limitation) — add real option chain.")
     else:
         print("  (No score data)")
 
     # ── Signal quality analysis (Task 8) ──────────────────────────────
     print(f"\n{_SEP2}")
-    print(f"  TASK 8 — SIGNAL QUALITY ANALYSIS")
+    print("  TASK 8 — SIGNAL QUALITY ANALYSIS")
     print(_SEP2)
     if j:
         # Feature frequency in winning vs losing trades
@@ -261,7 +260,7 @@ def _print_rich_report(
                         or (truthy is True and bool(t.signal_metadata.get(key))))
             return round(count / len(trades) * 100.0, 1)
 
-        print(f"  Feature presence in WINNERS vs LOSERS (% of trades):")
+        print("  Feature presence in WINNERS vs LOSERS (% of trades):")
         print(f"  {'Feature':<22} {'Winners':>8} {'Losers':>8}  Edge")
         print(f"  {_LINE}")
         features = [
@@ -284,9 +283,9 @@ def _print_rich_report(
             avg_adx_l = sum(float(v) for v in adx_vals_l) / len(adx_vals_l) if adx_vals_l else 0
             print(f"\n  Avg ADX at entry  —  Winners: {avg_adx_w:.1f}  |  Losers: {avg_adx_l:.1f}")
             if avg_adx_w > avg_adx_l + 3:
-                print(f"  [+] Higher ADX in winners — trend quality matters; consider ADX_TREND_THRESHOLD up")
+                print("  [+] Higher ADX in winners — trend quality matters; consider ADX_TREND_THRESHOLD up")
             elif avg_adx_l > avg_adx_w + 3:
-                print(f"  [-] Higher ADX in losers  — breakout failures in strong trend; check overextension")
+                print("  [-] Higher ADX in losers  — breakout failures in strong trend; check overextension")
 
         # RSI distribution
         rsi_vals_w = [t.signal_metadata.get("rsi", 50) for t in win_trades  if "rsi" in t.signal_metadata]
@@ -302,7 +301,7 @@ def _print_rich_report(
         exit_counts: dict[str, int] = {}
         for t in j:
             exit_counts[t.exit_reason] = exit_counts.get(t.exit_reason, 0) + 1
-        print(f"\n  Exit reason distribution:")
+        print("\n  Exit reason distribution:")
         for reason, count in sorted(exit_counts.items(), key=lambda x: -x[1]):
             pct_e = count / m.total_trades * 100
             wins_r  = sum(1 for t in j if t.exit_reason == reason and t.net_pnl >= 0)
@@ -310,12 +309,12 @@ def _print_rich_report(
             print(f"    {reason:<16} {count:>3} trades ({pct_e:.0f}%)  win rate: {wr_r:.0f}%")
 
         if exit_counts.get("stop_loss", 0) > exit_counts.get("take_profit", 0):
-            print(f"\n  [!] More SL exits than TP exits — TP target may be too far; consider tighter TP")
-            print(f"      or use partial-exit at TP1 (0.618x ATR) to bank quick profits.")
+            print("\n  [!] More SL exits than TP exits — TP target may be too far; consider tighter TP")
+            print("      or use partial-exit at TP1 (0.618x ATR) to bank quick profits.")
 
     # ── Sample journal (last 5 trades) ─────────────────────────────────
     print(f"\n{_SEP2}")
-    print(f"  TASK 9 — TRADE JOURNAL SAMPLE (last 5)")
+    print("  TASK 9 — TRADE JOURNAL SAMPLE (last 5)")
     print(_SEP2)
     sample = j[-5:] if len(j) >= 5 else j
     for t in sample:
@@ -327,39 +326,39 @@ def _print_rich_report(
 
     # ── Config suggestions (Task 9) ────────────────────────────────────
     print(f"\n{_SEP2}")
-    print(f"  TASK 9 — CONFIG SUGGESTIONS")
+    print("  TASK 9 — CONFIG SUGGESTIONS")
     print(_SEP2)
     if m.total_trades > 0:
         if m.win_rate < 50 and m.rr_ratio < 1.2:
             print(f"  CRITICAL: Win rate {m.win_rate:.1f}% AND RR {m.rr_ratio:.2f} both poor.")
             print(f"    -> Raise threshold to {cfg_used.base_ai_threshold + 5} (filter weak signals)")
             print(f"    -> Raise score_gap to {cfg_used.score_gap + 3} (only high-conviction entries)")
-            print(f"    -> Verify breakout_ok filter is active in live signal path")
+            print("    -> Verify breakout_ok filter is active in live signal path")
         elif m.win_rate < 50:
             print(f"  Win rate low ({m.win_rate:.1f}%) but RR {m.rr_ratio:.2f} is OK.")
-            print(f"    -> Consider raising threshold by +5 (more selective entries)")
-            print(f"    -> Check if CHOPPY regime entries are dragging win rate down")
+            print("    -> Consider raising threshold by +5 (more selective entries)")
+            print("    -> Check if CHOPPY regime entries are dragging win rate down")
         elif m.rr_ratio < 1.0:
             print(f"  RR ratio < 1.0 ({m.rr_ratio:.2f}) — TP too tight or SL too wide.")
             print(f"    -> Increase tp_atr_mult from {cfg_used.tp_atr_mult} to {cfg_used.tp_atr_mult + 0.3:.2f}")
             print(f"    -> Decrease sl_atr_mult from {cfg_used.sl_atr_mult} to {cfg_used.sl_atr_mult - 0.1:.2f}")
         else:
             print(f"  Strategy is producing edge (WR={m.win_rate:.1f}%, RR={m.rr_ratio:.2f}, PF={m.profit_factor:.2f}).")
-            print(f"  Suggested next steps:")
-            print(f"    -> Walk-forward validate on different date windows")
-            print(f"    -> Test with real NSE option chain data (PCR + OI → +15 pts score)")
-            print(f"    -> Consider partial exit: sell 50% at TP1, trail remainder")
+            print("  Suggested next steps:")
+            print("    -> Walk-forward validate on different date windows")
+            print("    -> Test with real NSE option chain data (PCR + OI → +15 pts score)")
+            print("    -> Consider partial exit: sell 50% at TP1, trail remainder")
 
-        print(f"\n  Recommended config.json values for this run:")
+        print("\n  Recommended config.json values for this run:")
         print(f'    "AI_THRESHOLD"          : {cfg_used.base_ai_threshold},')
         print(f'    "SIGNAL_ENTRY_SCORE_GAP": {cfg_used.score_gap},')
         print(f'    "ATR_SL_MULTIPLIER"     : {cfg_used.sl_atr_mult},')
         print(f'    "FIB_TP2_RATIO"         : {cfg_used.tp_atr_mult},')
-        print(f'    "ADX_CHOP_THRESHOLD"    : 14,')
-        print(f'    "ADX_TREND_THRESHOLD"   : 20')
+        print('    "ADX_CHOP_THRESHOLD"    : 14,')
+        print('    "ADX_TREND_THRESHOLD"   : 20')
 
     print(f"\n{_SEP}")
-    print(f"  END OF REPORT")
+    print("  END OF REPORT")
     print(_SEP)
     print()
 
@@ -389,7 +388,7 @@ def _run_and_summarise(
 def _print_comparison(res_raw: CandleBacktestResult, res_opt: CandleBacktestResult) -> None:
     r, o = res_raw.metrics, res_opt.metrics
     print(f"\n{_SEP}")
-    print(f"  BEFORE / AFTER COMPARISON  (Raw Index pts vs Option Premium Model)")
+    print("  BEFORE / AFTER COMPARISON  (Raw Index pts vs Option Premium Model)")
     print(_SEP)
     print(f"  {'Metric':<26} {'Raw Index':>12} {'Option Model':>14}  Delta")
     print(f"  {_SEP2}")
@@ -410,9 +409,9 @@ def _print_comparison(res_raw: CandleBacktestResult, res_opt: CandleBacktestResu
         else:
             delta_str = _sign(ov - rv) if isinstance(rv, float) else ""
             print(f"  {label:<26} {rv:>12.2f}  {ov:>13.2f}  {delta_str}")
-    print(f"\n  Key takeaway: option model typically shows higher RR and lower avg_loss")
-    print(f"  because delta-scaling (×0.45) compresses the raw index move distance.")
-    print(f"  The option model is the correct frame for evaluating this strategy.\n")
+    print("\n  Key takeaway: option model typically shows higher RR and lower avg_loss")
+    print("  because delta-scaling (×0.45) compresses the raw index move distance.")
+    print("  The option model is the correct frame for evaluating this strategy.\n")
 
 
 # ---------------------------------------------------------------------------

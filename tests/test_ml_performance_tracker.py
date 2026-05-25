@@ -16,16 +16,14 @@ import sqlite3
 import time
 
 import pytest
-
 from core.ml_performance_tracker import (
-    record_prediction,
-    update_outcome,
     compute_brier_score,
     compute_calibration,
-    get_feature_importance_trend,
     format_tracker_summary,
+    get_feature_importance_trend,
+    record_prediction,
+    update_outcome,
 )
-
 
 # ── Fixture ───────────────────────────────────────────────────────────────────
 

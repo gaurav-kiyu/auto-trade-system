@@ -1,13 +1,22 @@
 """Tests for core/signal_approval_workflow.py (v2.46 Sprint 1B)."""
-import pytest
 from unittest.mock import MagicMock
-from core.signal_approval_workflow import (
-    SignalDecision, SignalApprovalWorkflow, build_workflow,
-    SIGNALS_ONLY, MANUAL_PRIORITY, FULL_MANUAL, AUTO_WITH_OVERRIDE, FULLY_AUTO,
-    EXECUTE, QUEUE, NOTIFY_ONLY, SKIP,
-    SIG_AUTO, SIG_MANUAL,
-)
 
+from core.signal_approval_workflow import (
+    AUTO_WITH_OVERRIDE,
+    EXECUTE,
+    FULL_MANUAL,
+    FULLY_AUTO,
+    MANUAL_PRIORITY,
+    NOTIFY_ONLY,
+    QUEUE,
+    SIG_AUTO,
+    SIG_MANUAL,
+    SIGNALS_ONLY,
+    SKIP,
+    SignalApprovalWorkflow,
+    SignalDecision,
+    build_workflow,
+)
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 

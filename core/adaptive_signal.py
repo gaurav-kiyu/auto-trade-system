@@ -34,7 +34,6 @@ from core.pure_index_signal import (
     _macd_bonus_delta,  # MACD histogram direction check
     compute_index_score,
     evaluate_dual_direction_signal,
-    evaluate_index_signal_partial,
 )
 from core.tier_engine import TIER_RULES, classify_tier
 

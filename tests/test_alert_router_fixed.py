@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 # Import the modules we're testing
-from core.alert_router import MultiChannelAlerter, EmailAlerter, WebhookAlerter
+from core.alert_router import EmailAlerter, MultiChannelAlerter, WebhookAlerter
 
 
 class TestEmailAlerter:

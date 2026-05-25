@@ -12,25 +12,21 @@ Covers:
   - load_pnl_from_db() file-not-found guard
   - MonteCarloResult field types and value ranges
 """
-import math
 import sqlite3
-import os
 
 import pytest
-
 from core.monte_carlo import (
-    run_simulation,
-    plot_equity_band,
-    format_summary,
-    load_pnl_from_db,
     MonteCarloResult,
     _equity_curve,
-    _max_drawdown,
-    _sharpe,
     _max_consec_losses,
+    _max_drawdown,
     _percentile,
+    _sharpe,
+    format_summary,
+    load_pnl_from_db,
+    plot_equity_band,
+    run_simulation,
 )
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -246,7 +242,8 @@ class TestLoadPnlFromDb:
         assert abs(sum(loaded) - 250.0) < 1e-6
 
     def test_days_filter_excludes_old(self, tmp_path):
-        import datetime, sqlite3
+        import datetime
+        import sqlite3
         p = tmp_path / "t.db"
         conn = sqlite3.connect(str(p))
         conn.execute("CREATE TABLE trades (id INTEGER PRIMARY KEY, ts TEXT, net_pnl REAL, mode TEXT)")
@@ -260,7 +257,8 @@ class TestLoadPnlFromDb:
         assert abs(loaded[0] - 100.0) < 1e-6
 
     def test_mode_filter(self, tmp_path):
-        import datetime, sqlite3
+        import datetime
+        import sqlite3
         p = tmp_path / "t2.db"
         conn = sqlite3.connect(str(p))
         conn.execute("CREATE TABLE trades (id INTEGER PRIMARY KEY, ts TEXT, net_pnl REAL, mode TEXT)")

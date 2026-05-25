@@ -16,20 +16,16 @@ Covers:
   - score_adj_from_prob() bounds (regression guard)
 """
 import json
-import math
-
-import pytest
 
 from core.ml_classifier import (
+    FEATURE_COLS,
     explain_prediction,
-    get_top_features,
-    shap_to_json,
     extract_features,
+    get_top_features,
     predict_win_prob,
     score_adj_from_prob,
-    FEATURE_COLS,
+    shap_to_json,
 )
-
 
 # ── Minimal stub model (no LightGBM required) ─────────────────────────────────
 

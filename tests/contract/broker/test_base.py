@@ -5,7 +5,6 @@ Every broker adapter must pass the full suite before being certified for live us
 """
 from __future__ import annotations
 
-import pytest
 from abc import ABC, abstractmethod
 from typing import Any
 

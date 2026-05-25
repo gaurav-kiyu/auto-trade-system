@@ -6,7 +6,6 @@ from core.backtest_engine import CsvReplaySource, ReplayConfig
 from core.candle_backtest import CandleBacktestConfig, run_candle_backtest
 from core.pure_index_signal import PureIndexRegimeParams
 
-
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"
 

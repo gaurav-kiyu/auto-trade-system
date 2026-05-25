@@ -1,8 +1,9 @@
 """Tests for core/underlying_analyzer.py (v2.45 Item 16)."""
-import pytest
 from core.underlying_analyzer import (
-    StockAnalysis, get_sector_breadth, format_breadth_summary,
+    StockAnalysis,
     analyze_banknifty_constituents,
+    format_breadth_summary,
+    get_sector_breadth,
 )
 
 

@@ -6,14 +6,11 @@ No network calls, no file writes to production paths.
 """
 from __future__ import annotations
 
-import json
 import time
-from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -392,11 +389,11 @@ class TestAdaptiveSignalIvWiring:
                 return_value=fake_data
             ):
                 with patch(
-                    "core.adaptive_signal.evaluate_index_signal_partial",
+                    "core.pure_index_signal.evaluate_index_signal_partial",
                     return_value=(fake_data, "")
                 ):
                     from core.adaptive_signal import evaluate_adaptive_signal
-                    from core.pure_index_signal import PureIndexSignalParams, PureIndexRegimeParams
+                    from core.pure_index_signal import PureIndexRegimeParams, PureIndexSignalParams
 
                     params = PureIndexSignalParams(
                         name="NIFTY",

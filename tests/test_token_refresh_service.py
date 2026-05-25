@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-import threading
 import time
 from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from core.token_refresh_service import TokenRefreshService
-
 
 # ── Helper: Simple attribute containers (NOT MagicMock!) ────────────────
 

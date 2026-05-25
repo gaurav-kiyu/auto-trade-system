@@ -2,15 +2,12 @@
 Tests for Telegram Security and Hardening (v2.46).
 """
 
+
 import pytest
-import time
-from core.telegram.auth.manager import TelegramAuthManager, UserPermissions
+from core.telegram.auth.manager import TelegramAuthManager
 from core.telegram.hardening import (
-    TelegramCommandValidator,
-    DangerousCommandShield,
-    create_validator,
     create_shield,
-    CommandSpec,
+    create_validator,
 )
 
 

@@ -1,13 +1,26 @@
 from __future__ import annotations
 
+import logging
 import random
 import time
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 from core.execution.retry_policy.classifier import BrokerErrorClassifier, RetryDecision
-from core.execution.execution_state import get_formal_order_manager, ExecState
+
+_log = logging.getLogger(__name__)
+
+warnings.warn(
+    "DEPRECATED: core/execution_engine.py (legacy ExecutionEngine) is deprecated. "
+    "Use core/execution/deterministic_state_machine.py (ExecutionStateMachine) + "
+    "core/services/execution_service.py (ExecutionService) instead. "
+    "This module will be removed in v2.55.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+_log.warning("DEPRECATED: core/execution_engine.py loaded — migrate to execution_service + state machine")
 
 
 @dataclass(frozen=True)

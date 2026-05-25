@@ -1,16 +1,15 @@
 """Tests for core/ab_strategy_tester.py (v2.44 Item 20)."""
-import json
 import os
 import tempfile
+
 import pytest
 from core.ab_strategy_tester import (
-    ABVariantState,
-    ABSignalDecision,
     ABComparisonResult,
+    ABSignalDecision,
     ABStrategyTester,
+    ABVariantState,
     _mann_whitney_p,
 )
-
 
 # ── ABVariantState ────────────────────────────────────────────────────────────
 

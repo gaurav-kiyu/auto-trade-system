@@ -2,11 +2,12 @@
 Integration tests for risk, signal, and portfolio services working together.
 """
 
+from datetime import datetime
+
 import pytest
-from datetime import datetime, timedelta
-from core.domains.risk.service import create_risk_service, RiskLimits
-from core.domains.signal_engine.service import create_signal_service, TradingSignal
-from core.domains.portfolio.service import create_portfolio_service, Position
+from core.domains.portfolio.service import Position, create_portfolio_service
+from core.domains.risk.service import create_risk_service
+from core.domains.signal_engine.service import TradingSignal, create_signal_service
 
 
 class TestIntegration:

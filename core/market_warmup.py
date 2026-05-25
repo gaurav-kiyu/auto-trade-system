@@ -35,6 +35,8 @@ import time
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from core.datetime_ist import now_ist
+
 _log = logging.getLogger(__name__)
 
 # IST offset for timezone-naive comparisons
@@ -62,7 +64,7 @@ class MarketWarmup:
 
     def _market_open_today(self) -> datetime | None:
         """Return today's market open datetime (naive IST), or None if weekend."""
-        now = datetime.now()
+        now = now_ist()
         # Check if today is a weekday (Mon=0, Sun=6)
         if now.weekday() >= 5:
             return None
@@ -70,7 +72,7 @@ class MarketWarmup:
 
     def _maybe_reset_day(self) -> None:
         """Reset warm-up state at the start of a new trading day."""
-        now = datetime.now()
+        now = now_ist()
         today = now.date()
         with self._lock:
             if self._current_day != today:
@@ -90,7 +92,7 @@ class MarketWarmup:
         with self._lock:
             if self._warmup_end is None:
                 return False
-            return datetime.now() < self._warmup_end
+            return now_ist() < self._warmup_end
 
     def can_enter(self, name: str) -> bool:
         """Check if an entry is allowed for the given index.
@@ -151,7 +153,7 @@ class MarketWarmup:
         with self._lock:
             remaining = ""
             if active and self._warmup_end is not None:
-                remaining_secs = (self._warmup_end - datetime.now()).total_seconds()
+                remaining_secs = (self._warmup_end - now_ist()).total_seconds()
                 remaining = f"{max(0, int(remaining_secs // 60))}m {max(0, int(remaining_secs % 60))}s"
             return {
                 "enabled": self._enabled,

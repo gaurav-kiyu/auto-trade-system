@@ -4,7 +4,6 @@ from pathlib import Path
 
 from core.index_map_loader import load_index_map, normalize_index_map_entry
 
-
 ROOT = Path(__file__).resolve().parent.parent
 
 

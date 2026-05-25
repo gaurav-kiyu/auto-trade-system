@@ -1,13 +1,8 @@
 """Tests for core/data_governance.py — retention policies + cleanup scheduler."""
 
-import os
 import tempfile
-import time
 
-import pytest
-
-from core.retention_engine import RetentionPolicy
-from core.data_governance import DataGovernor, CleanupScheduler
+from core.data_governance import CleanupScheduler, DataGovernor
 
 
 class TestDataGovernor:

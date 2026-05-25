@@ -1,11 +1,11 @@
 """Tests for IV skew functions in core/iv_rank.py (v2.44 Item 11)."""
-import math
+
 import pytest
 from core.iv_rank import (
     IVSkewData,
+    _bs_approx_iv,
     compute_iv_skew,
     get_skew_adjusted_premium,
-    _bs_approx_iv,
 )
 
 CFG = {

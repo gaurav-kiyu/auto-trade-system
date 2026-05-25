@@ -8,25 +8,24 @@ It translates between the clean domain interfaces and the specific Kite API impl
 from __future__ import annotations
 
 import time
-from typing import Dict, Any, List, Optional, Callable
+from collections.abc import Callable
 from datetime import datetime
-
-# Import the broker port interface this adapter implements
-from core.ports.broker import BrokerPort, Order, OrderResult, Position, Quote, Fill
+from typing import Any
 
 # Import broker exception taxonomy - CRITICAL FIX #5
 from core.execution.broker_exceptions import (
+    AuthExpiredError,
     BrokerException,
     BrokerExceptionType,
-    TransientBrokerError,
-    PermanentBrokerError,
-    AuthExpiredError,
-    RateLimitError,
-    OrderRejectedError,
-    NetworkError,
     BrokerTimeoutError,
+    NetworkError,
+    OrderRejectedError,
+    PermanentBrokerError,
     classify_broker_exception,
 )
+
+# Import the broker port interface this adapter implements
+from core.ports.broker import BrokerPort, Order, Position, Quote
 
 # Import Kite Connect (would be imported conditionally in real implementation)
 # For this example, we'll show the structure without actual Kite dependency
@@ -77,7 +76,7 @@ class KiteBrokerAdapter(BrokerPort):
         self._min_request_interval = 0.1  # 100ms between requests
 
         # Cache for instruments to avoid repeated API calls
-        self._instruments_cache: Optional[Dict[str, Any]] = None
+        self._instruments_cache: dict[str, Any] | None = None
         self._instruments_cache_time = 0
         self._cache_ttl = 300  # 5 minutes
 
@@ -120,7 +119,7 @@ class KiteBrokerAdapter(BrokerPort):
                     raise
         raise last_exception
 
-    def _get_instrument_token(self, symbol: str, exchange: str = "NSE") -> Optional[int]:
+    def _get_instrument_token(self, symbol: str, exchange: str = "NSE") -> int | None:
         """
         Get instrument token for a symbol from Kite.
 
@@ -259,9 +258,9 @@ class KiteBrokerAdapter(BrokerPort):
             return False
 
     def modify_order(self, order_id: str,
-                    quantity: Optional[int] = None,
-                    price: Optional[float] = None,
-                    trigger_price: Optional[float] = None) -> bool:
+                    quantity: int | None = None,
+                    price: float | None = None,
+                    trigger_price: float | None = None) -> bool:
         """
         Modify an existing order.
 
@@ -308,7 +307,7 @@ class KiteBrokerAdapter(BrokerPort):
         except Exception:
             return "ERROR"
 
-    def get_positions(self) -> List[Position]:
+    def get_positions(self) -> list[Position]:
         """
         Get current positions from the broker.
 
@@ -380,7 +379,7 @@ class KiteBrokerAdapter(BrokerPort):
                 raise classified
             raise BrokerTimeoutError(f"Failed to get quote for {symbol}: {e}", original=e)
 
-    def subscribe_to_market_data(self, symbols: List[str],
+    def subscribe_to_market_data(self, symbols: list[str],
                                callback: Callable[[Quote], None]) -> bool:
         """
         Subscribe to real-time market data for symbols.
@@ -421,7 +420,7 @@ class KiteBrokerAdapter(BrokerPort):
     def get_historical_data(self, symbol: str,
                           from_date: datetime,
                           to_date: datetime,
-                          interval: str = "day") -> List[Dict[str, Any]]:
+                          interval: str = "day") -> list[dict[str, Any]]:
         """
         Get historical market data for backtesting and analysis.
 
@@ -468,7 +467,7 @@ class KiteBrokerAdapter(BrokerPort):
 
 
 # Factory function for creating Kite broker adapter instances
-def create_kite_broker_adapter(config: Dict[str, Any]) -> KiteBrokerAdapter:
+def create_kite_broker_adapter(config: dict[str, Any]) -> KiteBrokerAdapter:
     """
     Factory function to create a KiteBrokerAdapter from configuration.
 

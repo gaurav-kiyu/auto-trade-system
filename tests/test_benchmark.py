@@ -1,12 +1,13 @@
 """Tests for core/benchmark.py (v2.44 Item 10)."""
-import pytest
 from datetime import date
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 from core.benchmark import (
-    BenchmarkReturn,
     AlphaMetrics,
-    fetch_benchmark,
+    BenchmarkReturn,
     compute_alpha_metrics,
+    fetch_benchmark,
 )
 
 
@@ -50,8 +51,8 @@ def test_benchmark_return_is_frozen():
 # ── fetch_benchmark ───────────────────────────────────────────────────────────
 
 def make_mock_yf_data():
-    import pandas as pd
     import numpy as np
+    import pandas as pd
     dates = pd.date_range("2024-01-01", "2024-03-31", freq="B")
     prices = 21000 + np.cumsum(np.random.randn(len(dates)) * 50)
     df = pd.DataFrame({"Close": prices}, index=dates)
@@ -72,7 +73,7 @@ def test_fetch_benchmark_returns_none_on_error():
 
 def test_fetch_benchmark_returns_benchmark_return_on_success():
     with patch("yfinance.Ticker", return_value=make_mock_yf_data()):
-        result = fetch_benchmark("^NSEI_TEST_{}".format(id(object())),
+        result = fetch_benchmark(f"^NSEI_TEST_{id(object())}",
                                  date(2024, 1, 1), date(2024, 3, 31))
     if result is not None:
         assert isinstance(result, BenchmarkReturn)

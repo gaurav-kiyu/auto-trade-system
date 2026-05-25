@@ -10,7 +10,7 @@ import logging
 import threading
 from typing import Any
 
-from core.auth.permissions import Role, Permission, role_has_permission, PermissionDenied
+from core.auth.permissions import Permission, PermissionDenied, Role, role_has_permission
 
 _log = logging.getLogger(__name__)
 

@@ -3,11 +3,10 @@ Unit tests for Metrics Service/Adapter.
 """
 from __future__ import annotations
 
-import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
+import pytest
 from infrastructure.adapters.metrics.metrics_adapter import MetricsAdapter
-from core.ports.metrics import MetricsPort
 
 
 class TestMetricsAdapter:
@@ -26,7 +25,7 @@ class TestMetricsAdapter:
         """Test adapter initialization with config."""
         config = {"metrics_enabled": True, "metrics_port": 9090}
         adapter = MetricsAdapter(config=config)
-        
+
         assert adapter.config == config
 
     @patch("infrastructure.adapters.metrics.metrics_adapter.start_metrics_server")
@@ -34,10 +33,10 @@ class TestMetricsAdapter:
         """Test initialization starts server when metrics_enabled is True."""
         # Setup
         config = {"metrics_enabled": True, "metrics_port": 9090}
-        
+
         # Execute
         adapter = MetricsAdapter(config=config)
-        
+
         # Verify
         assert adapter._initialized is True
         mock_start_server.assert_called_once_with(config)
@@ -47,10 +46,10 @@ class TestMetricsAdapter:
         """Test initialization does not start server when metrics_enabled is False."""
         # Setup
         config = {"metrics_enabled": False}
-        
+
         # Execute
         adapter = MetricsAdapter(config=config)
-        
+
         # Verify
         assert adapter._initialized is False
         mock_start_server.assert_not_called()
@@ -60,10 +59,10 @@ class TestMetricsAdapter:
         """Test incrementing a counter metric."""
         # Setup
         self.adapter._initialized = True
-        
+
         # Execute
         self.adapter.increment_counter("test_counter", 5, {"tag": "value"})
-        
+
         # Verify
         mock_update.assert_called_once_with({"test_counter": 5})
 
@@ -72,10 +71,10 @@ class TestMetricsAdapter:
         """Test setting a gauge metric."""
         # Setup
         self.adapter._initialized = True
-        
+
         # Execute
         self.adapter.set_gauge("test_gauge", 3.14, {"tag": "value"})
-        
+
         # Verify
         mock_update.assert_called_once_with({"test_gauge": 3.14})
 
@@ -84,10 +83,10 @@ class TestMetricsAdapter:
         """Test recording a timing metric."""
         # Setup
         self.adapter._initialized = True
-        
+
         # Execute
         self.adapter.record_timer("test_timer", 1.5, {"tag": "value"})
-        
+
         # Verify
         mock_update.assert_called_once_with({"test_timer": 1.5})
 
@@ -96,10 +95,10 @@ class TestMetricsAdapter:
         """Test recording a histogram metric."""
         # Setup
         self.adapter._initialized = True
-        
+
         # Execute
         self.adapter.record_histogram("test_histogram", 2.71, {"tag": "value"})
-        
+
         # Verify
         mock_update.assert_called_once_with({"test_histogram": 2.71})
 
@@ -107,13 +106,13 @@ class TestMetricsAdapter:
         """Test that methods work even when not initialized (should not crash)."""
         # Setup - not initialized
         self.adapter._initialized = False
-        
+
         # Execute - should not raise exceptions
         self.adapter.increment_counter("test", 1)
         self.adapter.set_gauge("test", 1.0)
         self.adapter.record_timer("test", 1.0)
         self.adapter.record_histogram("test", 1.0)
-        
+
         # Verify - no exception means test passed
         assert True
 
@@ -122,10 +121,10 @@ class TestMetricsAdapter:
         """Test incrementing counter without tags."""
         # Setup
         self.adapter._initialized = True
-        
+
         # Execute
         self.adapter.increment_counter("test_counter", 3)
-        
+
         # Verify
         mock_update.assert_called_once_with({"test_counter": 3})
 
@@ -134,10 +133,10 @@ class TestMetricsAdapter:
         """Test setting gauge without tags."""
         # Setup
         self.adapter._initialized = True
-        
+
         # Execute
         self.adapter.set_gauge("test_gauge", 42.0)
-        
+
         # Verify
         mock_update.assert_called_once_with({"test_gauge": 42.0})
 

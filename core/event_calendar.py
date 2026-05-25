@@ -222,7 +222,8 @@ def _fetch_nse_holidays() -> set[datetime.date]:
     Falls back to empty set if the API is unreachable.
     """
     try:
-        import json, urllib.request
+        import json
+        import urllib.request
         req = urllib.request.Request(
             _NSE_HOLIDAY_API,
             headers={

@@ -7,13 +7,16 @@ It provides market data retrieval using NSE's public APIs or available Python li
 
 from __future__ import annotations
 
-import time
-import logging
 import json
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime, timedelta
-import urllib.request
+import logging
+import time
 import urllib.error
+import urllib.request
+from collections.abc import Callable
+from datetime import datetime
+from typing import Any
+
+from core.datetime_ist import now_ist
 
 # Import the market data port interface this adapter implements
 try:
@@ -86,8 +89,8 @@ class NSEAdapter(MarketDataPort):
             self._session.headers.update(self._headers)
 
         # Cache for symbol mappings and instrument data
-        self._symbol_cache: Dict[str, Dict[str, Any]] = {}
-        self._symbol_cache_time: Dict[str, float] = {}
+        self._symbol_cache: dict[str, dict[str, Any]] = {}
+        self._symbol_cache_time: dict[str, float] = {}
         self._cache_ttl = 300  # 5 minutes for symbol data
 
         self._logger = LoggingService(
@@ -105,7 +108,6 @@ class NSEAdapter(MarketDataPort):
 
     def _get_logger(self):
         """Get logger instance."""
-        import logging
         return logging.getLogger(__name__)
 
     def _rate_limit(self):
@@ -118,7 +120,7 @@ class NSEAdapter(MarketDataPort):
             time.sleep(self._min_request_interval - elapsed)
         self._last_request_time = time.time()
 
-    def _make_request_with_retry(self, url: str, params: Dict[str, Any] = None) -> Any:
+    def _make_request_with_retry(self, url: str, params: dict[str, Any] = None) -> Any:
         """
         Make an HTTP request with retry logic.
 
@@ -184,7 +186,7 @@ class NSEAdapter(MarketDataPort):
         # For stocks, return as-is (NSE expects the symbol)
         return symbol.upper()
 
-    def _convert_to_quote(self, symbol: str, data: Dict[str, Any]) -> Quote:
+    def _convert_to_quote(self, symbol: str, data: dict[str, Any]) -> Quote:
         """
         Convert NSE API data to Quote object.
 
@@ -213,7 +215,7 @@ class NSEAdapter(MarketDataPort):
             ask=ask,
             last=last_price,
             volume=volume,
-            timestamp=datetime.now()
+            timestamp=now_ist()
         )
 
     def connect(self) -> bool:
@@ -328,7 +330,7 @@ class NSEAdapter(MarketDataPort):
             ask=0.0,
             last=0.0,
             volume=0,
-            timestamp=datetime.now()
+            timestamp=now_ist()
         )
 
     def get_latest_data(self, symbol: str) -> Any:
@@ -373,7 +375,7 @@ class NSEAdapter(MarketDataPort):
         if isinstance(market_data, dict) and 'timestamp' in market_data:
             try:
                 data_time = datetime.fromisoformat(market_data['timestamp'].replace('Z', '+00:00'))
-                age_seconds = (datetime.now() - data_time.replace(tzinfo=None)).total_seconds()
+                age_seconds = (now_ist() - data_time.replace(tzinfo=None)).total_seconds()
                 return age_seconds <= max_age_seconds
             except Exception:
                 pass
@@ -382,7 +384,7 @@ class NSEAdapter(MarketDataPort):
 
     def subscribe_to_market_data(
         self,
-        symbols: List[str],
+        symbols: list[str],
         callback: Callable[[Any], None]
     ) -> bool:
         """
@@ -432,7 +434,7 @@ class NSEAdapter(MarketDataPort):
         from_date: datetime,
         to_date: datetime,
         interval: str = "day"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get historical market data for backtesting and analysis.
 
@@ -466,15 +468,15 @@ class NSEAdapter(MarketDataPort):
             self._logger.error(f"Failed to get historical data for {symbol}: {e}")
             return []
 
-    def _get_fallback_historical_data(self, symbol: str, from_date: datetime, to_date: datetime, interval: str) -> List[Dict[str, Any]]:
+    def _get_fallback_historical_data(self, symbol: str, from_date: datetime, to_date: datetime, interval: str) -> list[dict[str, Any]]:
         """
         Get fallback historical data when NSE API is insufficient.
         Uses yfinance or simulation.
         """
         # Try to use yfinance if available as a fallback
         try:
-            import yfinance as yf
             import pandas as pd
+            import yfinance as yf
 
             # Convert symbol to yfinance format
             yf_symbol = symbol
@@ -532,7 +534,7 @@ class NSEAdapter(MarketDataPort):
         # Final fallback: simulate historical data
         return self._simulate_historical_data(symbol, from_date, to_date, interval)
 
-    def _simulate_historical_data(self, symbol: str, from_date: datetime, to_date: datetime, interval: str) -> List[Dict[str, Any]]:
+    def _simulate_historical_data(self, symbol: str, from_date: datetime, to_date: datetime, interval: str) -> list[dict[str, Any]]:
         self._logger.critical(
             f"NSE API and yfinance both failed for {symbol} - "
             "cannot provide simulated data for trading. "
@@ -546,8 +548,8 @@ class NSEAdapter(MarketDataPort):
     def get_option_chain(
         self,
         symbol: str,
-        expiry_date: Optional[datetime] = None
-    ) -> List[Dict[str, Any]]:
+        expiry_date: datetime | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get option chain for a symbol.
 
@@ -603,7 +605,7 @@ class NSEAdapter(MarketDataPort):
 
         return []
 
-    def _parse_option_chain_data(self, data: Dict[str, Any], symbol: str) -> List[Dict[str, Any]]:
+    def _parse_option_chain_data(self, data: dict[str, Any], symbol: str) -> list[dict[str, Any]]:
         """
         Parse option chain data from NSE API response.
 
@@ -661,7 +663,7 @@ class NSEAdapter(MarketDataPort):
 
         return result
 
-    def get_instrument_details(self, symbol: str) -> Dict[str, Any]:
+    def get_instrument_details(self, symbol: str) -> dict[str, Any]:
         """
         Get instrument details for a symbol.
 
@@ -725,7 +727,7 @@ class NSEAdapter(MarketDataPort):
 
 
 # Factory function for creating NSE market data adapter instances
-def create_nse_adapter(config: Dict[str, Any]) -> NSEAdapter:
+def create_nse_adapter(config: dict[str, Any]) -> NSEAdapter:
     """
     Factory function to create an NSEAdapter from configuration.
 

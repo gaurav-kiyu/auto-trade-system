@@ -441,8 +441,11 @@ def build_full_signal(
     atr_sl_mult = cfg.get("ATR_SL_MULTIPLIER", 1.5)
     stop_loss = calc_atr_stop_loss(price, atr_val, direction, atr_sl_mult)
     trailing_sl = calc_chandelier_exit(df1m, period=chandelier_period, multiplier=chandelier_multiplier, direction=direction)
-    if trailing_sl == 0.0: # Fallback
-        trailing_sl = stop_loss
+    try:
+        ts = float(trailing_sl.iloc[-1]) if hasattr(trailing_sl, 'iloc') else float(trailing_sl)
+    except (TypeError, ValueError, IndexError):
+        ts = 0.0
+    trailing_sl = ts if ts != 0.0 else stop_loss
         
     targets = calc_fibonacci_targets(price, atr_val, direction, 
                                      cfg.get("FIB_TP1_RATIO", 0.618), 

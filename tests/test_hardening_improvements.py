@@ -13,14 +13,10 @@ from __future__ import annotations
 
 import json
 import threading
-import tempfile
-import os
 from pathlib import Path
 
-import pytest
-
 from core.audit_engine import AuditEngine, AuditRecord
-from core.reconciliation_engine import ReconciliationEngine, ReconciliationItem, ReconciliationReport
+from core.reconciliation_engine import ReconciliationEngine
 from core.soft_reload_common import ignored_keys_warning, partition_soft_reload_changes
 from core.state_manager import SessionRecoveryReport, StateManager
 from core.trade_journal import VALID_EXIT_REASONS, TradeJournal
@@ -151,7 +147,8 @@ class TestTradeJournalExitReason:
         """Entry slippage + exit slippage = total_slippage in the journal row."""
         db = str(tmp_path / "journal.db")
         j = TradeJournal(db)
-        import time, datetime
+        import datetime
+        import time
         ts = datetime.datetime.utcnow().isoformat()
         entry = j.open_trade(
             trade_id="T-SLIP-001",
@@ -174,7 +171,7 @@ class TestTradeJournalExitReason:
         # Simulate fill with 2-point entry slippage
         j.record_fill("T-SLIP-001", actual_entry=202.0, fill_ts=ts, execution_delay_ms=50)
         # Give async write a moment
-        import time; time.sleep(0.1)
+        time.sleep(0.1)
         # Close with 1-point exit slippage
         j.close_trade(
             "T-SLIP-001",

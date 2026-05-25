@@ -1,8 +1,7 @@
 """Tests for core/implied_move.py (v2.45 Item 2)."""
 import math
-import pytest
-from core.implied_move import ImpliedMove, compute_implied_move, check_implied_move_gate, get_implied_move_score_adj
 
+from core.implied_move import ImpliedMove, check_implied_move_gate, compute_implied_move, get_implied_move_score_adj
 
 # ── compute_implied_move ──────────────────────────────────────────────────────
 

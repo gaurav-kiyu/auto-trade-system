@@ -8,9 +8,12 @@ It provides market data retrieval using the yfinance library.
 from __future__ import annotations
 
 import time
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime, timedelta
+from collections.abc import Callable
+from datetime import datetime
+from typing import Any
+
 import pandas as pd
+from core.datetime_ist import now_ist
 
 # Import the market data port interface this adapter implements
 try:
@@ -76,12 +79,12 @@ class YahooFinanceAdapter(MarketDataPort):
         self._last_request_time = 0
 
         # Cache for ticker objects to avoid repeated creation
-        self._ticker_cache: Dict[str, Any] = {}
-        self._ticker_cache_time: Dict[str, float] = {}
+        self._ticker_cache: dict[str, Any] = {}
+        self._ticker_cache_time: dict[str, float] = {}
         self._cache_ttl = 300  # 5 minutes
 
         # Track last fetch time per symbol for freshness checks
-        self._last_fetch_time: Dict[str, float] = {}
+        self._last_fetch_time: dict[str, float] = {}
 
         logger = self._get_logger()
         self._logger = LoggingService(
@@ -178,7 +181,7 @@ class YahooFinanceAdapter(MarketDataPort):
             ask=float(data.get('ask', 0.0)) if pd.notna(data.get('ask')) else 0.0,
             last=float(data.get('lastPrice', data.get('regularMarketPrice', 0.0))) if pd.notna(data.get('lastPrice', data.get('regularMarketPrice'))) else 0.0,
             volume=int(data.get('volume', data.get('regularMarketVolume', 0))) if pd.notna(data.get('volume', data.get('regularMarketVolume'))) else 0,
-            timestamp=datetime.now()
+            timestamp=now_ist()
         )
 
     def connect(self) -> bool:
@@ -282,7 +285,7 @@ class YahooFinanceAdapter(MarketDataPort):
 
     def subscribe_to_market_data(
         self,
-        symbols: List[str],
+        symbols: list[str],
         callback: Callable[[Any], None]
     ) -> bool:
         """
@@ -332,7 +335,7 @@ class YahooFinanceAdapter(MarketDataPort):
         from_date: datetime,
         to_date: datetime,
         interval: str = "day"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get historical market data for backtesting and analysis.
 
@@ -412,8 +415,8 @@ class YahooFinanceAdapter(MarketDataPort):
     def get_option_chain(
         self,
         symbol: str,
-        expiry_date: Optional[datetime] = None
-    ) -> List[Dict[str, Any]]:
+        expiry_date: datetime | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get option chain for a symbol.
 
@@ -488,7 +491,7 @@ class YahooFinanceAdapter(MarketDataPort):
             self._logger.error(f"Failed to get option chain for {symbol}: {e}")
             return []
 
-    def get_instrument_details(self, symbol: str) -> Dict[str, Any]:
+    def get_instrument_details(self, symbol: str) -> dict[str, Any]:
         """
         Get instrument details for a symbol.
 
@@ -532,7 +535,7 @@ class YahooFinanceAdapter(MarketDataPort):
 
 
 # Factory function for creating Yahoo Finance market data adapter instances
-def create_yahoo_finance_adapter(config: Dict[str, Any]) -> YahooFinanceAdapter:
+def create_yahoo_finance_adapter(config: dict[str, Any]) -> YahooFinanceAdapter:
     """
     Factory function to create a YahooFinanceAdapter from configuration.
 

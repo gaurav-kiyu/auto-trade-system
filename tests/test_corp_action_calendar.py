@@ -1,8 +1,10 @@
 """Tests for corporate action calendar extension in core/event_calendar.py (v2.45 Item 15)."""
 import datetime
-import pytest
+
 from core.event_calendar import (
-    CorporateAction, fetch_corporate_actions, is_corp_action_day,
+    CorporateAction,
+    fetch_corporate_actions,
+    is_corp_action_day,
 )
 
 

@@ -8,16 +8,16 @@ to provide a clean abstraction layer for Telegram notifications.
 from __future__ import annotations
 
 import logging
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import Any
 
+from core.datetime_ist import now_ist
 from core.ports.notification.notification_port import (
-    NotificationPort,
     Notification,
-    NotificationResult,
     NotificationChannel,
+    NotificationPort,
+    NotificationPriority,
+    NotificationResult,
     NotificationStatus,
-    NotificationPriority
 )
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class TelegramNotificationAdapter(NotificationPort):
         self,
         bot_token: str,
         default_chat_id: str,
-        channel_map: Optional[Dict[str, str]] = None,
+        channel_map: dict[str, str] | None = None,
         cooldown_seconds: int = 900,  # 15 minutes
         rate_limit: int = 20,         # messages per minute
         rate_window: int = 60,        # 60 second window
@@ -102,7 +102,7 @@ class TelegramNotificationAdapter(NotificationPort):
                 notification_id="disabled",
                 status=NotificationStatus.FAILED,
                 channel=NotificationChannel.TELEGRAM,
-                timestamp=datetime.now(),
+                timestamp=now_ist(),
                 error_message="Telegram notifications are disabled"
             )
 
@@ -111,7 +111,7 @@ class TelegramNotificationAdapter(NotificationPort):
                 notification_id="wrong_channel",
                 status=NotificationStatus.FAILED,
                 channel=notification.channel,
-                timestamp=datetime.now(),
+                timestamp=now_ist(),
                 error_message=f"Expected TELEGRAM channel, got {notification.channel}"
             )
 
@@ -124,34 +124,34 @@ class TelegramNotificationAdapter(NotificationPort):
 
             if sent:
                 return NotificationResult(
-                    notification_id=f"tg_{datetime.now().timestamp()}",
+                    notification_id=f"tg_{now_ist().timestamp()}",
                     status=NotificationStatus.SENT,
                     channel=NotificationChannel.TELEGRAM,
-                    timestamp=datetime.now()
+                    timestamp=now_ist()
                 )
             else:
                 return NotificationResult(
-                    notification_id=f"tg_{datetime.now().timestamp()}",
+                    notification_id=f"tg_{now_ist().timestamp()}",
                     status=NotificationStatus.FAILED,
                     channel=NotificationChannel.TELEGRAM,
-                    timestamp=datetime.now(),
+                    timestamp=now_ist(),
                     error_message="Failed to send Telegram notification"
                 )
 
         except Exception as e:
             logger.error(f"Error sending Telegram notification: {e}")
             return NotificationResult(
-                notification_id=f"tg_error_{datetime.now().timestamp()}",
+                notification_id=f"tg_error_{now_ist().timestamp()}",
                 status=NotificationStatus.FAILED,
                 channel=NotificationChannel.TELEGRAM,
-                timestamp=datetime.now(),
+                timestamp=now_ist(),
                 error_message=str(e)
             )
 
     def send_notifications(
         self,
-        notifications: List[Notification]
-    ) -> List[NotificationResult]:
+        notifications: list[Notification]
+    ) -> list[NotificationResult]:
         """
         Send multiple notifications via Telegram.
 
@@ -182,7 +182,7 @@ class TelegramNotificationAdapter(NotificationPort):
 
         return self.enabled and TELEGRAM_ENGINE_AVAILABLE and self._telegram_engine is not None
 
-    def get_rate_limit_status(self, channel: NotificationChannel) -> Dict[str, Any]:
+    def get_rate_limit_status(self, channel: NotificationChannel) -> dict[str, Any]:
         """
         Get current rate limit status for Telegram channel.
 

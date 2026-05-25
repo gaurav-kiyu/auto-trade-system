@@ -2,10 +2,11 @@
 Unit tests for the RiskService domain service.
 """
 
-import pytest
 from datetime import datetime
-from core.domains.risk.service import RiskService, create_risk_service
-from core.domains.risk.model import RiskLimits, MarketConditions, Position
+
+import pytest
+from core.domains.risk.model import MarketConditions, Position
+from core.domains.risk.service import create_risk_service
 
 
 class TestRiskManager:

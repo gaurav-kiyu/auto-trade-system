@@ -12,20 +12,16 @@ Covers:
 """
 import datetime
 import sqlite3
-import time
-
-import pytest
 
 from core.signal_autopsy import (
-    load_autopsy_data,
+    AutopsyReport,
+    compute_edge_decay,
     compute_feature_breakdown,
     find_failure_patterns,
-    compute_edge_decay,
-    run_autopsy,
     format_autopsy_report,
-    AutopsyReport,
+    load_autopsy_data,
+    run_autopsy,
 )
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

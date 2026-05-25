@@ -35,7 +35,7 @@ _INDEX_TO_TOKEN: dict[str, int] = {
 _INDEX_TO_YF: dict[str, str] = {
     "NIFTY": "^NSEI",
     "BANKNIFTY": "^NSEBANK",
-    "FINNIFTY": "^NIFTYFIN",
+    "FINNIFTY": "NIFTY_FIN_SERVICE.NS",
 }
 
 

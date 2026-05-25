@@ -31,11 +31,11 @@
 
 ## Test Command
 ```bash
-python -m pytest tests/ -q          # full suite (2341 tests, ~4.5 min)
+python -m pytest tests/ -q          # full suite (2442 tests, ~4.5 min)
 python -m pytest tests/ -v          # verbose
 python -m pytest tests/test_X.py    # single file
 ```
-All 2341 tests must pass before committing any change.
+All 2442 tests must pass before committing any change.
 
 ## Config System — Critical Rules
 - **`index_config.defaults.json`** is the single source of truth for all default values

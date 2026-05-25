@@ -5,9 +5,9 @@ Thread-safe session tracking with TTL expiry for operator sessions.
 """
 from __future__ import annotations
 
-import time
-import threading
 import logging
+import threading
+import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any

@@ -8,19 +8,25 @@ from __future__ import annotations
 
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
 try:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import inch, mm
     from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-        PageBreak, HRFlowable, KeepTogether,
+        HRFlowable,
+        KeepTogether,
+        PageBreak,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
     )
 except ImportError:
     print("reportlab not installed. Run: pip install reportlab")
@@ -44,7 +50,7 @@ def build_pdf(output_path: Path) -> None:
         rightMargin=20 * mm,
     )
     styles = getSampleStyleSheet()
-    
+
     # Custom styles
     styles.add(ParagraphStyle(
         "Title2", parent=styles["Heading1"], fontSize=18, spaceAfter=6,

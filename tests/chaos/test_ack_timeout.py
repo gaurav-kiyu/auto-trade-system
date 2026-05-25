@@ -1,7 +1,6 @@
 """
 Chaos: ACK Timeout
 """
-import pytest
 
 
 def test_ack_timeout_detected():

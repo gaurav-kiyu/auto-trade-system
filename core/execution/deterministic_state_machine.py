@@ -28,6 +28,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 
+from core.execution.durable_state import ExecutionState as DurableExecState
 from core.time_provider import time_provider
 
 _log = logging.getLogger(__name__)
@@ -191,14 +192,8 @@ class ExecutionStateMachine:
 
     def record_partial_fill(self, filled_qty: int, price: float) -> bool:
         """Record partial fill — delegates to record_fill for consistency"""
+        # Delegates to record_fill which handles accumulative weighted-average logic
         return self.record_fill(filled_qty, price)
-
-        if self.state == ExecutionState.ACKNOWLEDGED:
-            return self.try_transition_to(ExecutionState.PARTIAL_FILL)
-        elif self.state == ExecutionState.PARTIAL_FILL:
-            # Can stay in partial fill
-            return True
-        return False
 
     def record_rejection(self, reason: str) -> bool:
         """Record order rejection"""
@@ -241,12 +236,79 @@ class ExecutionStateMachineManager:
     """
     Manages multiple execution state machines with persistence.
     Ensures idempotency across the system.
+
+    Phase 5D / C7: On startup, loads non-terminal state machines from the
+    DurableExecutionStore so state survives restarts and crashes.
     """
 
     def __init__(self, persistence_callback: Callable | None = None):
         self._machines: dict[str, ExecutionStateMachine] = {}  # client_order_id -> machine
         self._lock = threading.Lock()
         self._persistence_callback = persistence_callback
+
+    # ── Phase 5D / C7: Crash recovery ───────────────────────────────────────
+
+    def recover_from_store(self, store: Any) -> int:
+        """
+        Load non-terminal execution records from DurableExecutionStore into
+        in-memory state machines. Call once at startup before processing orders.
+
+        Returns the number of machines recovered.
+        """
+        if store is None:
+            return 0
+        try:
+            records = store.get_non_terminal_executions()
+        except Exception as ex:
+            _log.warning("Could not recover state machines from durable store: %s", ex)
+            return 0
+
+        recovered = 0
+        for rec in records:
+            client_id = f"OPB-{rec.intent_id}"
+            with self._lock:
+                if client_id in self._machines:
+                    continue  # Already loaded
+                machine = ExecutionStateMachine(
+                    intent_id=rec.intent_id,
+                    client_order_id=client_id,
+                    symbol=rec.symbol,
+                    quantity=rec.quantity,
+                    price=rec.strike_price,
+                    direction=rec.direction,
+                )
+                machine._persistence_callback = self._persistence_callback
+                # Map durable state back to execution state
+                # NOTE: Keys use DurableExecState (durable_state.py enum), values use ExecutionState (machine enum)
+                # PENDING → PENDING_SUBMISSION (not VALIDATED): PENDING means no submission
+                # happened yet, so the normal flow re-runs validation + submission.
+                state_map = {
+                    DurableExecState.PENDING.value: ExecutionState.PENDING_SUBMISSION,
+                    DurableExecState.SUBMITTED.value: ExecutionState.SUBMITTED,
+                    DurableExecState.PARTIALLY_FILLED.value: ExecutionState.PARTIAL_FILL,
+                    DurableExecState.FILLED.value: ExecutionState.FILLED,
+                    DurableExecState.CANCELLED.value: ExecutionState.CANCELLED,
+                    DurableExecState.REJECTED.value: ExecutionState.REJECTED,
+                    DurableExecState.FAILED.value: ExecutionState.FAILED,
+                }
+                recovered_state = state_map.get(rec.state.value, ExecutionState.UNKNOWN)
+                machine.state = recovered_state
+                machine.broker_order_id = rec.broker_order_id
+                machine.filled_quantity = rec.filled_quantity
+                machine.average_price = rec.average_price
+                machine.error_message = rec.reject_reason
+                self._machines[client_id] = machine
+                _log.info(
+                    "Recovered state machine %s: state=%s, broker_id=%s",
+                    client_id, rec.state.value, rec.broker_order_id,
+                )
+                recovered += 1
+
+        if recovered:
+            _log.info("Crash recovery: loaded %d state machines from durable store", recovered)
+        return recovered
+
+    # ────────────────────────────────────────────────────────────────────────
 
     def create_or_get(
         self,

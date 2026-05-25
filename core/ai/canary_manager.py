@@ -10,7 +10,6 @@ import logging
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any
 
 _log = logging.getLogger(__name__)
 

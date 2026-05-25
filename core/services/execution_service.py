@@ -5,10 +5,9 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-
-from core.datetime_ist import now_ist
 from typing import Any
 
+from core.datetime_ist import now_ist
 from core.execution.broker_ack_validator import BrokerAckValidator
 from core.execution.broker_state_handler import create_state_handler
 from core.execution.deterministic_state_machine import ExecutionState, get_execution_state_manager
@@ -66,6 +65,7 @@ class ExecutionService:
         broker_port=None,
         trade_persistence=None,
         reconciliation_db_path: str = "trades.db",
+        wal_journal=None,  # Phase 5B: Write-ahead journal for crash-safe intent logging
     ):
         self.portfolio = portfolio_service
 
@@ -84,6 +84,11 @@ class ExecutionService:
         expiry_hours = self.config.idempotency_expiry_hours
 
         self.trade_persistence = trade_persistence
+
+        # Phase 5B: WAL journal for crash-safe intent logging
+        self._wal_journal = wal_journal
+        if self._wal_journal is not None:
+            self._logger.info("WAL journal wired into ExecutionService")
 
         if broker_port is None:
             from core.adapters.broker_adapters import PaperBrokerAdapter
@@ -154,7 +159,7 @@ class ExecutionService:
             enable_auto_repair=True,
         )
 
-        
+
 
         broker_type = BrokerAckValidator.detect_broker_type(broker_port)
 
@@ -353,9 +358,29 @@ class ExecutionService:
         with self._lock:
             intent_id = f"{order_request.symbol}_{order_request.direction}_{order_request.strike_price}_{order_request.lot_size}"
 
+            # ── Phase 5B: WAL journal intent logging ──────────────────────
+            # Append PENDING intent BEFORE any broker call ensures crash recovery.
+            if self._wal_journal is not None:
+                from core.wal.journal import Intent
+                wal_intent = Intent(
+                    intent_id=intent_id,
+                    action="place_order",
+                    params={
+                        "symbol": order_request.symbol,
+                        "direction": order_request.direction,
+                        "qty": order_request.lot_size,
+                        "strike": order_request.strike_price,
+                        "order_type": order_request.order_type.value if hasattr(order_request.order_type, 'value') else str(order_request.order_type),
+                    },
+                )
+                self._wal_journal.append(wal_intent)
+            # ────────────────────────────────────────────────────────────────
+
             if self.config.enable_duplicate_prevention:
                 if self.idempotency.is_duplicate(idempotency_key):
                     self._logger.warning(f"Duplicate order prevented: {idempotency_key}")
+                    if self._wal_journal is not None:
+                        self._wal_journal.fail(intent_id, "Duplicate order detected")
                     cached_result = self.idempotency.get_result(idempotency_key)
                     if cached_result is not None:
                         return cached_result
@@ -402,6 +427,11 @@ class ExecutionService:
 
             # Handle successful execution
             if order_result.status in [OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED]:
+                # ── Phase 5B: WAL journal commit ────────────────────────────
+                if self._wal_journal is not None:
+                    self._wal_journal.commit(intent_id)
+                # ─────────────────────────────────────────────────────────────
+
                 self.idempotency.confirm_execution(idempotency_key, order_result)
                 # Persist idempotency result for duplicate detection
                 try:
@@ -431,6 +461,11 @@ class ExecutionService:
                 )
 
             else:
+                # ── Phase 5B: WAL journal failure ───────────────────────────
+                if self._wal_journal is not None:
+                    self._wal_journal.fail(intent_id, order_result.reject_reason or "Order rejected")
+                # ─────────────────────────────────────────────────────────────
+
                 durable_state = DurableExecState.REJECTED if order_result.status == OrderStatus.REJECTED else DurableExecState.FAILED
                 self._durable_store.update_state(
                     intent_id,
@@ -450,6 +485,11 @@ class ExecutionService:
             return order_result
 
         except Exception as e:
+            # ── Phase 5B: WAL journal failure ───────────────────────────────
+            if self._wal_journal is not None:
+                self._wal_journal.fail(intent_id, str(e))
+            # ─────────────────────────────────────────────────────────────────
+
             self.idempotency.clear_in_flight(idempotency_key)
             self._durable_store.clear_in_flight(intent_id)
 
@@ -965,7 +1005,7 @@ class ExecutionService:
                             status=OrderStatus.FILLED,
                             filled_quantity=filled_quantity,
                             average_price=average_price,
-                            commission=0.0,  # TODO: Get commission from broker if available
+                            commission=self._get_commission_from_broker(order_id, order_request),
                             timestamp=now_ist(),
                             broker_order_id=str(order_id) if order_id else None,
                             broker_timestamp=now_ist()
@@ -1026,6 +1066,26 @@ class ExecutionService:
             for warning in validation.warnings:
                 self._logger.warning(f"Broker ACK warning: {warning}")
         return result
+
+    def _get_commission_from_broker(self, order_id: str, order_request) -> float:
+        """
+        Attempt to retrieve commission from broker order response.
+        Falls back to estimated commission (0.05% of notional) if unavailable.
+        """
+        try:
+            if hasattr(self.broker_port, 'get_order_details'):
+                details = self.broker_port.get_order_details(order_id)
+                if details and isinstance(details, dict):
+                    charges = details.get('brokerage') or details.get('charges') or details.get('commission') or 0.0
+                    return float(charges)
+        except Exception:
+            pass
+        # Fallback: estimate commission at 0.05% of notional trade value
+        try:
+            notional = float(order_request.strike_price) * int(order_request.lot_size)
+            return round(notional * 0.0005, 2)
+        except (ValueError, TypeError, AttributeError):
+            return 0.0
 
     def _execute_paper_order(
         self,

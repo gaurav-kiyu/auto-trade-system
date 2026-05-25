@@ -1,7 +1,6 @@
 """
 Chaos: Partial Fill + Disconnect
 """
-import pytest
 
 
 def test_partial_fill_after_disconnect():

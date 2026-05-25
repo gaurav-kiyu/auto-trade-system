@@ -96,8 +96,9 @@ def load_trades_for_sensitivity(
             params: list[Any] = []
             where = ["net_pnl IS NOT NULL", "entry IS NOT NULL"]
             if days and days > 0:
-                from core.datetime_ist import now_ist
                 from datetime import timedelta
+
+                from core.datetime_ist import now_ist
                 cutoff = (now_ist() - timedelta(days=days)).isoformat()
                 where.append("ts >= ?")
                 params.append(cutoff)

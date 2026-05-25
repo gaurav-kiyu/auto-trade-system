@@ -21,7 +21,6 @@ Covers:
 """
 import json
 import threading
-from pathlib import Path
 
 import pytest
 
@@ -33,7 +32,6 @@ except ImportError:
     pytest.skip("fastapi.testclient not available", allow_module_level=True)
 
 from core.web_dashboard import SignalLog, create_app, maybe_start_dashboard
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -121,7 +119,6 @@ class TestSignalLog:
 
 class TestCreateApp:
     def test_raises_import_error_if_no_fastapi(self, monkeypatch):
-        import sys
         # Don't actually remove fastapi — just verify the factory returns something
         app = create_app(cfg={})
         assert app is not None

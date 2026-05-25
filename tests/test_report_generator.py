@@ -12,19 +12,17 @@ Covers:
 """
 from __future__ import annotations
 
-import sqlite3
 import datetime
+import sqlite3
 from pathlib import Path
 
 import pytest
-
 from core.report_generator import (
-    generate_pdf_report,
+    _breakdown_table,
     _equity_curve_drawing,
     _metric_table,
-    _breakdown_table,
+    generate_pdf_report,
 )
-
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 

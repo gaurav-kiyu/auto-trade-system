@@ -1,7 +1,6 @@
 """Tests for v2.45 web dashboard endpoints (webhook + chain viz, Items 21-22)."""
-import json
-import pytest
 
+import pytest
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -182,8 +181,8 @@ def test_inject_uses_rate_limiter_when_provided():
     except ImportError:
         pytest.skip("fastapi not installed")
     try:
-        from core.services.rate_limiting_service import RateLimitingService
         from core.ports.rate_limiting.rate_limit_port import RateLimitConfig
+        from core.services.rate_limiting_service import RateLimitingService
         from core.web_dashboard import create_app
         rl = RateLimitingService()
         rl.update_config("webhook", RateLimitConfig(limit=1, window=60, algorithm="fixed_window"))

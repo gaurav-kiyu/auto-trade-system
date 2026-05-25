@@ -22,10 +22,7 @@ import tempfile
 import threading
 import time
 
-import pytest
-
 from core.execution.idempotency.certifier import IdempotencyCertifier
-
 
 # ---------------------------------------------------------------------------
 # Helpers

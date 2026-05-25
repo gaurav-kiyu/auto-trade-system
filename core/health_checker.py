@@ -8,7 +8,7 @@ Runs a comprehensive system health check covering:
   • Config sanity (SL_PCT < TARGET_PCT, etc.)
   • System resources (disk space, log directory size)
 
-Runs automatically on Sunday EOD; can also be triggered via CLI or web endpoint.
+Runs automatically on Sunday EOD via background scheduler; can also be triggered via CLI or web endpoint.
 
 Public API
 ----------
@@ -17,6 +17,8 @@ Public API
     format_health_report(report) → str
 
     cli: python -m core.health_checker [--all]
+
+    start_health_check_scheduler(cfg, db_path, send_fn) → threading.Thread
 
 Config keys (index_config.defaults.json)
 -----------------------------------------
@@ -34,6 +36,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sqlite3
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -468,6 +471,63 @@ def _cli() -> None:
         print(json.dumps(data, indent=2))
     else:
         print(format_health_report(report))
+
+
+# ── Background Scheduler ────────────────────────────────────────────────────
+
+def start_health_check_scheduler(
+    cfg: dict[str, Any] | None = None,
+    db_path: str = _DEFAULT_DB,
+    send_fn: callable | None = None,
+) -> threading.Thread:
+    """
+    Start a background daemon thread that runs the health check on Sunday EOD.
+
+    Checks every 60 minutes if it's Sunday >= 15:30 IST. If yes, runs a full
+    health check and sends the report via send_fn.
+
+    Args:
+        cfg: Config dict.
+        db_path: Path to trades.db.
+        send_fn: Callable for sending output (e.g. Telegram send function).
+
+    Returns:
+        The background daemon thread (already started).
+    """
+    import time as _time
+
+    from core.datetime_ist import now_ist
+
+    def _scheduler_loop():
+        checked_today = ""
+        while True:
+            try:
+                now = now_ist()
+                today_key = now.strftime("%Y-%m-%d")
+                # Sunday = weekday() == 6, check after 15:30 IST
+                if (
+                    now.weekday() == 6
+                    and now.hour >= 15
+                    and now.minute >= 30
+                    and checked_today != today_key
+                ):
+                    report = run_full_health_check(cfg, db_path)
+                    text = format_health_report(report)
+                    if send_fn:
+                        try:
+                            send_fn(text)
+                        except Exception as exc:
+                            _log.warning("[HEALTH] send_fn failed: %s", exc)
+                    _log.info("[HEALTH] Sunday EOD health check: %s", report.summary)
+                    checked_today = today_key
+            except Exception as exc:
+                _log.warning("[HEALTH] Scheduler loop error: %s", exc)
+            _time.sleep(3600)  # Check once per hour
+
+    t = threading.Thread(target=_scheduler_loop, name="health-check-scheduler", daemon=True)
+    t.start()
+    _log.info("[HEALTH] Background health check scheduler started (runs Sunday EOD)")
+    return t
 
 
 if __name__ == "__main__":

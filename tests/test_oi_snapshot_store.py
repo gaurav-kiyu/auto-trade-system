@@ -13,8 +13,6 @@ Covers:
 """
 import sqlite3
 import time
-import importlib
-import sys
 
 import pytest
 

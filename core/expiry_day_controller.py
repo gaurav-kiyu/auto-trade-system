@@ -6,6 +6,7 @@ Strategy-aware expiry-day controls:
 - Time-based warnings for high-risk periods
 - Premium decay estimation for theta strategies
 - gamma risk warnings for short options
+- Index-aware expiry detection (NIFTY/BANKNIFTY/FINNIFTY have different expiry days)
 """
 
 from __future__ import annotations
@@ -14,8 +15,9 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import time as dt_time
-from core.datetime_ist import now_ist
 from enum import Enum
+
+from core.datetime_ist import now_ist
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +36,26 @@ class ExpirySession(str, Enum):
     MIDDAY = "MIDDAY"
     CAUTION = "CAUTION"
     BLOCKED = "BLOCKED"
+
+
+# ── Index-specific expiry day map ────────────────────────────────────────
+# NIFTY: Thursday (weekday=3)
+# BANKNIFTY: Thursday (weekday=3) — same as NIFTY
+# FINNIFTY: Thursday (weekday=3) — same as NIFTY
+# MIDCPNIFTY: Thursday (weekday=3)
+# SENSEX: Friday (weekday=4)
+# BANKEX: Friday (weekday=4)
+_INDEX_EXPIRY_MAP: dict[str, int] = {
+    "NIFTY": 3,         # Thursday
+    "BANKNIFTY": 3,     # Thursday
+    "FINNIFTY": 3,      # Thursday
+    "MIDCPNIFTY": 3,    # Thursday
+    "SENSEX": 4,        # Friday
+    "BANKEX": 4,        # Friday
+}
+
+# Default expiry day if index is not in the map (Thursday)
+_DEFAULT_EXPIRY_WEEKDAY: int = 3
 
 
 @dataclass
@@ -58,6 +80,7 @@ class ExpiryDayController:
     - Time of day
     - Position type (long vs short options)
     - Market conditions
+    - Index-specific expiry days (NIFTY Thu, SENSEX Fri, etc.)
     """
 
     CAUTION_START = dt_time(12, 30)
@@ -80,9 +103,50 @@ class ExpiryDayController:
         """Update strategy type."""
         self._strategy_type = strategy_type
 
-    def can_enter_position(self, now: datetime | None = None) -> ExpiryControlResult:
+    def get_expiry_weekday(self, index_name: str | None = None) -> int:
+        """Get the expiry day weekday (0=Mon .. 6=Sun) for a given index.
+
+        Args:
+            index_name: Index symbol (e.g. 'NIFTY', 'SENSEX', 'BANKNIFTY').
+                        If None, returns the default (Thursday).
+
+        Returns:
+            Weekday integer (0=Monday .. 6=Sunday)
+        """
+        if index_name is None:
+            return _DEFAULT_EXPIRY_WEEKDAY
+        return _INDEX_EXPIRY_MAP.get(index_name.upper(), _DEFAULT_EXPIRY_WEEKDAY)
+
+    def is_expiry_day(self, date: datetime | None = None, index_name: str | None = None) -> bool:
+        """Check if given date is an expiry day for the specified index.
+
+        Index-aware: NIFTY/BANKNIFTY/FINNIFTY expire on Thursday,
+        SENSEX/BANKEX expire on Friday.
+
+        Args:
+            date: Date to check. Defaults to now_ist().
+            index_name: Index symbol. If None, uses legacy Thursday check.
+
+        Returns:
+            True if the date is an expiry day for the specified index.
+        """
+        if date is None:
+            date = now_ist()
+        expiry_weekday = self.get_expiry_weekday(index_name)
+        return date.weekday() == expiry_weekday
+
+    def can_enter_position(self, now: datetime | None = None, index_name: str | None = None) -> ExpiryControlResult:
         """
         Check if new position entry is allowed on expiry day.
+
+        Index-aware: only blocks on the actual expiry day for the given index.
+        If index_name is provided and today is NOT that index's expiry day,
+        entry is always allowed.
+
+        Args:
+            now: Current timestamp (default now_ist()).
+            index_name: Index symbol (e.g. 'NIFTY', 'SENSEX'). If None,
+                        uses legacy behaviour (Thursday check).
 
         Returns:
             ExpiryControlResult with permission and details
@@ -98,14 +162,24 @@ class ExpiryDayController:
         if now is None:
             now = now_ist()
 
+        # If an index is specified, only apply controls on THAT index's expiry day
+        if index_name is not None and not self.is_expiry_day(now, index_name):
+            return ExpiryControlResult(
+                allowed=True,
+                session=ExpirySession.MORNING,
+                reason=f"Today is not {index_name.upper()} expiry day",
+                risk_level="LOW",
+            )
+
         current_time = now.time()
         warnings = []
 
         if current_time >= self._block_after:
+            session_label = _get_session_label(now)
             return ExpiryControlResult(
                 allowed=False,
                 session=ExpirySession.BLOCKED,
-                reason=f"Entry blocked after {self._block_after}",
+                reason=f"Entry blocked after {self._block_after} on expiry day",
                 risk_level="HIGH",
                 warnings=["Expiry day entry window closed"],
             )
@@ -144,10 +218,23 @@ class ExpiryDayController:
             risk_level="LOW",
         )
 
-    def should_close_positions(self, now: datetime | None = None) -> tuple[bool, str]:
-        """Check if all positions should be closed before expiry close."""
+    def should_close_positions(self, now: datetime | None = None, index_name: str | None = None) -> tuple[bool, str]:
+        """Check if all positions should be closed before expiry close.
+
+        Args:
+            now: Current timestamp (default now_ist()).
+            index_name: Index symbol. If provided, only closes on
+                        that index's expiry day.
+
+        Returns:
+            Tuple of (should_close, reason)
+        """
         if now is None:
             now = now_ist()
+
+        # Only close on the index's actual expiry day
+        if index_name is not None and not self.is_expiry_day(now, index_name):
+            return False, ""
 
         current_time = now.time()
 
@@ -202,12 +289,6 @@ class ExpiryDayController:
             return "MEDIUM"
         return "LOW"
 
-    def is_expiry_day(self, date: datetime | None = None) -> bool:
-        """Check if given date is an expiry day (Thursday)."""
-        if date is None:
-            date = now_ist()
-        return date.weekday() == 3
-
     def get_expiry_week_type(self, date: datetime | None = None) -> str:
         """Get expiry week type (monthly/weekly/normal)."""
         if date is None:
@@ -223,6 +304,17 @@ class ExpiryDayController:
             return "WEEKLY_1"
 
 
+def _get_session_label(now: datetime) -> ExpirySession:
+    """Determine the current session label based on time."""
+    if now.time() >= dt_time(13, 0):
+        return ExpirySession.BLOCKED
+    elif now.time() >= dt_time(12, 30):
+        return ExpirySession.CAUTION
+    elif now.time() >= dt_time(12, 0):
+        return ExpirySession.MIDDAY
+    return ExpirySession.MORNING
+
+
 def create_expiry_controller(
     strategy_type: StrategyType = StrategyType.DIRECTIONAL,
     enable_controls: bool = True,
@@ -232,3 +324,16 @@ def create_expiry_controller(
         strategy_type=strategy_type,
         enable_controls=enable_controls,
     )
+
+
+# ── Convenience function for callers that pass index_name ────────────────
+def get_index_expiry_weekday(index_name: str) -> int:
+    """Quick lookup for an index's expiry weekday.
+
+    Args:
+        index_name: Index symbol (e.g. 'NIFTY', 'SENSEX').
+
+    Returns:
+        Weekday integer (0=Monday .. 6=Sunday).
+    """
+    return _INDEX_EXPIRY_MAP.get(index_name.upper(), _DEFAULT_EXPIRY_WEEKDAY)

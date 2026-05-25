@@ -18,9 +18,9 @@ import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum, auto
 
 from core.datetime_ist import now_ist
-from enum import Enum, auto
 
 log = logging.getLogger("system_mode")
 

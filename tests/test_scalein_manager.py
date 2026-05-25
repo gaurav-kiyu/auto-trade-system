@@ -1,7 +1,7 @@
 """Tests for core/scalein_manager.py (v2.45 Item 9)."""
 import time
-import pytest
-from core.scalein_manager import ScaleInState, ScaleInManager
+
+from core.scalein_manager import ScaleInManager, ScaleInState
 
 
 def _cfg(**overrides):

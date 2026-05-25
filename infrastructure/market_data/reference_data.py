@@ -14,16 +14,83 @@ even when external sources are unavailable.
 
 from __future__ import annotations
 
+import csv
+import io
 import json
+import logging
 import threading
 import time
-from datetime import datetime, date
-from typing import Any, Dict, List, Optional, Set, Tuple
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from pathlib import Path
-import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+# ── Hardcoded fallback lot sizes for known NSE F&O symbols (as of 2026) ──
+# These are used when the NSE API is unreachable.
+_FALLBACK_LOT_SIZES: dict[str, int] = {
+    "NIFTY": 50,
+    "BANKNIFTY": 15,
+    "FINNIFTY": 40,
+    "MIDCPNIFTY": 75,
+    "SENSEX": 10,
+    "RELIANCE": 250,
+    "TCS": 150,
+    "HDFCBANK": 300,
+    "INFY": 300,
+    "ICICIBANK": 550,
+    "KOTAKBANK": 200,
+    "LT": 200,
+    "SBIN": 700,
+    "BHARTIARTL": 450,
+    "ASIANPAINT": 150,
+    "MARUTI": 50,
+    "HINDUNILVR": 100,
+    "AXISBANK": 400,
+    "BAJFINANCE": 100,
+    "TATAMOTORS": 850,
+    "WIPRO": 1000,
+    "ITC": 1600,
+    "HCLTECH": 350,
+    "SUNPHARMA": 300,
+    "POWERGRID": 1000,
+    "NTPC": 1800,
+    "ONGC": 900,
+    "COALINDIA": 600,
+    "TITAN": 75,
+    "ULTRACEMCO": 50,
+    "BAJAJFINSV": 100,
+    "DMART": 150,
+    "ADANIENT": 200,
+    "ADANIPORTS": 250,
+    "HINDALCO": 500,
+    "JSWSTEEL": 250,
+    "TRENT": 150,
+    "ZOMATO": 700,
+    "M&M": 225,
+    "TATASTEEL": 600,
+    "GRASIM": 150,
+    "BRITANNIA": 75,
+    "HEROMOTOCO": 100,
+    "EICHERMOT": 50,
+    "BAJAJ-AUTO": 75,
+    "DIVISLAB": 75,
+    "DRREDDY": 75,
+    "CIPLA": 450,
+    "APOLLOHOSP": 75,
+    "NESTLEIND": 50,
+    "SBILIFE": 250,
+    "ICICIPRULI": 250,
+}
+
+# ── NSE F&O contract CSV URL template ──
+_NSE_CONTRACT_CSV_URL: str = "https://archives.nseindia.com/content/fo/fo_mktlots.csv"
+# ── NSE expiry date CSV URL ──
+_NSE_EXPIRY_CSV_URL: str = "https://archives.nseindia.com/content/fo/fo_secban.csv"
 
 
 @dataclass(frozen=True)
@@ -39,7 +106,7 @@ class LotSizeInfo:
 class ExpiryInfo:
     """Information about expiry dates for a symbol."""
     symbol: str
-    expiry_dates: List[date]  # List of expiry dates
+    expiry_dates: list[date]  # List of expiry dates
     expiry_type: str = ""  # e.g., "WEEKLY", "MONTHLY", "QUARTERLY"
     note: str = ""
 
@@ -82,10 +149,10 @@ class ReferenceDataService:
     """
 
     def __init__(self,
-                 data_engine: Optional[DataEngine] = None,
-                 cache_ttl: Dict[str, float] = None,
+                 data_engine: DataEngine | None = None,
+                 cache_ttl: dict[str, float] = None,
                  enable_fallback_to_file: bool = True,
-                 fallback_file_dir: Optional[Path] = None):
+                 fallback_file_dir: Path | None = None):
         """
         Initialize the reference data service.
 
@@ -102,7 +169,7 @@ class ReferenceDataService:
         self._fallback_file_dir = fallback_file_dir or (Path.home() / ".opb" / "reference_data")
 
         # Set up cache TTLs (default values)
-        self._cache_ttl: Dict[str, float] = {
+        self._cache_ttl: dict[str, float] = {
             'lot_size': 86400.0,      # 1 day
             'expiry': 86400.0,        # 1 day
             'holiday': 31536000.0,    # 1 year
@@ -112,16 +179,16 @@ class ReferenceDataService:
             self._cache_ttl.update(cache_ttl)
 
         # In-memory caches
-        self._lot_sizes: Dict[str, LotSizeInfo] = {}
-        self._expiries: Dict[str, ExpiryInfo] = {}
-        self._holidays: Set[HolidayInfo] = set()
-        self._margins: Dict[str, List[MarginInfo]] = {}
+        self._lot_sizes: dict[str, LotSizeInfo] = {}
+        self._expiries: dict[str, ExpiryInfo] = {}
+        self._holidays: set[HolidayInfo] = set()
+        self._margins: dict[str, list[MarginInfo]] = {}
 
         # Timestamps for when data was last updated
-        self._last_updated: Dict[str, float] = {}
+        self._last_updated: dict[str, float] = {}
 
         # Flags to track if we have ever successfully loaded data
-        self._has_ever_loaded: Dict[str, bool] = {
+        self._has_ever_loaded: dict[str, bool] = {
             'lot_size': False,
             'expiry': False,
             'holiday': False,
@@ -135,7 +202,7 @@ class ReferenceDataService:
         # Load initial data
         self._refresh_all_data()
 
-    def _get_cache_key(self, data_type: str, identifier: Optional[str] = None) -> str:
+    def _get_cache_key(self, data_type: str, identifier: str | None = None) -> str:
         """Generate a cache key for the given data type and optional identifier."""
         if identifier:
             return f"refdata:{data_type}:{identifier}"
@@ -162,7 +229,7 @@ class ReferenceDataService:
         except Exception as e:
             logger.warning(f"Failed to save {data_type} reference data to fallback file: {e}")
 
-    def _load_from_fallback_file(self, data_type: str) -> Optional[Any]:
+    def _load_from_fallback_file(self, data_type: str) -> Any | None:
         """Load data from a fallback file if available."""
         if not self._enable_fallback_to_file or not self._fallback_file_dir:
             return None
@@ -170,7 +237,7 @@ class ReferenceDataService:
         try:
             file_path = self._fallback_file_dir / f"{data_type}.json"
             if file_path.exists():
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, encoding='utf-8') as f:
                     data = json.load(f)
                 logger.debug(f"Loaded {data_type} reference data from fallback file: {file_path}")
                 return self._deserialize_from_fallback(data_type, data)
@@ -259,34 +326,133 @@ class ReferenceDataService:
         else:
             return data
 
-    def _fetch_lot_sizes_from_source(self) -> Dict[str, LotSizeInfo]:
+    def _fetch_lot_sizes_from_source(self) -> dict[str, LotSizeInfo]:
         """
-        Fetch lot sizes from the authoritative source.
+        Fetch lot sizes from NSE F&O contract CSV.
 
-        This is a placeholder implementation. In a real system, this would:
-        1. Call the NSE API or download the lot size CSV from NSE website
-        2. Parse the response
-        3. Validate the data
-        4. Return a dictionary mapping symbol to LotSizeInfo
-
-        For now, we return an empty dict to indicate that we need to implement
-        the actual fetching logic based on the available data sources in the system.
+        Downloads and parses the official NSE F&O market lots CSV file.
+        Falls back to hardcoded _FALLBACK_LOT_SIZES if the fetch fails.
         """
-        logger.info("Fetching lot sizes from authoritative source (placeholder)")
-        # TODO: Implement actual fetching from NSE API or other source
-        # For now, we'll return an empty dict to trigger fallback behavior
-        return {}
+        logger.info("Fetching lot sizes from NSE contract CSV")
+        try:
+            req = urllib.request.Request(
+                _NSE_CONTRACT_CSV_URL,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Accept": "text/csv,application/json,*/*",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                raw = resp.read().decode("utf-8-sig")
 
-    def _fetch_expiries_from_source(self) -> Dict[str, ExpiryInfo]:
+            result: dict[str, LotSizeInfo] = {}
+            reader = csv.DictReader(io.StringIO(raw))
+            for row in reader:
+                sym = (row.get("SYMBOL") or row.get("symbol") or "").strip().upper()
+                lot_raw = row.get("LOT_SIZE") or row.get("lot_size") or row.get("MARKET_LOT") or ""
+                if not sym or not lot_raw:
+                    continue
+                try:
+                    lot = int(float(lot_raw))
+                except (ValueError, TypeError):
+                    continue
+                result[sym] = LotSizeInfo(
+                    symbol=sym,
+                    lot_size=lot,
+                    effective_from=date.today(),
+                    note="Fetched from NSE contract CSV",
+                )
+
+            if result:
+                logger.info("Fetched %d lot sizes from NSE CSV", len(result))
+                return result
+
+            logger.warning("NSE CSV returned no parseable rows, using fallback")
+
+        except Exception as exc:
+            logger.warning("Failed to fetch lot sizes from NSE: %s", exc)
+
+        # Fallback to hardcoded data
+        logger.info("Using hardcoded fallback lot sizes (%d symbols)", len(_FALLBACK_LOT_SIZES))
+        today = date.today()
+        return {
+            sym: LotSizeInfo(
+                symbol=sym,
+                lot_size=lot,
+                effective_from=today,
+                note="Hardcoded fallback",
+            )
+            for sym, lot in _FALLBACK_LOT_SIZES.items()
+        }
+
+    def _fetch_expiries_from_source(self) -> dict[str, ExpiryInfo]:
         """
-        Fetch expiry dates from the authoritative source.
+        Fetch expiry dates from NSE F&O contract CSV.
 
-        Placeholder implementation.
+        Downloads and parses the weekly/monthly expiry dates from NSE’s
+        contract information. Falls back to computed expiry dates if fetch fails.
         """
-        logger.info("Fetching expiry dates from authoritative source (placeholder)")
-        return {}
+        logger.info("Fetching expiry dates from NSE contract CSV")
+        try:
+            req = urllib.request.Request(
+                _NSE_CONTRACT_CSV_URL,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Accept": "text/csv,application/json,*/*",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                raw = resp.read().decode("utf-8-sig")
 
-    def _fetch_holidays_from_source(self) -> Set[HolidayInfo]:
+            result: dict[str, ExpiryInfo] = {}
+            reader = csv.DictReader(io.StringIO(raw))
+            expiry_map: dict[str, set[date]] = {}
+            for row in reader:
+                sym = (row.get("SYMBOL") or row.get("symbol") or "").strip().upper()
+                expiry_raw = row.get("EXPIRY_DT") or row.get("expiry_dt") or row.get("EXPIRY") or ""
+                if not sym or not expiry_raw:
+                    continue
+                try:
+                    parts = expiry_raw.strip().split("-")
+                    if len(parts) == 3:
+                        expiry_date = date(int(parts[0]), int(parts[1]), int(parts[2]))
+                    elif len(parts) == 1 and len(expiry_raw.strip()) == 8:
+                        # DDMMYYYY format
+                        expiry_date = date(
+                            int(expiry_raw[4:8]),
+                            int(expiry_raw[2:4]),
+                            int(expiry_raw[0:2]),
+                        )
+                    else:
+                        continue
+                except (ValueError, IndexError):
+                    continue
+                if sym not in expiry_map:
+                    expiry_map[sym] = set()
+                expiry_map[sym].add(expiry_date)
+
+            if expiry_map:
+                idx_type = {"NIFTY": "WEEKLY", "BANKNIFTY": "WEEKLY",
+                           "FINNIFTY": "WEEKLY", "SENSEX": "WEEKLY"}
+                for sym, dates_set in expiry_map.items():
+                    sorted_dates = sorted(dates_set)
+                    result[sym] = ExpiryInfo(
+                        symbol=sym,
+                        expiry_dates=sorted_dates,
+                        expiry_type=idx_type.get(sym, "MONTHLY"),
+                        note="Fetched from NSE contract CSV",
+                    )
+                logger.info("Fetched expiry dates for %d symbols from NSE CSV", len(result))
+                return result
+
+        except Exception as exc:
+            logger.warning("Failed to fetch expiry dates from NSE: %s", exc)
+
+        # Fallback: compute standard expiry dates (weekly Thursday for NIFTY)
+        logger.info("Using computed expiry dates as fallback")
+        return self._compute_fallback_expiries()
+
+    def _fetch_holidays_from_source(self) -> set[HolidayInfo]:
         """
         Fetch market holidays from the authoritative source.
 
@@ -295,7 +461,54 @@ class ReferenceDataService:
         logger.info("Fetching market holidays from authoritative source (placeholder)")
         return set()
 
-    def _fetch_margins_from_source(self) -> Dict[str, List[MarginInfo]]:
+    def _compute_fallback_expiries(self) -> dict[str, ExpiryInfo]:
+        """Compute standard expiry dates for known indices as fallback."""
+        today = date.today()
+        result: dict[str, ExpiryInfo] = {}
+
+        # Weekly expiry indices (Thursday expiry)
+        weekly_indices = {"NIFTY", "BANKNIFTY", "FINNIFTY", "SENSEX"}
+
+        for sym in list(weekly_indices) + ["MIDCPNIFTY"]:
+            expiry_type = "WEEKLY" if sym in weekly_indices else "MONTHLY"
+            dates = []
+            # Generate next 8 weekly or 12 monthly expiry dates
+            count = 8 if expiry_type == "WEEKLY" else 12
+            d = today
+            while len(dates) < count:
+                if expiry_type == "WEEKLY":
+                    # Find next Thursday
+                    days_ahead = 3 - d.weekday()  # Thursday = 3
+                    if days_ahead <= 0:
+                        days_ahead += 7
+                    d = d + timedelta(days=days_ahead)
+                else:
+                    # Last Thursday of each month
+                    import calendar
+                    last_day = calendar.monthrange(d.year, d.month)[1]
+                    d = date(d.year, d.month, last_day)
+                    while d.weekday() != 3:  # Thursday
+                        d = d - timedelta(days=1)
+                    if d <= today:
+                        # Move to first day of next month
+                        if d.month == 12:
+                            d = date(d.year + 1, 1, 1)
+                        else:
+                            d = date(d.year, d.month + 1, 1)
+                        continue
+                if d not in dates:
+                    dates.append(d)
+
+            result[sym] = ExpiryInfo(
+                symbol=sym,
+                expiry_dates=sorted(dates),
+                expiry_type=expiry_type,
+                note="Computed fallback",
+            )
+
+        return result
+
+    def _fetch_margins_from_source(self) -> dict[str, list[MarginInfo]]:
         """
         Fetch margin requirements from the authoritative source.
 
@@ -304,7 +517,7 @@ class ReferenceDataService:
         logger.info("Fetching margin requirements from authoritative source (placeholder)")
         return {}
 
-    def _validate_lot_sizes(self, data: Dict[str, LotSizeInfo]) -> Tuple[bool, str]:
+    def _validate_lot_sizes(self, data: dict[str, LotSizeInfo]) -> tuple[bool, str]:
         """Validate lot size data."""
         if not isinstance(data, dict):
             return False, "Lot sizes data is not a dictionary"
@@ -319,7 +532,7 @@ class ReferenceDataService:
 
         return True, ""
 
-    def _validate_expiries(self, data: Dict[str, ExpiryInfo]) -> Tuple[bool, str]:
+    def _validate_expiries(self, data: dict[str, ExpiryInfo]) -> tuple[bool, str]:
         """Validate expiry data."""
         if not isinstance(data, dict):
             return False, "Expiries data is not a dictionary"
@@ -338,7 +551,7 @@ class ReferenceDataService:
 
         return True, ""
 
-    def _validate_holidays(self, data: Set[HolidayInfo]) -> Tuple[bool, str]:
+    def _validate_holidays(self, data: set[HolidayInfo]) -> tuple[bool, str]:
         """Validate holiday data."""
         if not isinstance(data, set):
             return False, "Holidays data is not a set"
@@ -351,7 +564,7 @@ class ReferenceDataService:
 
         return True, ""
 
-    def _validate_margins(self, data: Dict[str, List[MarginInfo]]) -> Tuple[bool, str]:
+    def _validate_margins(self, data: dict[str, list[MarginInfo]]) -> tuple[bool, str]:
         """Validate margin data."""
         if not isinstance(data, dict):
             return False, "Margins data is not a dictionary"
@@ -570,7 +783,7 @@ class ReferenceDataService:
         self._refresh_margins()
         logger.info("Finished refreshing all reference data")
 
-    def get_lot_size(self, symbol: str) -> Optional[int]:
+    def get_lot_size(self, symbol: str) -> int | None:
         """
         Get the lot size for a given symbol.
 
@@ -589,7 +802,7 @@ class ReferenceDataService:
             info = self._lot_sizes.get(symbol)
             return info.lot_size if info else None
 
-    def get_expiry_dates(self, symbol: str) -> Optional[List[date]]:
+    def get_expiry_dates(self, symbol: str) -> list[date] | None:
         """
         Get the expiry dates for a given symbol.
 
@@ -606,7 +819,7 @@ class ReferenceDataService:
             info = self._expiries.get(symbol)
             return info.expiry_dates if info else None
 
-    def get_holidays(self) -> Optional[Set[date]]:
+    def get_holidays(self) -> set[date] | None:
         """
         Get the set of market holiday dates.
 
@@ -622,7 +835,7 @@ class ReferenceDataService:
 
             return {h.holiday_date for h in self._holidays} if self._holidays else None
 
-    def is_market_open(self, check_date: Optional[date] = None) -> bool:
+    def is_market_open(self, check_date: date | None = None) -> bool:
         """
         Check if the market is open on a given date.
 
@@ -643,7 +856,7 @@ class ReferenceDataService:
 
         return check_date not in holidays
 
-    def get_margin_info(self, symbol: str) -> Optional[List[MarginInfo]]:
+    def get_margin_info(self, symbol: str) -> list[MarginInfo] | None:
         """
         Get margin information for a given symbol.
 
@@ -659,7 +872,7 @@ class ReferenceDataService:
 
             return self._margins.get(symbol)
 
-    def get_reference_data_status(self) -> Dict[str, Any]:
+    def get_reference_data_status(self) -> dict[str, Any]:
         """
         Get the status of the reference data service.
 
@@ -701,7 +914,7 @@ class ReferenceDataService:
 
 
 # Global reference data service instance
-_reference_data_service: Optional[ReferenceDataService] = None
+_reference_data_service: ReferenceDataService | None = None
 _reference_data_service_lock = threading.Lock()
 
 
@@ -715,10 +928,10 @@ def get_reference_data_service() -> ReferenceDataService:
     return _reference_data_service
 
 
-def init_reference_data_service(data_engine: Optional[DataEngine] = None,
-                              cache_ttl: Optional[Dict[str, float]] = None,
+def init_reference_data_service(data_engine: DataEngine | None = None,
+                              cache_ttl: dict[str, float] | None = None,
                               enable_fallback_to_file: bool = True,
-                              fallback_file_dir: Optional[Path] = None) -> ReferenceDataService:
+                              fallback_file_dir: Path | None = None) -> ReferenceDataService:
     """Initialize the global reference data service."""
     global _reference_data_service
     with _reference_data_service_lock:
@@ -732,27 +945,27 @@ def init_reference_data_service(data_engine: Optional[DataEngine] = None,
 
 
 # Convenience functions for common operations
-def get_lot_size(symbol: str) -> Optional[int]:
+def get_lot_size(symbol: str) -> int | None:
     """Get the lot size for a symbol using the global service."""
     return get_reference_data_service().get_lot_size(symbol)
 
 
-def get_expiry_dates(symbol: str) -> Optional[List[date]]:
+def get_expiry_dates(symbol: str) -> list[date] | None:
     """Get the expiry dates for a symbol using the global service."""
     return get_reference_data_service().get_expiry_dates(symbol)
 
 
-def get_holidays() -> Optional[Set[date]]:
+def get_holidays() -> set[date] | None:
     """Get the set of market holiday dates using the global service."""
     return get_reference_data_service().get_holidays()
 
 
-def is_market_open(check_date: Optional[date] = None) -> bool:
+def is_market_open(check_date: date | None = None) -> bool:
     """Check if the market is open on a given date using the global service."""
     return get_reference_data_service().is_market_open(check_date)
 
 
-def get_margin_info(symbol: str) -> Optional[List[MarginInfo]]:
+def get_margin_info(symbol: str) -> list[MarginInfo] | None:
     """Get margin information for a symbol using the global service."""
     return get_reference_data_service().get_margin_info(symbol)
 

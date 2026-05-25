@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import threading
 import time
-from pathlib import Path
 
 from core.runtime_ops import CircuitBreaker, PerfAccumulator, check_manual_kill_switch
 

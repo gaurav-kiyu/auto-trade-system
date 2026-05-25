@@ -2,8 +2,8 @@
 
 import logging
 import sqlite3
-from dataclasses import dataclass, field
-from typing import Callable, Optional
+from collections.abc import Callable
+from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def set_schema_version(conn: sqlite3.Connection, version: int) -> None:
     conn.execute(f"PRAGMA user_version = {int(version)}")
 
 
-def migrate_to_latest(conn: sqlite3.Connection, target_version: Optional[int] = None) -> int:
+def migrate_to_latest(conn: sqlite3.Connection, target_version: int | None = None) -> int:
     """Migrate conn forward to target_version (or latest). Returns final schema version."""
     _verify_migration_order()
     current = get_schema_version(conn)

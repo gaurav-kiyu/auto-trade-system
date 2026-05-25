@@ -1,10 +1,12 @@
 """
 Chaos: Restart Mid-Session
 """
-import pytest
-import tempfile, os, gc
+import gc
+import os
+import tempfile
+
 from core.execution.idempotency.certifier import IdempotencyCertifier
-from core.wal.journal import WriteAheadJournal, Intent
+from core.wal.journal import Intent, WriteAheadJournal
 
 
 def test_idempotency_survives_restart():

@@ -7,8 +7,9 @@ Adapter that implements the MlModelPort interface using the existing ML classifi
 from __future__ import annotations
 
 import time
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
+from core.datetime_ist import now_ist
 
 # Import the port interface and MLPrediction
 from core.ports.ml_model import MlModelPort, MLPrediction
@@ -18,10 +19,12 @@ try:
     from core.ml_classifier import (
         FEATURE_COLS,
         get_classifier,
-        predict_win_prob,
-        train as ml_train,
-        save_model,
         load_model,
+        predict_win_prob,
+        save_model,
+    )
+    from core.ml_classifier import (
+        train as ml_train,
     )
     from core.ml_performance_tracker import get_feature_importance as get_performance_feature_importance
 except ImportError:
@@ -43,7 +46,7 @@ class MLModelAdapter(MlModelPort):
     depend on abstractions (MlModelPort), not concretions (specific ML implementation).
     """
 
-    def __init__(self, journal_path: str | None = None, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, journal_path: str | None = None, config: dict[str, Any] | None = None):
         """
         Initialize the ML model adapter.
 
@@ -75,7 +78,7 @@ class MLModelAdapter(MlModelPort):
             logging.getLogger(__name__).error(f"Failed to load ML model: {e}")
             self._model = None
 
-    def predict_win_probability(self, features: Dict[str, Any]) -> MLPrediction:
+    def predict_win_probability(self, features: dict[str, Any]) -> MLPrediction:
         """
         Predict the probability of a trade being successful based on input features.
 
@@ -115,7 +118,7 @@ class MLModelAdapter(MlModelPort):
                 confidence=confidence,
                 features_used=list(features.keys()),
                 model_version=self._model_version,
-                prediction_timestamp=datetime.now(),
+                prediction_timestamp=now_ist(),
                 metadata={}
             )
         except Exception as e:
@@ -130,7 +133,7 @@ class MLModelAdapter(MlModelPort):
         """
         return self._model is not None
 
-    def get_model_info(self) -> Dict[str, Any]:
+    def get_model_info(self) -> dict[str, Any]:
         """
         Get information about the current ML model.
 
@@ -148,7 +151,7 @@ class MLModelAdapter(MlModelPort):
             info["config"] = self.config.copy()
         return info
 
-    def get_feature_importance(self) -> Dict[str, float]:
+    def get_feature_importance(self) -> dict[str, float]:
         """
         Get feature importance scores from the ML model.
 
@@ -169,7 +172,7 @@ class MLModelAdapter(MlModelPort):
         except Exception:
             return {}
 
-    def retrain_model(self, training_data: List[Dict[str, Any]], labels: List[int]) -> bool:
+    def retrain_model(self, training_data: list[dict[str, Any]], labels: list[int]) -> bool:
         """
         Retrain the ML model with new training data.
 
@@ -203,7 +206,7 @@ class MLModelAdapter(MlModelPort):
             logging.getLogger(__name__).error(f"ML model retraining failed: {e}")
             return False
 
-    def validate_features(self, features: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate_features(self, features: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         Validate that input features match the model's expectations.
 

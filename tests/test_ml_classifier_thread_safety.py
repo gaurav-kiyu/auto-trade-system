@@ -4,18 +4,15 @@ from __future__ import annotations
 import threading
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-
 from core.ml_classifier import (
     FEATURE_COLS,
     _model_cache,
     _model_lock,
     _model_ts,
     extract_features,
-    get_classifier,
-    predict_win_prob,
     score_adj_from_prob,
 )
 
@@ -33,8 +30,8 @@ class TestModelCacheThreadSafety:
 
     def test_concurrent_get_classifier(self, tmp_path: Path) -> None:
         """Multiple threads calling get_classifier simultaneously should not corrupt cache."""
-        from core.ml_classifier import FEATURE_COLS, load_training_data, train
         import sqlite3
+
 
         db_path = tmp_path / "test_journal.db"
         con = sqlite3.connect(str(db_path))

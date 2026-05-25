@@ -21,6 +21,8 @@ from core.config_helpers import deep_merge_dict
 # Import IST datetime function for timestamps
 from core.datetime_ist import now_ist
 
+_log = logging.getLogger(__name__)
+
 # ── Config change audit (Item 6 — v2.44) ────────────────────────
 
 CRITICAL_CONFIG_KEYS: frozenset[str] = frozenset({
@@ -178,7 +180,14 @@ def get_effective_config(
     # 2. Convert to dict for backward compatibility with legacy modules
     effective_dict = secure_cfg._merged_config
 
-    # 3. Validate the final result
+    # 3. Apply environment variable overrides (OPBUYING_* prefix)
+    # This is needed because SecureConfig only handles secrets via CredentialStorage,
+    # but general config keys (e.g. OPBUYING_BASE_CAPITAL) must be applied separately.
+    applied = apply_env_overrides(effective_dict, secure_cfg._defaults, prefix="OPBUYING_")
+    if applied:
+        _log.info("Applied %d OPBUYING_* environment variable override(s)", applied)
+
+    # 4. Validate the final result
     from core.config_engine import ConfigValidator
     validator = ConfigValidator(effective_dict)
     result = validator.validate()
@@ -195,6 +204,47 @@ def get_effective_config(
 
     # Freeze config to prevent runtime mutation by any module
     return _freeze_config(effective_dict)
+
+
+def _check_config_drift(secure_cfg: SecureConfig) -> None:
+    """
+    Detect config drift: keys in defaults.json not in merged config (new features),
+    and keys in merged config not in defaults (deprecated/removed keys).
+    Logs WARNING for drift and CRITICAL for high-risk key changes.
+    """
+    try:
+        merged = secure_cfg._merged_config
+        defaults_raw = secure_cfg._defaults_path
+        if not defaults_raw or not os.path.isfile(str(defaults_raw)):
+            return
+        with open(str(defaults_raw), encoding='utf-8') as _df:
+            defaults_dict = json.load(_df)
+
+        merged_keys = set(merged.keys())
+        defaults_keys = set(defaults_dict.keys())
+
+        # Keys in defaults but NOT in merged config (new features with safe defaults)
+        missing_in_merged = defaults_keys - merged_keys
+        for key in sorted(missing_in_merged):
+            _log.warning(
+                "CONFIG DRIFT: Key '%s' (from defaults) not found in merged config. "
+                "Using safe default from defaults.json (value=%s). "
+                "Add to config.json to control explicitly.",
+                key, defaults_dict.get(key),
+            )
+
+        # Keys in merged config but NOT in defaults (deprecated/removed)
+        extra_in_merged = merged_keys - defaults_keys
+        for key in sorted(extra_in_merged):
+            risk = classify_change_risk(key)
+            _log.log(
+                logging.CRITICAL if risk == "CRITICAL" else logging.WARNING,
+                "CONFIG DRIFT: Key '%s' in merged config not found in defaults. "
+                "May be deprecated or removed. Risk: %s. Value: %s",
+                key, risk, merged.get(key),
+            )
+    except Exception as _ex:
+        _log.debug("Config drift check skipped: %s", _ex)
 
 
 def _freeze_config(cfg: dict[str, Any]) -> dict[str, Any]:
@@ -231,6 +281,14 @@ def initialize_secure_config(
     """
     Initialize the secure configuration system.
 
+    CRITICAL FIX (C14/C16): Default paths now point to the actual project root
+    files, not non-existent "configs/templates/" or "config/" directories.
+    If the defaults file cannot be found, an empty config is returned with a
+    warning instead of silently masking the failure.
+
+    On every initialization, performs a config drift check against defaults
+    to detect stale or missing keys (Audit Finding #12).
+
     Args:
         defaults_path: Path to defaults JSON file
         config_dir: Path to configuration directory
@@ -242,10 +300,34 @@ def initialize_secure_config(
 
     # Use provided paths or defaults
     if defaults_path is None:
-        defaults_path = Path(__file__).parent.parent / "configs" / "templates" / "index_config.defaults.json"
+        # CRITICAL FIX: Point to actual project root, not non-existent configs/templates/
+        project_root = Path(__file__).parent.parent
+        candidates = [
+            project_root / "index_config.defaults.json",
+            project_root / "stock_config.defaults.json",
+            project_root / "configs" / "templates" / "index_config.defaults.json",
+        ]
+        defaults_path = None
+        for c in candidates:
+            if c.is_file():
+                defaults_path = c
+                break
+        if defaults_path is None:
+            _log.warning(
+                "initialize_secure_config: defaults file not found at any candidate path. "
+                "Checked: %s. Using empty config.",
+                [str(c) for c in candidates],
+            )
+            # Return a config that won't crash but prints safe defaults
+            # Use module-level SecureConfig (imported at top) to avoid local shadowing
+            dummy = SecureConfig(defaults_path=project_root / "index_config.defaults.json", config_dir=str(project_root))
+            # Override merged config to empty so caller gets {} instead of crashing
+            dummy._merged_config = {}
+            _SECURE_CONFIG = dummy
+            return _SECURE_CONFIG
 
     if config_dir is None:
-        config_dir = Path(__file__).parent.parent / "config"
+        config_dir = Path(__file__).parent.parent  # project root (config.json lives there)
 
     _SECURE_CONFIG = SecureConfig(
         defaults_path=defaults_path,
@@ -253,6 +335,14 @@ def initialize_secure_config(
         env_prefix="OPBUYING_",
         enable_secret_redaction=True
     )
+
+    # ── Config Drift Detection (Audit Finding #12) ────────────────
+    # Compare merged config against defaults to detect stale/missing keys
+    try:
+        _check_config_drift(_SECURE_CONFIG)
+    except Exception as _drift_err:
+        _log.warning("Config drift check failed: %s", _drift_err)
+    # ───────────────────────────────────────────────────────────────
 
     return _SECURE_CONFIG
 
@@ -413,7 +503,13 @@ def merge_bot_config(
     env_prefix: str = "OPBUYING_",
     debug: bool = False,
 ) -> Dict[str, Any]:
-    """Legacy function kept for compatibility - delegates to secure config."""
+    """Legacy function kept for compatibility - delegates to secure config.
+    
+    DEPRECATED: New callers should use get_effective_config() which routes through
+    SecureConfig and freezes the result. This function is maintained for backward
+    compatibility with existing callers in _reload_config_handler (now updated to
+    use get_effective_config).
+    """
     # For backward compatibility, we still accept the old signature
     # but internally use the secure config system
 
@@ -446,7 +542,8 @@ def merge_bot_config(
     if secret_keys_to_decode is not None:
         result = decode_secret_keys(result, secret_keys_to_decode)
 
-    return result
+    # Freeze config to prevent runtime mutation (same as get_effective_config)
+    return _freeze_config(result)
 
 
 # Legacy function for backward compatibility

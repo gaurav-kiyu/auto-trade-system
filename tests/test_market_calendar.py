@@ -1,13 +1,12 @@
 """Tests for market calendar functions in core/event_calendar.py (v2.44 Item 5)."""
-import pytest
-from datetime import datetime, date, timedelta
-from unittest.mock import patch, MagicMock
+from datetime import date, datetime
+from unittest.mock import MagicMock, patch
+
 from core.event_calendar import (
     MarketStatus,
-    is_market_day,
     get_market_status,
     get_next_market_open,
-    get_time_until_market_open,
+    is_market_day,
     sleep_until,
 )
 

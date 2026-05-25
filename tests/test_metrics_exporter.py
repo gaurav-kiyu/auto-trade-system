@@ -1,8 +1,8 @@
 """Tests for core/metrics_exporter.py (v2.45 Item 19)."""
-import pytest
 from core.metrics_exporter import (
-    start_metrics_server, update_metrics, get_metrics_text,
-    _init_prometheus,
+    get_metrics_text,
+    start_metrics_server,
+    update_metrics,
 )
 
 

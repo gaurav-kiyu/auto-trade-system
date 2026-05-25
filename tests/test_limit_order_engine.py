@@ -1,6 +1,5 @@
 """Tests for core/limit_order_engine.py (v2.45 Item 12)."""
-import pytest
-from core.limit_order_engine import LimitOrderResult, compute_limit_price, simulate_paper_fill
+from core.limit_order_engine import compute_limit_price, simulate_paper_fill
 
 
 def _cfg(**kw):

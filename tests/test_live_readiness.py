@@ -2,19 +2,18 @@
 import os
 import sqlite3
 import tempfile
+
 import pytest
 from core.live_readiness_checker import (
     CriterionResult,
     ReadinessReport,
+    _compute_drawdown,
+    _count_trading_days,
     check_live_readiness,
     format_readiness_report,
-    should_send_today,
     mark_sent_today,
-    _load_paper_trades,
-    _count_trading_days,
-    _compute_drawdown,
+    should_send_today,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

@@ -3,7 +3,6 @@ import pytest
 from core.intraday_performance_monitor import (
     AdaptationParams,
     IntradayPerformanceMonitor,
-    IntradayStats,
 )
 
 CFG = {

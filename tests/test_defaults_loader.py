@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from core.defaults_loader import load_defaults_file
 
 

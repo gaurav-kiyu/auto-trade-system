@@ -6,7 +6,6 @@ without crashing or corrupting internal state.
 """
 from __future__ import annotations
 
-import pytest
 from core.adapters.broker_adapters import PaperBrokerAdapter
 
 

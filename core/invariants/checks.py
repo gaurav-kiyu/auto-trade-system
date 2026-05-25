@@ -6,6 +6,7 @@ Pre-built invariant checks for common safety conditions.
 from __future__ import annotations
 
 import logging
+
 from core.invariants.engine import InvariantSeverity, register_invariant
 
 _log = logging.getLogger(__name__)
@@ -53,7 +54,8 @@ def _register_single_risk_engine():
         return True, f"Only authoritative risk engine loaded (authoritative={bool(authoritative)})"
 
     import sys
-    from core.risk import DEPRECATED_RISK_MODULES, AUTHORITATIVE_RISK_MODULE
+
+    from core.risk import AUTHORITATIVE_RISK_MODULE, DEPRECATED_RISK_MODULES
     DEPRECATED = DEPRECATED_RISK_MODULES
     AUTHORITATIVE_MODULE = AUTHORITATIVE_RISK_MODULE
 

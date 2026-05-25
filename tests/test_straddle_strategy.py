@@ -1,9 +1,10 @@
 """Tests for core/straddle_strategy.py (v2.45 Item 10)."""
-import pytest
 from core.straddle_strategy import (
-    StraddlePosition, StraddleExitDecision,
-    build_straddle, build_strangle,
-    evaluate_straddle_exit, check_straddle_conditions,
+    StraddlePosition,
+    build_straddle,
+    build_strangle,
+    check_straddle_conditions,
+    evaluate_straddle_exit,
 )
 
 

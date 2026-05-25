@@ -11,12 +11,12 @@ This module provides robust market data handling with:
 
 from __future__ import annotations
 
-import time
-import threading
-from typing import Any, Dict, Optional, Callable, Tuple
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
 import logging
+import threading
+import time
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +52,9 @@ class DataValidationRule:
     min_age_seconds: float = 0  # Minimum age for data to be considered valid
     max_age_seconds: float = 300  # Maximum age for data to be considered fresh (5 minutes default)
     required_fields: list[str] = field(default_factory=list)  # Fields that must be present
-    validators: Dict[str, Callable[[Any], bool]] = field(default_factory=dict)  # Field-specific validators
+    validators: dict[str, Callable[[Any], bool]] = field(default_factory=dict)  # Field-specific validators
 
-    def validate(self, data: Any) -> Tuple[bool, str]:
+    def validate(self, data: Any) -> tuple[bool, str]:
         """
         Validate the data against the rules.
 
@@ -103,9 +103,9 @@ class MarketDataCache:
             default_ttl: Default time to live for cached data in seconds
         """
         self.default_ttl = default_ttl
-        self._cache: Dict[str, CachedData] = {}
+        self._cache: dict[str, CachedData] = {}
         self._lock = threading.RLock()
-        self._validation_rules: Dict[str, DataValidationRule] = {}
+        self._validation_rules: dict[str, DataValidationRule] = {}
         self._stats = {
             'hits': 0,
             'misses': 0,
@@ -132,8 +132,8 @@ class MarketDataCache:
     def get(self,
             key: str,
             data_type: str = "default",
-            validator: Optional[Callable[[Any], bool]] = None,
-            max_age: Optional[float] = None) -> Tuple[Optional[Any], bool, str]:
+            validator: Callable[[Any], bool] | None = None,
+            max_age: float | None = None) -> tuple[Any | None, bool, str]:
         """
         Retrieve data from cache if available and fresh.
 
@@ -203,7 +203,7 @@ class MarketDataCache:
             key: str,
             data: Any,
             data_type: str = "default",
-            ttl: Optional[float] = None,
+            ttl: float | None = None,
             source: str = "unknown") -> None:
         """
         Store data in the cache.
@@ -262,7 +262,7 @@ class MarketDataCache:
             self._cache.clear()
             logger.info("Cleared all market data cache")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         with self._lock:
             total_requests = self._stats['hits'] + self._stats['misses']
@@ -308,7 +308,7 @@ class MarketDataCache:
 
 
 # Global market data cache instance
-_market_data_cache: Optional[MarketDataCache] = None
+_market_data_cache: MarketDataCache | None = None
 _market_data_cache_lock = threading.Lock()
 
 
@@ -368,8 +368,8 @@ def create_historical_data_validation_rule() -> DataValidationRule:
 # Convenience functions for common operations
 def get_market_data(key: str,
                    data_type: str = "default",
-                   validator: Optional[Callable[[Any], bool]] = None,
-                   max_age: Optional[float] = None) -> Tuple[Optional[Any], bool, str]:
+                   validator: Callable[[Any], bool] | None = None,
+                   max_age: float | None = None) -> tuple[Any | None, bool, str]:
     """Get market data from the global cache."""
     return get_market_data_cache().get(key, data_type, validator, max_age)
 
@@ -377,7 +377,7 @@ def get_market_data(key: str,
 def put_market_data(key: str,
                    data: Any,
                    data_type: str = "default",
-                   ttl: Optional[float] = None,
+                   ttl: float | None = None,
                    source: str = "unknown") -> None:
     """Put market data into the global cache."""
     get_market_data_cache().put(key, data, data_type, ttl, source)
@@ -393,7 +393,7 @@ def clear_market_data_cache() -> None:
     get_market_data_cache().clear()
 
 
-def get_market_data_cache_stats() -> Dict[str, Any]:
+def get_market_data_cache_stats() -> dict[str, Any]:
     """Get statistics for the global market data cache."""
     return get_market_data_cache().get_stats()
 

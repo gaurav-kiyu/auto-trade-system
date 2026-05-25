@@ -27,7 +27,6 @@ from core.candle_backtest import CandleBacktestConfig, run_candle_backtest
 from core.pure_index_signal import PureIndexRegimeParams
 from core.yf_bar_fetch import fetch_1m_bars_chunked_yfinance
 
-
 SYMBOLS = {
     "NIFTY":     "^NSEI",
     "BANKNIFTY": "^NSEBANK",
@@ -53,7 +52,7 @@ def run_single_backtest(
     print(f"\n{'='*60}")
     print(f"  BACKTEST: {label} ({symbol_yf})")
     print(f"{'='*60}")
-    
+
     # Fetch data
     print(f"[{label}] Fetching {symbol_yf} {BACKTEST_DAYS}d 1m bars...")
     try:
@@ -61,14 +60,14 @@ def run_single_backtest(
     except Exception as e:
         print(f"[{label}] FETCH ERROR: {e}")
         return None
-    
+
     if df is None or len(df) == 0:
         print(f"[{label}] No data returned.")
         return None
-    
+
     bars = len(df)
     print(f"[{label}] Loaded {bars} bars  {df.index.min()} → {df.index.max()}")
-    
+
     # Determine symbol for lot size
     if "NSEI" in symbol_yf or "NIFTY50" in symbol_yf:
         symbol = "NIFTY"
@@ -78,18 +77,18 @@ def run_single_backtest(
         symbol = "FINNIFTY"
     else:
         symbol = label
-    
+
     # Config
     thr = int(signal_cfg.get("AI_THRESHOLD", 65))
     gap = int(signal_cfg.get("SIGNAL_ENTRY_SCORE_GAP", 5))
     vix = float(signal_cfg.get("BACKTEST_VIX", 14.0))
-    
+
     regime = PureIndexRegimeParams(
         vix_block_threshold=float(signal_cfg.get("VIX_BLOCK_THRESHOLD", 35)),
         adx_trend_threshold=float(signal_cfg.get("ADX_TREND_THRESHOLD", 20)),
         adx_chop_threshold=float(signal_cfg.get("ADX_CHOP_THRESHOLD", 14)),
     )
-    
+
     base_cfg = CandleBacktestConfig(
         warmup_bars=35,
         base_ai_threshold=thr,
@@ -107,7 +106,7 @@ def run_single_backtest(
         use_regime_rr=True,
         strict_oi=False,  # Yahoo data has no OI
     )
-    
+
     # Run option model
     print(f"[{label}] Running option-model backtest... (threshold={thr}, gap={gap})")
     try:
@@ -121,9 +120,9 @@ def run_single_backtest(
         print(f"[{label}] BACKTEST ERROR: {e}")
         json_out[label] = {"error": str(e)}
         return None
-    
+
     m = res.metrics
-    
+
     # Build structured result
     result = {
         "symbol": label,
@@ -154,14 +153,14 @@ def run_single_backtest(
                 "by_score": {k: {"trades": v.trades, "wins": v.wins, "win_rate": v.win_rate, "gross_pnl": v.gross_pnl} for k, v in m.by_score.items()},
         "verdict": _verdict(m.win_rate, m.rr_ratio, m.profit_factor, m.sharpe_ratio),
     }
-    
+
     # Print summary
     print(f"[{label}] Trades: {m.total_trades} ({m.wins}W / {m.losses}L) | "
           f"Win: {m.win_rate:.1f}% | PF: {m.profit_factor:.2f} | "
           f"RR: {m.rr_ratio:.2f} | Sharpe: {m.sharpe_ratio:.2f} | "
           f"MaxDD: {m.max_drawdown_pct:.2f}% | "
           f"Net: {result['net_return_pct']:+.1f}%")
-    
+
     json_out[label] = result
     return result
 
@@ -181,13 +180,13 @@ def _verdict(win_rate, rr, pf, sharpe):
 def main() -> int:
     signal_cfg = load_config()
     json_out: dict = {}
-    
+
     for label, yf_sym in SYMBOLS.items():
         t0 = time.time()
         run_single_backtest(label, yf_sym, signal_cfg, json_out)
         elapsed = time.time() - t0
         print(f"[{label}] Completed in {elapsed:.1f}s")
-    
+
     # Structured summary
     output_path = ROOT / "reports/backtest_results.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -195,10 +194,10 @@ def main() -> int:
     print(f"\n{'='*60}")
     print(f"  Results saved to: {output_path}")
     print(f"{'='*60}")
-    
+
     # Summary table
     print(f"\n{'='*60}")
-    print(f"  BACKTEST SUMMARY TABLE")
+    print("  BACKTEST SUMMARY TABLE")
     print(f"{'='*60}")
     if json_out:
         print(f"  {'Index':<14} {'Trades':>6} {'Win%':>7} {'PF':>6} {'RR':>6} {'Sharpe':>7} {'MaxDD':>7} {'NetRet':>7}  Verdict")
@@ -211,7 +210,7 @@ def main() -> int:
                       f"{r['sharpe_ratio']:>6.2f} {r['max_drawdown_pct']:>6.2f}% "
                       f"{r['net_return_pct']:>+6.1f}%  {r['verdict']}")
     print()
-    
+
     return 0
 
 

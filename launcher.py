@@ -37,9 +37,8 @@ import json
 import os
 import subprocess
 import threading
-from pathlib import Path
-from typing import Optional
 import tkinter as tk
+from pathlib import Path
 from tkinter import messagebox, scrolledtext, ttk
 
 # ── Resolve app folder correctly when compiled by PyInstaller --onefile ──────
@@ -115,7 +114,7 @@ class LauncherApp:
 
     def __init__(self, root: tk.Tk) -> None:
         self.root       = root
-        self.python_exe: Optional[str] = None
+        self.python_exe: str | None = None
         self._mode_var  = tk.StringVar(value=_S["default_mode"])
         self._setup_window()
         self._build_ui()
@@ -224,7 +223,7 @@ class LauncherApp:
         self.launch_btn.configure(bg=col, activebackground=col)
 
     # ── Python detection ──────────────────────────────────────────────────────
-    def _find_python(self) -> tuple[Optional[str], Optional[str]]:
+    def _find_python(self) -> tuple[str | None, str | None]:
         for cmd in _S.get("python_preference", ["py", "python", "python3"]):
             try:
                 r = subprocess.run(

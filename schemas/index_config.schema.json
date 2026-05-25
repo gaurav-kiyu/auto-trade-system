@@ -778,9 +778,6 @@
     "METRICS_BIND": {
       "type": "string"
     },
-    "METRICS_PORT": {
-      "type": "integer"
-    },
     "MIN_ENTRY_INTERVAL": {
       "type": "integer"
     },
@@ -1283,15 +1280,6 @@
     },
     "VOL_RATIO_MIN": {
       "type": "number"
-    },
-    "WALKFORWARD_STEP_BARS": {
-      "type": "integer"
-    },
-    "WALKFORWARD_TEST_BARS": {
-      "type": "integer"
-    },
-    "WALKFORWARD_TRAIN_BARS": {
-      "type": "integer"
     },
     "WATCHDOG_POLL_SEC": {
       "type": "integer"

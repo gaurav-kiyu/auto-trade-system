@@ -1,18 +1,19 @@
 """Tests for config change audit trail in core/config_bootstrap.py (v2.44 Item 6)."""
 import json
+import logging
 import os
 import tempfile
+
 import pytest
 from core.config_bootstrap import (
+    CRITICAL_CONFIG_KEYS,
+    HIGH_RISK_CONFIG_KEYS,
     ConfigChange,
     classify_change_risk,
     diff_configs,
-    write_config_changes_jsonl,
     read_recent_config_changes,
-    CRITICAL_CONFIG_KEYS,
-    HIGH_RISK_CONFIG_KEYS,
+    write_config_changes_jsonl,
 )
-
 
 # ── classify_change_risk ──────────────────────────────────────────────────────
 
@@ -153,3 +154,150 @@ def test_read_respects_limit():
             write_config_changes_jsonl(changes, log_path=log_path)
         records = read_recent_config_changes(log_path=log_path, limit=3)
         assert len(records) == 3
+
+
+# ── _check_config_drift (Audit Finding #12) ──────────────────────────────────
+
+def _make_mock_secure_config(defaults_dict: dict, merged_dict: dict, defaults_path: str | None = None):
+    """Create a mock object that quacks like SecureConfig for _check_config_drift."""
+    class _MockSecureConfig:
+        _merged_config = merged_dict
+        _defaults_path = defaults_path
+    return _MockSecureConfig()
+
+
+def test_config_drift_logs_missing_defaults_key(caplog):
+    """Keys in defaults.json but NOT in merged config should log WARNING."""
+    with tempfile.TemporaryDirectory() as tmp:
+        defaults_file = os.path.join(tmp, "defaults.json")
+        with open(defaults_file, "w") as f:
+            json.dump({"NEW_FEATURE_A": False, "NEW_FEATURE_B": 42}, f)
+
+        merged = {"EXISTING_KEY": "value"}  # Missing both NEW_FEATURE_A and NEW_FEATURE_B
+        mock_cfg = _make_mock_secure_config({}, merged, defaults_path=defaults_file)
+
+        with caplog.at_level(logging.WARNING):
+            from core.config_bootstrap import _check_config_drift
+            _check_config_drift(mock_cfg)
+
+        drift_msgs = [r for r in caplog.records if "CONFIG DRIFT" in r.message]
+        # Expect 3 drift messages:
+        #   2 for NEW_FEATURE_A, NEW_FEATURE_B (in defaults, missing from merged)
+        #   1 for EXISTING_KEY (in merged, not in defaults)
+        assert len(drift_msgs) == 3
+        # The WARNING-level ones: missing defaults keys + normal-risk extra keys
+        warning_msgs = [r for r in drift_msgs if r.levelno == logging.WARNING]
+        assert len(warning_msgs) == 3  # All three are NORMAL risk or defaults-keys (low risk)
+        # Verify missing defaults keys are warned
+        missing_keys = [r for r in drift_msgs if "not found in merged config" in r.message]
+        assert len(missing_keys) == 2
+        missing_key_names = set()
+        for r in missing_keys:
+            if "NEW_FEATURE_A" in r.message:
+                missing_key_names.add("NEW_FEATURE_A")
+            if "NEW_FEATURE_B" in r.message:
+                missing_key_names.add("NEW_FEATURE_B")
+        assert missing_key_names == {"NEW_FEATURE_A", "NEW_FEATURE_B"}
+
+
+def test_config_drift_logs_extra_keys_in_merged(caplog):
+    """Keys in merged config but NOT in defaults should log WARNING (or CRITICAL for high-risk)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        defaults_file = os.path.join(tmp, "defaults.json")
+        with open(defaults_file, "w") as f:
+            json.dump({"KNOWN_KEY": 1}, f)
+
+        merged = {"KNOWN_KEY": 1, "DEPRECATED_KEY": "old", "MAX_DAILY_LOSS": -5000}
+        mock_cfg = _make_mock_secure_config({}, merged, defaults_path=defaults_file)
+
+        with caplog.at_level(logging.WARNING):
+            from core.config_bootstrap import _check_config_drift
+            _check_config_drift(mock_cfg)
+
+        drift_msgs = [r for r in caplog.records if "CONFIG DRIFT" in r.message]
+        assert len(drift_msgs) == 2
+
+        # DEPRECATED_KEY is NORMAL risk → WARNING
+        normal_msgs = [r for r in drift_msgs if "DEPRECATED_KEY" in r.message]
+        assert len(normal_msgs) == 1
+        assert normal_msgs[0].levelno == logging.WARNING
+
+        # MAX_DAILY_LOSS is CRITICAL risk → CRITICAL level
+        critical_msgs = [r for r in drift_msgs if "MAX_DAILY_LOSS" in r.message]
+        assert len(critical_msgs) == 1
+        assert critical_msgs[0].levelno == logging.CRITICAL
+
+
+def test_config_drift_skips_when_no_defaults_file(caplog):
+    """No crash when defaults file doesn't exist."""
+    mock_cfg = _make_mock_secure_config({}, {"A": 1}, defaults_path="/nonexistent/path.json")
+    from core.config_bootstrap import _check_config_drift
+    # Should not raise
+    _check_config_drift(mock_cfg)
+    # No CONFIG DRIFT messages
+    assert not any("CONFIG DRIFT" in r.message for r in caplog.records)
+
+
+def test_config_drift_skips_when_defaults_path_is_none(caplog):
+    """No crash when _defaults_path is None."""
+    mock_cfg = _make_mock_secure_config({}, {"A": 1}, defaults_path=None)
+    from core.config_bootstrap import _check_config_drift
+    _check_config_drift(mock_cfg)
+    assert not any("CONFIG DRIFT" in r.message for r in caplog.records)
+
+
+def test_config_drift_no_drift_with_matching_configs(caplog):
+    """When defaults and merged have same keys, no drift logged."""
+    with tempfile.TemporaryDirectory() as tmp:
+        defaults_file = os.path.join(tmp, "defaults.json")
+        with open(defaults_file, "w") as f:
+            json.dump({"A": 1, "B": "hello"}, f)
+
+        merged = {"A": 1, "B": "hello"}  # Same keys
+        mock_cfg = _make_mock_secure_config({}, merged, defaults_path=defaults_file)
+
+        with caplog.at_level(logging.WARNING):
+            from core.config_bootstrap import _check_config_drift
+            _check_config_drift(mock_cfg)
+
+        assert not any("CONFIG DRIFT" in r.message for r in caplog.records)
+
+
+def test_config_drift_handles_invalid_defaults_json_gracefully(caplog):
+    """Invalid JSON in defaults file should not crash — just debug log and return."""
+    with tempfile.TemporaryDirectory() as tmp:
+        defaults_file = os.path.join(tmp, "defaults.json")
+        with open(defaults_file, "w") as f:
+            f.write("{invalid json!!!}")
+
+        merged = {"A": 1}
+        mock_cfg = _make_mock_secure_config({}, merged, defaults_path=defaults_file)
+
+        with caplog.at_level(logging.DEBUG):
+            from core.config_bootstrap import _check_config_drift
+            _check_config_drift(mock_cfg)  # Should not raise
+
+        assert not any("CONFIG DRIFT" in r.message for r in caplog.records)
+
+
+def test_config_drift_wired_in_initialize_secure_config(monkeypatch):
+    """Verify that initialize_secure_config calls _check_config_drift."""
+    from core.config_bootstrap import initialize_secure_config
+    called = []
+
+    def _tracking_drift(secure_cfg):
+        called.append(secure_cfg)
+
+    monkeypatch.setattr("core.config_bootstrap._check_config_drift", _tracking_drift)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        defaults_file = os.path.join(tmp, "defaults.json")
+        with open(defaults_file, "w") as f:
+            json.dump({"A": 1}, f)
+        config_file = os.path.join(tmp, "config.json")
+        with open(config_file, "w") as f:
+            json.dump({"A": 2}, f)
+
+        result = initialize_secure_config(defaults_path=defaults_file, config_dir=tmp)
+        assert len(called) == 1
+        assert called[0] is result

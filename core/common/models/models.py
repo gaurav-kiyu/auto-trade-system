@@ -475,7 +475,7 @@ PERCENTAGE_PRECISION: int = 2
 
 def get_market_status():
     """Get current market status."""
-    from core.datetime_ist import now_ist, nse_cash_open_time, nse_cash_close_time
+    from core.datetime_ist import now_ist, nse_cash_close_time, nse_cash_open_time
     now = now_ist()
 
     if now.weekday() >= 5:

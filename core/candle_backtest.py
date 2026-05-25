@@ -30,7 +30,6 @@ from core.pure_index_signal import (
     PureIndexRegimeParams,
     PureIndexSignalParams,
     evaluate_dual_direction_signal,
-    evaluate_index_signal_partial,
     finalize_index_signal_with_threshold,
 )
 

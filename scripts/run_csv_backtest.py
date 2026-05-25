@@ -42,7 +42,7 @@ def load_csv(
         sys.exit(1)
 
     # Read first line to detect datetime column name
-    with open(p, "r") as fh:
+    with open(p) as fh:
         header_line = fh.readline().strip()
     headers = [h.strip() for h in header_line.split(",")]
 
@@ -138,14 +138,14 @@ def run_backtest(
     verbose: bool = False,
 ) -> dict:
     """Run the candle backtest on the provided DataFrame."""
-    from core.yf_bar_fetch import normalize_yfinance_ohlcv
-    from core.candle_backtest import CandleBacktestConfig, CandleBacktestEngine
-    from core.pure_index_signal import PureIndexRegimeParams
-
     # Load signal config
     import json as _json
+
+    from core.candle_backtest import CandleBacktestConfig, CandleBacktestEngine
+    from core.pure_index_signal import PureIndexRegimeParams
+    from core.yf_bar_fetch import normalize_yfinance_ohlcv
     cfg_path = _HERE / "index_config.defaults.json"
-    with open(cfg_path, "r") as f:
+    with open(cfg_path) as f:
         signal_cfg = _json.load(f)
 
     # Overlay config.json
@@ -288,7 +288,7 @@ def print_report(report: dict, verbose: bool = False) -> None:
     print(f"  Bars: {cfg['bars']:,}  |  Capital: Rs {cfg['initial_capital']:,.0f}")
     print()
 
-    print(f"  Core Metrics:")
+    print("  Core Metrics:")
     print(f"    Trades: {m['total_trades']}  |  Win Rate: {m['win_rate']}%  "
           f"|  PF: {m['profit_factor']}")
     print(f"    Expectancy: Rs {m['expectancy']:.2f}  |  Max DD: {m['max_drawdown_pct']}%")
@@ -299,13 +299,13 @@ def print_report(report: dict, verbose: bool = False) -> None:
           f"|  Return: {(report['ending_capital']/cfg['initial_capital']-1)*100:.2f}%")
     print()
 
-    print(f"  Directional:")
+    print("  Directional:")
     print(f"    CALL: {m['call_trades']} trades ({m['call_win_rate']}% WR)")
     print(f"    PUT:  {m['put_trades']} trades ({m['put_win_rate']}% WR)")
     print()
 
     if report["regime_breakdown"]:
-        print(f"  Regime Breakdown:")
+        print("  Regime Breakdown:")
         for r, s in report["regime_breakdown"].items():
             wr = s["wins"] / s["trades"] * 100 if s["trades"] else 0
             print(f"    {r:15s}: {s['trades']:3d}t / {s['wins']:2d}w  "
@@ -327,7 +327,7 @@ def print_report(report: dict, verbose: bool = False) -> None:
     elif profit < 0:
         print(f"  [LOSS] -Rs {abs(profit):,.2f}")
     else:
-        print(f"  [BREAK EVEN] Rs 0")
+        print("  [BREAK EVEN] Rs 0")
 
 
 def main() -> None:

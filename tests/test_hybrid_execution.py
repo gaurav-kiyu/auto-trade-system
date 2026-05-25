@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from core.hybrid_execution import apply_execution_mode, normalize_execution_mode
 
 
@@ -25,9 +24,11 @@ def test_apply_index_style_no_infer():
 
 
 def test_apply_stock_blank_infers_from_broker():
+    """CRITICAL SAFETY: blank EXECUTION_MODE + broker=True NEVER infers AUTO."""
     cfg: dict = {"EXECUTION_MODE": "", "MANUAL_SIGNALS_ONLY": False, "BROKER_API_ENABLED": True}
     apply_execution_mode(cfg, cli_paper=False, infer_blank_from_broker=True)
-    assert cfg["EXECUTION_MODE"] == "AUTO"
+    assert cfg["EXECUTION_MODE"] == "MANUAL"
+    assert cfg["MANUAL_SIGNALS_ONLY"] is True
 
 
 def test_apply_stock_blank_infers_manual_when_broker_off():

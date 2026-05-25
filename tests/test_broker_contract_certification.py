@@ -8,18 +8,16 @@ Certifies all broker adapter contract scenarios:
 from __future__ import annotations
 
 import time
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
+import pytest
 from core.adapters.broker_adapters import (
-    PaperBrokerAdapter,
     BrokerAdapter,
+    PaperBrokerAdapter,
     _PollingBrokerAdapter,
-    BrokerRuntimeContext,
     build_broker_runtime_context,
 )
 from core.ports.broker import BrokerPort
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

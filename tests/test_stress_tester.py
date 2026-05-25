@@ -1,6 +1,5 @@
 """Tests for core/stress_tester.py (v2.45 Item 8)."""
-import pytest
-from core.stress_tester import StressResult, run_stress_test, format_stress_summary, _greek_shock
+from core.stress_tester import _greek_shock, format_stress_summary, run_stress_test
 
 
 def _pos(delta=100.0, vega=50.0, theta=20.0, vix=15.0, lots=1.0, name="NIFTY_CE"):

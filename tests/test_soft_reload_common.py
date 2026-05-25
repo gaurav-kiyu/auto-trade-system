@@ -1,5 +1,4 @@
 import pytest
-
 from core.soft_reload_common import (
     apply_safe_key_patch,
     partition_soft_reload_changes,

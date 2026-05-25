@@ -11,18 +11,15 @@ Tests:
 - Orphan detection
 """
 
-import pytest
-import tempfile
-import sqlite3
-import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
+import pytest
+from core.execution.idempotency.manager import IdempotencyManager
 from core.execution.reconciliation.service import (
     ReconciliationService,
     TradingFreezeReason,
 )
-from core.execution.idempotency.manager import IdempotencyManager
 
 
 class MockBrokerAdapter:
@@ -66,7 +63,6 @@ def reconciliation_service(temp_db):
     """Create reconciliation service with temp DB."""
     from core.execution.reconciliation.service import (
         ReconciliationService,
-        TradingFreezeReason,
     )
 
     return ReconciliationService(
@@ -260,7 +256,6 @@ class TestDuplicatePrevention:
 
     def test_idempotency_key_prevents_duplicates(self, temp_db):
         """Test that idempotency keys prevent duplicate orders."""
-        from core.execution.idempotency.manager import IdempotencyManager
 
         manager = IdempotencyManager(
             cache_size=10,

@@ -2,11 +2,11 @@
 Edge case tests for market data handling.
 Tests for NaN, zero values, extreme prices, stale data.
 """
-import pytest
 import time
+
 import pandas as pd
-from core.liquidity_guard import check_entry_liquidity, LiquidityCheck
-from core.data_freshness_guard import check_data_freshness, FreshnessResult
+from core.data_freshness_guard import check_data_freshness
+from core.liquidity_guard import check_entry_liquidity
 
 
 class TestLiquidityGuardEdgeCases:

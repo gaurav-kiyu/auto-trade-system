@@ -1,10 +1,12 @@
 """
 Chaos: DB Corruption
 """
-import pytest
+import os
 import sqlite3
+import tempfile
 from pathlib import Path
-import tempfile, os
+
+import pytest
 
 
 def test_db_corruption_detected():

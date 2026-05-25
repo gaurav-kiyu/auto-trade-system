@@ -15,7 +15,6 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from core.datetime_ist import now_ist
 from typing import Any
 
 # Import shared kernels and utilities
@@ -23,6 +22,7 @@ from core.common.kernels.correlation_id import CorrelationIdManager
 from core.common.utilities.logging import StructuredLogger
 from core.common.utilities.metrics import MetricsCollector
 from core.common.utilities.result import Failure, Result, Success
+from core.datetime_ist import now_ist
 from core.domains.execution.model import Fill, Order, OrderResult
 from core.domains.ml.model import MLConfidence, MLPrediction
 from core.domains.risk.model import RiskDecision

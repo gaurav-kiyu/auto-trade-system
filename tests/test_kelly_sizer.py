@@ -2,8 +2,8 @@
 import os
 import sqlite3
 import tempfile
-import pytest
-from core.kelly_sizer import KellyResult, compute_kelly_lots, _load_recent_pnls
+
+from core.kelly_sizer import _load_recent_pnls, compute_kelly_lots
 
 
 def _make_db(pnls: list[float]) -> str:

@@ -18,8 +18,8 @@ from datetime import datetime
 from typing import Any
 
 from core.datetime_ist import now_ist
-from core.safety_state import trip_hard_halt
 from core.logging import LoggingService
+from core.safety_state import trip_hard_halt
 
 
 @dataclass
@@ -124,6 +124,9 @@ class NSECircuitBreakerMonitor:
                 return
 
             # Calculate percentage change from baseline
+            if self._baseline_price == 0:
+                self._logger.warning("Circuit breaker baseline price is 0 — skipping check")
+                return
             change_pct = ((current_price - self._baseline_price) / self._baseline_price) * 100
             self._state.index_change_pct = change_pct
             self._state.last_update = now_ist()

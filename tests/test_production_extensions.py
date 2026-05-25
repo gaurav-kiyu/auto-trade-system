@@ -6,10 +6,22 @@ import sys
 from pathlib import Path
 
 import pytest
-
-from core import AuditEngine, JsonlCaptureWriter, Orchestrator, PresentationEngine, ReconciliationEngine, SafetyConfig, SafetyContext, SafetyEngine
-from core import DataEngine, ExecutionEngine, RiskConfig, RiskEngine, StateManager, StrategyEngine
-
+from core import (
+    AuditEngine,
+    DataEngine,
+    ExecutionEngine,
+    JsonlCaptureWriter,
+    Orchestrator,
+    PresentationEngine,
+    ReconciliationEngine,
+    RiskConfig,
+    RiskEngine,
+    SafetyConfig,
+    SafetyContext,
+    SafetyEngine,
+    StateManager,
+    StrategyEngine,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"

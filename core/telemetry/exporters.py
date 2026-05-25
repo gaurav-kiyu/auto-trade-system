@@ -66,7 +66,7 @@ class PrometheusExporter:
 
     def serve(self, host: str = "0.0.0.0", port: int = 9090) -> None:
         """Start a minimal HTTP server for Prometheus scraping."""
-        from http.server import HTTPServer, BaseHTTPRequestHandler
+        from http.server import BaseHTTPRequestHandler, HTTPServer
 
         class _Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # type: ignore[override]

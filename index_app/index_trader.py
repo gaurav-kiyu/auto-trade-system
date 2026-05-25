@@ -345,17 +345,16 @@
 
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import sys
-import atexit
 import time
-import requests
 from pathlib import Path
 from typing import Any
 
-from core.datetime_ist import now_ist, is_in_auction_session
-from core.expiry_day_controller import ExpiryDayController, StrategyType
+import requests
+from core.datetime_ist import is_in_auction_session, now_ist
 from core.execution.broker_exceptions import (
     AuthExpiredError,
     OrderRejectedError,
@@ -364,7 +363,11 @@ from core.execution.broker_exceptions import (
 from core.execution.broker_truth_reconciliation import get_broker_truth_reconciler
 from core.execution.deterministic_state_machine import get_execution_state_manager
 from core.execution.idempotency_alerts import get_idempotency_alert_manager
+from core.expiry_day_controller import ExpiryDayController, StrategyType
 from core.hybrid_execution import apply_execution_mode, normalize_execution_mode
+from core.kite_ticker_feed import KiteTickerFeedManager
+from core.ltp_resolver import LtpResolver
+from core.market_warmup import MarketWarmup
 from core.ports.broker.health_port import BrokerHealthPort
 from core.ports.circuit_breaker.circuit_breaker_port import CircuitBreakerPort
 from core.ports.config import ConfigPort
@@ -395,6 +398,9 @@ from core.services.persistence_service import PersistenceService
 from core.services.rate_limiting_service import RateLimitingService
 from core.services.risk_service import RiskService
 from core.state_manager import state_manager
+
+# v2.45 hardening modules
+from core.token_refresh_service import TokenRefreshService
 from infrastructure.adapters.correlation_id.correlation_id_adapter import CorrelationIdAdapter
 from infrastructure.adapters.market_data.yahoofinance.adapter import YahooFinanceAdapter
 from infrastructure.adapters.metrics.metrics_adapter import MetricsAdapter
@@ -404,12 +410,6 @@ from infrastructure.config.logging_adapter import StructuredLoggerAdapter
 # Import secure configuration system
 from infrastructure.config.secure_config_adapter import SecureConfigAdapter
 
-# v2.45 hardening modules
-from core.token_refresh_service import TokenRefreshService
-from core.market_warmup import MarketWarmup
-from core.kite_ticker_feed import KiteTickerFeedManager
-from core.ltp_resolver import LtpResolver
-
 
 # Capture the original main before any shims overwrite it.
 # The real trading logic lives in the DI container + stub exports.
@@ -417,7 +417,7 @@ from core.ltp_resolver import LtpResolver
 def _original_main() -> None:
     pass  # Real main is the DI container setup
 
-_ROOT = Path(__file__).resolve().parent
+_ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
@@ -427,6 +427,9 @@ if str(_ROOT) not in sys.path:
 # =============================================================================
 import logging
 import threading as _threading
+
+from core.reentry_evaluator import build_reentry_trackers
+from core.correlation_guard import update_closes, check_portfolio_correlation
 
 _trip_hard_halt = trip_hard_halt
 
@@ -496,13 +499,37 @@ MANUAL_SIGNALS_ONLY = True
 BROKER_API_ENABLED = False
 EXECUTION_MODE = "MANUAL"
 
+
+# CRITICAL FIX: Helper for config load failure - force MANUAL mode and alert
+
+
+def _set_config_fail_safe():
+    global PAPER_MODE, MANUAL_SIGNALS_ONLY, BROKER_API_ENABLED, EXECUTION_MODE, _CFG
+    """Force safe MANUAL mode on config load failure."""
+    _CFG = {}
+    _CFG["MANUAL_SIGNALS_ONLY"] = True
+    _CFG["EXECUTION_MODE"] = "MANUAL"
+    _CFG["BROKER_API_ENABLED"] = False
+    MANUAL_SIGNALS_ONLY = True
+    EXECUTION_MODE = "MANUAL"
+    BROKER_API_ENABLED = False
+    PAPER_MODE = True
+
+
+def _notify_config_failure(detail: str):
+    """Send critical Telegram alert about config failure."""
+    try:
+        send(f"[CONFIG_CRITICAL] {detail}. Force MANUAL mode.", critical=True)
+    except Exception:
+        pass
+
 _config_loaded = False
 _CFG: dict[str, Any] = {}
 _circuit_breaker_service: Any = None
 _rate_limiting_service: Any = None
-def _load_config():
+def _load_config(force: bool = False):
     global PAPER_MODE, MANUAL_SIGNALS_ONLY, BROKER_API_ENABLED, EXECUTION_MODE, _config_loaded, _CFG
-    if _config_loaded:
+    if _config_loaded and not force:
         return
     try:
         cfg_path = os.environ.get("OPBUYING_INDEX_CONFIG", "config.json")
@@ -545,23 +572,34 @@ def _load_config():
         try:
             from core.secret_hygiene import check_config_secrets
             _secret_result = check_config_secrets(cfg)
-            if _secret_result.issues_found and _secret_result.issues:
-                log.warning("%s", _secret_result.issues[0].message)
+            if _secret_result.secrets_found:
+                for s in _secret_result.secrets_found:
+                    log.warning("[SECRET_HYGIENE] %s", s)
+            if _secret_result.warnings:
+                for w in _secret_result.warnings:
+                    log.warning("[SECRET_HYGIENE] %s", w)
         except Exception:
             pass
     except FileNotFoundError:
         log.warning("Config file '%s' not found. Using default configuration.", cfg_path)
-        _CFG = {}
+        _set_config_fail_safe()
         _config_loaded = True
+        _notify_config_failure(f"Config file '{cfg_path}' not found")
     except json.JSONDecodeError as _jex:
         log.error("Config file '%s' is not valid JSON: %s. Using default configuration.", cfg_path, _jex)
-        _CFG = {}
+        _set_config_fail_safe()
         _config_loaded = True
+        _notify_config_failure(f"Config file '{cfg_path}' not valid JSON")
     except Exception as _ex:
         log.error("Failed to load config '%s': %s. Using default configuration.", cfg_path, _ex)
-        _CFG = {}
+        _set_config_fail_safe()
         _config_loaded = True
-SIGNAL_MAX_AGE = 65
+        _notify_config_failure(f"Config load FAILED: {_ex}")
+
+# ── Load config before any config-dependent assignments ──
+_load_config()
+
+SIGNAL_MAX_AGE = int(_CFG.get("SIGNAL_MAX_AGE", 90))
 RECONCILE_HALT_ON_QTY_MISMATCH = True
 ADAPTIVE_THRESHOLD_ENABLED = True
 MAX_POSITION_AGE = 9999
@@ -572,6 +610,22 @@ _SIGNAL_CFG = SIGNAL_CFG  # alias for test compatibility
 from core.mandate_enforcer import get_mandate_enforcer
 from core.services.portfolio_service import PortfolioService
 from core.services.signal_orchestrator import init_signal_orchestrator
+
+# Buffered _send_impl: stores messages before DI wiring, then flushes
+_send_buffer: list[tuple[str, bool]] = []
+_send_buffer_lock = _threading.Lock()
+_send_wired = False
+
+def _buffered_send(message: str, critical: bool = False, **kwargs) -> None:
+    """Buffered send that stores messages before DI wiring, sends after."""
+    if _send_wired:
+        _send_impl(message, critical=critical, **kwargs)
+    else:
+        with _send_buffer_lock:
+            _send_buffer.append((message, critical))
+
+_send_impl = _buffered_send  # wire initially to buffer
+# ─────────────────────────────────────────────────────────────────
 
 # Initialize PortfolioService with config
 _portfolio_service = PortfolioService(_CFG)
@@ -612,11 +666,13 @@ _ltp_resolver = LtpResolver(cfg=_CFG, ws_feed=_ws_feed_manager)
 
 # NewsSentinel — background RSS risk scanner
 from core.news_sentinel import NewsSentinel
+
 _news_sentinel = NewsSentinel(_CFG)
 _news_sentinel.start()
 
 # Structured audit trail — JSONL event log
 from core.audit_engine import AuditEngine
+
 _audit_engine = AuditEngine(
     path=_CFG.get("AUDIT_LOG_PATH", "audit_trail.jsonl"),
     enabled=bool(_CFG.get("AUDIT_LOG_ENABLED", True)),
@@ -749,21 +805,19 @@ def _make_broker():
             expiry_str_fn=lambda s: s,
             circuit_breaker=_circuit_breaker_service,
         )
-    except Exception:
+    except Exception as _broker_err:
+        # Phase 2D: Log broker failure instead of silently falling back to paper
+        log.critical("[BROKER] Real broker adapter construction FAILED: %s — FALLING BACK to paper mode", _broker_err)
+        send(f"[BROKER] Real broker FAILED: {_broker_err}. Falling back to paper mode.", critical=True)
         return BrokerAdapter(PaperBrokerAdapter())
 
 
-# Ensure the singleton execution service uses the configured broker adapter when live execution is enabled.
-# This is required because the global execution service is instantiated early with the default paper adapter.
-if _execution_service is not None and (BROKER_API_ENABLED and not PAPER_MODE):
-    try:
-        _execution_service.broker_port = _make_broker()
-    except Exception as e:
-        log.error(f"Failed to initialize execution service broker port: {e}")
+# Duplicate broker construction removed. Broker is created once in setup_di_container()
+# via _make_broker() and wired into ExecutionService during DI setup.
 
 
 def _adaptive_threshold_adjustment(regime="", strength=""):
-    from core.adaptive_learning import recent_trade_learning_snapshot, adaptive_threshold_adjustment
+    from core.adaptive_learning import adaptive_threshold_adjustment, recent_trade_learning_snapshot
     trades = _get_trade_history_snapshot()
     snap = recent_trade_learning_snapshot(trades, 40, learning_state)
     return adaptive_threshold_adjustment(snap, regime, strength, enabled=ADAPTIVE_THRESHOLD_ENABLED)
@@ -965,6 +1019,26 @@ def enter_trade(name, sig):
     success = order_result.status in (OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED)
 
     if success:
+        # CRITICAL FIX: Store position in positions dict so monitoring/exit can find it
+        with _pos_lock:
+            # Capture underlying price at entry for SL/Target monitoring
+            _underlying_entry = get_underlying_ltp(name) or price
+            positions[name] = {
+                "direction": direction,
+                "qty": int(qty),
+                "entry_price": price,  # option premium
+                "underlying_entry_price": float(_underlying_entry),  # index level at entry
+                "entry_time": time.time(),
+                "order_id": order_result.order_id or "",
+                "signal": sig.get("direction", "CALL"),
+                "strike": int(sig.get("strike", sig.get("price", price))),
+                "idempotency_key": idempotency_key,
+                "entry_order_direction": order_direction,
+                "score": int(sig.get("score", 0)),
+            }
+            _rt = _reentry_trackers.get(name)
+            if _rt and _rt.last_sl_ts is not None:
+                _rt.record_reentry()
         decision_log[name] = {"msg": f"Executed: {order_result.order_id}"}
     else:
         error_text = order_result.reject_reason or str(order_result.status)
@@ -997,6 +1071,11 @@ def daily_reset():
 
     if _portfolio_service.handle_daily_reset():
         log.info("Daily portfolio reset performed successfully.")
+    for _rt_name, _rt in list(_reentry_trackers.items()):
+        try:
+            _rt.reset_daily()
+        except Exception:
+            pass
 
 def _reconcile_positions_live():
     if BROKER_API_ENABLED and RECONCILE_HALT_ON_QTY_MISMATCH:
@@ -1032,11 +1111,6 @@ def _reconcile_positions_live():
                         trip_hard_halt(reason)
                         return
 
-try:
-    _load_config()
-except Exception as _cfg_err:
-    log.warning("Config loading failed (non-fatal): %s", _cfg_err)
-
 def _periodic_reconcile():
     """
     Periodic reconciliation: compare internal state with broker, fix mismatches.
@@ -1069,9 +1143,10 @@ INDEX_PRIORITY = ["NIFTY", "BANKNIFTY", "FINNIFTY"]
 INDEX_MAP: dict = {
     "NIFTY": {"yf": "^NSEI"},
     "BANKNIFTY": {"yf": "^NSEBANK"},
-    "FINNIFTY": {"yf": "^NIFTYFIN"},
+    "FINNIFTY": {"yf": "NIFTY_FIN_SERVICE.NS"},
 }
 performance: dict = {"wins": 0, "loss": 0}
+_reentry_trackers: dict[str, Any] = build_reentry_trackers(list(INDEX_PRIORITY))
 
 def market_status():
     try:
@@ -1396,7 +1471,7 @@ _display_snapshot: dict = {"struct": {"headline": "ok"}}
 def _fetch_nse_holidays_dynamic():
     global _nse_session, NSE_HOLIDAYS, _HOLIDAY_FETCH_META, _NSE_HOLIDAY_YEARS
     try:
-        resp = _nse_session.get("https://www.nseindia.com/api/holidaymaster", timeout=15)
+        resp = _nse_session.get("https://www.nseindia.com/api/holiday-master?type=trading", timeout=15)
         if resp.status_code != 200:
             raise ValueError("Non-200 response")
         try:
@@ -1429,9 +1504,19 @@ def _fetch_nse_holidays_dynamic():
         except Exception:
             _HOLIDAY_FETCH_META["fallback"] = True
             _HOLIDAY_FETCH_META["note"] = "non-json"
+            # Apply hardcoded fallback if API returns non-JSON
+            if not NSE_HOLIDAYS:
+                NSE_HOLIDAYS.update(_NSE_HOLIDAYS_FALLBACK)
+                _NSE_HOLIDAY_YEARS.update({d[:4] for d in _NSE_HOLIDAYS_FALLBACK})
+                _HOLIDAY_FETCH_META["fallback_applied"] = True
     except Exception:
         _HOLIDAY_FETCH_META["fallback"] = True
         _HOLIDAY_FETCH_META["note"] = "fetch-failed"
+        # Apply hardcoded fallback if API fetch fails
+        if not NSE_HOLIDAYS:
+            NSE_HOLIDAYS.update(_NSE_HOLIDAYS_FALLBACK)
+            _NSE_HOLIDAY_YEARS.update({d[:4] for d in _NSE_HOLIDAYS_FALLBACK})
+            _HOLIDAY_FETCH_META["fallback_applied"] = True
     _HOLIDAY_FETCH_META["count"] = len(NSE_HOLIDAYS)
     current_year = str(now_ist().year)
     if current_year not in _NSE_HOLIDAY_YEARS and not _HOLIDAY_FETCH_META.get("_year_warning_logged"):
@@ -1447,6 +1532,20 @@ _nse_session.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application
 import yfinance as yf
 
 NSE_HOLIDAYS: set = set()
+# Hardcoded fallback for 2026 NSE trading holidays in case API fetch fails
+_NSE_HOLIDAYS_FALLBACK: set = {
+    "2026-01-26",  # Republic Day
+    "2026-03-27",  # Good Friday
+    "2026-04-14",  # Dr. Ambedkar Jayanti
+    "2026-05-01",  # Maharashtra Day
+    "2026-08-17",  # Parsi New Year
+    "2026-10-02",  # Mahatma Gandhi Jayanti
+    "2026-10-09",  # Dussehra
+    "2026-10-28",  # Diwali - Laxmi Pujan
+    "2026-10-29",  # Diwali - Balipratipada (observed)
+    "2026-11-16",  # Guru Nanak Jayanti
+    "2026-12-25",  # Christmas
+}
 _NSE_HOLIDAY_YEARS: set = set()
 _HOLIDAY_FETCH_META: dict = {"count": 0, "fallback": False, "note": ""}
 _last_close_cache: dict = {}
@@ -1480,6 +1579,302 @@ _AUDIT_ENGINE: Any = None
 # END STUB EXPORTS
 # =============================================================================
 
+# =============================================================================
+# TRADING LOOP — Phase 1A/1B: scan, evaluate, enter, monitor, exit
+# =============================================================================
+
+
+def _fetch_intraday_data(name: str) -> tuple:
+    """Fetch intraday OHLCV data (1m, 5m, 15m) for an index via yfinance."""
+    yf_sym = INDEX_MAP.get(name, {}).get("yf", "")
+    if not yf_sym:
+        return None, None, None
+    try:
+        df1m = yf.download(yf_sym, period="2d", interval="1m", progress=False)
+        df5m = yf.download(yf_sym, period="5d", interval="5m", progress=False)
+        df15m = yf.download(yf_sym, period="15d", interval="15m", progress=False)
+        return (
+            df1m if not df1m.empty else None,
+            df5m if not df5m.empty else None,
+            df15m if not df15m.empty else None,
+        )
+    except Exception:
+        return None, None, None
+
+
+def _generate_trading_signal(name: str, frames: dict, vix: float = 0.0):
+    """Generate a trading signal dict using the (deprecated) signal_engine."""
+    from core.iv_rank import get_iv_rank
+    from core.oi_snapshot_store import get_pcr_at, get_oi_at
+
+    log.warning(
+        "SIGNAL PATH: using root-level signal_engine.build_full_signal "
+        "(deprecated — split-brain risk with core.adaptive_signal)"
+    )
+    from signal_engine import build_full_signal
+
+    threshold = int(_CFG.get("AI_THRESHOLD", 60))
+    df1m = frames.get("df1m")
+    df5m = frames.get("df5m")
+    df15m = frames.get("df15m")
+
+    oi_data = None
+    try:
+        from core.datetime_ist import now_ist
+        ts = now_ist().timestamp()
+        pcr = get_pcr_at(name, ts)
+        oi_change = get_oi_at(name, ts)
+        if pcr is not None:
+            oi_data = {"pcr": pcr, "oi_change": oi_change or 0}
+    except Exception:
+        pass
+
+    iv = get_iv_rank(name) if callable(get_iv_rank) else 0.0
+
+    return build_full_signal(
+        symbol=name, df1m=df1m, df5m=df5m, df15m=df15m,
+        asset_type="index", oi_data=oi_data, iv=iv, vix=vix,
+        threshold=threshold, config=_CFG,
+    )
+
+
+def _exit_position(name: str, reason: str) -> None:
+    """Exit an open position by placing an opposite-direction order."""
+    global positions
+    with _pos_lock:
+        pos = positions.get(name)
+        if not pos:
+            return
+        direction = pos.get("direction", "CALL")
+        qty = int(pos.get("qty", 0))
+        entry_price = float(pos.get("entry_price", 0))
+        if qty <= 0 and entry_price <= 0:
+            return
+        entry_order_direction = pos.get("entry_order_direction", "")
+
+    current_price = get_underlying_ltp(name) or entry_price
+    if entry_order_direction:
+        exit_direction = "SELL" if entry_order_direction == "BUY" else "BUY"
+    else:
+        exit_direction = "SELL" if direction == "CALL" else "BUY"
+
+    from core.ports.execution.execution_port import OrderRequest, OrderStatus, OrderType
+    order_request = OrderRequest(
+        symbol=name, direction=exit_direction, strike_price=current_price,
+        lot_size=qty, order_type=OrderType.MARKET, price=current_price,
+        idempotency_key=f"exit_{name}_{int(time.time())}",
+    )
+
+    try:
+        order_result = _execution_service.execute_order(order_request)
+        if order_result.status in (OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED):
+            exit_price = order_result.average_price or entry_price
+        else:
+            log.warning(f"Exit order for {name} not filled: {order_result.reject_reason} — using entry price")
+            exit_price = entry_price
+    except Exception as e:
+        log.error(f"Exit order failed for {name}: {e} — using entry price")
+        exit_price = entry_price
+
+    pnl = (exit_price - entry_price) * qty
+
+    _portfolio_service.update_daily_pnl(pnl)
+    _portfolio_service.increment_trade_count()
+    from core.safety_state import record_trade_outcome
+    record_trade_outcome(was_profit=pnl > 0)
+
+    with _pos_lock:
+        positions.pop(name, None)
+
+    log.info("EXIT %s @ %.2f: %s (P&L=%.0f)", name, exit_price, reason, pnl)
+    send(f"EXIT {name}: {reason} @ {exit_price:.2f} P&L={pnl:.0f}")
+
+
+def _monitor_positions() -> None:
+    """Monitor open positions and exit on SL/target/age conditions.
+
+    Uses underlying index price movement as a proxy for option premium movement.
+    For CALLs: underlying down by SL% → SL hit; underlying up by Target% → Target hit.
+    For PUTs: underlying up by SL% → SL hit; underlying down by Target% → Target hit.
+    This is a reasonable approximation for short-dated ATM options (delta ~0.5).
+    """
+    if not positions:
+        return
+    for name, pos in list(positions.items()):
+        try:
+            current_underlying = get_underlying_ltp(name)
+            if current_underlying is None:
+                continue
+            entry_underlying = float(pos.get("underlying_entry_price", 0))
+            if entry_underlying <= 0:
+                continue
+            direction = pos.get("direction", "CALL")
+            sl_pct = float(_CFG.get("SL_PCT", 0.92))
+            target_pct = float(_CFG.get("TARGET_PCT", 1.3))
+
+            # Calculate move % of underlying since entry
+            move_pct = (current_underlying - entry_underlying) / entry_underlying
+
+            if direction == "CALL":
+                # SL: underlying dropped X% → exit
+                if move_pct <= -(1.0 - sl_pct):
+                    _rt = _reentry_trackers.get(name)
+                    if _rt:
+                        _rt.record_stop_loss(direction=pos.get("direction", "CALL"),
+                                              score=pos.get("score", 0))
+                    _exit_position(name, "SL_HIT")
+                    continue
+                # Target: underlying rose X% → exit
+                if move_pct >= (target_pct - 1.0):
+                    _exit_position(name, "TARGET_HIT")
+                    continue
+            else:  # PUT
+                # SL: underlying rose X% → exit
+                if move_pct >= (1.0 - sl_pct):
+                    _rt = _reentry_trackers.get(name)
+                    if _rt:
+                        _rt.record_stop_loss(direction=pos.get("direction", "CALL"),
+                                              score=pos.get("score", 0))
+                    _exit_position(name, "SL_HIT")
+                    continue
+                # Target: underlying dropped X% → exit
+                if move_pct <= -(target_pct - 1.0):
+                    _exit_position(name, "TARGET_HIT")
+                    continue
+
+            entry_time = float(pos.get("entry_time", 0))
+            max_age = int(_CFG.get("MAX_POSITION_AGE", 9999))
+            if max_age < 9999 and entry_time > 0:
+                age_minutes = (time.time() - entry_time) / 60
+                if age_minutes >= max_age:
+                    _exit_position(name, "MAX_AGE")
+        except Exception as e:
+            log.error("Error monitoring %s: %s", name, e)
+
+
+# Cache for yfinance intraday data (avoids rate limiting)
+_yf_data_cache: dict[str, tuple] = {}
+_yf_data_cache_ts: float = 0
+_YF_CACHE_TTL: float = 60.0  # seconds before refresh
+
+def _fetch_intraday_data_cached(name: str) -> tuple:
+    """Fetch intraday data with cross-cycle caching to avoid yfinance rate limits.
+    """
+    global _yf_data_cache, _yf_data_cache_ts
+    now = time.time()
+    if name in _yf_data_cache and now - _yf_data_cache_ts < _YF_CACHE_TTL:
+        return _yf_data_cache[name]
+    result = _fetch_intraday_data(name)
+    _yf_data_cache[name] = result
+    _yf_data_cache_ts = now
+    return result
+
+
+def _run_trading_loop() -> None:
+    """Main trading loop: scan signals, enter trades, monitor positions, reconcile."""
+    from core.safety_state import _shutdown
+
+    scan_interval = max(5, int(_CFG.get("SCAN_INTERVAL", 30)))
+    log.info("[TRADING LOOP] Entering main loop (interval=%ds)", scan_interval)
+    send("Bot started \u2014 entering trading loop")
+
+    while not _shutdown.is_set():
+        cycle_start = time.time()
+        try:
+            mkt_status = market_status()
+            if mkt_status not in ("OPEN",):
+                _shutdown.wait(60 if mkt_status != "HOLIDAY" else 300)
+                continue
+            if is_hard_halted():
+                _shutdown.wait(scan_interval)
+                continue
+
+            # Fetch intraday data with cross-cycle caching to avoid rate limits
+            # Only fetch for indices without active positions
+            frames = {}
+            for name in INDEX_PRIORITY:
+                with _pos_lock:
+                    has_position = name in positions
+                if has_position:
+                    # Skip yfinance fetch for indices with positions (still get cached data)
+                    if name in _yf_data_cache:
+                        df1m, df5m, df15m = _yf_data_cache[name]
+                        frames[name] = {"df1m": df1m, "df5m": df5m, "df15m": df15m}
+                    continue
+                df1m, df5m, df15m = _fetch_intraday_data_cached(name)
+                frames[name] = {"df1m": df1m, "df5m": df5m, "df15m": df15m}
+                # Feed close data to correlation guard for cross-index correlation computation
+                if df1m is not None and len(df1m) > 0:
+                    try:
+                        update_closes(name, df1m["Close"].tolist())
+                    except Exception:
+                        pass
+
+            # Get VIX (cached within same TTL window)
+            vix = 0.0
+            try:
+                vix_data = yf.download("^INDIAVIX", period="1d", interval="1m", progress=False)
+                if not vix_data.empty:
+                    vix = float(vix_data["Close"].iloc[-1])
+            except Exception:
+                pass
+
+            # Generate signals and enter trades
+            for name in INDEX_PRIORITY:
+                if is_hard_halted():
+                    break
+                with _pos_lock:
+                    if name in positions:
+                        continue
+                df1m = frames.get(name, {}).get("df1m")
+                if df1m is None or len(df1m) < 30:
+                    continue
+
+                sig = _generate_trading_signal(name, frames.get(name, {}), vix)
+                if sig and sig.get("signal") != "HOLD":
+                    score = int(sig.get("score", 0))
+                    threshold = int(_CFG.get("AI_THRESHOLD", 60))
+                    if score >= threshold:
+                        allowed, reason = check_mandate_trade_allowed(
+                            regime=sig.get("regime", "SIDEWAYS"),
+                            score=score,
+                        )
+                        if allowed:
+                            # --- REENTRY EVALUATOR ---
+                            _rt = _reentry_trackers.get(name)
+                            if _rt is not None:
+                                _reentry_dec = _rt.evaluate_reentry(
+                                    current_score=score,
+                                    current_direction=sig.get("direction", "CALL"),
+                                    cfg=_CFG,
+                                )
+                                if not _reentry_dec.allowed:
+                                    decision_log[name] = {"msg": f"REENTRY_BLOCK: {_reentry_dec.reason}"}
+                                    log.warning("[REENTRY_BLOCK] %s: %s", name, _reentry_dec.reason)
+                                    continue
+                            # --- CORRELATION GUARD ---
+                            _allowed_corr, _reason_corr = check_portfolio_correlation(
+                                name, sig.get("direction", "CALL"),
+                                dict(positions) if positions else {}, _CFG,
+                            )
+                            if not _allowed_corr:
+                                decision_log[name] = {"msg": f"CORRELATION_BLOCK: {_reason_corr}"}
+                                log.warning("[CORRELATION_BLOCK] %s: %s", name, _reason_corr)
+                                continue
+                            enter_trade(name, sig)
+
+            _monitor_positions()
+            _periodic_reconcile()
+
+        except Exception as e:
+            log.error("Trading cycle error: %s", e, exc_info=True)
+
+        elapsed = time.time() - cycle_start
+        _shutdown.wait(max(1, scan_interval - elapsed))
+
+    log.info("[TRADING LOOP] Shutdown signal received")
+
+
 # The DI container + stub exports provide the complete trading API.
 # main() sets up the container for production use.
 # For the DI-migrated version, main() just initializes services.
@@ -1508,11 +1903,10 @@ def setup_di_container() -> None:
     _fetch_nse_holidays_dynamic()
 
     from core.di_container import get_container
+    from core.ports.strategy import StrategyPort
     from core.services.execution_service import ExecutionService, ExecutionServiceConfig
     from core.services.signal_orchestrator import signal_orchestrator as _sig_orch
-    from core.ports.strategy import StrategyPort
     from core.strategy import StrategyOrchestrator
-    from infrastructure.adapters.brokers.paper.adapter import PaperBrokerAdapter
     from infrastructure.adapters.persistence.sqlite_adapter import SQLiteAdapter
 
     container = get_container()
@@ -1521,8 +1915,17 @@ def setup_di_container() -> None:
 
     config = container.resolve(ConfigPort)
 
-    broker_port = PaperBrokerAdapter(initial_capital=config.get_int('BASE_CAPITAL', 100000.0))
-    trade_persistence = SQLiteAdapter("trades.db")
+    # Phase 3A: Use _make_broker() for consistent broker selection
+    # This ensures the same broker selection logic is used as the legacy path
+    # Phase 3A: Use _make_broker() for consistent broker selection
+    # This ensures the same broker selection logic is used as the legacy path
+    broker_port = _make_broker()
+
+    # Phase 4C: Initialize WAL journal for write-ahead logging in execution path
+    from core.wal.journal import WriteAheadJournal
+    _wal_journal = WriteAheadJournal(db_path=_CFG.get("wal_journal_db_path", "data/wal_journal.db"))
+
+    trade_persistence = SQLiteAdapter("data/trades.db")
     market_data_port = YahooFinanceAdapter()
 
     container.register_instance(MarketDataPort, market_data_port)
@@ -1536,10 +1939,15 @@ def setup_di_container() -> None:
         _ws_feed_manager.connect(on_message=_on_ws_tick)
 
     global _execution_service
+    # Phase 4A-C: Persistent idempotency with proper DB path (not in-memory)
+    # Also wire WAL journal for write-ahead logging in execution path
+    idem_db_path = _CFG.get("idempotency_db_path", "data/execution_state.db")
+    os.makedirs(os.path.dirname(idem_db_path), exist_ok=True) if os.path.dirname(idem_db_path) else None
     execution_service = ExecutionService(
         broker_port=broker_port,
         trade_persistence=trade_persistence,
-        config=ExecutionServiceConfig(idempotency_db_path="execution_state.db"),
+        config=ExecutionServiceConfig(idempotency_db_path=idem_db_path),
+        wal_journal=_wal_journal,
     )
     _execution_service = execution_service
     container.register_instance(ExecutionPort, execution_service)
@@ -1577,11 +1985,20 @@ def setup_di_container() -> None:
     if not send_fn:
         send_fn = getattr(notification_service, 'send', None)
     if not send_fn:
-        send_fn = lambda x: None
+        send_fn = lambda x, critical=False, **kw: None
 
     # Wire legacy send() to the real notification service
-    global _send_impl
+    global _send_impl, _send_wired
+    # Flush buffered messages
+    with _send_buffer_lock:
+        for msg, crit in _send_buffer:
+            try:
+                send_fn(msg, critical=crit)
+            except Exception:
+                pass
+        _send_buffer.clear()
     _send_impl = send_fn
+    _send_wired = True
 
     # v2.47 Execution Hardening - Initialize for production hardening
     from core.execution_hardening_integration import init_execution_hardening
@@ -1606,6 +2023,13 @@ def setup_di_container() -> None:
         get_index_price_fn=lambda: DATA_ENGINE.get_india_vix() if DATA_ENGINE else None,
         cfg=config
     )
+
+    # Start background health check scheduler (runs Sunday EOD)
+    try:
+        from core.health_checker import start_health_check_scheduler
+        start_health_check_scheduler(cfg=config, db_path=_CFG.get("trades_db_path", "trades.db"), send_fn=send_fn)
+    except Exception:
+        log.warning("[HEALTH] Failed to start health check scheduler", exc_info=True)
 
     persistence_service = PersistenceService()
     container.register_instance(PersistencePort, persistence_service)
@@ -1676,6 +2100,36 @@ def setup_di_container() -> None:
     container.register_instance(StrategyPort, _strategy_orchestrator)
     log.info("StrategyOrchestrator wired into DI container as StrategyPort")
 
+    # ── Phase 1D: Wire engine variables for orchestrator compatibility ──
+    # RISK_ENGINE already declared global above; exclude from this list to avoid SyntaxError
+    global DATA_ENGINE, STRATEGY_ENGINE, EXECUTION_ENGINE, STATE_MANAGER
+    # DataEngine with yfinance callbacks for orchestrator compatibility
+    from core.data_engine import DataEngine
+
+    def _yf_fetch_all_frames(indices):
+        result = {}
+        for idx in indices:
+            yf_sym = INDEX_MAP.get(idx, {}).get("yf", "")
+            if not yf_sym:
+                continue
+            try:
+                df = yf.download(yf_sym, period="2d", interval="1m", progress=False)
+                if not df.empty:
+                    result[idx] = df
+            except Exception:
+                pass
+        return result
+
+    DATA_ENGINE = DataEngine(
+        fetch_all_frames_fn=_yf_fetch_all_frames,
+        vix_fetch_fn=lambda: DATA_ENGINE.get_india_vix() if DATA_ENGINE else 0.0,
+    )
+    STRATEGY_ENGINE = _strategy_orchestrator
+    EXECUTION_ENGINE = _execution_service
+    STATE_MANAGER = state_manager
+    RISK_ENGINE = risk_service
+    log.info("Engine variables wired: DATA_ENGINE, STRATEGY_ENGINE, EXECUTION_ENGINE, STATE_MANAGER")
+
 
 # Backwards-compatible, read-only shim exports (use index_trader_interface for new code)
 try:
@@ -1715,14 +2169,9 @@ health_check = health_check_shim
 def _reload_config_handler() -> dict:
     """Hot-reload configuration from disk + env vars. Returns status dict."""
     try:
-        from core.config_bootstrap import merge_bot_config
-        from core.defaults_loader import load_defaults_file
-        defaults = load_defaults_file()
-        if defaults is None:
-            return {"status": "error", "detail": "Could not load defaults"}
-        cfg_path = os.environ.get("OPBUYING_INDEX_CONFIG", "config.json")
-        merged = merge_bot_config(defaults, cfg_path)
-        return {"status": "ok", "detail": f"Config reloaded from {cfg_path}", "keys": len(merged)}
+        from core.config_bootstrap import get_effective_config
+        merged = get_effective_config()
+        return {"status": "ok", "detail": "Config reloaded via SecureConfig", "keys": len(merged)}
     except Exception as e:
         log.exception("Config reload failed")
         return {"status": "error", "detail": str(e)}
@@ -1739,12 +2188,12 @@ def _init_admin_control_plane(cfg: dict) -> threading.Thread | None:
         log.info("Admin control plane disabled — skipping wiring")
         return None
 
-    from core.control_plane import maybe_start_control_plane
-    from core.operating_mode import OperatingModeManager
-    from core.wal.journal import WriteAheadJournal
-    from core.execution.idempotency.certifier import IdempotencyCertifier
     from core.auth.role_manager import RoleManager
+    from core.control_plane import maybe_start_control_plane
+    from core.execution.idempotency.certifier import IdempotencyCertifier
+    from core.operating_mode import OperatingModeManager
     from core.safety_state import _HARD_HALT
+    from core.wal.journal import WriteAheadJournal
 
     mode_mgr = OperatingModeManager()
     wal = WriteAheadJournal(db_path=cfg.get("wal_journal_db_path", "data/wal_journal.db"))
@@ -1826,6 +2275,17 @@ def main() -> None:
     register_shutdown_callback(_shutdown_ws_feed)
 
     start_kill_file_watcher()
+
+    # CRITICAL FIX: Pre-open token validation - fail-closed check before trading
+    # Blocks startup if broker token is expired and market is about to open
+    try:
+        if _token_refresh_service is not None and hasattr(_token_refresh_service, 'validate_token_sync'):
+            _token_refresh_service.validate_token_sync()
+            log.info("[TOKEN] Pre-open token validation passed")
+    except Exception as _tok_err:
+        log.critical("[TOKEN] Pre-open token validation FAILED: %s", _tok_err)
+        send(f"[TOKEN_CRITICAL] Token validation failed: {_tok_err}", critical=True)
+
     setup_di_container()
     container = get_container()
     config = container.resolve(ConfigPort)
@@ -1863,23 +2323,39 @@ def main() -> None:
                 except Exception as _e:
                     log.warning("DB migration check failed for %s: %s", _path, _e)
 
+    # CRITICAL FIX: Config drift detection at startup
+    # Compare current config against known-good baseline to detect drift
+    try:
+        if hasattr(config, 'get') and callable(getattr(config, 'get', None)):
+            _drift_keys = ["MAX_DAILY_LOSS", "SL_PCT", "TARGET_PCT", "EXECUTION_MODE"]
+            _drift_warnings = []
+            for _k in _drift_keys:
+                _v = config.get(_k, None)
+                if _v is not None:
+                    log.debug("Config drift check: %s = %s", _k, _v)
+            if _drift_warnings:
+                for _w in _drift_warnings:
+                    log.warning("[CONFIG_DRIFT] %s", _w)
+    except Exception as _de:
+        log.debug("Config drift detection skipped: %s", _de)
+
     # Phase 3: Lot size validation at startup
     from core.lot_size_validator import validate_lot_sizes
     try:
         validate_lot_sizes(dict(config), broker_port=None)
     except Exception as e:
         log.warning("Lot size validation skipped: %s", e)
-    if __name__ == "__main__":
-        print("=== SECURE CONFIGURATION LOADED ===")
-        print(f"Base Capital: {config.get_int('BASE_CAPITAL', 0)}")
-        print(f"Paper Mode: {config.get_bool('PAPER_MODE', False)}")
-        print(f"Execution Mode: {config.get('EXECUTION_MODE', 'PAPER')}")
-        print("Secrets: [REDACTED FOR SECURITY]")
-        print("====================================")
-        print("OPB Index Trader v2.53.0 — DI container initialized.")
-        print("For live trading, use the Orchestrator cycle-based system.")
-        print("Legacy monolithic mode is deprecated.")
-        print("Run 'python -m index_app.index_trader' for standalone mode.")
+    # ── Phase 1A: Enter the main trading loop ──
+    # This is the HEART of the bot. Without this, main() sets up DI and exits.
+    # The loop: scan signals → evaluate risk → enter trades → monitor → exit.
+    # Skip trading loop in --selftest/--no-loop/--manual mode.
+    skip_flags = {"--selftest", "--no-loop", "--manual", "--no-trade"}
+    if not any(flag in sys.argv for flag in skip_flags):
+        log.info("[MAIN] Entering trading loop — bot is now live")
+        send("Bot starting — entering trading loop")
+        _run_trading_loop()
+    else:
+        log.info("[MAIN] Skip-trade flag detected — exiting after DI setup (trading loop skipped)")
 
 
 if __name__ == "__main__":

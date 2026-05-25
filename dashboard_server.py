@@ -16,16 +16,24 @@ Usage:
     LAN only if needed: set DASHBOARD_HOST to 0.0.0.0 in dashboard_config.json (exposes the service).
 """
 
-import os, sys, json, time, threading, logging, argparse, signal as _signal
-from datetime import datetime, timezone, timedelta
-from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
+import argparse
+import json
+import logging
+import os
+import signal as _signal
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
 import yfinance as yf
 
 try:
-    from flask import Flask, render_template, jsonify
+    from flask import Flask, jsonify, render_template
     from flask_socketio import SocketIO, emit
     _FLASK_OK = True
 except ImportError:
@@ -33,10 +41,10 @@ except ImportError:
     print("[FATAL] Flask and flask-socketio required.  Run: pip install flask flask-socketio")
     sys.exit(1)
 
-from signal_engine import build_full_signal, validate_ohlcv, explain_signal
-from telegram_engine import TelegramEngine
 from core.index_map_loader import load_index_map
 from core.time_provider import time_provider
+from signal_engine import build_full_signal, explain_signal, validate_ohlcv
+from telegram_engine import TelegramEngine
 
 # ═══════════════════════════════════════════════════════════════
 # CONSTANTS + CONFIG
@@ -390,7 +398,7 @@ def _build_ui_payload() -> dict:
     metrics = {}
     try:
         if os.path.exists("metrics_report.json"):
-            with open("metrics_report.json", "r", encoding="utf-8") as f:
+            with open("metrics_report.json", encoding="utf-8") as f:
                 metrics = json.load(f)
     except Exception as e:
         metrics = {"error": f"Failed to load metrics: {str(e)[:50]}"}

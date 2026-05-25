@@ -6,18 +6,15 @@ Tests various failure modes, network issues, timeouts, and edge cases for all br
 from __future__ import annotations
 
 import time
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import pytest
-
 from core.adapters.broker_adapters import (
-    BrokerAdapter,
-    PaperBrokerAdapter,
-    KiteBrokerAdapter,
     AngelBrokerAdapter,
     BrokerRuntimeContext,
+    KiteBrokerAdapter,
+    PaperBrokerAdapter,
     create_broker_adapter,
-    build_broker_runtime_context,
 )
 
 
@@ -248,8 +245,8 @@ class TestBrokerFailureInjection:
 
     def test_concurrent_order_processing(self):
         """Test broker adapter behavior under concurrent order processing."""
-        import threading
         import queue
+        import threading
 
         context = BrokerRuntimeContext(
             cfg={"PAPER_SLIPPAGE_PCT": 0.5},
@@ -503,7 +500,7 @@ class TestBrokerFailureInjection:
                 order_id = adapter.place_order(name, direction, qty, strike)
                 with lock:
                     order_ids.append(order_id)
-            except Exception as e:
+            except Exception:
                 # In production, we'd want to handle this better
                 # but for this test we'll just note it
                 pass

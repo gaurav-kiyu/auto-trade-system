@@ -1,7 +1,6 @@
 """
 Chaos: Broker Outage
 """
-import pytest
 
 
 def test_broker_outage_paper_fallback():

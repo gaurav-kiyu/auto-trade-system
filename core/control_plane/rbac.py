@@ -9,8 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from core.auth.permissions import Permission, PermissionDenied, Role
 from core.auth.role_manager import RoleManager
-from core.auth.permissions import Permission, Role, PermissionDenied
 
 _log = logging.getLogger(__name__)
 

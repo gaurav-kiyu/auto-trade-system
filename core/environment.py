@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 from enum import Enum
-from typing import Optional
 
 log = logging.getLogger(__name__)
 

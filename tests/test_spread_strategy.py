@@ -21,19 +21,16 @@ Covers:
 """
 import time
 
-import pytest
-
 from core.spread_strategy import (
+    SpreadLeg,
+    SpreadPosition,
+    SpreadResult,
     build_spread,
-    mark_to_market,
-    paper_fill_spread,
     compute_spread_metrics,
     format_spread_summary,
-    SpreadPosition,
-    SpreadLeg,
-    SpreadResult,
+    mark_to_market,
+    paper_fill_spread,
 )
-
 
 # ── Common fixtures ───────────────────────────────────────────────────────────
 

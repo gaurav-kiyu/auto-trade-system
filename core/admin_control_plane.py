@@ -79,7 +79,3 @@ def start_admin_control_plane(
 
 
 # Re-export shared state from the new package
-from core.control_plane.server import (
-    _AUDIT_EVENTS,
-    _AUDIT_LOCK,
-)

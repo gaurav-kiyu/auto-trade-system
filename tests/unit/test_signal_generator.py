@@ -2,10 +2,11 @@
 Unit tests for the SignalService domain service.
 """
 
-import pytest
 from datetime import datetime
-from core.domains.signal_engine.service import SignalService, create_signal_service
-from core.domains.signal_engine.model import TradingSignal, SignalQuality, MarketData, Candle
+
+import pytest
+from core.domains.signal_engine.model import Candle, MarketData, SignalQuality, TradingSignal
+from core.domains.signal_engine.service import create_signal_service
 
 
 class TestSignalService:

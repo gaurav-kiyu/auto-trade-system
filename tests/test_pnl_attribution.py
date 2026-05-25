@@ -1,8 +1,10 @@
 """Tests for core/pnl_attribution.py (v2.45 Item 13)."""
-import pytest
 from core.pnl_attribution import (
-    AttributionResult, _score_tier, _group_by, _summarise,
-    compute_pnl_attribution, format_attribution_table,
+    AttributionResult,
+    _score_tier,
+    _summarise,
+    compute_pnl_attribution,
+    format_attribution_table,
 )
 
 

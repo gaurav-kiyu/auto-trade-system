@@ -24,9 +24,20 @@ def _reset_shutdown_state_for_testing() -> None:
 
 
 def register_graceful_shutdown_signals(shutdown_event: threading.Event) -> None:
-    """SIGINT/SIGTERM set the event; register before blocking I/O (RCA-124 style)."""
-    signal.signal(signal.SIGTERM, lambda s, f: shutdown_event.set())
-    signal.signal(signal.SIGINT, lambda s, f: shutdown_event.set())
+    """SIGINT/SIGTERM set the event AND execute shutdown callbacks asynchronously.
+
+    Calls execute_shutdown() via a daemon thread to avoid deadlock: the signal
+    handler runs in the interrupted thread's context and may try to acquire
+    locks held by that thread. A fresh daemon thread has no such conflict.
+    Also relies on the atexit-registered execute_shutdown() (see
+    setup_graceful_shutdown) which runs on normal interpreter exit.
+    """
+    def _signal_handler(s, f):
+        if not shutdown_event.is_set():
+            shutdown_event.set()
+            threading.Thread(target=execute_shutdown, daemon=True).start()
+    signal.signal(signal.SIGTERM, _signal_handler)
+    signal.signal(signal.SIGINT, _signal_handler)
 
 
 def register_shutdown_callback(cb: Callable[[], None]) -> None:

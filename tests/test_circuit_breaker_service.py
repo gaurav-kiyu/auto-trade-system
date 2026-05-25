@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-
 from core.ports.circuit_breaker.circuit_breaker_port import (
     CircuitBreakerConfig,
     CircuitBreakerOpenException,
     CircuitState,
 )
 from core.services.circuit_breaker_service import CircuitBreakerService
-
 
 # ── Constructor ──────────────────────────────────────────────────────────
 

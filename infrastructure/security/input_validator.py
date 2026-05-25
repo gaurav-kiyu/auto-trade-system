@@ -7,12 +7,12 @@ injection attacks, malformed data, and other security vulnerabilities.
 
 from __future__ import annotations
 
-import re
 import html
-from typing import Any, Dict, List, Optional, Pattern, Union
-from dataclasses import dataclass
-from enum import Enum
 import logging
+import re
+from dataclasses import dataclass
+from re import Pattern
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class RequiredRule(ValidationRule):
 class TypeRule(ValidationRule):
     """Ensures the value is of a specific type."""
 
-    def __init__(self, expected_type: Union[type, tuple]):
+    def __init__(self, expected_type: type | tuple):
         if isinstance(expected_type, type):
             type_name = expected_type.__name__
         else:
@@ -73,7 +73,7 @@ class TypeRule(ValidationRule):
 class RegexRule(ValidationRule):
     """Ensures the value matches a specific regex pattern."""
 
-    def __init__(self, pattern: Union[str, Pattern], description: str = None):
+    def __init__(self, pattern: str | Pattern, description: str = None):
         if isinstance(pattern, str):
             pattern = re.compile(pattern)
         super().__init__(description or f"Must match pattern: {pattern.pattern}")
@@ -110,7 +110,7 @@ class LengthRule(ValidationRule):
 class RangeRule(ValidationRule):
     """Ensures the value is within a specific numeric range."""
 
-    def __init__(self, min_value: Union[int, float] = None, max_value: Union[int, float] = None):
+    def __init__(self, min_value: int | float = None, max_value: int | float = None):
         if min_value is None and max_value is None:
             super().__init__("No range specified")
         elif min_value is None:
@@ -135,7 +135,7 @@ class RangeRule(ValidationRule):
 class ChoiceRule(ValidationRule):
     """Ensures the value is one of the allowed choices."""
 
-    def __init__(self, choices: List[Any]):
+    def __init__(self, choices: list[Any]):
         super().__init__(f"Must be one of: {', '.join(map(str, choices))}")
         self.choices = set(choices)
 
@@ -160,7 +160,7 @@ class EmailRule(ValidationRule):
 class URLRule(ValidationRule):
     """Ensures the value is a valid URL."""
 
-    def __init__(self, schemes: List[str] = None):
+    def __init__(self, schemes: list[str] = None):
         if schemes is None:
             schemes = ['http', 'https']
         super().__init__(f"Must be a valid URL with schemes: {', '.join(schemes)}")
@@ -186,7 +186,7 @@ class ValidationResult:
     is_valid: bool
     value: Any = None
     error_message: str = ""
-    validated_fields: Dict[str, Any] = None
+    validated_fields: dict[str, Any] = None
 
     def __post_init__(self):
         if self.validated_fields is None:
@@ -225,7 +225,7 @@ class Validator:
             validated_fields={field_name: value}
         )
 
-    def validate_dict(self, data: Dict[str, Any], field_validators: Dict[str, 'Validator']) -> ValidationResult:
+    def validate_dict(self, data: dict[str, Any], field_validators: dict[str, Validator]) -> ValidationResult:
         """
         Validate a dictionary against field-specific validators.
 

@@ -6,7 +6,7 @@ Adapter that implements the LoggingPort interface using the existing StructuredL
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 # Import the port interface
 from core.ports.logging import LoggingPort
@@ -64,7 +64,7 @@ class StructuredLoggerAdapter(LoggingPort):
         if self._logger:
             self._logger.critical(message, **kwargs)
 
-    def log_trade(self, trade_data: Dict[str, Any]) -> None:
+    def log_trade(self, trade_data: dict[str, Any]) -> None:
         """Log a trade execution event."""
         if self._logger and hasattr(self._logger, 'log_trade'):
             self._logger.log_trade(trade_data)
@@ -72,7 +72,7 @@ class StructuredLoggerAdapter(LoggingPort):
             # Fallback: log as info with trade data
             self.info("Trade executed", **trade_data)
 
-    def log_signal(self, signal_data: Dict[str, Any]) -> None:
+    def log_signal(self, signal_data: dict[str, Any]) -> None:
         """Log a signal generation event."""
         if self._logger and hasattr(self._logger, 'log_signal'):
             self._logger.log_signal(signal_data)

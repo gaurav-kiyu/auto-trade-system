@@ -217,6 +217,10 @@ class CapitalManager:
         Extract `lock_pct` of unrealised profits above initial_capital.
         Locked profit is removed from current_capital (moved to safe account).
 
+        CRITICAL FIX (C11): peak_capital is NOT reduced — it tracks the true equity
+        peak. Reducing it would understate drawdown and prevent the hard halt from
+        triggering when it should.
+
         Returns the amount locked.
         """
         with self._lock:
@@ -227,11 +231,17 @@ class CapitalManager:
             amount = round(profit * lock_pct, 2)
             st.current_capital -= amount
             st.locked_profit   += amount
+            # CRITICAL FIX: Do NOT reduce peak_capital here. Peak capital is the
+            # HIGHEST the portfolio has ever been — locking profits is a cash
+            # movement, not a portfolio loss. Reducing peak_capital would
+            # understate drawdown and delay the hard halt.
             log.info(
                 "Profit lock: extracted Rs%.2f (%.0f%% of profit=Rs%.2f). "
-                "Capital: Rs%.2f → Rs%.2f. Total locked: Rs%.2f",
+                "Capital: Rs%.2f → Rs%.2f. Total locked: Rs%.2f. "
+                "Peak capital preserved: Rs%.2f",
                 amount, lock_pct * 100, profit,
                 st.current_capital + amount, st.current_capital, st.locked_profit,
+                st.peak_capital,
             )
             return amount
 

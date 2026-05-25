@@ -5,10 +5,8 @@ Tests for DI Container.
 from __future__ import annotations
 
 import threading
-from unittest.mock import Mock
 
 import pytest
-
 from core.di_container import DIContainer, get_container
 
 

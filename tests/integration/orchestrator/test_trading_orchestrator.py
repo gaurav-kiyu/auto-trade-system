@@ -3,32 +3,27 @@ Integration tests for Trading Orchestrator.
 """
 from __future__ import annotations
 
-import pytest
-from unittest.mock import Mock, patch
 from datetime import datetime
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from unittest.mock import Mock, patch
 
-from core.services.use_cases.trading_orchestrator import TradingOrchestrator, OrchestratorConfig
-from core.domains.signal_engine.model import TradingSignal, SignalQuality
+import pytest
+from core.common.kernels.correlation_id import CorrelationIdManager
+from core.common.utilities.logging import StructuredLogger
+from core.common.utilities.metrics import MetricsCollector
+from core.common.utilities.result import Success
+from core.domains.execution.model import Fill, Order, OrderResult, OrderStatus
+from core.domains.ml.model import MLConfidence, MLPrediction
+from core.domains.risk.model import RiskDecision
+from core.domains.signal_engine.model import SignalQuality, TradingSignal
 from core.domains.strategy.model import StrategyDecision
-from core.domains.ml.model import MLPrediction, MLConfidence
-from core.domains.risk.model import RiskDecision, PortfolioRiskMetrics
-from core.domains.execution.model import Order, OrderResult, Fill, Position, OrderStatus
-from core.domains.portfolio.model import PortfolioSnapshot
-from core.domains.state.model import TradingState
-from core.domains.session.model import MarketSession
+from core.ports.config import ConfigPort
+from core.ports.execution import ExecutionPort
 from core.ports.market_data import MarketDataPort
 from core.ports.ml_model import MlModelPort
-from core.ports.risk import RiskPort
-from core.ports.execution import ExecutionPort
-from core.ports.persistence import PersistencePort
 from core.ports.notification import NotificationPort
-from core.ports.config import ConfigPort
-from core.common.kernels.correlation_id import CorrelationIdManager
-from core.common.utilities.metrics import MetricsCollector
-from core.common.utilities.logging import StructuredLogger
-from core.common.utilities.result import Result, Success, Failure
+from core.ports.persistence import PersistencePort
+from core.ports.risk import RiskPort
+from core.services.use_cases.trading_orchestrator import OrchestratorConfig, TradingOrchestrator
 
 
 class TestTradingOrchestrator:
@@ -134,7 +129,7 @@ class TestTradingOrchestrator:
         market_data = {"close": [22000, 22050, 22100], "volume": [100, 150, 200]}
         self.market_data_mock.get_latest_data.return_value = market_data
         self.market_data_mock.is_data_fresh.return_value = True
-        
+
         # 2. Signal generation
         signal = TradingSignal(
             symbol="NIFTY24SepFUT",
@@ -216,7 +211,7 @@ class TestTradingOrchestrator:
                                                 with patch.object(self.orchestrator, '_send_trade_notifications', return_value=Success(None)):
                                                     # Execute
                                                     result = self.orchestrator.process_trading_cycle("NIFTY24SepFUT")
-                                                    
+
                                                     # Verify
                                                     assert result.is_success
                                                     # Verify that key methods were called
@@ -241,10 +236,10 @@ class TestTradingOrchestrator:
         market_data = {"close": [22000], "volume": [100]}
         self.market_data_mock.get_latest_data.return_value = market_data
         self.market_data_mock.is_data_fresh.return_value = False  # Stale data
-        
+
         # Execute
         result = self.orchestrator.process_trading_cycle("NIFTY24SepFUT")
-        
+
         # Verify
         assert result.is_failure
         assert "Market data is stale" in result.unwrap_err()
@@ -255,7 +250,7 @@ class TestTradingOrchestrator:
         market_data = {"close": [22000], "volume": [100]}
         self.market_data_mock.get_latest_data.return_value = market_data
         self.market_data_mock.is_data_fresh.return_value = True
-        
+
         # Weak signal
         weak_signal = TradingSignal(
             symbol="NIFTY24SepFUT",
@@ -265,7 +260,7 @@ class TestTradingOrchestrator:
             timestamp=datetime.now(),
             metadata={}
         )
-        
+
         with patch.object(self.orchestrator, '_generate_trading_signal', return_value=Success(weak_signal)):
             # Execute
             result = self.orchestrator.process_trading_cycle("NIFTY24SepFUT")
@@ -281,7 +276,7 @@ class TestTradingOrchestrator:
         market_data = {"close": [22000], "volume": [100]}
         self.market_data_mock.get_latest_data.return_value = market_data
         self.market_data_mock.is_data_fresh.return_value = True
-        
+
         signal = TradingSignal(
             symbol="NIFTY24SepFUT",
             strength=0.8,
@@ -290,7 +285,7 @@ class TestTradingOrchestrator:
             timestamp=datetime.now(),
             metadata={}
         )
-        
+
         with patch.object(self.orchestrator, '_generate_trading_signal', return_value=Success(signal)):
             with patch.object(self.orchestrator, '_validate_signal', return_value=Success(None)):
                 with patch.object(self.orchestrator, '_enhance_with_ml', return_value=Success(signal)):
@@ -335,12 +330,12 @@ class TestTradingOrchestrator:
         # Override config to disable ML for this test
         original_get_bool = self.config_mock.get_bool.side_effect
         self.config_mock.get_bool.side_effect = lambda key, default=False: False if key == "enable_ml_enhancement" else original_get_bool(key, default)
-        
+
         # Setup
         market_data = {"close": [22000], "volume": [100]}
         self.market_data_mock.get_latest_data.return_value = market_data
         self.market_data_mock.is_data_fresh.return_value = True
-        
+
         signal = TradingSignal(
             symbol="NIFTY24SepFUT",
             strength=0.8,
@@ -349,7 +344,7 @@ class TestTradingOrchestrator:
             timestamp=datetime.now(),
             metadata={}
         )
-        
+
         with patch.object(orchestrator_no_ml, '_generate_trading_signal', return_value=Success(signal)):
             with patch.object(orchestrator_no_ml, '_validate_signal', return_value=Success(None)):
                 # ML enhancement should be skipped
@@ -437,8 +432,8 @@ class TestTradingOrchestrator:
         assert "trend" in conditions
 
         # Test _apply_strategy_sizing
-        from core.domains.strategy.model import StrategyDecision
         from core.domains.risk.model import RiskDecision
+        from core.domains.strategy.model import StrategyDecision
 
         strategy_decision = StrategyDecision(
             should_trade=True,
@@ -485,8 +480,8 @@ class TestTradingOrchestrator:
 
     def test_extract_features_for_ml(self):
         """Test ML feature extraction."""
-        from core.domains.signal_engine.model import TradingSignal, SignalQuality
-        
+        from core.domains.signal_engine.model import SignalQuality, TradingSignal
+
         signal = TradingSignal(
             symbol="NIFTY24SepFUT",
             strength=0.7,
@@ -495,11 +490,11 @@ class TestTradingOrchestrator:
             timestamp=datetime(2026, 5, 10, 14, 30, 0),  # 2:30 PM
             metadata={"key1": "value1", "key2": "value2"}
         )
-        
+
         market_data = {"some": "data"}
-        
+
         features = self.orchestrator._extract_features_for_ml(signal, market_data)
-        
+
         # Verify features
         assert isinstance(features, list)
         assert len(features) == 4
@@ -529,7 +524,7 @@ class TestTradingOrchestrator:
     def test_full_integration_flow_with_realistic_data(self):
         """Test a more realistic integration flow."""
         # This test mimics a realistic flow without mocking every internal method
-        
+
         # Setup realistic market data
         market_data = {
             "close": [21950, 22000, 22050, 22100, 22080],
@@ -538,7 +533,7 @@ class TestTradingOrchestrator:
         }
         self.market_data_mock.get_latest_data.return_value = market_data
         self.market_data_mock.is_data_fresh.return_value = True
-        
+
         # Setup ML model to return reasonable prediction
         ml_prediction = MLPrediction(
             prediction_value=0.65,

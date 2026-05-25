@@ -7,15 +7,17 @@ It allows testing trading strategies without risking real capital.
 
 from __future__ import annotations
 
-import time
-import threading
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime, timedelta
-import uuid
 import random
+import threading
+import time
+from collections.abc import Callable
+from datetime import datetime, timedelta
+from typing import Any
+
+from core.datetime_ist import now_ist
 
 # Import the broker port interface this adapter implements
-from core.ports.broker import BrokerPort, Order, OrderResult, Position, Quote, Fill
+from core.ports.broker import BrokerPort, Fill, Order, OrderResult, Position, Quote
 
 # Import market data port for getting real/simulated prices
 # In a real implementation, this would be injected
@@ -37,7 +39,7 @@ class PaperBrokerAdapter(BrokerPort):
 
     def __init__(self,
                  initial_capital: float = 100000.0,
-                 market_data_port: Optional[MarketDataPort] = None,
+                 market_data_port: MarketDataPort | None = None,
                  simulate_latency: bool = True,
                  latency_range_ms: tuple = (50, 200),
                  fill_probability: float = 0.95,
@@ -64,10 +66,10 @@ class PaperBrokerAdapter(BrokerPort):
         self._commission_per_trade = commission_per_trade
 
         # Internal state
-        self._positions: Dict[str, Position] = {}
-        self._orders: Dict[str, Order] = {}
-        self._order_results: Dict[str, OrderResult] = {}
-        self._fills: List[Fill] = []
+        self._positions: dict[str, Position] = {}
+        self._orders: dict[str, Order] = {}
+        self._order_results: dict[str, OrderResult] = {}
+        self._fills: list[Fill] = []
         self._cash = initial_capital
         self._margin_used = 0.0
         self._order_counter = 0
@@ -76,7 +78,7 @@ class PaperBrokerAdapter(BrokerPort):
         self._lock = threading.RLock()
 
         # Symbol to instrument info cache (would come from market data in reality)
-        self._symbol_info: Dict[str, Dict[str, Any]] = {}
+        self._symbol_info: dict[str, dict[str, Any]] = {}
 
     def _simulate_network_latency(self):
         """Simulate network latency if enabled."""
@@ -91,7 +93,7 @@ class PaperBrokerAdapter(BrokerPort):
             self._order_counter += 1
             return f"PAPER_{self._order_counter:08d}_{int(time.time())}"
 
-    def _get_current_price(self, symbol: str) -> Optional[float]:
+    def _get_current_price(self, symbol: str) -> float | None:
         """
         Get current price for a symbol.
 
@@ -251,7 +253,7 @@ class PaperBrokerAdapter(BrokerPort):
             symbol=symbol,
             quantity=quantity,
             price=fill_price,
-            timestamp=datetime.now(),
+            timestamp=now_ist(),
             commission=commission
         )
 
@@ -274,7 +276,7 @@ class PaperBrokerAdapter(BrokerPort):
             filled_quantity=quantity,
             average_price=fill_price,
             commission=commission,
-            timestamp=datetime.now()
+            timestamp=now_ist()
         )
         self._order_results[order_id] = order_result
 
@@ -290,7 +292,7 @@ class PaperBrokerAdapter(BrokerPort):
             filled_quantity=0,
             average_price=0.0,
             commission=0.0,
-            timestamp=datetime.now(),
+            timestamp=now_ist(),
             reject_reason=reason
         )
         self._order_results[order_id] = order_result
@@ -382,16 +384,16 @@ class PaperBrokerAdapter(BrokerPort):
                     filled_quantity=0,
                     average_price=0.0,
                     commission=0.0,
-                    timestamp=datetime.now()
+                    timestamp=now_ist()
                 )
                 self._order_results[order_id] = order_result
                 return True
             return False
 
     def modify_order(self, order_id: str,
-                    quantity: Optional[int] = None,
-                    price: Optional[float] = None,
-                    trigger_price: Optional[float] = None) -> bool:
+                    quantity: int | None = None,
+                    price: float | None = None,
+                    trigger_price: float | None = None) -> bool:
         """
         Modify an existing order.
 
@@ -443,7 +445,7 @@ class PaperBrokerAdapter(BrokerPort):
         else:
             return "UNKNOWN"
 
-    def get_positions(self) -> List[Position]:
+    def get_positions(self) -> list[Position]:
         """
         Get current positions from the paper broker.
 
@@ -505,7 +507,7 @@ class PaperBrokerAdapter(BrokerPort):
                 ask=0.0,
                 last=0.0,
                 volume=0,
-                timestamp=datetime.now()
+                timestamp=now_ist()
             )
 
         # Simulate bid/ask spread
@@ -522,10 +524,10 @@ class PaperBrokerAdapter(BrokerPort):
             ask=ask,
             last=last_price,
             volume=volume,
-            timestamp=datetime.now()
+            timestamp=now_ist()
         )
 
-    def subscribe_to_market_data(self, symbols: List[str],
+    def subscribe_to_market_data(self, symbols: list[str],
                                callback: Callable[[Quote], None]) -> bool:
         """
         Subscribe to real-time market data for symbols.
@@ -560,7 +562,7 @@ class PaperBrokerAdapter(BrokerPort):
     def get_historical_data(self, symbol: str,
                           from_date: datetime,
                           to_date: datetime,
-                          interval: str = "day") -> List[Dict[str, Any]]:
+                          interval: str = "day") -> list[dict[str, Any]]:
         """
         Get historical market data for backtesting and analysis.
 
@@ -612,7 +614,7 @@ class PaperBrokerAdapter(BrokerPort):
 
         return historical_data
 
-    def get_account_info(self) -> Dict[str, Any]:
+    def get_account_info(self) -> dict[str, Any]:
         """
         Get paper account information.
 
@@ -638,10 +640,10 @@ class PaperBrokerAdapter(BrokerPort):
                 'pnl': round(total_equity - self._initial_capital, 2),
                 'pnl_percent': round(((total_equity - self._initial_capital) / self._initial_capital) * 100, 2),
                 'open_positions': len([p for p in self._positions.values() if p.quantity != 0]),
-                'timestamp': datetime.now().isoformat()
+                'timestamp': now_ist().isoformat()
             }
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """Implement BrokerPort.health_check() — returns broker health status."""
         with self._lock:
             total_equity = self._cash + sum(
@@ -654,7 +656,7 @@ class PaperBrokerAdapter(BrokerPort):
                 "current_capital": total_equity,
                 "open_positions": len([p for p in self._positions.values() if p.quantity != 0]),
                 "cash": self._cash,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": now_ist().isoformat(),
             }
 
     def reset_account(self):
@@ -670,7 +672,7 @@ class PaperBrokerAdapter(BrokerPort):
 
 
 # Factory function for creating paper broker adapter instances
-def create_paper_broker_adapter(config: Dict[str, Any]) -> PaperBrokerAdapter:
+def create_paper_broker_adapter(config: dict[str, Any]) -> PaperBrokerAdapter:
     """
     Factory function to create a PaperBrokerAdapter from configuration.
 

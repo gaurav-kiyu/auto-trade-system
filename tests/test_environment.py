@@ -1,11 +1,8 @@
 """Tests for core/environment.py — environment separation + guard rails."""
 
 import os
-import sys
-import tempfile
 
 import pytest
-
 from core.environment import (
     Environment,
     current_environment,

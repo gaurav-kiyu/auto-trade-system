@@ -11,11 +11,9 @@ identified in the critical findings report, specifically:
 from __future__ import annotations
 
 import json
-import os
-import base64
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 # Import our credential storage
 from infrastructure.security.credential_storage import CredentialStorage
@@ -28,7 +26,7 @@ _credential_storage = CredentialStorage()
 # Import jsonschema for validation (would be in requirements)
 try:
     import jsonschema
-    from jsonschema import validate, ValidationError
+    from jsonschema import ValidationError, validate
     JSONSCHEMA_AVAILABLE = True
 except ImportError:
     JSONSCHEMA_AVAILABLE = False
@@ -68,8 +66,8 @@ class SecureConfig:
     })
 
     def __init__(self,
-                 defaults_path: Optional[Union[str, Path]] = None,
-                 config_dir: Optional[Union[str, Path]] = None,
+                 defaults_path: str | Path | None = None,
+                 config_dir: str | Path | None = None,
                  env_prefix: str = ENV_PREFIX,
                  enable_secret_redaction: bool = True):
         """
@@ -83,10 +81,10 @@ class SecureConfig:
         """
         self.env_prefix = env_prefix
         self.enable_secret_redaction = enable_secret_redaction
-        self._defaults: Dict[str, Any] = {}
-        self._config: Dict[str, Any] = {}
-        self._secrets: Dict[str, Any] = {}
-        self._merged_config: Dict[str, Any] = {}
+        self._defaults: dict[str, Any] = {}
+        self._config: dict[str, Any] = {}
+        self._secrets: dict[str, Any] = {}
+        self._merged_config: dict[str, Any] = {}
 
         # Load defaults if provided
         if defaults_path:
@@ -104,10 +102,10 @@ class SecureConfig:
 
         # logger.info("Secure configuration initialized")
 
-    def _load_defaults(self, path: Union[str, Path]) -> None:
+    def _load_defaults(self, path: str | Path) -> None:
         """Load default configuration values from JSON file."""
         try:
-            with open(path, 'r') as f:
+            with open(path) as f:
                 self._defaults = json.load(f)
             pass  # Logging removed to avoid recursion during config init
         except FileNotFoundError:
@@ -116,7 +114,7 @@ class SecureConfig:
         except json.JSONDecodeError as e:
             raise SecureConfigError(f"Invalid JSON in defaults file {path}: {e}")
 
-    def _load_config_files(self, directory: Union[str, Path]) -> None:
+    def _load_config_files(self, directory: str | Path) -> None:
         """Load configuration files from the specified directory."""
         config_dir = Path(directory)
         if not config_dir.exists():
@@ -130,14 +128,14 @@ class SecureConfig:
             file_path = config_dir / filename
             if file_path.exists():
                 try:
-                    with open(file_path, 'r') as f:
+                    with open(file_path) as f:
                         config_data = json.load(f)
                     # Merge with existing config (later files override earlier)
                     self._deep_merge(self._config, config_data)
                     pass  # Logging removed to avoid recursion during config init
                 except FileNotFoundError:
                     pass  # Already checked existence
-                except json.JSONDecodeError as e:
+                except json.JSONDecodeError:
                     pass  # Logging removed to avoid recursion during config init
 
     def _load_secrets_from_storage(self) -> None:
@@ -162,7 +160,7 @@ class SecureConfig:
 
         # logger.debug("Configuration sources merged")
 
-    def _deep_merge(self, target: Dict[str, Any], source: Dict[str, Any]) -> None:
+    def _deep_merge(self, target: dict[str, Any], source: dict[str, Any]) -> None:
         """
         Deep merge source dictionary into target dictionary.
         Modifies target in place.
@@ -253,7 +251,7 @@ class SecureConfig:
         except (ValueError, TypeError):
             return default
 
-    def get_list(self, key: str, default: Optional[list] = None) -> list:
+    def get_list(self, key: str, default: list | None = None) -> list:
         """Get a list configuration value."""
         if default is None:
             default = []
@@ -269,7 +267,7 @@ class SecureConfig:
                 return [item.strip() for item in value.split(',') if item.strip()]
         return default
 
-    def get_dict(self, key: str, default: Optional[dict] = None) -> dict:
+    def get_dict(self, key: str, default: dict | None = None) -> dict:
         """Get a dictionary configuration value."""
         if default is None:
             default = {}
@@ -314,7 +312,7 @@ class SecureConfig:
         else:
             return value
 
-    def get_safe_config(self) -> Dict[str, Any]:
+    def get_safe_config(self) -> dict[str, Any]:
         """
         Get a safe copy of the configuration with all secrets redacted.
 
@@ -326,7 +324,7 @@ class SecureConfig:
             safe_config[key] = self._redact_if_needed(key, value)
         return safe_config
 
-    def get_all_config(self) -> Dict[str, Any]:
+    def get_all_config(self) -> dict[str, Any]:
         """
         Get a copy of the complete configuration including secrets.
         Use with caution as this may expose sensitive data.
@@ -336,7 +334,7 @@ class SecureConfig:
         """
         return self._merged_config.copy()
 
-    def get_all(self) -> Dict[str, Any]:
+    def get_all(self) -> dict[str, Any]:
         """
         Get all configuration as a flat dictionary.
         Alias for get_all_config() for backward compatibility.
@@ -348,8 +346,8 @@ class SecureConfig:
 
 
 def get_secure_config(
-    defaults_path: Optional[Union[str, Path]] = None,
-    config_dir: Optional[Union[str, Path]] = None,
+    defaults_path: str | Path | None = None,
+    config_dir: str | Path | None = None,
     env_prefix: str = SecureConfig.ENV_PREFIX,
     enable_secret_redaction: bool = True,
 ) -> SecureConfig:

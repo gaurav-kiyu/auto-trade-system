@@ -11,13 +11,12 @@ Tests all 22 routes for:
 from __future__ import annotations
 
 import threading
-import json
+
 import pytest
 
 pytest.importorskip("fastapi")
-from fastapi.testclient import TestClient
-
 from core.control_plane import create_control_plane_app as create_admin_app
+from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -426,8 +425,9 @@ def test_wired_broker_summary(wired_client):
 
 @pytest.fixture
 def model_app():
-    import tempfile
     import os
+    import tempfile
+
     from core.ai.model_registry import ModelRegistry
     from core.auth.role_manager import RoleManager
 

@@ -1,8 +1,7 @@
 """Tests for core/gex_analyzer.py (v2.45 Item 3)."""
 import math
-import pytest
-from core.gex_analyzer import StrikeGEX, GEXResult, compute_gex, get_gex_score_adj, _bs_gamma, _phi
 
+from core.gex_analyzer import GEXResult, _bs_gamma, _phi, compute_gex, get_gex_score_adj
 
 # ── Math helpers ──────────────────────────────────────────────────────────────
 

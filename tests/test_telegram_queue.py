@@ -1,10 +1,8 @@
 """Tests for core/telegram_queue.py (v2.44 Item 7)."""
 import time
-import threading
-import pytest
 from unittest.mock import MagicMock, patch
-from core.telegram_queue import TelegramMessage, TelegramPriority, TelegramQueue
 
+from core.telegram_queue import TelegramMessage, TelegramPriority, TelegramQueue
 
 CFG = {
     "tg_max_queue_depth": 10,
