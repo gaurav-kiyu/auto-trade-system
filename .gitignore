@@ -48,6 +48,7 @@ venv/
 
 # ── Test / Coverage ───────────────────────────────────────────────────────────
 htmlcov/
+coverage_html/
 .coverage
 coverage.xml
 *.cover
@@ -69,9 +70,6 @@ reports/*.pdf
 reports/*.db
 reports/*.sqlite
 _regression_bad_stock_config.json
-audit_trail.jsonl
-config_audit.log
-crash_recovery.log
 
 # ── Generated data files ────────────────────────────────────────────────────
 data/*.db
@@ -87,15 +85,18 @@ logs/*.log
 logs/*.bak
 logs/*.jsonl
 logs/metrics_report.json
-config_audit.log
 tg_fallback_alerts.log
+crash_recovery.log
 
 # ── State / DB ────────────────────────────────────────────────────────────────
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 *.sqlite-wal
 *.sqlite-shm
+*.backup.*
 trader_state.json
 trader_state*.json
 stock_trader_state.json
@@ -118,9 +119,8 @@ nonexistent_*.sqlite
 # ── Generated reports & temp artifacts ───────────────────────────────────────
 reports/backtest_results.json
 reports/*.csv
-audit_trail.jsonl
 config_audit.log
-crash_recovery.log
+audit_trail.jsonl
 
 # ── Trade debug / analysis scripts ───────────────────────────────────────────
 debug_dd.py
@@ -181,3 +181,12 @@ PRODUCTION_READINESS_REPORT.md
 # Generated documentation artifacts
 *.pptx
 *.pdf
+
+# ── Auth database (generated at runtime) ───────────────────────────────────────
+auth.db
+data/auth.db
+data/auth.db-wal
+data/auth.db-shm
+
+# ── Runtime audit artifacts ───────────────────────────────────────────────────
+config_audit.jsonl

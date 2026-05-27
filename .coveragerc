@@ -1,0 +1,35 @@
+[run]
+source = .
+omit =
+    .venv/*
+    .git/*
+    __pycache__/*
+    tests/*
+    scripts/*
+    docs/*
+    data/*
+    logs/*
+    reports/*
+    static/*
+    templates/*
+    security_review/*
+    infrastructure/*
+    */__pycache__/*
+    **/__init__.py
+    nul
+    nonexistent_*.db
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    except Exception:
+    except:
+    pass
+    return None
+    # type: ignore
+
+[html]
+directory = coverage_html

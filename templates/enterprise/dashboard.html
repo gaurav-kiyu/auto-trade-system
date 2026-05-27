@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB Enterprise Dashboard</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <script nonce="{{ nonce }}">
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { dark: { 50: '#f8fafc', 100: '#e2e8f0', 200: '#cbd5e1', 300: '#94a3b8', 400: '#64748b', 500: '#475569', 600: '#334155', 700: '#1e293b', 800: '#0f1729', 900: '#0a0e1a', 950: '#060912' }, brand: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' }, success: { 400: '#4ade80', 500: '#22c55e', 600: '#16a34a' }, warning: { 400: '#fbbf24', 500: '#f59e0b' }, danger: { 400: '#f87171', 500: '#ef4444', 600: '#dc2626' } } } } };
+    </script>
+    <style>
+        :root { --bg-primary: #060912; --bg-secondary: #0a0e1a; --bg-card: #0f1729; --bg-card-hover: #172033; --border: rgba(148,163,184,0.08); --border-hover: rgba(59,130,246,0.25); --text-primary: #f1f5f9; --text-secondary: #cbd5e1; --text-muted: #64748b; --accent: #3b82f6; --accent-glow: rgba(59,130,246,0.15); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .sidebar { width: 250px; background: var(--bg-secondary); border-right: 1px solid var(--border); height: 100vh; position: fixed; top: 0; left: 0; overflow-y: auto; z-index: 50; transition: transform .25s cubic-bezier(.4,0,.2,1); }
+        .sidebar-logo { padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .75rem; }
+        .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), #1d4ed8); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; color: #fff; flex-shrink: 0; }
+        .logo-text { font-weight: 600; font-size: .9rem; color: var(--text-primary); }
+        .logo-version { font-size: .65rem; color: var(--text-muted); }
+        .nav-section { padding: .75rem 1.25rem .35rem; font-size: .6rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #475569; }
+        .nav-item { display: flex; align-items: center; gap: .75rem; padding: .55rem 1.25rem; color: var(--text-muted); cursor: pointer; transition: all .12s ease; font-size: .82rem; border-left: 3px solid transparent; text-decoration: none; }
+        .nav-item:hover { background: rgba(59,130,246,.05); color: var(--text-secondary); }
+        .nav-item.active { background: rgba(59,130,246,.08); color: var(--accent); border-left-color: var(--accent); }
+        .nav-item i { width: 18px; text-align: center; font-size: .85rem; }
+        .main-content { margin-left: 250px; padding: 1.5rem 2rem; min-height: 100vh; }
+        .topbar { display: flex; align-items: center; justify-content: space-between; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+        .topbar-left h1 { font-size: 1.15rem; font-weight: 600; color: var(--text-primary); }
+        .topbar-left p { font-size: .78rem; color: var(--text-muted); margin-top: .1rem; }
+        .topbar-right { display: flex; align-items: center; gap: .75rem; }
+        .user-badge { display: flex; align-items: center; gap: .5rem; background: var(--bg-card); padding: .35rem .8rem .35rem .35rem; border-radius: 2rem; border: 1px solid var(--border); cursor: pointer; transition: all .12s ease; }
+        .user-badge:hover { border-color: var(--border-hover); }
+        .user-avatar { width: 26px; height: 26px; background: linear-gradient(135deg, var(--accent), #1d4ed8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .65rem; font-weight: 600; color: #fff; }
+        .user-info .name { color: var(--text-secondary); font-weight: 500; font-size: .78rem; }
+        .user-info .role { color: var(--text-muted); font-size: .68rem; text-transform: capitalize; }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn .2s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: .75rem; padding: 1.25rem; transition: all .2s ease; position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0; transition: opacity .3s; }
+        .stat-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: 0 8px 30px -12px rgba(0,0,0,.4); }
+        .stat-card:hover::before { opacity: 1; }
+        .stat-label { font-size: .7rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+        .stat-value { font-size: 1.35rem; font-weight: 700; color: var(--text-primary); margin-top: .2rem; font-variant-numeric: tabular-nums; }
+        .stat-sub { font-size: .7rem; color: var(--text-muted); margin-top: .15rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: .75rem; transition: border-color .2s; }
+        .card:hover { border-color: rgba(148,163,184,.12); }
+        .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .card-header h3 { font-size: .85rem; font-weight: 600; color: var(--text-secondary); }
+        .card-header h3 i { margin-right: .45rem; color: var(--accent); }
+        .card-body { padding: 1.25rem; }
+        .table-wrap { overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th { text-align: left; font-size: .65rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); padding: .65rem .8rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .table td { font-size: .78rem; padding: .55rem .8rem; border-bottom: 1px solid rgba(148,163,184,.04); color: var(--text-secondary); }
+        .table tr:hover td { background: rgba(59,130,246,.03); }
+        .table tr:last-child td { border-bottom: none; }
+        .badge { display: inline-flex; align-items: center; gap: .2rem; padding: .1rem .45rem; border-radius: 1rem; font-size: .68rem; font-weight: 500; }
+        .badge-success { background: rgba(34,197,94,.1); color: var(--success-400); border: 1px solid rgba(34,197,94,.15); }
+        .badge-danger { background: rgba(239,68,68,.1); color: var(--danger-400); border: 1px solid rgba(239,68,68,.15); }
+        .badge-warning { background: rgba(245,158,11,.1); color: var(--warning-400); border: 1px solid rgba(245,158,11,.15); }
+        .badge-info { background: rgba(59,130,246,.1); color: #60a5fa; border: 1px solid rgba(59,130,246,.15); }
+        .badge-neutral { background: rgba(148,163,184,.08); color: var(--text-muted); border: 1px solid rgba(148,163,184,.1); }
+        .btn { display: inline-flex; align-items: center; gap: .35rem; padding: .45rem .9rem; border-radius: .5rem; font-size: .77rem; font-weight: 500; cursor: pointer; border: none; transition: all .12s ease; white-space: nowrap; }
+        .btn-primary { background: linear-gradient(135deg, var(--accent), #2563eb); color: #fff; }
+        .btn-primary:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,.25); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+        .btn-danger:hover { opacity: .9; transform: translateY(-1px); }
+        .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid rgba(148,163,184,.12); }
+        .btn-ghost:hover { background: rgba(148,163,184,.06); color: var(--text-secondary); }
+        .btn-sm { padding: .25rem .5rem; font-size: .7rem; }
+        .btn-xs { padding: .15rem .35rem; font-size: .65rem; }
+        .btn-icon { padding: .35rem; border-radius: .4rem; background: transparent; color: var(--text-muted); border: none; cursor: pointer; }
+        .btn-icon:hover { background: rgba(148,163,184,.08); color: var(--text-secondary); }
+        .grid-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        .hamburger { display: none; background: none; border: none; color: var(--text-primary); font-size: 1.4rem; cursor: pointer; padding: .25rem; }
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: .5rem; pointer-events: none; }
+        .toast { padding: .7rem 1.1rem; border-radius: .5rem; color: #fff; font-size: .78rem; opacity: 0; transform: translateY(1rem); transition: all .3s cubic-bezier(.4,0,.2,1); min-width: 260px; max-width: 400px; pointer-events: auto; box-shadow: 0 8px 32px rgba(0,0,0,.3); }
+        .toast.visible { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #065f46; border-left: 3px solid var(--success-400); }
+        .toast.error { background: #7f1d1d; border-left: 3px solid var(--danger-400); }
+        .toast.warning { background: #713f12; border-left: 3px solid var(--warning-400); }
+        .toast.info { background: #1e3a5f; border-left: 3px solid var(--accent); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.65); backdrop-filter: blur(6px); z-index: 9998; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.visible { display: flex; }
+        .modal { background: var(--bg-card); border: 1px solid rgba(148,163,184,.1); border-radius: 1rem; padding: 1.5rem; max-width: 520px; width: 92%; max-height: 80vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,.5); }
+        .modal h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary); }
+        .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; }
+        input, textarea, select { background: var(--bg-secondary); border: 1px solid rgba(148,163,184,.12); border-radius: .5rem; padding: .55rem .75rem; color: var(--text-primary); font-size: .82rem; width: 100%; transition: border-color .15s; outline: none; }
+        input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+        label { display: block; font-size: .75rem; color: var(--text-muted); margin-bottom: .35rem; font-weight: 500; }
+        .form-group { margin-bottom: 1rem; }
+        .empty-state { text-align: center; padding: 3rem 2rem; color: var(--text-muted); }
+        .empty-state i { font-size: 2rem; margin-bottom: .75rem; opacity: .2; }
+        .empty-state p { font-size: .85rem; }
+        .skeleton { background: linear-gradient(90deg, var(--bg-card) 25%, #1a2540 50%, var(--bg-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: .5rem; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .progress-bar { height: 6px; background: rgba(148,163,184,.08); border-radius: 3px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+        .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-variant-numeric: tabular-nums; }
+        .pill { display: inline-flex; align-items: center; gap: .35rem; padding: .15rem .5rem; border-radius: 2rem; font-size: .68rem; font-weight: 500; }
+        .diff-added { background: rgba(34,197,94,.08); color: var(--success-400); padding: 0 .2rem; border-radius: .15rem; }
+        .diff-removed { background: rgba(239,68,68,.08); color: var(--danger-400); padding: 0 .2rem; border-radius: .15rem; text-decoration: line-through; }
+        .key-val { display: flex; justify-content: space-between; padding: .5rem 0; border-bottom: 1px solid rgba(148,163,184,.03); }
+        .key-val:last-child { border-bottom: none; }
+        .key { color: var(--text-muted); font-size: .78rem; }
+        .val { color: var(--text-secondary); font-size: .78rem; font-weight: 500; }
+        .tab-bar { display: flex; gap: 0; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
+        .tab { padding: .55rem 1.1rem; font-size: .78rem; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all .12s; }
+        .tab:hover { color: var(--text-secondary); }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        @media (max-width: 1024px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } .main-content { padding: 1rem; } }
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; } .grid-overview { grid-template-columns: 1fr 1fr; } .hamburger { display: block; } .topbar { flex-direction: column; align-items: flex-start; gap: .5rem; } }
+        @media (max-width: 480px) { .grid-overview { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">O</div>
+            <div><div class="logo-text">OPB Enterprise</div><div class="logo-version">v2.53.0</div></div>
+        </div>
+        <nav>
+            <div class="nav-section">Overview</div>
+            <div class="nav-item active" data-page="overview"><i class="fas fa-th-large"></i> Dashboard</div>
+            <div class="nav-section">Trading</div>
+            <div class="nav-item" data-page="trading"><i class="fas fa-chart-line"></i> Positions</div>
+            <div class="nav-item" data-page="signals"><i class="fas fa-bolt"></i> Signals</div>
+            <div class="nav-item" data-page="risk"><i class="fas fa-shield-alt"></i> Risk</div>
+            <div class="nav-section">System</div>
+            <div class="nav-item" data-page="health"><i class="fas fa-heartbeat"></i> Health</div>
+            <div class="nav-item" data-page="broker"><i class="fas fa-exchange-alt"></i> Broker</div>
+            <div class="nav-item" data-page="ml"><i class="fas fa-brain"></i> ML</div>
+            <div class="nav-section" id="adminSection" style="display:none">Administration</div>
+            <div class="nav-item admin-nav" data-page="users" style="display:none"><i class="fas fa-users"></i> Users</div>
+            <div class="nav-item admin-nav" data-page="config" style="display:none"><i class="fas fa-cog"></i> Config</div>
+            <div class="nav-item admin-nav" data-page="kill-switch" style="display:none"><i class="fas fa-exclamation-triangle"></i> Kill Switch</div>
+            <div class="nav-item admin-nav" data-page="system-state" style="display:none"><i class="fas fa-info-circle"></i> System State</div>
+            <div class="nav-item admin-nav" data-page="logs" style="display:none"><i class="fas fa-list"></i> Audit Log</div>
+            <div class="nav-section">Account</div>
+            <div class="nav-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="hamburger" id="hamburgerBtn">&#9776;</button>
+                <h1 id="pageTitle">Dashboard</h1>
+                <p id="pageSubtitle">System overview and key metrics</p>
+            </div>
+            <div class="topbar-right">
+                <span style="font-size:.68rem;color:#475569;" id="refreshTimestamp">&mdash;</span>
+                <button class="btn btn-ghost btn-sm" id="autoRefreshBtn" title="Toggle auto-refresh"><i class="fas fa-play" id="autoRefreshIcon"></i></button>
+                <button class="btn btn-ghost btn-sm" id="refreshBtn" title="Refresh (Ctrl+R)"><i class="fas fa-sync-alt" id="refreshIcon"></i></button>
+                <button class="btn btn-ghost btn-sm" id="shortcutsBtn" title="Keyboard shortcuts"><i class="fas fa-keyboard"></i></button>
+                <span class="status-dot" id="statusDot" style="width:8px;height:8px;border-radius:50%;display:inline-block;"></span>
+                <div class="user-badge" id="userMenuBtn">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-info"><div class="name" id="userName">Admin</div><div class="role" id="userRole">admin</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-overview" class="page active">
+            <div class="grid-overview" id="statsGrid"></div>
+            <div class="grid-2">
+                <div class="card"><div class="card-header"><h3><i class="fas fa-exchange-alt"></i> Recent Trades</h3><button class="btn btn-ghost btn-sm" id="loadTradesBtn"><i class="fas fa-sync-alt"></i></button></div><div class="card-body" style="padding:0;" id="tradesTable"><div class="empty-state"><p>Loading...</p></div></div></div>
+                <div class="card"><div class="card-header"><h3><i class="fas fa-heartbeat"></i> System Status</h3></div><div class="card-body" id="systemStatus"><div class="empty-state"><p>Loading...</p></div></div></div>
+            </div>
+        </div>
+
+        <div id="page-trading" class="page"><div id="tradingContent"><div class="empty-state"><p>Loading trading data...</p></div></div></div>
+        <div id="page-signals" class="page"><div id="signalsContent"><div class="empty-state"><p>Loading signals...</p></div></div></div>
+        <div id="page-risk" class="page"><div id="riskContent"><div class="empty-state"><p>Loading risk data...</p></div></div></div>
+        <div id="page-health" class="page"><div id="healthContent"><div class="empty-state"><p>Loading health...</p></div></div></div>
+        <div id="page-broker" class="page"><div id="brokerContent"><div class="empty-state"><p>Loading broker data...</p></div></div></div>
+        <div id="page-ml" class="page"><div id="mlContent"><div class="empty-state"><p>Loading ML data...</p></div></div></div>
+        <div id="page-users" class="page"><div id="usersContent"><div class="empty-state"><p>Loading user management...</p></div></div></div>
+        <div id="page-config" class="page"><div id="configContent"><div class="empty-state"><p>Loading config editor...</p></div></div></div>
+        <div id="page-kill-switch" class="page"><div id="killSwitchContent"><div class="empty-state"><p>Loading kill switch...</p></div></div></div>
+        <div id="page-system-state" class="page"><div id="systemStateContent"><div class="empty-state"><p>Loading system state...</p></div></div></div>
+        <div id="page-logs" class="page"><div id="logsContent"><div class="empty-state"><p>Loading audit log...</p></div></div></div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="modal-overlay" id="shortcutsModal">
+        <div class="modal" style="max-width:550px;">
+            <h3><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h3>
+            <div style="display:grid;gap:.35rem;">
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">Ctrl+R</kbd></span><span class="val">Refresh current page</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">1</kbd>-<kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">9</kbd></span><span class="val">Navigate pages (nav order)</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">G</kbd> then <kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">O</kbd></span><span class="val">Go to Overview</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">G</kbd> then <kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">T</kbd></span><span class="val">Go to Trading</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">G</kbd> then <kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">S</kbd></span><span class="val">Go to Signals</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">G</kbd> then <kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">R</kbd></span><span class="val">Go to Risk</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">G</kbd> then <kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">H</kbd></span><span class="val">Go to Health</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">G</kbd> then <kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">L</kbd></span><span class="val">Go to Audit Log</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">A</kbd></span><span class="val">Toggle auto-refresh</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">E</kbd></span><span class="val">Export trades CSV</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">?</kbd> / <kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">H</kbd></span><span class="val">Show this help</span></div>
+                <div class="key-val"><span class="key"><kbd style="background:rgba(148,163,184,.1);padding:.1rem .35rem;border-radius:.25rem;">Esc</kbd></span><span class="val">Close help / modals</span></div>
+            </div>
+            <div class="modal-actions"><button class="btn btn-primary" id="closeShortcutsBtn">Close</button></div>
+        </div>
+    </div>
+
+    <script nonce="{{ nonce }}">
+        let currentUser = {{ user|tojson|safe }};
+        let csrfToken = '';
+        let autoRefreshInterval = null;
+        let isAutoRefreshOn = false;
+        let _navBuffer = '';
+
+        function refreshCsrfToken() {
+            const m = document.cookie.match(/opb_csrf=([^;]+)/);
+            if (m) csrfToken = m[1];
+        }
+        refreshCsrfToken();
+
+        // ── Toast system ──────────────────────────────────────────────────────
+        function showToast(msg, type) {
+            type = type || 'info';
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.textContent = msg;
+            c.appendChild(t);
+            requestAnimationFrame(() => t.classList.add('visible'));
+            setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 350); }, 3500);
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+        // ── API client ────────────────────────────────────────────────────────
+        async function apiFetch(url, opts) {
+            opts = opts || {};
+            const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+            refreshCsrfToken();
+            if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+            try {
+                const res = await fetch(url, { headers, credentials: 'include', ...opts });
+                if (res.status === 401) { window.location.href = '/login'; return null; }
+                if (res.status === 403) { showToast('Access denied', 'error'); return null; }
+                if (res.status === 204) return null;
+                const ct = res.headers.get('content-type') || '';
+                if (ct.includes('application/json')) return res.json();
+                if (ct.includes('text/csv')) return res.text();
+                return res.text();
+            } catch (e) { showToast('Network error: ' + e.message, 'error'); throw e; }
+        }
+
+        function updateTimestamp() {
+            const el = document.getElementById('refreshTimestamp');
+            if (el) el.textContent = new Date().toLocaleTimeString();
+        }
+
+        // ── Navigation ────────────────────────────────────────────────────────
+        function navigate(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const pg = document.getElementById('page-' + page);
+            if (pg) pg.classList.add('active');
+            const nav = document.querySelector('.nav-item[data-page="' + page + '"]');
+            if (nav) nav.classList.add('active');
+            const titles = {
+                overview: 'Dashboard', trading: 'Positions', signals: 'Signals', risk: 'Risk',
+                health: 'Health', broker: 'Broker', ml: 'ML',
+                users: 'User Management', config: 'Configuration', 'kill-switch': 'Kill Switch',
+                'system-state': 'System State', logs: 'Audit Log'
+            };
+            document.getElementById('pageTitle').textContent = titles[page] || page;
+            const subs = {
+                overview: 'System overview and key metrics', trading: 'Live positions and orders',
+                signals: 'Signal diagnostics and feed', risk: 'Risk controls and exposure',
+                health: 'System health and dependencies', broker: 'Broker connectivity and status',
+                ml: 'ML model status and metrics', users: 'Manage users and roles',
+                config: 'System configuration management', 'kill-switch': 'Emergency system halt',
+                'system-state': 'System diagnostics and version info', logs: 'Authentication and activity audit'
+            };
+            document.getElementById('pageSubtitle').textContent = subs[page] || '';
+            loadPageData(page);
+            if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+        }
+
+        function loadPageData(page) {
+            const fns = {
+                overview: loadOverview, trading: loadTrading, signals: loadSignals, risk: loadRisk,
+                health: loadHealth, broker: loadBroker, ml: loadML, users: loadUsers,
+                config: loadConfigPage, 'kill-switch': loadKillSwitch,
+                'system-state': loadSystemState, logs: loadLogs
+            };
+            const fn = fns[page];
+            if (fn) fn();
+        }
+
+        async function refreshAll() {
+            document.getElementById('refreshIcon') && document.getElementById('refreshIcon').classList.add('fa-spin');
+            const active = document.querySelector('.page.active');
+            if (active) { const id = active.id.replace('page-', ''); await loadPageData(id); }
+            updateTimestamp();
+            setTimeout(() => { const el = document.getElementById('refreshIcon'); if (el) el.classList.remove('fa-spin'); }, 500);
+        }
+
+        function toggleAutoRefresh() {
+            isAutoRefreshOn = !isAutoRefreshOn;
+            const icon = document.getElementById('autoRefreshIcon');
+            if (isAutoRefreshOn) {
+                icon.className = 'fas fa-pause';
+                if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+                autoRefreshInterval = setInterval(refreshAll, 10000);
+                showToast('Auto-refresh enabled (10s)', 'info');
+            } else {
+                icon.className = 'fas fa-play';
+                if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+                showToast('Auto-refresh disabled', 'info');
+            }
+        }
+
+        async function logout() {
+            await apiFetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        // ── Keyboard shortcuts ────────────────────────────────────────────────
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'r') { e.preventDefault(); refreshAll(); return; }
+            if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.visible').forEach(m => m.classList.remove('visible')); return; }
+            if (e.key === '?' || e.key === 'h') { document.getElementById('shortcutsModal').classList.toggle('visible'); return; }
+            if (e.key === 'a' && !e.ctrlKey && !_navBuffer) { toggleAutoRefresh(); return; }
+            const pages = ['overview','trading','signals','risk','health','broker','ml','users','config','kill-switch','system-state','logs'];
+            if (e.key >= '1' && e.key <= '9' && !_navBuffer) { const idx = parseInt(e.key)-1; if (idx < pages.length) navigate(pages[idx]); return; }
+            if (e.key === 'g' && !_navBuffer) { _navBuffer = 'g'; setTimeout(() => _navBuffer = '', 1000); return; }
+            if (_navBuffer === 'g') {
+                _navBuffer = '';
+                const map = { o:'overview', t:'trading', s:'signals', r:'risk', h:'health', l:'logs' };
+                if (map[e.key]) navigate(map[e.key]);
+            }
+            if (e.key === 'e' && !e.ctrlKey && !_navBuffer) { window.open('/api/system/trades/export', '_blank'); }
+        });
+
+        // ── User init ─────────────────────────────────────────────────────────
+        function initUser() {
+            if (!currentUser) return;
+            document.getElementById('userName').textContent = currentUser.display_name || currentUser.username;
+            document.getElementById('userRole').textContent = currentUser.role;
+            document.getElementById('userAvatar').textContent = (currentUser.display_name || currentUser.username).charAt(0).toUpperCase();
+            if (currentUser.role === 'admin') {
+                document.querySelectorAll('.admin-nav').forEach(el => el.style.display = 'flex');
+                document.getElementById('adminSection').style.display = 'block';
+            }
+            if (currentUser.must_change_password) showToast('Please change your password', 'warning');
+        }
+
+        // ── Stat card helper ──────────────────────────────────────────────────
+        function statCard(label, value, extra) {
+            extra = extra || {};
+            const color = extra.color || '';
+            return '<div class="stat-card"><div class="stat-label">' + label + '</div><div class="stat-value" style="' + (color ? 'color:' + color : '') + '">' + value + '</div>' + (extra.sub ? '<div class="stat-sub">' + extra.sub + '</div>' : '') + '</div>';
+        }
+
+        function badge(type, text) {
+            const cls = { win:'badge-success', loss:'badge-danger', active:'badge-info', warning:'badge-warning', neutral:'badge-neutral', call:'badge-success', put:'badge-danger', buy:'badge-success', sell:'badge-danger', long:'badge-success', short:'badge-danger', open:'badge-warning', closed:'badge-info', healthy:'badge-success', degraded:'badge-warning', critical:'badge-danger' }[type] || 'badge-neutral';
+            return '<span class="badge ' + cls + '">' + text + '</span>';
+        }
+
+        function pnlColor(val) { return val >= 0 ? '#4ade80' : '#f87171'; }
+        function fmtPnl(val) { return (val >= 0 ? '+' : '') + val.toLocaleString(); }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: OVERVIEW
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadOverview() {
+            try {
+                const [state, health] = await Promise.all([apiFetch('/api/system/state'), apiFetch('/api/system/health')]);
+                const s = state || {}, h = health || {};
+                document.getElementById('statsGrid').innerHTML =
+                    statCard('Capital', '₹' + (s.base_capital || s.capital || 0).toLocaleString()) +
+                    statCard('Day P&L', '₹' + fmtPnl(s.daily_pnl || 0), { color: pnlColor(s.daily_pnl || 0) }) +
+                    statCard('Open Positions', s.open_positions || 0) +
+                    statCard('Daily Trades', s.total_trades_today || 0) +
+                    statCard('Win Rate', s.win_rate ? (s.win_rate * 100).toFixed(1) + '%' : '&mdash;') +
+                    statCard('Drawdown', s.max_drawdown ? (s.max_drawdown * 100).toFixed(1) + '%' : '&mdash;');
+                const dot = document.getElementById('statusDot');
+                dot.style.background = h.hard_halt ? '#ef4444' : h.paused ? '#f59e0b' : '#22c55e';
+                dot.style.boxShadow = h.hard_halt ? '0 0 8px rgba(239,68,68,.4)' : h.paused ? '0 0 8px rgba(245,158,11,.4)' : '0 0 8px rgba(34,197,94,.4)';
+            } catch (e) { showToast('Failed to load overview', 'error'); }
+            loadTradesTable();
+            loadSystemStatus();
+        }
+
+        async function loadTradesTable() {
+            try {
+                const trades = await apiFetch('/api/system/trades');
+                const el = document.getElementById('tradesTable');
+                if (!trades || trades.length === 0) { el.innerHTML = '<div class="empty-state"><p>No trades found</p></div>'; return; }
+                const recent = trades.slice(-10).reverse();
+                let html = '<div class="table-wrap"><table class="table"><thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>P&amp;L</th><th>Status</th></tr></thead><tbody>';
+                recent.forEach(t => {
+                    const p = t.pnl || 0;
+                    html += '<tr><td style="color:#64748b;">' + new Date((t.exit_time || t.entry_time || t.created_at || 0) * 1000).toLocaleTimeString() + '</td><td>' + (t.symbol || t.index || '&mdash;') + '</td><td>' + badge((t.direction||'').toLowerCase().replace('long','call').replace('short','put'), t.direction || '&mdash;') + '</td><td style="color:' + pnlColor(p) + ';font-weight:600;">₹' + fmtPnl(p) + '</td><td>' + badge(t.status === 'closed' ? 'closed' : t.status === 'open' ? 'open' : 'neutral', t.status || 'closed') + '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+                el.innerHTML = html;
+            } catch (e) { document.getElementById('tradesTable').innerHTML = '<div class="empty-state"><p>Failed to load trades</p></div>'; }
+        }
+
+        async function loadSystemStatus() {
+            try {
+                const [state, health] = await Promise.all([apiFetch('/api/system/state'), apiFetch('/api/system/health')]);
+                const el = document.getElementById('systemStatus');
+                if (!state && !health) { el.innerHTML = '<div class="empty-state"><p>System offline</p></div>'; return; }
+                const s = state || {}, h = health || {};
+                let html = '<div style="display:grid;gap:.5rem;">';
+                const items = [
+                    { k: 'Execution Mode', v: s.execution_mode || s.mode || '&mdash;' },
+                    { k: 'Paused', v: h.paused ? 'Yes' : 'No', c: h.paused ? '#f59e0b' : '#4ade80' },
+                    { k: 'Hard Halt', v: s.hard_halt ? 'ACTIVE' : 'Inactive', c: s.hard_halt ? '#ef4444' : '#4ade80' },
+                    { k: 'Open Positions', v: s.open_positions || 0 },
+                    { k: 'Circuit Breaker', v: s.circuit_breaker || 'Closed', c: s.circuit_breaker === 'Open' ? '#ef4444' : '#4ade80' },
+                    { k: 'Capital', v: '₹' + (s.base_capital || s.capital || 0).toLocaleString() },
+                    { k: 'Daily Loss Limit', v: '₹' + Math.abs(s.max_daily_loss || 600).toLocaleString() },
+                ];
+                items.forEach(item => {
+                    html += '<div class="key-val"><span class="key">' + item.k + '</span><span class="val" style="color:' + (item.c || 'var(--text-secondary)') + '">' + item.v + '</span></div>';
+                });
+                html += '</div>';
+                el.innerHTML = html;
+            } catch (e) { document.getElementById('systemStatus').innerHTML = '<div class="empty-state"><p>Failed to load</p></div>'; }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: TRADING
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadTrading() {
+            try {
+                const trades = await apiFetch('/api/system/trades');
+                const el = document.getElementById('tradingContent');
+                if (!trades || trades.length === 0) { el.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-chart-line"></i><p>No positions yet</p></div></div></div>'; return; }
+                const open = trades.filter(t => t.status === 'open' || t.exit_time === null);
+                const closed = trades.filter(t => t.status === 'closed' || t.exit_time).slice(-20).reverse();
+                const cr = closed.length ? (closed.filter(t => (t.pnl||0) > 0).length / closed.length * 100).toFixed(1) : '&mdash;';
+                const totalPnl = closed.reduce((s, t) => s + (t.pnl || 0), 0);
+                let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;"><span style="font-size:.82rem;color:var(--text-muted);">' + trades.length + ' total trades</span><a href="/api/system/trades/export" class="btn btn-ghost btn-sm" target="_blank"><i class="fas fa-download"></i> Export CSV</a></div>';
+                html += '<div class="grid-overview">';
+                html += statCard('Open Positions', open.length);
+                html += statCard('Win Rate (20)', cr + '%');
+                html += statCard('Net P&L (20)', '₹' + fmtPnl(totalPnl), { color: pnlColor(totalPnl) });
+                html += statCard('Total Trades', trades.length);
+                html += '</div>';
+                if (open.length) {
+                    html += '<div class="card" style="margin-bottom:1.5rem;"><div class="card-header"><h3><i class="fas fa-circle" style="color:#4ade80;font-size:.5rem;"></i> Open Positions</h3></div><div class="card-body" style="padding:0;"><div class="table-wrap"><table class="table"><thead><tr><th>Symbol</th><th>Dir</th><th>Entry</th><th>Qty</th><th>Price</th><th>P&amp;L</th></tr></thead><tbody>';
+                    open.forEach(t => {
+                        const p = t.pnl || t.unrealized_pnl || 0;
+                        html += '<tr><td>' + (t.symbol || t.index || '-') + '</td><td>' + badge((t.direction||'').toLowerCase(), t.direction||'-') + '</td><td style="color:var(--text-muted);">' + new Date((t.entry_time||t.created_at||0)*1000).toLocaleTimeString() + '</td><td>' + (t.quantity||'-') + '</td><td>' + (t.entry_price||'-') + '</td><td style="color:'+pnlColor(p)+';font-weight:600;">₹'+fmtPnl(p)+'</td></tr>';
+                    });
+                    html += '</tbody></table></div></div></div>';
+                }
+                html += '<div class="card"><div class="card-header"><h3><i class="fas fa-history"></i> Recent Trades</h3></div><div class="card-body" style="padding:0;"><div class="table-wrap"><table class="table"><thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Entry</th><th>Exit</th><th>P&amp;L</th></tr></thead><tbody>';
+                closed.slice(0,15).forEach(t => {
+                    const p = t.pnl || 0;
+                    html += '<tr><td style="color:var(--text-muted);">' + new Date((t.exit_time||0)*1000).toLocaleTimeString() + '</td><td>' + (t.symbol||t.index||'-') + '</td><td>' + badge((t.direction||'').toLowerCase(), t.direction||'-') + '</td><td style="color:var(--text-muted);">' + (t.entry_price||'-') + '</td><td style="color:var(--text-muted);">' + (t.exit_price||'-') + '</td><td style="color:'+pnlColor(p)+';font-weight:600;">₹'+fmtPnl(p)+'</td></tr>';
+                });
+                html += '</tbody></table></div></div></div>';
+                el.innerHTML = html;
+            } catch (e) { document.getElementById('tradingContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-exclamation-circle" style="color:var(--danger-400);"></i><p style="color:var(--danger-400);">Failed to load: ' + e.message + '</p></div></div></div>'; }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: SIGNALS
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadSignals() {
+            try {
+                const sigs = await apiFetch('/api/system/signals');
+                const el = document.getElementById('signalsContent');
+                let html = '<div class="card"><div class="card-header"><h3><i class="fas fa-bolt"></i> Recent Signals (50)</h3></div><div class="card-body" style="padding:0;">';
+                if (!sigs || sigs.length === 0) {
+                    html += '<div class="empty-state"><p>No signals generated yet</p></div>';
+                } else {
+                    html += '<div class="table-wrap"><table class="table"><thead><tr><th>Time</th><th>Index</th><th>Direction</th><th>Score</th><th>Confidence</th><th>Regime</th><th>Session</th><th>Reasoning</th></tr></thead><tbody>';
+                    sigs.forEach(s => {
+                        const dir = (s.direction || s.signal || '').toLowerCase();
+                        const score = s.score !== undefined ? s.score : (s.signal_score || 0);
+                        const sc = score >= 7 ? '#4ade80' : score >= 4 ? '#f59e0b' : '#f87171';
+                        html += '<tr><td style="color:var(--text-muted);">' + new Date((s.timestamp||s.created_at||Date.now()/1000)*1000).toLocaleTimeString() + '</td><td>' + (s.index || s.symbol || '-') + '</td><td>' + badge(dir === 'call' || s.direction === 'LONG' ? 'call' : 'put', s.direction||s.signal||'-') + '</td><td style="color:'+sc+';font-weight:700;">' + score.toFixed(1) + '</td><td>' + (s.confidence ? (s.confidence*100).toFixed(0)+'%' : '-') + '</td><td>' + badge('neutral', s.regime||s.market_regime||'-') + '</td><td>' + badge('neutral', s.session||s.session_code||'-') + '</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;color:var(--text-muted);font-size:.72rem;">' + (s.reasoning||s.reason||'').substring(0,50) + '</td></tr>';
+                    });
+                    html += '</tbody></table></div>';
+                }
+                html += '</div></div>';
+                el.innerHTML = html;
+            } catch (e) { document.getElementById('signalsContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load signals</p></div></div></div>'; }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: RISK
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadRisk() {
+            try {
+                const [state, conc] = await Promise.all([apiFetch('/api/system/state'), apiFetch('/api/risk/concentration')]);
+                const s = state || {}, c = conc || {};
+                const dailyPnl = s.daily_pnl || 0;
+                const maxLoss = Math.abs(s.max_daily_loss || 600);
+                const lossUsed = maxLoss > 0 ? Math.min(100, Math.abs(dailyPnl) / maxLoss * 100) : 0;
+                const drawdown = s.max_drawdown || 0;
+                const ddPct = (drawdown * 100).toFixed(1);
+                const capital = s.base_capital || s.capital || 0;
+                const posVal = s.position_value || s.portfolio_value || 0;
+                const exposurePct = capital > 0 ? (posVal / capital * 100).toFixed(1) : 0;
+                const concRisk = c.concentration_risk || 'UNKNOWN';
+                const concColor = {LOW:'#4ade80',MODERATE:'#f59e0b',HIGH:'#ef4444',CRITICAL:'#ef4444'}[concRisk] || '#64748b';
+                const concPct = c.single_largest_index_pct || 0;
+                let html = '<div class="grid-3">';
+                html += '<div class="card"><div class="card-body"><div class="stat-label">Daily Loss Burn</div><div style="margin:.75rem 0;"><div class="progress-bar"><div class="progress-bar-fill" style="width:'+lossUsed+'%;background:'+(lossUsed>80?'#ef4444':lossUsed>50?'#f59e0b':'#4ade80')+';"></div></div></div><div class="stat-value" style="font-size:1rem;color:'+pnlColor(dailyPnl)+';">₹'+dailyPnl.toLocaleString()+' / ₹'+maxLoss.toLocaleString()+'</div></div></div>';
+                html += '<div class="card"><div class="card-body"><div class="stat-label">Max Drawdown</div><div class="stat-value" style="font-size:1.3rem;color:'+(drawdown>0.1?'#ef4444':'#4ade80')+';">'+ddPct+'%</div><div class="stat-sub">Portfolio erosion from peak</div></div></div>';
+                html += '<div class="card"><div class="card-body"><div class="stat-label">Portfolio Exposure</div><div class="stat-value" style="font-size:1.3rem;">'+exposurePct+'%</div><div class="stat-sub">₹'+posVal.toLocaleString()+' / ₹'+capital.toLocaleString()+'</div></div></div>';
+                html += '</div><div class="grid-2" style="margin-top:1.5rem;">';
+                html += '<div class="card"><div class="card-header"><h3><i class="fas fa-shield-alt"></i> Risk Controls</h3></div><div class="card-body"><div style="display:grid;gap:.5rem;">';
+                const controls = [
+                    {k:'Hard Halt', v:s.hard_halt?'ACTIVE':'Inactive', c:s.hard_halt?'#ef4444':'#4ade80'},
+                    {k:'Circuit Breaker', v:s.circuit_breaker||'Closed', c:s.circuit_breaker==='Open'?'#ef4444':'#4ade80'},
+                    {k:'Max Daily Loss', v:'₹'+maxLoss.toLocaleString()},
+                    {k:'Daily Loss Used', v:lossUsed.toFixed(0)+'%', c:lossUsed>80?'#ef4444':lossUsed>50?'#f59e0b':'#4ade80'},
+                    {k:'Position Sizing', v:s.position_sizing_mode||'default'},
+                    {k:'Max Positions', v:s.max_positions||'&mdash;'},
+                    {k:'Concentration Risk', v:concRisk, c:concColor},
+                    {k:'Largest Index %', v:concPct+'%', c:concPct>15?'#ef4444':concPct>8?'#f59e0b':'#4ade80'},
+                ];
+                controls.forEach(item => {
+                    html += '<div class="key-val"><span class="key">'+item.k+'</span><span class="val" style="color:'+(item.c||'var(--text-secondary)')+'">'+item.v+'</span></div>';
+                });
+                html += '</div></div></div>';
+                html += '<div class="card"><div class="card-header"><h3><i class="fas fa-exclamation-triangle"></i> Alerts</h3></div><div class="card-body">';
+                let anyAlert = false;
+                if (s.hard_halt) { html += '<div style="padding:.7rem;background:rgba(239,68,68,.08);border-radius:.5rem;border:1px solid rgba(239,68,68,.15);margin-bottom:.5rem;color:#f87171;font-size:.78rem;"><i class="fas fa-ban" style="margin-right:.5rem;"></i>Hard halt is ACTIVE</div>'; anyAlert = true; }
+                if (s.circuit_breaker === 'Open') { html += '<div style="padding:.7rem;background:rgba(245,158,11,.08);border-radius:.5rem;border:1px solid rgba(245,158,11,.15);margin-bottom:.5rem;color:#fbbf24;font-size:.78rem;"><i class="fas fa-exclamation" style="margin-right:.5rem;"></i>Circuit breaker is open</div>'; anyAlert = true; }
+                if (lossUsed > 80) { html += '<div style="padding:.7rem;background:rgba(239,68,68,.08);border-radius:.5rem;border:1px solid rgba(239,68,68,.15);margin-bottom:.5rem;color:#f87171;font-size:.78rem;"><i class="fas fa-fire" style="margin-right:.5rem;"></i>Daily loss limit nearly exhausted ('+lossUsed.toFixed(0)+'%)</div>'; anyAlert = true; }
+                if (drawdown > 0.1) { html += '<div style="padding:.7rem;background:rgba(245,158,11,.08);border-radius:.5rem;border:1px solid rgba(245,158,11,.15);margin-bottom:.5rem;color:#fbbf24;font-size:.78rem;"><i class="fas fa-arrow-down" style="margin-right:.5rem;"></i>Drawdown exceeds 10% ('+ddPct+'%)</div>'; anyAlert = true; }
+                if (concRisk === 'HIGH' || concRisk === 'CRITICAL') { html += '<div style="padding:.7rem;background:rgba(239,68,68,.08);border-radius:.5rem;border:1px solid rgba(239,68,68,.15);color:#f87171;font-size:.78rem;"><i class="fas fa-layer-group" style="margin-right:.5rem;"></i>High concentration: '+concPct+'% in single index</div>'; anyAlert = true; }
+                if (!anyAlert) html += '<div class="empty-state" style="padding:1rem;"><p>No active alerts</p></div>';
+                html += '</div></div></div>';
+                el.innerHTML = html;
+            } catch (e) { document.getElementById('riskContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load risk data</p></div></div></div>'; }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: HEALTH
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadHealth() {
+            try {
+                const health = await apiFetch('/api/system/health');
+                const h = health || {};
+                const el = document.getElementById('healthContent');
+                let html = '<div class="grid-overview">';
+                html += statCard('System Status', (h.status||'unknown').toUpperCase(), { color: h.status==='ok'?'#4ade80':'#ef4444' });
+                html += statCard('Paused', h.paused?'Yes':'No', { color: h.paused?'#f59e0b':'#4ade80' });
+                html += statCard('Hard Halt', h.hard_halt?'ACTIVE':'Inactive', { color: h.hard_halt?'#ef4444':'#4ade80' });
+                html += statCard('Open Positions', h.open_positions||0);
+                html += statCard('Daily P&L', '₹'+fmtPnl(h.daily_pnl||0), { color: pnlColor(h.daily_pnl||0) });
+                html += statCard('Uptime', h.uptime_human||'&mdash;');
+                html += '</div>';
+                html += '<div class="card" style="margin-top:1.5rem;"><div class="card-header"><h3><i class="fas fa-heartbeat"></i> Diagnostics</h3></div><div class="card-body"><div style="display:grid;gap:.5rem;">';
+                const diag = [
+                    {k:'System Status', v:badge(h.status==='ok'?'healthy':h.status==='degraded'?'degraded':'critical', (h.status||'unknown').toUpperCase())},
+                    {k:'Capital', v:'₹'+(h.capital||0).toLocaleString()},
+                    {k:'Execution Mode', v:h.execution_mode||'&mdash;'},
+                    {k:'Daily P&L', v:'<span style="color:'+pnlColor(h.daily_pnl||0)+'">₹'+fmtPnl(h.daily_pnl||0)+'</span>'},
+                    {k:'Uptime', v:h.uptime_human||'&mdash;'},
+                ];
+                diag.forEach(d => { html += '<div class="key-val"><span class="key">'+d.k+'</span><span class="val">'+d.v+'</span></div>'; });
+                html += '</div></div></div>';
+                el.innerHTML = html;
+            } catch (e) { document.getElementById('healthContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load health</p></div></div></div>'; }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: BROKER
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadBroker() {
+            try {
+                const info = await apiFetch('/api/broker/info');
+                const i = info || {};
+                const el = document.getElementById('brokerContent');
+                const statusColor = {connected:'#4ade80', disconnected:'#ef4444', error:'#ef4444', reconnecting:'#f59e0b'}[i.status||''] || '#64748b';
+                let html = '<div class="grid-overview">';
+                html += statCard('Connection', (i.status||'unknown').toUpperCase(), { color: statusColor });
+                html += statCard('Broker', i.broker_name||'&mdash;');
+                html += statCard('Mode', (i.mode||'&mdash;').toUpperCase());
+                html += statCard('Latency', i.latency_ms ? i.latency_ms+'ms' : '&mdash;');
+                html += statCard('Adapter', i.adapter||'&mdash;');
+                html += statCard('Failover', i.failover_active ? badge('warning','Active') : badge('neutral','Inactive'));
+                html += '</div>';
+                html += '<div class="card" style="margin-top:1.5rem;"><div class="card-header"><h3><i class="fas fa-plug"></i> Connection Details</h3></div><div class="card-body"><div style="display:grid;gap:.5rem;">';
+                const details = [
+                    {k:'Status', v:badge(i.status==='connected'?'healthy':i.status==='error'?'critical':'degraded', i.status||'unknown')},
+                    {k:'Broker Name', v:i.broker_name||'&mdash;'},
+                    {k:'Mode', v:i.mode||'&mdash;'},
+                    {k:'Adapter', v:i.adapter||'&mdash;'},
+                    {k:'Latency', v:i.latency_ms ? i.latency_ms+'ms' : '&mdash;'},
+                    {k:'Requests Today', v:i.requests_today||0},
+                    {k:'Error Rate', v:i.error_rate !== null ? (i.error_rate*100).toFixed(2)+'%' : '&mdash;'},
+                    {k:'Failover', v:i.failover_active ? badge('warning','Active') : badge('neutral','Inactive')},
+                    {k:'Last Connected', v:i.last_connected ? new Date(i.last_connected*1000).toLocaleString() : '&mdash;'},
+                ];
+                details.forEach(d => { html += '<div class="key-val"><span class="key">'+d.k+'</span><span class="val">'+d.v+'</span></div>'; });
+                html += '</div></div></div>';
+                el.innerHTML = html;
+            } catch (e) { document.getElementById('brokerContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load broker data</p></div></div></div>'; }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: ML
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadML() {
+            try {
+                const ml = await apiFetch('/api/ml/status');
+                const m = ml || {};
+                const el = document.getElementById('mlContent');
+                let html = '<div class="grid-overview">';
+                html += statCard('Model Loaded', m.model_loaded ? badge('healthy','Yes') : badge('critical','No'));
+                html += statCard('Accuracy', m.accuracy !== null ? (m.accuracy*100).toFixed(2)+'%' : '&mdash;');
+                html += statCard('Brier Score', m.brier_score !== null ? m.brier_score.toFixed(4) : '&mdash;');
+                html += statCard('Drift', m.drift_detected ? badge('critical','Detected') : badge('healthy','None'));
+                html += statCard('Total Predictions', m.total_predictions||0);
+                html += statCard('Avg Confidence', m.avg_confidence !== null ? (m.avg_confidence*100).toFixed(1)+'%' : '&mdash;');
+                html += '</div>';
+                html += '<div class="card" style="margin-top:1.5rem;"><div class="card-header"><h3><i class="fas fa-brain"></i> Model Details</h3></div><div class="card-body"><div style="display:grid;gap:.5rem;">';
+                const details = [
+                    {k:'Classifier', v:m.classifier_type||'&mdash;'},
+                    {k:'Features', v:m.n_features||'&mdash;'},
+                    {k:'Training Samples', v:m.training_samples||'&mdash;'},
+                    {k:'Calibration Score', v:m.calibration_score !== null ? m.calibration_score.toFixed(4) : '&mdash;'},
+                    {k:'PSI', v:m.psi !== null ? m.psi.toFixed(4) : '&mdash;'},
+                    {k:'Last Training', v:m.last_training || '&mdash;'},
+                    {k:'Drift Detected', v:m.drift_detected ? badge('critical','Yes') : badge('healthy','No')},
+                ];
+                details.forEach(d => { html += '<div class="key-val"><span class="key">'+d.k+'</span><span class="val">'+d.v+'</span></div>'; });
+                html += '</div></div></div>';
+                el.innerHTML = html;
+            } catch (e) { document.getElementById('mlContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load ML data</p></div></div></div>'; }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: USERS (Admin)
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadUsers() {
+            const el = document.getElementById('usersContent');
+            try {
+                const users = await apiFetch('/api/auth/users');
+                let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;"><h3 style="font-size:.95rem;font-weight:600;"><i class="fas fa-users" style="margin-right:.5rem;color:var(--accent);"></i>User Management</h3><button class="btn btn-primary btn-sm" onclick="showCreateUserModal()"><i class="fas fa-plus"></i> Add User</button></div>';
+                html += '<div class="card"><div class="card-body" style="padding:0;">';
+                if (!users || users.length === 0) {
+                    html += '<div class="empty-state"><p>No users found</p></div>';
+                } else {
+                    html += '<div class="table-wrap"><table class="table"><thead><tr><th>Username</th><th>Role</th><th>Display Name</th><th>Force Reset</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead><tbody>';
+                    users.forEach(u => {
+                        html += '<tr><td style="font-weight:500;">'+u.username+'</td><td>'+badge(u.role==='admin'?'active':u.role==='operator'?'warning':'neutral', u.role)+'</td><td style="color:var(--text-muted);">'+(u.display_name||'&mdash;')+'</td><td>'+(u.must_change_password?badge('warning','Yes'):badge('neutral','No'))+'</td><td>'+(u.disabled?badge('critical','Disabled'):badge('healthy','Active'))+'</td><td style="color:var(--text-muted);">'+new Date((u.last_login_ts||0)*1000).toLocaleString()+'</td><td><button class="btn btn-ghost btn-xs" onclick="resetUserPassword(\''+u.username+'\')" title="Reset password"><i class="fas fa-key"></i></button> '+(u.disabled?'<button class="btn btn-ghost btn-xs" onclick="toggleUser(\''+u.username+'\',\'enable\')" title="Enable"><i class="fas fa-check-circle" style="color:#4ade80;"></i></button>':'<button class="btn btn-ghost btn-xs" onclick="toggleUser(\''+u.username+'\',\'disable\')" title="Disable"><i class="fas fa-ban" style="color:#f87171;"></i></button>')+'</td></tr>';
+                    });
+                    html += '</tbody></table></div>';
+                }
+                html += '</div></div>';
+                el.innerHTML = html;
+                updateTimestamp();
+            } catch (e) { el.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load users</p></div></div></div>'; }
+        }
+
+        function showCreateUserModal() {
+            const m = document.getElementById('shortcutsModal');
+            m.innerHTML = '<div class="modal" style="max-width:420px;"><h3><i class="fas fa-user-plus"></i> Create User</h3><form id="createUserForm">' +
+                '<div class="form-group"><label>Username</label><input type="text" id="newUsername" required minlength="3" placeholder="e.g. operator1"></div>' +
+                '<div class="form-group"><label>Password</label><input type="password" id="newPassword" required minlength="8" placeholder="Min 8 chars"></div>' +
+                '<div class="form-group"><label>Role</label><select id="newRole"><option value="viewer">Viewer</option><option value="operator">Operator</option><option value="admin">Admin</option></select></div>' +
+                '<div class="form-group"><label>Display Name</label><input type="text" id="newDisplayName" placeholder="Optional"></div>' +
+                '</form><div class="modal-actions"><button class="btn btn-ghost" onclick="document.getElementById(\'shortcutsModal\').classList.remove(\'visible\')">Cancel</button><button class="btn btn-primary" onclick="createUser()"><i class="fas fa-plus"></i> Create</button></div></div>';
+            m.classList.add('visible');
+        }
+
+        async function createUser() {
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('newPassword').value;
+            const role = document.getElementById('newRole').value;
+            const display_name = document.getElementById('newDisplayName').value.trim();
+            if (!username || !password) { showToast('Username and password required', 'error'); return; }
+            try {
+                const res = await apiFetch('/api/auth/users', { method: 'POST', body: JSON.stringify({username, password, role, display_name}) });
+                if (res && res.success !== false) { showToast('User ' + username + ' created', 'success'); document.getElementById('shortcutsModal').classList.remove('visible'); loadUsers(); }
+                else { showToast((res && res.detail) || 'Create failed', 'error'); }
+            } catch (e) { showToast('Create failed: ' + e.message, 'error'); }
+        }
+
+        async function toggleUser(username, action) {
+            try {
+                const res = await apiFetch('/api/auth/users/' + username + '/' + action, { method: 'POST' });
+                if (res && res.success !== false) { showToast('User ' + username + ' ' + action + 'd', 'success'); loadUsers(); }
+                else { showToast((res && res.detail) || 'Failed', 'error'); }
+            } catch (e) { showToast('Failed: ' + e.message, 'error'); }
+        }
+
+        async function resetUserPassword(username) {
+            const newPass = prompt('New password for ' + username + ' (min 8 chars, 1 upper, 1 lower, 1 digit, 1 special):');
+            if (!newPass || newPass.length < 8) { showToast('Password too short', 'error'); return; }
+            try {
+                const res = await apiFetch('/api/auth/users/' + username + '/reset-password', { method: 'POST', body: JSON.stringify({new_password: newPass}) });
+                if (res && res.success !== false) { showToast('Password reset for ' + username, 'success'); }
+                else { showToast((res && res.detail) || 'Reset failed', 'error'); }
+            } catch (e) { showToast('Reset failed: ' + e.message, 'error'); }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: CONFIG (Admin)
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadConfigPage() {
+            const el = document.getElementById('configContent');
+            try {
+                const [cfg, defaults] = await Promise.all([apiFetch('/api/config'), apiFetch('/api/config/defaults')]);
+                const configData = cfg?.config || {};
+                const defaultsData = defaults || {};
+                let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;"><h3 style="font-size:.95rem;font-weight:600;"><i class="fas fa-cog" style="margin-right:.5rem;color:var(--accent);"></i>Configuration Editor</h3><button class="btn btn-ghost btn-sm" onclick="showConfigDiff()"><i class="fas fa-code-branch"></i> Show Diff</button></div>';
+                html += '<div class="card"><div class="card-body">';
+                html += '<div class="tab-bar">';
+                const tabs = ['Execution', 'Risk', 'Broker', 'Signals', 'ML', 'Telegram', 'System'];
+                tabs.forEach(t => {
+                    html += '<div class="tab' + (t === 'Execution' ? ' active' : '') + '" onclick="switchConfigTab(this, \''+t+'\')">' + t + '</div>';
+                });
+                html += '</div>';
+                const configKeys = Object.keys(configData);
+                const keyCategories = {
+                    Execution: ['EXECUTION_MODE', 'BROKER_NAME', 'BROKER_DRIVER', 'SCAN_INTERVAL', 'COOLDOWN', 'EXPIRY_CUTOFF_HOUR', 'EXPIRY_CUTOFF_MIN', 'NSE_OPEN_HOUR', 'NSE_OPEN_MIN', 'NSE_CLOSE_HOUR', 'NSE_CLOSE_MIN', 'NSE_BLOCK_NEW_ENTRIES_FROM_HOUR', 'NSE_BLOCK_NEW_ENTRIES_FROM_MINUTE', 'MAX_TRADES_DAY', 'MAX_OPEN'],
+                    Risk: ['BASE_CAPITAL', 'MAX_DAILY_LOSS', 'MAX_DRAWDOWN', 'RISK_MODE', 'SL_PCT', 'TARGET_PCT', 'TRAIL_PCT', 'PORTFOLIO_MAX_SL_RISK_PCT', 'VIX_HALT_THRESHOLD', 'VIX_BLOCK_THRESHOLD', 'MANDATE_RISK_PER_TRADE', 'MANDATE_HARD_HALT_ENABLED'],
+                    Broker: ['BROKER_CONFIG', 'PAPER_MODE', 'KITE_API_KEY', 'ANGEL_CLIENT_ID'],
+                    Signals: ['SIGNAL_THRESHOLD_STRONG', 'SIGNAL_THRESHOLD_MODERATE', 'SIGNAL_THRESHOLD_WEAK', 'FALSE_SIGNAL_FILTER_ENABLED', 'FALSE_SIGNAL_MIN_SCORE_BLOCK'],
+                    ML: ['ML_CLASSIFIER_ENABLED', 'ML_MIN_PREDICTION_CONFIDENCE', 'ML_RETRAIN_INTERVAL_HOURS', 'AUTO_LEARNER_ENABLED'],
+                    Telegram: ['TG_ALERT_ENABLED', 'TG_ALERT_MIN_SCORE', 'TG_QUIET_MODE', 'BOT_TOKEN', 'CHAT_ID'],
+                    System: ['web_dashboard_enabled', 'web_dashboard_host', 'web_dashboard_port', 'ENVIRONMENT', 'data_retention_days_logs', 'data_retention_days_audit', 'cleanup_scheduler_enabled']
+                };
+                tabs.forEach(t => {
+                    html += '<div class="tab-content' + (t === 'Execution' ? ' active' : '') + '" id="tab-'+t+'">';
+                    const keys = keyCategories[t] || [];
+                    const relevant = keys.filter(k => k in configData);
+                    if (relevant.length === 0) {
+                        html += '<div class="empty-state" style="padding:1rem;"><p>No config keys in this category</p></div>';
+                    } else {
+                        relevant.forEach(k => {
+                            let val = configData[k];
+                            const defaultVal = defaultsData[k];
+                            const isSecret = k.includes('TOKEN') || k.includes('SECRET') || k.includes('PASSWORD') || k.includes('KEY') || k === 'BOT_TOKEN';
+                            const displayVal = isSecret ? '••••••••' : (typeof val === 'object' ? JSON.stringify(val).substring(0,80) : String(val));
+                            const isChanged = JSON.stringify(val) !== JSON.stringify(defaultVal);
+                            html += '<div class="form-group"><label>' + k + (isChanged ? ' <span style="color:#f59e0b;font-size:.65rem;">(modified)</span>' : '') + '</label>';
+                            if (typeof val === 'boolean') {
+                                html += '<select onchange="stageConfigChange(\''+k+'\', this.value)" data-key="'+k+'"><option value="true"'+(val?' selected':'')+'>True</option><option value="false"'+(val?'':' selected')+'>False</option></select>';
+                            } else if (typeof val === 'number') {
+                                html += '<input type="text" value="'+displayVal+'" onchange="stageConfigChange(\''+k+'\', this.value)" data-key="'+k+'">';
+                            } else if (isSecret) {
+                                html += '<input type="password" value="'+displayVal+'" onchange="stageConfigChange(\''+k+'\', this.value)" data-key="'+k+'" placeholder="Secret value">';
+                            } else {
+                                html += '<input type="text" value="'+displayVal+'" onchange="stageConfigChange(\''+k+'\', this.value)" data-key="'+k+'">';
+                            }
+                            if (defaultVal !== undefined && !isSecret) {
+                                html += '<div style="font-size:.65rem;color:#475569;margin-top:.15rem;">Default: ' + (typeof defaultVal === 'object' ? JSON.stringify(defaultVal).substring(0,60) : String(defaultVal)) + '</div>';
+                            }
+                            html += '</div>';
+                        });
+                    }
+                    html += '</div>';
+                });
+                html += '<div style="display:flex;gap:.75rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">';
+                html += '<button class="btn btn-primary" onclick="applyConfigChanges()"><i class="fas fa-check"></i> Apply Changes</button>';
+                html += '<button class="btn btn-ghost" onclick="previewConfigChanges()"><i class="fas fa-eye"></i> Preview</button>';
+                html += '<button class="btn btn-ghost" onclick="loadConfigHistory()"><i class="fas fa-history"></i> History</button>';
+                html += '</div></div></div>';
+                el.innerHTML = html;
+                updateTimestamp();
+            } catch (e) { el.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load config</p></div></div></div>'; }
+        }
+
+        let _stagedChanges = {};
+
+        function stageConfigChange(key, value) {
+            if (value === 'true') value = true;
+            else if (value === 'false') value = false;
+            else if (!isNaN(Number(value)) && value.trim() !== '') value = Number(value);
+            _stagedChanges[key] = value;
+        }
+
+        async function previewConfigChanges() {
+            const keys = Object.keys(_stagedChanges);
+            if (keys.length === 0) { showToast('No changes staged', 'warning'); return; }
+            try {
+                const res = await apiFetch('/api/config/preview', { method: 'POST', body: JSON.stringify(_stagedChanges) });
+                if (!res) return;
+                const m = document.getElementById('shortcutsModal');
+                let html = '<div class="modal" style="max-width:600px;"><h3><i class="fas fa-eye"></i> Config Preview</h3><div style="max-height:400px;overflow-y:auto;">';
+                if (res.changed_keys) {
+                    const ck = res.changed_keys;
+                    Object.keys(ck).forEach(k => {
+                        const change = ck[k];
+                        html += '<div class="key-val"><span class="key" style="font-weight:600;">'+k+'</span></div>';
+                        html += '<div style="display:flex;gap:.5rem;padding:.25rem 0 .5rem;">';
+                        html += '<div style="flex:1;padding:.35rem;background:rgba(239,68,68,.05);border-radius:.35rem;border:1px solid rgba(239,68,68,.1);"><div style="font-size:.6rem;color:var(--text-muted);margin-bottom:.15rem;">OLD</div><div style="font-size:.78rem;color:#f87171;word-break:break-all;">'+(change.old !== null ? JSON.stringify(change.old) : '&mdash;')+'</div></div>';
+                        html += '<div style="flex:1;padding:.35rem;background:rgba(34,197,94,.05);border-radius:.35rem;border:1px solid rgba(34,197,94,.1);"><div style="font-size:.6rem;color:var(--text-muted);margin-bottom:.15rem;">NEW</div><div style="font-size:.78rem;color:#4ade80;word-break:break-all;">'+JSON.stringify(change.new)+'</div></div>';
+                        html += '</div>';
+                    });
+                }
+                html += '</div><div class="modal-actions"><span style="font-size:.78rem;color:var(--text-muted);margin-right:auto;">'+res.total_changes+' change(s)</span>';
+                html += '<button class="btn btn-ghost" onclick="document.getElementById(\'shortcutsModal\').classList.remove(\'visible\')">Close</button></div></div>';
+                m.innerHTML = html;
+                m.classList.add('visible');
+            } catch (e) { showToast('Preview failed: ' + e.message, 'error'); }
+        }
+
+        async function applyConfigChanges() {
+            const keys = Object.keys(_stagedChanges);
+            if (keys.length === 0) { showToast('No changes to apply', 'warning'); return; }
+            if (!confirm('Apply ' + keys.length + ' config change(s)? This may affect live trading.')) return;
+            try {
+                const res = await apiFetch('/api/config/apply', { method: 'POST', body: JSON.stringify(_stagedChanges) });
+                if (res && res.success) {
+                    showToast('Config updated (' + res.applied_count + ' keys)', 'success');
+                    _stagedChanges = {};
+                    loadConfigPage();
+                } else {
+                    showToast((res && res.error) || 'Apply failed', 'error');
+                }
+            } catch (e) { showToast('Apply failed: ' + e.message, 'error'); }
+        }
+
+        async function loadConfigHistory() {
+            try {
+                const history = await apiFetch('/api/config/history');
+                const m = document.getElementById('shortcutsModal');
+                let html = '<div class="modal" style="max-width:550px;"><h3><i class="fas fa-history"></i> Config Backup History</h3><div style="max-height:400px;overflow-y:auto;">';
+                if (!history || history.length === 0) {
+                    html += '<div class="empty-state" style="padding:1rem;"><p>No backup history found</p></div>';
+                } else {
+                    html += '<div style="display:grid;gap:.35rem;">';
+                    history.forEach(h => {
+                        const age = h.age < 3600 ? Math.floor(h.age/60)+'m ago' : h.age < 86400 ? Math.floor(h.age/3600)+'h ago' : Math.floor(h.age/86400)+'d ago';
+                        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem;background:rgba(148,163,184,.03);border-radius:.5rem;border:1px solid rgba(148,163,184,.05);">';
+                        html += '<div><div style="font-size:.78rem;color:var(--text-secondary);">' + h.file + '</div><div style="font-size:.68rem;color:var(--text-muted);">' + age + '</div></div>';
+                        html += '<button class="btn btn-ghost btn-xs" onclick="rollbackConfig(\''+h.file+'\')">Rollback</button>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+                html += '</div><div class="modal-actions"><button class="btn btn-ghost" onclick="document.getElementById(\'shortcutsModal\').classList.remove(\'visible\')">Close</button></div></div>';
+                m.innerHTML = html;
+                m.classList.add('visible');
+            } catch (e) { showToast('History load failed', 'error'); }
+        }
+
+        async function rollbackConfig(version) {
+            if (!confirm('Rollback to ' + version + '? This will revert all pending changes.')) return;
+            try {
+                const res = await apiFetch('/api/config/rollback/' + encodeURIComponent(version), { method: 'POST' });
+                if (res && res.success) {
+                    showToast('Config rolled back to ' + version, 'success');
+                    _stagedChanges = {};
+                    loadConfigPage();
+                } else {
+                    showToast((res && res.error) || 'Rollback failed', 'error');
+                }
+            } catch (e) { showToast('Rollback failed: ' + e.message, 'error'); }
+        }
+
+        function switchConfigTab(el, tab) {
+            document.querySelectorAll('#tab-' + tab + ' ~ .tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#tab-' + tab + ' ~ .tab').forEach(t => t.classList.remove('active'));
+            // Actually we need to be more specific
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            const tc = document.getElementById('tab-'+tab);
+            if (tc) tc.classList.add('active');
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: KILL SWITCH
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadKillSwitch() {
+            try {
+                const ks = await apiFetch('/api/system/kill-status');
+                const el = document.getElementById('killSwitchContent');
+                const halted = ks?.halted || false;
+                let html = '<div style="text-align:center;padding:2rem 0;">';
+                html += '<div style="width:120px;height:120px;border-radius:50%;margin:0 auto 1.5rem;display:flex;align-items:center;justify-content:center;'+(halted?'background:rgba(239,68,68,.15);border:3px solid rgba(239,68,68,.3);':'background:rgba(34,197,94,.1);border:3px solid rgba(34,197,94,.2);')+'">';
+                html += '<i class="fas ' + (halted ? 'fa-skull-crossbones' : 'fa-play') + '" style="font-size:2.5rem;' + (halted ? 'color:#ef4444;' : 'color:#4ade80;') + '"></i></div>';
+                html += '<div style="font-size:1.2rem;font-weight:600;margin-bottom:.5rem;">' + (halted ? 'System HALTED' : 'System Running') + '</div>';
+                html += '<div style="font-size:.82rem;color:var(--text-muted);margin-bottom:1.5rem;">' + (halted ? 'No new entries will be taken' : 'Trading is active') + '</div>';
+                if (!halted) {
+                    html += '<button class="btn btn-danger" onclick="triggerKill()" style="padding:.75rem 2rem;font-size:1rem;"><i class="fas fa-skull-crossbones"></i> EMERGENCY KILL</button>';
+                } else {
+                    html += '<button class="btn btn-primary" onclick="resumeSystem()" style="padding:.75rem 2rem;font-size:1rem;"><i class="fas fa-play"></i> Resume System</button>';
+                }
+                html += '</div>';
+                html += '<div class="card"><div class="card-header"><h3><i class="fas fa-history"></i> Kill Switch Status</h3></div><div class="card-body"><div style="display:grid;gap:.5rem;">';
+                html += '<div class="key-val"><span class="key">Status</span><span class="val">' + (halted ? badge('critical','HALTED') : badge('healthy','ACTIVE')) + '</span></div>';
+                html += '<div class="key-val"><span class="key">Timestamp</span><span class="val" style="color:var(--text-muted);">' + new Date().toLocaleString() + '</span></div>';
+                html += '</div></div></div>';
+                el.innerHTML = html;
+                updateTimestamp();
+            } catch (e) { document.getElementById('killSwitchContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load kill switch</p></div></div></div>'; }
+        }
+
+        async function triggerKill() {
+            const reason = prompt('Reason for emergency kill:');
+            if (!reason) return;
+            if (!confirm('ARE YOU SURE? This will halt ALL trading immediately.')) return;
+            try {
+                const res = await apiFetch('/api/system/kill', { method: 'POST', body: JSON.stringify({reason}) });
+                if (res && res.success) { showToast('Emergency kill executed', 'warning'); loadKillSwitch(); }
+                else { showToast((res && res.error) || 'Kill failed', 'error'); }
+            } catch (e) { showToast('Kill failed: ' + e.message, 'error'); }
+        }
+
+        async function resumeSystem() {
+            try {
+                const res = await apiFetch('/api/system/resume', { method: 'POST' });
+                if (res && res.success) { showToast('System resumed', 'success'); loadKillSwitch(); }
+                else { showToast((res && res.error) || 'Resume failed', 'error'); }
+            } catch (e) { showToast('Resume failed: ' + e.message, 'error'); }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: SYSTEM STATE
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadSystemState() {
+            try {
+                const [state, diag] = await Promise.all([apiFetch('/api/system/state'), apiFetch('/api/system/uptime')]);
+                const s = state || {}, d = diag || {};
+                const el = document.getElementById('systemStateContent');
+                let html = '<div class="card"><div class="card-header"><h3><i class="fas fa-info-circle"></i> System Information</h3></div><div class="card-body"><div style="display:grid;gap:.5rem;">';
+                const items = [
+                    {k:'Platform', v:d.platform || navigator.platform || '&mdash;'},
+                    {k:'Python Version', v:d.python_version || '&mdash;'},
+                    {k:'Server Time (UTC)', v:d.server_time_iso || new Date().toISOString()},
+                    {k:'Uptime', v:d.uptime_human || '&mdash;'},
+                    {k:'State File', v:d.state_file_exists ? badge('healthy','OK') : badge('critical','Missing')},
+                    {k:'Config Keys', v:d.config_keys || Object.keys(s).length},
+                    {k:'Auth Sessions', v:d.auth_sessions || 0},
+                    {k:'Total Users', v:d.total_users || 0},
+                    {k:'Open Positions', v:s.open_positions || 0},
+                    {k:'Hard Halt', v:s.hard_halt ? badge('critical','ACTIVE') : badge('healthy','Inactive')},
+                    {k:'Execution Mode', v:s.execution_mode || s.mode || '&mdash;'},
+                    {k:'Paused', v:s.paused ? badge('warning','Yes') : badge('healthy','No')},
+                ];
+                items.forEach(item => { html += '<div class="key-val"><span class="key">'+item.k+'</span><span class="val">'+item.v+'</span></div>'; });
+                html += '</div></div></div>';
+                el.innerHTML = html;
+                updateTimestamp();
+            } catch (e) { document.getElementById('systemStateContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load system state</p></div></div></div>'; }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: AUDIT LOG
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadLogs() {
+            try {
+                const logs = await apiFetch('/api/auth/audit?limit=200');
+                const el = document.getElementById('logsContent');
+                let html = '<div class="card"><div class="card-header"><h3><i class="fas fa-list"></i> Audit Log (200 recent)</h3></div><div class="card-body" style="padding:0;">';
+                if (!logs || logs.length === 0) {
+                    html += '<div class="empty-state"><p>No audit log entries</p></div>';
+                } else {
+                    html += '<div class="table-wrap"><table class="table"><thead><tr><th>Time</th><th>Event</th><th>Username</th><th>IP</th><th>Success</th><th>Details</th></tr></thead><tbody>';
+                    logs.forEach(l => {
+                        const ts = new Date((l.timestamp||0)*1000).toLocaleString();
+                        const det = l.details ? JSON.stringify(l.details).substring(0,40) : '';
+                        html += '<tr><td style="color:var(--text-muted);font-size:.72rem;">'+ts+'</td><td>'+badge(l.event_type.includes('fail')||l.event_type.includes('lock')?'critical':l.event_type.includes('success')?'healthy':'neutral', l.event_type)+'</td><td style="font-weight:500;">'+(l.username||'&mdash;')+'</td><td style="color:var(--text-muted);">'+(l.ip_address||'&mdash;')+'</td><td>'+(l.success?badge('healthy','Yes'):badge('critical','No'))+'</td><td style="color:var(--text-muted);font-size:.72rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;">'+det+'</td></tr>';
+                    });
+                    html += '</tbody></table></div>';
+                }
+                html += '</div></div>';
+                el.innerHTML = html;
+                updateTimestamp();
+            } catch (e) { document.getElementById('logsContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load audit log</p></div></div></div>'; }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  INIT
+        // ══════════════════════════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+                el.addEventListener('click', function() { navigate(this.dataset.page); });
+            });
+            document.getElementById('logoutBtn')?.addEventListener('click', logout);
+            document.getElementById('hamburgerBtn')?.addEventListener('click', toggleSidebar);
+            document.getElementById('autoRefreshBtn')?.addEventListener('click', toggleAutoRefresh);
+            document.getElementById('refreshBtn')?.addEventListener('click', refreshAll);
+            document.getElementById('shortcutsBtn')?.addEventListener('click', function() {
+                document.getElementById('shortcutsModal').classList.toggle('visible');
+            });
+            document.getElementById('closeShortcutsBtn')?.addEventListener('click', function() {
+                document.getElementById('shortcutsModal').classList.remove('visible');
+            });
+            document.getElementById('loadTradesBtn')?.addEventListener('click', loadTradesTable);
+            document.getElementById('shortcutsModal')?.addEventListener('click', function(e) {
+                if (e.target === this) this.classList.remove('visible');
+            });
+            initUser();
+            loadOverview();
+            updateTimestamp();
+        });
+    </script>
+</body>
+</html>

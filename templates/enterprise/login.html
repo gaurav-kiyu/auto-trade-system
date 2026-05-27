@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB Enterprise — Login</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <script nonce="{{ nonce }}">
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { 50: '#f8fafc', 100: '#e2e8f0', 200: '#cbd5e1', 300: '#94a3b8', 400: '#64748b', 500: '#475569', 600: '#334155', 700: '#1e293b', 800: '#0f1729', 900: '#0a0e1a', 950: '#060912' },
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #060912; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background-image: radial-gradient(ellipse at 50% -20%, rgba(59,130,246,.08) 0%, transparent 60%); }
+        .login-container { width: 100%; max-width: 400px; padding: 2rem; }
+        .login-card { background: linear-gradient(135deg, #0f1729 0%, #0a0e1a 100%); border: 1px solid rgba(148,163,184,.08); border-radius: 1.25rem; padding: 2.5rem 2rem; box-shadow: 0 25px 60px rgba(0,0,0,.4); }
+        .logo { text-align: center; margin-bottom: 2rem; }
+        .logo-icon { width: 52px; height: 52px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.25rem; color: #fff; margin-bottom: .75rem; }
+        .logo h1 { font-size: 1.2rem; font-weight: 600; color: #f1f5f9; }
+        .logo p { font-size: .78rem; color: #64748b; margin-top: .2rem; }
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; font-size: .75rem; color: #94a3b8; margin-bottom: .4rem; font-weight: 500; text-transform: uppercase; letter-spacing: .03em; }
+        input { width: 100%; padding: .7rem .85rem; background: #0a0e1a; border: 1px solid rgba(148,163,184,.12); border-radius: .65rem; color: #e2e8f0; font-size: .9rem; transition: all .15s; outline: none; }
+        input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+        input::placeholder { color: #475569; }
+        .btn { width: 100%; padding: .75rem; border-radius: .65rem; font-size: .9rem; font-weight: 600; cursor: pointer; border: none; transition: all .15s; display: flex; align-items: center; justify-content: center; gap: .5rem; }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+        .btn-primary:hover { opacity: .92; transform: translateY(-1px); box-shadow: 0 8px 25px -8px rgba(59,130,246,.3); }
+        .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+        .error-msg { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.15); border-radius: .5rem; padding: .6rem .8rem; font-size: .78rem; color: #f87171; margin-bottom: 1rem; display: none; }
+        .error-msg.visible { display: block; }
+        .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.2); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; display: none; }
+        .spinner.visible { display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .footer { text-align: center; margin-top: 1.5rem; font-size: .72rem; color: #475569; }
+        .security-badge { display: flex; align-items: center; justify-content: center; gap: .35rem; margin-top: 1rem; font-size: .68rem; color: #475569; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <div class="logo-icon">O</div>
+                <h1>OPB Enterprise</h1>
+                <p>Index Options Trading Platform</p>
+            </div>
+            <div class="error-msg" id="errorMsg"></div>
+            <form id="loginForm" autocomplete="off">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" autocomplete="username" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="loginBtn">
+                    <span id="btnText">Sign In</span>
+                    <span class="spinner" id="btnSpinner"></span>
+                </button>
+            </form>
+            <div class="security-badge">
+                <i class="fas fa-lock" style="color:#475569;"></i>
+                Secured with PBKDF2 + AES-256
+            </div>
+        </div>
+        <div class="footer">
+            OPB Index Options v2.53.0 &middot; Enterprise Edition
+        </div>
+    </div>
+
+    <script nonce="{{ nonce }}">
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('btnSpinner');
+            const errorMsg = document.getElementById('errorMsg');
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            errorMsg.classList.remove('visible');
+            if (!username || !password) {
+                errorMsg.textContent = 'Username and password are required';
+                errorMsg.classList.add('visible');
+                return;
+            }
+
+            btn.disabled = true;
+            btnText.textContent = 'Signing In...';
+            spinner.classList.add('visible');
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include',
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    if (data.must_change_password) {
+                        window.location.href = '/change-password?force=true';
+                    } else {
+                        window.location.href = '/';
+                    }
+                } else {
+                    errorMsg.textContent = data.detail || 'Invalid username or password';
+                    errorMsg.classList.add('visible');
+                    btn.disabled = false;
+                    btnText.textContent = 'Sign In';
+                    spinner.classList.remove('visible');
+                }
+            } catch (err) {
+                errorMsg.textContent = 'Connection error. Please try again.';
+                errorMsg.classList.add('visible');
+                btn.disabled = false;
+                btnText.textContent = 'Sign In';
+                spinner.classList.remove('visible');
+            }
+        });
+
+        document.getElementById('username').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') document.getElementById('password').focus();
+        });
+    </script>
+</body>
+</html>

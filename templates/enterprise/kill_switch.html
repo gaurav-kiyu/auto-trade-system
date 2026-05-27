@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kill Switch — OPB Enterprise</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <script nonce="{{ nonce }}">
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: '#3b82f6' } } } };
+    </script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#060912; color:#e2e8f0; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+        .card { background:linear-gradient(135deg,#0f1729,#0a0e1a); border:1px solid rgba(148,163,184,.08); border-radius:1.25rem; padding:2.5rem; max-width:480px; width:92%; text-align:center; }
+        .kill-btn { width:160px; height:160px; border-radius:50%; border:4px solid rgba(239,68,68,.3); background:rgba(239,68,68,.1); color:#ef4444; font-size:1rem; font-weight:700; cursor:pointer; transition:all .3s; display:inline-flex; align-items:center; justify-content:center; flex-direction:column; gap:.25rem; }
+        .kill-btn:hover { background:rgba(239,68,68,.2); border-color:#ef4444; transform:scale(1.05); box-shadow:0 0 40px rgba(239,68,68,.2); }
+        .kill-btn:active { transform:scale(.95); }
+        .kill-btn i { font-size:2.5rem; }
+        .resume-btn { padding:.7rem 2rem; border-radius:.6rem; font-size:.9rem; font-weight:600; cursor:pointer; border:none; background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; transition:all .12s; }
+        .resume-btn:hover { opacity:.9; transform:translateY(-1px); }
+        .status-card { background:rgba(148,163,184,.03); border:1px solid rgba(148,163,184,.06); border-radius:.75rem; padding:1rem; margin-top:1.5rem; text-align:left; }
+        .status-row { display:flex; justify-content:space-between; padding:.4rem 0; border-bottom:1px solid rgba(148,163,184,.03); font-size:.78rem; }
+        .status-row:last-child { border-bottom:none; }
+        .label { color:#64748b; }
+        .value { color:#e2e8f0; font-weight:500; }
+        .back-btn { display:inline-block; margin-top:1.5rem; color:#64748b; font-size:.78rem; text-decoration:none; }
+        .back-btn:hover { color:#94a3b8; }
+        .modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.65); backdrop-filter:blur(6px); z-index:9999; display:none; align-items:center; justify-content:center; }
+        .modal-overlay.visible { display:flex; }
+        .modal { background:#0f1729; border:1px solid rgba(148,163,184,.1); border-radius:1rem; padding:1.5rem; max-width:420px; width:90%; }
+        .modal h3 { font-size:1rem; font-weight:600; margin-bottom:.75rem; }
+        .modal-actions { display:flex; gap:.75rem; justify-content:flex-end; margin-top:1.25rem; }
+        .btn { padding:.5rem 1rem; border-radius:.5rem; font-size:.78rem; font-weight:500; cursor:pointer; border:none; transition:all .12s; }
+        .btn-ghost { background:transparent; color:#94a3b8; border:1px solid rgba(148,163,184,.12); }
+        .btn-ghost:hover { background:rgba(148,163,184,.06); color:#e2e8f0; }
+        .btn-danger { background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; }
+        .btn-danger:hover { opacity:.9; }
+        input { width:100%; padding:.6rem .8rem; background:#0a0e1a; border:1px solid rgba(148,163,184,.12); border-radius:.5rem; color:#e2e8f0; font-size:.82rem; outline:none; }
+        input:focus { border-color:#3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div id="statusDisplay">
+            <div style="margin-bottom:1rem;">
+                <span id="statusIcon" style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#4ade80;box-shadow:0 0 12px rgba(34,197,94,.3);"></span>
+            </div>
+            <h1 id="statusTitle" style="font-size:1.2rem;font-weight:600;margin-bottom:.25rem;">System Running</h1>
+            <p id="statusDesc" style="font-size:.82rem;color:#64748b;margin-bottom:1.5rem;">Trading is active</p>
+
+            <button class="kill-btn" id="killButton" onclick="showKillModal()">
+                <i class="fas fa-skull-crossbones"></i>
+                KILL
+            </button>
+
+            <button class="resume-btn" id="resumeButton" style="display:none;" onclick="resumeSystem()">
+                <i class="fas fa-play"></i> Resume System
+            </button>
+        </div>
+
+        <div class="status-card">
+            <div class="status-row"><span class="label">Status</span><span class="value" id="statusBadge">ACTIVE</span></div>
+            <div class="status-row"><span class="label">Hard Halt</span><span class="value" id="hardHaltStatus">Inactive</span></div>
+            <div class="status-row"><span class="label">Open Positions</span><span class="value" id="openPositions">0</span></div>
+            <div class="status-row"><span class="label">Timestamp</span><span class="value" id="timestamp">—</span></div>
+        </div>
+        <a href="/" class="back-btn">&larr; Back to Dashboard</a>
+    </div>
+
+    <div class="modal-overlay" id="killModal">
+        <div class="modal">
+            <h3 style="color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Emergency Kill</h3>
+            <p style="font-size:.82rem;color:#94a3b8;margin-bottom:1rem;">This will immediately halt ALL trading. Open positions will NOT be affected.</p>
+            <div class="form-group">
+                <label style="font-size:.75rem;color:#94a3b8;margin-bottom:.35rem;display:block;">Reason for kill:</label>
+                <input type="text" id="killReason" placeholder="e.g. Unexpected market event" autofocus>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeKillModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="executeKill()"><i class="fas fa-skull-crossbones"></i> Confirm Kill</button>
+            </div>
+        </div>
+    </div>
+
+    <script nonce="{{ nonce }}">
+        let csrfToken = (document.cookie.match(/opb_csrf=([^;]+)/)||[])[1] || '';
+
+        async function apiFetch(url, opts = {}) {
+            const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+            const ct = (document.cookie.match(/opb_csrf=([^;]+)/)||[])[1];
+            if (ct) headers['X-CSRF-Token'] = ct;
+            const res = await fetch(url, { headers, credentials: 'include', ...opts });
+            if (res.status === 401) { window.location.href = '/login'; return null; }
+            if (res.status === 403) { alert('Access denied'); return null; }
+            return res.json();
+        }
+
+        async function loadStatus() {
+            try {
+                const [state, killStatus] = await Promise.all([apiFetch('/api/system/state'), apiFetch('/api/system/kill-status')]);
+                const halted = killStatus?.halted || state?.hard_halt || false;
+                document.getElementById('statusIcon').style.background = halted ? '#ef4444' : '#4ade80';
+                document.getElementById('statusIcon').style.boxShadow = halted ? '0 0 12px rgba(239,68,68,.3)' : '0 0 12px rgba(34,197,94,.3)';
+                document.getElementById('statusTitle').textContent = halted ? 'System HALTED' : 'System Running';
+                document.getElementById('statusTitle').style.color = halted ? '#ef4444' : '#4ade80';
+                document.getElementById('statusDesc').textContent = halted ? 'Emergency kill is active — no entries allowed' : 'Trading is active and monitoring';
+                document.getElementById('killButton').style.display = halted ? 'none' : 'inline-flex';
+                document.getElementById('resumeButton').style.display = halted ? 'inline-flex' : 'none';
+                document.getElementById('statusBadge').innerHTML = halted ? '<span style="color:#ef4444;">HALTED</span>' : '<span style="color:#4ade80;">ACTIVE</span>';
+                document.getElementById('hardHaltStatus').textContent = halted ? 'ACTIVE' : 'Inactive';
+                document.getElementById('hardHaltStatus').style.color = halted ? '#ef4444' : '#4ade80';
+                document.getElementById('openPositions').textContent = state?.open_positions || 0;
+                document.getElementById('timestamp').textContent = new Date().toLocaleString();
+            } catch (e) { console.error('Status load failed', e); }
+        }
+
+        function showKillModal() { document.getElementById('killModal').classList.add('visible'); document.getElementById('killReason').focus(); }
+        function closeKillModal() { document.getElementById('killModal').classList.remove('visible'); document.getElementById('killReason').value = ''; }
+
+        async function executeKill() {
+            const reason = document.getElementById('killReason').value.trim() || 'Manual kill via switch page';
+            try {
+                const res = await apiFetch('/api/system/kill', { method: 'POST', body: JSON.stringify({reason}) });
+                if (res?.success) { closeKillModal(); loadStatus(); }
+                else { alert('Kill failed: ' + (res?.error || 'unknown')); }
+            } catch (e) { alert('Kill failed'); }
+        }
+
+        async function resumeSystem() {
+            try {
+                const res = await apiFetch('/api/system/resume', { method: 'POST' });
+                if (res?.success) loadStatus();
+                else alert('Resume failed');
+            } catch (e) { alert('Resume failed'); }
+        }
+
+        document.getElementById('killModal').addEventListener('click', function(e) { if (e.target === this) closeKillModal(); });
+        document.getElementById('killReason').addEventListener('keydown', function(e) { if (e.key === 'Enter') executeKill(); if (e.key === 'Escape') closeKillModal(); });
+        loadStatus();
+        setInterval(loadStatus, 5000);
+    </script>
+</body>
+</html>
