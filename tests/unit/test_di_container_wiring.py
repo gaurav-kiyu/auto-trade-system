@@ -38,7 +38,7 @@ class TestDIContainerWiring:
         """Test that setup_di_container registers all expected services."""
         # Setup mocks for external dependencies
         with patch('infrastructure.config.secure_config_adapter.SecureConfigAdapter') as mock_config_adapter, \
-             patch('infrastructure.adapters.brokers.paper.adapter.PaperBrokerAdapter') as mock_broker_adapter, \
+             patch('core.adapters.broker_adapters.PaperBrokerAdapter') as mock_broker_adapter, \
              patch('infrastructure.adapters.persistence.sqlite_adapter.SQLiteAdapter') as mock_persistence_adapter, \
              patch('infrastructure.adapters.market_data.yahoofinance.adapter.YahooFinanceAdapter') as mock_market_data_adapter, \
              patch('core.services.execution_service.ExecutionService') as mock_execution_service, \

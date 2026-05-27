@@ -7,6 +7,6 @@
   "default_mode":      "PAPER",
   "auto_launch":       false,
   "python_preference": ["py", "python", "python3"],
-  "app_script":        "INDEX_OPTION_BUYING_APP_1.0.py",
+  "app_script":        "index_app/index_trader.py",
   "extra_args":        []
 }

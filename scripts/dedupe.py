@@ -36,8 +36,6 @@ refactor_file('signal_engine.py', funcs_se)
 funcs_it = ['get_price', 'get_vwap', 'ema_trend', 'get_atr', 'get_vol_ratio', 'price_delta']
 refactor_file('index_app/index_trader.py', funcs_it)
 
-# STOCK_OPTION_BUYING_APP_1.0.py
-funcs_so = ['get_price', 'get_vwap', 'ema_trend', 'get_atr', 'get_vol_ratio', 'price_delta', 'get_rsi']
-refactor_file('STOCK_OPTION_BUYING_APP_1.0.py', funcs_so)
+
 
 print("Refactoring complete.")

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from core.reconciliation_engine import (
     ReconciliationEngine,
     ReconciliationItem,
@@ -213,3 +215,144 @@ class TestReconciliationReport:
         assert report.ok is True
         assert len(report.items) == 1
         assert report.mismatches == 0
+
+
+class TestNormalizeEdgeCases:
+    """Coverage for _normalize edge cases: non-dict rows in list (line 49)."""
+
+    def test_non_dict_rows_skipped(self) -> None:
+        engine = ReconciliationEngine(broker_snapshot_fn=dict)
+        rows: list = [None, "string", 123, {"tradingsymbol": "NIFTY", "qty": 10}]
+        result = engine._normalize(rows)
+        assert "NIFTY" in result
+        assert result["NIFTY"]["qty"] == 10
+
+    def test_none_rows_skipped_with_none_list(self) -> None:
+        engine = ReconciliationEngine(broker_snapshot_fn=dict)
+        result = engine._normalize(None)
+        assert result == {}
+
+
+class TestReconcilePositionsExceptionPaths:
+    """Coverage for try/except conversion failures (lines 67-68, 71-72, 75-76, 84-85)."""
+
+    def test_local_qty_int_fails(self) -> None:
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=lambda: {"NIFTY": {"qty": 10, "avg_price": 19500.0}},
+        )
+        report = engine.reconcile_positions({
+            "NIFTY": {"qty": "not_a_number", "entry": 19500.0},
+        })
+        assert report.items[0].local_qty == 0
+        assert report.items[0].has_qty_mismatch is True
+
+    def test_broker_qty_int_fails(self) -> None:
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=lambda: {"NIFTY": {"qty": "bad_qty", "avg_price": 19500.0}},
+        )
+        report = engine.reconcile_positions({
+            "NIFTY": {"qty": 10, "entry": 19500.0},
+        })
+        assert report.items[0].broker_qty == 0
+        assert report.items[0].has_qty_mismatch is True
+
+    def test_broker_qty_int_fails_quantity(self) -> None:
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=lambda: {"NIFTY": {"quantity": "bad_qty", "avg_price": 19500.0}},
+        )
+        report = engine.reconcile_positions({
+            "NIFTY": {"qty": 10, "entry": 19500.0},
+        })
+        assert report.items[0].broker_qty == 0
+
+    def test_local_price_float_fails(self) -> None:
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=lambda: {"NIFTY": {"qty": 10, "avg_price": 19500.0}},
+        )
+        report = engine.reconcile_positions({
+            "NIFTY": {"qty": 10, "entry": "bad_price"},
+        })
+        assert report.items[0].local_price == 0.0
+
+    def test_broker_price_float_fails(self) -> None:
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=lambda: {"NIFTY": {"qty": 10, "avg_price": "bad_price"}},
+        )
+        report = engine.reconcile_positions({
+            "NIFTY": {"qty": 10, "entry": 19500.0},
+        })
+        assert report.items[0].broker_price == 0.0
+
+    def test_broker_price_float_fails_average_price(self) -> None:
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=lambda: {"NIFTY": {"qty": 10, "average_price": "bad_price"}},
+        )
+        report = engine.reconcile_positions({
+            "NIFTY": {"qty": 10, "entry": 19500.0},
+        })
+        assert report.items[0].broker_price == 0.0
+
+    def test_broker_price_float_fails_price(self) -> None:
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=lambda: {"NIFTY": {"qty": 10, "price": "bad_price"}},
+        )
+        report = engine.reconcile_positions({
+            "NIFTY": {"qty": 10, "entry": 19500.0},
+        })
+        assert report.items[0].broker_price == 0.0
+
+
+class TestReconcileBrokerOnlyExceptions:
+    """Coverage for broker-only try/except paths (lines 121, 124-125, 135-136)."""
+
+    def test_non_dict_broker_row_skipped(self) -> None:
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=dict,
+            report_broker_only_positions=True,
+        )
+        with patch.object(engine, "_normalize") as mock_norm:
+            mock_norm.return_value = {"NIFTY": "not_a_dict"}
+            report = engine.reconcile_positions({"BANKNIFTY": {"qty": 5, "entry": 45000.0}})
+        assert len(report.items) == 1
+        assert report.items[0].symbol == "BANKNIFTY"
+
+    def test_broker_only_qty_int_fails(self) -> None:
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=lambda: {"NIFTY": {"qty": "bad", "avg_price": 19500.0}},
+            report_broker_only_positions=True,
+        )
+        report = engine.reconcile_positions({"BANKNIFTY": {"qty": 5, "entry": 45000.0}})
+        nifty_items = [i for i in report.items if i.symbol == "NIFTY"]
+        # broker_qty becomes 0 after exception, then gets skipped (<= 0)
+        assert len(nifty_items) == 0
+
+    def test_broker_only_price_float_fails(self) -> None:
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=lambda: {"NIFTY": {"qty": 10, "avg_price": "bad"}},
+            report_broker_only_positions=True,
+        )
+        report = engine.reconcile_positions({"BANKNIFTY": {"qty": 5, "entry": 45000.0}})
+        nifty_items = [i for i in report.items if i.symbol == "NIFTY"]
+        assert len(nifty_items) == 1
+        assert nifty_items[0].broker_price == 0.0
+
+
+class TestReconcilePositionsAdditional:
+    """Additional coverage for edge cases in reconcile_positions."""
+
+    def test_local_positions_none(self) -> None:
+        engine = ReconciliationEngine(broker_snapshot_fn=_broker_snapshot_empty)
+        report = engine.reconcile_positions(None)
+        assert report.ok is True
+        assert len(report.items) == 0
+
+    def test_broker_empty_with_local_qty(self) -> None:
+        """Lines 99-100: broker_qty==0 and local_qty>0 → 'broker empty' note."""
+        engine = ReconciliationEngine(
+            broker_snapshot_fn=lambda: {},
+        )
+        report = engine.reconcile_positions({
+            "NIFTY": {"qty": 10, "entry": 19500.0},
+        })
+        assert report.ok is False
+        assert "broker empty" in report.items[0].note

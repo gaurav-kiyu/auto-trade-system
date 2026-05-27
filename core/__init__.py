@@ -91,7 +91,7 @@ from .presentation_engine import PresentationEngine
 from .reconciliation_engine import ReconciliationEngine, ReconciliationItem, ReconciliationReport
 from .replay_engine import ReplayEngine
 from .retention_engine import RetentionEngine, RetentionPolicy
-from .risk_engine import RiskConfig, RiskDecision, RiskEngine
+from .risk.legacy_adapter import RiskConfig, RiskDecision
 from .safety_engine import SafetyConfig, SafetyContext, SafetyDecision, SafetyEngine
 from .soft_reload_common import ignored_keys_warning
 from .startup_checklist import StartupCheckItem, StartupCheckResult, run_startup_checklist
@@ -183,7 +183,6 @@ __all__ = [
     "ReplaySignal",
     "RiskConfig",
     "RiskDecision",
-    "RiskEngine",
     "SafetyConfig",
     "SafetyContext",
     "SafetyDecision",

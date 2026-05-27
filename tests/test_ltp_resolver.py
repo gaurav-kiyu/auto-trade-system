@@ -175,6 +175,78 @@ def test_warm_cache(mock_ticker_cls):
     assert r._yf_cache.get("NIFTY") == 18500.0
 
 
+# ── resolve_token edge cases ──────────────────────────────────────────────
+
+def test_resolve_token_no_ws():
+    r = LtpResolver()
+    assert r.resolve_token(256265) is None
+
+
+def test_resolve_token_ws_exception():
+    ws = MagicMock()
+    ws.get_ltp.side_effect = RuntimeError("feed down")
+    r = LtpResolver(ws_feed=ws)
+    assert r.resolve_token(256265) is None
+
+
+# ── _resolve_ws exception handler ────────────────────────────────────────
+
+def test_resolve_ws_is_connected_raises():
+    ws = MagicMock()
+    ws.is_connected.side_effect = RuntimeError("connection check failed")
+    r = LtpResolver(ws_feed=ws)
+    with patch.object(r, "_resolve_broker", return_value=None), \
+         patch.object(r, "_resolve_yfinance", return_value=None):
+        assert r.resolve("NIFTY") is None
+
+
+def test_resolve_ws_get_ltp_raises():
+    ws = MagicMock()
+    ws.is_connected.return_value = True
+    ws.get_ltp.side_effect = RuntimeError("get_ltp failed")
+    r = LtpResolver(ws_feed=ws)
+    with patch.object(r, "_resolve_broker", return_value=None), \
+         patch.object(r, "_resolve_yfinance", return_value=None):
+        assert r.resolve("NIFTY") is None
+
+
+# ── _resolve_yfinance edge cases ─────────────────────────────────────────
+
+@patch("yfinance.Ticker")
+def test_resolve_yfinance_empty_hist(mock_ticker_cls):
+    import pandas as pd
+    mock_ticker = MagicMock()
+    mock_ticker_cls.return_value = mock_ticker
+    mock_ticker.history.return_value = pd.DataFrame()
+
+    r = LtpResolver()
+    assert r._resolve_yfinance("NIFTY") is None
+
+
+@patch("yfinance.Ticker")
+def test_resolve_yfinance_nan_close(mock_ticker_cls):
+    import pandas as pd
+    mock_ticker = MagicMock()
+    mock_ticker_cls.return_value = mock_ticker
+    mock_ticker.history.return_value = pd.DataFrame(
+        {"Close": [float("nan")]},
+        index=pd.date_range("2026-05-15", periods=1),
+    )
+
+    r = LtpResolver()
+    assert r._resolve_yfinance("NIFTY") is None
+
+
+@patch("yfinance.Ticker")
+def test_resolve_yfinance_exception(mock_ticker_cls):
+    mock_ticker = MagicMock()
+    mock_ticker_cls.return_value = mock_ticker
+    mock_ticker.history.side_effect = ValueError("bad data")
+
+    r = LtpResolver()
+    assert r._resolve_yfinance("NIFTY") is None
+
+
 # ── status ───────────────────────────────────────────────────────────────
 
 def test_status():

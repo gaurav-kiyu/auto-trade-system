@@ -382,7 +382,7 @@ def _check_score_threshold(
     losing_bins = []
     for label, bm in by_score.items():
         lo, hi = _parse_bin_range(label)
-        if lo is None:
+        if lo is None or hi is None:
             continue
         # Only consider bins that start AT the current threshold (currently being traded)
         if lo < current_thr:
@@ -435,7 +435,7 @@ def _check_score_threshold(
     if confidence == "HIGH":
         worst_tmp   = min(losing_bins, key=lambda x: x[1]["win_rate"])
         w_lo, w_hi  = _parse_bin_range(worst_tmp[0])
-        if w_lo is not None:
+        if w_lo is not None and w_hi is not None:
             recent_wr = _recent_bin_wr(trades, w_lo, w_hi)
             if recent_wr is not None and recent_wr >= 50.0:
                 log.info(
@@ -879,7 +879,7 @@ def print_tune_report(result: TuneResult) -> None:
             print(f"     Suggest : {rec.suggested_value}")
         # Word-wrap reason at 70 chars
         words = rec.reason.split()
-        line, lines = [], []
+        line: list[str] = []; lines: list[str] = []
         for w in words:
             if sum(len(x) + 1 for x in line) + len(w) > 68:
                 lines.append(" ".join(line))
@@ -888,8 +888,8 @@ def print_tune_report(result: TuneResult) -> None:
                 line.append(w)
         if line:
             lines.append(" ".join(line))
-        for l in lines:
-            print(f"     {l}")
+        for ln in lines:
+            print(f"     {ln}")
 
     if result.applied:
         print(f"\n  {'CHANGES APPLIED' if not result.dry_run else 'WOULD APPLY (dry-run)'}:")
@@ -933,7 +933,8 @@ def _parse_bin_range(label: str) -> tuple[int | None, int | None]:
 
 def _load_config_file(path: Path) -> dict:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data: dict = json.loads(path.read_text(encoding="utf-8"))
+        return data
     except Exception as exc:
         log.error("[AUTO-TUNE] Failed to load config %s: %s", path, exc)
         return {}

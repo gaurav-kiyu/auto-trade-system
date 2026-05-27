@@ -110,6 +110,12 @@ class TestUpdateOutcome:
         ok = update_outcome("UNKNOWN_ID", 1, db_path=db)
         assert ok is False
 
+    def test_returns_false_on_corrupt_db(self, db):
+        with open(db, "w") as f:
+            f.write("not a valid sqlite database")
+        ok = update_outcome("t001", 1, db_path=db)
+        assert ok is False
+
 
 # ── compute_brier_score ───────────────────────────────────────────────────────
 
@@ -168,6 +174,12 @@ class TestComputeBrierScore:
         assert isinstance(bs, float)
         assert 0.0 <= bs <= 1.0
 
+    def test_returns_none_on_corrupt_db(self, db):
+        with open(db, "w") as f:
+            f.write("not a valid sqlite database")
+        result = compute_brier_score(db_path=db)
+        assert result is None
+
 
 # ── compute_calibration ───────────────────────────────────────────────────────
 
@@ -213,6 +225,12 @@ class TestComputeCalibration:
         lows = [b["bin_low"] for b in bins]
         assert lows == sorted(lows)
 
+    def test_returns_empty_on_corrupt_db(self, db):
+        with open(db, "w") as f:
+            f.write("not a valid sqlite database")
+        result = compute_calibration(db_path=db)
+        assert result == []
+
 
 # ── get_feature_importance_trend ──────────────────────────────────────────────
 
@@ -253,6 +271,25 @@ class TestGetFeatureImportanceTrend:
         assert result.get("feat") is not None
         assert abs(result["feat"] - 17.0) < 1e-4
 
+    def test_skips_invalid_shap_json(self, db):
+        record_prediction("inv1", 0.5, shap_json="not valid json", db_path=db)
+        record_prediction("inv2", 0.6, shap_json='{"valid": 1}', db_path=db)
+        result = get_feature_importance_trend(db_path=db)
+        assert "valid" in result
+        assert len(result) == 1
+
+    def test_returns_empty_when_all_shap_invalid(self, db):
+        record_prediction("inv3", 0.5, shap_json="not valid json", db_path=db)
+        record_prediction("inv4", 0.6, shap_json="also not json", db_path=db)
+        result = get_feature_importance_trend(db_path=db)
+        assert result == {}
+
+    def test_returns_empty_on_corrupt_db(self, db):
+        with open(db, "w") as f:
+            f.write("not a valid sqlite database")
+        result = get_feature_importance_trend(db_path=db)
+        assert result == {}
+
 
 # ── format_tracker_summary ────────────────────────────────────────────────────
 
@@ -282,3 +319,9 @@ class TestFormatTrackerSummary:
     def test_no_exception_on_empty_db(self, db):
         s = format_tracker_summary(db_path=db)
         assert isinstance(s, str)
+
+    def test_returns_unavailable_on_corrupt_db(self, db):
+        with open(db, "w") as f:
+            f.write("not a valid sqlite database")
+        s = format_tracker_summary(db_path=db)
+        assert "unavailable" in s

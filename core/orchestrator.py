@@ -13,7 +13,7 @@ from .data_engine import DataEngine, MarketDataSnapshot
 from .datetime_ist import is_nse_cash_session
 from .execution_engine import ExecutionEngine, ExecutionFill, ExecutionResult
 from .reconciliation_engine import ReconciliationEngine, ReconciliationReport
-from .risk_engine import RiskDecision, RiskEngine
+from .risk.legacy_adapter import RiskDecision, RiskPortAdapter
 from .safety_engine import SafetyContext, SafetyDecision, SafetyEngine
 from .state_manager import StateManager
 from .strategy_engine import StrategyEngine
@@ -47,7 +47,7 @@ class Orchestrator:
         *,
         data_engine: DataEngine,
         strategy_engine: StrategyEngine,
-        risk_engine: RiskEngine,
+        risk_engine: RiskPortAdapter,
         execution_engine: ExecutionEngine | None,
         state_manager: StateManager,
         reconciliation_engine: ReconciliationEngine | None = None,

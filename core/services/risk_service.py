@@ -71,8 +71,8 @@ class RiskService(RiskPort):
     Comprehensive risk management service.
 
     Consolidates functionality from:
-    - core/risk_engine.py
-    - core/risk_engine.py
+    - core/risk_engine.py (removed in v2.54)
+    - core/risk_engine.py (removed in v2.54)
     - core/trading_risk.py
     - Various risk checks throughout the codebase
     """

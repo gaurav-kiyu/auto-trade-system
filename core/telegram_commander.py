@@ -119,7 +119,7 @@ def build_rich_signal_message(signal: dict[str, Any], cfg: dict[str, Any] | None
         ctx_lines.append(f"PCR: {pcr:.2f} ({pcr_label})")
     if ctx_lines:
         lines.append("📊 *Market*")
-        lines.extend(f"  {l}" for l in ctx_lines)
+        lines.extend(f"  {line}" for line in ctx_lines)
 
     # ── Technical picture ──────────────────────────────────────────────────
     tech_lines: list[str] = []
@@ -134,7 +134,7 @@ def build_rich_signal_message(signal: dict[str, Any], cfg: dict[str, Any] | None
         tech_lines.append(f"ML Win Prob: [{ml_bar}] {ml_prob:.0%}")
     if tech_lines:
         lines.append("🔬 *Technical*")
-        lines.extend(f"  {l}" for l in tech_lines)
+        lines.extend(f"  {line}" for line in tech_lines)
 
     # ── Risk parameters ────────────────────────────────────────────────────
     risk_lines: list[str] = []
@@ -151,7 +151,7 @@ def build_rich_signal_message(signal: dict[str, Any], cfg: dict[str, Any] | None
         risk_lines.append(f"Lots:  {lots}")
     if risk_lines:
         lines.append("💰 *Risk*")
-        lines.extend(f"  {l}" for l in risk_lines)
+        lines.extend(f"  {line}" for line in risk_lines)
 
     # ── Soft blocks (what's working against this signal) ──────────────────
     if soft_blocks:
@@ -394,8 +394,8 @@ class TelegramCommander:
     def __init__(
         self,
         cfg: dict[str, Any],
-        queue,
-        workflow,
+        queue: Any,
+        workflow: Any,
         state_fn: Callable[[], dict],
         send_fn: Callable[[str, bool], None],
         positions_fn: Callable[[], list] | None = None,
@@ -469,8 +469,8 @@ class TelegramCommander:
             )
             if r.status_code != 200:
                 return []
-            data = r.json()
-            updates = data.get("result", [])
+            data: dict = r.json()
+            updates: list[dict] = data.get("result", [])
             if updates:
                 self._last_update_id = updates[-1]["update_id"]
             return updates
@@ -562,7 +562,7 @@ class TelegramCommander:
 
         # ── Admin ──────────────────────────────────────────────────────────
         elif cmd in ("/retrain_ml", "/backup", "/set_config"):
-            if user_id not in self._admin_ids:
+            if not self._auth.is_admin(user_id):
                 self._reply("⛔ Admin-only command.", critical=False)
                 return
             self._reply(f"ℹ️ {cmd} not yet wired in this version. "
@@ -847,8 +847,8 @@ class TelegramCommander:
 
 def build_commander(
     cfg: dict[str, Any],
-    queue,
-    workflow,
+    queue: Any,
+    workflow: Any,
     state_fn: Callable[[], dict],
     send_fn: Callable[[str, bool], None],
     positions_fn: Callable[[], list] | None = None,

@@ -1291,6 +1291,9 @@
       "additionalProperties": true,
       "type": "object"
     },
+    "_comment_chain_viz": {
+      "type": "string"
+    },
     "_comment_circuit_breaker": {
       "type": "string"
     },
@@ -1436,6 +1439,9 @@
       "type": "string"
     },
     "_comment_web_dashboard": {
+      "type": "string"
+    },
+    "_comment_webhook": {
       "type": "string"
     },
     "ab_min_trades_for_significance": {

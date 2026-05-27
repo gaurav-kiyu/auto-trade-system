@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — Config Editor</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #080b10; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        .back-link { color: #3b82f6; text-decoration: none; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: #64748b; font-size: 0.875rem; margin-bottom: 2rem; }
+        .card { background: linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%); border: 1px solid rgba(148,163,184,0.1); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 0.75rem; }
+        .config-item { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 0.75rem; }
+        .config-key { font-size: 0.75rem; color: #94a3b8; font-family: monospace; margin-bottom: 0.25rem; word-break: break-all; }
+        .config-value input, .config-value select { width: 100%; padding: 0.4rem 0.6rem; background: #1a1f2e; border: 1px solid rgba(148,163,184,0.15); border-radius: 0.35rem; color: #e2e8f0; font-size: 0.8rem; outline: none; }
+        .config-value input:focus { border-color: #3b82f6; }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 500; cursor: pointer; border: none; }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-success { background: #16a34a; color: white; }
+        .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid rgba(148,163,184,0.15); }
+        .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { padding: 0.75rem 1.25rem; border-radius: 0.5rem; color: white; font-size: 0.8rem; opacity: 0; transform: translateY(1rem); transition: all 0.3s ease; }
+        .toast.visible { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #065f46; border-left: 3px solid #22c55e; }
+        .toast.error { background: #7f1d1d; border-left: 3px solid #ef4444; }
+        .toast.warning { background: #713f12; border-left: 3px solid #f59e0b; }
+        .tab-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .tab { padding: 0.4rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(148,163,184,0.15); background: transparent; color: #94a3b8; }
+        .tab.active { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.3); }
+        .section { display: none; }
+        .section.active { display: block; }
+        .diff-added { background: rgba(34,197,94,0.1); border-left: 3px solid #22c55e; padding: 0.5rem; border-radius: 0.35rem; margin: 0.25rem 0; font-size: 0.8rem; font-family: monospace; }
+        .diff-removed { background: rgba(239,68,68,0.1); border-left: 3px solid #ef4444; padding: 0.5rem; border-radius: 0.35rem; margin: 0.25rem 0; font-size: 0.8rem; font-family: monospace; text-decoration: line-through; }
+        .preview-box { background: #0f1319; border: 1px solid rgba(148,163,184,0.1); border-radius: 0.5rem; padding: 1rem; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; color: #cbd5e1; white-space: pre-wrap; display: none; }
+        @media (max-width: 768px) { .config-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    <h1><i class="fas fa-cog" style="color:#3b82f6;margin-right:0.5rem;"></i> Configuration Editor</h1>
+    <p class="subtitle">Admin — safely edit, preview, validate, and apply configuration changes</p>
+
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+        <button class="btn btn-primary btn-sm" id="saveConfigBtn"><i class="fas fa-save"></i> Save Changes</button>
+        <button class="btn btn-ghost btn-sm" id="previewBtn"><i class="fas fa-eye"></i> Preview</button>
+        <button class="btn btn-ghost btn-sm" id="reloadBtn"><i class="fas fa-undo"></i> Reload</button>
+        <button class="btn btn-ghost btn-sm" id="historyBtn"><i class="fas fa-history"></i> History</button>
+    </div>
+
+    <div class="tab-bar" id="tabBar">
+        <div class="tab active" data-tab="execution">Execution</div>
+        <div class="tab" data-tab="risk">Risk</div>
+        <div class="tab" data-tab="broker">Broker</div>
+        <div class="tab" data-tab="signals">Signals</div>
+        <div class="tab" data-tab="ml">ML</div>
+        <div class="tab" data-tab="telegram">Telegram</div>
+        <div class="tab" data-tab="system">System</div>
+    </div>
+
+    <div id="previewBox" class="preview-box"></div>
+
+    <div id="sections">
+        <div class="section active" id="section-execution"><div class="card"><div class="config-grid" id="config-execution"><div style="color:#64748b;grid-column:1/-1;text-align:center;">Loading...</div></div></div></div>
+        <div class="section" id="section-risk"><div class="card"><div class="config-grid" id="config-risk"><div style="color:#64748b;text-align:center;">Loading...</div></div></div></div>
+        <div class="section" id="section-broker"><div class="card"><div class="config-grid" id="config-broker"><div style="color:#64748b;text-align:center;">Loading...</div></div></div></div>
+        <div class="section" id="section-signals"><div class="card"><div class="config-grid" id="config-signals"><div style="color:#64748b;text-align:center;">Loading...</div></div></div></div>
+        <div class="section" id="section-ml"><div class="card"><div class="config-grid" id="config-ml"><div style="color:#64748b;text-align:center;">Loading...</div></div></div></div>
+        <div class="section" id="section-telegram"><div class="card"><div class="config-grid" id="config-telegram"><div style="color:#64748b;text-align:center;">Loading...</div></div></div></div>
+        <div class="section" id="section-system"><div class="card"><div class="config-grid" id="config-system"><div style="color:#64748b;text-align:center;">Loading...</div></div></div></div>
+    </div>
+
+    <div id="historyModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#1a1f2e;border:1px solid rgba(148,163,184,0.12);border-radius:1rem;padding:1.5rem;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
+            <h3 style="font-size:1rem;font-weight:600;margin-bottom:1rem;">Config Backup History</h3>
+            <div id="historyList" style="font-size:0.8rem;color:#94a3b8;display:flex;flex-direction:column;gap:0.5rem;">Loading...</div>
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.5rem;">
+                <button class="btn btn-ghost btn-sm" id="closeHistoryBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script nonce="{{ nonce }}">
+        let configData = {};
+        let changedKeys = {};
+        let isDirty = false;
+
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : '';
+        }
+
+        function showToast(msg, type='info') {
+            const c=document.getElementById('toastContainer');
+            const t=document.createElement('div');
+            t.className=`toast ${type} visible`;
+            t.textContent=msg;
+            c.appendChild(t);
+            setTimeout(()=>{t.classList.remove('visible');setTimeout(()=>t.remove(),300);},3500);
+        }
+
+        async function apiFetch(url, opts={}) {
+            const csrfToken = getCookie('opb_csrf');
+            const headers={'Content-Type':'application/json',...opts.headers};
+            if (csrfToken && opts.method && opts.method !== 'GET') {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+            const res=await fetch(url,{headers,credentials:'include',...opts});
+            if (res.status===401) { window.location.href='/login'; return null; }
+            return res.json();
+        }
+
+        function changeKey(key, value) {
+            const orig = configData[key];
+            let newVal = value;
+            if (typeof orig === 'number') newVal = Number(value);
+            else if (typeof orig === 'boolean') newVal = value === true || value === 'true';
+            changedKeys[key] = newVal;
+            isDirty = true;
+        }
+
+        const keyCategories = {
+            execution: ['EXECUTION_MODE','SCAN_INTERVAL','COOLDOWN','SIGNAL_MAX_AGE','MAX_POSITION_AGE','BREAKOUT_TIMEOUT','MAX_TRADES_DAY','EXPIRY_MAX_TRADES','EXPIRY_CUTOFF_HOUR','MAX_OPEN','PARTIAL_EXIT_ENABLED','TAKE_PROFIT_AND_STOP','FORCE_PRE_TRADE_RECON','RECONCILE_INTERVAL','CONFIG_DRIFT_AUTO_RELOAD','RETRY','ORDER_PLACE_RETRIES','ORDER_FILL_TIMEOUT','EXIT_ORDER_RETRIES'],
+            risk: ['MAX_DAILY_LOSS','MAX_DRAWDOWN','RISK_MODE','RISK_FIXED_AMOUNT','RISK_PER_TRADE','MAX_LOT_CAPITAL_PCT','SL_PCT','TARGET_PCT','TRAIL_PCT','TRAIL_ACTIVATE','PORTFOLIO_MAX_SL_RISK_PCT','MAX_SINGLE_TRADE_LOSS_PCT','CONSEC_LOSS_LIMIT','VIX_HALT_THRESHOLD','VIX_BLOCK_THRESHOLD','DRAWDOWN_SIZE_SCALE','VIX_SIZE_SCALE'],
+            broker: ['BROKER_NAME','BROKER_DRIVER','BROKER_BACKEND','BROKER_API_ENABLED','BROKER_LATENCY_ENFORCE_ORDER','BROKER_STATUS_POLL_SEC','RECONCILE_HALT_ON_QTY_MISMATCH'],
+            signals: ['AI_THRESHOLD','IV_SPIKE_THRESHOLD','VOL_RATIO_MIN','STRONG_THRESHOLD','MODERATE_THRESHOLD','ADAPTIVE_THRESHOLD_ENABLED','REGIME_AWARE_THRESHOLDS_ENABLED','FALSE_SIGNAL_FILTER_ENABLED','TIME_OF_DAY_FILTER_ENABLED','BREAKOUT_BONUS','MACD_BONUS','VWAP_RECLAIM_BONUS'],
+            ml: ['ML_CLASSIFIER_ENABLED','ML_MODEL_PATH','ML_CONFIDENCE_THRESHOLD','ML_FEATURES','AUTO_TUNE_ENABLED','AUTO_TUNE_MIN_TRADES','CONCEPT_DRIFT_ENABLED','SHAP_ENABLED'],
+            telegram: ['TG_QUIET_MODE','TG_TRADE_ONLY','TG_TRADE_ALERTS_STRICT','TG_SIGNAL_COOLDOWN','TG_MAX_PER_MIN','TG_CACHE_TTL_SEC','TG_ALERT_MIN_SCORE','TG_HEARTBEAT_INTERVAL','TG_PERIODIC_SUMMARY_TELEGRAM'],
+            system: ['BASE_CAPITAL','DAILY_TARGET','GUI_REFRESH_MS','WEB_DASHBOARD_ENABLED','ADMIN_CONTROL_PLANE_ENABLED','METRICS_PORT','AUDIT_LOG_ENABLED','RETENTION_ENABLED','STRUCTURED_EVENTS_ENABLED','ENVIRONMENT','WATCHDOG_TIMEOUT','EXCEPTION_ALERT_THRESHOLD'],
+        };
+
+        async function loadConfig() {
+            const data = await apiFetch('/api/config');
+            if (data && data.config) {
+                configData = {...data.config};
+                changedKeys = {};
+                isDirty = false;
+                Object.keys(keyCategories).forEach(cat => renderCategory(cat));
+                showToast('Configuration loaded', 'info');
+            }
+        }
+
+        function renderCategory(cat) {
+            const container = document.getElementById(`config-${cat}`);
+            const keys = keyCategories[cat] || [];
+            const matched = keys.filter(k => k in configData);
+            const extra = Object.keys(configData).filter(k => !Object.values(keyCategories).flat().includes(k));
+            const allKeys = [...matched, ...(cat === 'system' ? extra.filter(k => !['BROKER_CONFIG','INDEX_MAP','_NOTE_META','CONFIG_VERSION'].includes(k) && !k.startsWith('_')) : [])];
+            if (allKeys.length === 0) { container.innerHTML = '<div style="color:#64748b;text-align:center;grid-column:1/-1;">No matching keys</div>'; return; }
+            container.innerHTML = allKeys.map(key => {
+                let val = configData[key];
+                const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '');
+                const inputType = typeof val === 'number' ? 'number' : typeof val === 'boolean' ? 'select' : 'text';
+                let inputHtml = '';
+                if (inputType === 'select') {
+                    inputHtml = `<select class="cfg-input" data-key="${key}" data-orig="${val}" data-type="bool"><option value="true" ${val===true?'selected':''}>true</option><option value="false" ${val===false?'selected':''}>false</option></select>`;
+                } else {
+                    inputHtml = `<input type="${inputType}" class="cfg-input" value="${displayVal}" data-key="${key}" data-orig="${displayVal}" data-type="${typeof val}" step="${typeof val === 'number' ? '0.01' : ''}">`;
+                }
+                return `<div class="config-item"><div class="config-key">${key}</div><div class="config-value">${inputHtml}</div></div>`;
+            }).join('');
+        }
+
+        async function previewChanges() {
+            if (Object.keys(changedKeys).length === 0) { showToast('No changes to preview', 'warning'); return; }
+            const res = await apiFetch('/api/config/preview', {
+                method: 'POST',
+                body: JSON.stringify(changedKeys),
+            });
+            if (!res) return;
+            const box = document.getElementById('previewBox');
+            let html = '=== Config Change Preview ===\n';
+            for (const [k, v] of Object.entries(res.changed_keys || {})) {
+                html += `\n${k}:\n  - ${v.old ?? '<new>'}\n  + ${v.new}\n`;
+            }
+            html += `\nTotal changes: ${res.total_changes || 0}`;
+            box.textContent = html;
+            box.style.display = 'block';
+            showToast(`Preview: ${res.total_changes || 0} changes`, 'info');
+        }
+
+        async function saveConfig() {
+            if (Object.keys(changedKeys).length === 0) { showToast('No changes to save', 'warning'); return; }
+
+            // Validate first
+            const validation = await apiFetch('/api/config/validate', {
+                method: 'POST',
+                body: JSON.stringify(changedKeys),
+            });
+            if (validation && validation.errors && validation.errors.length > 0) {
+                showToast('Validation failed: ' + validation.errors.join(', '), 'error');
+                return;
+            }
+            if (validation && validation.warnings && validation.warnings.length > 0) {
+                showToast('Warnings: ' + validation.warnings.map(w=>w.message).join(', '), 'warning');
+            }
+
+            const res = await apiFetch('/api/config/apply', {
+                method: 'POST',
+                body: JSON.stringify(changedKeys),
+            });
+
+            if (res && res.success) {
+                showToast(`Applied ${res.applied_count} changes successfully`, 'success');
+                changedKeys = {};
+                isDirty = false;
+                document.getElementById('previewBox').style.display = 'none';
+                await loadConfig();
+            } else {
+                showToast(res?.error || 'Failed to save config', 'error');
+            }
+        }
+
+        async function showHistory() {
+            const history = await apiFetch('/api/config/history');
+            const list = document.getElementById('historyList');
+            if (!history || history.length === 0) {
+                list.innerHTML = '<div style="color:#64748b;">No backup history available</div>';
+            } else {
+                list.innerHTML = history.map(h => {
+                    const age = h.age > 86400 ? `${Math.floor(h.age/86400)}d ago` : h.age > 3600 ? `${Math.floor(h.age/3600)}h ago` : `${Math.floor(h.age/60)}m ago`;
+                    return `<div style="display:flex;justify-content:space-between;padding:0.5rem;background:#0f1319;border-radius:0.35rem;"><span style="font-family:monospace;">${h.file}</span><span style="color:#64748b;">${age}</span></div>`;
+                }).join('');
+            }
+            document.getElementById('historyModal').style.display = 'flex';
+        }
+
+        function closeHistory() { document.getElementById('historyModal').style.display = 'none'; }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('saveConfigBtn')?.addEventListener('click', saveConfig);
+            document.getElementById('previewBtn')?.addEventListener('click', previewChanges);
+            document.getElementById('reloadBtn')?.addEventListener('click', loadConfig);
+            document.getElementById('historyBtn')?.addEventListener('click', showHistory);
+            document.getElementById('closeHistoryBtn')?.addEventListener('click', closeHistory);
+
+            // Tab switching via data attributes
+            document.querySelectorAll('.tab[data-tab]').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    document.getElementById('section-' + tab.dataset.tab)?.classList.add('active');
+                });
+            });
+
+            // Config input change delegation
+            document.addEventListener('change', function(e) {
+                var target = e.target;
+                if (target.classList.contains('cfg-input')) {
+                    var key = target.dataset.key;
+                    var val = target.value;
+                    if (target.dataset.type === 'bool' || target.dataset.type === 'boolean') {
+                        val = val === 'true';
+                    } else if (target.dataset.type === 'number') {
+                        val = Number(val);
+                    }
+                    changeKey(key, val);
+                }
+            });
+        });
+
+        // Warn before leaving with unsaved changes
+        window.addEventListener('beforeunload', (e) => {
+            if (isDirty) { e.preventDefault(); e.returnValue = 'You have unsaved config changes.'; }
+        });
+
+        loadConfig();
+    </script>
+</body>
+</html>

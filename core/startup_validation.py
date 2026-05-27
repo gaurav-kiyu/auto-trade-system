@@ -26,7 +26,7 @@ AUTHORITATIVE_RISK_CLASS = "RiskService"
 
 # Deprecated risk engine modules — any loaded at startup is a violation
 DEPRECATED_RISK_MODULES = {
-    "core.risk_engine": "Use core.services.risk_service.RiskService via RiskPort",
+    "core.risk_engine": "Removed in v2.54 — use core.services.risk_service.RiskService via RiskPort",
     "core.predictive_risk": "Removed",
     "core.trading_risk": "Removed",
     "core.risk.risk_policy_engine": "Removed",

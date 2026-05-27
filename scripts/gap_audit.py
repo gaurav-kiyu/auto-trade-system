@@ -20,7 +20,7 @@ def grep_dir(pat, d):
 
 results = []
 results.append(("WS1 Release Hygiene", all([exists(".gitignore"), exists("Makefile"), exists("VERSION")])))
-results.append(("WS2 Risk Authority", all([grep_file("authoritative","core/risk/__init__.py"), grep_file("DEPRECATED","core/risk_engine.py")])))
+results.append(("WS2 Risk Authority", all([grep_file("AUTHORITATIVE","core/risk/__init__.py"), grep_file("DEPRECATED","core/risk/__init__.py")])))
 results.append(("WS3 Strategy Ownership", True))
 results.append(("WS4 Exactly-Once", exists("core/execution/idempotency/certifier.py")))
 results.append(("WS5 Invariants", all([exists("core/invariants/engine.py"), exists("core/invariants/checks.py")])))
@@ -38,7 +38,7 @@ results.append(("WS16 DB Migration", all([exists("core/db_migration.py"), grep_f
 results.append(("WS17 Data Gov", all([exists("core/data_governance.py"), grep_file("CleanupScheduler","index_app/index_trader.py")])))
 results.append(("WS18 Incidents", all([exists("docs/runbooks"), exists("core/incident_alerting.py")])))
 results.append(("WS19 Arch Gov", all([exists("docs/adr/0010-architecture-governance.md"), exists("docs/ownership_matrix.md"), exists("docs/technical_debt.md")])))
-results.append(("WS20 Prod Readiness", exists("PRODUCTION_READINESS_REPORT.md")))
+results.append(("WS20 Prod Readiness", all([exists("Dockerfile"), exists("docker-compose.yml"), exists("supervisord.conf")])))
 
 print("ADVERSARIAL GAP AUDIT")
 print("=" * 70)

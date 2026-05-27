@@ -12,14 +12,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-INDEX = ROOT / "INDEX_OPTION_BUYING_APP_1.0.py"
 INDEX_IMPL = ROOT / "index_app" / "index_trader.py"
-STOCK = ROOT / "STOCK_OPTION_BUYING_APP_1.0.py"
 
 
 def test_scripts_exist():
-    assert INDEX.is_file()
-    assert STOCK.is_file()
     assert (ROOT / "index_app" / "index_trader.py").is_file()
     assert (ROOT / "index_app" / "gui" / "trader_desk.py").is_file()
     assert (ROOT / "core" / "strategy_engine.py").is_file()
@@ -38,8 +34,8 @@ def test_scripts_exist():
 @pytest.mark.slow
 def test_core_package_imports():
     code = """
-from core import DataEngine, ExecutionEngine, RiskConfig, RiskEngine, StateManager, StrategyEngine, now_ist
-assert DataEngine and ExecutionEngine and RiskConfig and RiskEngine and StateManager and StrategyEngine
+from core import DataEngine, ExecutionEngine, RiskConfig, StateManager, StrategyEngine, now_ist
+assert DataEngine and ExecutionEngine and RiskConfig and StateManager and StrategyEngine
 assert now_ist().tzinfo is None
 print("ok")
 """
@@ -63,7 +59,7 @@ import os
 import sys
 
 os.environ["OPBUYING_INDEX_CONFIG"] = r"{ROOT / 'config.json'}"
-sys.argv = ["INDEX_OPTION_BUYING_APP_1.0.py"]
+sys.argv = ["index_app/index_trader.py"]
 spec = importlib.util.spec_from_file_location("index_app_mode", r"{INDEX_IMPL}")
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
@@ -95,7 +91,7 @@ import os
 import sys
 
 os.environ["OPBUYING_INDEX_CONFIG"] = r"{ROOT / 'config.json'}"
-sys.argv = ["INDEX_OPTION_BUYING_APP_1.0.py"]
+sys.argv = ["index_app/index_trader.py"]
 spec = importlib.util.spec_from_file_location("index_app_adaptive", r"{INDEX_IMPL}")
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
@@ -136,7 +132,7 @@ import os
 import sys
 
 os.environ["OPBUYING_INDEX_CONFIG"] = r"{ROOT / 'config.json'}"
-sys.argv = ["INDEX_OPTION_BUYING_APP_1.0.py"]
+sys.argv = ["index_app/index_trader.py"]
 spec = importlib.util.spec_from_file_location("index_app_tg", r"{INDEX_IMPL}")
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
@@ -182,7 +178,7 @@ print("ok")
 
 
 def test_py_compile_both_scripts():
-    for path in (INDEX, INDEX_IMPL, STOCK):
+    for path in (INDEX_IMPL,):
         subprocess.run(
             [sys.executable, "-m", "py_compile", str(path)],
             check=True,
@@ -194,7 +190,7 @@ def test_py_compile_both_scripts():
 def test_index_selftest_exits_zero():
     env = {**os.environ, "OPBUYING_INDEX_CONFIG": str(ROOT / "config.json")}
     r = subprocess.run(
-        [sys.executable, str(INDEX), "--selftest"],
+        [sys.executable, "-m", "index_app.index_trader", "--selftest"],
         cwd=str(ROOT),
         env=env,
         capture_output=True,
@@ -207,45 +203,10 @@ def test_index_selftest_exits_zero():
 
 
 @pytest.mark.slow
-def test_stock_selftest_exits_zero():
-    env = {**os.environ, "OPBUYING_STOCK_CONFIG": str(ROOT / "stock_config.json")}
-    r = subprocess.run(
-        [sys.executable, str(STOCK), "--selftest"],
-        cwd=str(ROOT),
-        env=env,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=180,
-    )
-    assert r.returncode == 0, r.stdout + "\n" + r.stderr
 
 
-@pytest.mark.slow
-@pytest.mark.skip(reason="STOCK_OPTION_BUYING_APP_1.0 is deprecated and no longer validates config")
-def test_stock_validate_rejects_zero_scan_batch(tmp_path):
-    """Stock app is deprecated - exits with deprecation warning, no config validation."""
-    src = ROOT / "stock_config.json"
-    assert src.is_file()
-    cfg = json.loads(src.read_text(encoding="utf-8"))
-    cfg["SCAN_BATCH_SIZE"] = 0
-    bad = tmp_path / "bad_stock.json"
-    bad.write_text(json.dumps(cfg), encoding="utf-8")
-    env = {**os.environ, "OPBUYING_STOCK_CONFIG": str(bad)}
-    r = subprocess.run(
-        [sys.executable, str(STOCK), "--selftest"],
-        cwd=str(ROOT),
-        env=env,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=60,
-    )
-    assert r.returncode != 0
-    out = (r.stdout or "") + (r.stderr or "")
-    assert "SCAN_BATCH_SIZE" in out or "CONFIG ERROR" in out
+
+
 
 
 @pytest.mark.slow
@@ -258,7 +219,7 @@ import sys
 
 root = r"{ROOT}"
 os.environ["OPBUYING_INDEX_CONFIG"] = r"{ROOT / 'config.json'}"
-sys.argv = ["INDEX_OPTION_BUYING_APP_1.0.py"]
+sys.argv = ["index_app/index_trader.py"]
 spec = importlib.util.spec_from_file_location("index_app", r"{INDEX_IMPL}")
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)

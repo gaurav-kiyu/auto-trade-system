@@ -2,6 +2,7 @@
 from core.nlp_journal import (
     TradeNarrative,
     _build_prompt,
+    _classify_sentiment,
     _extract_sentiment,
     format_narrative,
     generate_trade_narrative,
@@ -108,3 +109,71 @@ def test_format_contains_summary():
     n = TradeNarrative(trade_id=1, summary="Trend was strong.", sentiment="POSITIVE", model="test")
     out = format_narrative(n)
     assert "Trend was strong." in out
+
+
+# ── _build_prompt — negative / breakeven P&L branches ─────────────────────────
+# Lines 98-105: elif net_pnl < 0 / else (breakeven)
+
+
+def test_prompt_negative_pnl():
+    trade = _trade()
+    trade["net_pnl"] = -1000.0
+    trade["exit_price"] = 150.0
+    p = _build_prompt(trade)
+    assert "NEGATIVE" in p.upper()
+    assert "Review entry conditions" in p
+
+
+def test_prompt_breakeven_zero():
+    trade = _trade()
+    trade["net_pnl"] = 0.0
+    trade["exit_price"] = 200.0
+    p = _build_prompt(trade)
+    assert "NEUTRAL" in p.upper()
+    assert "Breakeven" in p
+
+
+def test_prompt_breakeven_missing_key():
+    trade = _trade()
+    trade.pop("net_pnl", None)
+    p = _build_prompt(trade)
+    assert "NEUTRAL" in p.upper()
+    assert "Breakeven" in p
+
+
+# ── _classify_sentiment — all three branches (lines 122-126) ───────────────────
+
+
+def test_classify_sentiment_positive():
+    assert _classify_sentiment(100.0) == "POSITIVE"
+
+
+def test_classify_sentiment_negative():
+    assert _classify_sentiment(-50.0) == "NEGATIVE"
+
+
+def test_classify_sentiment_neutral():
+    assert _classify_sentiment(0.0) == "NEUTRAL"
+
+
+# ── generate_trade_narrative — negative PnL end-to-end ─────────────────────────
+
+
+def test_enabled_negative_pnl_returns_negative_sentiment():
+    trade = _trade()
+    trade["net_pnl"] = -2000.0
+    trade["exit_price"] = 100.0
+    result = generate_trade_narrative(trade, cfg={"nlp_journal_enabled": True})
+    assert result is not None
+    assert result.sentiment == "NEGATIVE"
+    assert "Review entry conditions" in result.summary
+
+
+def test_enabled_zero_pnl_returns_neutral_sentiment():
+    trade = _trade()
+    trade["net_pnl"] = 0.0
+    trade["exit_price"] = 200.0
+    result = generate_trade_narrative(trade, cfg={"nlp_journal_enabled": True})
+    assert result is not None
+    assert result.sentiment == "NEUTRAL"
+    assert "Breakeven" in result.summary

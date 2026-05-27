@@ -54,7 +54,7 @@ def _load_mod_code() -> str:
     return (
         f"import importlib.util, os, sys\n"
         f"os.environ['OPBUYING_INDEX_CONFIG'] = r'{CONFIG}'\n"
-        f"sys.argv = ['INDEX_OPTION_BUYING_APP_1.0.py']\n"
+        f"sys.argv = ['index_app/index_trader.py']\n"
         f"spec = importlib.util.spec_from_file_location('_it', r'{INDEX_IMPL}')\n"
         f"mod = importlib.util.module_from_spec(spec)\n"
         f"spec.loader.exec_module(mod)\n"

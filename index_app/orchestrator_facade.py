@@ -24,6 +24,15 @@ def build_index_orchestrator():
     if m.DATA_ENGINE is None or m.STRATEGY_ENGINE is None or m.RISK_ENGINE is None:
         raise RuntimeError("Engines not initialized — call build_index_orchestrator() after _init_runtime_engines().")
 
+    # Wrap RISK_ENGINE (RiskService instance) in backward-compatible adapter
+    from core.risk.legacy_adapter import RiskPortAdapter
+    risk_adapter = RiskPortAdapter(
+        risk_service=m.RISK_ENGINE,
+        min_volume_ratio=float(getattr(m, '_CFG', {}).get('MIN_VOLUME_RATIO', 0.0)),
+        max_spread_pct=float(getattr(m, '_CFG', {}).get('MAX_SPREAD_PCT', 1.0)),
+        max_consecutive_losses=int(getattr(m, '_CFG', {}).get('MAX_CONSECUTIVE_LOSSES', 3)),
+    )
+
     recon = ReconciliationEngine(broker_snapshot_fn=m._broker_positions_snapshot)
 
     def _names() -> list[str]:
@@ -63,7 +72,7 @@ def build_index_orchestrator():
     return Orchestrator(
         data_engine=m.DATA_ENGINE,
         strategy_engine=m.STRATEGY_ENGINE,
-        risk_engine=m.RISK_ENGINE,
+        risk_engine=risk_adapter,
         execution_engine=m.EXECUTION_ENGINE,
         state_manager=m.STATE_MANAGER,
         reconciliation_engine=recon,

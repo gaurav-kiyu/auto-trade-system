@@ -387,7 +387,8 @@ tr.sector-header td {
   Trading Dashboard v{{ version }} | Data via yfinance (REST polling) | Real-time via Socket.IO
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<!-- socket.io loaded via /static/ if available -->
+<script src="/static/socket.io.min.js"></script>
 <script>
 const socket = io();
 let allRows = [];

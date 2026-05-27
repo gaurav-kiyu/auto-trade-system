@@ -1,8 +1,7 @@
 """
 Index option trading application package.
 
-Prefer running ``python INDEX_OPTION_BUYING_APP_1.0.py`` or
-``python -m index_app.index_trader`` from the repo root.
+Run ``python -m index_app.index_trader`` from the repo root.
 """
 
 from __future__ import annotations

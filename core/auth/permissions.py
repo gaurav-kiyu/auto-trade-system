@@ -23,6 +23,7 @@ import enum
 class Role(str, enum.Enum):
     ADMIN = "admin"
     OPERATOR = "operator"
+    VIEWER = "viewer"
     OBSERVER = "observer"
     DEVELOPER = "developer"
 
@@ -55,6 +56,10 @@ _PERMISSION_MATRIX: dict[Role, set[Permission]] = {
         Permission.VIEW_STATE,
         Permission.HALT_TRADING,
         Permission.TOGGLE_STRATEGIES,
+        Permission.VIEW_LOGS,
+    },
+    Role.VIEWER: {
+        Permission.VIEW_STATE,
         Permission.VIEW_LOGS,
     },
     Role.OBSERVER: {

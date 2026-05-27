@@ -12,14 +12,13 @@ from core import DataEngine
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"
-INDEX = ROOT / "INDEX_OPTION_BUYING_APP_1.0.py"
 INDEX_IMPL = ROOT / "index_app" / "index_trader.py"
 
 
 def _load_index_module(tag: str):
     os.environ["OPBUYING_INDEX_CONFIG"] = str(ROOT / "config.json")
     argv_prev = sys.argv[:]
-    sys.argv = ["INDEX_OPTION_BUYING_APP_1.0.py"]
+    sys.argv = ["index_app/index_trader.py"]
     try:
         spec = importlib.util.spec_from_file_location(tag, INDEX_IMPL)
         module = importlib.util.module_from_spec(spec)

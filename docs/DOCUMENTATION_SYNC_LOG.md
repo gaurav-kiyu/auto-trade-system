@@ -33,13 +33,13 @@
 |------|--------|-------|
 | `SETUP_AND_TRADING_GUIDE.md` | **Reviewed** | End-to-end setup instructions — accurate for v2.53.0 |
 | `QUICK_START_GUIDE.md` | **Reviewed** | Quick start guide — accurate |
-| `LIVE_OPERATIONS_GUIDE.md` | **Reviewed** | Live operation SOP — accurate |
-| `PAPER_TO_LIVE_VALIDATION_GUIDE.md` | **Reviewed** | Paper→Live gate procedure — accurate |
+| `LIVE_OPERATIONS_GUIDE.md` | **Removed** | File no longer exists in v2.54+ (superseded by operator_sop.md) |
+| `PAPER_TO_LIVE_VALIDATION_GUIDE.md` | **Removed** | File no longer exists in v2.54+ (process integrated into live_readiness_checker.py) |
 | `LIVE_CERTIFICATION_PLAN.md` | **Reviewed** | Certification checklist — accurate |
 | `SECRETS_MIGRATION_GUIDE.md` | **Reviewed** | Secrets/env migration guide — accurate |
-| `HOW_TO_USE.txt` | **Reviewed** | Basic usage instructions — accurate |
+| `HOW_TO_USE.txt` | **Removed** | File no longer exists in v2.54+ (all usage in README.md and SETUP_AND_TRADING_GUIDE.md) |
 | `CONFIG_EXPLANATIONS.md` | **Reviewed** | Config key explanations — accurate |
-| `docs/deployment/DEPLOYMENT_GUIDE.md` | **Reviewed** | Deployment guide (direct + Docker) — accurate |
+| `docs/deployment/DEPLOYMENT_GUIDE.md` | **Reviewed** | Deployment guide (direct + Docker) — accurate, file exists |
 | `docs/AI_ENGINE_GUIDE.md` | **Reviewed** | AI Engine + Auto-Learner documentation — accurate |
 | `docs/operator_sop.md` | **Reviewed** | Standard Operating Procedure — accurate |
 

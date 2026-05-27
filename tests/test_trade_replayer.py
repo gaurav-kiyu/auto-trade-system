@@ -154,8 +154,8 @@ def test_simulate_price_bars_last_close_is_exit():
 
 def test_simulate_price_bars_tuple_format():
     bars = _simulate_price_bars(50.0, 60.0, 3)
-    ts, o, h, l, c = bars[0]
-    assert h >= l
+    ts, o, h, low_val, c = bars[0]
+    assert h >= low_val
     assert h >= c >= 0
 
 

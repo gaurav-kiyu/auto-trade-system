@@ -6,15 +6,14 @@
 #     v2.53.0: Dependency injection container wired for core services.
 # ----------------------------------------------------------------
 # INSTALL : pip install requests yfinance pandas kiteconnect pyotp
-# RUN     : python INDEX_OPTION_BUYING_APP_1.0.py               ← LIVE (shim → index_app)
-#           python -m index_app.index_trader                    ← same bot, explicit module
-#           python INDEX_OPTION_BUYING_APP_1.0.py --paper        ← PAPER/TEST
-#           python INDEX_OPTION_BUYING_APP_1.0.py --debug        ← DEBUG
-#           python INDEX_OPTION_BUYING_APP_1.0.py --selftest     ← SELFTEST
-#           python INDEX_OPTION_BUYING_APP_1.0.py --print-config ← Dump config.json
-#           python INDEX_OPTION_BUYING_APP_1.0.py --config-reset ← After BASE_CAPITAL change
-#           python INDEX_OPTION_BUYING_APP_1.0.py --report       ← Multi-session stats
-#           python INDEX_OPTION_BUYING_APP_1.0.py --export-trades ← Export trades to CSV
+# RUN     : python -m index_app.index_trader                    ← LIVE
+#           python -m index_app.index_trader --paper             ← PAPER/TEST
+#           python -m index_app.index_trader --debug             ← DEBUG
+#           python -m index_app.index_trader --selftest          ← SELFTEST
+#           python -m index_app.index_trader --print-config      ← Dump config.json
+#           python -m index_app.index_trader --config-reset      ← After BASE_CAPITAL change
+#           python -m index_app.index_trader --report            ← Multi-session stats
+#           python -m index_app.index_trader --export-trades     ← Export trades to CSV
 # USER GUIDE: HOW_TO_USE.txt (layman steps)  |  Deep guide: SETUP_AND_TRADING_GUIDE.md
 # VERIFY    : pip install -r requirements-dev.txt && python -m pytest tests -v
 # CONFIG    : optional env OPBUYING_INDEX_CONFIG=path\to\config.json (tests/CI)
@@ -325,14 +324,13 @@
 #            variables, secure config loading implemented
 # ================================================================
 # INSTALL : pip install requests yfinance pandas kiteconnect pyotp
-# RUN     : python INDEX_OPTION_BUYING_APP_1.0.py               ← LIVE (shim → index_app)
-#           python -m index_app.index_trader                    ← same bot, explicit module
-#           python INDEX_OPTION_BUYING_APP_1.0.py --paper        ← PAPER/TEST
-#           python INDEX_OPTION_BUYING_APP_1.0.py --debug        ← DEBUG
-#           python INDEX_OPTION_BUYING_APP_1.0.py --print-config ← Dump config.json (secrets redacted)
-#           python INDEX_OPTION_BUYING_APP_1.0.py --config-reset ← After BASE_CAPITAL change
-#           python INDEX_OPTION_BUYING_APP_1.0.py --report       ← Multi-session stats
-#           python INDEX_OPTION_BUYING_APP_1.0.py --export-trades ← Export trades to CSV
+# RUN     : python -m index_app.index_trader                    ← LIVE
+#           python -m index_app.index_trader --paper             ← PAPER/TEST
+#           python -m index_app.index_trader --debug             ← DEBUG
+#           python -m index_app.index_trader --print-config      ← Dump config.json (secrets redacted)
+#           python -m index_app.index_trader --config-reset      ← After BASE_CAPITAL change
+#           python -m index_app.index_trader --report            ← Multi-session stats
+#           python -m index_app.index_trader --export-trades     ← Export trades to CSV
 # USER GUIDE: HOW_TO_USE.txt (layman steps)  |  Deep guide: SETUP_AND_TRADING_GUIDE.md
 # VERIFY    : pip install -r requirements-dev.txt && python -m pytest tests -v
 # CONFIG    : optional env OPBUYING_INDEX_CONFIG=path\to\config.json (tests/CI)
@@ -1678,18 +1676,34 @@ def _exit_position(name: str, reason: str) -> None:
         log.error(f"Exit order failed for {name}: {e} — using entry price")
         exit_price = entry_price
 
-    pnl = (exit_price - entry_price) * qty
-
-    _portfolio_service.update_daily_pnl(pnl)
-    _portfolio_service.increment_trade_count()
-    from core.safety_state import record_trade_outcome
-    record_trade_outcome(was_profit=pnl > 0)
+    exit_failed = (exit_price == entry_price and reason != "MANUAL")
+    pnl = 0.0
+    if not exit_failed:
+        pnl = (exit_price - entry_price) * qty
+        _portfolio_service.update_daily_pnl(pnl)
+        _portfolio_service.increment_trade_count()
+        from core.safety_state import record_trade_outcome
+        record_trade_outcome(was_profit=pnl > 0)
 
     with _pos_lock:
-        positions.pop(name, None)
+        if exit_failed:
+            pos["exit_failed"] = True
+            pos["exit_retries"] = pos.get("exit_retries", 0) + 1
+            if pos["exit_retries"] >= 3:
+                log.error("EXIT %s FAILED after %d retries — giving up", name, pos["exit_retries"])
+                positions.pop(name, None)
+        else:
+            positions.pop(name, None)
 
-    log.info("EXIT %s @ %.2f: %s (P&L=%.0f)", name, exit_price, reason, pnl)
-    send(f"EXIT {name}: {reason} @ {exit_price:.2f} P&L={pnl:.0f}")
+    if exit_failed and pos.get("exit_retries", 0) < 3:
+        log.warning("EXIT %s failed, will retry (attempt %d)", name, pos.get("exit_retries", 0))
+        return
+
+    if not exit_failed:
+        log.info("EXIT %s @ %.2f: %s (P&L=%.0f)", name, exit_price, reason, pnl)
+        send(f"EXIT {name}: {reason} @ {exit_price:.2f} P&L={pnl:.0f}")
+    else:
+        log.error("EXIT %s GIVING UP after %d failed attempts", name, pos.get("exit_retries", 3))
 
 
 def _monitor_positions() -> None:
@@ -1713,6 +1727,17 @@ def _monitor_positions() -> None:
             direction = pos.get("direction", "CALL")
             sl_pct = float(_CFG.get("SL_PCT", 0.92))
             target_pct = float(_CFG.get("TARGET_PCT", 1.3))
+            trail_pct = float(_CFG.get("TRAIL_PCT", 0.93))
+            trail_activate_pct = float(_CFG.get("TRAIL_ACTIVATE", 1.1))
+
+            # Initialize trailing stop tracking
+            if pos.get("peak_underlying") is None:
+                pos["peak_underlying"] = current_underlying
+                pos["trail_activated"] = False
+
+            # Update peak underlying
+            if current_underlying > pos["peak_underlying"]:
+                pos["peak_underlying"] = current_underlying
 
             # Calculate move % of underlying since entry
             move_pct = (current_underlying - entry_underlying) / entry_underlying
@@ -1730,6 +1755,15 @@ def _monitor_positions() -> None:
                 if move_pct >= (target_pct - 1.0):
                     _exit_position(name, "TARGET_HIT")
                     continue
+                # Trailing stop: activate when profit threshold exceeded
+                if not pos["trail_activated"] and move_pct >= (trail_activate_pct - 1.0):
+                    pos["trail_activated"] = True
+                # Check trailing stop
+                if pos["trail_activated"]:
+                    trail_level = pos["peak_underlying"] * trail_pct
+                    if current_underlying <= trail_level:
+                        _exit_position(name, "TRAIL_HIT")
+                        continue
             else:  # PUT
                 # SL: underlying rose X% → exit
                 if move_pct >= (1.0 - sl_pct):
@@ -1743,6 +1777,14 @@ def _monitor_positions() -> None:
                 if move_pct <= -(target_pct - 1.0):
                     _exit_position(name, "TARGET_HIT")
                     continue
+                # Trailing stop (PUT): activate when profit exceeds threshold
+                if not pos["trail_activated"] and move_pct <= -(trail_activate_pct - 1.0):
+                    pos["trail_activated"] = True
+                if pos["trail_activated"]:
+                    trail_level = pos["peak_underlying"] * (2.0 - trail_pct)  # Inverted for PUT protection
+                    if current_underlying >= trail_level:
+                        _exit_position(name, "TRAIL_HIT")
+                        continue
 
             entry_time = float(pos.get("entry_time", 0))
             max_age = int(_CFG.get("MAX_POSITION_AGE", 9999))

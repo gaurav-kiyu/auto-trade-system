@@ -12,7 +12,6 @@ import pytest
 from core.adapters.broker_adapters import (
     AngelBrokerAdapter,
     BrokerRuntimeContext,
-    KiteBrokerAdapter,
     PaperBrokerAdapter,
     create_broker_adapter,
 )
@@ -95,69 +94,20 @@ class TestBrokerFailureInjection:
         pass
 
     def test_kite_broker_connection_failure(self):
-        """Test KiteBrokerAdapter behavior when connection fails."""
-        context = BrokerRuntimeContext(
-            cfg={
-                "KITE_API_KEY": "test_key",
-                "KITE_ACCESS_TOKEN": "test_token"
-            },
-            index_map={"NIFTY": {"nse": "NIFTY"}},
-            now_fn=lambda: 0,
-            log_fn=Mock(),
-            send_fn=Mock(),
-            shutdown_is_set_fn=lambda: False,
-            hard_halt_is_set_fn=lambda: False,
-            sleep_fn=lambda secs: None,
-            broker_wait_poll_sec=0.01,
-            expiry_str_fn=lambda name: "25JAN",
-        )
+        """KiteBrokerAdapter was moved to infrastructure layer in v2.54.
 
-        # Since we can't easily install kiteconnect in test environment,
-        # we'll test the adapter creation and basic structure
-        # The actual connection failure handling is tested indirectly
-
-        # Test that we can instantiate the adapter class
-        # (Actual connection would happen in __init__ but we'll mock if needed)
-        try:
-            adapter = KiteBrokerAdapter(context)
-            # If we get here, basic instantiation worked
-            assert isinstance(adapter, KiteBrokerAdapter)
-        except Exception as e:
-            # If kiteconnect is not available, that's OK for this test
-            # We're mainly testing that our test framework works
-            if "No module named 'kiteconnect'" in str(e):
-                pytest.skip("kiteconnect not available for testing")
-            else:
-                raise
+        The port-based KiteBrokerAdapter lives in infrastructure/adapters/brokers/kite/
+        with a different interface (inherits BrokerPort, not _PollingBrokerAdapter).
+        This test is skipped as the class no longer exists in core.adapters.broker_adapters.
+        Infrastructure-level Kite tests are in tests/contract/broker/."""
+        pytest.skip("KiteBrokerAdapter was moved to infrastructure layer in v2.54")
 
     def test_kite_broker_token_expired_scenario(self):
-        """Test KiteBrokerAdapter token expiration handling."""
-        # Similar to above, skip if kiteconnect not available
-        context = BrokerRuntimeContext(
-            cfg={
-                "KITE_API_KEY": "test_key",
-                "KITE_ACCESS_TOKEN": "expired_token"
-            },
-            index_map={"NIFTY": {"nse": "NIFTY"}},
-            now_fn=lambda: 0,
-            log_fn=Mock(),
-            send_fn=Mock(),
-            shutdown_is_set_fn=lambda: False,
-            hard_halt_is_set_fn=lambda: False,
-            sleep_fn=lambda secs: None,
-            broker_wait_poll_sec=0.01,
-            expiry_str_fn=lambda name: "25JAN",
-        )
+        """KiteBrokerAdapter was moved to infrastructure layer in v2.54.
 
-        try:
-            adapter = KiteBrokerAdapter(context)
-            assert isinstance(adapter, KiteBrokerAdapter)
-            # Basic functionality test - adapter should be created
-        except Exception as e:
-            if "No module named 'kiteconnect'" in str(e):
-                pytest.skip("kiteconnect not available for testing")
-            else:
-                raise
+        See test_kite_broker_connection_failure for rationale."""
+        pytest.skip("KiteBrokerAdapter was moved to infrastructure layer in v2.54")
+
 
     def test_angel_broker_connection_failure(self):
         """Test AngelBrokerAdapter behavior when connection fails."""

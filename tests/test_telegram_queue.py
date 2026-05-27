@@ -192,3 +192,109 @@ def test_update_config():
     q = make_queue()
     q.update_config({"tg_rate_limit_per_min": 50})
     assert q._cfg["tg_rate_limit_per_min"] == 50
+
+
+# ── stop() waits for important messages ──────────────────────────────────────
+
+
+def test_stop_waits_when_important_messages_pending():
+    """stop() loops sleeping 0.5s when the heap still has CRITICAL/HIGH (line 99)."""
+    import heapq
+    q = make_queue()
+    # Don't start the drain thread — CRITICAL message stays in heap
+    with q._lock:
+        heapq.heappush(q._heap, TelegramMessage(
+            priority=int(TelegramPriority.CRITICAL), ts=time.time(), text="pending"
+        ))
+    with patch("time.sleep") as mock_sleep:
+        q.stop(flush_timeout=0.2)
+    # time.sleep(0.5) in the loop should have been called because the
+    # important message was never drained (no thread).
+    assert mock_sleep.called, "stop() did not sleep waiting for important messages"
+
+
+# ── NORMAL drop with old-message expiration (lines 128-139) ──────────────────
+
+
+def test_normal_drop_expires_old_entries():
+    """NORMAL enqueue at max_depth triggers expiration then drops when still full."""
+    q = make_queue(cfg=dict(CFG, tg_max_queue_depth=3, tg_normal_drop_age_secs=0.05))
+    # Fill to max_depth with HIGH (these are never expired).
+    q.enqueue("h1", TelegramPriority.HIGH)
+    q.enqueue("h2", TelegramPriority.HIGH)
+    q.enqueue("h3", TelegramPriority.HIGH)
+    # Depth = 3, try to enqueue NORMAL → triggers expiration (128-133).
+    # Heap has only HIGH → nothing to expire → heapify (134) → still full (135-139).
+    q.enqueue("normal", TelegramPriority.NORMAL)
+    assert q.get_metrics()["dropped_normal"] >= 1
+
+
+# ── CRITICAL does not drop HIGH (line 148) ───────────────────────────────────
+
+
+def test_critical_makes_room_but_preserves_high():
+    """CRITICAL enqueue at max_depth won't evict HIGH or CRITICAL (line 148 break)."""
+    q = make_queue(cfg=dict(CFG, tg_max_queue_depth=3))
+    q.enqueue("h1", TelegramPriority.HIGH)
+    q.enqueue("h2", TelegramPriority.HIGH)
+    q.enqueue("h3", TelegramPriority.HIGH)
+    q.enqueue("critical", TelegramPriority.CRITICAL)
+    with q._lock:
+        priorities = sorted([m.priority for m in q._heap])
+    assert priorities == [0, 1, 1, 1]  # 1 CRITICAL + 3 HIGH
+    assert q.get_metrics()["dropped_high"] == 0
+
+
+# ── send_trade_entry / send_trade_close / send_circuit_breaker ───────────────
+
+
+def test_send_trade_entry_enqueues_high():
+    q = make_queue()
+    q.send_trade_entry("entry")
+    with q._lock:
+        assert any(m.priority == 1 for m in q._heap)
+
+
+def test_send_trade_close_enqueues_critical():
+    q = make_queue()
+    q.send_trade_close("close")
+    with q._lock:
+        assert any(m.priority == 0 for m in q._heap)
+
+
+def test_send_circuit_breaker_enqueues_critical():
+    q = make_queue()
+    q.send_circuit_breaker("breaker")
+    with q._lock:
+        assert any(m.priority == 0 for m in q._heap)
+
+
+# ── Rate-limit sleep (lines 215-219) ─────────────────────────────────────────
+
+
+def test_rate_wait_sleeps_when_limit_exceeded():
+    """_rate_wait() calls time.sleep when sent_this_min >= rate_limit (lines 215-219)."""
+    q = make_queue(cfg=dict(CFG, tg_rate_limit_per_min=2))
+    now = time.time()
+    q._sent_this_min = [now, now - 10]
+    with patch("time.sleep") as mock_sleep:
+        q._rate_wait()
+    assert mock_sleep.called, "rate-limit sleep not triggered"
+
+
+# ── Exception in _deliver (lines 233-234) ────────────────────────────────────
+
+
+def test_deliver_handles_send_exception():
+    """_deliver catches Exception from send_fn and retries (lines 233-234)."""
+    calls = []
+
+    def broken(text):
+        calls.append(text)
+        raise OSError("broken pipe")
+
+    q = make_queue(send_fn=broken, cfg=dict(CFG, tg_max_retries_normal=2))
+    with patch("time.sleep"):
+        q._deliver(TelegramMessage(priority=2, ts=time.time(), text="boom"))
+    # Should have attempted max_retries+1 = 3 times
+    assert len(calls) == 3

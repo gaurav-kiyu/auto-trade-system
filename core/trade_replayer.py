@@ -228,8 +228,8 @@ def _simulate_price_bars(
         price = close
     # Force last bar to exit_price
     if bars:
-        ts, o, h, l, _ = bars[-1]
-        bars[-1] = (ts, o, max(h, exit_price), min(l, exit_price), exit_price)
+        ts, o, h, low_val, _ = bars[-1]
+        bars[-1] = (ts, o, max(h, exit_price), min(low_val, exit_price), exit_price)
     return bars
 
 
@@ -398,14 +398,14 @@ def replay_trade(
     # Build ReplayFrame list; mark entry at mid, exit at last
     frames: list[ReplayFrame] = []
     entry_marked = False
-    for i, (ts, o, h, l, c_p) in enumerate(raw_bars):
+    for i, (ts, o, h, low_val, c_p) in enumerate(raw_bars):
         is_entry = (not entry_marked) and (
             abs(c_p - entry) / (entry or 1) < 0.005 or i == len(raw_bars) // 2
         )
         is_exit  = (i == len(raw_bars) - 1)
         if is_entry:
             entry_marked = True
-        frames.append(ReplayFrame(i, ts, o, h, l, c_p, is_entry, is_exit))
+        frames.append(ReplayFrame(i, ts, o, h, low_val, c_p, is_entry, is_exit))
 
     chart = _render_bar_chart(frames, entry, exit_p, sl_price, target_price, bar_width)
     verdict = _verdict(trade)

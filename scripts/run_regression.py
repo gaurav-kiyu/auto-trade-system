@@ -15,8 +15,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
-INDEX = ROOT / "INDEX_OPTION_BUYING_APP_1.0.py"
-STOCK = ROOT / "STOCK_OPTION_BUYING_APP_1.0.py"
+INDEX_IMPL = ROOT / "index_app" / "index_trader.py"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -71,14 +70,13 @@ def _check_core_imports() -> str:
         DataEngine,
         ExecutionEngine,
         RetentionEngine,
-        RiskConfig,
-        RiskEngine,
-        SafetyEngine,
+    RiskConfig,
+    SafetyEngine,
         StateManager,
         StrategyEngine,
     )
 
-    assert AuditEngine and ConfigValidator and DataEngine and ExecutionEngine and RetentionEngine and RiskConfig and RiskEngine and SafetyEngine and StateManager and StrategyEngine
+    assert AuditEngine and ConfigValidator and DataEngine and ExecutionEngine and RetentionEngine and RiskConfig and SafetyEngine and StateManager and StrategyEngine
     return "core package imports ok"
 
 
@@ -166,8 +164,8 @@ def _load_index_module(tag: str):
     os.environ["OPBUYING_INDEX_CONFIG"] = str(ROOT / "config.json")
     argv_prev = sys.argv[:]
     try:
-        sys.argv = ["INDEX_OPTION_BUYING_APP_1.0.py"]
-        spec = importlib.util.spec_from_file_location(tag, INDEX)
+        sys.argv = ["index_app/index_trader.py"]
+        spec = importlib.util.spec_from_file_location(tag, INDEX_IMPL)
         module = importlib.util.module_from_spec(spec)
         assert spec and spec.loader
         spec.loader.exec_module(module)
@@ -600,32 +598,7 @@ def _check_reconciliation_regression() -> str:
     return "reconciliation mismatch detected"
 
 
-def _check_stock_invalid_scan_batch() -> str:
-    cfg = json.loads((ROOT / "stock_config.json").read_text(encoding="utf-8"))
-    cfg["SCAN_BATCH_SIZE"] = 0
-    bad = ROOT / "_regression_bad_stock_config.json"
-    try:
-        bad.write_text(json.dumps(cfg), encoding="utf-8")
-        env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "OPBUYING_STOCK_CONFIG": str(bad)}
-        result = subprocess.run(
-            [sys.executable, str(STOCK), "--selftest"],
-            cwd=str(ROOT),
-            env=env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=90,
-        )
-        output = (result.stdout or "") + (result.stderr or "")
-        assert result.returncode != 0, output
-        assert "SCAN_BATCH_SIZE" in output or "CONFIG ERROR" in output, output
-        return "invalid stock config rejected"
-    finally:
-        try:
-            bad.unlink(missing_ok=True)
-        except Exception:
-            pass
+
 
 
 def _run_selftest(script: Path, env_key: str, cfg_name: str, timeout_sec: int) -> str:
@@ -701,8 +674,7 @@ def main() -> int:
     args = parser.parse_args()
 
     checks = [
-        ("compile index", lambda: _compile_target(INDEX)),
-        ("compile stock", lambda: _compile_target(STOCK)),
+        ("compile index", lambda: _compile_target(INDEX_IMPL)),
         ("compile core __init__", lambda: _compile_target(ROOT / "core" / "__init__.py")),
         ("compile core adapters __init__", lambda: _compile_target(ROOT / "core" / "adapters" / "__init__.py")),
         ("compile core broker adapters", lambda: _compile_target(ROOT / "core" / "adapters" / "broker_adapters.py")),
@@ -750,13 +722,12 @@ def main() -> int:
         ("index last-close fixture regression", _check_last_close_fixture_regression),
         ("index adaptive threshold regression", _check_adaptive_threshold_regression),
         ("index live signal quality regression", _check_live_signal_quality_regression),
-        ("stock invalid config regression", _check_stock_invalid_scan_batch),
+
     ]
     if args.include_selftest:
         checks.extend(
             [
-                ("index selftest", lambda: _run_selftest(INDEX, "OPBUYING_INDEX_CONFIG", "config.json", args.selftest_timeout_sec)),
-                ("stock selftest", lambda: _run_selftest(STOCK, "OPBUYING_STOCK_CONFIG", "stock_config.json", args.selftest_timeout_sec)),
+                ("index selftest", lambda: _run_selftest(INDEX_IMPL, "OPBUYING_INDEX_CONFIG", "config.json", args.selftest_timeout_sec)),
             ]
         )
 

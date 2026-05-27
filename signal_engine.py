@@ -70,15 +70,21 @@ get_vol_ratio = FeatureEngine.get_vol_ratio
 price_delta = FeatureEngine.price_delta
 
 def get_open(df: pd.DataFrame) -> float:
-    try: return float(df['Open'].iloc[-1])
+    try:
+        val: float = float(df['Open'].iloc[-1])
+        return val
     except Exception: return 0.0
 
 def get_high(df: pd.DataFrame) -> float:
-    try: return float(df['High'].iloc[-1])
+    try:
+        val: float = float(df['High'].iloc[-1])
+        return val
     except Exception: return 0.0
 
 def get_low(df: pd.DataFrame) -> float:
-    try: return float(df['Low'].iloc[-1])
+    try:
+        val: float = float(df['Low'].iloc[-1])
+        return val
     except Exception: return 0.0
 
 def get_ema_series(series: pd.Series, span: int) -> pd.Series:
@@ -114,15 +120,15 @@ def calc_support_resistance_pivot(df: pd.DataFrame) -> dict:
     """Pivot-point based support/resistance from recent price action."""
     try:
         h = float(df["High"].max())
-        l = float(df["Low"].min())
+        low_price = float(df["Low"].min())
         c = float(df["Close"].iloc[-1])
-        pivot = round((h + l + c) / 3, 2)
+        pivot = round((h + low_price + c) / 3, 2)
         return {
             "pivot": pivot,
             "support_1": round(2 * pivot - h, 2),
-            "support_2": round(pivot - (h - l), 2),
-            "resistance_1": round(2 * pivot - l, 2),
-            "resistance_2": round(pivot + (h - l), 2),
+            "support_2": round(pivot - (h - low_price), 2),
+            "resistance_1": round(2 * pivot - low_price, 2),
+            "resistance_2": round(pivot + (h - low_price), 2),
         }
     except Exception:
         return {"pivot": 0, "support_1": 0, "support_2": 0, "resistance_1": 0, "resistance_2": 0}
@@ -176,12 +182,13 @@ def calc_chandelier_exit(df: pd.DataFrame, period: int = 22, multiplier: float =
         tr = atr_series[["tr0", "tr1", "tr2"]].max(axis=1)
         atr = tr.rolling(period).mean().iloc[-1]
         
+        atr_val: float = float(atr)
         if direction in ("CALL", "UP", "BUY"):
-            highest_high = df["High"].rolling(period).max().iloc[-1]
-            return round(highest_high - atr * multiplier, 2)
+            highest_high: float = float(df["High"].rolling(period).max().iloc[-1])
+            return round(highest_high - atr_val * multiplier, 2)
         else:
-            lowest_low = df["Low"].rolling(period).min().iloc[-1]
-            return round(lowest_low + atr * multiplier, 2)
+            lowest_low: float = float(df["Low"].rolling(period).min().iloc[-1])
+            return round(lowest_low + atr_val * multiplier, 2)
     except Exception:
         return 0.0
 
@@ -330,10 +337,10 @@ def build_full_signal(
     vix: float = 0.0,
     sector: str = "",
     category: str = "",
-    tags: list = None,
+    tags: list | None = None,
     threshold: int = 60,
     learning_adj: int = 0,
-    config: dict = None,
+    config: dict | None = None,
 ) -> Optional[dict]:
     """
     Build a complete signal from raw OHLCV frames using V2 Engines.
@@ -519,7 +526,7 @@ def build_full_signal(
 # DATA VALIDATION  — Shared OHLCV cleaner
 # ═══════════════════════════════════════════════════════════════
 
-def validate_ohlcv(df: pd.DataFrame, interval: str = "1m", max_drop_ratio: float = 0.15):
+def validate_ohlcv(df: pd.DataFrame, interval: str = "1m", max_drop_ratio: float = 0.15) -> tuple[pd.DataFrame | None, int]:
     """Clean OHLCV data. Returns (clean_df, dropped_count) or (None, dropped_count)."""
     if df is None or df.empty:
         return None, 0
@@ -583,7 +590,7 @@ def explain_signal(sig: dict, asset_label: str = "Stock") -> str:
 # SCORE BREAKDOWN  — Human-readable component attribution
 # ═══════════════════════════════════════════════════════════════
 
-def score_breakdown(sig: dict, config: dict = None) -> str:
+def score_breakdown(sig: dict, config: dict | None = None) -> str:
     """
     Returns a compact one-line breakdown of which scoring components fired.
     Works with both generate_signal() output (index_trader) and
@@ -677,13 +684,13 @@ def score_breakdown(sig: dict, config: dict = None) -> str:
 
 R = chr(0x20B9)
 
-def format_pnl(val) -> str:
+def format_pnl(val: Any) -> str:
     val = _safe_num(val, 0.0)
     if val >= 0:
         return f"+{R}{round(val, 0):,.0f}"
     return f"-{R}{abs(round(val, 0)):,.0f}"
 
-def format_change(chg, pct) -> str:
+def format_change(chg: Any, pct: Any) -> str:
     chg = _safe_num(chg, 0.0)
     pct = _safe_num(pct, 0.0)
     arrow = "\u25b2" if chg >= 0 else "\u25bc"

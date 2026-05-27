@@ -77,7 +77,7 @@ def spread_sane(
 def ohlcv_bar_sane(
     o: Any,
     h: Any,
-    l: Any,
+    low: Any,
     c: Any,
     v: Any,
     *,
@@ -87,7 +87,7 @@ def ohlcv_bar_sane(
 ) -> bool:
     """Last-bar OHLCV consistency: positive H/L/V, O/C inside range, spread cap."""
     try:
-        fo, fh, fl, fc, fv = float(o), float(h), float(l), float(c), float(v)
+        fo, fh, fl, fc, fv = float(o), float(h), float(low), float(c), float(v)
     except (TypeError, ValueError):
         if name and log_fn is not None:
             log_fn(f"[SANITY] {name} rejected OHLCV (non-numeric)")

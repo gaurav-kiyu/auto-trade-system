@@ -54,7 +54,7 @@ _DEFAULTS: dict = {
     "default_mode":      "PAPER",
     "auto_launch":       False,
     "python_preference": ["py", "python", "python3"],
-    "app_script":        "INDEX_OPTION_BUYING_APP_1.0.py",
+    "app_script":        "index_app/index_trader.py",
     "extra_args":        [],
 }
 
@@ -374,7 +374,7 @@ class LauncherApp:
     def _on_launch(self) -> None:
         mode   = self._mode_var.get()
         info   = MODES[mode]
-        script = APP_DIR / _S.get("app_script", "INDEX_OPTION_BUYING_APP_1.0.py")
+        script = APP_DIR / _S.get("app_script", "index_app/index_trader.py")
 
         if not script.exists():
             messagebox.showerror(

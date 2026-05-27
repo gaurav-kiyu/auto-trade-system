@@ -16,12 +16,17 @@ from __future__ import annotations
 
 import datetime
 
+from unittest.mock import patch as _patch
+
 from core.session_classifier import (
     SessionType,
+    ExpirySessionName,
     classify_session,
     get_session_score_adj,
     session_entry_allowed,
     session_summary,
+    is_expiry_day,
+    get_expiry_session,
 )
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -307,3 +312,169 @@ class TestAdaptiveSignalSessionWiring:
         )
         if sig is not None:
             assert sig.score_components.get("session_adj", 0) == 0
+
+
+# ── Class 6: classify_session with datetime input (line 150) ─────────────
+
+
+class TestClassifySessionDatetimeInput:
+    """Covers line 150: classify_session with datetime.datetime input."""
+
+    def test_datetime_input_classified_correctly(self):
+        dt = datetime.datetime(2026, 5, 28, 10, 30)
+        assert classify_session(dt) == SessionType.TRENDING
+
+
+# ── Class 7: fallback boundary functions (lines 93-94, 107-108, 121-122) ──
+
+
+class TestFallbackBoundaryFunctions:
+    """Covers the except Exception blocks in _nse_open_time, _nse_early_end_time,
+    _nse_block_time — lines 93-94, 107-108, 121-122."""
+
+    @_patch("core.datetime_ist.nse_cash_open_time", side_effect=RuntimeError("mock"))
+    def test_nse_open_time_fallback(self, _):
+        assert classify_session(_t(9, 15)) == SessionType.OPENING
+
+    @_patch("core.datetime_ist.nse_early_session_end_time", side_effect=RuntimeError("mock"))
+    def test_nse_early_end_time_fallback(self, _):
+        assert classify_session(_t(10, 15)) == SessionType.TRENDING
+
+    @_patch("core.datetime_ist.nse_block_new_entries_from_time", side_effect=RuntimeError("mock"))
+    def test_nse_block_time_fallback(self, _):
+        assert classify_session(_t(15, 0)) == SessionType.CLOSED
+
+
+# ── Class 8: is_expiry_day (lines 297-320, including 301-302, 315-318) ────
+
+
+class TestIsExpiryDay:
+    """Covers the is_expiry_day function — lines 297-320."""
+
+    def test_nifty_not_expiry_day(self):
+        assert is_expiry_day("NIFTY", check_date=datetime.date(2026, 5, 27)) is False
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_nifty_expiry_day(self, _):
+        assert is_expiry_day("NIFTY", check_date=datetime.date(2026, 5, 28)) is True
+
+    def test_finnifty_not_expiry_day(self):
+        assert is_expiry_day("FINNIFTY", check_date=datetime.date(2026, 5, 27)) is False
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_finnifty_expiry_day(self, _):
+        assert is_expiry_day("FINNIFTY", check_date=datetime.date(2026, 5, 26)) is True
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_unknown_index_defaults_to_thursday(self, _):
+        assert is_expiry_day("FOO", check_date=datetime.date(2026, 5, 28)) is True
+        assert is_expiry_day("FOO", check_date=datetime.date(2026, 5, 27)) is False
+
+    @_patch("core.datetime_ist.now_ist", side_effect=RuntimeError("mock"))
+    def test_now_ist_fallback_to_date_today(self, _):
+        """Covers lines 301-302: now_ist() raises, falls back to date.today()."""
+        assert is_expiry_day("NIFTY") is False
+
+    @_patch("core.event_calendar._nse_holidays")
+    def test_holiday_returns_false(self, mock_h):
+        """Covers line 315: today in holidays → return False."""
+        mock_h.return_value = {datetime.date(2026, 5, 28)}
+        assert is_expiry_day("NIFTY", check_date=datetime.date(2026, 5, 28)) is False
+
+    @_patch("core.event_calendar._nse_holidays", side_effect=RuntimeError("mock"))
+    def test_holiday_exception_passes(self, _):
+        """Covers lines 317-318: exception in holiday check is swallowed."""
+        assert is_expiry_day("NIFTY", check_date=datetime.date(2026, 5, 28)) is True
+
+
+# ── Class 9: get_expiry_session (lines 333-383, including 343-344, 352-354, 383) ─
+
+
+class TestGetExpirySession:
+    """Covers the get_expiry_session function — lines 333-383."""
+
+    def test_not_expiry_day_returns_none(self):
+        """May 27 is Wednesday, not NIFTY expiry day → None."""
+        result = get_expiry_session(
+            "NIFTY", _t(10, 0), check_date=datetime.date(2026, 5, 27),
+        )
+        assert result is None
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_block_all_mode(self, _):
+        """Covers lines 343-344: expiry_day_mode=BLOCK_ALL."""
+        result = get_expiry_session(
+            "NIFTY", _t(10, 0),
+            {"expiry_day_mode": "BLOCK_ALL"},
+            check_date=datetime.date(2026, 5, 28),
+        )
+        assert result is not None
+        assert result.name == ExpirySessionName.EXPIRY_BLOCKED
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_morning_session(self, _):
+        """9:15-11:00 → EXPIRY_MORNING (default expiry_morning_end=11:00)."""
+        result = get_expiry_session(
+            "NIFTY", _t(9, 30), check_date=datetime.date(2026, 5, 28),
+        )
+        assert result is not None
+        assert result.name == ExpirySessionName.EXPIRY_MORNING
+        assert result.lot_multiplier == 0.6
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_midday_session(self, _):
+        """11:00-12:30 → EXPIRY_MIDDAY."""
+        result = get_expiry_session(
+            "NIFTY", _t(11, 30), check_date=datetime.date(2026, 5, 28),
+        )
+        assert result is not None
+        assert result.name == ExpirySessionName.EXPIRY_MIDDAY
+        assert result.lot_multiplier == 0.5
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_caution_session(self, _):
+        """12:30-13:30 → EXPIRY_CAUTION."""
+        result = get_expiry_session(
+            "NIFTY", _t(12, 45), check_date=datetime.date(2026, 5, 28),
+        )
+        assert result is not None
+        assert result.name == ExpirySessionName.EXPIRY_CAUTION
+        assert result.auto_execute_allowed is False
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_blocked_session(self, _):
+        """After 13:30 → EXPIRY_BLOCKED."""
+        result = get_expiry_session(
+            "NIFTY", _t(14, 0), check_date=datetime.date(2026, 5, 28),
+        )
+        assert result is not None
+        assert result.name == ExpirySessionName.EXPIRY_BLOCKED
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_invalid_time_config_fallback(self, _):
+        """Covers lines 352-354: _t() except block with unparseable config."""
+        result = get_expiry_session(
+            "NIFTY", _t(9, 30),
+            {"expiry_morning_end": "not-a-time"},
+            check_date=datetime.date(2026, 5, 28),
+        )
+        assert result is not None
+        assert result.name == ExpirySessionName.EXPIRY_MORNING
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_before_open_returns_none(self, _):
+        """Covers line 383: before market open (9:00) → None."""
+        result = get_expiry_session(
+            "NIFTY", _t(9, 0), check_date=datetime.date(2026, 5, 28),
+        )
+        assert result is None
+
+    @_patch("core.event_calendar._nse_holidays", return_value=set())
+    def test_datetime_input(self, _):
+        """Covers lines 338-339: hasattr(current_time, 'time') branch."""
+        dt = datetime.datetime(2026, 5, 28, 9, 30)
+        result = get_expiry_session(
+            "NIFTY", dt, check_date=datetime.date(2026, 5, 28),
+        )
+        assert result is not None
+        assert result.name == ExpirySessionName.EXPIRY_MORNING

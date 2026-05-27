@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from core import (
@@ -14,14 +15,48 @@ from core import (
     Orchestrator,
     PresentationEngine,
     ReconciliationEngine,
-    RiskConfig,
-    RiskEngine,
     SafetyConfig,
     SafetyContext,
     SafetyEngine,
     StateManager,
     StrategyEngine,
 )
+from core.ports.risk.risk_port import PortfolioRiskMetrics, RiskDecision, RiskEvaluation
+from core.risk.legacy_adapter import RiskConfig, RiskPortAdapter
+
+
+def _make_mock_risk_port(
+    position_size: int = 50,
+    available_capital: float = 100000.0,
+    consecutive_losses: int = 0,
+    used_capital: float = 0.0,
+) -> MagicMock:
+    """Create a mock RiskPort for testing purposes."""
+    mock = MagicMock()
+    mock.get_portfolio_risk_metrics.return_value = PortfolioRiskMetrics(
+        total_capital=available_capital,
+        used_capital=used_capital,
+        available_capital=available_capital,
+        daily_pnl=0.0,
+        max_daily_loss=-2000.0,
+        current_drawdown=0.0,
+        max_drawdown=0.0,
+        open_positions_count=0,
+        max_open_positions=1,
+        consecutive_losses=consecutive_losses,
+        max_consecutive_losses=3,
+        sector_exposure={},
+        symbol_exposure={},
+    )
+    mock.calculate_position_size.return_value = position_size
+    mock.evaluate_trade.return_value = RiskEvaluation(
+        decision=RiskDecision.ALLOWED,
+        reason="test",
+        risk_score=0.0,
+    )
+    mock.validate_margin_requirements.return_value = True
+    mock.health_check.return_value = {"status": "healthy", "service": "MockRiskPort"}
+    return mock
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -153,12 +188,11 @@ def test_orchestrator_runs_manual_cycle_without_breaking_existing_flow():
             "strike": 22500,
         }
     )
-    risk_engine = RiskEngine(
-        config=RiskConfig(min_volume_ratio=1.0, max_consecutive_losses=3),
-        position_size_fn=lambda name, ltp, vix=0.0: 50,
-        portfolio_risk_fn=lambda: 0.0,
-        consecutive_loss_fn=lambda: 0,
-        latency_check_fn=lambda start_ts: True,
+    risk_port_mock = _make_mock_risk_port(position_size=50)
+    risk_engine = RiskPortAdapter(
+        risk_service=risk_port_mock,
+        min_volume_ratio=1.0,
+        max_consecutive_losses=3,
     )
     state_saved = {"ok": False}
     state_manager = StateManager(save_fn=lambda: state_saved.__setitem__("ok", True), load_fn=lambda: None)
@@ -183,12 +217,11 @@ def test_orchestrator_audits_and_honors_safety_gate(tmp_path):
     audit_path = tmp_path / "audit.jsonl"
     data_engine = DataEngine(fetch_all_frames_fn=lambda names: {"NIFTY": {"1m": [1], "5m": [1], "15m": [1]}})
     strategy_engine = StrategyEngine(generate_signal_fn=lambda name, frames, vix=0.0: {"name": name, "direction": "CALL", "vol_ratio": 2.0})
-    risk_engine = RiskEngine(
-        config=RiskConfig(min_volume_ratio=1.0, max_consecutive_losses=3),
-        position_size_fn=lambda name, ltp, vix=0.0: 1,
-        portfolio_risk_fn=lambda: 0.0,
-        consecutive_loss_fn=lambda: 0,
-        latency_check_fn=lambda start_ts: True,
+    risk_port_mock = _make_mock_risk_port(position_size=1)
+    risk_engine = RiskPortAdapter(
+        risk_service=risk_port_mock,
+        min_volume_ratio=1.0,
+        max_consecutive_losses=3,
     )
     orchestrator = Orchestrator(
         data_engine=data_engine,
@@ -227,12 +260,11 @@ def test_orchestrator_reconciliation_uses_local_positions_not_broker():
             "strike": 22500,
         }
     )
-    risk_engine = RiskEngine(
-        config=RiskConfig(min_volume_ratio=1.0, max_consecutive_losses=3),
-        position_size_fn=lambda name, ltp, vix=0.0: 50,
-        portfolio_risk_fn=lambda: 0.0,
-        consecutive_loss_fn=lambda: 0,
-        latency_check_fn=lambda start_ts: True,
+    risk_port_mock = _make_mock_risk_port(position_size=50)
+    risk_engine = RiskPortAdapter(
+        risk_service=risk_port_mock,
+        min_volume_ratio=1.0,
+        max_consecutive_losses=3,
     )
     state_manager = StateManager(save_fn=lambda: None, load_fn=lambda: None)
     orchestrator = Orchestrator(
@@ -258,12 +290,11 @@ def test_orchestrator_risk_engine_blocks_trade():
     strategy_engine = StrategyEngine(
         generate_signal_fn=lambda name, frames, vix=0.0: {"name": name, "direction": "CALL", "vol_ratio": 0.1}
     )
-    risk_engine = RiskEngine(
-        config=RiskConfig(min_volume_ratio=1.0, max_consecutive_losses=3),
-        position_size_fn=lambda name, ltp, vix=0.0: 1,
-        portfolio_risk_fn=lambda: 0.0,
-        consecutive_loss_fn=lambda: 3,
-        latency_check_fn=lambda start_ts: True,
+    risk_port_mock = _make_mock_risk_port(position_size=1, consecutive_losses=3)
+    risk_engine = RiskPortAdapter(
+        risk_service=risk_port_mock,
+        min_volume_ratio=1.0,
+        max_consecutive_losses=3,
     )
     orchestrator = Orchestrator(
         data_engine=data_engine,
@@ -299,12 +330,11 @@ def test_orchestrator_verify_fill_controls_executed_flag():
     strategy_engine = StrategyEngine(
         generate_signal_fn=lambda name, frames, vix=0.0: {"name": name, "direction": "CALL", "vol_ratio": 2.0}
     )
-    risk_engine = RiskEngine(
-        config=RiskConfig(min_volume_ratio=1.0, max_consecutive_losses=3),
-        position_size_fn=lambda name, ltp, vix=0.0: 1,
-        portfolio_risk_fn=lambda: 0.0,
-        consecutive_loss_fn=lambda: 0,
-        latency_check_fn=lambda start_ts: True,
+    risk_port_mock = _make_mock_risk_port(position_size=1)
+    risk_engine = RiskPortAdapter(
+        risk_service=risk_port_mock,
+        min_volume_ratio=1.0,
+        max_consecutive_losses=3,
     )
     execution_engine = ExecutionEngine(broker_getter=lambda: _FillBrokerSimple())
     orchestrator = Orchestrator(
@@ -328,12 +358,11 @@ def test_orchestrator_skips_signals_when_market_hours_gate_false():
     strategy_engine = StrategyEngine(
         generate_signal_fn=lambda name, frames, vix=0.0: {"name": name, "direction": "CALL", "vol_ratio": 2.0}
     )
-    risk_engine = RiskEngine(
-        config=RiskConfig(min_volume_ratio=1.0, max_consecutive_losses=3),
-        position_size_fn=lambda name, ltp, vix=0.0: 1,
-        portfolio_risk_fn=lambda: 0.0,
-        consecutive_loss_fn=lambda: 0,
-        latency_check_fn=lambda start_ts: True,
+    risk_port_mock = _make_mock_risk_port(position_size=1)
+    risk_engine = RiskPortAdapter(
+        risk_service=risk_port_mock,
+        min_volume_ratio=1.0,
+        max_consecutive_losses=3,
     )
     orchestrator = Orchestrator(
         data_engine=data_engine,

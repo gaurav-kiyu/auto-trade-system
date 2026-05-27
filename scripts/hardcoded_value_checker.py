@@ -27,7 +27,6 @@ _SCAN_DIRS = ["core", "index_app"]
 
 # Global excludes — these files/patterns are never checked for any rule
 _GLOBAL_EXCLUDES = [
-    "INDEX_OPTION_BUYING_APP_1.0.py",
     "scripts/hardcoded_value_checker.py",
     "scripts/generate_config_schemas.py",
 ]

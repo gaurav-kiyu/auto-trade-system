@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-INDEX = ROOT / "INDEX_OPTION_BUYING_APP_1.0.py"
+INDEX_IMPL = ROOT / "index_app" / "index_trader.py"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -25,9 +25,9 @@ def _load_index_strategy(config_path: Path | None) -> StrategyEngine:
     if config_path:
         os.environ["OPBUYING_INDEX_CONFIG"] = str(config_path)
     argv_prev = sys.argv[:]
-    sys.argv = ["INDEX_OPTION_BUYING_APP_1.0.py", "--nogui"]
+    sys.argv = ["index_app/index_trader.py", "--nogui"]
     try:
-        spec = importlib.util.spec_from_file_location("index_backtest_module", INDEX)
+        spec = importlib.util.spec_from_file_location("index_backtest_module", INDEX_IMPL)
         module = importlib.util.module_from_spec(spec)
         assert spec and spec.loader
         spec.loader.exec_module(module)

@@ -9,6 +9,13 @@ Covers:
   - _breakdown_table: returns None on empty data; Table on non-empty
   - score_adj integration: output dir created automatically
   - CLI entry point: importable and callable
+  - _rl_imports: ImportError path (lines 62-63)
+  - _equity_curve_drawing: negative cumulative bars (line 127)
+  - Monte Carlo exception handler (lines 411-412)
+  - Benchmark timestamp extraction (lines 423-424)
+  - Benchmark table with data (lines 464-493)
+  - _cli() function (lines 511-518)
+  - __name__ == '__main__' block (line 522)
 """
 from __future__ import annotations
 
@@ -193,3 +200,135 @@ class TestBreakdownTable:
         }
         tbl = _breakdown_table(data, "Index Breakdown")
         assert isinstance(tbl, Table)
+
+
+# ── _rl_imports: ImportError path (lines 62-63) ──────────────────────────────
+
+class TestRlImports:
+    """Cover the ImportError handler in _rl_imports."""
+
+    def test_raises_import_error_when_reportlab_missing(self):
+        import sys, builtins
+        saved = {k: sys.modules.pop(k) for k in list(sys.modules) if k.startswith('reportlab')}
+        orig_import = builtins.__import__
+        def mock_import(name, *args, **kwargs):
+            if name == 'reportlab' or name.startswith('reportlab.'):
+                raise ImportError(f"No module named {name}")
+            return orig_import(name, *args, **kwargs)
+        try:
+            builtins.__import__ = mock_import
+            from core.report_generator import _rl_imports
+            with pytest.raises(ImportError, match="reportlab is required"):
+                _rl_imports()
+        finally:
+            builtins.__import__ = orig_import
+            sys.modules.update(saved)
+
+
+# ── _equity_curve_drawing: negative bar branch (line 127) ────────────────────
+
+class TestEquityCurveNegative:
+    """Cover the else-branch where bar_h < 0 (negative cumulative PnL)."""
+
+    def test_negative_cumulative_renders_bars_below_baseline(self):
+        from reportlab.graphics.shapes import Drawing
+        trades = [{"net_pnl": -500.0}, {"net_pnl": -100.0}, {"net_pnl": 200.0}]
+        d = _equity_curve_drawing(trades)
+        assert isinstance(d, Drawing)
+
+
+# ── generate_pdf_report: Monte Carlo exception handler (lines 411-412) ───────
+
+class TestMonteCarloFallback:
+    """Cover the except block that gracefully skips Monte Carlo."""
+
+    def test_skips_monte_carlo_on_exception(self, tmp_path):
+        from unittest.mock import patch
+        db = tmp_path / "trades.db"
+        _make_trades_db(db, n=20)
+        with patch('core.monte_carlo.run_simulation',
+                   side_effect=ValueError("simulation error")):
+            result = generate_pdf_report(
+                str(db), days=0, mode="ALL",
+                cfg={"report_output_dir": str(tmp_path)},
+                output_path=tmp_path / "mc_exc.pdf",
+            )
+        assert Path(result).is_file()
+
+
+# ── generate_pdf_report: benchmark with entry_ts & non-None bm (423-493) ─────
+
+class TestBenchmarkFull:
+    """Cover benchmark timestamp extraction (423-424) and table rendering (464-493)."""
+
+    def test_benchmark_with_timestamps_and_data(self, tmp_path):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        db = tmp_path / "trades.db"
+        _make_trades_db(db, n=5)
+
+        # Build trades that have entry_ts so _ts_list is non-empty
+        from core.performance_metrics import load_trades
+        trades = load_trades(str(db))
+        base = datetime.datetime(2026, 1, 2, 10, 30, 0)
+        for i, t in enumerate(trades):
+            t["entry_ts"] = (base + datetime.timedelta(days=i)).timestamp()
+
+        mock_bm = SimpleNamespace(
+            total_return_pct=5.0, max_drawdown_pct=-2.0,
+            annualized_return_pct=8.0, sharpe_ratio=0.5,
+            volatility_pct=10.0, data_source="yahoo")
+        mock_alpha = SimpleNamespace(
+            alpha_pct=2.0, information_ratio=0.3, drawdown_ratio=1.5)
+
+        with patch('core.performance_metrics.load_trades', return_value=trades):
+            with patch('core.benchmark.fetch_benchmark', return_value=mock_bm):
+                with patch('core.benchmark.compute_alpha_metrics',
+                           return_value=mock_alpha):
+                    result = generate_pdf_report(
+                        str(db), days=0, mode="ALL",
+                        cfg={"report_output_dir": str(tmp_path)},
+                        output_path=tmp_path / "bench.pdf")
+        assert Path(result).is_file()
+
+    def test_benchmark_exception_skipped_gracefully(self, tmp_path):
+        """Cover the except block that catches benchmark failures (lines 492-493)."""
+        from unittest.mock import patch
+        db = tmp_path / "trades.db"
+        _make_trades_db(db, n=5)
+        with patch('core.benchmark.fetch_benchmark',
+                   side_effect=ValueError("benchmark fetch failed")):
+            result = generate_pdf_report(
+                str(db), days=0, mode="ALL",
+                cfg={"report_output_dir": str(tmp_path)},
+                output_path=tmp_path / "bench_exc.pdf",
+            )
+        assert Path(result).is_file()
+
+
+# ── CLI entry point ──────────────────────────────────────────────────────────
+
+class TestCli:
+    """Cover the _cli() function (511-518) and __name__ == '__main__' (522)."""
+
+    def test_cli_via_function(self, tmp_path):
+        db = tmp_path / "trades.db"
+        _make_trades_db(db, n=5)
+        out = tmp_path / "cli_report.pdf"
+        from unittest.mock import patch
+        with patch('sys.argv', ["prog", "--db", str(db), "--days", "0",
+                                 "--mode", "ALL", "--out", str(out)]):
+            from core.report_generator import _cli
+            _cli()
+        assert out.is_file()
+
+    def test_cli_via_main_block(self, tmp_path):
+        import runpy
+        db = tmp_path / "trades.db"
+        _make_trades_db(db, n=5)
+        out = tmp_path / "main_report.pdf"
+        from unittest.mock import patch
+        with patch('sys.argv', ["prog", "--db", str(db), "--days", "0",
+                                 "--mode", "ALL", "--out", str(out)]):
+            runpy.run_module('core.report_generator', run_name='__main__')
+        assert out.is_file()

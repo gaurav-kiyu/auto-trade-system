@@ -10,9 +10,8 @@
 | Script | Purpose |
 |--------|---------|
 | `index_app/index_trader.py` | Main trading brain (~1,640 lines) |
-| `INDEX_OPTION_BUYING_APP_1.0.py` | Legacy single-file entry (do not modify) |
 | `launcher.py` | GUI launcher wrapper |
-| `dashboard_server.py` | Legacy dashboard server (Flask, replaced by FastAPI) |
+| `core/enterprise_dashboard.py` | Enterprise web dashboard (FastAPI + Jinja2 + RBAC) |
 | `run_backtest.py` | Offline backtest runner |
 | `run_analysis.py` | Simulation / analysis runner |
 
@@ -51,7 +50,7 @@ All 2442 tests must pass before committing any change.
 - `PORTFOLIO_MAX_SL_RISK_PCT` — portfolio-level SL cap
 - `_trip_hard_halt()` — the kill-switch function; never bypass or weaken
 - `expiry_entry_allowed()` — expiry gate; never remove
-- Position sizing logic in `get_position_size()` and `core/risk_engine.py`
+- Position sizing logic in `get_position_size()` and `core/services/risk_service.py`
 
 ## Broker Abstraction — Strict Rule
 All broker API calls MUST go through `core/adapters/broker_adapters.py`.
@@ -115,7 +114,7 @@ When `EXECUTION_MODE=PAPER` or `--paper` CLI flag is set:
 | `core/config_bootstrap.py` | Config merge + OPBUYING_* env override (Phase 7B) |
 | `core/performance_metrics.py` | Trade analytics — win rate, Sharpe, drawdown, insights |
 | `core/trade_journal.py` | Execution quality journal (slippage, delay, fill tracking) |
-| `core/risk_engine.py` | Position sizing, VIX scaling, drawdown sizing |
+| `core/services/risk_service.py` | Position sizing, VIX scaling, drawdown sizing |
 | `core/adapters/broker_adapters.py` | Broker abstraction + PaperBrokerAdapter |
 | `core/liquidity_guard.py` | Pre-entry bid-ask spread + OI + volume filter (v2.44 Item 1) |
 | `core/reentry_evaluator.py` | Per-index cooldown + score gate after stop-loss (v2.44 Item 2) |
@@ -264,13 +263,14 @@ python -m core.report_generator --days 30 --mode PAPER
 python scripts/generate_config_schemas.py
 ```
 
-## Web Dashboard (opt-in)
-Set `web_dashboard_enabled: true` in config.json to activate.
-- Runs on port 8765 (configurable via `web_dashboard_port`)
-- Auth token via `web_dashboard_auth_token` (empty = no auth)
-- Endpoints: `/`, `/health`, `/state`, `/trades`, `/signals`, `/metrics`, `/autopsy`, `/monte-carlo`
-- Additional: `GET /trades/{id}/replay`, `GET /analysis/sensitivity`, `GET /analysis/heatmap`, `GET /health/full`, `GET /readiness`
-- Control: `POST /control/pause`, `POST /control/resume`
+## Enterprise Dashboard (opt-in)
+Set `web_dashboard_enabled: true` in config.json to activate the enterprise dashboard.
+- **FastAPI + Jinja2 + RBAC auth** — runs on port 8765
+- Full admin UI: config editor, user management, kill switch, audit log
+- Auth routes: `/login`, `/register`, `/change-password`
+- API endpoints: `/api/system/state`, `/api/system/trades`, `/api/system/health`, `/api/system/signals`
+- Admin API: `/api/config/*`, `/api/auth/users/*`, `/api/system/kill`
+- Docker health: `GET /api/system/health/docker` (no auth)
 
 ## CLI Tools
 ```bash

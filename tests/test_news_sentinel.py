@@ -174,3 +174,160 @@ def test_risk_level_of_none_gives_multiplier_one():
     s = NewsSentinel(cfg=CFG)
     a = s.get_current_risk()
     assert a.score_multiplier == pytest.approx(1.0)
+
+
+# ── start() disabled / already-running branches (lines 127, 129) ─────
+
+def test_start_returns_early_when_disabled():
+    s = NewsSentinel(cfg=dict(CFG, news_sentinel_enabled=False))
+    assert s._thread is None
+    s.start()
+
+
+def test_start_returns_early_when_thread_already_alive():
+    from unittest.mock import MagicMock
+    s = NewsSentinel(cfg=dict(CFG, news_sentinel_enabled=True))
+    mock_thread = MagicMock()
+    mock_thread.is_alive.return_value = True
+    s._thread = mock_thread
+    s.start()
+
+
+# ── update_config (line 148) ─────────────────────────────────────────
+
+def test_update_config_replaces_cfg():
+    s = NewsSentinel(cfg=CFG)
+    new_cfg = dict(CFG, news_sentinel_enabled=False)
+    s.update_config(new_cfg)
+    assert s._cfg["news_sentinel_enabled"] is False
+
+
+# ── _poll_loop exception handling (lines 157-158) ────────────────────
+
+def test_poll_loop_catches_exception():
+    s = NewsSentinel(cfg=CFG)
+
+    def _raise(_self=None):
+        raise ValueError("simulated poll error")
+
+    s._run_one_poll = _raise
+
+    def _set_stop(timeout=None):
+        s._stop.set()
+
+    s._stop.wait = _set_stop
+    s._poll_loop()
+
+
+# ── _score_headline coverage (lines 211, 214, 217) ───────────────────
+
+def test_score_headline_extreme():
+    s = NewsSentinel(cfg={})
+    score, level, kws = s._score_headline("circuit breaker triggered", [])
+    assert score == 1.0
+    assert level == "EXTREME"
+    assert len(kws) > 0
+
+
+def test_score_headline_custom_extreme():
+    s = NewsSentinel(cfg={})
+    score, level, kws = s._score_headline("my_custom_crash keyword", ["my_custom_crash"])
+    assert score == 1.0
+    assert level == "EXTREME"
+    assert "my_custom_crash" in kws
+
+
+def test_score_headline_high():
+    s = NewsSentinel(cfg={})
+    score, level, kws = s._score_headline("RBI surprise rate hike today", [])
+    assert score == 0.7
+    assert level == "HIGH"
+    assert len(kws) > 0
+
+
+def test_score_headline_elevated():
+    s = NewsSentinel(cfg={})
+    score, level, kws = s._score_headline("SEBI order new regulation", [])
+    assert score == 0.3
+    assert level == "ELEVATED"
+    assert len(kws) > 0
+
+
+def test_score_headline_clear():
+    s = NewsSentinel(cfg={})
+    score, level, kws = s._score_headline("normal market movement", [])
+    assert score == 0.0
+    assert level == "CLEAR"
+    assert kws == []
+
+
+# ── MIXED sentiment (line 186) + score > best update (lines 189-198) ─
+
+def test_run_one_poll_mixed_sentiment_and_score_update():
+    s = NewsSentinel(cfg=CFG)
+
+    def mock_fetch(url):
+        return [
+            {"title": "earnings miss and rally together", "pub_ts": time.time()},
+        ]
+
+    s._fetch_rss = mock_fetch
+    s._run_one_poll()
+    risk = s.get_current_risk()
+    assert risk.risk_level == "ELEVATED"
+    assert risk.sentiment == "MIXED"
+    assert risk.headline == "earnings miss and rally together"
+    assert risk.score_multiplier == float(CFG["news_elevated_score_mult"])
+
+
+def test_run_one_poll_prefers_highest_score():
+    s = NewsSentinel(cfg=CFG)
+
+    def mock_fetch(url):
+        return [
+            {"title": "normal market update", "pub_ts": time.time()},
+            {"title": "RBI announces rate hike of 25 bps", "pub_ts": time.time()},
+        ]
+
+    s._fetch_rss = mock_fetch
+    s._run_one_poll()
+    risk = s.get_current_risk()
+    assert risk.risk_level == "HIGH"
+    assert risk.score_multiplier == float(CFG["news_high_score_mult"])
+
+
+# ── _fetch_rss error paths (lines 234-235, 238-240) ──────────────────
+
+def test_fetch_rss_bad_pub_date_logs_and_defaults_to_zero():
+    from unittest.mock import patch
+    s = NewsSentinel(cfg=CFG)
+    rss = (
+        '<?xml version="1.0"?><rss><channel><item>'
+        "<title>Test</title><pubDate>NotADate</pubDate><link>http://x</link>"
+        "</item></channel></rss>"
+    )
+    with patch("core.news_sentinel.urlopen") as m:
+        m.return_value.__enter__.return_value.read.return_value = rss.encode()
+        items = s._fetch_rss("http://example.com/rss")
+    assert len(items) == 1
+    assert items[0]["pub_ts"] == 0.0
+
+
+def test_fetch_rss_urlerror_returns_empty():
+    from unittest.mock import patch
+    from urllib.error import URLError
+    s = NewsSentinel(cfg=CFG)
+    with patch("core.news_sentinel.urlopen") as m:
+        m.side_effect = URLError("connection failed")
+        items = s._fetch_rss("http://example.com/rss")
+    assert items == []
+
+
+def test_fetch_rss_parse_error_returns_empty():
+    from unittest.mock import patch
+    import xml.etree.ElementTree as ET
+    s = NewsSentinel(cfg=CFG)
+    with patch("core.news_sentinel.urlopen") as m:
+        m.return_value.__enter__.return_value.read.return_value = b"not xml"
+        items = s._fetch_rss("http://example.com/rss")
+    assert items == []

@@ -1,6 +1,6 @@
 import ast
 
-for file_path in ['index_app/index_trader.py', 'STOCK_OPTION_BUYING_APP_1.0.py']:
+for file_path in ['index_app/index_trader.py']:
     print(f"--- {file_path} ---")
     with open(file_path, encoding='utf-8') as f:
         tree = ast.parse(f.read())

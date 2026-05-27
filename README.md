@@ -160,7 +160,7 @@ python -m pytest tests/test_smoke.py -v
 
 | Type | Files |
 |------|-------|
-| Entry Point | `index_app/index_trader.py`, `launcher.py` |
+| Entry Point | `index_app/index_trader.py`, `launcher.py`, `core/enterprise_dashboard.py` |
 | Core Services | `core/services/{execution,risk,portfolio,notification}_service.py` |
 | Adapters | `core/adapters/broker_adapters.py`, `infrastructure/adapters/` |
 | Ports | `core/ports/{broker,execution,risk,persistence}/` |
@@ -179,7 +179,7 @@ python -m pytest tests/test_smoke.py -v
 ## Support
 
 - **Configuration Guide:** `SETUP_AND_TRADING_GUIDE.md`
-- **Live Operations:** `LIVE_OPERATIONS_GUIDE.md`
+- **Enterprise Dashboard:** `core/enterprise_dashboard.py` (FastAPI + Jinja2 + RBAC)
 - **Deployment:** `docs/deployment/DEPLOYMENT_GUIDE.md`
 
 ---

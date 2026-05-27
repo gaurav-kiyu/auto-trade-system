@@ -76,10 +76,11 @@ VOLUME ["/data/db", "/data/models", "/data/reports", "/data/logs"]
 
 USER opb
 
-# Health check: verify core + hardening modules are importable
+# Health check: verify core + enterprise dashboard modules are importable,
+# then try HTTP health endpoint if dashboard is running.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "
-import sys
+import sys, urllib.request, json
 modules = [
     'core.token_refresh_service',
     'core.market_warmup',
@@ -89,10 +90,25 @@ modules = [
     'core.metrics_exporter',
     'core.safety_state',
     'core.health_checker',
+    'core.auth.handler',
+    'core.auth.csrf',
+    'core.auth.dependencies',
+    'core.auth.routes',
+    'core.enterprise_dashboard',
 ]
 for m in modules:
     __import__(m)
-print('OK')
+# Optional: check dashboard HTTP health endpoint
+try:
+    resp = urllib.request.urlopen('http://127.0.0.1:8765/api/system/health/docker', timeout=5)
+    data = json.loads(resp.read().decode())
+    if data.get('status') == 'degraded':
+        print('DEGRADED')
+        sys.exit(1)
+    print('OK')
+except (urllib.error.URLError, ConnectionRefusedError):
+    # Dashboard not running — still OK (bot may run without it)
+    print('OK (no web)')
 " || exit 1
 
 # Default: run via supervisord (manages bot + optional dashboard)

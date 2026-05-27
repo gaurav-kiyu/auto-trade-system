@@ -93,5 +93,12 @@ sbom:
 	@echo "SBOM written to ../opbuying-$(VERSION)-requirements.txt"
 	@echo "For CycloneDX format: pip install cyclonedx-bom && cyclonedx-py > ../opbuying-$(VERSION).cdx.json"
 
+# ── Enterprise Web Dashboard ──────────────────────────────────────────────────
+web:
+	python -c "from core.enterprise_dashboard import EnterpriseDashboard; d=EnterpriseDashboard(); import uvicorn; uvicorn.run(d.app, host='0.0.0.0', port=8765)"
+
+web-dev:
+	python -c "from core.enterprise_dashboard import EnterpriseDashboard; d=EnterpriseDashboard(); import uvicorn; uvicorn.run(d.app, host='127.0.0.1', port=8765, reload=True)"
+
 release: clean schemas test lint typecheck dist checksum sbom
 	@echo "Release $(VERSION) complete: ../opbuying-$(VERSION).tar.gz"

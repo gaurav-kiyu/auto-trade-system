@@ -12,7 +12,9 @@ Covers:
   - load_pnl_from_db() file-not-found guard
   - MonteCarloResult field types and value ranges
 """
+import os
 import sqlite3
+from pathlib import Path
 
 import pytest
 from core.monte_carlo import (
@@ -269,3 +271,173 @@ class TestLoadPnlFromDb:
         loaded = load_pnl_from_db(str(p), days=0, mode="PAPER")
         assert len(loaded) == 1
         assert abs(loaded[0] - 111.0) < 1e-6
+
+    def test_sqlite_error_returns_empty_list(self, tmp_path):
+        """Cover lines 351-353: sqlite3.Error in load_pnl_from_db returns []."""
+        from unittest.mock import patch
+        import sqlite3
+
+        db_path = _make_db(tmp_path, [100.0])
+
+        class _ErrorConnection:
+            def execute(self, *a, **kw):
+                raise sqlite3.Error("mock db error")
+            def close(self):
+                pass
+
+        with patch("sqlite3.connect", return_value=_ErrorConnection()):
+            result = load_pnl_from_db(db_path)
+            assert result == []
+
+
+# ── _cli() ─────────────────────────────────────────────────────────────────────
+
+class TestCli:
+    """Cover lines 378-397: _cli() entry point."""
+
+    def test_cli_no_trades_prints_message(self, tmp_path, monkeypatch, capsys):
+        """Line 389-390: No trades found path."""
+        import sys
+        from core.monte_carlo import _cli
+
+        db_path = tmp_path / "empty.db"
+        import sqlite3
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("CREATE TABLE trades (id INTEGER PRIMARY KEY, ts TEXT, net_pnl REAL, mode TEXT)")
+        conn.commit()
+        conn.close()
+
+        monkeypatch.setattr(sys, "argv", ["prog", "--db", str(db_path)])
+        _cli()
+        out, _ = capsys.readouterr()
+        assert "No trades found" in out
+
+    def test_cli_with_trades_prints_summary(self, tmp_path, monkeypatch, capsys):
+        """Lines 392-397: normal simulation path."""
+        import sys
+        from core.monte_carlo import _cli
+
+        pnls = [100.0, -50.0, 200.0, -30.0, 60.0]
+        db_path = _make_db(tmp_path, pnls)
+
+        monkeypatch.setattr(sys, "argv", ["prog", "--db", str(db_path), "--days", "0", "--n", "50", "--seed", "42"])
+        _cli()
+        out, _ = capsys.readouterr()
+        assert "Monte Carlo" in out
+        assert "Prob of Profit" in out or "Prob>0" in out or "Drawdown" in out
+
+    def test_cli_mode_all(self, tmp_path, monkeypatch, capsys):
+        """--mode ALL should work (mode becomes None)."""
+        import sys
+        from core.monte_carlo import _cli
+
+        db_path = _make_db(tmp_path, [100.0, 200.0])
+
+        monkeypatch.setattr(sys, "argv", ["prog", "--db", str(db_path), "--days", "0", "--mode", "ALL", "--n", "10"])
+        _cli()
+        out, _ = capsys.readouterr()
+        assert "Monte Carlo" in out
+
+    def test_cli_days_zero(self, tmp_path, monkeypatch, capsys):
+        """--days 0 should work."""
+        import sys
+        from core.monte_carlo import _cli
+
+        db_path = _make_db(tmp_path, [50.0, -20.0])
+
+        monkeypatch.setattr(sys, "argv", ["prog", "--db", str(db_path), "--days", "0", "--n", "10"])
+        _cli()
+        out, _ = capsys.readouterr()
+        assert "Monte Carlo" in out
+
+    def test_cli_default_args(self, tmp_path, monkeypatch, capsys):
+        """Default arguments (no --n, --seed, etc.) should work."""
+        import sys
+        from core.monte_carlo import _cli
+
+        db_path = _make_db(tmp_path, [100.0])
+
+        monkeypatch.setattr(sys, "argv", ["prog", "--db", str(db_path), "--days", "0", "--n", "10"])
+        _cli()
+        out, _ = capsys.readouterr()
+        assert "Monte Carlo" in out
+
+    def test_cli_live_mode(self, tmp_path, monkeypatch, capsys):
+        """--mode LIVE should filter correctly."""
+        import sys
+        import sqlite3
+        from core.monte_carlo import _cli
+
+        db_path = tmp_path / "live.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("CREATE TABLE trades (id INTEGER PRIMARY KEY, ts TEXT, net_pnl REAL, mode TEXT)")
+        conn.execute("INSERT INTO trades (ts, net_pnl, mode) VALUES ('2025-01-01T00:00:00', 100.0, 'LIVE')")
+        conn.execute("INSERT INTO trades (ts, net_pnl, mode) VALUES ('2025-01-02T00:00:00', -50.0, 'PAPER')")
+        conn.commit()
+        conn.close()
+
+        monkeypatch.setattr(sys, "argv", ["prog", "--db", str(db_path), "--days", "0", "--mode", "LIVE", "--n", "10"])
+        _cli()
+        out, _ = capsys.readouterr()
+        assert "Monte Carlo" in out
+
+
+# ── __main__ guard ─────────────────────────────────────────────────────────────
+
+class TestMainGuard:
+    """Cover line 401: the `if __name__ == "__main__"` block."""
+
+    @pytest.mark.filterwarnings("ignore:.*found in sys.modules.*:RuntimeWarning")
+    def test_main_guard_line(self):
+        """Cover the `__name__ == '__main__'` guard line 401 via runpy."""
+        import runpy
+        import sys
+        import io
+
+        saved_argv = sys.argv
+        saved_stdout = sys.stdout
+        try:
+            sys.argv = ["core.monte_carlo", "--help"]
+            sys.stdout = io.StringIO()
+            runpy.run_module("core.monte_carlo", run_name="__main__", alter_sys=True)
+        except SystemExit:
+            pass
+        finally:
+            sys.argv = saved_argv
+            sys.stdout = saved_stdout
+
+    def test_module_as_main(self, tmp_path):
+        """Run the module as __main__ via subprocess."""
+        import subprocess
+        import sys
+
+        db_path = _make_db(tmp_path, [100.0, -50.0, 200.0])
+
+        env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+        result = subprocess.run(
+            [sys.executable, "-m", "core.monte_carlo", "--db", str(db_path), "--days", "0", "--n", "10", "--seed", "42"],
+            capture_output=True, encoding="utf-8", env=env,
+            cwd=str(Path(__file__).resolve().parent.parent),
+        )
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        assert "Monte Carlo" in result.stdout
+
+    def test_module_as_main_no_trades(self, tmp_path):
+        """Run as __main__ with no trades in DB."""
+        import subprocess
+        import sys
+        import sqlite3
+
+        db_path = tmp_path / "empty2.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("CREATE TABLE trades (id INTEGER PRIMARY KEY, ts TEXT, net_pnl REAL, mode TEXT)")
+        conn.commit()
+        conn.close()
+
+        result = subprocess.run(
+            [sys.executable, "-m", "core.monte_carlo", "--db", str(db_path)],
+            capture_output=True, encoding="utf-8", errors="replace",
+            cwd=str(Path(__file__).resolve().parent.parent),
+        )
+        assert result.returncode == 0
+        assert "No trades found" in result.stdout
