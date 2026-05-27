@@ -371,8 +371,11 @@ class TestIsExpiryDay:
         assert is_expiry_day("FOO", check_date=datetime.date(2026, 5, 27)) is False
 
     @_patch("core.datetime_ist.now_ist", side_effect=RuntimeError("mock"))
-    def test_now_ist_fallback_to_date_today(self, _):
-        """Covers lines 301-302: now_ist() raises, falls back to date.today()."""
+    @_patch("core.session_classifier.datetime.date")
+    def test_now_ist_fallback_to_date_today(self, mock_date, _):
+        """Covers lines 301-302: now_ist() raises, falls back to date.today().
+        Mock date.today() to a non-expiry day (Wednesday) to make test deterministic."""
+        mock_date.today.return_value = datetime.date(2026, 5, 27)
         assert is_expiry_day("NIFTY") is False
 
     @_patch("core.event_calendar._nse_holidays")

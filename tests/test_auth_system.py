@@ -1135,11 +1135,13 @@ class TestSecurityBoundaries:
         handler = auth_handler
         token = handler.create_password_reset_token("testuser")
         assert token is not None
-        # Simulate expiry by manipulating
-        with handler._lock:
-            reset = handler._password_reset_tokens.get(token)
-            if reset:
-                reset.expires_ts = 0
+        # Simulate expiry by manipulating the DB directly
+        t_hash = __import__("hashlib").sha256(token.encode()).hexdigest()
+        conn = handler._get_conn()
+        handler._init_password_reset_table(conn)
+        conn.execute("UPDATE password_reset_tokens SET expires_ts = 0 WHERE token_hash = ?", (t_hash,))
+        conn.commit()
+        conn.close()
         assert handler.verify_password_reset_token(token) is None
 
     def test_password_reset_token_one_time(self, auth_handler, test_user):

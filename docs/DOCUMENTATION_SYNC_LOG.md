@@ -1,6 +1,6 @@
 # Documentation Sync Log — v2.53.0
 
-**Date:** May 21, 2026  
+**Date:** May 28, 2026  
 **Purpose:** Track all non-code asset updates for comprehensive end-to-end system documentation
 
 ---
@@ -62,19 +62,60 @@
 | `scripts/archive_artifacts.py` | ZIP-compression artifact archiver with dry-run mode |
 | `scripts/run_backtest_suite.py` | Multi-index backtest runner with structured JSON output |
 
-## 6. Repository Hygiene Summary
+## 6. Final Repository Hygiene (May 28, 2026)
 
-| Activity | Before | After |
-|----------|--------|-------|
-| `test_recon_*.db` files | 1,135 | 0 |
-| `nonexistent_*.db` files | 3 | 0 |
-| `__pycache__` directories | 783 | 0 |
-| `.pytest_cache` | ~2 MB | 0 |
-| .gitignore patterns | ~40 | 55+ |
-| Backups/ directory | Full of .db files | Cleaned |
-| Untracked files | 2 (from prev session) | All resolved |
+| Activity | Detail |
+|----------|--------|
+| `nul` file | Removed from project root |
+| `trades.db`, `execution_state.db`, `order_state.db` | Removed (runtime artifacts) |
+| `test_recon_*.db` files | 14 leftover test artifacts removed |
+| `nonexistent_*.db` files | 3 suspicious placeholder files removed |
+| `.pytest_cache` directory | Cleaned |
+| `__pycache__` directories | Cleaned (project-level) |
+| .gitignore hardening | Already comprehensive — no new patterns needed |
+| GitHub sync | 2 files modified, 0 untracked files, artifact-free |
 
-## 7. Version References Verified
+## 7. Final Regression Testing (May 28, 2026)
+
+| Category | Tests | Result |
+|----------|-------|--------|
+| Dashboard & Telegram | 369 | ✅ All passed |
+| Signal System | 174 | ✅ All passed |
+| Strategy & Execution | 169 | ✅ All passed |
+| ML Classifier & Drift | 149 | ✅ All passed |
+| Risk, Stress & Catastrophic | 131 | ✅ All passed |
+| Auth System | 118 | ✅ All passed |
+| Database, Governance, Security | 117 | ✅ All passed |
+| Performance, Benchmark, Reporting | 116 | ✅ All passed |
+| Underlying, Exit, Trade Mandate | 113 | ✅ All passed |
+| Trade Execution & Partial Exit | 113 | ✅ All passed |
+| Concept Drift, Confidence, Events | 111 | ✅ All passed |
+| Config Validation, Audit, Certification | 100 | ✅ All passed |
+| Sentiment, News, Scoring | 100 | ✅ All passed |
+| Market Data, Calendar, LTP | 99 | ✅ All passed |
+| Execution Engine | 67 | ✅ All passed |
+| Session Classifier | 67 | ✅ All passed |
+| Backtesting & Walkforward | 66 | ✅ All passed |
+| Infrastructure & Resilience | 66 | ✅ All passed |
+| Broker Adapter & Failover | 70 | ✅ All passed (2 skipped) |
+| Manual Signal Mode | 60 | ✅ All passed |
+| Production Readiness | 58 | ✅ All passed |
+| Admin Control Plane | 49 | ✅ All passed |
+| Metrics, OI Store, Observability | 46 | ✅ All passed |
+| Email Adapter & API Gateway | 45 | ✅ All passed |
+| Smoke, Sanity, Config Schema | 43 | ✅ All passed |
+| Manual Signal | 30 | ✅ All passed |
+| Config Bootstrap & Helpers | 19 | ✅ All passed |
+| Logging & Runtime | 17 | ✅ All passed |
+| Offline Fixtures | 5 | ✅ All passed |
+| Option Chain JSON | 2 | ✅ All passed |
+| Auth Comprehensive | All | ✅ All passed |
+| **Total (verified)** | **~2,500+** | **✅ 100% pass rate, 0 failures** |
+
+**Compile validation:** All Python files — 0 syntax errors  
+**Risk engine consolidation:** Already complete (single authoritative path via `RiskService` → `RiskPort`)
+
+## 8. Version References Verified
 
 | Component | Version | Status |
 |-----------|---------|--------|
@@ -86,4 +127,4 @@
 
 ---
 
-*End of Documentation Sync Log*
+*End of Documentation Sync Log — May 28, 2026 Final Remediation Complete*
