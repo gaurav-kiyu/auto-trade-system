@@ -45,6 +45,7 @@ secrets.enc
 # ── Virtual environments ──────────────────────────────────────────────────────
 .venv/
 venv/
+.python-version
 
 # ── Test / Coverage ───────────────────────────────────────────────────────────
 htmlcov/

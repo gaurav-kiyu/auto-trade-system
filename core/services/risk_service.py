@@ -72,9 +72,7 @@ class RiskService(RiskPort):
 
     Consolidates functionality from:
     - core/risk_engine.py (removed in v2.54)
-    - core/risk_engine.py (removed in v2.54)
-    - core/trading_risk.py
-    - Various risk checks throughout the codebase
+    - Various legacy risk checks throughout the codebase
     """
 
     def __init__(
@@ -142,9 +140,8 @@ class RiskService(RiskPort):
     ) -> RiskEvaluation:
         """
         NOTE: Primary evaluate_trade. This is the authoritative implementation.
-        See also: core/risk_engine.py::RiskEngine.evaluate() for the
-        unified risk engine variant, and core/domains/risk/service.py for
-        the clean-architecture variant. All should produce consistent results.
+        Risk decisions route through RiskPort → RiskService per the architecture
+        declared in core/risk/__init__.py.
 
         Args:
             symbol: Trading symbol

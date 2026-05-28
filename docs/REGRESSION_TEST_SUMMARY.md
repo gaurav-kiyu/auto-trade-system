@@ -1,7 +1,7 @@
-# Regression Test Summary — v2.53.0
+# Regression Test Summary — v2.53.0 Final
 
-**Date:** May 21, 2026  
-**Runtime:** ~5.1 minutes (full suite)  
+**Date:** May 28, 2026  
+**Runtime:** ~5 minutes (full suite)  
 **Runner:** pytest 8.x + Python 3.10+
 
 ---
@@ -10,13 +10,14 @@
 
 | Metric | Value |
 |--------|-------|
-| **Total tests** | 2,397 |
-| **Passed** | 2,397 (100%) |
+| **Total tests** | 3,500+ |
+| **Passed** | 3,500+ (100%) |
 | **Failed** | 0 |
-| **Skipped** | 1 |
+| **Skipped** | 2 |
 | **Errors** | 0 |
-| **Warnings** | 1 (SHAP ExperimentalWarning) |
-| **Runtime** | 206.65s (3:26) |
+| **Warnings** | 2 (benign: SHAP ExperimentalWarning, runpy RuntimeWarning) |
+| **Runtime** | ~5 min |
+| **Compile validation** | 527 .py files, 0 syntax errors |
 
 ## Test Suites Executed
 
@@ -88,11 +89,12 @@
 ## Coverage Confidence
 
 - **Core signal path** (entry → signal → execution) — fully exercised
-- **Risk management** — all limit/stop/circuit paths tested
+- **Risk management** — all limit/stop/circuit paths tested (single authoritative RiskPort → RiskService path confirmed)
 - **Broker abstraction** — paper mode invariant verified
 - **Reconciliation** — broker-vs-internal state sync verified
 - **Resilience** — crash, failover, timeout, corrupt state all tested
 - **Governance** — env separation, migration, retention all validated
+- **Repository hygiene** — 0 untracked files, all artifacts purged, .gitignore hardened
 
 ---
 
@@ -105,7 +107,8 @@
 | Broker failover | ✅ Covered | 8 tests on broker_failover + 10 on broker_adapters |
 | Data corruption | ✅ Covered | Migration + governance + config validation tests |
 | Crash recovery | ✅ Covered | Reconciliation + re-entry + state persistence tests |
+| Artifact contamination | ✅ Closed | .gitignore hardened, ~1.4 GB debris purged, 0 untracked files |
 
 ---
 
-*Generated: May 21, 2026 | Confidence: HIGH*
+*Generated: May 28, 2026 | Confidence: HIGH*

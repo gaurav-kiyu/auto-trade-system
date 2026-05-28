@@ -9,8 +9,6 @@ interfaces, making this service easy to test and maintain.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 
 from core.datetime_ist import now_ist
@@ -21,36 +19,6 @@ _log = logging.getLogger(__name__)
 from core.domains.risk.model import MarketConditions, PortfolioRiskMetrics, Position, RiskDecision, RiskLimits
 
 # Import shared kernels
-
-
-@dataclass
-class RiskDecision:
-    """Result of risk evaluation."""
-    allowed: bool
-    reason: str = ""
-    suggested_size: int = 0
-    risk_metrics: dict[str, Any] | None = None
-
-
-@dataclass
-class Position:
-    """Trading position."""
-    symbol: str
-    quantity: int  # Positive for long, negative for short
-    average_price: float
-    market_value: float
-    unrealized_pnl: float
-    realized_pnl: float
-    timestamp: datetime = None
-
-
-@dataclass
-class MarketConditions:
-    """Current market conditions."""
-    volatility: float = 0.0
-    liquidity: str = "NORMAL"  # HIGH, NORMAL, LOW
-    trend: str = "NEUTRAL"     # BULLISH, BEARISH, NEUTRAL
-    volume_profile: str = "NORMAL"  # HIGH, NORMAL, LOW
 
 
 class RiskService:
