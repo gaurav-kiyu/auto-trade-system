@@ -13,12 +13,13 @@ def normalize_execution_mode(raw: Any) -> str:
         "AUTO_LIVE": "AUTO",
         "BROKER": "AUTO",
         "MANUAL_ONLY": "MANUAL",
-        "SIGNALS_ONLY": "MANUAL",
+        "SIGNALS_ONLY": "SIGNAL_ONLY",
+        "SIGNALS": "SIGNAL_ONLY",
         "PAPER_MODE": "PAPER",
         "SIM": "PAPER",
     }
     mode = alias_map.get(mode, mode)
-    return mode if mode in ("PAPER", "MANUAL", "AUTO", "SIGNALS") else "MANUAL"
+    return mode if mode in ("PAPER", "MANUAL", "AUTO", "SIGNAL_ONLY") else "MANUAL"
 
 
 def apply_execution_mode(
@@ -58,7 +59,10 @@ def apply_execution_mode(
     elif mode == "AUTO":
         cfg["MANUAL_SIGNALS_ONLY"] = False
         cfg["BROKER_API_ENABLED"] = True
-    else:  # SIGNALS
-        cfg["MANUAL_SIGNALS_ONLY"] = False
+    elif mode == "SIGNAL_ONLY":
+        cfg["MANUAL_SIGNALS_ONLY"] = True
+        cfg["BROKER_API_ENABLED"] = False
+    else:  # fallback — MANUAL
+        cfg["MANUAL_SIGNALS_ONLY"] = True
         cfg["BROKER_API_ENABLED"] = False
     return cfg

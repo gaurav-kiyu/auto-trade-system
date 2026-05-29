@@ -59,11 +59,11 @@ def test_manual_only_alias_infer_blank_broker_off():
     assert cfg["BROKER_API_ENABLED"] is False
 
 
-def test_signals_only_alias_infer_blank_broker_off():
-    """SIGNALS_ONLY with infer_blank=True and broker off → MANUAL + MSO=True."""
+def test_signals_only_alias_becomes_signal_only():
+    """SIGNALS_ONLY with infer_blank=True and broker off → SIGNAL_ONLY + MSO=True."""
     cfg = {"EXECUTION_MODE": "SIGNALS_ONLY", "MANUAL_SIGNALS_ONLY": False, "BROKER_API_ENABLED": False}
     apply_execution_mode(cfg, cli_paper=False, infer_blank_from_broker=True)
-    assert cfg["EXECUTION_MODE"] == "MANUAL"
+    assert cfg["EXECUTION_MODE"] == "SIGNAL_ONLY"
     assert cfg["MANUAL_SIGNALS_ONLY"] is True
     assert cfg["BROKER_API_ENABLED"] is False
 
@@ -79,10 +79,10 @@ def test_manual_only_alias_infer_blank_broker_on():
 
 
 def test_signals_only_alias_infer_blank_broker_on():
-    """SIGNALS_ONLY is not blank — infer step skipped; alias → MANUAL regardless of broker flag."""
+    """SIGNALS_ONLY is not blank — infer step skipped; alias → SIGNAL_ONLY regardless of broker flag."""
     cfg = {"EXECUTION_MODE": "SIGNALS_ONLY", "MANUAL_SIGNALS_ONLY": False, "BROKER_API_ENABLED": True}
     apply_execution_mode(cfg, cli_paper=False, infer_blank_from_broker=True)
-    assert cfg["EXECUTION_MODE"] == "MANUAL"
+    assert cfg["EXECUTION_MODE"] == "SIGNAL_ONLY"
     assert cfg["MANUAL_SIGNALS_ONLY"] is True
     assert cfg["BROKER_API_ENABLED"] is False
 

@@ -1,0 +1,10 @@
+v2.53.0 governance: Priority 3 — SIGNAL_ONLY first-class execution mode
+
+Changes:
+- normalize_execution_mode(): SIGNALS_ONLY & SIGNALS map to SIGNAL_ONLY (canonical)
+- apply_execution_mode(): Handle SIGNAL_ONLY with MSO=True, API=False
+- config_validator.py: Add SIGNAL_ONLY to _VALID_EXECUTION_MODES
+- index_trader.py: Both _make_broker() and enter_trade() conditionals include
+  SIGNAL_ONLY alongside SIGNALS_ONLY for backward compat
+- tests: Updated assertions, added SIGNAL_ONLY canonical + SIGNALS alias tests
+- All 94 relevant tests pass, architecture compliance clean
