@@ -8,19 +8,17 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from core.auth.csrf import CSRF_COOKIE_NAME, CSRF_HEADER_NAME, csrf_protection
+from core.auth.csrf import CSRF_COOKIE_NAME
 from core.auth.dependencies import AuthDependencies, get_client_ip
 from core.auth.handler import (
-    AuthHandler,
-    AuthUser,
     SESSION_COOKIE_NAME,
+    AuthHandler,
+    AuthToken,
+    AuthUser,
     generate_csrf_token,
 )
-from core.auth.handler import AuthToken
-from core.auth.permissions import Role
 
 _log = logging.getLogger(__name__)
 

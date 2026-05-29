@@ -349,20 +349,20 @@ def _cli() -> None:
     if args.reset:
         tester.reset()
         tester.save_state(args.state)
-        print("A/B state reset.")
+        _log.info("A/B state reset.")
         return
 
     result = tester.get_comparison()
     print(result.summary)
-    print(f"\nControl:  {result.control.n_trades} trades, "
+    _log.info(f"\nControl:  {result.control.n_trades} trades, "
           f"win_rate={result.control.win_rate*100:.1f}%, "
           f"pf={result.control.profit_factor:.3f}, "
           f"sharpe={result.control.sharpe:.3f}")
-    print(f"Variant:  {result.variant.n_trades} trades, "
+    _log.info(f"Variant:  {result.variant.n_trades} trades, "
           f"win_rate={result.variant.win_rate*100:.1f}%, "
           f"pf={result.variant.profit_factor:.3f}, "
           f"sharpe={result.variant.sharpe:.3f}")
-    print(f"\np-value={result.p_value:.6f}, "
+    _log.info(f"\np-value={result.p_value:.6f}, "
           f"significant={'YES' if result.is_significant else 'NO'}, "
           f"winner={result.winner}")
 

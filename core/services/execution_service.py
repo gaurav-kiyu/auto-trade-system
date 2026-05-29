@@ -29,6 +29,7 @@ from core.ports.execution.execution_port import (
     ExecutionAuditTrail,
     ExecutionContext,
     ExecutionMode,
+    ExecutionPort,
     OrderRequest,
     OrderResult,
     OrderStatus,
@@ -52,7 +53,7 @@ class ExecutionServiceConfig:
     paper_fill_delay_ms: int = 50
     paper_fill_slippage_pct: float = 0.05
 
-class ExecutionService:
+class ExecutionService(ExecutionPort):
     """
     Hardened Execution Service.
     Orchestrates the flow from Risk Validation -> Order Management -> Broker Gateway.
@@ -919,9 +920,8 @@ class ExecutionService:
                     state_machine.record_acknowledgment()
                     self._logger.debug("state after record_acknowledgment: %s", state_machine.state)
                 except Exception as ex:
+                    _log.warning("[EXEC] State machine advancement failed: %s", ex)
                     # Best effort - continue to record fill
-                    self._logger.debug("exception while advancing state machine: %s", ex)
-                    pass
 
                 self._logger.debug("calling record_fill with qty=%s price=%s", order_request.lot_size, order_request.strike_price)
                 state_machine.record_fill(order_request.lot_size, order_request.strike_price)

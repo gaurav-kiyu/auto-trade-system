@@ -50,7 +50,7 @@ class OrderManager:
     def _init_durable_storage(self) -> None:
         """Initialize SQLite persistence for orders (Phase 0 fix)."""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with sqlite3.connect(self.PERSISTENCE_PATH, timeout=10) as conn:
                 table_info = list(conn.execute("PRAGMA table_info(orders)"))
                 if table_info:
                     broker_pk = next((row for row in table_info if row[1] == "broker_order_id"), None)
@@ -113,7 +113,7 @@ class OrderManager:
                 "tag": order.request.tag,
                 "idempotency_key": order.request.idempotency_key,
             }, default=str)
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with sqlite3.connect(self.PERSISTENCE_PATH, timeout=10) as conn:
                 conn.execute("""
                     INSERT OR REPLACE INTO orders
                     (intent_id, broker_order_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text)
@@ -136,7 +136,7 @@ class OrderManager:
     def _load_orders_from_disk(self) -> None:
         """Load in-flight orders from disk on startup."""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with sqlite3.connect(self.PERSISTENCE_PATH, timeout=10) as conn:
                 cursor = conn.execute("""
                     SELECT broker_order_id, intent_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text
                     FROM orders

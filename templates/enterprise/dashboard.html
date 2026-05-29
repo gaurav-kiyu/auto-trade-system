@@ -136,6 +136,7 @@
             <div class="nav-item" data-page="trading"><i class="fas fa-chart-line"></i> Positions</div>
             <div class="nav-item" data-page="signals"><i class="fas fa-bolt"></i> Signals</div>
             <div class="nav-item" data-page="risk"><i class="fas fa-shield-alt"></i> Risk</div>
+            <div class="nav-item" data-page="oi"><i class="fas fa-database"></i> OI Data</div>
             <div class="nav-section">System</div>
             <div class="nav-item" data-page="health"><i class="fas fa-heartbeat"></i> Health</div>
             <div class="nav-item" data-page="broker"><i class="fas fa-exchange-alt"></i> Broker</div>
@@ -185,6 +186,7 @@
         <div id="page-health" class="page"><div id="healthContent"><div class="empty-state"><p>Loading health...</p></div></div></div>
         <div id="page-broker" class="page"><div id="brokerContent"><div class="empty-state"><p>Loading broker data...</p></div></div></div>
         <div id="page-ml" class="page"><div id="mlContent"><div class="empty-state"><p>Loading ML data...</p></div></div></div>
+        <div id="page-oi" class="page"><div id="oiContent"><div class="empty-state"><p>Loading OI data...</p></div></div></div>
         <div id="page-users" class="page"><div id="usersContent"><div class="empty-state"><p>Loading user management...</p></div></div></div>
         <div id="page-config" class="page"><div id="configContent"><div class="empty-state"><p>Loading config editor...</p></div></div></div>
         <div id="page-kill-switch" class="page"><div id="killSwitchContent"><div class="empty-state"><p>Loading kill switch...</p></div></div></div>
@@ -275,7 +277,7 @@
             if (nav) nav.classList.add('active');
             const titles = {
                 overview: 'Dashboard', trading: 'Positions', signals: 'Signals', risk: 'Risk',
-                health: 'Health', broker: 'Broker', ml: 'ML',
+                oi: 'OI Data', health: 'Health', broker: 'Broker', ml: 'ML',
                 users: 'User Management', config: 'Configuration', 'kill-switch': 'Kill Switch',
                 'system-state': 'System State', logs: 'Audit Log'
             };
@@ -283,10 +285,11 @@
             const subs = {
                 overview: 'System overview and key metrics', trading: 'Live positions and orders',
                 signals: 'Signal diagnostics and feed', risk: 'Risk controls and exposure',
-                health: 'System health and dependencies', broker: 'Broker connectivity and status',
-                ml: 'ML model status and metrics', users: 'Manage users and roles',
-                config: 'System configuration management', 'kill-switch': 'Emergency system halt',
-                'system-state': 'System diagnostics and version info', logs: 'Authentication and activity audit'
+                oi: 'Options chain OI and PCR data', health: 'System health and dependencies',
+                broker: 'Broker connectivity and status', ml: 'ML model status and metrics',
+                users: 'Manage users and roles', config: 'System configuration management',
+                'kill-switch': 'Emergency system halt', 'system-state': 'System diagnostics and version info',
+                logs: 'Authentication and activity audit'
             };
             document.getElementById('pageSubtitle').textContent = subs[page] || '';
             loadPageData(page);
@@ -296,8 +299,8 @@
         function loadPageData(page) {
             const fns = {
                 overview: loadOverview, trading: loadTrading, signals: loadSignals, risk: loadRisk,
-                health: loadHealth, broker: loadBroker, ml: loadML, users: loadUsers,
-                config: loadConfigPage, 'kill-switch': loadKillSwitch,
+                oi: loadOI, health: loadHealth, broker: loadBroker, ml: loadML,
+                users: loadUsers, config: loadConfigPage, 'kill-switch': loadKillSwitch,
                 'system-state': loadSystemState, logs: loadLogs
             };
             const fn = fns[page];
@@ -338,7 +341,7 @@
             if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.visible').forEach(m => m.classList.remove('visible')); return; }
             if (e.key === '?' || e.key === 'h') { document.getElementById('shortcutsModal').classList.toggle('visible'); return; }
             if (e.key === 'a' && !e.ctrlKey && !_navBuffer) { toggleAutoRefresh(); return; }
-            const pages = ['overview','trading','signals','risk','health','broker','ml','users','config','kill-switch','system-state','logs'];
+            const pages = ['overview','trading','signals','risk','oi','health','broker','ml','users','config','kill-switch','system-state','logs'];
             if (e.key >= '1' && e.key <= '9' && !_navBuffer) { const idx = parseInt(e.key)-1; if (idx < pages.length) navigate(pages[idx]); return; }
             if (e.key === 'g' && !_navBuffer) { _navBuffer = 'g'; setTimeout(() => _navBuffer = '', 1000); return; }
             if (_navBuffer === 'g') {
@@ -647,6 +650,69 @@
                 html += '</div></div></div>';
                 el.innerHTML = html;
             } catch (e) { document.getElementById('mlContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load ML data</p></div></div></div>'; }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: OI DATA
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadOI() {
+            try {
+                const oi = await apiFetch('/api/system/oi');
+                const el = document.getElementById('oiContent');
+                if (!oi) { el.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-database"></i><p>No OI data available</p></div></div></div>'; return; }
+                const indexNames = oi.index_names || ['NIFTY','BANKNIFTY','FINNIFTY'];
+                const live = oi.live || {};
+                const recent = oi.recent_snapshots || {};
+                let html = '<div class="grid-overview">';
+                indexNames.forEach(idx => {
+                    const l = live[idx] || {};
+                    const r = recent[idx] || {};
+                    const pcr = l.pcr || r.pcr || '&mdash;';
+                    const oiVal = l.total_oi || r.total_oi || '&mdash;';
+                    const spot = l.spot_price || r.spot_price || '&mdash;';
+                    html += statCard(idx, 'PCR: ' + (typeof pcr === 'number' ? pcr.toFixed(2) : pcr), { sub: 'Spot: ' + spot + ' | OI: ' + (typeof oiVal === 'number' ? oiVal.toLocaleString() : oiVal), color: typeof pcr === 'number' && pcr > 1.2 ? '#4ade80' : typeof pcr === 'number' && pcr < 0.8 ? '#f87171' : 'var(--text-primary)' });
+                });
+                html += '</div><div class="grid-2" style="margin-top:1.5rem;">';
+                // OI Summary Table
+                html += '<div class="card"><div class="card-header"><h3><i class="fas fa-table"></i> OI Summary by Index</h3></div><div class="card-body" style="padding:0;"><div class="table-wrap"><table class="table"><thead><tr><th>Index</th><th>PCR</th><th>Total OI</th><th>Spot Price</th><th>Change OI</th><th>IV</th></tr></thead><tbody>';
+                indexNames.forEach(idx => {
+                    const l = live[idx] || {};
+                    const r = recent[idx] || {};
+                    const pcr = l.pcr || r.pcr || '&mdash;';
+                    const oiVal = l.total_oi || r.total_oi || '&mdash;';
+                    const spot = l.spot_price || r.spot_price || '&mdash;';
+                    const chgOi = l.change_oi || r.change_oi || '&mdash;';
+                    const iv = l.iv || r.iv || '&mdash;';
+                    const pcrColor = typeof pcr === 'number' && pcr > 1.2 ? '#4ade80' : typeof pcr === 'number' && pcr < 0.8 ? '#f87171' : 'var(--text-secondary)';
+                    html += '<tr><td style="font-weight:500;">'+idx+'</td><td style="color:'+pcrColor+';font-weight:600;">'+(typeof pcr === 'number' ? pcr.toFixed(2) : pcr)+'</td><td>'+(typeof oiVal === 'number' ? oiVal.toLocaleString() : oiVal)+'</td><td>'+(typeof spot === 'number' ? '₹'+spot.toLocaleString() : spot)+'</td><td>'+(typeof chgOi === 'number' ? (chgOi > 0 ? '+':'')+chgOi.toLocaleString() : chgOi)+'</td><td>'+(typeof iv === 'number' ? iv.toFixed(1)+'%' : iv)+'</td></tr>';
+                });
+                html += '</tbody></table></div></div></div>';
+                // Call/Put OI breakdown
+                html += '<div class="card"><div class="card-header"><h3><i class="fas fa-chart-bar"></i> Call / Put OI Breakdown</h3></div><div class="card-body" style="padding:0;"><div class="table-wrap"><table class="table"><thead><tr><th>Index</th><th>Call OI</th><th>Put OI</th><th>Max Pain</th><th>Status</th></tr></thead><tbody>';
+                indexNames.forEach(idx => {
+                    const l = live[idx] || {};
+                    const r = recent[idx] || {};
+                    const callOi = l.call_oi || r.call_oi || '&mdash;';
+                    const putOi = l.put_oi || r.put_oi || '&mdash;';
+                    const maxPain = l.max_pain || r.max_pain || '&mdash;';
+                    const pcr = l.pcr || r.pcr || 0;
+                    const status = typeof pcr === 'number' && pcr > 1.2 ? 'Bullish' : typeof pcr === 'number' && pcr < 0.8 ? 'Bearish' : 'Neutral';
+                    const statusType = status === 'Bullish' ? 'call' : status === 'Bearish' ? 'put' : 'neutral';
+                    html += '<tr><td style="font-weight:500;">'+idx+'</td><td>'+(typeof callOi === 'number' ? callOi.toLocaleString() : callOi)+'</td><td>'+(typeof putOi === 'number' ? putOi.toLocaleString() : putOi)+'</td><td>'+(typeof maxPain === 'number' ? '₹'+maxPain.toLocaleString() : maxPain)+'</td><td>'+badge(statusType, status)+'</td></tr>';
+                });
+                html += '</tbody></table></div></div></div>';
+                html += '</div>';
+                // Additional OI details
+                html += '<div class="card" style="margin-top:1.5rem;"><div class="card-header"><h3><i class="fas fa-info-circle"></i> OI Data Sources</h3></div><div class="card-body"><div style="display:grid;gap:.5rem;">';
+                html += '<div class="key-val"><span class="key">Live Data</span><span class="val">' + (Object.keys(live).length > 0 ? badge('healthy','Available') : badge('neutral','Unavailable')) + '</span></div>';
+                html += '<div class="key-val"><span class="key">DB Snapshots</span><span class="val">' + (Object.keys(recent).length > 0 ? badge('healthy','Available') : badge('neutral','No snapshots')) + '</span></div>';
+                html += '<div class="key-val"><span class="key">PCR Bearish</span><span class="val" style="color:#f87171;">&lt; 0.8</span></div>';
+                html += '<div class="key-val"><span class="key">PCR Neutral</span><span class="val" style="color:var(--text-secondary);">0.8 - 1.2</span></div>';
+                html += '<div class="key-val"><span class="key">PCR Bullish</span><span class="val" style="color:#4ade80;">&gt; 1.2</span></div>';
+                html += '</div></div></div>';
+                el.innerHTML = html;
+                updateTimestamp();
+            } catch (e) { document.getElementById('oiContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-exclamation-circle" style="color:var(--danger-400);"></i><p style="color:var(--danger-400);">Failed to load: ' + e.message + '</p></div></div></div>'; }
         }
 
         // ══════════════════════════════════════════════════════════════════════

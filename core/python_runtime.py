@@ -93,5 +93,5 @@ def ensure_supported_python(
             f"[ERROR] Python {low[0]}.{low[1]}–{high_exclusive[0]}.{hi_minor} supported. "
             f"Found:{vi.major}.{vi.minor}"
         )
-        print("Install: pyenv install 3.12.7 && pyenv local 3.12.7")
+        _log.info("Install: pyenv install 3.12.7 && pyenv local 3.12.7")
         sys.exit(1)

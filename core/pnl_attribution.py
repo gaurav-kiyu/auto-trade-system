@@ -50,7 +50,7 @@ def _score_tier(score: float | None) -> str:
 
 def _load_trades(db_path: str, days: int) -> list[dict]:
     try:
-        con = sqlite3.connect(db_path)
+        con = sqlite3.connect(db_path, timeout=10)
         con.row_factory = sqlite3.Row
         cur = con.execute(
             """

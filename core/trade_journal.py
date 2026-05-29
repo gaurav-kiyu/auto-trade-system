@@ -214,7 +214,7 @@ class TradeJournal:
                 pass  # column already exists — normal on fresh or already-migrated DBs
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self._db), check_same_thread=False)
+        conn = sqlite3.connect(str(self._db), timeout=10, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         return conn
 

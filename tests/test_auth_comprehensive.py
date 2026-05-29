@@ -24,13 +24,11 @@ Covers every module in ``core/auth/``:
 All tests are self-contained.  Uses conftest fixtures where possible.
 """
 
-import json
 import time
 from collections.abc import Generator
 from typing import Any
 
 import pytest
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # Fixtures
@@ -40,8 +38,8 @@ import pytest
 @pytest.fixture
 def auth_db() -> Generator[str, None, None]:
     """Provide a temporary auth DB path."""
-    import tempfile
     import os as _os
+    import tempfile
     fd, path = tempfile.mkstemp(suffix=".auth.db")
     _os.close(fd)
     yield path
@@ -107,7 +105,6 @@ def test_operator(handler: Any) -> dict[str, Any]:
 @pytest.fixture
 def auth_token(handler: Any, test_user: dict[str, Any]) -> Any:
     """Create and return a valid AuthToken for test_user."""
-    from core.auth.handler import AuthToken
     user_obj = handler.get_user("testuser")
     assert user_obj is not None
     return handler.create_session(user_obj, "127.0.0.1", "pytest")
@@ -118,9 +115,9 @@ def auth_token(handler: Any, test_user: dict[str, Any]) -> Any:
 
 def _build_test_app(handler: Any) -> Any:
     """Build a FastAPI app with test routes for auth dependencies."""
-    from fastapi import FastAPI, Depends
     from core.auth.dependencies import AuthDependencies
     from core.auth.handler import AuthUser
+    from fastapi import Depends, FastAPI
 
     deps = AuthDependencies(handler)
     app = FastAPI()
@@ -164,8 +161,8 @@ def _build_test_app(handler: Any) -> Any:
 
 def _add_login_route(app: Any, handler: Any) -> None:
     """Add a POST /login route to the app."""
-    from fastapi import Request, Response, HTTPException
     from core.auth.dependencies import get_client_ip
+    from fastapi import HTTPException, Request, Response
 
     @app.post("/login")
     async def login(request: Request, response: Response):
@@ -245,15 +242,15 @@ class TestPasswordHashing:
         assert not verify_password(pwd[:-1], hashed)
 
     def test_hash_format_contains_iterations(self):
-        from core.auth.handler import hash_password, PBKDF2_ITERATIONS
+        from core.auth.handler import PBKDF2_ITERATIONS, hash_password
         hashed = hash_password("Test@1234!")
         parts = hashed.split("$")
         assert int(parts[0]) == PBKDF2_ITERATIONS
         assert len(bytes.fromhex(parts[1])) == 32  # 32-byte salt
 
     def test_timing_constant_time_comparison(self):
+
         from core.auth.handler import hash_password, verify_password
-        import hmac
         pwd = "Test@1234!"
         hashed = hash_password(pwd)
         assert verify_password(pwd, hashed)
@@ -622,7 +619,6 @@ class TestAuthHandlerSessionManagement:
         assert token.csrf_token != ""
 
     def test_verify_valid_session(self, handler: Any, test_token: Any):
-        from core.auth.handler import AuthToken
         verified = handler.verify_session(test_token.token)
         assert verified is not None
         assert verified.user_id == test_token.user_id
@@ -835,13 +831,11 @@ class TestAuthHandlerBruteForceAndLockout:
 
     def test_lockout_expires_after_duration(self, handler: Any):
         """Lockout should auto-expire after LOCKOUT_DURATION_SECONDS."""
-        from core.auth.handler import LOCKOUT_DURATION_SECONDS
         uname, pwd = self._make_user(handler, "lock_exp")
         handler._clear_lockout(uname)
         for _ in range(5):
             handler.authenticate(uname, "WrongP@ss!", "10.0.0.7")
         # Simulate lockout expiry
-        original_duration = LOCKOUT_DURATION_SECONDS
         with handler._lock:
             if uname in handler._account_lockouts:
                 handler._account_lockouts[uname] = time.time() - 1
@@ -1556,8 +1550,8 @@ class TestRoleManager:
         assert rm.get_role("unknown") == Role.OBSERVER
 
     def test_custom_default_role(self):
-        from core.auth.role_manager import RoleManager
         from core.auth.permissions import Role
+        from core.auth.role_manager import RoleManager
         rm = RoleManager(default_role="viewer")
         assert rm.get_role("anyone") == Role.VIEWER
 
@@ -1814,12 +1808,12 @@ class TestPermissions:
         assert not role_has_permission("admin", "fly_to_moon")
 
     def test_role_has_permission_with_enum_args(self):
-        from core.auth.permissions import Role, Permission, role_has_permission
+        from core.auth.permissions import Permission, Role, role_has_permission
         assert role_has_permission(Role.ADMIN, Permission.VIEW_STATE)
         assert not role_has_permission(Role.VIEWER, Permission.HALT_TRADING)
 
     def test_get_role_permissions_admin(self):
-        from core.auth.permissions import get_role_permissions, Permission
+        from core.auth.permissions import Permission, get_role_permissions
         perms = get_role_permissions("admin")
         assert Permission.VIEW_STATE in perms
         assert Permission.HALT_TRADING in perms
@@ -1833,7 +1827,7 @@ class TestPermissions:
         assert len(perms) == 9
 
     def test_get_role_permissions_operator(self):
-        from core.auth.permissions import get_role_permissions, Permission
+        from core.auth.permissions import Permission, get_role_permissions
         perms = get_role_permissions("operator")
         assert Permission.VIEW_STATE in perms
         assert Permission.HALT_TRADING in perms
@@ -1842,21 +1836,21 @@ class TestPermissions:
         assert len(perms) == 4
 
     def test_get_role_permissions_viewer(self):
-        from core.auth.permissions import get_role_permissions, Permission
+        from core.auth.permissions import Permission, get_role_permissions
         perms = get_role_permissions("viewer")
         assert Permission.VIEW_STATE in perms
         assert Permission.VIEW_LOGS in perms
         assert len(perms) == 2
 
     def test_get_role_permissions_observer(self):
-        from core.auth.permissions import get_role_permissions, Permission
+        from core.auth.permissions import Permission, get_role_permissions
         perms = get_role_permissions("observer")
         assert Permission.VIEW_STATE in perms
         assert Permission.VIEW_LOGS in perms
         assert len(perms) == 2
 
     def test_get_role_permissions_developer(self):
-        from core.auth.permissions import get_role_permissions, Permission
+        from core.auth.permissions import Permission, get_role_permissions
         perms = get_role_permissions("developer")
         assert Permission.VIEW_STATE in perms
         assert Permission.TOGGLE_STRATEGIES in perms
@@ -1883,8 +1877,8 @@ class TestPermissions:
         assert str(exc) == "Access denied"
 
     def test_permission_denied_raised_by_role_manager(self):
-        from core.auth.role_manager import RoleManager
         from core.auth.permissions import PermissionDenied
+        from core.auth.role_manager import RoleManager
         rm = RoleManager(default_role="viewer")
         with pytest.raises(PermissionDenied):
             rm.check("anyone", "halt_trading")

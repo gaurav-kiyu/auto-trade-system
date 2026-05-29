@@ -14,10 +14,9 @@ Does NOT test:
 from __future__ import annotations
 
 import json
-import os
+import sqlite3
 import threading
 import time
-import sqlite3
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -25,7 +24,6 @@ import pytest
 
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -213,7 +211,7 @@ class TestDashboardInit:
     def test_creation_with_custom_values(self, tmp_path):
         from core.enterprise_dashboard import EnterpriseDashboard
 
-        db = EnterpriseDashboard(
+        EnterpriseDashboard(
             config=_fast_db(tmp_path),
             state_path=str(tmp_path / "custom.json"),
             db_path=str(tmp_path / "custom.db"),
@@ -259,7 +257,7 @@ class TestDashboardInit:
     def test_start_session_cleanup_starts_thread(self, tmp_path):
         from core.enterprise_dashboard import EnterpriseDashboard
 
-        db = EnterpriseDashboard(config=_fast_db(tmp_path))
+        EnterpriseDashboard(config=_fast_db(tmp_path))
         threads = [t for t in threading.enumerate() if t.name == "session_cleanup"]
         assert any(t.is_alive() for t in threads)
 
@@ -808,7 +806,7 @@ class TestConfigApply:
             "auth_db_path": str(tmp_path / "auth.db"),
         })
         db._apply_config_change({"BASE_CAPITAL": 3000}, "alice")
-        audit_file = Path(tmp_path).parent / "config_audit.jsonl" if "tmp" in str(tmp_path) else Path("config_audit.jsonl")
+        Path(tmp_path).parent / "config_audit.jsonl" if "tmp" in str(tmp_path) else Path("config_audit.jsonl")
 
     def test_apply_with_readable_config_file(self, tmp_path):
         from core.enterprise_dashboard import EnterpriseDashboard
@@ -842,7 +840,6 @@ class TestConfigApply:
     def test_apply_config_backup_write_error(self, tmp_path, monkeypatch):
         """Simulate backup write failure by making the config dir non-writable."""
         from core.enterprise_dashboard import EnterpriseDashboard
-        import os
 
         config_dir = tmp_path / "readonly"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -1300,8 +1297,8 @@ class TestLoadRecentTrades:
 
     def test_load_trades_exception_handler(self, monkeypatch):
         """When load_trades raises, _load_recent_trades catches and returns []."""
-        from core.enterprise_dashboard import EnterpriseDashboard
         import core.performance_metrics as pm
+        from core.enterprise_dashboard import EnterpriseDashboard
 
         original = pm.load_trades
 
@@ -1566,8 +1563,10 @@ class TestApiRiskConcentration:
 
     def test_risk_concentration_with_high_exposure(self, state_file: str, tmp_path):
         """Create a DB with a high-value open trade to test concentration thresholds."""
+        import sqlite3
+        import time
+
         from core.enterprise_dashboard import EnterpriseDashboard
-        import sqlite3, time
 
         trades_db = str(tmp_path / "high_val.db")
         conn = sqlite3.connect(trades_db)
@@ -1611,8 +1610,10 @@ class TestApiRiskConcentration:
 
     def test_risk_concentration_moderate(self, state_file: str, tmp_path):
         """Test the MODERATE branch (8% < exposure <= 15%)."""
+        import sqlite3
+        import time
+
         from core.enterprise_dashboard import EnterpriseDashboard
-        import sqlite3, time
 
         trades_db = str(tmp_path / "moderate_val.db")
         conn = sqlite3.connect(trades_db)
@@ -1653,8 +1654,10 @@ class TestApiRiskConcentration:
 
     def test_risk_concentration_high_branch(self, state_file: str, tmp_path):
         """Test the HIGH branch (15% < exposure <= 30%)."""
+        import sqlite3
+        import time
+
         from core.enterprise_dashboard import EnterpriseDashboard
-        import sqlite3, time
 
         trades_db = str(tmp_path / "high_val.db")
         conn = sqlite3.connect(trades_db)
@@ -1800,10 +1803,9 @@ class TestHttpEndpoints:
     @pytest.fixture()
     def mock_templates(self):
         """Monkeypatch Jinja2Templates.TemplateResponse to avoid jinja2 bug."""
-        from fastapi.templating import Jinja2Templates
         from fastapi.responses import HTMLResponse
+        from fastapi.templating import Jinja2Templates
 
-        orig = Jinja2Templates.TemplateResponse
 
         def safe_render(self, name, context, status_code=200, headers=None, media_type=None, **kwargs):
             return HTMLResponse(
@@ -1966,13 +1968,13 @@ class TestHttpEndpoints:
             "broker_name": "Zerodha",
             "execution_mode": "paper",
         })
-        d = EnterpriseDashboard(config=cfg, db_path=trades_db)
+        EnterpriseDashboard(config=cfg, db_path=trades_db)
 
     def test_post_self_test_unauthenticated(self, mock_templates, no_csrf, state_file, trades_db, tmp_path):
         """POST /api/system/self-test without auth returns 403."""
         from core.enterprise_dashboard import EnterpriseDashboard
 
-        d = EnterpriseDashboard(config=_fast_db(tmp_path), state_path=state_file, db_path=trades_db)
+        EnterpriseDashboard(config=_fast_db(tmp_path), state_path=state_file, db_path=trades_db)
 
     def test_not_found_json(self, mock_templates, no_csrf, state_file, trades_db, tmp_path):
         """404 with JSON accept returns JSON, not HTML."""
@@ -1992,11 +1994,12 @@ class TestHttpEndpoints:
         chain before the re-raise. We catch the ExceptionGroup and verify
         the handler ran by checking the log output.
         """
-        from core.enterprise_dashboard import EnterpriseDashboard
         import logging
 
+        from core.enterprise_dashboard import EnterpriseDashboard
+
         log_captured = []
-        handler_cls = logging.getHandlerClass() if hasattr(logging, 'getHandlerClass') else None
+        logging.getHandlerClass() if hasattr(logging, 'getHandlerClass') else None
 
         class CaptureHandler(logging.Handler):
             def emit(self, record):
@@ -2022,7 +2025,7 @@ class TestHttpEndpoints:
 
         # The 500 handler logs "[DASH] Unhandled error: ..."
         assert any("[DASH] Unhandled error" in msg for msg in log_captured), (
-            "500 handler was not invoked: %s" % log_captured
+            f"500 handler was not invoked: {log_captured}"
         )
 
     def test_admin_users_page(self, mock_templates, no_csrf, admin_auth):

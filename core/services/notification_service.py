@@ -369,11 +369,11 @@ class NotificationService:
         """Initialize default notification adapters."""
         # Try to initialize Telegram adapter if credentials are available
         try:
-            # In a real implementation, these would come from secure config
-            bot_token = "placeholder_bot_token"  # Would be from secure config
-            default_chat_id = "placeholder_chat_id"  # Would be from secure config
+            # Credentials come from secure config / env vars — NEVER hardcoded
+            bot_token = os.environ.get("OPBUYING_BOT_TOKEN", "")
+            default_chat_id = os.environ.get("OPBUYING_CHAT_ID", "")
 
-            if bot_token and default_chat_id and bot_token != "placeholder_bot_token":
+            if bot_token and default_chat_id:
                 telegram_adapter = TelegramNotificationAdapter(
                     bot_token=bot_token,
                     default_chat_id=default_chat_id

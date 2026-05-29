@@ -77,7 +77,7 @@ class IdempotencyCertifier:
             if self._is_memory:
                 self._conn = sqlite3.connect(":memory:", check_same_thread=False)
             else:
-                self._conn = sqlite3.connect(self._db_path)
+                self._conn = sqlite3.connect(self._db_path, timeout=10)
         return self._conn
 
     def _init_db(self) -> None:

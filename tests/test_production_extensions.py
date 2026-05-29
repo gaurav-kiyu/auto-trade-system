@@ -22,7 +22,7 @@ from core import (
     StrategyEngine,
 )
 from core.ports.risk.risk_port import PortfolioRiskMetrics, RiskDecision, RiskEvaluation
-from core.risk.legacy_adapter import RiskConfig, RiskPortAdapter
+from core.risk.legacy_adapter import RiskPortAdapter
 
 
 def _make_mock_risk_port(

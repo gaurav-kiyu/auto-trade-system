@@ -90,6 +90,8 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="Override VIX for premium model (default: from config or 14.0)")
     p.add_argument("--dte", type=int, default=3,
                    help="Days to expiry for ATM premium estimate (default: 3 = weekly mid)")
+    p.add_argument("--no-strict-oi", action="store_true",
+                   help="Disable strict OI coverage check (needed for Yahoo Finance data which has no OI)")
     p.add_argument("--json", action="store_true",
                    help="Emit machine-readable JSON instead of rich report")
     return p
@@ -499,6 +501,7 @@ def main() -> int:
         dte               = int(args.dte),
         delta_scale       = float(signal_cfg.get("OPTION_DELTA_SCALE", 1.5)),
         use_regime_rr     = True,
+        strict_oi         = not args.no_strict_oi,
     )
 
     if args.raw_index:

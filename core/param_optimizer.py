@@ -43,7 +43,7 @@ class OptimizationResult:
 
 def _load_pnls(db_path: str, days: int) -> list[float]:
     try:
-        con = sqlite3.connect(db_path)
+        con = sqlite3.connect(db_path, timeout=10)
         cur = con.execute(
             """
             SELECT net_pnl FROM trades
@@ -203,7 +203,7 @@ if __name__ == "__main__":
     args = p.parse_args()
 
     if args.dry_run:
-        print(f"[param_optimizer] dry-run: would sweep {args.param} over {args.values}")
+        _log.info(f"[param_optimizer] dry-run: would sweep {args.param} over {args.values}")
         sys.exit(0)
 
     vals = [float(v) for v in args.values.split(",")]
@@ -212,6 +212,6 @@ if __name__ == "__main__":
             "optimizer_lookback_days": args.days}
     result = optimize_param(args.param, vals, db_path=args.db, cfg=cfg)
     if result is None:
-        print("[param_optimizer] no data or disabled")
+        _log.info("[param_optimizer] no data or disabled")
         sys.exit(1)
     print(format_optimization_report([result]))

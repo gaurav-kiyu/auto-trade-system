@@ -8,10 +8,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from infrastructure.security.credential_storage import (
-    CRYPTOGRAPHY_AVAILABLE,
-    KEYRING_AVAILABLE,
     CredentialStorage,
     CredentialStorageError,
 )
@@ -127,10 +124,11 @@ class TestCredentialStorageGetCredential:
     @pytest.mark.skipif(not _HAS_CRYPTO, reason="cryptography not installed")
     def test_encrypted_file_is_tried_before_env(self, storage_no_keyring, tmp_path: Path, monkeypatch):
         """When cryptography is available, encrypted file is tried before env."""
+        import base64
+
         from cryptography.fernet import Fernet
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-        import base64
 
         monkeypatch.setenv("OPBUYING_SECURE_CONFIG_KEY", "test-key-12345")
 
@@ -218,7 +216,9 @@ class TestCredentialStorageSetCredential:
         with patch("infrastructure.security.credential_storage.CRYPTOGRAPHY_AVAILABLE", True):
             s = CredentialStorage(encrypted_file_path=storage_no_keyring.encrypted_file_path)
             # Write a valid Fernet token with garbage data
-            import base64, os
+            import base64
+            import os
+
             from cryptography.fernet import Fernet
             key = base64.urlsafe_b64encode(os.urandom(32))
             fake_token = Fernet(key).encrypt(b'{"garbage')

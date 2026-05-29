@@ -18,6 +18,8 @@ Config keys
     None required.  All parameters are function arguments with safe defaults.
 """
 from __future__ import annotations
+import logging
+_log = logging.getLogger(__name__)
 
 import argparse
 import logging

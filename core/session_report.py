@@ -113,7 +113,7 @@ class DailySessionReporter:
         """Load trade data from database."""
         try:
             import sqlite3
-            conn = sqlite3.connect(self._db_path)
+            conn = sqlite3.connect(self._db_path, timeout=10)
             conn.row_factory = sqlite3.Row
 
             cursor = conn.execute(
@@ -156,7 +156,7 @@ class DailySessionReporter:
         """Calculate P&L breakdown."""
         try:
             import sqlite3
-            conn = sqlite3.connect(self._db_path)
+            conn = sqlite3.connect(self._db_path, timeout=10)
 
             cursor = conn.execute(
                 "SELECT SUM(pnl) as realized FROM trades WHERE date(entry_time) = ? AND status = 'CLOSED'",

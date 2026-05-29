@@ -59,7 +59,7 @@ def load_trades(
         log.warning("trades.db not found at %s", path)
         return []
     try:
-        with sqlite3.connect(str(path)) as conn:
+        with sqlite3.connect(str(path), timeout=10) as conn:
             conn.row_factory = sqlite3.Row
             clauses, params = [], []
             if mode:
@@ -472,90 +472,90 @@ def print_report(
         title_parts.append(f"last {days}d")
     subtitle = f" ({', '.join(title_parts)})" if title_parts else ""
 
-    print(f"\n{'=' * 62}")
-    print(f"  OPB PERFORMANCE REPORT{subtitle}")
-    print(f"{'=' * 62}")
+    _log.info(f"\n{'=' * 62}")
+    _log.info(f"  OPB PERFORMANCE REPORT{subtitle}")
+    _log.info(f"{'=' * 62}")
 
     if not trades:
-        print("  No trades found. Run the system to generate data.")
-        print(f"{'=' * 62}\n")
+        _log.info("  No trades found. Run the system to generate data.")
+        _log.info(f"{'=' * 62}\n")
         return
 
     m = compute_metrics(trades)
 
-    print(f"\n  OVERALL  ({m['trades']} trades)")
-    print(f"  Win Rate      : {m['win_rate']}%  ({m['winners']}W / {m['losers']}L)")
-    print(f"  Expectancy    : {m['expectancy']:+.2f} / trade")
-    print(f"  Profit Factor : {m['profit_factor']}")
-    print(f"  Total Net PnL : {m['total_net_pnl']:+.2f}")
-    print(f"  Avg Win       : {m['avg_win']:+.2f}  |  Avg Loss: {m['avg_loss']:+.2f}")
-    print(f"  Win/Loss Ratio: {m['win_loss_ratio']}x")
-    print(f"  Largest Win   : {m['largest_win']:+.2f}  |  Largest Loss: {m['largest_loss']:+.2f}")
-    print(f"  Max Drawdown  : {m['max_drawdown']:.2f}  |  Recovery Factor: {m['recovery_factor']}")
-    print(f"  Sharpe/Trade  : {m['sharpe_per_trade']:.3f}")
-    print(f"  Max Consec W/L: {m['max_consec_wins']}W / {m['max_consec_losses']}L")
+    _log.info(f"\n  OVERALL  ({m['trades']} trades)")
+    _log.info(f"  Win Rate      : {m['win_rate']}%  ({m['winners']}W / {m['losers']}L)")
+    _log.info(f"  Expectancy    : {m['expectancy']:+.2f} / trade")
+    _log.info(f"  Profit Factor : {m['profit_factor']}")
+    _log.info(f"  Total Net PnL : {m['total_net_pnl']:+.2f}")
+    _log.info(f"  Avg Win       : {m['avg_win']:+.2f}  |  Avg Loss: {m['avg_loss']:+.2f}")
+    _log.info(f"  Win/Loss Ratio: {m['win_loss_ratio']}x")
+    _log.info(f"  Largest Win   : {m['largest_win']:+.2f}  |  Largest Loss: {m['largest_loss']:+.2f}")
+    _log.info(f"  Max Drawdown  : {m['max_drawdown']:.2f}  |  Recovery Factor: {m['recovery_factor']}")
+    _log.info(f"  Sharpe/Trade  : {m['sharpe_per_trade']:.3f}")
+    _log.info(f"  Max Consec W/L: {m['max_consec_wins']}W / {m['max_consec_losses']}L")
 
     # ── By Regime
     by_regime = metrics_by_regime(trades)
     if by_regime:
-        print("\n  BY REGIME")
-        print(f"  {'Regime':<18} {'Trades':>6} {'WR%':>6} {'AvgPnL':>9} {'TotalPnL':>10}")
-        print(f"  {'-'*53}")
+        _log.info("\n  BY REGIME")
+        _log.info(f"  {'Regime':<18} {'Trades':>6} {'WR%':>6} {'AvgPnL':>9} {'TotalPnL':>10}")
+        _log.info(f"  {'-'*53}")
         for reg, rm in sorted(by_regime.items()):
-            print(f"  {reg:<18} {rm['trades']:>6} {rm['win_rate']:>6.1f} "
+            _log.info(f"  {reg:<18} {rm['trades']:>6} {rm['win_rate']:>6.1f} "
                   f"{rm['avg_pnl']:>+9.2f} {rm['total_pnl']:>+10.2f}")
 
     # ── By Score Bin
     by_score = metrics_by_score_bin(trades)
     if by_score:
-        print("\n  BY SCORE BIN")
-        print(f"  {'Bin':<10} {'Trades':>6} {'WR%':>6} {'AvgPnL':>9} {'TotalPnL':>10}")
-        print(f"  {'-'*45}")
+        _log.info("\n  BY SCORE BIN")
+        _log.info(f"  {'Bin':<10} {'Trades':>6} {'WR%':>6} {'AvgPnL':>9} {'TotalPnL':>10}")
+        _log.info(f"  {'-'*45}")
         for label in ["below_60", "60-64", "65-69", "70-79", "80-89", "90+"]:
             bm = by_score.get(label)
             if not bm:
                 continue
-            print(f"  {label:<10} {bm['trades']:>6} {bm['win_rate']:>6.1f} "
+            _log.info(f"  {label:<10} {bm['trades']:>6} {bm['win_rate']:>6.1f} "
                   f"{bm['avg_pnl']:>+9.2f} {bm['total_pnl']:>+10.2f}")
 
     # ── By Exit Reason
     by_exit = metrics_by_exit_reason(trades)
     if by_exit:
-        print("\n  BY EXIT REASON")
-        print(f"  {'Reason':<22} {'Trades':>6} {'WR%':>6} {'AvgPnL':>9} {'%Total':>7}")
-        print(f"  {'-'*54}")
+        _log.info("\n  BY EXIT REASON")
+        _log.info(f"  {'Reason':<22} {'Trades':>6} {'WR%':>6} {'AvgPnL':>9} {'%Total':>7}")
+        _log.info(f"  {'-'*54}")
         for reason, rm in by_exit.items():
-            print(f"  {reason:<22} {rm['trades']:>6} {rm['win_rate']:>6.1f} "
+            _log.info(f"  {reason:<22} {rm['trades']:>6} {rm['win_rate']:>6.1f} "
                   f"{rm['avg_pnl']:>+9.2f} {rm['pct_of_total']:>6.1f}%")
 
     # ── By Direction
     by_dir = metrics_by_direction(trades)
     if by_dir:
-        print("\n  BY DIRECTION")
-        print(f"  {'Direction':<10} {'Trades':>6} {'WR%':>6} {'AvgPnL':>9} {'TotalPnL':>10}")
-        print(f"  {'-'*45}")
+        _log.info("\n  BY DIRECTION")
+        _log.info(f"  {'Direction':<10} {'Trades':>6} {'WR%':>6} {'AvgPnL':>9} {'TotalPnL':>10}")
+        _log.info(f"  {'-'*45}")
         for d, dm in sorted(by_dir.items()):
-            print(f"  {d:<10} {dm['trades']:>6} {dm['win_rate']:>6.1f} "
+            _log.info(f"  {d:<10} {dm['trades']:>6} {dm['win_rate']:>6.1f} "
                   f"{dm['avg_pnl']:>+9.2f} {dm['total_pnl']:>+10.2f}")
 
     # ── By Instrument
     by_idx = metrics_by_index(trades)
     if by_idx:
-        print("\n  BY INSTRUMENT")
-        print(f"  {'Index':<14} {'Trades':>6} {'WR%':>6} {'AvgPnL':>9} {'TotalPnL':>10}")
-        print(f"  {'-'*49}")
+        _log.info("\n  BY INSTRUMENT")
+        _log.info(f"  {'Index':<14} {'Trades':>6} {'WR%':>6} {'AvgPnL':>9} {'TotalPnL':>10}")
+        _log.info(f"  {'-'*49}")
         for idx, im in sorted(by_idx.items()):
-            print(f"  {idx:<14} {im['trades']:>6} {im['win_rate']:>6.1f} "
+            _log.info(f"  {idx:<14} {im['trades']:>6} {im['win_rate']:>6.1f} "
                   f"{im['avg_pnl']:>+9.2f} {im['total_pnl']:>+10.2f}")
 
     # ── Insights
     insights = generate_insights(trades)
     if insights:
-        print("\n  INSIGHTS")
+        _log.info("\n  INSIGHTS")
         for i, txt in enumerate(insights, 1):
-            print(f"  {i}. {txt}")
+            _log.info(f"  {i}. {txt}")
 
-    print(f"\n{'=' * 62}\n")
+    _log.info(f"\n{'=' * 62}\n")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -609,7 +609,7 @@ def _cli() -> None:
     if args.export:
         trades = load_trades(args.db, mode=args.mode, days=args.days)
         export_jsonl(trades, args.export)
-        print(f"Exported {len(trades)} trades to {args.export}")
+        _log.info(f"Exported {len(trades)} trades to {args.export}")
 
 
 if __name__ == "__main__":

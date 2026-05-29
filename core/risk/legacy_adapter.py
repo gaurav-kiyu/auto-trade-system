@@ -22,7 +22,6 @@ from typing import Any
 from core.ports.risk.risk_port import RiskEvaluation, RiskPort
 from core.safety_state import get_consecutive_losses
 
-
 # ── Backward-compatible types matching the old RiskEngine interface ──────────
 
 

@@ -360,7 +360,7 @@ def _cli() -> None:
     elif args.param:
         default_vals = DEFAULT_SENSITIVITY_PARAMS.get(args.param, [])
         if not default_vals:
-            print(f"Unknown param '{args.param}'. Available: {list(DEFAULT_SENSITIVITY_PARAMS)}")
+            _log.info(f"Unknown param '{args.param}'. Available: {list(DEFAULT_SENSITIVITY_PARAMS)}")
             return
         results = [run_single_parameter_sensitivity(
             args.param, default_vals,

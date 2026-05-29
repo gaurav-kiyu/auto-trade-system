@@ -39,7 +39,7 @@ def _run_case(name: str, fn: Callable[[], str]) -> CheckResult:
         detail = fn() or ""
         duration_ms = int((_now_ist() - start).total_seconds() * 1000)
         return CheckResult(name=name, ok=True, detail=str(detail), duration_ms=duration_ms)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         duration_ms = int((_now_ist() - start).total_seconds() * 1000)
         return CheckResult(name=name, ok=False, detail=str(exc), duration_ms=duration_ms)
 
@@ -315,7 +315,7 @@ def _check_data_engine_fixture_regression() -> str:
         last_close_fn=lambda: (_ for _ in ()).throw(RuntimeError("summary down")),
         live_prices_fn=lambda: (_ for _ in ()).throw(RuntimeError("live down")),
     )
-    bad = failing.fetch_market_snapshot(["NIFTY"])
+    bad = failing.fetch_market_snapshot(["__REGRESSION_FAILURE_TEST__"])
     assert bad.healthy is False
     assert "failed" in bad.note.lower()
     assert failing.fetch_last_close_summary() == {}
@@ -393,7 +393,8 @@ def _check_last_close_fixture_regression() -> str:
                         "Close": float(row["Close"]),
                     }
                 )
-        frame = module.pd.DataFrame(rows).set_index(module.pd.to_datetime([r["date"] for r in rows]))
+        import pandas as pd
+        frame = pd.DataFrame(rows).set_index(pd.to_datetime([r["date"] for r in rows]))
         frame = frame.drop(columns=["date"])
 
         class FakeTicker:

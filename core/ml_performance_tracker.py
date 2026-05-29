@@ -10,6 +10,9 @@ All functions are non-blocking; every path catches exceptions and returns a
 safe fallback.  The SQLite DB is created on first write; the module is a no-op
 if the DB does not yet exist when reading.
 
+Schema versioning is handled by ``core.db_migration`` — see migration registry
+at module load time.
+
 Public API
 ----------
     record_prediction(trade_id, prob, *, actual, shap_json, db_path)
@@ -30,6 +33,10 @@ Config keys (all optional — safe defaults built in)
 ---------------------------------------------------
   ml_tracker_db_path : str  default "ml_tracker.db"
   ml_tracker_enabled : bool default true
+
+Schema History
+--------------
+  v1 (baseline): Initial ml_predictions table
 """
 from __future__ import annotations
 
@@ -44,9 +51,56 @@ _log = logging.getLogger(__name__)
 
 _DEFAULT_DB = "ml_tracker.db"
 
-# ── Schema ────────────────────────────────────────────────────────────────────
+# ── Schema versioning via db_migration ─────────────────────────────────────────
 
-_DDL = """
+_ML_TRACKER_MIGRATIONS_REGISTERED = False
+
+
+def _register_ml_tracker_migrations() -> None:
+    """Register ML tracker schema migrations with core.db_migration.
+
+    Called once at module load time to ensure the ml_predictions table
+    is covered by the formal schema versioning system.
+    """
+    global _ML_TRACKER_MIGRATIONS_REGISTERED
+    if _ML_TRACKER_MIGRATIONS_REGISTERED:
+        return
+
+    try:
+        from core.db_migration import register_schema
+
+        @register_schema(2, "ML Performance Tracker baseline — ml_predictions table")
+        def _ml_migration_v2(conn: sqlite3.Connection) -> None:
+            """Create the ml_predictions table if it doesn't exist."""
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS ml_predictions (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ts              REAL    NOT NULL,
+                    trade_id        TEXT    NOT NULL,
+                    predicted_prob  REAL    NOT NULL,
+                    actual_outcome  INTEGER,          -- 1=winner 0=loser NULL=pending
+                    shap_json       TEXT    DEFAULT '{}'
+                )
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS ix_mlpred_ts ON ml_predictions (ts)")
+            conn.execute("CREATE INDEX IF NOT EXISTS ix_mlpred_trade_id ON ml_predictions (trade_id)")
+
+        _ML_TRACKER_MIGRATIONS_REGISTERED = True
+        _log.debug("[MLT] ML tracker schema migration v2 registered")
+    except ImportError:
+        _log.debug("[MLT] db_migration not available — using direct DDL")
+    except Exception as exc:
+        _log.debug("[MLT] Migration registration skipped: %s", exc)
+
+
+# Register at module load time so migrations are available when index_trader.py
+# runs ensure_schema_version() on all tracked databases.
+_register_ml_tracker_migrations()
+
+
+# ── Fallback DDL (used when db_migration is unavailable) ───────────────────────
+
+_FALLBACK_DDL = """
 CREATE TABLE IF NOT EXISTS ml_predictions (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     ts              REAL    NOT NULL,
@@ -64,11 +118,23 @@ def _get_conn(db_path: str) -> sqlite3.Connection:
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path, check_same_thread=False, timeout=10)
     conn.execute("PRAGMA journal_mode=WAL")
-    for stmt in _DDL.strip().split(";"):
-        s = stmt.strip()
-        if s:
-            conn.execute(s)
-    conn.commit()
+
+    # Use formal schema migration if available, otherwise fall back to DDL
+    try:
+        from core.db_migration import ensure_schema_version
+
+        ensure_schema_version(db_path)
+    except ImportError:
+        # Fallback: direct DDL (for environments without db_migration)
+        for stmt in _FALLBACK_DDL.strip().split(";"):
+            s = stmt.strip()
+            if s:
+                try:
+                    conn.execute(s)
+                except Exception:
+                    pass
+        conn.commit()
+
     return conn
 
 

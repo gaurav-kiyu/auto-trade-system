@@ -82,7 +82,7 @@ def get_migration_log(conn_or_path: "str | sqlite3.Connection") -> list[dict]:
     Accepts a sqlite3.Connection or a file path str.
     """
     if isinstance(conn_or_path, str):
-        conn = sqlite3.connect(conn_or_path)
+        conn = sqlite3.connect(conn_or_path, timeout=10)
         try:
             return _get_migration_log_inner(conn)
         finally:
@@ -110,7 +110,7 @@ def ensure_schema_version(db_path: str) -> int:
     """Open or create a database, check integrity, and migrate to the latest schema version.
     Returns the final schema version.
     """
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=10)
     try:
         _check_integrity(conn, db_path)
         return migrate_to_latest(conn)

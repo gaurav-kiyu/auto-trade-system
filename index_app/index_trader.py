@@ -652,6 +652,9 @@ _risk_service = None
 # StrategyOrchestrator - initialized in setup_di_container
 _strategy_orchestrator = None
 
+# Clean-architecture TradingOrchestrator - initialized in setup_di_container
+_clean_trading_orchestrator = None
+
 # Expiry day controller - blocks entries on expiry day after configurable cutoff
 _expiry_controller = ExpiryDayController(
     strategy_type=StrategyType.DIRECTIONAL,
@@ -1134,9 +1137,24 @@ def _periodic_reconcile():
             log.warning(f"[RECONCILE] Error during reconciliation: {exc}", exc_info=True)
 
 def _broker_positions_snapshot():
+    """Get current broker positions via the broker adapter."""
+    try:
+        broker = globals().get("_broker")
+        if broker is not None and hasattr(broker, "get_positions"):
+            return broker.get_positions()
+    except Exception as exc:
+        log.warning("[POSITIONS] Failed to fetch broker positions: %s", exc)
     return {}
 
 def _local_positions_snapshot():
+    """Get current local positions from execution state."""
+    try:
+        from core.safety_state import get_open_positions
+        positions = get_open_positions()
+        if positions:
+            return positions
+    except (ImportError, AttributeError) as exc:
+        log.debug("[POSITIONS] Local positions unavailable: %s", exc)
     return {}
 
 INDEX_PRIORITY = ["NIFTY", "BANKNIFTY", "FINNIFTY"]
@@ -1272,8 +1290,21 @@ def can_reenter(name):
     return True
 
 def expiry_entry_allowed():
-    import warnings
-    warnings.warn("Deprecated: expiry_entry_allowed is unused stub", DeprecationWarning, stacklevel=2)
+    """Check whether new entries are allowed on expiry day based on cutoff time.
+
+    Delegates to core/expiry_day_controller.py for the actual logic.
+    Returns True if not expiry day or before cutoff, False after cutoff.
+    """
+    try:
+        from core.datetime_ist import now_ist
+        from core.expiry_day_controller import is_expiry_day, is_expiry_entry_blocked
+        if is_expiry_day():
+            if is_expiry_entry_blocked():
+                return False
+    except ImportError:
+        pass
+    except Exception as exc:
+        log.warning("[EXPIRY] expiry_entry_allowed check failed: %s", exc)
     return True
 
 def sniper_ok(name, data, signal_type):
@@ -1863,6 +1894,13 @@ def _run_trading_loop() -> None:
             except Exception:
                 pass
 
+            # ── Record OI snapshots from NSE option chain data ──────────────
+            try:
+                from core.nse_option_recorder import record_oi_snapshots_for_indices
+                record_oi_snapshots_for_indices(INDEX_PRIORITY, _CFG)
+            except Exception as _oi_err:
+                log.debug("[OI] Snapshot recording skipped: %s", _oi_err)
+
             # Generate signals and enter trades
             for name in INDEX_PRIORITY:
                 if is_hard_halted():
@@ -2136,6 +2174,15 @@ def setup_di_container() -> None:
     metrics_service = MetricsAdapter({})
     container.register_instance(MetricsPort, metrics_service)
 
+    # Also register concrete kernel/utility types for clean-architecture consumers
+    from core.common.kernels.correlation_id import CorrelationIdManager
+    from core.common.utilities.logging import StructuredLogger
+    from core.common.utilities.metrics import MetricsCollector
+    container.register_instance(CorrelationIdManager, CorrelationIdManager())
+    container.register_instance(StructuredLogger, StructuredLogger())
+    container.register_instance(MetricsCollector, MetricsCollector())
+    log.debug("Concrete kernel/utility types (CorrelationIdManager, StructuredLogger, MetricsCollector) registered in DI container")
+
     # Wire StrategyOrchestrator into the container for the canonical strategy path
     global _strategy_orchestrator
     _strategy_orchestrator = StrategyOrchestrator(
@@ -2174,6 +2221,15 @@ def setup_di_container() -> None:
     STATE_MANAGER = state_manager
     RISK_ENGINE = risk_service
     log.info("Engine variables wired: DATA_ENGINE, STRATEGY_ENGINE, EXECUTION_ENGINE, STATE_MANAGER")
+
+    # Wire clean-architecture TradingOrchestrator (graceful no-op if types unavailable)
+    global _clean_trading_orchestrator
+    from index_app.orchestrator_facade import build_clean_trading_orchestrator as _build_clean_orch
+    _clean_trading_orchestrator = _build_clean_orch()
+    if _clean_trading_orchestrator is not None:
+        log.info("Clean-architecture TradingOrchestrator wired")
+    else:
+        log.debug("Clean-architecture TradingOrchestrator not available (graceful skip)")
 
 
 # Backwards-compatible, read-only shim exports (use index_trader_interface for new code)

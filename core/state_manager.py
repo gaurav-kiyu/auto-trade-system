@@ -96,7 +96,7 @@ class StateManager:
         broker reality to eliminate phantom positions from stale NULL exit_ts.
         """
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(self.db_path, timeout=10)
             cursor = conn.cursor()
             cursor.execute("SELECT symbol, qty, entry_price FROM trades WHERE exit_ts IS NULL")
             open_pos = cursor.fetchall()

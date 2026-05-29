@@ -317,11 +317,26 @@ def _register_in_registry(path: Path, model_bytes: bytes) -> None:
 
 
 def load_model(path: str | Path) -> Any | None:
-    """Load persisted model. Returns None if file missing or unpickleable."""
+    """Load persisted model with integrity verification.
+
+    Verifies the model file has a valid integrity checksum before loading.
+    Returns None if file missing, checksum mismatch, or unpickleable.
+    """
     try:
         p = Path(path)
         if not p.is_file():
             return None
+
+        # Compute integrity metadata path
+        integrity_path = p.with_suffix(".pkl.sha256")
+        if integrity_path.is_file():
+            expected_checksum = integrity_path.read_text(encoding="utf-8").strip()
+            actual_checksum = hashlib.sha256(p.read_bytes()).hexdigest()
+            if expected_checksum != actual_checksum:
+                _log.error("[ML] Model integrity check FAILED for %s — expected %s, got %s",
+                           path, expected_checksum[:16], actual_checksum[:16])
+                return None
+
         with open(p, "rb") as f:
             return pickle.load(f)
     except Exception as exc:

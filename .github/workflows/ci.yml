@@ -29,10 +29,13 @@ jobs:
         run: python scripts/validate_config_schema.py --all
 
       - name: Security audit
-        run: pip-audit || echo "pip-audit warnings found — review before release"
+        run: pip-audit --desc
 
       - name: Ruff lint
         run: python -m ruff check index_app core scripts tests
+
+      - name: Architecture compliance check (ADR 0010)
+        run: python scripts/check_architecture_compliance.py --ci
 
       - name: Auth system tests
         run: pytest tests/test_auth_system.py -v --tb=short

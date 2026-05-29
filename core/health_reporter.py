@@ -48,7 +48,7 @@ class HealthReporter:
 
     def _check_db(self) -> str:
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(self.db_path, timeout=10)
             conn.execute("PRAGMA integrity_check")
             conn.close()
             return "PASS"

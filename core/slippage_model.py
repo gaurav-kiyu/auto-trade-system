@@ -46,7 +46,7 @@ def _load_journal(db_path: str, days: int) -> list[tuple[float, float, float]]:
     Returns list of (lot_size, spread_pct, slippage_pct) tuples.
     """
     try:
-        con = sqlite3.connect(db_path)
+        con = sqlite3.connect(db_path, timeout=10)
         cur = con.execute(
             """
             SELECT lot_size, spread_pct, slippage_pct
