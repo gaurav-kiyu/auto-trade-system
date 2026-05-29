@@ -8,30 +8,31 @@ from __future__ import annotations
 
 import logging
 
-from core.ports.broker import BrokerPort, OrderRequest, OrderResult, OrderStatus
+from core.common.kernels.models import OrderResult as KernelOrderResult
+from core.ports.broker import LegacyBrokerPort, OrderRequest
 
 log = logging.getLogger("order_submission")
 
 class OrderSubmissionManager:
-    def __init__(self, broker_port: BrokerPort):
+    def __init__(self, broker_port: LegacyBrokerPort):
         self.broker_port = broker_port
 
-    def submit(self, request: OrderRequest) -> OrderResult:
+    def submit(self, request: OrderRequest) -> KernelOrderResult:
         try:
             result = self.broker_port.place_order(request)
 
             # Handle cases where broker returns a string ID instead of OrderResult
             if isinstance(result, str):
-                return OrderResult(
+                return KernelOrderResult(
                     order_id=result,
-                    status=OrderStatus.SUBMITTED,
-                    timestamp=None # Should be set by a time provider
+                    status="SUBMITTED",
+                    timestamp=None,  # Should be set by a time provider
                 )
             return result
         except Exception as e:
             log.error(f"Submission failed: {e}")
-            return OrderResult(
+            return KernelOrderResult(
                 order_id="ERROR",
-                status=OrderStatus.REJECTED,
-                reject_reason=str(e)
+                status="REJECTED",
+                reject_reason=str(e),
             )

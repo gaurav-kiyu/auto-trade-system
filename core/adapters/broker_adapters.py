@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from core.ports.broker import BrokerPort
+from core.ports.broker import LegacyBrokerPort
 
 
 def _flatten_effective_broker_config(cfg: dict[str, Any]) -> dict[str, Any]:
@@ -660,7 +660,7 @@ def create_broker_adapter(
     if factory is not None:
         try:
             port = factory(context)
-            if not isinstance(port, BrokerPort):
+            if not isinstance(port, LegacyBrokerPort):
                 context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY returned {type(port)!r}, not BrokerPort — using paper")
                 return PaperBrokerAdapter()
             return BrokerAdapter(port)

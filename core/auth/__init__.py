@@ -13,13 +13,13 @@ Provides:
 
 from __future__ import annotations
 
+from core.auth.csrf import CSRFProtection, csrf_protection
+from core.auth.dependencies import AuthDependencies
 from core.auth.handler import AuthHandler, AuthToken, AuthUser, hash_password, verify_password
 from core.auth.permissions import Permission, PermissionDenied, Role, role_has_permission
 from core.auth.role_manager import RoleManager
-from core.auth.session_store import SessionStore
-from core.auth.csrf import CSRFProtection, csrf_protection
-from core.auth.dependencies import AuthDependencies
 from core.auth.routes import create_auth_router
+from core.auth.session_store import SessionStore
 
 __all__ = [
     "AuthHandler",

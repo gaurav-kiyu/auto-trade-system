@@ -29,6 +29,7 @@ from core.ports.execution.execution_port import (
     ExecutionAuditTrail,
     ExecutionContext,
     ExecutionMode,
+    ExecutionPort,
     OrderRequest,
     OrderResult,
     OrderStatus,
@@ -52,7 +53,7 @@ class ExecutionServiceConfig:
     paper_fill_delay_ms: int = 50
     paper_fill_slippage_pct: float = 0.05
 
-class ExecutionService:
+class ExecutionService(ExecutionPort):
     """
     Hardened Execution Service.
     Orchestrates the flow from Risk Validation -> Order Management -> Broker Gateway.

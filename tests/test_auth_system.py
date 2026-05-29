@@ -19,11 +19,10 @@ import json
 import os
 import tempfile
 import time
-from pathlib import Path
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 
 import pytest
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures
@@ -121,8 +120,8 @@ class TestPasswordHashing:
 
     def test_timing_resistance(self):
         """Verify timing comparison using hmac.compare_digest."""
+
         from core.auth.handler import hash_password, verify_password
-        import hmac
         pwd = "Test@1234!"
         hashed = hash_password(pwd)
         # verify_password uses hmac.compare_digest internally
@@ -425,7 +424,9 @@ class TestBruteForceProtection:
 class TestRBAC:
     def test_role_hierarchy(self):
         from core.auth.permissions import (
-            Permission, Role, get_role_permissions, role_has_permission,
+            Permission,
+            Role,
+            get_role_permissions,
         )
         admin_perms = get_role_permissions(Role.ADMIN)
         assert Permission.MODIFY_RISK_LIMITS in admin_perms
@@ -437,14 +438,14 @@ class TestRBAC:
         assert Permission.MODIFY_RISK_LIMITS not in viewer_perms
 
     def test_role_has_permission(self):
-        from core.auth.permissions import role_has_permission, Permission
+        from core.auth.permissions import role_has_permission
         assert role_has_permission("admin", "view_state")
         assert not role_has_permission("observer", "halt_trading")
         assert not role_has_permission("unknown_role", "view_state")
 
     def test_role_manager_assignments(self, auth_handler):
-        from core.auth.role_manager import RoleManager
         from core.auth.permissions import Permission, Role
+        from core.auth.role_manager import RoleManager
 
         rm = RoleManager(default_role="observer")
         rm.assign("alice", "admin")
@@ -820,16 +821,16 @@ class TestCSRFProtection:
 
 class TestSessionStore:
     def test_session_creation(self):
-        from core.auth.session_store import SessionStore
         from core.auth.permissions import Role
+        from core.auth.session_store import SessionStore
         store = SessionStore(ttl_seconds=3600)
         session = store.create("alice", Role.ADMIN)
         assert session.identity == "alice"
         assert session.role == Role.ADMIN
 
     def test_session_get_and_touch(self):
-        from core.auth.session_store import SessionStore
         from core.auth.permissions import Role
+        from core.auth.session_store import SessionStore
         store = SessionStore(ttl_seconds=3600)
         session = store.create("bob", Role.OPERATOR)
         retrieved = store.get(session.session_id)
@@ -837,9 +838,10 @@ class TestSessionStore:
         assert retrieved.identity == "bob"
 
     def test_session_expiry(self):
-        from core.auth.session_store import SessionStore
-        from core.auth.permissions import Role
         import time
+
+        from core.auth.permissions import Role
+        from core.auth.session_store import SessionStore
         store = SessionStore(ttl_seconds=0)
         session = store.create("charlie", Role.OBSERVER)
         time.sleep(0.01)
@@ -853,8 +855,9 @@ class TestSessionStore:
         assert store.get(session.session_id) is None
 
     def test_purge_expired(self):
-        from core.auth.session_store import SessionStore
         import time
+
+        from core.auth.session_store import SessionStore
         store = SessionStore(ttl_seconds=0)
         store.create("eve", "observer")
         time.sleep(0.01)
@@ -871,8 +874,8 @@ class TestSessionStore:
     def test_list_active(self):
         from core.auth.session_store import SessionStore
         store = SessionStore()
-        s1 = store.create("hank", "admin")
-        s2 = store.create("iris", "operator")
+        store.create("hank", "admin")
+        store.create("iris", "operator")
         active = store.list_active()
         assert len(active) == 2
 
@@ -885,10 +888,10 @@ class TestAuthAPI:
     @pytest.fixture
     def app(self, auth_db_path):
         """Create a test FastAPI app with auth routes."""
-        from fastapi import FastAPI
-        from core.auth.handler import AuthHandler
         from core.auth.dependencies import AuthDependencies
+        from core.auth.handler import AuthHandler
         from core.auth.routes import create_auth_router
+        from fastapi import FastAPI
 
         app = FastAPI()
         handler = AuthHandler(db_path=auth_db_path, token_ttl=3600)
@@ -1103,7 +1106,7 @@ class TestSecurityBoundaries:
         xss = "<script>alert('xss')</script>"
         result = auth_handler.create_user(xss, "Xss@1234!", "viewer")
         # Should either reject or safely encode
-        user = auth_handler.get_user(xss.lower() if not result["success"] else xss)
+        auth_handler.get_user(xss.lower() if not result["success"] else xss)
         # Should not cause issues either way
 
     def test_session_token_in_cookies(self, auth_handler, test_user):
@@ -1159,7 +1162,6 @@ class TestSecurityBoundaries:
 class TestRBACIntegration:
     def test_role_manager_with_auth(self, auth_handler, test_user):
         from core.auth.role_manager import RoleManager
-        from core.auth.permissions import Permission
 
         rm = RoleManager()
         rm.assign("testuser", "admin")
@@ -1174,7 +1176,7 @@ class TestRBACIntegration:
         assert user.role == "admin"
 
     def test_permission_check_admin(self):
-        from core.auth.permissions import role_has_permission, Permission
+        from core.auth.permissions import role_has_permission
         assert role_has_permission("admin", "modify_config")
         assert role_has_permission("admin", "add_brokers")
         assert role_has_permission("admin", "halt_trading")
@@ -1182,7 +1184,7 @@ class TestRBACIntegration:
         assert role_has_permission("admin", "modify_risk_limits")
 
     def test_permission_check_operator(self):
-        from core.auth.permissions import role_has_permission, Permission
+        from core.auth.permissions import role_has_permission
         assert role_has_permission("operator", "view_state")
         assert role_has_permission("operator", "halt_trading")
         assert role_has_permission("operator", "toggle_strategies")
@@ -1190,7 +1192,7 @@ class TestRBACIntegration:
         assert not role_has_permission("operator", "modify_config")
 
     def test_permission_check_observer(self):
-        from core.auth.permissions import role_has_permission, Permission
+        from core.auth.permissions import role_has_permission
         assert role_has_permission("observer", "view_state")
         assert role_has_permission("observer", "view_logs")
         assert not role_has_permission("observer", "halt_trading")
@@ -1202,7 +1204,7 @@ class TestRBACIntegration:
         assert rm.get_role("unknown").value == "observer"
 
     def test_get_role_permissions_set(self):
-        from core.auth.permissions import get_role_permissions, Role
+        from core.auth.permissions import Role, get_role_permissions
         perms = get_role_permissions(Role.ADMIN)
         assert len(perms) >= 5  # admin has many permissions
         perms = get_role_permissions(Role.OBSERVER)
@@ -1291,8 +1293,9 @@ class TestConfigManagement:
         assert result["changed_keys"]["BASE_CAPITAL"]["new"] == 10000
 
     def test_execute_kill(self):
-        from core.enterprise_dashboard import EnterpriseDashboard
         import threading
+
+        from core.enterprise_dashboard import EnterpriseDashboard
         db = EnterpriseDashboard()
         db.wire_bot_refs(pause_event=threading.Event())
         result = db._execute_kill("Test kill", "admin")
@@ -1300,8 +1303,9 @@ class TestConfigManagement:
         assert result["success"]
 
     def test_execute_resume(self):
-        from core.enterprise_dashboard import EnterpriseDashboard
         import threading
+
+        from core.enterprise_dashboard import EnterpriseDashboard
         db = EnterpriseDashboard()
         pause = threading.Event()
         pause.set()

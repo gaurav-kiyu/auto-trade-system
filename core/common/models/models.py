@@ -9,7 +9,7 @@ import datetime
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # Lazy imports for type annotations (avoid circular imports)
 if TYPE_CHECKING:

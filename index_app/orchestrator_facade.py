@@ -86,3 +86,62 @@ def build_index_orchestrator():
         system_mode_fn=_system_mode,
         circuit_breaker_fn=_circuit_breaker_allows,
     )
+
+
+def build_clean_trading_orchestrator():
+    """
+    Build the clean-architecture :class:`~core.services.use_cases.trading_orchestrator.TradingOrchestrator`
+    wired to the live index bot engines via DI container.
+
+    Uses ``ExecutionService`` which explicitly implements ``ExecutionPort``,
+    along with other domain ports resolved from the DI container.
+
+    Returns:
+        TradingOrchestrator instance, or None if DI container is not initialized.
+    """
+    try:
+        from core.common.kernels.correlation_id import CorrelationIdManager
+        from core.common.utilities.logging import StructuredLogger
+        from core.common.utilities.metrics import MetricsCollector
+        from core.di_container import get_container
+        from core.ports.config import ConfigPort
+        from core.ports.execution import ExecutionPort
+        from core.ports.market_data import MarketDataPort
+        from core.ports.ml_model import MlModelPort
+        from core.ports.notification import NotificationPort
+        from core.ports.persistence import PersistencePort
+        from core.ports.risk import RiskPort
+        from core.services.use_cases.trading_orchestrator import OrchestratorConfig, TradingOrchestrator
+
+        container = get_container()
+
+        # Resolve all required ports from DI container
+        execution_port = container.resolve(ExecutionPort)
+        config_port = container.resolve(ConfigPort)
+        market_data_port = container.resolve(MarketDataPort)
+        ml_model_port = container.resolve(MlModelPort)
+        notification_port = container.resolve(NotificationPort)
+        persistence_port = container.resolve(PersistencePort)
+        risk_port = container.resolve(RiskPort)
+        corr_id_mgr = container.resolve(CorrelationIdManager)
+        metrics = container.resolve(MetricsCollector)
+        logger = container.resolve(StructuredLogger)
+
+        return TradingOrchestrator(
+            market_data_port=market_data_port,
+            ml_model_port=ml_model_port,
+            risk_port=risk_port,
+            execution_port=execution_port,
+            persistence_port=persistence_port,
+            notification_port=notification_port,
+            config_port=config_port,
+            correlation_id_manager=corr_id_mgr,
+            metrics_collector=metrics,
+            logger=logger,
+        )
+    except (ImportError, KeyError, Exception) as exc:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Clean TradingOrchestrator not available: %s", exc
+        )
+        return None

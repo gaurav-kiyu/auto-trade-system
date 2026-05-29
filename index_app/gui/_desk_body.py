@@ -15,6 +15,8 @@ if not _TK_AVAILABLE or ttk is None:
     _gui_log("[GUI] tkinter not available — running headless")
     import sys
     sys.exit(0)
+import logging
+_logger = logging.getLogger("index_trader.gui")
 _gui_alive.set()
 _GT=dict(GUI_THEME) if isinstance(GUI_THEME,dict) else {}
 _GW=dict(GUI_WINDOW) if isinstance(GUI_WINDOW,dict) else {}
@@ -28,15 +30,20 @@ except Exception: root.geometry("1200x860")
 root.configure(bg=_GT.get("bg_main","#010409"))
 try: root.minsize(int(_GW.get("minsize_w",920)),int(_GW.get("minsize_h",640)))
 except Exception: root.minsize(920,640)
-try: root.iconname("IndexTrader")
-except Exception: pass
+try:
+    root.iconname("IndexTrader")
+except Exception:
+    _logger.exception("[GUI] Could not set icon name")
 def _gui_report_cb(exc,val,tb)->None:
     try:
         import traceback
         _logger.log("[GUI CALLBACK] "+"".join(traceback.format_exception(exc,val,tb))[:1500])
-    except Exception: pass
-try: root.report_callback_exception=_gui_report_cb
-except Exception: pass
+    except Exception as _exc:
+        _logger.warning("[GUI] Callback logging failed: %s", _exc)
+try:
+    root.report_callback_exception=_gui_report_cb
+except Exception:
+    _logger.warning("[GUI] Could not hook report_callback_exception")
 
 _gui_layout_path=pathlib.Path(_GUI_PROJECT_ROOT)/str(_GW.get("layout_filename","index_trader_gui_layout.json"))
 def _read_gui_layout()->dict:
@@ -54,10 +61,13 @@ def _write_gui_layout()->None:
         if _wst not in ("normal","zoomed","iconic"):
             _wst="normal"
         d={"v":4,"geometry":root.geometry(),"sash0":None,"topmost":bool(_layout_flags.get("topmost")),"win_state":_wst}
-        try: d["sash0"]=int(pan.sashpos(0))
-        except Exception: pass
+        try:
+            d["sash0"]=int(pan.sashpos(0))
+        except Exception:
+            _logger.debug("[GUI] Could not read sash position")
         with open(_gui_layout_path,"w",encoding="utf-8") as f: json.dump(d,f,separators=(",",":"))
-    except Exception: pass
+    except Exception as _exc:
+        _logger.debug("[GUI] Could not write layout: %s", _exc)
 _gui_layout_saved=_read_gui_layout()
 _layout_flags={"topmost":False}
 _tp_saved=_gui_layout_saved.get("topmost")
@@ -94,15 +104,18 @@ _FONT_MONO=_pref_mo if _pref_mo and _fam_ok(_pref_mo) else ("Consolas" if _fam_o
 bg_main=_GT.get("bg_main","#010409");bg_card=_GT.get("bg_card","#161b22");bd=_GT.get("bd","#30363d");accent=_GT.get("accent","#58a6ff")
 _trh=int(_GU.get("tree_row_height",26))
 style=ttk.Style()
-try: style.theme_use("clam")
-except Exception: pass
+try:
+    style.theme_use("clam")
+except Exception as _exc:
+    _logger.debug("[GUI] Could not set theme: %s", _exc)
 style.configure("Gui.Treeview",background=_GT.get("tree_bg","#0d1117"),foreground=_GT.get("tree_fg","#c9d1d9"),fieldbackground=_GT.get("tree_bg","#0d1117"),rowheight=_trh,font=(_FONT_UI,9))
 style.configure("Gui.Treeview.Heading",background=_GT.get("heading_bg","#21262d"),foreground=accent,font=(_FONT_UI,9,"bold"))
 style.map("Gui.Treeview",background=[("selected",_GT.get("select_bg","#1f6feb"))],foreground=[("selected",_GT.get("select_fg","#ffffff"))])
 try:
     style.configure("TPanedwindow",background=bg_main)
     style.configure("Sash",background=_GT.get("scrollbar_bg","#30363d"),troughcolor=bg_main)
-except Exception: pass
+except Exception as _exc:
+    _logger.debug("[GUI] Could not configure style: %s", _exc)
 
 header=tk.Frame(root,bg=bg_card,height=int(_GW.get("header_height",48)))
 header.pack(fill=tk.X,side=tk.TOP)
@@ -117,7 +130,8 @@ def _sync_header_hint()->None:
     try:
         rs=max(1,(GUI_REFRESH_MS+500)//1000)
         lbl_header_hint.config(text=f"KPI · desk · index table · full log · ~{rs}s UI · scan {SCAN_INTERVAL}s · Ctrl+F · layout JSON")
-    except Exception: pass
+    except Exception:
+        _logger.debug("[GUI] Could not update header hint")
 _sync_header_hint()
 right_h=tk.Frame(header,bg=bg_card)
 right_h.pack(side=tk.RIGHT,padx=10,pady=6)
@@ -183,8 +197,8 @@ pan.add(right_col)
 try:
     pan.paneconfig(left_col,weight=1,minsize=int(_GW.get("pane_minsize_left",280)))
     pan.paneconfig(right_col,weight=2,minsize=int(_GW.get("pane_minsize_right",300)))
-except Exception:
-    pass
+except Exception as _exc:
+    _logger.debug("[GUI] Could not set pane config: %s", _exc)
 
 _layout_save_sched:list=[None]
 def _queue_gui_layout_save(_evt=None)->None:
@@ -192,7 +206,7 @@ def _queue_gui_layout_save(_evt=None)->None:
         try:
             root.after_cancel(_layout_save_sched[0])
         except Exception:
-            pass
+            _logger.debug("[GUI] Could not cancel layout save timer")
     _layout_save_sched[0]=root.after(int(_GW.get("layout_save_debounce_ms",1500)),_write_gui_layout)
 
 _wrap_sync_sched:list=[None]
@@ -207,23 +221,25 @@ def _sync_wraplength()->None:
         try:
             lbl_desk.config(wraplength=max(360,w-24))
         except Exception:
-            pass
+            _logger.debug("[GUI] Could not sync desk wraplength")
         try:
             lbl_manual_flow.config(wraplength=max(360,w-24))
         except Exception:
-            pass
+            _logger.debug("[GUI] Could not sync manual flow wraplength")
         ww=max(220,min(520,w//2+40))
         for ch in wait_inner.winfo_children():
             if isinstance(ch,tk.Label):
                 ch.config(wraplength=ww)
     except Exception:
-        pass
+        _logger.debug("[GUI] Could not sync wraplength")
 
 def _queue_wrap_sync()->None:
     if _wrap_sync_sched[0] is not None:
-        try: root.after_cancel(_wrap_sync_sched[0])
-        except Exception: pass
-        _wrap_sync_sched[0]=root.after(int(_GW.get("wrap_sync_debounce_ms",120)),_sync_wraplength)
+        try:
+            root.after_cancel(_wrap_sync_sched[0])
+        except Exception:
+            _logger.debug("[GUI] Could not cancel wrap sync timer")
+    _wrap_sync_sched[0]=root.after(int(_GW.get("wrap_sync_debounce_ms",120)),_sync_wraplength)
 
 def _on_root_configure(e)->None:
     if getattr(e,"widget",None) is root:
@@ -238,7 +254,8 @@ try:
     left_col.bind("<Configure>",lambda e:_queue_gui_layout_save())
     right_col.bind("<Configure>",lambda e:_queue_gui_layout_save())
     pan.bind("<ButtonRelease-1>",lambda e:_queue_gui_layout_save())
-except Exception: pass
+except Exception as _exc:
+    _logger.debug("[GUI] Could not bind configure events: %s", _exc)
 
 left_col.grid_columnconfigure(0,weight=1)
 left_col.grid_rowconfigure(1,weight=1)
@@ -304,8 +321,10 @@ for _sb in (tsy,dsy):
     try:
         _sb.config(troughcolor=_sb_trough,bg=_sb_bg,activebackground="#484f58",highlightthickness=0,bd=0,width=12)
     except Exception:
-        try: _sb.config(bg=_sb_bg,highlightthickness=0)
-        except Exception: pass
+        try:
+            _sb.config(bg=_sb_bg,highlightthickness=0)
+        except Exception as _exc:
+            _logger.debug("[GUI] Could not configure scrollbar: %s", _exc)
 
 tw.tag_configure("header",foreground=accent,font=(_FONT_MONO,9,"bold"))
 tw.tag_configure("profit",foreground="#3fb950")
@@ -322,10 +341,10 @@ tw.tag_configure("layman",foreground="#79c0ff",font=(_FONT_UI,9))
 
 def _on_wheel_text(e):
     try: tw.yview_scroll(int(-1*(e.delta/120)),"units")
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] text wheel scroll failed")
 def _on_wheel_tree(e):
     try: tv.yview_scroll(int(-1*(e.delta/120)),"units")
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] tree wheel scroll failed")
 tw.bind("<MouseWheel>",_on_wheel_text)
 detail_fr.bind("<MouseWheel>",_on_wheel_text)
 tv.bind("<MouseWheel>",_on_wheel_tree)
@@ -341,7 +360,7 @@ tbl_fr.bind("<Button-5>",lambda e: tv.yview_scroll(2,"units"))
 
 def _clipboard_flush()->None:
     try: root.update_idletasks()
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] clipboard flush failed")
 
 def _copy_details_selection(_e=None)->None:
     try:
@@ -355,7 +374,7 @@ def _copy_details_selection(_e=None)->None:
             root.clipboard_clear()
             root.clipboard_append(tx)
             _clipboard_flush()
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] copy selection failed")
     return "break"
 def _copy_details_all()->None:
     try:
@@ -365,21 +384,21 @@ def _copy_details_all()->None:
         root.clipboard_clear()
         root.clipboard_append(tx[:16000])
         _clipboard_flush()
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] copy all failed")
 def _select_details_all(_e=None)->None:
     try:
         tw.config(state=tk.NORMAL)
         tw.tag_remove("sel","1.0",tk.END)
         tw.tag_add("sel","1.0",tk.END)
         tw.config(state=tk.DISABLED)
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] select all failed")
     return "break"
 def _clear_details_sel(_e=None)->None:
     try:
         tw.config(state=tk.NORMAL)
         tw.tag_remove("sel","1.0",tk.END)
         tw.config(state=tk.DISABLED)
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] clear selection failed")
     return "break"
 tw.bind("<Control-c>",_copy_details_selection)
 tw.bind("<Control-C>",_copy_details_selection)
@@ -389,22 +408,26 @@ tw.bind("<Escape>",_clear_details_sel)
 def _tw_scroll_top(_e=None)->None:
     try:
         tw.config(state=tk.NORMAL);tw.see("1.0");tw.config(state=tk.DISABLED)
-    except Exception: pass
+    except Exception:
+        _logger.debug("[GUI] tw scroll to top failed")
     return "break"
 def _tw_scroll_bottom(_e=None)->None:
     try:
         tw.config(state=tk.NORMAL);tw.see(tk.END);tw.config(state=tk.DISABLED)
-    except Exception: pass
+    except Exception:
+        _logger.debug("[GUI] tw scroll to bottom failed")
     return "break"
 def _tw_pgup(_e=None)->None:
     try:
         tw.config(state=tk.NORMAL);tw.yview_scroll(-1,"pages");tw.config(state=tk.DISABLED)
-    except Exception: pass
+    except Exception:
+        _logger.debug("[GUI] tw page up failed")
     return "break"
 def _tw_pgdn(_e=None)->None:
     try:
         tw.config(state=tk.NORMAL);tw.yview_scroll(1,"pages");tw.config(state=tk.DISABLED)
-    except Exception: pass
+    except Exception:
+        _logger.debug("[GUI] tw page down failed")
     return "break"
 tw.bind("<Home>",_tw_scroll_top)
 tw.bind("<End>",_tw_scroll_bottom)
@@ -428,7 +451,7 @@ def _open_find_details()->None:
     w=tk.Toplevel(root)
     w.title("Find in details")
     try: w.transient(root)
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] Could not set transient for find window")
     w.configure(bg=bg_card)
     w.resizable(False,False)
     fr=tk.Frame(w,bg=bg_card,padx=12,pady=10)
@@ -471,10 +494,10 @@ def _open_find_details()->None:
             st_lbl.config(text=f"Error: {ex!s}"[:120],fg="#f85149")
         finally:
             try: tw.config(state=tk.DISABLED)
-            except Exception: pass
+            except Exception: _logger.debug("[GUI] Could not disable text widget after find")
     def _close_find()->None:
         try: w.destroy()
-        except Exception: pass
+        except Exception: _logger.debug("[GUI] Could not destroy find window")
         _find_win[0]=None
         _find_resume[0]=None
     tk.Button(btnr,text="Find next",command=_do_find_next,bg="#21262d",fg="#c9d1d9",activebackground="#30363d").pack(side=tk.LEFT,padx=(0,8))
@@ -496,9 +519,9 @@ def _details_context(e):
     try:
         tw.config(state=tk.NORMAL)
         has_sel=bool(tw.tag_ranges("sel"))
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] Could not check text selection range")
     try: tw.config(state=tk.DISABLED)
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] Could not disable text widget after context menu")
     cm=tk.Menu(root,tearoff=0,bg=bg_card,fg="#c9d1d9",activebackground="#21262d",activeforeground="#f0f6fc")
     cm.add_command(label="Select all",command=lambda:_select_details_all(None))
     cm.add_command(label="Copy selection",command=_copy_details_selection,state=tk.NORMAL if has_sel else tk.DISABLED)
@@ -508,10 +531,11 @@ def _details_context(e):
     cm.add_separator()
     cm.add_command(label="Scroll to top",command=lambda:_tw_scroll_top(None))
     cm.add_command(label="Scroll to bottom",command=lambda:_tw_scroll_bottom(None))
-    try: cm.tk_popup(e.x_root,e.y_root)
+    try:
+        cm.tk_popup(e.x_root,e.y_root)
     finally:
         try: cm.grab_release()
-        except Exception: pass
+        except Exception: _logger.debug("[GUI] Could not release context menu grab")
 tw.bind("<Button-3>",_details_context)
 
 def _init_pan_sash():
@@ -524,7 +548,8 @@ def _init_pan_sash():
         else:
             w=max(_pdsmin,min(_pdsmax,root.winfo_width()//2))
             pan.sashpos(0,w)
-    except Exception: pass
+    except Exception:
+        _logger.debug("[GUI] Could not initialize sash position")
 root.after(int(_GW.get("init_sash_delay_ms",300)),_init_pan_sash)
 
 sched_after:list=[None]
@@ -551,9 +576,9 @@ def _apply_colors(widget,text):
         elif "LIVE INDEX PRICES" in line: tag="section"
         elif "WAITING" in line: tag="dim"
         elif "[ERROR]" in ll or "[SILENT_ERR]" in ll or "TRACEBACK" in ll or "EXCEPTION" in ll: tag="err"
-        elif "[WARN]" in ll or "⚠️" in line: tag="blocked"
+        elif "[WARN]" in ll or "\u26a0\ufe0f" in line: tag="blocked"
         elif "[SIGNAL]" in ll: tag="signal_buy"
-        elif "[BLOCKED]" in ll or "🛑" in line or "❌" in line: tag="blocked"
+        elif "[BLOCKED]" in ll or "\U0001f6d1" in line or "\u274c" in line: tag="blocked"
         elif "AT A GLANCE" in line: tag="layman"
         elif "HOW TO READ" in line: tag="layman"
         elif "REAL SIGNAL" in line: tag="layman"
@@ -561,7 +586,7 @@ def _apply_colors(widget,text):
         elif "\u25bc" in line and "-" in line: tag="loss"
         elif "WHY:" in line: tag="dim"
         elif "NO OPEN POSITIONS" in line: tag="dim"
-        elif "SIMPLE GUIDE" in line or line.strip().startswith("•"): tag="layman"
+        elif "SIMPLE GUIDE" in line or line.strip().startswith("\u2022"): tag="layman"
         if tag: widget.insert(tk.END,line+"\n",tag)
         else: widget.insert(tk.END,line+"\n")
     widget.config(state=tk.DISABLED)
@@ -574,11 +599,11 @@ def _update():
     if _shutdown.is_set():
         _cancel_sched_after()
         try: root.quit()
-        except Exception: pass
+        except Exception: _logger.debug("[GUI] Could not quit root on shutdown")
         return
     with _display_lock:
         struct=_display_snapshot.get("struct")
-        full_txt=_display_snapshot.get("text","  Waiting for first scan cycle…")
+        full_txt=_display_snapshot.get("text","  Waiting for first scan cycle\u2026")
         snap_ts=_display_snapshot.get("ts")
     detail=""
     if isinstance(struct,dict) and struct.get("detail_text"):
@@ -590,55 +615,56 @@ def _update():
     try:
         lbl_gui_err.config(text="")
         if struct_ok:
-            v_time.config(text=struct.get("time","—"))
-            _sub=("IST · closing this window stops the bot & exits" if SHUTDOWN_ON_UI_CLOSE else "IST")
+            v_time.config(text=struct.get("time","\u2014"))
+            _sub=("IST \u00b7 closing this window stops the bot & exits" if SHUTDOWN_ON_UI_CLOSE else "IST")
             try:
                 _sw=int(_GU.get("snapshot_warn_sec",45));_sh=int(_GU.get("snapshot_hint_sec",20))
                 if isinstance(snap_ts,(int,float)) and snap_ts>0:
                     _ag=int(max(0,time.time()-snap_ts))
                     if _ag>=_sw:
-                        _sub=f"{_sub} · data {_ag}s old — check bot if frozen"
+                        _sub=f"{_sub} \u00b7 data {_ag}s old \u2014 check bot if frozen"
                     elif _ag>=_sh:
-                        _sub=f"{_sub} · snapshot {_ag}s ago"
-            except Exception: pass
+                        _sub=f"{_sub} \u00b7 snapshot {_ag}s ago"
+            except Exception:
+                _logger.debug("[GUI] Could not compute snapshot age")
             try:
                 _lc=int(_GU.get("loop_lag_critical_sec",120));_lw=int(_GU.get("loop_lag_warn_sec",45));_lh=int(_GU.get("loop_lag_hint_sec",18))
                 if struct.get("status")=="OPEN":
                     _lag=int(struct.get("loop_lag_s") or 0)
                     if _lag>=_lc:
-                        _sub=f"{_sub} · main loop gap {_lag}s (watchdog risk)"
+                        _sub=f"{_sub} \u00b7 main loop gap {_lag}s (watchdog risk)"
                     elif _lag>=_lw:
-                        _sub=f"{_sub} · loop idle {_lag}s"
+                        _sub=f"{_sub} \u00b7 loop idle {_lag}s"
                     elif _lag>=_lh:
-                        _sub=f"{_sub} · loop {_lag}s"
-            except Exception: pass
+                        _sub=f"{_sub} \u00b7 loop {_lag}s"
+            except Exception:
+                _logger.debug("[GUI] Could not compute loop lag")
             try:
                 nf=int(struct.get("nse_fails",0) or 0); yf=int(struct.get("yf_fails",0) or 0)
                 api_s="API OK" if (nf+yf)==0 else f"API NSE:{nf} YF:{yf}"
-                _sub=f"{_sub} · {api_s}"
+                _sub=f"{_sub} \u00b7 {api_s}"
             except Exception:
-                pass
+                _logger.debug("[GUI] Could not compute API status")
             try:
                 _ssi=struct.get("scan_interval_s");_gri=struct.get("gui_refresh_ms")
                 if isinstance(_ssi,(int,float)) and isinstance(_gri,(int,float)):
-                    _sub=f"{_sub} · scan {int(_ssi)}s · UI {int(_gri)}ms"
+                    _sub=f"{_sub} \u00b7 scan {int(_ssi)}s \u00b7 UI {int(_gri)}ms"
             except Exception:
-                pass
+                _logger.debug("[GUI] Could not compute scan interval")
             v_time_sub.config(text=_sub)
             v_cap.config(text=f"{R}{struct.get('capital',0):,.0f}")
             try:
                 av=float(struct.get("available_capital") or 0.0)
                 md=float(struct.get("max_deployable") or 0.0)
                 rp=float(struct.get("risk_per_trade") or 0.0)
-                v_cap_sub.config(text=f"Avail {R}{av:,.0f}  •  Max deploy {R}{md:,.0f} ({int(round(MAX_LOT_CAPITAL_PCT*100,0))}%)  •  Risk {R}{rp:,.0f}/trade")
+                v_cap_sub.config(text=f"Avail {R}{av:,.0f}  \u2022  Max deploy {R}{md:,.0f} ({int(round(MAX_LOT_CAPITAL_PCT*100,0))}%)  \u2022  Risk {R}{rp:,.0f}/trade")
             except Exception:
                 try: v_cap_sub.config(text="")
-                except Exception: pass
+                except Exception: _logger.debug("[GUI] Could not clear capital sub label")
             pnl=struct.get("pnl",0.0)
             v_pnl.config(text=format_pnl(pnl),fg=_GT.get("profit","#3fb950") if pnl>=0 else _GT.get("loss","#f85149"))
             try:
                 b=struct.get("blockers") or {}
-                # show the single most common blocker type
                 if isinstance(b,dict) and b:
                     top_t,top_n=max(b.items(),key=lambda kv: kv[1])
                     top_map={
@@ -654,19 +680,19 @@ def _update():
                         "MISSING":"Top block: Missing",
                     }
                     top_lbl=top_map.get(str(top_t),f"Top block: {top_t}")
-                    v_pnl_sub.config(text=f"{top_lbl} ({int(top_n)}/{len(INDEX_PRIORITY)}) · lock={'on' if struct.get('lock') else 'off'}")
+                    v_pnl_sub.config(text=f"{top_lbl} ({int(top_n)}/{len(INDEX_PRIORITY)}) \u00b7 lock={'on' if struct.get('lock') else 'off'}")
                 else:
-                    v_pnl_sub.config(text=f"ADX chop ≤{struct.get('adx_chop',20)} · lock={'on' if struct.get('lock') else 'off'}")
+                    v_pnl_sub.config(text=f"ADX chop \u2264{struct.get('adx_chop',20)} \u00b7 lock={'on' if struct.get('lock') else 'off'}")
             except Exception:
-                v_pnl_sub.config(text=f"ADX chop ≤{struct.get('adx_chop',20)} · lock={'on' if struct.get('lock') else 'off'}")
-            v_tr.config(text=f"{struct.get('trades_tc',0)}/{struct.get('trades_max',3)} trades  ·  {struct.get('pos_n',0)}/{struct.get('pos_max',1)} open  ·  scan {SCAN_INTERVAL}s")
+                v_pnl_sub.config(text=f"ADX chop \u2264{struct.get('adx_chop',20)} \u00b7 lock={'on' if struct.get('lock') else 'off'}")
+            v_tr.config(text=f"{struct.get('trades_tc',0)}/{struct.get('trades_max',3)} trades  \u00b7  {struct.get('pos_n',0)}/{struct.get('pos_max',1)} open  \u00b7  scan {SCAN_INTERVAL}s")
             try:
                 _td,_fd=_format_trading_desk_line(struct.get("desk"))
                 lbl_desk.config(text=_td,fg=_fd)
             except Exception as _de:
                 if _DEBUG:
                     try: lbl_desk.config(text=f"Desk line: {_de!s}"[:180],fg="#f85149")
-                    except Exception: pass
+                    except Exception: _logger.debug("[GUI] Could not set desk debug label")
             try:
                 if bool(_GU.get("show_manual_flow_banner",True)):
                     _mf=str(struct.get("manual_flow_banner") or "").strip()
@@ -674,15 +700,15 @@ def _update():
                 else:
                     lbl_manual_flow.config(text="")
             except Exception:
-                pass
+                _logger.debug("[GUI] Could not update manual flow banner")
             ht=struct.get("headline_tag","muted")
             hc={"ok":(_GT.get("headline_ok_bg","#0d1117"),_GT.get("profit","#3fb950")),"warn":(_GT.get("headline_warn_bg","#0d1117"),_GT.get("warn","#d29922")),"muted":(_GT.get("headline_muted_bg","#21262d"),_GT.get("fg_muted","#8b949e"))}
             bg_,fg_=hc.get(ht,hc["muted"])
             lbl_headline.config(text=struct.get("headline",""),bg=bg_,fg=fg_)
             if struct.get("tg_ok"):
-                lbl_tg.config(text="Telegram: ON — ACTION alerts only after TG quality gates (margin, min score, vol, OPEN).",fg=_GT.get("profit","#3fb950"))
+                lbl_tg.config(text="Telegram: ON \u2014 ACTION alerts only after TG quality gates (margin, min score, vol, OPEN).",fg=_GT.get("profit","#3fb950"))
             else:
-                lbl_tg.config(text="Telegram: OFF — add BOT_TOKEN + CHAT_ID in config.json for phone alerts.",fg=_GT.get("warn","#f0883e"))
+                lbl_tg.config(text="Telegram: OFF \u2014 add BOT_TOKEN + CHAT_ID in config.json for phone alerts.",fg=_GT.get("warn","#f0883e"))
             nf,yf=struct.get("nse_fails",0),struct.get("yf_fails",0)
             if nf or yf:
                 lbl_api.config(text=f"API issues: NSE failures={nf}  Yahoo failures={yf} (data may be degraded).")
@@ -698,30 +724,30 @@ def _update():
             if la_ts and (now_t-la_ts)<_tga:
                 tg_bits.append(f"Last ACTION: {la.get('line','')} ({max(0,int((now_t-la_ts)//60))}m ago)")
             if ls_ts and (now_t-ls_ts)<_tgf:
-                tg_bits.append(f"Last filter: {ls.get('name','?')} — {ls.get('why','')}")
+                tg_bits.append(f"Last filter: {ls.get('name','?')} \u2014 {ls.get('why','')}")
             tg_on=bool(struct.get("tg_ok"))
             if tg_bits:
-                txt="  •  ".join(tg_bits)
+                txt="  \u2022  ".join(tg_bits)
                 if not tg_on:
-                    txt="[Log only — Telegram not configured]  "+txt
+                    txt="[Log only \u2014 Telegram not configured]  "+txt
                 lbl_last_tg.config(text=txt,fg="#bc8cff" if tg_on else "#8b949e")
             else:
                 if tg_on:
-                    lbl_last_tg.config(text="No Telegram ACTION yet — phone stays quiet until quality gates pass (see TG_ALERT_*).",fg="#6e7681")
+                    lbl_last_tg.config(text="No Telegram ACTION yet \u2014 phone stays quiet until quality gates pass (see TG_ALERT_*).",fg="#6e7681")
                 else:
-                    lbl_last_tg.config(text="Telegram off — this panel still shows setups; add BOT_TOKEN + CHAT_ID for phone alerts.",fg="#6e7681")
+                    lbl_last_tg.config(text="Telegram off \u2014 this panel still shows setups; add BOT_TOKEN + CHAT_ID for phone alerts.",fg="#6e7681")
             cfg_status=str(struct.get("config_status") or _config_reload_status)
             cfg_fg=_GT.get("profit","#3fb950") if "Reloaded" in cfg_status or cfg_status.lower().startswith("config stable") else (_GT.get("warn","#d29922") if "Restart required" in cfg_status or "immutable" in cfg_status else _GT.get("err","#f85149") if "Blocked" in cfg_status else _GT.get("fg_muted","#8b949e"))
             lbl_config_status.config(text=cfg_status,fg=cfg_fg)
             if struct.get("target_hit"):
-                lbl_headline.config(text="Daily target hit — no new trades today.",bg=_GT.get("headline_muted_bg","#21262d"),fg=_GT.get("warn","#d29922"))
+                lbl_headline.config(text="Daily target hit \u2014 no new trades today.",bg=_GT.get("headline_muted_bg","#21262d"),fg=_GT.get("warn","#d29922"))
             _md=struct.get("mode","")
-            _mbg=_GT.get("mode_paper","#9e6a03") if _md=="PAPER" else (_GT.get("mode_live_manual","#b4690e") if _md=="LIVE·MANUAL" else _GT.get("mode_live_auto","#da3633"))
+            _mbg=_GT.get("mode_paper","#9e6a03") if _md=="PAPER" else (_GT.get("mode_live_manual","#b4690e") if _md=="LIVE\u00b7MANUAL" else _GT.get("mode_live_auto","#da3633"))
             mode_lbl.config(text=f" {_md} ",bg=_mbg)
             for x in tv.get_children(): tv.delete(x)
             for row in struct.get("index_rows",[]):
                 cmp_=row.get("cmp") or 0
-                price_s=f"{R}{cmp_:,.1f}" if cmp_>0 else "—"
+                price_s=f"{R}{cmp_:,.1f}" if cmp_>0 else "\u2014"
                 pct=row.get("pct",0.0)
                 pct_s=f"{pct:+.2f}%"
                 st_txt=str(row.get("status","WAIT") or "WAIT")
@@ -731,22 +757,22 @@ def _update():
                     row.get("name",""),
                     price_s,
                     pct_s,
-                    row.get("dir","—"),
-                    row.get("score","—"),
-                    row.get("thr","—"),
-                    row.get("gap","—"),
-                    row.get("adx","—"),
-                    row.get("iv","—"),
-                    row.get("reg","—"),
+                    row.get("dir","\u2014"),
+                    row.get("score","\u2014"),
+                    row.get("thr","\u2014"),
+                    row.get("gap","\u2014"),
+                    row.get("adx","\u2014"),
+                    row.get("iv","\u2014"),
+                    row.get("reg","\u2014"),
                     st_txt
                 ),tags=(tg_,))
             for w in wait_inner.winfo_children(): w.destroy()
             wrows=struct.get("waiting") or []
             if not wrows:
-                tk.Label(wait_inner,text="No blockers logged (or market not OPEN) — see table Status column.",bg=bg_card,fg="#8b949e",font=(_FONT_UI,9),wraplength=480,justify="left").pack(anchor="w")
+                tk.Label(wait_inner,text="No blockers logged (or market not OPEN) \u2014 see table Status column.",bg=bg_card,fg="#8b949e",font=(_FONT_UI,9),wraplength=480,justify="left").pack(anchor="w")
             else:
                 for wr in wrows:
-                    line=f"• {wr.get('name','')}: {wr.get('reason','')}"
+                    line=f"\u2022 {wr.get('name','')}: {wr.get('reason','')}"
                     tk.Label(wait_inner,text=line,bg=bg_card,fg="#c9d1d9",font=(_FONT_UI,9),wraplength=480,justify="left").pack(anchor="w",pady=1)
             try:
                 ps=struct.get("presignal") if isinstance(struct,dict) else None
@@ -755,7 +781,7 @@ def _update():
                 _fg_muted=_GT.get("fg_muted","#8b949e")
                 if isinstance(ps,dict) and ps.get("name"):
                     nm     =ps.get("name","?")
-                    dr     =ps.get("dir","—")      # "CE" or "PE"
+                    dr     =ps.get("dir","\u2014")      # "CE" or "PE"
                     sc     =ps.get("score")
                     th     =ps.get("thr")
                     gp     =ps.get("gap")
@@ -772,25 +798,20 @@ def _update():
                     blocked=str(ps.get("blocked") or "").strip()
                     is_ce  =(dr=="CE")
                     hdr_fg =_GT.get("profit","#3fb950") if is_ce else (_GT.get("loss","#f85149") if dr=="PE" else _fg_muted)
-                    # Header line
                     star_s =f"  {stars}" if stars else ""
                     lbl_s  =f"  [{label}]" if label else ""
                     lines  =[f"\u25b6 {nm} {dr}{star_s}{lbl_s}"]
-                    # Score bar
                     if isinstance(sc,int) and isinstance(th,int):
                         gp_s=f"  ({gp:+d})" if isinstance(gp,int) else ""
                         lines.append(f"Score {sc} / Need {th}{gp_s}")
                     lines.append(SEP)
-                    # ATM strike + index entry
                     if isinstance(price,(int,float)) and price>0 and isinstance(step,(int,float)) and step>0:
                         atm=int(round(float(price)/float(step))*float(step))
                         lines.append(f"ATM Strike  {atm} {dr}   \u2190 buy this")
                         lines.append(f"Index Spot  {R_SYM}{price:,.1f}")
-                    # Stop loss
                     if isinstance(sl,(int,float)) and sl>0 and isinstance(price,(int,float)) and price>0:
                         sl_pct=(sl-price)/price*100
                         lines.append(f"Stop Loss   {R_SYM}{sl:,.1f}  ({sl_pct:+.1f}%)")
-                    # Take profits
                     if isinstance(tp1,(int,float)) and tp1>0 and isinstance(price,(int,float)) and price>0:
                         t1p=(tp1-price)/price*100
                         lines.append(f"TP 1        {R_SYM}{tp1:,.1f}  ({t1p:+.1f}%)")
@@ -801,37 +822,35 @@ def _update():
                         t3p=(tp3-price)/price*100
                         lines.append(f"TP 3        {R_SYM}{tp3:,.1f}  ({t3p:+.1f}%)")
                     lines.append(SEP)
-                    # Stats row
                     stat_parts=[]
                     if isinstance(rr,(int,float)): stat_parts.append(f"RR {rr:.1f} (need {MIN_NET_RR})")
                     if isinstance(vr,(int,float)): stat_parts.append(f"Vol {vr:.1f}x")
                     if lot: stat_parts.append(f"Lot {lot}")
                     if stat_parts: lines.append("  \u2022  ".join(stat_parts))
-                    # Smart money
                     _oi_map={"BULLISH":"Big buyers active (BULLISH)","BEARISH":"Big sellers active (BEARISH)"}
                     if smart in _oi_map: lines.append(f"OI: {_oi_map[smart]}")
-                    # VIX if notable
                     if isinstance(vix,(int,float)) and vix>0: lines.append(f"VIX {vix:.1f}")
-                    # Block reason
                     if blocked: lines.append(f"Block: {blocked}")
                     pre_lbl.config(text="\n".join(lines),fg=hdr_fg)
                 else:
-                    pre_lbl.config(text="No near-signal yet — wait for score to approach the bar.",fg=_fg_muted)
+                    pre_lbl.config(text="No near-signal yet \u2014 wait for score to approach the bar.",fg=_fg_muted)
             except Exception:
-                try: pre_lbl.config(text="No near-signal yet — wait for score to approach the bar.",
+                try: pre_lbl.config(text="No near-signal yet \u2014 wait for score to approach the bar.",
                                     fg=_GT.get("fg_muted","#8b949e"))
-                except Exception: pass
-            try: _sync_wraplength()
-            except Exception: pass
+                except Exception: _logger.debug("[GUI] Could not set pre-signal fallback text")
+            try:
+                _sync_wraplength()
+            except Exception:
+                _logger.debug("[GUI] Could not sync wraplength")
         else:
             try:
-                lbl_desk.config(text="Waiting for a valid dashboard snapshot from the bot…",fg="#8b949e")
+                lbl_desk.config(text="Waiting for a valid dashboard snapshot from the bot\u2026",fg="#8b949e")
             except Exception:
-                pass
+                _logger.debug("[GUI] Could not update desk label")
             try:
                 lbl_manual_flow.config(text="")
             except Exception:
-                pass
+                _logger.debug("[GUI] Could not clear manual flow label")
         st=(struct.get("status") if struct_ok else None) or market_status()
         st_colors={"OPEN":_GT.get("status_open","#238636"),"CLOSED":_GT.get("status_closed","#da3633"),"PRE":_GT.get("status_pre","#9e6a03"),"HOLIDAY":_GT.get("status_idle","#484f58"),"WEEKEND":_GT.get("status_idle","#484f58")}
         status_lbl.config(text=f" {st} ",bg=st_colors.get(st,"#21262d"),fg="#ffffff")
@@ -850,14 +869,15 @@ def _update():
                 tw.config(state=tk.NORMAL)
                 if stick_bottom: tw.see(tk.END)
                 else: tw.yview_moveto(max(0.0,min(1.0,float(y_top))))
-            except Exception: pass
+            except Exception: _logger.debug("[GUI] Could not restore scroll position")
             tw.config(state=tk.DISABLED)
     except Exception as e:
-        if _DEBUG: _gui_log(f"[GUI UPDATE] {e}")
+        if _DEBUG: _logger.debug("[GUI UPDATE] %s", e)
         try: lbl_gui_err.config(text=f"UI refresh issue: {e!s}"[:200])
-        except Exception: pass
+        except Exception: _logger.debug("[GUI] Could not set GUI error label")
     try: _sync_header_hint()
-    except Exception: pass
+    except Exception:
+        _logger.debug("[GUI] Could not sync header hint")
     try:
         sched_after[0]=root.after(GUI_REFRESH_MS,_update)
     except tk.TclError:
@@ -872,32 +892,32 @@ def _on_close():
             _t,_m="Stop paper session?","Closing stops the paper bot and exits this run. Continue?"
         else:
             _t,_m=("Stop LIVE bot?","Closing stops the trading bot and exits.\n"
-                   "Open positions may still exist at your broker — manage them if needed.\n\nContinue?")
+                   "Open positions may still exist at your broker \u2014 manage them if needed.\n\nContinue?")
         if not tkmsg.askokcancel(_t,_m):
             return
     _cancel_sched_after()
     if _layout_save_sched[0] is not None:
         try: root.after_cancel(_layout_save_sched[0])
-        except Exception: pass
+        except Exception: _logger.debug("[GUI] Could not cancel layout save timer on close")
         _layout_save_sched[0]=None
     if _wrap_sync_sched[0] is not None:
         try: root.after_cancel(_wrap_sync_sched[0])
-        except Exception: pass
+        except Exception: _logger.debug("[GUI] Could not cancel wrap sync timer on close")
         _wrap_sync_sched[0]=None
     try: _write_gui_layout()
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] Could not write layout on close")
     _gui_alive.clear()
     if SHUTDOWN_ON_UI_CLOSE:
         _shutdown.set()
-        _logger.log("[GUI] Window closed — stopping bot (SHUTDOWN_ON_UI_CLOSE=true). Console will exit when cleanup finishes. Use --nogui to run without this window.")
+        _logger.log("[GUI] Window closed \u2014 stopping bot (SHUTDOWN_ON_UI_CLOSE=true). Console will exit when cleanup finishes. Use --nogui to run without this window.")
     try: root.quit()
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] Could not quit root on close")
 
 def _refresh_now():
     _cancel_sched_after()
     _last_gui_tw_text[0]=None
     try: root.after(0,_update)
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] Could not schedule immediate refresh")
 
 def _open_script_folder()->None:
     import subprocess
@@ -911,7 +931,7 @@ def _open_script_folder()->None:
             subprocess.Popen(["xdg-open",str(p)],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     except Exception:
         try: tkmsg.showerror("Open folder","Could not open the script folder in the file manager.")
-        except Exception: pass
+        except Exception: _logger.debug("[GUI] Could not show folder error dialog")
 
 def _save_details_as()->None:
     from tkinter import filedialog
@@ -922,8 +942,8 @@ def _save_details_as()->None:
     except Exception:
         body=""
     if not body.strip():
-        try: tkmsg.showwarning("Save details","Nothing to save yet — wait for the first dashboard update.")
-        except Exception: pass
+        try: tkmsg.showwarning("Save details","Nothing to save yet \u2014 wait for the first dashboard update.")
+        except Exception: _logger.debug("[GUI] Could not show save warning dialog")
         return
     _parent=_gui_layout_path.parent.resolve()
     _stamp=datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -936,18 +956,18 @@ def _save_details_as()->None:
     try:
         with open(_path,"w",encoding="utf-8",newline="\n") as f:
             f.write(body)
-        _logger.log(f"[GUI] Saved details snapshot → {_path}")
+        _logger.log(f"[GUI] Saved details snapshot \u2192 {_path}")
         try: tkmsg.showinfo("Save details",f"Saved:\n{_path}")
-        except Exception: pass
+        except Exception: _logger.debug("[GUI] Could not show save success dialog")
     except Exception as e:
         try: tkmsg.showerror("Save details",str(e))
-        except Exception: pass
+        except Exception: _logger.debug("[GUI] Could not show save error dialog: %s", e)
 
 menubar=tk.Menu(root,tearoff=0)
 mfile=tk.Menu(menubar,tearoff=0)
 menubar.add_cascade(label="File",menu=mfile)
-mfile.add_command(label="Open script folder…",command=_open_script_folder)
-mfile.add_command(label="Save details as…",command=_save_details_as,accelerator="Ctrl+Shift+S")
+mfile.add_command(label="Open script folder\u2026",command=_open_script_folder)
+mfile.add_command(label="Save details as\u2026",command=_save_details_as,accelerator="Ctrl+Shift+S")
 mfile.add_separator()
 mfile.add_command(label="Exit (stop bot)",command=_on_close,accelerator="Ctrl+Q")
 medit=tk.Menu(menubar,tearoff=0)
@@ -959,7 +979,7 @@ medit.add_separator()
 medit.add_command(label="Scroll details to top",command=lambda:_tw_scroll_top(None))
 medit.add_command(label="Scroll details to bottom",command=lambda:_tw_scroll_bottom(None))
 medit.add_separator()
-medit.add_command(label="Find in details…",command=_open_find_details,accelerator="Ctrl+F")
+medit.add_command(label="Find in details\u2026",command=_open_find_details,accelerator="Ctrl+F")
 mview=tk.Menu(menubar,tearoff=0)
 menubar.add_cascade(label="View",menu=mview)
 mview.add_command(label="Refresh now",command=_refresh_now,accelerator="F5")
@@ -970,9 +990,9 @@ def _sync_topmost()->None:
         _layout_flags["topmost"]=v
         root.attributes("-topmost",v)
         _queue_gui_layout_save()
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] Could not sync topmost attribute")
 try: root.attributes("-topmost",bool(_layout_flags.get("topmost")))
-except Exception: pass
+except Exception: _logger.debug("[GUI] Could not set initial topmost attribute")
 mview.add_checkbutton(label="Always on top",variable=_topmost_var,command=_sync_topmost)
 def _reset_saved_layout()->None:
     if not tkmsg.askyesno("Reset saved layout?","Remove index_trader_gui_layout.json and apply default window size and divider?\n\nNo restart needed. A new layout file is written when you resize, move the sash, or exit."):
@@ -987,48 +1007,48 @@ def _reset_saved_layout()->None:
     try:
         _topmost_var.set(False)
         root.attributes("-topmost",False)
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] Could not reset topmost attribute")
     try: root.geometry("1200x860")
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] Could not reset geometry")
     def _pan_default_after_reset()->None:
         try:
             root.update_idletasks()
             w=max(380,min(520,max(300,root.winfo_width()//2)))
             pan.sashpos(0,w)
-        except Exception: pass
+        except Exception: _logger.debug("[GUI] Could not set default sash after reset")
     root.after(80,_pan_default_after_reset)
     try:
         _sync_wraplength()
         _sync_header_hint()
-    except Exception: pass
-    _gui_log("[GUI] Layout file removed — defaults applied")
+    except Exception: _logger.debug("[GUI] Could not sync after layout reset")
+    _logger.log("[GUI] Layout file removed \u2014 defaults applied")
 mview.add_separator()
-mview.add_command(label="Reset saved layout…",command=_reset_saved_layout)
+mview.add_command(label="Reset saved layout\u2026",command=_reset_saved_layout)
 mhelp=tk.Menu(menubar,tearoff=0)
 menubar.add_cascade(label="Help",menu=mhelp)
 def _help_box():
     tkmsg.showinfo(
-        "Index trader — desk & shortcuts",
+        "Index trader \u2014 desk & shortcuts",
         "TRADING DESK (below KPI cards)\n"
-        "• Blue paragraph under the desk line explains MANUAL vs AUTO vs PAPER (hybrid model). Hide it with GUI_UX.show_manual_flow_banner=false.\n"
-        "• One-line context: India VIX vs block/halt, daily loss budget %%, min net RR, SL/target %%, circuit, hard halt, execution path,\n"
+        "\u2022 Blue paragraph under the desk line explains MANUAL vs AUTO vs PAPER (hybrid model). Hide it with GUI_UX.show_manual_flow_banner=false.\n"
+        "\u2022 One-line context: India VIX vs block/halt, daily loss budget %%, min net RR, SL/target %%, circuit, hard halt, execution path,\n"
         "  plus signal-quality and API-latency summaries.\n"
-        "• Orange desk text = circuit tripped; red = hard halt.\n\n"
+        "\u2022 Orange desk text = circuit tripped; red = hard halt.\n\n"
         "INDEX TABLE\n"
-        "• Thr = score threshold; Gap = score−thr; ADX / IV from the signal engine (IV = option IV when available).\n"
-        "• Status / gate = PASS · WATCH · WAIT with the same logic as the console dashboard.\n\n"
+        "\u2022 Thr = score threshold; Gap = score\u2212thr; ADX / IV from the signal engine (IV = option IV when available).\n"
+        "\u2022 Status / gate = PASS \u00b7 WATCH \u00b7 WAIT with the same logic as the console dashboard.\n\n"
         "LAYOUT\n"
-        "• Window size, divider, topmost, and maximized (win_state) save to index_trader_gui_layout.json.\n"
-        "• File → Open script folder… / Save details as… (Ctrl+Shift+S).\n"
-        f"• View → Refresh now (F5); GUI_REFRESH_MS = UI poll ({GUI_REFRESH_MS} ms); SCAN_INTERVAL = bot scan.\n"
-        "• “Last update” shows snapshot age; when OPEN, also main-loop lag (watchdog risk if very high).\n"
-        "• Details panel: Ctrl+F find, Ctrl+A/C, Esc; Home/End; PgUp/PgDn; wheel scrolls table + log.\n"
-        "• Ctrl+Q / File→Exit: LIVE may confirm (GUI_CONFIRM_EXIT, SHUTDOWN_ON_UI_CLOSE).\n"
-        "• --nogui = console-only.",
+        "\u2022 Window size, divider, topmost, and maximized (win_state) save to index_trader_gui_layout.json.\n"
+        "\u2022 File \u2192 Open script folder\u2026 / Save details as\u2026 (Ctrl+Shift+S).\n"
+        f"\u2022 View \u2192 Refresh now (F5); GUI_REFRESH_MS = UI poll ({GUI_REFRESH_MS} ms); SCAN_INTERVAL = bot scan.\n"
+        "\u2022 \u201cLast update\u201d shows snapshot age; when OPEN, also main-loop lag (watchdog risk if very high).\n"
+        "\u2022 Details panel: Ctrl+F find, Ctrl+A/C, Esc; Home/End; PgUp/PgDn; wheel scrolls table + log.\n"
+        "\u2022 Ctrl+Q / File\u2192Exit: LIVE may confirm (GUI_CONFIRM_EXIT, SHUTDOWN_ON_UI_CLOSE).\n"
+        "\u2022 --nogui = console-only.",
     )
 mhelp.add_command(label="Desk guide & shortcuts",command=_help_box)
 try: root.config(menu=menubar)
-except Exception: pass
+except Exception: _logger.debug("[GUI] Could not set menubar")
 
 def _accel_quit(_e=None):
     _on_close()
@@ -1049,11 +1069,11 @@ root.bind("<Control-Shift-S>",_accel_save_details)
 
 root.protocol("WM_DELETE_WINDOW",_on_close)
 try: root.after(80,_sync_wraplength)
-except Exception: pass
+except Exception: _logger.debug("[GUI] Could not schedule initial wraplength sync")
 root.after(400,_update)
 try: root.mainloop()
-except Exception: pass
+except Exception: _logger.debug("[GUI] mainloop exited with error")
 finally:
     _gui_alive.clear()
     try: root.destroy()
-    except Exception: pass
+    except Exception: _logger.debug("[GUI] Could not destroy root window")

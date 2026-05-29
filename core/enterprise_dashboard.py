@@ -12,26 +12,25 @@ import io
 import json
 import logging
 import os
+import secrets
 import sys
 import threading
 import time
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from contextlib import asynccontextmanager
-
-import secrets
-from types import MappingProxyType
 
 from core.auth.csrf import csrf_protection
-from core.auth.dependencies import AuthDependencies, get_client_ip
-from core.auth.handler import AuthHandler, AuthUser
+from core.auth.dependencies import AuthDependencies
+from core.auth.handler import AuthHandler
 from core.auth.routes import create_auth_router
 
 _log = logging.getLogger(__name__)
@@ -148,6 +147,14 @@ class EnterpriseDashboard:
     def _create_app(self) -> FastAPI:
         self._startup_ts = time.time()
 
+        # Register runtime invariant checks on startup
+        try:
+            from core.invariants.checks import register_all as _register_invariants
+            _register_invariants()
+            _log.info("[DASH] Runtime invariant checks registered")
+        except Exception as exc:
+            _log.debug("[DASH] Invariant registration skipped: %s", exc)
+
         @asynccontextmanager
         async def lifespan(app: FastAPI):
             _log.info("[DASH] Enterprise dashboard started")
@@ -158,7 +165,41 @@ class EnterpriseDashboard:
             title="OPB Enterprise Dashboard",
             version="2.53.0",
             docs_url="/api/docs",
-            redoc_url=None,
+            redoc_url="/api/redoc",
+            openapi_tags=[
+                {
+                    "name": "Auth",
+                    "description": "Authentication and session management — login, register, change password",
+                },
+                {
+                    "name": "System",
+                    "description": "System state, health, diagnostics, uptime, trades, signals — read-only observability",
+                },
+                {
+                    "name": "Admin",
+                    "description": "Admin-only operations — config management, kill switch, user management, self-test",
+                },
+                {
+                    "name": "Risk",
+                    "description": "Risk metrics — position concentration and exposure analysis",
+                },
+                {
+                    "name": "Broker",
+                    "description": "Broker connection status and adapter information",
+                },
+                {
+                    "name": "ML",
+                    "description": "ML model status — accuracy, drift detection, calibration",
+                },
+                {
+                    "name": "Webhook",
+                    "description": "External signal injection webhook for automated trading signals",
+                },
+                {
+                    "name": "Charts",
+                    "description": "Options chain visualization and market data charts",
+                },
+            ],
             lifespan=lifespan,
         )
 
@@ -184,6 +225,9 @@ class EnterpriseDashboard:
         csrf_protection.exempt("/signals/inject")
         csrf_protection.exempt("/static")
         csrf_protection.exempt("/api/system/self-test")
+        csrf_protection.exempt("/api/docs")
+        csrf_protection.exempt("/api/redoc")
+        csrf_protection.exempt("/openapi.json")
 
         # ── Middleware: Security Headers ────────────────────────────────────────
 
@@ -639,6 +683,75 @@ class EnterpriseDashboard:
 
         # ── Observability: Uptime / diagnostics ─────────────────────────────────
 
+        # ── OI Snapshot Summary API ────────────────────────────────────────────
+
+        @app.get("/api/system/oi", tags=["System"])
+        async def api_oi_summary(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get OI snapshot summary for all tracked indices.
+
+            Returns live PCR/OI data from the NSE adapter (if available)
+            plus the most recent recorded snapshot from ``oi_snapshots.db``.
+            """
+            index_names = self._cfg.get("INDEX_PRIORITY", ["NIFTY", "BANKNIFTY", "FINNIFTY"])
+
+            # 1. Live data from NSE adapter (read-only, no recording side effects)
+            live: dict[str, Any] = {}
+            try:
+                from core.nse_option_recorder import get_oi_summary
+                live = get_oi_summary(index_names, self._cfg)
+            except Exception as exc:
+                _log.debug("[DASH] Live OI summary unavailable: %s", exc)
+
+            # 2. Recent recorded snapshots from oi_snapshots.db
+            recent: dict[str, Any] = {}
+            try:
+                from core.oi_snapshot_store import get_snapshot_at
+                oi_db = str(
+                    self._cfg.get("oi_snapshot_db_path",
+                    self._cfg.get("OI_SNAPSHOT_DB_PATH", "oi_snapshots.db"))
+                )
+                now = time.time()
+                for idx in index_names:
+                    snap = get_snapshot_at(idx, now + 1, db_path=oi_db)
+                    if snap:
+                        # Convert to readable format, drop internal fields
+                        recent[idx] = {
+                            k: v for k, v in snap.items()
+                            if k not in ("id", "snapshot_source")
+                        }
+            except Exception as exc:
+                _log.debug("[DASH] DB OI snapshots unavailable: %s", exc)
+
+            return {
+                "index_names": index_names,
+                "live": live,
+                "recent_snapshots": recent,
+                "timestamp": time.time(),
+            }
+
+        # ── Invariants API ────────────────────────────────────────────────────
+
+        @app.get("/api/system/invariants", tags=["System"])
+        async def api_invariants(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get runtime invariant check results and violations."""
+            try:
+                from core.invariants.engine import check_all, get_state, get_violations
+                # Run all checks to get fresh results
+                check_all()
+                state = get_state()
+                violations = get_violations(unresolved_only=True)
+                return {
+                    "checks": state["checks"],
+                    "violations": state["violations"],
+                    "unresolved_violations": len(violations),
+                    "total_violations": state["violation_count"],
+                    "disabled_checks": state["disabled_checks"],
+                }
+            except ImportError:
+                return {"status": "unavailable", "detail": "Invariant engine not available"}
+            except Exception as e:
+                return {"status": "error", "detail": str(e)}
+
         @app.get("/api/system/uptime")
         async def api_uptime(user: Any = Depends(self._auth_deps.require_auth_optional)):
             uptime_secs = time.time() - self._startup_ts
@@ -1038,7 +1151,6 @@ class EnterpriseDashboard:
             List of dicts with 'file', 'timestamp', and 'age' (seconds).
         """
         config_path = self._resolve_config_path()
-        pattern = str(config_path.with_suffix(".json.backup.*"))
         backups = sorted(Path(config_path.parent).glob("*.backup.*"), reverse=True)
         history = []
         for bp in backups[:20]:

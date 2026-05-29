@@ -17,7 +17,7 @@ from core.adapters.broker_adapters import (
     _PollingBrokerAdapter,
     build_broker_runtime_context,
 )
-from core.ports.broker import BrokerPort
+from core.ports.broker import LegacyBrokerPort
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -224,7 +224,7 @@ class TestAuthExpiry:
         mock_kite = MagicMock()
         mock_kite.place_order.side_effect = Exception("TokenExpired: Login required")
 
-        class ExpiryPort(BrokerPort):
+        class ExpiryPort(LegacyBrokerPort):
             def connect(self): return True
             def disconnect(self): pass
             def place_order(self, req):

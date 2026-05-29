@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 pytest.importorskip("yaml", reason="PyYAML not installed")
 
 from core.config_loader import ConfigLoader, get_effective_config, get_loader, load_config
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -115,7 +113,6 @@ class TestConfigLoaderLoad:
 
 class TestConfigLoaderValidateSchema:
     def test_validate_schema_existing_returns_true(self, config_dir: Path, base_yaml: Path):
-        from pathlib import Path as P
         schemas = config_dir.parent / "schemas"
         schemas.mkdir(exist_ok=True)
         (schemas / "base.schema.json").write_text("{}", encoding="utf-8")

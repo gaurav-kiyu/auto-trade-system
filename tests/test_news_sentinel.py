@@ -325,7 +325,6 @@ def test_fetch_rss_urlerror_returns_empty():
 
 def test_fetch_rss_parse_error_returns_empty():
     from unittest.mock import patch
-    import xml.etree.ElementTree as ET
     s = NewsSentinel(cfg=CFG)
     with patch("core.news_sentinel.urlopen") as m:
         m.return_value.__enter__.return_value.read.return_value = b"not xml"

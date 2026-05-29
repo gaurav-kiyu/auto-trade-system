@@ -15,18 +15,17 @@ Covers:
 from __future__ import annotations
 
 import datetime
-
 from unittest.mock import patch as _patch
 
 from core.session_classifier import (
-    SessionType,
     ExpirySessionName,
+    SessionType,
     classify_session,
+    get_expiry_session,
     get_session_score_adj,
+    is_expiry_day,
     session_entry_allowed,
     session_summary,
-    is_expiry_day,
-    get_expiry_session,
 )
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

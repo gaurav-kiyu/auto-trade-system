@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from infrastructure.config.secure_config import SecureConfig, SecureConfigError, get_secure_config
 
 
@@ -285,7 +283,7 @@ class TestSecureConfigEdgeCases:
 
     def test_get_dict_parse_warning(self, tmp_path: Path):
         """get_dict with bad JSON logs warning and returns default."""
-        with patch("infrastructure.config.secure_config.logger.warning") as mock_warn:
+        with patch("infrastructure.config.secure_config.logger.warning"):
             sc = SecureConfig()
             result = sc.get_dict("NONEXISTENT")
             assert result == {}
@@ -310,7 +308,7 @@ class TestSecureConfigEdgeCases:
 
     def test_get_secret_for_unknown_key(self):
         """get_secret with unknown key logs audit for safety."""
-        with patch("infrastructure.config.secure_config.logger.info") as mock_info:
+        with patch("infrastructure.config.secure_config.logger.info"):
             sc = SecureConfig()
             val = sc.get_secret("NONEXISTENT")
             assert val is None

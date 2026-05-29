@@ -1,63 +1,98 @@
 """
 Broker Ports Package
+
+Canonical broker port interface and types.
+
+The canonical ``BrokerPort`` ABC (rich 25‑method interface with dataclass
+types) lives in ``broker_port.py`` and is re‑exported here.
+
+Legacy backward‑compatible types (from the original streamlined 10‑method
+interface) are available as ``LegacyBrokerPort``, ``LegacyOrderResult``,
+``LegacyPosition``, ``LegacyQuote``, ``LegacyFill``, ``LegacyOrderStatus``,
+and the shared kernel re‑exports ``Order`` / ``OrderRequest`` / ``Fill``
+(from ``core.common.kernels.models``).
+
+New code should use the canonical types (``BrokerPort``, ``OrderResult``,
+``Position``, ``OrderStatus``, ``Exchange``, …) from ``broker_port.py``.
 """
+
 from __future__ import annotations
-
-"""
-Broker Port Interface
-
-This interface defines the contract that all broker adapters must implement.
-It decouples the trading logic from specific broker implementations.
-"""
 
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
+
+# ── Canonical types from broker_port.py (the canonical interface) ────────────
+
+from core.ports.broker.broker_port import BrokerPort as BrokerPort
+from core.ports.broker.broker_port import (
+    BrokerAuthStatus,
+    BrokerCapability,
+    BrokerCredentials,
+    BrokerOrderRequest,
+    Exchange,
+    Holding,
+    Margin,
+    OrderResult,
+    OrderStatus,
+    OrderType,
+    OrderVariety,
+    Position,
+    PositionDirection,
+    ProductType,
+    Trade,
+)
+
+# ── Shared kernel models (used by legacy broker adapters) ────────────────────
 
 from core.common.kernels.models import Fill as SharedFill
-
-# Import shared models from shared kernels
 from core.common.kernels.models import Order as SharedOrder
 from core.common.kernels.models import OrderResult as SharedOrderResult
 from core.common.kernels.models import Position as SharedPosition
 from core.common.kernels.models import Quote as SharedQuote
+
 from core.datetime_ist import now_ist
 
-# Use shared models from shared kernels
+# ── Legacy backward‑compatible aliases ───────────────────────────────────────
+
+# Shared kernel models (used by PaperBrokerAdapter, KiteBrokerAdapter, MarketDataPort)
 Order = SharedOrder
 OrderRequest = SharedOrder
-OrderResult = SharedOrderResult
-Position = SharedPosition
-Quote = SharedQuote
 Fill = SharedFill
+Quote = SharedQuote
 
-class OrderStatus(Enum):
-    """Standardized order statuses."""
-    SUBMITTED = "SUBMITTED"
-    PENDING = "PENDING"
-    FILLED = "FILLED"
-    PARTIALLY_FILLED = "PARTIALLY_FILLED"
-    CANCELLED = "CANCELLED"
-    REJECTED = "REJECTED"
-    ERROR = "ERROR"
-    EXPIRED = "EXPIRED"
+# Legacy model classes (redefined inline to match the original __init__.py)
+
+LegacyOrderStatus = Enum(
+    "LegacyOrderStatus",
+    {
+        "SUBMITTED": "SUBMITTED",
+        "PENDING": "PENDING",
+        "FILLED": "FILLED",
+        "PARTIALLY_FILLED": "PARTIALLY_FILLED",
+        "CANCELLED": "CANCELLED",
+        "REJECTED": "REJECTED",
+        "ERROR": "ERROR",
+        "EXPIRED": "EXPIRED",
+    },
+    type=str,
+)
 
 
-class OrderResult:
-    """Result of order execution."""
-
+class LegacyOrderResult:
+    """Legacy order result (backward compat — simple attribute class)."""
     def __init__(
         self,
         order_id: str,
-        status: str,  # OPEN, FILLED, PARTIALLY_FILLED, CANCELLED, REJECTED, ERROR
+        status: str,
         filled_quantity: int = 0,
         average_price: float = 0.0,
         commission: float = 0.0,
         timestamp: datetime | None = None,
-        reject_reason: str | None = None
+        reject_reason: str | None = None,
     ):
         self.order_id = order_id
         self.status = status
@@ -68,18 +103,17 @@ class OrderResult:
         self.reject_reason = reject_reason
 
 
-class Position:
-    """Trading position."""
-
+class LegacyPosition:
+    """Legacy trading position (backward compat)."""
     def __init__(
         self,
         symbol: str,
-        quantity: int,  # Positive for long, negative for short
+        quantity: int,
         average_price: float,
         market_value: float,
         unrealized_pnl: float,
         realized_pnl: float,
-        timestamp: datetime | None = None
+        timestamp: datetime | None = None,
     ):
         self.symbol = symbol
         self.quantity = quantity
@@ -90,16 +124,8 @@ class Position:
         self.timestamp = timestamp or now_ist()
 
 
-_log_quote = logging.getLogger(__name__)
-
-
-class Quote:
-    """Market quote with bid ≤ ask enforcement.
-
-    Raises ValueError if bid > ask or bid/ask is NaN/inf — corrupted ticks
-    are rejected at the adapter boundary and cannot propagate through the system.
-    """
-
+class LegacyQuote:
+    """Legacy market quote with bid ≤ ask enforcement (backward compat)."""
     def __init__(
         self,
         symbol: str,
@@ -107,9 +133,8 @@ class Quote:
         ask: float,
         last: float,
         volume: int,
-        timestamp: datetime | None = None
+        timestamp: datetime | None = None,
     ):
-        # Reject quotes with NaN or inf prices
         _bid_valid = isinstance(bid, (int, float)) and not (bid != bid or bid in (float('inf'), float('-inf')))
         _ask_valid = isinstance(ask, (int, float)) and not (ask != ask or ask in (float('inf'), float('-inf')))
         if not _bid_valid or not _ask_valid:
@@ -130,9 +155,8 @@ class Quote:
         self.timestamp = timestamp or now_ist()
 
 
-class Fill:
-    """Order fill/execution."""
-
+class LegacyFill:
+    """Legacy order fill / execution (backward compat)."""
     def __init__(
         self,
         order_id: str,
@@ -140,7 +164,7 @@ class Fill:
         quantity: int,
         price: float,
         timestamp: datetime | None = None,
-        commission: float = 0.0
+        commission: float = 0.0,
     ):
         self.order_id = order_id
         self.symbol = symbol
@@ -150,57 +174,27 @@ class Fill:
         self.commission = commission
 
 
-class BrokerPort(ABC):
+class LegacyBrokerPort(ABC):
     """
-    Abstract base class defining the broker interface.
+    Legacy broker port interface (backward compat — 10‑method streamlined ABC).
 
-    All broker adapters (Kite, Angel, Paper, etc.) must implement this interface.
-    This enables the trading logic to remain broker-agnostic.
+    .. deprecated::
+       New broker adapters should implement ``BrokerPort`` from
+       ``core.ports.broker.broker_port`` (the canonical 25‑method interface
+       with rich dataclass types).
     """
 
     @abstractmethod
-    def connect(self) -> bool:
-        """
-        Establish connection to the broker.
-
-        Returns:
-            True if connection successful, False otherwise
-        """
-        pass
+    def connect(self) -> bool: ...
 
     @abstractmethod
-    def disconnect(self) -> None:
-        """Close connection to the broker."""
-        pass
+    def disconnect(self) -> None: ...
 
     @abstractmethod
-    def place_order(self, order: Order) -> str:
-        """
-        Place an order with the broker.
-
-        Args:
-            order: Order object containing order details
-
-        Returns:
-            Order ID from the broker
-
-        Raises:
-            Exception: If order placement fails
-        """
-        pass
+    def place_order(self, order: SharedOrder) -> str: ...
 
     @abstractmethod
-    def cancel_order(self, order_id: str) -> bool:
-        """
-        Cancel an existing order.
-
-        Args:
-            order_id: ID of the order to cancel
-
-        Returns:
-            True if cancellation successful, False otherwise
-        """
-        pass
+    def cancel_order(self, order_id: str) -> bool: ...
 
     @abstractmethod
     def modify_order(
@@ -208,88 +202,27 @@ class BrokerPort(ABC):
         order_id: str,
         quantity: int | None = None,
         price: float | None = None,
-        trigger_price: float | None = None
-    ) -> bool:
-        """
-        Modify an existing order.
-
-        Args:
-            order_id: ID of the order to modify
-            quantity: New quantity (optional)
-            price: New price (optional)
-            trigger_price: New trigger price (optional)
-
-        Returns:
-            True if modification successful, False otherwise
-        """
-        pass
+        trigger_price: float | None = None,
+    ) -> bool: ...
 
     @abstractmethod
-    def get_order_status(self, order_id: str) -> str:
-        """
-        Get the status of an order.
-
-        Args:
-            order_id: ID of the order to check
-
-        Returns:
-            Order status string
-        """
-        pass
+    def get_order_status(self, order_id: str) -> str: ...
 
     @abstractmethod
-    def get_positions(self) -> list[Position]:
-        """
-        Get current positions from the broker.
-
-        Returns:
-            List of Position objects
-        """
-        pass
+    def get_positions(self) -> list[SharedPosition]: ...
 
     @abstractmethod
-    def get_quote(self, symbol: str) -> Quote:
-        """
-        Get current quote for a symbol.
-
-        Args:
-            symbol: Trading symbol
-
-        Returns:
-            Quote object with bid, ask, last price, etc.
-        """
-        pass
+    def get_quote(self, symbol: str) -> SharedQuote: ...
 
     @abstractmethod
     def subscribe_to_market_data(
         self,
         symbols: list[str],
-        callback: Callable[[Quote], None]
-    ) -> bool:
-        """
-        Subscribe to real-time market data for symbols.
-
-        Args:
-            symbols: List of symbols to subscribe to
-            callback: Function to call when market data arrives
-
-        Returns:
-            True if subscription setup successful, False otherwise
-        """
-        pass
+        callback: Callable[[SharedQuote], None],
+    ) -> bool: ...
 
     @abstractmethod
-    def unsubscribe_from_market_data(self, symbol: str) -> bool:
-        """
-        Unsubscribe from market data for a symbol.
-
-        Args:
-            symbol: Symbol to unsubscribe from
-
-        Returns:
-            True if unsubscription successful, False otherwise
-        """
-        pass
+    def unsubscribe_from_market_data(self, symbol: str) -> bool: ...
 
     @abstractmethod
     def get_historical_data(
@@ -297,74 +230,38 @@ class BrokerPort(ABC):
         symbol: str,
         from_date: datetime,
         to_date: datetime,
-        interval: str = "day"
-    ) -> list[dict[str, Any]]:
-        """
-        Get historical market data for backtesting and analysis.
-
-        Args:
-            symbol: Trading symbol
-            from_date: Start date for historical data
-            to_date: End date for historical data
-            interval: Data interval (minute, 3minute, 5minute, 15minute, 30minute, 60minute, day)
-
-        Returns:
-            List of historical data candles
-        """
-        pass
+        interval: str = "day",
+    ) -> list[dict[str, Any]]: ...
 
     @abstractmethod
-    def health_check(self) -> dict[str, Any]:
-        """
-        Perform a health check of the broker connection.
-
-        Returns:
-            A dictionary with health status information. Expected keys:
-            - status: str (e.g., "healthy", "unhealthy")
-            - Optional: error, latency, etc.
-        """
-        pass
+    def health_check(self) -> dict[str, Any]: ...
 
 
-# Example implementation showing how existing code would be adapted
 class BrokerAdapterFactory:
-    """Factory for creating broker adapter instances."""
-
+    """Factory for creating broker adapter instances (legacy)."""
     @staticmethod
-    def create_broker_adapter(broker_type: str, config: dict[str, Any]) -> BrokerPort:
-        """
-        Create a broker adapter instance based on type.
-
-        Args:
-            broker_type: Type of broker ("KITE", "ANGEL", "PAPER")
-            config: Configuration dictionary for the broker
-
-        Returns:
-            BrokerPort implementation
-
-        Raises:
-            ValueError: If broker_type is not supported
-        """
-        if broker_type.upper() == "KITE":
-            # In practice, this would import and return KiteBrokerAdapter
-            # For now, we'll return a placeholder
-            raise NotImplementedError("Kite broker adapter implementation needed")
-        elif broker_type.upper() == "ANGEL":
-            # In practice, this would import and return AngelBrokerAdapter
-            raise NotImplementedError("Angel broker adapter implementation needed")
-        elif broker_type.upper() == "PAPER":
-            # In practice, this would import and return PaperBrokerAdapter
-            raise NotImplementedError("Paper broker adapter implementation needed")
-        else:
-            raise ValueError(f"Unsupported broker type: {broker_type}")
+    def create_broker_adapter(broker_type: str, config: dict[str, Any]) -> LegacyBrokerPort:
+        """Create a legacy broker adapter (deprecated — use create_broker_adapter() in broker_adapters.py)."""
+        raise NotImplementedError(f"Broker adapter for {broker_type} must be created via broker_adapters.py")
 
 
-if __name__ == "__main__":
-    # This file defines the interface - no runtime execution needed
-    print("BrokerPort interface defined successfully")
-    print("Implementations should be created in infrastructure/adapters/brokers/")
+# ── Health port ───────────────────────────────────────────────────────────────
+
+from core.ports.broker.health_port import BrokerHealthPort
 
 
-from .health_port import BrokerHealthPort
-
-__all__ = ["BrokerPort", "BrokerHealthPort"]
+__all__ = [
+    # Canonical types (from broker_port.py)
+    "BrokerAuthStatus", "BrokerCapability", "BrokerCredentials",
+    "BrokerOrderRequest", "BrokerPort",
+    "Exchange", "Holding", "Margin",
+    "OrderResult", "OrderStatus", "OrderType", "OrderVariety",
+    "Position", "PositionDirection", "ProductType", "Trade",
+    # Health
+    "BrokerHealthPort",
+    # Legacy backward-compat types
+    "BrokerAdapterFactory",
+    "Fill", "LegacyBrokerPort", "LegacyFill", "LegacyOrderResult",
+    "LegacyOrderStatus", "LegacyPosition", "LegacyQuote",
+    "Order", "OrderRequest", "Quote",
+]
