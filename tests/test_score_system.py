@@ -142,7 +142,10 @@ class TestCategories:
 
     def test_category_count(self) -> None:
         ss = import_score_system()
-        assert len(ss.CATEGORIES) == 30
+        # 4 Architecture + 4 Security + 4 Risk + 4 Execution + 4 Testing
+        # + 4 Observability + 4 Governance + 3 DR = 31
+        assert len(ss.CATEGORIES) == 31
+        assert len(ss.CATEGORIES) >= 20  # ensures at least basic coverage
 
     def test_unknown_category_raises_key_error(self) -> None:
         ss = import_score_system()
