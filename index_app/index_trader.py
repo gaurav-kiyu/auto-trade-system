@@ -1830,11 +1830,17 @@ def _fetch_intraday_data_cached(name: str) -> tuple:
 def _run_trading_loop() -> None:
     """Main trading loop: scan signals, enter trades, monitor positions, reconcile."""
     from core.safety_state import _shutdown
+    # Lazy import for periodic invariant checks
+    try:
+        from core.invariants.engine import check_all as _check_invariants
+    except ImportError:
+        _check_invariants = None
 
     scan_interval = max(5, int(_CFG.get("SCAN_INTERVAL", 30)))
     log.info("[TRADING LOOP] Entering main loop (interval=%ds)", scan_interval)
     send("Bot started \u2014 entering trading loop")
 
+    _invariant_cycle_count = 0
     while not _shutdown.is_set():
         cycle_start = time.time()
         try:
@@ -1929,6 +1935,15 @@ def _run_trading_loop() -> None:
 
             _monitor_positions()
             _periodic_reconcile()
+
+            # Periodic invariant check (every 30 cycles)
+            _invariant_cycle_count += 1
+            if _invariant_cycle_count >= 30 and _check_invariants is not None:
+                _invariant_cycle_count = 0
+                try:
+                    _check_invariants()
+                except Exception:
+                    pass
 
         except Exception as e:
             log.error("Trading cycle error: %s", e, exc_info=True)
