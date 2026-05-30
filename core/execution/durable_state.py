@@ -20,6 +20,11 @@ from core.datetime_ist import now_ist
 
 log = logging.getLogger(__name__)
 
+# Whitelist of allowed column names for dynamic SQL updates
+_ALLOWED_UPDATE_COLS = {
+    "state", "updated_at", "broker_order_id", "filled_quantity", "average_price", "reject_reason",
+}
+
 
 class ExecutionState(str, Enum):
     PENDING = "PENDING"
@@ -211,6 +216,11 @@ class DurableExecutionStore:
                         updates.append("reject_reason = ?")
                         params.append(reject_reason)
 
+                    # Validate column names against whitelist (defense-in-depth)
+                    for u in updates:
+                        col = u.split(" = ")[0].strip()
+                        if col not in _ALLOWED_UPDATE_COLS:
+                            raise ValueError(f"Invalid column: {col}")
                     params.append(intent_id)
 
                     conn.execute(

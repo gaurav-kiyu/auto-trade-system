@@ -16,6 +16,11 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
+# Whitelist of allowed column names for dynamic SQL updates
+_ALLOWED_UPDATE_FIELDS = {
+    "status", "activated_ts", "approved_ts", "approved_by", "rollback_ts",
+}
+
 _DEFAULT_DB = "data/ml_registry.db"
 
 
@@ -118,6 +123,11 @@ class ModelRegistry:
             if "rollback_ts" in kwargs:
                 fields.append("rollback_ts = ?")
                 params.append(kwargs["rollback_ts"])
+            # Validate all field names against whitelist (defense-in-depth)
+            for f in fields:
+                col = f.split(" = ")[0].strip()
+                if col not in _ALLOWED_UPDATE_FIELDS:
+                    raise ValueError(f"Invalid column name: {col}")
             fields_str = ", ".join(fields)
             conn.execute(f"UPDATE model_registry SET {fields_str} WHERE model_id = ?", (*params, model_id))
             conn.commit()

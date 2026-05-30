@@ -191,3 +191,6 @@ data/auth.db-shm
 
 # ── Runtime audit artifacts ───────────────────────────────────────────────────
 config_audit.jsonl
+
+# Old/backup files
+*.old

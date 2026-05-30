@@ -107,6 +107,12 @@ def _load_paper_trades(db_path: str, days: int) -> list[dict]:
                 cutoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat()
                 where.append("ts >= ?")
                 params.append(cutoff)
+            # Validate WHERE clause columns against known column names
+            allowed_where_cols = {"mode", "net_pnl", "ts", "symbol", "direction", "status"}
+            for w in where:
+                col = w.split(" = ")[0].split(" IS ")[0].split(" >= ")[0].split(" <= ")[0].strip()
+                if col not in allowed_where_cols:
+                    raise ValueError(f"Invalid WHERE column: {col}")
             sql = f"SELECT * FROM trades WHERE {' AND '.join(where)} ORDER BY ts"
             rows = conn.execute(sql, params).fetchall()
         finally:
