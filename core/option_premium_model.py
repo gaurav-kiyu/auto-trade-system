@@ -65,7 +65,8 @@ _DEFAULT_LOT = 25
 def lot_size(symbol: str) -> int:
     """Return NSE lot size for the given index symbol."""
     key = symbol.upper().replace("^", "").replace("NSE:", "").replace(" ", "")
-    for k, v in NSE_LOT_SIZES.items():
+    # Sort by key length descending so "BANKNIFTY" is checked before "NIFTY"
+    for k, v in sorted(NSE_LOT_SIZES.items(), key=lambda x: -len(x[0])):
         if k in key:
             return v
     return _DEFAULT_LOT

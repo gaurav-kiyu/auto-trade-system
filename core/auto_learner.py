@@ -113,7 +113,8 @@ def _atomic_write_state(file_path: Path, content: str) -> None:
     Write JSON content to file atomically using temp file + rename.
 
     This prevents corruption if multiple processes write simultaneously.
-    Pattern: write to temp → flush → rename → done.
+    Pattern: write to temp → flush → close → rename → done.
+    On Windows the temp file must be closed before rename to release the lock.
 
     Raises:
         OSError: If write or rename fails
@@ -121,23 +122,22 @@ def _atomic_write_state(file_path: Path, content: str) -> None:
     file_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write to temp file in same directory (ensures same filesystem for atomic rename)
-    with tempfile.NamedTemporaryFile(
+    tmp = tempfile.NamedTemporaryFile(
         mode='w',
         dir=file_path.parent,
         prefix='.tmp_',
         suffix='.json',
         delete=False,
-        encoding='utf-8'
-    ) as tmp:
-        tmp_path = Path(tmp.name)
-        try:
-            tmp.write(content)
-            tmp.flush()
-            # Atomic rename (fails if target exists on some platforms, but creates new atomically on most)
-            tmp_path.replace(file_path)
-        except Exception as e:
-            tmp_path.unlink(missing_ok=True)
-            raise OSError(f"Atomic write to {file_path} failed: {e}")
+        encoding='utf-8',
+    )
+    tmp_path = Path(tmp.name)
+    try:
+        tmp.write(content)
+        tmp.close()  # Must close before rename on Windows (releases file lock)
+        tmp_path.replace(file_path)
+    except Exception as e:
+        tmp_path.unlink(missing_ok=True)
+        raise OSError(f"Atomic write to {file_path} failed: {e}")
 
 
 # ─── AutoLearner ──────────────────────────────────────────────────────────────
