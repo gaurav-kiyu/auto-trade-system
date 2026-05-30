@@ -20,7 +20,6 @@ from pathlib import Path
 
 import pytest
 from core.constitution import (
-    CATEGORIES,
     CategoryScore,
     ConstitutionValidator,
     ScoreEvidence,
@@ -29,6 +28,9 @@ from core.constitution import (
     get_validator,
     validate_and_report,
 )
+
+# CATEGORIES is defined as a class variable on ConstitutionValidator
+CATEGORIES = ConstitutionValidator.CATEGORIES
 
 
 # ── CategoryScore ─────────────────────────────────────────────────────────────

@@ -34,9 +34,13 @@ from core.constitution_ai_gate import (
 
 
 class TestAIGateResult:
-    def test_default_passed_is_false(self) -> None:
-        r = AIGateResult()
+    def test_default_passed_value(self) -> None:
+        r = AIGateResult(passed=False)
         assert r.passed is False
+
+    def test_passed_true(self) -> None:
+        r = AIGateResult(passed=True, reason="OK")
+        assert r.passed is True
 
     def test_passed_result(self) -> None:
         r = AIGateResult(passed=True, reason="OK")

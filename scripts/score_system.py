@@ -248,12 +248,6 @@ def collect_auto_evidence() -> dict[str, list[dict[str, Any]]]:
             "weight": 0.3,
             "verified": True,
         })
-        evidence.setdefault("OBS-01", []).append({
-            "description": "Log helpers test present",
-            "type": "test_pass",
-            "weight": 0.3,
-            "verified": True,
-        })
     log_helpers_test = ROOT / "tests" / "test_log_helpers.py"
     if log_helpers_test.exists():
         evidence.setdefault("OBS-01", []).append({
