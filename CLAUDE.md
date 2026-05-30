@@ -30,11 +30,23 @@
 
 ## Test Command
 ```bash
-python -m pytest tests/ -q          # full suite (2442 tests, ~4.5 min)
+python -m pytest tests/ -q          # full suite (~2670 tests, ~4.5 min)
 python -m pytest tests/ -v          # verbose
 python -m pytest tests/test_X.py    # single file
 ```
-All 2442 tests must pass before committing any change.
+All tests must pass before committing any change.
+
+### Governance/Constitution Tests
+```bash
+# Constitution & AI governance (227 tests)
+python -m pytest tests/test_constitution.py -q                  # 66 tests
+python -m pytest tests/test_constitution_ai_gate.py -q          # 50 tests
+python -m pytest tests/test_score_system.py -q                  # 39 tests
+python -m pytest tests/test_pre_implementation_check.py -q      # 34 tests
+python -m pytest tests/test_release_governance.py -q            # 38 tests
+# Run all governance tests together
+python -m pytest tests/test_constitution.py tests/test_constitution_ai_gate.py tests/test_score_system.py tests/test_pre_implementation_check.py tests/test_release_governance.py -q
+```
 
 ## Config System — Critical Rules
 - **`index_config.defaults.json`** is the single source of truth for all default values
