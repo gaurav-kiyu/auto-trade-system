@@ -10,6 +10,7 @@ import hashlib
 import hmac
 import json
 import logging
+import secrets
 import threading
 import time
 from dataclasses import dataclass, field
@@ -58,7 +59,11 @@ class AdminAuth:
         self._token_ttl = token_ttl_seconds
         self._session_store = session_store or SessionStore(ttl_seconds=token_ttl_seconds)
         self._lock = threading.Lock()
-        self._secret_key = self._derive_key(auth_token or "default-insecure-key")
+        if not auth_token:
+            _log.warning("[AUTH] No auth_token configured — using ephemeral random key. Set AUTH_TOKEN config for secure operation.")
+            self._secret_key = secrets.token_hex(32).encode("utf-8")
+        else:
+            self._secret_key = self._derive_key(auth_token)
 
     def _derive_key(self, token: str) -> bytes:
         """Derive a deterministic signing key from the auth token."""

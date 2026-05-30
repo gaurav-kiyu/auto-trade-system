@@ -95,3 +95,9 @@ module = [
     "scripts.*",
 ]
 disallow_untyped_defs = false
+
+[project.scripts]
+gov-score = "scripts.score_system:main"
+gov-precheck = "scripts.pre_implementation_check:main"
+gov-release = "scripts.release_governance:main"
+gov-constitution = "core.constitution:validate_and_report"

@@ -84,9 +84,17 @@ When `EXECUTION_MODE=PAPER` or `--paper` CLI flag is set:
 | `core/environment.py` | Environment separation — DEV/QA/PAPER/SHADOW/STAGING/PRODUCTION with guard rails |
 | `core/db_migration.py` | Schema versioning via PRAGMA user_version + migration registry + decorator |
 | `core/data_governance.py` | Retention policies per category (logs/audit/models/reports/telemetry) + cleanup scheduler |
+| `core/constitution.py` | Constitution Validation Engine — 23-category scoring, change pipeline (10-step), pre-implementation checklist, evidence-based scoring enforcement |
+| `core/constitution_ai_gate.py` | AI Governance Gate — pre-implementation validation for AI agents, forbidden action detection, risk-control keyword scanning |
+| `core/ai/governance.py` | AI model governance — model metadata, registry, approval workflow |
 | `docs/adr/0010-architecture-governance.md` | Architecture governance framework — ADR chain, ownership, boundary rules |
 | `docs/ownership_matrix.md` | Module ownership matrix — every module has a named owner |
 | `docs/technical_debt.md` | Technical debt register — 16 items tracked by severity |
+| `docs/constitution_scoring_framework.md` | 23-category scoring criteria with objective evidence rules and audit requirements |
+| `docs/AI_GOVERNANCE_GUIDE.md` | AI agent constitution acknowledgment protocol and pre-implementation checklist |
+| `scripts/score_system.py` | Automated constitution scoring CLI — evaluates 23 categories, evidence collection, CI mode |
+| `scripts/pre_implementation_check.py` | Mandatory pre-change compliance validator — architecture, risk controls, blocked files, release state |
+| `scripts/release_governance.py` | Release pipeline automation — branch creation, release notes, changelog, audit records, tagging |
 | `docs/runbooks/` | Incident runbooks — broker outage, auth expiry, DB corruption, stale feed |
 | `docs/operations/runbook_template.md` | Runbook template for new scenarios |
 | `docs/operations/postmortem_template.md` | Postmortem template for incident analysis |
@@ -294,6 +302,22 @@ python -m core.live_readiness_checker --format json
 # A/B strategy tester state
 python -m core.ab_strategy_tester
 python -m core.ab_strategy_tester --reset
+
+# Constitution scoring & governance
+python scripts/score_system.py                          # Full report
+python scripts/score_system.py --category RSK-01        # Single category
+python scripts/score_system.py --json --check-min 6.0   # CI mode
+python scripts/pre_implementation_check.py --files core/foo.py
+python scripts/pre_implementation_check.py --check-risk
+python scripts/release_governance.py --check             # Pre-release check
+python scripts/release_governance.py --version 2.54.0    # Full release pipeline
+python scripts/release_governance.py --generate-notes    # Release notes only
+
+# AI governance gate (import into AI agents)
+python -c "from core.constitution_ai_gate import get_gate; g=get_gate(); print(g.acknowledge_constitution())"
+
+# Constitution validation engine
+python -c "from core.constitution import validate_and_report; validate_and_report()"
 ```
 
 ## Governance Config Keys (v2.53+)
