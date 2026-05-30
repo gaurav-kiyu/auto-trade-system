@@ -568,6 +568,16 @@ def _load_config(force: bool = False):
         _CFG = cfg
         _config_loaded = True
         log.info("Config loaded from %s", _resolved)
+        # Validate resolved config and log critical values
+        try:
+            from core.config_validator import log_resolved_config, validate_and_log
+            errors, warnings = validate_and_log(cfg)
+            if errors:
+                log.warning("Config validation: %d errors", len(errors))
+            if warnings:
+                log.warning("Config validation: %d warnings", len(warnings))
+        except Exception as _ve:
+            log.debug("Config validation skipped: %s", _ve)
         # Secret hygiene check: warn if config contains potential secrets
         try:
             from core.secret_hygiene import check_config_secrets
@@ -782,7 +792,7 @@ def _make_broker():
         )
         return BrokerAdapter(PaperBrokerAdapter())
 
-    if MANUAL_SIGNALS_ONLY or EXECUTION_MODE in ("MANUAL", "MANUAL_ONLY", "SIGNALS_ONLY"):
+    if MANUAL_SIGNALS_ONLY or EXECUTION_MODE in ("MANUAL", "MANUAL_ONLY", "SIGNAL_ONLY", "SIGNALS_ONLY"):
         return BrokerAdapter(PaperBrokerAdapter())
     if not (BROKER_API_ENABLED and not PAPER_MODE):
         return BrokerAdapter(PaperBrokerAdapter())
@@ -924,7 +934,7 @@ def enter_trade(name, sig):
         decision_log[name] = {"msg": f"stale — signal_ts {now - signal_ts:.0f}s old"}
         return
 
-    if MANUAL_SIGNALS_ONLY or EXECUTION_MODE in ("MANUAL", "MANUAL_ONLY", "SIGNALS_ONLY"):
+    if MANUAL_SIGNALS_ONLY or EXECUTION_MODE in ("MANUAL", "MANUAL_ONLY", "SIGNAL_ONLY", "SIGNALS_ONLY"):
         ok, reason = _telegram_action_quality(sig)
         if not ok:
             decision_log[name] = {"msg": f"MANUAL SIGNAL BLOCKED: {reason}"}
@@ -2163,6 +2173,14 @@ def setup_di_container() -> None:
     )
     container.register_instance(StrategyPort, _strategy_orchestrator)
     log.info("StrategyOrchestrator wired into DI container as StrategyPort")
+
+    # Register runtime invariant checks
+    try:
+        from core.invariants.checks import register_all as _register_invariants
+        _register_invariants()
+        log.info("Runtime invariant checks registered")
+    except Exception as _ie:
+        log.debug("Invariant registration skipped: %s", _ie)
 
     # ── Phase 1D: Wire engine variables for orchestrator compatibility ──
     # RISK_ENGINE already declared global above; exclude from this list to avoid SyntaxError

@@ -1827,27 +1827,6 @@
     "holiday_sleep_enabled": {
       "type": "boolean"
     },
-    "ic_max_adx": {
-      "type": "integer"
-    },
-    "ic_max_vix": {
-      "type": "integer"
-    },
-    "ic_min_dte": {
-      "type": "integer"
-    },
-    "ic_profit_target": {
-      "type": "number"
-    },
-    "ic_stop_mult": {
-      "type": "number"
-    },
-    "ic_strategy_enabled": {
-      "type": "boolean"
-    },
-    "ic_wing_width_steps": {
-      "type": "integer"
-    },
     "idempotency_db_path": {
       "type": "string"
     },
@@ -2415,26 +2394,9 @@
     "spread_width_strikes": {
       "type": "integer"
     },
-    "straddle_close_both_on_target": {
-      "type": "boolean"
-    },
-    "straddle_max_iv_rank": {
-      "type": "integer"
-    },
-    "straddle_min_event_days": {
-      "type": "boolean"
-    },
-    "straddle_stop_mult": {
-      "type": "number"
-    },
-    "straddle_strategy_enabled": {
-      "type": "boolean"
-    },
-    "straddle_target_mult": {
-      "type": "number"
-    },
-    "strangle_width_steps": {
-      "type": "integer"
+    "strategies": {
+      "additionalProperties": true,
+      "type": "object"
     },
     "stress_custom_scenarios": {
       "type": "array"

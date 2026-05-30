@@ -746,20 +746,40 @@
   "scalein_timeout_mins": 5,
   "scalein_min_score": 80,
   "_comment_v245_sprintC": "v2.45 Sprint C \u00e2\u20ac\u201d Strategy Expansion (Items 10-12)",
-  "straddle_strategy_enabled": true,
-  "straddle_min_event_days": true,
-  "straddle_max_iv_rank": 20,
-  "straddle_target_mult": 1.5,
-  "straddle_stop_mult": 0.6,
-  "straddle_close_both_on_target": false,
-  "strangle_width_steps": 2,
-  "ic_strategy_enabled": true,
-  "ic_max_adx": 18,
-  "ic_max_vix": 15,
-  "ic_min_dte": 3,
-  "ic_wing_width_steps": 2,
-  "ic_profit_target": 0.5,
-  "ic_stop_mult": 0.8,
+  "strategies": {
+    "spread": {
+      "enabled": false,
+      "width_strikes": 2,
+      "slippage_pct": 0.005,
+      "exit_pnl_pct": 0.5,
+      "stop_pct": 0.8,
+      "partial_exit_pct": 0.75,
+      "partial_lots_pct": 0.5,
+      "theta_exit_dte": 0,
+      "theta_exit_time": "14:00"
+    },
+    "straddle": {
+      "enabled": false,
+      "max_iv_rank": 20,
+      "target_mult": 1.5,
+      "stop_mult": 0.6,
+      "close_both_on_target": false,
+      "expiry": ""
+    },
+    "strangle": {
+      "width_steps": 2
+    },
+    "iron_condor": {
+      "enabled": false,
+      "max_adx": 18,
+      "max_vix": 15,
+      "min_dte": 3,
+      "wing_width_steps": 2,
+      "profit_target": 0.5,
+      "stop_mult": 0.8,
+      "expiry": ""
+    }
+  },
   "limit_order_enabled": true,
   "limit_order_mode": "ADAPTIVE",
   "limit_step_pct": 0.05,
