@@ -44,7 +44,7 @@ cryptography>=41.0.0
 # Required for the premium enterprise UI with auth, RBAC, config management
 fastapi>=0.109.0
 uvicorn>=0.27.0
-jinja2>=3.1.0
+jinja2>=3.1.6
 
 # ── Live broker execution (optional — NOT needed for paper/manual trading) ────
 # kiteconnect>=5.0.0
