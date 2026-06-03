@@ -2,6 +2,8 @@
 
 ## v0.0.0-test (2026-06-03)
 
+## v0.0.0-test (2026-06-03)
+
 ## v2.53.0 (2026-05-30)
 
 Enterprise hardening release — Security, DI container, execution hardening, governance framework.
