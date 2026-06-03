@@ -41,6 +41,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core.db_utils import get_connection
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB   = "trades.db"
@@ -90,8 +92,7 @@ def load_trades_for_sensitivity(
     if not p.is_file():
         return []
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
-        conn.row_factory = sqlite3.Row
+        conn = get_connection(p, timeout=5)
         try:
             params: list[Any] = []
             where = ["net_pnl IS NOT NULL", "entry IS NOT NULL"]

@@ -154,7 +154,7 @@ class NewsSentinel:
         while not self._stop.is_set():
             try:
                 self._run_one_poll()
-            except Exception as exc:
+            except (ValueError, TypeError, OSError) as exc:
                 _log.debug("[NEWS] Poll loop error: %s", exc)
             self._stop.wait(interval)
 
@@ -231,7 +231,7 @@ class NewsSentinel:
                 pub_ts  = 0.0
                 try:
                     pub_ts = parsedate_to_datetime(pub_raw).timestamp()
-                except Exception:
+                except (ValueError, TypeError, OSError):
                     pass
                 items.append({"title": title, "pub_ts": pub_ts, "link": item.findtext("link") or ""})
             return items

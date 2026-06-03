@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.exceptions import DatabaseError
 
 log = logging.getLogger(__name__)
 
@@ -80,6 +81,8 @@ class DurableExecutionStore:
         try:
             with self._lock:
                 with sqlite3.connect(self._db_path) as conn:
+                    conn.execute("PRAGMA journal_mode=WAL")
+                    conn.execute("PRAGMA busy_timeout=5000")
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS execution_state (
                             intent_id TEXT PRIMARY KEY,
@@ -108,7 +111,7 @@ class DurableExecutionStore:
                     """)
                     conn.commit()
             log.info(f"Durable execution store initialized: {self._db_path}")
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             log.error(f"Failed to initialize execution state DB: {e}")
             raise
 
@@ -142,7 +145,7 @@ class DurableExecutionStore:
                     ))
                     conn.commit()
             return True
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             log.error(f"Failed to save execution state for {record.intent_id}: {e}")
             return False
 
@@ -160,7 +163,7 @@ class DurableExecutionStore:
                     if row:
                         return self._row_to_record(row)
                     return None
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             log.error(f"Failed to get execution state for {intent_id}: {e}")
             return None
 
@@ -176,7 +179,7 @@ class DurableExecutionStore:
                         ORDER BY updated_at ASC
                     """, tuple(s.value for s in self._TERMINAL_STATES))
                     return [self._row_to_record(row) for row in cursor.fetchall()]
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             log.error(f"Failed to get non-terminal executions: {e}")
             return []
 
@@ -229,7 +232,7 @@ class DurableExecutionStore:
                     )
                     conn.commit()
             return True
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError, ValueError) as e:
             log.error(f"Failed to update execution state for {intent_id}: {e}")
             return False
 
@@ -250,7 +253,7 @@ class DurableExecutionStore:
                         ).fetchone()
                         return result[0] if result else 0
                     return 0
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             log.error(f"Failed to increment retry for {intent_id}: {e}")
             return 0
 
@@ -273,7 +276,7 @@ class DurableExecutionStore:
                     if deleted > 0:
                         log.info(f"Cleaned up {deleted} old execution records")
                     return deleted
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             log.error(f"Failed to cleanup old records: {e}")
             return 0
 
@@ -290,7 +293,7 @@ class DurableExecutionStore:
                         )
                         result[state.value] = cursor.fetchone()[0]
                     return result
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             log.error(f"Failed to get execution stats: {e}")
             return {}
 
@@ -328,7 +331,7 @@ class DurableExecutionStore:
                     elif broker_status in ("CANCELLED", "REJECTED"):
                         self.update_state(record.intent_id, ExecutionState(broker_status))
                         results["repaired"] += 1
-            except Exception as e:
+            except (DatabaseError, sqlite3.Error, OSError, ConnectionError) as e:
                 log.warning(f"Failed to reconcile {record.intent_id}: {e}")
                 results["unknown"] += 1
 

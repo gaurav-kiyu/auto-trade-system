@@ -19,7 +19,7 @@ class PresentationEngine:
     def _money(self, value: float | int | str) -> str:
         try:
             amount = float(value)
-        except Exception:
+        except (TypeError, ValueError):
             return f"{self._currency_symbol}{value}"
         return f"{self._currency_symbol}{round(amount, 2):,}"
 
@@ -27,7 +27,7 @@ class PresentationEngine:
         if self._pnl_formatter:
             try:
                 return str(self._pnl_formatter(float(value)))
-            except Exception:
+            except (TypeError, ValueError):
                 pass
         return self._money(value)
 

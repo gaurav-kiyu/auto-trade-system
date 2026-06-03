@@ -55,7 +55,7 @@ def build_index_orchestrator():
             from core.system_mode import get_system_mode_manager
             mgr = get_system_mode_manager()
             return str(mgr.get_current_mode())
-        except Exception:
+        except (ImportError, KeyError, RuntimeError):
             return "NORMAL"
 
     def _circuit_breaker_allows() -> bool:
@@ -63,7 +63,7 @@ def build_index_orchestrator():
             from core.circuit_breaker_detector import create_circuit_breaker_detector
             cb = create_circuit_breaker_detector()
             return cb.is_trading_allowed() if hasattr(cb, 'is_trading_allowed') else True
-        except Exception:
+        except (ImportError, KeyError, RuntimeError):
             return True
 
     _mh = os.environ.get("OPB_ORCHESTRATOR_MARKET_HOURS", "1").strip().lower()

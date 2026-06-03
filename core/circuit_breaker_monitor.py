@@ -12,7 +12,7 @@ Detection:
 from __future__ import annotations
 
 import threading
-import time
+
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -60,6 +60,7 @@ class NSECircuitBreakerMonitor:
         self._cfg = cfg or {}
         self._running = False
         self._thread: threading.Thread | None = None
+        self._stop_event = threading.Event()
         self._logger = LoggingService(
             log_dir="logs",
             log_filename_prefix="cb_monitor_",
@@ -82,6 +83,7 @@ class NSECircuitBreakerMonitor:
         if self._running:
             return
         self._running = True
+        self._stop_event.clear()
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
         self._logger.info("NSE circuit breaker monitor started")
@@ -89,6 +91,7 @@ class NSECircuitBreakerMonitor:
     def stop(self) -> None:
         """Stop the circuit breaker monitor."""
         self._running = False
+        self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=5)
         self._logger.info("NSE circuit breaker monitor stopped")
@@ -102,10 +105,12 @@ class NSECircuitBreakerMonitor:
         while self._running:
             try:
                 self._check_circuit_breaker()
-                time.sleep(30)  # Check every 30 seconds
+                if self._stop_event.wait(30):  # Check every 30 seconds
+                    break
             except Exception as e:
                 self._logger.error(f"Error in circuit breaker monitor: {e}")
-                time.sleep(60)
+                if self._stop_event.wait(60):
+                    break
 
     def _check_circuit_breaker(self) -> None:
         """Check current circuit breaker level against previous close baseline."""

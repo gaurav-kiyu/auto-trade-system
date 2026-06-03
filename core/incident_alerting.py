@@ -79,6 +79,7 @@ class IncidentAlerting:
         self._queue: list[Incident] = []
         self._running = False
         self._thread: threading.Thread | None = None
+        self._stop_event = threading.Event()
 
         # Configuration
         self._enabled = self._config.get("INCIDENT_ALERTING_ENABLED", True)
@@ -99,6 +100,7 @@ class IncidentAlerting:
             return
 
         self._running = True
+        self._stop_event.clear()
         self._thread = threading.Thread(target=self._run_loop, daemon=True, name="IncidentAlerts")
         self._thread.start()
         log.info("Incident alerting started")
@@ -106,6 +108,7 @@ class IncidentAlerting:
     def stop(self) -> None:
         """Stop the incident processing thread."""
         self._running = False
+        self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=3)
 
@@ -162,7 +165,8 @@ class IncidentAlerting:
             except Exception as e:
                 log.error(f"Incident processing error: {e}")
 
-            time.sleep(self._dequeue_interval)
+            if self._stop_event.wait(self._dequeue_interval):
+                break
 
     def _process_incidents(self) -> None:
         """Process queued incidents in priority order."""

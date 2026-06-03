@@ -96,7 +96,7 @@ class TelegramQueue:
                 )
                 if not has_important:
                     break
-            time.sleep(0.5)
+            time.sleep(0.5)  # Intentional — stop event already set; polling with deadline
         if self._thread:
             self._thread.join(timeout=5.0)
 
@@ -214,7 +214,8 @@ class TelegramQueue:
         if len(self._sent_this_min) >= rate_lim:
             sleep_secs = 60 - (now - self._sent_this_min[0]) + 1
             _log.debug("[TG_Q] Rate limit reached — sleeping %.1fs", sleep_secs)
-            time.sleep(max(0.1, sleep_secs))
+            if self._stop.wait(max(0.1, sleep_secs)):
+                return  # Shutdown during rate-limit wait
             now = time.time()
             self._sent_this_min = [t for t in self._sent_this_min if now - t < 60]
 
@@ -235,7 +236,9 @@ class TelegramQueue:
 
             if attempt < max_retries:
                 backoff = 2.0 ** attempt   # 1s, 2s, 4s
-                time.sleep(backoff)
+                if self._stop.wait(backoff):
+                    _log.debug("[TG_Q] Retry interrupted by shutdown")
+                    return
 
         level = TelegramPriority(msg.priority).name
         _log.warning("[TG_Q] %s message not delivered after %d attempts: %s",

@@ -90,7 +90,7 @@ def _nse_open_time(cfg: dict[str, Any]) -> datetime.time:
     try:
         from core.datetime_ist import nse_cash_open_time
         return nse_cash_open_time()
-    except Exception:
+    except (ImportError, AttributeError, ValueError, TypeError):
         return _get_boundary(
             cfg,
             "NSE_CASH_SESSION_START_HOUR",
@@ -104,7 +104,7 @@ def _nse_early_end_time(cfg: dict[str, Any]) -> datetime.time:
     try:
         from core.datetime_ist import nse_early_session_end_time
         return nse_early_session_end_time()
-    except Exception:
+    except (ImportError, AttributeError, ValueError, TypeError):
         return _get_boundary(
             cfg,
             "NSE_EARLY_SESSION_END_HOUR",
@@ -118,7 +118,7 @@ def _nse_block_time(cfg: dict[str, Any]) -> datetime.time:
     try:
         from core.datetime_ist import nse_block_new_entries_from_time
         return nse_block_new_entries_from_time()
-    except Exception:
+    except (ImportError, AttributeError, ValueError, TypeError):
         return _get_boundary(
             cfg,
             "NSE_BLOCK_NEW_ENTRIES_FROM_HOUR",
@@ -298,7 +298,7 @@ def is_expiry_day(
     try:
         from core.datetime_ist import now_ist
         today = check_date or now_ist().date()
-    except Exception:
+    except (ImportError, ValueError, AttributeError):
         today = check_date or datetime.date.today()
 
     expiry_wd = _INDEX_EXPIRY_WEEKDAY.get(str(index_name).upper(), 3)
@@ -314,7 +314,7 @@ def is_expiry_day(
         if today in holidays:
             return False
         # If today is a holiday, expiry was yesterday (not handled here — caller re-checks)
-    except Exception:
+    except (ImportError, AttributeError, ValueError, TypeError):
         pass
 
     return True
@@ -349,7 +349,7 @@ def get_expiry_session(
             raw = str(c.get(key, default))
             h, m = map(int, raw.split(":"))
             return datetime.time(h, m)
-        except Exception:
+        except (ValueError, TypeError, KeyError):
             h, m = map(int, default.split(":"))
             return datetime.time(h, m)
 

@@ -189,7 +189,7 @@ class EmailNotificationAdapter(NotificationPort):
                 timestamp=now_ist(),
                 error_message=f"SMTP error: {e}",
             )
-        except Exception as e:
+        except (smtplib.SMTPException, OSError, ConnectionError, TimeoutError, ValueError) as e:
             logger.error("Error sending email notification: %s", e)
             return NotificationResult(
                 notification_id="error",
@@ -266,7 +266,7 @@ class EmailNotificationAdapter(NotificationPort):
                 if now - self._last_connect > self._connect_timeout:
                     try:
                         self._smtp_connection.quit()
-                    except Exception:
+                    except (smtplib.SMTPException, OSError):
                         pass
                     self._smtp_connection = None
 
@@ -289,7 +289,7 @@ class EmailNotificationAdapter(NotificationPort):
                 server.login(self._smtp_user, self._smtp_pass)
             logger.debug("SMTP connection established to %s:%s", self._smtp_host, self._smtp_port)
             return server
-        except Exception as e:
+        except (smtplib.SMTPException, OSError, ConnectionError, TimeoutError, ValueError) as e:
             logger.error("Failed to connect to SMTP server %s:%s: %s", self._smtp_host, self._smtp_port, e)
             raise
 
@@ -311,7 +311,7 @@ class EmailNotificationAdapter(NotificationPort):
             if self._smtp_connection is not None:
                 try:
                     self._smtp_connection.quit()
-                except Exception:
+                except (smtplib.SMTPException, OSError, ConnectionError):
                     pass
                 self._smtp_connection = None
             self._last_connect = 0.0

@@ -63,7 +63,7 @@ def _load_settings() -> dict:
         if _SETTINGS_FILE.exists():
             raw = json.loads(_SETTINGS_FILE.read_text(encoding="utf-8"))
             return {**_DEFAULTS, **{k: v for k, v in raw.items() if not k.startswith("_")}}
-    except Exception:
+    except (json.JSONDecodeError, OSError, KeyError):
         pass
     return dict(_DEFAULTS)
 
@@ -128,7 +128,7 @@ class LauncherApp:
         self.root.configure(bg=self.C_BG)
         try:
             self.root.iconbitmap(default="")
-        except Exception:
+        except (tk.TclError, OSError):
             pass
 
     # ── UI ────────────────────────────────────────────────────────────────────
@@ -235,7 +235,7 @@ class LauncherApp:
                         v = tuple(int(x) for x in parts[1].split(".")[:2])
                         if (3, 10) <= v < (3, 20):
                             return cmd, raw
-            except Exception:
+            except (subprocess.TimeoutExpired, OSError, ValueError):
                 continue
         return None, None
 
@@ -265,7 +265,7 @@ class LauncherApp:
                 capture_output=True, text=True, timeout=15)
             if r.returncode == 0 and r.stdout.strip():
                 return json.loads(r.stdout.strip())
-        except Exception:
+        except (json.JSONDecodeError, OSError, subprocess.TimeoutExpired, subprocess.CalledProcessError):
             pass
         # Fallback: assume nothing installed
         return {pip_name: False for pip_name, _, _ in PACKAGES}
@@ -341,7 +341,7 @@ class LauncherApp:
             except subprocess.TimeoutExpired:
                 self._log(f"  {'':6}  WARN: timed out (slow network?)")
                 failed.append(pip_name)
-            except Exception as exc:
+            except (FileNotFoundError, OSError, subprocess.TimeoutExpired) as exc:
                 self._log(f"  {'':6}  WARN: {exc}")
                 failed.append(pip_name)
 
@@ -409,7 +409,7 @@ class LauncherApp:
                 creationflags=subprocess.CREATE_NEW_CONSOLE,
                 env=_env,
             )
-        except Exception as exc:
+        except (FileNotFoundError, OSError, subprocess.SubprocessError) as exc:
             messagebox.showerror("Launch Failed", str(exc))
             return
 

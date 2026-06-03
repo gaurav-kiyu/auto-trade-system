@@ -115,7 +115,7 @@ def extract_features(signal: dict[str, Any]) -> dict[str, float]:
     if isinstance(soft_blocks, str):
         try:
             soft_blocks = json.loads(soft_blocks)
-        except Exception:
+        except (json.JSONDecodeError, TypeError, ValueError):
             soft_blocks = []
 
     regime = str(signal.get("mkt_regime") or signal.get("regime") or "NEUTRAL")
@@ -150,6 +150,8 @@ def load_training_data(
     Returns (X_rows, y_labels) where each row is ordered per FEATURE_COLS,
     or None if fewer than 1 complete trade exists.
     """
+    from core.db_utils import get_connection as _get_conn
+
     db = Path(journal_path)
     if not db.is_file():
         return None
@@ -157,7 +159,7 @@ def load_training_data(
     # Try to load extended feature columns if the journal schema has them.
     # Falls back to a base 7-column query when those columns are absent (older DB).
     try:
-        con = sqlite3.connect(str(db), check_same_thread=False)
+        con = _get_conn(str(db), check_same_thread=False, row_factory=False)
         try:
             rows = con.execute(
                 """
@@ -171,7 +173,7 @@ def load_training_data(
                 """
             ).fetchall()
             has_extended = True
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             rows = con.execute(
                 """
                 SELECT score, confidence, direction, tier, soft_blocks,
@@ -182,7 +184,7 @@ def load_training_data(
             ).fetchall()
             has_extended = False
         con.close()
-    except Exception as exc:
+    except (sqlite3.Error, OSError) as exc:
         _log.debug("[ML] Journal read failed: %s", exc)
         return None
 
@@ -205,13 +207,13 @@ def load_training_data(
 
         try:
             dt = _dt.datetime.fromisoformat(str(entry_ts_str))
-        except Exception:
+        except (ValueError, TypeError):
             dt = now_ist()
         direction = str(direction or "CALL").upper()
         tier = str(tier or "").upper()
         try:
             sb = json.loads(soft_blocks_json or "[]")
-        except Exception:
+        except (json.JSONDecodeError, TypeError, ValueError):
             sb = []
 
         feat_row = [
@@ -269,7 +271,7 @@ def train(
         model.fit(X, y, feature_name=FEATURE_COLS)
         _log.info("[ML] Trained on %d trades — %d winners", len(X), sum(y))
         return model
-    except Exception as exc:
+    except (ImportError, ValueError, AttributeError) as exc:
         _log.warning("[ML] Training failed: %s", exc)
         return None
 
@@ -284,7 +286,7 @@ def save_model(model: Any, path: str | Path) -> bool:
             f.write(model_bytes)
         _register_in_registry(p, model_bytes)
         return True
-    except Exception as exc:
+    except (OSError, pickle.PickleError, TypeError) as exc:
         _log.warning("[ML] Save failed: %s", exc)
         return False
 
@@ -312,7 +314,7 @@ def _register_in_registry(path: Path, model_bytes: bytes) -> None:
             metadata={"feature_cols": FEATURE_COLS, "saved_at": time.time()},
         )
         _log.info("[ML-GOV] Registered model %s v%s in registry", name, next_ver)
-    except Exception as exc:
+    except (ImportError, AttributeError, OSError, TypeError, ValueError) as exc:
         _log.debug("[ML-GOV] Registry registration skipped: %s", exc)
 
 
@@ -324,7 +326,7 @@ def load_model(path: str | Path) -> Any | None:
             return None
         with open(p, "rb") as f:
             return pickle.load(f)
-    except Exception as exc:
+    except (OSError, pickle.UnpicklingError, ValueError, TypeError) as exc:
         _log.debug("[ML] Load failed: %s", exc)
         return None
 
@@ -347,10 +349,10 @@ def predict_win_prob(model: Any, features: dict[str, float]) -> float:
             row = [[features[col] for col in FEATURE_COLS]]
             prob = float(model.predict_proba(row)[0][1])
             return round(max(0.0, min(1.0, prob)), 4)
-        except Exception as exc:
+        except (ValueError, TypeError, AttributeError) as exc:
             _log.debug("[ML] predict_win_prob error: %s", exc)
             return 0.5
-    except Exception as exc:
+    except (ImportError, ValueError, TypeError, AttributeError) as exc:
         _log.debug("[ML] predict_win_prob error: %s", exc)
         return 0.5
 
@@ -444,10 +446,10 @@ def explain_prediction(
             sign = 1.0 if prob >= 0.5 else -1.0
             return {col: sign * abs(float(v)) / total
                     for col, v in zip(FEATURE_COLS, fi)}
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
             return {}
 
-    except Exception as exc:
+    except (ValueError, TypeError, AttributeError) as exc:
         _log.debug("[ML][SHAP] explain_prediction failed: %s", exc)
         return {}
 
@@ -480,7 +482,7 @@ def shap_to_json(shap_vals: dict[str, float]) -> str:
     try:
         return json.dumps({k: round(v, 6) for k, v in shap_vals.items()},
                           separators=(",", ":"))
-    except Exception:
+    except (json.JSONDecodeError, TypeError):
         return "{}"
 
 
@@ -544,7 +546,7 @@ def get_classifier(
                     _log.info("[ML] Drift detected in feature %s: %s", feat, result.message)
                     return True
             return False
-        except Exception as exc:
+        except (ValueError, TypeError, ImportError) as exc:
             _log.debug("[ML] Drift check failed: %s", exc)
             return False  # Assume no drift on error to avoid blocking
 

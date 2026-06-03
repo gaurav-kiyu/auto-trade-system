@@ -18,7 +18,7 @@ New code should use the canonical types (``BrokerPort``, ``OrderResult``,
 
 from __future__ import annotations
 
-import logging
+
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
@@ -50,7 +50,7 @@ from core.ports.broker.broker_port import (
 
 from core.common.kernels.models import Fill as SharedFill
 from core.common.kernels.models import Order as SharedOrder
-from core.common.kernels.models import OrderResult as SharedOrderResult
+
 from core.common.kernels.models import Position as SharedPosition
 from core.common.kernels.models import Quote as SharedQuote
 

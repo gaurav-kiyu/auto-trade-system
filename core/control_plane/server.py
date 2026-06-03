@@ -58,7 +58,7 @@ _log = logging.getLogger(__name__)
 _VERSION_FILE = Path(__file__).resolve().parent.parent.parent / "VERSION"
 try:
     _VERSION = _VERSION_FILE.read_text(encoding="utf-8").strip()
-except Exception:
+except (OSError, ValueError):
     _VERSION = "0.0.0"
 
 _DEFAULT_HOST = "127.0.0.1"
@@ -138,7 +138,7 @@ class AuditStore:
                         "success": action.success,
                         "reason": action.reason,
                     }, default=str) + "\n")
-            except Exception as e:
+            except (OSError, ValueError, TypeError) as e:
                 _log.warning("[CTRL] Failed to persist audit entry: %s", e)
 
         # Also write to legacy _AUDIT_EVENTS ring buffer
@@ -370,7 +370,7 @@ def _require_permission(role_manager: Any, identity: str, permission: str) -> No
         return
     try:
         role_manager.check(identity, permission)
-    except Exception as exc:
+    except (KeyError, ValueError, TypeError) as exc:
         raise HTTPException(status_code=403, detail=str(exc))
 
 
@@ -400,7 +400,7 @@ def _legacy_audit_log(
                 outcome=outcome, details=details, severity="info",
                 user_id=user_id, ip_address=ip_address,
             )
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
             _log.warning("[ADMIN] audit_logger.log_event failed", exc_info=True)
 
 
@@ -498,7 +498,7 @@ def create_control_plane_app(
             return {"mode": "unavailable", "detail": "No ModeManager reference provided"}
         try:
             return {"mode": str(mode_manager_ref.current_mode)}
-        except Exception as e:
+        except (ValueError, AttributeError) as e:
             return {"mode": "error", "detail": str(e)}
 
     @app.post("/mode/{target}")
@@ -542,7 +542,7 @@ def create_control_plane_app(
                     for i in pending[:50]
                 ],
             }
-        except Exception as e:
+        except (ValueError, AttributeError, KeyError) as e:
             return {"wal": "error", "detail": str(e)}
 
     # ── Cert ─────────────────────────────────────────────────────────────────
@@ -566,7 +566,7 @@ def create_control_plane_app(
                     for c in pending[:50]
                 ],
             }
-        except Exception as e:
+        except (ValueError, AttributeError, KeyError) as e:
             return {"cert": "error", "detail": str(e)}
 
     # ── Invariants ───────────────────────────────────────────────────────────
@@ -583,7 +583,7 @@ def create_control_plane_app(
                 return invariant_engine_ref.get_state()
             from core.invariants.engine import get_state as _get_engine_state
             return _get_engine_state()
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
             return {"invariants": "error", "detail": str(e)}
 
     @app.post("/invariants/{name}/toggle")
@@ -605,7 +605,7 @@ def create_control_plane_app(
             return {"invariant": name, "enabled": new_state, "status": "toggled"}
         except HTTPException:
             raise
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             raise HTTPException(status_code=400, detail=str(e))
 
     # ── Kill-switch (legacy) ─────────────────────────────────────────────────
@@ -623,7 +623,7 @@ def create_control_plane_app(
             _legacy_audit_log(audit_logger_ref, "kill_switch", "trading", "halt",
                               user_id=identity, ip_address=_get_client_ip(request))
             return {"status": "halted"}
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError) as e:
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.post("/control/resume")
@@ -639,7 +639,7 @@ def create_control_plane_app(
             _legacy_audit_log(audit_logger_ref, "kill_switch", "trading", "resume",
                               user_id=identity, ip_address=_get_client_ip(request))
             return {"status": "resumed"}
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError) as e:
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/control/status")
@@ -662,7 +662,7 @@ def create_control_plane_app(
         try:
             items = dict(strategy_registry_ref.items()) if hasattr(strategy_registry_ref, "items") else {}
             return {"strategies": items}
-        except Exception as e:
+        except (ValueError, KeyError, AttributeError) as e:
             return {"strategies": "error", "detail": str(e)}
 
     @app.post("/strategies/{name}/toggle")
@@ -680,7 +680,7 @@ def create_control_plane_app(
                               details={"name": name, "enabled": new_val},
                               user_id=identity, ip_address=_get_client_ip(request))
             return {"strategy": name, "enabled": new_val}
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             raise HTTPException(status_code=400, detail=str(e))
 
     # ── Asset toggles (legacy) ───────────────────────────────────────────────
@@ -695,7 +695,7 @@ def create_control_plane_app(
         try:
             items = dict(asset_registry_ref.items()) if hasattr(asset_registry_ref, "items") else {}
             return {"assets": items}
-        except Exception as e:
+        except (ValueError, KeyError, AttributeError) as e:
             return {"assets": "error", "detail": str(e)}
 
     @app.post("/assets/{name}/toggle")
@@ -713,7 +713,7 @@ def create_control_plane_app(
                               details={"name": name, "enabled": new_val},
                               user_id=identity, ip_address=_get_client_ip(request))
             return {"asset": name, "enabled": new_val}
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             raise HTTPException(status_code=400, detail=str(e))
 
     # ── Feature flags (legacy) ───────────────────────────────────────────────
@@ -728,7 +728,7 @@ def create_control_plane_app(
         try:
             items = dict(feature_flags_ref.items()) if hasattr(feature_flags_ref, "items") else {}
             return {"features": items}
-        except Exception as e:
+        except (ValueError, KeyError, AttributeError) as e:
             return {"features": "error", "detail": str(e)}
 
     @app.post("/features/{name}")
@@ -746,7 +746,7 @@ def create_control_plane_app(
                               details={"name": name, "enabled": enabled},
                               user_id=identity, ip_address=_get_client_ip(request))
             return {"feature": name, "enabled": enabled}
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             raise HTTPException(status_code=400, detail=str(e))
 
     # ── AI model selection (legacy) ──────────────────────────────────────────
@@ -767,7 +767,7 @@ def create_control_plane_app(
                     for r in records
                 ]}
             return {"models": "ok", "detail": "list_all not available"}
-        except Exception as e:
+        except (ValueError, KeyError, AttributeError) as e:
             return {"models": "error", "detail": str(e)}
 
     @app.post("/models/{model_id}/select")
@@ -788,7 +788,7 @@ def create_control_plane_app(
             return {"model": model_id, "status": "selected"}
         except HTTPException:
             raise
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             raise HTTPException(status_code=400, detail=str(e))
 
     # ── Broker summary (legacy) ──────────────────────────────────────────────
@@ -825,7 +825,7 @@ def create_control_plane_app(
         try:
             assignments = role_manager_ref.list_assignments() if hasattr(role_manager_ref, "list_assignments") else {}
             return {"roles": assignments}
-        except Exception as e:
+        except (ValueError, KeyError, AttributeError) as e:
             return {"roles": "error", "detail": str(e)}
 
     @app.post("/roles/{operator}")
@@ -843,7 +843,7 @@ def create_control_plane_app(
                               details={"operator": operator, "role": role},
                               user_id=identity, ip_address=_get_client_ip(request))
             return {"operator": operator, "role": role}
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             raise HTTPException(status_code=400, detail=str(e))
 
     # ── Config reload (legacy) ───────────────────────────────────────────────
@@ -861,7 +861,7 @@ def create_control_plane_app(
                               details={"result": str(result)},
                               user_id=identity, ip_address=_get_client_ip(request))
             return {"status": "ok", "detail": "Config reloaded", "result": result}
-        except Exception as e:
+        except (ValueError, OSError, TypeError) as e:
             _log.exception("Config reload failed")
             return {"status": "error", "detail": str(e)}
 

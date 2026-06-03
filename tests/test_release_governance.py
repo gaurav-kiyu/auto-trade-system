@@ -18,7 +18,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-import pytest
+
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -319,8 +319,17 @@ class TestConstants:
 
 
 class TestMain:
-    def test_main_check_exit_zero(self) -> None:
+    def test_main_check_exit_zero(self, monkeypatch: Any) -> None:
+        import subprocess
         rg = import_release()
+        # Mock git status to return clean, so the test doesn't depend
+        # on the actual working tree state
+        def mock_run(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
+            if cmd == ["git", "status", "--porcelain"]:
+                return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+            # Default for all other subprocess calls: return empty
+            return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+        monkeypatch.setattr(subprocess, "run", mock_run)
         exit_code = rg.main(["--check"])
         assert exit_code == 0
 

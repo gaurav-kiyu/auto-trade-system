@@ -74,7 +74,7 @@ def _init_prometheus() -> bool:
                 }
                 _prom_ok = True
         return True
-    except Exception as e:
+    except (ImportError, ValueError, TypeError, AttributeError) as e:
         _log.debug("[METRICS] prometheus_client not available: %s", e)
         return False
 
@@ -108,7 +108,7 @@ def start_metrics_server(cfg: dict[str, Any] | None = None) -> bool:
         _server_started = True
         _log.info("[METRICS] Prometheus metrics server started on :%d", port)
         return True
-    except Exception as e:
+    except (OSError, ValueError, TypeError, ImportError) as e:
         _log.warning("[METRICS] start failed: %s", e)
         return False
 
@@ -131,7 +131,7 @@ def update_hardening_metrics(
         _gauges["warmup_entries"].set(float(warmup_entries))
         _gauges["ws_connected"].set(1.0 if ws_connected else 0.0)
         _gauges["ws_reconnect_count"].set(float(ws_reconnect_count))
-    except Exception as e:
+    except (ValueError, TypeError, KeyError, AttributeError) as e:
         _log.debug("[METRICS] update_hardening_metrics failed: %s", e)
 
 
@@ -168,7 +168,7 @@ def update_metrics(metrics: dict[str, float]) -> None:
             elif isinstance(value, dict):
                 for broker, uptime in value.items():
                     _gauges["broker_uptime"].labels(broker_name=broker).set(float(uptime))
-    except Exception as e:
+    except (ValueError, TypeError, KeyError, AttributeError) as e:
         _log.debug("[METRICS] update failed: %s", e)
 
 
@@ -180,12 +180,12 @@ def get_metrics_text() -> str:
     try:
         from prometheus_client import generate_latest
         return generate_latest().decode("utf-8")
-    except Exception:
+    except (ImportError, TypeError, ValueError, AttributeError):
         lines = []
         for name, g in _gauges.items():
             try:
                 lines.append(f"opb_{name} {g._value.get()}")
-            except Exception:
+            except (AttributeError, TypeError, ValueError):
                 lines.append(f"opb_{name} 0")
         return "\n".join(lines) or "# no metrics"
 

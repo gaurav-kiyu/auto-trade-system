@@ -4,7 +4,7 @@ signals, state export, and health-check endpoints for external tools.
 
 This module is intended to be imported by legacy scripts that call functions
 from `index_app.index_trader` and expects the same function names. The heavy
-logic lives in DI-managed services registered in `index_app.index_trader.setup_di_container()`.
+logic lives in DI-managed services registered in `index_app.index_trader._setup_di_container()`.
 
 Public API:
 - start_trader(): Start main trader loop (returns a controller object)
@@ -19,16 +19,21 @@ from __future__ import annotations
 
 from typing import Any
 
-from index_app.index_trader import container, setup_di_container
+# Lazy import - resolved inside _ensure_initialized to break circular dependency
+_container = None
+_setup_di_container = None
 
 # Ensure DI container is initialized lazily
 _initialized = False
 
 
 def _ensure_initialized() -> None:
-    global _initialized
+    global _initialized, _container, _setup_di_container
     if not _initialized:
-        setup_di_container()
+        from index_app.index_trader import container as _c, setup_di_container as _s
+        _container = _c
+        _setup_di_container = _s
+        __setup_di_container()
         _initialized = True
 
 
@@ -41,9 +46,9 @@ def start_trader(*, paper: bool = True) -> Any:
     """
     _ensure_initialized()
     # Build a lightweight controller exposing read-only methods
-    exec_svc = container.resolve("ExecutionPort")
-    risk_svc = container.resolve("RiskPort")
-    persist = container.resolve("PersistencePort")
+    exec_svc = _container.resolve("ExecutionPort")
+    risk_svc = _container.resolve("RiskPort")
+    persist = _container.resolve("PersistencePort")
 
     class Controller:
         def get_positions(self) -> list[dict[str, Any]]:
@@ -69,13 +74,13 @@ def start_trader(*, paper: bool = True) -> Any:
 
 def get_state_snapshot() -> dict[str, Any]:
     _ensure_initialized()
-    persist = container.resolve("PersistencePort")
+    persist = _container.resolve("PersistencePort")
     return getattr(persist, "export_state", lambda: {})()
 
 
 def generate_signal_snapshot() -> list[dict[str, Any]]:
     _ensure_initialized()
-    exec_svc = container.resolve("ExecutionPort")
+    exec_svc = _container.resolve("ExecutionPort")
     return getattr(exec_svc, "scan_and_score", lambda: [])()
 
 

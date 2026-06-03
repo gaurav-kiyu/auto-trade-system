@@ -28,12 +28,13 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import sqlite3
 import subprocess
 import sys
 import time
 from datetime import date
 from pathlib import Path
-from typing import Any
+
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -54,8 +55,13 @@ AUDIT_LOG_DIR = ROOT / "logs" / "audit"
 # ── Pre-release validation ────────────────────────────────────────────────────
 
 
-def run_pre_release_checks() -> list[str]:
+def run_pre_release_checks(
+    skip_certifications: bool = False,
+) -> list[str]:
     """Run all pre-release validation checks.
+
+    Args:
+        skip_certifications: If True, skip certification checks (for rapid dev iterations).
 
     Returns list of failure messages (empty = all passed).
     """
@@ -86,8 +92,11 @@ def run_pre_release_checks() -> list[str]:
         failures.append("Git not available — cannot verify clean state")
         log.warning("  [!] Git not available, skipping clean check")
 
-    # 3. Tests pass (optional — can be skipped with --skip-tests)
-    # (Not run here to keep verify fast; run explicitly before release)
+    # 3. Certification checks (Phase 4+5+10 — deterministic gates)
+    if not skip_certifications:
+        _run_certification_checks(failures)
+    else:
+        log.info("  [!] Certification checks skipped (--skip-cert)")
 
     # 4. Required documentation exists
     required_docs = [
@@ -117,7 +126,116 @@ def run_pre_release_checks() -> list[str]:
         if size < 100:
             failures.append(f"README.md too small ({size} bytes)")
 
+    # 8. Repository hygiene gate (Phase 2)
+    _run_hygiene_gate(failures)
+
+    # 9. Architecture compliance gate
+    _run_architecture_gate(failures)
+
     return failures
+
+
+def _certification_db_ready() -> bool:
+    """Check if the trades database has the required schema for certification.
+
+    Returns True if trades.db exists and has a 'trades' table with net_pnl.
+    """
+    trades_db = ROOT / "trades.db"
+    if not trades_db.is_file():
+        log.info("  [!] trades.db not found — skipping certification checks")
+        return False
+    try:
+        conn = sqlite3.connect(str(trades_db), timeout=5)
+        try:
+            rows = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='trades'"
+            ).fetchall()
+            if not rows:
+                log.info("  [!] trades.db exists but 'trades' table not found — skipping certification")
+                return False
+            return True
+        finally:
+            conn.close()
+    except (sqlite3.Error, OSError) as exc:
+        log.info("  [!] trades.db check failed: %s — skipping certification", exc)
+        return False
+
+
+def _run_certification_checks(failures: list[str]) -> None:
+    """Run certification gates: replay determinism, paper trading quality.
+
+    Certification failures are BLOCKING — they append to failures and prevent release.
+    If the trades database does not exist or has no trades table, certifications are
+    skipped gracefully (common in CI or fresh-checkout environments).
+    """
+    if not _certification_db_ready():
+        return
+
+    trades_db = str(ROOT / "trades.db")
+
+    # Replay certification (Phase 4)
+    try:
+        from core.certification.replay_certifier import certify_replay_determinism
+        replay_report = certify_replay_determinism(db_path=trades_db, max_trades=5, frames=5, width=30)
+        if not replay_report.passed:
+            failures.append(f"Replay certification FAILED: {replay_report.verdict}")
+        else:
+            log.info("  [OK] Replay certification: %s", replay_report.verdict)
+    except ImportError:
+        log.info("  [!] Replay certification module not available (core.certification.replay_certifier)")
+    except (OSError, sqlite3.Error, TypeError, ValueError) as exc:
+        failures.append(f"Replay certification error: {exc}")
+
+    # Paper trading certification (Phase 5)
+    try:
+        from core.certification.paper_certifier import certify_paper_trading
+        paper_report = certify_paper_trading(db_path=trades_db)
+        if not paper_report.passed:
+            failures.append(f"Paper trading certification FAILED: {paper_report.verdict}")
+        else:
+            log.info("  [OK] Paper trading certification: %s", paper_report.verdict)
+    except ImportError:
+        log.info("  [!] Paper certification module not available (core.certification.paper_certifier)")
+    except (OSError, sqlite3.Error, TypeError, ValueError) as exc:
+        failures.append(f"Paper certification error: {exc}")
+
+
+def _run_hygiene_gate(failures: list[str]) -> None:
+    """Run repository hygiene check (Phase 2).  Failure blocks release."""
+    try:
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "hygiene_check.py"), "--ci"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0:
+            failures.append("Repository hygiene check failed")
+            stderr = result.stderr[-500:] if result.stderr else ""
+            log.warning("  [X] Hygiene check output:\n%s", stderr)
+        else:
+            log.info("  [OK] Repository hygiene passed")
+    except FileNotFoundError:
+        log.info("  [!] hygiene_check.py not found — skipping")
+    except subprocess.TimeoutExpired as exc:
+        failures.append(f"Hygiene check timed out: {exc}")
+
+
+def _run_architecture_gate(failures: list[str]) -> None:
+    """Run architecture compliance check.  Failure blocks release."""
+    try:
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "check_architecture_compliance.py"), "--ci"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0:
+            failures.append("Architecture compliance check failed")
+            stderr = result.stderr[-500:] if result.stderr else ""
+            log.warning("  [X] Architecture check output:\n%s", stderr)
+        else:
+            log.info("  [OK] Architecture compliance passed")
+    except FileNotFoundError:
+        log.info("  [!] check_architecture_compliance.py not found — skipping")
+    except subprocess.TimeoutExpired as exc:
+        failures.append(f"Architecture check timed out: {exc}")
 
 
 # ── Branch creation ────────────────────────────────────────────────────────────
@@ -239,7 +357,7 @@ def write_release_notes(version: str, changes: list[str] | None = None) -> bool:
         RELEASE_NOTES_FILE.write_text(notes, encoding="utf-8")
         log.info("  [OK] Release notes written: %s", RELEASE_NOTES_FILE.relative_to(ROOT))
         return True
-    except Exception as e:
+    except (OSError, UnicodeDecodeError) as e:
         log.error("  [FAIL] Failed to write release notes: %s", e)
         return False
 
@@ -284,7 +402,7 @@ def update_changelog(version: str, changes: list[str] | None = None) -> bool:
 
         log.info("  [OK] Changelog updated: %s", CHANGELOG_FILE.relative_to(ROOT))
         return True
-    except Exception as e:
+    except (OSError, UnicodeDecodeError) as e:
         log.error("  [FAIL] Failed to update changelog: %s", e)
         return False
 
@@ -311,12 +429,37 @@ def write_audit_record(version: str, branch: str, changes: list[str] | None = No
         audit_file.write_text(json.dumps(record, indent=2), encoding="utf-8")
         log.info("  [OK] Audit record written: %s", audit_file.relative_to(ROOT))
         return True
-    except Exception as e:
+    except (OSError, UnicodeDecodeError, TypeError) as e:
         log.error("  [FAIL] Failed to write audit record: %s", e)
-        return False
+        return False    # ── Git commit helper ─────────────────────────────────────────────────────────
 
 
-# ── Git commit helper ─────────────────────────────────────────────────────────
+def git_push(branch: str | None = None) -> tuple[bool, str]:
+    """Push the current branch to origin.
+
+    Args:
+        branch: Branch to push. If None, pushes current branch.
+
+    Returns:
+        (success, message) tuple.
+    """
+    try:
+        if branch:
+            result = subprocess.run(
+                ["git", "push", "origin", branch],
+                capture_output=True, text=True, cwd=str(ROOT), timeout=30,
+            )
+        else:
+            result = subprocess.run(
+                ["git", "push"],
+                capture_output=True, text=True, cwd=str(ROOT), timeout=30,
+            )
+        if result.returncode != 0:
+            return False, f"Push failed: {result.stderr.strip()}"
+        log.info("  [OK] Pushed to origin")
+        return True, result.stdout.strip()
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        return False, f"Git error: {e}"
 
 
 def git_commit(message: str) -> tuple[bool, str]:
@@ -379,7 +522,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--commit", "-m", help="Stage and commit with message")
     ap.add_argument("--audit", action="store_true", help="Write audit record only")
     ap.add_argument("--skip-tests", action="store_true", help="Skip test verification")
+    ap.add_argument("--skip-cert", action="store_true", help="Skip certification checks (replay, paper, hygiene)")
     ap.add_argument("--skip-branch", action="store_true", help="Skip branch creation")
+    ap.add_argument("--push", action="store_true", help="Push to origin (opt-in: disabled by default)")
     ap.add_argument("--change", "-c", action="append", dest="changes",
                     help="Change description (repeatable)")
     args = ap.parse_args(argv)
@@ -391,7 +536,7 @@ def main(argv: list[str] | None = None) -> int:
         print("=" * 70)
         print("  PRE-RELEASE VALIDATION")
         print("=" * 70)
-        failures = run_pre_release_checks()
+        failures = run_pre_release_checks(skip_certifications=args.skip_cert)
         if failures:
             print("\n  [X] %d failure(s):" % len(failures))
             for f in failures:
@@ -427,7 +572,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Step 1: Pre-release checks
     print("\n[1/6] Pre-release validation...")
-    failures = run_pre_release_checks()
+    failures = run_pre_release_checks(skip_certifications=args.skip_cert)
     if failures:
         print("  [X] %d failure(s) - run --check for details" % len(failures))
         return 1
@@ -469,6 +614,25 @@ def main(argv: list[str] | None = None) -> int:
         print("  [OK] Tagged: %s" % tag)
     else:
         print("  [!] Tagging skipped: %s" % tag)
+
+    # Step 7: Push (opt-in — requires --push flag)
+    if args.push:
+        print("\n[7/7] Pushing to origin...")
+        push_branch = branch if not args.skip_branch else None
+        ok, push_msg = git_push(push_branch)
+        if ok:
+            print("  [OK] Push successful")
+        else:
+            print("  [!] Push warning: %s" % push_msg)
+        # Also push the tag if created
+        if tag:
+            subprocess.run(
+                ["git", "push", "origin", tag],
+                capture_output=True, text=True, cwd=str(ROOT), timeout=30,
+            )
+            print("  [OK] Tag pushed: %s" % tag)
+    else:
+        print("\n[7/7] Push skipped (use --push to push to origin)")
 
     print(f"\n{'=' * 70}")
     print(f"  RELEASE v{version} PREPARED")

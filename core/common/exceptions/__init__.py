@@ -8,7 +8,7 @@ making error handling more precise and informative.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+
 
 
 class TradingPlatformError(Exception):
@@ -258,6 +258,72 @@ class InstrumentNotFoundError(TradingPlatformError):
     """Raised when a financial instrument is not found."""
 
 
+# Reconciliation Related Exceptions
+class ReconciliationError(TradingPlatformError):
+    """Base exception for reconciliation failures."""
+
+
+class ReconciliationIssueError(ReconciliationError):
+    """Raised when reconciliation detects issues."""
+
+
+class ReconciliationFreezeError(ReconciliationError):
+    """Raised when reconciliation freezes trading due to ambiguity."""
+
+
+# Broker Timeout
+# Note: core/execution/broker_exceptions.py defines its own BrokerTimeoutError
+# that extends BrokerException(Exception). The one below extends TradingPlatformError
+# for imports from the common exceptions hierarchy. Both are valid - use the one
+# appropriate for your layer. The broker_exceptions version has richer classification.
+class BrokerTimeoutError(TradingPlatformError):
+    """Raised when a broker request times out.
+
+    Note: There is also a BrokerTimeoutError in core/execution/broker_exceptions.py
+    that extends BrokerException. Catch TradingPlatformError to catch both.
+    """
+
+
+# Signal Related Exceptions
+class SignalError(TradingPlatformError):
+    """Base exception for signal processing errors."""
+
+
+class SignalProcessingError(SignalError):
+    """Raised when signal processing fails."""
+
+
+class SignalValidationError(SignalError):
+    """Raised when signal validation fails."""
+
+
+# Health Check Exceptions
+class HealthCheckError(TradingPlatformError):
+    """Base exception for health check failures."""
+
+
+# Governance Exceptions
+class GovernanceError(TradingPlatformError):
+    """Base exception for governance violations."""
+
+
+class ConstitutionViolationError(GovernanceError):
+    """Raised when a constitution rule is violated."""
+
+
+# Certification Exceptions
+class CertificationError(TradingPlatformError):
+    """Base exception for certification failures."""
+
+
+class ReplayCertificationError(CertificationError):
+    """Raised when replay certification fails."""
+
+
+class PaperCertificationError(CertificationError):
+    """Raised when paper trading certification fails."""
+
+
 # Convenience functions for common error patterns
 def raise_if_not_true(condition: bool, message: str, error_class: type = ValidationError, **context) -> None:
     """
@@ -383,6 +449,25 @@ __all__ = [
     "InsufficientDataError",
     # Instrument Not Found
     "InstrumentNotFoundError",
+    # Reconciliation
+    "ReconciliationError",
+    "ReconciliationIssueError",
+    "ReconciliationFreezeError",
+    # Broker
+    "BrokerTimeoutError",
+    # Signal
+    "SignalError",
+    "SignalProcessingError",
+    "SignalValidationError",
+    # Health Check
+    "HealthCheckError",
+    # Governance
+    "GovernanceError",
+    "ConstitutionViolationError",
+    # Certification
+    "CertificationError",
+    "ReplayCertificationError",
+    "PaperCertificationError",
     # Utilities
     "raise_if_not_true",
     "raise_if_none",

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import threading
-import time
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -92,12 +92,14 @@ class CircuitBreakerDetector:
         self._last_trading_date: datetime | None = None
         self._running = False
         self._thread: threading.Thread | None = None
+        self._stop_event = threading.Event()
 
     def start(self) -> None:
         """Start background monitoring."""
         if self._running:
             return
         self._running = True
+        self._stop_event.clear()
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._thread.start()
         log.info(f"Circuit breaker monitor started for {self._index_name}")
@@ -105,6 +107,7 @@ class CircuitBreakerDetector:
     def stop(self) -> None:
         """Stop background monitoring."""
         self._running = False
+        self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=5)
         log.info("Circuit breaker monitor stopped")
@@ -237,7 +240,7 @@ class CircuitBreakerDetector:
             return None
         try:
             return self._price_getter(self._index_name)
-        except Exception as e:
+        except (TypeError, ValueError, OSError, ConnectionError) as e:
             log.warning(f"Failed to get price for {self._index_name}: {e}")
             return None
 
@@ -246,7 +249,7 @@ class CircuitBreakerDetector:
         if self._on_circuit_breaker:
             try:
                 self._on_circuit_breaker(level, pct_change)
-            except Exception as e:
+            except (TypeError, ValueError, OSError) as e:
                 log.error(f"Circuit breaker callback failed: {e}")
 
     def _monitor_loop(self) -> None:
@@ -254,9 +257,10 @@ class CircuitBreakerDetector:
         while self._running:
             try:
                 self.check_now()
-            except Exception as e:
+            except (OSError, ConnectionError, TimeoutError, ValueError) as e:
                 log.error(f"Circuit breaker check failed: {e}")
-            time.sleep(self._check_interval)
+            if self._stop_event.wait(self._check_interval):
+                break
 
 
 def create_circuit_breaker_detector(
@@ -297,7 +301,7 @@ class NseHalts:
                 if halted:
                     return True, "Market halted"
 
-        except Exception as e:
+        except (AttributeError, TypeError, OSError, ConnectionError) as e:
             log.warning(f"Failed to check halt status: {e}")
 
         return False, ""

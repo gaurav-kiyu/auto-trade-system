@@ -49,7 +49,7 @@ def _kill_file_watcher() -> None:
                 _log.critical("[KILL_WATCHER] STOP_TRADING file DETECTED in project root — halting immediately")
                 trip_hard_halt("STOP_TRADING file found in project root", source="kill_file_watcher")
                 break
-        except Exception:
+        except (ImportError, RuntimeError):
             pass
         _shutdown.wait(_KILL_FILE_POLL_INTERVAL)
 

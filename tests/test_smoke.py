@@ -202,13 +202,6 @@ def test_index_selftest_exits_zero():
 
 
 @pytest.mark.slow
-
-
-
-
-
-
-@pytest.mark.slow
 def test_index_dashboard_closed_empty_state_does_not_crash():
     code = f"""
 import datetime

@@ -154,6 +154,8 @@ class EventStore:
         """Initialize SQLite event store"""
         try:
             with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA busy_timeout=5000")
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS events (
                         event_id TEXT PRIMARY KEY,
@@ -178,7 +180,7 @@ class EventStore:
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_client_order ON events(client_order_id)")
                 conn.commit()
             _log.info("EventStore: Durable storage initialized")
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             _log.error(f"EventStore: Failed to init storage: {e}")
 
     def append(self, event: TradingEvent) -> bool:
@@ -212,7 +214,7 @@ class EventStore:
                 ))
                 conn.commit()
             return True
-        except Exception as e:
+        except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
             _log.error(f"EventStore: Failed to append event {event.event_id}: {e}")
             return False
 
@@ -247,7 +249,7 @@ class EventStore:
                         metadata=json.loads(row[12] or "{}"),
                     ))
                 return events
-        except Exception as e:
+        except (sqlite3.Error, OSError, json.JSONDecodeError, KeyError, ValueError) as e:
             _log.error(f"EventStore: Failed to get events for order: {e}")
             return []
 
@@ -266,7 +268,7 @@ class EventStore:
                 """, (event_type.value, limit))
 
                 return self._rows_to_events(cursor)
-        except Exception as e:
+        except (sqlite3.Error, OSError, KeyError, ValueError) as e:
             _log.error(f"EventStore: Failed to get events by type: {e}")
             return []
 
@@ -284,7 +286,7 @@ class EventStore:
                 """, (start_time, end_time))
 
                 return self._rows_to_events(cursor)
-        except Exception as e:
+        except (sqlite3.Error, OSError, KeyError, ValueError) as e:
             _log.error(f"EventStore: Failed to get events in range: {e}")
             return []
 
@@ -357,7 +359,7 @@ class EventBus:
         for handler in handlers:
             try:
                 handler(event)
-            except Exception as e:
+            except (ValueError, TypeError, KeyError, AttributeError, OSError) as e:
                 _log.error(f"Event handler failed for {event.event_type.value}: {e}")
 
         return True

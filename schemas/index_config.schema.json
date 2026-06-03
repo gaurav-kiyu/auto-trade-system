@@ -45,21 +45,6 @@
     "ALLOW_ZERO_PRICE": {
       "type": "boolean"
     },
-    "ANGEL_API_KEY": {
-      "type": "string"
-    },
-    "ANGEL_CLIENT_ID": {
-      "type": "string"
-    },
-    "ANGEL_PASSWORD": {
-      "type": "string"
-    },
-    "ANGEL_REFRESH_TOKEN": {
-      "type": "string"
-    },
-    "ANGEL_TOTP_KEY": {
-      "type": "string"
-    },
     "API_DEGRADE_BLOCK_ENTRIES_AT": {
       "type": "integer"
     },
@@ -296,7 +281,7 @@
       "type": "boolean"
     },
     "CONFIG_VERSION": {
-      "type": "string"
+      "type": "integer"
     },
     "CONSEC_LOSS_LIMIT": {
       "type": "integer"
@@ -521,21 +506,6 @@
       "type": "string"
     },
     "KILL_FILE": {
-      "type": "string"
-    },
-    "KITE_ACCESS_TOKEN": {
-      "type": "string"
-    },
-    "KITE_API_KEY": {
-      "type": "string"
-    },
-    "KITE_PASSWORD": {
-      "type": "string"
-    },
-    "KITE_TOTP_KEY": {
-      "type": "string"
-    },
-    "KITE_USER_ID": {
       "type": "string"
     },
     "LATENCY_BUDGET_MS": {
@@ -1066,6 +1036,9 @@
     "SL_WARN_PCT": {
       "type": "number"
     },
+    "SOFTWARE_VERSION": {
+      "type": "string"
+    },
     "SOVEREIGNTY_BROKER_BLOCK": {
       "type": "boolean"
     },
@@ -1297,13 +1270,28 @@
     "_comment_circuit_breaker": {
       "type": "string"
     },
+    "_comment_core_risk": {
+      "type": "string"
+    },
     "_comment_correlation_guard": {
+      "type": "string"
+    },
+    "_comment_dashboard_expiry": {
       "type": "string"
     },
     "_comment_drift": {
       "type": "string"
     },
     "_comment_event_calendar": {
+      "type": "string"
+    },
+    "_comment_exit_params": {
+      "type": "string"
+    },
+    "_comment_governance_env": {
+      "type": "string"
+    },
+    "_comment_greeks": {
       "type": "string"
     },
     "_comment_iv_rank": {
@@ -1339,10 +1327,16 @@
     "_comment_signal_autopsy": {
       "type": "string"
     },
+    "_comment_signal_filters": {
+      "type": "string"
+    },
     "_comment_spread": {
       "type": "string"
     },
     "_comment_strike": {
+      "type": "string"
+    },
+    "_comment_telecom": {
       "type": "string"
     },
     "_comment_v244_item1": {
@@ -1490,6 +1484,9 @@
     "admin_strategies": {
       "additionalProperties": true,
       "type": "object"
+    },
+    "ai_governance_enforce_fail_closed": {
+      "type": "boolean"
     },
     "attribution_days": {
       "type": "integer"
@@ -1785,6 +1782,42 @@
       "type": "integer"
     },
     "gex_vix_proxy": {
+      "type": "number"
+    },
+    "greeks_block_threshold_pct": {
+      "type": "number"
+    },
+    "greeks_delta_limit_per_pos": {
+      "type": "number"
+    },
+    "greeks_delta_limit_portfolio": {
+      "type": "number"
+    },
+    "greeks_enabled": {
+      "type": "boolean"
+    },
+    "greeks_gamma_limit_per_pos": {
+      "type": "number"
+    },
+    "greeks_gamma_limit_portfolio": {
+      "type": "number"
+    },
+    "greeks_short_option_block": {
+      "type": "boolean"
+    },
+    "greeks_stress_test_enabled": {
+      "type": "boolean"
+    },
+    "greeks_theta_daily_budget": {
+      "type": "number"
+    },
+    "greeks_vega_limit_per_pos": {
+      "type": "number"
+    },
+    "greeks_vega_limit_portfolio": {
+      "type": "number"
+    },
+    "greeks_warn_threshold_pct": {
       "type": "number"
     },
     "health_check_accuracy_warn": {

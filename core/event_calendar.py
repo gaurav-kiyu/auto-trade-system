@@ -88,7 +88,7 @@ def _parse_event_dates(
                 block_entries=bool(item.get("block_entries", global_block)),
                 size_mult=float(item.get("size_mult", global_mult)),
             )
-        except Exception as exc:
+        except (ValueError, TypeError, KeyError) as exc:
             _log.debug("[EVENT_CAL] Skipping invalid event entry %r: %s", item, exc)
     return records
 
@@ -246,7 +246,7 @@ def _fetch_nse_holidays() -> set[datetime.date]:
         if holidays:
             _log.info("[HOLIDAY] Fetched %d NSE trading holidays from API", len(holidays))
         return holidays
-    except Exception as exc:
+    except (ValueError, OSError, ConnectionError, ImportError) as exc:
         _log.warning("[HOLIDAY] Could not fetch from NSE API: %s — using config-based holidays", exc)
         return set()
 
@@ -292,7 +292,7 @@ def is_market_day(
     try:
         from core.datetime_ist import now_ist
         today = check_date or now_ist().date()
-    except Exception:
+    except (ImportError, ValueError, TypeError):
         today = check_date or datetime.date.today()  # nosec — safe fallback when import fails
 
     if today.weekday() in (5, 6):   # Saturday=5, Sunday=6
@@ -303,7 +303,7 @@ def is_market_day(
     for raw in c.get("NSE_HOLIDAYS", []):
         try:
             holidays.add(datetime.date.fromisoformat(str(raw)))
-        except Exception as _ex:
+        except (ValueError, TypeError) as _ex:
             logging.getLogger(__name__).debug(f"Invalid NSE_HOLIDAY entry: {raw} — {_ex}")
     return today not in holidays
 
@@ -323,7 +323,7 @@ def get_market_status(
     try:
         from core.datetime_ist import now_ist
         now = check_dt or now_ist()
-    except Exception:
+    except (ImportError, ValueError, TypeError):
         now = check_dt or now_ist()
 
     today = now.date()
@@ -355,7 +355,7 @@ def get_next_market_open(
     try:
         from core.datetime_ist import now_ist
         now = from_dt or now_ist()
-    except Exception:
+    except (ImportError, ValueError, TypeError):
         now = from_dt or now_ist()
 
     candidate = now.date()
@@ -381,7 +381,7 @@ def get_time_until_market_open(
     try:
         from core.datetime_ist import now_ist
         now = now_ist()
-    except Exception:
+    except (ImportError, ValueError, TypeError):
         now = now_ist()
     next_open = get_next_market_open(cfg, now)
     return next_open - now
@@ -397,7 +397,7 @@ def sleep_until(target_dt: datetime.datetime, stop_event=None) -> None:
         try:
             from core.datetime_ist import now_ist
             now = now_ist()
-        except Exception:
+        except (ImportError, ValueError, TypeError):
             now = now_ist()
 
         remaining = (target_dt - now).total_seconds()
@@ -408,10 +408,11 @@ def sleep_until(target_dt: datetime.datetime, stop_event=None) -> None:
             _log.info("[MARKET_CAL] STOP_TRADING detected during sleep — exiting")
             return
 
-        if stop_event is not None and stop_event.is_set():
-            return
-
-        _time.sleep(min(60.0, remaining))
+        if stop_event is not None:
+            if stop_event.wait(min(60.0, remaining)):
+                return
+        else:
+            _time.sleep(min(60.0, remaining))
 
 
 # ── Corporate Action Calendar (v2.45 Item 15) ─────────────────────────────────
@@ -454,7 +455,7 @@ def fetch_corporate_actions(
                 action_type=str(entry.get("type", "UNKNOWN")).upper(),
                 factor=float(entry.get("factor", 1.0)),
             ))
-        except Exception as exc:
+        except (ValueError, TypeError, KeyError) as exc:
             _log.debug("[CORP_ACTION] bad entry %s: %s", entry, exc)
 
     return sorted(actions, key=lambda a: a.date)
@@ -485,7 +486,7 @@ def is_corp_action_day(
         try:
             from core.datetime_ist import now_ist
             check_date = now_ist().date()
-        except Exception:
+        except (ImportError, ValueError, TypeError):
             check_date = datetime.date.today()
 
     sym_upper = symbol.upper()

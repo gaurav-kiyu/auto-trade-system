@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
+
 from core.constitution_ai_gate import (
     AIGateResult,
     AIGovernanceGate,

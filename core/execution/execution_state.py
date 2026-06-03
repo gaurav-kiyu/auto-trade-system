@@ -28,12 +28,25 @@ import json
 import logging
 import sqlite3
 import threading
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
 from core.time_provider import time_provider
+
+# ── DEPRECATED MODULE ──────────────────────────────────────────────
+# FormalOrderState and FormalOrderStateManager are deprecated.
+# Use core/execution/deterministic_state_machine.py (ExecutionStateMachine
+# and ExecutionStateMachineManager) for all new order lifecycle management.
+# This module is kept only for backward compatibility with existing tests.
+warnings.warn(
+    "core/execution/execution_state.py is DEPRECATED. Use "
+    "core/execution/deterministic_state_machine.py (ExecutionStateMachine) instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -149,7 +162,7 @@ class FormalOrderState:
             ]:
                 try:
                     self._persistence_callback(self)
-                except Exception as e:
+                except (OSError, sqlite3.Error, AttributeError) as e:
                     _log.critical(f"PERSISTENCE FAILURE on transition to {new_state.value}: {e}")
                     return TransitionResult.PERSISTENCE_FAILED, f"Critical: {e}"
 
@@ -311,6 +324,8 @@ class FormalOrderStateManager:
         """Initialize SQLite persistence for formal order states"""
         try:
             with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA busy_timeout=5000")
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS formal_orders (
                         client_order_id TEXT PRIMARY KEY,
@@ -338,7 +353,7 @@ class FormalOrderStateManager:
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_state ON formal_orders(state)")
                 conn.commit()
             _log.info("FormalOrderStateManager: Durable storage initialized")
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             _log.error(f"FormalOrderStateManager: Failed to init storage: {e}")
 
     def create(
@@ -425,7 +440,7 @@ class FormalOrderStateManager:
                 ))
                 conn.commit()
             return True
-        except Exception as e:
+        except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
             _log.error(f"Failed to persist machine {machine.client_order_id}: {e}")
             return False
 
@@ -469,7 +484,7 @@ class FormalOrderStateManager:
                     count += 1
                     _log.warning(f"Loaded in-flight order: {client_order_id} in state {machine.state.value}")
                 return count
-        except Exception as e:
+        except (sqlite3.Error, OSError, KeyError, ValueError) as e:
             _log.error(f"Failed to load in-flight orders: {e}")
             return 0
 

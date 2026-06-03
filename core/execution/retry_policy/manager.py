@@ -31,12 +31,14 @@ class RetryPolicy:
         max_delay: float = 10.0,
         exponential_base: float = 2.0,
         allow_unknown_retry: bool = False,
+        shutdown_event: threading.Event | None = None,
     ):
         self.max_retries = max_retries
         self.base_delay = base_delay
         self.max_delay = max_delay
         self.exponential_base = exponential_base
         self.allow_unknown_retry = allow_unknown_retry
+        self._shutdown_event = shutdown_event
 
     def classify_error(self, exception: Exception) -> RetrySafety:
         """Classify an exception to determine if retry is safe."""
@@ -83,7 +85,13 @@ class RetryPolicy:
                         self.max_delay
                     )
                     log.debug(f"Retry attempt {attempt} after {delay:.1f}s delay")
-                    time.sleep(delay)
+                    # Use shutdown-aware wait if event provided
+                    if self._shutdown_event is not None:
+                        if self._shutdown_event.wait(delay):
+                            log.warning("Retry interrupted by shutdown signal")
+                            return None, False, RetrySafety.UNKNOWN
+                    else:
+                        time.sleep(delay)
 
                 result = operation(*args, **kwargs)
                 return result, True, RetrySafety.SAFE
@@ -112,11 +120,17 @@ class RetryPolicy:
         result, succeeded, safety = self.execute_with_retry(operation, *args, **kwargs)
         if not succeeded:
             if safety == RetrySafety.UNKNOWN:
-                raise RuntimeError(f"Operation failed with unknown status - manual intervention required: {last_exception}")
+                raise RuntimeError(
+                    "Operation failed with unknown status — manual intervention required"
+                )
             elif safety == RetrySafety.UNSAFE:
-                raise RuntimeError(f"Operation failed with permanent error - do not retry: {last_exception}")
+                raise RuntimeError(
+                    "Operation failed with permanent error — do not retry"
+                )
             else:
-                raise RuntimeError(f"Operation failed after {self.max_retries} retries: {last_exception}")
+                raise RuntimeError(
+                    f"Operation failed after {self.max_retries} retries"
+                )
         return result
 
 
@@ -137,10 +151,23 @@ def safe_retry_operation(
     operation: Callable,
     max_retries: int = 3,
     *args,
+    shutdown_event: threading.Event | None = None,
     **kwargs
 ) -> RetryResult:
-    """Convenience function for safe retry with classification."""
-    policy = RetryPolicy(max_retries=max_retries, allow_unknown_retry=False)
+    """Convenience function for safe retry with classification.
+
+    Args:
+        operation: Callable to execute with retry.
+        max_retries: Maximum number of retry attempts.
+        shutdown_event: Optional threading.Event for shutdown-aware retry backoff.
+            When provided, time.sleep() between retries is replaced with
+            shutdown_event.wait() for instant shutdown response.
+    """
+    policy = RetryPolicy(
+        max_retries=max_retries,
+        allow_unknown_retry=False,
+        shutdown_event=shutdown_event,
+    )
     last_exc = None
 
     def wrapped_operation(*args, **kwargs):

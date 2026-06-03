@@ -40,11 +40,13 @@ class MorningChecklist:
         send_fn: callable | None = None,
         cfg: dict[str, Any] | None = None,
         broker_port: Any = None,
+        stop_event: threading.Event | None = None,
     ):
         self._send_fn = send_fn or (lambda x: None)
         self._cfg = cfg or {}
         self._broker_port = broker_port
         self._running = False
+        self._stop_event = stop_event or threading.Event()
         self._thread: threading.Thread | None = None
         self._last_run_date: str | None = None
         self._logger = self._setup_logger()
@@ -68,6 +70,7 @@ class MorningChecklist:
         if self._running:
             return
         self._running = True
+        self._stop_event.clear()
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
         self._logger.info("Morning checklist service started")
@@ -75,6 +78,7 @@ class MorningChecklist:
     def stop(self) -> None:
         """Stop the morning checklist thread."""
         self._running = False
+        self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=5)
         self._logger.info("Morning checklist service stopped")
@@ -97,10 +101,12 @@ class MorningChecklist:
                     self._run_checklist()
                     self._last_run_date = today_str
 
-                time.sleep(self.CHECK_INTERVAL)
-            except Exception as e:
+                if self._stop_event.wait(self.CHECK_INTERVAL):
+                    break  # Shutdown requested
+            except (OSError, ValueError, AttributeError) as e:
                 self._logger.error(f"Error in morning checklist loop: {e}")
-                time.sleep(self.CHECK_INTERVAL)
+                if self._stop_event.wait(self.CHECK_INTERVAL):
+                    break  # Shutdown requested
 
     def _run_checklist(self) -> None:
         """Run the morning checklist and send report to Telegram."""
@@ -211,7 +217,7 @@ class MorningChecklist:
                 return False, "Broker token EXPIRED — refresh via TokenRefreshService failed"
         except ImportError:
             pass  # TokenRefreshService not available, try _ensure_token_fresh
-        except Exception as e:
+        except (AttributeError, OSError, ValueError) as e:
             self._logger.warning(f"TokenRefreshService check failed: {e}")
             # Fall through to _ensure_token_fresh
 
@@ -222,7 +228,7 @@ class MorningChecklist:
                     return True, "Broker token valid (fresh)"
                 else:
                     return False, "Broker token EXPIRED — _ensure_token_fresh failed"
-        except Exception as e:
+        except (AttributeError, OSError, ValueError) as e:
             self._logger.warning(f"Token check failed (fallback): {e}")
             return False, f"Token check FAILED — cannot validate: {e}"
 
@@ -239,7 +245,7 @@ class MorningChecklist:
                 health = self._broker_port.health_check()
                 if health.get("status") == "healthy":
                     return True, "Broker reachable"
-        except Exception as e:
+        except (AttributeError, OSError, ConnectionError) as e:
             self._logger.warning(f"Broker reachability check failed: {e}")
             return False, f"Broker unreachable: {e}"
 
@@ -254,7 +260,7 @@ class MorningChecklist:
                 if vix > 0:
                     return True, f"VIX loaded: {vix:.1f}"
                 return False, "VIX not loaded (0)"
-        except Exception as e:
+        except (ImportError, AttributeError, OSError) as e:
             self._logger.warning(f"VIX check failed: {e}")
 
         return True, "VIX check skipped (no data engine)"
@@ -268,7 +274,7 @@ class MorningChecklist:
                 if capital > 0:
                     return True, f"Capital: ₹{capital:,.0f}"
                 return False, "Capital zero or missing"
-        except Exception:
+        except (ImportError, AttributeError, OSError):
             pass
         return True, "Capital check skipped"
 
@@ -281,7 +287,7 @@ class MorningChecklist:
             if pending:
                 return False, f"Found {len(pending)} pending orders"
             return True, "No orphan orders"
-        except Exception as e:
+        except (ImportError, AttributeError, OSError) as e:
             self._logger.warning(f"Orphan check failed: {e}")
 
         return True, "Orphan check skipped"
@@ -292,11 +298,11 @@ class MorningChecklist:
         for db_path in db_paths:
             if os.path.exists(db_path):
                 try:
-                    import sqlite3
-                    conn = sqlite3.connect(db_path, timeout=1)
+                    from core.db_utils import get_connection as _chk_conn
+                    conn = _chk_conn(db_path, timeout=1, row_factory=False)
                     conn.execute("SELECT 1")
                     conn.close()
-                except Exception as e:
+                except (OSError, sqlite3.Error) as e:
                     return False, f"DB {db_path} not writable: {e}"
 
         return True, "DB writable"
@@ -311,7 +317,7 @@ class MorningChecklist:
             if not is_trading_day(today):
                 return False, "Today is not a trading day"
             return True, "Market calendar OK"
-        except Exception:
+        except (ImportError, AttributeError, ValueError):
             pass
         return True, "Calendar check skipped"
 
@@ -325,7 +331,7 @@ class MorningChecklist:
             if mismatches:
                 return False, f"Lot size mismatches: {len(mismatches)}"
             return True, f"Lot sizes validated ({len(results)} indices)"
-        except Exception as e:
+        except (ImportError, AttributeError, OSError, ValueError) as e:
             self._logger.warning(f"Lot size check failed: {e}")
 
         return True, "Lot size check skipped"
@@ -342,7 +348,7 @@ class MorningChecklist:
             if state.level.value != "NONE":
                 return False, f"Circuit breaker: {state.level.value}"
             return True, "No circuit breaker triggered"
-        except Exception as e:
+        except (ImportError, AttributeError, OSError, ValueError) as e:
             self._logger.warning(f"Circuit breaker check failed: {e}")
 
         return True, "CB check skipped"
@@ -353,7 +359,7 @@ class MorningChecklist:
             from core.telegram_queue import telegram_queue
             if telegram_queue:
                 return True, "Telegram reachable"
-        except Exception:
+        except (ImportError, AttributeError):
             pass
 
         if self._send_fn and self._send_fn.__class__.__name__ != 'function':
@@ -365,7 +371,7 @@ class MorningChecklist:
         """Check if instrument metadata is fresh."""
         try:
             return True, "Instrument metadata OK"
-        except Exception:
+        except (ImportError, AttributeError):
             pass
         return True, "Instrument check skipped"
 
@@ -375,7 +381,7 @@ class MorningChecklist:
             db_path = self._cfg.get("trades_db_path", "trades.db")
             report = check_live_readiness(db_path, self._cfg)
             return report.overall_ready
-        except Exception:
+        except (ImportError, AttributeError, OSError):
             return None
 
 
@@ -383,8 +389,9 @@ def run_morning_checklist(
     send_fn: callable | None = None,
     cfg: dict[str, Any] | None = None,
     broker_port: Any = None,
+    stop_event: threading.Event | None = None,
 ) -> MorningChecklist:
     """Create and start the morning checklist."""
-    checklist = MorningChecklist(send_fn=send_fn, cfg=cfg, broker_port=broker_port)
+    checklist = MorningChecklist(send_fn=send_fn, cfg=cfg, broker_port=broker_port, stop_event=stop_event)
     checklist.start()
     return checklist

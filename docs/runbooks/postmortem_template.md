@@ -1,5 +1,7 @@
 # Postmortem: {{INCIDENT_TITLE}}
 
+> **NOTE:** This template is the canonical version. The identical copy at `docs/operations/postmortem_template.md` is deprecated. Please update both if changes are needed.
+
 | Field | Value |
 |-------|-------|
 | Incident ID | `INC-{{ID}}` |

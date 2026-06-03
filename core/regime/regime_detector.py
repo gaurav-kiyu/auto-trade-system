@@ -89,7 +89,7 @@ class RegimeDetector:
                 """)
                 conn.commit()
             _log.info("RegimeDetector: Storage initialized")
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             _log.error(f"RegimeDetector: Failed to init storage: {e}")
 
     def update_price(self, price: float, timestamp: str = None) -> None:
@@ -310,7 +310,7 @@ class RegimeDetector:
                     json.dumps(snapshot.metadata),
                 ))
                 conn.commit()
-        except Exception as e:
+        except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
             _log.error(f"Failed to persist regime: {e}")
 
 

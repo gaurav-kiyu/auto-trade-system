@@ -77,7 +77,7 @@ class ProviderChain:
                 continue
             try:
                 data = fn(*args, **kwargs)
-            except Exception as exc:
+            except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as exc:
                 notes.append(f"{name}:error:{exc}")
                 continue
             if validate(data):
@@ -210,7 +210,7 @@ class DataEngine:
             return 0.0
         try:
             return float(self._vix_fetch_fn() or 0.0)
-        except Exception:
+        except (TypeError, ValueError, OSError):
             return 0.0
 
     def fetch_last_close_summary(self) -> dict[str, Any]:
@@ -225,7 +225,7 @@ class DataEngine:
             return {}
         try:
             data = self._last_close_fn()
-        except Exception:
+        except (TypeError, ValueError, OSError):
             return {}
         return dict(data or {})
 
@@ -241,7 +241,7 @@ class DataEngine:
             return {}
         try:
             data = self._live_prices_fn()
-        except Exception:
+        except (TypeError, ValueError, OSError):
             return {}
         return dict(data or {})
 
@@ -250,7 +250,7 @@ class DataEngine:
             return {}
         try:
             snap = self._websocket_snapshot_fn()
-        except Exception:
+        except (TypeError, ValueError, OSError):
             return {}
         return dict(snap or {})
 
@@ -260,7 +260,7 @@ class DataEngine:
             return MarketDataSnapshot(source="websocket", healthy=True, frames=ws)
         try:
             frames = self.fetch_all_frames(indices)
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as exc:
             return MarketDataSnapshot(
                 source="fallback",
                 healthy=False,

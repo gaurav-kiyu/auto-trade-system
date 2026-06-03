@@ -51,7 +51,7 @@ if str(ROOT) not in sys.path:
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:
+    except (ValueError, OSError):
         pass
 
 from core.candle_backtest import (
@@ -460,7 +460,7 @@ def main() -> int:
             ):
                 if k in main_cfg:
                     signal_cfg[k] = main_cfg[k]
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, KeyError) as e:
             print(f"[backtest] config.json load warning: {e}", file=sys.stderr)
 
     # Derive backtest parameters

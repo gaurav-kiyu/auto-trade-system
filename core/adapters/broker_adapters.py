@@ -289,7 +289,7 @@ class PaperBrokerAdapter(BrokerAdapter):
             oi, volume = int(result[0]), int(result[1])
             ok = oi >= self._min_oi() and volume >= self._min_vol()
             return ok, oi, volume
-        except Exception:
+        except (TypeError, ValueError, OSError):
             return True, 0, 0
 
     def _fill_price(self, name: str, direction: str, strike: int, is_entry: bool) -> tuple[float, float]:
@@ -303,7 +303,7 @@ class PaperBrokerAdapter(BrokerAdapter):
             pct = self._slippage_pct() / 100.0
             fill = mid * (1.0 + pct) if is_entry else mid * (1.0 - pct)
             return round(fill, 2), round(mid, 2)
-        except Exception:
+        except (TypeError, ValueError, ConnectionError, OSError):
             return 0.0, 0.0
 
     def _record_fill(
@@ -437,8 +437,11 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
         if cb is not None:
             try:
                 return cb.call_with_key(f"broker.{key}", func, *args, **kwargs)
-            except Exception as exc:
-                if "Circuit breaker is OPEN" in str(exc):
+            except (OSError, ConnectionError, TimeoutError, RuntimeError) as exc:
+                # CircuitBreakerOpenException may be any Exception subclass;
+                # check the message for known circuit-breaker patterns.
+                msg = str(exc)
+                if "Circuit breaker is OPEN" in msg or "CIRCUIT_OPEN" in msg:
                     self._context.log_fn(f"[CB] {key} BLOCKED - circuit open")
                     return None
                 raise
@@ -461,14 +464,14 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
             if refresh:
                 try:
                     client.generateToken(refresh)
-                except Exception:
+                except (OSError, ConnectionError, ValueError):
                     pass
             with self._lock:
                 self._client = client
                 self._connected = True
             label = str(self._context.cfg.get("BROKER_NAME") or "").strip() or "Angel"
             self._context.log_fn(f"[SMARTAPI] Connected ({label})")
-        except Exception as exc:
+        except (ImportError, OSError, ConnectionError, RuntimeError) as exc:
             self._context.log_fn(f"[SMARTAPI] Connect failed: {exc}")
 
     def _symbol(self, name, direction, strike) -> str:
@@ -509,7 +512,7 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
                 oid = str(result.get("data", {}).get("orderid") or result.get("orderid") or "").strip()
                 return oid if oid else str(result)
             return str(result)
-        except Exception as exc:
+        except (KeyError, TypeError, ValueError, OSError, ConnectionError) as exc:
             self._context.log_fn(f"[SMARTAPI ORDER] {exc}")
             return None
 
@@ -528,7 +531,7 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
         try:
             book = self._cb_protected("get_order_book", lambda: client.orderBook() or {})
             return book.get("data") if isinstance(book, dict) else book
-        except Exception as exc:
+        except (KeyError, TypeError, ValueError, OSError, ConnectionError) as exc:
             self._context.log_fn(f"[SMARTAPI BOOK] {exc}")
             return []
 
@@ -544,7 +547,7 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
             if str(row.get("orderid", "")) == str(order_id):
                 try:
                     return float(row.get("averageprice") or 0) or None
-                except Exception:
+                except (TypeError, ValueError, KeyError):
                     return None
         return None
 
@@ -553,7 +556,7 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
             if str(row.get("orderid", "")) == str(order_id):
                 try:
                     return int(float(row.get("filledshares") or row.get("filled_qty") or 0))
-                except Exception:
+                except (TypeError, ValueError, KeyError):
                     return None
         return None
 
@@ -579,7 +582,7 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
         try:
             data = client.position() or {}
             return data.get("data") if isinstance(data, dict) else data
-        except Exception as exc:
+        except (KeyError, TypeError, ValueError, OSError, ConnectionError) as exc:
             self._context.log_fn(f"[SMARTAPI POS] {exc}")
             return []
 
@@ -599,13 +602,13 @@ def load_broker_factory_from_spec(spec: str) -> Callable[[BrokerRuntimeContext],
     try:
         if mod is None:
             mod = importlib.import_module(mod_name)
-    except Exception:
+    except (ImportError, ModuleNotFoundError):
         mod = None
     if mod is None:
         short_name = mod_name.rsplit(".", 1)[-1]
         try:
             mod = importlib.import_module(short_name)
-        except Exception:
+        except (ImportError, ModuleNotFoundError):
             mod = None
     if mod is None:
         rel_module = Path(*mod_name.split("."))
@@ -625,7 +628,7 @@ def load_broker_factory_from_spec(spec: str) -> Callable[[BrokerRuntimeContext],
                 loader_spec.loader.exec_module(loaded)
                 mod = loaded
                 break
-            except Exception:
+            except (ImportError, ModuleNotFoundError, FileNotFoundError):
                 sys.modules.pop(mod_name, None)
                 continue
     if mod is None:
@@ -664,7 +667,7 @@ def create_broker_adapter(
                 context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY returned {type(port)!r}, not BrokerPort — using paper")
                 return PaperBrokerAdapter()
             return BrokerAdapter(port)
-        except Exception as exc:
+        except (ImportError, TypeError, AttributeError, OSError, ConnectionError) as exc:
             context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY failed: {exc} — using paper adapter")
             return PaperBrokerAdapter()
 

@@ -73,6 +73,8 @@ class ShadowModeEngine:
         """Initialize shadow mode storage"""
         try:
             with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA busy_timeout=5000")
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS shadow_signals (
                         signal_id TEXT PRIMARY KEY,
@@ -99,7 +101,7 @@ class ShadowModeEngine:
                 """)
                 conn.commit()
             _log.info("ShadowModeEngine: Storage initialized")
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             _log.error(f"ShadowModeEngine: Failed to init storage: {e}")
 
     def enable(self) -> None:
@@ -260,7 +262,7 @@ class ShadowModeEngine:
                         "metadata": json.loads(row[9] or "{}"),
                     })
                 return results
-        except Exception as e:
+        except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
             _log.error(f"Failed to get signal history: {e}")
             return []
 
@@ -293,7 +295,7 @@ class ShadowModeEngine:
                     json.dumps(signal.metadata),
                 ))
                 conn.commit()
-        except Exception as e:
+        except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
             _log.error(f"Failed to persist shadow signal: {e}")
 
     def _persist_comparison(self, comparison: ShadowComparison) -> None:
@@ -313,7 +315,7 @@ class ShadowModeEngine:
                     comparison.divergence_reason,
                 ))
                 conn.commit()
-        except Exception as e:
+        except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
             _log.error(f"Failed to persist comparison: {e}")
 
 

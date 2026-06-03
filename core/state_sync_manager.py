@@ -25,7 +25,7 @@ class StateSyncManager:
             }
             with open(self.heartbeat_path, "w") as f:
                 json.dump(heartbeat, f)
-        except Exception as e:
+        except (OSError, json.JSONDecodeError) as e:
             self.logger.error(f"Heartbeat update failed: {e}")
 
     def check_failover(self) -> bool:
@@ -38,6 +38,6 @@ class StateSyncManager:
                 if time.time() - hb["timestamp"] > 60:
                     self.logger.warning(f"Primary bot stale (last seen {round(time.time()-hb['timestamp'])}s ago).")
                     return True
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             pass
         return False

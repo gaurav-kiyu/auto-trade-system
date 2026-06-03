@@ -16,7 +16,7 @@ from infrastructure.security.credential_storage import (
 # cryptography is optional; tests that need actual crypto are skipped
 _HAS_CRYPTO = False
 try:
-    import cryptography  # noqa: F401
+
     _HAS_CRYPTO = True
 except ImportError:
     pass

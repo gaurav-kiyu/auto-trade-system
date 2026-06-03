@@ -56,6 +56,8 @@ class IdempotencyManager:
         try:
             with self._lock:
                 with sqlite3.connect(self._persistence_path) as conn:
+                    conn.execute("PRAGMA journal_mode=WAL")
+                    conn.execute("PRAGMA busy_timeout=5000")
                     conn.execute(
                         "CREATE TABLE IF NOT EXISTS idempotency_keys "
                         "(key TEXT PRIMARY KEY, timestamp DATETIME, result_json TEXT, status TEXT)"
@@ -65,7 +67,7 @@ class IdempotencyManager:
                         "ON idempotency_keys(status)"
                     )
                     conn.commit()
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             log.error(f"Failed to initialize idempotency persistence: {e}")
 
     def _load_from_persistence(self):
@@ -90,7 +92,7 @@ class IdempotencyManager:
                     )
                     conn.commit()
             log.info(f"Loaded {len(self._cache)} idempotency keys from persistence")
-        except Exception as e:
+        except (sqlite3.Error, OSError, json.JSONDecodeError, ValueError) as e:
             log.error(f"Failed to load idempotency keys: {e}")
 
     def generate_key(self, order_request: Any, context: Any) -> str:
@@ -146,7 +148,7 @@ class IdempotencyManager:
                             (key, now.isoformat(), json.dumps({"status": "in_flight"}), "in_flight")
                         )
                         conn.commit()
-                except Exception as e:
+                except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
                     log.error(f"Failed to persist in-flight key {key}: {e}")
 
     def confirm_execution(self, key: str, result: Any) -> None:
@@ -176,7 +178,7 @@ class IdempotencyManager:
                             (key, now.isoformat(), res_json, "confirmed")
                         )
                         conn.commit()
-                except Exception as e:
+                except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
                     log.error(f"Failed to persist confirmed key {key}: {e}")
 
             # Evict oldest if cache too large
@@ -203,7 +205,7 @@ class IdempotencyManager:
                             (key,)
                         )
                         conn.commit()
-                except Exception as e:
+                except (sqlite3.Error, OSError) as e:
                     log.error(f"Failed to clear in-flight key {key}: {e}")
 
     def get_result(self, key: str) -> Any | None:

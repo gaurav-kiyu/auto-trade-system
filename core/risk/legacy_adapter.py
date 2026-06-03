@@ -126,7 +126,7 @@ class RiskPortAdapter:
                 volatility=vix,
             )
             return self._risk_service.calculate_position_size(sizing_input)
-        except Exception:
+        except (ValueError, TypeError, KeyError):
             return 0
 
     def current_loss_streak(self) -> int:
@@ -138,7 +138,7 @@ class RiskPortAdapter:
         try:
             metrics = self._risk_service.get_portfolio_risk_metrics()
             return metrics.used_capital
-        except Exception:
+        except (ValueError, TypeError, AttributeError, KeyError):
             return 0.0
 
     def get_portfolio_risk_metrics(self) -> Any:

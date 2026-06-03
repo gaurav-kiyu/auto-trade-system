@@ -127,7 +127,7 @@ def clean(paths: list[Path], force: bool = False) -> int:
                 p.unlink()
                 _log.info("Removed file: %s", p)
             removed += 1
-        except Exception as e:
+        except (OSError, PermissionError) as e:
             if force:
                 _log.warning("Failed to remove %s (forced): %s", p, e)
             else:

@@ -25,7 +25,7 @@ def _load_index_module(tag: str):
         assert spec and spec.loader
         spec.loader.exec_module(module)
         return module, argv_prev
-    except Exception:
+    except (ValueError, TypeError, OSError):
         sys.argv = argv_prev
         raise
 

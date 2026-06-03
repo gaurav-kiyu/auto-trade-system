@@ -160,7 +160,7 @@ class AuditLogger:
                 file_handler.setFormatter(formatter)
                 self._logger.addHandler(file_handler)
 
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             # If we can't rotate, log the error but don't break audit logging
             print(f"Audit log rotation failed: {e}")
 
@@ -240,7 +240,7 @@ class AuditLogger:
 
                 return event.event_id
 
-            except Exception as e:
+            except (OSError, ValueError, TypeError) as e:
                 # If audit logging fails, we don't want to break the application
                 # but we should at least notify someone
                 print(f"Audit logging failed: {e}")

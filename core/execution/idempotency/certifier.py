@@ -83,6 +83,8 @@ class IdempotencyCertifier:
     def _init_db(self) -> None:
         with self._lock:
             conn = self._get_conn()
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS certs (
                     cert_id TEXT PRIMARY KEY,

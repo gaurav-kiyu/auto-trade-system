@@ -72,7 +72,7 @@ class MLModelAdapter(MlModelPort):
         try:
             self._model = get_classifier(self.journal_path, self.config)
             self._model_loaded_at = time.time()
-        except Exception as e:
+        except (TypeError, ValueError, OSError, RuntimeError, ImportError) as e:
             # Log error and set model to None
             import logging
             logging.getLogger(__name__).error(f"Failed to load ML model: {e}")
@@ -169,7 +169,7 @@ class MLModelAdapter(MlModelPort):
             else:
                 # If it's not a dict, return empty
                 return {}
-        except Exception:
+        except (TypeError, ValueError, OSError):
             return {}
 
     def retrain_model(self, training_data: list[dict[str, Any]], labels: list[int]) -> bool:
@@ -201,7 +201,7 @@ class MLModelAdapter(MlModelPort):
             self._model = model
             self._model_loaded_at = time.time()
             return True
-        except Exception as e:
+        except (TypeError, ValueError, OSError, RuntimeError, ImportError) as e:
             import logging
             logging.getLogger(__name__).error(f"ML model retraining failed: {e}")
             return False

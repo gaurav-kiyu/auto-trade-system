@@ -47,6 +47,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from core.exceptions import DatabaseError
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB = "ml_tracker.db"
@@ -84,12 +86,11 @@ def _register_ml_tracker_migrations() -> None:
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS ix_mlpred_ts ON ml_predictions (ts)")
             conn.execute("CREATE INDEX IF NOT EXISTS ix_mlpred_trade_id ON ml_predictions (trade_id)")
-
         _ML_TRACKER_MIGRATIONS_REGISTERED = True
         _log.debug("[MLT] ML tracker schema migration v2 registered")
     except ImportError:
         _log.debug("[MLT] db_migration not available — using direct DDL")
-    except Exception as exc:
+    except (AttributeError, TypeError) as exc:
         _log.debug("[MLT] Migration registration skipped: %s", exc)
 
 
@@ -115,9 +116,9 @@ CREATE INDEX IF NOT EXISTS ix_mlpred_trade_id ON ml_predictions (trade_id);
 
 
 def _get_conn(db_path: str) -> sqlite3.Connection:
+    from core.db_utils import get_connection as _get_db_conn
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path, check_same_thread=False, timeout=10)
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn = _get_db_conn(db_path, timeout=10)
 
     # Use formal schema migration if available, otherwise fall back to DDL
     try:
@@ -131,8 +132,8 @@ def _get_conn(db_path: str) -> sqlite3.Connection:
             if s:
                 try:
                     conn.execute(s)
-                except Exception:
-                    pass
+                except (sqlite3.Error, OSError):
+                    _log.debug("[MLT] Fallback DDL statement failed: %s", s[:80])
         conn.commit()
 
     return conn
@@ -178,7 +179,7 @@ def record_prediction(
             return True
         finally:
             conn.close()
-    except Exception as exc:
+    except (DatabaseError, sqlite3.Error, OSError, ValueError) as exc:
         _log.debug("[MLT] record_prediction failed: %s", exc)
         return False
 
@@ -201,7 +202,7 @@ def update_outcome(
     if not p.is_file():
         return False
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=10)
+        conn = get_connection(p, timeout=10, row_factory=False)
         try:
             cur = conn.execute(
                 """
@@ -216,7 +217,7 @@ def update_outcome(
             return cur.rowcount > 0
         finally:
             conn.close()
-    except Exception as exc:
+    except (DatabaseError, sqlite3.Error, OSError, ValueError) as exc:
         _log.debug("[MLT] update_outcome failed: %s", exc)
         return False
 
@@ -244,7 +245,7 @@ def compute_brier_score(
     if not p.is_file():
         return None
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
+        conn = get_connection(p, timeout=5, row_factory=False)
         try:
             params: list[Any] = []
             where = "actual_outcome IS NOT NULL"
@@ -262,7 +263,7 @@ def compute_brier_score(
             return None
         total = sum((float(r[0]) - float(r[1])) ** 2 for r in rows)
         return round(total / len(rows), 6)
-    except Exception as exc:
+    except (DatabaseError, sqlite3.Error, OSError) as exc:
         _log.debug("[MLT] compute_brier_score failed: %s", exc)
         return None
 
@@ -291,7 +292,7 @@ def compute_calibration(
     if not p.is_file():
         return []
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
+        conn = get_connection(p, timeout=5, row_factory=False)
         try:
             rows = conn.execute(
                 "SELECT predicted_prob, actual_outcome FROM ml_predictions "
@@ -319,7 +320,7 @@ def compute_calibration(
                 "count":         len(in_bin),
             })
         return bins
-    except Exception as exc:
+    except (DatabaseError, sqlite3.Error, OSError) as exc:
         _log.debug("[MLT] compute_calibration failed: %s", exc)
         return []
 
@@ -343,7 +344,7 @@ def get_feature_importance_trend(
     if not p.is_file():
         return {}
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
+        conn = get_connection(p, timeout=5, row_factory=False)
         try:
             rows = conn.execute(
                 "SELECT shap_json FROM ml_predictions "
@@ -363,7 +364,7 @@ def get_feature_importance_trend(
                 vals: dict = json.loads(shap_str)
                 for feat, v in vals.items():
                     acc.setdefault(feat, []).append(abs(float(v)))
-            except Exception:
+            except (json.JSONDecodeError, TypeError, ValueError):
                 continue
 
         if not acc:
@@ -371,7 +372,7 @@ def get_feature_importance_trend(
 
         result = {feat: round(sum(vs) / len(vs), 6) for feat, vs in acc.items()}
         return dict(sorted(result.items(), key=lambda kv: kv[1], reverse=True))
-    except Exception as exc:
+    except (DatabaseError, sqlite3.Error, OSError, json.JSONDecodeError) as exc:
         _log.debug("[MLT] get_feature_importance_trend failed: %s", exc)
         return {}
 
@@ -389,8 +390,7 @@ def format_tracker_summary(*, db_path: str = _DEFAULT_DB) -> str:
         return "ML Tracker: no data (db not found)"
 
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
-        conn.row_factory = sqlite3.Row
+        conn = get_connection(p, timeout=5)
         try:
             total_row = conn.execute(
                 "SELECT COUNT(*) as n, "
@@ -421,6 +421,6 @@ def format_tracker_summary(*, db_path: str = _DEFAULT_DB) -> str:
             parts = ", ".join(f"{f}={v:.4f}" for f, v in top3)
             lines.append(f"  Top features (mean |SHAP|): {parts}")
         return "\n".join(lines)
-    except Exception as exc:
+    except (DatabaseError, sqlite3.Error, OSError, ValueError) as exc:
         _log.debug("[MLT] format_tracker_summary failed: %s", exc)
         return f"ML Tracker: summary unavailable ({exc})"

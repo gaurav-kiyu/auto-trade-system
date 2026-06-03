@@ -21,14 +21,15 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from core.db_utils import get_connection
+
 _log = logging.getLogger(__name__)
 
 
 # ── SQL helpers ────────────────────────────────────────────────────────────────
 
 def _connect(db_path: str) -> sqlite3.Connection:
-    conn = sqlite3.connect(db_path, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
+    conn = get_connection(db_path)
     return conn
 
 

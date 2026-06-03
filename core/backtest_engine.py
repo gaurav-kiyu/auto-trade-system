@@ -180,7 +180,7 @@ class BacktestEngine:
     def _coerce_float(value: Any, default: float) -> float:
         try:
             return float(value)
-        except Exception:
+        except (ValueError, TypeError):
             return float(default)
 
     def run(self, name: str, base_df: pd.DataFrame, vix: float = 0.0) -> BacktestReport:

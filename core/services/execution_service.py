@@ -136,7 +136,7 @@ class ExecutionService(ExecutionPort):
                     average_price=machine.average_price,
                     reject_reason=machine.error_message,
                 )
-            except Exception as _ex:
+            except (KeyError, AttributeError, ValueError, OSError) as _ex:
                 self._logger.error(f"Persistence callback failed for {machine.intent_id}: {_ex}")
 
         manager._persistence_callback = _persistence_callback
@@ -154,12 +154,13 @@ class ExecutionService(ExecutionPort):
 
         self._logger = logging.getLogger("execution_service")
 
+        self._shutdown_event = threading.Event()
+
         self._reconciliation_service = ReconciliationService(
             db_path=reconciliation_db_path,
             freeze_callback=self._on_reconciliation_freeze,
             enable_auto_repair=True,
         )
-
 
 
         broker_type = BrokerAckValidator.detect_broker_type(broker_port)
@@ -211,7 +212,7 @@ class ExecutionService(ExecutionPort):
                     continue
                 try:
                     submitted_dt = datetime.fromisoformat(machine.submitted_at)
-                except Exception:
+                except (ValueError, TypeError):
                     result["errors"] += 1
                     continue
                 age = (now - submitted_dt).total_seconds()
@@ -243,7 +244,7 @@ class ExecutionService(ExecutionPort):
                     result["still_pending"] += 1
                 else:
                     result["still_pending"] += 1
-            except Exception:
+            except (ValueError, OSError, AttributeError):
                 result["errors"] += 1
         return result
 
@@ -437,7 +438,7 @@ class ExecutionService(ExecutionPort):
                 # Persist idempotency result for duplicate detection
                 try:
                     self._store_idempotency_key(idempotency_key, order_result)
-                except Exception:
+                except (KeyError, ValueError, OSError):
                     self._logger.exception("Failed to store idempotency result in cache")
                 self._durable_store.update_state(
                     intent_id,
@@ -485,7 +486,7 @@ class ExecutionService(ExecutionPort):
 
             return order_result
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError, ConnectionError) as e:
             # ── Phase 5B: WAL journal failure ───────────────────────────────
             if self._wal_journal is not None:
                 self._wal_journal.fail(intent_id, str(e))
@@ -538,7 +539,7 @@ class ExecutionService(ExecutionPort):
 
             return success
 
-        except Exception as e:
+        except (ValueError, OSError, ConnectionError, AttributeError) as e:
             self._logger.error(f"Error cancelling order {order_id}: {e}", exc_info=True)
             return False
 
@@ -566,7 +567,7 @@ class ExecutionService(ExecutionPort):
                 self._logger.debug(f"No direct order status method available for order {order_id}")
                 return OrderStatus.SUBMITTED  # Conservative assumption
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError) as e:
             self._logger.error(f"Error getting order status for {order_id}: {e}")
             return OrderStatus.REJECTED
 
@@ -610,7 +611,7 @@ class ExecutionService(ExecutionPort):
             if hasattr(self.broker_port, 'verify_terminal_ok'):
                 try:
                     status_verified = self.broker_port.verify_terminal_ok(order_id)
-                except Exception:
+                except (ValueError, OSError, AttributeError):
                     status_verified = False
 
             latency_ms = int((time.time() - start_time) * 1000)
@@ -628,7 +629,7 @@ class ExecutionService(ExecutionPort):
             self._logger.debug(f"Fill verification for {order_id}: {result}")
             return result
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError, ConnectionError) as e:
             self._logger.error(f"Error verifying order fill for {order_id}: {e}", exc_info=True)
             return {
                 "ok": False,
@@ -654,7 +655,7 @@ class ExecutionService(ExecutionPort):
         # Delegate to IdempotencyManager for duplicate checks
         try:
             return bool(self.idempotency.is_duplicate(idempotency_key))
-        except Exception:
+        except (KeyError, ValueError, TypeError):
             # Fallback to local cache
             with self._lock:
                 self._cleanup_idempotency_cache()
@@ -690,7 +691,7 @@ class ExecutionService(ExecutionPort):
                 self._logger.debug(f"Execution audit recorded: {audit_trail.execution_id}")
                 return True
 
-        except Exception as e:
+        except (KeyError, ValueError, AttributeError, OSError) as e:
             self._logger.error(f"Error recording execution audit: {e}", exc_info=True)
             return False
 
@@ -744,7 +745,7 @@ class ExecutionService(ExecutionPort):
                     "persistence_healthy": persistence_healthy
                 }
 
-        except Exception as e:
+        except (KeyError, ValueError, AttributeError, OSError) as e:
             self._logger.error(f"Error in execution service health check: {e}", exc_info=True)
             return {
                 "status": "unhealthy",
@@ -802,7 +803,7 @@ class ExecutionService(ExecutionPort):
         # Prefer IdempotencyManager for storage, but keep a local fallback cache for backwards compatibility.
         try:
             self.idempotency.store_result(key, order_result)
-        except Exception:
+        except (KeyError, OSError, ValueError):
             self._logger.exception(f"Failed to persist idempotency key {key}")
 
         with self._lock:
@@ -821,7 +822,7 @@ class ExecutionService(ExecutionPort):
         # Delegate to IdempotencyManager
         try:
             return self.idempotency.get_result(key)
-        except Exception:
+        except (KeyError, ValueError, TypeError):
             with self._lock:
                 self._cleanup_idempotency_cache()
                 if key in self._idempotency_cache:
@@ -836,7 +837,7 @@ class ExecutionService(ExecutionPort):
         try:
             self.idempotency._cleanup()
             return
-        except Exception:
+        except (AttributeError, KeyError, ValueError):
             with self._lock:
                 expiry_time = now_ist() - timedelta(hours=self.config.idempotency_expiry_hours)
                 expired_keys = [
@@ -919,10 +920,9 @@ class ExecutionService(ExecutionPort):
                     self._logger.debug("state after record_submission: %s", state_machine.state)
                     state_machine.record_acknowledgment()
                     self._logger.debug("state after record_acknowledgment: %s", state_machine.state)
-                except Exception as ex:
+                except (ValueError, TypeError, AttributeError) as ex:
                     # Best effort - continue to record fill
                     self._logger.debug("exception while advancing state machine: %s", ex)
-                    pass
 
                 self._logger.debug("calling record_fill with qty=%s price=%s", order_request.lot_size, order_request.strike_price)
                 state_machine.record_fill(order_request.lot_size, order_request.strike_price)
@@ -947,7 +947,7 @@ class ExecutionService(ExecutionPort):
                 state_machine.try_transition_to(ExecutionState.FAILED)
                 return result
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError, ConnectionError) as e:
             # Execution failed - record failure
             state_machine.try_transition_to(ExecutionState.FAILED)
             return OrderResult(
@@ -1043,7 +1043,7 @@ class ExecutionService(ExecutionPort):
                     timestamp=now_ist()
                 )
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError, ConnectionError) as e:
             self._logger.error(f"Error during order execution attempt: {e}", exc_info=True)
             return OrderResult(
                 order_id="execution_error",
@@ -1079,7 +1079,7 @@ class ExecutionService(ExecutionPort):
                 if details and isinstance(details, dict):
                     charges = details.get('brokerage') or details.get('charges') or details.get('commission') or 0.0
                     return float(charges)
-        except Exception:
+        except (KeyError, ValueError, TypeError, AttributeError):
             pass
         # Fallback: estimate commission at 0.05% of notional trade value
         try:
@@ -1104,8 +1104,14 @@ class ExecutionService(ExecutionPort):
             OrderResult from the paper execution
         """
         try:
-            # Simulate network delay
-            time.sleep(self.config.paper_fill_delay_ms / 1000.0)
+            # Simulate network delay — interruptible on shutdown
+            if self._shutdown_event.wait(self.config.paper_fill_delay_ms / 1000.0):
+                return OrderResult(
+                    order_id="shutdown",
+                    status=OrderStatus.REJECTED,
+                    reject_reason="Shutdown requested during paper fill delay",
+                    timestamp=now_ist()
+                )
 
             # Generate a fake order ID
             order_id = f"paper_{int(time.time()*1000)}_{hash(order_request.symbol) % 10000}"
@@ -1160,7 +1166,7 @@ class ExecutionService(ExecutionPort):
                 timestamp=now_ist()
             )
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError, ConnectionError) as e:
             self._logger.error(f"Error in paper order execution: {e}", exc_info=True)
             return OrderResult(
                 order_id="paper_error",
@@ -1266,7 +1272,7 @@ class ExecutionService(ExecutionPort):
             trade_id = self.trade_persistence.save_trade(trade_data)
             self._logger.debug(f"Trade persisted with ID {trade_id} from order {order_result.order_id}")
 
-        except Exception as e:
+        except (ValueError, TypeError, OSError, AttributeError) as e:
             self._logger.error(f"Error persisting trade from order: {e}", exc_info=True)
 
     def _audit_trail_to_trade_data(
@@ -1310,7 +1316,7 @@ class ExecutionService(ExecutionPort):
                 "session_at_entry": None,
                 "created_at": order_res.timestamp
             }
-        except Exception as e:
+        except (ValueError, TypeError, KeyError, AttributeError) as e:
             self._logger.error(f"Error converting audit trail to trade data: {e}")
             return None
 
@@ -1334,6 +1340,11 @@ class ExecutionService(ExecutionPort):
         max_poll_interval = 5.0  # Max 5 seconds between polls
 
         while (time.time() - start_time) < timeout_seconds:
+            # Check for shutdown signal
+            if self._shutdown_event.is_set():
+                self._logger.info("Shutdown requested, aborting fill poll for %s", order_id)
+                return False
+
             try:
                 # Check if we have a way to get filled quantity
                 if hasattr(self.broker_port, 'get_filled_quantity'):
@@ -1345,12 +1356,15 @@ class ExecutionService(ExecutionPort):
                     if status in [OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED]:
                         return True
 
-                # Wait before next poll (with exponential backoff)
-                time.sleep(min(poll_interval, max_poll_interval))
+                # Wait before next poll (with exponential backoff) — interruptible on shutdown
+                if self._shutdown_event.wait(min(poll_interval, max_poll_interval)):
+                    self._logger.info("Shutdown requested during fill poll backoff for %s", order_id)
+                    return False
                 poll_interval = min(poll_interval * 1.5, max_poll_interval)  # Exponential backoff
 
-            except Exception as e:
+            except (ValueError, OSError, AttributeError) as e:
                 self._logger.debug(f"Error polling for fill status: {e}")
-                time.sleep(poll_interval)
+                if self._shutdown_event.wait(poll_interval):
+                    return False
 
         return False  # Timeout reached

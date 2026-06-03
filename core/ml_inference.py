@@ -8,7 +8,7 @@ import numpy as np
 # Lazy import for ML libraries to ensure the bot starts even if ML deps are missing
 try:
     import joblib
-    import lightgbm as lgb
+
     ML_AVAILABLE = True
 except ImportError:
     ML_AVAILABLE = False

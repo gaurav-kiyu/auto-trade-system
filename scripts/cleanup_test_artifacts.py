@@ -53,7 +53,7 @@ def cleanup_pycache(root_dir: str) -> int:
         try:
             shutil.rmtree(pycache)
             removed += 1
-        except Exception:
+        except (OSError, PermissionError):
             pass
 
     return removed

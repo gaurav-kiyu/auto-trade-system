@@ -58,7 +58,7 @@ class EmailAlerter:
             server.quit()
             _log.info(f"Email alert sent to {len(self.recipients)} recipient(s)")
             return True
-        except Exception as e:
+        except (smtplib.SMTPException, OSError, ConnectionError, TimeoutError, ValueError) as e:
             _log.error(f"Failed to send email alert: {e}")
             return False
 
@@ -111,7 +111,7 @@ class WebhookAlerter:
             response.raise_for_status()
             _log.info("Webhook alert sent successfully")
             return True
-        except Exception as e:
+        except (requests.RequestException, OSError, ConnectionError, TimeoutError, ValueError) as e:
             _log.error(f"Failed to send webhook alert: {e}")
             return False
 
@@ -144,7 +144,7 @@ class MultiChannelAlerter:
             # In a real system, you might want different formatting per channel
             tg_success = self.telegram.send_raw(body, critical=True)
             results["telegram"] = tg_success
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError, ValueError, TypeError) as e:
             _log.error(f"Failed to send Telegram alert: {e}")
             results["telegram"] = False
 
@@ -153,7 +153,7 @@ class MultiChannelAlerter:
             try:
                 email_success = self.email.send_alert(subject, body)
                 results["email"] = email_success
-            except Exception as e:
+            except (smtplib.SMTPException, OSError, ConnectionError, TimeoutError) as e:
                 _log.error(f"Failed to send Email alert: {e}")
                 results["email"] = False
 
@@ -161,7 +161,7 @@ class MultiChannelAlerter:
             try:
                 webhook_success = self.webhook.send_alert(subject, body)
                 results["webhook"] = webhook_success
-            except Exception as e:
+            except (requests.RequestException, OSError, ConnectionError, TimeoutError) as e:
                 _log.error(f"Failed to send Webhook alert: {e}")
                 results["webhook"] = False
 

@@ -38,8 +38,7 @@ def _run_case(name: str, fn: Callable[[], str]) -> CheckResult:
     try:
         detail = fn() or ""
         duration_ms = int((_now_ist() - start).total_seconds() * 1000)
-        return CheckResult(name=name, ok=True, detail=str(detail), duration_ms=duration_ms)
-    except Exception as exc:
+        return CheckResult(name=name, ok=True, detail=str(detail), duration_ms=duration_ms)        except (ValueError, TypeError, KeyError, IndexError, AttributeError, ImportError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, AssertionError) as exc:
         duration_ms = int((_now_ist() - start).total_seconds() * 1000)
         return CheckResult(name=name, ok=False, detail=str(exc), duration_ms=duration_ms)
 
@@ -52,7 +51,7 @@ def _best_effort_delete(path: Path, *, is_dir: bool = False) -> None:
             else:
                 path.unlink(missing_ok=True)
             return
-        except Exception:
+        except (OSError, PermissionError):
             pass
 
 
@@ -170,7 +169,7 @@ def _load_index_module(tag: str):
         assert spec and spec.loader
         spec.loader.exec_module(module)
         return module, argv_prev
-    except Exception:
+    except (ImportError, AttributeError, TypeError, ValueError, OSError, SyntaxError):
         sys.argv = argv_prev
         raise
 
@@ -497,7 +496,7 @@ def _check_backtest_runner_script_regression() -> str:
     finally:
         try:
             report_path.unlink(missing_ok=True)
-        except Exception:
+        except (OSError, PermissionError):
             pass
 
 
@@ -537,7 +536,7 @@ def _check_walkforward_runner_regression() -> str:
     finally:
         try:
             report_path.unlink(missing_ok=True)
-        except Exception:
+        except (OSError, PermissionError):
             pass
 
 

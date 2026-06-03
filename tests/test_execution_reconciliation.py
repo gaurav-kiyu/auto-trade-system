@@ -341,10 +341,16 @@ class TestRestartRecovery:
             symbol="NIFTY", direction="CALL", quantity=50,
             status="SUBMITTED", broker_order_id="broker_db",
         )
-        # Corrupt the DB by closing then removing the WAL
+        # Corrupt the DB — attempt WAL/SHM removal but ignore Windows locking
         import os as _os
-        _os.remove(temp_db + "-wal") if _os.path.exists(temp_db + "-wal") else None
-        _os.remove(temp_db + "-shm") if _os.path.exists(temp_db + "-shm") else None
+        try:
+            _os.remove(temp_db + "-wal") if _os.path.exists(temp_db + "-wal") else None
+        except PermissionError:
+            pass  # WAL file still locked on Windows
+        try:
+            _os.remove(temp_db + "-shm") if _os.path.exists(temp_db + "-shm") else None
+        except PermissionError:
+            pass
         # Write garbage to simulate corruption
         with open(temp_db, "wb") as f:
             f.write(b"GARBAGE")

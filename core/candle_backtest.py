@@ -40,7 +40,7 @@ from core.pure_index_signal import (
 def _coerce_float(x: Any, default: float = 0.0) -> float:
     try:
         return float(x)
-    except Exception:
+    except (ValueError, TypeError):
         return default
 
 
@@ -93,7 +93,7 @@ def _historical_oi(
         else:
             smart = "NEUTRAL"
         return sup, res, pcr, smart
-    except Exception:
+    except (ImportError, ValueError, TypeError, AttributeError, OSError, sqlite3.Error):
         return None
 
 
@@ -323,7 +323,7 @@ class CandleBacktestEngine:
                 try:
                     _bar_ts = base_1m.index[idx]
                     _bar_epoch = float(_bar_ts.timestamp()) if hasattr(_bar_ts, "timestamp") else float(_bar_ts)
-                except Exception:
+                except (ValueError, TypeError, AttributeError):
                     _bar_epoch = 0.0
                 _hist = _historical_oi(self._name, price, _bar_epoch, _oi_db)
             if _hist is not None:

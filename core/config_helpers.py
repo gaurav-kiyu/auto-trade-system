@@ -13,7 +13,7 @@ def decode_if_b64(s: Any) -> Any:
     if s.startswith("b64:"):
         try:
             return base64.b64decode(s[4:]).decode()
-        except Exception:
+        except (ValueError, TypeError):
             return s
     return s
 

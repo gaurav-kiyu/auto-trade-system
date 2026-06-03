@@ -133,7 +133,7 @@ def import_from_csv(
 
     try:
         text = path.read_text(encoding="utf-8-sig")  # handle BOM
-    except Exception as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         result.errors.append(f"Cannot read file: {exc}")
         return result
 
@@ -165,7 +165,7 @@ def _import_from_csv_text(
     try:
         reader = csv.DictReader(io.StringIO(csv_text))
         rows = list(reader)
-    except Exception as exc:
+    except (csv.Error, StopIteration, OSError) as exc:
         r.errors.append(f"CSV parse error: {exc}")
         return r
 
@@ -232,7 +232,7 @@ def _import_from_csv_text(
             r.accepted += 1
             r.signal_ids.append(sig.signal_id)
             _log.info("[IMPORTER] Row %d: submitted %s", i, sig.signal_id)
-        except Exception as exc:
+        except (ValueError, TypeError, AttributeError, KeyError, OSError) as exc:
             r.rejected += 1
             r.errors.append(f"Row {i}: submit failed — {exc}")
 
@@ -279,7 +279,7 @@ def import_from_text(
             )
             result.accepted += 1
             result.signal_ids.append(sig.signal_id)
-        except Exception as exc:
+        except (ValueError, TypeError, AttributeError, KeyError, OSError) as exc:
             result.rejected += 1
             result.errors.append(f"Line {i}: submit failed — {exc}")
 
@@ -317,7 +317,7 @@ def watch_directory(
                 for err in result.errors:
                     _log.warning("[IMPORTER] %s", err)
                 f.rename(f.with_suffix(".done"))
-        except Exception as exc:
+        except (OSError, ValueError, TypeError) as exc:
             _log.warning("[IMPORTER] Watch error: %s", exc)
         if stop_event:
             stop_event.wait(timeout=poll_secs)
@@ -362,7 +362,7 @@ Examples:
     try:
         from core.manual_signal import ManualSignalQueue
         queue = ManualSignalQueue({"manual_signal_db_path": args.db})
-    except Exception as exc:
+    except (ImportError, OSError, ValueError, TypeError) as exc:
         print(f"❌ Cannot open signal queue: {exc}")
         sys.exit(1)
 

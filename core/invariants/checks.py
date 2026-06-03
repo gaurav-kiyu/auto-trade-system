@@ -11,6 +11,7 @@ import sys
 import time
 
 from core.invariants.engine import InvariantSeverity, register_invariant
+from core.exceptions import GovernanceError
 
 _log = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ def _register_broker_positions_match():
             return True, f"Positions OK (consecutive losses={losses}, uptime={_uptime_seconds():.0f}s)"
         except ImportError:
             return True, "No reconciler configured (safety_state not available)"
-        except Exception as e:
+        except (GovernanceError, ImportError, AttributeError, RuntimeError) as e:
             return False, f"Check error: {e}"
 
     register_invariant(
@@ -86,7 +87,7 @@ def _register_single_risk_engine():
             return True, "Single authoritative risk engine loaded"
         except ImportError:
             return True, "Risk module not loaded — check skipped"
-        except Exception as e:
+        except (GovernanceError, AttributeError, RuntimeError) as e:
             return False, f"Check error: {e}"
 
     register_invariant(
@@ -119,7 +120,7 @@ def _register_no_stale_data():
             return True, f"Data OK (uptime={uptime:.0f}s, pnl={pnl:.0f})"
         except ImportError:
             return True, "Staleness check not available"
-        except Exception as e:
+        except (GovernanceError, ImportError, AttributeError, RuntimeError) as e:
             return True, f"Staleness check error (non-fatal): {e}"
 
     register_invariant(
@@ -135,12 +136,12 @@ def _register_mode_gate():
 
     def _check():
         try:
-            from core.operating_mode import OperatingModeManager
+
 
             return True, "Mode gate active"
         except ImportError:
             return True, "Mode module not loaded"
-        except Exception as e:
+        except (GovernanceError, ImportError, AttributeError, RuntimeError) as e:
             return True, f"Mode check error (non-fatal): {e}"
 
     register_invariant(
@@ -162,7 +163,7 @@ def _register_no_duplicate_submissions():
             return True, f"No duplicates (hard_halted={halted})"
         except ImportError:
             return True, "Duplicate checker not available"
-        except Exception as e:
+        except (GovernanceError, ImportError, AttributeError, RuntimeError) as e:
             return True, f"Duplicate check error (non-fatal): {e}"
 
     register_invariant(
@@ -187,7 +188,7 @@ def _register_hard_halt_safety():
             return True, "Hard halt mechanism operational (no active halt)"
         except ImportError:
             return True, "safety_state not available"
-        except Exception as e:
+        except (GovernanceError, ImportError, AttributeError, RuntimeError) as e:
             return False, f"Check error: {e}"
 
     register_invariant(
@@ -216,7 +217,7 @@ def _register_consecutive_loss_safety():
             return True, f"Consecutive losses: {losses}/{MAX_CONSECUTIVE_LOSSES}"
         except ImportError:
             return True, "safety_state not available"
-        except Exception as e:
+        except (GovernanceError, ImportError, AttributeError, RuntimeError) as e:
             return True, f"Check error (non-fatal): {e}"
 
     register_invariant(
@@ -242,7 +243,7 @@ def _register_intraday_pnl_monitor():
             return True, f"P&L={pnl:.0f} limit={limit:.0f}" if limit != -float("inf") else "No intraday limit configured"
         except ImportError:
             return True, "safety_state not available"
-        except Exception as e:
+        except (GovernanceError, ImportError, AttributeError, RuntimeError) as e:
             return True, f"Check error (non-fatal): {e}"
 
     register_invariant(

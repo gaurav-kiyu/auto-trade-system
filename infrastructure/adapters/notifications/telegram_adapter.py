@@ -138,7 +138,7 @@ class TelegramNotificationAdapter(NotificationPort):
                     error_message="Failed to send Telegram notification"
                 )
 
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError, ValueError, TypeError) as e:
             logger.error(f"Error sending Telegram notification: {e}")
             return NotificationResult(
                 notification_id=f"tg_error_{now_ist().timestamp()}",

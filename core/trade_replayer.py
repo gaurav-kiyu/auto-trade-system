@@ -34,6 +34,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core.db_utils import get_connection
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB           = "trades.db"
@@ -90,8 +92,7 @@ def load_trade(trade_id: int, db_path: str = _DEFAULT_DB) -> dict | None:
     if not p.is_file():
         return None
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
-        conn.row_factory = sqlite3.Row
+        conn = get_connection(p, timeout=5)
         try:
             row = conn.execute(
                 "SELECT * FROM trades WHERE id = ?", (trade_id,)
@@ -117,8 +118,7 @@ def list_trades(
     if not p.is_file():
         return []
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
-        conn.row_factory = sqlite3.Row
+        conn = get_connection(p, timeout=5)
         try:
             where  = ["net_pnl IS NOT NULL"]
             params: list[Any] = []

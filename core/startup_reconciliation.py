@@ -98,7 +98,7 @@ class StartupReconciler:
                 if isinstance(health, dict):
                     return health.get("status") == "healthy"
             return True
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError, OSError, ConnectionError) as e:
             log.error(f"Broker reachability check failed: {e}")
             return False
 
@@ -108,7 +108,7 @@ class StartupReconciler:
             if hasattr(self._broker_port, "_ensure_token_fresh"):
                 return self._broker_port._ensure_token_fresh()
             return True
-        except Exception as e:
+        except (AttributeError, TypeError, OSError) as e:
             log.error(f"Auth validation failed: {e}")
             return False
 
@@ -137,11 +137,11 @@ class StartupReconciler:
                             "FILLED",
                             filled_quantity=record.quantity,
                         )
-                except Exception as e:
+                except (ValueError, TypeError, AttributeError, KeyError, OSError) as e:
                     log.warning(f"Failed to reconcile {record.intent_id}: {e}")
 
             return True
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, KeyError, OSError) as e:
             log.error(f"Order reconciliation failed: {e}")
             return False
 
@@ -153,7 +153,7 @@ class StartupReconciler:
             positions = self._broker_port.get_positions()
             log.info(f"Reconciled {len(positions)} positions")
             return True
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError, OSError) as e:
             log.warning(f"Position reconciliation failed: {e}")
             return True
 

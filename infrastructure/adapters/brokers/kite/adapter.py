@@ -170,7 +170,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
             self._connected = False
             self._log_fn("[KITE] connect() returned None profile")
             return False
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError, TypeError) as exc:
             self._connected = False
             self._log_fn(f"[KITE] connect() failed: {_classify_kite_error(exc)} — {exc}")
             return False
@@ -204,6 +204,9 @@ class KiteBrokerAdapter(LegacyBrokerPort):
             try:
                 self._rate_limit()
                 return func(*args, **kwargs)
+            # Controlled supervisor boundary: catch Exception to handle all SDK error types
+            # (TokenException, OrderException, NetworkException, etc.) and retry.
+            # Re-raises as RuntimeError after exhausting retries — NOT a silent failure.
             except Exception as exc:
                 last_exc = exc
                 category = _classify_kite_error(exc)
@@ -293,7 +296,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
             return order_id
         except RuntimeError:
             raise
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as exc:
             raise RuntimeError(
                 f"place_order failed for {symbol}: {_classify_kite_error(exc)} — {exc}"
             ) from exc
@@ -309,7 +312,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
                 order_id=order_id,
             )
             return True
-        except Exception:
+        except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError, TypeError):
             return False
 
     def modify_order(
@@ -332,7 +335,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
                 trigger_price=trigger_price or 0.0,
             )
             return True
-        except Exception:
+        except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError, TypeError):
             return False
 
     def get_order_status(self, order_id: str) -> str:
@@ -345,7 +348,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
                 if o.get("order_id") == order_id:
                     return str(o.get("status", "UNKNOWN"))
             return "UNKNOWN"
-        except Exception:
+        except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError, TypeError, KeyError):
             return "ERROR"
 
     def get_positions(self) -> list[Position]:
@@ -365,7 +368,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
                         ts = datetime.fromtimestamp(
                             net["exchange_update_time"] / 1000.0
                         )
-                    except Exception:
+                    except (TypeError, ValueError, KeyError, OSError):
                         ts = None
                 positions.append(
                     Position(
@@ -379,7 +382,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
                     )
                 )
             return positions
-        except Exception:
+        except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError, TypeError, KeyError):
             return []
 
     def get_quote(self, symbol: str) -> Quote:
@@ -404,7 +407,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
             )
         except RuntimeError:
             raise
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as exc:
             raise RuntimeError(
                 f"get_quote failed for {symbol}: {exc}"
             ) from exc
@@ -464,7 +467,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
             return result
         except RuntimeError:
             raise
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as exc:
             raise RuntimeError(
                 f"get_historical_data failed for {symbol}: {exc}"
             ) from exc
@@ -495,7 +498,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
                 "latency_ms": round(latency, 1),
                 "error": "Profile returned None",
             }
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError, TypeError) as exc:
             return {
                 "status": "unhealthy",
                 "connected": False,

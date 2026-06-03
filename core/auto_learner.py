@@ -135,7 +135,7 @@ def _atomic_write_state(file_path: Path, content: str) -> None:
         tmp.write(content)
         tmp.close()  # Must close before rename on Windows (releases file lock)
         tmp_path.replace(file_path)
-    except Exception as e:
+    except OSError as e:
         tmp_path.unlink(missing_ok=True)
         raise OSError(f"Atomic write to {file_path} failed: {e}")
 
@@ -203,7 +203,7 @@ class AutoLearner:
                     self._symbol_states = dict(saved.get("symbol_states") or {})
                     self._regime_matrix = dict(saved.get("regime_matrix") or {})
                     self._log(f"[LEARNER] Loaded state from {state_path}")
-                except Exception as exc:
+                except (OSError, json.JSONDecodeError, ValueError, TypeError) as exc:
                     self._log(f"[LEARNER] State load failed ({exc}); starting fresh")
             elif existing_state:
                 self._global_state.update({
@@ -228,7 +228,7 @@ class AutoLearner:
             try:
                 content = json.dumps(out, indent=2)
                 _atomic_write_state(state_path, content)
-            except Exception as exc:
+            except (OSError, json.JSONDecodeError) as exc:
                 self._log(f"[LEARNER] State save failed: {exc}")
 
     def export_global_state(self) -> dict[str, Any]:
@@ -261,7 +261,7 @@ class AutoLearner:
             for line in lines:
                 try:
                     entries.append(json.loads(line))
-                except Exception:
+                except (json.JSONDecodeError, ValueError, TypeError):
                     pass
             skips = sum(1 for e in entries if e.get("verdict") == "SKIP")
             total = max(1, len(entries))
@@ -270,7 +270,7 @@ class AutoLearner:
                 "count": len(entries),
                 "avg_delta": sum(int(e.get("score_delta") or 0) for e in entries) / total,
             }
-        except Exception:
+        except (OSError, json.JSONDecodeError, AttributeError):
             pass
         self._ai_stats_ts = now
 

@@ -1790,7 +1790,7 @@ class TestErrorHandlers:
             c = TestClient(dashboard.app)
             try:
                 c.get("/api/trigger-500", headers={"accept": "application/json"})
-            except Exception:
+            except (ValueError, TypeError, KeyError, IndexError):
                 pass
         finally:
             logger.removeHandler(handler)
@@ -1880,7 +1880,7 @@ class TestSessionCleanup:
         monkeypatch.setattr(db._auth, "purge_expired_sessions", broken_purge)
         try:
             db._auth.purge_expired_sessions()
-        except Exception:
+        except (ValueError, TypeError, KeyError, IndexError):
             pass
         assert called[0]
 

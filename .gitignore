@@ -7,6 +7,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
+.eggs/
+*.so
 .tox/
 
 # ── Editors / OS ──────────────────────────────────────────────────────────────
@@ -32,6 +34,7 @@ nul.*
 .env
 .env.*
 !.env.example
+.env.local
 config.json
 config.local.json
 config.*.json
@@ -194,3 +197,6 @@ config_audit.jsonl
 
 # Old/backup files
 *.old
+
+# Font files - should be loaded from CDN
+static/webfonts/

@@ -29,7 +29,7 @@ def calc_adx(df: Any, period: int = 14) -> float:
         if pd.isna(val) or val < 0:
             return 0.0
         return round(val, 2)
-    except Exception:
+    except (KeyError, ValueError, TypeError, IndexError):
         return 0.0
 
 

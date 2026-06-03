@@ -24,6 +24,11 @@ from core.ports.persistence.persistence_port import TradePersistencePort
 from core.ports.risk.risk_port import PortfolioRiskMetrics, PositionSizingInput, RiskDecision, RiskEvaluation, RiskPort
 from core.risk.limits.manager import LimitConfig, RiskLimitsManager
 from core.risk.sizing.manager import PositionSizingManager
+from core.options_greeks_engine import (
+    OptionType,
+    OptionsGreeksEngine,
+    PositionGreeksInput,
+)
 from core.safety_state import (
     get_consecutive_losses,
     reset_consecutive_losses,
@@ -110,6 +115,9 @@ class RiskService(RiskPort):
         # Thread safety
         self._lock = threading.RLock()
 
+        # Greeks engine for options risk
+        self._greeks_engine: OptionsGreeksEngine | None = None
+
         # Loss tracking — single source of truth in safety_state
         self._last_loss_reset = now_ist()
         self._recent_losses: list[datetime] = []
@@ -172,6 +180,7 @@ class RiskService(RiskPort):
                     self._check_daily_loss_limit,
                     self._check_consecutive_losses,
                     self._check_portfolio_limits,
+                    self._check_greeks_limits,     # Options Greeks Risk Engine
                     self._check_margin_requirements,
                     self._check_trade_quality,
                     self._check_position_sizing_limits
@@ -204,7 +213,7 @@ class RiskService(RiskPort):
                     risk_score=self._calculate_risk_score(symbol, signal_data, portfolio_metrics)
                 )
 
-            except Exception as e:
+            except (KeyError, TypeError, ValueError, AttributeError) as e:
                 self._logger.error(f"Error in risk evaluation for {symbol}: {e}")
                 return RiskEvaluation(
                     decision=RiskDecision.DENIED,
@@ -258,7 +267,7 @@ class RiskService(RiskPort):
 
             return max(0, final_lots)
 
-        except Exception as e:
+        except (ZeroDivisionError, TypeError, ValueError, AttributeError) as e:
             self._logger.error(f"Error calculating position size: {e}")
             return 0
 
@@ -288,7 +297,7 @@ class RiskService(RiskPort):
 
             return margin_required <= margin_available
 
-        except Exception as e:
+        except (TypeError, ValueError, AttributeError, OSError) as e:
             self._logger.error(f"Error validating margin requirements: {e}")
             return False  # Fail safe
 
@@ -343,7 +352,7 @@ class RiskService(RiskPort):
                     symbol_exposure=symbol_exposure
                 )
 
-            except Exception as e:
+            except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
                 self._logger.error(f"Error getting portfolio risk metrics: {e}", exc_info=True)
                 # Fail-closed: return metrics that will block trading
                 return PortfolioRiskMetrics(
@@ -367,7 +376,11 @@ class RiskService(RiskPort):
         symbol: str,
         quantity: int,
         entry_price: float,
-        timestamp: datetime
+        timestamp: datetime,
+        option_type: str = "CE",
+        strike: float | None = None,
+        iv: float | None = None,
+        tte_days: float | None = None,
     ) -> None:
         """
         Update risk tracking with a new or modified position.
@@ -377,6 +390,10 @@ class RiskService(RiskPort):
             quantity: Position size (positive for long, negative for short)
             entry_price: Entry price per share/lot
             timestamp: Time of the position update
+            option_type: Option type ("CE" or "PE", default "CE")
+            strike: Strike price (defaults to entry_price if None)
+            iv: Implied volatility (defaults to 0.15 if None)
+            tte_days: Days to expiry (defaults to 3.0 if None)
         """
         with self._lock:
             try:
@@ -386,18 +403,22 @@ class RiskService(RiskPort):
                     # Remove position if quantity is zero
                     self._positions.pop(symbol, None)
                 else:
-                    # Update or add position
+                    # Update or add position with Greeks-relevant metadata
                     self._positions[symbol] = {
                         'quantity': quantity,
                         'entry_price': entry_price,
                         'market_value': market_value,
                         'timestamp': timestamp,
-                        'symbol': symbol
+                        'symbol': symbol,
+                        'option_type': option_type.upper() if option_type in ("CE", "PE") else "CE",
+                        'strike': float(strike) if strike is not None else float(entry_price),
+                        'iv': float(iv) if iv is not None else 0.15,
+                        'tte_days': float(tte_days) if tte_days is not None else 3.0,
                     }
 
                 self._logger.debug(f"Updated position for {symbol}: {quantity} lots @ {entry_price}")
 
-            except Exception as e:
+            except (KeyError, TypeError, ValueError, AttributeError) as e:
                 self._logger.error(f"Error updating position for {symbol}: {e}")
 
     def remove_position(self, symbol: str) -> None:
@@ -457,7 +478,7 @@ class RiskService(RiskPort):
                     "live_vix": live_vix
                 }
             }
-        except Exception as e:
+        except (KeyError, TypeError, ValueError, AttributeError) as e:
             self._logger.error(f"Risk service health check failed: {e}")
             return {
                 "status": "unhealthy",
@@ -653,11 +674,183 @@ class RiskService(RiskPort):
             risk_score=0.0
         )
 
+    def _check_greeks_limits(
+        self,
+        symbol: str,
+        signal_data: dict[str, Any],
+        portfolio_metrics: PortfolioRiskMetrics
+    ) -> RiskEvaluation:
+        """
+        Check Options Greeks limits before allowing a trade.
+
+        Uses OptionsGreeksEngine to validate delta/gamma/theta/vega exposure
+        against configured limits. Skips gracefully if signal_data lacks
+        required Greeks parameters.
+        """
+        try:
+            # Lazy-init Greeks engine
+            if self._greeks_engine is None:
+                self._greeks_engine = OptionsGreeksEngine()
+
+            direction = signal_data.get("direction", "").upper()
+            entry_price = _safe_num(signal_data.get("price", 0), 0)
+
+            if not direction or entry_price <= 0:
+                return RiskEvaluation(
+                    decision=RiskDecision.ALLOWED,
+                    reason="Greeks check skipped — missing direction or price",
+                    risk_score=0.0
+                )
+
+            # Determine option type from direction
+            if direction in ("CE", "CALL", "LONG"):
+                option_type = OptionType.CE
+            elif direction in ("PE", "PUT", "SHORT"):
+                option_type = OptionType.PE
+            else:
+                return RiskEvaluation(
+                    decision=RiskDecision.ALLOWED,
+                    reason="Greeks check skipped — unknown option type",
+                    risk_score=0.0
+                )
+
+            # Determine trade direction (LONG = buying, SHORT = selling/writing)
+            trade_direction = "LONG"
+            if direction in ("SHORT", "SELL"):
+                trade_direction = "SHORT"
+
+            # Build inputs for Greeks computation
+            tte_days = _safe_num(signal_data.get("tte_days"), None)
+            iv = _safe_num(signal_data.get("iv"), None)
+            strike = _safe_num(signal_data.get("strike"), None)
+            quantity_lots = _safe_num(signal_data.get("quantity"), 1)
+            quantity_lots = max(1, int(quantity_lots))
+
+            # Use defaults for missing params (Greeks engine handles edge cases)
+            tte_days = tte_days if tte_days is not None else 3.0
+            iv = iv if iv is not None else 0.15
+            strike = strike if strike is not None else entry_price
+
+            proposed = PositionGreeksInput(
+                symbol=symbol,
+                option_type=option_type,
+                direction=trade_direction,
+                spot=entry_price,
+                strike=strike,
+                tte_days=tte_days,
+                iv=iv,
+                quantity_lots=quantity_lots,
+            )
+
+            # Build existing positions from current portfolio with stored attributes
+            existing = []
+            for sym, pos in self._positions.items():
+                pos_dir = "LONG" if pos.get("quantity", 0) >= 0 else "SHORT"
+                qty = abs(_safe_num(pos.get("quantity", 0), 0))
+                stored_ot = str(pos.get("option_type", "CE")).upper()
+                pos_ot = OptionType.CE if stored_ot == "CE" else OptionType.PE
+                existing.append(PositionGreeksInput(
+                    symbol=sym,
+                    option_type=pos_ot,
+                    direction=pos_dir,
+                    spot=_safe_num(pos.get("entry_price", entry_price), entry_price),
+                    strike=_safe_num(pos.get("strike"), entry_price),
+                    tte_days=_safe_num(pos.get("tte_days"), tte_days),
+                    iv=_safe_num(pos.get("iv"), iv),
+                    quantity_lots=max(1, int(qty)),
+                ))
+
+            # Run Greeks check
+            result = self._greeks_engine.check_pre_trade_greeks(proposed, existing)
+
+            if result.status.value == "BLOCK":
+                reasons = "; ".join(result.reasons)
+                return RiskEvaluation(
+                    decision=RiskDecision.DENIED,
+                    reason=f"Greeks limit blocked: {reasons}",
+                    risk_score=0.9
+                )
+
+            if result.status.value == "WARN":
+                reasons = "; ".join(result.reasons)
+                return RiskEvaluation(
+                    decision=RiskDecision.ALLOWED,
+                    reason=f"Greeks limit warning: {reasons}",
+                    risk_score=0.4
+                )
+
+            return RiskEvaluation(
+                decision=RiskDecision.ALLOWED,
+                reason="Greeks limits check passed",
+                risk_score=0.0
+            )
+
+        except (ValueError, TypeError, AttributeError, KeyError, ArithmeticError) as exc:
+            self._logger.warning(f"Greeks check failed for {symbol}: {exc}")
+            return RiskEvaluation(
+                decision=RiskDecision.ALLOWED,
+                reason=f"Greeks check errored (non-blocking): {exc}",
+                risk_score=0.2
+            )
+
+    # ── Trading Policy Gates (consolidated from ProductionMandateEnforcer v2.53) ──
+
+    def is_in_trading_window(self) -> bool:
+        """NSE trading windows: 9:20-11:30 and 13:00-14:45 IST."""
+        now = now_ist()
+        morning_start = 9 * 60 + 20
+        morning_end = 11 * 60 + 30
+        afternoon_start = 13 * 60
+        afternoon_end = 14 * 60 + 45
+        current = now.hour * 60 + now.minute
+        return (morning_start <= current <= morning_end) or (afternoon_start <= current <= afternoon_end)
+
+    def should_skip_first_20_min(self) -> bool:
+        """Skip first 20 minutes (9:20-9:40) to let market settle."""
+        now = now_ist()
+        current_mins = now.hour * 60 + now.minute
+        market_open_mins = 9 * 60 + 20
+        return current_mins < market_open_mins + 20
+
+    def should_skip_last_45_min(self) -> bool:
+        """Skip last 45 minutes (14:35-15:20) to avoid EOD volatility."""
+        now = now_ist()
+        current_mins = now.hour * 60 + now.minute
+        market_close_mins = 15 * 60 + 20
+        return current_mins > market_close_mins - 45
+
+    def get_min_score_for_regime(self, regime: str) -> int:
+        """Minimum signal score required by regime.
+
+        Trending regimes need 68+, Sideways needs 73+, Choppy needs 78+.
+        """
+        reg = (regime or "").upper()
+        if reg in ["TRENDING", "BULLISH"]:
+            return 68
+        elif reg in ["SIDEWAYS", "NEUTRAL"]:
+            return 73
+        elif reg in ["RANGE", "CHOPPY"]:
+            return 78
+        return 73
+
+    def should_block_false_signal(self, score: int, iv_rank: float) -> bool:
+        """Block when high score coincides with elevated IV (false signal pattern)."""
+        return score >= 75 and iv_rank > 26
+
+    def get_max_trades_per_day(self, vix: float | None = None, consecutive_losses: int = 0) -> int:
+        """Maximum trades per day, reduced during high VIX or loss streaks."""
+        v = vix if vix is not None else self._get_live_vix()
+        if v > 28 or consecutive_losses >= 2:
+            return 1
+        elif v > 20:
+            return 2
+        return 4
+
     def get_live_vix(self) -> float:
-        """Get live India VIX for real-time risk adjustment (Phase 2)."""
+        """Get live India VIX for real-time risk adjustment."""
         try:
             return self._get_live_vix()
-        except Exception:
+        except (TypeError, ValueError, KeyError, AttributeError, OSError):
             return 20.0  # Default fallback
 
     def _lazy_vix_getter(self) -> float:
@@ -666,7 +859,7 @@ class RiskService(RiskPort):
             import index_app.index_trader as m
             if m.DATA_ENGINE is not None:
                 return m.DATA_ENGINE.get_india_vix()
-        except Exception as _ex:
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError, OSError) as _ex:
             self._logger.debug(f"Could not fetch live VIX: {_ex}")
         return 20.0
 
@@ -722,7 +915,7 @@ class RiskService(RiskPort):
                 scale_factor = max_risk_amount / current_risk
                 return max(1, int(current_lots * scale_factor))
             return current_lots
-        except Exception:
+        except (TypeError, ValueError, ZeroDivisionError, AttributeError):
             return current_lots
 
     def _calculate_max_lots_by_capital(
@@ -743,7 +936,7 @@ class RiskService(RiskPort):
 
             max_lots = int(max_risk_amount / (price_diff * sizing_input.lot_size * sizing_input.risk_per_trade))
             return max(0, max_lots)
-        except Exception:
+        except (TypeError, ValueError, ZeroDivisionError, AttributeError):
             return 0
 
     def _estimate_portfolio_risk(self) -> float:
@@ -756,7 +949,7 @@ class RiskService(RiskPort):
                 return 0.0
             # Rough estimate: used capital / total capital
             return metrics.used_capital / metrics.total_capital
-        except Exception:
+        except (TypeError, ValueError, ZeroDivisionError, AttributeError):
             return 0.0
 
     def _calculate_risk_score(
@@ -792,7 +985,7 @@ class RiskService(RiskPort):
             score += strength_risk * 0.3
 
             return min(1.0, max(0.0, score))
-        except Exception:
+        except (TypeError, ValueError, ZeroDivisionError, AttributeError, KeyError):
             return 0.5  # Medium risk if calculation fails
 
     def _get_sector_for_symbol(self, symbol: str) -> str:

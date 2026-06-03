@@ -127,7 +127,7 @@ def check_file(path: Path) -> list[Violation]:
     violations = []
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except Exception:
+    except (OSError, UnicodeDecodeError):
         return violations
 
     rel = _relative(path)

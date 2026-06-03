@@ -65,7 +65,7 @@ class StrategyOrchestrator(StrategyPort):
                 try:
                     from core.signal_approval_workflow import build_workflow
                     self._approval_workflow = build_workflow(config)
-                except Exception:
+                except (ImportError, ValueError, TypeError):
                     self._approval_workflow = None
 
         _log.info("StrategyOrchestrator initialized (canonical strategy path)")
@@ -89,7 +89,7 @@ class StrategyOrchestrator(StrategyPort):
                         "confidence": float(getattr(signal_intent, "confidence", 0.0)),
                         "reason": getattr(signal_intent, "rationale", ""),
                     }
-            except Exception as e:
+            except (ImportError, ValueError, TypeError, AttributeError) as e:
                 _log.error("Signal orchestrator evaluation failed: %s", e)
         return None
 
@@ -129,7 +129,7 @@ class StrategyOrchestrator(StrategyPort):
                     approval_reason=sig_decision.reason,
                     queue_signal_id=sig_decision.queue_signal_id,
                 )
-            except Exception as e:
+            except (ImportError, ValueError, TypeError, AttributeError) as e:
                 _log.error("Approval workflow routing failed: %s", e)
                 return StrategyDecision(
                     action="HOLD",

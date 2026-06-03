@@ -87,7 +87,7 @@ def _volatility(closes: list[float]) -> float:
         avg = sum(returns) / n
         var = sum((r - avg) ** 2 for r in returns) / max(n - 1, 1)
         return round(math.sqrt(var) * math.sqrt(_TRADING_DAYS_PER_YEAR) * 100, 2)
-    except Exception:
+    except (ValueError, ZeroDivisionError, OverflowError):
         return 0.0
 
 
@@ -101,7 +101,7 @@ def _load_cache() -> dict:
     try:
         if _CACHE_FILE.exists():
             return json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
-    except Exception:
+    except (json.JSONDecodeError, OSError):
         pass
     return {}
 
@@ -110,7 +110,7 @@ def _save_cache(data: dict) -> None:
     try:
         _CACHE_DIR.mkdir(parents=True, exist_ok=True)
         _CACHE_FILE.write_text(json.dumps(data, default=str, indent=2), encoding="utf-8")
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError, TypeError) as exc:
         _log.debug("[BENCH] Cache write error: %s", exc)
 
 
@@ -133,7 +133,7 @@ def fetch_benchmark(
     if entry and (time.time() - float(entry.get("fetched_at", 0))) < ttl_secs:
         try:
             return BenchmarkReturn(**{k: v for k, v in entry.items() if k != "fetched_at"})
-        except Exception:
+        except (TypeError, ValueError, KeyError):
             pass
 
     try:
@@ -187,7 +187,7 @@ def fetch_benchmark(
 
         return result
 
-    except Exception as exc:
+    except (ImportError, ValueError, TypeError, OSError, ConnectionError, KeyError, IndexError) as exc:
         _log.warning("[BENCH] Fetch failed for %s: %s", symbol, exc)
         return None
 

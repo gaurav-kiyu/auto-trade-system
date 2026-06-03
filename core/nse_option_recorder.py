@@ -117,7 +117,7 @@ def record_oi_snapshots_for_indices(
         except ImportError as exc:
             _log.warning("[NSE_RECORDER] NSEAdapter not available: %s", exc)
             return {idx: False for idx in index_names}
-        except Exception as exc:
+        except (ImportError, OSError, RuntimeError) as exc:
             _log.warning("[NSE_RECORDER] Failed to initialize NSEAdapter: %s", exc)
             return {idx: False for idx in index_names}
 
@@ -152,7 +152,7 @@ def record_oi_snapshots_for_indices(
                     oi_data.get("total_oi", 0),
                 )
 
-        except Exception as exc:
+        except (ValueError, TypeError, OSError, RuntimeError) as exc:
             _log.warning("[NSE_RECORDER] Failed to record OI for %s: %s", idx_name, exc)
             results[idx_name] = False
 
@@ -193,7 +193,7 @@ def get_oi_summary(index_names: list[str], config: dict[str, Any]) -> dict[str, 
                 continue
             oi_data = _aggregate_oi_data(chain)
             summary[idx_name] = oi_data
-        except Exception as exc:
+        except (ValueError, TypeError, OSError, RuntimeError) as exc:
             summary[idx_name] = {"error": str(exc)}
 
     return summary

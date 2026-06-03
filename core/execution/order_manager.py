@@ -51,6 +51,8 @@ class OrderManager:
         """Initialize SQLite persistence for orders (Phase 0 fix)."""
         try:
             with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA busy_timeout=5000")
                 table_info = list(conn.execute("PRAGMA table_info(orders)"))
                 if table_info:
                     broker_pk = next((row for row in table_info if row[1] == "broker_order_id"), None)
@@ -96,7 +98,7 @@ class OrderManager:
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_updated_at ON orders(updated_at)")
                 conn.commit()
             log.info("OrderManager: Durable storage initialized")
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             log.error(f"OrderManager: Failed to init durable storage: {e}")
 
     def _persist_order(self, order: OrderState) -> None:
@@ -130,7 +132,7 @@ class OrderManager:
                     order.error,
                 ))
                 conn.commit()
-        except Exception as e:
+        except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
             log.warning(f"OrderManager: Failed to persist order: {e}")
 
     def _load_orders_from_disk(self) -> None:
@@ -146,7 +148,7 @@ class OrderManager:
                     broker_order_id, intent_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text = row
                     try:
                         request_data = json.loads(request_json or "{}")
-                    except Exception:
+                    except (json.JSONDecodeError, TypeError, ValueError):
                         request_data = {}
 
                     request = OrderRequest(
@@ -180,7 +182,7 @@ class OrderManager:
                     if order.intent_id:
                         self._intent_map[order.intent_id] = broker_order_id or ""
                     log.warning(f"OrderManager: Loaded in-flight order {order.intent_id} from previous session (broker_order_id={broker_order_id})")
-        except Exception as e:
+        except (sqlite3.Error, OSError, json.JSONDecodeError, ValueError) as e:
             log.warning(f"OrderManager: Failed to load orders: {e}")
 
     def _validate_transition(self, current: OrderStatus, next_status: OrderStatus) -> bool:

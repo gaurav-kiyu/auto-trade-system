@@ -12,7 +12,7 @@ Alert Rules:
 """
 
 import time, logging, threading, hashlib
-from typing import Optional
+
 from datetime import datetime, timezone, timedelta
 
 try:
@@ -111,7 +111,7 @@ class TelegramEngine:
         if sess:
             try:
                 sess.close()
-            except Exception:
+            except (OSError, ConnectionError):
                 pass
 
     # ─── ROUTING ────────────────────────────────────────────

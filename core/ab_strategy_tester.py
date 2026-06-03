@@ -327,7 +327,7 @@ def _betainc(a: float, b: float, x: float) -> float:
         ln_beta = math.lgamma(a) + math.lgamma(b) - math.lgamma(a + b)
         val     = math.exp(a * math.log(x) + b * math.log(1 - x) - ln_beta) / a
         return min(1.0, val * 2)  # two-sided
-    except Exception:
+    except (ValueError, TypeError, ArithmeticError, OSError):
         return 1.0
 
 

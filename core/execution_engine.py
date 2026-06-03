@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from core.execution.retry_policy.classifier import BrokerErrorClassifier, RetryDecision
+from core.exceptions import BrokerConnectionError, BrokerTimeoutError, BrokerAuthError, BrokerRejectedError, BrokerRateLimitError
 
 _log = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ class ExecutionEngine:
             return
         try:
             self._capture_hook(dict(payload))
-        except Exception:
+        except (ValueError, TypeError, KeyError):
             pass
 
     def place_order(
@@ -107,7 +108,7 @@ class ExecutionEngine:
             start = time.monotonic()
             try:
                 order_id = action(name, direction, qty, strike)
-            except Exception as exc:
+            except (BrokerConnectionError, BrokerTimeoutError, BrokerRejectedError, BrokerRateLimitError, ConnectionError, OSError, ValueError, TypeError) as exc:
                 order_id = None
                 last_reason = str(exc)
 
@@ -205,7 +206,7 @@ class ExecutionEngine:
             ok = bool(broker.cancel_order(order_id))
             self._capture({"event": "cancel_order", "order_id": str(order_id), "ok": ok})
             return ok
-        except Exception:
+        except (ValueError, AttributeError, OSError):
             return False
 
     def verify_fill(self, order_id: str, timeout: int = 10, requested_qty: int = 0) -> ExecutionFill:
@@ -214,27 +215,27 @@ class ExecutionEngine:
             return ExecutionFill(False, reason="broker unavailable")
         try:
             fill_ok = bool(broker.wait_for_fill(order_id, timeout=timeout))
-        except Exception as exc:
+        except (BrokerTimeoutError, ConnectionError, OSError, ValueError) as exc:
             return ExecutionFill(False, reason=str(exc))
         filled_qty = 0
         fill_price = None
         try:
             if hasattr(broker, "get_filled_quantity"):
                 filled_qty = int(broker.get_filled_quantity(order_id) or 0)
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
             filled_qty = 0
         try:
             if hasattr(broker, "get_fill_price"):
                 raw_fill = broker.get_fill_price(order_id)
                 if raw_fill:
                     fill_price = float(raw_fill)
-        except Exception:
+        except (ValueError, TypeError):
             fill_price = None
         verified = True
         if self._verify_terminal_ok_fn:
             try:
                 verified = bool(self._verify_terminal_ok_fn(str(order_id)))
-            except Exception:
+            except (ValueError, TypeError, RuntimeError):
                 verified = False
         fill = ExecutionFill(
             ok=bool(fill_ok or filled_qty > 0),
@@ -264,5 +265,5 @@ class ExecutionEngine:
             return {}
         try:
             return self._broker_snapshot_fn() or {}
-        except Exception:
+        except (ValueError, TypeError, KeyError, OSError):
             return {}

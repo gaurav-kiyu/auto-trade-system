@@ -28,6 +28,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core.db_utils import get_connection
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB = "trades.db"
@@ -327,7 +329,7 @@ def load_pnl_from_db(
     if not p.is_file():
         raise FileNotFoundError(f"trades.db not found: {db_path}")
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=10)
+        conn = get_connection(str(p), timeout=10, row_factory=False)
         conn.text_factory = lambda b: b.decode("utf-8", "replace")
         params: list[Any] = []
         where_parts: list[str] = ["net_pnl IS NOT NULL"]

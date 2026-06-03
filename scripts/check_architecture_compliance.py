@@ -226,7 +226,7 @@ def check_strategy_no_broker_imports() -> list[str]:
             continue
         try:
             content = pyfile.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             continue
         for kw in broker_keywords:
             if kw.lower() in content.lower():

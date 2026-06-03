@@ -1,14 +1,14 @@
 """
-Config Validator — startup schema validation and consistency checks.
+Config Validator -- startup schema validation and consistency checks.
 
 Public API:
-  append_tier_engine_errors(errors, warnings, cfg)  — matches codebase append_* pattern,
+  append_tier_engine_errors(errors, warnings, cfg)  -- matches codebase append_* pattern,
       adds only the tier/execution-intelligence checks that no other validator covers.
 
-  validate_config(cfg) -> (errors, warnings)  — standalone full validation for scripts.
-  log_resolved_config(cfg, logger)             — emit resolved critical values to log.
-  generate_config_checksum(cfg) -> str         — 16-char SHA-256 of critical keys.
-  validate_and_log(cfg, logger, abort_on_error) — one-shot for scripts / run_analysis.
+  validate_config(cfg) -> (errors, warnings)  -- standalone full validation for scripts.
+  log_resolved_config(cfg, logger)             -- emit resolved critical values to log.
+  generate_config_checksum(cfg) -> str         -- 16-char SHA-256 of critical keys.
+  validate_and_log(cfg, logger, abort_on_error) -- one-shot for scripts / run_analysis.
 """
 
 import hashlib
@@ -19,7 +19,7 @@ from typing import Any
 
 log = logging.getLogger("config_validator")
 
-# ── Required top-level keys ─────────────────────────────────────────────────
+# -- Required top-level keys -------------------------------------------------
 _REQUIRED_KEYS: list[str] = [
     "EXECUTION_MODE",
     "BASE_CAPITAL",
@@ -39,12 +39,12 @@ _REQUIRED_KEYS: list[str] = [
     "MAX_TRADES_DAY",
 ]
 
-# ── Keys whose values must be in (0, 1] ────────────────────────────────────
+# -- Keys whose values must be in (0, 1] ------------------------------------
 _FRACTION_KEYS: list[str] = [
     "MAX_DRAWDOWN", "RISK_PER_TRADE", "SLIPPAGE",
 ]
 
-# ── Keys that must be positive ──────────────────────────────────────────────
+# -- Keys that must be positive ----------------------------------------------
 _POSITIVE_KEYS: list[str] = [
     "BASE_CAPITAL", "SCAN_INTERVAL", "COOLDOWN",
     "TIER_STRONG_MIN", "TIER_MODERATE_MIN", "TIER_WEAK_MIN",
@@ -79,34 +79,34 @@ def append_tier_engine_errors(
     t_moderate = int(cfg.get("TIER_MODERATE_MIN", 70))
     t_weak     = int(cfg.get("TIER_WEAK_MIN",     60))
 
-    # ── Tier boundary ordering ────────────────────────────────────────────
+    # -- Tier boundary ordering --------------------------------------------
     if not (t_weak < t_moderate < t_strong):
         errors.append(
             f"Tier boundaries out of order: "
             f"TIER_WEAK_MIN={t_weak}, TIER_MODERATE_MIN={t_moderate}, TIER_STRONG_MIN={t_strong} "
-            f"— required WEAK < MODERATE < STRONG"
+            f"-- required WEAK < MODERATE < STRONG"
         )
     if t_weak < 0 or t_strong > 100:
         errors.append(f"Tier boundaries must be in [0,100]; got {t_weak}-{t_strong}")
 
-    # ── AI_THRESHOLD pipeline gap — ERROR: causes dead zones in signal flow ─
+    # -- AI_THRESHOLD pipeline gap -- ERROR: causes dead zones in signal flow -
     ai_thr = int(cfg.get("AI_THRESHOLD", 60))
     if ai_thr > t_weak:
         # Any gap between TIER_WEAK_MIN and AI_THRESHOLD is a dead zone:
         # signals are scored by the engine but silently dropped before routing.
         errors.append(
             f"AI_THRESHOLD={ai_thr} > TIER_WEAK_MIN={t_weak}: "
-            f"dead zone — signals [{t_weak},{ai_thr - 1}] are scored but never routed. "
+            f"dead zone -- signals [{t_weak},{ai_thr - 1}] are scored but never routed. "
             f"Set AI_THRESHOLD={t_weak} (all WEAK) or AI_THRESHOLD={t_moderate} (MODERATE+ only)."
         )
     if ai_thr > t_moderate:
         # Separate, more severe case: entire MODERATE tier is unreachable.
         errors.append(
             f"AI_THRESHOLD={ai_thr} >= TIER_MODERATE_MIN={t_moderate}: "
-            f"MODERATE tier is permanently unreachable — only STRONG signals evaluated."
+            f"MODERATE tier is permanently unreachable -- only STRONG signals evaluated."
         )
 
-    # ── TG_ALERT_MIN_SCORE — ERROR: silent suppression of evaluated signals ─
+    # -- TG_ALERT_MIN_SCORE -- ERROR: silent suppression of evaluated signals -
     tg_min = int(cfg.get("TG_ALERT_MIN_SCORE", ai_thr))
     if tg_min > ai_thr:
         # Signals are evaluated, pass all filters, then silently dropped in Telegram.
@@ -116,14 +116,14 @@ def append_tier_engine_errors(
             f"Set TG_ALERT_MIN_SCORE={ai_thr} to eliminate the silent dead zone."
         )
     elif tg_min < ai_thr:
-        # Signals below pipeline entry are already blocked — TG filter is redundant but harmless.
+        # Signals below pipeline entry are already blocked -- TG filter is redundant but harmless.
         warnings.append(
             f"TG_ALERT_MIN_SCORE={tg_min} < AI_THRESHOLD={ai_thr}: "
-            f"TG filter is below pipeline gate — effectively dead. "
+            f"TG filter is below pipeline gate -- effectively dead. "
             f"Set TG_ALERT_MIN_SCORE={ai_thr} to align with pipeline."
         )
 
-    # ── QUALITY_MIN_SCORE range ───────────────────────────────────────────
+    # -- QUALITY_MIN_SCORE range -------------------------------------------
     qms = int(cfg.get("QUALITY_MIN_SCORE", 68))
     if not (t_weak <= qms <= t_moderate):
         warnings.append(
@@ -136,10 +136,10 @@ def append_tier_engine_errors(
     if ep_qms != qms:
         warnings.append(
             f"QUALITY_MIN_SCORE={qms} != EXECUTION_POLICY.quality_min_score={ep_qms}: "
-            f"top-level value takes precedence at runtime — sync them."
+            f"top-level value takes precedence at runtime -- sync them."
         )
 
-    # ── trade_weak coherence ──────────────────────────────────────────────
+    # -- trade_weak coherence ----------------------------------------------
     ep_tw   = bool(ep.get("trade_weak", False))
     tier_tw = bool(cfg.get("TIER_TRADE_WEAK", False))
     if ep_tw != tier_tw:
@@ -149,18 +149,18 @@ def append_tier_engine_errors(
             f"update TIER_TRADE_WEAK to match."
         )
 
-    # ── Legacy GUI threshold alignment ────────────────────────────────────
+    # -- Legacy GUI threshold alignment ------------------------------------
     legacy_strong   = int(cfg.get("STRONG_THRESHOLD",   t_strong))
     legacy_moderate = int(cfg.get("MODERATE_THRESHOLD", t_moderate))
     if legacy_strong != t_strong:
         warnings.append(
             f"STRONG_THRESHOLD={legacy_strong} != TIER_STRONG_MIN={t_strong}: "
-            f"tier_engine uses TIER_STRONG_MIN; STRONG_THRESHOLD is GUI-only — consider aligning."
+            f"tier_engine uses TIER_STRONG_MIN; STRONG_THRESHOLD is GUI-only -- consider aligning."
         )
     if legacy_moderate != t_moderate:
         warnings.append(
             f"MODERATE_THRESHOLD={legacy_moderate} != TIER_MODERATE_MIN={t_moderate}: "
-            f"tier_engine uses TIER_MODERATE_MIN; MODERATE_THRESHOLD is GUI-only — consider aligning."
+            f"tier_engine uses TIER_MODERATE_MIN; MODERATE_THRESHOLD is GUI-only -- consider aligning."
         )
 
 
@@ -170,8 +170,8 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
 
     Returns:
         (errors, warnings)
-        errors   — must-fix; startup should abort
-        warnings — degraded behaviour; startup can continue
+        errors   -- must-fix; startup should abort
+        warnings -- degraded behaviour; startup can continue
     """
     errors: list[str] = []
     warnings: list[str] = []
@@ -182,7 +182,7 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
     def warn(msg: str):
         warnings.append(msg)
 
-    # ── 1. Required keys ───────────────────────────────────────────────────
+    # -- 1. Required keys ---------------------------------------------------
     for k in _REQUIRED_KEYS:
         if k not in cfg:
             err(f"Missing required key: {k}")
@@ -190,13 +190,13 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
     if errors:
         return errors, warnings   # can't do consistency checks without basics
 
-    # ── 2. Execution mode ─────────────────────────────────────────────────
+    # -- 2. Execution mode -------------------------------------------------
     exec_mode = str(cfg.get("EXECUTION_MODE", "MANUAL")).upper()
     if exec_mode not in _VALID_EXECUTION_MODES:
         err(f"EXECUTION_MODE '{exec_mode}' not in {_VALID_EXECUTION_MODES}")
 
     if exec_mode == "AUTO" and not cfg.get("BROKER_API_ENABLED", False):
-        err("EXECUTION_MODE=AUTO but BROKER_API_ENABLED=false — orders cannot be placed")
+        err("EXECUTION_MODE=AUTO but BROKER_API_ENABLED=false -- orders cannot be placed")
 
     # BROKER_DRIVER must be a live-capable driver when auto-trading is requested
     _live_drivers = {"KITE", "ANGEL", "CUSTOM"}
@@ -205,14 +205,14 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
         if _driver not in _live_drivers:
             err(
                 f"EXECUTION_MODE=AUTO + BROKER_API_ENABLED=true but BROKER_DRIVER={_driver!r} "
-                f"is not a live-capable driver — set BROKER_DRIVER to one of "
+                f"is not a live-capable driver -- set BROKER_DRIVER to one of "
                 f"{sorted(_live_drivers)}. System would silently fall back to paper-trading."
             )
 
-    # MANUAL_SIGNALS_ONLY=true overrides AUTO → orders are permanently blocked
+    # MANUAL_SIGNALS_ONLY=true overrides AUTO -> orders are permanently blocked
     if exec_mode == "AUTO" and cfg.get("MANUAL_SIGNALS_ONLY", False):
         warn(
-            "EXECUTION_MODE=AUTO but MANUAL_SIGNALS_ONLY=true — auto-execution is "
+            "EXECUTION_MODE=AUTO but MANUAL_SIGNALS_ONLY=true -- auto-execution is "
             "permanently blocked at runtime. Set MANUAL_SIGNALS_ONLY=false to enable live orders."
         )
 
@@ -224,7 +224,7 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
             if _legacy:
                 warn(
                     f"Both BROKER_CONFIG.api_key and legacy top-level keys {_legacy} are set. "
-                    f"BROKER_CONFIG takes precedence — the legacy keys are ignored. "
+                    f"BROKER_CONFIG takes precedence -- the legacy keys are ignored. "
                     f"Remove the legacy KITE_* keys to avoid confusion."
                 )
         elif _driver == "ANGEL":
@@ -232,11 +232,11 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
             if _legacy:
                 warn(
                     f"Both BROKER_CONFIG.api_key and legacy top-level keys {_legacy} are set. "
-                    f"BROKER_CONFIG takes precedence — the legacy keys are ignored. "
+                    f"BROKER_CONFIG takes precedence -- the legacy keys are ignored. "
                     f"Remove the legacy ANGEL_* keys to avoid confusion."
                 )
 
-    # ── 3. Risk mode ──────────────────────────────────────────────────────
+    # -- 3. Risk mode ------------------------------------------------------
     risk_mode = str(cfg.get("RISK_MODE", "")).upper()
     if risk_mode not in _VALID_RISK_MODES:
         err(f"RISK_MODE '{risk_mode}' not in {_VALID_RISK_MODES}")
@@ -244,7 +244,7 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
     if risk_mode == "FIXED" and cfg.get("RISK_FIXED_AMOUNT", 0) <= 0:
         warn("RISK_MODE=FIXED but RISK_FIXED_AMOUNT <= 0; defaulting to zero risk per trade")
 
-    # ── 4. Tier boundary ordering ─────────────────────────────────────────
+    # -- 4. Tier boundary ordering -----------------------------------------
     t_strong   = int(cfg.get("TIER_STRONG_MIN",   80))
     t_moderate = int(cfg.get("TIER_MODERATE_MIN", 70))
     t_weak     = int(cfg.get("TIER_WEAK_MIN",     60))
@@ -253,26 +253,26 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
         err(
             f"Tier boundaries out of order: "
             f"TIER_WEAK_MIN={t_weak}, TIER_MODERATE_MIN={t_moderate}, TIER_STRONG_MIN={t_strong} "
-            f"— required: WEAK < MODERATE < STRONG"
+            f"-- required: WEAK < MODERATE < STRONG"
         )
     if t_weak < 0 or t_strong > 100:
-        err(f"Tier boundaries must be in [0,100]; got {t_weak}–{t_strong}")
+        err(f"Tier boundaries must be in [0,100]; got {t_weak}-{t_strong}")
 
-    # ── 5. AI_THRESHOLD — error if it creates a dead zone ────────────────
+    # -- 5. AI_THRESHOLD -- error if it creates a dead zone ----------------
     ai_thr = int(cfg.get("AI_THRESHOLD", 60))
     if ai_thr > t_weak:
         err(
             f"AI_THRESHOLD={ai_thr} > TIER_WEAK_MIN={t_weak}: "
-            f"dead zone — signals [{t_weak},{ai_thr-1}] are scored but never routed. "
+            f"dead zone -- signals [{t_weak},{ai_thr-1}] are scored but never routed. "
             f"Set AI_THRESHOLD={t_weak} (all WEAK) or AI_THRESHOLD={t_moderate} (MODERATE+ only)."
         )
     if ai_thr > t_moderate:
         err(
             f"AI_THRESHOLD={ai_thr} >= TIER_MODERATE_MIN={t_moderate}: "
-            f"MODERATE tier permanently unreachable — only STRONG signals evaluated."
+            f"MODERATE tier permanently unreachable -- only STRONG signals evaluated."
         )
 
-    # ── 6. TG_ALERT_MIN_SCORE — error if it silently drops evaluated signals
+    # -- 6. TG_ALERT_MIN_SCORE -- error if it silently drops evaluated signals
     tg_min = int(cfg.get("TG_ALERT_MIN_SCORE", ai_thr))
     if tg_min > ai_thr:
         err(
@@ -283,10 +283,10 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
     elif tg_min < ai_thr:
         warn(
             f"TG_ALERT_MIN_SCORE={tg_min} < AI_THRESHOLD={ai_thr}: "
-            f"TG filter is below pipeline gate — effectively redundant. Align to {ai_thr}."
+            f"TG filter is below pipeline gate -- effectively redundant. Align to {ai_thr}."
         )
 
-    # ── 7. QUALITY_MIN_SCORE range ────────────────────────────────────────
+    # -- 7. QUALITY_MIN_SCORE range ----------------------------------------
     qms = int(cfg.get("QUALITY_MIN_SCORE", 68))
     if not (t_weak <= qms <= t_moderate):
         warn(
@@ -312,12 +312,12 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
             f"EXECUTION_POLICY value is used at runtime; sync TIER_TRADE_WEAK for clarity."
         )
 
-    # ── 8. Legacy STRONG_THRESHOLD vs tier engine ─────────────────────────
+    # -- 8. Legacy STRONG_THRESHOLD vs tier engine -------------------------
     legacy_strong = int(cfg.get("STRONG_THRESHOLD", t_strong))
     if legacy_strong != t_strong:
         warn(
             f"STRONG_THRESHOLD={legacy_strong} != TIER_STRONG_MIN={t_strong}: "
-            f"tier_engine.py uses TIER_STRONG_MIN; STRONG_THRESHOLD is GUI-only — "
+            f"tier_engine.py uses TIER_STRONG_MIN; STRONG_THRESHOLD is GUI-only -- "
             f"consider aligning them."
         )
 
@@ -325,11 +325,11 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
     if legacy_moderate != t_moderate:
         warn(
             f"MODERATE_THRESHOLD={legacy_moderate} != TIER_MODERATE_MIN={t_moderate}: "
-            f"tier_engine.py uses TIER_MODERATE_MIN; MODERATE_THRESHOLD is GUI-only — "
+            f"tier_engine.py uses TIER_MODERATE_MIN; MODERATE_THRESHOLD is GUI-only -- "
             f"consider aligning them."
         )
 
-    # ── 9. Capital / risk limits ──────────────────────────────────────────
+    # -- 9. Capital / risk limits ------------------------------------------
     capital = float(cfg.get("BASE_CAPITAL", 0))
     if capital <= 0:
         err(f"BASE_CAPITAL={capital} must be > 0")
@@ -345,11 +345,11 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
     daily_target = float(cfg.get("DAILY_TARGET", 0))
     if daily_target > 0 and abs(max_loss) > daily_target * 3:
         warn(
-            f"MAX_DAILY_LOSS={max_loss} is > 3× DAILY_TARGET={daily_target}: "
+            f"MAX_DAILY_LOSS={max_loss} is > 3x DAILY_TARGET={daily_target}: "
             f"risk/reward ratio looks unusually wide."
         )
 
-    # ── 10. SL/Target sanity ──────────────────────────────────────────────
+    # -- 10. SL/Target sanity ----------------------------------------------
     sl_pct = float(cfg.get("SL_PCT", 0))
     tp_pct = float(cfg.get("TARGET_PCT", 0))
     if sl_pct >= 1.0:
@@ -365,7 +365,7 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
                 f"configured targets don't satisfy minimum RR."
             )
 
-    # ── 11. VIX thresholds ────────────────────────────────────────────────
+    # -- 11. VIX thresholds ------------------------------------------------
     vix_halt  = float(cfg.get("VIX_HALT_THRESHOLD",  30))
     vix_block = float(cfg.get("VIX_BLOCK_THRESHOLD", 40))
     if vix_halt >= vix_block:
@@ -381,24 +381,24 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
             f"medium and high VIX size bands are inverted."
         )
 
-    # ── 12. Fraction-range keys ───────────────────────────────────────────
+    # -- 12. Fraction-range keys -------------------------------------------
     for k in _FRACTION_KEYS:
         v = cfg.get(k)
         if v is not None and not (0 < float(v) <= 1.0):
             warn(f"{k}={v} expected in (0, 1]; check units.")
 
-    # ── 13. Positive-value keys ───────────────────────────────────────────
+    # -- 13. Positive-value keys -------------------------------------------
     for k in _POSITIVE_KEYS:
         v = cfg.get(k)
         if v is not None and float(v) <= 0:
             err(f"{k}={v} must be > 0")
 
-    # ── 14. MAX_LOT_CAPITAL_PCT ───────────────────────────────────────────
+    # -- 14. MAX_LOT_CAPITAL_PCT -------------------------------------------
     mlcp = float(cfg.get("MAX_LOT_CAPITAL_PCT", 0.6))
     if not (0 < mlcp <= 1.0):
         warn(f"MAX_LOT_CAPITAL_PCT={mlcp} should be in (0, 1]")
 
-    # ── 15. Concurrent position limits ───────────────────────────────────
+    # -- 15. Concurrent position limits -----------------------------------
     max_open = int(cfg.get("MAX_OPEN", 1))
     max_trades = int(cfg.get("MAX_TRADES_DAY", 2))
     if max_open > max_trades:
@@ -418,7 +418,7 @@ def log_resolved_config(cfg: dict[str, Any], logger: logging.Logger = None) -> N
     t_weak     = cfg.get("TIER_WEAK_MIN",     60)
     ep         = cfg.get("EXECUTION_POLICY", {})
 
-    L.info("── Resolved Config ──────────────────────────────────────")
+    L.info("-- Resolved Config ----------------------------------------")
     L.info("  Execution    : mode=%-8s  capital=%s  max_open=%s  max_trades/day=%s",
            cfg.get("EXECUTION_MODE"), cfg.get("BASE_CAPITAL"),
            cfg.get("MAX_OPEN"), cfg.get("MAX_TRADES_DAY"))
@@ -438,7 +438,7 @@ def log_resolved_config(cfg: dict[str, Any], logger: logging.Logger = None) -> N
            cfg.get("TG_QUIET_MODE"), cfg.get("TG_TRADE_ONLY"), cfg.get("TG_ALERT_MIN_SCORE"))
     checksum = generate_config_checksum(cfg)
     L.info("  Config CRC   : %s  (alert if this changes between restarts)", checksum)
-    L.info("─────────────────────────────────────────────────────────")
+    L.info("---------------------------------------------------------")
 
 
 def generate_config_checksum(cfg: dict[str, Any]) -> str:
@@ -446,7 +446,7 @@ def generate_config_checksum(cfg: dict[str, Any]) -> str:
     Return a 16-character SHA-256 fingerprint of execution-critical config values.
 
     Log this at every startup. If it changes between restarts, a config change
-    occurred — emit a warning so the change is auditable.
+    occurred -- emit a warning so the change is auditable.
     """
     critical_keys = [
         "AI_THRESHOLD", "TIER_WEAK_MIN", "TIER_MODERATE_MIN", "TIER_STRONG_MIN",
@@ -463,7 +463,7 @@ def generate_config_checksum(cfg: dict[str, Any]) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()[:16]
 
 
-# ── v2.46 Sprint 0: Structured block validators ──────────────────────────────
+# -- v2.46 Sprint 0: Structured block validators ------------------------------
 
 _REQUIRED_INSTRUMENT_KEYS = {
     "enabled", "yf_symbol", "lot_size", "strike_step",
@@ -474,7 +474,7 @@ _REQUIRED_INSTRUMENT_KEYS = {
 def validate_structured_blocks(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
     """
     Validate v2.46 structured config blocks (instruments, indicator, market, financial).
-    Returns (errors, warnings). Non-blocking — issues are warnings unless instruments block
+    Returns (errors, warnings). Non-blocking -- issues are warnings unless instruments block
     has a hard structural error.
     """
     errors: list[str] = []
@@ -565,7 +565,7 @@ def validate_and_log(
         cfg:               Loaded config dict
         logger:            Optional logger (defaults to module logger)
         abort_on_error:    Raise SystemExit on errors (default True)
-        run_parity_check:  Also run backtest/live parity assertion (default False —
+        run_parity_check:  Also run backtest/live parity assertion (default False --
                            set True in run_analysis.py)
 
     Returns True if no errors, False if errors found (and abort_on_error=False).
@@ -594,7 +594,7 @@ def validate_and_log(
             assert_backtest_live_parity()
             L.info("Backtest/live parity: OK")
         except ImportError:
-            L.debug("system_parity module not available — skipping parity check")
+            L.debug("system_parity module not available -- skipping parity check")
         except AssertionError as e:
             L.error("PARITY FAILURE: %s", e)
             if abort_on_error:

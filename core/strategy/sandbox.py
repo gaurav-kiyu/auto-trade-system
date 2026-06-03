@@ -69,6 +69,7 @@ class StrategySandbox:
         self._results: list[SandboxResult] = []
         self._lock = threading.Lock()
         self._market_data_callback: Callable | None = None
+        self._stop_event = threading.Event()
 
     def configure(self, mode: SandboxMode, **kwargs) -> None:
         """Configure sandbox"""
@@ -195,7 +196,8 @@ class StrategySandbox:
                         simulated_pnl += fill_result["pnl"]
 
                 sleep_time = 1.0 / self._config.speed
-                time.sleep(sleep_time)
+                if self._stop_event.wait(sleep_time):
+                    break
 
             except Exception as e:
                 _log.error(f"Error in simulated live: {e}")
@@ -228,6 +230,7 @@ class StrategySandbox:
     def stop(self) -> None:
         """Stop sandbox"""
         self._active = False
+        self._stop_event.set()
         if self._strategy:
             self._strategy.on_stop()
         _log.info("Sandbox stopped")

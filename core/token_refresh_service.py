@@ -214,7 +214,7 @@ class TokenRefreshService:
         try:
             from core.adapters.broker_adapters import broker_connection_secrets
             return broker_connection_secrets(cfg, name.upper())
-        except Exception:
+        except (ImportError, ValueError, TypeError, AttributeError, KeyError):
             return {}
 
     def validate_token(self, adapter: Any) -> bool:

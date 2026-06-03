@@ -63,7 +63,7 @@ def check_entry_liquidity(
         ask    = float(ask    or 0.0)
         oi     = int(oi       or 0)
         volume = int(volume   or 0)
-    except Exception:
+    except (TypeError, ValueError):
         return LiquidityCheck(False, 0.0, 0.0, 0.0, 0.0, 0, 0, "Invalid quote data")
 
     if not c.get("liquidity_guard_enabled", True):

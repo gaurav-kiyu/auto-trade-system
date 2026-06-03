@@ -39,7 +39,7 @@ class ConfigValidator:
         value = self._cfg.get(key)
         try:
             num = float(value)
-        except Exception:
+        except (ValueError, TypeError):
             self._error(key, "must be a number")
             return
         low_ok = num >= low if inclusive_low else num > low

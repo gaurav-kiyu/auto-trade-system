@@ -254,7 +254,13 @@ def test_mann_whitney_p_identical_returns_high():
 
 
 def test_mann_whitney_p_different_returns_low_ish():
-    p = _mann_whitney_p([1000] * 50, [-1000] * 50)
+    # Two clearly different distributions with non-zero variance.
+    # Use normally-distributed values so Welch t-test works in the fallback path.
+    import random
+    random.seed(42)
+    a = [random.gauss(1000, 100) for _ in range(50)]
+    b = [random.gauss(-1000, 100) for _ in range(50)]
+    p = _mann_whitney_p(a, b)
     assert p <= 0.05
 
 

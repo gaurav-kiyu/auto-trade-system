@@ -51,6 +51,8 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.db_utils import get_connection
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB          = "ml_tracker.db"
@@ -173,7 +175,7 @@ def _load_feature_values(
         return []
     try:
         import json
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
+        conn = get_connection(p, timeout=5, row_factory=False)
         try:
             rows = conn.execute(
                 "SELECT shap_json FROM ml_predictions "
@@ -188,10 +190,10 @@ def _load_feature_values(
                 d = json.loads(shap_str)
                 if feature in d:
                     vals.append(float(d[feature]))
-            except Exception:
+            except (json.JSONDecodeError, ValueError, TypeError, KeyError):
                 continue
         return vals
-    except Exception as exc:
+    except (sqlite3.Error, OSError, json.JSONDecodeError) as exc:
         _log.debug("[DRIFT] _load_feature_values failed for %s: %s", feature, exc)
         return []
 
@@ -288,7 +290,7 @@ def detect_all_features(
         try:
             from core.ml_classifier import FEATURE_COLS
             features = list(FEATURE_COLS)
-        except Exception:
+        except (ValueError, TypeError, KeyError, OSError, sqlite3.Error):
             features = []
 
     results: dict[str, DriftResult] = {}
@@ -304,7 +306,7 @@ def detect_all_features(
                 ks_warn=ks_warn,
                 _now=_now,
             )
-        except Exception as exc:
+        except (ValueError, TypeError, KeyError, OSError, sqlite3.Error) as exc:
             _log.debug("[DRIFT] detect_drift failed for %s: %s", feat, exc)
             results[feat] = DriftResult(
                 feature=feat, psi=0.0, ks=0.0, ref_n=0, recent_n=0,

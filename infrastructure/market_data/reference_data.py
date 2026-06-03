@@ -226,7 +226,7 @@ class ReferenceDataService:
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(serializable_data, f, indent=2, default=str)
             logger.debug(f"Saved {data_type} reference data to fallback file: {file_path}")
-        except Exception as e:
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.warning(f"Failed to save {data_type} reference data to fallback file: {e}")
 
     def _load_from_fallback_file(self, data_type: str) -> Any | None:
@@ -241,7 +241,7 @@ class ReferenceDataService:
                     data = json.load(f)
                 logger.debug(f"Loaded {data_type} reference data from fallback file: {file_path}")
                 return self._deserialize_from_fallback(data_type, data)
-        except Exception as e:
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.warning(f"Failed to load {data_type} reference data from fallback file: {e}")
         return None
 
@@ -369,7 +369,7 @@ class ReferenceDataService:
 
             logger.warning("NSE CSV returned no parseable rows, using fallback")
 
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, ValueError, csv.Error, urllib.error.URLError) as exc:
             logger.warning("Failed to fetch lot sizes from NSE: %s", exc)
 
         # Fallback to hardcoded data
@@ -445,7 +445,7 @@ class ReferenceDataService:
                 logger.info("Fetched expiry dates for %d symbols from NSE CSV", len(result))
                 return result
 
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, ValueError, csv.Error, urllib.error.URLError) as exc:
             logger.warning("Failed to fetch expiry dates from NSE: %s", exc)
 
         # Fallback: compute standard expiry dates (weekly Thursday for NIFTY)
@@ -626,7 +626,7 @@ class ReferenceDataService:
             logger.info(f"Successfully refreshed lot size data for {len(new_data)} symbols")
             return True
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.error(f"Error refreshing lot size data: {e}")
             return False
 
@@ -674,7 +674,7 @@ class ReferenceDataService:
             logger.info(f"Successfully refreshed expiry data for {len(new_data)} symbols")
             return True
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.error(f"Error refreshing expiry data: {e}")
             return False
 
@@ -722,7 +722,7 @@ class ReferenceDataService:
             logger.info(f"Successfully refreshed holiday data: {len(new_data)} holidays")
             return True
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.error(f"Error refreshing holiday data: {e}")
             return False
 
@@ -770,7 +770,7 @@ class ReferenceDataService:
             logger.info(f"Successfully refreshed margin data for {len(new_data)} symbols")
             return True
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.error(f"Error refreshing margin data: {e}")
             return False
 

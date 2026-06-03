@@ -25,6 +25,8 @@ import sqlite3
 from dataclasses import dataclass, field
 from typing import Any
 
+from core.db_utils import get_connection
+
 _log = logging.getLogger(__name__)
 
 _VALID_METRICS = {"profit_factor", "win_rate", "avg_pnl", "sharpe"}
@@ -43,7 +45,7 @@ class OptimizationResult:
 
 def _load_pnls(db_path: str, days: int) -> list[float]:
     try:
-        con = sqlite3.connect(db_path)
+        con = get_connection(db_path, row_factory=False)
         cur = con.execute(
             """
             SELECT net_pnl FROM trades
@@ -56,7 +58,7 @@ def _load_pnls(db_path: str, days: int) -> list[float]:
         pnls = [float(r[0]) for r in cur.fetchall()]
         con.close()
         return pnls
-    except Exception as e:
+    except (sqlite3.Error, OSError, ValueError, TypeError) as e:
         _log.debug("[OPT] db load failed: %s", e)
         return []
 
@@ -80,7 +82,7 @@ def _compute_metric(pnls: list[float], metric: str) -> float:
             mean = statistics.mean(pnls)
             std  = statistics.stdev(pnls) if len(pnls) > 1 else 0.0
             return mean / std * (252 ** 0.5) if std > 0 else 0.0
-        except Exception:
+        except (ValueError, TypeError, ZeroDivisionError, ImportError, statistics.StatisticsError):
             return 0.0
     return 0.0
 

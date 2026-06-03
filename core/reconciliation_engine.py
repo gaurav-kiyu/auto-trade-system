@@ -64,15 +64,15 @@ class ReconciliationEngine:
             broker_row = broker.get(symbol, {})
             try:
                 local_qty = int(local.get("qty") or 0)
-            except Exception:
+            except (TypeError, ValueError, KeyError):
                 local_qty = 0
             try:
                 broker_qty = int(broker_row.get("qty") or broker_row.get("quantity") or 0)
-            except Exception:
+            except (TypeError, ValueError, KeyError):
                 broker_qty = 0
             try:
                 local_price = float(local.get("entry") or 0.0)
-            except Exception:
+            except (TypeError, ValueError, KeyError):
                 local_price = 0.0
             try:
                 broker_price = float(
@@ -81,7 +81,7 @@ class ReconciliationEngine:
                     or broker_row.get("price")
                     or 0.0
                 )
-            except Exception:
+            except (TypeError, ValueError, KeyError):
                 broker_price = 0.0
 
             qty_ok = local_qty == broker_qty
@@ -121,7 +121,7 @@ class ReconciliationEngine:
                     continue
                 try:
                     broker_qty = int(broker_row.get("qty") or broker_row.get("quantity") or 0)
-                except Exception:
+                except (TypeError, ValueError, KeyError):
                     broker_qty = 0
                 if broker_qty <= 0:
                     continue
@@ -132,7 +132,7 @@ class ReconciliationEngine:
                         or broker_row.get("price")
                         or 0.0
                     )
-                except Exception:
+                except (TypeError, ValueError, KeyError):
                     broker_price = 0.0
                 mismatches += 1
                 items.append(

@@ -122,7 +122,7 @@ class DataGovernor:
                 results[cat.name] = len(removed)
                 if removed:
                     log.info("DataGovernor: removed %d files from %s (%s)", len(removed), cat.name, cat.path)
-            except Exception:
+            except (OSError, ValueError, TypeError, AttributeError):
                 log.exception("DataGovernor: failed to apply retention for %s", cat.name)
                 results[cat.name] = -2
         return results
@@ -186,6 +186,6 @@ class CleanupScheduler:
                 if total_removed:
                     log.info("CleanupScheduler: removed %d files across %d categories",
                              total_removed, sum(1 for v in results.values() if v > 0))
-            except Exception:
+            except (OSError, ValueError, TypeError, AttributeError):
                 log.exception("CleanupScheduler: error during cleanup cycle")
             self._stop_event.wait(self._interval_hours * 3600)

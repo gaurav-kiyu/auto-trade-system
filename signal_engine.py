@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
-import numpy as np
+
 
 from core.defaults_loader import load_defaults_file
 from core.feature_engine import FeatureEngine
@@ -73,23 +73,23 @@ def get_open(df: pd.DataFrame) -> float:
     try:
         val: float = float(df['Open'].iloc[-1])
         return val
-    except Exception: return 0.0
+    except (KeyError, IndexError, TypeError, ValueError): return 0.0
 
 def get_high(df: pd.DataFrame) -> float:
     try:
         val: float = float(df['High'].iloc[-1])
         return val
-    except Exception: return 0.0
+    except (KeyError, IndexError, TypeError, ValueError): return 0.0
 
 def get_low(df: pd.DataFrame) -> float:
     try:
         val: float = float(df['Low'].iloc[-1])
         return val
-    except Exception: return 0.0
+    except (KeyError, IndexError, TypeError, ValueError): return 0.0
 
 def get_ema_series(series: pd.Series, span: int) -> pd.Series:
     try: return series.ewm(span=span, adjust=False).mean()
-    except Exception: return series
+    except (ValueError, TypeError): return series
 
 
 def breakout_strength_ok(df: pd.DataFrame) -> bool:
@@ -108,7 +108,7 @@ def breakout_strength_ok(df: pd.DataFrame) -> bool:
         vol_avg = float(df["Volume"].iloc[-n - 1:-1].mean())
         vol_ok = vol_avg > 0 and vol_cur >= vol_avg * 1.3
         return price_move > 0.004 and vol_ok
-    except Exception as e:
+    except (KeyError, TypeError, ValueError, IndexError) as e:
         log.debug(f"breakout_strength_ok fallback: {e}", exc_info=False)
         return False
 
@@ -130,7 +130,7 @@ def calc_support_resistance_pivot(df: pd.DataFrame) -> dict:
             "resistance_1": round(2 * pivot - low_price, 2),
             "resistance_2": round(pivot + (h - low_price), 2),
         }
-    except Exception:
+    except (KeyError, TypeError, ValueError, IndexError):
         return {"pivot": 0, "support_1": 0, "support_2": 0, "resistance_1": 0, "resistance_2": 0}
 
 def calc_fibonacci_targets(entry: float, atr: float, direction: str,
@@ -189,7 +189,7 @@ def calc_chandelier_exit(df: pd.DataFrame, period: int = 22, multiplier: float =
         else:
             lowest_low: float = float(df["Low"].rolling(period).min().iloc[-1])
             return round(lowest_low + atr_val * multiplier, 2)
-    except Exception:
+    except (KeyError, TypeError, ValueError, IndexError, ZeroDivisionError):
         return 0.0
 
 def calc_atr_stop_loss(entry: float, atr: float, direction: str, multiplier: float = 1.5) -> float:
@@ -465,7 +465,7 @@ def build_full_signal(
         ts_ist = bar_ts.tz_localize("Asia/Kolkata") if bar_ts.tz is None else bar_ts.tz_convert("Asia/Kolkata")
         wall = ts_ist.to_pydatetime()
         signal_ts_bar = float(bar_ts.timestamp())
-    except Exception:
+    except (TypeError, ValueError, AttributeError, KeyError):
         wall = time_provider.now()
         signal_ts_bar = float(wall.timestamp())
 

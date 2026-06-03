@@ -167,7 +167,7 @@ class SecretHygieneChecker:
 
         try:
             content = file_path.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             return SecretHygieneResult(passed=True, secrets_found=[], warnings=[])
 
         secrets_found = []

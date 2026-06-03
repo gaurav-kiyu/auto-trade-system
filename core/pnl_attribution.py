@@ -17,9 +17,10 @@ Config keys
 from __future__ import annotations
 
 import logging
-import sqlite3
 from dataclasses import dataclass
 from typing import Any
+
+from core.db_utils import get_connection
 
 _log = logging.getLogger(__name__)
 
@@ -50,8 +51,7 @@ def _score_tier(score: float | None) -> str:
 
 def _load_trades(db_path: str, days: int) -> list[dict]:
     try:
-        con = sqlite3.connect(db_path)
-        con.row_factory = sqlite3.Row
+        con = get_connection(db_path)
         cur = con.execute(
             """
             SELECT direction, regime, session, score, day_of_week,

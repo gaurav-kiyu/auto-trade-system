@@ -85,6 +85,12 @@ definitions:
           - python scripts/check_architecture_compliance.py --ci
           - echo "=== Constitution Scoring ==="
           - python scripts/score_system.py --ci --check-min 5.0 || echo "WARNING: some scores below 5.0"
+          - echo "=== Script & Artifact Sync Check ==="
+          - python scripts/sync_artifacts.py --ci || echo "WARNING: artifact sync issues found"
+          - echo "=== Repository Hygiene Check ==="
+          - python scripts/hygiene_check.py --ci || echo "WARNING: hygiene issues found"
+          - echo "=== Dead Code Scan ==="
+          - python scripts/scan_dead_code.py --ci || echo "WARNING: dead code found"
         artifacts:
           - reports/**
 

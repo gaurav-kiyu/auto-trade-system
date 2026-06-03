@@ -243,7 +243,7 @@ def _check_config_drift(secure_cfg: SecureConfig) -> None:
                 "May be deprecated or removed. Risk: %s. Value: %s",
                 key, risk, merged.get(key),
             )
-    except Exception as _ex:
+    except (OSError, json.JSONDecodeError, KeyError, AttributeError) as _ex:
         _log.debug("Config drift check skipped: %s", _ex)
 
 
@@ -340,7 +340,7 @@ def initialize_secure_config(
     # Compare merged config against defaults to detect stale/missing keys
     try:
         _check_config_drift(_SECURE_CONFIG)
-    except Exception as _drift_err:
+    except (OSError, json.JSONDecodeError, AttributeError, KeyError) as _drift_err:
         _log.warning("Config drift check failed: %s", _drift_err)
     # ───────────────────────────────────────────────────────────────
 

@@ -2,21 +2,61 @@ from __future__ import annotations
 
 import logging
 import time
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 _log = logging.getLogger(__name__)
 
+# ── DEPRECATED MODULE ──────────────────────────────────────────────
+# This module is the legacy synchronous Orchestrator. New code should use
+# core/services/use_cases/trading_orchestrator.py (TradingOrchestrator) or
+# core/execution/deterministic_state_machine.py for state machine operations.
+# This module is kept for backward compatibility and will be removed in v3.0.
+warnings.warn(
+    "core/orchestrator.py is DEPRECATED. Use core/services/use_cases/"
+    "trading_orchestrator.py (TradingOrchestrator) instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 from .audit_engine import AuditEngine
 from .data_engine import DataEngine, MarketDataSnapshot
 from .datetime_ist import is_nse_cash_session
-from .execution_engine import ExecutionEngine, ExecutionFill, ExecutionResult
 from .reconciliation_engine import ReconciliationEngine, ReconciliationReport
 from .risk.legacy_adapter import RiskDecision, RiskPortAdapter
 from .safety_engine import SafetyContext, SafetyDecision, SafetyEngine
 from .state_manager import StateManager
 from .strategy_engine import StrategyEngine
+
+
+# ── Local execution dataclasses (replaces deprecated import from execution_engine) ──
+
+
+@dataclass(frozen=True)
+class _ExecutionFill:
+    """Mirrors core.execution_engine.ExecutionFill to break the import dependency.
+
+    This is a frozen dataclass with the same shape as the execution_engine version.
+    """
+    ok: bool
+    filled_qty: int = 0
+    fill_price: float | None = None
+    status_verified: bool = False
+    reason: str = ""
+
+
+@dataclass(frozen=True)
+class _ExecutionResult:
+    """Mirrors core.execution_engine.ExecutionResult to break the import dependency.
+
+    This is a frozen dataclass with the same shape as the execution_engine version.
+    """
+    ok: bool
+    order_id: str | None = None
+    broker_latency_ms: int = 0
+    reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -26,8 +66,8 @@ class OrchestratorSignal:
     risk: RiskDecision
     safety: SafetyDecision | None = None
     executed: bool = False
-    execution_result: ExecutionResult | None = None
-    execution_fill: ExecutionFill | None = None
+    execution_result: _ExecutionResult | None = None
+    execution_fill: _ExecutionFill | None = None
 
 
 @dataclass(frozen=True)
@@ -48,7 +88,7 @@ class Orchestrator:
         data_engine: DataEngine,
         strategy_engine: StrategyEngine,
         risk_engine: RiskPortAdapter,
-        execution_engine: ExecutionEngine | None,
+        execution_engine: Any | None,
         state_manager: StateManager,
         reconciliation_engine: ReconciliationEngine | None = None,
         names_provider: Callable[[], list[str]] | None = None,
@@ -131,8 +171,8 @@ class Orchestrator:
                 if allowed.allowed and not safety.allowed:
                     allowed = RiskDecision(False, safety.reason)
 
-                execution_result: ExecutionResult | None = None
-                execution_fill: ExecutionFill | None = None
+                execution_result: _ExecutionResult | None = None
+                execution_fill: _ExecutionFill | None = None
                 executed = False
                 mode = str(self._execution_mode_fn() or "MANUAL").upper()
                 if allowed.allowed and mode == "AUTO" and self._execution_engine and self._entry_gate_fn(name, signal):
@@ -198,7 +238,7 @@ class Orchestrator:
             if self._local_positions_fn:
                 try:
                     raw_local = self._local_positions_fn() or {}
-                except Exception:
+                except (ValueError, TypeError, AttributeError):
                     raw_local = {}
                 if isinstance(raw_local, dict):
                     for sym, row in raw_local.items():
@@ -209,7 +249,7 @@ class Orchestrator:
                                 "qty": int(row.get("qty") or row.get("quantity") or 0),
                                 "entry": float(row.get("entry") or row.get("avg_price") or row.get("average_price") or 0.0),
                             }
-                        except Exception:
+                        except (ValueError, TypeError, KeyError):
                             continue
             reconciliation = self._reconciliation_engine.reconcile_positions(local_positions)
 

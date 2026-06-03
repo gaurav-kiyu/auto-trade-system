@@ -48,6 +48,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core.db_utils import get_connection
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB   = "trades.db"
@@ -97,8 +99,7 @@ def _load_paper_trades(db_path: str, days: int) -> list[dict]:
     if not p.is_file():
         return []
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
-        conn.row_factory = sqlite3.Row
+        conn = get_connection(p, timeout=5)
         try:
             params: list[Any] = ["PAPER"]
             where = ["mode = ?", "net_pnl IS NOT NULL"]
@@ -118,7 +119,7 @@ def _load_paper_trades(db_path: str, days: int) -> list[dict]:
         finally:
             conn.close()
         return [dict(r) for r in rows]
-    except Exception as exc:
+    except (sqlite3.Error, OSError, ValueError, TypeError) as exc:
         _log.debug("[READINESS] _load_paper_trades failed: %s", exc)
         return []
 
@@ -270,7 +271,7 @@ def check_live_readiness(
             required=round(ml_min * 100, 1),
             message=f"{ml_acc*100:.1f}% (recommend >= {ml_min*100:.0f}%)",
         ))
-    except Exception:
+    except (ImportError, ValueError, TypeError, AttributeError, KeyError):
         pass
 
     # ── Scoring ───────────────────────────────────────────────────────────────
@@ -348,7 +349,7 @@ def should_send_today(flag_dir: str = ".") -> bool:
     if flag.is_file():
         try:
             return flag.read_text().strip() != today
-        except Exception:
+        except (OSError, ValueError):
             pass
     return True
 
@@ -359,7 +360,7 @@ def mark_sent_today(flag_dir: str = ".") -> None:
     flag = Path(flag_dir) / _FLAG_FILE
     try:
         flag.write_text(dt.date.today().isoformat())
-    except Exception:
+    except (OSError, PermissionError):
         pass
 
 

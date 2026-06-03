@@ -695,7 +695,7 @@ def _last_change_date(param: str) -> datetime | None:
                                 last = ts
                         except (KeyError, ValueError):
                             pass
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         log.debug("[AUTO-TUNE] _last_change_date scan error: %s", exc)
     return last
 
@@ -836,7 +836,7 @@ def _write_audit(result: TuneResult) -> None:
         record = result.to_dict()
         with _AUDIT_LOG.open("a", encoding="utf-8") as f:
             f.write(json.dumps(record, default=str) + "\n")
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError) as exc:
         log.warning("[AUTO-TUNE] Audit log write failed: %s", exc)
 
 
@@ -934,7 +934,7 @@ def _load_config_file(path: Path) -> dict:
     try:
         data: dict = json.loads(path.read_text(encoding="utf-8"))
         return data
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError) as exc:
         log.error("[AUTO-TUNE] Failed to load config %s: %s", path, exc)
         return {}
 
@@ -982,7 +982,7 @@ def eod_auto_tune_hook(
 
         return "\n".join(lines)
 
-    except Exception as exc:
+    except (OSError, ValueError, TypeError) as exc:
         log.warning("[AUTO-TUNE] EOD hook error: %s", exc)
         return ""
 
@@ -994,7 +994,7 @@ def _cli() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         try:
             sys.stdout.reconfigure(encoding="utf-8")
-        except Exception:
+        except (OSError, AttributeError) as _ex:
             pass
 
     parser = argparse.ArgumentParser(

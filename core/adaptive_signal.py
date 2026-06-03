@@ -142,7 +142,7 @@ def compute_confidence_band(
     bin_w   = int(cfg.get("confidence_band_score_bin_width", 5))
     lo, hi  = score - bin_w, score + bin_w
 
-    import sqlite3 as _sqlite3
+    from core.db_utils import get_connection as _get_conn
     from pathlib import Path as _Path
 
     p = _Path(db_path)
@@ -150,7 +150,7 @@ def compute_confidence_band(
         return None
 
     try:
-        conn = _sqlite3.connect(str(p), check_same_thread=False, timeout=3)
+        conn = _get_conn(str(p), timeout=3, row_factory=False)
         try:
             rows = conn.execute(
                 "SELECT net_pnl FROM trades "
@@ -183,7 +183,7 @@ def compute_confidence_band(
             session=session,
             direction=direction,
         )
-    except Exception:
+    except (sqlite3.Error, OSError, ValueError, TypeError, AttributeError):
         return None
 
 
@@ -450,7 +450,7 @@ def _compute_features_and_score(
                 elif direction == "PUT" and price < _orb_low * 0.999:
                     _orb_pts = _orb_b
                     score = min(100, score + _orb_pts)
-    except Exception:
+    except (ValueError, TypeError, AttributeError, KeyError, IndexError):
         pass
     score_components["orb_bonus"] = _orb_pts
 
@@ -590,7 +590,7 @@ def evaluate_adaptive_signal(
                 if _iv_rank_pts < 0:
                     soft_blocks.append("high_iv")
                 reasons.append(f"[IV] {_iv_tag}")
-        except Exception:
+        except (ValueError, TypeError, IndexError):
             pass  # iv_rank is always optional
 
     # ── IV Skew score penalty (v2.44 Item 11) ────────────────────────────────
@@ -613,7 +613,7 @@ def evaluate_adaptive_signal(
                         soft_blocks    = list(soft_blocks)
                         soft_blocks.append("extreme_put_skew")
                         reasons.append(f"[SKEW] EXTREME put_skew={_skew_dat.put_skew:.1f} pen={_pen:+d}")
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
             pass  # iv_skew is always optional
 
     # ── Session Classifier score adjustment ───────────────────────────────────
@@ -640,7 +640,7 @@ def evaluate_adaptive_signal(
                 adjusted_score = max(0, min(100, adjusted_score + _sess_adj))
                 _session_adj_pts = adjusted_score - _pre_sess
             reasons.append(f"[SESSION] {_session.value} adj={_sess_adj:+d}")
-        except Exception:
+        except (ValueError, TypeError, AttributeError, ImportError):
             pass  # session_classifier is always optional
 
     # ── ML Signal Classifier score adjustment ─────────────────────────────────
@@ -724,7 +724,7 @@ def evaluate_adaptive_signal(
                                     _ml_tag = f"{_ml_tag} (SHAP conf={shap_confidence:.2f})"
                     else:
                         _ml_reasoning = ""
-                except Exception:
+                except (ValueError, TypeError, AttributeError):
                     _ml_reasoning = ""
 
                 # Record prediction for calibration tracking (ml_performance_tracker)
@@ -741,9 +741,9 @@ def evaluate_adaptive_signal(
                             shap_json=_shap_json(_shap_vals),
                             db_path=_scfg.get("ml_tracker_db_path", "ml_tracker.db"),
                         )
-                    except Exception:
+                    except (ValueError, TypeError, AttributeError):
                         pass
-        except Exception:
+        except (ImportError, ValueError, TypeError, AttributeError):
             pass  # ml_classifier is always optional
 
     tier           = classify_tier(adjusted_score)
@@ -774,7 +774,7 @@ def evaluate_adaptive_signal(
                 _pre_fii = adjusted_score
                 adjusted_score = max(0, min(100, adjusted_score + _fii_adj))
                 _fii_pts = adjusted_score - _pre_fii
-        except Exception:
+        except (ImportError, ValueError, TypeError, AttributeError, KeyError):
             pass
 
     # Item 2: Implied move gate (soft block as score penalty)
@@ -789,7 +789,7 @@ def evaluate_adaptive_signal(
                 _pre_im = adjusted_score
                 adjusted_score = max(0, min(100, adjusted_score + _im_adj))
                 _im_pts = adjusted_score - _pre_im
-        except Exception:
+        except (ImportError, ValueError, TypeError, AttributeError, KeyError):
             pass
 
     # Item 3: GEX regime adjustment
@@ -806,7 +806,7 @@ def evaluate_adaptive_signal(
                 _pre_gex = adjusted_score
                 adjusted_score = max(0, min(100, adjusted_score + _gex_adj))
                 _gex_pts = adjusted_score - _pre_gex
-        except Exception:
+        except (ImportError, ValueError, TypeError, AttributeError, KeyError):
             pass
 
     # Item 4: Regime transition bonus
@@ -824,7 +824,7 @@ def evaluate_adaptive_signal(
                 _pre_rt = adjusted_score
                 adjusted_score = max(0, min(100, adjusted_score + _rt_adj))
                 _rt_pts = adjusted_score - _pre_rt
-        except Exception:
+        except (ImportError, ValueError, TypeError, AttributeError, KeyError):
             pass
 
     score_comps["fii_dii_adj"]   = _fii_pts
@@ -861,7 +861,7 @@ def evaluate_adaptive_signal(
                 db_path=str(_db_path2),
                 cfg=_scfg2,
             )
-        except Exception:
+        except (ValueError, TypeError, IndexError):
             pass  # always optional
 
     # ── Apply max penalty cap (v2.45: safety guard) ────────────────────────────

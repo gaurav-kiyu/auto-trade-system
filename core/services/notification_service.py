@@ -457,8 +457,9 @@ class NotificationService:
                         continue
 
                 if notification_to_process is None:
-                    # No notifications available, sleep briefly
-                    time.sleep(0.1)
+                    # No notifications available, wait briefly (interruptible via stop_event)
+                    if self._stop_event.wait(0.1):
+                        break
                     continue
 
                 # Process the notification
@@ -494,7 +495,8 @@ class NotificationService:
 
             except Exception as e:
                 self._logger.error(f"Error in notification worker: {e}")
-                time.sleep(1.0)  # Avoid tight loop on error
+                if self._stop_event.wait(1.0):  # Avoid tight loop on error, interruptible
+                    break
 
         self._logger.debug("Notification worker stopped")
 

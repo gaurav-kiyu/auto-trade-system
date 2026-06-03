@@ -78,7 +78,7 @@ def build_rich_signal_message(signal: dict[str, Any], cfg: dict[str, Any] | None
         try:
             import json
             soft_blocks = json.loads(soft_blocks)
-        except Exception:
+        except (ValueError, TypeError, json.JSONDecodeError):
             soft_blocks = [soft_blocks] if soft_blocks else []
 
     # Direction emoji
@@ -474,7 +474,7 @@ class TelegramCommander:
             if updates:
                 self._last_update_id = updates[-1]["update_id"]
             return updates
-        except Exception:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError, json.JSONDecodeError):
             return []
 
     def _handle_update(self, upd: dict) -> None:
@@ -830,7 +830,7 @@ class TelegramCommander:
     def _reply(self, text: str, critical: bool = False) -> None:
         try:
             self._send_fn(text, critical)
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as exc:
             _log.warning("[TG_CMD] Reply failed: %s", exc)
 
     def _check_rate(self, user_id: str) -> bool:

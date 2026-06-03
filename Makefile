@@ -1,4 +1,4 @@
-.PHONY: help install install-dev install-all test test-fast lint typecheck schemas clean dist checksum sbom release
+.PHONY: help install install-dev install-all install-hooks test test-fast lint typecheck schemas clean dist checksum sbom release
 
 VERSION := $(shell [ -f VERSION ] && cat VERSION || grep -oP '(?<=^version = ")[^"]*' pyproject.toml)
 
@@ -28,6 +28,11 @@ install-dev:
 
 install-all:
 	pip install -e ".[dev,broker,dashboard,monitoring,ml]"
+
+install-hooks:
+	pip install pre-commit
+	pre-commit install
+	@echo "Pre-commit hooks installed (ruff + mypy). See .pre-commit-config.yaml"
 
 test:
 	python -m pytest tests/ -v --tb=short -q

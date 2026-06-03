@@ -364,7 +364,7 @@ def evaluate_spread_exit(
         now_time = now_ist().time()
         th_h, th_m = map(int, theta_exit_time.split(":"))
         theta_block_time = _dt.time(th_h, th_m)
-    except Exception:
+    except (ValueError, TypeError, ImportError):
         theta_block_time = None
         now_time         = None
 

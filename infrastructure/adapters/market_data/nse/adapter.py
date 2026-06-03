@@ -37,7 +37,7 @@ except ImportError:
 
 # Try to import nsepython library if available
 try:
-    from nsepython import *
+
     NSEPYTHON_AVAILABLE = True
 except ImportError:
     NSEPYTHON_AVAILABLE = False
@@ -155,7 +155,7 @@ class NSEAdapter(MarketDataPort):
                         data = response.read().decode('utf-8')
                         return json.loads(data)
 
-            except Exception as e:
+            except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, json.JSONDecodeError) as e:
                 last_exception = e
                 if attempt < self._max_retries - 1:
                     # Exponential backoff with longer delays for NSE (they're strict)
@@ -232,15 +232,14 @@ class NSEAdapter(MarketDataPort):
                 try:
                     data = nse_get_index_quote("NIFTY 50")
                     return data is not None
-                except Exception:
+                except (KeyError, TypeError, ValueError, IndexError):
                     pass
 
             # Test direct API
             url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%2050"
             data = self._make_request_with_retry(url)
             return data is not None and len(str(data)) > 0
-        except Exception as e:
-            logger = self._get_logger()
+        except (OSError, ConnectionError, TimeoutError, ValueError, json.JSONDecodeError) as e:
             self._logger.warning(f"Failed to connect to NSE: {e}")
             return False
 
@@ -281,7 +280,7 @@ class NSEAdapter(MarketDataPort):
                         data = nse_get_quote(nse_symbol)
                         if data:
                             return self._convert_to_quote(symbol, data)
-                except Exception as e:
+                except (KeyError, TypeError, ValueError, IndexError, OSError, ConnectionError) as e:
                     logger = self._get_logger()
                     self._logger.debug(f"nsepython failed for {symbol}: {e}")
                     # Fall back to direct API
@@ -319,7 +318,7 @@ class NSEAdapter(MarketDataPort):
             logger = self._get_logger()
             self._logger.warning(f"No valid quote data received for {symbol}")
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError, json.JSONDecodeError) as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get quote for {symbol}: {e}")
 
@@ -356,7 +355,7 @@ class NSEAdapter(MarketDataPort):
                 'volume': quote.volume,
                 'timestamp': quote.timestamp.isoformat()
             }
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get latest data for {symbol}: {e}")
             return {}
@@ -377,7 +376,7 @@ class NSEAdapter(MarketDataPort):
                 data_time = datetime.fromisoformat(market_data['timestamp'].replace('Z', '+00:00'))
                 age_seconds = (now_ist() - data_time.replace(tzinfo=None)).total_seconds()
                 return age_seconds <= max_age_seconds
-            except Exception:
+            except (KeyError, TypeError, ValueError, IndexError):
                 pass
         # If we can't determine freshness, assume it's fresh if we have data
         return bool(market_data)
@@ -463,7 +462,7 @@ class NSEAdapter(MarketDataPort):
 
         except RuntimeError:
             raise
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get historical data for {symbol}: {e}")
             return []
@@ -527,7 +526,7 @@ class NSEAdapter(MarketDataPort):
 
         except ImportError:
             pass  # yfinance not available
-        except Exception as e:
+        except (ValueError, TypeError, OSError, KeyError, RuntimeError) as e:
             logger = self._get_logger()
             self._logger.warning(f"yfinance fallback failed for {symbol}: {e}")
 
@@ -574,7 +573,7 @@ class NSEAdapter(MarketDataPort):
 
                     if data:
                         return self._parse_option_chain_data(data, symbol)
-                except Exception as e:
+                except (KeyError, TypeError, ValueError, IndexError, OSError, ConnectionError) as e:
                     logger = self._get_logger()
                     self._logger.debug(f"nsepython option chain failed for {symbol}: {e}")
 
@@ -599,7 +598,7 @@ class NSEAdapter(MarketDataPort):
             if data:
                 return self._parse_option_chain_data(data, symbol)
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError, json.JSONDecodeError) as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get option chain for {symbol}: {e}")
 
@@ -658,7 +657,7 @@ class NSEAdapter(MarketDataPort):
                             'optionType': 'PUT'
                         })
 
-        except Exception as e:
+        except (KeyError, TypeError, ValueError, IndexError, json.JSONDecodeError) as e:
             self._logger.error(f"Failed to parse option chain data: {e}")
 
         return result
@@ -702,7 +701,7 @@ class NSEAdapter(MarketDataPort):
                                 'marketCap': float(data.get('marketCap', 0)) if data.get('marketCap') else 0,
                             }
                             return info
-                except Exception as e:
+                except (KeyError, TypeError, ValueError, IndexError, OSError, ConnectionError) as e:
                     self._logger.debug(f"nsepython instrument details failed for {symbol}: {e}")
 
             # Fallback: return basic details
@@ -720,7 +719,7 @@ class NSEAdapter(MarketDataPort):
                 'marketCap': 0,
             }
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get instrument details for {symbol}: {e}")
             return {}
