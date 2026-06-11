@@ -108,7 +108,7 @@ class NSECircuitBreakerMonitor:
                 if self._stop_event.wait(30):  # Check every 30 seconds
                     break
             except Exception as e:
-                self._logger.error(f"Error in circuit breaker monitor: {e}")
+                self._logger.error(f"Error in circuit breaker monitor: {e} (type: {type(e).__name__})")
                 if self._stop_event.wait(60):
                     break
 
@@ -163,7 +163,7 @@ class NSECircuitBreakerMonitor:
                 )
 
         except Exception as e:
-            self._logger.error(f"Error checking circuit breaker: {e}")
+            self._logger.error(f"Error checking circuit breaker: {e} (type: {type(e).__name__})")
 
     def _handle_market_halt(self, level: str) -> None:
         """Handle market halt event — blocks ALL new entries."""

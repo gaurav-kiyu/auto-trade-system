@@ -195,7 +195,7 @@ class TestExitIdempotencyViaCertifier:
         cert = IdempotencyCertifier(db_path=":memory:")
         try:
             # Simulate exit execution_id
-            eid = cert.generate_execution_id("NIFTY", "EXIT", 0, 75, time_slot=6100)
+            eid = cert.generate_execution_id("NIFTY", "EXIT", 0, 75, timestamp_slot=6100)
             assert not cert.is_duplicate(eid)
 
             cid = cert.begin(eid, "NIFTY", "SELL", {"qty": 75, "reason": "stop_loss"})
@@ -212,8 +212,8 @@ class TestExitIdempotencyViaCertifier:
         """Different exit reasons get different execution_ids."""
         cert = IdempotencyCertifier(db_path=":memory:")
         try:
-            eid1 = cert.generate_execution_id("NIFTY", "EXIT", 0, 75, time_slot=6100)
-            eid2 = cert.generate_execution_id("NIFTY", "EXIT", 0, 75, time_slot=6101)
+            eid1 = cert.generate_execution_id("NIFTY", "EXIT", 0, 75, timestamp_slot=6100)
+            eid2 = cert.generate_execution_id("NIFTY", "EXIT", 0, 75, timestamp_slot=6101)
             assert eid1 != eid2
         finally:
             cert.close()

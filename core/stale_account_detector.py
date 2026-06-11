@@ -172,8 +172,8 @@ class StaleAccountDetector:
             _vfile = Path(__file__).resolve().parent.parent / "VERSION"
             if _vfile.exists():
                 version = _vfile.read_text(encoding="utf-8").strip()
-        except (OSError, IOError):
-            pass
+        except (OSError, IOError) as e:
+            log.debug("[STALE_ACCOUNT_DETECTOR] non-critical error: %s", e)
         self._logger = LoggingService(
             log_dir="logs",
             log_filename_prefix="stale_account_",
@@ -483,7 +483,7 @@ class StaleAccountDetector:
         if self._broker_health:
             try:
                 known = list(self._broker_health.get_all_brokers_health().keys()) + ["system"]
-            except (AttributeError, ValueError, OSError):
-                pass
+            except (AttributeError, ValueError, OSError) as e:
+                log.debug("[STALE_ACCOUNT_DETECTOR] non-critical error: %s", e)
 
         return [b for b in known if b not in stale_brokers]

@@ -33,6 +33,7 @@ import argparse
 import json
 import logging
 import math
+import threading
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -121,6 +122,7 @@ class ABStrategyTester:
         self._enabled  = bool(self._cfg.get("ab_testing_enabled", False))
         self._min_trades = int(self._cfg.get("ab_min_trades_for_significance", 30))
 
+        self._lock = threading.Lock()
         self.control = ABVariantState(name="CONTROL")
         self.variant = ABVariantState(name=variant_name)
 
@@ -170,16 +172,19 @@ class ABStrategyTester:
         """
         Record a closed trade outcome for a given variant.
 
+        Thread-safe: uses internal lock to protect shared state.
+
         Args:
             variant : "CONTROL" or the variant name.
             pnl     : Net P&L of the trade.
         """
         if not self._enabled:
             return
-        if variant.upper() == "CONTROL":
-            self.control.add_outcome(pnl)
-        else:
-            self.variant.add_outcome(pnl)
+        with self._lock:
+            if variant.upper() == "CONTROL":
+                self.control.add_outcome(pnl)
+            else:
+                self.variant.add_outcome(pnl)
 
     # ── Statistical comparison ────────────────────────────────────────────────
 
@@ -187,22 +192,41 @@ class ABStrategyTester:
         """
         Compute a statistical comparison between CONTROL and VARIANT.
 
+        Thread-safe: takes a snapshot under lock to avoid race conditions
+        with concurrent record_trade_outcome calls.
+
         Uses Mann-Whitney U (via scipy) if available, else Welch's t-test
         approximation.
 
         Returns:
             ABComparisonResult with significance flags and winner.
         """
+        with self._lock:
+            control_snapshot = ABVariantState(
+                name=self.control.name,
+                n_trades=self.control.n_trades,
+                n_wins=self.control.n_wins,
+                total_pnl=self.control.total_pnl,
+                pnls=list(self.control.pnls),
+            )
+            variant_snapshot = ABVariantState(
+                name=self.variant.name,
+                n_trades=self.variant.n_trades,
+                n_wins=self.variant.n_wins,
+                total_pnl=self.variant.total_pnl,
+                pnls=list(self.variant.pnls),
+            )
+
         min_n = self._min_trades
         min_met = (
-            self.control.n_trades >= min_n
-            and self.variant.n_trades >= min_n
+            control_snapshot.n_trades >= min_n
+            and variant_snapshot.n_trades >= min_n
         )
         p_value = 1.0
         is_sig  = False
 
-        if min_met and self.control.pnls and self.variant.pnls:
-            p_value = _mann_whitney_p(self.control.pnls, self.variant.pnls)
+        if min_met and control_snapshot.pnls and variant_snapshot.pnls:
+            p_value = _mann_whitney_p(control_snapshot.pnls, variant_snapshot.pnls)
             is_sig  = p_value < 0.05
 
         winner = ""
@@ -217,8 +241,8 @@ class ABStrategyTester:
         else:
             winner = "INSUFFICIENT_DATA"
 
-        ctrl = self.control
-        var  = self.variant
+        ctrl = control_snapshot
+        var  = variant_snapshot
         summary = (
             f"A/B Test: CONTROL {ctrl.n_trades}T {ctrl.win_rate*100:.1f}% WR "
             f"PF={ctrl.profit_factor:.2f} Sharpe={ctrl.sharpe:.3f} | "
@@ -229,8 +253,8 @@ class ABStrategyTester:
         )
 
         return ABComparisonResult(
-            control=self.control,
-            variant=self.variant,
+            control=control_snapshot,
+            variant=variant_snapshot,
             is_significant=is_sig,
             p_value=round(p_value, 6),
             winner=winner,
@@ -241,14 +265,17 @@ class ABStrategyTester:
     # ── Persistence ───────────────────────────────────────────────────────────
 
     def save_state(self, path: str | None = None) -> None:
-        """Save current A/B state to a JSON file."""
+        """Save current A/B state to a JSON file. Thread-safe."""
         if not self._enabled:
             return
         fpath = path or self._cfg.get("ab_state_path", "ab_state.json")
+        with self._lock:
+            control_data = asdict(self.control)
+            variant_data = asdict(self.variant)
         try:
             data = {
-                "control": asdict(self.control),
-                "variant": asdict(self.variant),
+                "control": control_data,
+                "variant": variant_data,
             }
             Path(fpath).write_text(json.dumps(data, indent=2))
             _log.debug("[AB] State saved to %s", fpath)
@@ -256,29 +283,31 @@ class ABStrategyTester:
             _log.warning("[AB] save_state failed: %s", exc)
 
     def load_state(self, path: str | None = None) -> None:
-        """Load A/B state from a JSON file (if it exists)."""
+        """Load A/B state from a JSON file (if it exists). Thread-safe."""
         fpath = path or self._cfg.get("ab_state_path", "ab_state.json")
         p = Path(fpath)
         if not p.is_file():
             return
         try:
             data = json.loads(p.read_text())
-            for attr, cls, obj in (("control", ABVariantState, self.control),
-                                   ("variant", ABVariantState, self.variant)):
-                raw = data.get(attr, {})
-                obj.n_trades  = int(raw.get("n_trades", 0))
-                obj.n_wins    = int(raw.get("n_wins",   0))
-                obj.total_pnl = float(raw.get("total_pnl", 0.0))
-                obj.pnls      = [float(x) for x in raw.get("pnls", [])]
+            with self._lock:
+                for attr, cls, obj in (("control", ABVariantState, self.control),
+                                       ("variant", ABVariantState, self.variant)):
+                    raw = data.get(attr, {})
+                    obj.n_trades  = int(raw.get("n_trades", 0))
+                    obj.n_wins    = int(raw.get("n_wins",   0))
+                    obj.total_pnl = float(raw.get("total_pnl", 0.0))
+                    obj.pnls      = [float(x) for x in raw.get("pnls", [])]
             _log.debug("[AB] State loaded from %s", fpath)
         except Exception as exc:
             _log.warning("[AB] load_state failed: %s", exc)
 
     def reset(self) -> None:
         """Reset both variant states (start a fresh experiment)."""
-        variant_name = self.variant.name
-        self.control = ABVariantState(name="CONTROL")
-        self.variant = ABVariantState(name=variant_name)
+        with self._lock:
+            variant_name = self.variant.name
+            self.control = ABVariantState(name="CONTROL")
+            self.variant = ABVariantState(name=variant_name)
 
 
 # ── Statistical helper ────────────────────────────────────────────────────────
@@ -293,7 +322,7 @@ def _mann_whitney_p(a: list[float], b: list[float]) -> float:
         p = float(result.pvalue)
         return p if not math.isnan(p) else 1.0
     except ImportError:
-        pass
+        _log.debug("[AB] scipy not available, using Welch's t-test fallback")
     # Welch's t-test fallback
     na, nb = len(a), len(b)
     if na < 2 or nb < 2:
@@ -328,6 +357,7 @@ def _betainc(a: float, b: float, x: float) -> float:
         val     = math.exp(a * math.log(x) + b * math.log(1 - x) - ln_beta) / a
         return min(1.0, val * 2)  # two-sided
     except (ValueError, TypeError, ArithmeticError, OSError):
+        _log.debug("[AB] Incomplete beta function approximation failed, returning 1.0")
         return 1.0
 
 

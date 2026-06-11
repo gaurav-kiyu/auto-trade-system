@@ -424,8 +424,8 @@ class ManualSignalQueue:
     def close(self) -> None:
         try:
             self._conn.close()
-        except (sqlite3.Error, OSError):
-            pass
+        except (sqlite3.Error, OSError) as e:
+            _log.debug("[MANUAL_SIGNAL] non-critical error: %s", e)
 
     # ── Private helpers ────────────────────────────────────────────────────
 

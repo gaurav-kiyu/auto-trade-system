@@ -60,7 +60,7 @@ class HMMRegimeDetector:
             self._map_states()
             self.logger.info(f"[HMM] Model trained. States discovered: {self.n_components}")
         except Exception as e:
-            self.logger.error(f"HMM fitting failed: {e}")
+            self.logger.error(f"HMM fitting failed: {e} (type: {type(e).__name__})")
 
     def _map_states(self):
         """Maps hidden states to functional labels based on mean return and variance."""
@@ -94,5 +94,5 @@ class HMMRegimeDetector:
             label = self.state_map.get(state, "NEUTRAL")
             return RegimeState(state, label, probs[state], vol[-1])
         except Exception as e:
-            self.logger.error(f"HMM prediction failed: {e}")
+            self.logger.error(f"HMM prediction failed: {e} (type: {type(e).__name__})")
             return RegimeState(0, "NEUTRAL", 0.0, 0.0)

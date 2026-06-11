@@ -313,9 +313,9 @@ def is_expiry_day(
         holidays = _nse_holidays(c)
         if today in holidays:
             return False
-        # If today is a holiday, expiry was yesterday (not handled here — caller re-checks)
-    except (ImportError, AttributeError, ValueError, TypeError):
-        pass
+        # If today is a holiday, expiry was yesterday (not handled here)
+    except (ImportError, AttributeError, ValueError, TypeError) as e:
+        _log.debug("[SESSION_CLASSIFIER] non-critical error: %s", e)
 
     return True
 

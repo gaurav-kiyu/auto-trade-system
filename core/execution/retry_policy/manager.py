@@ -100,7 +100,7 @@ class RetryPolicy:
                 safety = self.classify_error(e)
                 last_safety = safety
 
-                log.warning(f"Operation attempt {attempt} failed: {e} (safety: {safety.value})")
+                log.warning(f"Operation attempt {attempt} failed: {e} (safety: {safety.value}) (type: {type(e).__name__})")
 
                 if safety == RetrySafety.UNSAFE:
                     log.error(f"Unsafe error - will not retry: {e}")
@@ -175,6 +175,7 @@ def safe_retry_operation(
         try:
             return operation(*args, **kwargs)
         except Exception as e:
+            log.warning("safe_retry_operation raised: %s", e)
             last_exc = e
             raise
 

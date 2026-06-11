@@ -456,7 +456,7 @@ class TelegramCommander:
                 updates = self._get_updates()
                 for upd in updates:
                     self._handle_update(upd)
-            except Exception as exc:
+            except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as exc:
                 _log.warning("[TG_CMD] Poll error: %s", exc)
 
     def _get_updates(self) -> list[dict]:
@@ -513,7 +513,7 @@ class TelegramCommander:
             self._dispatch(cmd, parts[1:], user_id, username)
             # Audit successful command
             self._audit.record_command(user_id, username, cmd, parts[1:], "SUCCESS")
-        except Exception as exc:
+        except (ValueError, TypeError, KeyError, OSError, ConnectionError) as exc:
             _log.error("[TG_CMD] Handler error for %r: %s", cmd, exc)
             self._audit.record_command(user_id, username, cmd, parts[1:], f"ERROR: {exc}")
             self._reply(f"⚠️ Command error: {exc}", critical=False)
@@ -722,6 +722,7 @@ class TelegramCommander:
                 state["pending_signals"] = len(self._queue.get_pending())
             self._reply(build_status_message(state, self._cfg), critical=False)
         except Exception as exc:
+            _log.error("[TG_CMD] Status unavailable: %s", exc)
             self._reply(f"⚠️ Status unavailable: {exc}", critical=False)
 
     def _cmd_positions(self) -> None:
@@ -729,6 +730,7 @@ class TelegramCommander:
             positions = self._positions_fn()
             self._reply(build_positions_message(positions, self._cfg), critical=False)
         except Exception as exc:
+            _log.error("[TG_CMD] Positions unavailable: %s", exc)
             self._reply(f"⚠️ Positions unavailable: {exc}", critical=False)
 
     def _cmd_pnl(self) -> None:
@@ -752,6 +754,7 @@ class TelegramCommander:
             lines.append(f"{'─'*26}")
             self._reply("\n".join(lines), critical=False)
         except Exception as exc:
+            _log.error("[TG_CMD] P&L unavailable: %s", exc)
             self._reply(f"⚠️ P&L unavailable: {exc}", critical=False)
 
     def _cmd_signals_recent(self) -> None:
@@ -863,6 +866,6 @@ def build_commander(
                                       positions_fn, pnl_fn)
         commander.start()
         return commander
-    except Exception as exc:
+    except (ValueError, TypeError, KeyError, OSError) as exc:
         _log.error("[TG_CMD] Init failed: %s", exc)
         return None

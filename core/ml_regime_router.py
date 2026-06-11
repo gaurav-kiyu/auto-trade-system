@@ -42,7 +42,7 @@ class MLRegimeRouter:
                     self._loaded_models[model_file] = joblib.load(path)
                     self.logger.info(f"[ML_ROUTER] Loaded {regime_upper} model from {path}")
                 except Exception as e:
-                    self.logger.error(f"[ML_ROUTER] Failed to load {model_file}: {e}")
+                    self.logger.error(f"[ML_ROUTER] Failed to load {model_file}: {e} (type: {type(e).__name__})")
                     return self._get_default_model()
             else:
                 return self._get_default_model()

@@ -188,7 +188,7 @@ def find_all_imports() -> dict[Path, set[str]]:
                     for alias in node.names:
                         imports[py_file].add(alias.asname or alias.name)
         except SyntaxError:
-            pass
+            log.debug("SyntaxError in import scan for %s, skipping", py_file.name)
 
     return dict(imports)
 
@@ -247,7 +247,7 @@ def scan_unused_imports() -> list[DeadCodeFinding]:
                         ))
 
         except SyntaxError:
-            pass
+            log.debug("SyntaxError in unused import scan for %s, skipping", py_file.name)
 
     return findings
 
@@ -320,7 +320,7 @@ def scan_empty_blocks() -> list[DeadCodeFinding]:
                 elif isinstance(node, ast.ClassDef):
                     _check_empty_body(node, relative, findings)
         except SyntaxError:
-            pass
+            log.debug("Syntax error in empty block scan, skipping")
 
     return findings
 
@@ -382,7 +382,7 @@ def scan_duplicate_code() -> list[DuplicateFinding]:
                 elif isinstance(node, ast.ClassDef):
                     symbol_locations[node.name].append((py_file, node.lineno))
         except SyntaxError:
-            pass
+            log.debug("Syntax error in duplicate scan, skipping")
 
     # Report symbols defined in multiple files (potential duplicates)
     for name, locations in symbol_locations.items():

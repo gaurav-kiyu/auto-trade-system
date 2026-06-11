@@ -174,6 +174,8 @@ class ReplayCertifier:
                     report.deterministic_count += 1
 
             except Exception as exc:
+                import logging
+                logging.getLogger(__name__).error("Replay certifier error for trade %d: %s", tid, exc)
                 report.error_count += 1
                 report.errors.append(f"Trade {tid}: {exc}")
 

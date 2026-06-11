@@ -18,6 +18,7 @@ Architecture
 - Uses the NSE market data adapter (``infrastructure.adapters.market_data.nse.adapter``)
   to fetch live option chain data.
 - Never blocks or raises — all exceptions are caught and logged.
+- **Caches the NSEAdapter instance across calls** to maintain session cookies.
 """
 from __future__ import annotations
 
@@ -27,6 +28,9 @@ from typing import Any
 from core.oi_snapshot_store import record_snapshot
 
 _log = logging.getLogger(__name__)
+
+# Module-level cache for NSEAdapter instance (preserves session cookies across calls)
+_nse_adapter_cache: Any = None
 
 
 def _aggregate_oi_data(chain: list[dict[str, Any]]) -> dict[str, Any]:
@@ -106,20 +110,26 @@ def record_oi_snapshots_for_indices(
     )
 
     # Lazy-import NSE adapter (avoids import errors if infrastructure not available)
+    # Uses module-level cache to maintain session cookies across scan cycles
     if nse_adapter is None:
-        try:
-            from infrastructure.adapters.market_data.nse.adapter import NSEAdapter
-            nse_adapter = NSEAdapter(
-                enable_rate_limit=True,
-                max_retries=2,
-                requests_per_second=0.5,
-            )
-        except ImportError as exc:
-            _log.warning("[NSE_RECORDER] NSEAdapter not available: %s", exc)
-            return {idx: False for idx in index_names}
-        except (ImportError, OSError, RuntimeError) as exc:
-            _log.warning("[NSE_RECORDER] Failed to initialize NSEAdapter: %s", exc)
-            return {idx: False for idx in index_names}
+        global _nse_adapter_cache
+        if _nse_adapter_cache is not None:
+            nse_adapter = _nse_adapter_cache
+        else:
+            try:
+                from infrastructure.adapters.market_data.nse.adapter import NSEAdapter
+                nse_adapter = NSEAdapter(
+                    enable_rate_limit=True,
+                    max_retries=2,
+                    requests_per_second=0.5,
+                )
+                _nse_adapter_cache = nse_adapter  # Cache for next scan cycle
+            except ImportError as exc:
+                _log.warning("[NSE_RECORDER] NSEAdapter not available: %s", exc)
+                return {idx: False for idx in index_names}
+            except (ImportError, OSError, RuntimeError) as exc:
+                _log.warning("[NSE_RECORDER] Failed to initialize NSEAdapter: %s", exc)
+                return {idx: False for idx in index_names}
 
     results: dict[str, bool] = {}
 
@@ -159,10 +169,21 @@ def record_oi_snapshots_for_indices(
     return results
 
 
+def reset_nse_adapter_cache() -> None:
+    """Reset the module-level NSE adapter cache.
+
+    Used primarily in tests to ensure test isolation when patching
+    the NSEAdapter import.
+    """
+    global _nse_adapter_cache
+    _nse_adapter_cache = None
+
+
 def get_oi_summary(index_names: list[str], config: dict[str, Any]) -> dict[str, Any]:
     """Fetch current OI/PCR summary for the given indices (read-only, no recording).
 
     Useful for dashboards, Telegram summaries, and health checks.
+    Does NOT use the module-level adapter cache (since it's infrequently called).
 
     Args:
         index_names: List of index names.

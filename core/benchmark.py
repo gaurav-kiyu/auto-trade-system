@@ -101,8 +101,8 @@ def _load_cache() -> dict:
     try:
         if _CACHE_FILE.exists():
             return json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        pass
+    except (json.JSONDecodeError, OSError) as e:
+        _log.debug("[BENCHMARK] non-critical error: %s", e)
     return {}
 
 
@@ -133,8 +133,8 @@ def fetch_benchmark(
     if entry and (time.time() - float(entry.get("fetched_at", 0))) < ttl_secs:
         try:
             return BenchmarkReturn(**{k: v for k, v in entry.items() if k != "fetched_at"})
-        except (TypeError, ValueError, KeyError):
-            pass
+        except (TypeError, ValueError, KeyError) as e:
+            _log.debug("[BENCHMARK] non-critical error: %s", e)
 
     try:
         import yfinance as yf  # already in requirements

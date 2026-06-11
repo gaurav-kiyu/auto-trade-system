@@ -32,6 +32,10 @@ from enum import Enum
 from typing import Any
 
 
+# Import stress test engine for capital preservation verification
+from core.stress_tester import run_stress_test
+
+
 class BlackSwanType(str, Enum):
     """Predefined black swan event types."""
 

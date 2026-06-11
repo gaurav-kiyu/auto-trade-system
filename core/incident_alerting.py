@@ -163,7 +163,7 @@ class IncidentAlerting:
             try:
                 self._process_incidents()
             except Exception as e:
-                log.error(f"Incident processing error: {e}")
+                log.error(f"Incident processing error: {e} (type: {type(e).__name__})")
 
             if self._stop_event.wait(self._dequeue_interval):
                 break
@@ -189,7 +189,7 @@ class IncidentAlerting:
                     is_critical = incident.severity <= IncidentSeverity.HIGH.value
                     self._send_alert(formatted, is_critical)
                 except Exception as e:
-                    log.error(f"Failed to send incident alert: {e}")
+                    log.error(f"Failed to send incident alert: {e} (type: {type(e).__name__})")
 
     def _format_alert(self, incident: Incident) -> str:
         """Format incident as alert message."""

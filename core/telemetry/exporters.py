@@ -89,7 +89,7 @@ class PrometheusExporter:
         try:
             server.serve_forever()
         except Exception as exc:
-            _log.error(f"Prometheus exporter error: {exc}")
+            _log.error(f"Prometheus exporter error: {exc} (type: {type(exc).__name__})")
 
 
 def start_prometheus_exporter(

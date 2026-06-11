@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.logging import LoggingService
 
 # Import the market data port interface this adapter implements
 try:
@@ -35,9 +36,17 @@ except ImportError:
     # Fallback to urllib
     requests = None
 
+# Try to import cloudscraper for bypassing NSE's Akamai/WAF protection
+try:
+    import cloudscraper
+    CLOUDSCRAPER_AVAILABLE = True
+except ImportError:
+    CLOUDSCRAPER_AVAILABLE = False
+    cloudscraper = None
+
 # Try to import nsepython library if available
 try:
-
+    from nsepython import nse_get_index_quote, nse_get_quote, nse_get_option_chain
     NSEPYTHON_AVAILABLE = True
 except ImportError:
     NSEPYTHON_AVAILABLE = False
@@ -82,11 +91,30 @@ class NSEAdapter(MarketDataPort):
             'Upgrade-Insecure-Requests': '1',
         }
 
-        # Session for connection pooling (if using requests)
+        # Session for connection pooling
+        # Priority: cloudscraper > requests > urllib
         self._session = None
-        if REQUESTS_AVAILABLE:
+        self._session_type = "none"
+        if CLOUDSCRAPER_AVAILABLE:
+            try:
+                self._session = cloudscraper.create_scraper(
+                    browser={"browser": "chrome", "platform": "windows", "desktop": True},
+                    delay=2,
+                )
+                self._session.headers.update(self._headers)
+                self._session_type = "cloudscraper"
+            except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as _init_err:
+                self._session = None
+                self._logger.warning(f"[NSE] Cloudscraper init failed: {_init_err}")
+        if self._session is None and REQUESTS_AVAILABLE:
             self._session = requests.Session()
             self._session.headers.update(self._headers)
+            self._session_type = "requests"
+
+        # NSE session initialization state
+        self._nse_session_initialized = False
+        self._nse_session_init_time = 0.0
+        self._nse_session_ttl = 300  # Re-init session every 5 minutes
 
         # Cache for symbol mappings and instrument data
         self._symbol_cache: dict[str, dict[str, Any]] = {}
@@ -103,8 +131,10 @@ class NSEAdapter(MarketDataPort):
             enable_contextual_logging=False
         )
         self._logger.info("NSE market data adapter initialized")
+        self._logger.info(f"Using session type: {self._session_type}")
         self._logger.info(f"Using nsepython library: {self._use_nsepython}")
-        self._logger.info(f"Using requests library: {REQUESTS_AVAILABLE}")
+        self._logger.info(f"Requests library available: {REQUESTS_AVAILABLE}")
+        self._logger.info(f"Cloudscraper library available: {CLOUDSCRAPER_AVAILABLE}")
 
     def _get_logger(self):
         """Get logger instance."""
@@ -119,6 +149,65 @@ class NSEAdapter(MarketDataPort):
         if elapsed < self._min_request_interval:
             time.sleep(self._min_request_interval - elapsed)
         self._last_request_time = time.time()
+
+    def _init_nse_session(self) -> bool:
+        """
+        Initialize NSE session by visiting the homepage to obtain required cookies.
+        NSE's anti-scraping measures require a valid session cookie obtained by
+        first visiting the homepage before API endpoints will respond.
+
+        Returns:
+            True if session initialized successfully, False otherwise.
+        """
+        now = time.time()
+        if self._nse_session_initialized and (now - self._nse_session_init_time) < self._nse_session_ttl:
+            return True
+
+        if not REQUESTS_AVAILABLE or not self._session:
+            self._logger.warning("Cannot init NSE session: requests library not available")
+            return False
+
+        try:
+            # Step 1: Visit homepage to get initial cookies
+            self._logger.info("[NSE] Initializing session — visiting homepage")
+            homepage_url = "https://www.nseindia.com"
+            resp = self._session.get(
+                homepage_url,
+                timeout=15,
+                headers={
+                    **self._headers,
+                    "Referer": "https://www.google.com/",
+                },
+            )
+            resp.raise_for_status()
+
+            # Step 2: Visit the market status page to get additional cookies
+            # This is needed for the option chain API specifically
+            market_status_url = "https://www.nseindia.com/market-data/market-status"
+            self._session.get(
+                market_status_url,
+                timeout=10,
+                headers={
+                    **self._headers,
+                    "Referer": homepage_url,
+                },
+            )
+
+            # Update session headers with NSE cookies
+            self._session.headers.update({
+                "Referer": homepage_url,
+                "Origin": "https://www.nseindia.com",
+            })
+
+            self._nse_session_initialized = True
+            self._nse_session_init_time = now
+            self._logger.info("[NSE] Session initialized successfully")
+            return True
+
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as e:
+            self._logger.warning(f"[NSE] Failed to initialize session: {e}")
+            self._nse_session_initialized = False
+            return False
 
     def _make_request_with_retry(self, url: str, params: dict[str, Any] = None) -> Any:
         """
@@ -140,7 +229,19 @@ class NSEAdapter(MarketDataPort):
                 self._rate_limit()
 
                 if REQUESTS_AVAILABLE and self._session:
-                    response = self._session.get(url, params=params, timeout=10)
+                    # Auto-init NSE session on first request or if TTL expired
+                    if "nseindia.com" in url:
+                        self._init_nse_session()
+
+                    response = self._session.get(url, params=params, timeout=15)
+
+                    # If we get a 404 or 403, the session may have expired — try re-init
+                    if response.status_code in (403, 404) and "nseindia.com" in url:
+                        self._logger.info(f"[NSE] Got {response.status_code} — re-initializing session")
+                        self._nse_session_initialized = False
+                        self._init_nse_session()
+                        response = self._session.get(url, params=params, timeout=15)
+
                     response.raise_for_status()
                     return response.json()
                 else:
@@ -151,12 +252,16 @@ class NSEAdapter(MarketDataPort):
                         full_url = f"{url}?{urlencode(params)}"
 
                     req = urllib.request.Request(full_url, headers=self._headers)
-                    with urllib.request.urlopen(req, timeout=10) as response:
+                    with urllib.request.urlopen(req, timeout=15) as response:
                         data = response.read().decode('utf-8')
                         return json.loads(data)
 
             except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, json.JSONDecodeError) as e:
                 last_exception = e
+                self._logger.warning(
+                    f"[NSE] Request failed (attempt {attempt + 1}/{self._max_retries}, "
+                    f"session={self._session_type}): {type(e).__name__}: {e}"
+                )
                 if attempt < self._max_retries - 1:
                     # Exponential backoff with longer delays for NSE (they're strict)
                     wait_time = (2 ** attempt) * 2.0  # Start with 2 seconds

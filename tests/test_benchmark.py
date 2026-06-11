@@ -66,7 +66,7 @@ def test_fetch_benchmark_returns_none_on_error():
     import uuid
     fake_symbol = f"^TEST_{uuid.uuid4().hex[:8]}"
     with patch("yfinance.Ticker") as mock_ticker:
-        mock_ticker.side_effect = Exception("network error")
+        mock_ticker.side_effect = ConnectionError("network error")
         result = fetch_benchmark(fake_symbol, date(2024, 1, 1), date(2024, 3, 31))
     assert result is None
 

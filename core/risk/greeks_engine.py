@@ -48,6 +48,21 @@ from core.option_premium_model import black_scholes_greeks, lot_size
 
 _log = logging.getLogger(__name__)
 
+# Re-export OptionsGreeksEngine from legacy location for backward compatibility
+# This makes core.risk the canonical import path for all Greeks engines
+try:
+    from core.options_greeks_engine import (
+        GreeksConfig as LegacyGreeksConfig,
+        GreeksResult as LegacyGreeksResult,
+        OptionType as LegacyOptionType,
+        OptionsGreeksEngine as LegacyOptionsGreeksEngine,
+        PositionGreeksInput as LegacyPositionGreeksInput,
+        compute_greeks_quick as legacy_compute_greeks_quick,
+        get_greeks_engine as legacy_get_greeks_engine,
+    )
+except ImportError as e:
+    _log.debug("[GREEKS] non-critical error: %s", e)
+
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 DEFAULT_DELTA_LIMIT = 0.20       # Max net delta as % of capital (20%)

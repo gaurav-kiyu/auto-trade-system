@@ -231,8 +231,8 @@ class NewsSentinel:
                 pub_ts  = 0.0
                 try:
                     pub_ts = parsedate_to_datetime(pub_raw).timestamp()
-                except (ValueError, TypeError, OSError):
-                    pass
+                except (ValueError, TypeError, OSError) as e:
+                    _log.debug("[NEWS_SENTINEL] non-critical error: %s", e)
                 items.append({"title": title, "pub_ts": pub_ts, "link": item.findtext("link") or ""})
             return items
         except (URLError, ET.ParseError, Exception) as exc:

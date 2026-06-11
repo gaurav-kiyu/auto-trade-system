@@ -86,7 +86,7 @@ class FeatureStore:
                 conn.commit()
             _log.info("FeatureStore: Storage initialized")
         except Exception as e:
-            _log.error(f"FeatureStore: Failed to init storage: {e}")
+            _log.error(f"FeatureStore: Failed to init storage: {e} (type: {type(e).__name__})")
 
     def register_feature(self, definition: FeatureDefinition) -> None:
         """Register a feature definition"""
@@ -147,7 +147,7 @@ class FeatureStore:
                 cursor = conn.execute(query, params)
                 return self._rows_to_vectors(cursor)
         except Exception as e:
-            _log.error(f"Failed to get features: {e}")
+            _log.error(f"Failed to get features: {e} (type: {type(e).__name__})")
             return []
 
     def compute_features(self, market_data: dict[str, Any]) -> dict[str, float]:
@@ -186,7 +186,7 @@ class FeatureStore:
                 ))
                 conn.commit()
         except Exception as e:
-            _log.error(f"Failed to persist vector: {e}")
+            _log.error(f"Failed to persist vector: {e} (type: {type(e).__name__})")
 
     def _persist_definition(self, definition: FeatureDefinition) -> None:
         """Persist feature definition"""
@@ -205,7 +205,7 @@ class FeatureStore:
                 ))
                 conn.commit()
         except Exception as e:
-            _log.error(f"Failed to persist definition: {e}")
+            _log.error(f"Failed to persist definition: {e} (type: {type(e).__name__})")
 
     def _rows_to_vectors(self, cursor) -> list[FeatureVector]:
         """Convert DB rows to FeatureVectors"""

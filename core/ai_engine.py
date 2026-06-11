@@ -420,9 +420,10 @@ class AIEngine:
             for line in lines[-lookback:]:
                 try:
                     entries.append(json.loads(line))
-                except (json.JSONDecodeError, ValueError, TypeError):
-                    pass
-        except (OSError, json.JSONDecodeError):
+                except (json.JSONDecodeError, ValueError, TypeError) as _parse_err:
+                    self._log(f"[AI_ENGINE] Journal parse error (non-blocking): {_parse_err}")
+        except (OSError, json.JSONDecodeError) as _io_err:
+            self._log(f"[AI_ENGINE] Journal read failed: {_io_err}")
             return {"count": 0}
 
         total = len(entries)

@@ -73,8 +73,8 @@ class ExecutionEngine:
             return
         try:
             self._capture_hook(dict(payload))
-        except (ValueError, TypeError, KeyError):
-            pass
+        except (ValueError, TypeError, KeyError) as e:
+            _log.debug("[EXECUTION_ENGINE] non-critical error: %s", e)
 
     def place_order(
         self,
@@ -108,7 +108,7 @@ class ExecutionEngine:
             start = time.monotonic()
             try:
                 order_id = action(name, direction, qty, strike)
-            except (BrokerConnectionError, BrokerTimeoutError, BrokerRejectedError, BrokerRateLimitError, ConnectionError, OSError, ValueError, TypeError) as exc:
+            except (BrokerConnectionError, BrokerTimeoutError, BrokerRejectedError, BrokerRateLimitError, ConnectionError, OSError, ValueError, TypeError, RuntimeError) as exc:
                 order_id = None
                 last_reason = str(exc)
 

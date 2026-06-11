@@ -195,7 +195,7 @@ class NotificationService:
             return True
 
         except Exception as e:
-            self._logger.error(f"Failed to start notification service: {e}")
+            self._logger.error(f"Failed to start notification service: {e} (type: {type(e).__name__})")
             self._status = ServiceStatus.ERROR
             return False
 
@@ -236,7 +236,7 @@ class NotificationService:
             return True
 
         except Exception as e:
-            self._logger.error(f"Error stopping notification service: {e}")
+            self._logger.error(f"Error stopping notification service: {e} (type: {type(e).__name__})")
             self._status = ServiceStatus.ERROR
             return False
 
@@ -383,7 +383,7 @@ class NotificationService:
             else:
                 self._logger.info("Telegram credentials not configured - Telegram notifications disabled")
         except Exception as e:
-            self._logger.warning(f"Could not initialize Telegram adapter: {e}")
+            self._logger.warning(f"Could not initialize Telegram adapter: {e} (type: {type(e).__name__})")
 
         # Initialize email adapter if SMTP credentials are configured
         try:
@@ -415,7 +415,7 @@ class NotificationService:
                     "Email credentials not configured (OPBUYING_EMAIL_USER/PASS) "
                     "or EMAIL_ENABLED=false - email notifications disabled"
                 )
-        except Exception as e:
+        except (OSError, ValueError, TypeError, ConnectionError) as e:
             self._logger.warning("Could not initialize email adapter: %s", e)
 
         # Placeholder for future adapters (SMS, webhook, etc.)
@@ -494,7 +494,7 @@ class NotificationService:
                 # Note: In a full implementation, we'd need to store callbacks with queued notifications
 
             except Exception as e:
-                self._logger.error(f"Error in notification worker: {e}")
+                self._logger.error(f"Error in notification worker: {e} (type: {type(e).__name__})")
                 if self._stop_event.wait(1.0):  # Avoid tight loop on error, interruptible
                     break
 
@@ -524,8 +524,8 @@ class NotificationService:
                     # If primary failed and fallback is enabled, try fallbacks
                 except Exception as e:
                     self._logger.error(
-                        "Error sending notification via primary channel %s: %s",
-                        notification.channel.value, str(e)
+                        "Error sending notification via primary channel %s: %s (type: %s)",
+                        notification.channel.value, str(e), type(e).__name__
                     )
 
         # Try fallback channels if enabled
@@ -558,8 +558,8 @@ class NotificationService:
                             return result
                     except Exception as e:
                         self._logger.error(
-                            "Error sending notification via fallback channel %s: %s",
-                            fallback_channel.value, str(e)
+                            "Error sending notification via fallback channel %s: %s (type: %s)",
+                            fallback_channel.value, str(e), type(e).__name__
                         )
                         continue
 

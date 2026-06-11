@@ -35,7 +35,6 @@ Config keys (all optional — safe defaults built in)
 from __future__ import annotations
 
 import logging
-import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -156,8 +155,11 @@ def load_autopsy_data(
                 "is_winner":   1 if pnl > 0 else 0,
             })
         return trades
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as exc:
+        _log.warning("[AUTOPSY] load_autopsy_data failed: %s", exc)
+        return []
     except Exception as exc:
-        _log.debug("[AUTOPSY] load_autopsy_data failed: %s", exc)
+        _log.warning("[AUTOPSY] load_autopsy_data failed (unexpected: %s): %s", type(exc).__name__, exc)
         return []
 
 

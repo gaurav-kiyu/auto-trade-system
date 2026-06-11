@@ -4,8 +4,7 @@ Tests for core.stale_account_detector — session, credential, trading state sta
 from __future__ import annotations
 
 import time
-
-
+from unittest.mock import MagicMock
 
 
 from core.stale_account_detector import (

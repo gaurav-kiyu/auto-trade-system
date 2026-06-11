@@ -974,17 +974,28 @@ class IndependentAuditor:
             )
 
     def _check_dependency_direction(self) -> AuditEvidence:
-        """Check that core modules don't import from index_app (except through interfaces)."""
+        """Check that core modules don't import from index_app (except through interfaces).
+
+        Uses AST parsing to detect actual imports, avoiding false positives from
+        docstrings or comments that mention "import index_app".
+        """
+        import ast as _ast
         core_modules = [p for p in Path("core").rglob("*.py") if p.is_file() and "__init__" not in p.name]
         violations = []
         for mod in core_modules:
             try:
-                content = mod.read_text(encoding="utf-8")
-                if "from index_app" in content or "import index_app" in content:
-                    if "from core.datetime_ist import" in content:
-                        continue  # Allow IST import pattern
-                    violations.append(mod.name)
-            except OSError:
+                tree = _ast.parse(mod.read_text(encoding="utf-8"))
+                for node in _ast.walk(tree):
+                    if isinstance(node, _ast.Import):
+                        for alias in node.names:
+                            parts = alias.name.split(".")
+                            if len(parts) >= 1 and parts[0] == "index_app":
+                                violations.append(f"{mod.name}: import {alias.name}")
+                    elif isinstance(node, _ast.ImportFrom):
+                        if node.module and node.module.split(".")[0] == "index_app":
+                            names = [a.name for a in node.names]
+                            violations.append(f"{mod.name}: from {node.module} import {', '.join(names)}")
+            except (SyntaxError, OSError):
                 continue
 
         if violations:

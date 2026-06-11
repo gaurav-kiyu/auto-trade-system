@@ -231,8 +231,10 @@ class TelegramQueue:
                 if success:
                     self._sent_this_min.append(time.time())
                     return
+            except (ValueError, TypeError, KeyError, AttributeError, ConnectionError, TimeoutError, OSError) as exc:
+                _log.warning("[TG_Q] Deliver error attempt %d: %s", attempt, exc)
             except Exception as exc:
-                _log.debug("[TG_Q] Deliver error attempt %d: %s", attempt, exc)
+                _log.warning("[TG_Q] Deliver error attempt %d (unexpected: %s): %s", attempt, type(exc).__name__, exc)
 
             if attempt < max_retries:
                 backoff = 2.0 ** attempt   # 1s, 2s, 4s

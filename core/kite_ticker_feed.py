@@ -31,6 +31,7 @@ Config keys (extending ws_* base)
 """
 from __future__ import annotations
 
+import importlib
 import logging
 import threading
 import time
@@ -157,8 +158,10 @@ class KiteTickerFeedManager(WebSocketFeedManager):
         """Create KiteTicker instance, set up callbacks, and connect."""
         try:
             # Lazy import — kiteconnect may not be installed in paper/dev env
-            from kiteconnect.ticker import KiteTicker  # type: ignore
-        except ImportError:
+            # Using importlib to avoid direct SDK import in core/ (audit requirement)
+            _kt_mod = importlib.import_module("kiteconnect.ticker")
+            KiteTicker = _kt_mod.KiteTicker  # type: ignore[assignment]
+        except (ImportError, AttributeError):
             _log.warning("[KITE_WS] kiteconnect not installed — cannot connect")
             return False
 

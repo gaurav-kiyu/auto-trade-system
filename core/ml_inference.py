@@ -50,7 +50,7 @@ class MLInferenceEngine:
             else:
                 log.warning(f"Model file not found at {self.model_path}. Using fallback logic.")
         except Exception as e:
-            log.exception(f"Failed to load ML model: {e}")
+            log.exception(f"Failed to load ML model: {e} (type: {type(e).__name__})")
             self.model = None
 
     def _validate_features(self, features: dict[str, Any]) -> tuple[np.ndarray | None, bool]:
@@ -73,7 +73,7 @@ class MLInferenceEngine:
 
             return np.array(vector).reshape(1, -1), False
         except Exception as e:
-            log.debug(f"Feature validation failed: {e}")
+            log.debug(f"Feature validation failed: {e} (type: {type(e).__name__})")
             return None, True
 
     def predict(self, features: dict[str, Any], regime: str = "NEUTRAL") -> MLPrediction:
@@ -111,7 +111,7 @@ class MLInferenceEngine:
                 regime_aware=True
             )
         except Exception as e:
-            log.exception(f"Inference error: {e}")
+            log.exception(f"Inference error: {e} (type: {type(e).__name__})")
             return MLPrediction(
                 win_probability=0.5,
                 confidence_score=0.0,

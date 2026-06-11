@@ -75,8 +75,10 @@ class FIIDIITracker:
                 raw = json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
                 self._data = FIIDIIData(**raw)
                 self._last_fetch = float(raw.get("fetched_at", 0))
+        except (ValueError, TypeError, KeyError, AttributeError, OSError) as exc:
+            _log.warning("[FII] cache load failed: %s", exc)
         except Exception as exc:
-            _log.debug("[FII] cache load failed: %s", exc)
+            _log.warning("[FII] cache load failed (unexpected: %s): %s", type(exc).__name__, exc)
 
     def _save_cache(self, d: FIIDIIData) -> None:
         try:
@@ -84,8 +86,10 @@ class FIIDIITracker:
                 json.dumps(asdict(d), ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
+        except (ValueError, TypeError, KeyError, AttributeError, OSError) as exc:
+            _log.warning("[FII] cache save failed: %s", exc)
         except Exception as exc:
-            _log.debug("[FII] cache save failed: %s", exc)
+            _log.warning("[FII] cache save failed (unexpected: %s): %s", type(exc).__name__, exc)
 
     # ── Remote fetch ──────────────────────────────────────────────────────
 
@@ -117,8 +121,11 @@ class FIIDIITracker:
             )
             _log.info("[FII] fetched: FII=%+.0fCr DII=%+.0fCr (%s)", fii_net, dii_net, date_str)
             return data
+        except (ValueError, TypeError, KeyError, AttributeError, ConnectionError, TimeoutError, OSError) as exc:
+            _log.warning("[FII] remote fetch failed: %s", exc)
+            return None
         except Exception as exc:
-            _log.debug("[FII] remote fetch failed: %s", exc)
+            _log.warning("[FII] remote fetch failed (unexpected: %s): %s", type(exc).__name__, exc)
             return None
 
     # ── Public API ────────────────────────────────────────────────────────

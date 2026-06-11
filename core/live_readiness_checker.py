@@ -272,7 +272,7 @@ def check_live_readiness(
             message=f"{ml_acc*100:.1f}% (recommend >= {ml_min*100:.0f}%)",
         ))
     except (ImportError, ValueError, TypeError, AttributeError, KeyError):
-        pass
+        _log.debug("[READINESS] ML accuracy check skipped")
 
     # ── Scoring ───────────────────────────────────────────────────────────────
     blocking = [c for c in criteria if c.blocking]
@@ -350,7 +350,7 @@ def should_send_today(flag_dir: str = ".") -> bool:
         try:
             return flag.read_text().strip() != today
         except (OSError, ValueError):
-            pass
+            _log.debug("[READINESS] Flag file read failed")
     return True
 
 
@@ -360,8 +360,8 @@ def mark_sent_today(flag_dir: str = ".") -> None:
     flag = Path(flag_dir) / _FLAG_FILE
     try:
         flag.write_text(dt.date.today().isoformat())
-    except (OSError, PermissionError):
-        pass
+    except (OSError, PermissionError) as e:
+        _log.debug("[LIVE_READINESS_CHECKER] non-critical error: %s", e)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────

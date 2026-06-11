@@ -44,6 +44,18 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 log = logging.getLogger("release_governance")
 
 
+def _safe_rel(path: Path) -> str:
+    """Return path relative to ROOT, falling back to full path if not under ROOT.
+
+    Pytest tmp_path directories are not under the project root, so plain
+    ``relative_to()`` would raise ``ValueError``. This safely falls back.
+    """
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 RELEASE_NOTES_FILE = ROOT / "RELEASE_NOTES.md"
@@ -355,7 +367,7 @@ def write_release_notes(version: str, changes: list[str] | None = None) -> bool:
     try:
         notes = generate_release_notes(version, changes)
         RELEASE_NOTES_FILE.write_text(notes, encoding="utf-8")
-        log.info("  [OK] Release notes written: %s", RELEASE_NOTES_FILE.relative_to(ROOT))
+        log.info("  [OK] Release notes written: %s", _safe_rel(RELEASE_NOTES_FILE))
         return True
     except (OSError, UnicodeDecodeError) as e:
         log.error("  [FAIL] Failed to write release notes: %s", e)
@@ -400,7 +412,7 @@ def update_changelog(version: str, changes: list[str] | None = None) -> bool:
             header = "# Changelog\n\n"
             CHANGELOG_FILE.write_text(header + entry_text, encoding="utf-8")
 
-        log.info("  [OK] Changelog updated: %s", CHANGELOG_FILE.relative_to(ROOT))
+        log.info("  [OK] Changelog updated: %s", _safe_rel(CHANGELOG_FILE))
         return True
     except (OSError, UnicodeDecodeError) as e:
         log.error("  [FAIL] Failed to update changelog: %s", e)
@@ -427,11 +439,13 @@ def write_audit_record(version: str, branch: str, changes: list[str] | None = No
         }
 
         audit_file.write_text(json.dumps(record, indent=2), encoding="utf-8")
-        log.info("  [OK] Audit record written: %s", audit_file.relative_to(ROOT))
+        log.info("  [OK] Audit record written: %s", _safe_rel(audit_file))
         return True
     except (OSError, UnicodeDecodeError, TypeError) as e:
         log.error("  [FAIL] Failed to write audit record: %s", e)
-        return False    # ── Git commit helper ─────────────────────────────────────────────────────────
+        return False
+
+    # ── Git commit helper ─────────────────────────────────────────────────────────
 
 
 def git_push(branch: str | None = None) -> tuple[bool, str]:

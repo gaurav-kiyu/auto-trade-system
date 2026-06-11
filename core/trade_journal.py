@@ -211,8 +211,8 @@ class TradeJournal:
             try:
                 conn.execute("ALTER TABLE journal ADD COLUMN slippage_drift REAL DEFAULT 0.0")
                 conn.commit()
-            except sqlite3.OperationalError:
-                pass  # column already exists — normal on fresh or already-migrated DBs
+            except sqlite3.OperationalError as e:
+                log.debug("[TRADE_JOURNAL] non-critical error: %s", e)
 
     def _connect(self) -> sqlite3.Connection:
         return get_connection(str(self._db), check_same_thread=True)  # WAL + busy_timeout applied
@@ -300,12 +300,12 @@ class TradeJournal:
             SET actual_entry = ?,
                 fill_ts      = ?,
                 execution_delay_ms = ?,
-                entry_slippage = actual_entry - expected_entry
+                entry_slippage = ? - expected_entry
             WHERE trade_id = ?
         """
         try:
             with self._lock, self._connect() as conn:
-                conn.execute(sql, (actual_entry, fill_ts, delay_ms, trade_id))
+                conn.execute(sql, (actual_entry, fill_ts, delay_ms, actual_entry, trade_id))
                 conn.commit()
         except (sqlite3.Error, OSError, ValueError) as exc:
             log.error("journal record_fill error: %s", exc)
@@ -555,13 +555,13 @@ class TradeJournal:
             # Drain pending async writes before closing
             self._pool.shutdown(wait=True)
         except (RuntimeError, ValueError):
-            pass
+            log.debug("[TradeJournal] Shutdown drain: %s", _shut_err)
         try:
             conn = self._connect()
             conn.commit()
             conn.close()
         except (sqlite3.Error, OSError):
-            pass
+            log.debug("[TradeJournal] Shutdown close failed")
         log.info("[TradeJournal] Shutdown complete.")
 
     def export_to_json(self, filepath: str, mode: str = "PAPER") -> dict[str, Any]:
@@ -598,7 +598,7 @@ class TradeJournal:
                         try:
                             trade['soft_blocks'] = json.loads(trade['soft_blocks'])
                         except (json.JSONDecodeError, TypeError):
-                            pass
+                            log.debug("[TradeJournal] Soft blocks JSON decode failed")
                     trades.append(trade)
 
                 # Create export data

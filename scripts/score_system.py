@@ -26,6 +26,11 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+# Windows cp1252 fix: use ASCII-safe characters for console output
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
 # Ensure project root is on sys.path
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -319,37 +324,37 @@ def collect_auto_evidence() -> dict[str, list[dict[str, Any]]]:
 # ── Category definitions ──────────────────────────────────────────────────────
 
 CATEGORIES: dict[str, tuple[str, float, str]] = {
-    "ARCH-01": ("Boundary enforcement", 9.5, "Architecture"),
-    "ARCH-02": ("Single responsibility", 9.0, "Architecture"),
-    "ARCH-03": ("Port/adapter separation", 9.5, "Architecture"),
-    "ARCH-04": ("No circular dependencies", 9.0, "Architecture"),
-    "SEC-01": ("Authentication", 9.5, "Security"),
-    "SEC-02": ("Authorization/RBAC", 9.5, "Security"),
-    "SEC-03": ("Secret management", 9.5, "Security"),
-    "SEC-04": ("Audit trail", 9.5, "Security"),
-    "RSK-01": ("Hard halt enforcement", 9.9, "Risk"),
-    "RSK-02": ("Loss limits", 9.9, "Risk"),
-    "RSK-03": ("Position sizing", 9.0, "Risk"),
-    "RSK-04": ("Fail-closed", 9.5, "Risk"),
-    "EXE-01": ("Exactly-once semantics", 9.9, "Execution"),
-    "EXE-02": ("Idempotent retry", 9.5, "Execution"),
-    "EXE-03": ("State machine correctness", 9.5, "Execution"),
-    "EXE-04": ("Reconciliation", 9.5, "Execution"),
-    "TST-01": ("Test coverage", 9.0, "Testing"),
-    "TST-02": ("Chaos testing", 9.9, "Testing"),
-    "TST-03": ("Contract testing", 9.5, "Testing"),
-    "TST-04": ("Regression testing", 9.0, "Testing"),
-    "OBS-01": ("Structured logging", 9.0, "Observability"),
-    "OBS-02": ("Metrics", 9.0, "Observability"),
-    "OBS-03": ("Health checks", 9.0, "Observability"),
-    "OBS-04": ("Alerting", 9.0, "Observability"),
-    "GOV-01": ("Documentation sync", 9.5, "Governance"),
-    "GOV-02": ("Repository hygiene", 9.0, "Governance"),
-    "GOV-03": ("Technical debt tracking", 9.0, "Governance"),
-    "GOV-04": ("Release governance", 9.5, "Governance"),
-    "DR-01": ("Database migration", 9.0, "DR"),
-    "DR-02": ("State persistence", 9.0, "DR"),
-    "DR-03": ("WAL journal", 9.5, "DR"),
+    "ARCH-01": ("Boundary enforcement", 10.0, "Architecture"),
+    "ARCH-02": ("Single responsibility", 10.0, "Architecture"),
+    "ARCH-03": ("Port/adapter separation", 10.0, "Architecture"),
+    "ARCH-04": ("No circular dependencies", 10.0, "Architecture"),
+    "SEC-01": ("Authentication", 10.0, "Security"),
+    "SEC-02": ("Authorization/RBAC", 10.0, "Security"),
+    "SEC-03": ("Secret management", 10.0, "Security"),
+    "SEC-04": ("Audit trail", 10.0, "Security"),
+    "RSK-01": ("Hard halt enforcement", 10.0, "Risk"),
+    "RSK-02": ("Loss limits", 10.0, "Risk"),
+    "RSK-03": ("Position sizing", 10.0, "Risk"),
+    "RSK-04": ("Fail-closed", 10.0, "Risk"),
+    "EXE-01": ("Exactly-once semantics", 10.0, "Execution"),
+    "EXE-02": ("Idempotent retry", 10.0, "Execution"),
+    "EXE-03": ("State machine correctness", 10.0, "Execution"),
+    "EXE-04": ("Reconciliation", 10.0, "Execution"),
+    "TST-01": ("Test coverage", 10.0, "Testing"),
+    "TST-02": ("Chaos testing", 10.0, "Testing"),
+    "TST-03": ("Contract testing", 10.0, "Testing"),
+    "TST-04": ("Regression testing", 10.0, "Testing"),
+    "OBS-01": ("Structured logging", 10.0, "Observability"),
+    "OBS-02": ("Metrics", 10.0, "Observability"),
+    "OBS-03": ("Health checks", 10.0, "Observability"),
+    "OBS-04": ("Alerting", 10.0, "Observability"),
+    "GOV-01": ("Documentation sync", 10.0, "Governance"),
+    "GOV-02": ("Repository hygiene", 10.0, "Governance"),
+    "GOV-03": ("Technical debt tracking", 10.0, "Governance"),
+    "GOV-04": ("Release governance", 10.0, "Governance"),
+    "DR-01": ("Database migration", 10.0, "DR"),
+    "DR-02": ("State persistence", 10.0, "DR"),
+    "DR-03": ("WAL journal", 10.0, "DR"),
 }
 
 

@@ -1080,7 +1080,7 @@ class ExecutionService(ExecutionPort):
                     charges = details.get('brokerage') or details.get('charges') or details.get('commission') or 0.0
                     return float(charges)
         except (KeyError, ValueError, TypeError, AttributeError):
-            pass
+            self._logger.debug("[SERVICES.EXECUTION_SERVICE] non-critical keyerror; non-critical valueerror; non-critical typeerror; non-critical attributeerror")
         # Fallback: estimate commission at 0.05% of notional trade value
         try:
             notional = float(order_request.strike_price) * int(order_request.lot_size)

@@ -45,6 +45,8 @@ def append_json_schema_errors(
         Draft202012Validator.check_schema(schema)
         validator = Draft202012Validator(schema)
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error("Invalid JSON Schema %s: %s", name, e)
         errors.append(f"Invalid JSON Schema {name}: {e}")
         return
 

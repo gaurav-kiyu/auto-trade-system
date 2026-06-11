@@ -113,14 +113,14 @@ class ConfigLoader:
         # Try int
         try:
             return int(value)
-        except ValueError:
-            pass
+        except ValueError as e:
+            logger.debug("[CONFIG_LOADER] non-critical error: %s", e)
 
         # Try float
         try:
             return float(value)
-        except ValueError:
-            pass
+        except ValueError as e:
+            logger.debug("[CONFIG_LOADER] non-critical error: %s", e)
 
         # Return as string
         return value

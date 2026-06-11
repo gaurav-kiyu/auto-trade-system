@@ -36,6 +36,18 @@ python -m pytest tests/test_X.py    # single file
 ```
 All tests must pass before committing any change.
 
+### Key Test Files (Modified/Fixed Recently)
+```bash
+# Core fixes tested
+python -m pytest tests/test_nse_option_recorder.py tests/test_smoke.py tests/test_live_readiness.py -q
+
+# Pre-existing test fixes (Exception→ValueError in orchestrator)
+python -m pytest tests/integration/orchestrator/test_trading_orchestrator.py -q
+
+# New 9-phase integration test (trading loop flow)
+python -m pytest tests/integration/test_trading_loop_flow.py -v
+```
+
 ### Governance/Constitution Tests
 ```bash
 # Constitution & AI governance (227 tests)
@@ -276,6 +288,12 @@ Failure to run this breaks `test_config_schema.py`.
 ```bash
 # Paper mode (safe, no real orders)
 python index_app/index_trader.py --paper
+python index_app/index_trader.py --paper --debug  # verbose debug logging
+
+# Launcher GUI (double-click friendly EXE)
+./OPBuying_INDEX_Launcher.exe
+# Launcher supports: PAPER (simulation) and MANUAL (signals only) modes
+# Launcher installs missing packages automatically
 
 # Docker (paper mode default)
 docker compose up -d
@@ -350,8 +368,39 @@ Added to `index_config.defaults.json` (now ~860 keys total):
 - `data_dir`, `models_dir`, `reports_dir`, `log_dir` — Directory paths for data governance
 
 ## OI Snapshot Cold-Start
-
-## OI Snapshot Cold-Start
 `oi_snapshots.db` accumulates live OI history during each session.
 Needs ~90 days before `strict_oi=true` backtest results are reliable.
 Bot logs a warning at startup if the DB is younger than 90 days.
+
+## Recent Bug Fixes (All Rounds)
+
+| # | File | Fix | Status |
+|---|------|-----|--------|
+| 1 | `index_app/index_trader.py` | `.tolist()` → `.to_list()` (pandas API compatibility) | ✅ |
+| 2 | `index_app/index_trader.py` (16×) | `_log` → `log` (was `NameError` at runtime) | ✅ |
+| 3 | `infra/adapters/market_data/nse/adapter.py` | Added `_init_nse_session()` — homepage cookie init for NSE auth | ✅ |
+| 4 | Same file | 403/404 retry with automatic session re-init | ✅ |
+| 5 | Same file | Fixed `LoggingService.info()` printf-style crash: `"...%d", code` → `f"...{code}..."` | ✅ |
+| 6 | Same file | Multi-strategy HTTP session: `cloudscraper` > `requests` > `urllib` | ✅ |
+| 7 | `core/nse_option_recorder.py` | Module-level adapter cache for session persistence across scan cycles | ✅ |
+| 8 | `tests/test_nse_option_recorder.py` | Test isolation via `reset_nse_adapter_cache()` | ✅ |
+| 9 | `tests/integration/test_trading_loop_flow.py` | **New** — 15-test integration suite (9 original + 6 edge case gates) | ✅ |
+| 10 | `launcher.py` | Single-instance lock — prevents duplicate EXE launches | ✅ |
+| 11 | `launcher.py` | Thread-safe Tkinter — queue-based `_poll_updates()`, safe messagebox | ✅ |
+| 12 | `tests/.../test_trading_orchestrator.py` | `Exception()` → `ValueError()` in 2 test methods (pre-existing) | ✅ |
+| 13 | `dist/OPBuying_INDEX_Launcher.exe` | Rebuilt with all fixes (11.6 MB) | ✅ |
+| 14  | `index_app/index_trader.py` | Added missing `PositionSizingInput` import — fixes `NameError` in `get_position_size()` | ✅ |
+| 15  | `infra/adapters/market_data/nse/adapter.py` | Enhanced `_make_request_with_retry()` logging with `_session_type` and exception type | ✅ |
+| 16  | `tests/integration/test_trading_loop_flow.py` | Added 6 edge case integration tests (expiry gate, news block, max-age exit, auction, correlation guard, reentry evaluator) | ✅ |
+
+### NSE 403 (Akamai) — Known External Limitation
+NSE India uses **Akamai App & API Protector** which blocks all automated scraping
+(requests, cloudscraper, curl_cffi, nselib all return 403). The system gracefully
+degrades to **yfinance** for LTP and OHLCV data (confirmed working: NIFTY 23363.35).
+The NSE option chain (OI/PCR) is a **nice-to-have enhancement**, not a hard dependency
+— signal generation works from index price/volume data alone.
+
+### Data Source Priority (Free Tier)
+1. **yfinance** (✅ working) — LTP, intraday 1m/5m/15m, daily OHLCV, Volume
+2. **Broker API** (optional, requires account) — Kite Connect can provide live WebSocket feeds
+3. **NSE direct** (⚠️ blocked by Akamai) — option chain data not available without license

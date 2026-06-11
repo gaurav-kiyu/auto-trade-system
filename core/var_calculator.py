@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import logging
 import math
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -76,8 +75,11 @@ def _load_daily_pnls(db_path: str, lookback_days: int) -> list[float]:
         finally:
             conn.close()
         return [float(r[1]) for r in rows if r[1] is not None]
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as exc:
+        _log.warning("[VAR] DB load failed: %s", exc)
+        return []
     except Exception as exc:
-        _log.debug("[VAR] DB load failed: %s", exc)
+        _log.warning("[VAR] DB load failed (unexpected: %s): %s", type(exc).__name__, exc)
         return []
 
 

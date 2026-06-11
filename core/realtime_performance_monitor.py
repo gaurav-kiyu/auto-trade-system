@@ -121,7 +121,7 @@ class RealtimePerformanceMonitor:
                 )
                 urllib.request.urlopen(req, timeout=5)
             except Exception as e:
-                _log.error(f"Failed to send webhook alert: {e}")
+                _log.error(f"Failed to send webhook alert: {e} (type: {type(e).__name__})")
 
 
 def create_performance_monitor(config: dict) -> RealtimePerformanceMonitor:

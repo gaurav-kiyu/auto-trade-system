@@ -190,7 +190,7 @@ class AuditJournal:
                 return event.event_id
 
             except Exception as e:
-                log.error(f"Failed to write audit event: {e}")
+                log.error(f"Failed to write audit event: {e} (type: {type(e).__name__})")
                 return event.event_id
 
     def log_signal(self, signal_data: dict, correlation_id: str = "") -> str:
@@ -325,7 +325,7 @@ class AuditJournal:
                     f.unlink()
                     removed += 1
                 except Exception as e:
-                    log.warning(f"Failed to remove old audit file {f}: {e}")
+                    log.warning(f"Failed to remove old audit file {f}: {e} (type: {type(e).__name__})")
 
         return removed
 

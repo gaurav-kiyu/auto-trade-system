@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 from datetime import datetime
 from enum import Enum
 
@@ -68,7 +69,7 @@ class BrokerTruthReconciler:
             positions = self._broker_port.get_positions()
             return positions if positions else {}
         except Exception as e:
-            _log.error(f"Failed to fetch broker positions: {e}")
+            _log.error(f"Failed to fetch broker positions: {e} (type: {type(e).__name__})")
             return {}
 
     def _fetch_broker_orders(self) -> dict[str, dict]:
@@ -77,7 +78,7 @@ class BrokerTruthReconciler:
             orders = self._broker_port.get_orders()
             return orders if orders else {}
         except Exception as e:
-            _log.error(f"Failed to fetch broker orders: {e}")
+            _log.error(f"Failed to fetch broker orders: {e} (type: {type(e).__name__})")
             return {}
 
     def get_authoritative_position(self, symbol: str) -> ReconciliationResult:
@@ -142,7 +143,7 @@ class BrokerTruthReconciler:
                 "total_value": funds.get("total_value", 0),
             }
         except Exception as e:
-            _log.error(f"Failed to fetch broker balance: {e}")
+            _log.error(f"Failed to fetch broker balance: {e} (type: {type(e).__name__})")
             return {"available_cash": 0, "used_margin": 0, "total_value": 0}
 
     def reconcile_order(
@@ -204,25 +205,26 @@ class BrokerTruthReconciler:
 _reconciler: BrokerTruthReconciler | None = None
 
 
-def reconcile_broker_truth() -> dict:
+def reconcile_broker_truth(broker_port: Any | None = None) -> dict:
     """Convenience function: run broker truth reconciliation report.
 
+    Args:
+        broker_port: Broker port instance. If None, returns WARN.
+
     Returns a dict with broker_position_count, local_position_count,
-    mismatches, and a summary. If no broker is configured, returns
+    mismatches, and a summary. If no broker is provided, returns
     a WARN-level dict.
     """
     try:
-        import index_app.index_trader as it
-        broker = getattr(it, "_broker", None)
-        if broker is None:
+        if broker_port is None:
             return {
                 "broker_positions": 0,
                 "local_positions": 0,
                 "mismatches": 0,
                 "status": "WARN",
-                "message": "Broker not initialized — reconciliation skipped",
+                "message": "Broker not provided — reconciliation skipped",
             }
-        reconciler = BrokerTruthReconciler(broker, max_staleness_seconds=30)
+        reconciler = BrokerTruthReconciler(broker_port, max_staleness_seconds=30)
         positions = reconciler.get_all_authoritative_positions()
         return {
             "broker_positions": len(positions),
@@ -232,6 +234,7 @@ def reconcile_broker_truth() -> dict:
             "message": f"Broker reports {len(positions)} open positions",
         }
     except Exception as exc:
+        _log.error("Broker truth reconciliation report error: %s", exc)
         return {
             "broker_positions": 0,
             "local_positions": 0,

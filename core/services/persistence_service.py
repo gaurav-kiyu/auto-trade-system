@@ -733,7 +733,7 @@ class _JSONStateAdapter:
             self._logger.error(f"Invalid JSON in state file {self.file_path}: {e}")
             return None
         except Exception as e:
-            self._logger.error(f"Failed to load state from {self.file_path}: {e}")
+            self._logger.error(f"Failed to load state from {self.file_path}: {e} (type: {type(e).__name__})")
             return None
 
     def delete_state(self) -> bool:

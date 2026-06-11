@@ -65,8 +65,11 @@ def _load_trades(db_path: str, days: int) -> list[dict]:
         rows = [dict(r) for r in cur.fetchall()]
         con.close()
         return rows
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as e:
+        _log.warning("[ATTR] db load failed: %s", e)
+        return []
     except Exception as e:
-        _log.debug("[ATTR] db load failed: %s", e)
+        _log.warning("[ATTR] db load failed (unexpected: %s): %s", type(e).__name__, e)
         return []
 
 

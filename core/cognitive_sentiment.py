@@ -35,7 +35,7 @@ class CognitiveSentimentEngine:
             try:
                 return self._get_ai_reasoning(text)
             except Exception as e:
-                self.logger.error(f"AI Reasoning failed, falling back to local: {e}")
+                self.logger.error(f"AI Reasoning failed, falling back to local: {e} (type: {type(e).__name__})")
 
         # 2. Sovereign Local Path (Default)
         return self._get_local_sentiment(text)

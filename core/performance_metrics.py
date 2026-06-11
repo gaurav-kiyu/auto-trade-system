@@ -445,8 +445,8 @@ def export_jsonl(trades: list[dict], path: str) -> None:
                 for line in f:
                     rec = json.loads(line)
                     existing_ids.add(rec.get("id"))
-        except (json.JSONDecodeError, OSError):
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            log.debug("[PERFORMANCE_METRICS] non-critical error: %s", e)
 
     new_rows = [t for t in trades if t.get("id") not in existing_ids]
     if not new_rows:

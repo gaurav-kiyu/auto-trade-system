@@ -98,8 +98,8 @@ def _fetch_stock_data(symbols: list[str]) -> list[StockAnalysis]:
                 if hasattr(r, "__setattr__") else None
             try:
                 r.relative_strength = round(r.change_pct - med, 3)
-            except (AttributeError, TypeError):
-                pass
+            except (AttributeError, TypeError) as e:
+                _log.debug("[UNDERLYING_ANALYZER] non-critical error: %s", e)
 
     return results
 

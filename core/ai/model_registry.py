@@ -193,8 +193,8 @@ class ModelRegistry:
             if val:
                 try:
                     return json.loads(val)
-                except (json.JSONDecodeError, TypeError):
-                    pass
+                except (json.JSONDecodeError, TypeError) as e:
+                    _log.debug("[AI.MODEL_REGISTRY] non-critical error: %s", e)
             return {}
         return ModelRecord(
             model_id=str(row[0]),

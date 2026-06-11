@@ -90,7 +90,7 @@ class StrategySandbox:
             _log.info(f"Loaded strategy into sandbox: {strategy.name}")
             return True
         except Exception as e:
-            _log.error(f"Failed to load strategy: {e}")
+            _log.error(f"Failed to load strategy: {e} (type: {type(e).__name__})")
             return False
 
     def run_historical_replay(
@@ -200,7 +200,7 @@ class StrategySandbox:
                     break
 
             except Exception as e:
-                _log.error(f"Error in simulated live: {e}")
+                _log.error(f"Error in simulated live: {e} (type: {type(e).__name__})")
                 break
 
         end_time = time_provider.format_ts()

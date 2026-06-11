@@ -24,7 +24,7 @@ from core.ports.persistence.persistence_port import TradePersistencePort
 from core.ports.risk.risk_port import PortfolioRiskMetrics, PositionSizingInput, RiskDecision, RiskEvaluation, RiskPort
 from core.risk.limits.manager import LimitConfig, RiskLimitsManager
 from core.risk.sizing.manager import PositionSizingManager
-from core.options_greeks_engine import (
+from core.risk import (
     OptionType,
     OptionsGreeksEngine,
     PositionGreeksInput,
@@ -854,13 +854,24 @@ class RiskService(RiskPort):
             return 20.0  # Default fallback
 
     def _lazy_vix_getter(self) -> float:
-        """Lazy VIX getter that imports from index_trader after it's initialized."""
+        """Lazy VIX getter — uses injected get_live_vix_fn with fallback."""
         try:
-            import index_app.index_trader as m
-            if m.DATA_ENGINE is not None:
-                return m.DATA_ENGINE.get_india_vix()
-        except (ImportError, AttributeError, TypeError, ValueError, KeyError, OSError) as _ex:
-            self._logger.debug(f"Could not fetch live VIX: {_ex}")
+            vix = self._get_live_vix()
+            if vix and vix > 0:
+                return vix
+        except (TypeError, ValueError, KeyError, AttributeError, OSError) as _ex:
+            self._logger.debug(f"Could not fetch live VIX via injected getter: {_ex}")
+
+        # Fallback: try via core.iv_rank
+        try:
+            from core.iv_rank import get_iv_rank
+            rank = get_iv_rank()
+            vix = rank._vix if hasattr(rank, '_vix') else None
+            if vix and vix > 0:
+                return vix
+        except (ImportError, AttributeError, TypeError, ValueError, OSError) as _ex:
+            self._logger.debug(f"Could not fetch live VIX via iv_rank: {_ex}")
+
         return 20.0
 
     def _get_lot_size(self, symbol: str) -> int:

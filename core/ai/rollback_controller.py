@@ -60,7 +60,7 @@ class RollbackController:
                 if drift and drift.get("psi", 0) > self._drift_threshold:
                     reasons.append(f"drift PSI {drift.get('psi', 0):.3f} > {self._drift_threshold}")
             except Exception as e:
-                _log.warning(f"[ROLLBACK] drift_detector error: {e}")
+                _log.warning(f"[ROLLBACK] drift_detector error: {e} (type: {type(e).__name__})")
 
         if not reasons:
             return False
@@ -97,7 +97,7 @@ class RollbackController:
             try:
                 self._rollback_callback(rollback_to)
             except Exception as e:
-                _log.error(f"[ROLLBACK] callback failed: {e}")
+                _log.error(f"[ROLLBACK] callback failed: {e} (type: {type(e).__name__})")
 
         return True
 

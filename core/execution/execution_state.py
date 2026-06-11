@@ -316,7 +316,7 @@ class FormalOrderStateManager:
 
     def __init__(self, persistence_callback: Callable | None = None):
         self._machines: dict[str, FormalOrderState] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._persistence_callback = persistence_callback
         self._init_durable_storage()
 

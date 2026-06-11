@@ -27,14 +27,14 @@ def cleanup_old_prefixed_logs(
                 try:
                     os.remove(fp)
                 except OSError:
-                    pass
+                    logging.getLogger(__name__).debug("[LOG_HELPERS] non-critical oserror")
             elif delete_rotated_variants and (".log." in fn or ".jsonl." in fn):
                 try:
                     os.remove(fp)
                 except OSError:
-                    pass
+                    logging.getLogger(__name__).debug("[LOG_HELPERS] non-critical oserror")
     except OSError:
-        pass
+        logging.getLogger(__name__).debug("[LOG_HELPERS] non-critical oserror")
 
 
 class JsonFormatter(logging.Formatter):

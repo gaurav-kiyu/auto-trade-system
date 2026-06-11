@@ -88,7 +88,7 @@ class StateManager:
             if tmp_path.exists():
                 shutil.move(str(tmp_path), str(self.state_path))
         except Exception as e:
-            log.error(f"Atomic save failed: {e}")
+            log.error(f"Atomic save failed: {e} (type: {type(e).__name__})")
 
     def recover_state_from_db(self, broker_positions: dict[str, Any] | None = None):
         """Reconstructs positions from trades.db where exit_ts is NULL.
@@ -126,7 +126,7 @@ class StateManager:
             self.save_state()
             conn.close()
         except Exception as e:
-            log.critical(f"DB Recovery failed: {e}")
+            log.critical(f"DB Recovery failed: {e} (type: {type(e).__name__})")
 
     def set_consecutive_losses(self, count: int) -> None:
         """Set the consecutive loss counter (protection against compounding losses)."""

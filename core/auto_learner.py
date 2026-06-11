@@ -261,8 +261,8 @@ class AutoLearner:
             for line in lines:
                 try:
                     entries.append(json.loads(line))
-                except (json.JSONDecodeError, ValueError, TypeError):
-                    pass
+                except (json.JSONDecodeError, ValueError, TypeError) as e:
+                    log.debug("[AUTO_LEARNER] non-critical error: %s", e)
             skips = sum(1 for e in entries if e.get("verdict") == "SKIP")
             total = max(1, len(entries))
             self._ai_stats = {
@@ -270,8 +270,8 @@ class AutoLearner:
                 "count": len(entries),
                 "avg_delta": sum(int(e.get("score_delta") or 0) for e in entries) / total,
             }
-        except (OSError, json.JSONDecodeError, AttributeError):
-            pass
+        except (OSError, json.JSONDecodeError, AttributeError) as e:
+            log.debug("[AUTO_LEARNER] non-critical error: %s", e)
         self._ai_stats_ts = now
 
     # ── threshold adjustment (drop-in for adaptive_threshold_adjustment) ─────

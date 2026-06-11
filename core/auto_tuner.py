@@ -693,8 +693,8 @@ def _last_change_date(param: str) -> datetime | None:
                             ts = datetime.fromisoformat(change["ts"])
                             if last is None or ts > last:
                                 last = ts
-                        except (KeyError, ValueError):
-                            pass
+                        except (KeyError, ValueError) as e:
+                            log.debug("[AUTO_TUNER] non-critical error: %s", e)
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         log.debug("[AUTO-TUNE] _last_change_date scan error: %s", exc)
     return last
@@ -995,7 +995,7 @@ def _cli() -> None:
         try:
             sys.stdout.reconfigure(encoding="utf-8")
         except (OSError, AttributeError) as _ex:
-            pass
+            log.debug("[AUTO_TUNER] non-critical oserror; non-critical attributeerror")
 
     parser = argparse.ArgumentParser(
         description="OPB Auto-Tuner - safe parameter suggestion engine"

@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -552,8 +553,8 @@ class Auditor:
                     recommendation="Run paper trading to accumulate more data",
                     passed=False,
                 )
-            except (sqlite3.Error, OSError):
-                pass
+            except (sqlite3.Error, OSError) as e:
+                _log.debug("[AUDIT_MODE] non-critical error: %s", e)
         return AuditFinding(
             scope=AuditScope.STRATEGY,
             severity=AuditSeverity.INFO,

@@ -28,6 +28,9 @@ from core.risk.greeks_engine import (
     PositionGreeks,
     get_greeks_engine,
     reset_greeks_engine,
+    LegacyOptionType as OptionType,
+    LegacyOptionsGreeksEngine as OptionsGreeksEngine,
+    LegacyPositionGreeksInput as PositionGreeksInput,
 )
 
 __all__ = [
@@ -44,4 +47,7 @@ __all__ = [
     "PositionGreeks",
     "get_greeks_engine",
     "reset_greeks_engine",
+    "OptionsGreeksEngine",
+    "OptionType",
+    "PositionGreeksInput",
 ]

@@ -27,10 +27,13 @@ Usage
 from __future__ import annotations
 
 import json
+import logging
 import math
 import time
 from dataclasses import dataclass, field
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 
 # ── Default thresholds (overridable via cfg) ─────────────────────────────────
@@ -316,8 +319,8 @@ class StrategyCertifier:
                             return _StrategyMetadata(strategy_name, pnls=pnls)
                     finally:
                         conn.close()
-            except (sqlite3.Error, OSError):
-                pass
+            except (sqlite3.Error, OSError) as e:
+                _log.debug("[CERTIFICATION.STRATEGY_CERTIFIER] non-critical error: %s", e)
 
         # Try loading from known strategy modules
         return self._load_from_strategy_module(strategy_name)
@@ -334,7 +337,7 @@ class StrategyCertifier:
             if pnls:
                 return _StrategyMetadata(strategy_name, pnls=pnls)
         except (ImportError, AttributeError, TypeError):
-            pass
+            _log.debug("[CERTIFIER] Sandbox load skipped")
         try:
             # Fall back to trades.db for strategy-specific trades
             db_path = "trades.db"
@@ -355,7 +358,7 @@ class StrategyCertifier:
                 finally:
                     conn.close()
         except (ImportError, AttributeError, OSError, ValueError, sqlite3.Error):
-            pass
+            _log.debug("[CERTIFIER] Trades.db load skipped")
         return None
 
 

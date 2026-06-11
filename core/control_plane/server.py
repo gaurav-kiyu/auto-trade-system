@@ -50,6 +50,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from core.auth.permissions import PermissionDenied
 from core.datetime_ist import now_ist
 
 _log = logging.getLogger(__name__)
@@ -371,6 +372,8 @@ def _require_permission(role_manager: Any, identity: str, permission: str) -> No
     try:
         role_manager.check(identity, permission)
     except (KeyError, ValueError, TypeError) as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except PermissionDenied as exc:
         raise HTTPException(status_code=403, detail=str(exc))
 
 

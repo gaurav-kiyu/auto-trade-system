@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -100,8 +99,11 @@ def load_trade(trade_id: int, db_path: str = _DEFAULT_DB) -> dict | None:
         finally:
             conn.close()
         return dict(row) if row else None
-    except Exception as exc:
-        _log.debug("[REPLAYER] load_trade(%s) failed: %s", trade_id, exc)
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as exc:
+        _log.warning("[REPLAYER] load_trade(%s) failed: %s", trade_id, exc)
+        return None
+    except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError, AttributeError, IndexError) as exc:
+        _log.warning("[REPLAYER] load_trade(%s) failed: %s", trade_id, exc)
         return None
 
 
@@ -150,8 +152,11 @@ def list_trades(
         finally:
             conn.close()
         return [dict(r) for r in rows]
-    except Exception as exc:
-        _log.debug("[REPLAYER] list_trades failed: %s", exc)
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as exc:
+        _log.warning("[REPLAYER] list_trades failed: %s", exc)
+        return []
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, IndexError) as exc:
+        _log.warning("[REPLAYER] list_trades failed: %s", exc)
         return []
 
 
@@ -198,8 +203,11 @@ def _fetch_price_bars(
                 float(row.get("Close", 0)),
             ))
         return bars
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, ConnectionError, TimeoutError, OSError) as exc:
+        _log.warning("[REPLAYER] _fetch_price_bars failed: %s", exc)
+        return []
     except Exception as exc:
-        _log.debug("[REPLAYER] _fetch_price_bars failed: %s", exc)
+        _log.warning("[REPLAYER] _fetch_price_bars failed (unexpected: %s): %s", type(exc).__name__, exc)
         return []
 
 

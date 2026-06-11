@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Read VERSION from file
+:: Version: 2.53.0 — Read VERSION from file
 if not exist VERSION (
     echo  [ERROR] VERSION file not found
     pause & exit /b 1
@@ -80,10 +80,13 @@ echo      2. Double-click to run GUI launcher
 echo      3. Select PAPER or MANUAL mode
 echo.
 echo    v%VERSION% Features:
-echo      - TOCTOU race condition FIXED
-echo      - In-flight idempotency tracking
-echo      - Broker failover notification
-echo      - Capital zero guard (no NaN)
+echo      - DataEngine recursion bug FIXED (3 recursive lambdas)
+echo      - VIX data type error FIXED (MultiIndex columns)
+echo      - Race condition FIXED (Thread-safe A/B tester)
+echo      - 10 silent exception blocks now LOGGED
+echo      - Enterprise auth RBAC with brute-force protection
+echo      - Data governance with automated retention cleanup
+echo      - Environment isolation (DEV/QA/PAPER/SHADOW/PRODUCTION)
 echo.
 echo  ============================================================
 pause

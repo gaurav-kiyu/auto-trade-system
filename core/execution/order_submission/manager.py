@@ -30,7 +30,7 @@ class OrderSubmissionManager:
                 )
             return result
         except Exception as e:
-            log.error(f"Submission failed: {e}")
+            log.error(f"Submission failed: {e} (type: {type(e).__name__})")
             return KernelOrderResult(
                 order_id="ERROR",
                 status="REJECTED",

@@ -107,7 +107,7 @@ class StrategyVersionManager:
                 conn.commit()
             _log.info("StrategyVersionManager: Storage initialized")
         except Exception as e:
-            _log.error(f"StrategyVersionManager: Failed to init storage: {e}")
+            _log.error(f"StrategyVersionManager: Failed to init storage: {e} (type: {type(e).__name__})")
 
     def register_version(
         self,
@@ -178,7 +178,7 @@ class StrategyVersionManager:
                 ))
                 conn.commit()
         except Exception as e:
-            _log.error(f"Failed to persist version: {e}")
+            _log.error(f"Failed to persist version: {e} (type: {type(e).__name__})")
 
 
 _version_manager: StrategyVersionManager | None = None

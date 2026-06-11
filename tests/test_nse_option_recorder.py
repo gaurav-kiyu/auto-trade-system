@@ -119,6 +119,11 @@ class TestAggregateOiData:
 
 
 class TestRecordOiSnapshotsForIndices:
+    def setup_method(self) -> None:
+        """Reset the NSE adapter cache for test isolation."""
+        from core.nse_option_recorder import reset_nse_adapter_cache
+        reset_nse_adapter_cache()
+
     def test_empty_index_list(self) -> None:
         result = record_oi_snapshots_for_indices([], {})
         assert result == {}
@@ -212,6 +217,11 @@ class TestRecordOiSnapshotsForIndices:
 
 
 class TestGetOiSummary:
+    def setup_method(self) -> None:
+        """Reset the NSE adapter cache before each test for isolation."""
+        from core.nse_option_recorder import reset_nse_adapter_cache
+        reset_nse_adapter_cache()
+
     def test_successful_summary(self) -> None:
         mock_adapter = MagicMock()
         mock_adapter.get_option_chain.return_value = [

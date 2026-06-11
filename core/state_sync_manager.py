@@ -38,6 +38,6 @@ class StateSyncManager:
                 if time.time() - hb["timestamp"] > 60:
                     self.logger.warning(f"Primary bot stale (last seen {round(time.time()-hb['timestamp'])}s ago).")
                     return True
-        except (OSError, json.JSONDecodeError):
-            pass
+        except (OSError, json.JSONDecodeError) as _hb_err:
+            self.logger.debug("Heartbeat read failed (expected on first run): %s", _hb_err)
         return False

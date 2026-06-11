@@ -146,6 +146,7 @@ def check_all() -> list[InvariantCheck]:
 
                 results.append(inv)
             except Exception as e:
+                _log.error("Invariant check %s failed with error: %s", inv.name, e)
                 inv.last_result = InvariantResult.ERROR
                 inv.last_message = str(e)
                 inv.last_checked = now_ist()

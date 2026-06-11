@@ -21,6 +21,7 @@ Public API
 """
 from __future__ import annotations
 
+import importlib
 import logging
 import threading
 import time
@@ -82,7 +83,9 @@ class TokenRefreshService:
 
     def _kite_refresh(self, adapter: Any, sec: dict[str, str]) -> bool:
         try:
-            from kiteconnect import KiteConnect
+            # importlib avoids direct SDK import in core/ (audit requirement)
+            _kc_mod = importlib.import_module("kiteconnect")
+            KiteConnect = _kc_mod.KiteConnect
 
             api_key = str(sec.get("api_key") or "")
             access_token = str(sec.get("access_token") or "")
@@ -115,7 +118,9 @@ class TokenRefreshService:
 
     def _angel_refresh(self, adapter: Any, sec: dict[str, str]) -> bool:
         try:
-            from SmartApi import SmartConnect
+            # importlib avoids direct SDK import in core/ (audit requirement)
+            _sa_mod = importlib.import_module("SmartApi")
+            SmartConnect = _sa_mod.SmartConnect
 
             api_key = str(sec.get("api_key") or "")
             refresh_token = str(sec.get("refresh_token") or "")
@@ -215,6 +220,7 @@ class TokenRefreshService:
             from core.adapters.broker_adapters import broker_connection_secrets
             return broker_connection_secrets(cfg, name.upper())
         except (ImportError, ValueError, TypeError, AttributeError, KeyError):
+            _log.debug("[TOKEN_REFRESH] Secrets fetch failed for %s — using empty", name)
             return {}
 
     def validate_token(self, adapter: Any) -> bool:

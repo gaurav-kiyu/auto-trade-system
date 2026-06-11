@@ -274,7 +274,7 @@ class StrategyRegistry:
                             elif signal.signal == StrategySignal.CLOSE:
                                 strategy._stats["signals_close"] += 1
                     except Exception as e:
-                        _log.error(f"Error generating signal from {strategy.name}: {e}")
+                        _log.error(f"Error generating signal from {strategy.name}: {e} (type: {type(e).__name__})")
         return signals
 
     def on_fill(self, fill: FillInfo) -> None:
@@ -285,7 +285,7 @@ class StrategyRegistry:
                     strategy.on_fill(fill)
                     strategy._stats["trades_executed"] += 1
                 except Exception as e:
-                    _log.error(f"Error forwarding fill to {strategy.name}: {e}")
+                    _log.error(f"Error forwarding fill to {strategy.name}: {e} (type: {type(e).__name__})")
 
     def on_risk_update(self, risk: RiskUpdate) -> None:
         """Forward risk update to all strategies"""
@@ -294,7 +294,7 @@ class StrategyRegistry:
                 try:
                     strategy.on_risk_update(risk)
                 except Exception as e:
-                    _log.error(f"Error forwarding risk update to {strategy.name}: {e}")
+                    _log.error(f"Error forwarding risk update to {strategy.name}: {e} (type: {type(e).__name__})")
 
     def start_all(self) -> None:
         """Start all registered strategies"""
@@ -353,7 +353,7 @@ class StrategyLoader:
                         return strategy
             return None
         except Exception as e:
-            _log.error(f"Failed to load strategy from {module_path}: {e}")
+            _log.error(f"Failed to load strategy from {module_path}: {e} (type: {type(e).__name__})")
             return None
 
 

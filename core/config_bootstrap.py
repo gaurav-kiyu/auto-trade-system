@@ -244,7 +244,7 @@ def _check_config_drift(secure_cfg: SecureConfig) -> None:
                 key, risk, merged.get(key),
             )
     except (OSError, json.JSONDecodeError, KeyError, AttributeError) as _ex:
-        _log.debug("Config drift check skipped: %s", _ex)
+        _log.warning("Config drift check skipped: %s", _ex)
 
 
 def _freeze_config(cfg: dict[str, Any]) -> dict[str, Any]:
@@ -480,12 +480,12 @@ def apply_env_overrides(
             try:
                 new_value = int(env_value)
             except ValueError:
-                pass
+                _log.debug("Failed to coerce env %s=%s to int, keeping raw string", env_key, env_value)
         elif isinstance(current_value, float):
             try:
                 new_value = float(env_value)
             except ValueError:
-                pass
+                _log.debug("Failed to coerce env %s=%s to float, keeping raw string", env_key, env_value)
 
         cfg[target_key] = new_value
         applied += 1
@@ -570,15 +570,15 @@ def coerce_config_values_to_defaults_types(user_config: Mapping[str, Any], defau
             elif isinstance(default_value, int) and isinstance(value, str):
                 try:
                     user_config[key] = int(value)
-                except ValueError:
+                except ValueError as e:
                     # If conversion fails, keep original value
-                    pass  # Keep the original string value
+                    _log.debug("[CONFIG_BOOTSTRAP] non-critical error: %s", e)
             elif isinstance(default_value, float) and isinstance(value, str):
                 try:
                     user_config[key] = float(value)
-                except ValueError:
+                except ValueError as e:
                     # If conversion fails, keep original value
-                    pass  # Keep the original string value
+                    _log.debug("[CONFIG_BOOTSTRAP] non-critical error: %s", e)
             # For other types or when types already match, keep as-is
     return user_config
 

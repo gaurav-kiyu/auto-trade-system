@@ -408,8 +408,10 @@ def generate_pdf_report(
                 leftIndent=0,
             )
             story.append(Preformatted(_mc_chart, _mc_style))
+    except (ValueError, TypeError, AttributeError, KeyError, ImportError) as _mc_exc:
+        _log.warning("[REPORT] Monte Carlo section skipped: %s", _mc_exc)
     except Exception as _mc_exc:
-        _log.debug("[REPORT] Monte Carlo section skipped: %s", _mc_exc)
+        _log.warning("[REPORT] Monte Carlo section skipped (unexpected: %s): %s", type(_mc_exc).__name__, _mc_exc)
 
     # Benchmark Comparison — ^NSEI Buy-and-Hold (optional — graceful skip if unavailable)
     try:
@@ -489,8 +491,10 @@ def generate_pdf_report(
                 ]))
                 story.append(_bm_tbl)
                 story.append(Spacer(1, 6))
+    except (ValueError, TypeError, AttributeError, KeyError, ImportError, ConnectionError, TimeoutError, OSError) as _bm_exc:
+        _log.warning("[REPORT] Benchmark section skipped: %s", _bm_exc)
     except Exception as _bm_exc:
-        _log.debug("[REPORT] Benchmark section skipped: %s", _bm_exc)
+        _log.warning("[REPORT] Benchmark section skipped (unexpected: %s): %s", type(_bm_exc).__name__, _bm_exc)
 
     story.append(Spacer(1, 12))
     story.append(HRFlowable(width="100%", thickness=0.3, color=_rl_color(*_LGREY)))

@@ -120,6 +120,8 @@ class SignalService:
             return final_signal
 
         except Exception as e:
+            import logging
+            logging.getLogger(__name__).error("Signal generation error for %s: %s", symbol, e)
             # Fail safe - return weak signal on any error
             return self._create_weak_signal(symbol, f"Signal generation error: {str(e)}")
 
