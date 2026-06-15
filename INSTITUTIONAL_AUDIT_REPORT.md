@@ -734,7 +734,7 @@ Limited historical data (only 2 tags). Branch naming convention is inconsistent.
 
 | # | Gap | Status | Fix |
 |---|-----|--------|-----|
-| GAP-08 | No automated chaos CI pipeline | 🟡 Open | CI workflow updated to include chaos smoke tests |
+| GAP-08 | No automated chaos CI pipeline | ✅ **DONE** | CI workflow includes `pytest tests/chaos -q --tb=short --timeout=300` (non-blocking, requires manual review) |
 | GAP-09 | No automated DB backups | ✅ **FIXED** | `scripts/db_backup.py` — timestamped backups, 30-day retention, dry-run mode; `tests/test_db_backup.py` (19 tests) |
 | Replay certifier unvalidated | ✅ **FIXED** | `tests/test_replay_certification.py` (13 tests) — validates determinism, empty DB, edge cases |
 | Dead code (top imports) | ✅ **PARTIAL** | Removed unused `legacy_get_greeks_engine` from `greeks_engine.py`, unused `import threading` from `portfolio/service.py` |
@@ -761,7 +761,7 @@ Limited historical data (only 2 tags). Branch naming convention is inconsistent.
 | GAP-12 | Remove legacy KITE_*/ANGEL_*/EMAIL_* keys | 0.5 day | ✅ **REMOVED** |
 | GAP-13 | Archive deprecated engine stubs | 1 day | ✅ decision_engine.py archived; orchestrator.py/strategy_engine.py retained (11+ active consumers, have DeprecationWarning) |
 | GAP-14 | Pre-commit hooks (ruff + mypy) | 0.5 day | ✅ **ALREADY EXIST** |
-| GAP-15 | Branch naming convention (use semver consistently) | 0.1 day | 🟡 Open |
+| GAP-15 | Branch naming convention (use semver consistently) | 0.1 day | ✅ **DONE** — `docs/BRANCHING_CONVENTION.md` created documenting proper semver-based release branch naming |
 
 ---
 
@@ -788,13 +788,13 @@ Limited historical data (only 2 tags). Branch naming convention is inconsistent.
 ### Sprint 3: Operational Excellence — Most Items Complete
 
 ```
-[GAP-08] Add chaos tests to CI pipeline (1d)
+[GAP-08] ✅ DONE — Chaos tests included in CI workflow (`pytest tests/chaos -q --tb=short --timeout=300`)
 [GAP-09] ✅ DONE — Automated DB backup (`scripts/db_backup.py`, 19 tests)
 [GAP-11] ✅ DONE — CONFIG_VERSION already normalized
 [GAP-12] ✅ DONE — Legacy credential keys removed
 [GAP-13] ✅ DONE — decision_engine.py archived; others have DeprecationWarning
 [GAP-14] ✅ DONE — Pre-commit hooks already exist
-[GAP-15] Fix branch naming convention (0.1d)
+[GAP-15] ✅ DONE — `docs/BRANCHING_CONVENTION.md` created documenting semver-based release branch naming
 ```
 
 ### Total Estimated Effort: ~6-9 days engineering remaining + 30 days paper trading (parallel)  

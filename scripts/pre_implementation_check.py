@@ -141,8 +141,22 @@ def check_risk_sensitive_files(files: list[str]) -> list[str]:
     return sensitive_touched
 
 
+def _get_current_branch() -> str | None:
+    """Get the current git branch name."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, cwd=str(ROOT), timeout=15,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return None
+
+
 def check_release_state() -> list[str]:
-    """Check release state (Review #7)."""
+    """Check release state and branch naming (Review #7)."""
     issues: list[str] = []
     version_file = ROOT / "VERSION"
     if not version_file.exists():
@@ -155,6 +169,17 @@ def check_release_state() -> list[str]:
     gitignore = ROOT / ".gitignore"
     if not gitignore.exists():
         issues.append(".gitignore not found")
+
+    # ── Branch naming convention check (GAP-15) ──────────────────────
+    branch = _get_current_branch()
+    if branch and branch.startswith("release/") and version:
+        expected_branch = f"release/v{version}"
+        if branch != expected_branch:
+            issues.append(
+                f"BRANCH NAMING: Current branch '{branch}' does not match VERSION "
+                f"'{version}'. Expected: '{expected_branch}'. "
+                f"See docs/BRANCHING_CONVENTION.md"
+            )
 
     return issues
 
