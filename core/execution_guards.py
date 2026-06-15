@@ -256,8 +256,10 @@ class ExecutionGuards:
 
             if now >= threshold:
                 return self._late_session_size_mult
+        except (ValueError, TypeError, AttributeError, KeyError) as _ex:
+            log.warning("Late session threshold check failed: %s", _ex)
         except Exception as _ex:
-            log.debug(f"Late session threshold check failed: {_ex}")
+            log.warning("Late session threshold check failed (unexpected: %s): %s", type(_ex).__name__, _ex)
 
         return 1.0
 

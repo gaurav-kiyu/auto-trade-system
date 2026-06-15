@@ -15,18 +15,17 @@ Covers:
 from __future__ import annotations
 
 import datetime
-
 from unittest.mock import patch as _patch
 
 from core.session_classifier import (
-    SessionType,
     ExpirySessionName,
+    SessionType,
     classify_session,
+    get_expiry_session,
     get_session_score_adj,
+    is_expiry_day,
     session_entry_allowed,
     session_summary,
-    is_expiry_day,
-    get_expiry_session,
 )
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -332,15 +331,15 @@ class TestFallbackBoundaryFunctions:
     """Covers the except Exception blocks in _nse_open_time, _nse_early_end_time,
     _nse_block_time — lines 93-94, 107-108, 121-122."""
 
-    @_patch("core.datetime_ist.nse_cash_open_time", side_effect=RuntimeError("mock"))
+    @_patch("core.datetime_ist.nse_cash_open_time", side_effect=ImportError("mock"))
     def test_nse_open_time_fallback(self, _):
         assert classify_session(_t(9, 15)) == SessionType.OPENING
 
-    @_patch("core.datetime_ist.nse_early_session_end_time", side_effect=RuntimeError("mock"))
+    @_patch("core.datetime_ist.nse_early_session_end_time", side_effect=ImportError("mock"))
     def test_nse_early_end_time_fallback(self, _):
         assert classify_session(_t(10, 15)) == SessionType.TRENDING
 
-    @_patch("core.datetime_ist.nse_block_new_entries_from_time", side_effect=RuntimeError("mock"))
+    @_patch("core.datetime_ist.nse_block_new_entries_from_time", side_effect=ImportError("mock"))
     def test_nse_block_time_fallback(self, _):
         assert classify_session(_t(15, 0)) == SessionType.CLOSED
 
@@ -370,7 +369,7 @@ class TestIsExpiryDay:
         assert is_expiry_day("FOO", check_date=datetime.date(2026, 5, 28)) is True
         assert is_expiry_day("FOO", check_date=datetime.date(2026, 5, 27)) is False
 
-    @_patch("core.datetime_ist.now_ist", side_effect=RuntimeError("mock"))
+    @_patch("core.datetime_ist.now_ist", side_effect=ImportError("mock"))
     @_patch("core.session_classifier.datetime.date")
     def test_now_ist_fallback_to_date_today(self, mock_date, _):
         """Covers lines 301-302: now_ist() raises, falls back to date.today().
@@ -384,7 +383,7 @@ class TestIsExpiryDay:
         mock_h.return_value = {datetime.date(2026, 5, 28)}
         assert is_expiry_day("NIFTY", check_date=datetime.date(2026, 5, 28)) is False
 
-    @_patch("core.event_calendar._nse_holidays", side_effect=RuntimeError("mock"))
+    @_patch("core.event_calendar._nse_holidays", side_effect=ImportError("mock"))
     def test_holiday_exception_passes(self, _):
         """Covers lines 317-318: exception in holiday check is swallowed."""
         assert is_expiry_day("NIFTY", check_date=datetime.date(2026, 5, 28)) is True

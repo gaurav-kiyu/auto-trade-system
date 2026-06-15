@@ -25,8 +25,8 @@ _credential_storage = CredentialStorage()
 
 # Import jsonschema for validation (would be in requirements)
 try:
-    import jsonschema
-    from jsonschema import ValidationError, validate
+
+
     JSONSCHEMA_AVAILABLE = True
 except ImportError:
     JSONSCHEMA_AVAILABLE = False

@@ -29,7 +29,7 @@ def _bar_signal_ts(df: pd.DataFrame) -> float:
     if hasattr(idx, "timestamp"):
         try:
             return float(idx.timestamp())
-        except Exception:
+        except (AttributeError, ValueError, TypeError):
             return 0.0
     return 0.0
 
@@ -40,8 +40,8 @@ def _drop_partial_candle(df: pd.DataFrame | None) -> pd.DataFrame | None:
     try:
         if float(df["Volume"].iloc[-1]) == 0 and float(df["Volume"].iloc[-2]) > 0:
             return df.iloc[:-1]
-    except Exception:
-        pass
+    except (KeyError, ValueError, TypeError, IndexError) as _candle_err:
+        pass  # partial candle detection failed — return full df
     return df
 
 
@@ -63,7 +63,7 @@ def _validate_frame_alignment(
         if abs(ts1 - ts15) > tol_15m:
             return False
         return True
-    except Exception:
+    except (IndexError, ValueError, TypeError, AttributeError):
         return True
 
 
@@ -394,8 +394,8 @@ def evaluate_index_signal_partial(
                 elif _is_put and price < _orb_low * 0.999:
                     _orb_pts = _orb_bonus
                     score = min(100, score + _orb_pts)
-    except Exception:
-        pass
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError) as _orb_err:
+        pass  # ORB bonus failed — continue without it
     _score_components["orb_bonus"] = _orb_pts
 
     atr_sl_mult = float(sc.get("ATR_SL_MULTIPLIER", 1.2))

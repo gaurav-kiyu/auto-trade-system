@@ -35,10 +35,11 @@ Config keys (all optional — safe defaults built in)
 from __future__ import annotations
 
 import logging
-import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from core.db_utils import get_connection
 
 _DAYS_MAP = {0: "Mon", 1: "Tue", 2: "Wed", 3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun"}
 
@@ -116,8 +117,7 @@ def load_autopsy_data(
     if not p.is_file():
         return []
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
-        conn.row_factory = sqlite3.Row
+        conn = get_connection(p, timeout=5)
         try:
             params: list[Any] = []
             where  = ["net_pnl IS NOT NULL"]
@@ -155,8 +155,11 @@ def load_autopsy_data(
                 "is_winner":   1 if pnl > 0 else 0,
             })
         return trades
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as exc:
+        _log.warning("[AUTOPSY] load_autopsy_data failed: %s", exc)
+        return []
     except Exception as exc:
-        _log.debug("[AUTOPSY] load_autopsy_data failed: %s", exc)
+        _log.warning("[AUTOPSY] load_autopsy_data failed (unexpected: %s): %s", type(exc).__name__, exc)
         return []
 
 

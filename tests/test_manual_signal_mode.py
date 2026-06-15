@@ -120,13 +120,21 @@ class TestManualAliases:
         assert normalize_execution_mode("MANUAL_ONLY") == "MANUAL"
 
     def test_signals_only_alias(self):
-        assert normalize_execution_mode("SIGNALS_ONLY") == "MANUAL"
+        assert normalize_execution_mode("SIGNALS_ONLY") == "SIGNAL_ONLY"
+
+    def test_signal_only_canonical(self):
+        assert normalize_execution_mode("SIGNAL_ONLY") == "SIGNAL_ONLY"
+
+    def test_signals_alias(self):
+        assert normalize_execution_mode("SIGNALS") == "SIGNAL_ONLY"
 
     def test_none_defaults_to_manual(self):
         assert normalize_execution_mode(None) == "MANUAL"
 
     def test_blank_string_defaults_to_manual(self):
         assert normalize_execution_mode("") == "MANUAL"
+
+
 
     def test_unknown_value_defaults_to_manual(self):
         assert normalize_execution_mode("RANDOM_GARBAGE") == "MANUAL"

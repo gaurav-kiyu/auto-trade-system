@@ -1,5 +1,7 @@
 # Runbook: {{TITLE}}
 
+> **NOTE:** This template is the canonical version. The identical copy at `docs/operations/runbook_template.md` is deprecated. Please update both if changes are needed.
+
 | Field | Value |
 |-------|-------|
 | Runbook ID | `RB-{{ID}}` |

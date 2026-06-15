@@ -67,5 +67,5 @@ class TestMalformedInputContract:
             # After an invalid cancel, a valid order must still work
             oid = adapter.place_order("NIFTY", "CALL", 50, 18000.0)
             assert oid is not None
-        except Exception:
+        except (ValueError, TypeError, KeyError):
             pass  # Rejection is acceptable

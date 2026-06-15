@@ -12,6 +12,7 @@ Monitors health of all new components:
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -80,7 +81,7 @@ class ComponentHealthMonitor:
                     last_check=self._last_check,
                     message="Unknown component type",
                 )
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError, KeyError, OSError) as e:
             return ComponentHealth(
                 component_name=name,
                 is_healthy=False,
@@ -99,7 +100,7 @@ class ComponentHealthMonitor:
                 message="Healthy",
                 details={"pending_executions": len(executions)},
             )
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError, OSError) as e:
             return ComponentHealth(
                 component_name="durable_store",
                 is_healthy=False,
@@ -118,7 +119,7 @@ class ComponentHealthMonitor:
                 message="Trading frozen" if frozen else "Healthy",
                 details={"trading_frozen": frozen},
             )
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError) as e:
             return ComponentHealth(
                 component_name="execution_service",
                 is_healthy=False,
@@ -147,7 +148,7 @@ class ComponentHealthMonitor:
                 last_check=self._last_check,
                 message="No state available",
             )
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError, OSError, KeyError) as e:
             return ComponentHealth(
                 component_name="circuit_breaker",
                 is_healthy=False,
@@ -164,7 +165,7 @@ class ComponentHealthMonitor:
                 last_check=self._last_check,
                 message="Healthy",
             )
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError) as e:
             return ComponentHealth(
                 component_name="lot_size_validator",
                 is_healthy=False,
@@ -183,7 +184,7 @@ class ComponentHealthMonitor:
                 message="HARD HALT" if is_halted else "Healthy",
                 details={"hard_halt": is_halted},
             )
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError, KeyError) as e:
             return ComponentHealth(
                 component_name="risk_engine",
                 is_healthy=False,
@@ -218,11 +219,14 @@ class ComponentHealthMonitor:
 
 
 _global_monitor: ComponentHealthMonitor | None = None
+_monitor_lock: threading.Lock = threading.Lock()
 
 
 def get_health_monitor() -> ComponentHealthMonitor:
-    """Get global health monitor instance."""
+    """Get global health monitor instance (thread-safe)."""
     global _global_monitor
     if _global_monitor is None:
-        _global_monitor = ComponentHealthMonitor()
+        with _monitor_lock:
+            if _global_monitor is None:
+                _global_monitor = ComponentHealthMonitor()
     return _global_monitor

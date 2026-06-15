@@ -20,6 +20,7 @@ from typing import Any
 from core.broker_failover import BrokerFailoverManager
 from core.datetime_ist import now_ist
 from core.logging import LoggingService
+from core.exceptions import BrokerConnectionError, BrokerTimeoutError
 from core.ports.broker.health_port import (
     BrokerHealthMetrics,
     BrokerHealthPort,
@@ -247,7 +248,7 @@ class BrokerHealthService(BrokerHealthPort):
                     timestamp=now_ist()
                 ))
 
-            except Exception as e:
+            except (BrokerConnectionError, BrokerTimeoutError, ConnectionError, OSError, ValueError, AttributeError) as e:
                 self._logger.error(f"Error checking health for broker {broker_name}: {e}", exc_info=True)
                 metrics.status = BrokerStatus.ERROR
                 metrics.error_message = str(e)
@@ -445,7 +446,7 @@ class BrokerHealthService(BrokerHealthPort):
                     else:
                         self._logger.error(f"Target broker {target_broker} not in failover chain")
                         return False
-            except Exception as e:
+            except (AttributeError, ValueError, KeyError, RuntimeError) as e:
                 self._logger.error(f"Error forcing failover to {target_broker}: {e}")
                 return False
         return False
@@ -484,7 +485,7 @@ class BrokerHealthService(BrokerHealthPort):
                     "monitored_brokers": list(self.broker_adapters.keys())
                 }
 
-        except Exception as e:
+        except (ValueError, AttributeError, KeyError) as e:
             self._logger.error(f"Error in broker health service health check: {e}", exc_info=True)
             return {
                 "status": "unhealthy",
@@ -538,7 +539,7 @@ class BrokerHealthService(BrokerHealthPort):
                 latency_ms=latency_ms,
                 timestamp=now_ist()
             )
-        except Exception as e:
+        except (ConnectionError, OSError, ValueError, AttributeError) as e:
             latency_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
                 broker_name=broker_name,
@@ -573,7 +574,7 @@ class BrokerHealthService(BrokerHealthPort):
                 latency_ms=latency_ms,
                 timestamp=now_ist()
             )
-        except Exception as e:
+        except (ConnectionError, OSError, ValueError, BrokerTimeoutError) as e:
             latency_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
                 broker_name=broker_name,
@@ -607,7 +608,7 @@ class BrokerHealthService(BrokerHealthPort):
                 latency_ms=latency_ms,
                 timestamp=now_ist()
             )
-        except Exception as e:
+        except (ConnectionError, OSError, ValueError, AttributeError) as e:
             latency_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
                 broker_name=broker_name,
@@ -735,8 +736,8 @@ class BrokerHealthService(BrokerHealthPort):
             try:
                 if hasattr(self, '_notification_service') and self._notification_service:
                     self._notification_service.send_alert(alert_msg, priority="CRITICAL")
-            except Exception:
-                pass  # Non-blocking - notification service may not be initialized
+            except (AttributeError, OSError):
+                self._logger.debug("[BHS] Notification send failed (non-blocking)")
 
     def _monitoring_loop(self) -> None:
         """Main monitoring loop that runs in a separate thread."""
@@ -766,7 +767,7 @@ class BrokerHealthService(BrokerHealthPort):
                 )
                 self._stop_event.wait(sleep_time)  # This allows early termination
 
-            except Exception as e:
+            except (ConnectionError, OSError, ValueError, AttributeError) as e:
                 self._logger.error(f"Error in broker health monitoring loop: {e}", exc_info=True)
                 # Sleep a bit before retrying to avoid tight error loops
                 self._stop_event.wait(5.0)

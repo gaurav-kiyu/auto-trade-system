@@ -22,6 +22,7 @@ from enum import Enum
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.exceptions import BrokerConnectionError, DatabaseError, ReconciliationError
 
 log = logging.getLogger(__name__)
 
@@ -95,6 +96,8 @@ class ReconciliationService:
         """Initialize orders tracking table if not exists."""
         try:
             with sqlite3.connect(self._db_path) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA busy_timeout=5000")
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS execution_orders (
                         order_id TEXT PRIMARY KEY,
@@ -123,7 +126,7 @@ class ReconciliationService:
                 """)
                 conn.commit()
                 log.info("Execution orders table initialized")
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             log.error(f"Failed to initialize orders table: {e}")
             raise
 
@@ -148,7 +151,7 @@ class ReconciliationService:
             if self._freeze_callback:
                 try:
                     self._freeze_callback(reason, details)
-                except Exception as e:
+                except (ValueError, TypeError, AttributeError, DatabaseError) as e:
                     log.error(f"Freeze callback failed: {e}")
 
     def record_order(
@@ -175,7 +178,7 @@ class ReconciliationService:
                 """, (order_id, intent_id, symbol, direction, quantity, status,
                       broker_order_id, now, now, idempotency_key))
                 conn.commit()
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError, ValueError) as e:
             log.error(f"Failed to record order {order_id}: {e}")
 
     def update_order_fill(
@@ -196,7 +199,7 @@ class ReconciliationService:
                     WHERE order_id = ?
                 """, (filled_quantity, average_price, status, now, order_id))
                 conn.commit()
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError, ValueError) as e:
             log.error(f"Failed to update order fill {order_id}: {e}")
 
     def get_pending_orders(self) -> list[dict]:
@@ -211,7 +214,7 @@ class ReconciliationService:
                     ORDER BY created_at
                 """, tuple(terminal_states))
                 return [dict(row) for row in cursor.fetchall()]
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             log.error(f"Failed to get pending orders: {e}")
             return []
 
@@ -222,7 +225,7 @@ class ReconciliationService:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute("SELECT * FROM execution_orders ORDER BY created_at")
                 return [dict(row) for row in cursor.fetchall()]
-        except Exception as e:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             log.error(f"Failed to get all orders: {e}")
             return []
 
@@ -309,7 +312,7 @@ class ReconciliationService:
 
             return result
 
-        except Exception as e:
+        except (ReconciliationError, DatabaseError, sqlite3.Error, OSError, ValueError, KeyError) as e:
             log.exception(f"Reconciliation failed: {e}")
             self._freeze_trading(
                 TradingFreezeReason.RECONCILIATION_FAILED,
@@ -343,7 +346,7 @@ class ReconciliationService:
                 elif isinstance(book, dict):
                     return book.get('data', book.get('orders', []))
             return []
-        except Exception as e:
+        except (BrokerConnectionError, ConnectionError, OSError, ValueError) as e:
             log.error(f"Failed to fetch broker orders: {e}")
             return []
 
@@ -355,7 +358,7 @@ class ReconciliationService:
             elif hasattr(broker_adapter, '_port') and hasattr(broker_adapter._port, 'get_positions'):
                 return broker_adapter._port.get_positions() or []
             return []
-        except Exception as e:
+        except (BrokerConnectionError, ConnectionError, OSError, ValueError) as e:
             log.error(f"Failed to fetch broker positions: {e}")
             return []
 
@@ -527,7 +530,7 @@ class ReconciliationService:
                     self._mark_order_terminal(issue.order_id, 'UNKNOWN_STALE')
                     repaired += 1
                     log.info(f"Auto-repaired stale order: {issue.order_id}")
-                except Exception as e:
+                except (DatabaseError, sqlite3.Error, OSError, AttributeError) as e:
                     log.error(f"Failed to repair stale order {issue.order_id}: {e}")
 
             elif issue.issue_type == ReconciliationState.UNRECORDED_FILL:
@@ -535,7 +538,7 @@ class ReconciliationService:
                     self._record_unrecorded_fill(issue)
                     repaired += 1
                     log.info(f"Auto-repaired unrecorded fill: {issue.order_id}")
-                except Exception as e:
+                except (DatabaseError, sqlite3.Error, OSError, AttributeError) as e:
                     log.error(f"Failed to repair unrecorded fill {issue.order_id}: {e}")
 
         return repaired

@@ -3,7 +3,6 @@
 #   pytest tests -v
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys
@@ -34,7 +33,8 @@ def test_scripts_exist():
 @pytest.mark.slow
 def test_core_package_imports():
     code = """
-from core import DataEngine, ExecutionEngine, RiskConfig, StateManager, StrategyEngine, now_ist
+from core import DataEngine, RiskConfig, StateManager, StrategyEngine, now_ist
+from core.execution_engine import ExecutionEngine
 assert DataEngine and ExecutionEngine and RiskConfig and StateManager and StrategyEngine
 assert now_ist().tzinfo is None
 print("ok")
@@ -200,13 +200,6 @@ def test_index_selftest_exits_zero():
         timeout=180,
     )
     assert r.returncode == 0, r.stdout + "\n" + r.stderr
-
-
-@pytest.mark.slow
-
-
-
-
 
 
 @pytest.mark.slow

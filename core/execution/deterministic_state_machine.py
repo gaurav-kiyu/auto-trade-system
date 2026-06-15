@@ -136,7 +136,7 @@ class ExecutionStateMachine:
                     self._persistence_callback(self)
                 except Exception as e:
                     self.state = old_state  # Revert on persistence failure
-                    _log.critical(f"PERSISTENCE FAILURE on transition to {new_state.value}: {e}")
+                    _log.critical(f"PERSISTENCE FAILURE on transition to {new_state.value}: {e} (type: {type(e).__name__})")
                     return TransitionResult.PERSISTENCE_FAILED, f"Critical: {e}"
 
             self.updated_at = time_provider.format_ts()

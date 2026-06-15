@@ -51,7 +51,7 @@ if str(ROOT) not in sys.path:
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:
+    except (ValueError, OSError):
         pass
 
 from core.candle_backtest import (
@@ -90,6 +90,8 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="Override VIX for premium model (default: from config or 14.0)")
     p.add_argument("--dte", type=int, default=3,
                    help="Days to expiry for ATM premium estimate (default: 3 = weekly mid)")
+    p.add_argument("--no-strict-oi", action="store_true",
+                   help="Disable strict OI coverage check (needed for Yahoo Finance data which has no OI)")
     p.add_argument("--json", action="store_true",
                    help="Emit machine-readable JSON instead of rich report")
     return p
@@ -458,7 +460,7 @@ def main() -> int:
             ):
                 if k in main_cfg:
                     signal_cfg[k] = main_cfg[k]
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, KeyError) as e:
             print(f"[backtest] config.json load warning: {e}", file=sys.stderr)
 
     # Derive backtest parameters
@@ -499,6 +501,7 @@ def main() -> int:
         dte               = int(args.dte),
         delta_scale       = float(signal_cfg.get("OPTION_DELTA_SCALE", 1.5)),
         use_regime_rr     = True,
+        strict_oi         = not args.no_strict_oi,
     )
 
     if args.raw_index:

@@ -39,6 +39,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from core.strategy.config import get_strategy_cfg
+
 _log = logging.getLogger(__name__)
 
 
@@ -87,12 +89,13 @@ def check_ic_conditions(
         (True, "")          — all conditions pass
         (False, reason)     — blocked
     """
-    if not cfg.get("ic_strategy_enabled", False):
+    sc = get_strategy_cfg(cfg, "iron_condor")
+    if not sc.get("enabled", False):
         return False, "ic_strategy_enabled=false"
 
-    max_adx = float(cfg.get("ic_max_adx", 18))
-    max_vix = float(cfg.get("ic_max_vix", 15))
-    min_dte = int(cfg.get("ic_min_dte",   3))
+    max_adx = float(sc.get("max_adx", 18))
+    max_vix = float(sc.get("max_vix", 15))
+    min_dte = int(sc.get("min_dte",   3))
 
     if regime not in ("CHOPPY", "RANGING"):
         return False, f"ic_regime: need CHOPPY, got {regime}"
@@ -140,6 +143,7 @@ def build_iron_condor(
         IronCondorPosition or None if data insufficient.
     """
     c = cfg or {}
+    sc = get_strategy_cfg(c, "iron_condor")
     if option_chain is None:
         return None
 
@@ -151,7 +155,7 @@ def build_iron_condor(
     if not all_k:
         return None
     atm = min(all_k, key=lambda k: abs(k - spot))
-    w   = int(c.get("ic_wing_width_steps", 2))
+    w   = int(sc.get("wing_width_steps", 2))
 
     # Call spread uses strikes strictly ABOVE ATM from the calls side
     calls_above = [k for k in sorted(int(k) for k in calls) if k > atm]
@@ -199,7 +203,7 @@ def build_iron_condor(
         spread_width      = round(spread_width, 0),
         max_profit        = round(net_credit,  2),
         max_loss          = round(max(0.0, spread_width - net_credit), 2),
-        expiry            = str(c.get("ic_expiry", "")),
+        expiry            = str(sc.get("expiry", "")),
     )
 
 
@@ -227,9 +231,9 @@ def evaluate_ic_exit(
     Returns:
         ICExitDecision.
     """
-    c = cfg or {}
-    profit_tgt = float(c.get("ic_profit_target", 0.5))
-    stop_mult  = float(c.get("ic_stop_mult",     0.8))
+    sc = get_strategy_cfg(cfg or {}, "iron_condor")
+    profit_tgt = float(sc.get("profit_target", 0.5))
+    stop_mult  = float(sc.get("stop_mult",     0.8))
 
     current_val = current_call_spread_val + current_put_spread_val
 

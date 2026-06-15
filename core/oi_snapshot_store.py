@@ -30,6 +30,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from core.db_utils import get_connection
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB           = "oi_snapshots.db"
@@ -80,8 +82,7 @@ CREATE TABLE IF NOT EXISTS oi_snapshots_archive (
 
 def _get_conn(db_path: str) -> sqlite3.Connection:
     """Open a connection and ensure schema exists."""
-    conn = sqlite3.connect(db_path, check_same_thread=False, timeout=10)
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn = get_connection(db_path, timeout=10, row_factory=False)
     for stmt in _DDL_MAIN.strip().split(";"):
         stmt = stmt.strip()
         if stmt:
@@ -106,7 +107,7 @@ def _maybe_archive(conn: sqlite3.Connection, archive_days: int) -> None:
         )
         conn.execute("DELETE FROM oi_snapshots WHERE ts < ?", (cutoff,))
         conn.commit()
-    except Exception as exc:
+    except (sqlite3.Error, OSError) as exc:
         _log.debug("[OI_SNAP] Archive step failed: %s", exc)
 
 
@@ -184,7 +185,7 @@ def record_snapshot(
             return True
         finally:
             conn.close()
-    except Exception as exc:
+    except (sqlite3.Error, OSError, ValueError, TypeError) as exc:
         _log.warning("[OI_SNAP] record_snapshot failed for %s: %s", index_name, exc)
         return False
 
@@ -206,8 +207,7 @@ def get_snapshot_at(
     if not p.is_file():
         return None
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
-        conn.row_factory = sqlite3.Row
+        conn = get_connection(p, timeout=5)
         try:
             row = conn.execute(
                 """
@@ -223,7 +223,7 @@ def get_snapshot_at(
             return dict(row)
         finally:
             conn.close()
-    except Exception as exc:
+    except (sqlite3.Error, OSError, ValueError) as exc:
         _log.debug("[OI_SNAP] get_snapshot_at failed: %s", exc)
         return None
 
@@ -268,8 +268,7 @@ def get_oi_at(
     if not p.is_file():
         return None
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
-        conn.row_factory = sqlite3.Row
+        conn = get_connection(p, timeout=5)
         try:
             row = conn.execute(
                 """
@@ -295,7 +294,7 @@ def get_oi_at(
             return None
         finally:
             conn.close()
-    except Exception as exc:
+    except (sqlite3.Error, OSError, ValueError, TypeError) as exc:
         _log.debug("[OI_SNAP] get_oi_at failed: %s", exc)
         return None
 
@@ -320,7 +319,7 @@ def coverage_pct(
     if not p.is_file():
         return 0.0
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
+        conn = get_connection(p, timeout=5, row_factory=False)
         try:
             row = conn.execute(
                 """
@@ -334,5 +333,5 @@ def coverage_pct(
             return min(1.0, snapshot_count / expected_bars)
         finally:
             conn.close()
-    except Exception:
+    except (sqlite3.Error, OSError):
         return 0.0

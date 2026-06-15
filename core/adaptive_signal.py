@@ -19,11 +19,15 @@ tier-specific risk/execution parameters from TierRules.
 from __future__ import annotations
 
 import datetime
+import logging
+import sqlite3
 from dataclasses import dataclass, field
 from typing import Any
 
 import pandas as pd
 import signal_engine as SE
+
+_log = logging.getLogger(__name__)
 
 from core.feature_engine import FeatureEngine
 from core.market_calc import detect_regime_and_adx as mc_detect_regime_and_adx
@@ -142,7 +146,7 @@ def compute_confidence_band(
     bin_w   = int(cfg.get("confidence_band_score_bin_width", 5))
     lo, hi  = score - bin_w, score + bin_w
 
-    import sqlite3 as _sqlite3
+    from core.db_utils import get_connection as _get_conn
     from pathlib import Path as _Path
 
     p = _Path(db_path)
@@ -150,7 +154,7 @@ def compute_confidence_band(
         return None
 
     try:
-        conn = _sqlite3.connect(str(p), check_same_thread=False, timeout=3)
+        conn = _get_conn(str(p), timeout=3, row_factory=False)
         try:
             rows = conn.execute(
                 "SELECT net_pnl FROM trades "
@@ -183,7 +187,7 @@ def compute_confidence_band(
             session=session,
             direction=direction,
         )
-    except Exception:
+    except (sqlite3.Error, OSError, ValueError, TypeError, AttributeError):
         return None
 
 
@@ -450,8 +454,8 @@ def _compute_features_and_score(
                 elif direction == "PUT" and price < _orb_low * 0.999:
                     _orb_pts = _orb_b
                     score = min(100, score + _orb_pts)
-    except Exception:
-        pass
+    except (ValueError, TypeError, AttributeError, KeyError, IndexError):
+        _log.debug("[SIGNAL] ORB bonus skipped")
     score_components["orb_bonus"] = _orb_pts
 
     return {
@@ -590,8 +594,8 @@ def evaluate_adaptive_signal(
                 if _iv_rank_pts < 0:
                     soft_blocks.append("high_iv")
                 reasons.append(f"[IV] {_iv_tag}")
-        except Exception:
-            pass  # iv_rank is always optional
+        except (ValueError, TypeError, IndexError) as _iv_err:
+            _log.debug("[SIGNAL] IV rank skipped: %s", _iv_err)
 
     # ── IV Skew score penalty (v2.44 Item 11) ────────────────────────────────
     _skew_adj_pts: int = 0
@@ -613,8 +617,8 @@ def evaluate_adaptive_signal(
                         soft_blocks    = list(soft_blocks)
                         soft_blocks.append("extreme_put_skew")
                         reasons.append(f"[SKEW] EXTREME put_skew={_skew_dat.put_skew:.1f} pen={_pen:+d}")
-        except Exception:
-            pass  # iv_skew is always optional
+        except (ValueError, TypeError, AttributeError) as _skew_err:
+            _log.debug("[SIGNAL] IV skew skipped: %s", _skew_err)
 
     # ── Session Classifier score adjustment ───────────────────────────────────
     _session_adj_pts: int = 0
@@ -640,8 +644,8 @@ def evaluate_adaptive_signal(
                 adjusted_score = max(0, min(100, adjusted_score + _sess_adj))
                 _session_adj_pts = adjusted_score - _pre_sess
             reasons.append(f"[SESSION] {_session.value} adj={_sess_adj:+d}")
-        except Exception:
-            pass  # session_classifier is always optional
+        except (ValueError, TypeError, AttributeError, ImportError) as _sess_err:
+            _log.debug("[SIGNAL] Session classifier skipped: %s", _sess_err)
 
     # ── ML Signal Classifier score adjustment ─────────────────────────────────
     # Trained on journal win/loss history; boosts high-probability signals and
@@ -724,7 +728,7 @@ def evaluate_adaptive_signal(
                                     _ml_tag = f"{_ml_tag} (SHAP conf={shap_confidence:.2f})"
                     else:
                         _ml_reasoning = ""
-                except Exception:
+                except (ValueError, TypeError, AttributeError):
                     _ml_reasoning = ""
 
                 # Record prediction for calibration tracking (ml_performance_tracker)
@@ -741,10 +745,10 @@ def evaluate_adaptive_signal(
                             shap_json=_shap_json(_shap_vals),
                             db_path=_scfg.get("ml_tracker_db_path", "ml_tracker.db"),
                         )
-                    except Exception:
-                        pass
-        except Exception:
-            pass  # ml_classifier is always optional
+                    except (ValueError, TypeError, AttributeError) as e:
+                        _log.debug("[ADAPTIVE_SIGNAL] non-critical error: %s", e)
+        except (ImportError, ValueError, TypeError, AttributeError) as _ml_err:
+            _log.debug("[SIGNAL] ML classifier skipped: %s", _ml_err)
 
     tier           = classify_tier(adjusted_score)
     direction      = str(data.get("direction", "CALL"))
@@ -774,8 +778,8 @@ def evaluate_adaptive_signal(
                 _pre_fii = adjusted_score
                 adjusted_score = max(0, min(100, adjusted_score + _fii_adj))
                 _fii_pts = adjusted_score - _pre_fii
-        except Exception:
-            pass
+        except (ImportError, ValueError, TypeError, AttributeError, KeyError):
+            _log.debug("[SIGNAL] Optional feature skipped")
 
     # Item 2: Implied move gate (soft block as score penalty)
     _im_pts: int = 0
@@ -789,8 +793,8 @@ def evaluate_adaptive_signal(
                 _pre_im = adjusted_score
                 adjusted_score = max(0, min(100, adjusted_score + _im_adj))
                 _im_pts = adjusted_score - _pre_im
-        except Exception:
-            pass
+        except (ImportError, ValueError, TypeError, AttributeError, KeyError) as e:
+            _log.debug("[ADAPTIVE_SIGNAL] non-critical error: %s", e)
 
     # Item 3: GEX regime adjustment
     _gex_pts: int = 0
@@ -806,8 +810,8 @@ def evaluate_adaptive_signal(
                 _pre_gex = adjusted_score
                 adjusted_score = max(0, min(100, adjusted_score + _gex_adj))
                 _gex_pts = adjusted_score - _pre_gex
-        except Exception:
-            pass
+        except (ImportError, ValueError, TypeError, AttributeError, KeyError) as e:
+            _log.debug("[ADAPTIVE_SIGNAL] non-critical error: %s", e)
 
     # Item 4: Regime transition bonus
     _rt_pts: int = 0
@@ -824,8 +828,8 @@ def evaluate_adaptive_signal(
                 _pre_rt = adjusted_score
                 adjusted_score = max(0, min(100, adjusted_score + _rt_adj))
                 _rt_pts = adjusted_score - _pre_rt
-        except Exception:
-            pass
+        except (ImportError, ValueError, TypeError, AttributeError, KeyError) as e:
+            _log.debug("[ADAPTIVE_SIGNAL] non-critical error: %s", e)
 
     score_comps["fii_dii_adj"]   = _fii_pts
     score_comps["implied_move_adj"] = _im_pts
@@ -861,8 +865,8 @@ def evaluate_adaptive_signal(
                 db_path=str(_db_path2),
                 cfg=_scfg2,
             )
-        except Exception:
-            pass  # always optional
+        except (ValueError, TypeError, IndexError):
+            _log.debug("[SIGNAL] Confidence band skipped")
 
     # ── Apply max penalty cap (v2.45: safety guard) ────────────────────────────
     # Total penalty (adjusted_score - raw_score) must not exceed config maximum.

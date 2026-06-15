@@ -77,7 +77,7 @@ class DataValidationRule:
                     try:
                         if not validator(data[field]):
                             return False, f"Field '{field}' failed validation"
-                    except Exception as e:
+                    except (TypeError, ValueError, AttributeError) as e:
                         return False, f"Field '{field}' validation error: {e}"
 
         return True, ""
@@ -115,6 +115,7 @@ class MarketDataCache:
         }
 
         # Start cleanup thread
+        self._cleanup_stop = threading.Event()
         self._cleanup_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
         self._cleanup_thread.start()
 
@@ -169,7 +170,7 @@ class MarketDataCache:
                         try:
                             is_valid = validator(cached.data)
                             validation_msg = "" if is_valid else "Custom validation failed"
-                        except Exception as e:
+                        except (TypeError, ValueError, AttributeError) as e:
                             is_valid = False
                             validation_msg = f"Custom validation error: {e}"
 
@@ -275,13 +276,35 @@ class MarketDataCache:
                 'cache_size': len(self._cache)
             }
 
+    @property
+    def closed(self) -> bool:
+        """Whether the cache has been shut down (cleanup thread signalled to stop)."""
+        return self._cleanup_stop.is_set()
+
+    def stop(self, timeout: float = 5.0) -> None:
+        """Gracefully stop the cleanup thread and release resources.
+
+        Args:
+            timeout: Seconds to wait for the cleanup thread to finish.
+        """
+        self._cleanup_stop.set()
+        if self._cleanup_thread and self._cleanup_thread.is_alive():
+            self._cleanup_thread.join(timeout=timeout)
+
+    def __enter__(self) -> MarketDataCache:
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.stop()
+
     def _cleanup_loop(self):
         """Background thread to periodically clean up expired cache entries."""
-        while True:
+        while not self._cleanup_stop.is_set():
             try:
-                time.sleep(60)  # Clean up every minute
+                if self._cleanup_stop.wait(60):  # Clean up every minute, interruptible
+                    break
                 self._cleanup_expired()
-            except Exception as e:
+            except (OSError, ValueError, TypeError, AttributeError) as e:
                 logger.error(f"Error in cache cleanup loop: {e}")
 
     def _cleanup_expired(self) -> int:

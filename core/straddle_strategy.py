@@ -36,6 +36,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from core.strategy.config import get_strategy_cfg
+
 _log = logging.getLogger(__name__)
 
 
@@ -81,10 +83,11 @@ def check_straddle_conditions(
         (True, "")                  — conditions met
         (False, reason_string)      — blocked with reason
     """
-    if not cfg.get("straddle_strategy_enabled", False):
+    sc = get_strategy_cfg(cfg, "straddle")
+    if not sc.get("enabled", False):
         return False, "straddle_strategy_enabled=false"
 
-    max_iv = float(cfg.get("straddle_max_iv_rank", 20))
+    max_iv = float(sc.get("max_iv_rank", 20))
 
     # Path 1: Event day + low IV
     if is_event_day and iv_rank < max_iv:
@@ -135,6 +138,7 @@ def build_straddle(
         StraddlePosition or None if chain data is insufficient.
     """
     c = cfg or {}
+    sc = get_strategy_cfg(c, "straddle")
     if option_chain is None:
         return None
 
@@ -151,7 +155,7 @@ def build_straddle(
 
     total_debit = cp + pp
     lot_size    = int(c.get("gex_lot_size", 50))  # reuse lot_size config
-    expiry      = str(c.get("straddle_expiry", ""))
+    expiry      = str(sc.get("expiry", ""))
 
     return StraddlePosition(
         call_strike    = atm,
@@ -186,6 +190,7 @@ def build_strangle(
         StraddlePosition (strategy_type="STRANGLE") or None.
     """
     c = cfg or {}
+    sc = get_strategy_cfg(c, "strangle")
     if option_chain is None:
         return None
 
@@ -197,7 +202,7 @@ def build_strangle(
     if not all_k:
         return None
     atm   = min(all_k, key=lambda k: abs(k - spot))
-    width = int(c.get("strangle_width_steps", 2))
+    width = int(sc.get("width_steps", 2))
 
     # OTM call: w-th strike strictly above ATM in the calls side
     calls_above = [k for k in sorted(int(k) for k in calls) if k > atm]
@@ -260,10 +265,10 @@ def evaluate_straddle_exit(
     Returns:
         StraddleExitDecision with action and exit_leg.
     """
-    c = cfg or {}
-    tgt_mult  = float(c.get("straddle_target_mult", 1.5))
-    stop_mult = float(c.get("straddle_stop_mult",   0.6))
-    close_both= bool(c.get("straddle_close_both_on_target", False))
+    sc = get_strategy_cfg(cfg or {}, "straddle")
+    tgt_mult  = float(sc.get("target_mult", 1.5))
+    stop_mult = float(sc.get("stop_mult",   0.6))
+    close_both= bool(sc.get("close_both_on_target", False))
 
     current_value = current_call_prem + current_put_prem
     total_debit   = position.total_debit

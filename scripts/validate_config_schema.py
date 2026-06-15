@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
-Validate JSON config files against generated schemas (see ``generate_config_schemas.py``).
+Validate JSON config files against generated schemas.
 
   python scripts/validate_config_schema.py
   python scripts/validate_config_schema.py --path config.json --flavour index
+  python scripts/validate_config_schema.py --all
 
 ``--flavour`` is ``index`` (default) or ``stock`` and selects which ``schemas/*.schema.json`` to use.
+
+Regeneration: After changing any defaults file (index_config.defaults.json / stock_config.defaults.json),
+run ``python scripts/generate_config_schemas.py`` to keep schemas in sync.
 """
 from __future__ import annotations
 
@@ -66,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         for p in paths:
             try:
                 inst = _load_json(p)
-            except Exception as e:
+            except (json.JSONDecodeError, OSError, UnicodeDecodeError, ValueError) as e:
                 print(f"{p.relative_to(ROOT)}: load error: {e}", file=sys.stderr)
                 ok = False
                 continue

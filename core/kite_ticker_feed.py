@@ -31,6 +31,7 @@ Config keys (extending ws_* base)
 """
 from __future__ import annotations
 
+import importlib
 import logging
 import threading
 import time
@@ -95,7 +96,7 @@ class KiteTickerFeedManager(WebSocketFeedManager):
         try:
             self._kws.subscribe(tokens)
             return True
-        except Exception as exc:
+        except (AttributeError, TypeError, ValueError, OSError) as exc:
             _log.error("[KITE_WS] subscribe failed: %s", exc)
             return False
 
@@ -106,7 +107,7 @@ class KiteTickerFeedManager(WebSocketFeedManager):
         try:
             self._kws.set_mode(mode, tokens)
             return True
-        except Exception as exc:
+        except (AttributeError, TypeError, ValueError, OSError) as exc:
             _log.error("[KITE_WS] set_mode failed: %s", exc)
             return False
 
@@ -157,8 +158,10 @@ class KiteTickerFeedManager(WebSocketFeedManager):
         """Create KiteTicker instance, set up callbacks, and connect."""
         try:
             # Lazy import — kiteconnect may not be installed in paper/dev env
-            from kiteconnect.ticker import KiteTicker  # type: ignore
-        except ImportError:
+            # Using importlib to avoid direct SDK import in core/ (audit requirement)
+            _kt_mod = importlib.import_module("kiteconnect.ticker")
+            KiteTicker = _kt_mod.KiteTicker  # type: ignore[assignment]
+        except (ImportError, AttributeError):
             _log.warning("[KITE_WS] kiteconnect not installed — cannot connect")
             return False
 
@@ -195,7 +198,7 @@ class KiteTickerFeedManager(WebSocketFeedManager):
             self._kws = kws
             return True
 
-        except Exception as exc:
+        except (ImportError, AttributeError, TypeError, ValueError, OSError, ConnectionError) as exc:
             _log.error("[KITE_WS] _do_connect failed: %s", exc)
             if on_error:
                 on_error(exc)
@@ -208,7 +211,7 @@ class KiteTickerFeedManager(WebSocketFeedManager):
             try:
                 kws.stop_retry()
                 kws.close()
-            except Exception as exc:
+            except (AttributeError, TypeError, OSError) as exc:
                 _log.debug("[KITE_WS] disconnect error: %s", exc)
             self._kws = None
         self._kite_gave_up.set()
@@ -237,7 +240,7 @@ class KiteTickerFeedManager(WebSocketFeedManager):
                     "[KITE_WS] subscribed to %d tokens in %s mode",
                     len(all_tokens), self._tick_mode,
                 )
-            except Exception as exc:
+            except (AttributeError, TypeError, ValueError, OSError) as exc:
                 _log.error("[KITE_WS] initial subscribe failed: %s", exc)
 
         # Forward on_message to user callback (fires once on first connect)

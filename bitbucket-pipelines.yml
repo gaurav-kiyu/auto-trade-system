@@ -74,11 +74,49 @@ definitions:
           - make checksum
           - echo "Release $(cat VERSION) ready: sha256sum ../opbuying-$(cat VERSION).tar.gz"
 
+    - step: &governance-step
+        name: Constitution Governance
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - echo "=== Pre-Implementation Compliance Check ==="
+          - python scripts/pre_implementation_check.py --check-risk || echo "WARNING: pre-implementation checks found issues"
+          - echo "=== Architecture Compliance (ADR 0010) ==="
+          - python scripts/check_architecture_compliance.py --ci
+          - echo "=== Constitution Scoring ==="
+          - python scripts/score_system.py --ci --check-min 5.0 || echo "WARNING: some scores below 5.0"
+          - echo "=== Script & Artifact Sync Check ==="
+          - python scripts/sync_artifacts.py --ci || echo "WARNING: artifact sync issues found"
+          - echo "=== Repository Hygiene Check ==="
+          - python scripts/hygiene_check.py --ci || echo "WARNING: hygiene issues found"
+          - echo "=== Dead Code Scan ==="
+          - python scripts/scan_dead_code.py --ci || echo "WARNING: dead code found"
+        artifacts:
+          - reports/**
+
+    - step: &governance-release-step
+        name: Release Governance
+        caches: [pip]
+        trigger: manual
+        script:
+          - pip install -e ".[dev]"
+          - VERSION=$(cat VERSION)
+          - echo "=== Pre-Release Validation ==="
+          - python scripts/release_governance.py --check --version $VERSION
+          - echo "=== Generate Release Notes ==="
+          - python scripts/release_governance.py --generate-notes -v $VERSION
+          - echo "=== Scoring Report ==="
+          - python scripts/score_system.py --json --check-min 6.0
+        artifacts:
+          - RELEASE_NOTES.md
+          - reports/**
+
 pipelines:
   default:
     - parallel:
         - step: *lint-step
         - step: *test-step
+    - step: *governance-step
     - step: *slow-test-step
     - step: *chaos-step
     - step: *exactly-once-step
@@ -88,6 +126,7 @@ pipelines:
       - parallel:
           - step: *lint-step
           - step: *test-step
+      - step: *governance-step
       - step: *chaos-step
 
   branches:
@@ -95,6 +134,7 @@ pipelines:
       - parallel:
           - step: *lint-step
           - step: *test-step
+      - step: *governance-step
       - step: *slow-test-step
       - step: *chaos-step
       - step: *exactly-once-step
@@ -104,18 +144,22 @@ pipelines:
       - parallel:
           - step: *lint-step
           - step: *test-step
+      - step: *governance-step
       - step: *chaos-step
 
     release/**:
       - parallel:
           - step: *lint-step
           - step: *test-step
+      - step: *governance-step
       - step: *slow-test-step
       - step: *chaos-step
       - step: *exactly-once-step
       - step: *dist-step
+      - step: *governance-release-step
       - step: *release-step
 
   tags:
     v*:
+      - step: *governance-release-step
       - step: *release-step

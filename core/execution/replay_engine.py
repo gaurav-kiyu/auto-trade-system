@@ -81,7 +81,7 @@ class ReplayEngine:
                 conn.commit()
             _log.info("ReplayEngine: Storage initialized")
         except Exception as e:
-            _log.error(f"ReplayEngine: Failed to init storage: {e}")
+            _log.error(f"ReplayEngine: Failed to init storage: {e} (type: {type(e).__name__})")
 
     def create_session(
         self,
@@ -217,7 +217,7 @@ class ReplayEngine:
             try:
                 callback(event)
             except Exception as e:
-                _log.error(f"Error in replay callback: {e}")
+                _log.error(f"Error in replay callback: {e} (type: {type(e).__name__})")
 
         _log.info(f"Replayed {len(events)} events from {start_time} to {end_time}")
         return len(events)
@@ -231,7 +231,7 @@ class ReplayEngine:
             try:
                 callback(event)
             except Exception as e:
-                _log.error(f"Error in order replay: {e}")
+                _log.error(f"Error in order replay: {e} (type: {type(e).__name__})")
 
         _log.info(f"Replayed {len(events)} events for order {client_order_id}")
         return len(events)
@@ -287,7 +287,7 @@ class ReplayEngine:
                 ))
                 conn.commit()
         except Exception as e:
-            _log.error(f"Failed to persist session: {e}")
+            _log.error(f"Failed to persist session: {e} (type: {type(e).__name__})")
 
 
 _replay_engine: ReplayEngine | None = None

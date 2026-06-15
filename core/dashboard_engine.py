@@ -19,7 +19,7 @@ class DashboardEngine:
         if vx is not None:
             try:
                 parts.append(f"India VIX {float(vx):.1f} (block<={vb} / halt<={vh})")
-            except Exception:
+            except (TypeError, ValueError):
                 parts.append(f"VIX thresholds block<={vb} halt<={vh}")
         else:
             parts.append(f"VIX n/a (cfg block<={vb} / halt<={vh})")
@@ -27,15 +27,15 @@ class DashboardEngine:
         if lp is not None:
             try:
                 parts.append(f"Daily loss budget used ~{float(lp):.0f}%")
-            except Exception:
+            except (TypeError, ValueError):
                 pass
         try:
             parts.append(f"Min net RR >={float(dsk.get('min_rr', 0)):.2f}")
-        except Exception:
+        except (TypeError, ValueError):
             parts.append("Min net RR >=?")
         try:
             parts.append(f"SL/Target {float(dsk.get('sl_pct', 0))*100:.0f}% / {float(dsk.get('tgt_pct', 0))*100:.0f}%")
-        except Exception:
+        except (TypeError, ValueError):
             pass
         parts.append(f"Circuit {dsk.get('circuit', '?')}")
         if dsk.get("hard_halt"):
@@ -43,7 +43,7 @@ class DashboardEngine:
         if self._execution_label_fn:
             try:
                 parts.append(f"Exec: {self._execution_label_fn(dsk)}")
-            except Exception:
+            except (TypeError, ValueError):
                 pass
         for key in ("sig_quality", "api_health", "learning_quality"):
             if dsk.get(key):

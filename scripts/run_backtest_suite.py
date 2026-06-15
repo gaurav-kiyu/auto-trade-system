@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:
+    except (ValueError, OSError):
         pass
 
 from core.candle_backtest import CandleBacktestConfig, run_candle_backtest
@@ -57,7 +57,7 @@ def run_single_backtest(
     print(f"[{label}] Fetching {symbol_yf} {BACKTEST_DAYS}d 1m bars...")
     try:
         df = fetch_1m_bars_chunked_yfinance(symbol_yf, calendar_days=BACKTEST_DAYS)
-    except Exception as e:
+    except (OSError, ValueError, TypeError, ConnectionError, RuntimeError) as e:
         print(f"[{label}] FETCH ERROR: {e}")
         return None
 
@@ -116,7 +116,7 @@ def run_single_backtest(
             vol_ratio_min=float(signal_cfg.get("VOL_RATIO_MIN", 1.2)),
             backtest_cfg=base_cfg, symbol=symbol,
         )
-    except Exception as e:
+    except (ValueError, TypeError, KeyError, IndexError, RuntimeError, OSError) as e:
         print(f"[{label}] BACKTEST ERROR: {e}")
         json_out[label] = {"error": str(e)}
         return None

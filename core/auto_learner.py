@@ -113,7 +113,8 @@ def _atomic_write_state(file_path: Path, content: str) -> None:
     Write JSON content to file atomically using temp file + rename.
 
     This prevents corruption if multiple processes write simultaneously.
-    Pattern: write to temp → flush → rename → done.
+    Pattern: write to temp → flush → close → rename → done.
+    On Windows the temp file must be closed before rename to release the lock.
 
     Raises:
         OSError: If write or rename fails
@@ -121,23 +122,22 @@ def _atomic_write_state(file_path: Path, content: str) -> None:
     file_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write to temp file in same directory (ensures same filesystem for atomic rename)
-    with tempfile.NamedTemporaryFile(
+    tmp = tempfile.NamedTemporaryFile(
         mode='w',
         dir=file_path.parent,
         prefix='.tmp_',
         suffix='.json',
         delete=False,
-        encoding='utf-8'
-    ) as tmp:
-        tmp_path = Path(tmp.name)
-        try:
-            tmp.write(content)
-            tmp.flush()
-            # Atomic rename (fails if target exists on some platforms, but creates new atomically on most)
-            tmp_path.replace(file_path)
-        except Exception as e:
-            tmp_path.unlink(missing_ok=True)
-            raise OSError(f"Atomic write to {file_path} failed: {e}")
+        encoding='utf-8',
+    )
+    tmp_path = Path(tmp.name)
+    try:
+        tmp.write(content)
+        tmp.close()  # Must close before rename on Windows (releases file lock)
+        tmp_path.replace(file_path)
+    except OSError as e:
+        tmp_path.unlink(missing_ok=True)
+        raise OSError(f"Atomic write to {file_path} failed: {e}")
 
 
 # ─── AutoLearner ──────────────────────────────────────────────────────────────
@@ -203,7 +203,7 @@ class AutoLearner:
                     self._symbol_states = dict(saved.get("symbol_states") or {})
                     self._regime_matrix = dict(saved.get("regime_matrix") or {})
                     self._log(f"[LEARNER] Loaded state from {state_path}")
-                except Exception as exc:
+                except (OSError, json.JSONDecodeError, ValueError, TypeError) as exc:
                     self._log(f"[LEARNER] State load failed ({exc}); starting fresh")
             elif existing_state:
                 self._global_state.update({
@@ -228,7 +228,7 @@ class AutoLearner:
             try:
                 content = json.dumps(out, indent=2)
                 _atomic_write_state(state_path, content)
-            except Exception as exc:
+            except (OSError, json.JSONDecodeError) as exc:
                 self._log(f"[LEARNER] State save failed: {exc}")
 
     def export_global_state(self) -> dict[str, Any]:
@@ -261,8 +261,8 @@ class AutoLearner:
             for line in lines:
                 try:
                     entries.append(json.loads(line))
-                except Exception:
-                    pass
+                except (json.JSONDecodeError, ValueError, TypeError) as e:
+                    log.debug("[AUTO_LEARNER] non-critical error: %s", e)
             skips = sum(1 for e in entries if e.get("verdict") == "SKIP")
             total = max(1, len(entries))
             self._ai_stats = {
@@ -270,8 +270,8 @@ class AutoLearner:
                 "count": len(entries),
                 "avg_delta": sum(int(e.get("score_delta") or 0) for e in entries) / total,
             }
-        except Exception:
-            pass
+        except (OSError, json.JSONDecodeError, AttributeError) as e:
+            log.debug("[AUTO_LEARNER] non-critical error: %s", e)
         self._ai_stats_ts = now
 
     # ── threshold adjustment (drop-in for adaptive_threshold_adjustment) ─────

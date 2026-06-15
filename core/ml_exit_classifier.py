@@ -29,7 +29,7 @@ class MLExitClassifier:
             try:
                 return joblib.load(self.model_path)
             except Exception as e:
-                self.logger.error(f"Failed to load ML Exit model: {e}")
+                self.logger.error(f"Failed to load ML Exit model: {e} (type: {type(e).__name__})")
         return None
 
     def prepare_features(self, trade_data: dict) -> np.array:

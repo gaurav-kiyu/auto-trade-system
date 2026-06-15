@@ -34,6 +34,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from core.db_utils import get_connection
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB = "trades.db"
@@ -60,7 +62,7 @@ def _load_recent_pnls(db_path: str, window: int) -> list[float]:
     if not p.is_file():
         return []
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
+        conn = get_connection(p, timeout=5, row_factory=False)
         try:
             rows = conn.execute(
                 "SELECT net_pnl FROM trades "
@@ -71,7 +73,7 @@ def _load_recent_pnls(db_path: str, window: int) -> list[float]:
         finally:
             conn.close()
         return [float(r[0]) for r in rows if r[0] is not None]
-    except Exception as exc:
+    except (sqlite3.Error, OSError, ValueError, TypeError) as exc:
         _log.debug("[KELLY] DB load failed: %s", exc)
         return []
 

@@ -5,6 +5,8 @@ import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from core.db_utils import get_connection as _get_mig_conn
+
 log = logging.getLogger(__name__)
 
 
@@ -69,7 +71,7 @@ def migrate_to_latest(conn: sqlite3.Connection, target_version: int | None = Non
             set_schema_version(conn, migration.version)
             conn.commit()
             log.info("Applied migration v%d: %s", migration.version, migration.description)
-        except Exception:
+        except sqlite3.Error:
             conn.rollback()
             log.error("Migration v%d failed (%s): rolling back", migration.version, migration.description)
             raise
@@ -82,7 +84,7 @@ def get_migration_log(conn_or_path: "str | sqlite3.Connection") -> list[dict]:
     Accepts a sqlite3.Connection or a file path str.
     """
     if isinstance(conn_or_path, str):
-        conn = sqlite3.connect(conn_or_path)
+        conn = _get_mig_conn(conn_or_path, row_factory=False)  # noqa: F811
         try:
             return _get_migration_log_inner(conn)
         finally:
@@ -110,7 +112,7 @@ def ensure_schema_version(db_path: str) -> int:
     """Open or create a database, check integrity, and migrate to the latest schema version.
     Returns the final schema version.
     """
-    conn = sqlite3.connect(db_path)
+    conn = _get_mig_conn(db_path, row_factory=False)
     try:
         _check_integrity(conn, db_path)
         return migrate_to_latest(conn)
@@ -127,5 +129,5 @@ def _check_integrity(conn: sqlite3.Connection, label: str = "") -> None:
             log.warning("DB integrity issues in %s: %s", label or conn, "; ".join(issues[:5]))
         else:
             log.debug("Integrity check OK for %s", label or conn)
-    except Exception:
+    except (sqlite3.Error, OSError):
         log.warning("Integrity check failed for %s", label or conn, exc_info=True)

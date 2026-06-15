@@ -115,7 +115,7 @@ class ObservabilityManager:
             self._server_started = True
             log.info(f"Prometheus metrics server started on port {self.port}")
         except Exception as e:
-            log.error(f"Failed to start Prometheus server: {e}")
+            log.error(f"Failed to start Prometheus server: {e} (type: {type(e).__name__})")
 
     def record_order_latency(self, start_time: float):
         """Records the time taken to execute an order."""

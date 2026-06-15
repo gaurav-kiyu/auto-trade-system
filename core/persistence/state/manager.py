@@ -29,7 +29,7 @@ class StatePersistenceManager:
                     self._write_state({})
                 self._is_connected = True
                 return True
-        except Exception:
+        except (OSError, PermissionError):
             return False
 
     def disconnect(self) -> None:
@@ -48,7 +48,7 @@ class StatePersistenceManager:
                 }
                 self._write_state(state_with_metadata)
                 return True
-        except Exception:
+        except (OSError, TypeError, ValueError):
             return False
 
     def load_state(self) -> dict[str, Any] | None:
@@ -63,7 +63,7 @@ class StatePersistenceManager:
                     del state_copy['_metadata']
                     return state_copy
                 return state
-        except Exception:
+        except (OSError, json.JSONDecodeError, KeyError):
             return None
 
     def delete_state(self) -> bool:
@@ -73,7 +73,7 @@ class StatePersistenceManager:
                     self.file_path.unlink()
                 self._is_connected = False
                 return True
-        except Exception:
+        except (OSError, PermissionError):
             return False
 
     def health_check(self) -> dict[str, Any]:
@@ -92,7 +92,7 @@ class StatePersistenceManager:
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(temp_path, self.file_path)
-        except Exception:
+        except (OSError, json.JSONDecodeError, TypeError):
             if temp_path.exists():
                 temp_path.unlink(missing_ok=True)
             raise

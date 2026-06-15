@@ -48,6 +48,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core.db_utils import get_connection
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB   = "trades.db"
@@ -97,8 +99,7 @@ def _load_paper_trades(db_path: str, days: int) -> list[dict]:
     if not p.is_file():
         return []
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
-        conn.row_factory = sqlite3.Row
+        conn = get_connection(p, timeout=5)
         try:
             params: list[Any] = ["PAPER"]
             where = ["mode = ?", "net_pnl IS NOT NULL"]
@@ -107,12 +108,18 @@ def _load_paper_trades(db_path: str, days: int) -> list[dict]:
                 cutoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat()
                 where.append("ts >= ?")
                 params.append(cutoff)
+            # Validate WHERE clause columns against known column names
+            allowed_where_cols = {"mode", "net_pnl", "ts", "symbol", "direction", "status"}
+            for w in where:
+                col = w.split(" = ")[0].split(" IS ")[0].split(" >= ")[0].split(" <= ")[0].strip()
+                if col not in allowed_where_cols:
+                    raise ValueError(f"Invalid WHERE column: {col}")
             sql = f"SELECT * FROM trades WHERE {' AND '.join(where)} ORDER BY ts"
             rows = conn.execute(sql, params).fetchall()
         finally:
             conn.close()
         return [dict(r) for r in rows]
-    except Exception as exc:
+    except (sqlite3.Error, OSError, ValueError, TypeError) as exc:
         _log.debug("[READINESS] _load_paper_trades failed: %s", exc)
         return []
 
@@ -264,8 +271,8 @@ def check_live_readiness(
             required=round(ml_min * 100, 1),
             message=f"{ml_acc*100:.1f}% (recommend >= {ml_min*100:.0f}%)",
         ))
-    except Exception:
-        pass
+    except (ImportError, ValueError, TypeError, AttributeError, KeyError):
+        _log.debug("[READINESS] ML accuracy check skipped")
 
     # ── Scoring ───────────────────────────────────────────────────────────────
     blocking = [c for c in criteria if c.blocking]
@@ -342,8 +349,8 @@ def should_send_today(flag_dir: str = ".") -> bool:
     if flag.is_file():
         try:
             return flag.read_text().strip() != today
-        except Exception:
-            pass
+        except (OSError, ValueError):
+            _log.debug("[READINESS] Flag file read failed")
     return True
 
 
@@ -353,8 +360,8 @@ def mark_sent_today(flag_dir: str = ".") -> None:
     flag = Path(flag_dir) / _FLAG_FILE
     try:
         flag.write_text(dt.date.today().isoformat())
-    except Exception:
-        pass
+    except (OSError, PermissionError) as e:
+        _log.debug("[LIVE_READINESS_CHECKER] non-critical error: %s", e)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────

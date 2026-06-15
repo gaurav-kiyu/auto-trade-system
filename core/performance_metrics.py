@@ -34,6 +34,7 @@ from pathlib import Path
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.db_utils import get_connection
 
 log = logging.getLogger("performance_metrics")
 
@@ -59,22 +60,22 @@ def load_trades(
         log.warning("trades.db not found at %s", path)
         return []
     try:
-        with sqlite3.connect(str(path)) as conn:
-            conn.row_factory = sqlite3.Row
-            clauses, params = [], []
-            if mode:
-                clauses.append("mode = ?")
-                params.append(mode.upper())
-            if days:
-                since = (now_ist() - timedelta(days=days)).isoformat()
-                clauses.append("ts >= ?")
-                params.append(since)
-            where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
-            rows = conn.execute(
-                f"SELECT * FROM trades {where} ORDER BY ts", params
-            ).fetchall()
+        conn = get_connection(str(path))
+        clauses, params = [], []
+        if mode:
+            clauses.append("mode = ?")
+            params.append(mode.upper())
+        if days:
+            since = (now_ist() - timedelta(days=days)).isoformat()
+            clauses.append("ts >= ?")
+            params.append(since)
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        rows = conn.execute(
+            f"SELECT * FROM trades {where} ORDER BY ts", params
+        ).fetchall()
+        conn.close()
         return [dict(r) for r in rows]
-    except Exception as exc:
+    except (sqlite3.Error, OSError) as exc:
         log.error("load_trades error: %s", exc)
         return []
 
@@ -444,8 +445,8 @@ def export_jsonl(trades: list[dict], path: str) -> None:
                 for line in f:
                     rec = json.loads(line)
                     existing_ids.add(rec.get("id"))
-        except Exception:
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            log.debug("[PERFORMANCE_METRICS] non-critical error: %s", e)
 
     new_rows = [t for t in trades if t.get("id") not in existing_ids]
     if not new_rows:

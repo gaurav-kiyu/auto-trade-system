@@ -236,7 +236,7 @@ class SystemModeManager:
             try:
                 self._mode_change_callback(old_mode, new_mode, detail)
             except Exception as e:
-                log.error(f"Mode change callback failed: {e}")
+                log.error(f"Mode change callback failed: {e} (type: {type(e).__name__})")
 
     def health_check(self) -> dict:
         """Return health check data."""

@@ -11,6 +11,7 @@ Generates end-of-day trading summary with:
 from __future__ import annotations
 
 import logging
+import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime
 from datetime import time as dt_time
@@ -103,7 +104,7 @@ class DailySessionReporter:
             self._calculate_performance(report)
             report.ended_at = now_ist()
             report.duration_minutes = (report.ended_at - report.started_at).total_seconds() / 60
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             log.error(f"Failed to generate session report: {e}")
             report.errors.append(str(e))
 
@@ -112,9 +113,8 @@ class DailySessionReporter:
     def _load_trade_data(self, report: SessionReport, date_str: str) -> None:
         """Load trade data from database."""
         try:
-            import sqlite3
-            conn = sqlite3.connect(self._db_path)
-            conn.row_factory = sqlite3.Row
+            from core.db_utils import get_connection as _sr_conn
+            conn = _sr_conn(self._db_path)
 
             cursor = conn.execute(
                 """
@@ -148,15 +148,15 @@ class DailySessionReporter:
                     if pnl < report.risk.largest_loss:
                         report.risk.largest_loss = pnl
 
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             log.warning(f"Could not load trade data: {e}")
             report.warnings.append(f"Trade data unavailable: {e}")
 
     def _calculate_pnl(self, report: SessionReport, date_str: str) -> None:
         """Calculate P&L breakdown."""
         try:
-            import sqlite3
-            conn = sqlite3.connect(self._db_path)
+            from core.db_utils import get_connection as _sr_pnl
+            conn = _sr_pnl(self._db_path, row_factory=False)
 
             cursor = conn.execute(
                 "SELECT SUM(pnl) as realized FROM trades WHERE date(entry_time) = ? AND status = 'CLOSED'",
@@ -177,7 +177,7 @@ class DailySessionReporter:
             report.pnl.total_pnl = report.pnl.realized_pnl + report.pnl.unrealized_pnl
             report.pnl.net_pnl = report.pnl.total_pnl - report.pnl.commissions
 
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             log.warning(f"Could not calculate P&L: {e}")
 
     def _calculate_risk_metrics(self, report: SessionReport) -> None:

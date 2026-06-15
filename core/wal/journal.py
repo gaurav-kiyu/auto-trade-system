@@ -66,6 +66,8 @@ class WriteAheadJournal:
     def _get_conn(self) -> sqlite3.Connection:
         if self._conn is None:
             self._conn = sqlite3.connect(self._db_path)
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA busy_timeout=5000")
         return self._conn
 
     def _init_db(self) -> None:

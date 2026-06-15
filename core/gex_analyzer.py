@@ -73,7 +73,7 @@ def _bs_gamma(spot: float, strike: float, sigma: float, T: float) -> float:
     try:
         d1 = (math.log(spot / strike) + 0.5 * sigma * sigma * T) / (sigma * math.sqrt(T))
         return _phi(d1) / (spot * sigma * math.sqrt(T))
-    except Exception:
+    except (ValueError, TypeError, ArithmeticError, OverflowError):
         return 0.0
 
 

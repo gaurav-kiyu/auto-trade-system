@@ -6,6 +6,7 @@ v2.50: Adds STT on short option positions at expiry (Phase 3)
 from __future__ import annotations
 
 import logging
+import threading
 
 _log = logging.getLogger(__name__)
 
@@ -150,11 +151,14 @@ class CostAccountant:
 
 
 _cost_accountant: CostAccountant = None
+_cost_accountant_lock = threading.Lock()
 
 
 def get_cost_accountant(config: dict = None) -> CostAccountant:
-    """Singleton cost accountant"""
+    """Singleton cost accountant with thread-safe initialization"""
     global _cost_accountant
     if _cost_accountant is None:
-        _cost_accountant = CostAccountant(config)
+        with _cost_accountant_lock:
+            if _cost_accountant is None:
+                _cost_accountant = CostAccountant(config)
     return _cost_accountant

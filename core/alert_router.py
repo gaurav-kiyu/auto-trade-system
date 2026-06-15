@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import smtplib
+import threading
 import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -58,7 +59,7 @@ class EmailAlerter:
             server.quit()
             _log.info(f"Email alert sent to {len(self.recipients)} recipient(s)")
             return True
-        except Exception as e:
+        except (smtplib.SMTPException, OSError, ConnectionError, TimeoutError, ValueError) as e:
             _log.error(f"Failed to send email alert: {e}")
             return False
 
@@ -72,16 +73,18 @@ class WebhookAlerter:
         self.allow_live = cfg.get("webhook_allow_live", False)
         self.rate_limit_per_min = int(cfg.get("webhook_rate_limit_per_min", 5))
         self._last_sent: list[float] = []  # timestamps of sent webhooks
+        self._rate_lock = threading.Lock()
 
     def _check_rate_limit(self) -> bool:
         """Check if we can send a webhook without exceeding rate limit."""
-        now = time.time()
-        # Remove timestamps older than 1 minute
-        self._last_sent = [t for t in self._last_sent if now - t < 60]
-        if len(self._last_sent) >= self.rate_limit_per_min:
-            return False
-        self._last_sent.append(now)
-        return True
+        with self._rate_lock:
+            now = time.time()
+            # Remove timestamps older than 1 minute
+            self._last_sent = [t for t in self._last_sent if now - t < 60]
+            if len(self._last_sent) >= self.rate_limit_per_min:
+                return False
+            self._last_sent.append(now)
+            return True
 
     def send_alert(self, subject: str, body: str) -> bool:
         """Send a webhook alert.
@@ -111,7 +114,7 @@ class WebhookAlerter:
             response.raise_for_status()
             _log.info("Webhook alert sent successfully")
             return True
-        except Exception as e:
+        except (requests.RequestException, OSError, ConnectionError, TimeoutError, ValueError) as e:
             _log.error(f"Failed to send webhook alert: {e}")
             return False
 
@@ -144,7 +147,7 @@ class MultiChannelAlerter:
             # In a real system, you might want different formatting per channel
             tg_success = self.telegram.send_raw(body, critical=True)
             results["telegram"] = tg_success
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError, ValueError, TypeError) as e:
             _log.error(f"Failed to send Telegram alert: {e}")
             results["telegram"] = False
 
@@ -153,7 +156,7 @@ class MultiChannelAlerter:
             try:
                 email_success = self.email.send_alert(subject, body)
                 results["email"] = email_success
-            except Exception as e:
+            except (smtplib.SMTPException, OSError, ConnectionError, TimeoutError) as e:
                 _log.error(f"Failed to send Email alert: {e}")
                 results["email"] = False
 
@@ -161,7 +164,7 @@ class MultiChannelAlerter:
             try:
                 webhook_success = self.webhook.send_alert(subject, body)
                 results["webhook"] = webhook_success
-            except Exception as e:
+            except (requests.RequestException, OSError, ConnectionError, TimeoutError) as e:
                 _log.error(f"Failed to send Webhook alert: {e}")
                 results["webhook"] = False
 

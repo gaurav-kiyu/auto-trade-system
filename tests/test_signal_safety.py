@@ -170,6 +170,8 @@ assert "stale" not in msg.lower(), f"Signal 1s before threshold wrongly blocked:
 just_stale_ts = time.time() - (mod.SIGNAL_MAX_AGE + 1)
 with mod._bos_lock:
     mod.breakout_state["NIFTY"]["confirmed_ts"] = just_stale_ts
+# Also update signal_ts so the stale check triggers on signal age
+sig["signal_ts"] = just_stale_ts
 mod.enter_trade("NIFTY", sig)
 dlog2 = mod.decision_log.get("NIFTY", {})
 msg2 = dlog2.get("msg", "") if isinstance(dlog2, dict) else str(dlog2)

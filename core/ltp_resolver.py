@@ -90,7 +90,7 @@ class LtpResolver:
         if self._ws_feed is not None:
             try:
                 return self._ws_feed.get_ltp(instrument_token)
-            except Exception as _ex:
+            except (ValueError, TypeError, AttributeError, KeyError, OSError, RuntimeError) as _ex:
                 _log.debug(f"LTP resolve via WS failed for token {instrument_token}: {_ex}")
         return None
 
@@ -108,7 +108,7 @@ class LtpResolver:
             if not self._ws_feed.is_connected():
                 return None
             return self._ws_feed.get_ltp(token)
-        except Exception as exc:
+        except (ValueError, TypeError, AttributeError, KeyError, OSError, ConnectionError, RuntimeError) as exc:
             _log.debug("[LTP] WS resolve failed for %s: %s", index_name, exc)
             return None
 
@@ -119,7 +119,7 @@ class LtpResolver:
         try:
             if hasattr(bp, "get_ltp"):
                 return bp.get_ltp(index_name)
-        except Exception as exc:
+        except (ValueError, TypeError, AttributeError, KeyError, OSError, ConnectionError, RuntimeError) as exc:
             _log.debug("[LTP] broker resolve failed for %s: %s", index_name, exc)
         return None
 
@@ -148,7 +148,7 @@ class LtpResolver:
                 self._yf_cache[index_name] = last_close
                 self._yf_cache_ts = now
             return last_close
-        except Exception as exc:
+        except (ValueError, TypeError, AttributeError, KeyError, OSError, ConnectionError, RuntimeError) as exc:
             _log.debug("[LTP] yfinance resolve failed for %s: %s", index_name, exc)
             return None
 

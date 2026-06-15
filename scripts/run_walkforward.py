@@ -78,7 +78,7 @@ def _adaptive_stub(train_df):
 
             return optimized
 
-    except Exception:
+    except (ValueError, TypeError, AttributeError, KeyError, ImportError):
         pass
 
     return default_params

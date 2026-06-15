@@ -36,7 +36,7 @@ class BrokerGateway:
                 self._current_broker_name = broker_name
                 log.info(f"Successfully connected to broker: {broker_name}")
                 return True
-        except Exception as e:
+        except (ValueError, TypeError, KeyError, AttributeError, OSError, ConnectionError, TimeoutError) as e:
             log.exception(f"Connection failed for broker {broker_name}: {e}")
 
         return False
@@ -52,7 +52,7 @@ class BrokerGateway:
 
         try:
             return self._active_adapter.place_order(request)
-        except Exception as e:
+        except (ValueError, TypeError, OSError, ConnectionError, TimeoutError, AttributeError) as e:
             log.exception(f"Order placement failed via {self._current_broker_name}: {e}")
             return OrderResponse(
                 order_id="ERROR",
@@ -77,7 +77,7 @@ class BrokerGateway:
         try:
             return self._active_adapter.get_positions()
         except Exception as e:
-            log.error(f"Position fetch failed: {e}")
+            log.error(f"Position fetch failed: {e} (type: {type(e).__name__})")
             return []
 
     def switch_broker(self, new_broker_name: str, credentials: dict[str, Any]) -> bool:

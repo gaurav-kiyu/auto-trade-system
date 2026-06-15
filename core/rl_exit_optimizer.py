@@ -66,7 +66,7 @@ class RLExitOptimizer:
             if os.path.exists("models/rl_exit_qtable.joblib"):
                 self.q_table = joblib.load("models/rl_exit_qtable.joblib")
         except Exception as e:
-            self.logger.error(f"RL Q-Table load failed: {e}")
+            self.logger.error(f"RL Q-Table load failed: {e} (type: {type(e).__name__})")
 
     def save_q_table(self):
         """Saves learned weights to disk."""
@@ -75,4 +75,4 @@ class RLExitOptimizer:
             os.makedirs("models", exist_ok=True)
             joblib.dump(self.q_table, "models/rl_exit_qtable.joblib")
         except Exception as e:
-            self.logger.error(f"RL Q-Table save failed: {e}")
+            self.logger.error(f"RL Q-Table save failed: {e} (type: {type(e).__name__})")

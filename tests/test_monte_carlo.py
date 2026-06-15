@@ -274,8 +274,8 @@ class TestLoadPnlFromDb:
 
     def test_sqlite_error_returns_empty_list(self, tmp_path):
         """Cover lines 351-353: sqlite3.Error in load_pnl_from_db returns []."""
-        from unittest.mock import patch
         import sqlite3
+        from unittest.mock import patch
 
         db_path = _make_db(tmp_path, [100.0])
 
@@ -298,6 +298,7 @@ class TestCli:
     def test_cli_no_trades_prints_message(self, tmp_path, monkeypatch, capsys):
         """Line 389-390: No trades found path."""
         import sys
+
         from core.monte_carlo import _cli
 
         db_path = tmp_path / "empty.db"
@@ -315,6 +316,7 @@ class TestCli:
     def test_cli_with_trades_prints_summary(self, tmp_path, monkeypatch, capsys):
         """Lines 392-397: normal simulation path."""
         import sys
+
         from core.monte_carlo import _cli
 
         pnls = [100.0, -50.0, 200.0, -30.0, 60.0]
@@ -329,6 +331,7 @@ class TestCli:
     def test_cli_mode_all(self, tmp_path, monkeypatch, capsys):
         """--mode ALL should work (mode becomes None)."""
         import sys
+
         from core.monte_carlo import _cli
 
         db_path = _make_db(tmp_path, [100.0, 200.0])
@@ -341,6 +344,7 @@ class TestCli:
     def test_cli_days_zero(self, tmp_path, monkeypatch, capsys):
         """--days 0 should work."""
         import sys
+
         from core.monte_carlo import _cli
 
         db_path = _make_db(tmp_path, [50.0, -20.0])
@@ -353,6 +357,7 @@ class TestCli:
     def test_cli_default_args(self, tmp_path, monkeypatch, capsys):
         """Default arguments (no --n, --seed, etc.) should work."""
         import sys
+
         from core.monte_carlo import _cli
 
         db_path = _make_db(tmp_path, [100.0])
@@ -364,8 +369,9 @@ class TestCli:
 
     def test_cli_live_mode(self, tmp_path, monkeypatch, capsys):
         """--mode LIVE should filter correctly."""
-        import sys
         import sqlite3
+        import sys
+
         from core.monte_carlo import _cli
 
         db_path = tmp_path / "live.db"
@@ -390,9 +396,9 @@ class TestMainGuard:
     @pytest.mark.filterwarnings("ignore:.*found in sys.modules.*:RuntimeWarning")
     def test_main_guard_line(self):
         """Cover the `__name__ == '__main__'` guard line 401 via runpy."""
+        import io
         import runpy
         import sys
-        import io
 
         saved_argv = sys.argv
         saved_stdout = sys.stdout
@@ -424,9 +430,9 @@ class TestMainGuard:
 
     def test_module_as_main_no_trades(self, tmp_path):
         """Run as __main__ with no trades in DB."""
+        import sqlite3
         import subprocess
         import sys
-        import sqlite3
 
         db_path = tmp_path / "empty2.db"
         conn = sqlite3.connect(str(db_path))

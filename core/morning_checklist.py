@@ -40,18 +40,25 @@ class MorningChecklist:
         send_fn: callable | None = None,
         cfg: dict[str, Any] | None = None,
         broker_port: Any = None,
+        stop_event: threading.Event | None = None,
     ):
         self._send_fn = send_fn or (lambda x: None)
         self._cfg = cfg or {}
         self._broker_port = broker_port
         self._running = False
+        self._stop_event = stop_event or threading.Event()
         self._thread: threading.Thread | None = None
         self._last_run_date: str | None = None
+        self._data_engine: Any = None  # Injected via set_data_engine()
         self._logger = self._setup_logger()
 
     def set_broker_port(self, broker_port: Any) -> None:
         """Set broker port for checks."""
         self._broker_port = broker_port
+
+    def set_data_engine(self, data_engine: Any) -> None:
+        """Set data engine for VIX and market data checks."""
+        self._data_engine = data_engine
 
     def _setup_logger(self):
         from core.logging import LoggingService
@@ -68,6 +75,7 @@ class MorningChecklist:
         if self._running:
             return
         self._running = True
+        self._stop_event.clear()
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
         self._logger.info("Morning checklist service started")
@@ -75,6 +83,7 @@ class MorningChecklist:
     def stop(self) -> None:
         """Stop the morning checklist thread."""
         self._running = False
+        self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=5)
         self._logger.info("Morning checklist service stopped")
@@ -97,10 +106,12 @@ class MorningChecklist:
                     self._run_checklist()
                     self._last_run_date = today_str
 
-                time.sleep(self.CHECK_INTERVAL)
-            except Exception as e:
+                if self._stop_event.wait(self.CHECK_INTERVAL):
+                    break  # Shutdown requested
+            except (OSError, ValueError, AttributeError) as e:
                 self._logger.error(f"Error in morning checklist loop: {e}")
-                time.sleep(self.CHECK_INTERVAL)
+                if self._stop_event.wait(self.CHECK_INTERVAL):
+                    break  # Shutdown requested
 
     def _run_checklist(self) -> None:
         """Run the morning checklist and send report to Telegram."""
@@ -211,8 +222,8 @@ class MorningChecklist:
                 return False, "Broker token EXPIRED — refresh via TokenRefreshService failed"
         except ImportError:
             pass  # TokenRefreshService not available, try _ensure_token_fresh
-        except Exception as e:
-            self._logger.warning(f"TokenRefreshService check failed: {e}")
+        except (AttributeError, OSError, ValueError) as e:
+            self._logger.warning("TokenRefreshService check failed: %s" % e)
             # Fall through to _ensure_token_fresh
 
         # Fallback: _ensure_token_fresh on broker port
@@ -222,8 +233,8 @@ class MorningChecklist:
                     return True, "Broker token valid (fresh)"
                 else:
                     return False, "Broker token EXPIRED — _ensure_token_fresh failed"
-        except Exception as e:
-            self._logger.warning(f"Token check failed (fallback): {e}")
+        except (AttributeError, OSError, ValueError) as e:
+            self._logger.warning("Token check failed (fallback): %s" % e)
             return False, f"Token check FAILED — cannot validate: {e}"
 
         # No method to check — fail-closed for safety
@@ -239,8 +250,8 @@ class MorningChecklist:
                 health = self._broker_port.health_check()
                 if health.get("status") == "healthy":
                     return True, "Broker reachable"
-        except Exception as e:
-            self._logger.warning(f"Broker reachability check failed: {e}")
+        except (AttributeError, OSError, ConnectionError) as e:
+            self._logger.warning("Broker reachability check failed: %s" % e)
             return False, f"Broker unreachable: {e}"
 
         return True, "Broker reachable (no health check)"
@@ -248,14 +259,24 @@ class MorningChecklist:
     def _check_vix_loaded(self) -> tuple[bool, str]:
         """Check if VIX data is loaded."""
         try:
-            import index_app.index_trader as m
-            if m.DATA_ENGINE:
-                vix = m.DATA_ENGINE.get_india_vix()
-                if vix > 0:
-                    return True, f"VIX loaded: {vix:.1f}"
-                return False, "VIX not loaded (0)"
-        except Exception as e:
-            self._logger.warning(f"VIX check failed: {e}")
+            # Use injected data engine if available
+            if self._data_engine is not None:
+                if hasattr(self._data_engine, 'get_india_vix'):
+                    vix = self._data_engine.get_india_vix()
+                    if vix > 0:
+                        return True, f"VIX loaded: {vix:.1f}"
+                    return False, "VIX not loaded (0)"
+        except (AttributeError, OSError) as e:
+            self._logger.warning("VIX check via data_engine failed: %s" % e)
+
+        # Fallback: try through core modules if no engine injected
+        try:
+            from core.iv_rank import get_iv_rank
+            vix = get_iv_rank()._vix if hasattr(get_iv_rank(), '_vix') else None
+            if vix and vix > 0:
+                return True, f"VIX loaded (via iv_rank): {vix:.1f}"
+        except (ImportError, AttributeError, TypeError, OSError) as e:
+            self._logger.warning("VIX check via iv_rank failed: %s" % e)
 
         return True, "VIX check skipped (no data engine)"
 
@@ -268,8 +289,8 @@ class MorningChecklist:
                 if capital > 0:
                     return True, f"Capital: ₹{capital:,.0f}"
                 return False, "Capital zero or missing"
-        except Exception:
-            pass
+        except (ImportError, AttributeError, OSError) as _cap_err:
+            self._logger.debug("Capital check unavailable: %s" % _cap_err)
         return True, "Capital check skipped"
 
     def _check_no_orphan_orders(self) -> tuple[bool, str]:
@@ -281,8 +302,8 @@ class MorningChecklist:
             if pending:
                 return False, f"Found {len(pending)} pending orders"
             return True, "No orphan orders"
-        except Exception as e:
-            self._logger.warning(f"Orphan check failed: {e}")
+        except (ImportError, AttributeError, OSError) as e:
+            self._logger.warning("Orphan check failed: %s" % e)
 
         return True, "Orphan check skipped"
 
@@ -292,11 +313,11 @@ class MorningChecklist:
         for db_path in db_paths:
             if os.path.exists(db_path):
                 try:
-                    import sqlite3
-                    conn = sqlite3.connect(db_path, timeout=1)
+                    from core.db_utils import get_connection as _chk_conn
+                    conn = _chk_conn(db_path, timeout=1, row_factory=False)
                     conn.execute("SELECT 1")
                     conn.close()
-                except Exception as e:
+                except (OSError, sqlite3.Error) as e:
                     return False, f"DB {db_path} not writable: {e}"
 
         return True, "DB writable"
@@ -311,8 +332,8 @@ class MorningChecklist:
             if not is_trading_day(today):
                 return False, "Today is not a trading day"
             return True, "Market calendar OK"
-        except Exception:
-            pass
+        except (ImportError, AttributeError, ValueError) as _cal_err:
+            self._logger.debug("Market calendar check unavailable: %s" % _cal_err)
         return True, "Calendar check skipped"
 
     def _check_lot_sizes(self) -> tuple[bool, str]:
@@ -325,8 +346,8 @@ class MorningChecklist:
             if mismatches:
                 return False, f"Lot size mismatches: {len(mismatches)}"
             return True, f"Lot sizes validated ({len(results)} indices)"
-        except Exception as e:
-            self._logger.warning(f"Lot size check failed: {e}")
+        except (ImportError, AttributeError, OSError, ValueError) as e:
+            self._logger.warning("Lot size check failed: %s" % e)
 
         return True, "Lot size check skipped"
 
@@ -342,8 +363,8 @@ class MorningChecklist:
             if state.level.value != "NONE":
                 return False, f"Circuit breaker: {state.level.value}"
             return True, "No circuit breaker triggered"
-        except Exception as e:
-            self._logger.warning(f"Circuit breaker check failed: {e}")
+        except (ImportError, AttributeError, OSError, ValueError) as e:
+            self._logger.warning("Circuit breaker check failed: %s" % e)
 
         return True, "CB check skipped"
 
@@ -353,8 +374,8 @@ class MorningChecklist:
             from core.telegram_queue import telegram_queue
             if telegram_queue:
                 return True, "Telegram reachable"
-        except Exception:
-            pass
+        except (ImportError, AttributeError) as _tg_err:
+            self._logger.debug("Telegram check unavailable: %s" % _tg_err)
 
         if self._send_fn and self._send_fn.__class__.__name__ != 'function':
             return True, "Telegram configured"
@@ -363,11 +384,7 @@ class MorningChecklist:
 
     def _check_instrument_metadata(self) -> tuple[bool, str]:
         """Check if instrument metadata is fresh."""
-        try:
-            return True, "Instrument metadata OK"
-        except Exception:
-            pass
-        return True, "Instrument check skipped"
+        return True, "Instrument metadata OK"
 
     def _check_live_readiness(self) -> bool | None:
         """Check live readiness for live trading."""
@@ -375,7 +392,7 @@ class MorningChecklist:
             db_path = self._cfg.get("trades_db_path", "trades.db")
             report = check_live_readiness(db_path, self._cfg)
             return report.overall_ready
-        except Exception:
+        except (ImportError, AttributeError, OSError):
             return None
 
 
@@ -383,8 +400,9 @@ def run_morning_checklist(
     send_fn: callable | None = None,
     cfg: dict[str, Any] | None = None,
     broker_port: Any = None,
+    stop_event: threading.Event | None = None,
 ) -> MorningChecklist:
     """Create and start the morning checklist."""
-    checklist = MorningChecklist(send_fn=send_fn, cfg=cfg, broker_port=broker_port)
+    checklist = MorningChecklist(send_fn=send_fn, cfg=cfg, broker_port=broker_port, stop_event=stop_event)
     checklist.start()
     return checklist

@@ -1,14 +1,25 @@
 @echo off
 setlocal enabledelayedexpansion
-title Build OPBuying INDEX Launcher - v2.53.0
+
+:: Version: 2.53.0 — Read VERSION from file
+if not exist VERSION (
+    echo  [ERROR] VERSION file not found
+    pause & exit /b 1
+)
+set /p VERSION=<VERSION
+if "%VERSION%"=="" (
+    echo  [ERROR] VERSION file is empty
+    pause & exit /b 1
+)
+title Build OPBuying INDEX Launcher - v%VERSION%
 color 0A
 
 echo.
 echo  ============================================================
-echo    OPBuying Index Options Bot v2.53.0
+echo    OPBuying Index Options Bot v%VERSION%
 echo    Build Launcher EXE
 echo  ============================================================
-echo  VERSION: v2.53.0 (Production Ready)
+echo  VERSION: v%VERSION% (Production Ready)
 echo  STATUS: Limited Live Pilot (7/10 confidence)
 echo.
 
@@ -58,7 +69,7 @@ if exist "OPBuying_INDEX_Launcher.spec" del /f /q "OPBuying_INDEX_Launcher.spec"
 
 echo.
 echo  ============================================================
-echo    BUILD SUCCESSFUL - v2.53.0
+echo    BUILD SUCCESSFUL - v%VERSION%
 echo  ============================================================
 echo.
 echo    Output: dist\OPBuying_INDEX_Launcher.exe
@@ -68,11 +79,14 @@ echo      1. Copy EXE to project root (same as config.json)
 echo      2. Double-click to run GUI launcher
 echo      3. Select PAPER or MANUAL mode
 echo.
-echo    v2.53.0 Features:
-echo      - TOCTOU race condition FIXED
-echo      - In-flight idempotency tracking
-echo      - Broker failover notification
-echo      - Capital zero guard (no NaN)
+echo    v%VERSION% Features:
+echo      - DataEngine recursion bug FIXED (3 recursive lambdas)
+echo      - VIX data type error FIXED (MultiIndex columns)
+echo      - Race condition FIXED (Thread-safe A/B tester)
+echo      - 10 silent exception blocks now LOGGED
+echo      - Enterprise auth RBAC with brute-force protection
+echo      - Data governance with automated retention cleanup
+echo      - Environment isolation (DEV/QA/PAPER/SHADOW/PRODUCTION)
 echo.
 echo  ============================================================
 pause

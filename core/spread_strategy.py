@@ -43,6 +43,8 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+from core.strategy.config import get_strategy_cfg
+
 _log = logging.getLogger(__name__)
 
 
@@ -122,13 +124,13 @@ def build_spread(
     Returns:
         SpreadPosition if both legs are available, else None.
     """
-    c = cfg or {}
-    if not c.get("spread_strategy_enabled", False):
+    sc = get_strategy_cfg(cfg or {}, "spread")
+    if not sc.get("enabled", False):
         return None
 
-    width_strikes = int(c.get("spread_width_strikes", 2))
-    slip_pct      = float(c.get("spread_slippage_pct", 0.005))
-    lot_size      = int(c.get("lot_size", 1))
+    width_strikes = int(sc.get("width_strikes", 2))
+    slip_pct      = float(sc.get("slippage_pct", 0.005))
+    lot_size      = int(cfg.get("lot_size", 1)) if cfg else 1
 
     dir_up = direction.upper()
     if dir_up in ("CALL", "CALL_SPREAD"):
@@ -247,10 +249,10 @@ def paper_fill_spread(
     if not position.open:
         return None
 
-    c             = cfg or {}
-    exit_pnl_pct  = float(c.get("spread_exit_pnl_pct", 0.50))
-    stop_pct      = float(c.get("spread_stop_pct", 0.80))
-    slip_pct      = float(c.get("spread_slippage_pct", 0.005))
+    sc             = get_strategy_cfg(cfg or {}, "spread")
+    exit_pnl_pct  = float(sc.get("exit_pnl_pct", 0.50))
+    stop_pct      = float(sc.get("stop_pct", 0.80))
+    slip_pct      = float(sc.get("slippage_pct", 0.005))
 
     pnl = mark_to_market(position, spot, call_premiums, put_premiums)
 
@@ -317,16 +319,16 @@ def evaluate_spread_exit(
                          and pnl > 0)
       5. HOLD — otherwise
     """
-    c = cfg or {}
+    sc = get_strategy_cfg(cfg or {}, "spread")
     if not position.open:
         return SpreadExitDecision("HOLD", 0.0, "Position already closed", None)
 
-    exit_pct_cfg     = float(c.get("spread_exit_pnl_pct",      0.50))
-    stop_pct         = float(c.get("spread_stop_pct",           0.80))
-    partial_exit_pct = float(c.get("spread_partial_exit_pct",   0.75))
-    partial_lots_pct = float(c.get("spread_partial_lots_pct",   0.50))
-    int(  c.get("spread_theta_exit_dte",     0))
-    theta_exit_time  = str(  c.get("spread_theta_exit_time",    "14:00"))
+    exit_pct_cfg     = float(sc.get("exit_pnl_pct",      0.50))
+    stop_pct         = float(sc.get("stop_pct",           0.80))
+    partial_exit_pct = float(sc.get("partial_exit_pct",   0.75))
+    partial_lots_pct = float(sc.get("partial_lots_pct",   0.50))
+    int(sc.get("theta_exit_dte",     0))
+    theta_exit_time  = str(sc.get("theta_exit_time",    "14:00"))
 
     # 1. Hard stop
     if current_pnl <= -(position.max_loss * stop_pct):
@@ -362,7 +364,7 @@ def evaluate_spread_exit(
         now_time = now_ist().time()
         th_h, th_m = map(int, theta_exit_time.split(":"))
         theta_block_time = _dt.time(th_h, th_m)
-    except Exception:
+    except (ValueError, TypeError, ImportError):
         theta_block_time = None
         now_time         = None
 

@@ -87,7 +87,7 @@ def _fetch_stock_data(symbols: list[str]) -> list[StockAnalysis]:
                 above_ma20=price > ma20,
                 relative_strength=round(chg_pct, 3),   # refined below
             ))
-        except Exception as e:
+        except (ValueError, TypeError, KeyError, IndexError, ImportError) as e:
             _log.debug("[UNDER] %s fetch failed: %s", sym, e)
 
     # Normalise relative_strength vs median
@@ -98,8 +98,8 @@ def _fetch_stock_data(symbols: list[str]) -> list[StockAnalysis]:
                 if hasattr(r, "__setattr__") else None
             try:
                 r.relative_strength = round(r.change_pct - med, 3)
-            except Exception:
-                pass
+            except (AttributeError, TypeError) as e:
+                _log.debug("[UNDERLYING_ANALYZER] non-critical error: %s", e)
 
     return results
 

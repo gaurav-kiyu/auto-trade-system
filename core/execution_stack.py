@@ -7,12 +7,22 @@ paper simulation and a config-driven router for future AUTO mode.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from core.execution_engine import ExecutionEngine, ExecutionResult
+from core.ports.execution.execution_port import OrderResult, OrderStatus
+
+warnings.warn(
+    "DEPRECATED: core/execution_stack.py (and core/execution_engine) are deprecated. "
+    "Use index_app/orchestrator_facade.py (build_clean_trading_orchestrator) with "
+    "core/services/use_cases/trading_orchestrator.py and core/services/execution_service.py instead. "
+    "These modules will be removed in v2.55.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class TradingMode(str, Enum):
@@ -63,7 +73,7 @@ class ExecutionRouter:
         mode: TradingMode,
         *,
         paper: PaperExecutionSimulator | None = None,
-        broker_engine: ExecutionEngine | None = None,
+        broker_engine: Any = None,
         paper_routes_via_broker: bool = False,
         log_fn: Callable[[str], None] | None = None,
     ) -> None:
@@ -101,7 +111,7 @@ class ExecutionRouter:
         ref_price: float | None = None,
         retries: int = 3,
         retry_wait_s: float = 1.0,
-    ) -> ExecutionResult | PaperFill:
+    ) -> OrderResult | PaperFill:
         if self._mode in (TradingMode.MANUAL, TradingMode.SIGNALS):
             self._log(f"[exec] mode={self._mode.value} — no auto entry for {name}")
             return PaperFill(False, 0, 0.0, reason="manual_signals_only")
@@ -122,7 +132,7 @@ class ExecutionRouter:
             return self._paper.simulate_buy(direction=direction, ref_price=float(ref_price), qty=qty)
 
         if self._broker is None:
-            return ExecutionResult(False, reason="broker engine not configured")
+            return OrderResult(order_id="", status=OrderStatus.REJECTED, reject_reason="broker engine not configured")
         return self._broker.place_order(
             name=name,
             direction=direction,
@@ -142,7 +152,7 @@ class ExecutionRouter:
         strike: int,
         retries: int = 3,
         retry_wait_s: float = 1.0,
-    ) -> ExecutionResult | PaperFill:
+    ) -> OrderResult | PaperFill:
         if self._mode in (TradingMode.MANUAL, TradingMode.SIGNALS):
             return PaperFill(False, 0, 0.0, reason="manual_signals_only")
 
@@ -160,7 +170,7 @@ class ExecutionRouter:
             return PaperFill(True, int(qty), 0.0, reason="paper_exit_ack")
 
         if self._broker is None:
-            return ExecutionResult(False, reason="broker engine not configured")
+            return OrderResult(order_id="", status=OrderStatus.REJECTED, reject_reason="broker engine not configured")
         return self._broker.place_order(
             name=name,
             direction=direction,
@@ -185,5 +195,5 @@ def trading_mode_from_cfg(cfg: dict[str, Any], *, cli_paper: bool = False) -> Tr
     raw = normalize_execution_mode(merged.get("EXECUTION_MODE", "MANUAL"))
     try:
         return TradingMode(raw)
-    except Exception:
+    except (ValueError, TypeError):
         return TradingMode.MANUAL

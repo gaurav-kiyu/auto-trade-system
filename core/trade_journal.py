@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.db_utils import get_connection
 
 log = logging.getLogger("trade_journal")
 
@@ -210,13 +211,11 @@ class TradeJournal:
             try:
                 conn.execute("ALTER TABLE journal ADD COLUMN slippage_drift REAL DEFAULT 0.0")
                 conn.commit()
-            except sqlite3.OperationalError:
-                pass  # column already exists — normal on fresh or already-migrated DBs
+            except sqlite3.OperationalError as e:
+                log.debug("[TRADE_JOURNAL] non-critical error: %s", e)
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self._db), check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        return conn
+        return get_connection(str(self._db), check_same_thread=True)  # WAL + busy_timeout applied
 
     # ── Open trade (at signal generation) ────────────────────────────────
     def open_trade(
@@ -278,7 +277,7 @@ class TradeJournal:
             with self._lock, self._connect() as conn:
                 conn.execute(sql, vals)
                 conn.commit()
-        except Exception as exc:
+        except (sqlite3.Error, OSError, ValueError) as exc:
             log.error("journal open_trade write error: %s", exc)
 
     # ── Record fill (at broker confirmation) ─────────────────────────────
@@ -301,14 +300,14 @@ class TradeJournal:
             SET actual_entry = ?,
                 fill_ts      = ?,
                 execution_delay_ms = ?,
-                entry_slippage = actual_entry - expected_entry
+                entry_slippage = ? - expected_entry
             WHERE trade_id = ?
         """
         try:
             with self._lock, self._connect() as conn:
-                conn.execute(sql, (actual_entry, fill_ts, delay_ms, trade_id))
+                conn.execute(sql, (actual_entry, fill_ts, delay_ms, actual_entry, trade_id))
                 conn.commit()
-        except Exception as exc:
+        except (sqlite3.Error, OSError, ValueError) as exc:
             log.error("journal record_fill error: %s", exc)
 
     # ── Close trade (at exit) ─────────────────────────────────────────────
@@ -377,7 +376,7 @@ class TradeJournal:
                     trade_id,
                 ))
                 conn.commit()
-        except Exception as exc:
+        except (sqlite3.Error, OSError, ValueError) as exc:
             log.error("journal close_trade error: %s", exc)
 
     # ── Analytics queries ─────────────────────────────────────────────────
@@ -421,7 +420,7 @@ class TradeJournal:
                 }
                 for r in rows
             }
-        except Exception as exc:
+        except (sqlite3.Error, OSError, ValueError) as exc:
             log.error("stats_by_tier error: %s", exc)
             return {}
 
@@ -439,7 +438,7 @@ class TradeJournal:
             with self._connect() as conn:
                 rows = conn.execute(sql, (mode,)).fetchall()
             return {r["regime"]: dict(r) for r in rows}
-        except Exception as exc:
+        except (sqlite3.Error, OSError, ValueError) as exc:
             log.error("stats_by_regime error: %s", exc)
             return {}
 
@@ -470,7 +469,7 @@ class TradeJournal:
                 "expectancy":   round(wr * aw - (1 - wr) * al, 2),
                 "avg_slippage": float(row["avg_slip"] or 0),
             }
-        except Exception as exc:
+        except (sqlite3.Error, OSError, ValueError) as exc:
             log.error("expectancy_summary error: %s", exc)
             return {}
 
@@ -488,7 +487,7 @@ class TradeJournal:
             with self._connect() as conn:
                 rows = conn.execute(sql, (mode, n)).fetchall()
             return [dict(r) for r in rows]
-        except Exception as exc:
+        except (sqlite3.Error, OSError, ValueError) as exc:
             log.error("recent_trades error: %s", exc)
             return []
 
@@ -526,7 +525,7 @@ class TradeJournal:
             with self._lock, self._connect() as conn:
                 conn.execute(sql, vals)
                 conn.commit()
-        except Exception as exc:
+        except (sqlite3.Error, OSError, ValueError) as exc:
             log.error("journal log_shadow_trade error: %s", exc)
 
 
@@ -555,14 +554,14 @@ class TradeJournal:
         try:
             # Drain pending async writes before closing
             self._pool.shutdown(wait=True)
-        except Exception:
-            pass
+        except (RuntimeError, ValueError):
+            log.debug("[TradeJournal] Shutdown drain: %s", _shut_err)
         try:
             conn = self._connect()
             conn.commit()
             conn.close()
-        except Exception:
-            pass
+        except (sqlite3.Error, OSError):
+            log.debug("[TradeJournal] Shutdown close failed")
         log.info("[TradeJournal] Shutdown complete.")
 
     def export_to_json(self, filepath: str, mode: str = "PAPER") -> dict[str, Any]:
@@ -599,7 +598,7 @@ class TradeJournal:
                         try:
                             trade['soft_blocks'] = json.loads(trade['soft_blocks'])
                         except (json.JSONDecodeError, TypeError):
-                            pass
+                            log.debug("[TradeJournal] Soft blocks JSON decode failed")
                     trades.append(trade)
 
                 # Create export data
@@ -625,7 +624,7 @@ class TradeJournal:
                     "filepath": filepath
                 }
 
-        except Exception as exc:
+        except (OSError, sqlite3.Error, json.JSONDecodeError, ValueError) as exc:
             log.error(f"[TradeJournal] JSON export failed: {exc}")
             return {
                 "export_status": "FAILED",

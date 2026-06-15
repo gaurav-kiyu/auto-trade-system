@@ -8,8 +8,10 @@ error handling, and fallback mechanisms.
 
 from __future__ import annotations
 
+import csv
 import json
 import os
+import sqlite3
 import threading
 from dataclasses import dataclass
 from datetime import datetime
@@ -100,7 +102,7 @@ class PersistenceService:
             self._logger.info("Persistence service started successfully")
             return True
 
-        except Exception as e:
+        except (OSError, sqlite3.Error, ValueError) as e:
             self._logger.error(f"Failed to start persistence service: {e}")
             return False
 
@@ -115,7 +117,7 @@ class PersistenceService:
             self._logger.info("Persistence service stopped")
             return True
 
-        except Exception as e:
+        except (OSError, sqlite3.Error, ValueError) as e:
             self._logger.error(f"Error stopping persistence service: {e}")
             return False
 
@@ -174,7 +176,7 @@ class PersistenceService:
                     self._logger.warning("Failed to create trades table")
             else:
                 self._logger.debug("Trades table already exists")
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             self._logger.error(f"Error creating trades table: {e}")
 
     def _create_market_data_table_if_not_exists(self) -> None:
@@ -206,7 +208,7 @@ class PersistenceService:
                     self._logger.warning("Failed to create market data table")
             else:
                 self._logger.debug("Market data table already exists")
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             self._logger.error(f"Error creating market data table: {e}")
 
     def _close_adapters(self) -> None:
@@ -222,7 +224,7 @@ class PersistenceService:
                 if adapter:
                     try:
                         adapter.disconnect()
-                    except Exception as e:
+                    except (OSError, sqlite3.Error, AttributeError) as e:
                         self._logger.warning(f"Error closing adapter: {e}")
 
             self._trades_adapter = None
@@ -242,7 +244,7 @@ class PersistenceService:
                 try:
                     health = adapter.health_check()
                     self._logger.info(f"{name} persistence health: {health['status']}")
-                except Exception as e:
+                except (OSError, sqlite3.Error, AttributeError) as e:
                     self._logger.warning(f"Health check failed for {name}: {e}")
 
     # =============================================================================
@@ -376,7 +378,7 @@ class PersistenceService:
         try:
             self._market_data_adapter.create('market_data', market_data_record)
             return True
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError) as e:
             self._logger.error(f"Failed to save market data for {symbol}: {e}")
             return False
 
@@ -460,7 +462,7 @@ class PersistenceService:
             }
 
             return self._state_adapter.save_state(state_with_metadata)
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, ValueError, TypeError) as e:
             self._logger.error(f"Failed to save application state: {e}")
             return False
 
@@ -482,7 +484,7 @@ class PersistenceService:
                 del state_copy['_metadata']
                 return state_copy
             return state
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, ValueError) as e:
             self._logger.error(f"Failed to load application state: {e}")
             return None
 
@@ -498,7 +500,7 @@ class PersistenceService:
 
         try:
             return self._state_adapter.delete_state()
-        except Exception as e:
+        except (OSError, FileNotFoundError, PermissionError) as e:
             self._logger.error(f"Failed to delete application state: {e}")
             return False
 
@@ -566,7 +568,7 @@ class PersistenceService:
 
             return self._write_csv_file(file_path, rows, headers)
 
-        except Exception as e:
+        except (OSError, ValueError, TypeError, csv.Error) as e:
             self._logger.error(f"Failed to export trades to CSV: {e}")
             return False
 
@@ -590,7 +592,7 @@ class PersistenceService:
             self._logger.info(f"Successfully wrote CSV file to {file_path} with {len(rows)} rows")
             return True
 
-        except Exception as e:
+        except (OSError, ValueError, TypeError, csv.Error) as e:
             self._logger.error(f"Failed to write CSV file {file_path}: {e}")
             return False
 
@@ -639,7 +641,7 @@ class PersistenceService:
                         'connected': health.get('connected', False),
                         'backend': health.get('backend', 'unknown')
                     }
-                except Exception as e:
+                except (OSError, sqlite3.Error, AttributeError) as e:
                     status_info['adapters'][name] = {
                         'status': 'error',
                         'connected': False,
@@ -687,7 +689,7 @@ class _JSONStateAdapter:
                 self._logger.debug(f"Connected to JSON state file: {self.file_path}")
                 return True
 
-        except Exception as e:
+        except (OSError, PermissionError, ValueError) as e:
             self._logger.error(f"Failed to connect to JSON state file {self.file_path}: {e}")
             self._is_connected = False
             return False
@@ -709,7 +711,7 @@ class _JSONStateAdapter:
                 self._write_state(state)
                 self._logger.debug(f"State saved to {self.file_path}")
                 return True
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             self._logger.error(f"Failed to save state to {self.file_path}: {e}")
             return False
 
@@ -731,7 +733,7 @@ class _JSONStateAdapter:
             self._logger.error(f"Invalid JSON in state file {self.file_path}: {e}")
             return None
         except Exception as e:
-            self._logger.error(f"Failed to load state from {self.file_path}: {e}")
+            self._logger.error(f"Failed to load state from {self.file_path}: {e} (type: {type(e).__name__})")
             return None
 
     def delete_state(self) -> bool:
@@ -743,7 +745,7 @@ class _JSONStateAdapter:
                     self._logger.debug(f"State file {self.file_path} deleted")
                 self._is_connected = False
                 return True
-        except Exception as e:
+        except (OSError, FileNotFoundError, PermissionError) as e:
             self._logger.error(f"Failed to delete state file {self.file_path}: {e}")
             return False
 
@@ -763,7 +765,7 @@ class _JSONStateAdapter:
                 'file_readable': file_readable,
                 'file_writable': file_writable
             }
-        except Exception as e:
+        except (OSError, ValueError) as e:
             return {
                 'status': 'error',
                 'connected': self._is_connected,

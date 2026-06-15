@@ -56,7 +56,7 @@ class AnomalyDetector:
                         data[key] = []
                 return data
         except Exception as e:
-            _log.warning(f"Failed to load anomaly history from {self.history_file}: {e}")
+            _log.warning(f"Failed to load anomaly history from {self.history_file}: {e} (type: {type(e).__name__})")
             return {}
 
     def _save_history(self) -> None:
@@ -67,7 +67,7 @@ class AnomalyDetector:
             with open(self.history_file, "w") as f:
                 json.dump(self.history, f, indent=2)
         except Exception as e:
-            _log.error(f"Failed to save anomaly history to {self.history_file}: {e}")
+            _log.error(f"Failed to save anomaly history to {self.history_file}: {e} (type: {type(e).__name__})")
 
     def update_and_check(self, metric_name: str, value: float) -> tuple[bool, float]:
         """

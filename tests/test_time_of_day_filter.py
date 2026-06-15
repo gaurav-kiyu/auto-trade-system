@@ -1,137 +1,156 @@
-"""Tests for core/time_of_day_filter.py — time-of-day trading restrictions."""
+"""Tests for TimeOfDayFilter — blocks or restricts trading during low liquidity periods."""
 
 from __future__ import annotations
 
-from unittest import mock
+from unittest.mock import patch
+from datetime import datetime
 
 from core.time_of_day_filter import (
-    TimeOfDayConfig,
     TimeOfDayFilter,
+    TimeOfDayConfig,
     create_time_of_day_filter,
 )
 
-# ── TimeOfDayConfig ───────────────────────────────────────────────────────────
 
-class TestTimeOfDayConfig:
-    def test_defaults(self) -> None:
-        c = TimeOfDayConfig()
-        assert c.enabled is True
-        assert c.block_start_hour == 14
-        assert c.block_end_hour == 15
-        assert c.allow_trending_only is True
+class TestTimeOfDayFilter:
+    """TimeOfDayFilter — should_allow_entry and get_restriction_level."""
 
-    def test_custom(self) -> None:
-        c = TimeOfDayConfig(enabled=False, block_start_hour=9, block_end_hour=10, allow_trending_only=False)
-        assert c.enabled is False
-        assert c.block_start_hour == 9
-        assert c.block_end_hour == 10
+    def test_default_config(self):
+        cfg = TimeOfDayConfig()
+        assert cfg.enabled is True
+        assert cfg.block_start_hour == 14
+        assert cfg.block_end_hour == 15
+        assert cfg.allow_trending_only is True
 
-
-# ── should_allow_entry ────────────────────────────────────────────────────────
-
-class TestShouldAllowEntry:
-    def test_disabled_always_allows(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(enabled=False))
-        ok, reason = f.should_allow_entry("TRENDING")
-        assert ok is True
+    def test_disabled_allows_all(self):
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(enabled=False))
+        allowed, reason = filter_.should_allow_entry("ANY")
+        assert allowed
         assert reason == ""
 
-    def test_outside_blocked_hours_allows(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(block_start_hour=14, block_end_hour=15))
-        with mock.patch("core.time_of_day_filter.now_ist") as mock_now:
-            mock_now.return_value.hour = 11  # 11 AM, outside block
-            ok, _ = f.should_allow_entry("TRENDING")
-            assert ok is True
+    def test_disabled_restriction_level_none(self):
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(enabled=False))
+        assert filter_.get_restriction_level() == "NONE"
 
-    def test_inside_blocked_hour_blocks(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(block_start_hour=14, block_end_hour=15))
-        with mock.patch("core.time_of_day_filter.now_ist") as mock_now:
-            mock_now.return_value.hour = 14  # 2 PM, inside block
-            ok, reason = f.should_allow_entry("RANGE")
-            assert ok is False
-            assert "Blocked" in reason
-
-    def test_blocked_hour_but_trending_allowed(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(
-            block_start_hour=14, block_end_hour=15, allow_trending_only=True,
+    @patch("core.time_of_day_filter.now_ist")
+    def test_blocked_hour_non_trending(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 14, 30)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15, allow_trending_only=True
         ))
-        with mock.patch("core.time_of_day_filter.now_ist") as mock_now:
-            mock_now.return_value.hour = 14
-            ok, reason = f.should_allow_entry("TRENDING")
-            assert ok is True
-            assert "TRENDING" in reason
+        allowed, reason = filter_.should_allow_entry("SIDEWAYS")
+        assert not allowed
+        assert "non-TRENDING" in reason
 
-    def test_blocked_hour_bullish_allowed(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(
-            block_start_hour=14, block_end_hour=15, allow_trending_only=True,
+    @patch("core.time_of_day_filter.now_ist")
+    def test_blocked_hour_trending_allowed(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 14, 30)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15, allow_trending_only=True
         ))
-        with mock.patch("core.time_of_day_filter.now_ist") as mock_now:
-            mock_now.return_value.hour = 14
-            ok, _ = f.should_allow_entry("BULLISH")
-            assert ok is True
+        allowed, reason = filter_.should_allow_entry("TRENDING")
+        assert allowed
+        assert "Blocked hour but allowing TRENDING" in reason
 
-    def test_blocked_hour_no_regime_fallback(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(
-            block_start_hour=14, block_end_hour=15, allow_trending_only=True,
+    @patch("core.time_of_day_filter.now_ist")
+    def test_blocked_hour_bullish_allowed(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 14, 30)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15, allow_trending_only=True
         ))
-        with mock.patch("core.time_of_day_filter.now_ist") as mock_now:
-            mock_now.return_value.hour = 14
-            ok, reason = f.should_allow_entry("CHOPPY")
-            assert ok is False
-            assert "non-TRENDING" in reason
+        allowed, _ = filter_.should_allow_entry("BULLISH")
+        assert allowed
 
-    def test_blocked_hour_allow_trending_false_blocks_all(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(
-            block_start_hour=14, block_end_hour=15, allow_trending_only=False,
+    @patch("core.time_of_day_filter.now_ist")
+    def test_blocked_hour_no_regime_blocks(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 14, 30)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15, allow_trending_only=True
         ))
-        with mock.patch("core.time_of_day_filter.now_ist") as mock_now:
-            mock_now.return_value.hour = 14
-            ok, reason = f.should_allow_entry("TRENDING")
-            assert ok is False
-            assert "Blocked trading hours" in reason
+        allowed, reason = filter_.should_allow_entry()  # no regime
+        assert not allowed
+        assert "Blocked" in reason
 
-    def test_no_regime_in_blocked_hour_blocks(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(block_start_hour=14, block_end_hour=15))
-        with mock.patch("core.time_of_day_filter.now_ist") as mock_now:
-            mock_now.return_value.hour = 14
-            ok, _ = f.should_allow_entry(None)
-            assert ok is False
+    @patch("core.time_of_day_filter.now_ist")
+    def test_blocked_hour_trending_disabled(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 14, 30)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15, allow_trending_only=False
+        ))
+        allowed, reason = filter_.should_allow_entry("TRENDING")
+        assert not allowed
+        assert "Blocked trading hours" in reason
+
+    @patch("core.time_of_day_filter.now_ist")
+    def test_normal_hour_allows(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 10, 30)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15
+        ))
+        allowed, reason = filter_.should_allow_entry("SIDEWAYS")
+        assert allowed
+        assert reason == ""
+
+    @patch("core.time_of_day_filter.now_ist")
+    def test_restriction_level_blocked(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 14, 30)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15
+        ))
+        assert filter_.get_restriction_level() == "BLOCKED"
+
+    @patch("core.time_of_day_filter.now_ist")
+    def test_restriction_level_allowed(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 10, 30)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15
+        ))
+        assert filter_.get_restriction_level() == "ALLOWED"
+
+    @patch("core.time_of_day_filter.now_ist")
+    def test_edge_of_blocked_window_start(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 14, 0)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15, allow_trending_only=False
+        ))
+        allowed, _ = filter_.should_allow_entry("TRENDING")
+        assert not allowed  # >= 14 is blocked
+
+    @patch("core.time_of_day_filter.now_ist")
+    def test_edge_of_blocked_window_end(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 14, 59)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15, allow_trending_only=False
+        ))
+        allowed, _ = filter_.should_allow_entry("TRENDING")
+        assert not allowed  # < 15 is blocked
+
+    @patch("core.time_of_day_filter.now_ist")
+    def test_after_blocked_window(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 11, 15, 0)
+        filter_ = TimeOfDayFilter(TimeOfDayConfig(
+            block_start_hour=14, block_end_hour=15
+        ))
+        allowed, _ = filter_.should_allow_entry("SIDEWAYS")
+        assert allowed  # >= 15 is not blocked
 
 
-# ── get_restriction_level ─────────────────────────────────────────────────────
+class TestCreateTimeOfDayFilter:
+    """Factory function create_time_of_day_filter."""
 
-class TestGetRestrictionLevel:
-    def test_disabled_returns_none(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(enabled=False))
-        assert f.get_restriction_level() == "NONE"
+    def test_create_with_defaults(self):
+        filter_ = create_time_of_day_filter({})
+        assert isinstance(filter_, TimeOfDayFilter)
+        assert filter_.config.enabled is True
 
-    def test_blocked_hour(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(block_start_hour=14, block_end_hour=15))
-        with mock.patch("core.time_of_day_filter.now_ist") as mock_now:
-            mock_now.return_value.hour = 14
-            assert f.get_restriction_level() == "BLOCKED"
-
-    def test_allowed_hour(self) -> None:
-        f = TimeOfDayFilter(TimeOfDayConfig(block_start_hour=14, block_end_hour=15))
-        with mock.patch("core.time_of_day_filter.now_ist") as mock_now:
-            mock_now.return_value.hour = 11
-            assert f.get_restriction_level() == "ALLOWED"
-
-
-# ── create_time_of_day_filter ─────────────────────────────────────────────────
-
-class TestCreateFactory:
-    def test_creates_from_config(self) -> None:
-        f = create_time_of_day_filter({
+    def test_create_with_custom_config(self):
+        filter_ = create_time_of_day_filter({
             "TIME_OF_DAY_FILTER_ENABLED": False,
-            "TIME_OF_DAY_BLOCK_START_HOUR": 9,
+            "TIME_OF_DAY_BLOCK_START_HOUR": 13,
+            "TIME_OF_DAY_BLOCK_END_HOUR": 14,
+            "TIME_OF_DAY_ALLOW_TRENDING_ONLY": False,
         })
-        assert isinstance(f, TimeOfDayFilter)
-        assert f.config.enabled is False
-        assert f.config.block_start_hour == 9
-
-    def test_uses_defaults(self) -> None:
-        f = create_time_of_day_filter({})
-        assert f.config.enabled is True
-        assert f.config.block_start_hour == 14
-        assert f.config.allow_trending_only is True
+        assert filter_.config.enabled is False
+        assert filter_.config.block_start_hour == 13
+        assert filter_.config.block_end_hour == 14
+        assert filter_.config.allow_trending_only is False

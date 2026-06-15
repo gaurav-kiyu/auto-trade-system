@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 import statistics
+import threading
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -89,11 +90,11 @@ class PortfolioService:
 
     def __init__(self, base_currency: str = "INR"):
         self.base_currency = base_currency
+        self._lock = threading.Lock()
         self._positions: dict[str, Position] = {}
         self._trade_history: deque = field(default_factory=lambda: deque(maxlen=10000))
         self._equity_curve: deque = field(default_factory=lambda: deque(maxlen=10000))
         self._daily_returns: deque = field(default_factory=lambda: deque(maxlen=252))  # 1 year of daily returns
-
         self.__post_init__()
 
     def __post_init__(self):
@@ -116,131 +117,132 @@ class PortfolioService:
         price = fill.price
         timestamp = fill.timestamp
 
-        # Get existing position or create new one
-        existing_position = self._positions.get(symbol)
-        if existing_position is None:
-            # New position
-            new_position = Position(
-                symbol=symbol,
-                quantity=quantity,
-                average_price=price,
-                market_value=quantity * price,
-                unrealized_pnl=0.0,
-                realized_pnl=0.0,
-                timestamp=timestamp
-            )
-            self._positions[symbol] = new_position
-            return new_position
+        with self._lock:
+            # Get existing position or create new one
+            existing_position = self._positions.get(symbol)
+            if existing_position is None:
+                # New position
+                new_position = Position(
+                    symbol=symbol,
+                    quantity=quantity,
+                    average_price=price,
+                    market_value=quantity * price,
+                    unrealized_pnl=0.0,
+                    realized_pnl=0.0,
+                    timestamp=timestamp
+                )
+                self._positions[symbol] = new_position
+                return new_position
 
-        # Update existing position
-        old_quantity = existing_position.quantity
-        old_avg_price = existing_position.average_price
+            # Update existing position
+            old_quantity = existing_position.quantity
+            old_avg_price = existing_position.average_price
 
-        # Calculate new quantity and average price
-        new_quantity = old_quantity + quantity
+            # Calculate new quantity and average price
+            new_quantity = old_quantity + quantity
 
-        if new_quantity == 0:
-            # Position closed - calculate realized P&L
-            realized_pnl = (price - old_avg_price) * old_quantity
-            closed_position = Position(
-                symbol=symbol,
-                quantity=0,
-                average_price=0.0,
-                market_value=0.0,
-                unrealized_pnl=0.0,
-                realized_pnl=existing_position.realized_pnl + realized_pnl,
-                timestamp=timestamp
-            )
-            # Move to trade history
-            trade_record = TradeRecord(
-                symbol=symbol,
-                entry_price=old_avg_price,
-                exit_price=price,
-                quantity=abs(old_quantity),
-                direction="BUY" if old_quantity > 0 else "SELL",
-                entry_time=existing_position.timestamp,
-                exit_time=timestamp,
-                realized_pnl=realized_pnl,
-                commission=getattr(fill, 'commission', 0.0),
-                strategy_id=getattr(fill, 'strategy_id', 'unknown')
-            )
-            self._trade_history.append(trade_record)
+            if new_quantity == 0:
+                # Position closed - calculate realized P&L
+                realized_pnl = (price - old_avg_price) * old_quantity
+                closed_position = Position(
+                    symbol=symbol,
+                    quantity=0,
+                    average_price=0.0,
+                    market_value=0.0,
+                    unrealized_pnl=0.0,
+                    realized_pnl=existing_position.realized_pnl + realized_pnl,
+                    timestamp=timestamp
+                )
+                # Move to trade history
+                trade_record = TradeRecord(
+                    symbol=symbol,
+                    entry_price=old_avg_price,
+                    exit_price=price,
+                    quantity=abs(old_quantity),
+                    direction="BUY" if old_quantity > 0 else "SELL",
+                    entry_time=existing_position.timestamp,
+                    exit_time=timestamp,
+                    realized_pnl=realized_pnl,
+                    commission=getattr(fill, 'commission', 0.0),
+                    strategy_id=getattr(fill, 'strategy_id', 'unknown')
+                )
+                self._trade_history.append(trade_record)
 
-            # Remove closed position
-            del self._positions[symbol]
-            return closed_position
-        else:
-            # Position still open - update average price
-            if old_quantity * quantity > 0:
-                # Same direction - weighted average
-                total_cost = (old_quantity * old_avg_price) + (quantity * price)
-                total_cost / new_quantity
+                # Remove closed position
+                del self._positions[symbol]
+                return closed_position
             else:
-                # Opposite direction - partial close
-                if abs(quantity) < abs(old_quantity):
-                    # Partial close - calculate realized P&L on closed portion
-                    closed_quantity = min(abs(old_quantity), abs(quantity))
-                    closed_direction = "BUY" if old_quantity > 0 else "SELL"
-                    realized_pnl = (price - old_avg_price) * closed_quantity * (1 if closed_direction == "BUY" else -1)
-
-                    # Update position
-                    new_position = Position(
-                        symbol=symbol,
-                        quantity=new_quantity,
-                        average_price=old_avg_price,  # Keep original average price
-                        market_value=new_quantity * price,
-                        unrealized_pnl=0.0,
-                        realized_pnl=existing_position.realized_pnl + realized_pnl,
-                        timestamp=timestamp
-                    )
-                    self._positions[symbol] = new_position
-
-                    # Record the closed portion as a trade
-                    trade_record = TradeRecord(
-                        symbol=symbol,
-                        entry_price=old_avg_price,
-                        exit_price=price,
-                        quantity=closed_quantity,
-                        direction=closed_direction,
-                        entry_time=existing_position.timestamp,
-                        exit_time=timestamp,
-                        realized_pnl=realized_pnl,
-                        commission=getattr(fill, 'commission', 0.0) * (closed_quantity / abs(old_quantity)),
-                        strategy_id=getattr(fill, 'strategy_id', 'unknown')
-                    )
-                    self._trade_history.append(trade_record)
-                    return new_position
+                # Position still open - update average price
+                if old_quantity * quantity > 0:
+                    # Same direction - weighted average
+                    total_cost = (old_quantity * old_avg_price) + (quantity * price)
+                    total_cost / new_quantity
                 else:
-                    # Position flipped - calculate realized P&L on entire original position
-                    realized_pnl = (price - old_avg_price) * abs(old_quantity) * (1 if old_quantity > 0 else -1)
+                    # Opposite direction - partial close
+                    if abs(quantity) < abs(old_quantity):
+                        # Partial close - calculate realized P&L on closed portion
+                        closed_quantity = min(abs(old_quantity), abs(quantity))
+                        closed_direction = "BUY" if old_quantity > 0 else "SELL"
+                        realized_pnl = (price - old_avg_price) * closed_quantity * (1 if closed_direction == "BUY" else -1)
 
-                    # New position in opposite direction
-                    new_position = Position(
-                        symbol=symbol,
-                        quantity=new_quantity,
-                        average_price=price,
-                        market_value=new_quantity * price,
-                        unrealized_pnl=0.0,
-                        realized_pnl=existing_position.realized_pnl + realized_pnl,
-                        timestamp=timestamp
-                    )
-                    self._positions[symbol] = new_position
+                        # Update position
+                        new_position = Position(
+                            symbol=symbol,
+                            quantity=new_quantity,
+                            average_price=old_avg_price,  # Keep original average price
+                            market_value=new_quantity * price,
+                            unrealized_pnl=0.0,
+                            realized_pnl=existing_position.realized_pnl + realized_pnl,
+                            timestamp=timestamp
+                        )
+                        self._positions[symbol] = new_position
 
-                    # Record the flipped portion as a trade
-                    trade_record = TradeRecord(
-                        symbol=symbol,
-                        entry_price=old_avg_price,
-                        exit_price=price,
-                        quantity=abs(old_quantity),
-                        direction="BUY" if old_quantity > 0 else "SELL",
-                        entry_time=existing_position.timestamp,
-                        exit_time=timestamp,
-                        realized_pnl=realized_pnl,
-                        commission=getattr(fill, 'commission', 0.0),
-                        strategy_id=getattr(fill, 'strategy_id', 'unknown')
-                    )
-                    self._trade_history.append(trade_record)
-                    return new_position
+                        # Record the closed portion as a trade
+                        trade_record = TradeRecord(
+                            symbol=symbol,
+                            entry_price=old_avg_price,
+                            exit_price=price,
+                            quantity=closed_quantity,
+                            direction=closed_direction,
+                            entry_time=existing_position.timestamp,
+                            exit_time=timestamp,
+                            realized_pnl=realized_pnl,
+                            commission=getattr(fill, 'commission', 0.0) * (closed_quantity / abs(old_quantity)),
+                            strategy_id=getattr(fill, 'strategy_id', 'unknown')
+                        )
+                        self._trade_history.append(trade_record)
+                        return new_position
+                    else:
+                        # Position flipped - calculate realized P&L on entire original position
+                        realized_pnl = (price - old_avg_price) * abs(old_quantity) * (1 if old_quantity > 0 else -1)
+
+                        # New position in opposite direction
+                        new_position = Position(
+                            symbol=symbol,
+                            quantity=new_quantity,
+                            average_price=price,
+                            market_value=new_quantity * price,
+                            unrealized_pnl=0.0,
+                            realized_pnl=existing_position.realized_pnl + realized_pnl,
+                            timestamp=timestamp
+                        )
+                        self._positions[symbol] = new_position
+
+                        # Record the flipped portion as a trade
+                        trade_record = TradeRecord(
+                            symbol=symbol,
+                            entry_price=old_avg_price,
+                            exit_price=price,
+                            quantity=abs(old_quantity),
+                            direction="BUY" if old_quantity > 0 else "SELL",
+                            entry_time=existing_position.timestamp,
+                            exit_time=timestamp,
+                            realized_pnl=realized_pnl,
+                            commission=getattr(fill, 'commission', 0.0),
+                            strategy_id=getattr(fill, 'strategy_id', 'unknown')
+                        )
+                        self._trade_history.append(trade_record)
+                        return new_position
 
     def close_position(self, symbol: str, exit_price: float,
                       commission: float = 0.0) -> TradeRecord | None:
@@ -255,34 +257,35 @@ class PortfolioService:
         Returns:
             TradeRecord for the closed position, or None if no position existed
         """
-        position = self._positions.get(symbol)
-        if position is None or position.quantity == 0:
-            return None
+        with self._lock:
+            position = self._positions.get(symbol)
+            if position is None or position.quantity == 0:
+                return None
 
-        # Calculate realized P&L
-        realized_pnl = (exit_price - position.average_price) * position.quantity
+            # Calculate realized P&L
+            realized_pnl = (exit_price - position.average_price) * position.quantity
 
-        # Create trade record
-        trade_record = TradeRecord(
-            symbol=symbol,
-            entry_price=position.average_price,
-            exit_price=exit_price,
-            quantity=abs(position.quantity),
-            direction="BUY" if position.quantity > 0 else "SELL",
-            entry_time=position.timestamp,
-            exit_time=now_ist(),
-            realized_pnl=realized_pnl,
-            commission=commission,
-            strategy_id=getattr(position, 'strategy_id', 'unknown')
-        )
+            # Create trade record
+            trade_record = TradeRecord(
+                symbol=symbol,
+                entry_price=position.average_price,
+                exit_price=exit_price,
+                quantity=abs(position.quantity),
+                direction="BUY" if position.quantity > 0 else "SELL",
+                entry_time=position.timestamp,
+                exit_time=now_ist(),
+                realized_pnl=realized_pnl,
+                commission=commission,
+                strategy_id=getattr(position, 'strategy_id', 'unknown')
+            )
 
-        # Add to trade history
-        self._trade_history.append(trade_record)
+            # Add to trade history
+            self._trade_history.append(trade_record)
 
-        # Remove position
-        del self._positions[symbol]
+            # Remove position
+            del self._positions[symbol]
 
-        return trade_record
+            return trade_record
 
     def calculate_unrealized_pnl(self, positions: dict[str, Position],
                                current_prices: dict[str, float]) -> float:

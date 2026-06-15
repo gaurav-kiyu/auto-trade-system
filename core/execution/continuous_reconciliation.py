@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 import threading
-import time
+
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -78,6 +78,7 @@ class ContinuousReconciliation:
 
         # State
         self._running = False
+        self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
         self._last_cycle_time: datetime | None = None
         self._issues: list[ReconciliationIssue] = []
@@ -101,22 +102,24 @@ class ContinuousReconciliation:
     def stop(self) -> None:
         """Stop the reconciliation thread."""
         self._running = False
+        self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=5)
         log.info("Continuous reconciliation stopped")
 
     def _run_loop(self) -> None:
         """Main reconciliation loop."""
-        while self._running:
+        while self._running and not self._stop_event.is_set():
             try:
                 now_ist()
 
-                # Check system mode
-                can_trade_result, _ = can_trade()
+                # Check system mode — use result to adjust interval
+                can_trade_ok, _ = can_trade()
 
-                # Determine interval based on whether we're in active trading
-                # For now, use active interval always (more conservative)
-                interval = self._active_interval_seconds
+                if not can_trade_ok:
+                    interval = self._idle_interval_seconds
+                else:
+                    interval = self._active_interval_seconds
 
                 # Run reconciliation cycle
                 report = self._run_cycle()
@@ -130,11 +133,12 @@ class ContinuousReconciliation:
                 log.debug(f"Reconciliation cycle: {report.orders_checked} orders, "
                          f"{report.positions_checked} positions, {len(report.issues_found)} issues")
 
-            except Exception as e:
+            except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, AttributeError) as e:
                 log.error(f"Reconciliation cycle failed: {e}")
 
-            # Sleep until next cycle
-            time.sleep(interval)
+            # Wait until next cycle (interruptible via stop_event)
+            if self._stop_event.wait(interval):
+                break
 
     def _run_cycle(self) -> ReconciliationReport:
         """Run a single reconciliation cycle."""
@@ -142,12 +146,7 @@ class ContinuousReconciliation:
 
         try:
             # Check broker connectivity
-            try:
-                self._broker_port.is_healthy()
-                report.broker_reachable = True
-            except Exception:
-                report.broker_reachable = False
-                log.warning("Broker not reachable during reconciliation")
+            self._check_broker_connectivity(report)
 
             # Reconcile orders
             orders = self._get_local_orders()
@@ -167,7 +166,7 @@ class ContinuousReconciliation:
                 if issue:
                     report.issues_found.append(issue)
 
-        except Exception as e:
+        except (OSError, ConnectionError, ValueError, TypeError, AttributeError) as e:
             log.error(f"Reconciliation cycle error: {e}")
 
         return report
@@ -179,7 +178,7 @@ class ContinuousReconciliation:
         try:
             from core.execution.durable_state import durable_state_store
             return durable_state_store.get_all_execution_records() if durable_state_store else []
-        except Exception:
+        except (ImportError, AttributeError, TypeError, OSError):
             return []
 
     def _get_local_positions(self) -> dict[str, dict]:
@@ -187,8 +186,20 @@ class ContinuousReconciliation:
         try:
             from core.state_manager import state_manager
             return state_manager.get("active_positions", {})
-        except Exception:
+        except (ImportError, AttributeError, TypeError, OSError):
             return {}
+
+    def _check_broker_connectivity(self, report: ReconciliationReport) -> None:
+        """Check broker connectivity."""
+        try:
+            if hasattr(self._broker_port, 'is_healthy'):
+                self._broker_port.is_healthy()
+                report.broker_reachable = True
+            else:
+                report.broker_reachable = True
+        except (AttributeError, TypeError, OSError, ConnectionError):
+            report.broker_reachable = False
+            log.warning("Broker not reachable during reconciliation")
 
     def _reconcile_order(self, order: dict) -> ReconciliationIssue | None:
         """Reconcile a single order with broker."""
@@ -221,7 +232,7 @@ class ContinuousReconciliation:
                     requires_manual_intervention=True
                 )
 
-        except Exception as e:
+        except (OSError, ConnectionError, ValueError, TypeError, AttributeError, KeyError) as e:
             log.error(f"Order reconciliation error for {order.get('order_id')}: {e}")
 
         return None
@@ -255,7 +266,7 @@ class ContinuousReconciliation:
                         requires_manual_intervention=True
                     )
 
-        except Exception as e:
+        except (OSError, ConnectionError, ValueError, TypeError, AttributeError, KeyError) as e:
             log.error(f"Position reconciliation error for {symbol}: {e}")
 
         return None
@@ -277,7 +288,7 @@ class ContinuousReconciliation:
         if self._on_issue_callback:
             try:
                 self._on_issue_callback(issue)
-            except Exception as e:
+            except (TypeError, ValueError, OSError) as e:
                 log.error(f"Issue callback failed: {e}")
 
     def get_issues(self) -> list[ReconciliationIssue]:

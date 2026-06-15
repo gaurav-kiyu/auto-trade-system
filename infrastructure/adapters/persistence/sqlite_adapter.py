@@ -6,6 +6,7 @@ Implements the PersistencePort interface using SQLite for structured data storag
 
 from __future__ import annotations
 
+import csv
 import json
 import logging
 import sqlite3
@@ -64,13 +65,15 @@ class SQLiteAdapter(PersistencePort):
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
             )
             # Enable foreign key constraints
+            self._connection.execute("PRAGMA journal_mode=WAL")
+            self._connection.execute("PRAGMA busy_timeout=5000")
             self._connection.execute("PRAGMA foreign_keys = ON")
             # Return rows as dictionaries
             self._connection.row_factory = sqlite3.Row
             self._is_connected = True
             logger.info(f"Connected to SQLite database at {self.database_path}")
             return True
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to connect to SQLite database: {e}")
             self._connection = None
             self._is_connected = False
@@ -82,7 +85,7 @@ class SQLiteAdapter(PersistencePort):
             try:
                 self._connection.close()
                 logger.info(f"Disconnected from SQLite database at {self.database_path}")
-            except Exception as e:
+            except (sqlite3.Error, OSError) as e:
                 logger.warning(f"Error while disconnecting from SQLite: {e}")
             finally:
                 self._connection = None
@@ -134,7 +137,7 @@ class SQLiteAdapter(PersistencePort):
         with self._lock:
             try:
                 return self._connection.execute(query, parameters)
-            except Exception as e:
+            except (sqlite3.Error, OSError, ValueError, TypeError) as e:
                 logger.error(f"SQLite query failed: {query} with params {parameters}")
                 raise PersistenceError(f"SQLite query failed: {e}")
 
@@ -145,7 +148,7 @@ class SQLiteAdapter(PersistencePort):
         with self._lock:
             try:
                 return self._connection.executemany(query, parameters_list)
-            except Exception as e:
+            except (sqlite3.Error, OSError, ValueError, TypeError) as e:
                 logger.error(f"SQLite executemany failed: {query}")
                 raise PersistenceError(f"SQLite executemany failed: {e}")
 
@@ -173,7 +176,7 @@ class SQLiteAdapter(PersistencePort):
                 (table,)
             )
             return cursor.fetchone() is not None
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to check if table {table} exists: {e}")
             raise PersistenceError(f"Failed to check if table {table} exists: {e}")
 
@@ -203,7 +206,7 @@ class SQLiteAdapter(PersistencePort):
             self._commit_if_needed()
             logger.info(f"Created table {table} with schema: {schema}")
             return True
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to create table {table}: {e}")
             raise PersistenceError(f"Failed to create table {table}: {e}")
 
@@ -228,7 +231,7 @@ class SQLiteAdapter(PersistencePort):
             self._commit_if_needed()
             logger.info(f"Dropped table {table}")
             return True
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to drop table {table}: {e}")
             raise PersistenceError(f"Failed to drop table {table}: {e}")
 
@@ -258,7 +261,7 @@ class SQLiteAdapter(PersistencePort):
             lastrowid = cursor.lastrowid
             logger.debug(f"Created record in {table} with ID {lastrowid}")
             return lastrowid
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to create record in {table}: {e}")
             raise PersistenceError(f"Failed to create record in {table}: {e}")
 
@@ -299,7 +302,7 @@ class SQLiteAdapter(PersistencePort):
             logger.debug(f"Created {rowcount} records in {table}, last ID: {lastrowid}")
             # Generate a list of IDs (this is approximate and may not be accurate in concurrent scenarios)
             return list(range(lastrowid - rowcount + 1, lastrowid + 1))
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to create multiple records in {table}: {e}")
             raise PersistenceError(f"Failed to create multiple records in {table}: {e}")
 
@@ -323,7 +326,7 @@ class SQLiteAdapter(PersistencePort):
             if row is None:
                 return None
             return dict(row)
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to read record {record_id} from {table}: {e}")
             raise PersistenceError(f"Failed to read record {record_id} from {table}: {e}")
 
@@ -387,7 +390,7 @@ class SQLiteAdapter(PersistencePort):
             cursor = self._execute(query, tuple(params))
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to read multiple records from {table}: {e}")
             raise PersistenceError(f"Failed to read multiple records from {table}: {e}")
 
@@ -442,7 +445,7 @@ class SQLiteAdapter(PersistencePort):
             cursor = self._execute(query, tuple(params))
             row = cursor.fetchone()
             return row[0] if row else 0
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to count records in {table}: {e}")
             raise PersistenceError(f"Failed to count records in {table}: {e}")
 
@@ -477,7 +480,7 @@ class SQLiteAdapter(PersistencePort):
             updated = cursor.rowcount > 0
             logger.debug(f"Updated {cursor.rowcount} records in {table}")
             return updated
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to update record {record_id} in {table}: {e}")
             raise PersistenceError(f"Failed to update record {record_id} in {table}: {e}")
 
@@ -518,7 +521,7 @@ class SQLiteAdapter(PersistencePort):
             updated = cursor.rowcount
             logger.debug(f"Updated {updated} records in {table}")
             return updated
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to update multiple records in {table}: {e}")
             raise PersistenceError(f"Failed to update multiple records in {table}: {e}")
 
@@ -542,7 +545,7 @@ class SQLiteAdapter(PersistencePort):
             deleted = cursor.rowcount > 0
             logger.debug(f"Deleted {cursor.rowcount} records from {table}")
             return deleted
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to delete record {record_id} from {table}: {e}")
             raise PersistenceError(f"Failed to delete record {record_id} from {table}: {e}")
 
@@ -575,7 +578,7 @@ class SQLiteAdapter(PersistencePort):
             deleted = cursor.rowcount
             logger.debug(f"Deleted {deleted} records from {table}")
             return deleted
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to delete multiple records from {table}: {e}")
             raise PersistenceError(f"Failed to delete multiple records from {table}: {e}")
 
@@ -611,7 +614,7 @@ class SQLiteAdapter(PersistencePort):
             self._commit_if_needed()
             logger.debug("Application state saved to SQLite")
             return True
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.error(f"Failed to save application state: {e}")
             raise PersistenceError(f"Failed to save application state: {e}")
 
@@ -633,7 +636,7 @@ class SQLiteAdapter(PersistencePort):
                 return None
             state_json = row[0]
             return json.loads(state_json)
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.error(f"Failed to load application state: {e}")
             raise PersistenceError(f"Failed to load application state: {e}")
 
@@ -652,7 +655,7 @@ class SQLiteAdapter(PersistencePort):
                 self._commit_if_needed()
                 logger.debug("Application state deleted from SQLite")
             return True
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to delete application state: {e}")
             raise PersistenceError(f"Failed to delete application state: {e}")
 
@@ -701,7 +704,7 @@ class SQLiteAdapter(PersistencePort):
             trade_id = self.create("trades", trade_data)
             logger.debug(f"Trade saved with ID {trade_id}")
             return str(trade_id)
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.error(f"Failed to save trade: {e}")
             raise PersistenceError(f"Failed to save trade: {e}")
 
@@ -729,7 +732,7 @@ class SQLiteAdapter(PersistencePort):
                     # If it's not valid JSON, leave it as is
                     pass
             return trade
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.error(f"Failed to get trade {trade_id}: {e}")
             raise PersistenceError(f"Failed to get trade {trade_id}: {e}")
 
@@ -800,7 +803,7 @@ class SQLiteAdapter(PersistencePort):
                         pass
 
             return trades
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.error(f"Failed to get trades: {e}")
             raise PersistenceError(f"Failed to get trades: {e}")
 
@@ -826,7 +829,7 @@ class SQLiteAdapter(PersistencePort):
             if updated:
                 logger.debug(f"Trade {trade_id} updated")
             return updated
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError, json.JSONDecodeError) as e:
             logger.error(f"Failed to update trade {trade_id}: {e}")
             raise PersistenceError(f"Failed to update trade {trade_id}: {e}")
 
@@ -885,7 +888,7 @@ class SQLiteAdapter(PersistencePort):
             self.create("market_data", market_data)
             logger.debug(f"Market data saved for {symbol} at {timestamp_str}")
             return True
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to save market data for {symbol}: {e}")
             raise PersistenceError(f"Failed to save market data for {symbol}: {e}")
 
@@ -929,7 +932,7 @@ class SQLiteAdapter(PersistencePort):
             cursor = self._execute(query, tuple(params))
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to get market data for {symbol}: {e}")
             raise PersistenceError(f"Failed to get market data for {symbol}: {e}")
 
@@ -957,7 +960,7 @@ class SQLiteAdapter(PersistencePort):
             if row is None:
                 return None
             return dict(row)
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError, TypeError) as e:
             logger.error(f"Failed to get latest market data for {symbol}: {e}")
             raise PersistenceError(f"Failed to get latest market data for {symbol}: {e}")
 
@@ -990,7 +993,7 @@ class SQLiteAdapter(PersistencePort):
                     writer.writerow(row)
             logger.debug(f"Appended row to CSV file {file_path}")
             return True
-        except Exception as e:
+        except (OSError, ValueError, TypeError, csv.Error) as e:
             logger.error(f"Failed to append row to CSV {file_path}: {e}")
             raise PersistenceError(f"Failed to append row to CSV {file_path}: {e}")
 
@@ -1018,7 +1021,7 @@ class SQLiteAdapter(PersistencePort):
                     writer.writerows(rows)
             logger.debug(f"Wrote {len(rows)} rows to CSV file {file_path}")
             return True
-        except Exception as e:
+        except (OSError, ValueError, TypeError, csv.Error) as e:
             logger.error(f"Failed to write rows to CSV {file_path}: {e}")
             raise PersistenceError(f"Failed to write rows to CSV {file_path}: {e}")
 
@@ -1041,7 +1044,7 @@ class SQLiteAdapter(PersistencePort):
             with open(file_path, newline='', encoding='utf-8') as csvfile:
                 reader = csv.DictReader(csvfile)
                 return [row for row in reader]
-        except Exception as e:
+        except (OSError, ValueError, TypeError, csv.Error) as e:
             logger.error(f"Failed to read rows from CSV {file_path}: {e}")
             raise PersistenceError(f"Failed to read rows from CSV {file_path}: {e}")
 
@@ -1075,7 +1078,7 @@ class SQLiteAdapter(PersistencePort):
                 "database_size_bytes": db_size,
                 "sqlite_version": sqlite3.sqlite_version if connected else None
             }
-        except Exception as e:
+        except (OSError, ValueError, sqlite3.Error) as e:
             logger.error(f"Health check failed: {e}")
             return {
                 "status": "unhealthy",

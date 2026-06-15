@@ -450,7 +450,7 @@ class TestBrokerFailureInjection:
                 order_id = adapter.place_order(name, direction, qty, strike)
                 with lock:
                     order_ids.append(order_id)
-            except Exception:
+            except (ValueError, TypeError, KeyError, IndexError):
                 # In production, we'd want to handle this better
                 # but for this test we'll just note it
                 pass

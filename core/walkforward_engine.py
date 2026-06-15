@@ -178,7 +178,7 @@ def calculate_statistical_significance(
     var2 = sum((x - mean2) ** 2 for x in test_vals) / (n2 - 1) if n2 > 1 else 0
 
     # Standard error
-    se = math.sqrt(var1 / n1 + var2 / n2) if se > 0 else 0.0001
+    se = math.sqrt(var1 / n1 + var2 / n2) if (var1 / n1 + var2 / n2) > 0 else 0.0001
 
     # t-statistic
     t_stat = abs(mean2 - mean1) / se if se > 0 else 0

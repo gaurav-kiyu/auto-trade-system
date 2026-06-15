@@ -2,9 +2,10 @@ import json
 import logging
 import os
 import shutil
-import sqlite3
 import threading
 from collections.abc import Callable
+
+from core.db_utils import get_connection
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -87,7 +88,7 @@ class StateManager:
             if tmp_path.exists():
                 shutil.move(str(tmp_path), str(self.state_path))
         except Exception as e:
-            log.error(f"Atomic save failed: {e}")
+            log.error(f"Atomic save failed: {e} (type: {type(e).__name__})")
 
     def recover_state_from_db(self, broker_positions: dict[str, Any] | None = None):
         """Reconstructs positions from trades.db where exit_ts is NULL.
@@ -96,7 +97,7 @@ class StateManager:
         broker reality to eliminate phantom positions from stale NULL exit_ts.
         """
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = get_connection(self.db_path)
             cursor = conn.cursor()
             cursor.execute("SELECT symbol, qty, entry_price FROM trades WHERE exit_ts IS NULL")
             open_pos = cursor.fetchall()
@@ -125,7 +126,27 @@ class StateManager:
             self.save_state()
             conn.close()
         except Exception as e:
-            log.critical(f"DB Recovery failed: {e}")
+            log.critical(f"DB Recovery failed: {e} (type: {type(e).__name__})")
+
+    def set_consecutive_losses(self, count: int) -> None:
+        """Set the consecutive loss counter (protection against compounding losses)."""
+        with self._lock:
+            self._state["max_consecutive_losses"] = max(
+                self._state.get("max_consecutive_losses", 0),
+                count
+            )
+            self._state["consecutive_losses"] = count
+            self.save_state()
+
+    def get_consecutive_losses(self) -> int:
+        """Get the current consecutive loss count."""
+        return self._state.get("consecutive_losses", 0)
+
+    def reset_consecutive_losses(self) -> None:
+        """Reset the consecutive loss counter on a win."""
+        with self._lock:
+            self._state["consecutive_losses"] = 0
+            self.save_state()
 
     def session_recovery_report(self, broker_positions: dict | None = None) -> SessionRecoveryReport:
         """Compares local state with broker reality."""

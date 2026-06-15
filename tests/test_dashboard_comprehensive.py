@@ -10,19 +10,17 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sqlite3
 import threading
 import time
 from pathlib import Path
 from types import MappingProxyType
-from unittest.mock import AsyncMock, MagicMock, PropertyMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
-
 
 # ── Helpers ──────────────────────────────────────────────────────────────────────
 
@@ -64,8 +62,8 @@ def _make_trades_db(db_path: str) -> None:
 @pytest.fixture(autouse=True)
 def _global_mocks(monkeypatch: pytest.MonkeyPatch) -> None:
     """Globally mock Jinja2 templates and CSRF validation for all tests."""
-    from fastapi.templating import Jinja2Templates
     from fastapi.responses import HTMLResponse
+    from fastapi.templating import Jinja2Templates
 
     def safe_render(self, name, context, status_code=200, headers=None, media_type=None, **kwargs):
         return HTMLResponse(
@@ -216,8 +214,8 @@ class TestDashboardInit:
         assert db._cookie_secure is False
 
     def test_creation_with_auth_handler_override(self, tmp_path):
-        from core.enterprise_dashboard import EnterpriseDashboard
         from core.auth.handler import AuthHandler
+        from core.enterprise_dashboard import EnterpriseDashboard
 
         auth = MagicMock(spec=AuthHandler)
         auth._db_path = str(tmp_path / "auth.db")
@@ -509,11 +507,11 @@ class TestRequestIdTracing:
 
 class TestCsrfExemptPaths:
     def test_exempt_paths_in_dashboard(self, tmp_path):
-        from core.enterprise_dashboard import EnterpriseDashboard
         from core.auth.csrf import csrf_protection
+        from core.enterprise_dashboard import EnterpriseDashboard
 
         csrf_protection._exempt_paths = set()
-        db = EnterpriseDashboard(config={
+        EnterpriseDashboard(config={
             "web_dashboard_host": "127.0.0.1",
             "auth_db_path": str(tmp_path / "auth.db"),
         })
@@ -1792,12 +1790,12 @@ class TestErrorHandlers:
             c = TestClient(dashboard.app)
             try:
                 c.get("/api/trigger-500", headers={"accept": "application/json"})
-            except Exception:
+            except (ValueError, TypeError, KeyError, IndexError):
                 pass
         finally:
             logger.removeHandler(handler)
         assert any("[DASH] Unhandled error" in msg for msg in log_captured), (
-            "500 handler was not invoked: %s" % log_captured
+            f"500 handler was not invoked: {log_captured}"
         )
 
     def test_403_json(self, dashboard):
@@ -1861,7 +1859,7 @@ class TestSessionCleanup:
     def test_cleanup_thread_starts(self, tmp_path):
         from core.enterprise_dashboard import EnterpriseDashboard
 
-        db = EnterpriseDashboard(config={
+        EnterpriseDashboard(config={
             "web_dashboard_host": "127.0.0.1",
             "auth_db_path": str(tmp_path / "auth.db"),
         })
@@ -1882,7 +1880,7 @@ class TestSessionCleanup:
         monkeypatch.setattr(db._auth, "purge_expired_sessions", broken_purge)
         try:
             db._auth.purge_expired_sessions()
-        except Exception:
+        except (ValueError, TypeError, KeyError, RuntimeError, IndexError):
             pass
         assert called[0]
 

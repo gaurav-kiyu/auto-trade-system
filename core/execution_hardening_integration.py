@@ -45,7 +45,7 @@ def init_execution_hardening(
         )
         services["system_mode"] = system_mode
         log.info("Execution hardening: SystemModeManager initialized")
-    except Exception as e:
+    except (ImportError, AttributeError, OSError) as e:
         log.error(f"Failed to init SystemModeManager: {e}")
 
     # 2. Execution Guards
@@ -62,7 +62,7 @@ def init_execution_hardening(
 
         services["execution_guards"] = guards
         log.info("Execution hardening: ExecutionGuards initialized")
-    except Exception as e:
+    except (ImportError, AttributeError, OSError) as e:
         log.error(f"Failed to init ExecutionGuards: {e}")
 
     # 3. Audit Journal
@@ -72,7 +72,7 @@ def init_execution_hardening(
         audit = get_audit_journal(config)
         services["audit_journal"] = audit
         log.info("Execution hardening: AuditJournal initialized")
-    except Exception as e:
+    except (ImportError, AttributeError, OSError) as e:
         log.error(f"Failed to init AuditJournal: {e}")
 
     # 4. Incident Alerting
@@ -83,7 +83,7 @@ def init_execution_hardening(
         incident_alerts.start()
         services["incident_alerting"] = incident_alerts
         log.info("Execution hardening: IncidentAlerting initialized")
-    except Exception as e:
+    except (ImportError, AttributeError, OSError) as e:
         log.error(f"Failed to init IncidentAlerting: {e}")
 
     # 5. Continuous Reconciliation
@@ -99,7 +99,7 @@ def init_execution_hardening(
         reconcile_svc._on_issue_callback = on_reconciliation_issue
         services["continuous_reconciliation"] = reconcile_svc
         log.info("Execution hardening: ContinuousReconciliation initialized")
-    except Exception as e:
+    except (ImportError, AttributeError, OSError) as e:
         log.error(f"Failed to init ContinuousReconciliation: {e}")
 
     # 6. Market Data Fallback
@@ -119,7 +119,7 @@ def init_execution_hardening(
         )
         services["market_data"] = market_data
         log.info("Execution hardening: DualSourceMarketData initialized")
-    except Exception as e:
+    except (ImportError, AttributeError, OSError) as e:
         log.error(f"Failed to init DualSourceMarketData: {e}")
 
     # 7. Exposure Limits
@@ -129,7 +129,7 @@ def init_execution_hardening(
         exposure = get_exposure_limiter(config)
         services["exposure_limits"] = exposure
         log.info("Execution hardening: ExposureConcentrationLimiter initialized")
-    except Exception as e:
+    except (ImportError, AttributeError, OSError) as e:
         log.error(f"Failed to init ExposureConcentrationLimiter: {e}")
 
     # 8. Secret Hygiene (validation only)
@@ -148,7 +148,7 @@ def init_execution_hardening(
 
         services["secret_checker"] = secret_checker
         log.info("Execution hardening: SecretHygieneChecker initialized")
-    except Exception as e:
+    except (ImportError, AttributeError, OSError) as e:
         log.error(f"Failed to init SecretHygieneChecker: {e}")
 
     # 9. Startup Validation
@@ -160,7 +160,7 @@ def init_execution_hardening(
 
         if not validation_passed:
             log.error("Startup validation failed - continuing but may have issues")
-    except Exception as e:
+    except (ImportError, AttributeError, OSError, ValueError) as e:
         log.error(f"Failed to run startup validation: {e}")
         services["startup_validation"] = False
 
@@ -175,13 +175,13 @@ def shutdown_execution_hardening(services: dict) -> None:
     if "incident_alerting" in services:
         try:
             services["incident_alerting"].stop()
-        except Exception as e:
+        except (AttributeError, OSError) as e:
             log.error(f"Error stopping IncidentAlerting: {e}")
 
     if "continuous_reconciliation" in services:
         try:
             services["continuous_reconciliation"].stop()
-        except Exception as e:
+        except (AttributeError, OSError) as e:
             log.error(f"Error stopping ContinuousReconciliation: {e}")
 
     log.info("Execution hardening shutdown complete")

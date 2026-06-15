@@ -8,7 +8,6 @@ Covers:
   - maybe_start_dashboard() returns None when disabled
   - maybe_start_dashboard() returns EnterpriseDashboard app when enabled
 """
-import json
 import threading
 
 import pytest
@@ -16,7 +15,6 @@ import pytest
 fastapi = pytest.importorskip("fastapi", reason="fastapi not installed")
 
 from core.web_dashboard import SignalLog, maybe_start_dashboard
-
 
 # ── SignalLog (no FastAPI needed) ─────────────────────────────────────────────
 

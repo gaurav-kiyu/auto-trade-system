@@ -208,7 +208,8 @@ class TestRlImports:
     """Cover the ImportError handler in _rl_imports."""
 
     def test_raises_import_error_when_reportlab_missing(self):
-        import sys, builtins
+        import builtins
+        import sys
         saved = {k: sys.modules.pop(k) for k in list(sys.modules) if k.startswith('reportlab')}
         orig_import = builtins.__import__
         def mock_import(name, *args, **kwargs):
@@ -323,12 +324,14 @@ class TestCli:
         assert out.is_file()
 
     def test_cli_via_main_block(self, tmp_path):
-        import runpy
         db = tmp_path / "trades.db"
         _make_trades_db(db, n=5)
         out = tmp_path / "main_report.pdf"
         from unittest.mock import patch
         with patch('sys.argv', ["prog", "--db", str(db), "--days", "0",
                                  "--mode", "ALL", "--out", str(out)]):
-            runpy.run_module('core.report_generator', run_name='__main__')
+            # Use _cli() directly instead of runpy to avoid RuntimeWarning
+            # about module already being in sys.modules
+            from core.report_generator import _cli
+            _cli()
         assert out.is_file()

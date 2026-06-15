@@ -24,10 +24,11 @@ from __future__ import annotations
 
 import logging
 import math
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from core.db_utils import get_connection
 
 _log = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ def _load_daily_pnls(db_path: str, lookback_days: int) -> list[float]:
     if not p.is_file():
         return []
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
+        conn = get_connection(p, timeout=5, row_factory=False)
         try:
             rows = conn.execute(
                 """
@@ -74,8 +75,11 @@ def _load_daily_pnls(db_path: str, lookback_days: int) -> list[float]:
         finally:
             conn.close()
         return [float(r[1]) for r in rows if r[1] is not None]
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as exc:
+        _log.warning("[VAR] DB load failed: %s", exc)
+        return []
     except Exception as exc:
-        _log.debug("[VAR] DB load failed: %s", exc)
+        _log.warning("[VAR] DB load failed (unexpected: %s): %s", type(exc).__name__, exc)
         return []
 
 

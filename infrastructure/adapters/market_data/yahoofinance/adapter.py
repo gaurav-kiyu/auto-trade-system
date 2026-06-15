@@ -132,7 +132,7 @@ class YahooFinanceAdapter(MarketDataPort):
             try:
                 self._rate_limit()
                 return func(*args, **kwargs)
-            except Exception as e:
+            except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as e:
                 last_exception = e
                 if attempt < self._max_retries - 1:
                     # Exponential backoff
@@ -196,7 +196,7 @@ class YahooFinanceAdapter(MarketDataPort):
             ticker = self._get_ticker("AAPL")  # Using US symbol for reliability test
             info = self._make_request_with_retry(lambda: ticker.info)
             return info is not None and len(info) > 0
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as e:
             logger = self._get_logger()
             logger.warning(f"Failed to connect to Yahoo Finance: {e}")
             return False
@@ -241,7 +241,7 @@ class YahooFinanceAdapter(MarketDataPort):
             self._last_fetch_time[symbol] = time.time()
             return self._convert_to_quote(symbol, quote_data)
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get quote for {symbol}: {e}")
             return None  # Caller must handle None vs zero-price
@@ -262,7 +262,7 @@ class YahooFinanceAdapter(MarketDataPort):
             data = self._make_request_with_retry(lambda: ticker.info)
             self._last_fetch_time[symbol] = time.time()
             return data
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get latest data for {symbol}: {e}")
             return {}
@@ -407,7 +407,7 @@ class YahooFinanceAdapter(MarketDataPort):
 
             return result
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get historical data for {symbol}: {e}")
             return []
@@ -486,7 +486,7 @@ class YahooFinanceAdapter(MarketDataPort):
 
             return result
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get option chain for {symbol}: {e}")
             return []
@@ -528,7 +528,7 @@ class YahooFinanceAdapter(MarketDataPort):
 
             return details
 
-        except Exception as e:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
             logger = self._get_logger()
             self._logger.error(f"Failed to get instrument details for {symbol}: {e}")
             return {}

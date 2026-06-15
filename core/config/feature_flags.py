@@ -64,7 +64,7 @@ class FeatureFlagManager:
             _log.info(f"Loaded {len(self._flags)} feature flags")
         except FileNotFoundError:
             _log.info("No existing feature flags, starting fresh")
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, ValueError, TypeError) as e:
             _log.warning(f"Failed to load feature flags: {e}")
 
     def _save_flags(self) -> None:
@@ -84,7 +84,7 @@ class FeatureFlagManager:
             }
             with open(self._storage_path, "w") as f:
                 json.dump(data, f, indent=2)
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             _log.error(f"Failed to save feature flags: {e}")
 
     def register(self, name: str, default: bool = False, description: str = "", metadata: dict = None) -> None:
@@ -185,7 +185,7 @@ class FeatureFlagManager:
         for callback in self._change_listeners.get(name, []):
             try:
                 callback(name, new_value)
-            except Exception as e:
+            except (ValueError, TypeError, OSError) as e:
                 _log.error(f"Feature flag listener error: {e}")
 
     def load_from_config(self, config: dict[str, Any], prefix: str = "FEATURE_") -> int:

@@ -7,10 +7,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import Depends, Header, HTTPException, Request
+from fastapi import Depends, HTTPException, Request
 
-from core.auth.handler import AuthHandler, AuthToken, AuthUser
-from core.auth.permissions import Permission, Role, role_has_permission
+from core.auth.handler import AuthHandler, AuthUser
+from core.auth.permissions import role_has_permission
 from core.auth.role_manager import RoleManager
 
 _log = logging.getLogger(__name__)

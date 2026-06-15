@@ -1,3 +1,4 @@
+# OPB Trading Platform — v2.53.0
 # Stops Python processes that are running the OPBuying index/stock option bots
 # (matches command line containing the script filenames). Safe if nothing is running.
 # Usage (PowerShell):  cd <repo>; .\scripts\stop_opbuying_bots.ps1

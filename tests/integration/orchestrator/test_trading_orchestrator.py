@@ -221,7 +221,7 @@ class TestTradingOrchestrator:
     def test_process_trading_cycle_market_data_failure(self):
         """Test trading cycle when market data acquisition fails."""
         # Setup
-        self.market_data_mock.get_latest_data.side_effect = Exception("Market data unavailable")
+        self.market_data_mock.get_latest_data.side_effect = ValueError("Market data unavailable")
 
         # Execute
         result = self.orchestrator.process_trading_cycle("NIFTY24SepFUT")
@@ -406,7 +406,7 @@ class TestTradingOrchestrator:
         """Test trading cycle when unexpected exception occurs."""
         # Setup: make _generate_trading_signal throw an unexpected error
         with patch.object(self.orchestrator, '_generate_trading_signal') as mock_gen:
-            mock_gen.side_effect = Exception("Unexpected error")
+            mock_gen.side_effect = ValueError("Unexpected error")
 
             # Execute
             result = self.orchestrator.process_trading_cycle("NIFTY24SepFUT")

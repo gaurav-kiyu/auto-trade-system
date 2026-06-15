@@ -42,17 +42,18 @@ class HealthReporter:
                 api_stability=api_ok,
                 recommendation="System healthy. Proceed with current config."
             )
-        except Exception as e:
+        except (sqlite3.Error, OSError, ValueError) as e:
             self.logger.error(f"Weekly audit failed: {e}")
             return HealthScore(0.0, "FAIL", "UNKNOWN", "UNKNOWN", "Urgent: System health audit failed.")
 
     def _check_db(self) -> str:
         try:
-            conn = sqlite3.connect(self.db_path)
+            from core.db_utils import get_connection as _get_hr_conn
+            conn = _get_hr_conn(self.db_path, row_factory=False)
             conn.execute("PRAGMA integrity_check")
             conn.close()
             return "PASS"
-        except Exception:
+        except (sqlite3.Error, OSError):
             return "FAIL"
 
     def format_telegram_report(self, score: HealthScore) -> str:

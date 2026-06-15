@@ -152,6 +152,7 @@ class ControlPlane:
             self._record_control(request, True, f"Feature flag {flag_name} = {enabled}")
             return ControlResponse(True, f"Feature flag {flag_name} updated", {"flag": flag_name, "enabled": enabled})
         except Exception as e:
+            _log.error("API Gateway failed to update feature flag: %s", e)
             return ControlResponse(False, str(e))
 
     def _handle_update_risk_limit(self, request: ControlRequest) -> ControlResponse:

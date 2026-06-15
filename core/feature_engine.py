@@ -42,7 +42,7 @@ class FeatureEngine:
                         idx_for_day = idx.tz_convert("Asia/Kolkata")
                     else:
                         idx_for_day = idx
-                except Exception:
+                except (TypeError, ValueError, IndexError):
                     idx_for_day = idx
                 day = idx_for_day[-1].normalize()
                 day_mask = idx_for_day.normalize() == day
@@ -54,7 +54,7 @@ class FeatureEngine:
             if cum_vol <= 0:
                 return cls.get_price(df)
             return round(cls._safe_float((tp * work["Volume"]).cumsum().iloc[-1] / cum_vol), 2)
-        except Exception:
+        except (TypeError, ValueError, ZeroDivisionError, IndexError):
             return cls.get_price(df)
 
     @classmethod
@@ -62,7 +62,7 @@ class FeatureEngine:
         if series is None or series.empty: return 0.0
         try:
             return round(cls._safe_float(series.ewm(span=span, adjust=False).mean().iloc[-1]), 2)
-        except Exception:
+        except (ValueError, TypeError, IndexError):
             return 0.0
 
     @classmethod
@@ -74,7 +74,7 @@ class FeatureEngine:
             if es > 0 and abs(ef - es) / es < 0.0005:
                 return "FLAT"
             return "UP" if ef > es else "DOWN"
-        except Exception:
+        except (ValueError, TypeError, IndexError):
             return "FLAT"
 
     @classmethod
@@ -88,7 +88,7 @@ class FeatureEngine:
             rsi = 100 - (100 / (1 + rs))
             val = cls._safe_float(rsi.iloc[-1])
             return round(max(0.0, min(100.0, val)), 2)
-        except Exception:
+        except (ValueError, TypeError, IndexError):
             return 50.0
 
     @classmethod
@@ -106,7 +106,7 @@ class FeatureEngine:
                 "signal": round(cls._safe_float(signal_line.iloc[-1]), 4),
                 "histogram": round(cls._safe_float(histogram.iloc[-1]), 4)
             }
-        except Exception:
+        except (ValueError, TypeError, IndexError):
             return {"macd": 0.0, "signal": 0.0, "histogram": 0.0}
 
     @classmethod
@@ -121,7 +121,7 @@ class FeatureEngine:
             if val <= 0:
                 val = cls._safe_float((df["High"] - df["Low"]).mean())
             return round(val, 2)
-        except Exception:
+        except (ValueError, TypeError, IndexError):
             return 0.0
 
     @classmethod
@@ -132,7 +132,7 @@ class FeatureEngine:
             avg = cls._safe_float(df["Volume"].rolling(min(period, len(df))).mean().iloc[-1])
             if avg <= 0 or current <= 0: return 1.0
             return round(current / avg, 2)
-        except Exception:
+        except (ValueError, TypeError, ZeroDivisionError):
             return 1.0
 
     @classmethod
@@ -140,7 +140,7 @@ class FeatureEngine:
         if df is None or len(df) < n: return 0.0
         try:
             return round(cls._safe_float(df["Close"].iloc[-1]) - cls._safe_float(df["Close"].iloc[-n]), 4)
-        except Exception:
+        except (ValueError, TypeError, IndexError):
             return 0.0
 
     @classmethod
@@ -153,7 +153,7 @@ class FeatureEngine:
             if val <= 0.0:
                 return 20.0
             return round(max(0.0, min(100.0, val)), 2)
-        except Exception:
+        except (ValueError, TypeError, IndexError):
             return 20.0
 
     def extract_features(self, df1m: pd.DataFrame, df5m: pd.DataFrame, df15m: pd.DataFrame, oi_data: dict | None = None) -> dict[str, Any]:
@@ -182,7 +182,7 @@ class FeatureEngine:
         try:
             prev_close = self._safe_float(df1m["Close"].iloc[-2]) if len(df1m) >= 2 else 0.0
             breakout_ok = abs(price - prev_close) / prev_close > 0.001 if prev_close > 0 else False
-        except Exception:
+        except (ValueError, TypeError, IndexError):
             breakout_ok = False
 
         oi = oi_data or {}

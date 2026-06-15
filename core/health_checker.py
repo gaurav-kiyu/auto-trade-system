@@ -41,6 +41,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core.exceptions import BrokerConnectionError, DatabaseError
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB = "trades.db"
@@ -119,7 +121,8 @@ def check_db_integrity(cfg: dict[str, Any]) -> list[HealthCheckResult]:
         if not p.is_file():
             continue
         try:
-            conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
+            from core.db_utils import get_connection as _get_hc_conn
+            conn = _get_hc_conn(str(p), timeout=5, row_factory=False)
             try:
                 rows = conn.execute("PRAGMA integrity_check").fetchall()
             finally:
@@ -131,7 +134,7 @@ def check_db_integrity(cfg: dict[str, Any]) -> list[HealthCheckResult]:
                 rows[0][0] if rows else "empty",
                 "Integrity check passed." if ok else f"Integrity issues: {rows[:3]}",
             ))
-        except Exception as exc:
+        except (DatabaseError, sqlite3.Error, OSError) as exc:
             results.append(HealthCheckResult(
                 "DB", f"{db_name} integrity", "WARN", None,
                 f"Could not check: {exc}",
@@ -197,7 +200,7 @@ def check_ml_health(cfg: dict[str, Any]) -> list[HealthCheckResult]:
             "ML", "Prediction count", "OK", n,
             f"{n} predictions recorded.",
         ))
-    except Exception as exc:
+    except (ImportError, ValueError, AttributeError, OSError) as exc:
         results.append(HealthCheckResult("ML", "ML health check", "WARN", None, str(exc)))
 
     return results
@@ -247,7 +250,7 @@ def check_recent_performance(
         ))
 
         results.append(HealthCheckResult("PERF", "Trade count", "OK", n, f"{n} trades"))
-    except Exception as exc:
+    except (ValueError, OSError, TypeError) as exc:
         results.append(HealthCheckResult("PERF", "Performance check", "WARN", None, str(exc)))
     return results
 
@@ -314,7 +317,7 @@ def check_system_health(cfg: dict[str, Any]) -> list[HealthCheckResult]:
             round(free_mb, 0),
             f"{free_mb:.0f} MB free {'(low!)' if st == 'WARN' else ''}",
         ))
-    except Exception as exc:
+    except (OSError, PermissionError) as exc:
         results.append(HealthCheckResult("SYS", "Disk free space", "WARN", None, str(exc)))
 
     # Log directory size
@@ -331,7 +334,7 @@ def check_system_health(cfg: dict[str, Any]) -> list[HealthCheckResult]:
                 round(total_gb, 3),
                 f"{total_gb:.3f} GB in logs/ {'(consider rotation/cleanup)' if st == 'WARN' else ''}",
             ))
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
             results.append(HealthCheckResult("SYS", "Log directory size", "WARN", None, str(exc)))
 
     return results
@@ -367,7 +370,7 @@ def check_broker_health(cfg: dict[str, Any]) -> list[HealthCheckResult]:
                     "BROKER", "Broker hard halt", "FAIL", True,
                     "Hard halt is active — broker operations blocked."
                 ))
-    except Exception as exc:
+    except (BrokerConnectionError, ImportError, AttributeError, OSError, ValueError) as exc:
         results.append(HealthCheckResult(
             "BROKER", "Broker health check", "WARN", None,
             f"Could not check broker health: {exc}"
@@ -406,7 +409,7 @@ def run_full_health_check(
     ):
         try:
             report.results.extend(check_fn())
-        except Exception as exc:
+        except (ValueError, TypeError, OSError, AttributeError) as exc:
             _log.warning("[HEALTH] check failed: %s", exc)
 
     if report.fail_count > 0:
@@ -479,6 +482,7 @@ def start_health_check_scheduler(
     cfg: dict[str, Any] | None = None,
     db_path: str = _DEFAULT_DB,
     send_fn: callable | None = None,
+    stop_event: threading.Event | None = None,
 ) -> threading.Thread:
     """
     Start a background daemon thread that runs the health check on Sunday EOD.
@@ -490,17 +494,18 @@ def start_health_check_scheduler(
         cfg: Config dict.
         db_path: Path to trades.db.
         send_fn: Callable for sending output (e.g. Telegram send function).
+        stop_event: Optional threading.Event for graceful shutdown.
+                    When set, the scheduler loop exits promptly.
 
     Returns:
         The background daemon thread (already started).
     """
-    import time as _time
-
     from core.datetime_ist import now_ist
 
     def _scheduler_loop():
         checked_today = ""
-        while True:
+        _stop = stop_event or threading.Event()
+        while not _stop.is_set():
             try:
                 now = now_ist()
                 today_key = now.strftime("%Y-%m-%d")
@@ -516,13 +521,13 @@ def start_health_check_scheduler(
                     if send_fn:
                         try:
                             send_fn(text)
-                        except Exception as exc:
+                        except (OSError, ValueError, AttributeError) as exc:
                             _log.warning("[HEALTH] send_fn failed: %s", exc)
                     _log.info("[HEALTH] Sunday EOD health check: %s", report.summary)
                     checked_today = today_key
-            except Exception as exc:
+            except (ValueError, OSError, TimeoutError) as exc:
                 _log.warning("[HEALTH] Scheduler loop error: %s", exc)
-            _time.sleep(3600)  # Check once per hour
+            _stop.wait(3600)  # Check once per hour, interruptible on shutdown
 
     t = threading.Thread(target=_scheduler_loop, name="health-check-scheduler", daemon=True)
     t.start()

@@ -36,10 +36,11 @@ from __future__ import annotations
 import argparse
 import logging
 import math
-import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from core.db_utils import get_connection
 
 _log = logging.getLogger(__name__)
 
@@ -90,8 +91,7 @@ def load_trades_for_sensitivity(
     if not p.is_file():
         return []
     try:
-        conn = sqlite3.connect(str(p), check_same_thread=False, timeout=5)
-        conn.row_factory = sqlite3.Row
+        conn = get_connection(p, timeout=5)
         try:
             params: list[Any] = []
             where = ["net_pnl IS NOT NULL", "entry IS NOT NULL"]
@@ -107,8 +107,11 @@ def load_trades_for_sensitivity(
         finally:
             conn.close()
         return [dict(r) for r in rows]
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as exc:
+        _log.warning("[SENSITIVITY] load_trades failed: %s", exc)
+        return []
     except Exception as exc:
-        _log.debug("[SENSITIVITY] load_trades failed: %s", exc)
+        _log.warning("[SENSITIVITY] load_trades failed (unexpected: %s): %s", type(exc).__name__, exc)
         return []
 
 

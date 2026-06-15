@@ -41,6 +41,7 @@ class IncidentType(Enum):
     HARD_HALT = "hard_halt"
     SYSTEM_MODE_CHANGE = "system_mode_change"
     UNKNOWN_STATE = "unknown_state"
+    ORDER_MODIFICATION_FAILED = "order_modification_failed"
 
 
 class IncidentSeverity(Enum):
@@ -79,6 +80,7 @@ class IncidentAlerting:
         self._queue: list[Incident] = []
         self._running = False
         self._thread: threading.Thread | None = None
+        self._stop_event = threading.Event()
 
         # Configuration
         self._enabled = self._config.get("INCIDENT_ALERTING_ENABLED", True)
@@ -99,6 +101,7 @@ class IncidentAlerting:
             return
 
         self._running = True
+        self._stop_event.clear()
         self._thread = threading.Thread(target=self._run_loop, daemon=True, name="IncidentAlerts")
         self._thread.start()
         log.info("Incident alerting started")
@@ -106,6 +109,7 @@ class IncidentAlerting:
     def stop(self) -> None:
         """Stop the incident processing thread."""
         self._running = False
+        self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=3)
 
@@ -160,9 +164,10 @@ class IncidentAlerting:
             try:
                 self._process_incidents()
             except Exception as e:
-                log.error(f"Incident processing error: {e}")
+                log.error(f"Incident processing error: {e} (type: {type(e).__name__})")
 
-            time.sleep(self._dequeue_interval)
+            if self._stop_event.wait(self._dequeue_interval):
+                break
 
     def _process_incidents(self) -> None:
         """Process queued incidents in priority order."""
@@ -185,7 +190,7 @@ class IncidentAlerting:
                     is_critical = incident.severity <= IncidentSeverity.HIGH.value
                     self._send_alert(formatted, is_critical)
                 except Exception as e:
-                    log.error(f"Failed to send incident alert: {e}")
+                    log.error(f"Failed to send incident alert: {e} (type: {type(e).__name__})")
 
     def _format_alert(self, incident: Incident) -> str:
         """Format incident as alert message."""
@@ -278,6 +283,25 @@ class IncidentAlerting:
             IncidentSeverity.HIGH,
             f"Mode: {old_mode} → {new_mode}",
             {"old_mode": old_mode, "new_mode": new_mode, "reason": reason}
+        )
+
+    def alert_order_modification_failed(
+        self,
+        order_id: str,
+        reason: str,
+        details: dict | None = None,
+    ) -> None:
+        """Alert: Order modification failed.
+
+        Triggered when an order modification attempt is rejected by the broker
+        or fails due to timeout/error. Includes order ID and failure details
+        so operators can investigate and manually intervene if needed.
+        """
+        self.report_incident(
+            IncidentType.ORDER_MODIFICATION_FAILED,
+            IncidentSeverity.HIGH,
+            f"Modify failed: {order_id} — {reason}",
+            details or {},
         )
 
 

@@ -96,7 +96,7 @@ class MetricsPlatform:
                 conn.commit()
             _log.info("MetricsPlatform: Storage initialized")
         except Exception as e:
-            _log.error(f"MetricsPlatform: Failed to init storage: {e}")
+            _log.error(f"MetricsPlatform: Failed to init storage: {e} (type: {type(e).__name__})")
 
     def increment(self, name: str, value: float = 1.0, tags: dict[str, str] = None) -> None:
         """Increment counter"""
@@ -167,7 +167,7 @@ class MetricsPlatform:
                 ))
                 conn.commit()
         except Exception as e:
-            _log.error(f"Failed to record latency: {e}")
+            _log.error(f"Failed to record latency: {e} (type: {type(e).__name__})")
 
     def get_counter(self, name: str, tags: dict[str, str] = None) -> float:
         """Get counter value"""
@@ -245,7 +245,7 @@ class MetricsPlatform:
                     "p99": sorted_vals[min(int(n * 0.99), n - 1)],
                 }
         except Exception as e:
-            _log.error(f"Failed to get latency stats: {e}")
+            _log.error(f"Failed to get latency stats: {e} (type: {type(e).__name__})")
             return {}
 
     def get_reject_rate(self) -> float:

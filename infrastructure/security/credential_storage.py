@@ -99,7 +99,7 @@ class CredentialStorage:
                 credential = keyring.get_password(self.SERVICE_NAME, username)
                 if credential is not None:
                     return credential
-            except Exception:
+            except (OSError, ValueError, TypeError, KeyError):
                 # Fall through to next backend
                 pass
 
@@ -109,7 +109,7 @@ class CredentialStorage:
                 credential = self._get_from_encrypted_file(username)
                 if credential is not None:
                     return credential
-            except Exception:
+            except (OSError, ValueError, TypeError, KeyError):
                 # Fall through to next backend
                 pass
 
@@ -167,7 +167,7 @@ class CredentialStorage:
 
             return credentials.get(username)
 
-        except Exception:
+        except (ValueError, TypeError, KeyError, OSError, json.JSONDecodeError):
             return None
 
     def set_credential(self, username: str, credential: str) -> None:
@@ -187,7 +187,7 @@ class CredentialStorage:
             try:
                 keyring.set_password(self.SERVICE_NAME, username, credential)
                 return
-            except Exception:
+            except (OSError, ValueError, TypeError, KeyError):
                 # Fall through to encrypted file
                 pass
 
@@ -196,7 +196,7 @@ class CredentialStorage:
             try:
                 self._set_in_encrypted_file(username, credential)
                 return
-            except Exception as e:
+            except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as e:
                 raise CredentialStorageError(
                     f"Failed to store credential in encrypted file: {e}"
                 ) from e
@@ -244,7 +244,7 @@ class CredentialStorage:
                 else:
                     # Encrypted file is mal creating new encrypted file
                     pass
-            except Exception:
+            except (ValueError, TypeError, KeyError, OSError, json.JSONDecodeError):
                 # Error reading existing encrypted file, creating new encrypted file
                 pass
 

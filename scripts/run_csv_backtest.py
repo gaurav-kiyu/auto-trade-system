@@ -155,7 +155,7 @@ def run_backtest(
             mc = _json.loads(main_cfg.read_text(encoding="utf-8"))
             for k in mc:
                 signal_cfg[k] = mc[k]
-        except Exception:
+        except (json.JSONDecodeError, OSError):
             pass
 
     # Normalize data

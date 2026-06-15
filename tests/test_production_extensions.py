@@ -10,7 +10,6 @@ import pytest
 from core import (
     AuditEngine,
     DataEngine,
-    ExecutionEngine,
     JsonlCaptureWriter,
     Orchestrator,
     PresentationEngine,
@@ -21,8 +20,9 @@ from core import (
     StateManager,
     StrategyEngine,
 )
+from core.execution_engine import ExecutionEngine
 from core.ports.risk.risk_port import PortfolioRiskMetrics, RiskDecision, RiskEvaluation
-from core.risk.legacy_adapter import RiskConfig, RiskPortAdapter
+from core.risk.legacy_adapter import RiskPortAdapter
 
 
 def _make_mock_risk_port(

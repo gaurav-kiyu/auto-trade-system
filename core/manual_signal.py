@@ -29,6 +29,7 @@ from datetime import timedelta
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.db_utils import get_connection
 
 _log = logging.getLogger(__name__)
 
@@ -175,9 +176,7 @@ _INDEXES = [
 
 
 def _open_db(db_path: str) -> sqlite3.Connection:
-    conn = sqlite3.connect(db_path, check_same_thread=False, timeout=10)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn = get_connection(db_path, timeout=10)
     conn.execute(_DDL)
     for idx in _INDEXES:
         conn.execute(idx)
@@ -425,8 +424,8 @@ class ManualSignalQueue:
     def close(self) -> None:
         try:
             self._conn.close()
-        except Exception:
-            pass
+        except (sqlite3.Error, OSError) as e:
+            _log.debug("[MANUAL_SIGNAL] non-critical error: %s", e)
 
     # ── Private helpers ────────────────────────────────────────────────────
 
@@ -456,6 +455,6 @@ def build_signal_queue(cfg: dict[str, Any]) -> ManualSignalQueue | None:
         return None
     try:
         return ManualSignalQueue(cfg)
-    except Exception as exc:
+    except (sqlite3.Error, OSError, ImportError) as exc:
         _log.error("[MANUAL_Q] Init failed: %s", exc)
         return None

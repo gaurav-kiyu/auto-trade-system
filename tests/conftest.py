@@ -35,6 +35,15 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "confidence_gate: marks tests as core safety checks")
     config.addinivalue_line("markers", "network: marks tests that require network access")
     config.addinivalue_line("markers", "ml: marks tests that require ML dependencies (lightgbm, shap)")
+    # Suppress the known DeprecationWarning from legacy execution_engine imports.
+    # The module is still imported by execution_stack.py and trading_orchestrator.py
+    # for backward compatibility. Migration to execution_service is in progress.
+    import warnings
+    warnings.filterwarnings(
+        "ignore",
+        message="DEPRECATED: core/execution_engine.py",
+        category=DeprecationWarning,
+    )
 
 
 # ── Session-scoped fixtures ───────────────────────────────────────────────────

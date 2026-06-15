@@ -88,7 +88,7 @@ def apply_nse_session_from_cfg(cfg: dict) -> None:
             ),
             saturday_allowed=bool(cfg.get("NSE_SATURDAY_ALLOWED", False)),
         )
-    except Exception:
+    except (ValueError, TypeError, KeyError, IndexError):
         configure_nse_cash_session(
             (9, 15),
             (15, 20),

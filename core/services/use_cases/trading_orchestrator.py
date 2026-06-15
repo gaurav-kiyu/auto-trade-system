@@ -238,7 +238,7 @@ class TradingOrchestrator:
                 self.logger.info("Trading cycle completed successfully")
                 return Success(None)
 
-            except Exception as e:
+            except (ValueError, TypeError, OSError, AttributeError) as e:
                 self.logger.error("Unexpected error in trading cycle", error=str(e))
                 self.metrics.increment("trading_cycle.errors")
                 return Failure(f"Unexpected error: {str(e)}")
@@ -265,7 +265,7 @@ class TradingOrchestrator:
                             data_points=len(market_data) if hasattr(market_data, '__len__') else 'unknown')
             return Success(market_data)
 
-        except Exception as e:
+        except (ValueError, TypeError, OSError, AttributeError) as e:
             self.metrics.increment("market_data.errors")
             return Failure(f"Failed to acquire market data: {str(e)}")
 
@@ -286,7 +286,7 @@ class TradingOrchestrator:
                             quality=signal.quality.name)
             return Success(signal)
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, OSError) as e:
             return Failure(f"Failed to generate trading signal: {str(e)}")
 
     def _validate_signal(self, signal: TradingSignal) -> Result[None, str]:
@@ -355,7 +355,7 @@ class TradingOrchestrator:
 
             return Success(enhanced_signal)
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, OSError) as e:
             self.logger.warning("ML enhancement failed, using original signal", error=str(e))
             # Return original signal on ML failure - fail soft
             return Success(signal)
@@ -388,7 +388,7 @@ class TradingOrchestrator:
 
             return Success(decision)
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError) as e:
             return Failure(f"Failed to make strategy decision: {str(e)}")
 
     def _evaluate_risk(self, strategy_decision: StrategyDecision, symbol: str) -> Result[RiskDecision, str]:
@@ -423,7 +423,7 @@ class TradingOrchestrator:
 
             return Success(risk_decision)
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
             return Failure(f"Risk evaluation failed: {str(e)}")
 
     def _create_execution_order(
@@ -463,7 +463,7 @@ class TradingOrchestrator:
 
             return Success(order)
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError) as e:
             return Failure(f"Failed to create execution order: {str(e)}")
 
     def _route_to_broker(self, order: Order) -> Result[OrderResult, str]:
@@ -481,7 +481,7 @@ class TradingOrchestrator:
 
             return Success(order_result)
 
-        except Exception as e:
+        except (ValueError, TypeError, OSError, ConnectionError) as e:
             return Failure(f"Broker execution failed: {str(e)}")
 
     def _process_fills(self, order_result: OrderResult, symbol: str) -> Result[list[Fill], str]:
@@ -520,7 +520,7 @@ class TradingOrchestrator:
 
             return Success(fills)
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
             return Failure(f"Failed to process fills: {str(e)}")
 
     def _persist_state(
@@ -555,7 +555,7 @@ class TradingOrchestrator:
             self.logger.debug("State persisted successfully")
             return Success(None)
 
-        except Exception as e:
+        except (ValueError, TypeError, OSError, AttributeError) as e:
             return Failure(f"Failed to persist state: {str(e)}")
 
     def _update_analytics(
@@ -593,7 +593,7 @@ class TradingOrchestrator:
             self.logger.debug("Analytics updated")
             return Success(None)
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
             return Failure(f"Failed to update analytics: {str(e)}")
 
     def _send_trade_notifications(
@@ -619,7 +619,7 @@ class TradingOrchestrator:
             self.logger.debug("Trade notifications sent")
             return Success(None)
 
-        except Exception as e:
+        except (ValueError, TypeError, OSError, AttributeError) as e:
             return Failure(f"Failed to send notifications: {str(e)}")
 
     # Helper methods (simplified implementations)
@@ -711,7 +711,7 @@ class TradingOrchestrator:
                 "timestamp": now_ist().isoformat()
             }
             self.notification.send_notification(notification)
-        except Exception:
+        except (ValueError, TypeError, OSError):
             # Don't let notification failures affect trading
             pass
 

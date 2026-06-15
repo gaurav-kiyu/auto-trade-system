@@ -33,7 +33,7 @@ class PositionSizingManager:
             # Apply portfolio and capital constraints (simplified)
             # In a full implementation, this would call back to RiskLimitsManager
             return max(0, adjusted_lots)
-        except Exception:
+        except (ValueError, TypeError, ZeroDivisionError):
             return 0
 
     def get_volatility_multiplier(self, volatility: float) -> float:

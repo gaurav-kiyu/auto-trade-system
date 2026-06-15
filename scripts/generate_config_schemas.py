@@ -13,6 +13,9 @@ do not break validation; known keys get types from defaults plus tightened bound
 
 Runtime: ``validate_config`` in both bots calls ``core.config_schema_validate.append_json_schema_errors``
 against the same committed schema files (set ``OPB_SKIP_JSON_SCHEMA=1`` only for emergencies).
+
+Validation: After generating schemas, use ``python scripts/validate_config_schema.py --all``
+to verify that actual config files conform to the generated schemas.
 """
 from __future__ import annotations
 

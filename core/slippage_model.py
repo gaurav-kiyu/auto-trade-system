@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.db_utils import get_connection
 
 _log = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def _load_journal(db_path: str, days: int) -> list[tuple[float, float, float]]:
     Returns list of (lot_size, spread_pct, slippage_pct) tuples.
     """
     try:
-        con = sqlite3.connect(db_path)
+        con = get_connection(db_path, row_factory=False)
         cur = con.execute(
             """
             SELECT lot_size, spread_pct, slippage_pct
@@ -61,7 +62,7 @@ def _load_journal(db_path: str, days: int) -> list[tuple[float, float, float]]:
         rows = [(float(r[0]), float(r[1]), float(r[2])) for r in cur.fetchall()]
         con.close()
         return rows
-    except Exception as e:
+    except (sqlite3.Error, OSError, ValueError, TypeError) as e:
         _log.debug("[SLIP] journal load failed: %s", e)
         return []
 
@@ -81,7 +82,7 @@ def _ols(X: list[list[float]], y: list[float]) -> tuple[list[float], float]:
         ss_tot = float(np.sum((b - np.mean(b)) ** 2))
         r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 0.0
         return list(coefs), round(r2, 4)
-    except Exception as e:
+    except (ImportError, ValueError, TypeError, np.linalg.LinAlgError) as e:
         _log.debug("[SLIP] OLS failed: %s", e)
         return [0.0, 0.0, 0.0], 0.0
 

@@ -83,7 +83,7 @@ def test_resolve_broker_missing_get_ltp():
 
 def test_resolve_broker_fallback_to_yf():
     bp = MagicMock()
-    bp.get_ltp.side_effect = Exception("API error")
+    bp.get_ltp.side_effect = RuntimeError("API error")
     r = LtpResolver(broker_port=bp)
     with patch.object(r, "_resolve_yfinance", return_value=18500.0):
         price = r.resolve("NIFTY")

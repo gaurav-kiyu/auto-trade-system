@@ -273,13 +273,14 @@ def test_send_circuit_breaker_enqueues_critical():
 
 
 def test_rate_wait_sleeps_when_limit_exceeded():
-    """_rate_wait() calls time.sleep when sent_this_min >= rate_limit (lines 215-219)."""
+    """_rate_wait() calls Event.wait when sent_this_min >= rate_limit."""
     q = make_queue(cfg=dict(CFG, tg_rate_limit_per_min=2))
     now = time.time()
     q._sent_this_min = [now, now - 10]
-    with patch("time.sleep") as mock_sleep:
+    # _stop.wait() replaces the old time.sleep() — verify it's called
+    with patch.object(q._stop, 'wait', return_value=False) as mock_wait:
         q._rate_wait()
-    assert mock_sleep.called, "rate-limit sleep not triggered"
+    assert mock_wait.called, "rate-limit wait not triggered"
 
 
 # ── Exception in _deliver (lines 233-234) ────────────────────────────────────

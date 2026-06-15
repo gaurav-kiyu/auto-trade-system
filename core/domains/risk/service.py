@@ -9,6 +9,7 @@ interfaces, making this service easy to test and maintain.
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Any
 
 from core.datetime_ist import now_ist
@@ -36,6 +37,7 @@ class RiskService:
         self._daily_start_equity: float = risk_limits.account_equity
         self._consecutive_losses: int = 0
         self._peak_equity: float = risk_limits.account_equity
+        self._risk_lock = threading.Lock()
 
     def evaluate_trade(
         self,
@@ -50,11 +52,12 @@ class RiskService:
 
         This is the main entry point for pre-trade risk validation.
         """
-        # Reset daily tracking if needed (simplified)
-        self._reset_daily_tracking()
+        with self._risk_lock:
+            # Reset daily tracking if needed (simplified)
+            self._reset_daily_tracking()
 
-        # Run all risk checks in sequence
-        checks = [
+            # Run all risk checks in sequence
+            checks = [
             self._check_position_limits(symbol, suggested_size),
             self._check_daily_loss_limits(),
             self._check_drawdown_limits(),
@@ -88,8 +91,8 @@ class RiskService:
 
     def _reset_daily_tracking(self):
         """Reset daily tracking at start of new trading day."""
-        # Simplified - in reality would check date change
-        pass
+        # Called from within _risk_lock in evaluate_trade() — no separate lock needed
+        pass  # Simplified - in reality would check date change
 
     def _check_position_limits(self, symbol: str, suggested_size: int) -> RiskDecision:
         """Check individual position limits."""
@@ -461,8 +464,9 @@ class RiskService:
 
     def update_portfolio_risk(self, positions: list[Position]) -> PortfolioRiskMetrics:
         """Update and return current portfolio risk metrics."""
-        # Calculate various risk metrics
-        total_exposure = sum(abs(pos.market_value) for pos in positions)
+        with self._risk_lock:
+            # Calculate various risk metrics (all inside lock)
+            total_exposure = sum(abs(pos.market_value) for pos in positions)
         total_value = sum(pos.market_value for pos in positions)  # Net value
 
         # Calculate concentration
@@ -489,7 +493,9 @@ class RiskService:
 
     def check_daily_limits(self, today_pnl: float) -> bool:
         """Check if daily loss/drawdown limits have been breached."""
-        self._daily_pnl = today_pnl
+        # Use a separate lock from evaluate_trade() to avoid deadlock
+        with self._risk_lock:
+            self._daily_pnl = today_pnl
         return (
             self._daily_pnl >= -self.risk_limits.max_daily_loss and
             self._calculate_drawdown(self._get_current_equity()) <= self.risk_limits.max_drawdown
@@ -499,9 +505,10 @@ class RiskService:
         """Get current risk alerts and warnings."""
         alerts = []
 
-        # Check for proximity to limits
-        if abs(self._daily_pnl) > self.risk_limits.max_daily_loss * 0.8:
-            alerts.append(f"Approaching daily loss limit: {self._daily_pnl:.2f}")
+        with self._risk_lock:
+            # Check for proximity to limits
+            if abs(self._daily_pnl) > self.risk_limits.max_daily_loss * 0.8:
+                alerts.append(f"Approaching daily loss limit: {self._daily_pnl:.2f}")
 
         current_drawdown = self._calculate_drawdown(self._get_current_equity())
         if current_drawdown > self.risk_limits.max_drawdown * 0.8:

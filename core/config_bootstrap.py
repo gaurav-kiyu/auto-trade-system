@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 import types
 from dataclasses import dataclass
 from pathlib import Path
@@ -243,8 +244,8 @@ def _check_config_drift(secure_cfg: SecureConfig) -> None:
                 "May be deprecated or removed. Risk: %s. Value: %s",
                 key, risk, merged.get(key),
             )
-    except Exception as _ex:
-        _log.debug("Config drift check skipped: %s", _ex)
+    except (OSError, json.JSONDecodeError, KeyError, AttributeError) as _ex:
+        _log.warning("Config drift check skipped: %s", _ex)
 
 
 def _freeze_config(cfg: dict[str, Any]) -> dict[str, Any]:
@@ -272,6 +273,7 @@ class ConfigChange:
 
 # Global secure config instance
 _SECURE_CONFIG: SecureConfig | None = None
+_CONFIG_LOCK: threading.Lock = threading.Lock()
 
 
 def initialize_secure_config(
@@ -340,7 +342,7 @@ def initialize_secure_config(
     # Compare merged config against defaults to detect stale/missing keys
     try:
         _check_config_drift(_SECURE_CONFIG)
-    except Exception as _drift_err:
+    except (OSError, json.JSONDecodeError, AttributeError, KeyError) as _drift_err:
         _log.warning("Config drift check failed: %s", _drift_err)
     # ───────────────────────────────────────────────────────────────
 
@@ -353,9 +355,10 @@ def get_secure_config() -> SecureConfig:
     Initializes it if not already done.
     """
     global _SECURE_CONFIG
-    if _SECURE_CONFIG is None:
-        return initialize_secure_config()
-    return _SECURE_CONFIG
+    with _CONFIG_LOCK:
+        if _SECURE_CONFIG is None:
+            return initialize_secure_config()
+        return _SECURE_CONFIG
 
 
 def get_config_value(key: str, default: Any = None) -> Any:
@@ -480,12 +483,12 @@ def apply_env_overrides(
             try:
                 new_value = int(env_value)
             except ValueError:
-                pass
+                _log.debug("Failed to coerce env %s=%s to int, keeping raw string", env_key, env_value)
         elif isinstance(current_value, float):
             try:
                 new_value = float(env_value)
             except ValueError:
-                pass
+                _log.debug("Failed to coerce env %s=%s to float, keeping raw string", env_key, env_value)
 
         cfg[target_key] = new_value
         applied += 1
@@ -570,15 +573,15 @@ def coerce_config_values_to_defaults_types(user_config: Mapping[str, Any], defau
             elif isinstance(default_value, int) and isinstance(value, str):
                 try:
                     user_config[key] = int(value)
-                except ValueError:
+                except ValueError as e:
                     # If conversion fails, keep original value
-                    pass  # Keep the original string value
+                    _log.debug("[CONFIG_BOOTSTRAP] non-critical error: %s", e)
             elif isinstance(default_value, float) and isinstance(value, str):
                 try:
                     user_config[key] = float(value)
-                except ValueError:
+                except ValueError as e:
                     # If conversion fails, keep original value
-                    pass  # Keep the original string value
+                    _log.debug("[CONFIG_BOOTSTRAP] non-critical error: %s", e)
             # For other types or when types already match, keep as-is
     return user_config
 

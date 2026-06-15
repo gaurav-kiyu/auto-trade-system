@@ -17,9 +17,9 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Any
+
+from core.exceptions import DatabaseError
 
 _log = logging.getLogger(__name__)
 
@@ -239,8 +239,8 @@ class AuthHandler:
             try:
                 conn.execute("ALTER TABLE sessions ADD COLUMN token_data TEXT DEFAULT '{}'")
                 conn.commit()
-            except Exception:
-                pass
+            except (sqlite3.Error, OSError):
+                _log.warning("[AUTH] ALTER TABLE migration skipped")
             conn.commit()
 
             # Create default admin if not exists
@@ -744,8 +744,8 @@ class AuthHandler:
             conn.execute("DELETE FROM account_lockouts WHERE username = ?", (username,))
             conn.commit()
             conn.close()
-        except Exception:
-            pass
+        except (DatabaseError, sqlite3.Error, OSError):
+            _log.debug("[AUTH] Failed to clear lockout")
 
     def _is_account_locked(self, username: str) -> bool:
         with self._lock:
@@ -774,8 +774,8 @@ class AuthHandler:
                 with self._lock:
                     self._account_lockouts[username] = db_unlock
                 return True
-        except Exception:
-            pass
+        except (DatabaseError, sqlite3.Error, OSError):
+            _log.debug("[AUTH] DB lockout check failed")
         return False
 
     # ── Audit logging ─────────────────────────────────────────────────────────
@@ -793,7 +793,7 @@ class AuthHandler:
                 conn.commit()
             finally:
                 conn.close()
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             _log.warning("[AUTH] Audit log write failed: %s", e)
 
     def get_audit_log(self, limit: int = 100, event_type: str | None = None) -> list[dict[str, Any]]:
@@ -849,7 +849,7 @@ class AuthHandler:
                 }), t_hash),
             )
             conn.commit()
-        except Exception:
+        except (DatabaseError, sqlite3.Error, OSError):
             _log.exception("[AUTH] Session refresh DB write failed")
         finally:
             conn.close()
@@ -886,7 +886,7 @@ class AuthHandler:
             conn.commit()
             _log.info("[AUTH] Password reset token created for %s", username)
             return token_str
-        except Exception:
+        except (DatabaseError, sqlite3.Error, OSError) as e:
             _log.exception("[AUTH] Failed to create password reset token")
             return None
         finally:
@@ -913,7 +913,7 @@ class AuthHandler:
             conn.execute("UPDATE password_reset_tokens SET used = 1 WHERE token_hash = ?", (t_hash,))
             conn.commit()
             return row["username"]
-        except Exception:
+        except (DatabaseError, sqlite3.Error, OSError, ValueError) as e:
             _log.exception("[AUTH] Failed to verify password reset token")
             return None
         finally:
@@ -957,7 +957,7 @@ class AuthHandler:
                 "SELECT COUNT(*) FROM audit_log WHERE event_type LIKE 'login_fail%' AND timestamp > ?",
                 (time.time() - 86400,),
             ).fetchone()[0]
-        except Exception:
+        except (DatabaseError, sqlite3.Error, OSError):
             user_count = 0
             failed_logins = 0
         finally:

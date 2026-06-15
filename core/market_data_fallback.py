@@ -92,7 +92,7 @@ class DualSourceMarketData:
             return None, "none"
 
         except Exception as e:
-            log.error(f"Error getting price for {symbol}: {e}")
+            log.error(f"Error getting price for {symbol}: {e} (type: {type(e).__name__})")
             return None, "error"
 
     def validate_price(self, symbol: str, primary_price: float) -> PriceValidationResult:
@@ -165,7 +165,7 @@ class DualSourceMarketData:
             )
 
         except Exception as e:
-            log.error(f"Price validation error for {symbol}: {e}")
+            log.error(f"Price validation error for {symbol}: {e} (type: {type(e).__name__})")
             return PriceValidationResult(
                 is_valid=True,
                 primary_price=primary_price,
@@ -216,7 +216,7 @@ def get_yahoo_price(symbol: str) -> float | None:
         if data is not None and len(data) > 0:
             return float(data['Close'].iloc[-1])
     except Exception as e:
-        log.debug(f"Yahoo Finance fetch failed for {symbol}: {e}")
+        log.debug(f"Yahoo Finance fetch failed for {symbol}: {e} (type: {type(e).__name__})")
     return None
 
 

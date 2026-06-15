@@ -372,7 +372,7 @@ class SimulationEngine:
                     session_open = 3 * 60 + 45  # 03:45 UTC
                     if session_open <= bar_min < session_open + cfg.session_open_skip_minutes:
                         continue
-                except Exception:
+                except (IndexError, ValueError, TypeError):
                     pass
 
             # ── Generate signal ──────────────────────────────────────

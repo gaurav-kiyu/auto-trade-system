@@ -154,8 +154,8 @@ class LoggingService:
                     self._json_handler = _RotatingFileHandler(json_path, maxBytes=max_bytes, backupCount=3)
                     self._json_handler.setFormatter(_JsonFormatter())
                     self._logger.addHandler(self._json_handler)
-            except Exception:
-                pass  # Silently degrade to console-only logging
+            except (OSError, PermissionError) as e:
+                _log.debug("[LOGGING] non-critical error: %s", e)
 
     def log(self, level: int, message: str, **kwargs):
         self._logger.log(level, message, **kwargs)

@@ -300,7 +300,7 @@ class AIEngine:
                 )
                 self._journal_path.rename(archive)
                 self._log(f"[AI_ENGINE] Journal rotated → {archive.name}")
-        except Exception as exc:
+        except (OSError, json.JSONDecodeError) as exc:
             self._log(f"[AI_ENGINE] Journal rotation failed: {exc}")
 
     def _append_journal(self, decision: AIDecision) -> None:
@@ -313,7 +313,7 @@ class AIEngine:
                     **asdict(decision),
                     "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 }) + "\n")
-        except Exception as exc:
+        except (OSError, json.JSONDecodeError) as exc:
             self._log(f"[AI_ENGINE] Journal write failed: {exc}")
 
     # ── main enrich ──────────────────────────────────────────────────────────
@@ -355,7 +355,7 @@ class AIEngine:
                 self._wait_cooldown()
                 raw_response = self._call_fn(prompt, self._cfg)
                 self._last_call_ts = time.monotonic()
-        except Exception as exc:
+        except (OSError, ConnectionError, TimeoutError, json.JSONDecodeError, ValueError, TypeError) as exc:
             self._log(f"[AI_ENGINE] LLM call failed for {symbol}: {exc}")
             return out
 
@@ -363,7 +363,7 @@ class AIEngine:
 
         try:
             parsed = _parse_llm_json(raw_response)
-        except Exception:
+        except (json.JSONDecodeError, ValueError, TypeError):
             self._log(f"[AI_ENGINE] Failed to parse LLM JSON for {symbol}: {raw_response[:120]}")
             return out
 
@@ -420,9 +420,10 @@ class AIEngine:
             for line in lines[-lookback:]:
                 try:
                     entries.append(json.loads(line))
-                except Exception:
-                    pass
-        except Exception:
+                except (json.JSONDecodeError, ValueError, TypeError) as _parse_err:
+                    self._log(f"[AI_ENGINE] Journal parse error (non-blocking): {_parse_err}")
+        except (OSError, json.JSONDecodeError) as _io_err:
+            self._log(f"[AI_ENGINE] Journal read failed: {_io_err}")
             return {"count": 0}
 
         total = len(entries)

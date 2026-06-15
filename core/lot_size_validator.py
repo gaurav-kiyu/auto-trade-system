@@ -200,7 +200,7 @@ class LotSizeValidator:
                     return broker_port.get_lot_size(index_name)
 
             except Exception as e:
-                log.warning(f"Could not fetch live lot size for {index_name} from broker: {e}")
+                log.warning(f"Could not fetch live lot size for {index_name} from broker: {e} (type: {type(e).__name__})")
 
         # Priority 2: NSE API fallback
         try:
@@ -208,7 +208,7 @@ class LotSizeValidator:
             if lot_size is not None:
                 return lot_size
         except Exception as e:
-            log.warning(f"Could not fetch live lot size for {index_name} from NSE API: {e}")
+            log.warning(f"Could not fetch live lot size for {index_name} from NSE API: {e} (type: {type(e).__name__})")
 
         # Priority 3: Hardcoded default (with warning)
         default = DEFAULT_INDEX_LOT_SIZES.get(index_name)

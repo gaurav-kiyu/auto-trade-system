@@ -29,6 +29,7 @@ from core.ports.execution.execution_port import (
     ExecutionAuditTrail,
     ExecutionContext,
     ExecutionMode,
+    ExecutionPort,
     OrderRequest,
     OrderResult,
     OrderStatus,
@@ -52,7 +53,7 @@ class ExecutionServiceConfig:
     paper_fill_delay_ms: int = 50
     paper_fill_slippage_pct: float = 0.05
 
-class ExecutionService:
+class ExecutionService(ExecutionPort):
     """
     Hardened Execution Service.
     Orchestrates the flow from Risk Validation -> Order Management -> Broker Gateway.
@@ -135,7 +136,7 @@ class ExecutionService:
                     average_price=machine.average_price,
                     reject_reason=machine.error_message,
                 )
-            except Exception as _ex:
+            except (KeyError, AttributeError, ValueError, OSError) as _ex:
                 self._logger.error(f"Persistence callback failed for {machine.intent_id}: {_ex}")
 
         manager._persistence_callback = _persistence_callback
@@ -153,12 +154,13 @@ class ExecutionService:
 
         self._logger = logging.getLogger("execution_service")
 
+        self._shutdown_event = threading.Event()
+
         self._reconciliation_service = ReconciliationService(
             db_path=reconciliation_db_path,
             freeze_callback=self._on_reconciliation_freeze,
             enable_auto_repair=True,
         )
-
 
 
         broker_type = BrokerAckValidator.detect_broker_type(broker_port)
@@ -210,7 +212,7 @@ class ExecutionService:
                     continue
                 try:
                     submitted_dt = datetime.fromisoformat(machine.submitted_at)
-                except Exception:
+                except (ValueError, TypeError):
                     result["errors"] += 1
                     continue
                 age = (now - submitted_dt).total_seconds()
@@ -242,7 +244,7 @@ class ExecutionService:
                     result["still_pending"] += 1
                 else:
                     result["still_pending"] += 1
-            except Exception:
+            except (ValueError, OSError, AttributeError):
                 result["errors"] += 1
         return result
 
@@ -436,7 +438,7 @@ class ExecutionService:
                 # Persist idempotency result for duplicate detection
                 try:
                     self._store_idempotency_key(idempotency_key, order_result)
-                except Exception:
+                except (KeyError, ValueError, OSError):
                     self._logger.exception("Failed to store idempotency result in cache")
                 self._durable_store.update_state(
                     intent_id,
@@ -484,7 +486,7 @@ class ExecutionService:
 
             return order_result
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError, ConnectionError) as e:
             # ── Phase 5B: WAL journal failure ───────────────────────────────
             if self._wal_journal is not None:
                 self._wal_journal.fail(intent_id, str(e))
@@ -507,6 +509,130 @@ class ExecutionService:
 
             self._logger.error(f"Unexpected error in order execution: {e}", exc_info=True)
             return audit_trail.order_result
+
+    def modify_order(
+        self,
+        order_id: str,
+        *,
+        quantity: int | None = None,
+        price: float | None = None,
+        trigger_price: float | None = None,
+        order_type: OrderType | None = None,
+    ) -> OrderResult:
+        """
+        Modify an existing pending order.
+
+        Allows changing quantity, limit price, trigger price, and/or order type
+        for orders that are still in a PENDING or SUBMITTED state.
+
+        Args:
+            order_id: The order ID to modify
+            quantity: New lot quantity (None = no change)
+            price: New limit price (None = no change)
+            trigger_price: New trigger price for SL orders (None = no change)
+            order_type: New order type (None = no change)
+
+        Returns:
+            OrderResult with modification status
+        """
+        try:
+            # Check if order exists and is modifiable
+            current_status = self.get_order_status(order_id)
+            if current_status in [OrderStatus.FILLED, OrderStatus.CANCELLED, OrderStatus.EXPIRED, OrderStatus.REJECTED]:
+                self._logger.warning(f"Cannot modify order {order_id} with terminal status {current_status.value}")
+                return OrderResult(
+                    order_id=order_id,
+                    status=OrderStatus.REJECTED,
+                    reject_reason=f"Order {order_id} has terminal status {current_status.value}",
+                    timestamp=now_ist(),
+                )
+
+            # Attempt modification via broker
+            start_time = time.time()
+            broker_result = self.broker_port.modify_order(
+                order_id,
+                qty=quantity,
+                price=price,
+                trigger_price=trigger_price,
+                order_type=order_type.value if order_type else None,
+            )
+            latency_ms = int((time.time() - start_time) * 1000)
+
+            # Convert broker result to OrderResult
+            if isinstance(broker_result, bool):
+                if broker_result:
+                    self._logger.info(f"Order {order_id} modified successfully in {latency_ms}ms")
+                    return OrderResult(
+                        order_id=order_id,
+                        status=OrderStatus.SUBMITTED,
+                        filled_quantity=0,
+                        average_price=0.0,
+                        timestamp=now_ist(),
+                    )
+                else:
+                    self._logger.warning(f"Failed to modify order {order_id}")
+                    # ── Telegram escalation: alert on modification failure ──
+                    self._escalate_order_modification_failed(
+                        order_id=order_id,
+                        reason="Broker rejected modification",
+                        details={
+                            "quantity": quantity,
+                            "price": price,
+                            "trigger_price": trigger_price,
+                            "order_type": order_type.value if order_type else None,
+                            "latency_ms": latency_ms,
+                        },
+                    )
+                    return OrderResult(
+                        order_id=order_id,
+                        status=OrderStatus.REJECTED,
+                        reject_reason="Broker rejected modification",
+                        timestamp=now_ist(),
+                    )
+
+            # If broker returned an OrderResult directly (e.g. PaperBrokerAdapter returns bool)
+            if hasattr(broker_result, 'status'):
+                status_val = str(broker_result.status).upper() if hasattr(broker_result.status, 'upper') else str(broker_result.status)
+                if status_val in ("REJECTED", "CANCELLED", "FAILED"):
+                    # ── Telegram escalation on rejected order result ──
+                    self._escalate_order_modification_failed(
+                        order_id=order_id,
+                        reason=f"Broker returned status: {status_val}",
+                        details={
+                            "quantity": quantity,
+                            "price": price,
+                            "reject_reason": getattr(broker_result, 'reject_reason', None),
+                        },
+                    )
+                    self._logger.warning(f"Order {order_id} modification rejected: {broker_result.status}")
+                else:
+                    self._logger.info(f"Order {order_id} modified: {broker_result.status}")
+                return broker_result
+
+            return OrderResult(
+                order_id=order_id,
+                status=OrderStatus.SUBMITTED,
+                timestamp=now_ist(),
+            )
+
+        except (ValueError, OSError, ConnectionError, AttributeError) as e:
+            self._logger.error(f"Error modifying order {order_id}: {e}", exc_info=True)
+            # ── Telegram escalation on exception ──
+            self._escalate_order_modification_failed(
+                order_id=order_id,
+                reason=str(e),
+                details={
+                    "quantity": quantity,
+                    "price": price,
+                    "error_type": type(e).__name__,
+                },
+            )
+            return OrderResult(
+                order_id=order_id,
+                status=OrderStatus.REJECTED,
+                reject_reason=str(e),
+                timestamp=now_ist(),
+            )
 
     def cancel_order(self, order_id: str) -> bool:
         """
@@ -537,7 +663,7 @@ class ExecutionService:
 
             return success
 
-        except Exception as e:
+        except (ValueError, OSError, ConnectionError, AttributeError) as e:
             self._logger.error(f"Error cancelling order {order_id}: {e}", exc_info=True)
             return False
 
@@ -565,7 +691,7 @@ class ExecutionService:
                 self._logger.debug(f"No direct order status method available for order {order_id}")
                 return OrderStatus.SUBMITTED  # Conservative assumption
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError) as e:
             self._logger.error(f"Error getting order status for {order_id}: {e}")
             return OrderStatus.REJECTED
 
@@ -609,7 +735,7 @@ class ExecutionService:
             if hasattr(self.broker_port, 'verify_terminal_ok'):
                 try:
                     status_verified = self.broker_port.verify_terminal_ok(order_id)
-                except Exception:
+                except (ValueError, OSError, AttributeError):
                     status_verified = False
 
             latency_ms = int((time.time() - start_time) * 1000)
@@ -627,7 +753,7 @@ class ExecutionService:
             self._logger.debug(f"Fill verification for {order_id}: {result}")
             return result
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError, ConnectionError) as e:
             self._logger.error(f"Error verifying order fill for {order_id}: {e}", exc_info=True)
             return {
                 "ok": False,
@@ -653,7 +779,7 @@ class ExecutionService:
         # Delegate to IdempotencyManager for duplicate checks
         try:
             return bool(self.idempotency.is_duplicate(idempotency_key))
-        except Exception:
+        except (KeyError, ValueError, TypeError):
             # Fallback to local cache
             with self._lock:
                 self._cleanup_idempotency_cache()
@@ -689,7 +815,7 @@ class ExecutionService:
                 self._logger.debug(f"Execution audit recorded: {audit_trail.execution_id}")
                 return True
 
-        except Exception as e:
+        except (KeyError, ValueError, AttributeError, OSError) as e:
             self._logger.error(f"Error recording execution audit: {e}", exc_info=True)
             return False
 
@@ -743,7 +869,7 @@ class ExecutionService:
                     "persistence_healthy": persistence_healthy
                 }
 
-        except Exception as e:
+        except (KeyError, ValueError, AttributeError, OSError) as e:
             self._logger.error(f"Error in execution service health check: {e}", exc_info=True)
             return {
                 "status": "unhealthy",
@@ -801,7 +927,7 @@ class ExecutionService:
         # Prefer IdempotencyManager for storage, but keep a local fallback cache for backwards compatibility.
         try:
             self.idempotency.store_result(key, order_result)
-        except Exception:
+        except (KeyError, OSError, ValueError):
             self._logger.exception(f"Failed to persist idempotency key {key}")
 
         with self._lock:
@@ -820,7 +946,7 @@ class ExecutionService:
         # Delegate to IdempotencyManager
         try:
             return self.idempotency.get_result(key)
-        except Exception:
+        except (KeyError, ValueError, TypeError):
             with self._lock:
                 self._cleanup_idempotency_cache()
                 if key in self._idempotency_cache:
@@ -835,7 +961,7 @@ class ExecutionService:
         try:
             self.idempotency._cleanup()
             return
-        except Exception:
+        except (AttributeError, KeyError, ValueError):
             with self._lock:
                 expiry_time = now_ist() - timedelta(hours=self.config.idempotency_expiry_hours)
                 expired_keys = [
@@ -918,10 +1044,9 @@ class ExecutionService:
                     self._logger.debug("state after record_submission: %s", state_machine.state)
                     state_machine.record_acknowledgment()
                     self._logger.debug("state after record_acknowledgment: %s", state_machine.state)
-                except Exception as ex:
+                except (ValueError, TypeError, AttributeError) as ex:
                     # Best effort - continue to record fill
                     self._logger.debug("exception while advancing state machine: %s", ex)
-                    pass
 
                 self._logger.debug("calling record_fill with qty=%s price=%s", order_request.lot_size, order_request.strike_price)
                 state_machine.record_fill(order_request.lot_size, order_request.strike_price)
@@ -946,7 +1071,7 @@ class ExecutionService:
                 state_machine.try_transition_to(ExecutionState.FAILED)
                 return result
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError, ConnectionError) as e:
             # Execution failed - record failure
             state_machine.try_transition_to(ExecutionState.FAILED)
             return OrderResult(
@@ -1042,7 +1167,7 @@ class ExecutionService:
                     timestamp=now_ist()
                 )
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError, ConnectionError) as e:
             self._logger.error(f"Error during order execution attempt: {e}", exc_info=True)
             return OrderResult(
                 order_id="execution_error",
@@ -1078,8 +1203,8 @@ class ExecutionService:
                 if details and isinstance(details, dict):
                     charges = details.get('brokerage') or details.get('charges') or details.get('commission') or 0.0
                     return float(charges)
-        except Exception:
-            pass
+        except (KeyError, ValueError, TypeError, AttributeError):
+            self._logger.debug("[SERVICES.EXECUTION_SERVICE] non-critical keyerror; non-critical valueerror; non-critical typeerror; non-critical attributeerror")
         # Fallback: estimate commission at 0.05% of notional trade value
         try:
             notional = float(order_request.strike_price) * int(order_request.lot_size)
@@ -1103,8 +1228,14 @@ class ExecutionService:
             OrderResult from the paper execution
         """
         try:
-            # Simulate network delay
-            time.sleep(self.config.paper_fill_delay_ms / 1000.0)
+            # Simulate network delay — interruptible on shutdown
+            if self._shutdown_event.wait(self.config.paper_fill_delay_ms / 1000.0):
+                return OrderResult(
+                    order_id="shutdown",
+                    status=OrderStatus.REJECTED,
+                    reject_reason="Shutdown requested during paper fill delay",
+                    timestamp=now_ist()
+                )
 
             # Generate a fake order ID
             order_id = f"paper_{int(time.time()*1000)}_{hash(order_request.symbol) % 10000}"
@@ -1159,7 +1290,7 @@ class ExecutionService:
                 timestamp=now_ist()
             )
 
-        except Exception as e:
+        except (ValueError, OSError, AttributeError, ConnectionError) as e:
             self._logger.error(f"Error in paper order execution: {e}", exc_info=True)
             return OrderResult(
                 order_id="paper_error",
@@ -1265,7 +1396,7 @@ class ExecutionService:
             trade_id = self.trade_persistence.save_trade(trade_data)
             self._logger.debug(f"Trade persisted with ID {trade_id} from order {order_result.order_id}")
 
-        except Exception as e:
+        except (ValueError, TypeError, OSError, AttributeError) as e:
             self._logger.error(f"Error persisting trade from order: {e}", exc_info=True)
 
     def _audit_trail_to_trade_data(
@@ -1309,9 +1440,32 @@ class ExecutionService:
                 "session_at_entry": None,
                 "created_at": order_res.timestamp
             }
-        except Exception as e:
+        except (ValueError, TypeError, KeyError, AttributeError) as e:
             self._logger.error(f"Error converting audit trail to trade data: {e}")
             return None
+
+    def _escalate_order_modification_failed(
+        self,
+        order_id: str,
+        reason: str,
+        details: dict | None = None,
+    ) -> None:
+        """Escalate order modification failure via incident alerting (Telegram).
+
+        Thread-safe — reports the incident to the singleton IncidentAlerting
+        which dispatches via its registered callback (typically Telegram).
+        Cooldown prevents alert storms for repeated failures on the same order.
+        """
+        try:
+            from core.incident_alerting import get_incident_alerting
+            alerting = get_incident_alerting()
+            alerting.alert_order_modification_failed(
+                order_id=order_id,
+                reason=reason,
+                details=details,
+            )
+        except Exception as exc:
+            self._logger.debug(f"Incident alerting unavailable for order {order_id}: {exc}")
 
     def _poll_for_fill_status(
         self,
@@ -1333,6 +1487,11 @@ class ExecutionService:
         max_poll_interval = 5.0  # Max 5 seconds between polls
 
         while (time.time() - start_time) < timeout_seconds:
+            # Check for shutdown signal
+            if self._shutdown_event.is_set():
+                self._logger.info("Shutdown requested, aborting fill poll for %s", order_id)
+                return False
+
             try:
                 # Check if we have a way to get filled quantity
                 if hasattr(self.broker_port, 'get_filled_quantity'):
@@ -1344,12 +1503,15 @@ class ExecutionService:
                     if status in [OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED]:
                         return True
 
-                # Wait before next poll (with exponential backoff)
-                time.sleep(min(poll_interval, max_poll_interval))
+                # Wait before next poll (with exponential backoff) — interruptible on shutdown
+                if self._shutdown_event.wait(min(poll_interval, max_poll_interval)):
+                    self._logger.info("Shutdown requested during fill poll backoff for %s", order_id)
+                    return False
                 poll_interval = min(poll_interval * 1.5, max_poll_interval)  # Exponential backoff
 
-            except Exception as e:
+            except (ValueError, OSError, AttributeError) as e:
                 self._logger.debug(f"Error polling for fill status: {e}")
-                time.sleep(poll_interval)
+                if self._shutdown_event.wait(poll_interval):
+                    return False
 
         return False  # Timeout reached

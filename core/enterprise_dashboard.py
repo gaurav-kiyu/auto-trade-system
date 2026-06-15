@@ -12,27 +12,28 @@ import io
 import json
 import logging
 import os
+import secrets
+import sqlite3
 import sys
 import threading
 import time
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from contextlib import asynccontextmanager
-
-import secrets
-from types import MappingProxyType
 
 from core.auth.csrf import csrf_protection
-from core.auth.dependencies import AuthDependencies, get_client_ip
-from core.auth.handler import AuthHandler, AuthUser
+from core.auth.dependencies import AuthDependencies
+from core.auth.handler import AuthHandler
 from core.auth.routes import create_auth_router
+from core.db_utils import get_connection as _get_db_conn
 
 _log = logging.getLogger(__name__)
 
@@ -104,12 +105,15 @@ class EnterpriseDashboard:
 
     def _start_session_cleanup(self) -> None:
         """Background thread to purge expired sessions every 15 minutes."""
+        self._session_stop = threading.Event()
+
         def _cleanup_loop():
-            while True:
-                time.sleep(900)
+            while not self._session_stop.is_set():
+                if self._session_stop.wait(900):
+                    break
                 try:
                     self._auth.purge_expired_sessions()
-                except Exception as exc:
+                except (ValueError, AttributeError, OSError) as exc:
                     _log.warning("[DASH] Session cleanup error: %s", exc)
         t = threading.Thread(target=_cleanup_loop, daemon=True, name="session_cleanup")
         t.start()
@@ -125,7 +129,7 @@ class EnterpriseDashboard:
         try:
             static_dir.mkdir(parents=True, exist_ok=True)
             return static_dir
-        except Exception as e:
+        except (OSError, PermissionError) as e:
             _log.debug("[DASH] Cannot create static dir: %s", e)
             return None
 
@@ -148,6 +152,14 @@ class EnterpriseDashboard:
     def _create_app(self) -> FastAPI:
         self._startup_ts = time.time()
 
+        # Register runtime invariant checks on startup
+        try:
+            from core.invariants.checks import register_all as _register_invariants
+            _register_invariants()
+            _log.info("[DASH] Runtime invariant checks registered")
+        except (ImportError, ValueError, AttributeError) as exc:
+            _log.debug("[DASH] Invariant registration skipped: %s", exc)
+
         @asynccontextmanager
         async def lifespan(app: FastAPI):
             _log.info("[DASH] Enterprise dashboard started")
@@ -158,7 +170,41 @@ class EnterpriseDashboard:
             title="OPB Enterprise Dashboard",
             version="2.53.0",
             docs_url="/api/docs",
-            redoc_url=None,
+            redoc_url="/api/redoc",
+            openapi_tags=[
+                {
+                    "name": "Auth",
+                    "description": "Authentication and session management — login, register, change password",
+                },
+                {
+                    "name": "System",
+                    "description": "System state, health, diagnostics, uptime, trades, signals — read-only observability",
+                },
+                {
+                    "name": "Admin",
+                    "description": "Admin-only operations — config management, kill switch, user management, self-test",
+                },
+                {
+                    "name": "Risk",
+                    "description": "Risk metrics — position concentration and exposure analysis",
+                },
+                {
+                    "name": "Broker",
+                    "description": "Broker connection status and adapter information",
+                },
+                {
+                    "name": "ML",
+                    "description": "ML model status — accuracy, drift detection, calibration",
+                },
+                {
+                    "name": "Webhook",
+                    "description": "External signal injection webhook for automated trading signals",
+                },
+                {
+                    "name": "Charts",
+                    "description": "Options chain visualization and market data charts",
+                },
+            ],
             lifespan=lifespan,
         )
 
@@ -174,7 +220,7 @@ class EnterpriseDashboard:
         if self._static_dir and self._static_dir.is_dir():
             try:
                 app.mount("/static", StaticFiles(directory=str(self._static_dir)), name="static")
-            except Exception as e:
+            except (ValueError, OSError) as e:
                 _log.warning("[DASH] Static files mount skipped: %s", e)
 
         # CSRF exempt paths
@@ -184,6 +230,9 @@ class EnterpriseDashboard:
         csrf_protection.exempt("/signals/inject")
         csrf_protection.exempt("/static")
         csrf_protection.exempt("/api/system/self-test")
+        csrf_protection.exempt("/api/docs")
+        csrf_protection.exempt("/api/redoc")
+        csrf_protection.exempt("/openapi.json")
 
         # ── Middleware: Security Headers ────────────────────────────────────────
 
@@ -286,7 +335,7 @@ class EnterpriseDashboard:
             # Ensure CSRF cookie is set on GET responses (if missing)
             try:
                 await csrf_protection.ensure_cookie_set(request, response)
-            except Exception as exc:
+            except (ValueError, AttributeError, TypeError) as exc:
                 _log.warning("[DASH] CSRF cookie set failed: %s", exc)
             return response
 
@@ -608,20 +657,19 @@ class EnterpriseDashboard:
             state = self._read_state()
             db_ok = False
             try:
-                import sqlite3
-                conn = sqlite3.connect(self._db_path, timeout=2)
+                conn = _get_db_conn(self._db_path, timeout=2, row_factory=False)
                 conn.execute("SELECT 1")
                 conn.close()
                 db_ok = True
-            except Exception as exc:
+            except (OSError, sqlite3.Error, ValueError) as exc:
                 _log.warning("[DASH] Health check DB probe failed: %s", exc)
             auth_db_ok = False
             try:
-                conn = sqlite3.connect(self._auth._db_path, timeout=2)
+                conn = _get_db_conn(self._auth._db_path, timeout=2, row_factory=False)
                 conn.execute("SELECT 1")
                 conn.close()
                 auth_db_ok = True
-            except Exception as exc:
+            except (OSError, sqlite3.Error, ValueError) as exc:
                 _log.warning("[DASH] Health check auth DB probe failed: %s", exc)
             uptime_secs = time.time() - self._startup_ts if hasattr(self, '_startup_ts') else 0
             return {
@@ -638,6 +686,75 @@ class EnterpriseDashboard:
             }
 
         # ── Observability: Uptime / diagnostics ─────────────────────────────────
+
+        # ── OI Snapshot Summary API ────────────────────────────────────────────
+
+        @app.get("/api/system/oi", tags=["System"])
+        async def api_oi_summary(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get OI snapshot summary for all tracked indices.
+
+            Returns live PCR/OI data from the NSE adapter (if available)
+            plus the most recent recorded snapshot from ``oi_snapshots.db``.
+            """
+            index_names = self._cfg.get("INDEX_PRIORITY", ["NIFTY", "BANKNIFTY", "FINNIFTY"])
+
+            # 1. Live data from NSE adapter (read-only, no recording side effects)
+            live: dict[str, Any] = {}
+            try:
+                from core.nse_option_recorder import get_oi_summary
+                live = get_oi_summary(index_names, self._cfg)
+            except (ImportError, ValueError, TypeError, OSError) as exc:
+                _log.debug("[DASH] Live OI summary unavailable: %s", exc)
+
+            # 2. Recent recorded snapshots from oi_snapshots.db
+            recent: dict[str, Any] = {}
+            try:
+                from core.oi_snapshot_store import get_snapshot_at
+                oi_db = str(
+                    self._cfg.get("oi_snapshot_db_path",
+                    self._cfg.get("OI_SNAPSHOT_DB_PATH", "oi_snapshots.db"))
+                )
+                now = time.time()
+                for idx in index_names:
+                    snap = get_snapshot_at(idx, now + 1, db_path=oi_db)
+                    if snap:
+                        # Convert to readable format, drop internal fields
+                        recent[idx] = {
+                            k: v for k, v in snap.items()
+                            if k not in ("id", "snapshot_source")
+                        }
+            except (ImportError, ValueError, TypeError, OSError) as exc:
+                _log.debug("[DASH] DB OI snapshots unavailable: %s", exc)
+
+            return {
+                "index_names": index_names,
+                "live": live,
+                "recent_snapshots": recent,
+                "timestamp": time.time(),
+            }
+
+        # ── Invariants API ────────────────────────────────────────────────────
+
+        @app.get("/api/system/invariants", tags=["System"])
+        async def api_invariants(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get runtime invariant check results and violations."""
+            try:
+                from core.invariants.engine import check_all, get_state, get_violations
+                # Run all checks to get fresh results
+                check_all()
+                state = get_state()
+                violations = get_violations(unresolved_only=True)
+                return {
+                    "checks": state["checks"],
+                    "violations": state["violations"],
+                    "unresolved_violations": len(violations),
+                    "total_violations": state["violation_count"],
+                    "disabled_checks": state["disabled_checks"],
+                }
+            except ImportError:
+                return {"status": "unavailable", "detail": "Invariant engine not available"}
+            except (ValueError, TypeError, KeyError) as e:
+                return {"status": "error", "detail": str(e)}
 
         @app.get("/api/system/uptime")
         async def api_uptime(user: Any = Depends(self._auth_deps.require_auth_optional)):
@@ -769,12 +886,12 @@ class EnterpriseDashboard:
                     if not allowed:
                         retry_after = 60
                         return {"status": "rate_limited", "retry_after": retry_after}
-                except Exception as exc:
+                except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
                     _log.warning("[DASH] Webhook rate limiter error: %s", exc)
 
             try:
                 body = await request.json()
-            except Exception as exc:
+            except (json.JSONDecodeError, ValueError) as exc:
                 _log.warning("[DASH] Webhook JSON decode error: %s", exc)
                 return {"status": "queued", "ts": time.time()}
 
@@ -782,14 +899,14 @@ class EnterpriseDashboard:
             if self._signal_queue is not None:
                 try:
                     self._signal_queue.put(body)
-                except Exception as exc:
+                except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
                     _log.warning("[DASH] Webhook signal queue error: %s", exc)
 
             # Also append to signal_log if available
             if self._signal_log is not None:
                 try:
                     self._signal_log.append(body)
-                except Exception as exc:
+                except (ValueError, AttributeError, TypeError) as exc:
                     _log.warning("[DASH] Webhook signal log error: %s", exc)
 
             return {"status": "queued", "ts": time.time()}
@@ -820,7 +937,7 @@ class EnterpriseDashboard:
                     oc = market_data.get_option_chain(index_name.upper())
                     if oc:
                         chain_data["option_chain"] = oc
-                except Exception as exc:
+                except (ValueError, TypeError, AttributeError, RuntimeError) as exc:
                     _log.warning("[DASH] Option chain fetch error: %s", exc)
 
             chain_data["symbol"] = index_name.upper()
@@ -839,7 +956,7 @@ class EnterpriseDashboard:
             try:
                 stats = self._auth.get_stats()
                 results.append({"test": "auth_db", "status": "pass", "detail": f"{stats.get('total_users', 0)} users, {stats.get('active_sessions', 0)} active sessions"})
-            except Exception as e:
+            except (ValueError, TypeError, OSError) as e:
                 results.append({"test": "auth_db", "status": "fail", "detail": str(e)})
                 all_pass = False
 
@@ -847,19 +964,18 @@ class EnterpriseDashboard:
             try:
                 state = self._read_state()
                 results.append({"test": "state_file", "status": "pass", "detail": f"{len(state)} keys, mode={state.get('execution_mode', 'unknown')}"})
-            except Exception as e:
+            except (ValueError, OSError, json.JSONDecodeError) as e:
                 results.append({"test": "state_file", "status": "fail", "detail": str(e)})
                 all_pass = False
 
             # 3. Trades DB queryable
             try:
-                import sqlite3
-                conn = sqlite3.connect(self._db_path, timeout=2)
+                conn = _get_db_conn(self._db_path, timeout=2, row_factory=False)
                 cursor = conn.execute("SELECT COUNT(*) FROM trades")
                 trade_count = cursor.fetchone()[0]
                 conn.close()
                 results.append({"test": "trades_db", "status": "pass", "detail": f"{trade_count} trades"})
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 results.append({"test": "trades_db", "status": "warn", "detail": f"{e} (non-fatal if no trades yet)"})
 
             # 4. Config available
@@ -870,7 +986,7 @@ class EnterpriseDashboard:
                 results.append({"test": "config", "status": "pass", "detail": f"{cfg_keys} keys loaded, defaults_file={defaults_ok}"})
                 if not defaults_ok:
                     results.append({"test": "defaults_file", "status": "warn", "detail": f"Defaults file not found at {defaults_path}"})
-            except Exception as e:
+            except (ValueError, OSError, json.JSONDecodeError) as e:
                 results.append({"test": "config", "status": "fail", "detail": str(e)})
                 all_pass = False
 
@@ -878,7 +994,7 @@ class EnterpriseDashboard:
             try:
                 tmpl = self._templates.get_template("login.html")
                 results.append({"test": "templates", "status": "pass", "detail": f"Login template loaded ({len(tmpl.render(request=None))} bytes)"})
-            except Exception as e:
+            except (ValueError, TypeError, AttributeError) as e:
                 results.append({"test": "templates", "status": "warn", "detail": str(e)})
 
             return {
@@ -918,7 +1034,7 @@ class EnterpriseDashboard:
         try:
             if defaults_path.is_file():
                 return json.loads(defaults_path.read_text(encoding="utf-8"))
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, ValueError) as e:
             _log.warning("[DASH] Failed to load defaults: %s", e)
         return {}
 
@@ -985,7 +1101,7 @@ class EnterpriseDashboard:
         config_path = self._resolve_config_path()
         try:
             original = json.loads(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {}
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, ValueError) as e:
             return {"success": False, "error": f"Failed to read config: {e}"}
 
         # Save original before any modifications (for safe rollback)
@@ -994,7 +1110,7 @@ class EnterpriseDashboard:
         backup_path = config_path.with_suffix(f".json.backup.{int(time.time())}")
         try:
             Path(str(backup_path)).write_text(json.dumps(original, indent=4), encoding="utf-8")
-        except Exception as e:
+        except (OSError, ValueError) as e:
             return {"success": False, "error": f"Backup failed: {e}"}
 
         applied = {}
@@ -1006,11 +1122,11 @@ class EnterpriseDashboard:
 
         try:
             config_path.write_text(json.dumps(current, indent=4), encoding="utf-8")
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             try:
                 config_path.write_text(json.dumps(original, indent=4), encoding="utf-8")
                 _log.info("[DASH] Config write failed — original restored")
-            except Exception as restore_exc:
+            except (OSError, ValueError, TypeError) as restore_exc:
                 _log.critical("[DASH] Config write failed AND rollback failed! %s", restore_exc)
             return {"success": False, "error": f"Write failed, rolled back: {e}"}
 
@@ -1038,7 +1154,6 @@ class EnterpriseDashboard:
             List of dicts with 'file', 'timestamp', and 'age' (seconds).
         """
         config_path = self._resolve_config_path()
-        pattern = str(config_path.with_suffix(".json.backup.*"))
         backups = sorted(Path(config_path.parent).glob("*.backup.*"), reverse=True)
         history = []
         for bp in backups[:20]:
@@ -1083,8 +1198,9 @@ class EnterpriseDashboard:
                 self._cfg_frozen = _freeze(self._cfg)
             self._log_config_audit(username, ["rollback"], [version], "config_rollback")
             return {"success": True, "restored_from": version, "keys_restored": len(backup_data)}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        except (OSError, json.JSONDecodeError, ValueError, TypeError) as e:
+            _log.warning("[DASH] Config rollback failed: %s", e)
+            return {"success": False, "error": f"Rollback failed: {e}"}
 
     def _log_config_audit(self, username: str, keys: list, values: list, action: str) -> None:
         try:
@@ -1098,7 +1214,7 @@ class EnterpriseDashboard:
                     "values": values,
                     "ip": "dashboard",
                 }) + "\n")
-        except Exception as exc:
+        except (OSError, ValueError, TypeError) as exc:
             _log.warning("[DASH] Config audit write failed: %s", exc)
 
     # ── Kill switch ──────────────────────────────────────────────────────────
@@ -1122,13 +1238,13 @@ class EnterpriseDashboard:
         if self._control_plane:
             try:
                 self._control_plane.control_kill(username, reason=reason)
-            except Exception as e:
+            except (ValueError, AttributeError, TypeError, RuntimeError) as e:
                 _log.warning("[DASH] Control plane kill failed: %s", e)
 
         if "halt_callback" in self._bot_refs:
             try:
                 self._bot_refs["halt_callback"](f"KILL by {username}: {reason}")
-            except Exception as e:
+            except (ValueError, AttributeError, TypeError, RuntimeError) as e:
                 _log.warning("[DASH] Halt callback failed: %s", e)
 
         return {
@@ -1155,7 +1271,7 @@ class EnterpriseDashboard:
             sp = Path(self._state_path)
             if sp.is_file():
                 return json.loads(sp.read_text(encoding="utf-8"))
-        except Exception as exc:
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
             _log.warning("[DASH] Failed to read trader state: %s", exc)
         return {}
 
@@ -1176,7 +1292,7 @@ class EnterpriseDashboard:
             from core.performance_metrics import load_trades
             trades = load_trades(self._db_path, days=days if days > 0 else None)
             return trades[-n:]
-        except Exception as e:
+        except (ImportError, ValueError, RuntimeError, OSError) as e:
             _log.debug("[DASH] load_trades failed: %s", e)
             return []
 

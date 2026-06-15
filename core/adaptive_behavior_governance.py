@@ -15,6 +15,7 @@ Governance rules:
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -74,6 +75,7 @@ class AdaptiveBehaviorGovernor:
         self._governance = governance_config or self._create_from_config(config)
         self._actions: list[AdaptiveAction] = []
         self._pending_approvals: dict[str, dict[str, Any]] = {}
+        self._lock = threading.RLock()
         self._init_audit_log()
 
     def _create_from_config(self, config: dict[str, Any]) -> GovernanceConfig:
@@ -98,15 +100,18 @@ class AdaptiveBehaviorGovernor:
 
     def get_mode(self) -> AdaptiveMode:
         """Get current adaptive behavior mode."""
-        return self._governance.adaptive_mode
+        with self._lock:
+            return self._governance.adaptive_mode
 
     def is_allowed(self) -> bool:
         """Check if adaptive behavior is allowed in current mode."""
-        return self._governance.adaptive_mode != AdaptiveMode.DISABLED
+        with self._lock:
+            return self._governance.adaptive_mode != AdaptiveMode.DISABLED
 
     def can_auto_apply(self) -> bool:
         """Check if auto-tuning can automatically apply changes."""
-        return self._governance.adaptive_mode == AdaptiveMode.ENABLED
+        with self._lock:
+            return self._governance.adaptive_mode == AdaptiveMode.ENABLED
 
     def request_param_change(
         self,
@@ -122,62 +127,43 @@ class AdaptiveBehaviorGovernor:
         Returns:
             (is_approved, message)
         """
-        if param in self._governance.blocked_param_changes:
-            self._record_action(
-                source=source,
-                action_type="param_change_request",
-                details={
-                    "param": param,
-                    "current": current_value,
-                    "suggested": suggested_value,
-                    "reason": reason,
-                },
-                was_approved=False,
-                was_applied=False,
-            )
-            return False, f"⛔ Parameter {param} is blocked from auto-tuning"
+        with self._lock:
+            if param in self._governance.blocked_param_changes:
+                self._record_action(
+                    source=source,
+                    action_type="param_change_request",
+                    details={
+                        "param": param,
+                        "current": current_value,
+                        "suggested": suggested_value,
+                        "reason": reason,
+                    },
+                    was_approved=False,
+                    was_applied=False,
+                )
+                return False, f"⛔ Parameter {param} is blocked from auto-tuning"
 
-        if self._governance.adaptive_mode == AdaptiveMode.DISABLED:
-            self._record_action(
-                source=source,
-                action_type="param_change_request",
-                details={"param": param, "suggested": suggested_value},
-                was_approved=False,
-                was_applied=False,
-            )
-            return False, "⛔ Adaptive behavior is DISABLED"
+            if self._governance.adaptive_mode == AdaptiveMode.DISABLED:
+                self._record_action(
+                    source=source,
+                    action_type="param_change_request",
+                    details={"param": param, "suggested": suggested_value},
+                    was_approved=False,
+                    was_applied=False,
+                )
+                return False, "⛔ Adaptive behavior is DISABLED"
 
-        if self._governance.adaptive_mode == AdaptiveMode.DRY_RUN:
-            self._record_action(
-                source=source,
-                action_type="param_change_request",
-                details={"param": param, "suggested": suggested_value, "mode": "DRY_RUN"},
-                was_approved=False,
-                was_applied=False,
-            )
-            return False, f"ℹ️ DRY_RUN: Would suggest {param}={suggested_value} (not applied)"
+            if self._governance.adaptive_mode == AdaptiveMode.DRY_RUN:
+                self._record_action(
+                    source=source,
+                    action_type="param_change_request",
+                    details={"param": param, "suggested": suggested_value, "mode": "DRY_RUN"},
+                    was_approved=False,
+                    was_applied=False,
+                )
+                return False, f"ℹ️ DRY_RUN: Would suggest {param}={suggested_value} (not applied)"
 
-        if self._governance.adaptive_mode == AdaptiveMode.SUGGEST:
-            approval_id = f"{param}:{now_ist().isoformat()}"
-            self._pending_approvals[approval_id] = {
-                "param": param,
-                "current": current_value,
-                "suggested": suggested_value,
-                "reason": reason,
-                "source": source,
-                "timestamp": now_ist().isoformat(),
-            }
-            self._record_action(
-                source=source,
-                action_type="param_change_suggestion",
-                details={"param": param, "suggested": suggested_value, "approval_id": approval_id},
-                was_approved=False,
-                was_applied=False,
-            )
-            return False, f"📋 Suggestion recorded: {param}={suggested_value}. Use approve_param('{approval_id}') to apply."
-
-        if self._governance.adaptive_mode == AdaptiveMode.ENABLED:
-            if self._governance.require_approval_for_live:
+            if self._governance.adaptive_mode == AdaptiveMode.SUGGEST:
                 approval_id = f"{param}:{now_ist().isoformat()}"
                 self._pending_approvals[approval_id] = {
                     "param": param,
@@ -187,41 +173,63 @@ class AdaptiveBehaviorGovernor:
                     "source": source,
                     "timestamp": now_ist().isoformat(),
                 }
-                return False, f"⚠️ LIVE mode: Approval required. Use approve_param('{approval_id}') to apply."
+                self._record_action(
+                    source=source,
+                    action_type="param_change_suggestion",
+                    details={"param": param, "suggested": suggested_value, "approval_id": approval_id},
+                    was_approved=False,
+                    was_applied=False,
+                )
+                return False, f"📋 Suggestion recorded: {param}={suggested_value}. Use approve_param('{approval_id}') to apply."
 
-            return True, "APPROVED"
+            if self._governance.adaptive_mode == AdaptiveMode.ENABLED:
+                if self._governance.require_approval_for_live:
+                    approval_id = f"{param}:{now_ist().isoformat()}"
+                    self._pending_approvals[approval_id] = {
+                        "param": param,
+                        "current": current_value,
+                        "suggested": suggested_value,
+                        "reason": reason,
+                        "source": source,
+                        "timestamp": now_ist().isoformat(),
+                    }
+                    return False, f"⚠️ LIVE mode: Approval required. Use approve_param('{approval_id}') to apply."
 
-        return False, "Unknown mode"
+                return True, "APPROVED"
+
+            return False, "Unknown mode"
 
     def approve_param(self, approval_id: str) -> tuple[bool, str]:
         """Approve a pending parameter change."""
-        if approval_id not in self._pending_approvals:
-            return False, "Unknown approval ID"
+        with self._lock:
+            if approval_id not in self._pending_approvals:
+                return False, "Unknown approval ID"
 
-        approval = self._pending_approvals.pop(approval_id)
-        self._record_action(
-            source=approval["source"],
-            action_type="param_change_approved",
-            details=approval,
-            was_approved=True,
-            was_applied=True,
-        )
-        return True, f"✅ Approved: {approval['param']}={approval['suggested']}"
+            approval = self._pending_approvals.pop(approval_id)
+            self._record_action(
+                source=approval["source"],
+                action_type="param_change_approved",
+                details=approval,
+                was_approved=True,
+                was_applied=True,
+            )
+            return True, f"✅ Approved: {approval['param']}={approval['suggested']}"
 
     def reject_param(self, approval_id: str) -> tuple[bool, str]:
         """Reject a pending parameter change."""
-        if approval_id not in self._pending_approvals:
-            return False, "Unknown approval ID"
+        with self._lock:
+            if approval_id not in self._pending_approvals:
+                return False, "Unknown approval ID"
 
-        approval = self._pending_approvals.pop(approval_id)
-        self._record_action(
-            source=approval["source"],
-            action_type="param_change_rejected",
-            details=approval,
-            was_approved=False,
-            was_applied=False,
-        )
-        return True, f"❌ Rejected: {approval['param']}={approval['suggested']}"
+            approval = self._pending_approvals.pop(approval_id)
+            self._record_action(
+                source=approval["source"],
+                action_type="param_change_rejected",
+                details=approval,
+                was_approved=False,
+                was_applied=False,
+            )
+            return True, f"❌ Rejected: {approval['param']}={approval['suggested']}"
 
     def record_score_adjustment(
         self,
@@ -232,7 +240,8 @@ class AdaptiveBehaviorGovernor:
         reason: str,
     ):
         """Record adaptive signal score adjustments (in-memory only)."""
-        self._record_action(
+        with self._lock:
+            self._record_action(
             source=source,
             action_type="score_adjustment",
             details={
@@ -247,17 +256,19 @@ class AdaptiveBehaviorGovernor:
 
     def get_pending_approvals(self) -> list[dict[str, Any]]:
         """Get list of pending parameter change approvals."""
-        return list(self._pending_approvals.values())
+        with self._lock:
+            return list(self._pending_approvals.values())
 
     def get_governance_report(self) -> dict[str, Any]:
         """Get governance status report."""
-        return {
-            "mode": self._governance.adaptive_mode.value,
-            "can_auto_apply": self.can_auto_apply(),
-            "is_allowed": self.is_allowed(),
-            "pending_approvals": len(self._pending_approvals),
-            "actions_today": len([a for a in self._actions if a.timestamp.startswith(now_ist().strftime("%Y-%m-%d"))]),
-        }
+        with self._lock:
+            return {
+                "mode": str(self._governance.adaptive_mode),
+                "can_auto_apply": self.can_auto_apply(),
+                "is_allowed": self.is_allowed(),
+                "pending_approvals": len(self._pending_approvals),
+                "actions_today": len([a for a in self._actions if a.timestamp.startswith(now_ist().strftime("%Y-%m-%d"))]),
+            }
 
     def _record_action(
         self,
@@ -268,21 +279,22 @@ class AdaptiveBehaviorGovernor:
         was_applied: bool,
     ):
         """Record an action to the audit log."""
-        action = AdaptiveAction(
-            timestamp=now_ist().isoformat(),
-            source=source,
-            action_type=action_type,
-            details=details,
-            was_approved=was_approved,
-            was_applied=was_applied,
-            mode=self._governance.adaptive_mode,
-        )
-        self._actions.append(action)
+        with self._lock:
+            action = AdaptiveAction(
+                timestamp=now_ist().isoformat(),
+                source=source,
+                action_type=action_type,
+                details=details,
+                was_approved=was_approved,
+                was_applied=was_applied,
+                mode=self._governance.adaptive_mode,
+            )
+            self._actions.append(action)
 
-        log_msg = f"[GOV] {source}/{action_type}: approved={was_approved}, applied={was_applied}"
-        if details:
-            log_msg += f" {details}"
-        log.info(log_msg)
+            log_msg = f"[GOV] {source}/{action_type}: approved={was_approved}, applied={was_applied}"
+            if details:
+                log_msg += f" {details}"
+            log.info(log_msg)
 
 
 def create_governor(config: dict[str, Any]) -> AdaptiveBehaviorGovernor:

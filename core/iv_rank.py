@@ -70,7 +70,7 @@ def _load_file_cache() -> dict[str, Any]:
     try:
         if _CACHE_PATH.exists():
             return json.loads(_CACHE_PATH.read_text(encoding="utf-8"))
-    except Exception as exc:
+    except (json.JSONDecodeError, OSError) as exc:
         _log.debug("[IV_RANK] Cache file read error: %s", exc)
     return {}
 
@@ -79,7 +79,7 @@ def _save_file_cache(data: dict[str, Any]) -> None:
     try:
         _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         _CACHE_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError, TypeError) as exc:
         _log.warning("[IV_RANK] Cache write error: %s", exc)
 
 
@@ -108,7 +108,7 @@ def _fetch_vix_history() -> list[float]:
             df.index.max().date() if len(df) else "?",
         )
         return closes
-    except Exception as exc:
+    except (ImportError, ValueError, TypeError, OSError, ConnectionError, KeyError) as exc:
         _log.warning("[IV_RANK] History fetch failed: %s", exc)
         return []
 
@@ -354,7 +354,7 @@ def _bs_approx_iv(
             return 0.0  # too far OTM for reliable approximation
         iv_approx = (premium / spot) * (2.506706 / math.sqrt(T))  # sqrt(2π) ≈ 2.5067
         return round(max(0.0, min(200.0, iv_approx * 100)), 2)
-    except Exception:
+    except (ValueError, TypeError, ZeroDivisionError, OverflowError):
         return 0.0
 
 
@@ -424,7 +424,7 @@ def compute_iv_skew(
             regime=regime,
             ts=time.time(),
         )
-    except Exception as exc:
+    except (ValueError, TypeError, KeyError, AttributeError, ZeroDivisionError) as exc:
         _log.debug("[IV_SKEW] compute error: %s", exc)
         return None
 
