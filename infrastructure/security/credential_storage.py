@@ -27,13 +27,14 @@ except ImportError:
 
 # Try to import cryptography for encrypted fallback
 try:
-    from cryptography.fernet import Fernet
+    from cryptography.fernet import Fernet, InvalidToken
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
     CRYPTOGRAPHY_AVAILABLE = True
 except ImportError:
     CRYPTOGRAPHY_AVAILABLE = False
     Fernet = None  # type: ignore
+    InvalidToken = None  # type: ignore
     PBKDF2HMAC = None  # type: ignore
     hashes = None  # type: ignore
 
@@ -99,7 +100,7 @@ class CredentialStorage:
                 credential = keyring.get_password(self.SERVICE_NAME, username)
                 if credential is not None:
                     return credential
-            except (OSError, ValueError, TypeError, KeyError):
+            except (OSError, ValueError, TypeError, KeyError, RuntimeError):
                 # Fall through to next backend
                 pass
 
@@ -109,7 +110,7 @@ class CredentialStorage:
                 credential = self._get_from_encrypted_file(username)
                 if credential is not None:
                     return credential
-            except (OSError, ValueError, TypeError, KeyError):
+            except (OSError, ValueError, TypeError, KeyError, RuntimeError):
                 # Fall through to next backend
                 pass
 
@@ -167,7 +168,7 @@ class CredentialStorage:
 
             return credentials.get(username)
 
-        except (ValueError, TypeError, KeyError, OSError, json.JSONDecodeError):
+        except (ValueError, TypeError, KeyError, OSError, json.JSONDecodeError, InvalidToken):
             return None
 
     def set_credential(self, username: str, credential: str) -> None:
@@ -187,7 +188,7 @@ class CredentialStorage:
             try:
                 keyring.set_password(self.SERVICE_NAME, username, credential)
                 return
-            except (OSError, ValueError, TypeError, KeyError):
+            except (OSError, ValueError, TypeError, KeyError, RuntimeError):
                 # Fall through to encrypted file
                 pass
 
@@ -196,7 +197,7 @@ class CredentialStorage:
             try:
                 self._set_in_encrypted_file(username, credential)
                 return
-            except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as e:
+            except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError, RuntimeError) as e:
                 raise CredentialStorageError(
                     f"Failed to store credential in encrypted file: {e}"
                 ) from e
@@ -244,7 +245,7 @@ class CredentialStorage:
                 else:
                     # Encrypted file is mal creating new encrypted file
                     pass
-            except (ValueError, TypeError, KeyError, OSError, json.JSONDecodeError):
+            except (ValueError, TypeError, KeyError, OSError, json.JSONDecodeError, InvalidToken):
                 # Error reading existing encrypted file, creating new encrypted file
                 pass
 
