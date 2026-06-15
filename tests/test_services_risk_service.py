@@ -29,7 +29,7 @@ from core.safety_state import (
     is_hard_halted,
     reset_consecutive_losses,
 )
-from core.services.risk_service import RiskService, RiskServiceConfig
+from core.services.risk_service import RiskService, RiskServiceConfig, PortfolioRiskMetrics, PositionSizingInput, RiskDecision
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────

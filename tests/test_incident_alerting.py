@@ -60,7 +60,7 @@ def alerting_with_callback():
 
 
 class TestIncidentType:
-    """IncidentType enum — 11 incident types."""
+    """IncidentType enum — 12 incident types."""
 
     def test_values(self):
         assert IncidentType.BROKER_DISCONNECT.value == "broker_disconnect"
@@ -74,6 +74,7 @@ class TestIncidentType:
         assert IncidentType.HARD_HALT.value == "hard_halt"
         assert IncidentType.SYSTEM_MODE_CHANGE.value == "system_mode_change"
         assert IncidentType.UNKNOWN_STATE.value == "unknown_state"
+        assert IncidentType.ORDER_MODIFICATION_FAILED.value == "order_modification_failed"
 
 
 class TestIncidentSeverity:
@@ -177,15 +178,17 @@ class TestIncidentAlertingProcess:
         a, callback = alerting_with_callback
         a.report_incident(IncidentType.HARD_HALT, IncidentSeverity.CRITICAL, "HALT")
         a._process_incidents()
-        _, kwargs = callback.call_args
-        assert kwargs["is_critical"] is True
+        args, _ = callback.call_args
+        msg = args[0] if args else ""
+        assert "HARD_HALT" in msg
 
     def test_process_normal_alert(self, alerting_with_callback):
         a, callback = alerting_with_callback
         a.report_incident(IncidentType.STALE_QUOTE, IncidentSeverity.NORMAL, "stale")
         a._process_incidents()
-        _, kwargs = callback.call_args
-        assert kwargs["is_critical"] is False
+        args, _ = callback.call_args
+        msg = args[0] if args else ""
+        assert "STALE_QUOTE" in msg
 
     def test_callback_error_does_not_crash(self, alerting_with_callback):
         a, callback = alerting_with_callback
@@ -214,7 +217,7 @@ class TestIncidentAlertingFormat:
             details={"current": -500, "limit": -600},
         )
         msg = alerting._format_alert(incident)
-        assert "risk_breach" in msg
+        assert "RISK_BREACH" in msg
         assert "current=-500" in msg or "current" in msg
 
 
@@ -271,6 +274,35 @@ class TestConvenienceMethods:
     def test_alert_system_mode_change(self, alerting):
         alerting.alert_system_mode_change("PAPER", "LIVE", "upgrade")
         assert alerting.get_queue_size() == 1
+
+    def test_alert_order_modification_failed(self, alerting):
+        alerting.alert_order_modification_failed(
+            order_id="OPB-456",
+            reason="Broker rejected modification",
+            details={"qty": 75, "price": 150.0},
+        )
+        assert alerting.get_queue_size() == 1
+
+    def test_alert_order_modification_failed_without_details(self, alerting):
+        alerting.alert_order_modification_failed(
+            order_id="OPB-789",
+            reason="Timeout",
+        )
+        assert alerting.get_queue_size() == 1
+
+    def test_alert_order_modification_failed_formatting(self, alerting_with_callback):
+        a, callback = alerting_with_callback
+        a.alert_order_modification_failed(
+            order_id="OPB-999",
+            reason="Network error",
+            details={"latency_ms": 5000},
+        )
+        a._process_incidents()
+        args, _ = callback.call_args
+        msg = args[0] if args else ""
+        assert "ORDER_MODIFICATION_FAILED" in msg
+        assert "OPB-999" in msg
+        assert "Network error" in msg
 
 
 # ── Singleton Tests ───────────────────────────────────────────────────────────

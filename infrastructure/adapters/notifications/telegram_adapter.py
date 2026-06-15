@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Try to import the existing TelegramEngine
 try:
-    from telegram_engine import SmartTelegramAlertEngine
+    from telegram_engine import TelegramEngine
     TELEGRAM_ENGINE_AVAILABLE = True
 except ImportError:
     TELEGRAM_ENGINE_AVAILABLE = False
@@ -33,7 +33,7 @@ except ImportError:
 
 class TelegramNotificationAdapter(NotificationPort):
     """
-    Telegram notification adapter that wraps the existing SmartTelegramAlertEngine.
+    Telegram notification adapter that wraps the existing TelegramEngine.
 
     This adapter provides a clean interface that conforms to the NotificationPort
     while leveraging the existing sophisticated Telegram alerting logic.
@@ -73,7 +73,7 @@ class TelegramNotificationAdapter(NotificationPort):
         self.enabled = enabled
 
         # Initialize the underlying Telegram engine
-        self._telegram_engine = SmartTelegramAlertEngine(
+        self._telegram_engine = TelegramEngine(
             bot_token=bot_token,
             default_chat_id=default_chat_id,
             channel_map=channel_map or {},

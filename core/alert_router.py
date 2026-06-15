@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import smtplib
+import threading
 import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -72,16 +73,18 @@ class WebhookAlerter:
         self.allow_live = cfg.get("webhook_allow_live", False)
         self.rate_limit_per_min = int(cfg.get("webhook_rate_limit_per_min", 5))
         self._last_sent: list[float] = []  # timestamps of sent webhooks
+        self._rate_lock = threading.Lock()
 
     def _check_rate_limit(self) -> bool:
         """Check if we can send a webhook without exceeding rate limit."""
-        now = time.time()
-        # Remove timestamps older than 1 minute
-        self._last_sent = [t for t in self._last_sent if now - t < 60]
-        if len(self._last_sent) >= self.rate_limit_per_min:
-            return False
-        self._last_sent.append(now)
-        return True
+        with self._rate_lock:
+            now = time.time()
+            # Remove timestamps older than 1 minute
+            self._last_sent = [t for t in self._last_sent if now - t < 60]
+            if len(self._last_sent) >= self.rate_limit_per_min:
+                return False
+            self._last_sent.append(now)
+            return True
 
     def send_alert(self, subject: str, body: str) -> bool:
         """Send a webhook alert.

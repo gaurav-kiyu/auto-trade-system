@@ -46,6 +46,15 @@ def reset_globals():
     it.positions.clear()
     it.decision_log.clear()
 
+    # Reset LTP resolver (may have been mocked by previous test)
+    # Set to None — PositionService._get_underlying_ltp() handles None gracefully
+    it._ltp_resolver = None
+
+    # Reset PositionService singleton so each test starts fresh
+    from core.position_service import reset_position_service
+    reset_position_service()
+    it._position_service = None
+
 
 @pytest.fixture
 def mock_config_file() -> str:
@@ -177,7 +186,7 @@ class TestFullTradingLoopFlow:
         # (config loading alone does not initialize it)
         assert it._risk_service is None, "risk_service requires setup_di_container()"
         assert it._reentry_trackers is not None
-        assert len(it.INDEX_PRIORITY) == 3
+        assert len(it.INDEX_PRIORITY) >= 3
         assert "NIFTY" in it.INDEX_PRIORITY
         assert "BANKNIFTY" in it.INDEX_PRIORITY
         assert "FINNIFTY" in it.INDEX_PRIORITY
@@ -259,19 +268,23 @@ class TestFullTradingLoopFlow:
         mock_risk.get_required_margin_per_lot.return_value = 1000.0
 
         with patch.object(it, "_risk_service", mock_risk):
-            with patch.object(it, "check_mandate_trade_allowed", return_value=(True, "MANDATE_ALLOWED")):
-                # Test enter_trade with mocked risk_service
-                it.enter_trade("NIFTY", mock_gen_signal.return_value)
+            with patch.object(it, "_execution_service") as mock_exec:
+                from core.ports.execution.execution_port import OrderResult, OrderStatus
+                mock_exec.execute_order.return_value = OrderResult(
+                    order_id="test_123", status=OrderStatus.FILLED,
+                    filled_quantity=50, average_price=150.0, reject_reason="",
+                )
+                with patch.object(it, "check_mandate_trade_allowed", return_value=(True, "MANDATE_ALLOWED")):
+                    # Test enter_trade with mocked risk_service and execution_service
+                    it.enter_trade("NIFTY", mock_gen_signal.return_value)
 
         # Verify decision log was populated by enter_trade
         assert len(it.decision_log) > 0, "enter_trade should have populated decision_log"
 
     @patch("index_app.index_trader.now_ist")
     @patch("index_app.index_trader.market_status")
-    @patch("index_app.index_trader.get_underlying_ltp")
     def test_exit_position(
         self,
-        mock_ltp: MagicMock,
         mock_market_status: MagicMock,
         mock_now_ist: MagicMock,
     ):
@@ -283,6 +296,7 @@ class TestFullTradingLoopFlow:
         - Positions are cleaned up after exit
         """
         import index_app.index_trader as it
+        from unittest.mock import MagicMock as _MagicMock
 
         # Clear any existing positions
         it.positions.clear()
@@ -304,9 +318,12 @@ class TestFullTradingLoopFlow:
             "score": 85,
         }
 
-        # Mock LTP to trigger SL (underlying dropped 10% from entry)
+        # Mock LTP resolver to trigger SL (underlying dropped 10% from entry)
         sl_price = entry_underlying * 0.90  # Below 0.92 SL threshold
-        mock_ltp.return_value = sl_price
+        mock_resolver = _MagicMock()
+        mock_resolver.resolve.return_value = sl_price
+        _original_ltp_resolver = it._ltp_resolver
+        it._ltp_resolver = mock_resolver
 
         # Mock market status
         mock_market_status.return_value = "OPEN"
@@ -331,6 +348,9 @@ class TestFullTradingLoopFlow:
 
             # Verify exit order was placed
             mock_exec.execute_order.assert_called_once()
+
+        # Restore original LTP resolver to prevent test pollution
+        it._ltp_resolver = _original_ltp_resolver
 
     @patch("index_app.index_trader.now_ist")
     def test_reconciliation_flow(self, mock_now_ist: MagicMock):
@@ -604,10 +624,8 @@ class TestFullTradingLoopFlow:
 
     @patch("index_app.index_trader.now_ist")
     @patch("index_app.index_trader.market_status")
-    @patch("index_app.index_trader.get_underlying_ltp")
     def test_max_age_exits_position(
         self,
-        mock_ltp: MagicMock,
         mock_market_status: MagicMock,
         mock_now_ist: MagicMock,
     ):
@@ -639,7 +657,11 @@ class TestFullTradingLoopFlow:
         # Set a low MAX_POSITION_AGE to trigger max-age exit
         it._CFG["MAX_POSITION_AGE"] = 10  # 10 seconds max
 
-        mock_ltp.return_value = entry_underlying  # No SL trigger, just age
+        # Use LTP resolver mock to return current price (no SL trigger, just age)
+        mock_resolver = MagicMock()
+        mock_resolver.resolve.return_value = entry_underlying
+        _original_ltp_resolver = it._ltp_resolver
+        it._ltp_resolver = mock_resolver
 
         with patch.object(it, "_execution_service") as mock_exec:
             from core.ports.execution.execution_port import OrderResult, OrderStatus
@@ -654,6 +676,9 @@ class TestFullTradingLoopFlow:
         # Position should be removed after max-age exit
         assert "NIFTY" not in it.positions, \
             "Position should have been removed after max-age exit"
+
+        # Restore original LTP resolver
+        it._ltp_resolver = _original_ltp_resolver
 
     @patch("index_app.index_trader.now_ist")
     @patch("index_app.index_trader.market_status")
@@ -679,7 +704,8 @@ class TestFullTradingLoopFlow:
         }
 
         # Mock auction session check to return True
-        with patch("index_app.index_trader.is_in_auction_session", return_value=True):
+        # Patch at the source (core.datetime_ist) since PositionService imports it internally
+        with patch("core.datetime_ist.is_in_auction_session", return_value=True):
             with patch.object(it, "_risk_service") as mock_risk:
                 from core.services.risk_service import RiskDecision
                 mock_risk_eval = MagicMock()
@@ -838,7 +864,7 @@ class TestFullTradingLoopFlow:
                         with patch.object(it, "_news_sentinel") as mock_news:
                             mock_news.get_current_risk.return_value = MagicMock(risk_level="NONE")
 
-                            with patch("index_app.index_trader.is_in_auction_session",
+                            with patch("core.datetime_ist.is_in_auction_session",
                                        return_value=False):
 
                                 with patch.object(it, "_execution_service") as mock_exec:

@@ -269,6 +269,19 @@ class LauncherApp:
                 command=self._on_mode_change,
             ).pack(side="left", padx=(10, 0))
 
+        # Equity toggle row
+        ef = tk.Frame(self.root, bg=self.C_BG)
+        ef.pack(fill="x", padx=24, pady=(0, 4))
+        self._equity_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(
+            ef,
+            text="Enable Equity Trading  (passes --equity to app)",
+            variable=self._equity_var,
+            font=self.F_BODY, bg=self.C_BG, fg="#3fb950",
+            selectcolor=self.C_PANEL,
+            activebackground=self.C_BG, activeforeground="#3fb950",
+        ).pack(side="left")
+
         # Progress bar
         style = ttk.Style()
         style.theme_use("clam")
@@ -555,6 +568,8 @@ class LauncherApp:
         args: list[str] = [self.python_exe, str(script)]
         if info["flag"]:
             args.append(info["flag"])
+        if self._equity_var.get():
+            args.append("--equity")
         args.extend(_S.get("extra_args", []))
 
         self._log()

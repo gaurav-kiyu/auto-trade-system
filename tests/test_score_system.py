@@ -21,14 +21,23 @@ import pytest
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
+_SCORE_SYSTEM_CACHE: Any = None
+
 def import_score_system() -> Any:
-    """Import the score_system module, ensuring clean import from the right path."""
-    # Remove any cached imports
-    for mod in list(sys.modules.keys()):
-        if "score_system" in mod:
-            del sys.modules[mod]
+    """Import the score_system module (cached after first import).
+
+    Uses a module-level cache to avoid re-executing the module-level
+    sys.stdout replacement (Windows cp1252 fix) on every call, which
+    causes 'I/O operation on closed file' errors from accumulating
+    TextIOWrapper layers.
+    """
+    global _SCORE_SYSTEM_CACHE
+    if _SCORE_SYSTEM_CACHE is not None:
+        return _SCORE_SYSTEM_CACHE
+    # Import once and cache
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     import scripts.score_system as ss
+    _SCORE_SYSTEM_CACHE = ss
     return ss
 
 
@@ -56,7 +65,7 @@ class TestCalculateScore:
         ss = import_score_system()
         evidence = [{"description": "big evidence", "type": "test_pass", "weight": 10.0, "verified": True}]
         result = ss.calculate_score("ARCH-01", evidence)
-        assert result["score"] <= 9.5  # max for ARCH-01
+        assert result["score"] <= 10.0  # ARCH-01 max_score is 10.0
 
     def test_score_floor_at_zero(self) -> None:
         ss = import_score_system()
@@ -137,8 +146,8 @@ class TestCategories:
 
     def test_risk_categories_have_highest_scores(self) -> None:
         ss = import_score_system()
-        assert ss.CATEGORIES["RSK-01"][1] == 9.9
-        assert ss.CATEGORIES["RSK-02"][1] == 9.9
+        assert ss.CATEGORIES["RSK-01"][1] == 10.0
+        assert ss.CATEGORIES["RSK-02"][1] == 10.0
 
     def test_category_count(self) -> None:
         ss = import_score_system()

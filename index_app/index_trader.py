@@ -357,7 +357,6 @@ from core.datetime_ist import is_in_auction_session, now_ist
 from core.execution.broker_exceptions import (
     AuthExpiredError,
     OrderRejectedError,
-    classify_broker_exception,
 )
 from core.execution.broker_truth_reconciliation import get_broker_truth_reconciler
 from core.execution.deterministic_state_machine import get_execution_state_manager
@@ -380,7 +379,9 @@ from core.ports.notification import NotificationPort
 from core.ports.persistence import PersistencePort
 from core.ports.rate_limiting.rate_limit_port import RateLimitPort
 from core.ports.risk import RiskPort
-from core.ports.risk.risk_port import PositionSizingInput
+from core.mandate_service import MandateService
+from core.position_service import get_position_service
+from core.signal_service import get_signal_service
 
 # v2.49 CRITICAL FIX imports
 from core.risk.margin_validator import get_margin_validator
@@ -656,6 +657,21 @@ _execution_service = None
 # Risk service - initialized in _setup_container, consolidated from duplicate risk engines
 _risk_service = None
 
+# MandateService - module-level delegation target (GAP-05).  warmup_manager and holidays set below after defs.
+_mandate_service = MandateService(
+    cfg=_CFG,
+    risk_service=_risk_service,
+    warmup_manager=None,
+    mandate_enforcer=_MANDATE_ENFORCER,
+    holidays=None,
+)
+
+# PositionService - module-level delegation target (GAP-05b), wired at module level below
+_position_service = None
+
+# SignalService - module-level delegation target (GAP-05b), wired at module level
+_signal_service = None
+
 # Stale Account Detector - initialized in setup_di_container
 _stale_detector = None
 
@@ -845,217 +861,35 @@ def _telegram_action_body(sig):
     return f"[MANUAL SIGNAL] Conf={learning_state.get('confidence', 0)} Learner"
 
 def enter_trade(name, sig):
-    """Entry gate for all trades. Risk-gated, idempotent, fail-closed."""
-    from core.safety_state import check_kill_file_and_halt
-    check_kill_file_and_halt()
-
-    # Build deterministic trace_id before any gates
-    _trace_ts = str(sig.get("signal_ts", sig.get("timestamp", time.time()))).replace(".", "_")
-    trace_id = f"{name}_{str(sig.get('direction', 'CALL'))}_{_trace_ts}"
-
-    _audit_engine.record("enter_trade", trace_id=trace_id, symbol=name,
-                         direction=sig.get("direction"), price=sig.get("price"),
-                         score=sig.get("score"))
-    if is_hard_halted():
-        decision_log[name] = {"msg": "HARD HALT ACTIVE — blocked"}
-        _audit_engine.record("blocked", trace_id=trace_id, symbol=name, reason="HARD_HALT")
-        return
-
-    # Intraday P&L gate: trip hard halt if running loss exceeds intraday limit
-    if check_intraday_pnl_and_halt(source="enter_trade"):
-        decision_log[name] = {"msg": "INTRADAY_LOSS_LIMIT — hard halt tripped"}
-        return
-
-    # News risk gate: block entry during HIGH/EXTREME news risk levels
-    try:
-        news_risk = _news_sentinel.get_current_risk()
-        if news_risk.risk_level in ("HIGH", "EXTREME"):
-            decision_log[name] = {"msg": f"NEWS_BLOCK: {news_risk.risk_level} — {news_risk.headline}"}
-            log.warning(f"[NEWS_BLOCK] {name} blocked: {news_risk.risk_level} — {news_risk.headline}")
-            return
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _news_err:
-        log.debug("News sentinel check failed (fail-open): %s", _news_err)
-
-    # Warm-up gate: throttle entries during market open warm-up period
-    if not _warmup_manager.can_enter(name):
-        decision_log[name] = {"msg": f"WARMUP_BLOCK: max entries ({_warmup_manager._max_trades}) reached in warm-up"}
-        return
-
-    # Expiry day gate: block entry on expiry day after configured cutoff
-    if _expiry_controller is not None:
-        expiry_result = _expiry_controller.can_enter_position()
-        if not expiry_result.allowed:
-            decision_log[name] = {"msg": f"EXPIRY_BLOCK: {expiry_result.reason} (session={expiry_result.session.value})"}
-            if expiry_result.risk_level == "HIGH":
-                send(f"EXPIRY_BLOCK: {name} — {expiry_result.reason}", critical=True)
-            return
-
-    # Auction session gate: block entry during NSE pre-open/post-close auctions
-    if is_in_auction_session():
-        decision_log[name] = {"msg": "AUCTION_BLOCK: Entry blocked during NSE auction session"}
-        send(f"AUCTION_BLOCK: {name} — Entry blocked during NSE auction session", critical=True)
-        return
-
-    # CRITICAL FIX #1 (Phase 0): Evaluate trade via RiskService before ANY other processing
-    # RiskService.evaluate_trade() checks: daily loss limit, consecutive losses,
-    # portfolio limits, margin requirements, trade quality, position sizing limits
-    if _risk_service is not None:
-        try:
-            risk_metrics = _risk_service.get_portfolio_risk_metrics()
-            risk_eval = _risk_service.evaluate_trade(name, sig, risk_metrics)
-            if risk_eval.decision.value == "denied":
-                decision_log[name] = {"msg": f"RISK_BLOCK: {risk_eval.reason} (score={risk_eval.risk_score:.2f})"}
-                send(f"RISK_BLOCK: {name} — {risk_eval.reason}", critical=True)
-                _audit_engine.record("risk_block", trace_id=trace_id, symbol=name,
-                                     reason=risk_eval.reason,
-                                     risk_score=risk_eval.risk_score)
-                return
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as e:
-            # Fail-closed: on risk evaluation error, BLOCK the trade
-            decision_log[name] = {"msg": f"RISK_EVAL_ERROR: {e} — trade blocked (fail-closed)"}
-            send(f"RISK_EVAL_CRITICAL: {name} — {e}", critical=True)
-            return
-
-    # 1. Time Validation
-    confirmed_ts = None
-    with _bos_lock:
-        bs = breakout_state.get(name)
-        if bs:
-            confirmed_ts = bs.get("confirmed_ts")
-
-    signal_ts = sig.get("signal_ts", time.time())
-    now = time.time()
-
-    if confirmed_ts is not None and (now - confirmed_ts) > SIGNAL_MAX_AGE:
-        decision_log[name] = {"msg": f"stale — confirmed_ts {now - confirmed_ts:.0f}s old"}
-        return
-
-    if (now - signal_ts) > SIGNAL_MAX_AGE:
-        decision_log[name] = {"msg": f"stale — signal_ts {now - signal_ts:.0f}s old"}
-        return
-
-    if MANUAL_SIGNALS_ONLY or EXECUTION_MODE in ("MANUAL", "MANUAL_ONLY", "SIGNAL_ONLY", "SIGNALS_ONLY"):
-        ok, reason = _telegram_action_quality(sig)
-        if not ok:
-            decision_log[name] = {"msg": f"MANUAL SIGNAL BLOCKED: {reason}"}
-            return
-
-        price = sig.get("price", 0.0)
-        rr = sig.get("rr", sig.get("rr_ratio", sig.get("risk_reward_ratio", 0.0)))
-        if rr is None:
-            rr = 0.0
-        msg = (
-            f"[MANUAL SIGNAL] {name} {sig.get('direction', 'CALL')} @ {price} "
-            f"RR={rr}"
-        ).strip()
-
-        if msg not in _manual_sig_last:
-            send(msg)
-            _manual_sig_last.add(msg)
-
-        decision_log[name] = {"msg": msg}
-        return
-
-    # Token refresh check: ensure broker auth is fresh before placing order
-    _last_token_check = getattr(_token_refresh_service, "_last_check", {})
-    if _token_refresh_service._enabled:
-        broker_port = getattr(_execution_service, "broker_port", None)
-        if broker_port is not None:
-            _token_refresh_service.check_and_refresh({"primary": broker_port})
-
-    # 2. Route to Hardened Execution Service
-    from core.ports.execution.execution_port import OrderRequest, OrderStatus, OrderType
-
-    price = sig.get("price", 0.0)
-    qty = get_position_size(name, price)
-    qty = _warmup_manager.adjusted_position_size(qty)
-    direction = sig.get("direction", "CALL")
-    order_direction = "BUY" if str(direction).upper() == "CALL" else "SELL" if str(direction).upper() == "PUT" else str(direction).upper()
-
-    # Build deterministic idempotency key before entering lock
-    signal_ts_str = str(sig.get("signal_ts", sig.get("timestamp", time.time()))).replace(".", "_")
-    idempotency_key = f"{name}_{direction}_{int(qty)}_{signal_ts_str}"
-
-    # CRITICAL: lock covers risk-check + broker submission (TOCTOU fix)
-    try:
-        with _state_lock:
-            available_margin = _portfolio_service.get_available_margin()
-            required_margin_per_lot = _risk_service.get_required_margin_per_lot(name, price) if _risk_service else price * qty * 0.2
-            margin_result = _margin_validator.validate(
-                available_margin=available_margin,
-                required_margin_per_lot=required_margin_per_lot,
-                intended_quantity=int(qty),
-                price_per_lot=price,
-                instrument_name=name,
-            )
-            if not margin_result.allowed:
-                decision_log[name] = {"msg": f"MARGIN_BLOCK: {margin_result.error_message}"}
-                send(f"MARGIN_BLOCK: {name} - {margin_result.error_message}", critical=True)
-                return
-            if margin_result.warning_message:
-                send(margin_result.warning_message, critical=False)
-
-            # Re-validate risk after acquiring lock (TOCTOU fix)
-            if _risk_service is not None:
-                try:
-                    risk_metrics_after_lock = _risk_service.get_portfolio_risk_metrics()
-                    risk_eval_after_lock = _risk_service.evaluate_trade(name, sig, risk_metrics_after_lock)
-                    if risk_eval_after_lock.decision.value == "denied":
-                        decision_log[name] = {"msg": f"RISK_BLOCK_POST_LOCK: {risk_eval_after_lock.reason}"}
-                        send(f"RISK_BLOCK: {name} — {risk_eval_after_lock.reason} (post-lock validation)", critical=True)
-                        return
-                except (ValueError, TypeError, KeyError) as risk_e:
-                    decision_log[name] = {"msg": f"RISK_EVAL_POST_LOCK_ERROR: {risk_e}"}
-                    send(f"RISK_EVAL_CRITICAL: {name} — {risk_e}", critical=True)
-                    return
-
-            # Submit order under lock — NO TOCTOU window between risk check and broker call
-            order_request = OrderRequest(
-                symbol=name,
-                direction=order_direction,
-                strike_price=price,
-                lot_size=int(qty),
-                order_type=OrderType.MARKET,
-                price=price,
-                idempotency_key=idempotency_key,
-            )
-            order_result = _execution_service.execute_order(order_request)
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as e:
-        classified = classify_broker_exception(e)
-        if isinstance(classified, (AuthExpiredError, OrderRejectedError)):
-            decision_log[name] = {"msg": f"BROKER_ERROR: {classified.__class__.__name__}"}
-            trip_hard_halt(f"Margin check failed: {classified.__class__.__name__}")
-            return
-        decision_log[name] = {"msg": f"ORDER_FAILED: {e}"}
-        return
-
-    success = order_result.status in (OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED)
-
-    if success:
-        # CRITICAL FIX: Store position in positions dict so monitoring/exit can find it
-        with _pos_lock:
-            # Capture underlying price at entry for SL/Target monitoring
-            _underlying_entry = get_underlying_ltp(name) or price
-            positions[name] = {
-                "direction": direction,
-                "qty": int(qty),
-                "entry_price": price,  # option premium
-                "underlying_entry_price": float(_underlying_entry),  # index level at entry
-                "entry_time": time.time(),
-                "order_id": order_result.order_id or "",
-                "signal": sig.get("direction", "CALL"),
-                "strike": int(sig.get("strike", sig.get("price", price))),
-                "idempotency_key": idempotency_key,
-                "entry_order_direction": order_direction,
-                "score": int(sig.get("score", 0)),
-            }
-            _rt = _reentry_trackers.get(name)
-            if _rt and _rt.last_sl_ts is not None:
-                _rt.record_reentry()
-        decision_log[name] = {"msg": f"Executed: {order_result.order_id}"}
-    else:
-        error_text = order_result.reject_reason or str(order_result.status)
-        decision_log[name] = {"msg": f"Blocked/Failed: {error_text}"}
+    """Entry gate for all trades. Delegates to PositionService."""
+    global _position_service
+    if _position_service is None:
+        _position_service = get_position_service(
+            cfg=_CFG,
+            risk_service=_risk_service,
+            execution_service=_execution_service,
+            portfolio_service=_portfolio_service,
+            margin_validator=_margin_validator,
+            warmup_manager=_warmup_manager,
+            news_sentinel=_news_sentinel,
+            expiry_controller=_expiry_controller,
+            token_refresh_service=_token_refresh_service,
+            audit_engine=_audit_engine,
+            reentry_trackers=_reentry_trackers,
+            positions=positions,
+            decision_log=decision_log,
+            manual_sig_last=_manual_sig_last,
+            breakout_state=breakout_state,
+            bos_lock=_bos_lock,
+            state_lock=_state_lock,
+            pos_lock=_pos_lock,
+            mandate_service=_mandate_service,
+            manual_signals_only=MANUAL_SIGNALS_ONLY,
+            execution_mode=EXECUTION_MODE,
+            ltp_resolver=_ltp_resolver,
+            signal_max_age=SIGNAL_MAX_AGE,
+        )
+    return _position_service.enter_trade(name, sig)
 
 def _check_hard_halt_reason():
     import core.safety_state as _ss
@@ -1152,192 +986,45 @@ def _broker_positions_snapshot():
 def _local_positions_snapshot():
     return {}
 
-INDEX_PRIORITY = ["NIFTY", "BANKNIFTY", "FINNIFTY"]
+INDEX_PRIORITY = [
+    "NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX",
+    "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY",
+    "NIFTY_FUT",
+]
 INDEX_MAP: dict = {
+    # Indices
     "NIFTY": {"yf": "^NSEI"},
     "BANKNIFTY": {"yf": "^NSEBANK"},
     "FINNIFTY": {"yf": "NIFTY_FIN_SERVICE.NS"},
+    "MIDCPNIFTY": {"yf": "^NSEMIDCAP"},
+    "SENSEX": {"yf": "^BSESN"},
+    # Equities (cash market)
+    "RELIANCE": {"yf": "RELIANCE.NS"},
+    "TCS": {"yf": "TCS.NS"},
+    "HDFCBANK": {"yf": "HDFCBANK.NS"},
+    "ICICIBANK": {"yf": "ICICIBANK.NS"},
+    "INFY": {"yf": "INFY.NS"},
+    # Futures (requires broker API for live data; yfinance NSE futures unavailable)
+    "NIFTY_FUT": {"yf": ""},
+    "BANKNIFTY_FUT": {"yf": ""},
+    "FINNIFTY_FUT": {"yf": ""},
 }
 performance: dict = {"wins": 0, "loss": 0}
 _reentry_trackers: dict[str, Any] = build_reentry_trackers(list(INDEX_PRIORITY))
 
 def market_status():
-    try:
-        now = now_ist()
-        weekday = now.weekday()
-        if weekday >= 5:
-            return "CLOSED"
-        today_str = now.strftime("%Y-%m-%d")
-        if today_str in NSE_HOLIDAYS:
-            return "HOLIDAY"
-        hour, minute = now.hour, now.minute
-        mins = hour * 60 + minute
-        if 555 <= mins <= 920:
-            return "OPEN"
-        return "CLOSED"
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _mkt_err:
-        log.warning("Market status check failed: %s — assuming OPEN", _mkt_err)
-        return "OPEN"
-
+    return _mandate_service.market_status()
 def _execution_mode_label():
     return EXECUTION_MODE
 
 def get_wait_reason_components(sd):
-    reasons: list[str] = []
-    if not isinstance(sd, dict):
-        return "WAIT", []
-
-    market_status_value = str(sd.get("market_status", "")).upper()
-    if market_status_value and market_status_value != "OPEN":
-        reasons.append("Market")
-
-    score = sd.get("score")
-    threshold = sd.get("threshold")
-    if score is None or threshold is None:
-        reasons.append("Score")
-    elif score < threshold:
-        reasons.append("Score")
-
-        regime = str(sd.get("regime", "")).upper()
-        adx = float(sd.get("adx", 999.0) or 999.0)
-        if regime == "CHOPPY" or adx < 14.0:
-            reasons.append("ADX")
-
-        rr = float(sd.get("rr", 999.0) or 999.0)
-        if rr < 1.5:
-            reasons.append("RR")
-
-        vix = float(sd.get("vix", 0.0) or 0.0)
-        if vix > 27.0:
-            reasons.append("VIX")
-
-        mins_to_eod = float(sd.get("mins_to_eod", 999.0) or 999.0)
-        if mins_to_eod < 40.0:
-            reasons.append("EOD")
-
-        cooldown_s = float(sd.get("cooldown_s", 0.0) or 0.0)
-        if cooldown_s > 0.0:
-            reasons.append("Cooldown")
-
-    if not reasons:
-        return "PASS", []
-
-    display = ", ".join(reasons[:2])
-    return f"WAIT: {display}", reasons
-
-
+    return _mandate_service.get_wait_reason_components(sd)
 def get_position_size(name, entry, vix=0.0):
-    """Risk-based position sizing via RiskService (consolidated from mandate enforcer)."""
-    if _risk_service is not None:
-        try:
-            metrics = _risk_service.get_portfolio_risk_metrics()
-            sizing_input = PositionSizingInput(
-                symbol=name,
-                entry_price=entry,
-                stop_loss_price=entry * SL_PCT,
-                capital_available=metrics.available_capital,
-                risk_per_trade=_risk_service.config.default_risk_per_trade,
-                lot_size=_risk_service._get_lot_size(name),
-                volatility=_risk_service.get_live_vix(),
-            )
-            return _risk_service.calculate_position_size(sizing_input)
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-            log.debug("RiskService position sizing failed — using fallback sizing")
-
-    # Fallback: simple fixed sizing
-    regime = "SIDEWAYS"
-    sl_pct = 1 - SL_PCT
-    from core.mandate_enforcer import get_mandate_enforcer
-    return get_mandate_enforcer(_CFG).get_position_size(entry, regime, sl_pct)
-    return _MANDATE_ENFORCER.get_status()
+    return _mandate_service.get_position_size(name, entry, vix)
 def check_mandate_trade_allowed(regime: str = "SIDEWAYS", score: int = 70, iv_rank: float = 25.0) -> tuple[bool, str]:
-    """Consolidated trade entry gate via RiskService (replaces ProductionMandateEnforcer)."""
-    if _risk_service is not None:
-        try:
-            # 1. Check trading window (9:20-11:30, 13:00-14:45)
-            if not _risk_service.is_in_trading_window():
-                return False, "MANDATE_BLOCK: Outside trading window"
-
-            # 2. Check skip first 20 min
-            if _risk_service.should_skip_first_20_min():
-                return False, "MANDATE_BLOCK: First 20 minutes"
-
-            # 3. Check skip last 45 min
-            if _risk_service.should_skip_last_45_min():
-                return False, "MANDATE_BLOCK: Last 45 minutes"
-
-            # 4. Check score threshold by regime
-            min_score = _risk_service.get_min_score_for_regime(regime) + _warmup_manager.score_threshold_adjustment()
-            if score < min_score:
-                return False, f"MANDATE_BLOCK: Score {score} < {min_score} for {regime}"
-
-            # 5. Check false signal filter
-            if _risk_service.should_block_false_signal(score, iv_rank):
-                return False, f"MANDATE_BLOCK: False signal (score={score}, iv={iv_rank})"
-
-            # 6. Check max trades today via RiskService
-            metrics = _risk_service.get_portfolio_risk_metrics()
-            daily_vix = _risk_service.get_live_vix()
-            max_trades = _risk_service.get_max_trades_per_day(daily_vix, metrics.consecutive_losses)
-            trades_today = metrics.open_positions_count
-            if trades_today >= max_trades:
-                return False, f"MANDATE_BLOCK: Max trades today ({trades_today} >= {max_trades})"
-
-            # 7. Check hard stop/VIX via health
-            can_trade, reason = _check_hard_stops_via_risk()
-            if not can_trade:
-                return False, f"MANDATE_BLOCK: {reason}"
-
-            return True, "MANDATE_ALLOWED"
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-            log.debug("RiskService mandate check failed — using legacy mandate enforcer")
-
-    # Fallback to mandate enforcer
-    from core.mandate_enforcer import get_mandate_enforcer
-    _me = get_mandate_enforcer(_CFG)
-
-    can_trade, reason = _me.can_trade()
-    if not can_trade:
-        return False, f"MANDATE_BLOCK: {reason}"
-
-    if not _me.is_in_trading_window():
-        return False, "MANDATE_BLOCK: Outside trading window"
-
-    if _me.should_skip_first_20_min():
-        return False, "MANDATE_BLOCK: First 20 minutes"
-
-    if _me.should_skip_last_45_min():
-        return False, "MANDATE_BLOCK: Last 45 minutes"
-
-    min_score = _me.get_min_score(regime) + _warmup_manager.score_threshold_adjustment()
-    if score < min_score:
-        return False, f"MANDATE_BLOCK: Score {score} < {min_score} for {regime}"
-
-    if _me.should_block_false_signal(score, iv_rank):
-        return False, f"MANDATE_BLOCK: False signal (score={score}, iv={iv_rank})"
-
-    if _me.get_status()["trades_today"] >= _me.get_max_trades_today():
-        return False, "MANDATE_BLOCK: Max trades today reached"
-
-    return True, "MANDATE_ALLOWED"
+    return _mandate_service.check_mandate_trade_allowed(regime, score, iv_rank)
 def get_mandate_status() -> dict:
-    """Current mandate/risk state (consolidated from mandate enforcer into RiskService)."""
-    if _risk_service is not None:
-        try:
-            metrics = _risk_service.get_portfolio_risk_metrics()
-            return {
-                "trades_today": metrics.open_positions_count,
-                "max_trades_today": _risk_service.get_max_trades_per_day(_risk_service.get_live_vix(), metrics.consecutive_losses),
-                "can_trade": metrics.open_positions_count < _risk_service.config.max_open_positions,
-                "viable_regimes": ["TRENDING", "BULLISH", "SIDEWAYS"],
-            }
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-            log.debug("RiskService get_mandate_status failed — using legacy mandate enforcer")
-
-    from core.mandate_enforcer import get_mandate_enforcer
-    return get_mandate_enforcer(_CFG).get_status()
-
-
+    return _mandate_service.get_mandate_status()
 def validate_signal_pillars(
     rsi: float = None,
     macd: str = None,
@@ -1350,37 +1037,19 @@ def validate_signal_pillars(
     gex: float = None,
     session_score: float = None,
 ) -> tuple[bool, str]:
+    """Validate signal independence - RSI/MACD/ADX = 1 pillar (NOT 3!).
+
+    Delegates to SignalService.
     """
-    v2.49: Validate signal independence - RSI/MACD/ADX = 1 pillar (NOT 3!)
-    Must have consensus from 2 independent pillars for trade.
-    """
-    from core.signal_independence import SignalIndependenceValidator
+    if _signal_service is not None:
+        return _signal_service.validate_signal_pillars(
+            rsi=rsi, macd=macd, adx=adx,
+            iv_rank=iv_rank, oi_change=oi_change, pcr=pcr,
+            fii_net=fii_net, dii_net=dii_net, gex=gex,
+            session_score=session_score,
+        )
+    return False, "PILLAR_FAIL: SignalService not initialized"
 
-    validator = SignalIndependenceValidator()
-
-    # PILLAR 1: Price/Momentum (RSI+MACD+ADX = ONE pillar - not three!)
-    if rsi is not None and macd is not None and adx is not None:
-        validator.set_price_momentum_signal(rsi, macd, adx)
-
-    # PILLAR 2: Options Market (IV+OI+PCR = independent)
-    if iv_rank is not None and oi_change is not None and pcr is not None:
-        validator.set_options_market_signal(iv_rank, oi_change, pcr)
-
-    # PILLAR 3: Institutional Flow (FII+DII+GEX = independent)
-    if fii_net is not None and dii_net is not None:
-        validator.set_institutional_flow_signal(fii_net, dii_net, gex or 0)
-
-    # PILLAR 4: Structural (session+time+events = independent)
-    if session_score is not None:
-        validator.set_structural_signal(session_score, "normal", True)
-
-    # Validate: Need 2 pillars agreeing
-    valid, reason, pillars = validator.validate_independence()
-    if not valid:
-        return False, f"PILLAR_FAIL: {reason} (have {pillars} pillars)"
-
-    direction = validator.get_consensus_direction()
-    return True, f"PILLAR_OK: {direction} consensus from {pillars} pillars"
 
 def _get_trade_history_snapshot():
     return []
@@ -1400,12 +1069,18 @@ def get_all_dlogs():
     return {}
 
 def _get_signal_quality_report():
+    """Return signal quality report. Delegates to SignalService."""
+    if _signal_service is not None:
+        return _signal_service.get_signal_quality_report()
     return "ok"
 
 def _get_api_latency_report():
     return "ok"
 
 def _get_top_signals(n):
+    """Return top signals. Delegates to SignalService."""
+    if _signal_service is not None:
+        return _signal_service.get_top_signals(n)
     return []
 
 def _telegram_alerts_enabled():
@@ -1453,7 +1128,7 @@ def _fetch_nse_holidays_dynamic():
             _NSE_HOLIDAY_YEARS.update({d[:4] for d in holidays})
             _HOLIDAY_FETCH_META["fallback"] = False
             _HOLIDAY_FETCH_META["note"] = "ok"
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _parse_err:
+        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError, AssertionError) as _parse_err:
             log.warning("NSE holiday API returned non-JSON response: %s", _parse_err)
             _HOLIDAY_FETCH_META["fallback"] = True
             _HOLIDAY_FETCH_META["note"] = "non-json"
@@ -1482,25 +1157,7 @@ def _fetch_nse_holidays_dynamic():
 
 
 def _check_hard_stops_via_risk() -> tuple[bool, str]:
-    """Check hard stops via RiskService (replaces mandate enforcer can_trade)."""
-    if _risk_service is not None:
-        try:
-            metrics = _risk_service.get_portfolio_risk_metrics()
-            # Check daily loss limit
-            if metrics.daily_pnl <= metrics.max_daily_loss:
-                return False, f"Daily loss limit: {metrics.daily_pnl:.2f} <= {metrics.max_daily_loss:.2f}"
-            # Check consecutive losses
-            if metrics.consecutive_losses >= metrics.max_consecutive_losses:
-                return False, f"Consecutive losses: {metrics.consecutive_losses} >= {metrics.max_consecutive_losses}"
-            # Check VIX barrier
-            live_vix = _risk_service.get_live_vix()
-            if live_vix > 35:
-                return False, f"VIX too high: {live_vix:.1f} > 35"
-            return True, "OK"
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _risk_err:
-            log.debug("RiskService check_hard_stops failed (falling back to OK): %s", _risk_err)
-    # Fallback
-    return True, "OK"
+    return _mandate_service._check_hard_stops_via_risk()
 _nse_session: Any = requests.Session()
 _nse_session.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application/json, text/plain, */*"})
 NSE_HOLIDAYS: set = set()
@@ -1566,197 +1223,78 @@ def _fetch_intraday_data(name: str) -> tuple:
 
 
 def _generate_trading_signal(name: str, frames: dict, vix: float = 0.0):
-    """Generate a trading signal dict using the (deprecated) signal_engine."""
-    from core.iv_rank import get_iv_rank
-    from core.oi_snapshot_store import get_oi_at, get_pcr_at
+    """Generate a trading signal dict. Delegates to SignalService."""
+    if _signal_service is not None:
+        return _signal_service.generate_trading_signal(
+            name=name, frames=frames, vix=vix,
+        )
+    log.warning("SignalService not initialized - returning empty signal")
+    return {}
 
-    log.warning(
-        "SIGNAL PATH: using root-level signal_engine.build_full_signal "
-        "(deprecated — split-brain risk with core.adaptive_signal)"
-    )
-    from signal_engine import build_full_signal
-
-    threshold = int(_CFG.get("AI_THRESHOLD", 60))
-    df1m = frames.get("df1m")
-    df5m = frames.get("df5m")
-    df15m = frames.get("df15m")
-
-    oi_data = None
-    try:
-        from core.datetime_ist import now_ist
-        ts = now_ist().timestamp()
-        pcr = get_pcr_at(name, ts)
-        oi_change = get_oi_at(name, ts)
-        if pcr is not None:
-            oi_data = {"pcr": pcr, "oi_change": oi_change or 0}
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-        log.debug("OI data fetch failed for %s — continuing without OI data", name)
-
-    iv = get_iv_rank(name) if callable(get_iv_rank) else 0.0
-
-    return build_full_signal(
-        symbol=name, df1m=df1m, df5m=df5m, df15m=df15m,
-        asset_type="index", oi_data=oi_data, iv=iv, vix=vix,
-        threshold=threshold, config=_CFG,
-    )
 
 
 def _exit_position(name: str, reason: str) -> None:
-    """Exit an open position by placing an opposite-direction order."""
-    global positions
-    with _pos_lock:
-        pos = positions.get(name)
-        if not pos:
-            return
-        direction = pos.get("direction", "CALL")
-        qty = int(pos.get("qty", 0))
-        entry_price = float(pos.get("entry_price", 0))
-        if qty <= 0 and entry_price <= 0:
-            return
-        entry_order_direction = pos.get("entry_order_direction", "")
-
-    current_price = get_underlying_ltp(name) or entry_price
-    if entry_order_direction:
-        exit_direction = "SELL" if entry_order_direction == "BUY" else "BUY"
-    else:
-        exit_direction = "SELL" if direction == "CALL" else "BUY"
-
-    from core.ports.execution.execution_port import OrderRequest, OrderStatus, OrderType
-    order_request = OrderRequest(
-        symbol=name, direction=exit_direction, strike_price=current_price,
-        lot_size=qty, order_type=OrderType.MARKET, price=current_price,
-        idempotency_key=f"exit_{name}_{int(qty)}_{int(entry_price)}_{reason}",
-    )
-
-    try:
-        order_result = _execution_service.execute_order(order_request)
-        if order_result.status in (OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED):
-            exit_price = order_result.average_price or entry_price
-        else:
-            log.warning(f"Exit order for {name} not filled: {order_result.reject_reason} — using entry price")
-            exit_price = entry_price
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as e:
-        log.error(f"Exit order failed for {name}: {e} — using entry price")
-        exit_price = entry_price
-
-    exit_failed = (exit_price == entry_price and reason != "MANUAL")
-    pnl = 0.0
-    if not exit_failed:
-        pnl = (exit_price - entry_price) * qty
-        _portfolio_service.update_daily_pnl(pnl)
-        _portfolio_service.increment_trade_count()
-        from core.safety_state import record_trade_outcome
-        record_trade_outcome(was_profit=pnl > 0)
-
-    with _pos_lock:
-        if exit_failed:
-            pos["exit_failed"] = True
-            pos["exit_retries"] = pos.get("exit_retries", 0) + 1
-            if pos["exit_retries"] >= 3:
-                log.error("EXIT %s FAILED after %d retries — giving up", name, pos["exit_retries"])
-                positions.pop(name, None)
-        else:
-            positions.pop(name, None)
-
-    if exit_failed and pos.get("exit_retries", 0) < 3:
-        log.warning("EXIT %s failed, will retry (attempt %d)", name, pos.get("exit_retries", 0))
-        return
-
-    if not exit_failed:
-        log.info("EXIT %s @ %.2f: %s (P&L=%.0f)", name, exit_price, reason, pnl)
-        send(f"EXIT {name}: {reason} @ {exit_price:.2f} P&L={pnl:.0f}")
-    else:
-        log.error("EXIT %s GIVING UP after %d failed attempts", name, pos.get("exit_retries", 3))
+    """Exit an open position. Delegates to PositionService."""
+    global _position_service
+    if _position_service is None:
+        _position_service = get_position_service(
+            cfg=_CFG,
+            risk_service=_risk_service,
+            execution_service=_execution_service,
+            portfolio_service=_portfolio_service,
+            margin_validator=_margin_validator,
+            warmup_manager=_warmup_manager,
+            news_sentinel=_news_sentinel,
+            expiry_controller=_expiry_controller,
+            token_refresh_service=_token_refresh_service,
+            audit_engine=_audit_engine,
+            reentry_trackers=_reentry_trackers,
+            positions=positions,
+            decision_log=decision_log,
+            manual_sig_last=_manual_sig_last,
+            breakout_state=breakout_state,
+            bos_lock=_bos_lock,
+            state_lock=_state_lock,
+            pos_lock=_pos_lock,
+            mandate_service=_mandate_service,
+            manual_signals_only=MANUAL_SIGNALS_ONLY,
+            execution_mode=EXECUTION_MODE,
+            ltp_resolver=_ltp_resolver,
+            signal_max_age=SIGNAL_MAX_AGE,
+        )
+    return _position_service.exit_position(name, reason)
 
 
 def _monitor_positions() -> None:
-    """Monitor open positions and exit on SL/target/age conditions.
-
-    Uses underlying index price movement as a proxy for option premium movement.
-    For CALLs: underlying down by SL% → SL hit; underlying up by Target% → Target hit.
-    For PUTs: underlying up by SL% → SL hit; underlying down by Target% → Target hit.
-    This is a reasonable approximation for short-dated ATM options (delta ~0.5).
-    """
-    if not positions:
-        return
-    for name, pos in list(positions.items()):
-        try:
-            current_underlying = get_underlying_ltp(name)
-            if current_underlying is None:
-                continue
-            entry_underlying = float(pos.get("underlying_entry_price", 0))
-            if entry_underlying <= 0:
-                continue
-            direction = pos.get("direction", "CALL")
-            sl_pct = float(_CFG.get("SL_PCT", 0.92))
-            target_pct = float(_CFG.get("TARGET_PCT", 1.3))
-            trail_pct = float(_CFG.get("TRAIL_PCT", 0.93))
-            trail_activate_pct = float(_CFG.get("TRAIL_ACTIVATE", 1.1))
-
-            # Initialize trailing stop tracking
-            if pos.get("peak_underlying") is None:
-                pos["peak_underlying"] = current_underlying
-                pos["trail_activated"] = False
-
-            # Update peak underlying
-            if current_underlying > pos["peak_underlying"]:
-                pos["peak_underlying"] = current_underlying
-
-            # Calculate move % of underlying since entry
-            move_pct = (current_underlying - entry_underlying) / entry_underlying
-
-            if direction == "CALL":
-                # SL: underlying dropped X% → exit
-                if move_pct <= -(1.0 - sl_pct):
-                    _rt = _reentry_trackers.get(name)
-                    if _rt:
-                        _rt.record_stop_loss(direction=pos.get("direction", "CALL"),
-                                              score=pos.get("score", 0))
-                    _exit_position(name, "SL_HIT")
-                    continue
-                # Target: underlying rose X% → exit
-                if move_pct >= (target_pct - 1.0):
-                    _exit_position(name, "TARGET_HIT")
-                    continue
-                # Trailing stop: activate when profit threshold exceeded
-                if not pos["trail_activated"] and move_pct >= (trail_activate_pct - 1.0):
-                    pos["trail_activated"] = True
-                # Check trailing stop
-                if pos["trail_activated"]:
-                    trail_level = pos["peak_underlying"] * trail_pct
-                    if current_underlying <= trail_level:
-                        _exit_position(name, "TRAIL_HIT")
-                        continue
-            else:  # PUT
-                # SL: underlying rose X% → exit
-                if move_pct >= (1.0 - sl_pct):
-                    _rt = _reentry_trackers.get(name)
-                    if _rt:
-                        _rt.record_stop_loss(direction=pos.get("direction", "CALL"),
-                                              score=pos.get("score", 0))
-                    _exit_position(name, "SL_HIT")
-                    continue
-                # Target: underlying dropped X% → exit
-                if move_pct <= -(target_pct - 1.0):
-                    _exit_position(name, "TARGET_HIT")
-                    continue
-                # Trailing stop (PUT): activate when profit exceeds threshold
-                if not pos["trail_activated"] and move_pct <= -(trail_activate_pct - 1.0):
-                    pos["trail_activated"] = True
-                if pos["trail_activated"]:
-                    trail_level = pos["peak_underlying"] * (2.0 - trail_pct)  # Inverted for PUT protection
-                    if current_underlying >= trail_level:
-                        _exit_position(name, "TRAIL_HIT")
-                        continue
-
-            entry_time = float(pos.get("entry_time", 0))
-            max_age = int(_CFG.get("MAX_POSITION_AGE", 9999))
-            if max_age < 9999 and entry_time > 0:
-                age_minutes = (time.time() - entry_time) / 60
-                if age_minutes >= max_age:
-                    _exit_position(name, "MAX_AGE")
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as e:
-            log.error("Error monitoring %s: %s", name, e)
+    """Monitor open positions. Delegates to PositionService."""
+    global _position_service
+    if _position_service is None:
+        _position_service = get_position_service(
+            cfg=_CFG,
+            risk_service=_risk_service,
+            execution_service=_execution_service,
+            portfolio_service=_portfolio_service,
+            margin_validator=_margin_validator,
+            warmup_manager=_warmup_manager,
+            news_sentinel=_news_sentinel,
+            expiry_controller=_expiry_controller,
+            token_refresh_service=_token_refresh_service,
+            audit_engine=_audit_engine,
+            reentry_trackers=_reentry_trackers,
+            positions=positions,
+            decision_log=decision_log,
+            manual_sig_last=_manual_sig_last,
+            breakout_state=breakout_state,
+            bos_lock=_bos_lock,
+            state_lock=_state_lock,
+            pos_lock=_pos_lock,
+            mandate_service=_mandate_service,
+            manual_signals_only=MANUAL_SIGNALS_ONLY,
+            execution_mode=EXECUTION_MODE,
+            ltp_resolver=_ltp_resolver,
+            signal_max_age=SIGNAL_MAX_AGE,
+        )
+    return _position_service.monitor_positions()
 
 
 # Cache for yfinance intraday data (avoids rate limiting)
@@ -1996,12 +1534,37 @@ def setup_di_container() -> None:
         get_live_vix_fn=_yf_fetch_vix
     )
     container.register_instance(RiskPort, risk_service)
-    global RISK_ENGINE
+    global RISK_ENGINE, _mandate_service
     RISK_ENGINE = risk_service
+    _mandate_service._risk_service = risk_service
+    global _position_service
+    _position_service = get_position_service(
+        cfg=_CFG,
+        risk_service=risk_service,
+        execution_service=_execution_service,
+        portfolio_service=_portfolio_service,
+        margin_validator=_margin_validator,
+        warmup_manager=_warmup_manager,
+        news_sentinel=_news_sentinel,
+        expiry_controller=_expiry_controller,
+        token_refresh_service=_token_refresh_service,
+        audit_engine=_audit_engine,
+        reentry_trackers=_reentry_trackers,
+        positions=positions,
+        decision_log=decision_log,
+        manual_sig_last=_manual_sig_last,
+        breakout_state=breakout_state,
+        bos_lock=_bos_lock,
+        state_lock=_state_lock,
+        pos_lock=_pos_lock,
+        mandate_service=_mandate_service,
+            signal_max_age=SIGNAL_MAX_AGE,
+    )
 
     # Configure intraday P&L monitoring from config
     from core.safety_state import set_intraday_loss_limit
     set_intraday_loss_limit(float(_CFG.get("INTRADAY_LOSS_LIMIT", _CFG.get("MAX_DAILY_LOSS", -2000))))
+    _signal_service = get_signal_service(cfg=_CFG)
 
     notification_service = NotificationService()
     container.register_instance(NotificationPort, notification_service)
@@ -2078,6 +1641,22 @@ def setup_di_container() -> None:
         alert_fn=lambda msg, priority: send_fn(msg) if priority == "CRITICAL" else None,
     )
     _stale_detector.run_check(comprehensive=False)
+
+    # v2.54 Equity Trader — stock (cash market) trading via EQUITY_MAP
+    # Gate: only start when --equity CLI flag is passed (launcher checkbox controls this)
+    if "--equity" in sys.argv:
+        try:
+            from core.equity_trader import run_equity_trader
+            equity_trader = run_equity_trader(
+                cfg=dict(config),
+                send_fn=send_fn,
+                get_price_fn=lambda sym: (broker_port.get_ltp(sym) if hasattr(broker_port, 'get_ltp') else None),
+            )
+            log.info("[EQUITY] Equity trader started with symbols: %s", equity_trader.status().get("symbols", []))
+        except (ValueError, TypeError, KeyError, AttributeError, ImportError, OSError) as _eq_err:
+            log.warning("[EQUITY] Equity trader not started: %s", _eq_err)
+    else:
+        log.info("[EQUITY] Equity trader disabled (pass --equity CLI flag to enable)")
 
     rate_limiting_service = RateLimitingService()
     _rate_limiting_service = rate_limiting_service
@@ -2726,7 +2305,6 @@ from core.datetime_ist import is_in_auction_session, now_ist
 from core.execution.broker_exceptions import (
     AuthExpiredError,
     OrderRejectedError,
-    classify_broker_exception,
 )
 from core.execution.broker_truth_reconciliation import get_broker_truth_reconciler
 from core.execution.deterministic_state_machine import get_execution_state_manager

@@ -193,7 +193,8 @@ class TestShouldRetry:
     """Retry decision logic."""
 
     def test_should_retry_no_resolution(self, handler):
-        assert handler.should_retry("OPEN", 0) is True
+        # OPEN without last_update returns KNOWN_PENDING with can_retry=False
+        assert handler.should_retry("OPEN", 0) is False
 
     def test_should_retry_with_resolution_terminal(self, handler):
         sr = handler.resolve_status("FILLED")
@@ -203,7 +204,11 @@ class TestShouldRetry:
         assert handler.should_retry("OPEN", 3) is False
 
     def test_should_retry_below_max(self, handler):
-        assert handler.should_retry("OPEN", 2) is True
+        # With stale last_update, OPEN becomes TIMEOUT which allows retry
+        from datetime import timedelta
+        stale_time = now_ist() - timedelta(seconds=60)
+        sr = handler.resolve_status("OPEN", last_update=stale_time)
+        assert handler.should_retry("OPEN", 2, sr) is True
 
 
 class TestHandleTimeout:

@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -598,14 +599,16 @@ class Auditor:
 # ── Module-level singleton ────────────────────────────────────────────────────
 
 _AUDITOR: Auditor | None = None
+_AUDITOR_LOCK: threading.Lock = threading.Lock()
 
 
 def get_auditor() -> Auditor:
     """Get or create the singleton Auditor instance."""
     global _AUDITOR
-    if _AUDITOR is None:
-        _AUDITOR = Auditor()
-    return _AUDITOR
+    with _AUDITOR_LOCK:
+        if _AUDITOR is None:
+            _AUDITOR = Auditor()
+        return _AUDITOR
 
 
 def run_audit(scope: str = "all") -> AuditReport:

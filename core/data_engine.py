@@ -225,7 +225,7 @@ class DataEngine:
             return {}
         try:
             data = self._last_close_fn()
-        except (TypeError, ValueError, OSError):
+        except (TypeError, ValueError, OSError, RuntimeError):
             return {}
         return dict(data or {})
 
@@ -241,7 +241,7 @@ class DataEngine:
             return {}
         try:
             data = self._live_prices_fn()
-        except (TypeError, ValueError, OSError):
+        except (TypeError, ValueError, OSError, RuntimeError):
             return {}
         return dict(data or {})
 

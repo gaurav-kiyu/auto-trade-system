@@ -124,6 +124,34 @@ class ExecutionPort(ABC):
         pass
 
     @abstractmethod
+    def modify_order(
+        self,
+        order_id: str,
+        *,
+        quantity: int | None = None,
+        price: float | None = None,
+        trigger_price: float | None = None,
+        order_type: OrderType | None = None,
+    ) -> OrderResult:
+        """
+        Modify an existing pending order.
+
+        Allows changing quantity, limit price, trigger price, and/or order type
+        for orders that are still in a PENDING or SUBMITTED state.
+
+        Args:
+            order_id: The order ID to modify
+            quantity: New lot quantity (None = no change)
+            price: New limit price (None = no change)
+            trigger_price: New trigger price for SL orders (None = no change)
+            order_type: New order type (None = no change)
+
+        Returns:
+            OrderResult with modification status
+        """
+        pass
+
+    @abstractmethod
     def cancel_order(self, order_id: str) -> bool:
         """
         Cancel an existing order.

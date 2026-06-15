@@ -111,7 +111,9 @@ class TestGetConnectionEdgeCases:
         conn = get_connection(tmp_db, busy_timeout_ms=0)
         cursor = conn.execute("PRAGMA busy_timeout")
         timeout = cursor.fetchone()[0]
-        assert timeout == 0
+        # When busy_timeout_ms <= 0, get_connection() skips the PRAGMA,
+        # so SQLite retains the default set by timeout=3.0 → 3000ms
+        assert timeout == 3000
         conn.close()
 
     def test_default_busy_timeout(self, tmp_db):

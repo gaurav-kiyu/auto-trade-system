@@ -41,7 +41,7 @@ def _fixture_strategy(name: str, frames: dict, vix: float = 0.0):
 def test_provider_chain_falls_through_to_working_provider():
     chain = ProviderChain(
         {
-            "nse": lambda: (_ for _ in ()).throw(RuntimeError("nse down")),
+            "nse": lambda: (_ for _ in ()).throw(ConnectionError("nse down")),
             "yfinance": lambda: {"source": "yfinance"},
         }
     )

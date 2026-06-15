@@ -1,4 +1,12 @@
 """
+DEPRECATED MODULE — Archived to core/legacy/.
+
+This module has been superseded by core/services/risk_service.py
+and core/tier_engine.py for decision logic.
+
+Will be removed in a future release.
+"""
+"""
 Decision Engine — maps signal score to class, eligibility, and tier.
 
 Threshold alignment (mirrors tier_engine.py):

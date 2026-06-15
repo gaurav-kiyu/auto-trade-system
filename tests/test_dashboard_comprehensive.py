@@ -1880,7 +1880,7 @@ class TestSessionCleanup:
         monkeypatch.setattr(db._auth, "purge_expired_sessions", broken_purge)
         try:
             db._auth.purge_expired_sessions()
-        except (ValueError, TypeError, KeyError, IndexError):
+        except (ValueError, TypeError, KeyError, RuntimeError, IndexError):
             pass
         assert called[0]
 

@@ -84,7 +84,6 @@ from .db_migration import (
 )
 from .defaults_loader import load_defaults_file
 from .environment import Environment, guard_dev_config_in_production, guard_mode_env_compatibility, validate_environment
-from .execution_engine import ExecutionEngine, ExecutionFill, ExecutionResult
 from .hybrid_execution import apply_execution_mode, normalize_execution_mode
 from .orchestrator import Orchestrator, OrchestratorCycle, OrchestratorSignal
 from .presentation_engine import PresentationEngine
@@ -140,9 +139,6 @@ __all__ = [
     "decode_if_b64",
     "deep_merge_dict",
     "DashboardEngine",
-    "ExecutionEngine",
-    "ExecutionFill",
-    "ExecutionResult",
     "JsonlCaptureWriter",
     "CleanupScheduler",
     "CONFIG_B64_SECRET_KEYS_INDEX",

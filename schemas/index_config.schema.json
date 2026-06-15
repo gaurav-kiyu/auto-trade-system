@@ -353,26 +353,18 @@
     "DYNAMIC_TARGET_ATR_MULT": {
       "type": "number"
     },
-    "EMAIL_ENABLED": {
-      "type": "boolean"
-    },
-    "EMAIL_PASS": {
-      "type": "string"
-    },
-    "EMAIL_PORT": {
-      "type": "integer"
-    },
-    "EMAIL_SMTP": {
-      "type": "string"
-    },
-    "EMAIL_TO": {
-      "type": "string"
-    },
-    "EMAIL_USER": {
-      "type": "string"
-    },
     "ENVIRONMENT": {
       "type": "string"
+    },
+    "EQUITY_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "EQUITY_PRIORITY": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     },
     "EXCEPTION_ALERT_THRESHOLD": {
       "type": "integer"
@@ -455,6 +447,16 @@
     },
     "FORCE_PRE_TRADE_RECON": {
       "type": "boolean"
+    },
+    "FUTURES_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "FUTURES_PRIORITY": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     },
     "GUI_CONFIRM_EXIT": {
       "type": "boolean"
@@ -1282,10 +1284,19 @@
     "_comment_drift": {
       "type": "string"
     },
+    "_comment_equity_config": {
+      "type": "string"
+    },
+    "_comment_equity_map": {
+      "type": "string"
+    },
     "_comment_event_calendar": {
       "type": "string"
     },
     "_comment_exit_params": {
+      "type": "string"
+    },
+    "_comment_futures_map": {
       "type": "string"
     },
     "_comment_governance_env": {

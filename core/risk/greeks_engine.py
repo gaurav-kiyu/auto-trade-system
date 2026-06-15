@@ -57,8 +57,6 @@ try:
         OptionType as LegacyOptionType,
         OptionsGreeksEngine as LegacyOptionsGreeksEngine,
         PositionGreeksInput as LegacyPositionGreeksInput,
-        compute_greeks_quick as legacy_compute_greeks_quick,
-        get_greeks_engine as legacy_get_greeks_engine,
     )
 except ImportError as e:
     _log.debug("[GREEKS] non-critical error: %s", e)

@@ -198,12 +198,6 @@
     "NIFTY"
   ],
   "TG_QUIET_MODE": true,
-  "EMAIL_SMTP": "smtp.gmail.com",
-  "EMAIL_PORT": 587,
-  "EMAIL_USER": "",
-  "EMAIL_PASS": "",
-  "EMAIL_TO": "",
-  "EMAIL_ENABLED": false,
   "TG_SIGNAL_COOLDOWN": 900,
   "CIRCUIT_BREAKER_THRESHOLD": 15,
   "CIRCUIT_BREAKER_WINDOW": 300,
@@ -313,6 +307,96 @@
       "nse": "FINNIFTY",
       "step": 50,
       "lot": 40
+    },
+    "MIDCPNIFTY": {
+      "yf": "^NSEMIDCAP",
+      "nse": "MIDCPNIFTY",
+      "step": 25,
+      "lot": 75
+    },
+    "SENSEX": {
+      "yf": "^BSESN",
+      "nse": "SENSEX",
+      "step": 25,
+      "lot": 10
+    }
+  },
+  "_comment_equity_map": "EQUITY_MAP \u2014 individual NSE equity symbols for cash market trading. sector/category classify the stock for risk aggregation and exposure limits.",
+  "EQUITY_MAP": {
+    "RELIANCE": {
+      "yf": "RELIANCE.NS",
+      "nse": "RELIANCE",
+      "sector": "ENERGY",
+      "category": "LARGE_CAP",
+      "lot": 1,
+      "step": 0,
+      "enabled": true
+    },
+    "TCS": {
+      "yf": "TCS.NS",
+      "nse": "TCS",
+      "sector": "TECHNOLOGY",
+      "category": "LARGE_CAP",
+      "lot": 1,
+      "step": 0,
+      "enabled": true
+    },
+    "HDFCBANK": {
+      "yf": "HDFCBANK.NS",
+      "nse": "HDFCBANK",
+      "sector": "BANKING",
+      "category": "LARGE_CAP",
+      "lot": 1,
+      "step": 0,
+      "enabled": true
+    },
+    "ICICIBANK": {
+      "yf": "ICICIBANK.NS",
+      "nse": "ICICIBANK",
+      "sector": "BANKING",
+      "category": "LARGE_CAP",
+      "lot": 1,
+      "step": 0,
+      "enabled": true
+    },
+    "INFY": {
+      "yf": "INFY.NS",
+      "nse": "INFY",
+      "sector": "TECHNOLOGY",
+      "category": "LARGE_CAP",
+      "lot": 1,
+      "step": 0,
+      "enabled": true
+    }
+  },
+  "_comment_futures_map": "FUTURES_MAP \u2014 index and single-stock futures contracts. yf symbols are unavailable on yfinance for NSE futures; use broker API as primary data source.",
+  "FUTURES_MAP": {
+    "NIFTY_FUT": {
+      "yf": "",
+      "nse": "NIFTY",
+      "sector": "INDEX_FUTURES",
+      "category": "INDEX_FUTURES",
+      "lot": 50,
+      "step": 0,
+      "enabled": false
+    },
+    "BANKNIFTY_FUT": {
+      "yf": "",
+      "nse": "BANKNIFTY",
+      "sector": "INDEX_FUTURES",
+      "category": "INDEX_FUTURES",
+      "lot": 15,
+      "step": 0,
+      "enabled": false
+    },
+    "FINNIFTY_FUT": {
+      "yf": "",
+      "nse": "FINNIFTY",
+      "sector": "INDEX_FUTURES",
+      "category": "INDEX_FUTURES",
+      "lot": 40,
+      "step": 0,
+      "enabled": false
     }
   },
   "WATCHDOG_POLL_SEC": 60,
@@ -901,6 +985,50 @@
       "scan_priority": 3,
       "max_lots": 10,
       "min_premium": 5.0
+    },
+    "MIDCPNIFTY": {
+      "enabled": true,
+      "yf_symbol": "^NSEMIDCAP",
+      "lot_size": 75,
+      "strike_step": 25,
+      "expiry_weekday": 3,
+      "fallback_expiry_weekday": 2,
+      "scan_priority": 4,
+      "max_lots": 5,
+      "min_premium": 5.0
+    },
+    "SENSEX": {
+      "enabled": true,
+      "yf_symbol": "^BSESN",
+      "lot_size": 10,
+      "strike_step": 25,
+      "expiry_weekday": 4,
+      "fallback_expiry_weekday": 3,
+      "scan_priority": 5,
+      "max_lots": 5,
+      "min_premium": 10.0
+    },
+    "EQUITY": {
+      "type": "EQUITY",
+      "enabled": true,
+      "lot_size": 1,
+      "strike_step": 0,
+      "expiry_weekday": -1,
+      "fallback_expiry_weekday": -1,
+      "scan_priority": 10,
+      "max_lots": 1000,
+      "min_premium": 0.0
+    },
+    "FUTURES": {
+      "type": "FUTURES",
+      "enabled": false,
+      "lot_size": 50,
+      "strike_step": 0,
+      "expiry_weekday": 4,
+      "fallback_expiry_weekday": 3,
+      "scan_priority": 9,
+      "max_lots": 10,
+      "min_premium": 0.0
     }
   },
   "indicator": {
@@ -1216,5 +1344,18 @@
   "reports_dir": "reports",
   "log_dir": "logs",
   "cleanup_scheduler_enabled": true,
-  "cleanup_scheduler_interval_hours": 24
+  "cleanup_scheduler_interval_hours": 24,
+  "EQUITY_PRIORITY": [
+    "RELIANCE",
+    "TCS",
+    "HDFCBANK",
+    "ICICIBANK",
+    "INFY"
+  ],
+  "FUTURES_PRIORITY": [
+    "NIFTY_FUT",
+    "BANKNIFTY_FUT",
+    "FINNIFTY_FUT"
+  ],
+  "_comment_equity_config": "EQUITY_PRIORITY \u2014 scan order for equities. FUTURES_PRIORITY \u2014 scan order for futures. Each must match keys in EQUITY_MAP and FUTURES_MAP."
 }

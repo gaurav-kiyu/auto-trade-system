@@ -510,6 +510,130 @@ class ExecutionService(ExecutionPort):
             self._logger.error(f"Unexpected error in order execution: {e}", exc_info=True)
             return audit_trail.order_result
 
+    def modify_order(
+        self,
+        order_id: str,
+        *,
+        quantity: int | None = None,
+        price: float | None = None,
+        trigger_price: float | None = None,
+        order_type: OrderType | None = None,
+    ) -> OrderResult:
+        """
+        Modify an existing pending order.
+
+        Allows changing quantity, limit price, trigger price, and/or order type
+        for orders that are still in a PENDING or SUBMITTED state.
+
+        Args:
+            order_id: The order ID to modify
+            quantity: New lot quantity (None = no change)
+            price: New limit price (None = no change)
+            trigger_price: New trigger price for SL orders (None = no change)
+            order_type: New order type (None = no change)
+
+        Returns:
+            OrderResult with modification status
+        """
+        try:
+            # Check if order exists and is modifiable
+            current_status = self.get_order_status(order_id)
+            if current_status in [OrderStatus.FILLED, OrderStatus.CANCELLED, OrderStatus.EXPIRED, OrderStatus.REJECTED]:
+                self._logger.warning(f"Cannot modify order {order_id} with terminal status {current_status.value}")
+                return OrderResult(
+                    order_id=order_id,
+                    status=OrderStatus.REJECTED,
+                    reject_reason=f"Order {order_id} has terminal status {current_status.value}",
+                    timestamp=now_ist(),
+                )
+
+            # Attempt modification via broker
+            start_time = time.time()
+            broker_result = self.broker_port.modify_order(
+                order_id,
+                qty=quantity,
+                price=price,
+                trigger_price=trigger_price,
+                order_type=order_type.value if order_type else None,
+            )
+            latency_ms = int((time.time() - start_time) * 1000)
+
+            # Convert broker result to OrderResult
+            if isinstance(broker_result, bool):
+                if broker_result:
+                    self._logger.info(f"Order {order_id} modified successfully in {latency_ms}ms")
+                    return OrderResult(
+                        order_id=order_id,
+                        status=OrderStatus.SUBMITTED,
+                        filled_quantity=0,
+                        average_price=0.0,
+                        timestamp=now_ist(),
+                    )
+                else:
+                    self._logger.warning(f"Failed to modify order {order_id}")
+                    # ── Telegram escalation: alert on modification failure ──
+                    self._escalate_order_modification_failed(
+                        order_id=order_id,
+                        reason="Broker rejected modification",
+                        details={
+                            "quantity": quantity,
+                            "price": price,
+                            "trigger_price": trigger_price,
+                            "order_type": order_type.value if order_type else None,
+                            "latency_ms": latency_ms,
+                        },
+                    )
+                    return OrderResult(
+                        order_id=order_id,
+                        status=OrderStatus.REJECTED,
+                        reject_reason="Broker rejected modification",
+                        timestamp=now_ist(),
+                    )
+
+            # If broker returned an OrderResult directly (e.g. PaperBrokerAdapter returns bool)
+            if hasattr(broker_result, 'status'):
+                status_val = str(broker_result.status).upper() if hasattr(broker_result.status, 'upper') else str(broker_result.status)
+                if status_val in ("REJECTED", "CANCELLED", "FAILED"):
+                    # ── Telegram escalation on rejected order result ──
+                    self._escalate_order_modification_failed(
+                        order_id=order_id,
+                        reason=f"Broker returned status: {status_val}",
+                        details={
+                            "quantity": quantity,
+                            "price": price,
+                            "reject_reason": getattr(broker_result, 'reject_reason', None),
+                        },
+                    )
+                    self._logger.warning(f"Order {order_id} modification rejected: {broker_result.status}")
+                else:
+                    self._logger.info(f"Order {order_id} modified: {broker_result.status}")
+                return broker_result
+
+            return OrderResult(
+                order_id=order_id,
+                status=OrderStatus.SUBMITTED,
+                timestamp=now_ist(),
+            )
+
+        except (ValueError, OSError, ConnectionError, AttributeError) as e:
+            self._logger.error(f"Error modifying order {order_id}: {e}", exc_info=True)
+            # ── Telegram escalation on exception ──
+            self._escalate_order_modification_failed(
+                order_id=order_id,
+                reason=str(e),
+                details={
+                    "quantity": quantity,
+                    "price": price,
+                    "error_type": type(e).__name__,
+                },
+            )
+            return OrderResult(
+                order_id=order_id,
+                status=OrderStatus.REJECTED,
+                reject_reason=str(e),
+                timestamp=now_ist(),
+            )
+
     def cancel_order(self, order_id: str) -> bool:
         """
         Cancel an existing order.
@@ -1319,6 +1443,29 @@ class ExecutionService(ExecutionPort):
         except (ValueError, TypeError, KeyError, AttributeError) as e:
             self._logger.error(f"Error converting audit trail to trade data: {e}")
             return None
+
+    def _escalate_order_modification_failed(
+        self,
+        order_id: str,
+        reason: str,
+        details: dict | None = None,
+    ) -> None:
+        """Escalate order modification failure via incident alerting (Telegram).
+
+        Thread-safe — reports the incident to the singleton IncidentAlerting
+        which dispatches via its registered callback (typically Telegram).
+        Cooldown prevents alert storms for repeated failures on the same order.
+        """
+        try:
+            from core.incident_alerting import get_incident_alerting
+            alerting = get_incident_alerting()
+            alerting.alert_order_modification_failed(
+                order_id=order_id,
+                reason=reason,
+                details=details,
+            )
+        except Exception as exc:
+            self._logger.debug(f"Incident alerting unavailable for order {order_id}: {exc}")
 
     def _poll_for_fill_status(
         self,

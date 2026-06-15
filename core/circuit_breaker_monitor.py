@@ -31,6 +31,37 @@ class CircuitBreakerState:
     is_market_halted: bool
 
 
+class CircuitBreakerStateStore:
+    """Thread-safe wrapper around CircuitBreakerState."""
+    def __init__(self, initial: CircuitBreakerState):
+        self._state = initial
+        self._lock = threading.Lock()
+
+    def get(self) -> CircuitBreakerState:
+        with self._lock:
+            return self._state
+
+    def set(self, state: CircuitBreakerState) -> None:
+        with self._lock:
+            self._state = state
+
+    @property
+    def level(self) -> str:
+        return self.get().level
+
+    @property
+    def index_change_pct(self) -> float:
+        return self.get().index_change_pct
+
+    @property
+    def last_update(self) -> datetime:
+        return self.get().last_update
+
+    @property
+    def is_market_halted(self) -> bool:
+        return self.get().is_market_halted
+
+
 class NSECircuitBreakerMonitor:
     """
     Monitors NSE circuit breakers and alerts on market halts.
@@ -69,12 +100,13 @@ class NSECircuitBreakerMonitor:
             version="UNKNOWN",
         )
 
-        self._state = CircuitBreakerState(
+        self._state = CircuitBreakerStateStore(CircuitBreakerState(
             level="NONE",
             index_change_pct=0.0,
             last_update=now_ist(),
             is_market_halted=False,
-        )
+        ))
+        self._baseline_lock = threading.Lock()
         self._baseline_price: float | None = None
         self._last_halt_time: datetime | None = None
 
@@ -98,7 +130,7 @@ class NSECircuitBreakerMonitor:
 
     def get_state(self) -> CircuitBreakerState:
         """Get current circuit breaker state."""
-        return self._state
+        return self._state.get()
 
     def _run_loop(self) -> None:
         """Main monitoring loop."""
@@ -120,21 +152,20 @@ class NSECircuitBreakerMonitor:
                 return
 
             # Set baseline from previous close (using first-tick fallback if unavailable)
-            if self._baseline_price is None:
-                self._baseline_price = current_price
-                self._logger.warning(
-                    "Circuit breaker baseline set from first intraday tick (prev close unavailable). "
-                    "Gap openings will be invisible to circuit breaker until market open baseline is configured."
-                )
-                return
+            with self._baseline_lock:
+                if self._baseline_price is None:
+                    self._baseline_price = current_price
+                    self._logger.warning(
+                        "Circuit breaker baseline set from first intraday tick (prev close unavailable). "
+                        "Gap openings will be invisible to circuit breaker until market open baseline is configured."
+                    )
+                    return
 
-            # Calculate percentage change from baseline
-            if self._baseline_price == 0:
-                self._logger.warning("Circuit breaker baseline price is 0 — skipping check")
-                return
-            change_pct = ((current_price - self._baseline_price) / self._baseline_price) * 100
-            self._state.index_change_pct = change_pct
-            self._state.last_update = now_ist()
+                # Calculate percentage change from baseline
+                if self._baseline_price == 0:
+                    self._logger.warning("Circuit breaker baseline price is 0 — skipping check")
+                    return
+                change_pct = ((current_price - self._baseline_price) / self._baseline_price) * 100
 
             # Determine circuit breaker level
             new_level = "NONE"
@@ -153,10 +184,14 @@ class NSECircuitBreakerMonitor:
                 is_halted = True
                 self._handle_market_halt("10%")
 
-            self._state.level = new_level
-            self._state.is_market_halted = is_halted
+            self._state.set(CircuitBreakerState(
+                level=new_level,
+                index_change_pct=change_pct,
+                last_update=now_ist(),
+                is_market_halted=is_halted,
+            ))
 
-            # Log significant changes
+            # Log significant changes (only when level changes to avoid spam)
             if new_level != "NONE" and new_level != self._state.level:
                 self._logger.warning(
                     f"Circuit breaker triggered: {new_level} drop ({change_pct:.2f}%)"
@@ -191,13 +226,14 @@ Check: https://www.nseindia.com/market-data/live-market-indices
 
     def reset_baseline(self) -> None:
         """Reset baseline price (call at market open)."""
-        self._baseline_price = None
-        self._state = CircuitBreakerState(
+        with self._baseline_lock:
+            self._baseline_price = None
+        self._state.set(CircuitBreakerState(
             level="NONE",
             index_change_pct=0.0,
             last_update=now_ist(),
             is_market_halted=False,
-        )
+        ))
         self._logger.info("Circuit breaker baseline reset")
 
 

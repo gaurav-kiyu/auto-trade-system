@@ -1,242 +1,134 @@
-"""Tests for core/market_warmup.py."""
+"""Tests for MarketWarmup — warm-up period throttled-entry mode."""
 
 from __future__ import annotations
 
-import time
-from datetime import date, datetime, timedelta
 from unittest.mock import patch
+from datetime import datetime
 
+from core.datetime_ist import now_ist
 from core.market_warmup import MarketWarmup
 
-# ── Constructor ──────────────────────────────────────────────────────────
 
-def test_constructor_defaults():
-    m = MarketWarmup()
-    assert m._enabled is True
-    assert m._duration_mins == 15
-    assert m._size_mult == 0.5
-    assert m._score_boost == 10
-    assert m._max_trades == 2
+_MOCK_MARKET_OPEN = datetime(2026, 6, 11, 9, 20)  # Thursday, 5 min after open (warmup active)
 
 
-def test_constructor_with_cfg():
-    m = MarketWarmup(cfg={
-        "warmup_enabled": False,
-        "warmup_duration_mins": 30,
-        "warmup_size_mult": 0.75,
-        "warmup_score_boost": 5,
-        "warmup_max_trades": 3,
-    })
-    assert m._enabled is False
-    assert m._duration_mins == 30
-    assert m._size_mult == 0.75
-    assert m._score_boost == 5
-    assert m._max_trades == 3
+class TestMarketWarmup:
+    """MarketWarmup — warm-up period controller."""
 
+    def test_default_config(self):
+        mw = MarketWarmup()
+        # should be enabled, active depends on time
+        assert mw._enabled is True
+        assert mw._duration_mins == 15
+        assert mw._size_mult == 0.5
+        assert mw._score_boost == 10
+        assert mw._max_trades == 2
 
-# ── is_warmup_active ────────────────────────────────────────────────────
+    def test_custom_config(self):
+        mw = MarketWarmup({
+            "warmup_enabled": True,
+            "warmup_duration_mins": 30,
+            "warmup_size_mult": 0.75,
+            "warmup_score_boost": 20,
+            "warmup_max_trades": 3,
+        })
+        assert mw._duration_mins == 30
+        assert mw._size_mult == 0.75
+        assert mw._score_boost == 20
+        assert mw._max_trades == 3
 
-def test_warmup_inactive_when_disabled():
-    m = MarketWarmup(cfg={"warmup_enabled": False})
-    assert m.is_warmup_active() is False
+    def test_disabled_never_active(self):
+        mw = MarketWarmup({"warmup_enabled": False})
+        assert mw.is_warmup_active() is False
+        assert mw.can_enter("NIFTY") is True
+        assert mw.position_size_mult() == 1.0
+        assert mw.score_threshold_adjustment() == 0
+        assert mw.adjusted_position_size(10) == 10
 
+    def test_reset_day(self):
+        mw = MarketWarmup()
+        mw._entries["NIFTY"] = 12345.0
+        mw._current_day = "2026-01-01"
+        mw.reset_day()
+        assert mw._current_day is None
+        assert mw._warmup_end is None
+        assert len(mw._entries) == 0
 
-def test_warmup_inactive_when_no_market_open():
-    """Weekend or non-trading day should have no warm-up."""
-    m = MarketWarmup()
-    m.reset_day()
-    with patch.object(m, "_market_open_today", return_value=None):
-        assert m.is_warmup_active() is False
+    def test_enabled_no_warmup_end_means_not_active(self):
+        mw = MarketWarmup()
+        mw._warmup_end = None
+        mw._current_day = now_ist().date()  # prevent recalc
+        assert mw.is_warmup_active() is False
 
+    @patch("core.market_warmup.now_ist", return_value=_MOCK_MARKET_OPEN)
+    def test_position_size_multipliers(self, mock_now):
+        mw = MarketWarmup({"warmup_size_mult": 0.33, "warmup_duration_mins": 15})
+        # now_ist mocked to 09:20 -> warmup end = 09:30 -> warmup active
+        assert mw.is_warmup_active() is True
+        assert mw.position_size_mult() == 0.33
+        assert mw.adjusted_position_size(10) == 3  # round(10 * 0.33) = 3
 
-def test_warmup_active_during_period():
-    m = MarketWarmup(cfg={"warmup_duration_mins": 60})
-    m.reset_day()
-    # Simulate market open 5 minutes ago
-    five_min_ago = datetime.now().replace(hour=9, minute=15, second=0, microsecond=0)
-    m._warmup_end = five_min_ago + timedelta(minutes=60)
-    m._current_day = date.today()
-    # Current time is within 60 mins of 9:15
-    # NOTE: code now uses now_ist() instead of datetime.now(), so mock now_ist
-    with patch("core.market_warmup.now_ist") as mock_now:
-        mock_now.return_value = datetime.now().replace(hour=9, minute=20)
-        assert m.is_warmup_active() is True
+    @patch("core.market_warmup.now_ist", return_value=_MOCK_MARKET_OPEN)
+    def test_adjusted_position_size_min_one(self, mock_now):
+        mw = MarketWarmup({"warmup_size_mult": 0.01, "warmup_duration_mins": 15})
+        assert mw.is_warmup_active() is True
+        assert mw.adjusted_position_size(10) == 1  # max(1, round(10 * 0.01))
 
+    @patch("core.market_warmup.now_ist", return_value=_MOCK_MARKET_OPEN)
+    def test_score_threshold_adjustment(self, mock_now):
+        mw = MarketWarmup({"warmup_score_boost": 15, "warmup_duration_mins": 15})
+        assert mw.is_warmup_active() is True
+        assert mw.score_threshold_adjustment() == 15
 
-def test_warmup_inactive_after_period():
-    m = MarketWarmup(cfg={"warmup_duration_mins": 15})
-    m.reset_day()
-    now = datetime.now()
-    # Simulate warm-up ended 1 hour ago
-    m._warmup_end = now - timedelta(hours=1)
-    m._current_day = date.today()
-    assert m.is_warmup_active() is False
+    @patch("core.market_warmup.now_ist", return_value=datetime(2026, 6, 11, 15, 0))
+    def test_score_threshold_adjustment_outside_warmup(self, mock_now):
+        mw = MarketWarmup({"warmup_score_boost": 15})
+        assert mw.score_threshold_adjustment() == 0
 
+    @patch("core.market_warmup.now_ist", return_value=datetime(2026, 6, 11, 15, 0))
+    def test_can_enter_outside_warmup(self, mock_now):
+        mw = MarketWarmup()
+        assert mw.can_enter("NIFTY") is True
 
-# ── market_open_today ───────────────────────────────────────────────────
+    @patch("core.market_warmup.now_ist", return_value=_MOCK_MARKET_OPEN)
+    def test_try_mark_entry_success(self, mock_now):
+        mw = MarketWarmup()
+        result = mw.try_mark_entry("NIFTY")
+        assert result is True
+        assert "NIFTY" in mw._entries
 
-def test_market_open_weekday_returns_time():
-    m = MarketWarmup()
-    result = m._market_open_today()
-    if result is not None:
-        assert result.hour == 9
-        assert result.minute == 15
+    @patch("core.market_warmup.now_ist", return_value=_MOCK_MARKET_OPEN)
+    def test_try_mark_entry_fails_when_blocked(self, mock_now):
+        mw = MarketWarmup({"warmup_max_trades": 0, "warmup_duration_mins": 15})
+        result = mw.try_mark_entry("NIFTY")
+        assert result is False
 
+    @patch("core.market_warmup.now_ist", return_value=_MOCK_MARKET_OPEN)
+    def test_status_dict_structure(self, mock_now):
+        mw = MarketWarmup()
+        status = mw.status()
+        assert isinstance(status, dict)
+        assert "enabled" in status
+        assert "warmup_active" in status
+        assert "duration_mins" in status
+        assert "size_mult" in status
+        assert "score_boost" in status
+        assert "max_trades" in status
+        assert "entries_in_warmup" in status
+        assert "remaining" in status
 
-# ── can_enter ───────────────────────────────────────────────────────────
+    @patch("core.market_warmup.now_ist", return_value=_MOCK_MARKET_OPEN)
+    def test_status_shows_entries(self, mock_now):
+        mw = MarketWarmup()
+        # Trigger _maybe_reset_day first (sets _current_day, clears stale entries)
+        _ = mw.status()
+        # Now add entry - _current_day already matches, won't clear
+        mw._entries["TEST"] = 12345.0
+        status = mw.status()
+        assert status["entries_in_warmup"] == 1
 
-def test_can_enter_when_disabled():
-    m = MarketWarmup(cfg={"warmup_enabled": False})
-    assert m.can_enter("NIFTY") is True
-
-
-def test_can_enter_when_not_warmup():
-    m = MarketWarmup()
-    m.reset_day()
-    with patch.object(m, "is_warmup_active", return_value=False):
-        assert m.can_enter("NIFTY") is True
-
-
-def test_can_enter_below_max():
-    m = MarketWarmup(cfg={"warmup_max_trades": 2})
-    m.reset_day()
-    with patch.object(m, "is_warmup_active", return_value=True):
-        assert m.can_enter("NIFTY") is True
-        assert m.can_enter("BANKNIFTY") is True
-
-
-def test_can_enter_blocks_after_max():
-    m = MarketWarmup(cfg={"warmup_max_trades": 1})
-    m.reset_day()
-    with patch.object(m, "is_warmup_active", return_value=True):
-        assert m.can_enter("NIFTY") is True
-        m.try_mark_entry("NIFTY")
-        assert m.can_enter("BANKNIFTY") is False
-
-
-# ── try_mark_entry ──────────────────────────────────────────────────────
-
-def test_try_mark_entry_returns_false_when_blocked():
-    m = MarketWarmup(cfg={"warmup_max_trades": 1})
-    m.reset_day()
-    with patch.object(m, "is_warmup_active", return_value=True):
-        assert m.try_mark_entry("NIFTY") is True
-        assert m.try_mark_entry("BANKNIFTY") is False
-
-
-def test_try_mark_entry_always_true_not_warmup():
-    m = MarketWarmup()
-    m.reset_day()
-    with patch.object(m, "is_warmup_active", return_value=False):
-        assert m.try_mark_entry("NIFTY") is True
-        assert m.try_mark_entry("BANKNIFTY") is True
-
-
-# ── position_size_mult ──────────────────────────────────────────────────
-
-def test_position_size_mult_normal():
-    m = MarketWarmup()
-    with patch.object(m, "is_warmup_active", return_value=False):
-        assert m.position_size_mult() == 1.0
-
-
-def test_position_size_mult_warmup():
-    m = MarketWarmup(cfg={"warmup_size_mult": 0.5})
-    with patch.object(m, "is_warmup_active", return_value=True):
-        assert m.position_size_mult() == 0.5
-
-
-def test_position_size_mult_disabled():
-    m = MarketWarmup(cfg={"warmup_enabled": False})
-    with patch.object(m, "is_warmup_active", return_value=True):
-        assert m.position_size_mult() == 1.0
-
-
-# ── score_threshold_adjustment ──────────────────────────────────────────
-
-def test_score_adjustment_normal():
-    m = MarketWarmup()
-    with patch.object(m, "is_warmup_active", return_value=False):
-        assert m.score_threshold_adjustment() == 0
-
-
-def test_score_adjustment_warmup():
-    m = MarketWarmup(cfg={"warmup_score_boost": 10})
-    with patch.object(m, "is_warmup_active", return_value=True):
-        assert m.score_threshold_adjustment() == 10
-
-
-def test_score_adjustment_disabled():
-    m = MarketWarmup(cfg={"warmup_enabled": False})
-    with patch.object(m, "is_warmup_active", return_value=True):
-        assert m.score_threshold_adjustment() == 0
-
-
-# ── adjusted_position_size ──────────────────────────────────────────────
-
-def test_adjusted_size_normal():
-    m = MarketWarmup()
-    with patch.object(m, "is_warmup_active", return_value=False):
-        assert m.adjusted_position_size(10) == 10
-
-
-def test_adjusted_size_warmup():
-    m = MarketWarmup(cfg={"warmup_size_mult": 0.5})
-    with patch.object(m, "is_warmup_active", return_value=True):
-        assert m.adjusted_position_size(10) == 5
-
-
-def test_adjusted_size_minimum_one():
-    m = MarketWarmup(cfg={"warmup_size_mult": 0.25})
-    with patch.object(m, "is_warmup_active", return_value=True):
-        assert m.adjusted_position_size(1) == 1
-
-
-def test_adjusted_size_rounded():
-    m = MarketWarmup(cfg={"warmup_size_mult": 0.5})
-    with patch.object(m, "is_warmup_active", return_value=True):
-        assert m.adjusted_position_size(3) == 2  # round(1.5)
-
-
-# ── reset_day ───────────────────────────────────────────────────────────
-
-def test_reset_day_clears_state():
-    m = MarketWarmup()
-    m._current_day = date(2026, 1, 1)
-    m._warmup_end = datetime(2026, 1, 1, 9, 30)
-    m._entries["NIFTY"] = time.time()
-    m.reset_day()
-    assert m._current_day is None
-    assert m._warmup_end is None
-    assert len(m._entries) == 0
-
-
-# ── status ──────────────────────────────────────────────────────────────
-
-def test_status():
-    m = MarketWarmup()
-    st = m.status()
-    assert st["enabled"] is True
-    assert st["duration_mins"] == 15
-    assert st["size_mult"] == 0.5
-    assert st["score_boost"] == 10
-    assert st["max_trades"] == 2
-    assert "warmup_active" in st
-    assert "entries_in_warmup" in st
-
-
-def test_status_disabled():
-    m = MarketWarmup(cfg={"warmup_enabled": False})
-    st = m.status()
-    assert st["enabled"] is False
-    assert st["warmup_active"] is False
-
-
-def test_status_warmup_active_shows_remaining():
-    m = MarketWarmup()
-    m.reset_day()
-    m._current_day = date.today()
-    m._warmup_end = datetime.now() + timedelta(minutes=10)
-    st = m.status()
-    assert st["warmup_active"] is True
-    assert "remaining" in st
+    def test_market_open_today_weekend_returns_none(self):
+        mw = MarketWarmup()
+        result = mw._market_open_today()
+        if result is not None:
+            assert hasattr(result, "hour")

@@ -51,8 +51,9 @@ import importlib
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
+
+from core.datetime_ist import now_ist
 
 
 _log = logging.getLogger(__name__)
@@ -275,7 +276,7 @@ def generate_architecture_certification(
     return CertificationReport(
         title="Architecture Certification",
         phase="3",
-        generated_at=datetime.now().isoformat(),
+        generated_at=now_ist().isoformat(),
         version=version,
         certifier="core.certification.report_generators.generate_architecture_certification",
         criteria=criteria,
@@ -376,7 +377,7 @@ def generate_risk_certification(
     return CertificationReport(
         title="Risk Certification",
         phase="4",
-        generated_at=datetime.now().isoformat(),
+        generated_at=now_ist().isoformat(),
         version=version,
         certifier="core.certification.report_generators.generate_risk_certification",
         criteria=criteria,
@@ -467,7 +468,7 @@ def generate_security_certification(
     return CertificationReport(
         title="Security Certification",
         phase="14",
-        generated_at=datetime.now().isoformat(),
+        generated_at=now_ist().isoformat(),
         version=version,
         certifier="core.certification.report_generators.generate_security_certification",
         criteria=criteria,
@@ -613,7 +614,7 @@ def generate_production_certification(
     return CertificationReport(
         title="Production Certification",
         phase="19",
-        generated_at=datetime.now().isoformat(),
+        generated_at=now_ist().isoformat(),
         version=version,
         certifier="core.certification.report_generators.generate_production_certification",
         criteria=criteria,
@@ -693,7 +694,7 @@ def generate_greeks_certification(
     return CertificationReport(
         title="Options Greeks Risk Certification",
         phase="5",
-        generated_at=datetime.now().isoformat(),
+        generated_at=now_ist().isoformat(),
         version=version,
         certifier="core.certification.report_generators.generate_greeks_certification",
         criteria=criteria,

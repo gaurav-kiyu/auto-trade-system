@@ -276,11 +276,9 @@ class TestDashboardInit:
         monkeypatch.setattr(db._auth, "purge_expired_sessions", broken_purge)
         try:
             db._auth.purge_expired_sessions()
-        except (ValueError, TypeError, KeyError, IndexError):
+        except (ValueError, TypeError, KeyError, RuntimeError, IndexError):
             pass
         assert called[0], "purge_expired_sessions was not called"
-        # The pass in except (ValueError, TypeError, KeyError, IndexError): pass is not directly executed here,
-        # but we verified the exception handling pattern works
 
     def test_create_enterprise_dashboard_factory(self, state_file: str, trades_db: str):
         from core.enterprise_dashboard import create_enterprise_dashboard
@@ -2018,7 +2016,7 @@ class TestHttpEndpoints:
             with TestClient(d.app) as c:
                 try:
                     c.get("/api/trigger-500", headers={"accept": "application/json"})
-                except (ValueError, TypeError, KeyError, IndexError):
+                except (ValueError, TypeError, KeyError, RuntimeError, IndexError):
                     pass
         finally:
             logger.removeHandler(capture)

@@ -349,10 +349,10 @@ def predict_win_prob(model: Any, features: dict[str, float]) -> float:
             row = [[features[col] for col in FEATURE_COLS]]
             prob = float(model.predict_proba(row)[0][1])
             return round(max(0.0, min(1.0, prob)), 4)
-        except (ValueError, TypeError, AttributeError) as exc:
+        except (ValueError, TypeError, AttributeError, KeyError, RuntimeError) as exc:
             _log.debug("[ML] predict_win_prob error: %s", exc)
             return 0.5
-    except (ImportError, ValueError, TypeError, AttributeError) as exc:
+    except (ImportError, ValueError, TypeError, AttributeError, KeyError, RuntimeError) as exc:
         _log.debug("[ML] predict_win_prob error: %s", exc)
         return 0.5
 
@@ -449,7 +449,7 @@ def explain_prediction(
         except (ValueError, TypeError, AttributeError):
             return {}
 
-    except (ValueError, TypeError, AttributeError) as exc:
+    except (ValueError, TypeError, AttributeError, RuntimeError) as exc:
         _log.debug("[ML][SHAP] explain_prediction failed: %s", exc)
         return {}
 

@@ -26,11 +26,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-# Windows cp1252 fix: use ASCII-safe characters for console output
-if sys.platform == "win32":
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-
 # Ensure project root is on sys.path
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -408,6 +403,12 @@ def calculate_score(
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Windows cp1252 fix: apply only when stdout has a .buffer (real stdout/file)
+    # Skip when sys.stdout is a StringIO (e.g., during test stdout capture)
+    if sys.platform == "win32":
+        import io
+        if hasattr(sys.stdout, 'buffer') and not isinstance(sys.stdout, io.TextIOWrapper):
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--category", "-c", help="Score only a single category")
     ap.add_argument("--evidence", "-e", action="store_true", help="Show evidence details")

@@ -126,6 +126,7 @@ def test_index_holiday_fetch_merges_success_fixture():
 
 
 def test_index_last_close_summary_uses_fixture_history():
+    from core import yf_data_provider as _yf_provider
     module, argv_prev = _load_index_module("index_app_last_close_fixture")
     try:
         rows = []
@@ -152,18 +153,20 @@ def test_index_last_close_summary_uses_fixture_history():
                 assert interval == "1d"
                 return frame.copy()
 
-        original_ticker = module.yf.Ticker
+        original_ticker = _yf_provider.yf.Ticker
         original_map = module.INDEX_MAP
-        module.yf.Ticker = FakeTicker
+        _yf_provider.yf.Ticker = FakeTicker
         module.INDEX_MAP = {"NIFTY": {"yf": "^NSEI"}}
         module._last_close_cache = {}
         module._last_close_cache_ts = 0
+        # Also clear the yf_data_provider cache to avoid stale data
+        _yf_provider.invalidate_cache()
         summary = module.fetch_last_close_summary()
         assert summary["NIFTY"]["close"] == 22680.0
         assert summary["NIFTY"]["change"] == 155.0
         assert summary["NIFTY"]["pct"] == 0.69
         assert summary["NIFTY"]["date"] == "08-Apr-2026"
-        module.yf.Ticker = original_ticker
+        _yf_provider.yf.Ticker = original_ticker
         module.INDEX_MAP = original_map
     finally:
         _restore_argv(argv_prev)

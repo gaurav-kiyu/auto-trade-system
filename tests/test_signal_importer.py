@@ -1,271 +1,232 @@
-"""Tests for core/signal_importer.py (v2.46 Sprint 1F)."""
+"""Tests for SignalImporter — import signals from CSV, text, and parse lines."""
+
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
-import pytest
 from core.signal_importer import (
     ImportResult,
+    parse_signal_text,
     import_from_csv,
     import_from_csv_text,
     import_from_text,
-    parse_signal_text,
 )
 
-# ── Fixtures ───────────────────────────────────────────────────────────────────
-
-def _mock_queue():
-    q = MagicMock()
-    sig = MagicMock()
-    sig.signal_id = "MSQ_1_0001"
-    q.submit.return_value = sig
-    return q
-
-
-# ── ImportResult ───────────────────────────────────────────────────────────────
 
-def test_import_result_ok_property():
-    r = ImportResult(total=2, accepted=2, rejected=0)
-    assert r.ok
-
-def test_import_result_not_ok_with_rejections():
-    r = ImportResult(total=2, accepted=1, rejected=1)
-    assert not r.ok
-
-def test_import_result_not_ok_zero_accepted():
-    r = ImportResult(total=1, accepted=0, rejected=1)
-    assert not r.ok
-
-def test_import_result_summary():
-    r = ImportResult(total=3, accepted=2, rejected=1)
-    s = r.summary()
-    assert "3" in s
-    assert "2" in s
-    assert "1" in s
-
-
-# ── parse_signal_text ──────────────────────────────────────────────────────────
-
-@pytest.mark.parametrize("text,expected", [
-    ("NIFTY CALL 80", {"index_name": "NIFTY", "direction": "CALL", "score": 80, "reason": ""}),
-    ("BANKNIFTY PUT 75 gap fill breakout",
-     {"index_name": "BANKNIFTY", "direction": "PUT", "score": 75, "reason": "gap fill breakout"}),
-    ("banknifty call 82 gap_fill_setup",
-     {"index_name": "BANKNIFTY", "direction": "CALL", "score": 82, "reason": "gap_fill_setup"}),
-    ("FINNIFTY CALL 60", {"index_name": "FINNIFTY", "direction": "CALL", "score": 60, "reason": ""}),
-    ("nifty put 78", {"index_name": "NIFTY", "direction": "PUT", "score": 78, "reason": ""}),
-])
-def test_parse_signal_text_valid(text, expected):
-    result = parse_signal_text(text)
-    assert result == expected
-
-
-@pytest.mark.parametrize("text", [
-    "",                          # empty
-    "   ",                       # whitespace
-    "NIFTY CALL",               # missing score
-    "NIFTY CALL abc",           # non-numeric score
-    "SENSEX CALL 80",           # invalid index
-    "NIFTY STRADDLE 80",        # invalid direction
-    "NIFTY CALL -1",            # score out of range
-    "NIFTY CALL 101",           # score out of range
-    "CALL 80",                  # missing index
-])
-def test_parse_signal_text_invalid(text):
-    assert parse_signal_text(text) is None
-
-
-def test_parse_signal_text_score_boundary():
-    assert parse_signal_text("NIFTY CALL 0") is not None
-    assert parse_signal_text("NIFTY CALL 100") is not None
-    assert parse_signal_text("NIFTY CALL 101") is None
-
-
-def test_parse_signal_text_reason_with_spaces():
-    result = parse_signal_text("NIFTY CALL 80 reason with multiple words")
-    assert result["reason"] == "reason with multiple words"
-
-
-# ── import_from_csv_text ───────────────────────────────────────────────────────
-
-VALID_CSV = """index_name,direction,score,reason
-NIFTY,CALL,80,gap fill
-BANKNIFTY,PUT,75,trend
-"""
-
-def test_import_csv_text_basic():
-    q = _mock_queue()
-    r = import_from_csv_text(VALID_CSV, q)
-    assert r.total == 2
-    assert r.accepted == 2
-    assert r.rejected == 0
-    assert len(r.signal_ids) == 2
-
-
-def test_import_csv_text_no_queue():
-    r = import_from_csv_text(VALID_CSV, None)
-    assert r.rejected == 2
-    assert "not initialized" in r.errors[0]
-
-
-def test_import_csv_text_invalid_index():
-    csv = "index_name,direction,score\nSENSEX,CALL,80\n"
-    r = import_from_csv_text(csv, _mock_queue())
-    assert r.rejected == 1
-    assert "index_name" in r.errors[0]
-
-
-def test_import_csv_text_invalid_direction():
-    csv = "index_name,direction,score\nNIFTY,STRADDLE,80\n"
-    r = import_from_csv_text(csv, _mock_queue())
-    assert r.rejected == 1
-    assert "direction" in r.errors[0]
-
-
-def test_import_csv_text_invalid_score():
-    csv = "index_name,direction,score\nNIFTY,CALL,abc\n"
-    r = import_from_csv_text(csv, _mock_queue())
-    assert r.rejected == 1
-    assert "score" in r.errors[0]
-
-
-def test_import_csv_text_score_out_of_range():
-    csv = "index_name,direction,score\nNIFTY,CALL,150\n"
-    r = import_from_csv_text(csv, _mock_queue())
-    assert r.rejected == 1
-    assert "out of range" in r.errors[0]
-
-
-def test_import_csv_text_optional_columns():
-    csv = "index_name,direction,score,reason,lots_override,sl_override,target_override\n"
-    csv += "NIFTY,CALL,80,test,2,45.5,90.0\n"
-    q = _mock_queue()
-    r = import_from_csv_text(csv, q)
-    assert r.accepted == 1
-    call_kwargs = q.submit.call_args[1]
-    assert call_kwargs["lots_override"] == 2
-    assert call_kwargs["sl_override"] == 45.5
-    assert call_kwargs["target_override"] == 90.0
-
-
-def test_import_csv_text_column_alias_index():
-    csv = "index,direction,score\nNIFTY,CALL,80\n"
-    r = import_from_csv_text(csv, _mock_queue())
-    assert r.accepted == 1
-
-
-def test_import_csv_text_analyst_override():
-    csv = "index_name,direction,score,analyst_name\nNIFTY,CALL,80,Alice\n"
-    q = _mock_queue()
-    import_from_csv_text(csv, q, analyst="DefaultBot")
-    call_kwargs = q.submit.call_args[1]
-    assert call_kwargs["analyst_name"] == "Alice"
-
-
-def test_import_csv_text_default_analyst():
-    csv = "index_name,direction,score\nNIFTY,CALL,80\n"
-    q = _mock_queue()
-    import_from_csv_text(csv, q, analyst="MyBot")
-    call_kwargs = q.submit.call_args[1]
-    assert call_kwargs["analyst_name"] == "MyBot"
-
-
-def test_import_csv_text_mixed_valid_invalid():
-    csv = "index_name,direction,score\nNIFTY,CALL,80\nBAD,CALL,80\nBANKNIFTY,PUT,70\n"
-    r = import_from_csv_text(csv, _mock_queue())
-    assert r.total == 3
-    assert r.accepted == 2
-    assert r.rejected == 1
-
-
-def test_import_csv_text_submit_exception():
-    q = MagicMock()
-    q.submit.side_effect = RuntimeError("DB error")
-    csv = "index_name,direction,score\nNIFTY,CALL,80\n"
-    r = import_from_csv_text(csv, q)
-    assert r.rejected == 1
-    assert "submit failed" in r.errors[0]
-
-
-def test_import_csv_text_bom_header():
-    csv = "﻿index_name,direction,score\nNIFTY,CALL,80\n"
-    r = import_from_csv_text(csv, _mock_queue())
-    assert r.accepted == 1
-
-
-def test_import_csv_text_whitespace_normalisation():
-    csv = "index_name , direction , score\n  NIFTY , CALL , 80\n"
-    r = import_from_csv_text(csv, _mock_queue())
-    assert r.accepted == 1
-
-
-# ── import_from_csv (file) ─────────────────────────────────────────────────────
-
-def test_import_from_csv_file_not_found():
-    r = import_from_csv("/nonexistent/path/signals.csv", None)
-    assert r.rejected == 0
-    assert len(r.errors) == 1
-    assert "not found" in r.errors[0].lower()
-
-
-def test_import_from_csv_valid_file(tmp_path):
-    f = tmp_path / "signals.csv"
-    f.write_text("index_name,direction,score\nNIFTY,CALL,80\n", encoding="utf-8")
-    r = import_from_csv(str(f), _mock_queue())
-    assert r.accepted == 1
-
-
-def test_import_from_csv_bom_file(tmp_path):
-    f = tmp_path / "bom.csv"
-    f.write_bytes(b"\xef\xbb\xbfindex_name,direction,score\r\nNIFTY,CALL,80\r\n")
-    r = import_from_csv(str(f), _mock_queue())
-    assert r.accepted == 1
-
-
-# ── import_from_text ───────────────────────────────────────────────────────────
-
-def test_import_from_text_basic():
-    text = "NIFTY CALL 80 gap fill\nBANKNIFTY PUT 75\n"
-    r = import_from_text(text, _mock_queue())
-    assert r.total == 2
-    assert r.accepted == 2
-
-
-def test_import_from_text_skips_blank_lines():
-    text = "NIFTY CALL 80\n\n\nBANKNIFTY PUT 75\n"
-    r = import_from_text(text, _mock_queue())
-    assert r.total == 2
-
-
-def test_import_from_text_skips_comment_lines():
-    text = "# this is a comment\nNIFTY CALL 80\n# another comment\n"
-    r = import_from_text(text, _mock_queue())
-    assert r.total == 1
-    assert r.accepted == 1
-
-
-def test_import_from_text_invalid_line():
-    text = "NIFTY CALL 80\nBOGUS LINE\n"
-    r = import_from_text(text, _mock_queue())
-    assert r.total == 2
-    assert r.accepted == 1
-    assert r.rejected == 1
-    assert "cannot parse" in r.errors[0]
-
-
-def test_import_from_text_no_queue():
-    r = import_from_text("NIFTY CALL 80\n", None)
-    assert r.rejected == 1
-    assert "not initialized" in r.errors[0]
-
-
-def test_import_from_text_empty():
-    r = import_from_text("", _mock_queue())
-    assert r.total == 0
-    assert r.accepted == 0
-
-
-def test_import_from_text_analyst_tag():
-    text = "NIFTY CALL 80\n"
-    q = _mock_queue()
-    import_from_text(text, q, analyst="RajBot")
-    call_kwargs = q.submit.call_args[1]
-    assert call_kwargs["analyst_name"] == "RajBot"
+class TestImportResult:
+    """ImportResult dataclass."""
+
+    def test_ok_property_true(self):
+        r = ImportResult(total=5, accepted=5, rejected=0)
+        assert r.ok is True
+
+    def test_ok_property_false(self):
+        r = ImportResult(total=5, accepted=3, rejected=2)
+        assert r.ok is False
+
+    def test_summary_format(self):
+        r = ImportResult(total=10, accepted=8, rejected=2)
+        assert "8 accepted" in r.summary()
+        assert "2 rejected" in r.summary()
+
+
+class TestParseSignalText:
+    """parse_signal_text — free-text signal parsing."""
+
+    def test_valid_minimal(self):
+        result = parse_signal_text("NIFTY CALL 82")
+        assert result == {"index_name": "NIFTY", "direction": "CALL", "score": 82, "reason": ""}
+
+    def test_valid_with_reason(self):
+        result = parse_signal_text("BANKNIFTY PUT 75 gap_fill_setup")
+        assert result["index_name"] == "BANKNIFTY"
+        assert result["direction"] == "PUT"
+        assert result["score"] == 75
+        assert result["reason"] == "gap_fill_setup"
+
+    def test_valid_multi_word_reason(self):
+        result = parse_signal_text("FINNIFTY CALL 85 strong breakout above resistance")
+        assert result["score"] == 85
+        assert "strong breakout" in result["reason"]
+
+    def test_case_insensitive(self):
+        result = parse_signal_text("banknifty call 82")
+        assert result["index_name"] == "BANKNIFTY"
+        assert result["direction"] == "CALL"
+
+    def test_empty_text(self):
+        result = parse_signal_text("")
+        assert result is None
+
+    def test_whitespace_text(self):
+        result = parse_signal_text("   ")
+        assert result is None
+
+    def test_invalid_index(self):
+        result = parse_signal_text("INVALID CALL 82")
+        assert result is None
+
+    def test_invalid_direction(self):
+        result = parse_signal_text("NIFTY SELL 82")
+        assert result is None
+
+    def test_non_numeric_score(self):
+        result = parse_signal_text("NIFTY CALL abc")
+        assert result is None
+
+    def test_score_out_of_range(self):
+        result = parse_signal_text("NIFTY CALL 150")
+        assert result is None
+
+    def test_score_negative(self):
+        result = parse_signal_text("NIFTY CALL -5")
+        assert result is None
+
+    def test_score_zero(self):
+        result = parse_signal_text("NIFTY CALL 0")
+        assert result is not None
+        assert result["score"] == 0
+
+    def test_score_one_hundred(self):
+        result = parse_signal_text("NIFTY CALL 100")
+        assert result is not None
+        assert result["score"] == 100
+
+    def test_too_few_tokens(self):
+        result = parse_signal_text("NIFTY CALL")
+        assert result is None
+
+
+class TestImportFromText:
+    """import_from_text — import signals from newline-separated text."""
+
+    def test_import_single(self):
+        queue = MagicMock()
+        queue.submit.return_value.signal_id = "SIG-001"
+        result = import_from_text("NIFTY CALL 82 test", queue)
+        assert result.total == 1
+        assert result.accepted == 1
+        assert result.rejected == 0
+
+    def test_import_multiple(self):
+        queue = MagicMock()
+        queue.submit.return_value.signal_id = "SIG-001"
+        result = import_from_text("NIFTY CALL 82 a\nBANKNIFTY PUT 75 b", queue)
+        assert result.total == 2
+        assert result.accepted == 2
+
+    def test_skips_blank_lines(self):
+        queue = MagicMock()
+        queue.submit.return_value.signal_id = "SIG-001"
+        result = import_from_text("NIFTY CALL 82\n\n\nBANKNIFTY PUT 75", queue)
+        assert result.total == 2
+        assert result.accepted == 2
+
+    def test_skips_comments(self):
+        queue = MagicMock()
+        queue.submit.return_value.signal_id = "SIG-001"
+        result = import_from_text("# comment\nNIFTY CALL 82", queue)
+        assert result.total == 1
+        assert result.accepted == 1
+
+    def test_rejects_unparsable(self):
+        queue = MagicMock()
+        queue.submit.return_value.signal_id = "SIG-001"
+        result = import_from_text("INVALID CALL 82", queue)
+        assert result.total == 1
+        assert result.rejected == 1
+
+    def test_no_queue(self):
+        result = import_from_text("NIFTY CALL 82", None)
+        assert result.rejected == 1
+        assert result.total == 1
+
+    def test_submit_error(self):
+        queue = MagicMock()
+        queue.submit.side_effect = ValueError("Queue full")
+        result = import_from_text("NIFTY CALL 82", queue)
+        assert result.rejected == 1
+
+
+class TestImportFromCSV:
+    """import_from_csv and import_from_csv_text."""
+
+    CSV_HEADER = "index_name,direction,score,reason\n"
+    CSV_VALID = CSV_HEADER + "NIFTY,CALL,82,gap fill setup\nBANKNIFTY,PUT,75,\n"
+
+    def test_import_valid_csv(self):
+        queue = MagicMock()
+        queue.submit.return_value.signal_id = "SIG-001"
+        result = import_from_csv_text(self.CSV_VALID, queue)
+        assert result.total == 2
+        assert result.accepted == 2
+        assert result.rejected == 0
+
+    def test_import_invalid_index(self):
+        queue = MagicMock()
+        csv_text = "index_name,direction,score,reason\nINVALID,CALL,82,test\n"
+        result = import_from_csv_text(csv_text, queue)
+        assert result.total == 1
+        assert result.rejected == 1
+
+    def test_import_invalid_direction(self):
+        queue = MagicMock()
+        csv_text = "index_name,direction,score,reason\nNIFTY,SELL,82,test\n"
+        result = import_from_csv_text(csv_text, queue)
+        assert result.total == 1
+        assert result.rejected == 1
+
+    def test_import_invalid_score(self):
+        queue = MagicMock()
+        csv_text = "index_name,direction,score,reason\nNIFTY,CALL,abc,test\n"
+        result = import_from_csv_text(csv_text, queue)
+        assert result.total == 1
+        assert result.rejected == 1
+
+    def test_import_score_out_of_range(self):
+        queue = MagicMock()
+        csv_text = "index_name,direction,score,reason\nNIFTY,CALL,200,test\n"
+        result = import_from_csv_text(csv_text, queue)
+        assert result.total == 1
+        assert result.rejected == 1
+
+    def test_signal_ids_collected(self):
+        queue = MagicMock()
+        queue.submit.return_value.signal_id = "SIG-001"
+        result = import_from_csv_text("index_name,direction,score,reason\nNIFTY,CALL,82,test\n", queue)
+        assert "SIG-001" in result.signal_ids
+
+    def test_import_no_queue(self):
+        result = import_from_csv_text("index_name,direction,score,reason\nNIFTY,CALL,82,test\n", None)
+        assert result.rejected == 1
+
+    def test_import_file_not_found(self):
+        result = import_from_csv("nonexistent.csv", MagicMock())
+        assert len(result.errors) > 0
+        assert "not found" in result.errors[0]
+
+    def test_import_with_optional_fields(self):
+        queue = MagicMock()
+        queue.submit.return_value.signal_id = "SIG-001"
+        csv_text = "index_name,direction,score,reason,lots_override,analyst_name\nNIFTY,CALL,82,test,2,Alice\n"
+        result = import_from_csv_text(csv_text, queue)
+        assert result.accepted == 1
+        # Verify submit was called with lots_override=2
+        _, kwargs = queue.submit.call_args
+        assert kwargs.get("lots_override") == 2
+
+    def test_bom_handling(self):
+        """Should handle UTF-8 BOM."""
+        queue = MagicMock()
+        queue.submit.return_value.signal_id = "SIG-001"
+        csv_text = "\ufeffindex_name,direction,score\nNIFTY,CALL,82\n"
+        result = import_from_csv_text(csv_text, queue)
+        assert result.accepted == 1
+
+    def test_alias_columns(self):
+        """Should accept 'index' as alias for 'index_name'."""
+        queue = MagicMock()
+        queue.submit.return_value.signal_id = "SIG-001"
+        csv_text = "index,direction,score,reason\nNIFTY,CALL,82,test\n"
+        result = import_from_csv_text(csv_text, queue)
+        assert result.accepted == 1

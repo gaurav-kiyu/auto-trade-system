@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 import types
 from dataclasses import dataclass
 from pathlib import Path
@@ -272,6 +273,7 @@ class ConfigChange:
 
 # Global secure config instance
 _SECURE_CONFIG: SecureConfig | None = None
+_CONFIG_LOCK: threading.Lock = threading.Lock()
 
 
 def initialize_secure_config(
@@ -353,9 +355,10 @@ def get_secure_config() -> SecureConfig:
     Initializes it if not already done.
     """
     global _SECURE_CONFIG
-    if _SECURE_CONFIG is None:
-        return initialize_secure_config()
-    return _SECURE_CONFIG
+    with _CONFIG_LOCK:
+        if _SECURE_CONFIG is None:
+            return initialize_secure_config()
+        return _SECURE_CONFIG
 
 
 def get_config_value(key: str, default: Any = None) -> Any:

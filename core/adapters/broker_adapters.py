@@ -120,14 +120,46 @@ class BrokerAdapter:
             return response.status == "CANCELLED"
         return bool(response)
 
-    def modify_order(self, order_id, qty=None, price=None) -> bool:
-        """Modify order via port."""
+    def modify_order(self, order_id, qty=None, price=None, trigger_price=None, order_type=None) -> bool:
+        """Modify order via port.
+
+        Args:
+            order_id: Broker order ID to modify
+            qty: New quantity (None = no change)
+            price: New limit price (None = no change)
+            trigger_price: New trigger price for SL orders (None = no change)
+            order_type: New order type string (None = no change)
+
+        Returns:
+            True if modification was accepted by broker
+        """
         try:
-            response = self._port.modify_order(order_id, qty, price)
+            _port = getattr(self, '_port', None)
+            if _port is None or not hasattr(_port, 'modify_order'):
+                return False
+            try:
+                # Try BrokerPort convention (quantity) — KitePort, etc.
+                response = _port.modify_order(
+                    order_id,
+                    quantity=qty,
+                    price=price,
+                    trigger_price=trigger_price,
+                    order_type=order_type,
+                )
+            except TypeError:
+                # Legacy adapters (PaperBrokerAdapter, AngelBrokerAdapter) use qty
+                response = _port.modify_order(
+                    order_id,
+                    qty=qty,
+                    price=price,
+                    trigger_price=trigger_price,
+                    order_type=order_type,
+                )
             if hasattr(response, 'status'):
-                return response.status in ("MODIFIED", "ACCEPTED")
+                status_str = str(response.status).upper()
+                return status_str in ("MODIFIED", "ACCEPTED", "SUCCESS")
             return bool(response)
-        except AttributeError:
+        except (AttributeError, TypeError):
             return False
 
     def get_fill_price(self, order_id) -> float | None:
@@ -289,7 +321,7 @@ class PaperBrokerAdapter(BrokerAdapter):
             oi, volume = int(result[0]), int(result[1])
             ok = oi >= self._min_oi() and volume >= self._min_vol()
             return ok, oi, volume
-        except (TypeError, ValueError, OSError):
+        except (TypeError, ValueError, RuntimeError, OSError):
             return True, 0, 0
 
     def _fill_price(self, name: str, direction: str, strike: int, is_entry: bool) -> tuple[float, float]:
@@ -348,7 +380,7 @@ class PaperBrokerAdapter(BrokerAdapter):
         """Cancel a paper order (always succeeds)."""
         return True
 
-    def modify_order(self, order_id, qty=None, price=None) -> bool:
+    def modify_order(self, order_id, qty=None, price=None, trigger_price=None, order_type=None) -> bool:
         """Modify an existing paper order (always succeeds)."""
         return True
 

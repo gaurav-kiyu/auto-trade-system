@@ -1,7 +1,35 @@
+"""
+Config Engine (deprecated).
+
+WARNING: This module is deprecated. Use core.config_validator for config
+validation and startup safety checks.
+
+core.config_validator.validate_config() provides:
+  - Required key presence checks
+  - Execution mode validation
+  - Risk mode validation
+  - Tier boundary ordering
+  - AI_THRESHOLD dead zone detection
+  - TG_ALERT_MIN_SCORE alignment
+  - VIX threshold sanity
+  - SL/TP/RR consistency
+  - Capital/risk limit validation
+  - Structured block validation (instruments, indicator, market, financial)
+
+This module will be removed in a future release.
+"""
+
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Any
+
+warnings.warn(
+    "core.config_engine is DEPRECATED. Use core.config_validator.validate_config() instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 @dataclass(frozen=True)

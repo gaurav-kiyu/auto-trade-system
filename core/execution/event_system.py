@@ -27,7 +27,7 @@ import threading
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Any
 
 from core.time_provider import time_provider
@@ -57,8 +57,8 @@ class EventType(Enum):
     HEALTH_CHECK_FAILED = "HEALTH_CHECK_FAILED"
 
 
-class EventPriority(Enum):
-    """Event priority levels for ordering"""
+class EventPriority(IntEnum):
+    """Event priority levels for ordering (IntEnum so comparison works)"""
     CRITICAL = 0
     HIGH = 1
     NORMAL = 2

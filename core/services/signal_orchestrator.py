@@ -1,4 +1,5 @@
 import logging
+import threading
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -102,7 +103,10 @@ class SignalOrchestrator:
 
 # Singleton instance
 signal_orchestrator: SignalOrchestrator | None = None
+_orchestrator_lock = threading.Lock()
 
 def init_signal_orchestrator(config: dict[str, Any]):
     global signal_orchestrator
-    signal_orchestrator = SignalOrchestrator(config)
+    with _orchestrator_lock:
+        if signal_orchestrator is None:
+            signal_orchestrator = SignalOrchestrator(config)

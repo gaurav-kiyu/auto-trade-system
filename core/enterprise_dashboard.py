@@ -886,7 +886,7 @@ class EnterpriseDashboard:
                     if not allowed:
                         retry_after = 60
                         return {"status": "rate_limited", "retry_after": retry_after}
-                except (ValueError, AttributeError, TypeError) as exc:
+                except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
                     _log.warning("[DASH] Webhook rate limiter error: %s", exc)
 
             try:
@@ -899,7 +899,7 @@ class EnterpriseDashboard:
             if self._signal_queue is not None:
                 try:
                     self._signal_queue.put(body)
-                except (ValueError, AttributeError, TypeError) as exc:
+                except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
                     _log.warning("[DASH] Webhook signal queue error: %s", exc)
 
             # Also append to signal_log if available
@@ -937,7 +937,7 @@ class EnterpriseDashboard:
                     oc = market_data.get_option_chain(index_name.upper())
                     if oc:
                         chain_data["option_chain"] = oc
-                except (ValueError, TypeError, AttributeError) as exc:
+                except (ValueError, TypeError, AttributeError, RuntimeError) as exc:
                     _log.warning("[DASH] Option chain fetch error: %s", exc)
 
             chain_data["symbol"] = index_name.upper()
@@ -1238,13 +1238,13 @@ class EnterpriseDashboard:
         if self._control_plane:
             try:
                 self._control_plane.control_kill(username, reason=reason)
-            except (ValueError, AttributeError, TypeError) as e:
+            except (ValueError, AttributeError, TypeError, RuntimeError) as e:
                 _log.warning("[DASH] Control plane kill failed: %s", e)
 
         if "halt_callback" in self._bot_refs:
             try:
                 self._bot_refs["halt_callback"](f"KILL by {username}: {reason}")
-            except (ValueError, AttributeError, TypeError) as e:
+            except (ValueError, AttributeError, TypeError, RuntimeError) as e:
                 _log.warning("[DASH] Halt callback failed: %s", e)
 
         return {
@@ -1292,7 +1292,7 @@ class EnterpriseDashboard:
             from core.performance_metrics import load_trades
             trades = load_trades(self._db_path, days=days if days > 0 else None)
             return trades[-n:]
-        except (ImportError, ValueError, OSError) as e:
+        except (ImportError, ValueError, RuntimeError, OSError) as e:
             _log.debug("[DASH] load_trades failed: %s", e)
             return []
 

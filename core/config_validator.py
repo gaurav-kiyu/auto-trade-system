@@ -356,7 +356,7 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
         err(f"SL_PCT={sl_pct} should be < 1.0 (e.g. 0.92 for 8% stop)")
     if tp_pct <= 1.0:
         err(f"TARGET_PCT={tp_pct} should be > 1.0 (e.g. 1.3 for 30% target)")
-    if sl_pct > 0 and tp_pct > 0:
+    if sl_pct > 0 and tp_pct > 0 and (1.0 - sl_pct) > 0:
         rr = (tp_pct - 1.0) / (1.0 - sl_pct)
         min_rr = float(cfg.get("MIN_NET_RR", 1.5))
         if rr < min_rr:

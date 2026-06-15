@@ -43,10 +43,12 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import threading
 import time
 from pathlib import Path
 from typing import Any
 
+from core.db_utils import get_connection
 from core.exceptions import DatabaseError
 
 _log = logging.getLogger(__name__)
@@ -56,6 +58,7 @@ _DEFAULT_DB = "ml_tracker.db"
 # ── Schema versioning via db_migration ─────────────────────────────────────────
 
 _ML_TRACKER_MIGRATIONS_REGISTERED = False
+_ML_TRACKER_MIGRATIONS_LOCK = threading.Lock()
 
 
 def _register_ml_tracker_migrations() -> None:
@@ -67,6 +70,9 @@ def _register_ml_tracker_migrations() -> None:
     global _ML_TRACKER_MIGRATIONS_REGISTERED
     if _ML_TRACKER_MIGRATIONS_REGISTERED:
         return
+    with _ML_TRACKER_MIGRATIONS_LOCK:
+        if _ML_TRACKER_MIGRATIONS_REGISTERED:
+            return
 
     try:
         from core.db_migration import register_schema
@@ -116,9 +122,8 @@ CREATE INDEX IF NOT EXISTS ix_mlpred_trade_id ON ml_predictions (trade_id);
 
 
 def _get_conn(db_path: str) -> sqlite3.Connection:
-    from core.db_utils import get_connection as _get_db_conn
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    conn = _get_db_conn(db_path, timeout=10)
+    conn = get_connection(db_path, timeout=10)
 
     # Use formal schema migration if available, otherwise fall back to DDL
     try:

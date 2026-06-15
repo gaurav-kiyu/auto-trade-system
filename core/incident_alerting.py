@@ -41,6 +41,7 @@ class IncidentType(Enum):
     HARD_HALT = "hard_halt"
     SYSTEM_MODE_CHANGE = "system_mode_change"
     UNKNOWN_STATE = "unknown_state"
+    ORDER_MODIFICATION_FAILED = "order_modification_failed"
 
 
 class IncidentSeverity(Enum):
@@ -282,6 +283,25 @@ class IncidentAlerting:
             IncidentSeverity.HIGH,
             f"Mode: {old_mode} → {new_mode}",
             {"old_mode": old_mode, "new_mode": new_mode, "reason": reason}
+        )
+
+    def alert_order_modification_failed(
+        self,
+        order_id: str,
+        reason: str,
+        details: dict | None = None,
+    ) -> None:
+        """Alert: Order modification failed.
+
+        Triggered when an order modification attempt is rejected by the broker
+        or fails due to timeout/error. Includes order ID and failure details
+        so operators can investigate and manually intervene if needed.
+        """
+        self.report_incident(
+            IncidentType.ORDER_MODIFICATION_FAILED,
+            IncidentSeverity.HIGH,
+            f"Modify failed: {order_id} — {reason}",
+            details or {},
         )
 
 

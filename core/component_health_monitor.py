@@ -12,6 +12,7 @@ Monitors health of all new components:
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -218,11 +219,14 @@ class ComponentHealthMonitor:
 
 
 _global_monitor: ComponentHealthMonitor | None = None
+_monitor_lock: threading.Lock = threading.Lock()
 
 
 def get_health_monitor() -> ComponentHealthMonitor:
-    """Get global health monitor instance."""
+    """Get global health monitor instance (thread-safe)."""
     global _global_monitor
     if _global_monitor is None:
-        _global_monitor = ComponentHealthMonitor()
+        with _monitor_lock:
+            if _global_monitor is None:
+                _global_monitor = ComponentHealthMonitor()
     return _global_monitor

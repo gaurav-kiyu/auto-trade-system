@@ -223,7 +223,7 @@ class MorningChecklist:
         except ImportError:
             pass  # TokenRefreshService not available, try _ensure_token_fresh
         except (AttributeError, OSError, ValueError) as e:
-            self._logger.warning(f"TokenRefreshService check failed: {e}")
+            self._logger.warning("TokenRefreshService check failed: %s" % e)
             # Fall through to _ensure_token_fresh
 
         # Fallback: _ensure_token_fresh on broker port
@@ -234,7 +234,7 @@ class MorningChecklist:
                 else:
                     return False, "Broker token EXPIRED — _ensure_token_fresh failed"
         except (AttributeError, OSError, ValueError) as e:
-            self._logger.warning(f"Token check failed (fallback): {e}")
+            self._logger.warning("Token check failed (fallback): %s" % e)
             return False, f"Token check FAILED — cannot validate: {e}"
 
         # No method to check — fail-closed for safety
@@ -251,7 +251,7 @@ class MorningChecklist:
                 if health.get("status") == "healthy":
                     return True, "Broker reachable"
         except (AttributeError, OSError, ConnectionError) as e:
-            self._logger.warning(f"Broker reachability check failed: {e}")
+            self._logger.warning("Broker reachability check failed: %s" % e)
             return False, f"Broker unreachable: {e}"
 
         return True, "Broker reachable (no health check)"
@@ -267,7 +267,7 @@ class MorningChecklist:
                         return True, f"VIX loaded: {vix:.1f}"
                     return False, "VIX not loaded (0)"
         except (AttributeError, OSError) as e:
-            self._logger.warning(f"VIX check via data_engine failed: {e}")
+            self._logger.warning("VIX check via data_engine failed: %s" % e)
 
         # Fallback: try through core modules if no engine injected
         try:
@@ -275,8 +275,8 @@ class MorningChecklist:
             vix = get_iv_rank()._vix if hasattr(get_iv_rank(), '_vix') else None
             if vix and vix > 0:
                 return True, f"VIX loaded (via iv_rank): {vix:.1f}"
-        except (ImportError, AttributeError, OSError) as e:
-            self._logger.warning("VIX check via iv_rank failed: %s", e)
+        except (ImportError, AttributeError, TypeError, OSError) as e:
+            self._logger.warning("VIX check via iv_rank failed: %s" % e)
 
         return True, "VIX check skipped (no data engine)"
 
@@ -290,7 +290,7 @@ class MorningChecklist:
                     return True, f"Capital: ₹{capital:,.0f}"
                 return False, "Capital zero or missing"
         except (ImportError, AttributeError, OSError) as _cap_err:
-            self._logger.debug("Capital check unavailable: %s", _cap_err)
+            self._logger.debug("Capital check unavailable: %s" % _cap_err)
         return True, "Capital check skipped"
 
     def _check_no_orphan_orders(self) -> tuple[bool, str]:
@@ -303,7 +303,7 @@ class MorningChecklist:
                 return False, f"Found {len(pending)} pending orders"
             return True, "No orphan orders"
         except (ImportError, AttributeError, OSError) as e:
-            self._logger.warning("Orphan check failed: %s", e)
+            self._logger.warning("Orphan check failed: %s" % e)
 
         return True, "Orphan check skipped"
 
@@ -333,7 +333,7 @@ class MorningChecklist:
                 return False, "Today is not a trading day"
             return True, "Market calendar OK"
         except (ImportError, AttributeError, ValueError) as _cal_err:
-            self._logger.debug("Market calendar check unavailable: %s", _cal_err)
+            self._logger.debug("Market calendar check unavailable: %s" % _cal_err)
         return True, "Calendar check skipped"
 
     def _check_lot_sizes(self) -> tuple[bool, str]:
@@ -347,7 +347,7 @@ class MorningChecklist:
                 return False, f"Lot size mismatches: {len(mismatches)}"
             return True, f"Lot sizes validated ({len(results)} indices)"
         except (ImportError, AttributeError, OSError, ValueError) as e:
-            self._logger.warning("Lot size check failed: %s", e)
+            self._logger.warning("Lot size check failed: %s" % e)
 
         return True, "Lot size check skipped"
 
@@ -364,7 +364,7 @@ class MorningChecklist:
                 return False, f"Circuit breaker: {state.level.value}"
             return True, "No circuit breaker triggered"
         except (ImportError, AttributeError, OSError, ValueError) as e:
-            self._logger.warning("Circuit breaker check failed: %s", e)
+            self._logger.warning("Circuit breaker check failed: %s" % e)
 
         return True, "CB check skipped"
 
@@ -375,7 +375,7 @@ class MorningChecklist:
             if telegram_queue:
                 return True, "Telegram reachable"
         except (ImportError, AttributeError) as _tg_err:
-            self._logger.debug("Telegram check unavailable: %s", _tg_err)
+            self._logger.debug("Telegram check unavailable: %s" % _tg_err)
 
         if self._send_fn and self._send_fn.__class__.__name__ != 'function':
             return True, "Telegram configured"
