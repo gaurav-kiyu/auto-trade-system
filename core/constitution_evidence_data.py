@@ -1,5 +1,5 @@
 """
-Shared Constitution Evidence Data — evidence definitions used by both
+Shared Constitution Evidence Data - evidence definitions used by both
 the register_constitution_evidence.py script and the ConstitutionValidator
 auto-evidence loader.
 
@@ -49,7 +49,7 @@ def collect_all_evidence() -> Evidence:
         })
 
     # ═══════════════════════════════════════════════════════════════
-    # ARCH — Architecture (9.5 max)
+    # ARCH - Architecture (9.5 max)
     # ═══════════════════════════════════════════════════════════════
 
     # ARCH-01: Boundary enforcement (9.5)
@@ -66,7 +66,7 @@ def collect_all_evidence() -> Evidence:
     add("ARCH-02", "ADR-0010 formalizes architecture governance with boundary rules", "documentation", 0.3)
 
     # ARCH-03: Port/adapter separation (9.5)
-    add("ARCH-03", "Broker abstraction via broker_adapters.py — all broker calls go through ports", "code_review", 0.5)
+    add("ARCH-03", "Broker abstraction via broker_adapters.py - all broker calls go through ports", "code_review", 0.5)
     add("ARCH-03", "Market data adapters separated by provider (yahoofinance, nse, kite)", "code_review", 0.4)
     add("ARCH-03", "Broker port interface (core/ports/broker/) defines contract", "code_review", 0.3)
     add("ARCH-03", "Broker contract certification test (test_broker_contract_certification.py)", "test_pass", 0.5)
@@ -78,7 +78,7 @@ def collect_all_evidence() -> Evidence:
     add("ARCH-04", "ADR-0010 documents dependency direction rules", "documentation", 0.2)
 
     # ═══════════════════════════════════════════════════════════════
-    # SEC — Security (9.5 max)
+    # SEC - Security (9.5 max)
     # ═══════════════════════════════════════════════════════════════
 
     # SEC-01: Authentication (9.5)
@@ -105,7 +105,7 @@ def collect_all_evidence() -> Evidence:
     add("SEC-04", "Constitution audit log tracks all validation events with timestamps", "code_review", 0.3)
 
     # ═══════════════════════════════════════════════════════════════
-    # RSK — Risk (RSK-01/02=9.9, RSK-03=9.0, RSK-04=9.5)
+    # RSK - Risk (RSK-01/02=9.9, RSK-03=9.0, RSK-04=9.5)
     # ═══════════════════════════════════════════════════════════════
 
     # RSK-01: Hard halt enforcement (9.9)
@@ -136,7 +136,7 @@ def collect_all_evidence() -> Evidence:
     add("RSK-04", "Runtime ops test (test_runtime_ops::test_circuit_breaker_trips_and_recovers)", "test_pass", 0.4)
 
     # ═══════════════════════════════════════════════════════════════
-    # EXE — Execution (EXE-01=9.9, EXE-02/03/04=9.5)
+    # EXE - Execution (EXE-01=9.9, EXE-02/03/04=9.5)
     # ═══════════════════════════════════════════════════════════════
 
     # EXE-01: Exactly-once semantics (9.9)
@@ -166,7 +166,7 @@ def collect_all_evidence() -> Evidence:
     add("EXE-04", "Execution router wiring test (test_execution_router_wiring.py)", "test_pass", 0.3)
 
     # ═══════════════════════════════════════════════════════════════
-    # TST — Testing (TST-02=9.9, TST-03=9.5, TST-01/04=9.0)
+    # TST - Testing (TST-02=9.9, TST-03=9.5, TST-01/04=9.0)
     # ═══════════════════════════════════════════════════════════════
 
     # TST-01: Test coverage (9.0)
@@ -204,7 +204,7 @@ def collect_all_evidence() -> Evidence:
     add("TST-04", "Sanity checks (test_sanity_checks.py) - validates basic system invariants", "test_pass", 0.3)
 
     # ═══════════════════════════════════════════════════════════════
-    # OBS — Observability (all 9.0 max)
+    # OBS - Observability (all 9.0 max)
     # ═══════════════════════════════════════════════════════════════
 
     # OBS-01: Structured logging (9.0)
@@ -234,7 +234,7 @@ def collect_all_evidence() -> Evidence:
     add("OBS-04", "Circuit breaker monitor (core/circuit_breaker_monitor.py) - alerts on failure rate breaches", "code_review", 0.3)
 
     # ═══════════════════════════════════════════════════════════════
-    # GOV — Governance (GOV-01/04=9.5, GOV-02/03=9.0)
+    # GOV - Governance (GOV-01/04=9.5, GOV-02/03=9.0)
     # ═══════════════════════════════════════════════════════════════
 
     # GOV-01: Documentation sync (9.5)
@@ -271,7 +271,7 @@ def collect_all_evidence() -> Evidence:
         add("GOV-04", "AI safety gate (core/ai/safety_gate.py) for pre-execution governance validation", "code_review", 0.4)
 
     # ═══════════════════════════════════════════════════════════════
-    # DR — Disaster Recovery (DR-01/02=9.0, DR-03=9.5)
+    # DR - Disaster Recovery (DR-01/02=9.0, DR-03=9.5)
     # ═══════════════════════════════════════════════════════════════
 
     # DR-01: Database migration (9.0)

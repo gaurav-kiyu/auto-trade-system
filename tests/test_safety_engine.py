@@ -1,5 +1,5 @@
 """
-Tests for core/safety_engine.py — Central circuit-breaker safety checks.
+Tests for core/safety_engine.py - Central circuit-breaker safety checks.
 
 Covers:
   - SafetyConfig dataclass defaults and custom

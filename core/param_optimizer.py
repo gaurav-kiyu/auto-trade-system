@@ -5,7 +5,7 @@ Sweeps a single config parameter over a range of values and measures a
 chosen performance metric on historical trade data (profit_factor, win_rate,
 sharpe, or avg_pnl).  Returns the value with the best out-of-sample metric.
 
-This is an analysis/research tool only — it never writes config files.
+This is an analysis/research tool only - it never writes config files.
 
 Public API
 ----------
@@ -90,7 +90,7 @@ def _compute_metric(pnls: list[float], metric: str) -> float:
 def _simulate_filter(pnls: list[float], param: str, value: Any) -> list[float]:
     """
     Simulate applying a parameter value as a filter on the trade list.
-    This is a simplified simulation — real walk-forward would re-run signals.
+    This is a simplified simulation - real walk-forward would re-run signals.
 
     For score-threshold params: drop the bottom fraction of trades.
     For size-related params: scale P&L proportionally.

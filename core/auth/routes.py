@@ -1,5 +1,5 @@
 """
-AD-KIYU Auth Routes — FastAPI router for login, logout, password management,
+AD-KIYU Auth Routes - FastAPI router for login, logout, password management,
 user management, and session management.
 """
 

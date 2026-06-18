@@ -1,4 +1,4 @@
-"""Tests for core/retail_sentiment.py — retail euphoria/panic detection."""
+"""Tests for core/retail_sentiment.py - retail euphoria/panic detection."""
 
 from __future__ import annotations
 

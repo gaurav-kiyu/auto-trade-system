@@ -138,7 +138,7 @@ class BrokerAdapter:
             if _port is None or not hasattr(_port, 'modify_order'):
                 return False
             try:
-                # Try BrokerPort convention (quantity) — KitePort, etc.
+                # Try BrokerPort convention (quantity) - KitePort, etc.
                 response = _port.modify_order(
                     order_id,
                     quantity=qty,
@@ -230,7 +230,7 @@ def build_broker_runtime_context(
 
 @dataclass
 class PaperFill:
-    """Single paper-trade fill record — stored per order_id for analytics."""
+    """Single paper-trade fill record - stored per order_id for analytics."""
     order_id: str
     name: str
     direction: str
@@ -254,16 +254,16 @@ class PaperBrokerAdapter(BrokerAdapter):
         PaperBrokerAdapter()  ← unchanged behaviour (no fill price, no OI check)
 
     Enhanced mode (wire callbacks via constructor or configure_paper_simulation()):
-        price_getter(name, direction, strike) -> float | None   — option mid-price
+        price_getter(name, direction, strike) -> float | None   - option mid-price
         oi_getter(name, direction, strike) -> (oi, volume) | None
 
-    Config keys (read from cfg dict — all optional):
+    Config keys (read from cfg dict - all optional):
         paper_slippage_pct   : float  default 0.5  (% of mid applied as slippage)
         min_oi_threshold     : int    default 500  (minimum open interest)
         min_volume_threshold : int    default 100  (minimum traded volume)
     """
 
-    _counter: int = 0  # class-level counter — guarantees unique IDs within a process
+    _counter: int = 0  # class-level counter - guarantees unique IDs within a process
 
     def __init__(
         self,
@@ -403,7 +403,7 @@ class PaperBrokerAdapter(BrokerAdapter):
     # ── Health check ───────────────────────────────────────────────────────────
 
     def health_check(self) -> dict:
-        """Paper broker health check — always healthy."""
+        """Paper broker health check - always healthy."""
         return {"status": "healthy", "adapter": "PaperBrokerAdapter", "mode": "PAPER"}
 
     # ── Analytics helpers ─────────────────────────────────────────────────────
@@ -453,14 +453,14 @@ class _PollingBrokerAdapter(BrokerAdapter):
 
 
 # KiteBrokerAdapter: Now imported from infrastructure/adapters/brokers/kite/adapter.py (BrokerPort-based)
-# The inline KiteBrokerAdapter was removed in v2.54 — use the port-based implementation.
+# The inline KiteBrokerAdapter was removed in v2.54 - use the port-based implementation.
 
 class AngelBrokerAdapter(_PollingBrokerAdapter):
     def __init__(self, context: BrokerRuntimeContext) -> None:
         super().__init__(context)
         self._client = None
         self._connected = False
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._connect()
 
     def _cb_protected(self, key: str, func: Callable, *args, **kwargs) -> Any:
@@ -511,7 +511,7 @@ class AngelBrokerAdapter(_PollingBrokerAdapter):
         expiry_str = self._context.expiry_str_fn(name)
         nse_sym = self._context.index_map.get(name, {}).get("nse")
         if not nse_sym:
-            raise ValueError(f"Unknown index '{name}' in index_map — cannot build option symbol")
+            raise ValueError(f"Unknown index '{name}' in index_map - cannot build option symbol")
         return f"{nse_sym}{expiry_str}{strike}{suffix}"
 
     def _order(self, name, direction, qty, strike, txn_type):
@@ -690,17 +690,17 @@ def create_broker_adapter(
     custom_spec = str(cfg.get("BROKER_CUSTOM_FACTORY") or "").strip()
     factory = load_broker_factory_from_spec(custom_spec) if custom_spec else None
     if custom_spec and factory is None:
-        context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY={custom_spec!r} not found — using paper adapter")
+        context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY={custom_spec!r} not found - using paper adapter")
         return PaperBrokerAdapter()
     if factory is not None:
         try:
             port = factory(context)
             if not isinstance(port, LegacyBrokerPort):
-                context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY returned {type(port)!r}, not BrokerPort — using paper")
+                context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY returned {type(port)!r}, not BrokerPort - using paper")
                 return PaperBrokerAdapter()
             return BrokerAdapter(port)
         except (ImportError, TypeError, AttributeError, OSError, ConnectionError) as exc:
-            context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY failed: {exc} — using paper adapter")
+            context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY failed: {exc} - using paper adapter")
             return PaperBrokerAdapter()
 
     normalized = str(driver or "GENERIC").upper()
@@ -712,7 +712,7 @@ def create_broker_adapter(
         return BrokerAdapter(AngelBrokerAdapter(context))
     if normalized not in ("GENERIC", "PAPER", "SIM", "CUSTOM"):
         context.log_fn(
-            f"[BROKER] Unknown BROKER_DRIVER={normalized!r} (set BROKER_CUSTOM_FACTORY for a third-party broker) — paper adapter"
+            f"[BROKER] Unknown BROKER_DRIVER={normalized!r} (set BROKER_CUSTOM_FACTORY for a third-party broker) - paper adapter"
         )
     return BrokerAdapter(PaperBrokerAdapter())
 # ...existing code...

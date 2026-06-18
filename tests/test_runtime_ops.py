@@ -19,7 +19,7 @@ def test_circuit_breaker_trips_and_recovers():
         cb.record(f"src{i}")
     assert not cb.ok()
     assert "TRIPPED" in msgs[0]
-    # expire failures by advancing time — use tiny window for test
+    # expire failures by advancing time - use tiny window for test
     cb2 = CircuitBreaker(threshold=2, window_sec=0.01, log_fn=log_fn)
     cb2.record("a")
     cb2.record("b")

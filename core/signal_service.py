@@ -1,4 +1,4 @@
-"""Signal Service — consolidates signal generation and validation logic.
+"""Signal Service - consolidates signal generation and validation logic.
 
 Extracted from index_trader.py (GAP-05b split). Provides a singleton-backed
 SignalService class with methods for signal pillar validation, trading signal
@@ -20,7 +20,7 @@ _log = logging.getLogger(__name__)
 # Singleton
 # ============================================================================
 _signal_service_instance: "SignalService | None" = None
-_signal_service_lock = threading.Lock()
+_signal_service_lock = threading.RLock()
 
 
 def get_signal_service(cfg: dict[str, Any] | None = None) -> "SignalService":
@@ -46,7 +46,7 @@ def reset_signal_service() -> None:
 class SignalService:
     """Consolidates signal generation and validation logic.
 
-    Extracted from index_trader.py — provides pillar validation, trading signal
+    Extracted from index_trader.py - provides pillar validation, trading signal
     generation, quality reporting, and top-signal selection.
     """
 
@@ -70,7 +70,7 @@ class SignalService:
         gex: float | None = None,
         session_score: float | None = None,
     ) -> tuple[bool, str]:
-        """Validate signal independence — RSI/MACD/ADX = 1 pillar (NOT 3!).
+        """Validate signal independence - RSI/MACD/ADX = 1 pillar (NOT 3!).
 
         Must have consensus from 2 independent pillars for trade.
         """
@@ -112,7 +112,11 @@ class SignalService:
         frames: dict[str, Any],
         vix: float = 0.0,
     ) -> dict[str, Any]:
-        """Generate a trading signal dict using the (deprecated) signal_engine.
+        """Generate a trading signal dict.
+
+        Routes to the V2 ``SignalEvaluator`` when config key
+        ``SIGNAL_ENGINE_V2`` is ``True``; otherwise falls back to the legacy
+        ``LegacySignalEngine`` path for backward compatibility.
 
         Args:
             name: Index symbol (e.g., "NIFTY", "BANKNIFTY").
@@ -120,48 +124,46 @@ class SignalService:
             vix: Current VIX value.
 
         Returns:
-            Signal dict as returned by signal_engine.build_full_signal.
+            Signal dict compatible with ``index_trader.py`` signal consumers.
         """
-        from core.iv_rank import get_iv_rank
-        from core.oi_snapshot_store import get_oi_at, get_pcr_at
+        # ── Route: V2 adaptive_signal path ────────────────────────────────
+        if self._cfg.get("SIGNAL_ENGINE_V2", False):
+            return self._evaluate_v2_signal(name=name, frames=frames, vix=vix) or {}
 
-        _log.warning(
-            "SIGNAL PATH: using root-level signal_engine.build_full_signal "
-            "(deprecated — split-brain risk with core.adaptive_signal)"
-        )
-        from signal_engine import build_full_signal
+        # ── Route: Legacy signal_engine path (DEBT-011) ──────────────────
+        from index_app.domains.signal.legacy import LegacySignalEngine
 
-        threshold = int(self._cfg.get("AI_THRESHOLD", 60))
-        df1m = frames.get("df1m")
-        df5m = frames.get("df5m")
-        df15m = frames.get("df15m")
+        engine = LegacySignalEngine(cfg=self._cfg)
+        return engine.build_signal(name=name, frames=frames, vix=vix)
 
-        oi_data: dict[str, Any] | None = None
-        try:
-            from core.datetime_ist import now_ist
+    # ------------------------------------------------------------------
+    # V2 ADAPTIVE SIGNAL PATH
+    # ------------------------------------------------------------------
 
-            ts = now_ist().timestamp()
-            pcr_val = get_pcr_at(name, ts)
-            oi_change_val = get_oi_at(name, ts)
-            if pcr_val is not None:
-                oi_data = {"pcr": pcr_val, "oi_change": oi_change_val or 0}
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-            _log.debug("OI data fetch failed for %s — continuing without OI data", name)
+    def _evaluate_v2_signal(
+        self,
+        name: str,
+        frames: dict[str, Any],
+        vix: float = 0.0,
+    ) -> dict[str, Any] | None:
+        """Evaluate signal using ``index_app.domains.signal.evaluator.SignalEvaluator``.
 
-        iv = get_iv_rank(name) if callable(get_iv_rank) else 0.0
+        Delegates to the extracted ``SignalEvaluator`` (DEBT-010) for the full
+        evaluation pipeline, then converts the ``AdaptiveSignal`` result via
+        ``AdaptiveSignalConverter`` to a dict compatible with ``index_trader.py``.
+        """
+        from index_app.domains.signal.converter import AdaptiveSignalConverter
+        from index_app.domains.signal.evaluator import SignalEvaluator
 
-        return build_full_signal(
-            symbol=name,
-            df1m=df1m,
-            df5m=df5m,
-            df15m=df15m,
-            asset_type="index",
-            oi_data=oi_data,
-            iv=iv,
-            vix=vix,
-            threshold=threshold,
-            config=self._cfg,
-        )
+        evaluator = SignalEvaluator(cfg=self._cfg)
+        adaptive_result, reason = evaluator.evaluate(name=name, frames=frames, vix=vix)
+
+        if adaptive_result is None:
+            _log.debug("V2 signal path returned None for %s (reason=%s)", name, reason)
+            return None
+
+        converter = AdaptiveSignalConverter(cfg=self._cfg)
+        return converter.to_dict(result=adaptive_result, name=name, vix=vix)
 
     # ------------------------------------------------------------------
     # QUALITY REPORTING

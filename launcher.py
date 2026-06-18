@@ -1,13 +1,13 @@
 """
-launcher.py — OPBuying Index App  •  Setup & Launch
+launcher.py - OPBuying Index App  •  Setup & Launch
 ----------------------------------------------------
 What it does every run
-  1. Locate Python 3.10 – 3.19 on PATH
+  1. Locate Python 3.10 - 3.19 on PATH
   2. Read requirements.txt and install ALL missing/outdated packages
-  3. Launch the app via CLI flag — config.json is NEVER read or modified
+  3. Launch the app via CLI flag - config.json is NEVER read or modified
 
 Mode is passed as a CLI argument (--paper | nothing) that the app's own
-hybrid_execution.py resolves — no external state is mutated.
+hybrid_execution.py resolves - no external state is mutated.
 
 Configurable via:  launcher_settings.json  (same folder as this file)
 """
@@ -72,7 +72,7 @@ def _acquire_single_instance_lock() -> bool:
                 if str(pid) in r.stdout and "No tasks" not in r.stdout:
                     # Another instance is running
                     return False
-        # Lock is stale or doesn't exist — acquire it
+        # Lock is stale or doesn't exist - acquire it
         _LOCK_FILE.write_text(str(os.getpid()), encoding="utf-8")
         return True
     except (OSError, ValueError, subprocess.TimeoutExpired):
@@ -164,10 +164,10 @@ def _load_packages_from_requirements(path: Path | None = None) -> list[tuple[str
         _launch_log.getLogger(__name__).debug("Could not read requirements.txt")
     if not pkgs:
         # Fallback when requirements.txt can't be read
-        # Log a warning — this fallback may not cover all packages needed
+        # Log a warning - this fallback may not cover all packages needed
         import logging
         logging.getLogger("launcher").warning(
-            "requirements.txt not found at %s — using fallback package list",
+            "requirements.txt not found at %s - using fallback package list",
             reql,
         )
     return pkgs
@@ -249,7 +249,7 @@ class LauncherApp:
         tk.Label(hdr, text="INDEX OPTION BUYING  v1.2.0",
                  font=self.F_HEAD, bg=self.C_PANEL, fg=self.C_ACNT
                  ).place(relx=0.5, rely=0.35, anchor="center")
-        tk.Label(hdr, text="config.json is never modified — mode is passed as a CLI flag",
+        tk.Label(hdr, text="config.json is never modified - mode is passed as a CLI flag",
                  font=self.F_HINT, bg=self.C_PANEL, fg=self.C_DIM
                  ).place(relx=0.5, rely=0.72, anchor="center")
 
@@ -261,7 +261,7 @@ class LauncherApp:
         for key, info in MODES.items():
             tk.Radiobutton(
                 mf,
-                text=f"  {key}  —  {info['desc']}",
+                text=f"  {key}  -  {info['desc']}",
                 variable=self._mode_var, value=key,
                 font=self.F_BODY, bg=self.C_BG, fg=info["color"],
                 selectcolor=self.C_PANEL,
@@ -376,7 +376,7 @@ class LauncherApp:
     def _safe_messagebox(self, title: str, message: str, kind: str = "error") -> None:
         """Show a messagebox from ANY thread by scheduling on the main thread.
 
-        Tkinter is NOT thread-safe — calling messagebox.showerror() from a
+        Tkinter is NOT thread-safe - calling messagebox.showerror() from a
         daemon thread causes erratic behavior (flickering, repeated popups).
         This helper routes the call to the main thread via root.after().
         """
@@ -451,23 +451,23 @@ class LauncherApp:
         # ── Step 1: Python ────────────────────────────────────────────────────
         self._status("Checking Python installation …")
         self._log(SEP2)
-        self._log("  INDEX OPTION BUYING APP  —  Launcher")
+        self._log("  INDEX OPTION BUYING APP  -  Launcher")
         self._log(SEP2)
         self._log()
-        self._log("STEP 1  Locate Python 3.10 – 3.19")
+        self._log("STEP 1  Locate Python 3.10 - 3.19")
         self._log(SEP)
 
         cmd, ver = self._find_python()
         if not cmd:
             self._log("  [FAIL]  No compatible Python found on PATH.")
             self._log()
-            self._log("  Install Python 3.10 – 3.19:")
+            self._log("  Install Python 3.10 - 3.19:")
             self._log("    https://www.python.org/downloads/")
             self._log("  Tick  'Add Python to PATH'  during install, then re-run.")
-            self._status("Python not found — see log.")
+            self._status("Python not found - see log.")
             self._safe_messagebox(
                 "Python Not Found",
-                "Python 3.10 – 3.19 not found on PATH.\n\n"
+                "Python 3.10 - 3.19 not found on PATH.\n\n"
                 "1. Download from  python.org/downloads\n"
                 "2. Tick  'Add Python to PATH'\n"
                 "3. Re-run this launcher.")
@@ -485,7 +485,7 @@ class LauncherApp:
 
         # Warn if requirements.txt was not found
         if _MISSING_REQ_TXT:
-            self._log("  [WARN] requirements.txt not found — using fallback package list")
+            self._log("  [WARN] requirements.txt not found - using fallback package list")
             self._log("         Only 6 core packages will be checked. App may still")
             self._log("         crash if additional packages are missing.")
             self._log()
@@ -534,12 +534,12 @@ class LauncherApp:
         if failed:
             self._log(f"  Completed with warning(s) on:  {', '.join(failed)}")
             self._log("  App may still run. Click Launch to try.")
-            self._status("Done (with warnings) — select mode and click Launch.")
+            self._status("Done (with warnings) - select mode and click Launch.")
         else:
             mode = self._mode_var.get()
             self._log(f"  All packages ready.  Default mode: {mode}")
             self._log("  Select a mode above, then click  'Launch App'.")
-            self._status(f"Ready — {mode} mode selected — click 'Launch App'.")
+            self._status(f"Ready - {mode} mode selected - click 'Launch App'.")
 
         self._log(SEP2)
         # Enable Launch button (queued on main thread via _safe_exec)
@@ -578,7 +578,7 @@ class LauncherApp:
         self._log(f"  Command:  {' '.join(args)}")
 
         # Strip PyInstaller's TCL_LIBRARY / TK_LIBRARY overrides so the
-        # subprocess uses its own Python's Tcl/Tk — not the bundled temp path.
+        # subprocess uses its own Python's Tcl/Tk - not the bundled temp path.
         _env = os.environ.copy()
         for _k in ("TCL_LIBRARY", "TK_LIBRARY", "TCLLIBPATH",
                    "TCL_DATA", "TK_DATA"):
@@ -599,7 +599,7 @@ class LauncherApp:
 
         # Track the process so we can detect if it crashes immediately
         self._launched_process = proc
-        self._log("  App launched — checking if it stays running …")
+        self._log("  App launched - checking if it stays running …")
         self.root.after(2000, self._check_launched_process, mode)
 
     # ── Post-launch crash detector ────────────────────────────────────────────
@@ -616,20 +616,20 @@ class LauncherApp:
         ret = proc.poll()
         if ret is not None:
             if ret != 0:
-                # Process exited with error — likely a startup crash
+                # Process exited with error - likely a startup crash
                 self._log(f"\n  [ERROR] The app exited unexpectedly (exit code {ret}).")
                 self._log(f"  Command:   {self.python_exe} {_S.get('app_script', 'index_app/index_trader.py')}")
                 self._log()
                 self._log("  Possible causes:")
-                self._log("    • Missing packages — check log above for install failures")
+                self._log("    • Missing packages - check log above for install failures")
                 self._log("    • Missing config.json in the project folder")
-                self._log("    • Python version mismatch (need 3.10 – 3.19)")
+                self._log("    • Python version mismatch (need 3.10 - 3.19)")
                 self._log()
                 self._log("  To see the full error, run this in a terminal:")
                 self._log(f"    cd {APP_DIR}")
                 self._log(f"    {self.python_exe} index_app\\index_trader.py --paper")
                 self._log()
-                self._status("Launch failed — see log for details.")
+                self._status("Launch failed - see log for details.")
                 self.launch_btn["state"] = "normal"
                 messagebox.showerror(
                     "App Crashed",
@@ -641,14 +641,14 @@ class LauncherApp:
                     f"  {self.python_exe} index_app\\index_trader.py --paper"
                 )
             else:
-                # Exit code 0 — clean exit (e.g. morning checklist run, or done after paper loop)
+                # Exit code 0 - clean exit (e.g. morning checklist run, or done after paper loop)
                 self._log("\n  [INFO] The app completed successfully (exit code 0).")
                 self._log()
                 self._status("App completed successfully.")
                 self.root.after(500, self.root.quit)
         else:
-            # Process is still running — all good
-            self._status(f"Launched [{mode}] — this window closes in 3 s …")
+            # Process is still running - all good
+            self._status(f"Launched [{mode}] - this window closes in 3 s …")
             self.root.after(3000, self.root.quit)
 
 

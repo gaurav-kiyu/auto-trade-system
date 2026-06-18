@@ -32,7 +32,7 @@ def apply_execution_mode(
 
     CRITICAL SAFETY: infer_blank_from_broker defaults to False. When True (stock legacy),
     missing or blank EXECUTION_MODE becomes MANUAL regardless of BROKER_API_ENABLED.
-    Never auto-default to AUTO — explicit EXECUTION_MODE=AUTO is required.
+    Never auto-default to AUTO - explicit EXECUTION_MODE=AUTO is required.
     cli_paper forces PAPER (``--paper``), matching index _CLI_PAPER_MODE / stock PAPER_MODE.
     """
     if infer_blank_from_broker:
@@ -44,7 +44,7 @@ def apply_execution_mode(
             _log = logging.getLogger(__name__)
             _log.critical(
                 "[HYBRID_EXECUTION] CRITICAL: EXECUTION_MODE is blank/missing and "
-                "BROKER_API_ENABLED=%s. Defaulting to MANUAL — never auto-AUTO. "
+                "BROKER_API_ENABLED=%s. Defaulting to MANUAL - never auto-AUTO. "
                 "Set EXECUTION_MODE=AUTO explicitly to enable automated trading.",
                 cfg.get("BROKER_API_ENABLED"),
             )
@@ -62,7 +62,7 @@ def apply_execution_mode(
     elif mode == "SIGNAL_ONLY":
         cfg["MANUAL_SIGNALS_ONLY"] = True
         cfg["BROKER_API_ENABLED"] = False
-    else:  # fallback — MANUAL
+    else:  # fallback - MANUAL
         cfg["MANUAL_SIGNALS_ONLY"] = True
         cfg["BROKER_API_ENABLED"] = False
     return cfg

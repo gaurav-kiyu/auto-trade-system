@@ -1,5 +1,5 @@
 """
-Tests for scripts/pre_implementation_check.py — Pre-Implementation Compliance Check.
+Tests for scripts/pre_implementation_check.py - Pre-Implementation Compliance Check.
 
 Covers:
   - check_architecture_doc_exists()
@@ -193,7 +193,7 @@ class TestCheckReleaseState:
     def test_version_file_check(self) -> None:
         pc = import_pre_check()
         issues = pc.check_release_state()
-        # In real project, VERSION should exist — if it does, no issues for that
+        # In real project, VERSION should exist - if it does, no issues for that
         version_issue = [i for i in issues if "VERSION" in i]
         version_file = Path(__file__).resolve().parent.parent / "VERSION"
         if version_file.exists():

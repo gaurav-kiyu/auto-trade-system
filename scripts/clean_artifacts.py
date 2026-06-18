@@ -138,7 +138,7 @@ def clean(paths: list[Path], force: bool = False) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="AD-KIYU Artifact Cleanup — remove runtime test artifacts",
+        description="AD-KIYU Artifact Cleanup - remove runtime test artifacts",
     )
     parser.add_argument(
         "--dry-run", "-n",
@@ -175,7 +175,7 @@ def main() -> int:
     _log.info("Found %d items to clean", len(paths))
 
     if not paths:
-        _log.info("Nothing to clean — repository is tidy!")
+        _log.info("Nothing to clean - repository is tidy!")
         return 0
 
     if args.dry_run:

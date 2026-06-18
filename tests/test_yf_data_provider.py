@@ -85,11 +85,11 @@ class TestFetchIntradayData:
 class TestFetchIntradayDataCached:
     def test_caches_result(self, mock_ohlcv_df):
         with patch("core.yf_data_provider.yf.download", return_value=mock_ohlcv_df) as mock_dl:
-            # First call — should fetch
+            # First call - should fetch
             r1 = fetch_intraday_data_cached("^NSEI")
             assert mock_dl.call_count >= 3
 
-            # Second call — should use cache (within TTL)
+            # Second call - should use cache (within TTL)
             calls_before = mock_dl.call_count
             r2 = fetch_intraday_data_cached("^NSEI")
             assert mock_dl.call_count == calls_before  # no new calls
@@ -103,7 +103,7 @@ class TestFetchIntradayDataCached:
             fetch_intraday_data_cached("^NSEI")
             calls_after_first = mock_dl.call_count
 
-            # Second call at t=100s (past 60s TTL) — should re-fetch
+            # Second call at t=100s (past 60s TTL) - should re-fetch
             mock_time.return_value = 100.0
             fetch_intraday_data_cached("^NSEI")
             assert mock_dl.call_count > calls_after_first
@@ -204,7 +204,7 @@ class TestInvalidateCache:
         # Invalidate
         invalidate_cache()
 
-        # Verify cache is cleared — fetching should trigger new yfinance calls
+        # Verify cache is cleared - fetching should trigger new yfinance calls
         with patch("core.yf_data_provider.yf.download", return_value=mock_ohlcv_df) as mock_dl, \
              patch("core.yf_data_provider.yf.Ticker") as mock_ticker:
             mock_ticker.return_value.history.return_value = mock_ohlcv_df

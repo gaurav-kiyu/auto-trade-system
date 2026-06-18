@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OPBuying Candle Backtest — Quant Research Edition
+OPBuying Candle Backtest - Quant Research Edition
 ==================================================
 
 Implements Tasks 1-9 from the quant redesign brief:
@@ -11,8 +11,8 @@ Implements Tasks 1-9 from the quant redesign brief:
   Task 4: Signal filtering report (score gap, breakout, ADX filters)
   Task 5: Regime performance breakdown (TRENDING/NEUTRAL/CHOPPY/EVENT)
   Task 6: Directional breakdown (CALL vs PUT win rates)
-  Task 7: Full metrics — expectancy, PF, Sharpe, Calmar, RR ratio
-  Task 8: Signal quality analysis — which features fire, what outcomes
+  Task 7: Full metrics - expectancy, PF, Sharpe, Calmar, RR ratio
+  Task 8: Signal quality analysis - which features fire, what outcomes
   Task 9: Before/after comparison output
 
 Usage
@@ -67,7 +67,7 @@ from core.pure_index_signal import PureIndexRegimeParams
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="OPBuying candle backtest — quant research edition",
+        description="OPBuying candle backtest - quant research edition",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("csv", type=Path, nargs="?", default=None,
@@ -131,14 +131,14 @@ def _star_rating(win_rate: float, pf: float) -> str:
 
 def _verdict(win_rate: float, rr: float, pf: float, sharpe: float) -> str:
     if win_rate >= 60 and rr >= 1.5 and pf >= 1.5:
-        return "STRONG EDGE — consistent, high-conviction strategy"
+        return "STRONG EDGE - consistent, high-conviction strategy"
     if win_rate >= 55 and pf >= 1.2:
-        return "POSITIVE EDGE — profitable with room to optimise"
+        return "POSITIVE EDGE - profitable with room to optimise"
     if win_rate >= 50 and rr >= 1.2:
-        return "MARGINAL EDGE — breakeven+, needs higher quality filter"
+        return "MARGINAL EDGE - breakeven+, needs higher quality filter"
     if pf < 1.0:
-        return "NO EDGE — strategy is losing; review signal calibration"
-    return "NEUTRAL — strategy needs more data for clear verdict"
+        return "NO EDGE - strategy is losing; review signal calibration"
+    return "NEUTRAL - strategy needs more data for clear verdict"
 
 
 def _print_rich_report(
@@ -164,10 +164,10 @@ def _print_rich_report(
 
     # ── Core performance ───────────────────────────────────────────────
     print(f"\n{_SEP2}")
-    print("  TASK 7 — CORE PERFORMANCE METRICS")
+    print("  TASK 7 - CORE PERFORMANCE METRICS")
     print(_SEP2)
     if m.total_trades == 0:
-        print("  [!] No trades generated — try relaxing threshold or score-gap.")
+        print("  [!] No trades generated - try relaxing threshold or score-gap.")
         print(f"      Hint: --threshold {max(40, cfg_used.base_ai_threshold - 10)} --score-gap 0")
         print()
         return
@@ -195,7 +195,7 @@ def _print_rich_report(
 
     # ── Directional breakdown (Task 6) ─────────────────────────────────
     print(f"\n{_SEP2}")
-    print("  TASK 6 — DIRECTIONAL BREAKDOWN (CALL vs PUT)")
+    print("  TASK 6 - DIRECTIONAL BREAKDOWN (CALL vs PUT)")
     print(_SEP2)
     print(f"  CALL trades : {m.call_trades:>3}  |  Win rate: {_bar(m.call_win_rate, 20)}")
     print(f"  PUT  trades : {m.put_trades:>3}  |  Win rate: {_bar(m.put_win_rate, 20)}")
@@ -203,14 +203,14 @@ def _print_rich_report(
     put_pct  = m.put_trades  / m.total_trades * 100 if m.total_trades else 0
     print(f"  Split       : {call_pct:.0f}% CALL / {put_pct:.0f}% PUT")
     if call_pct > 80:
-        print(f"  [!] Heavy CALL bias ({call_pct:.0f}%) — likely testing a bull-trend period.")
+        print(f"  [!] Heavy CALL bias ({call_pct:.0f}%) - likely testing a bull-trend period.")
         print("      Run on a bear-market window to validate PUT signal quality.")
     elif put_pct > 80:
-        print(f"  [!] Heavy PUT bias ({put_pct:.0f}%) — likely testing a bear-trend period.")
+        print(f"  [!] Heavy PUT bias ({put_pct:.0f}%) - likely testing a bear-trend period.")
 
     # ── Regime breakdown (Task 5) ──────────────────────────────────────
     print(f"\n{_SEP2}")
-    print("  TASK 5 — MARKET REGIME BREAKDOWN")
+    print("  TASK 5 - MARKET REGIME BREAKDOWN")
     print(_SEP2)
     print(f"  {'Regime':<12} {'Trades':>6} {'Wins':>5} {'Win%':>7} {'Avg PnL':>10}")
     print(f"  {_LINE}")
@@ -227,7 +227,7 @@ def _print_rich_report(
 
     # ── Score distribution (Task 3) ────────────────────────────────────
     print(f"\n{_SEP2}")
-    print("  TASK 3 — SCORE DISTRIBUTION (5-pt buckets)")
+    print("  TASK 3 - SCORE DISTRIBUTION (5-pt buckets)")
     print(_SEP2)
     if m.by_score:
         print(f"  {'Score':>8} {'Trades':>6} {'Wins':>5} {'Win%':>7} {'Avg PnL':>10}  Bar")
@@ -239,17 +239,17 @@ def _print_rich_report(
                 print(f"  {lbl:>8} {bk.trades:>6} {bk.wins:>5} {bk.win_rate:>6.1f}%  Rs{bk.avg_pnl:>8,.2f}  {bar}")
         all_scores = [t.score for t in j]
         if all_scores:
-            print(f"\n  Score range: {min(all_scores)} – {max(all_scores)}  "
+            print(f"\n  Score range: {min(all_scores)} - {max(all_scores)}  "
                   f"Mean: {sum(all_scores)/len(all_scores):.1f}  "
                   f"StdDev: {(sum((x - sum(all_scores)/len(all_scores))**2 for x in all_scores)/len(all_scores))**0.5:.1f}")
         print("\n  Target: scores should spread 65-95.  If clustered at threshold,")
-        print("  the OI/PCR data is synthetic (backtest limitation) — add real option chain.")
+        print("  the OI/PCR data is synthetic (backtest limitation) - add real option chain.")
     else:
         print("  (No score data)")
 
     # ── Signal quality analysis (Task 8) ──────────────────────────────
     print(f"\n{_SEP2}")
-    print("  TASK 8 — SIGNAL QUALITY ANALYSIS")
+    print("  TASK 8 - SIGNAL QUALITY ANALYSIS")
     print(_SEP2)
     if j:
         # Feature frequency in winning vs losing trades
@@ -283,11 +283,11 @@ def _print_rich_report(
         if adx_vals_w:
             avg_adx_w = sum(float(v) for v in adx_vals_w) / len(adx_vals_w)
             avg_adx_l = sum(float(v) for v in adx_vals_l) / len(adx_vals_l) if adx_vals_l else 0
-            print(f"\n  Avg ADX at entry  —  Winners: {avg_adx_w:.1f}  |  Losers: {avg_adx_l:.1f}")
+            print(f"\n  Avg ADX at entry  -  Winners: {avg_adx_w:.1f}  |  Losers: {avg_adx_l:.1f}")
             if avg_adx_w > avg_adx_l + 3:
-                print("  [+] Higher ADX in winners — trend quality matters; consider ADX_TREND_THRESHOLD up")
+                print("  [+] Higher ADX in winners - trend quality matters; consider ADX_TREND_THRESHOLD up")
             elif avg_adx_l > avg_adx_w + 3:
-                print("  [-] Higher ADX in losers  — breakout failures in strong trend; check overextension")
+                print("  [-] Higher ADX in losers  - breakout failures in strong trend; check overextension")
 
         # RSI distribution
         rsi_vals_w = [t.signal_metadata.get("rsi", 50) for t in win_trades  if "rsi" in t.signal_metadata]
@@ -295,9 +295,9 @@ def _print_rich_report(
         if rsi_vals_w:
             avg_rsi_w = sum(float(v) for v in rsi_vals_w) / len(rsi_vals_w)
             avg_rsi_l = sum(float(v) for v in rsi_vals_l) / len(rsi_vals_l) if rsi_vals_l else 50
-            print(f"  Avg RSI at entry  —  Winners: {avg_rsi_w:.1f}  |  Losers: {avg_rsi_l:.1f}")
+            print(f"  Avg RSI at entry  -  Winners: {avg_rsi_w:.1f}  |  Losers: {avg_rsi_l:.1f}")
             if avg_rsi_l > 68:
-                print(f"  [!] Losers show elevated RSI ({avg_rsi_l:.1f}) — overbought entries; RSI penalty active helps")
+                print(f"  [!] Losers show elevated RSI ({avg_rsi_l:.1f}) - overbought entries; RSI penalty active helps")
 
         # Exit reason breakdown
         exit_counts: dict[str, int] = {}
@@ -311,12 +311,12 @@ def _print_rich_report(
             print(f"    {reason:<16} {count:>3} trades ({pct_e:.0f}%)  win rate: {wr_r:.0f}%")
 
         if exit_counts.get("stop_loss", 0) > exit_counts.get("take_profit", 0):
-            print("\n  [!] More SL exits than TP exits — TP target may be too far; consider tighter TP")
+            print("\n  [!] More SL exits than TP exits - TP target may be too far; consider tighter TP")
             print("      or use partial-exit at TP1 (0.618x ATR) to bank quick profits.")
 
     # ── Sample journal (last 5 trades) ─────────────────────────────────
     print(f"\n{_SEP2}")
-    print("  TASK 9 — TRADE JOURNAL SAMPLE (last 5)")
+    print("  TASK 9 - TRADE JOURNAL SAMPLE (last 5)")
     print(_SEP2)
     sample = j[-5:] if len(j) >= 5 else j
     for t in sample:
@@ -328,7 +328,7 @@ def _print_rich_report(
 
     # ── Config suggestions (Task 9) ────────────────────────────────────
     print(f"\n{_SEP2}")
-    print("  TASK 9 — CONFIG SUGGESTIONS")
+    print("  TASK 9 - CONFIG SUGGESTIONS")
     print(_SEP2)
     if m.total_trades > 0:
         if m.win_rate < 50 and m.rr_ratio < 1.2:
@@ -341,7 +341,7 @@ def _print_rich_report(
             print("    -> Consider raising threshold by +5 (more selective entries)")
             print("    -> Check if CHOPPY regime entries are dragging win rate down")
         elif m.rr_ratio < 1.0:
-            print(f"  RR ratio < 1.0 ({m.rr_ratio:.2f}) — TP too tight or SL too wide.")
+            print(f"  RR ratio < 1.0 ({m.rr_ratio:.2f}) - TP too tight or SL too wide.")
             print(f"    -> Increase tp_atr_mult from {cfg_used.tp_atr_mult} to {cfg_used.tp_atr_mult + 0.3:.2f}")
             print(f"    -> Decrease sl_atr_mult from {cfg_used.sl_atr_mult} to {cfg_used.sl_atr_mult - 0.1:.2f}")
         else:

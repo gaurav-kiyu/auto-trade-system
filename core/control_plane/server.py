@@ -1,5 +1,5 @@
 """
-AD-KIYU Safe Admin Control Plane — FastAPI server on port 7080.
+AD-KIYU Safe Admin Control Plane - FastAPI server on port 7080.
 
 Provides validated, audited, and reversible control over the trading system.
 All mutations follow: validate() → audit_log() → version() → reversible().
@@ -7,26 +7,26 @@ All mutations follow: validate() → audit_log() → version() → reversible().
 Supports both legacy API (via _ref parameters) and new clean API (via ControlPlaneServer).
 
 Endpoints (legacy):
-    GET/POST /mode                    — Operating mode
-    GET      /wal                     — WAL journal inspection
-    GET      /cert                    — Idempotency certificates
-    GET/POST /invariants/[/toggle]    — Runtime invariant checks
-    POST     /control/halt|resume     — Kill-switch
-    GET      /control/status          — Halt status
-    GET/POST /strategies[/toggle]     — Strategy toggles
-    GET/POST /assets[/toggle]         — Asset toggles
-    GET/POST /features[/set]          — Feature flags
-    GET/POST /models[/select]         — AI model selection
-    GET      /audit                   — Audit log
-    GET/POST /roles[/assign]          — RBAC roles
-    POST     /config/reload           — Config hot-reload
-    GET      /broker                  — Broker summary
+    GET/POST /mode                    - Operating mode
+    GET      /wal                     - WAL journal inspection
+    GET      /cert                    - Idempotency certificates
+    GET/POST /invariants/[/toggle]    - Runtime invariant checks
+    POST     /control/halt|resume     - Kill-switch
+    GET      /control/status          - Halt status
+    GET/POST /strategies[/toggle]     - Strategy toggles
+    GET/POST /assets[/toggle]         - Asset toggles
+    GET/POST /features[/set]          - Feature flags
+    GET/POST /models[/select]         - AI model selection
+    GET      /audit                   - Audit log
+    GET/POST /roles[/assign]          - RBAC roles
+    POST     /config/reload           - Config hot-reload
+    GET      /broker                  - Broker summary
 
 Endpoints (v2, new style):
-    POST /control/auth/login          — JWT login
-    GET  /control/state               — Full state
-    GET  /control/audit               — Audit history
-    POST /control/kill                — Emergency kill
+    POST /control/auth/login          - JWT login
+    GET  /control/state               - Full state
+    GET  /control/audit               - Audit history
+    POST /control/kill                - Emergency kill
     POST /control/strategy/{name}/{action}
     POST /control/asset_class/{class}/{action}
     POST /control/capital/{amount}
@@ -65,9 +65,9 @@ except (OSError, ValueError):
 _DEFAULT_HOST = "127.0.0.1"
 _DEFAULT_PORT = 7080
 
-# ── In-memory audit ring buffer (last 500 events) — legacy compat ──────────
+# ── In-memory audit ring buffer (last 500 events) - legacy compat ──────────
 _AUDIT_EVENTS: deque[dict[str, Any]] = deque(maxlen=500)
-_AUDIT_LOCK = threading.Lock()
+_AUDIT_LOCK = threading.RLock()
 
 # ── FastAPI availability ─────────────────────────────────────────────────────
 
@@ -80,7 +80,7 @@ except ImportError:
     HTTPException = None  # type: ignore[assignment]
     Request = None  # type: ignore[assignment]
     _HAVE_FASTAPI = False
-    _log.warning("fastapi not installed — admin control plane unavailable")
+    _log.warning("fastapi not installed - admin control plane unavailable")
 
 try:
     import uvicorn
@@ -88,7 +88,7 @@ try:
 except ImportError:
     uvicorn = None  # type: ignore[assignment]
     _HAVE_UVICORN = False
-    _log.warning("uvicorn not installed — admin control plane cannot serve")
+    _log.warning("uvicorn not installed - admin control plane cannot serve")
 
 
 # ── Data classes ──────────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ class AuditStore:
     """Thread-safe in-memory + JSONL audit store for control actions."""
 
     def __init__(self, max_entries: int = 1000, persist_path: str = ""):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._entries: list[ControlAction] = []
         self._max_entries = max_entries
         self._persist_path = persist_path
@@ -437,7 +437,7 @@ def create_control_plane_app(
     New-style endpoints use the ControlPlaneServer class.
     """
     if not _HAVE_FASTAPI:
-        raise RuntimeError("fastapi is not installed — cannot create admin control plane")
+        raise RuntimeError("fastapi is not installed - cannot create admin control plane")
 
     c = cfg or {}
     token = str(c.get("admin_control_plane_auth_token", "")) or os.environ.get("OPBUYING_ADMIN_TOKEN", "")
@@ -487,7 +487,7 @@ def create_control_plane_app(
             raise HTTPException(status_code=403, detail=reason)
 
     # =========================================================================
-    # LEGACY ENDPOINTS — backward compat with old admin_control_plane.py API
+    # LEGACY ENDPOINTS - backward compat with old admin_control_plane.py API
     # =========================================================================
 
     # ── Mode ─────────────────────────────────────────────────────────────────
@@ -893,7 +893,7 @@ def create_control_plane_app(
         }
 
     # =========================================================================
-    # NEW ENDPOINTS — v2 style with ControlPlaneServer + JWT auth
+    # NEW ENDPOINTS - v2 style with ControlPlaneServer + JWT auth
     # =========================================================================
 
     @app.post("/control/auth/login")
@@ -1021,7 +1021,7 @@ def maybe_start_control_plane(
 ) -> threading.Thread | None:
     """Start the admin control plane in a daemon thread if enabled.
 
-    All refs are optional — endpoints gracefully degrade when a reference is None.
+    All refs are optional - endpoints gracefully degrade when a reference is None.
     Supports both legacy ref parameters and new-style callbacks.
 
     Returns the thread handle, or None if disabled / fastapi unavailable.
@@ -1031,10 +1031,10 @@ def maybe_start_control_plane(
         _log.info("Admin control plane disabled (admin_control_plane_enabled=false)")
         return None
     if not _HAVE_FASTAPI:
-        _log.info("Admin control plane requires fastapi — install with: pip install fastapi uvicorn")
+        _log.info("Admin control plane requires fastapi - install with: pip install fastapi uvicorn")
         return None
     if not _HAVE_UVICORN:
-        _log.info("Admin control plane requires uvicorn — install with: pip install fastapi uvicorn")
+        _log.info("Admin control plane requires uvicorn - install with: pip install fastapi uvicorn")
         return None
 
     host = str(c.get("admin_control_plane_host", _DEFAULT_HOST))

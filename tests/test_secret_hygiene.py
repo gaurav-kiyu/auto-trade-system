@@ -1,4 +1,4 @@
-"""Tests for core.secret_hygiene — secret hygiene validation."""
+"""Tests for core.secret_hygiene - secret hygiene validation."""
 
 from __future__ import annotations
 

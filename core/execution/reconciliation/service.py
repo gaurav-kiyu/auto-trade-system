@@ -21,6 +21,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
+from core.db_utils import get_connection
 from core.datetime_ist import now_ist
 from core.exceptions import BrokerConnectionError, DatabaseError, ReconciliationError
 
@@ -86,7 +87,7 @@ class ReconciliationService:
         self._db_path = db_path
         self._freeze_callback = freeze_callback
         self._enable_auto_repair = enable_auto_repair
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._is_frozen = False
         self._freeze_reason: TradingFreezeReason | None = None
         self._last_reconciliation: ReconciliationResult | None = None
@@ -95,9 +96,7 @@ class ReconciliationService:
     def _init_orders_table(self):
         """Initialize orders tracking table if not exists."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
-                conn.execute("PRAGMA journal_mode=WAL")
-                conn.execute("PRAGMA busy_timeout=5000")
+            with get_connection(self._db_path) as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS execution_orders (
                         order_id TEXT PRIMARY KEY,
@@ -168,7 +167,7 @@ class ReconciliationService:
         """Record a new order in internal state."""
         now = now_ist().isoformat()
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with get_connection(self._db_path) as conn:
                 conn.execute("""
                     INSERT OR REPLACE INTO execution_orders
                     (order_id, intent_id, symbol, direction, quantity, filled_quantity,
@@ -191,7 +190,7 @@ class ReconciliationService:
         """Update order fill information."""
         now = now_ist().isoformat()
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with get_connection(self._db_path) as conn:
                 conn.execute("""
                     UPDATE execution_orders
                     SET filled_quantity = ?, average_price = ?,
@@ -206,7 +205,7 @@ class ReconciliationService:
         """Get all orders that are not in terminal state."""
         terminal_states = {"FILLED", "CANCELLED", "REJECTED", "EXPIRED", "COMPLETE"}
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with get_connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute("""
                     SELECT * FROM execution_orders
@@ -221,7 +220,7 @@ class ReconciliationService:
     def get_all_orders(self) -> list[dict]:
         """Get all orders from internal state."""
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with get_connection(self._db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute("SELECT * FROM execution_orders ORDER BY created_at")
                 return [dict(row) for row in cursor.fetchall()]
@@ -546,7 +545,7 @@ class ReconciliationService:
     def _mark_order_terminal(self, order_id: str, status: str):
         """Mark an order as terminal state."""
         now = now_ist().isoformat()
-        with sqlite3.connect(self._db_path) as conn:
+        with get_connection(self._db_path) as conn:
             conn.execute("""
                 UPDATE execution_orders
                 SET status = ?, updated_at = ?, is_reconciled = 1

@@ -57,7 +57,7 @@ class LotSizeValidator:
 
     def __init__(self, cfg: dict[str, Any] | None = None):
         self._cfg = cfg or {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._cached_lots: dict[str, int] = {}
         self._last_fetch: float | None = None
         self._cache_ttl_seconds = 300
@@ -214,7 +214,7 @@ class LotSizeValidator:
         default = DEFAULT_INDEX_LOT_SIZES.get(index_name)
         if default is not None:
             log.warning(
-                "Using hardcoded lot size for %s: %d — "
+                "Using hardcoded lot size for %s: %d - "
                 "consider configuring broker_port for live validation",
                 index_name, default
             )

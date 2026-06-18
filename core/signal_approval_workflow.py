@@ -1,5 +1,5 @@
 """
-Signal Approval Workflow — DEPRECATED.
+Signal Approval Workflow - DEPRECATED.
 
 This module is deprecated. New code should use StrategyOrchestrator from
 core.strategy.orchestrator which internally integrates SignalApprovalWorkflow.
@@ -10,19 +10,19 @@ Kept for backward compatibility. Will be removed in a future release.
 Legacy docs (for reference):
 
 Defines how auto-generated and manual signals are routed:
-  SIGNALS_ONLY      — generate + notify, NO execution (default — safest)
-  MANUAL_PRIORITY   — manual→PENDING queue; STRONG auto; MODERATE→PENDING
-  FULL_MANUAL       — ALL signals → PENDING queue regardless of tier
-  AUTO_WITH_OVERRIDE — auto-execute, manual gets priority + insertion window
-  FULLY_AUTO        — all signals execute; manual injects directly (broker must be live)
+  SIGNALS_ONLY      - generate + notify, NO execution (default - safest)
+  MANUAL_PRIORITY   - manual→PENDING queue; STRONG auto; MODERATE→PENDING
+  FULL_MANUAL       - ALL signals → PENDING queue regardless of tier
+  AUTO_WITH_OVERRIDE - auto-execute, manual gets priority + insertion window
+  FULLY_AUTO        - all signals execute; manual injects directly (broker must be live)
 
 Only SIGNALS_ONLY and FULL_MANUAL modes are enabled in config by default.
 FULLY_AUTO requires EXECUTION_MODE=AUTO + BROKER_API_ENABLED=true explicitly.
 
 Public API
 ----------
-    SignalDecision        — result dataclass
-    SignalApprovalWorkflow — evaluates each signal and returns a SignalDecision
+    SignalDecision        - result dataclass
+    SignalApprovalWorkflow - evaluates each signal and returns a SignalDecision
     build_workflow(cfg, queue) → SignalApprovalWorkflow
 
 Config keys
@@ -93,14 +93,14 @@ class SignalApprovalWorkflow:
     """
     Determines what happens to each incoming signal.
 
-    Call process_signal() for every signal — returns a SignalDecision
+    Call process_signal() for every signal - returns a SignalDecision
     that tells the caller what to do next.
     """
 
     def __init__(self, cfg: dict[str, Any], queue=None) -> None:
         raw_mode = str(cfg.get("manual_signal_workflow_mode", SIGNALS_ONLY)).upper()
         if raw_mode not in _ALL_MODES:
-            _log.warning("[WORKFLOW] Unknown mode %r — defaulting to SIGNALS_ONLY", raw_mode)
+            _log.warning("[WORKFLOW] Unknown mode %r - defaulting to SIGNALS_ONLY", raw_mode)
             raw_mode = SIGNALS_ONLY
         self._mode = raw_mode
         self._queue = queue  # ManualSignalQueue | None
@@ -177,7 +177,7 @@ class SignalApprovalWorkflow:
             action=NOTIFY_ONLY,
             priority=priority,
             notify_channels=["TELEGRAM"],
-            reason=f"SIGNALS_ONLY mode — notify only (score={score} tier={tier})",
+            reason=f"SIGNALS_ONLY mode - notify only (score={score} tier={tier})",
         )
 
     def _decide_full_manual(self, is_manual, score, index_name, direction, analyst, reason, existing_id) -> SignalDecision:
@@ -185,15 +185,15 @@ class SignalApprovalWorkflow:
         if score < self._min_score:
             return SignalDecision(action=SKIP, reason=f"Score {score} < min {self._min_score}")
         if self._queue is None:
-            return SignalDecision(action=NOTIFY_ONLY, reason="Queue unavailable — notify only")
+            return SignalDecision(action=NOTIFY_ONLY, reason="Queue unavailable - notify only")
         if existing_id:
             return SignalDecision(action=QUEUE, queue_signal_id=existing_id,
-                                  reason="Full manual — existing signal queued")
+                                  reason="Full manual - existing signal queued")
         sig = self._queue.submit(index_name, direction, score, reason,
                                  source="ENGINE" if not is_manual else "TELEGRAM",
                                  analyst_name=analyst)
         return SignalDecision(action=QUEUE, queue_signal_id=sig.signal_id,
-                              reason=f"Full manual — queued as {sig.signal_id}")
+                              reason=f"Full manual - queued as {sig.signal_id}")
 
     def _decide_manual_priority(self, is_manual, score, tier, index_name, direction, analyst, reason, existing_id) -> SignalDecision:
         """MANUAL_PRIORITY: manual→queue; STRONG→execute; MODERATE→queue."""
@@ -216,19 +216,19 @@ class SignalApprovalWorkflow:
         """AUTO_WITH_OVERRIDE: auto executes; manual signal gets priority insertion."""
         if is_manual and self._can_execute():
             return SignalDecision(action=EXECUTE, priority=0, execution_delay_secs=0,
-                                  reason=f"Manual override — priority execute (score={score})")
+                                  reason=f"Manual override - priority execute (score={score})")
         if score < self._min_score:
             return SignalDecision(action=NOTIFY_ONLY, reason=f"Score {score} < min {self._min_score}")
         if self._can_execute():
             return SignalDecision(action=EXECUTE, priority=1,
                                   reason=f"AUTO_WITH_OVERRIDE: auto execute (score={score} tier={tier})")
-        return SignalDecision(action=NOTIFY_ONLY, reason="Cannot execute — broker unavailable")
+        return SignalDecision(action=NOTIFY_ONLY, reason="Cannot execute - broker unavailable")
 
     def _decide_fully_auto(self, is_manual, score, tier, index_name, direction, analyst, reason) -> SignalDecision:
         """FULLY_AUTO: all signals execute directly (requires live broker)."""
         if not self._can_execute():
             return SignalDecision(action=NOTIFY_ONLY,
-                                  reason="FULLY_AUTO: broker not enabled — notify only")
+                                  reason="FULLY_AUTO: broker not enabled - notify only")
         if score < self._min_score:
             return SignalDecision(action=SKIP, reason=f"Score {score} < min {self._min_score}")
         return SignalDecision(action=EXECUTE, priority=0 if is_manual else 1,

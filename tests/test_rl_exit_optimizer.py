@@ -1,4 +1,4 @@
-"""Tests for core/rl_exit_optimizer.py — Q-learning exit timing optimizer."""
+"""Tests for core/rl_exit_optimizer.py - Q-learning exit timing optimizer."""
 
 from __future__ import annotations
 

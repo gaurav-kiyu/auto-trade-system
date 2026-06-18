@@ -1,4 +1,4 @@
-"""Tests for core.position_sizer — tiered position sizing engine."""
+"""Tests for core.position_sizer - tiered position sizing engine."""
 from __future__ import annotations
 
 from core.position_sizer import PositionSizer

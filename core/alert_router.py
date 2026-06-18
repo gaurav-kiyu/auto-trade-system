@@ -17,7 +17,7 @@ from typing import Any
 import requests
 
 # Import the existing TelegramEngine
-from telegram_engine import TelegramEngine
+from core.legacy.telegram_engine import TelegramEngine
 
 _log = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ class WebhookAlerter:
         self.allow_live = cfg.get("webhook_allow_live", False)
         self.rate_limit_per_min = int(cfg.get("webhook_rate_limit_per_min", 5))
         self._last_sent: list[float] = []  # timestamps of sent webhooks
-        self._rate_lock = threading.Lock()
+        self._rate_lock = threading.RLock()
 
     def _check_rate_limit(self) -> bool:
         """Check if we can send a webhook without exceeding rate limit."""

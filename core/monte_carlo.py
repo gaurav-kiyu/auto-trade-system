@@ -2,7 +2,7 @@
 Monte Carlo Backtest Simulation (Phase A4).
 
 Runs N randomised reshufflings of a closed-trade P&L series to estimate the
-range of possible outcomes — separating signal edge from trade-order luck.
+range of possible outcomes - separating signal edge from trade-order luck.
 
 Public API
 ----------
@@ -62,7 +62,7 @@ class MonteCarloResult:
     median_sharpe: float
     p5_sharpe: float
 
-    # Raw equity percentiles — (list of cumulative-PnL lists at p5/p50/p95)
+    # Raw equity percentiles - (list of cumulative-PnL lists at p5/p50/p95)
     # Stored as equal-length lists for plotting; empty if n_trades < 2
     equity_p5:    list[float] = field(default_factory=list)
     equity_p50:   list[float] = field(default_factory=list)
@@ -120,7 +120,7 @@ def _max_consec_losses(pnls: list[float]) -> int:
 
 
 def _percentile(sorted_vals: list[float], pct: float) -> float:
-    """Return the pct-th percentile (0–1) of a sorted list."""
+    """Return the pct-th percentile (0-1) of a sorted list."""
     if not sorted_vals:
         return 0.0
     idx = pct * (len(sorted_vals) - 1)
@@ -153,7 +153,7 @@ def run_simulation(
         ValueError if pnl_list is empty.
     """
     if not pnl_list:
-        raise ValueError("pnl_list is empty — need at least 1 trade to simulate")
+        raise ValueError("pnl_list is empty - need at least 1 trade to simulate")
 
     n = len(pnl_list)
     rng = random.Random(seed)
@@ -224,7 +224,7 @@ def plot_equity_band(result: MonteCarloResult, width: int = 72, height: int = 14
     """
     Return a pure-ASCII equity band chart (P5 / median / P95).
 
-    No matplotlib required — compatible with terminal output and log files.
+    No matplotlib required - compatible with terminal output and log files.
 
     Example output:
         ┌──────────────────────────────────────────────────────────────────────┐

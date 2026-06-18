@@ -332,16 +332,16 @@ def _verdict(trade: dict) -> str:
 
     if pnl > 0:
         if score >= 80:
-            return "WIN — High-confidence signal confirmed."
-        return "WIN — Signal triggered correctly."
+            return "WIN - High-confidence signal confirmed."
+        return "WIN - Signal triggered correctly."
     else:
         if score >= 80:
-            return "LOSS — High-confidence signal failed. Review regime / IV."
+            return "LOSS - High-confidence signal failed. Review regime / IV."
         if "STOP" in reason.upper():
-            return "LOSS — Stopped out. SL may be too tight."
+            return "LOSS - Stopped out. SL may be too tight."
         if "THETA" in reason.upper() or "DECAY" in reason.upper():
-            return "LOSS — Theta decay erosion. Entry may have been too late."
-        return "LOSS — Signal did not follow through."
+            return "LOSS - Theta decay erosion. Entry may have been too late."
+        return "LOSS - Signal did not follow through."
 
 
 # ── Main replay function ──────────────────────────────────────────────────────

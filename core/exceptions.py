@@ -10,13 +10,13 @@ Usage
     try:
         broker.place_order(...)
     except BrokerTimeoutError:
-        _log.warning("Broker timeout — retrying")
+        _log.warning("Broker timeout - retrying")
         return _fallback_fill(...)
 
 
 Exception Tree
 --------------
-TradingException                    # Base — all trading exceptions
+TradingException                    # Base - all trading exceptions
 ├── BrokerException                 # Broker adapter failures
 │   ├── BrokerTimeoutError          #   API call exceeded timeout
 │   ├── BrokerConnectionError       #   Network / connection refused
@@ -114,7 +114,7 @@ class MaxDrawdownError(RiskException):
 
 
 class HardHaltError(RiskException):
-    """Hard halt is active — all entries blocked."""
+    """Hard halt is active - all entries blocked."""
 
 
 class PositionSizingError(RiskException):
@@ -180,7 +180,7 @@ class FeedDisconnectedError(MarketDataError):
 # ── Circuit Breaker ───────────────────────────────────────────────────────────
 
 class CircuitBreakerError(TradingException):
-    """Circuit breaker is OPEN — operations blocked."""
+    """Circuit breaker is OPEN - operations blocked."""
 
 
 # ── Execution ─────────────────────────────────────────────────────────────────
@@ -194,7 +194,7 @@ class IdempotencyError(ExecutionError):
 
 
 class FillError(ExecutionError):
-    """Fill verification failed — quantity or price mismatch."""
+    """Fill verification failed - quantity or price mismatch."""
 
 
 # ── Chaos ─────────────────────────────────────────────────────────────────────
@@ -212,5 +212,5 @@ class GovernanceError(TradingException):
 # ── Graceful degradation helpers ──────────────────────────────────────────────
 
 def safe_fallback(value: Any, default: Any = None) -> Any:
-    """Return value if truthy, else default — for optional-feature wrappers."""
+    """Return value if truthy, else default - for optional-feature wrappers."""
     return value if value is not None else default

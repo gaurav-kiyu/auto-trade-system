@@ -1,5 +1,5 @@
 """
-Tests for core/pure_index_signal.py — Pure, deterministic index signal evaluation.
+Tests for core/pure_index_signal.py - Pure, deterministic index signal evaluation.
 
 Covers:
   - compute_index_score component scoring
@@ -150,7 +150,7 @@ class TestComputeIndexScore:
         unhealthy_rsi = compute_index_score(
             "UP", "UP", 100.0, 99.0, 1.0, 2.0, 1.0, 1.0, 1.5, "BULLISH",
             signal_cfg=_sample_params().signal_cfg,
-            vol_ratio_min=1.5, rsi=80.0,  # Overbought — no bonus
+            vol_ratio_min=1.5, rsi=80.0,  # Overbought - no bonus
         )
         assert healthy_rsi >= unhealthy_rsi
 
@@ -395,7 +395,7 @@ class TestFinalizeSignal:
             "signal_reason": "score=50",
         }
         result = finalize_index_signal_with_threshold(
-            partial, threshold=150,  # Over 100 — should be clamped
+            partial, threshold=150,  # Over 100 - should be clamped
             regime="NEUTRAL",
             adaptive_delta=5,
             adaptive_reason="session boost",

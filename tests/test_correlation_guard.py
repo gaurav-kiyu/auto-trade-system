@@ -1,5 +1,5 @@
 """
-Tests for Phase 8 — Multi-Instrument Correlation Guard (core/correlation_guard.py).
+Tests for Phase 8 - Multi-Instrument Correlation Guard (core/correlation_guard.py).
 
 Covers:
   - pearson_r: correct values, edge cases (< 5 pts, zero variance)
@@ -231,7 +231,7 @@ class TestCheckPortfolioCorrelation:
         assert ok is True
 
     def test_insufficient_history_skips_check(self):
-        # Only 3 bars — < 5 required → skip check, allow
+        # Only 3 bars - < 5 required → skip check, allow
         _closes_cache.clear()
         update_closes("BANKNIFTY", [100.0, 101.0, 102.0])
         update_closes("NIFTY", [200.0, 201.0, 202.0])

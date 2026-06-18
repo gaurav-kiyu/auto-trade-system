@@ -18,6 +18,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+# ── Consolidated re-exports from legacy modules ──
+# These are the canonical import targets for tier-based position sizing
+# and capital scaling. The legacy modules (core.position_sizer, core.capital_manager)
+# remain as deprecated wrappers for backward compatibility.
+from core.position_sizer import PositionSizer, PositionSpec  # noqa: F401
+from core.capital_manager import CapitalManager, CapitalState, ScaleResult  # noqa: F401
+
 from core.datetime_ist import now_ist
 from core.logging import LoggingService
 from core.ports.persistence.persistence_port import TradePersistencePort
@@ -118,7 +125,7 @@ class RiskService(RiskPort):
         # Greeks engine for options risk
         self._greeks_engine: OptionsGreeksEngine | None = None
 
-        # Loss tracking — single source of truth in safety_state
+        # Loss tracking - single source of truth in safety_state
         self._last_loss_reset = now_ist()
         self._recent_losses: list[datetime] = []
         self._peak_pnl = 0.0
@@ -698,7 +705,7 @@ class RiskService(RiskPort):
             if not direction or entry_price <= 0:
                 return RiskEvaluation(
                     decision=RiskDecision.ALLOWED,
-                    reason="Greeks check skipped — missing direction or price",
+                    reason="Greeks check skipped - missing direction or price",
                     risk_score=0.0
                 )
 
@@ -710,7 +717,7 @@ class RiskService(RiskPort):
             else:
                 return RiskEvaluation(
                     decision=RiskDecision.ALLOWED,
-                    reason="Greeks check skipped — unknown option type",
+                    reason="Greeks check skipped - unknown option type",
                     risk_score=0.0
                 )
 
@@ -793,6 +800,155 @@ class RiskService(RiskPort):
                 risk_score=0.2
             )
 
+    # ── Tier-Based Position Sizing (consolidated from core.position_sizer) ──
+    # Delegates to PositionSizer for tier/regime/score-based sizing.
+
+    def calculate_tier_position_size(
+        self,
+        score: int,
+        tier: str,
+        regime: str,
+        max_lots: int,
+        atr: float = 0.0,
+        capital: float = 100_000.0,
+    ) -> Any:
+        """
+        Calculate position size using tier/regime/score-based method.
+
+        This delegates to the legacy PositionSizer for backward compatibility.
+        New code should prefer ``calculate_position_size()`` for risk-based sizing.
+
+        Args:
+            score:     Final adjusted signal score (0-100)
+            tier:      Signal tier (STRONG / MODERATE / WEAK / IGNORE)
+            regime:    Market regime string
+            max_lots:  Maximum configured lots per trade
+            atr:       Current ATR
+            capital:   Available capital
+
+        Returns:
+            PositionSpec dataclass with effective_pct and lots
+        """
+        try:
+            from core.position_sizer import PositionSizer
+            return PositionSizer.calculate(
+                score=score, tier=tier, regime=regime,
+                max_lots=max_lots, atr=atr, capital=capital,
+            )
+        except (ImportError, ValueError, TypeError, AttributeError) as e:
+            self._logger.warning(f"Tier-based sizing failed (legacy module): {e}")
+            # Fallback: return a minimal PositionSpec-compatible result
+            from core.position_sizer import PositionSpec
+            return PositionSpec(
+                tier=tier, regime=regime, score=score,
+                tier_base_pct=0.0, regime_adj=0.0, score_adj=0.0,
+                effective_pct=0.0, lots=0,
+                reasoning=f"Fallback: {e}",
+            )
+
+    # ── Capital Scaling (consolidated from core.capital_manager) ──
+    # Delegates to CapitalManager for equity-aware position scaling.
+
+    def _get_capital_manager(self):
+        """Lazy-init CapitalManager for equity tracking (thread-safe)."""
+        if hasattr(self, '_capital_manager') and self._capital_manager is not None:
+            return self._capital_manager
+        with self._lock:
+            if hasattr(self, '_capital_manager') and self._capital_manager is not None:
+                return self._capital_manager
+            from core.capital_manager import CapitalManager
+            capital = self._get_capital()
+            self._capital_manager = CapitalManager(
+                initial_capital=capital,
+                max_daily_loss=self.config.max_daily_loss,
+                max_drawdown_pct=0.20,
+            )
+            return self._capital_manager
+
+    def scale_position(self, base_lots: int, max_lots: int = 1) -> Any:
+        """
+        Apply equity-aware capital scaling to base_lots.
+
+        Delegates to CapitalManager.scale() which computes:
+        scale_factor = capital_growth x drawdown_factor x consec_loss_factor x daily_loss_factor
+
+        Args:
+            base_lots:  Lots recommended by position sizing
+            max_lots:   Configured ceiling
+
+        Returns:
+            ScaleResult dataclass with scale_factor and scaled_lots
+        """
+        try:
+            cm = self._get_capital_manager()
+            return cm.scale(base_lots=base_lots, max_lots=max_lots)
+        except (ImportError, ValueError, TypeError, AttributeError) as e:
+            self._logger.warning(f"Capital scaling failed: {e}")
+            from core.capital_manager import ScaleResult
+            return ScaleResult(
+                scale_factor=1.0, scaled_lots=base_lots,
+                capital_growth=1.0, drawdown_factor=1.0,
+                consec_loss_factor=1.0, daily_loss_factor=1.0,
+                drawdown_pct=0.0, reasoning="Fallback: no scaling",
+            )
+
+    def record_trade_result(self, net_pnl: float, is_winner: bool) -> None:
+        """
+        Record a completed trade result for equity tracking.
+
+        Delegates to CapitalManager.record_trade(). Updates internal equity
+        curve, drawdown tracking, and consecutive loss counters.
+
+        Args:
+            net_pnl:     Net P&L from the trade (positive = profit)
+            is_winner:   True if the trade was profitable
+        """
+        try:
+            cm = self._get_capital_manager()
+            cm.record_trade(net_pnl=net_pnl, is_winner=is_winner)
+        except (ImportError, ValueError, TypeError, AttributeError) as e:
+            self._logger.warning(f"Trade recording failed: {e}")
+
+    def lock_profits(self, lock_pct: float = 0.50) -> float:
+        """
+        Extract a percentage of profits above initial capital to a locked pool.
+
+        Delegates to CapitalManager.lock_profits(). Locked profit is removed
+        from current_capital for safe-keeping.
+
+        Args:
+            lock_pct: Fraction of unrealised profits to lock (default 0.50)
+
+        Returns:
+            Amount locked (0.0 if no profit to lock)
+        """
+        try:
+            cm = self._get_capital_manager()
+            return cm.lock_profits(lock_pct=lock_pct)
+        except (ImportError, ValueError, TypeError, AttributeError) as e:
+            self._logger.warning(f"Profit locking failed: {e}")
+            return 0.0
+
+    def get_capital_state(self) -> dict[str, Any]:
+        """
+        Get current capital state summary.
+
+        Delegates to CapitalManager.get_state().
+
+        Returns:
+            Dict with initial_capital, current_capital, peak_capital,
+            locked_profit, daily_pnl, drawdown_pct, consecutive_losses, etc.
+        """
+        try:
+            cm = self._get_capital_manager()
+            return cm.get_state()
+        except (ImportError, ValueError, TypeError, AttributeError) as e:
+            self._logger.warning(f"Capital state fetch failed: {e}")
+            return {
+                "current_capital": self._get_capital(),
+                "daily_pnl": self._get_daily_pnl(),
+            }
+
     # ── Trading Policy Gates (consolidated from ProductionMandateEnforcer v2.53) ──
 
     def is_in_trading_window(self) -> bool:
@@ -854,7 +1010,7 @@ class RiskService(RiskPort):
             return 20.0  # Default fallback
 
     def _lazy_vix_getter(self) -> float:
-        """Lazy VIX getter — uses injected get_live_vix_fn with fallback."""
+        """Lazy VIX getter - uses injected get_live_vix_fn with fallback."""
         try:
             vix = self._get_live_vix()
             if vix and vix > 0:

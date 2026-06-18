@@ -1,5 +1,5 @@
 """
-KiteTicker WebSocket Feed (v2.45 Item 22 — options chain viz companion).
+KiteTicker WebSocket Feed (v2.45 Item 22 - options chain viz companion).
 
 Subclasses WebSocketFeedManager to implement a real KiteTicker connection
 with built-in LTP cache and instrument token management.
@@ -43,7 +43,7 @@ from core.ws_feed_manager import WebSocketFeedManager
 _log = logging.getLogger(__name__)
 
 # Well-known NSE index tokens for Kite (indices segment = 9)
-# These are the continuous index contracts — stable across expiries.
+# These are the continuous index contracts - stable across expiries.
 _DEFAULT_INDEX_TOKENS: list[int] = [
     256265,  # NIFTY 50
     260105,  # BANKNIFTY
@@ -73,13 +73,13 @@ class KiteTickerFeedManager(WebSocketFeedManager):
 
         # LTP cache: {instrument_token: {"last_price": float, "timestamp": float}}
         self._ltp_cache: dict[int, dict[str, Any]] = {}
-        self._ltp_lock = threading.Lock()
+        self._ltp_lock = threading.RLock()
 
         # Callbacks forwarded by the base class
         self._user_on_message: Callable[[Any], None] | None = None
         self._user_on_error: Callable[[Exception], None] | None = None
 
-        # Flag set by on_noreconnect — tells our reconnect loop to recreate
+        # Flag set by on_noreconnect - tells our reconnect loop to recreate
         self._kite_gave_up = threading.Event()
 
     # ── Public API ──────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ class KiteTickerFeedManager(WebSocketFeedManager):
     def subscribe(self, tokens: list[int]) -> bool:
         """Subscribe to additional instrument tokens at runtime."""
         if not self._kws or not self.is_connected():
-            _log.warning("[KITE_WS] subscribe called while disconnected — tokens queued")
+            _log.warning("[KITE_WS] subscribe called while disconnected - tokens queued")
             self._extra_tokens.extend(tokens)
             return False
         try:
@@ -157,12 +157,12 @@ class KiteTickerFeedManager(WebSocketFeedManager):
     ) -> bool:
         """Create KiteTicker instance, set up callbacks, and connect."""
         try:
-            # Lazy import — kiteconnect may not be installed in paper/dev env
+            # Lazy import - kiteconnect may not be installed in paper/dev env
             # Using importlib to avoid direct SDK import in core/ (audit requirement)
             _kt_mod = importlib.import_module("kiteconnect.ticker")
             KiteTicker = _kt_mod.KiteTicker  # type: ignore[assignment]
         except (ImportError, AttributeError):
-            _log.warning("[KITE_WS] kiteconnect not installed — cannot connect")
+            _log.warning("[KITE_WS] kiteconnect not installed - cannot connect")
             return False
 
         # Resolve credentials via the standard broker secrets helper
@@ -275,7 +275,7 @@ class KiteTickerFeedManager(WebSocketFeedManager):
                     continue
                 ltp_val = float(tick.get("last_price", 0))
                 if ltp_val <= 0:
-                    continue  # Skip zero/invalid ticks — don't poison cache
+                    continue  # Skip zero/invalid ticks - don't poison cache
                 self._ltp_cache[token] = {
                     "last_price": ltp_val,
                     "timestamp": now,
@@ -293,7 +293,7 @@ class KiteTickerFeedManager(WebSocketFeedManager):
 
         This signals our outer reconnect loop to re-create the instance.
         """
-        _log.error("[KITE_WS] internal reconnect exhausted — signalling outer layer")
+        _log.error("[KITE_WS] internal reconnect exhausted - signalling outer layer")
         self._kite_gave_up.set()
         with self._lock:
             self._connected = False

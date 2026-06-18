@@ -1,5 +1,5 @@
 """
-Certification Framework — Institutional-grade release gates.
+Certification Framework - Institutional-grade release gates.
 
 Replaces ad-hoc validation with deterministic, auditable certification suites
 that must pass before every release.

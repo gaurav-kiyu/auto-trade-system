@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Test — Malformed Input Handling.
+AD-KIYU Broker Contract Test - Malformed Input Handling.
 
 Verifies that broker adapters reject malformed inputs gracefully
 rather than crashing or producing corrupt internal state.

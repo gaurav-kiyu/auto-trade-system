@@ -1,5 +1,5 @@
 """
-AD-KIYU CSRF Protection — session-bound HMAC token pattern for FastAPI.
+AD-KIYU CSRF Protection - session-bound HMAC token pattern for FastAPI.
 Uses a server-side secret + session ID to bind CSRF tokens to authenticated sessions.
 """
 

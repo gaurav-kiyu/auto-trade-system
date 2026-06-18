@@ -1,5 +1,5 @@
 """
-Tests for core.auditor — Independent Auditor Subsystem (Phase 16).
+Tests for core.auditor - Independent Auditor Subsystem (Phase 16).
 
 Validates:
   - Auditor can challenge architecture, risk controls, execution, strategies

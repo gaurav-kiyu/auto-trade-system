@@ -90,7 +90,7 @@ class PortfolioService:
 
     def __init__(self, base_currency: str = "INR"):
         self.base_currency = base_currency
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._positions: dict[str, Position] = {}
         self._trade_history: deque = field(default_factory=lambda: deque(maxlen=10000))
         self._equity_curve: deque = field(default_factory=lambda: deque(maxlen=10000))

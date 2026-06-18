@@ -1,5 +1,5 @@
 """
-Tests for core/circuit_breaker_monitor.py — NSE Circuit Breaker Detection.
+Tests for core/circuit_breaker_monitor.py - NSE Circuit Breaker Detection.
 
 Covers:
   - CircuitBreakerState dataclass

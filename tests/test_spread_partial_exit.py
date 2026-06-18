@@ -125,7 +125,7 @@ def test_full_exit_at_exactly_target():
 def test_partial_exit_at_75pct_profit():
     p = make_position()
     # Partial at 75% of max_profit, but below full target (50%)
-    # Wait — partial_exit_pct=0.75 > exit_pnl_pct=0.50, so target is checked first!
+    # Wait - partial_exit_pct=0.75 > exit_pnl_pct=0.50, so target is checked first!
     # With exit_pnl_pct=0.50, any pnl >= 50% will be FULL_EXIT.
     # Need to set a higher full-exit threshold to test partial
     cfg = dict(CFG, spread_exit_pnl_pct=0.90, spread_partial_exit_pct=0.50)

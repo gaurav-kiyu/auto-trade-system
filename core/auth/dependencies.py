@@ -1,5 +1,5 @@
 """
-AD-KIYU Auth Dependencies — FastAPI dependency injection for auth + RBAC.
+AD-KIYU Auth Dependencies - FastAPI dependency injection for auth + RBAC.
 """
 
 from __future__ import annotations
@@ -82,7 +82,7 @@ class AuthDependencies:
         return user
 
     async def require_auth_optional(self, request: Request) -> AuthUser | None:
-        """Optionally authenticate — returns None if no valid session."""
+        """Optionally authenticate - returns None if no valid session."""
         try:
             return await self.require_auth(request)
         except HTTPException:

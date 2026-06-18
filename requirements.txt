@@ -49,3 +49,24 @@ jinja2>=3.1.0
 # ── Live broker execution (optional — NOT needed for paper/manual trading) ────
 # kiteconnect>=5.0.0
 # pyotp>=2.9.0
+
+# PostgreSQL adapter (DatabasePort implementation)
+psycopg2-binary>=2.9
+
+# MySQL adapter (DatabasePort implementation)
+pymysql>=1.1.1
+
+# Redis adapter (DatabasePort implementation)
+redis>=5.0
+
+# MongoDB adapter (DatabasePort implementation)
+pymongo>=4.6
+
+# DuckDB adapter (DatabasePort implementation)
+duckdb>=1.0
+
+# SQLAlchemy adapter (DatabasePort implementation)
+sqlalchemy>=2.0
+
+# Property-based testing for AsyncDbWriter
+hypothesis>=6.100

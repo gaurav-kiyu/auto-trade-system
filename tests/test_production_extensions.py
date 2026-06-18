@@ -20,7 +20,7 @@ from core import (
     StateManager,
     StrategyEngine,
 )
-from core.execution_engine import ExecutionEngine
+from core.ports.execution.execution_port import OrderResult, OrderStatus
 from core.ports.risk.risk_port import PortfolioRiskMetrics, RiskDecision, RiskEvaluation
 from core.risk.legacy_adapter import RiskPortAdapter
 
@@ -60,6 +60,21 @@ def _make_mock_risk_port(
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"
+
+
+def _make_mock_execution_service_fill() -> MagicMock:
+    """Create a mock ExecutionService that returns FILLED orders."""
+    from datetime import datetime
+
+    svc = MagicMock()
+    svc.execute_order.return_value = OrderResult(
+        order_id="ord-1",
+        status=OrderStatus.FILLED,
+        filled_quantity=1,
+        average_price=100.0,
+        timestamp=datetime.now(),
+    )
+    return svc
 
 
 def test_reconciliation_engine_detects_qty_mismatch():
@@ -196,12 +211,11 @@ def test_orchestrator_runs_manual_cycle_without_breaking_existing_flow():
     )
     state_saved = {"ok": False}
     state_manager = StateManager(save_fn=lambda: state_saved.__setitem__("ok", True), load_fn=lambda: None)
-    execution_engine = ExecutionEngine(broker_getter=lambda: None)
     orchestrator = Orchestrator(
         data_engine=data_engine,
         strategy_engine=strategy_engine,
         risk_engine=risk_engine,
-        execution_engine=execution_engine,
+        execution_service=None,
         state_manager=state_manager,
         names_provider=lambda: ["NIFTY"],
         execution_mode_fn=lambda: "MANUAL",
@@ -227,7 +241,7 @@ def test_orchestrator_audits_and_honors_safety_gate(tmp_path):
         data_engine=data_engine,
         strategy_engine=strategy_engine,
         risk_engine=risk_engine,
-        execution_engine=ExecutionEngine(broker_getter=lambda: None),
+        execution_service=None,
         state_manager=StateManager(save_fn=lambda: None, load_fn=lambda: None),
         names_provider=lambda: ["NIFTY"],
         execution_mode_fn=lambda: "AUTO",
@@ -271,7 +285,7 @@ def test_orchestrator_reconciliation_uses_local_positions_not_broker():
         data_engine=data_engine,
         strategy_engine=strategy_engine,
         risk_engine=risk_engine,
-        execution_engine=ExecutionEngine(broker_getter=lambda: None),
+        execution_service=None,
         state_manager=state_manager,
         reconciliation_engine=recon,
         local_positions_fn=lambda: {"NIFTY": {"qty": 50, "entry": 100.0}},
@@ -300,7 +314,7 @@ def test_orchestrator_risk_engine_blocks_trade():
         data_engine=data_engine,
         strategy_engine=strategy_engine,
         risk_engine=risk_engine,
-        execution_engine=ExecutionEngine(broker_getter=lambda: None),
+        execution_service=None,
         state_manager=StateManager(save_fn=lambda: None, load_fn=lambda: None),
         names_provider=lambda: ["NIFTY"],
         execution_mode_fn=lambda: "AUTO",
@@ -309,20 +323,6 @@ def test_orchestrator_risk_engine_blocks_trade():
     cycle = orchestrator.run_cycle()
     # Blocked due to low vol_ratio (0.1 < min_volume_ratio 1.0) or consecutive losses
     assert cycle.signals[0].risk.allowed is False
-
-
-class _FillBrokerSimple:
-    def place_order(self, name, direction, qty, strike):
-        return "oid-1"
-
-    def wait_for_fill(self, order_id, timeout=10):
-        return True
-
-    def get_filled_quantity(self, order_id):
-        return 1
-
-    def get_fill_price(self, order_id):
-        return 100.0
 
 
 def test_orchestrator_verify_fill_controls_executed_flag():
@@ -336,12 +336,12 @@ def test_orchestrator_verify_fill_controls_executed_flag():
         min_volume_ratio=1.0,
         max_consecutive_losses=3,
     )
-    execution_engine = ExecutionEngine(broker_getter=lambda: _FillBrokerSimple())
+    exec_svc = _make_mock_execution_service_fill()
     orchestrator = Orchestrator(
         data_engine=data_engine,
         strategy_engine=strategy_engine,
         risk_engine=risk_engine,
-        execution_engine=execution_engine,
+        execution_service=exec_svc,
         state_manager=StateManager(save_fn=lambda: None, load_fn=lambda: None),
         names_provider=lambda: ["NIFTY"],
         execution_mode_fn=lambda: "AUTO",
@@ -368,7 +368,7 @@ def test_orchestrator_skips_signals_when_market_hours_gate_false():
         data_engine=data_engine,
         strategy_engine=strategy_engine,
         risk_engine=risk_engine,
-        execution_engine=None,
+        execution_service=None,
         state_manager=StateManager(save_fn=lambda: None, load_fn=lambda: None),
         names_provider=lambda: ["NIFTY"],
         execution_mode_fn=lambda: "MANUAL",

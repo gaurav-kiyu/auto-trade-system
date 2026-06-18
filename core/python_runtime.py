@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 _shutdown_callbacks: list[Callable[[], None]] = []
 _shutdown_in_progress = False
-_shutdown_lock = threading.Lock()
+_shutdown_lock = threading.RLock()
 
 
 def _reset_shutdown_state_for_testing() -> None:
@@ -90,7 +90,7 @@ def ensure_supported_python(
     if not (low <= (vi.major, vi.minor) < high_exclusive):
         hi_minor = high_exclusive[1] - 1
         print(
-            f"[ERROR] Python {low[0]}.{low[1]}–{high_exclusive[0]}.{hi_minor} supported. "
+            f"[ERROR] Python {low[0]}.{low[1]}-{high_exclusive[0]}.{hi_minor} supported. "
             f"Found:{vi.major}.{vi.minor}"
         )
         print("Install: pyenv install 3.12.7 && pyenv local 3.12.7")

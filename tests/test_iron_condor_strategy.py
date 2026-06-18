@@ -121,7 +121,7 @@ def test_small_chain_returns_none():
     assert build_iron_condor(22000.0, small, _cfg()) is None
 
 
-# ── evaluate_ic_exit — inverted P&L ──────────────────────────────────────────
+# ── evaluate_ic_exit - inverted P&L ──────────────────────────────────────────
 
 def _make_ic():
     return IronCondorPosition(

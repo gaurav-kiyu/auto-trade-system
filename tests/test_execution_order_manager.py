@@ -1,4 +1,4 @@
-"""Tests for core/execution/order_manager.py — Order Manager."""
+"""Tests for core/execution/order_manager.py - Order Manager."""
 
 from __future__ import annotations
 

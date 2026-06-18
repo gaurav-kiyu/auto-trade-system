@@ -1,4 +1,4 @@
-"""Tests for MorningChecklist — pre-session trading readiness checks."""
+"""Tests for MorningChecklist - pre-session trading readiness checks."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from core.morning_checklist import MorningChecklist, run_morning_checklist
 
 
 class TestMorningChecklist:
-    """MorningChecklist — pre-session trading readiness."""
+    """MorningChecklist - pre-session trading readiness."""
 
     def test_default_init(self):
         checklist = MorningChecklist()

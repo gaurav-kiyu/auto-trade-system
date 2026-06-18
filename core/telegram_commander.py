@@ -5,12 +5,12 @@ Background polling thread that accepts commands from authorized Telegram users.
 Builds decision-support rich signal messages and routes commands to the
 ManualSignalQueue and SignalApprovalWorkflow.
 
-Designed for SIGNALS_ONLY / FULL_MANUAL modes — position management commands
+Designed for SIGNALS_ONLY / FULL_MANUAL modes - position management commands
 (live broker) are behind telegram_allow_live_position_cmds=false guard.
 
 Public API
 ----------
-    TelegramCommander             — main class
+    TelegramCommander             - main class
     build_commander(cfg, queue, workflow, state_fn, send_fn)
                                   → TelegramCommander | None
     build_rich_signal_message(signal_dict, cfg) → str
@@ -31,6 +31,7 @@ Config keys
 """
 from __future__ import annotations
 
+import json
 import logging
 import threading
 import time
@@ -43,7 +44,7 @@ from core.telegram.auth.manager import TelegramAuthManager
 
 _log = logging.getLogger(__name__)
 
-# ── Message builders (standalone — usable without a running commander) ─────────
+# ── Message builders (standalone - usable without a running commander) ─────────
 
 def build_rich_signal_message(signal: dict[str, Any], cfg: dict[str, Any] | None = None) -> str:
     """
@@ -76,7 +77,6 @@ def build_rich_signal_message(signal: dict[str, Any], cfg: dict[str, Any] | None
     soft_blocks = signal.get("soft_blocks", [])
     if isinstance(soft_blocks, str):
         try:
-            import json
             soft_blocks = json.loads(soft_blocks)
         except (ValueError, TypeError, json.JSONDecodeError):
             soft_blocks = [soft_blocks] if soft_blocks else []
@@ -227,7 +227,7 @@ def build_trade_entry_message(trade: dict[str, Any], cfg: dict[str, Any] | None 
 
 
 def build_trade_exit_message(trade: dict[str, Any], cfg: dict[str, Any] | None = None) -> str:
-    """Message when a trade closes — shows P&L and cumulative context."""
+    """Message when a trade closes - shows P&L and cumulative context."""
     idx       = trade.get("index_name", trade.get("index", "?"))
     direction = str(trade.get("direction", "?")).upper()
     entry     = trade.get("entry_price", trade.get("entry", 0))
@@ -311,7 +311,7 @@ def build_status_message(state: dict[str, Any], cfg: dict[str, Any] | None = Non
 
     lines = [
         f"{'─'*28}",
-        f"📡 *Bot Status* — {halt_line}",
+        f"📡 *Bot Status* - {halt_line}",
         f"Mode: {mode}",
         f"{'─'*28}",
         f"Capital:    ₹{capital:,.0f}",
@@ -387,7 +387,7 @@ class TelegramCommander:
     All destructive / live-path commands are guarded by
     telegram_allow_live_position_cmds=false (default).
 
-    The commander does NOT call index_trader.py functions directly — it uses
+    The commander does NOT call index_trader.py functions directly - it uses
     callbacks (state_fn, send_fn) and the ManualSignalQueue to stay decoupled.
     """
 
@@ -430,11 +430,11 @@ class TelegramCommander:
         self._stop_event      = threading.Event()
         self._thread: threading.Thread | None = None
         self._rate_times: list[float] = []
-        self._rate_lock   = threading.Lock()
+        self._rate_lock   = threading.RLock()
 
     def start(self) -> None:
         if not self._token or not self._chat_id:
-            _log.warning("[TG_CMD] BOT_TOKEN or CHAT_ID missing — commander not started")
+            _log.warning("[TG_CMD] BOT_TOKEN or CHAT_ID missing - commander not started")
             return
         self._thread = threading.Thread(
             target=self._poll_loop, name="tg_commander", daemon=True
@@ -503,7 +503,7 @@ class TelegramCommander:
             return
 
         if not self._check_rate(user_id):
-            self._reply("⚠️ Rate limit — slow down.", critical=False)
+            self._reply("⚠️ Rate limit - slow down.", critical=False)
             return
 
         parts = text.split()
@@ -551,7 +551,7 @@ class TelegramCommander:
         elif cmd == "/signals":
             self._cmd_signals_recent()
 
-        # ── Position management (LIVE-PATH-RISK — guarded) ────────────────
+        # ── Position management (LIVE-PATH-RISK - guarded) ────────────────
         elif cmd in ("/exit", "/exit_all", "/move_sl", "/partial_exit", "/move_target"):
             self._cmd_live_guard(cmd, args)
 
@@ -621,7 +621,7 @@ class TelegramCommander:
         """Approve a signal: /approve {signal_id} [lots]"""
         if is_hard_halted():
             self._reply(
-                f"🚨 HARD HALT ACTIVE — approvals blocked.\n"
+                f"🚨 HARD HALT ACTIVE - approvals blocked.\n"
                 f"Reason: {hard_halt_reason()}\n"
                 f"Clear the halt before approving signals.",
                 critical=True,
@@ -649,7 +649,7 @@ class TelegramCommander:
                 + f"\nBy: {username}"
             )
         else:
-            msg = f"❌ Cannot approve `{signal_id}` — not found or not PENDING."
+            msg = f"❌ Cannot approve `{signal_id}` - not found or not PENDING."
         self._reply(msg, critical=False)
 
     def _cmd_reject(self, args: list[str], username: str) -> None:
@@ -666,14 +666,14 @@ class TelegramCommander:
         if ok:
             msg = f"❌ *Rejected* [{signal_id}]\nReason: {reason}"
         else:
-            msg = f"⚠️ Cannot reject `{signal_id}` — not found or not PENDING."
+            msg = f"⚠️ Cannot reject `{signal_id}` - not found or not PENDING."
         self._reply(msg, critical=False)
 
     def _cmd_approve_all(self, username: str) -> None:
         """Approve all pending signals."""
         if is_hard_halted():
             self._reply(
-                f"🚨 HARD HALT ACTIVE — bulk approvals blocked.\n"
+                f"🚨 HARD HALT ACTIVE - bulk approvals blocked.\n"
                 f"Reason: {hard_halt_reason()}",
                 critical=True,
             )
@@ -815,13 +815,13 @@ class TelegramCommander:
             "  /cancel {id}",
             f"{'─'*28}",
             "📊 *Information*",
-            "  /status    — bot health + P&L",
-            "  /positions — open positions",
-            "  /pnl       — today's P&L",
-            "  /signals   — recent signals",
+            "  /status    - bot health + P&L",
+            "  /positions - open positions",
+            "  /pnl       - today's P&L",
+            "  /signals   - recent signals",
             f"{'─'*28}",
             "🚨 *Bot Control*",
-            "  /emergency_stop — halt ALL trading immediately",
+            "  /emergency_stop - halt ALL trading immediately",
             f"{'─'*28}",
             "🔒 Position mgmt (/exit etc.) requires",
             "   telegram_allow_live_position_cmds=true",

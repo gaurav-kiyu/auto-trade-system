@@ -1,5 +1,5 @@
 """
-Tests for core/execution/execution_state.py — Formal Execution State Machine.
+Tests for core/execution/execution_state.py - Formal Execution State Machine.
 
 NOTE: This module is DEPRECATED in favor of deterministic_state_machine.py.
 Tests are kept for backward compatibility with existing code.
@@ -62,7 +62,7 @@ def manager(tmp_path):
 
 
 class TestExecState:
-    """ExecState enum — 12 states covering the full order lifecycle."""
+    """ExecState enum - 12 states covering the full order lifecycle."""
 
     def test_values(self):
         assert ExecState.CREATED.value == "CREATED"
@@ -80,7 +80,7 @@ class TestExecState:
 
 
 class TestTransitionResult:
-    """TransitionResult enum — 4 possible results."""
+    """TransitionResult enum - 4 possible results."""
 
     def test_values(self):
         assert TransitionResult.SUCCESS.value == "SUCCESS"
@@ -124,7 +124,7 @@ class TestHelpers:
 
 
 class TestValidateTransition:
-    """FormalOrderState.validate_transition — strict transition rules."""
+    """FormalOrderState.validate_transition - strict transition rules."""
 
     def test_created_to_risk_approved(self, machine):
         result, msg = machine.validate_transition(ExecState.RISK_APPROVED)
@@ -371,7 +371,7 @@ class TestToDict:
 
 
 class TestFormalOrderStateManager:
-    """FormalOrderStateManager — manages multiple order state machines."""
+    """FormalOrderStateManager - manages multiple order state machines."""
 
     def test_create_simple(self, manager):
         machine = manager.create("int-1", "NIFTY", 50, 150.0, "BUY")

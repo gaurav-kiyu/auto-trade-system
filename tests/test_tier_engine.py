@@ -1,4 +1,4 @@
-"""Tests for core.tier_engine — tiered signal classification and per-tier execution rules."""
+"""Tests for core.tier_engine - tiered signal classification and per-tier execution rules."""
 
 from __future__ import annotations
 

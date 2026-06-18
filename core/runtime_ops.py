@@ -15,7 +15,7 @@ class CircuitBreaker:
         self._threshold = int(threshold)
         self._window = float(window_sec)
         self._log = log_fn
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._failures: list[tuple[float, str]] = []
         self._tripped = False
         self._trip_ts = 0.0
@@ -30,7 +30,7 @@ class CircuitBreaker:
                 self._tripped = True
                 self._trip_ts = now
                 self._log(
-                    f"[CIRCUIT BREAKER] TRIPPED — {len(self._failures)} failures in {self._window}s from: "
+                    f"[CIRCUIT BREAKER] TRIPPED - {len(self._failures)} failures in {self._window}s from: "
                     f"{set(s for _, s in self._failures)}"
                 )
 
@@ -44,7 +44,7 @@ class CircuitBreaker:
             if len(self._failures) < self._threshold // 2:
                 self._tripped = False
                 self._trip_ts = 0.0
-                self._log("[CIRCUIT BREAKER] RECOVERED — failures subsided")
+                self._log("[CIRCUIT BREAKER] RECOVERED - failures subsided")
                 return True
         return False
 
@@ -59,7 +59,7 @@ class PerfAccumulator:
     """Thread-safe stage → ms samples with trim/summary matching the trader scripts."""
 
     def __init__(self, initial_stages: Iterable[str] | None = None) -> None:
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         if initial_stages:
             self._timings: dict[str, list[float]] = {k: [] for k in initial_stages}
         else:

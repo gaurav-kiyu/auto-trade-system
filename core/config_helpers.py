@@ -47,7 +47,7 @@ def normalize_tg_trade_patterns(cfg: dict, default_patterns: tuple[str, ...]) ->
     return default_patterns
 
 
-# Keys whose entire value must be replaced — sub-objects that hold credentials.
+# Keys whose entire value must be replaced - sub-objects that hold credentials.
 _AUDIT_REDACT_SUBOBJECTS: frozenset[str] = frozenset({"BROKER_CONFIG"})
 
 # Top-level scalar keys that hold sensitive tokens or passwords.
@@ -58,7 +58,7 @@ def build_audit_config_snapshot(cfg: dict[str, Any]) -> dict[str, Any]:
     """Return a copy of *cfg* that is safe to pass to AuditEngine.record().
 
     Rules applied in order:
-      - Keys starting with ``_NOTE`` are annotation noise — omitted.
+      - Keys starting with ``_NOTE`` are annotation noise - omitted.
       - Keys in ``_AUDIT_REDACT_SUBOBJECTS`` (e.g. BROKER_CONFIG) are replaced
         with ``{"redacted": True}`` so the key is visible but credentials are not.
       - Keys in ``_AUDIT_REDACT_SCALARS`` (BOT_TOKEN, CHAT_ID) are partially

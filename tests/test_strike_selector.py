@@ -1,5 +1,5 @@
 """
-Tests for Phase 4 — Greeks-Aware Strike Selector (core/strike_selector.py).
+Tests for Phase 4 - Greeks-Aware Strike Selector (core/strike_selector.py).
 
 Covers:
   - ATM mode: always returns ATM (backward compatible)
@@ -58,7 +58,7 @@ class TestAtmMode:
             assert strike == ATM, f"ATM mode returned non-ATM for tier={tier}"
 
 
-# ── Class 2: OTM mode — direction ────────────────────────────────────────────
+# ── Class 2: OTM mode - direction ────────────────────────────────────────────
 
 
 class TestOtmModeDirection:
@@ -190,7 +190,7 @@ class TestVegaCap:
         assert steps == 2
 
     def test_vega_cap_zero_steps_stays_zero(self):
-        # Already ATM — no reduction possible
+        # Already ATM - no reduction possible
         steps = _apply_vega_cap(0, 35.0, {"vega_cap_vix_threshold": 30.0})
         assert steps == 0
 

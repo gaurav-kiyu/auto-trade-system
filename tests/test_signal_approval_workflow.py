@@ -1,4 +1,4 @@
-"""Tests for SignalApprovalWorkflow — signal routing and approval logic."""
+"""Tests for SignalApprovalWorkflow - signal routing and approval logic."""
 
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ class TestSignalDecision:
 
 
 class TestSignalApprovalWorkflow:
-    """SignalApprovalWorkflow — evaluates signals and returns decisions."""
+    """SignalApprovalWorkflow - evaluates signals and returns decisions."""
 
     BASE_CFG = {
         "manual_signal_workflow_mode": SIGNALS_ONLY,

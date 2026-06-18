@@ -1,4 +1,4 @@
-"""Tests for core.startup_checklist — pre-session startup checklist."""
+"""Tests for core.startup_checklist - pre-session startup checklist."""
 
 from __future__ import annotations
 

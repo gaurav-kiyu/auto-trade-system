@@ -1,5 +1,5 @@
 """
-AD-KIYU Control Plane RBAC — wraps core.auth for admin control plane endpoints.
+AD-KIYU Control Plane RBAC - wraps core.auth for admin control plane endpoints.
 
 Provides a ControlRBAC facade that integrates RoleManager with the control plane's
 HTTP layer, ensuring every control action is authorized before execution.
@@ -75,7 +75,7 @@ class ControlRBAC:
         """
         permission_name = _ENDPOINT_PERMISSIONS.get(endpoint_name)
         if permission_name is None:
-            # Unknown endpoint — deny by default
+            # Unknown endpoint - deny by default
             return False, f"Unknown endpoint: {endpoint_name}"
 
         permission = _CONTROL_PERMISSIONS.get(permission_name)

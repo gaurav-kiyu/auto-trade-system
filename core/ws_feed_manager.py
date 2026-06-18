@@ -50,7 +50,7 @@ class WebSocketFeedManager:
         self._max_delay_s = float(c.get("ws_reconnect_max_delay_s", 30.0))
         self._jitter_pct = float(c.get("ws_reconnect_jitter_pct", 0.25))
         self._heartbeat_s = float(c.get("ws_heartbeat_interval_s", 30.0))
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._connected = False
         self._reconnect_count = 0
         self._last_connect_ts: float = 0.0

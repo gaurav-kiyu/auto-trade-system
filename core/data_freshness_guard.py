@@ -1,5 +1,5 @@
 """
-Data Freshness Guard — validates market data freshness before trading.
+Data Freshness Guard - validates market data freshness before trading.
 
 Ensures trading decisions are based on current, not stale data.
 Configurable via config keys:
@@ -11,7 +11,7 @@ Configurable via config keys:
     data_freshness_guard_enabled    : bool  default true
 
 NOTE: Setting data_freshness_guard_enabled to false logs a WARNING and still
-refuses to trade. The guard cannot be disabled via configuration — this is a
+refuses to trade. The guard cannot be disabled via configuration - this is a
 safety invariant enforced by code.
 """
 from __future__ import annotations
@@ -56,7 +56,7 @@ def check_data_freshness(
     c = cfg or {}
     if not c.get("data_freshness_guard_enabled", True):
         _log.warning(
-            "data_freshness_guard_enabled=false is IGNORED — freshness guard "
+            "data_freshness_guard_enabled=false is IGNORED - freshness guard "
             "is always active for safety. Set it to true in config to suppress this warning."
         )
 

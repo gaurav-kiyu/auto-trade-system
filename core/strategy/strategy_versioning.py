@@ -15,6 +15,8 @@ import json
 import logging
 import sqlite3
 import threading
+
+from core.db_utils import get_connection
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -63,13 +65,13 @@ class StrategyVersionManager:
 
     def __init__(self):
         self._versions: dict[str, list[StrategyVersion]] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._init_durable_storage()
 
     def _init_durable_storage(self) -> None:
         """Initialize version tracking storage"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS strategy_versions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -163,7 +165,7 @@ class StrategyVersionManager:
     def _persist_version(self, version: StrategyVersion) -> None:
         """Persist version to DB"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     INSERT INTO strategy_versions
                     (strategy_name, version, config_hash, created_at, is_active, metadata_json)
@@ -182,7 +184,7 @@ class StrategyVersionManager:
 
 
 _version_manager: StrategyVersionManager | None = None
-_manager_lock = threading.Lock()
+_manager_lock = threading.RLock()
 
 
 def get_strategy_version_manager() -> StrategyVersionManager:

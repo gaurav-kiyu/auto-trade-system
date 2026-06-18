@@ -1,29 +1,29 @@
 """
-Auto-Learner — Fully configurable, trade-history + AI-journal–driven threshold tuner.
+Auto-Learner - Fully configurable, trade-history + AI-journal-driven threshold tuner.
 
 Extends core.adaptive_learning with:
   • AI journal feedback loop (win/loss patterns from LLM verdicts)
   • Per-symbol learning state (not just global)
-  • Configurable learning rates and decay — all via config keys
+  • Configurable learning rates and decay - all via config keys
   • Regime/strength performance matrix with auto-decay
   • Full persistence: JSON state file + optional CSV export
 
 Config keys (all under AUTO_LEARNER in config.json):
     AUTO_LEARNER_ENABLED           bool
-    AUTO_LEARNER_STATE_FILE        str   — path to learner state JSON
-    AUTO_LEARNER_LOOKBACK          int   — trades to look back (default 40)
-    AUTO_LEARNER_WIN_SCORE_DECAY   float — score_adj decrement on WIN (default 2.0)
-    AUTO_LEARNER_LOSS_SCORE_INC    float — score_adj increment on LOSS (default 3.0)
-    AUTO_LEARNER_CONFIDENCE_WIN_INC float — confidence bump on WIN (default 1.0)
-    AUTO_LEARNER_CONFIDENCE_LOSS_DEC float — confidence drop on LOSS (default 1.0)
-    AUTO_LEARNER_STREAK_BOOST_AT   int   — consecutive wins before applying discount (default 3)
-    AUTO_LEARNER_LOSS_STREAK_HALT  int   — consecutive losses before halting (default 3)
-    AUTO_LEARNER_MAX_BONUS         int   — max score bonus (default 8)
-    AUTO_LEARNER_MAX_DISCOUNT      int   — max score discount (default 3)
-    AUTO_LEARNER_AI_JOURNAL_WEIGHT float — weight of AI journal vs raw trades (default 0.3)
-    AUTO_LEARNER_REGIME_DECAY      float — per-cycle decay for regime stats (default 0.98)
-    AUTO_LEARNER_PER_SYMBOL        bool  — track per-symbol learning (default False)
-    AUTO_LEARNER_CSV_EXPORT_FILE   str   — optional CSV export path
+    AUTO_LEARNER_STATE_FILE        str   - path to learner state JSON
+    AUTO_LEARNER_LOOKBACK          int   - trades to look back (default 40)
+    AUTO_LEARNER_WIN_SCORE_DECAY   float - score_adj decrement on WIN (default 2.0)
+    AUTO_LEARNER_LOSS_SCORE_INC    float - score_adj increment on LOSS (default 3.0)
+    AUTO_LEARNER_CONFIDENCE_WIN_INC float - confidence bump on WIN (default 1.0)
+    AUTO_LEARNER_CONFIDENCE_LOSS_DEC float - confidence drop on LOSS (default 1.0)
+    AUTO_LEARNER_STREAK_BOOST_AT   int   - consecutive wins before applying discount (default 3)
+    AUTO_LEARNER_LOSS_STREAK_HALT  int   - consecutive losses before halting (default 3)
+    AUTO_LEARNER_MAX_BONUS         int   - max score bonus (default 8)
+    AUTO_LEARNER_MAX_DISCOUNT      int   - max score discount (default 3)
+    AUTO_LEARNER_AI_JOURNAL_WEIGHT float - weight of AI journal vs raw trades (default 0.3)
+    AUTO_LEARNER_REGIME_DECAY      float - per-cycle decay for regime stats (default 0.98)
+    AUTO_LEARNER_PER_SYMBOL        bool  - track per-symbol learning (default False)
+    AUTO_LEARNER_CSV_EXPORT_FILE   str   - optional CSV export path
 """
 from __future__ import annotations
 
@@ -172,7 +172,7 @@ class AutoLearner:
         self._cfg = cfg
         self._log = log_fn or (lambda msg: log.info(msg))
         self._ai_journal_file = ai_journal_file
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
         # Global learning state (mirrors existing trader_state.json structure)
         self._global_state: dict[str, Any] = {
@@ -441,7 +441,7 @@ class AutoLearner:
                 wr_lines.append(f"  {reg}/{st}: {rate}%")
         wr_text = "\n".join(wr_lines) if wr_lines else "  (no data)"
         return (
-            f"AutoLearner — adj={g['score_adj']} conf={g['confidence']} streak={g['streak']}\n"
+            f"AutoLearner - adj={g['score_adj']} conf={g['confidence']} streak={g['streak']}\n"
             f"Regime/Strength Win Rates:\n{wr_text}"
         )
 
@@ -449,7 +449,7 @@ class AutoLearner:
 # ─── Singleton factory ────────────────────────────────────────────────────────
 
 _learner_instance: AutoLearner | None = None
-_learner_lock = threading.Lock()
+_learner_lock = threading.RLock()
 
 
 def get_auto_learner(

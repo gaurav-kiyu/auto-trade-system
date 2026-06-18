@@ -24,6 +24,8 @@ import json
 import logging
 import sqlite3
 import threading
+
+from core.db_utils import get_connection
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -153,9 +155,7 @@ class EventStore:
     def _init_durable_storage(self) -> None:
         """Initialize SQLite event store"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
-                conn.execute("PRAGMA journal_mode=WAL")
-                conn.execute("PRAGMA busy_timeout=5000")
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS events (
                         event_id TEXT PRIMARY KEY,
@@ -186,7 +186,7 @@ class EventStore:
     def append(self, event: TradingEvent) -> bool:
         """Append event to store (immutable - always append)"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 cursor = conn.execute("SELECT MAX(sequence_number) FROM events")
                 seq = (cursor.fetchone()[0] or 0) + 1
 
@@ -221,7 +221,7 @@ class EventStore:
     def get_events_for_order(self, client_order_id: str) -> list[TradingEvent]:
         """Get all events for a specific order (for replay/debugging)"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 cursor = conn.execute("""
                     SELECT event_id, event_type, priority, timestamp, source, intent_id,
                            client_order_id, broker_order_id, symbol, direction, quantity,
@@ -256,7 +256,7 @@ class EventStore:
     def get_events_by_type(self, event_type: EventType, limit: int = 1000) -> list[TradingEvent]:
         """Get events by type"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 cursor = conn.execute("""
                     SELECT event_id, event_type, priority, timestamp, source, intent_id,
                            client_order_id, broker_order_id, symbol, direction, quantity,
@@ -275,7 +275,7 @@ class EventStore:
     def get_events_in_range(self, start_time: str, end_time: str) -> list[TradingEvent]:
         """Get events in time range (for replay)"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 cursor = conn.execute("""
                     SELECT event_id, event_type, priority, timestamp, source, intent_id,
                            client_order_id, broker_order_id, symbol, direction, quantity,
@@ -320,7 +320,7 @@ class EventBus:
 
     def __init__(self, event_store: EventStore | None = None):
         self._subscribers: dict[EventType, list[EventHandler]] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._event_store = event_store or EventStore()
         self._event_history: list[TradingEvent] = []
         self._max_history = 10000
@@ -498,7 +498,7 @@ class EventBus:
 
 
 _event_bus: EventBus | None = None
-_event_bus_lock = threading.Lock()
+_event_bus_lock = threading.RLock()
 
 
 def get_event_bus() -> EventBus:

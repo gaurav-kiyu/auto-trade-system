@@ -1,7 +1,7 @@
 """
 Pre-session startup checklist for the index options bot.
 
-This module is a pure function library — no globals, no I/O, no side effects.
+This module is a pure function library - no globals, no I/O, no side effects.
 The caller (index_trader.py) assembles the inputs from its own state and passes
 them in; the result is a structured object suitable for:
 
@@ -58,7 +58,7 @@ class StartupCheckResult:
     failed_count: int
 
     def summary(self) -> str:
-        """One-line operator summary — suitable for a Telegram message header."""
+        """One-line operator summary - suitable for a Telegram message header."""
         if self.passed:
             return f"Startup checklist: ALL {len(self.items)} checks passed."
         lines = [f"Startup checklist: {self.failed_count} of {len(self.items)} checks FAILED:"]
@@ -94,7 +94,7 @@ def run_startup_checklist(
 ) -> StartupCheckResult:
     """Evaluate all pre-session safety checks and return a structured result.
 
-    All parameters are plain values — callers extract them from their own state
+    All parameters are plain values - callers extract them from their own state
     before calling this function.  This function has no side effects.
 
     Args:
@@ -114,29 +114,29 @@ def run_startup_checklist(
     """
     items: list[StartupCheckItem] = []
 
-    # 1. Zombie PnL — unresolved capital adjustment from a previous session
+    # 1. Zombie PnL - unresolved capital adjustment from a previous session
     zombie_ok = capital_adj_pending == 0.0
     items.append(StartupCheckItem(
         name="zombie_pnl_clear",
         passed=zombie_ok,
         detail=(
             "OK" if zombie_ok
-            else f"capital_adj_pending={capital_adj_pending:.2f} — "
+            else f"capital_adj_pending={capital_adj_pending:.2f} - "
                  "resolve manually before trading (check broker vs bot capital)"
         ),
     ))
 
-    # 2. Hard halt — must be clear before scanning
+    # 2. Hard halt - must be clear before scanning
     items.append(StartupCheckItem(
         name="hard_halt_clear",
         passed=hard_halt_clear,
         detail=(
             "OK" if hard_halt_clear
-            else "HARD_HALT is set — investigate cause, clear with --clear-halt"
+            else "HARD_HALT is set - investigate cause, clear with --clear-halt"
         ),
     ))
 
-    # 3. VIX level — warn if already in block territory at session open
+    # 3. VIX level - warn if already in block territory at session open
     if vix is not None:
         vix_ok = vix < vix_block_threshold
         items.append(StartupCheckItem(
@@ -146,18 +146,18 @@ def run_startup_checklist(
                 f"VIX={vix:.1f} (block threshold={vix_block_threshold:.1f}): OK"
                 if vix_ok
                 else f"VIX={vix:.1f} >= block threshold={vix_block_threshold:.1f} "
-                     "— all signals will be blocked until VIX drops"
+                     "- all signals will be blocked until VIX drops"
             ),
         ))
     else:
         items.append(StartupCheckItem(
             name="vix_acceptable",
             passed=False,
-            detail="VIX unavailable — data feed may not be ready",
+            detail="VIX unavailable - data feed may not be ready",
         ))
 
     # 4. Data feed freshness
-    # None means the bot just started and no data has been fetched yet — this is
+    # None means the bot just started and no data has been fetched yet - this is
     # normal at session open and must not fail the checklist.  A genuine staleness
     # problem only arises when data WAS flowing and has since stopped (age > max).
     if data_feed_age_sec is not None:
@@ -168,7 +168,7 @@ def run_startup_checklist(
             detail=(
                 f"last fetch {data_feed_age_sec:.0f}s ago (max={data_feed_max_age_sec:.0f}s): OK"
                 if feed_ok
-                else f"last fetch {data_feed_age_sec:.0f}s ago — exceeds max "
+                else f"last fetch {data_feed_age_sec:.0f}s ago - exceeds max "
                      f"{data_feed_max_age_sec:.0f}s; check data provider"
             ),
         ))
@@ -176,21 +176,21 @@ def run_startup_checklist(
         items.append(StartupCheckItem(
             name="data_feed_fresh",
             passed=True,
-            detail="initial startup — first fetch pending (expected at session open)",
+            detail="initial startup - first fetch pending (expected at session open)",
         ))
 
-    # 5. Position alignment — local state matches broker (relevant when positions carried over)
+    # 5. Position alignment - local state matches broker (relevant when positions carried over)
     items.append(StartupCheckItem(
         name="positions_aligned",
         passed=positions_aligned,
         detail=(
             "OK" if positions_aligned
-            else "Local positions do not match broker — "
+            else "Local positions do not match broker - "
                  "reconcile manually before first trade"
         ),
     ))
 
-    # 6. Execution mode — confirm operator knows the mode
+    # 6. Execution mode - confirm operator knows the mode
     mode_known = execution_mode in {"MANUAL", "PAPER", "AUTO"}
     items.append(StartupCheckItem(
         name="execution_mode_valid",
@@ -198,11 +198,11 @@ def run_startup_checklist(
         detail=(
             f"mode={execution_mode}: OK"
             if mode_known
-            else f"Unknown EXECUTION_MODE={execution_mode!r} — check config.json"
+            else f"Unknown EXECUTION_MODE={execution_mode!r} - check config.json"
         ),
     ))
 
-    # 7. Config version (optional — skipped when expected_config_version is None)
+    # 7. Config version (optional - skipped when expected_config_version is None)
     if expected_config_version is not None:
         ver_ok = (config_version == expected_config_version)
         items.append(StartupCheckItem(
@@ -212,7 +212,7 @@ def run_startup_checklist(
                 f"CONFIG_VERSION={config_version}: OK"
                 if ver_ok
                 else f"Config version mismatch: file={config_version}, "
-                     f"code expects={expected_config_version} — "
+                     f"code expects={expected_config_version} - "
                      "structural key changes may be missing"
             ),
         ))

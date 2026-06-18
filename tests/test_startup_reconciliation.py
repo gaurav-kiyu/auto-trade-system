@@ -1,4 +1,4 @@
-"""Tests for core.startup_reconciliation — startup broker reconciliation."""
+"""Tests for core.startup_reconciliation - startup broker reconciliation."""
 
 from __future__ import annotations
 

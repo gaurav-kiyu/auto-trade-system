@@ -1,5 +1,5 @@
 """
-Tests for core/incident_alerting.py — Incident Alerting System.
+Tests for core/incident_alerting.py - Incident Alerting System.
 
 Covers:
 - IncidentType and IncidentSeverity enums
@@ -60,7 +60,7 @@ def alerting_with_callback():
 
 
 class TestIncidentType:
-    """IncidentType enum — 12 incident types."""
+    """IncidentType enum - 12 incident types."""
 
     def test_values(self):
         assert IncidentType.BROKER_DISCONNECT.value == "broker_disconnect"
@@ -78,7 +78,7 @@ class TestIncidentType:
 
 
 class TestIncidentSeverity:
-    """IncidentSeverity enum — 4 severity levels."""
+    """IncidentSeverity enum - 4 severity levels."""
 
     def test_ordering(self):
         assert IncidentSeverity.CRITICAL.value < IncidentSeverity.HIGH.value

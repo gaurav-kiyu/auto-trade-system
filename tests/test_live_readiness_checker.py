@@ -1,5 +1,5 @@
 """
-Tests for core/live_readiness_checker.py — Paper Trading Scorecard.
+Tests for core/live_readiness_checker.py - Paper Trading Scorecard.
 
 Covers:
   - CriterionResult and ReadinessReport dataclasses

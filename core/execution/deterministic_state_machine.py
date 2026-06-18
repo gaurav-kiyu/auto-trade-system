@@ -170,7 +170,7 @@ class ExecutionStateMachine:
         return False
 
     def record_fill(self, filled_qty: int, price: float) -> bool:
-        """Record complete fill — accumulative (handles multiple fills)"""
+        """Record complete fill - accumulative (handles multiple fills)"""
         with self._lock:
             # Accumulate filled qty and compute weighted average price
             total_value = (self.average_price * self.filled_quantity) + (price * filled_qty)
@@ -191,7 +191,7 @@ class ExecutionStateMachine:
         return False
 
     def record_partial_fill(self, filled_qty: int, price: float) -> bool:
-        """Record partial fill — delegates to record_fill for consistency"""
+        """Record partial fill - delegates to record_fill for consistency"""
         # Delegates to record_fill which handles accumulative weighted-average logic
         return self.record_fill(filled_qty, price)
 
@@ -243,7 +243,7 @@ class ExecutionStateMachineManager:
 
     def __init__(self, persistence_callback: Callable | None = None):
         self._machines: dict[str, ExecutionStateMachine] = {}  # client_order_id -> machine
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._persistence_callback = persistence_callback
 
     # ── Phase 5D / C7: Crash recovery ───────────────────────────────────────
@@ -419,7 +419,7 @@ class ExecutionStateMachineManager:
 
 # Singleton instance
 _state_machine_manager: ExecutionStateMachineManager | None = None
-_manager_lock = threading.Lock()
+_manager_lock = threading.RLock()
 
 
 def get_execution_state_manager(persistence_callback: Callable | None = None) -> ExecutionStateMachineManager:

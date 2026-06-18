@@ -1,17 +1,17 @@
 """
-Live Performance Analysis — DATA + DISCIPLINE + REVIEW
+Live Performance Analysis - DATA + DISCIPLINE + REVIEW
 
 Reads from trade_journal.db and produces a structured performance report.
 
 Entry points:
-    analyze_live_performance(db_path, mode) -> dict    — machine-readable
-    print_live_performance(db_path, mode)              — human-readable console report
-    main()                                             — CLI: python -m core.live_analysis
+    analyze_live_performance(db_path, mode) -> dict    - machine-readable
+    print_live_performance(db_path, mode)              - human-readable console report
+    main()                                             - CLI: python -m core.live_analysis
 
 Design principles:
     - DATA: all insights come from the journal, not assumptions
     - DISCIPLINE: flag when rules were violated (quality filter bypassed, etc.)
-    - REVIEW: continuous improvement loop — identify what to avoid, what to do more of
+    - REVIEW: continuous improvement loop - identify what to avoid, what to do more of
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ def _rows(db_path: str, sql: str, params: tuple = ()) -> list[sqlite3.Row]:
         with _connect(db_path) as conn:
             return conn.execute(sql, params).fetchall()
     except sqlite3.OperationalError as exc:
-        _log.warning("[LIVEANALYSIS DB] Query failed (%s) — returning empty: %s", db_path, exc)
+        _log.warning("[LIVEANALYSIS DB] Query failed (%s) - returning empty: %s", db_path, exc)
         return []
 
 
@@ -306,12 +306,12 @@ def _generate_decisions(
         if exp < 0:
             avoidance.append(
                 f"{tier} tier (n={n}): negative expectancy "
-                f"Rs{exp:+.0f}/trade, WR={wr:.0f}% — reduce or disable"
+                f"Rs{exp:+.0f}/trade, WR={wr:.0f}% - reduce or disable"
             )
         elif exp > 0 and wr >= 55:
             priority.append(
                 f"{tier} tier (n={n}): positive edge "
-                f"Rs{exp:+.0f}/trade, WR={wr:.0f}% — prioritize"
+                f"Rs{exp:+.0f}/trade, WR={wr:.0f}% - prioritize"
             )
 
     # Regime-based
@@ -324,12 +324,12 @@ def _generate_decisions(
         if exp < 0 and wr < 40:
             avoidance.append(
                 f"{regime} regime (n={n}): WR={wr:.0f}%, "
-                f"exp=Rs{exp:+.0f} — avoid or reduce to WEAK-skip"
+                f"exp=Rs{exp:+.0f} - avoid or reduce to WEAK-skip"
             )
         elif exp > 0 and wr >= 55:
             priority.append(
                 f"{regime} regime (n={n}): WR={wr:.0f}%, "
-                f"exp=Rs{exp:+.0f} — increase allocation"
+                f"exp=Rs{exp:+.0f} - increase allocation"
             )
 
     # Score correlation
@@ -339,7 +339,7 @@ def _generate_decisions(
     ) >= 20:
         avoidance.append(
             f"Score-outcome correlation is low (r={r:.2f}): "
-            f"raw score is not predicting winners — review scoring weights"
+            f"raw score is not predicting winners - review scoring weights"
         )
 
     return avoidance, priority
@@ -408,7 +408,7 @@ def print_live_performance(
     for tier in ("STRONG", "MODERATE", "WEAK"):
         t = data["by_tier"].get(tier)
         if not t:
-            print(f"  {tier:<10} {'—':>4}  no trades")
+            print(f"  {tier:<10} {'-':>4}  no trades")
             continue
         print(
             f"  {tier:<10} {t['trades']:>4} "
@@ -434,7 +434,7 @@ def print_live_performance(
     _h("SCORE vs OUTCOME CORRELATION")
     sc = data["score_outcome"]
     print(f"  Pearson r (score->winner)  : {sc['pearson_r']:+.3f}  "
-          f"({'positive edge' if sc['pearson_r'] > 0.15 else 'weak' if sc['pearson_r'] > 0 else 'NEGATIVE — investigate'})")
+          f"({'positive edge' if sc['pearson_r'] > 0.15 else 'weak' if sc['pearson_r'] > 0 else 'NEGATIVE - investigate'})")
     print("  Win rate by band:")
     print(f"    STRONG  (80+) : {sc['wr_strong']:.1f}%")
     print(f"    MODERATE(70-79): {sc['wr_moderate']:.1f}%")
@@ -442,7 +442,7 @@ def print_live_performance(
     print()
     print("  Higher tier should have higher WR (validates score calibration).")
     if sc["wr_strong"] and sc["wr_weak"] and sc["wr_strong"] <= sc["wr_weak"]:
-        print("  [!] STRONG win rate <= WEAK win rate — scoring may need recalibration.")
+        print("  [!] STRONG win rate <= WEAK win rate - scoring may need recalibration.")
 
     # ── Slippage ───────────────────────────────────────────────────────────
     _h("SLIPPAGE ANALYSIS")

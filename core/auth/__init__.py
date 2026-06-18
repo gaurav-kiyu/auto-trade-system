@@ -2,13 +2,13 @@
 AD-KIYU Authentication & Authorisation package.
 
 Provides:
-  - AuthHandler — password hashing, JWT tokens, brute-force protection, account lockout
-  - RoleManager — role assignment and permission checking
-  - SessionStore — operator session tracking with TTL
+  - AuthHandler - password hashing, JWT tokens, brute-force protection, account lockout
+  - RoleManager - role assignment and permission checking
+  - SessionStore - operator session tracking with TTL
   - Permission matrix (defined in permissions.py)
-  - CSRFProtection — double-submit cookie CSRF protection
-  - AuthDependencies — FastAPI dependency injection for auth + RBAC
-  - Auth Router — FastAPI router with login, logout, user management
+  - CSRFProtection - double-submit cookie CSRF protection
+  - AuthDependencies - FastAPI dependency injection for auth + RBAC
+  - Auth Router - FastAPI router with login, logout, user management
 """
 
 from __future__ import annotations

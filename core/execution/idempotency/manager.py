@@ -23,6 +23,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from core.db_utils import get_connection
+
 
 @dataclass
 class IdempotencyRecord:
@@ -44,7 +46,7 @@ class IdempotencyManager:
         self._in_flight: dict[str, datetime] = {}  # Keys currently being executed
         self._cache_size = cache_size
         self._expiry_hours = expiry_hours
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._persistence_path = Path(persistence_path) if persistence_path else None
 
         if self._persistence_path:
@@ -55,9 +57,7 @@ class IdempotencyManager:
         """Initialize SQLite table for idempotency keys (thread-safe)."""
         try:
             with self._lock:
-                with sqlite3.connect(self._persistence_path) as conn:
-                    conn.execute("PRAGMA journal_mode=WAL")
-                    conn.execute("PRAGMA busy_timeout=5000")
+                with get_connection(self._persistence_path) as conn:
                     conn.execute(
                         "CREATE TABLE IF NOT EXISTS idempotency_keys "
                         "(key TEXT PRIMARY KEY, timestamp DATETIME, result_json TEXT, status TEXT)"
@@ -74,7 +74,7 @@ class IdempotencyManager:
         """Load recent keys from SQLite into memory cache (thread-safe)."""
         try:
             with self._lock:
-                with sqlite3.connect(self._persistence_path) as conn:
+                with get_connection(self._persistence_path) as conn:
                     # Load confirmed keys only (not in-flight from crashed session)
                     cursor = conn.execute(
                         "SELECT key, timestamp, result_json FROM idempotency_keys "
@@ -141,7 +141,7 @@ class IdempotencyManager:
             # Persist in-flight state (thread-safe)
             if self._persistence_path:
                 try:
-                    with sqlite3.connect(self._persistence_path) as conn:
+                    with get_connection(self._persistence_path) as conn:
                         conn.execute(
                             "INSERT OR REPLACE INTO idempotency_keys "
                             "(key, timestamp, result_json, status) VALUES (?, ?, ?, ?)",
@@ -171,7 +171,7 @@ class IdempotencyManager:
             if self._persistence_path:
                 try:
                     res_json = json.dumps(result, default=str)
-                    with sqlite3.connect(self._persistence_path) as conn:
+                    with get_connection(self._persistence_path) as conn:
                         conn.execute(
                             "INSERT OR REPLACE INTO idempotency_keys "
                             "(key, timestamp, result_json, status) VALUES (?, ?, ?, ?)",
@@ -199,7 +199,7 @@ class IdempotencyManager:
             # Update persistence to reflect failure (thread-safe)
             if self._persistence_path:
                 try:
-                    with sqlite3.connect(self._persistence_path) as conn:
+                    with get_connection(self._persistence_path) as conn:
                         conn.execute(
                             "DELETE FROM idempotency_keys WHERE key = ? AND status = 'in_flight'",
                             (key,)

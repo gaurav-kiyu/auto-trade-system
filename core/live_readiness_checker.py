@@ -77,8 +77,8 @@ class CriterionResult:
 @dataclass
 class ReadinessReport:
     overall_ready:    bool
-    blocking_score:   int               # 0-5 — number of blocking criteria that passed
-    readiness_score:  float             # 0.0–1.0
+    blocking_score:   int               # 0-5 - number of blocking criteria that passed
+    readiness_score:  float             # 0.0-1.0
     criteria:         list[CriterionResult] = field(default_factory=list)
     summary:          str               = ""
     recommendation:   str               = ""
@@ -164,7 +164,7 @@ def check_live_readiness(
         cfg     : Config dict.
 
     Returns:
-        ReadinessReport — always returns.
+        ReadinessReport - always returns.
     """
     c = cfg or {}
     days       = int(c.get("live_readiness_days_window",       30))
@@ -292,14 +292,14 @@ def check_live_readiness(
     # Summary
     if overall_ready:
         summary = (
-            f"READY FOR LIVE — All {len(blocking)} blocking criteria passed. "
+            f"READY FOR LIVE - All {len(blocking)} blocking criteria passed. "
             f"Readiness score: {readiness_score*100:.0f}%"
         )
         recommendation = "System meets minimum live trading requirements."
     else:
         failed_names = [c.name for c in blocking if not c.passed]
         summary = (
-            f"NOT READY — {len(failed_names)} blocking criteria failed: "
+            f"NOT READY - {len(failed_names)} blocking criteria failed: "
             + ", ".join(failed_names)
         )
         recommendation = (

@@ -1,5 +1,5 @@
 """
-Enhanced Reporting — PDF Trade Report Generator (Phase 6).
+Enhanced Reporting - PDF Trade Report Generator (Phase 6).
 
 Generates a multi-section PDF report from trades.db using ReportLab.
 Includes:
@@ -15,7 +15,7 @@ Usage:
     # CLI:
     python -m core.report_generator --days 30 --mode PAPER
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ---------------------------------------------------
   report_output_dir  : str   default "reports"
   report_default_days: int   default 30
@@ -40,7 +40,7 @@ _DEFAULT_DIR = "reports"
 # ── ReportLab helpers ─────────────────────────────────────────────────────────
 
 def _rl_imports():
-    """Lazy import of ReportLab — raises ImportError with a helpful message if missing."""
+    """Lazy import of ReportLab - raises ImportError with a helpful message if missing."""
     try:
         from reportlab.graphics import renderPDF
         from reportlab.graphics.shapes import Drawing, Line, Rect, String
@@ -191,16 +191,16 @@ def _monte_carlo_table(result: Any) -> Any:
     rows = [
         ("Simulations", f"{result.n_simulations:,}"),
         ("Trades analysed", f"{result.n_trades:,}"),
-        ("Final P&L — P5",    f"₹{result.p5_final_pnl:+,.0f}"),
-        ("Final P&L — Median", f"₹{result.median_final_pnl:+,.0f}"),
-        ("Final P&L — P95",   f"₹{result.p95_final_pnl:+,.0f}"),
+        ("Final P&L - P5",    f"₹{result.p5_final_pnl:+,.0f}"),
+        ("Final P&L - Median", f"₹{result.median_final_pnl:+,.0f}"),
+        ("Final P&L - P95",   f"₹{result.p95_final_pnl:+,.0f}"),
         ("Mean Final P&L",    f"₹{result.mean_final_pnl:+,.0f}"),
-        ("Max Drawdown — Median", f"₹{result.median_max_drawdown:,.0f}"),
-        ("Max Drawdown — P95 (worst)", f"₹{result.p95_max_drawdown:,.0f}"),
+        ("Max Drawdown - Median", f"₹{result.median_max_drawdown:,.0f}"),
+        ("Max Drawdown - P95 (worst)", f"₹{result.p95_max_drawdown:,.0f}"),
         ("Probability of Profit", f"{result.prob_of_profit * 100:.1f}%"),
-        ("Worst Losing Streak — P95", f"{result.worst_case_streak_p95} trades"),
-        ("Sharpe — Median",  f"{result.median_sharpe:.4f}"),
-        ("Sharpe — P5",      f"{result.p5_sharpe:.4f}"),
+        ("Worst Losing Streak - P95", f"{result.worst_case_streak_p95} trades"),
+        ("Sharpe - Median",  f"{result.median_sharpe:.4f}"),
+        ("Sharpe - P5",      f"{result.p5_sharpe:.4f}"),
     ]
 
     col_w = [200, 120]
@@ -267,7 +267,7 @@ def generate_pdf_report(
     Args:
         db_path     : Path to trades.db.
         days        : Look-back window in days (0 = all time).
-        mode        : Trade mode filter — "PAPER", "LIVE", or "ALL".
+        mode        : Trade mode filter - "PAPER", "LIVE", or "ALL".
         output_path : Destination file path.  Auto-generated if None.
         cfg         : Bot config dict (for output_dir override).
 
@@ -341,7 +341,7 @@ def generate_pdf_report(
     story = []
 
     # Title
-    story.append(Paragraph("OPB Index Options — Trade Performance Report", h1))
+    story.append(Paragraph("OPB Index Options - Trade Performance Report", h1))
     story.append(Paragraph(
         f"Generated: {title_date} &nbsp;|&nbsp; Period: {period_label} &nbsp;|&nbsp; Mode: {mode}",
         body,
@@ -354,7 +354,7 @@ def generate_pdf_report(
     story.append(Spacer(1, 10))
 
     # Equity curve
-    story.append(Paragraph("Cumulative Net PnL — Equity Curve", h2))
+    story.append(Paragraph("Cumulative Net PnL - Equity Curve", h2))
     story.append(_equity_curve_drawing(trades, width=440, height=130))
     story.append(Spacer(1, 10))
 
@@ -376,7 +376,7 @@ def generate_pdf_report(
     for ins in insights:
         story.append(Paragraph(f"• {ins}", insight_style))
 
-    # Monte Carlo Robustness Analysis (optional — graceful skip if unavailable)
+    # Monte Carlo Robustness Analysis (optional - graceful skip if unavailable)
     try:
         from core.monte_carlo import plot_equity_band as _mc_plot
         from core.monte_carlo import run_simulation as _mc_run
@@ -394,7 +394,7 @@ def generate_pdf_report(
             story.append(_monte_carlo_table(_mc_res))
             story.append(Spacer(1, 6))
 
-            # ASCII equity band — rendered in Courier so columns align
+            # ASCII equity band - rendered in Courier so columns align
             _mc_chart = _mc_plot(_mc_res, width=68, height=12)
             from reportlab.lib.styles import ParagraphStyle as _PS
             from reportlab.platypus import Preformatted
@@ -413,7 +413,7 @@ def generate_pdf_report(
     except Exception as _mc_exc:
         _log.warning("[REPORT] Monte Carlo section skipped (unexpected: %s): %s", type(_mc_exc).__name__, _mc_exc)
 
-    # Benchmark Comparison — ^NSEI Buy-and-Hold (optional — graceful skip if unavailable)
+    # Benchmark Comparison - ^NSEI Buy-and-Hold (optional - graceful skip if unavailable)
     try:
         if c.get("benchmark_enabled", True):
             from core.benchmark import compute_alpha_metrics as _bm_alpha
@@ -466,14 +466,14 @@ def generate_pdf_report(
                 _bm_rows = [
                     ("Metric",                    "Strategy",                              "Benchmark"),
                     ("Total Return",              f"{_strat_ret_pct:+.2f}%",               f"{bm.total_return_pct:+.2f}%"),
-                    ("Alpha (Strategy − Bench)",  f"{alpha_m.alpha_pct:+.2f}%",            "—"),
-                    ("Information Ratio",         f"{alpha_m.information_ratio:.3f}",      "—"),
-                    ("Drawdown Ratio (S/B)",      f"{alpha_m.drawdown_ratio:.3f}",         "—"),
+                    ("Alpha (Strategy − Bench)",  f"{alpha_m.alpha_pct:+.2f}%",            "-"),
+                    ("Information Ratio",         f"{alpha_m.information_ratio:.3f}",      "-"),
+                    ("Drawdown Ratio (S/B)",      f"{alpha_m.drawdown_ratio:.3f}",         "-"),
                     ("Max Drawdown",              f"{_strat_dd_pct:.2f}%",                 f"{bm.max_drawdown_pct:.2f}%"),
-                    ("Annualised Return",         "—",                                     f"{bm.annualized_return_pct:+.2f}%"),
-                    ("Benchmark Sharpe",          "—",                                     f"{bm.sharpe_ratio:.3f}"),
-                    ("Benchmark Volatility",      "—",                                     f"{bm.volatility_pct:.2f}%"),
-                    ("Data Source",               "—",                                     bm.data_source),
+                    ("Annualised Return",         "-",                                     f"{bm.annualized_return_pct:+.2f}%"),
+                    ("Benchmark Sharpe",          "-",                                     f"{bm.sharpe_ratio:.3f}"),
+                    ("Benchmark Volatility",      "-",                                     f"{bm.volatility_pct:.2f}%"),
+                    ("Data Source",               "-",                                     bm.data_source),
                     ("Period",                    f"{_bm_start} → {_bm_end}",              f"{_bm_start} → {_bm_end}"),
                 ]
                 from reportlab.lib.colors import Color as _BmColor
@@ -499,7 +499,7 @@ def generate_pdf_report(
     story.append(Spacer(1, 12))
     story.append(HRFlowable(width="100%", thickness=0.3, color=_rl_color(*_LGREY)))
     story.append(Paragraph(
-        f"OPB Report — {m['trades']} trades — generated {title_date}",
+        f"OPB Report - {m['trades']} trades - generated {title_date}",
         ParagraphStyle("footer", parent=styles["Normal"], fontSize=7,
                         textColor=_rl_color(*_GREY), spaceBefore=4),
     ))

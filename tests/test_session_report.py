@@ -1,4 +1,4 @@
-"""Tests for core.session_report — daily session report generation."""
+"""Tests for core.session_report - daily session report generation."""
 
 from __future__ import annotations
 

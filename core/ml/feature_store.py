@@ -15,6 +15,8 @@ import json
 import logging
 import sqlite3
 import threading
+
+from core.db_utils import get_connection
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -55,13 +57,13 @@ class FeatureStore:
     def __init__(self):
         self._features: dict[str, list[float]] = {}
         self._definitions: dict[str, FeatureDefinition] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._init_durable_storage()
 
     def _init_durable_storage(self) -> None:
         """Initialize feature store"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS feature_vectors (
                         vector_id TEXT PRIMARY KEY,
@@ -128,7 +130,7 @@ class FeatureStore:
     ) -> list[FeatureVector]:
         """Get features for training"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 query = "SELECT * FROM feature_vectors WHERE 1=1"
                 params = []
 
@@ -171,7 +173,7 @@ class FeatureStore:
     def _persist_vector(self, vector: FeatureVector) -> None:
         """Persist vector to DB"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     INSERT INTO feature_vectors
                     (vector_id, timestamp, symbol, features_json, label, metadata_json)
@@ -191,7 +193,7 @@ class FeatureStore:
     def _persist_definition(self, definition: FeatureDefinition) -> None:
         """Persist feature definition"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     INSERT OR REPLACE INTO feature_definitions
                     (name, feature_type, description, computation_func, version)
@@ -223,7 +225,7 @@ class FeatureStore:
 
 
 _feature_store: FeatureStore | None = None
-_store_lock = threading.Lock()
+_store_lock = threading.RLock()
 
 
 def get_feature_store() -> FeatureStore:

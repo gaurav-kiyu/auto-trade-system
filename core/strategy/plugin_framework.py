@@ -105,7 +105,7 @@ class BaseStrategy(ABC):
     def __init__(self, config: dict[str, Any]):
         self.config = config
         self._state = StrategyState.INITIALIZED
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._stats = {
             "signals_generated": 0,
             "signals_buy": 0,
@@ -213,7 +213,7 @@ class StrategyRegistry:
 
     def __init__(self):
         self._strategies: dict[str, BaseStrategy] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._active_signals: list[StrategySignalOutput] = []
 
     def register(self, strategy: BaseStrategy) -> bool:
@@ -358,7 +358,7 @@ class StrategyLoader:
 
 
 _strategy_registry: StrategyRegistry | None = None
-_registry_lock = threading.Lock()
+_registry_lock = threading.RLock()
 
 
 def get_strategy_registry() -> StrategyRegistry:

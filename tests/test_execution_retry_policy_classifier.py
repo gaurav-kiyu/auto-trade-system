@@ -1,4 +1,4 @@
-"""Tests for core/execution/retry_policy/classifier.py — Error Classifier."""
+"""Tests for core/execution/retry_policy/classifier.py - Error Classifier."""
 
 from __future__ import annotations
 

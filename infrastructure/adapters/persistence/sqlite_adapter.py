@@ -43,7 +43,7 @@ class SQLiteAdapter(PersistencePort):
         self.database_path = Path(database_path)
         self._connection: sqlite3.Connection | None = None
         self._transaction_depth = 0
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
         # Ensure the directory exists
         self.database_path.parent.mkdir(parents=True, exist_ok=True)

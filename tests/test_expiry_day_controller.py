@@ -1,4 +1,4 @@
-"""Tests for ExpiryDayController — expiry-day awareness for strategy entry gates."""
+"""Tests for ExpiryDayController - expiry-day awareness for strategy entry gates."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from core.expiry_day_controller import (
 
 
 class TestExpiryDayController:
-    """ExpiryDayController — strategy-aware expiry-day controls."""
+    """ExpiryDayController - strategy-aware expiry-day controls."""
 
     def test_default_strategy_is_directional(self):
         ctrl = ExpiryDayController()
@@ -81,7 +81,7 @@ class TestExpiryDayController:
         thursday = datetime(2026, 6, 11, 10, 0)
         assert ExpiryDayController().is_expiry_day(thursday) is True
 
-    # ── can_enter_position — non-expiry day ────────────────────────
+    # ── can_enter_position - non-expiry day ────────────────────────
 
     def test_can_enter_non_expiry_day(self):
         monday = datetime(2026, 6, 15, 10, 0)
@@ -90,7 +90,7 @@ class TestExpiryDayController:
         assert result.allowed is True
         assert "not" in result.reason.lower() or "morning" in result.reason.lower()
 
-    # ── can_enter_position — expiry day morning ────────────────────
+    # ── can_enter_position - expiry day morning ────────────────────
 
     def test_can_enter_expiry_morning(self):
         thursday_10am = datetime(2026, 6, 11, 10, 0)  # Thursday 10:00
@@ -99,7 +99,7 @@ class TestExpiryDayController:
         assert result.allowed is True
         assert result.session in (ExpirySession.MORNING, ExpirySession.MIDDAY)
 
-    # ── can_enter_position — caution period ────────────────────────
+    # ── can_enter_position - caution period ────────────────────────
 
     def test_can_enter_caution_period(self):
         thursday_1245 = datetime(2026, 6, 11, 12, 45)  # Thursday 12:45
@@ -114,7 +114,7 @@ class TestExpiryDayController:
         result = ctrl.can_enter_position(now=thursday_1245, index_name="NIFTY")
         assert result.allowed is False
 
-    # ── can_enter_position — blocked period ────────────────────────
+    # ── can_enter_position - blocked period ────────────────────────
 
     def test_entry_blocked_after_13_00(self):
         thursday_1330 = datetime(2026, 6, 11, 13, 30)

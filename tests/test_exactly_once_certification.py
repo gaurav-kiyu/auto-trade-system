@@ -1,14 +1,14 @@
 """
-AD-KIYU Exactly-Once Execution Certification — Failure Simulation Suite.
+AD-KIYU Exactly-Once Execution Certification - Failure Simulation Suite.
 
 Proves that IdempotencyCertifier prevents duplicate order submission
 under all defined failure modes:
 
-  SCENARIO 1: Normal lifecycle — begin → commit → settle → duplicate rejected
-  SCENARIO 2: Crash after begin — PENDING cert recovered on restart
-  SCENARIO 3: Crash after commit — COMMITTED cert recovered on restart
-  SCENARIO 4: Duplicate execution_id — is_duplicate returns True
-  SCENARIO 5: Concurrent duplicate detection — thread safety
+  SCENARIO 1: Normal lifecycle - begin → commit → settle → duplicate rejected
+  SCENARIO 2: Crash after begin - PENDING cert recovered on restart
+  SCENARIO 3: Crash after commit - COMMITTED cert recovered on restart
+  SCENARIO 4: Duplicate execution_id - is_duplicate returns True
+  SCENARIO 5: Concurrent duplicate detection - thread safety
   SCENARIO 6: Generate same execution_id from matching params (determinism)
   SCENARIO 7: Different params produce different execution_id
   SCENARIO 8: DB persistence across restart (file mode)

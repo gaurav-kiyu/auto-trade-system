@@ -14,6 +14,8 @@ from __future__ import annotations
 import logging
 import sqlite3
 import threading
+
+from core.db_utils import get_connection
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -58,7 +60,7 @@ class ReplayEngine:
         self._sessions: dict[str, ReplaySession] = {}
         self._current_session: ReplaySession | None = None
         self._replay_state: ReplayState | None = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._market_data_callback: Callable | None = None
         self._event_callback: Callable | None = None
         self._init_durable_storage()
@@ -66,7 +68,7 @@ class ReplayEngine:
     def _init_durable_storage(self) -> None:
         """Initialize replay session storage"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS replay_sessions (
                         session_id TEXT PRIMARY KEY,
@@ -271,7 +273,7 @@ class ReplayEngine:
     def _persist_session(self, session: ReplaySession) -> None:
         """Persist session to DB"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     INSERT OR REPLACE INTO replay_sessions
                     (session_id, start_time, end_time, market_data_path, events_path, status, created_at)
@@ -291,7 +293,7 @@ class ReplayEngine:
 
 
 _replay_engine: ReplayEngine | None = None
-_engine_lock = threading.Lock()
+_engine_lock = threading.RLock()
 
 
 def get_replay_engine() -> ReplayEngine:

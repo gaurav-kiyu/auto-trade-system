@@ -1,4 +1,4 @@
-"""Unit tests for core.option_premium_model — pure functions, no side effects."""
+"""Unit tests for core.option_premium_model - pure functions, no side effects."""
 
 from __future__ import annotations
 

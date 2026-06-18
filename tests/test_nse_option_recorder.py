@@ -1,5 +1,5 @@
 """
-Tests for ``core.nse_option_recorder`` — NSE Option Chain Recorder.
+Tests for ``core.nse_option_recorder`` - NSE Option Chain Recorder.
 """
 from __future__ import annotations
 

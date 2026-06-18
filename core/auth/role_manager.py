@@ -1,5 +1,5 @@
 """
-AD-KIYU RBAC — Role Manager.
+AD-KIYU RBAC - Role Manager.
 
 Manages role assignments per operator identity and provides
 role-checking for the admin control plane endpoints.
@@ -23,7 +23,7 @@ class RoleManager:
     """
 
     def __init__(self, default_role: Role | str = Role.OBSERVER):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._roles: dict[str, Role] = {}
         if isinstance(default_role, str):
             default_role = Role(default_role.lower())
@@ -84,9 +84,9 @@ class RoleManager:
                 role = Role(role_name.lower())
                 self.assign(str(identity), role)
             except ValueError:
-                _log.warning(f"[RBAC] Unknown role {role_name!r} for {identity!r} — skipped")
+                _log.warning(f"[RBAC] Unknown role {role_name!r} for {identity!r} - skipped")
         default = cfg.get("admin_default_role", "observer")
         try:
             self._default_role = Role(default.lower())
         except ValueError:
-            _log.warning(f"[RBAC] Unknown default_role {default!r} — keeping {self._default_role.value}")
+            _log.warning(f"[RBAC] Unknown default_role {default!r} - keeping {self._default_role.value}")

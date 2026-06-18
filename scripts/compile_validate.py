@@ -1,5 +1,5 @@
 """
-AD-KIYU Compile Validation — syntax-check all .py files in source directories.
+AD-KIYU Compile Validation - syntax-check all .py files in source directories.
 """
 from __future__ import annotations
 

@@ -1,10 +1,10 @@
 """
-Tests for core/services/risk_service.py — Risk Service Implementation.
+Tests for core/services/risk_service.py - Risk Service Implementation.
 
 Covers:
   - RiskServiceConfig defaults and custom config
   - RiskService initialization with dependency injection
-  - evaluate_trade — full lifecycle with all risk checks
+  - evaluate_trade - full lifecycle with all risk checks
   - calculate_position_size with volatility adjustments
   - validate_margin_requirements
   - get_portfolio_risk_metrics with drawdown tracking
@@ -391,7 +391,7 @@ class TestTradingPolicyGates:
         # Morning window: 9:20-11:30 IST
         # Afternoon window: 13:00-14:45 IST
         result = risk_service.is_in_trading_window()
-        # Result depends on current time — just verify it returns bool
+        # Result depends on current time - just verify it returns bool
         assert isinstance(result, bool)
 
     def test_should_skip_first_20_min(self, risk_service: RiskService) -> None:

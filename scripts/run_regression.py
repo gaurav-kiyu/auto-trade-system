@@ -67,7 +67,6 @@ def _check_core_imports() -> str:
         AuditEngine,
         ConfigValidator,
         DataEngine,
-        ExecutionEngine,
         RetentionEngine,
     RiskConfig,
     SafetyEngine,
@@ -75,7 +74,7 @@ def _check_core_imports() -> str:
         StrategyEngine,
     )
 
-    assert AuditEngine and ConfigValidator and DataEngine and ExecutionEngine and RetentionEngine and RiskConfig and SafetyEngine and StateManager and StrategyEngine
+    assert AuditEngine and ConfigValidator and DataEngine and RetentionEngine and RiskConfig and SafetyEngine and StateManager and StrategyEngine
     return "core package imports ok"
 
 
@@ -218,7 +217,7 @@ def _check_index_dashboard_closed_state() -> str:
                 module._telegram_alerts_enabled = lambda: False
                 module.print_dashboard()
         headline = module._display_snapshot.get("struct", {}).get("headline")
-        assert headline == "Market CLOSED — no intraday scan", headline
+        assert headline == "Market CLOSED - no intraday scan", headline
         return headline
     finally:
         _restore_argv(argv_prev)
@@ -683,7 +682,6 @@ def main() -> int:
         ("compile core strategy", lambda: _compile_target(ROOT / "core" / "strategy_engine.py")),
         ("compile core config", lambda: _compile_target(ROOT / "core" / "config_engine.py")),
         ("compile core risk service", lambda: _compile_target(ROOT / "core" / "services" / "risk_service.py")),
-        ("compile core execution", lambda: _compile_target(ROOT / "core" / "execution_engine.py")),
         ("compile core data", lambda: _compile_target(ROOT / "core" / "data_engine.py")),
         ("compile core orchestrator", lambda: _compile_target(ROOT / "core" / "orchestrator.py")),
         ("compile core backtest", lambda: _compile_target(ROOT / "core" / "backtest_engine.py")),

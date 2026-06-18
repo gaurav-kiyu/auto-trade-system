@@ -1,4 +1,4 @@
-"""Tests for core/signal_independence.py — pillar-based signal validation."""
+"""Tests for core/signal_independence.py - pillar-based signal validation."""
 
 from __future__ import annotations
 

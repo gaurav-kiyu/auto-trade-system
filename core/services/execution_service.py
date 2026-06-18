@@ -103,7 +103,7 @@ class ExecutionService(ExecutionPort):
             persistence_path=persistence_path,
         )
 
-        # Durable execution store — use fixed path so state survives restarts
+        # Durable execution store - use fixed path so state survives restarts
         durable_db_path = reconciliation_db_path.replace("trades.db", "execution_state.db")
 
         self._durable_store = DurableExecutionStore(durable_db_path)
@@ -148,7 +148,7 @@ class ExecutionService(ExecutionPort):
         self._executions: dict[str, Any] = {}
         self._execution_counter = 0
         self._idempotency_cache = OrderedDict()
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
         self._paper_price_cache: dict[str, float] = {}
 
@@ -165,7 +165,7 @@ class ExecutionService(ExecutionPort):
 
         broker_type = BrokerAckValidator.detect_broker_type(broker_port)
 
-        # Phase 1A — Operating mode manager (injected by init code)
+        # Phase 1A - Operating mode manager (injected by init code)
         self._operating_mode_manager = None
 
         self._ack_validator = BrokerAckValidator(broker_type)
@@ -988,7 +988,7 @@ class ExecutionService(ExecutionPort):
         Returns:
             OrderResult from the execution attempt
         """
-        # Halt gate — block execution if hard halt active (catches webhook/CLI/API paths)
+        # Halt gate - block execution if hard halt active (catches webhook/CLI/API paths)
         from core.safety_state import is_hard_halted
         if is_hard_halted():
             self._logger.critical(f"EXECUTION BLOCKED: Hard halt active for {order_request.symbol}")
@@ -1228,7 +1228,7 @@ class ExecutionService(ExecutionPort):
             OrderResult from the paper execution
         """
         try:
-            # Simulate network delay — interruptible on shutdown
+            # Simulate network delay - interruptible on shutdown
             if self._shutdown_event.wait(self.config.paper_fill_delay_ms / 1000.0):
                 return OrderResult(
                     order_id="shutdown",
@@ -1452,7 +1452,7 @@ class ExecutionService(ExecutionPort):
     ) -> None:
         """Escalate order modification failure via incident alerting (Telegram).
 
-        Thread-safe — reports the incident to the singleton IncidentAlerting
+        Thread-safe - reports the incident to the singleton IncidentAlerting
         which dispatches via its registered callback (typically Telegram).
         Cooldown prevents alert storms for repeated failures on the same order.
         """
@@ -1503,7 +1503,7 @@ class ExecutionService(ExecutionPort):
                     if status in [OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED]:
                         return True
 
-                # Wait before next poll (with exponential backoff) — interruptible on shutdown
+                # Wait before next poll (with exponential backoff) - interruptible on shutdown
                 if self._shutdown_event.wait(min(poll_interval, max_poll_interval)):
                     self._logger.info("Shutdown requested during fill poll backoff for %s", order_id)
                     return False

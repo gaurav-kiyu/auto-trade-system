@@ -56,7 +56,7 @@ class TierRules:
     partial_exit_pct:     float   # fraction of position to exit at TP1
 
 
-# Canonical tier rule set — do NOT change without updating config.json mirrors
+# Canonical tier rule set - do NOT change without updating config.json mirrors
 TIER_RULES: dict[str, TierRules] = {
     "STRONG": TierRules(
         tier                 = "STRONG",
@@ -87,7 +87,7 @@ TIER_RULES: dict[str, TierRules] = {
         position_pct         = 0.30,
         sl_mult_adj          = 0.80,    # much tighter SL
         tp_mult_adj          = 0.65,    # quick profit booking
-        trail_enabled        = False,   # no trailing — simple SL/TP only
+        trail_enabled        = False,   # no trailing - simple SL/TP only
         trail_activate_pct   = 1.00,    # effectively disabled
         trail_from_peak_pct  = 0.50,
         max_bars_mult        = 0.50,    # exit at half normal time

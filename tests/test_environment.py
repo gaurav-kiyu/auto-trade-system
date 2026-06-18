@@ -1,4 +1,4 @@
-"""Tests for core/environment.py — environment separation + guard rails."""
+"""Tests for core/environment.py - environment separation + guard rails."""
 
 import os
 

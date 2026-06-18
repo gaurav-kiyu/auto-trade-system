@@ -1,4 +1,4 @@
-"""Unit tests for core.ai_engine — config parsing, decision logic, journal writing."""
+"""Unit tests for core.ai_engine - config parsing, decision logic, journal writing."""
 
 from __future__ import annotations
 

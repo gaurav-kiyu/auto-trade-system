@@ -1,5 +1,5 @@
 """
-Telegram priority queue (Item 7 — v2.44).
+Telegram priority queue (Item 7 - v2.44).
 
 Replaces the simple ThreadPoolExecutor dispatch with a priority-heap queue
 so CRITICAL alerts are always delivered even during a 30-msg/min cascade.
@@ -66,7 +66,7 @@ class TelegramQueue:
         self._send_fn  = send_fn
         self._cfg      = cfg or {}
         self._heap:    list[TelegramMessage] = []
-        self._lock     = threading.Lock()
+        self._lock     = threading.RLock()
         self._cond     = threading.Condition(self._lock)
         self._stop     = threading.Event()
         self._thread:  threading.Thread | None = None
@@ -86,7 +86,7 @@ class TelegramQueue:
         self._thread.start()
 
     def stop(self, flush_timeout: float = 30.0) -> None:
-        """Graceful shutdown — flushes CRITICAL + HIGH before exit."""
+        """Graceful shutdown - flushes CRITICAL + HIGH before exit."""
         self._stop.set()
         deadline = time.time() + flush_timeout
         while time.time() < deadline:
@@ -96,7 +96,7 @@ class TelegramQueue:
                 )
                 if not has_important:
                     break
-            time.sleep(0.5)  # Intentional — stop event already set; polling with deadline
+            time.sleep(0.5)  # Intentional - stop event already set; polling with deadline
         if self._thread:
             self._thread.join(timeout=5.0)
 
@@ -133,7 +133,7 @@ class TelegramQueue:
                 ]
                 heapq.heapify(self._heap)
                 if len(self._heap) >= max_depth:
-                    # Still full — drop this NORMAL
+                    # Still full - drop this NORMAL
                     self._dropped_by_level["NORMAL"] += 1
                     _log.debug("[TG_Q] NORMAL dropped (queue full)")
                     return
@@ -213,7 +213,7 @@ class TelegramQueue:
         self._sent_this_min = [t for t in self._sent_this_min if now - t < 60]
         if len(self._sent_this_min) >= rate_lim:
             sleep_secs = 60 - (now - self._sent_this_min[0]) + 1
-            _log.debug("[TG_Q] Rate limit reached — sleeping %.1fs", sleep_secs)
+            _log.debug("[TG_Q] Rate limit reached - sleeping %.1fs", sleep_secs)
             if self._stop.wait(max(0.1, sleep_secs)):
                 return  # Shutdown during rate-limit wait
             now = time.time()

@@ -69,7 +69,7 @@ def test_signals_only_alias_becomes_signal_only():
 
 
 def test_manual_only_alias_infer_blank_broker_on():
-    """MANUAL_ONLY overrides broker=True — alias wins; broker flag must be cleared."""
+    """MANUAL_ONLY overrides broker=True - alias wins; broker flag must be cleared."""
     cfg = {"EXECUTION_MODE": "MANUAL_ONLY", "MANUAL_SIGNALS_ONLY": False, "BROKER_API_ENABLED": True}
     apply_execution_mode(cfg, cli_paper=False, infer_blank_from_broker=True)
     # MANUAL_ONLY is NOT blank so infer step is skipped; normalize → MANUAL
@@ -79,7 +79,7 @@ def test_manual_only_alias_infer_blank_broker_on():
 
 
 def test_signals_only_alias_infer_blank_broker_on():
-    """SIGNALS_ONLY is not blank — infer step skipped; alias → SIGNAL_ONLY regardless of broker flag."""
+    """SIGNALS_ONLY is not blank - infer step skipped; alias → SIGNAL_ONLY regardless of broker flag."""
     cfg = {"EXECUTION_MODE": "SIGNALS_ONLY", "MANUAL_SIGNALS_ONLY": False, "BROKER_API_ENABLED": True}
     apply_execution_mode(cfg, cli_paper=False, infer_blank_from_broker=True)
     assert cfg["EXECUTION_MODE"] == "SIGNAL_ONLY"

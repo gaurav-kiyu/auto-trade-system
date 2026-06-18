@@ -6,8 +6,8 @@ to the next broker in the failover chain when the failure threshold is reached.
 Attempts recovery (switch back) after failover_recovery_mins.
 
 Failover chain example: ["kite", "angel"]
-  — On kite failure: switch to angel after threshold consecutive errors.
-  — After recovery_mins: attempt to restore kite.
+  - On kite failure: switch to angel after threshold consecutive errors.
+  - After recovery_mins: attempt to restore kite.
 
 SAFETY: All switches are logged and Telegram-notified.  Paper mode always
 returns PaperBrokerAdapter regardless of failover state.
@@ -54,7 +54,7 @@ class BrokerFailoverManager:
         self._threshold  = int(c.get("failover_threshold",       3))
         self._chain      = list(c.get("failover_chain",          ["kite", "angel"]))
         self._rec_mins   = float(c.get("failover_recovery_mins", 15.0))
-        self._lock       = threading.Lock()
+        self._lock       = threading.RLock()
         self._states     = {b: _BrokerState(b) for b in self._chain}
         self._active_idx = 0
         self._failover_ts: float = 0.0
@@ -77,8 +77,8 @@ class BrokerFailoverManager:
         Record an API failure for broker.
 
         Returns:
-            True  — failover was triggered (switch to next broker).
-            False — threshold not yet reached; same broker remains active.
+            True  - failover was triggered (switch to next broker).
+            False - threshold not yet reached; same broker remains active.
         """
         if not self._enabled:
             return False

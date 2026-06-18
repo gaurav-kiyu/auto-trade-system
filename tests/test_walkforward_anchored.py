@@ -2,7 +2,7 @@
 Tests for anchored walk-forward mode in core/walkforward_engine.py (Phase E).
 
 Covers:
-  - Rolling mode (default) still works — regression guard
+  - Rolling mode (default) still works - regression guard
   - anchored=True produces mode="anchored" in report
   - anchored=False produces mode="rolling" in report
   - Anchored training window always starts from bar 0
@@ -45,7 +45,7 @@ def _make_df(n_bars: int = 400) -> pd.DataFrame:
 
 
 def _noop_strategy(name, frames, vix=0.0):
-    """Strategy that never generates signals — makes tests fast."""
+    """Strategy that never generates signals - makes tests fast."""
     return None
 
 

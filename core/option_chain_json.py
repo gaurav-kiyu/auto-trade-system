@@ -18,7 +18,7 @@ def option_chain_records(data: Any) -> dict:
         return {}
     rec = data.get("records")
     if rec is None and "records" in data:
-        _log.warning("[OC] NSE returned records=null — option chain unavailable")
+        _log.warning("[OC] NSE returned records=null - option chain unavailable")
         return {}
     return rec if isinstance(rec, dict) else {}
 

@@ -1,16 +1,14 @@
-"""Tests for ConstitutionEvidenceData — evidence collection for all 31 categories."""
+"""Tests for ConstitutionEvidenceData - evidence collection for all 31 categories."""
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from core.constitution_evidence_data import (
     collect_all_evidence,
     _exists,
     _is_dir,
     _count_files,
-    ROOT,
 )
 
 
@@ -31,7 +29,7 @@ class TestEvidenceHelpers:
 
 
 class TestCollectAllEvidence:
-    """collect_all_evidence — scans codebase for evidence items."""
+    """collect_all_evidence - scans codebase for evidence items."""
 
     def test_returns_dict(self):
         evidence = collect_all_evidence()

@@ -304,7 +304,7 @@ class OptionsGreeksEngine:
         self._config = config or GreeksConfig()
         self._lock = threading.RLock()
         self._stress_scenarios: list[GreeksStressScenario] = self._default_scenarios()
-        _log.info("[GREEKS] Engine initialized — delta_limit=%.2f gamma_limit=%.2f theta_budget=%.0f vega_limit=%.0f",
+        _log.info("[GREEKS] Engine initialized - delta_limit=%.2f gamma_limit=%.2f theta_budget=%.0f vega_limit=%.0f",
                   self._config.delta_limit_per_pos, self._config.gamma_limit_per_pos,
                   self._config.theta_daily_budget, self._config.vega_limit_per_pos)
 
@@ -480,7 +480,7 @@ class OptionsGreeksEngine:
             return GreeksCheckResult(
                 status=GreeksLimitStatus.BLOCK,
                 delta_ok=False,
-                reasons=["Naked short options blocked — use spreads or long-only strategies"],
+                reasons=["Naked short options blocked - use spreads or long-only strategies"],
             )
 
         # ── Compute proposed position Greeks ─────────────────────────────
@@ -494,7 +494,7 @@ class OptionsGreeksEngine:
         vega_exposure = proposed_greeks.vega * qty
         theta_exposure = proposed_greeks.theta * qty
 
-        # Delta limit per position — delta_contracts = delta × qty
+        # Delta limit per position - delta_contracts = delta × qty
         # For a typical ATM 1-lot NIFTY call: delta≈0.50, qty=25, delta_contracts≈12.5
         # The limit of 0.20 means max delta_contracts per position is bounded by config
         delta_contracts = delta_exposure  # delta × qty
@@ -693,7 +693,7 @@ class OptionsGreeksEngine:
         """Update engine configuration."""
         with self._lock:
             self._config = GreeksConfig.from_dict({**self._config.to_dict(), **cfg})
-            _log.info("[GREEKS] Config updated — delta=%.2f gamma=%.2f theta=%.0f vega=%.0f",
+            _log.info("[GREEKS] Config updated - delta=%.2f gamma=%.2f theta=%.0f vega=%.0f",
                       self._config.delta_limit_per_pos, self._config.gamma_limit_per_pos,
                       self._config.theta_daily_budget, self._config.vega_limit_per_pos)
 
@@ -715,7 +715,7 @@ class OptionsGreeksEngine:
 # ── Module-level singleton ────────────────────────────────────────────────────
 
 _ENGINE: OptionsGreeksEngine | None = None
-_ENGINE_LOCK = threading.Lock()
+_ENGINE_LOCK = threading.RLock()
 
 
 def get_greeks_engine(config: dict[str, Any] | None = None) -> OptionsGreeksEngine:

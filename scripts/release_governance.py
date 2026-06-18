@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Release Governance Automation — Enforces the Constitution's Mandatory Release Governance.
+Release Governance Automation - Enforces the Constitution's Mandatory Release Governance.
 
 After every approved implementation:
   1. Create date-wise branch (release/YYYY-MM-DD)
@@ -101,10 +101,10 @@ def run_pre_release_checks(
         else:
             log.info("  [OK] Git working directory clean")
     except (subprocess.TimeoutExpired, FileNotFoundError):
-        failures.append("Git not available — cannot verify clean state")
+        failures.append("Git not available - cannot verify clean state")
         log.warning("  [!] Git not available, skipping clean check")
 
-    # 3. Certification checks (Phase 4+5+10 — deterministic gates)
+    # 3. Certification checks (Phase 4+5+10 - deterministic gates)
     if not skip_certifications:
         _run_certification_checks(failures)
     else:
@@ -154,29 +154,29 @@ def _certification_db_ready() -> bool:
     """
     trades_db = ROOT / "trades.db"
     if not trades_db.is_file():
-        log.info("  [!] trades.db not found — skipping certification checks")
+        log.info("  [!] trades.db not found - skipping certification checks")
         return False
     try:
-        conn = sqlite3.connect(str(trades_db), timeout=5)
-        try:
-            rows = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='trades'"
-            ).fetchall()
-            if not rows:
-                log.info("  [!] trades.db exists but 'trades' table not found — skipping certification")
-                return False
-            return True
-        finally:
+        from core.db_utils import get_connection
+        conn = get_connection(str(trades_db), timeout=5, row_factory=False)
+        rows = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='trades'"
+        ).fetchall()
+        if not rows:
+            log.info("  [!] trades.db exists but 'trades' table not found - skipping certification")
             conn.close()
-    except (sqlite3.Error, OSError) as exc:
-        log.info("  [!] trades.db check failed: %s — skipping certification", exc)
+            return False
+        conn.close()
+        return True
+    except (ImportError, sqlite3.Error, OSError) as exc:
+        log.info("  [!] trades.db check failed: %s - skipping certification", exc)
         return False
 
 
 def _run_certification_checks(failures: list[str]) -> None:
     """Run certification gates: replay determinism, paper trading quality.
 
-    Certification failures are BLOCKING — they append to failures and prevent release.
+    Certification failures are BLOCKING - they append to failures and prevent release.
     If the trades database does not exist or has no trades table, certifications are
     skipped gracefully (common in CI or fresh-checkout environments).
     """
@@ -226,7 +226,7 @@ def _run_hygiene_gate(failures: list[str]) -> None:
         else:
             log.info("  [OK] Repository hygiene passed")
     except FileNotFoundError:
-        log.info("  [!] hygiene_check.py not found — skipping")
+        log.info("  [!] hygiene_check.py not found - skipping")
     except subprocess.TimeoutExpired as exc:
         failures.append(f"Hygiene check timed out: {exc}")
 
@@ -245,7 +245,7 @@ def _run_architecture_gate(failures: list[str]) -> None:
         else:
             log.info("  [OK] Architecture compliance passed")
     except FileNotFoundError:
-        log.info("  [!] check_architecture_compliance.py not found — skipping")
+        log.info("  [!] check_architecture_compliance.py not found - skipping")
     except subprocess.TimeoutExpired as exc:
         failures.append(f"Architecture check timed out: {exc}")
 
@@ -581,7 +581,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # ── Full release pipeline ────────────────────────────────────────────
     print("=" * 70)
-    print(f"  RELEASE GOVERNANCE — v{version}")
+    print(f"  RELEASE GOVERNANCE - v{version}")
     print("=" * 70)
 
     # Step 1: Pre-release checks
@@ -629,7 +629,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print("  [!] Tagging skipped: %s" % tag)
 
-    # Step 7: Push (opt-in — requires --push flag)
+    # Step 7: Push (opt-in - requires --push flag)
     if args.push:
         print("\n[7/7] Pushing to origin...")
         push_branch = branch if not args.skip_branch else None

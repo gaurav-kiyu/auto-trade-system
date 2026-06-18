@@ -107,7 +107,7 @@ class BrokerHealthService(BrokerHealthPort):
 
         # Thread safety
         self._lock = threading.RLock()
-        self._health_check_lock = threading.Lock()
+        self._health_check_lock = threading.RLock()
 
         # Health metrics storage
         self._health_metrics: dict[str, BrokerHealthMetrics] = {}

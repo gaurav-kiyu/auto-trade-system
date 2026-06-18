@@ -1,4 +1,4 @@
-"""Tests for core/db_migration.py — schema version registry + migration framework."""
+"""Tests for core/db_migration.py - schema version registry + migration framework."""
 
 import os
 import sqlite3

@@ -1,4 +1,4 @@
-"""Tests for core/kite_ticker_feed.py — KiteTickerFeedManager."""
+"""Tests for core/kite_ticker_feed.py - KiteTickerFeedManager."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from core.kite_ticker_feed import KiteTickerFeedManager
 
-# kiteconnect is not installed in test env — fake it via sys.modules
+# kiteconnect is not installed in test env - fake it via sys.modules
 _FAKE_TICKER_CLASS = MagicMock()
 
 @pytest.fixture(autouse=True)

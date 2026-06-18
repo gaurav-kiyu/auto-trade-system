@@ -1,5 +1,5 @@
 """
-AD-KIYU RBAC — Session Store.
+AD-KIYU RBAC - Session Store.
 
 Thread-safe session tracking with TTL expiry for operator sessions.
 """
@@ -31,7 +31,7 @@ class SessionStore:
     """Thread-safe in-memory session store with TTL expiry."""
 
     def __init__(self, ttl_seconds: int = 3600):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._ttl = ttl_seconds
         self._sessions: dict[str, Session] = {}
 

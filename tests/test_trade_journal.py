@@ -1,5 +1,5 @@
 """
-Tests for core/trade_journal.py — Trade Feedback Journal.
+Tests for core/trade_journal.py - Trade Feedback Journal.
 
 Covers:
   - JournalEntry dataclass
@@ -243,7 +243,7 @@ class TestTradeLifecycle:
         assert row["net_pnl"] == -2500.0
 
     def test_full_lifecycle(self, journal: TradeJournal, sample_entry: dict[str, Any]) -> None:
-        """Open, fill, close — all steps together."""
+        """Open, fill, close - all steps together."""
         journal.open_trade(**sample_entry)
         # Flush async writes before proceeding
         journal._pool.shutdown(wait=True)

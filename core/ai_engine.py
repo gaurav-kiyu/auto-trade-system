@@ -1,31 +1,31 @@
 """
-AI Engine — Configurable LLM-powered signal intelligence and auto-learning layer.
+AI Engine - Configurable LLM-powered signal intelligence and auto-learning layer.
 
 Drop-in enhancement for the OPBuying trading system:
   • Wraps any LLM (Anthropic, OpenAI, Ollama, custom HTTP) via config
   • Enriches signal dicts with LLM-based market commentary + confidence boost/veto
   • Maintains a persistent AI learning journal (JSON-lines) that feeds back into
-    threshold tuning — fully driven by config, zero hard-coded values
+    threshold tuning - fully driven by config, zero hard-coded values
   • All provider endpoints, model names, prompt templates, enabled flags, and
     rate-limits are read from the system config at runtime
   • Graceful degradation: if LLM is unavailable, trading continues unaffected
 
 Configuration keys (all under AI_ENGINE in config.json):
-    AI_ENGINE_ENABLED           bool   — master on/off (default False)
-    AI_ENGINE_PROVIDER          str    — "anthropic" | "openai" | "ollama" | "http"
-    AI_ENGINE_MODEL             str    — model string ("claude-3-5-haiku-20241022" etc.)
-    AI_ENGINE_API_KEY_ENV       str    — env-var holding the API key
-    AI_ENGINE_API_BASE_URL      str    — override base URL (Ollama / custom endpoints)
-    AI_ENGINE_MAX_TOKENS        int    — max tokens per LLM call (default 256)
-    AI_ENGINE_TIMEOUT_SEC       float  — HTTP timeout (default 8.0)
-    AI_ENGINE_SIGNAL_BOOST_MAX  int    — max score bonus LLM can add (default 5)
-    AI_ENGINE_VETO_ENABLED      bool   — allow LLM to veto a signal (default True)
-    AI_ENGINE_PROMPT_TEMPLATE   str    — override system prompt (optional)
-    AI_ENGINE_JOURNAL_FILE      str    — path for AI learning journal JSONL
-    AI_ENGINE_JOURNAL_ENABLED   bool   — persist AI decisions (default True)
-    AI_ENGINE_BATCH_COOLDOWN_MS int    — min ms between LLM calls (default 1200)
-    AI_ENGINE_REGIME_BIAS       dict   — per-regime score multiplier {"TRENDING":1.1,...}
-    AI_ENGINE_STRENGTH_BIAS     dict   — per-strength multiplier {"STRONG":1.05,...}
+    AI_ENGINE_ENABLED           bool   - master on/off (default False)
+    AI_ENGINE_PROVIDER          str    - "anthropic" | "openai" | "ollama" | "http"
+    AI_ENGINE_MODEL             str    - model string ("claude-3-5-haiku-20241022" etc.)
+    AI_ENGINE_API_KEY_ENV       str    - env-var holding the API key
+    AI_ENGINE_API_BASE_URL      str    - override base URL (Ollama / custom endpoints)
+    AI_ENGINE_MAX_TOKENS        int    - max tokens per LLM call (default 256)
+    AI_ENGINE_TIMEOUT_SEC       float  - HTTP timeout (default 8.0)
+    AI_ENGINE_SIGNAL_BOOST_MAX  int    - max score bonus LLM can add (default 5)
+    AI_ENGINE_VETO_ENABLED      bool   - allow LLM to veto a signal (default True)
+    AI_ENGINE_PROMPT_TEMPLATE   str    - override system prompt (optional)
+    AI_ENGINE_JOURNAL_FILE      str    - path for AI learning journal JSONL
+    AI_ENGINE_JOURNAL_ENABLED   bool   - persist AI decisions (default True)
+    AI_ENGINE_BATCH_COOLDOWN_MS int    - min ms between LLM calls (default 1200)
+    AI_ENGINE_REGIME_BIAS       dict   - per-regime score multiplier {"TRENDING":1.1,...}
+    AI_ENGINE_STRENGTH_BIAS     dict   - per-strength multiplier {"STRONG":1.05,...}
 """
 from __future__ import annotations
 
@@ -271,13 +271,13 @@ class AIEngine:
     def __init__(self, ai_cfg: AIEngineConfig, *, log_fn: Callable[[str], None] | None = None) -> None:
         self._cfg = ai_cfg
         self._log = log_fn or (lambda msg: log.info(msg))
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._last_call_ts: float = 0.0
         self._journal_path = Path(self._cfg.journal_file)
         self._journal_path.parent.mkdir(parents=True, exist_ok=True)
         self._call_fn = _PROVIDER_FNS.get(self._cfg.provider)
         if self._cfg.enabled and self._call_fn is None:
-            self._log(f"[AI_ENGINE] Unknown provider {self._cfg.provider!r} — engine disabled")
+            self._log(f"[AI_ENGINE] Unknown provider {self._cfg.provider!r} - engine disabled")
             self._cfg = AIEngineConfig(**{**asdict(self._cfg), "enabled": False})
 
     # ── cooldown guard ───────────────────────────────────────────────────────
@@ -446,7 +446,7 @@ class AIEngine:
 # ─── Singleton factory (one engine per process) ───────────────────────────────
 
 _engine_instance: AIEngine | None = None
-_engine_lock = threading.Lock()
+_engine_lock = threading.RLock()
 
 
 def get_ai_engine(cfg: dict[str, Any], *, log_fn: Callable[[str], None] | None = None) -> AIEngine:

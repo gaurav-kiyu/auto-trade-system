@@ -115,8 +115,8 @@ def check_implied_move_gate(
         cfg:             config dict.
 
     Returns:
-        (True, "")                         — gate passes
-        (False, reason_string)             — soft block reason
+        (True, "")                         - gate passes
+        (False, reason_string)             - soft block reason
     """
     c = cfg or {}
     if not c.get("implied_move_enabled", False) or implied_move is None:

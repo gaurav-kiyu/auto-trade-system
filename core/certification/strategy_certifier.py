@@ -31,7 +31,10 @@ import logging
 import math
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
+
+from core.db_utils import create_database_port
 
 _log = logging.getLogger(__name__)
 
@@ -300,30 +303,39 @@ class StrategyCertifier:
             return _StrategyMetadata(strategy_name, pnls=pnls)
 
         if db_path:
-            try:
-                import sqlite3
-                from pathlib import Path
-
-                p = Path(db_path)
-                if p.is_file():
-                    conn = sqlite3.connect(str(p), timeout=5)
-                    try:
-                        rows = conn.execute(
-                            "SELECT net_pnl FROM trades "
-                            "WHERE strategy = ? AND net_pnl IS NOT NULL "
-                            "ORDER BY id",
-                            (strategy_name,),
-                        ).fetchall()
-                        if rows:
-                            pnls = [float(r[0]) for r in rows]
-                            return _StrategyMetadata(strategy_name, pnls=pnls)
-                    finally:
-                        conn.close()
-            except (sqlite3.Error, OSError) as e:
-                _log.debug("[CERTIFICATION.STRATEGY_CERTIFIER] non-critical error: %s", e)
+            meta = self._load_from_db(strategy_name, db_path)
+            if meta is not None:
+                return meta
 
         # Try loading from known strategy modules
         return self._load_from_strategy_module(strategy_name)
+
+    def _load_from_db(
+        self, strategy_name: str, db_path: str
+    ) -> _StrategyMetadata | None:
+        """Load PnL data from a trades.db using DatabasePort."""
+        p = Path(db_path)
+        if not p.is_file():
+            return None
+        try:
+            db = create_database_port(str(p))
+            db.connect()
+            try:
+                rows = db.fetchall(
+                    "SELECT net_pnl FROM trades "
+                    "WHERE strategy = ? AND net_pnl IS NOT NULL "
+                    "ORDER BY id",
+                    (strategy_name,),
+                )
+                if rows:
+                    pnls = [float(r[0]) for r in rows]
+                    return _StrategyMetadata(strategy_name, pnls=pnls)
+                return None
+            finally:
+                db.disconnect()
+        except Exception as e:
+            _log.debug("[CERTIFICATION.STRATEGY_CERTIFIER] non-critical error: %s", e)
+            return None
 
     def _load_from_strategy_module(self, strategy_name: str) -> _StrategyMetadata | None:
         """Attempt to load trade data from a strategy's internal tracking.
@@ -338,28 +350,8 @@ class StrategyCertifier:
                 return _StrategyMetadata(strategy_name, pnls=pnls)
         except (ImportError, AttributeError, TypeError):
             _log.debug("[CERTIFIER] Sandbox load skipped")
-        try:
-            # Fall back to trades.db for strategy-specific trades
-            db_path = "trades.db"
-            from pathlib import Path as _Path
-            if _Path(db_path).is_file():
-                import sqlite3
-                conn = sqlite3.connect(db_path, timeout=5)
-                try:
-                    rows = conn.execute(
-                        "SELECT net_pnl FROM trades "
-                        "WHERE strategy = ? AND net_pnl IS NOT NULL "
-                        "ORDER BY id",
-                        (strategy_name,),
-                    ).fetchall()
-                    if rows:
-                        pnls = [float(r[0]) for r in rows]
-                        return _StrategyMetadata(strategy_name, pnls=pnls)
-                finally:
-                    conn.close()
-        except (ImportError, AttributeError, OSError, ValueError, sqlite3.Error):
-            _log.debug("[CERTIFIER] Trades.db load skipped")
-        return None
+        # Fall back to trades.db for strategy-specific trades
+        return self._load_from_db(strategy_name, "trades.db")
 
 
 def certify_strategy(
@@ -368,7 +360,7 @@ def certify_strategy(
     cfg: dict[str, Any] | None = None,
 ) -> StrategyCertificationReport:
     """
-    Convenience function — certify a single strategy.
+    Convenience function - certify a single strategy.
 
     Usage:
         report = certify_strategy("spread_strategy", pnls=[100, -50, 200])

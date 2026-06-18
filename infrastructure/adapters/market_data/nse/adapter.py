@@ -169,7 +169,7 @@ class NSEAdapter(MarketDataPort):
 
         try:
             # Step 1: Visit homepage to get initial cookies
-            self._logger.info("[NSE] Initializing session — visiting homepage")
+            self._logger.info("[NSE] Initializing session - visiting homepage")
             homepage_url = "https://www.nseindia.com"
             resp = self._session.get(
                 homepage_url,
@@ -235,9 +235,9 @@ class NSEAdapter(MarketDataPort):
 
                     response = self._session.get(url, params=params, timeout=15)
 
-                    # If we get a 404 or 403, the session may have expired — try re-init
+                    # If we get a 404 or 403, the session may have expired - try re-init
                     if response.status_code in (403, 404) and "nseindia.com" in url:
-                        self._logger.info(f"[NSE] Got {response.status_code} — re-initializing session")
+                        self._logger.info(f"[NSE] Got {response.status_code} - re-initializing session")
                         self._nse_session_initialized = False
                         self._init_nse_session()
                         response = self._session.get(url, params=params, timeout=15)

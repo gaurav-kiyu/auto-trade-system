@@ -75,7 +75,7 @@ def test_summarise_empty_rows():
     assert r.win_rate == 0.0
 
 
-# ── compute_pnl_attribution — offline (no DB) ─────────────────────────────────
+# ── compute_pnl_attribution - offline (no DB) ─────────────────────────────────
 
 def test_attribution_disabled_returns_empty():
     result = compute_pnl_attribution(cfg={"pnl_attribution_enabled": False})

@@ -1,16 +1,16 @@
 """
-yf_data_provider.py — Standalone yfinance data provider.
+yf_data_provider.py - Standalone yfinance data provider.
 
 Provides a single-source yfinance data layer extracted from the
 trading brain to reduce index_trader.py file size and eliminate
 duplicate code between signal and execution modules. Offers a
 single source of truth for:
 
-- fetch_intraday_data()        — 1m/5m/15m OHLCV for an index
-- fetch_intraday_data_cached() — cached variant with TTL
-- fetch_last_close_summary()   — last close price by index
-- fetch_vix()                  — India VIX snapshot
-- get_vix()                    — VIX from intraday data (1m bar)
+- fetch_intraday_data()        - 1m/5m/15m OHLCV for an index
+- fetch_intraday_data_cached() - cached variant with TTL
+- fetch_last_close_summary()   - last close price by index
+- fetch_vix()                  - India VIX snapshot
+- get_vix()                    - VIX from intraday data (1m bar)
 
 Thread-safe: module-level caches are protected by threading.RLock.
 Intended to be imported by index_trader.py and other consumers.
@@ -52,7 +52,7 @@ def fetch_intraday_data(yf_sym: str) -> tuple:
         yf_sym: Yahoo Finance symbol (e.g. "^NSEI", "^NSEBANK").
 
     Returns:
-        Tuple of (df1m, df5m, df15m) — each may be None on failure.
+        Tuple of (df1m, df5m, df15m) - each may be None on failure.
     """
     if not yf_sym:
         return None, None, None

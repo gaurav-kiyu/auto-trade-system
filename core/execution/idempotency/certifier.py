@@ -1,5 +1,5 @@
 """
-AD-KIYU IdempotencyCertifier v1.0 — Exactly-Once Execution Certification.
+AD-KIYU IdempotencyCertifier v1.0 - Exactly-Once Execution Certification.
 
 Guarantees no duplicate order submissions by generating deterministic
 execution IDs and tracking the full lifecycle via SQLite.
@@ -16,6 +16,8 @@ import json
 import logging
 import sqlite3
 import threading
+
+from core.db_utils import get_connection
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -65,19 +67,19 @@ class IdempotencyCertifier:
     def __init__(self, db_path: str = CERT_DB_PATH, slot_seconds: int = 300):
         self._db_path = Path(db_path)
         self._slot_seconds = slot_seconds
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._is_memory = str(db_path) == ":memory:"
         self._conn: sqlite3.Connection | None = None
         self._init_db()
         _log.info("IdempotencyCertifier initialized (slot=%ds, db=%s)", slot_seconds, self._db_path)
 
     def _get_conn(self) -> sqlite3.Connection:
-        """Get SQLite connection — cache ensures state persists for :memory: mode."""
+        """Get SQLite connection - cache ensures state persists for :memory: mode."""
         if self._conn is None:
             if self._is_memory:
-                self._conn = sqlite3.connect(":memory:", check_same_thread=False)
+                self._conn = get_connection(":memory:", check_same_thread=False)
             else:
-                self._conn = sqlite3.connect(self._db_path)
+                self._conn = get_connection(self._db_path)
         return self._conn
 
     def _init_db(self) -> None:

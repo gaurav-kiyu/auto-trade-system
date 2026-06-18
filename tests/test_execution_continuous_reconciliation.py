@@ -1,4 +1,4 @@
-"""Tests for core/execution/continuous_reconciliation.py — Continuous Reconciliation."""
+"""Tests for core/execution/continuous_reconciliation.py - Continuous Reconciliation."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """
-AD-KIYU Production Mandate Enforcer — DEPRECATED.
+AD-KIYU Production Mandate Enforcer - DEPRECATED.
 
 This module is deprecated. Use ``core.services.risk_service.RiskService``
 (via ``core.ports.risk.RiskPort``) instead.
@@ -53,14 +53,14 @@ class MandateState:
 
 class ProductionMandateEnforcer:
     """
-    DEPRECATED — Use RiskService (via RiskPort) instead.
+    DEPRECATED - Use RiskService (via RiskPort) instead.
 
     Retained for backward compatibility only.
     All new code MUST use core.services.risk_service.RiskService.
     """
 
     def __init__(self, config: dict):
-        _log.warning("ProductionMandateEnforcer is DEPRECATED — use RiskService instead")
+        _log.warning("ProductionMandateEnforcer is DEPRECATED - use RiskService instead")
         self._cfg = config
         self._state = MandateState(
             capital=config.get("BASE_CAPITAL", 5000),
@@ -94,7 +94,7 @@ class ProductionMandateEnforcer:
         _trip_hard_halt(reason, source="ProductionMandateEnforcer")
 
     def can_trade(self) -> tuple[bool, str]:
-        """DEPRECATED — Use RiskService.evaluate_trade() instead."""
+        """DEPRECATED - Use RiskService.evaluate_trade() instead."""
         _log.debug("ProductionMandateEnforcer.can_trade() called (deprecated)")
         if self._state.is_hard_halted:
             return False, "HARD_HALT: System halted"
@@ -128,7 +128,7 @@ class ProductionMandateEnforcer:
         return True, "MANDATE_CHECK_PASSED"
 
     def get_position_size(self, entry_price: float, regime: str, sl_pct: float = 0.12) -> int:
-        """DEPRECATED — Use RiskService.calculate_position_size() instead."""
+        """DEPRECATED - Use RiskService.calculate_position_size() instead."""
         if self._state.capital <= 0:
             _log.warning(f"Position sizing blocked: capital = {self._state.capital} <= 0")
             return 0
@@ -213,7 +213,7 @@ _production_enforcer: ProductionMandateEnforcer | None = None
 
 
 def get_mandate_enforcer(config: dict = None) -> ProductionMandateEnforcer:
-    """DEPRECATED — Use RiskService via DI container instead."""
+    """DEPRECATED - Use RiskService via DI container instead."""
     global _production_enforcer
     if _production_enforcer is None:
         if config is None:

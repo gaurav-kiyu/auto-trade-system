@@ -5,17 +5,17 @@ Philosophy:
   Suggestions over actions.  Stability over optimisation.  Simplicity over intelligence.
 
 Only the parameters in _TUNABLE_PARAMS and _TUNABLE_REGIME_SIZE may ever be written.
-Everything else is permanently blocked — see _blockedExceptions.
+Everything else is permanently blocked - see _blockedExceptions.
 
 Confidence model:
   HIGH   >= 30 trades in the relevant sample AND clear statistical gap (WR off by > 15 pp)
-  MEDIUM  15-29 trades OR borderline signal — produces suggestion text, never auto-applied
-  LOW    < 15 trades — flag only, not acted on
+  MEDIUM  15-29 trades OR borderline signal - produces suggestion text, never auto-applied
+  LOW    < 15 trades - flag only, not acted on
 
 Config flags (in config.json):
-  AUTO_TUNE_ENABLED  (bool, default false) — gate for any file write
-  AUTO_TUNE_DRY_RUN  (bool, default true)  — print recommendations, never write files
-  AUTO_TUNE_MIN_TRADES (int, default 20)   — minimum trades required before ANY action
+  AUTO_TUNE_ENABLED  (bool, default false) - gate for any file write
+  AUTO_TUNE_DRY_RUN  (bool, default true)  - print recommendations, never write files
+  AUTO_TUNE_MIN_TRADES (int, default 20)   - minimum trades required before ANY action
 
 Usage:
   python -m core.auto_tuner                        # dry-run report
@@ -169,7 +169,7 @@ def generate_recommendations(
 ) -> list[Recommendation]:
     """
     Pure function: analyse trades, return a list of Recommendation objects.
-    No side effects — never reads or writes files.
+    No side effects - never reads or writes files.
     """
     if not trades:
         return []
@@ -207,7 +207,7 @@ def apply_recommendations(
     actionable = [r for r in recommendations if r.safe_to_apply and r.confidence == "HIGH"]
 
     if not actionable:
-        log.info("[AUTO-TUNE] No changes applied — no HIGH-confidence actionable recommendations")
+        log.info("[AUTO-TUNE] No changes applied - no HIGH-confidence actionable recommendations")
         return applied
 
     cfg_path = Path(config_path)
@@ -251,7 +251,7 @@ def apply_recommendations(
         print(f"[AUTO-TUNE] {tag} {rec.param}: {old} -> {new}  (restart required)  ({rec.reason[:80]}…)")
 
     if not applied:
-        log.info("[AUTO-TUNE] No changes applied — all actionable params in cooldown or already at target")
+        log.info("[AUTO-TUNE] No changes applied - all actionable params in cooldown or already at target")
 
     return applied
 
@@ -317,7 +317,7 @@ def run_auto_tune(
 
     if n < min_trades:
         log.info(
-            "[AUTO-TUNE] Only %d trades (need %d) — skipping analysis", n, min_trades
+            "[AUTO-TUNE] Only %d trades (need %d) - skipping analysis", n, min_trades
         )
         return TuneResult(
             generated_at=ts_now, trade_sample=n,
@@ -376,7 +376,7 @@ def _check_score_threshold(
     min_edge_pct = float(config.get("AUTO_TUNE_MIN_EDGE_DELTA", 0.05)) * 100
 
     # Find bins AT or JUST ABOVE the threshold that are bleeding.
-    # These are the lowest-scoring trades being taken — prime candidates for exclusion.
+    # These are the lowest-scoring trades being taken - prime candidates for exclusion.
     # A bin is "in scope" if its lower bound is within [current_thr, current_thr+10].
     losing_bins = []
     for label, bm in by_score.items():
@@ -386,7 +386,7 @@ def _check_score_threshold(
         # Only consider bins that start AT the current threshold (currently being traded)
         if lo < current_thr:
             continue
-        # Don't flag strong-score bins — only look at the weakest entries
+        # Don't flag strong-score bins - only look at the weakest entries
         if lo > current_thr + 10:
             continue
         if bm["trades"] < _MIN_TRADES_MEDIUM:
@@ -406,7 +406,7 @@ def _check_score_threshold(
                     abs(bin_wr - overall_wr), min_edge_pct,
                 )
                 log.info(
-                    "[AUTO-TUNE] Skipped (AI_THRESHOLD) — samples=%d, min_required=%d",
+                    "[AUTO-TUNE] Skipped (AI_THRESHOLD) - samples=%d, min_required=%d",
                     bm["trades"], min_n,
                 )
                 continue
@@ -429,7 +429,7 @@ def _check_score_threshold(
 
     # Consistency check: the signal must hold in RECENT trades, not just the full window.
     # A bad streak 45 days ago should not override a clean recent 2 weeks.
-    # If the worst bin's recent WR is >= 50%, the problem may have self-corrected —
+    # If the worst bin's recent WR is >= 50%, the problem may have self-corrected -
     # downgrade to MEDIUM so no automatic change fires.
     if confidence == "HIGH":
         worst_tmp   = min(losing_bins, key=lambda x: x[1]["win_rate"])
@@ -439,7 +439,7 @@ def _check_score_threshold(
             if recent_wr is not None and recent_wr >= 50.0:
                 log.info(
                     "[AUTO-TUNE] Consistency: bin %s recent WR %.0f%% >= 50%% "
-                    "(full-window %.0f%%) — downgrading HIGH -> MEDIUM",
+                    "(full-window %.0f%%) - downgrading HIGH -> MEDIUM",
                     worst_tmp[0], recent_wr, worst_tmp[1]["win_rate"],
                 )
                 confidence = "MEDIUM"
@@ -451,7 +451,7 @@ def _check_score_threshold(
             total_bad, min_n,
         )
         log.info(
-            "[AUTO-TUNE] Skipped (AI_THRESHOLD) — samples=%d, min_required=%d",
+            "[AUTO-TUNE] Skipped (AI_THRESHOLD) - samples=%d, min_required=%d",
             total_bad, min_n,
         )
         confidence = "MEDIUM"
@@ -524,7 +524,7 @@ def _check_regime_sizes(
                 abs(regime_wr - overall_wr), min_edge_pct,
             )
             log.info(
-                "[AUTO-TUNE] Skipped (REGIME_SIZE_MAP.%s) — samples=%d, min_required=%d",
+                "[AUTO-TUNE] Skipped (REGIME_SIZE_MAP.%s) - samples=%d, min_required=%d",
                 regime, rm["trades"], min_n,
             )
             continue
@@ -555,7 +555,7 @@ def _check_regime_sizes(
             if recent_wr is not None and recent_wr >= 45.0:
                 log.info(
                     "[AUTO-TUNE] Consistency: regime %s recent WR %.0f%% >= 45%% "
-                    "(full-window %.0f%%) — downgrading HIGH -> MEDIUM",
+                    "(full-window %.0f%%) - downgrading HIGH -> MEDIUM",
                     regime, recent_wr, rm["win_rate"],
                 )
                 confidence = "MEDIUM"
@@ -567,7 +567,7 @@ def _check_regime_sizes(
                 regime, rm["trades"], min_n,
             )
             log.info(
-                "[AUTO-TUNE] Skipped (REGIME_SIZE_MAP.%s) — samples=%d, min_required=%d",
+                "[AUTO-TUNE] Skipped (REGIME_SIZE_MAP.%s) - samples=%d, min_required=%d",
                 regime, rm["trades"], min_n,
             )
             confidence = "MEDIUM"
@@ -598,7 +598,7 @@ def _check_drawdown(
 ) -> list[Recommendation]:
     """
     Informational warning when max drawdown exceeds 20% of BASE_CAPITAL.
-    Never auto-applied — risk parameters are the user's responsibility.
+    Never auto-applied - risk parameters are the user's responsibility.
     """
     dd           = compute_drawdown(trades)
     max_dd       = dd.get("max_drawdown", 0.0)
@@ -614,7 +614,7 @@ def _check_drawdown(
     reason = (
         f"Max drawdown Rs{max_dd:,.0f} = {dd_pct:.1f}% of capital Rs{base_capital:,.0f}. "
         "Review MAX_DAILY_LOSS, CONSEC_LOSS_LIMIT, and daily target thresholds. "
-        "This is an informational flag — no automatic change will be made."
+        "This is an informational flag - no automatic change will be made."
     )
     return [Recommendation(
         type          = "drawdown_warning",
@@ -653,7 +653,7 @@ def _check_direction_skew(trades: list[dict]) -> list[Recommendation]:
     reason = (
         f"Direction skew detected: {worse} WR {worse_wr:.0f}% vs "
         f"{better} WR {better_wr:.0f}% (gap {diff:.0f} pp, n={len(calls)}/{len(puts)}). "
-        f"Review {worse} entry criteria — RSI healthy zone, breakout confirmation, trend alignment."
+        f"Review {worse} entry criteria - RSI healthy zone, breakout confirmation, trend alignment."
     )
     return [Recommendation(
         type          = "direction_skew",
@@ -715,7 +715,7 @@ def _in_cooldown(param: str, cooldown_days: int) -> bool:
     age_days = (time_provider.now() - last).days
     if age_days < cooldown_days:
         log.info(
-            "[AUTO-TUNE] Cooldown: %s changed %dd ago (cooldown=%dd) — skipping",
+            "[AUTO-TUNE] Cooldown: %s changed %dd ago (cooldown=%dd) - skipping",
             param, age_days, cooldown_days,
         )
         return True
@@ -764,7 +764,7 @@ def _compute_safe_change(
         return None, None
 
     if rec.param in _BLOCKED_KEYS:
-        log.warning("[AUTO-TUNE] Attempt to change blocked key %s — refused", rec.param)
+        log.warning("[AUTO-TUNE] Attempt to change blocked key %s - refused", rec.param)
         return None, None
 
     # Top-level scalar param
@@ -780,7 +780,7 @@ def _compute_safe_change(
         delta = abs(new - old)
         if delta > meta["max_delta"]:
             log.warning(
-                "[AUTO-TUNE] Delta %d exceeds max_delta %d for %s — clamping",
+                "[AUTO-TUNE] Delta %d exceeds max_delta %d for %s - clamping",
                 delta, meta["max_delta"], rec.param,
             )
             new = old + meta["max_delta"] if new > old else old - meta["max_delta"]
@@ -804,7 +804,7 @@ def _compute_safe_change(
         new = round(new, 2)
         return old, new
 
-    log.warning("[AUTO-TUNE] Unknown param pattern: %s — skipped", rec.param)
+    log.warning("[AUTO-TUNE] Unknown param pattern: %s - skipped", rec.param)
     return None, None
 
 
@@ -818,7 +818,7 @@ def _write_config_change(
     elif param in config:
         config[param] = new_value
     else:
-        log.error("[AUTO-TUNE] Param %s not found in loaded config — aborting write", param)
+        log.error("[AUTO-TUNE] Param %s not found in loaded config - aborting write", param)
         return
 
     tmp = cfg_path.with_suffix(".tmp")
@@ -852,7 +852,7 @@ def print_tune_report(result: TuneResult) -> None:
     print(f"{'=' * W}")
 
     if result.trade_sample == 0:
-        print("  No trades available — nothing to tune.")
+        print("  No trades available - nothing to tune.")
         print(f"{'=' * W}\n")
         return
 
@@ -860,7 +860,7 @@ def print_tune_report(result: TuneResult) -> None:
           f"Exp Rs{result.overall_expectancy:+.0f}  PF {result.overall_pf}")
 
     if not result.recommendations:
-        print("\n  No recommendations — system is within expected parameters.")
+        print("\n  No recommendations - system is within expected parameters.")
         print(f"{'=' * W}\n")
         return
 
@@ -950,7 +950,7 @@ def eod_auto_tune_hook(
 
     Reads AUTO_TUNE_ENABLED and AUTO_TUNE_DRY_RUN from config.
     Returns a short summary string suitable for appending to Telegram EOD report.
-    Errors are swallowed — this must never crash the main EOD flow.
+    Errors are swallowed - this must never crash the main EOD flow.
     """
     try:
         config = _load_config_file(Path(config_path))

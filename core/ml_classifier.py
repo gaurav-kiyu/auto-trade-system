@@ -1,5 +1,5 @@
 """
-ML Signal Classifier (Phase 5) — LightGBM binary win/loss predictor.
+ML Signal Classifier (Phase 5) - LightGBM binary win/loss predictor.
 
 Trains a gradient-boosted classifier on the trade journal to estimate each
 signal's probability of being a winner.  The predicted probability is
@@ -9,7 +9,7 @@ pipeline, just before tier classification.
 Feature set (all available from journal at training time):
   score, confidence, direction_call, is_strong, is_moderate, is_weak,
   has_soft_blocks, day_of_week (0=Mon), hour_of_entry
-  iv_rank,           # 0–100 (low IV = cheap premiums = favourable for option buying)
+  iv_rank,           # 0-100 (low IV = cheap premiums = favourable for option buying)
   vix,               # India VIX raw value
   pcr,               # Put-Call Ratio (>1.2 bullish, <0.8 bearish)
   regime_code,       # 0=CHOPPY, 1=NEUTRAL, 2=TRENDING / other
@@ -17,7 +17,7 @@ Feature set (all available from journal at training time):
 
 Target: ``is_winner`` (1 = net_pnl > 0, 0 otherwise).
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ---------------------------------------------------
   ml_classifier_enabled      : bool   default true
   ml_min_trades_to_train     : int    default 50
@@ -47,7 +47,7 @@ from typing import Any
 _log = logging.getLogger(__name__)
 
 # Thread-safe model cache (guarded by _model_lock)
-_model_lock: threading.Lock = threading.Lock()
+_model_lock: threading.Lock = threading.RLock()
 
 # ── Feature definition ────────────────────────────────────────────────────────
 
@@ -61,8 +61,8 @@ FEATURE_COLS: list[str] = [
     "has_soft_blocks",   # 1 if any soft_blocks logged
     "day_of_week",       # 0 = Monday … 4 = Friday
     "hour_of_entry",     # 9 … 15
-    # Extended features (Phase B+ — added when live values are available at signal time)
-    "iv_rank",           # 0–100 (low IV = cheap premiums = favourable for option buying)
+    # Extended features (Phase B+ - added when live values are available at signal time)
+    "iv_rank",           # 0-100 (low IV = cheap premiums = favourable for option buying)
     "vix",               # India VIX raw value
     "pcr",               # Put-Call Ratio (>1.2 bullish, <0.8 bearish)
     "regime_code",       # 0=CHOPPY, 1=NEUTRAL, 2=TRENDING / other
@@ -87,8 +87,8 @@ def _hour_to_session_code(hour: int) -> float:
 
 # ── In-process model cache ────────────────────────────────────────────────────
 
-_model_cache: dict[str, Any] = {}     # {model_path: lgbm_model} — guarded by _model_lock
-_model_ts:    dict[str, float] = {}   # {model_path: load_time} — guarded by _model_lock
+_model_cache: dict[str, Any] = {}     # {model_path: lgbm_model} - guarded by _model_lock
+_model_ts:    dict[str, float] = {}   # {model_path: load_time} - guarded by _model_lock
 
 
 # ── Feature extraction ────────────────────────────────────────────────────────
@@ -252,11 +252,11 @@ def train(
     min_trades = int(c.get("ml_min_trades_to_train", 50))
     data = load_training_data(journal_path)
     if data is None:
-        _log.debug("[ML] No journal data — skipping training")
+        _log.debug("[ML] No journal data - skipping training")
         return None
     X, y = data
     if len(X) < min_trades:
-        _log.debug("[ML] Only %d trades in journal (need %d) — skipping training", len(X), min_trades)
+        _log.debug("[ML] Only %d trades in journal (need %d) - skipping training", len(X), min_trades)
         return None
     try:
         import lightgbm as lgb
@@ -269,7 +269,7 @@ def train(
             verbose=-1,
         )
         model.fit(X, y, feature_name=FEATURE_COLS)
-        _log.info("[ML] Trained on %d trades — %d winners", len(X), sum(y))
+        _log.info("[ML] Trained on %d trades - %d winners", len(X), sum(y))
         return model
     except (ImportError, ValueError, AttributeError) as exc:
         _log.warning("[ML] Training failed: %s", exc)
@@ -409,7 +409,7 @@ def explain_prediction(
         cfg      : Bot config dict; respects ``shap_enabled`` key.
 
     Returns:
-        {feature_name: shap_value} — positive values push towards winner,
+        {feature_name: shap_value} - positive values push towards winner,
         negative towards loser.  Values sum to approx. log-odds contribution.
     """
     c = cfg or {}
@@ -438,7 +438,7 @@ def explain_prediction(
         return {col: float(v) for col, v in zip(FEATURE_COLS, vals)}
 
     except ImportError:
-        # shap not installed — fall back to normalised feature_importances_
+        # shap not installed - fall back to normalised feature_importances_
         try:
             fi = model.feature_importances_
             total = sum(abs(x) for x in fi) or 1.0

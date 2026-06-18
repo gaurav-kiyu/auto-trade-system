@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for scripts/hygiene_check.py — Repository Hygiene automation."""
+"""Tests for scripts/hygiene_check.py - Repository Hygiene automation."""
 from __future__ import annotations
 
 
@@ -23,7 +23,7 @@ from scripts.hygiene_check import (
 
 
 class TestHygieneIssues:
-    """Test HygieneIssue and HygieneReport data classes (fast — no I/O)."""
+    """Test HygieneIssue and HygieneReport data classes (fast - no I/O)."""
 
     def test_issue_defaults(self) -> None:
         issue = HygieneIssue(category="TEST", path="foo.py", description="test issue")
@@ -70,7 +70,7 @@ class TestGitignoreHelper:
 
 
 class TestGitignoreCheck:
-    """Test .gitignore validation (fast — single file read)."""
+    """Test .gitignore validation (fast - single file read)."""
 
     def test_gitignore_exists(self) -> None:
         issues = check_gitignore()
@@ -85,7 +85,7 @@ class TestGitignoreCheck:
 
 
 class TestStaleReports:
-    """Test stale report check (fast — dir read)."""
+    """Test stale report check (fast - dir read)."""
 
     def test_check_stale_reports(self) -> None:
         issues = check_stale_reports()
@@ -95,7 +95,7 @@ class TestStaleReports:
 
 
 class TestDuplicateImpl:
-    """Test duplicate implementation scanner (fast — single rglob)."""
+    """Test duplicate implementation scanner (fast - single rglob)."""
 
     def test_scan_duplicate_implementations(self) -> None:
         issues = scan_duplicate_implementations()

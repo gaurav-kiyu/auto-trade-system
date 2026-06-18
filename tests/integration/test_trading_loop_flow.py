@@ -47,7 +47,7 @@ def reset_globals():
     it.decision_log.clear()
 
     # Reset LTP resolver (may have been mocked by previous test)
-    # Set to None — PositionService._get_underlying_ltp() handles None gracefully
+    # Set to None - PositionService._get_underlying_ltp() handles None gracefully
     it._ltp_resolver = None
 
     # Reset PositionService singleton so each test starts fresh

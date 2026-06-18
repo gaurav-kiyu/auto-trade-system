@@ -1,5 +1,5 @@
 """
-Tests for core.stale_account_detector — session, credential, trading state staleness.
+Tests for core.stale_account_detector - session, credential, trading state staleness.
 """
 from __future__ import annotations
 

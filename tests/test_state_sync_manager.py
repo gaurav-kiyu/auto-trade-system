@@ -1,4 +1,4 @@
-"""Tests for core/state_sync_manager.py — HA heartbeat & failover detection."""
+"""Tests for core/state_sync_manager.py - HA heartbeat & failover detection."""
 
 from __future__ import annotations
 

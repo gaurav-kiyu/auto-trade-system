@@ -6,23 +6,23 @@ HTTP port.  Uses prometheus_client if installed; silently no-ops if not.
 
 Metrics exported
 ----------------
-  opb_trades_total          — counter: total trades since start
-  opb_wins_total            — counter: winning trades since start
-  opb_pnl_today             — gauge:   today's net P&L
-  opb_active_positions      — gauge:   current open positions
-  opb_signal_score_last     — gauge:   last signal score
-  opb_daily_loss_pct        — gauge:   today's loss as % of capital
-  opb_token_refresh_count   — gauge:   cumulative token refresh count
-  opb_token_valid           — gauge:   broker token validity (1=valid)
-  opb_warmup_active         — gauge:   warm-up mode active (1=active)
-  opb_warmup_entries        — gauge:   entries in current warm-up period
-  opb_ws_connected          — gauge:   WebSocket connected (1=connected)
-  opb_ws_reconnect_count    — gauge:   cumulative WebSocket reconnects
+  opb_trades_total          - counter: total trades since start
+  opb_wins_total            - counter: winning trades since start
+  opb_pnl_today             - gauge:   today's net P&L
+  opb_active_positions      - gauge:   current open positions
+  opb_signal_score_last     - gauge:   last signal score
+  opb_daily_loss_pct        - gauge:   today's loss as % of capital
+  opb_token_refresh_count   - gauge:   cumulative token refresh count
+  opb_token_valid           - gauge:   broker token validity (1=valid)
+  opb_warmup_active         - gauge:   warm-up mode active (1=active)
+  opb_warmup_entries        - gauge:   entries in current warm-up period
+  opb_ws_connected          - gauge:   WebSocket connected (1=connected)
+  opb_ws_reconnect_count    - gauge:   cumulative WebSocket reconnects
 
 Public API
 ----------
-    start_metrics_server(cfg)                   — start HTTP server in thread
-    update_metrics(metrics_dict)                — update gauge/counter values
+    start_metrics_server(cfg)                   - start HTTP server in thread
+    update_metrics(metrics_dict)                - update gauge/counter values
     get_metrics_text()                          → str  (Prometheus text format)
 
 Config keys
@@ -39,7 +39,7 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
-_REGISTRY_LOCK = threading.Lock()
+_REGISTRY_LOCK = threading.RLock()
 _gauges:   dict[str, Any] = {}
 _counters: dict[str, Any] = {}
 _prom_ok   = False
@@ -67,6 +67,15 @@ def _init_prometheus() -> bool:
                     "ws_reconnect_count": Gauge("opb_ws_reconnect_count", "Cumulative WebSocket reconnects"),
                     "reconciliation_lag": Gauge("opb_reconciliation_lag_seconds", "Reconciliation lag in seconds"),
                     "broker_uptime":      Gauge("opb_broker_uptime_seconds",      "Broker uptime in seconds", ["broker_name"]),
+                    "data_providers_total": Gauge("opb_data_providers_total", "Total registered market data adapters"),
+                    "data_providers_connected": Gauge("opb_data_providers_connected", "Connected market data adapters"),
+                    "data_providers_disconnected_pct": Gauge("opb_data_providers_disconnected_pct", "Percentage of disconnected market data adapters (0-100)"),
+                    "data_providers_worst_state": Gauge("opb_data_providers_worst_state", "Worst provider state: 0=healthy, 1=degraded, 2=critical"),
+                    # PostgreSQL database adapter metrics
+                    "pg_connected":         Gauge("opb_pg_connected",       "PostgreSQL connection active (1=connected)"),
+                    "pg_queries_total":     Gauge("opb_pg_queries_total",  "Total PostgreSQL queries executed", ["host", "dbname"]),
+                    "pg_errors_total":      Gauge("opb_pg_errors_total",   "Total PostgreSQL errors", ["host", "dbname"]),
+                    "pg_latency_ms":        Gauge("opb_pg_latency_ms",     "PostgreSQL query latency in ms", ["host", "dbname"]),
                 }
                 _counters = {
                     "trades_total": Counter("opb_trades_total", "Total trades"),
@@ -161,6 +170,38 @@ def update_metrics(metrics: dict[str, float]) -> None:
             _counters["wins_total"].inc(float(metrics["wins_total_inc"]))
         if "reconciliation_lag" in metrics:
             _gauges["reconciliation_lag"].set(float(metrics["reconciliation_lag"]))
+        if "data_providers_total" in metrics:
+            _gauges["data_providers_total"].set(float(metrics["data_providers_total"]))
+        if "data_providers_connected" in metrics:
+            _gauges["data_providers_connected"].set(float(metrics["data_providers_connected"]))
+        if "data_providers_disconnected_pct" in metrics:
+            _gauges["data_providers_disconnected_pct"].set(float(metrics["data_providers_disconnected_pct"]))
+        if "data_providers_worst_state" in metrics:
+            _gauges["data_providers_worst_state"].set(float(metrics["data_providers_worst_state"]))
+        # PostgreSQL adapter metrics
+        if "pg_connected" in metrics:
+            _gauges["pg_connected"].set(float(metrics["pg_connected"]))
+        if "pg_queries_total" in metrics:
+            value = metrics["pg_queries_total"]
+            if isinstance(value, (int, float)):
+                _gauges["pg_queries_total"].labels(host="default", dbname="default").set(float(value))
+            elif isinstance(value, dict):
+                for (host, dbname), val in (value.items() if hasattr(value, 'items') else {}).items():
+                    _gauges["pg_queries_total"].labels(host=host, dbname=dbname).set(float(val))
+        if "pg_errors_total" in metrics:
+            value = metrics["pg_errors_total"]
+            if isinstance(value, (int, float)):
+                _gauges["pg_errors_total"].labels(host="default", dbname="default").set(float(value))
+            elif isinstance(value, dict):
+                for (host, dbname), val in (value.items() if hasattr(value, 'items') else {}).items():
+                    _gauges["pg_errors_total"].labels(host=host, dbname=dbname).set(float(val))
+        if "pg_latency_ms" in metrics:
+            value = metrics["pg_latency_ms"]
+            if isinstance(value, (int, float)):
+                _gauges["pg_latency_ms"].labels(host="default", dbname="default").set(float(value))
+            elif isinstance(value, dict):
+                for (host, dbname), val in (value.items() if hasattr(value, 'items') else {}).items():
+                    _gauges["pg_latency_ms"].labels(host=host, dbname=dbname).set(float(val))
         if "broker_uptime" in metrics:
             value = metrics["broker_uptime"]
             if isinstance(value, (int, float)):

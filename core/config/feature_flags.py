@@ -50,7 +50,7 @@ class FeatureFlagManager:
     def __init__(self, storage_path: str = "feature_flags.json"):
         self._flags: dict[str, FeatureFlag] = {}
         self._storage_path = storage_path
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._change_listeners: dict[str, list[Callable]] = {}
         self._load_flags()
 
@@ -222,7 +222,7 @@ class FeatureFlagManager:
 
 
 _flag_manager: FeatureFlagManager | None = None
-_flag_lock = threading.Lock()
+_flag_lock = threading.RLock()
 
 
 def get_feature_flags() -> FeatureFlagManager:

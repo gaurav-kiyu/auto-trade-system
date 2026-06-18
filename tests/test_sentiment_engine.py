@@ -1,4 +1,4 @@
-"""Tests for core/sentiment_engine.py — simulated news sentiment engine."""
+"""Tests for core/sentiment_engine.py - simulated news sentiment engine."""
 
 from __future__ import annotations
 

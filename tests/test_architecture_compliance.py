@@ -1,5 +1,5 @@
 """
-Tests for ``scripts.check_architecture_compliance`` — ADR 0010 enforcement.
+Tests for ``scripts.check_architecture_compliance`` - ADR 0010 enforcement.
 
 These tests use temporary directories to simulate the project structure
 and verify that the checker correctly identifies violations.

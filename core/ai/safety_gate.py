@@ -45,16 +45,16 @@ log = logging.getLogger(__name__)
 
 # Categories of actions that AI is NEVER allowed to perform
 FORBIDDEN_ACTIONS: dict[str, str] = {
-    "place_order": "AI cannot place orders — use RiskService + ExecutionPort",
-    "modify_risk_limit": "AI cannot modify risk limits — hard-coded in safety_state",
-    "disable_hard_halt": "AI cannot disable hard halt — safety mechanism",
-    "bypass_circuit_breaker": "AI cannot bypass circuit breaker — market safety",
-    "override_position_size": "AI cannot override position sizing — RiskService authority",
-    "change_sl_pct": "AI cannot change stop-loss percentage — risk parameter",
-    "change_target_pct": "AI cannot change target percentage — risk parameter",
-    "disable_expiry_gate": "AI cannot disable expiry entry gate — risk control",
-    "modify_config": "AI cannot modify runtime config — operator action",
-    "execute_trade": "AI cannot execute trades — execution port only",
+    "place_order": "AI cannot place orders - use RiskService + ExecutionPort",
+    "modify_risk_limit": "AI cannot modify risk limits - hard-coded in safety_state",
+    "disable_hard_halt": "AI cannot disable hard halt - safety mechanism",
+    "bypass_circuit_breaker": "AI cannot bypass circuit breaker - market safety",
+    "override_position_size": "AI cannot override position sizing - RiskService authority",
+    "change_sl_pct": "AI cannot change stop-loss percentage - risk parameter",
+    "change_target_pct": "AI cannot change target percentage - risk parameter",
+    "disable_expiry_gate": "AI cannot disable expiry entry gate - risk control",
+    "modify_config": "AI cannot modify runtime config - operator action",
+    "execute_trade": "AI cannot execute trades - execution port only",
 }
 
 # Risk keys that AI can NEVER modify
@@ -123,9 +123,9 @@ class AISafetyGate:
     """
 
     def __init__(self):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._audit_log: list[dict[str, Any]] = []
-        self._order_count = 0  # Always 0 — AI never places orders
+        self._order_count = 0  # Always 0 - AI never places orders
 
     def check_action(
         self,
@@ -142,7 +142,7 @@ class AISafetyGate:
             source: Source identifier for the AI agent
 
         Returns:
-            AISafetyVerdict — allowed=False with reason if forbidden
+            AISafetyVerdict - allowed=False with reason if forbidden
         """
         norm_action = action_type.lower().strip()
 
@@ -181,20 +181,20 @@ class AISafetyGate:
             verdict = AISafetyVerdict(
                 allowed=True,
                 action_type=norm_action,
-                reason="AI action allowed — score/rank/optimize/recommend only",
+                reason="AI action allowed - score/rank/optimize/recommend only",
                 source=source,
                 suggested_action="Route through RiskService for execution",
             )
             self._audit("ALLOWED", verdict)
             return verdict
 
-        # ── Unknown actions — deny by default (fail-safe) ─────────────
+        # ── Unknown actions - deny by default (fail-safe) ─────────────
         verdict = AISafetyVerdict(
             allowed=False,
             action_type=norm_action,
-            reason=f"Unknown action type '{norm_action}' — denied by default (fail-safe)",
+            reason=f"Unknown action type '{norm_action}' - denied by default (fail-safe)",
             source=source,
-            failures=[f"Unknown action: {norm_action} — AI can only score/rank/optimize/recommend"],
+            failures=[f"Unknown action: {norm_action} - AI can only score/rank/optimize/recommend"],
         )
         self._audit("BLOCKED", verdict)
         log.warning("[AI_SAFETY] BLOCKED unknown action %s from %s", norm_action, source)
@@ -242,7 +242,7 @@ class AISafetyGate:
             if original_signal["position_size"] != modified_signal["position_size"]:
                 # Allow only if the new size is SMALLER (AI can reduce, not increase)
                 if modified_signal["position_size"] > original_signal["position_size"]:
-                    failures.append("AI increased position size — only reduction allowed")
+                    failures.append("AI increased position size - only reduction allowed")
 
         if failures:
             verdict = AISafetyVerdict(
@@ -335,7 +335,7 @@ class AISafetyGate:
 # ── Module-level singleton ────────────────────────────────────────────────────
 
 _GATE: AISafetyGate | None = None
-_GATE_LOCK = threading.Lock()
+_GATE_LOCK = threading.RLock()
 
 
 def get_safety_gate() -> AISafetyGate:

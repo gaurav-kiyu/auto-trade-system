@@ -1,5 +1,5 @@
 """
-Tests for core/execution/event_system.py — Event-Driven Architecture.
+Tests for core/execution/event_system.py - Event-Driven Architecture.
 
 Covers:
 - EventType and EventPriority enums
@@ -55,7 +55,7 @@ def event_bus(event_store):
 
 
 class TestEventType:
-    """EventType enum — 18 event types covering the full lifecycle."""
+    """EventType enum - 18 event types covering the full lifecycle."""
 
     def test_signal_generated(self):
         assert EventType.SIGNAL_GENERATED.value == "SIGNAL_GENERATED"
@@ -113,7 +113,7 @@ class TestEventType:
 
 
 class TestEventPriority:
-    """EventPriority enum — 4 priority levels."""
+    """EventPriority enum - 4 priority levels."""
 
     def test_critical_priority(self):
         assert EventPriority.CRITICAL.value == 0
@@ -133,7 +133,7 @@ class TestEventPriority:
 
 
 class TestTradingEvent:
-    """TradingEvent dataclass — immutability, serialization, deserialization."""
+    """TradingEvent dataclass - immutability, serialization, deserialization."""
 
     def test_default_values(self):
         """Event created with defaults should have valid fields."""
@@ -248,7 +248,7 @@ class TestTradingEvent:
 
 
 class TestEventStore:
-    """EventStore — SQLite-backed event sourcing persistence."""
+    """EventStore - SQLite-backed event sourcing persistence."""
 
     def test_init_creates_table(self, event_store):
         """Init should create the events table."""
@@ -380,7 +380,7 @@ class TestEventStore:
 
 
 class TestEventBus:
-    """EventBus — pub/sub event dispatch system."""
+    """EventBus - pub/sub event dispatch system."""
 
     def test_subscribe_and_publish(self, event_bus):
         """Subscribed handler should be called on publish."""

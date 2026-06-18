@@ -1,5 +1,5 @@
 """
-AD-KIYU Admin Control Plane — DEPRECATED backward-compat shim.
+AD-KIYU Admin Control Plane - DEPRECATED backward-compat shim.
 
 This module is deprecated. Use ``core.control_plane`` package instead.
 
@@ -39,7 +39,7 @@ _log = logging.getLogger(__name__)
 
 def create_admin_app(**kwargs: Any) -> Any:
     """Backward-compat: delegates to create_control_plane_app."""
-    _log.debug("create_admin_app called (deprecated) — delegating to create_control_plane_app")
+    _log.debug("create_admin_app called (deprecated) - delegating to create_control_plane_app")
     return create_control_plane_app(**kwargs)
 
 
@@ -59,7 +59,7 @@ def start_admin_control_plane(
     config_reload: Any = None,
 ) -> threading.Thread | None:
     """Backward-compat: delegates to maybe_start_control_plane."""
-    _log.debug("start_admin_control_plane called (deprecated) — delegating to maybe_start_control_plane")
+    _log.debug("start_admin_control_plane called (deprecated) - delegating to maybe_start_control_plane")
     cfg_dict = dict(cfg) if cfg else {}
     return maybe_start_control_plane(
         cfg=cfg_dict,

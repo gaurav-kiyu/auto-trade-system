@@ -1,4 +1,4 @@
-"""Tests for infrastructure.config.secure_config — SecureConfig class."""
+"""Tests for infrastructure.config.secure_config - SecureConfig class."""
 
 from __future__ import annotations
 

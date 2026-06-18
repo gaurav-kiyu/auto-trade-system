@@ -2,7 +2,7 @@
 NLP Trade Journal (v2.45 Item 17).
 
 Generates a natural-language post-trade narrative using rule-based templates.
-No API keys, no external AI dependency — runs fully offline.
+No API keys, no external AI dependency - runs fully offline.
 
 Each closed trade is summarised: what happened, key signals, and a lesson.
 
@@ -92,7 +92,7 @@ def _build_prompt(trade: dict[str, Any]) -> str:
     # Lesson
     if net_pnl > 0:
         lesson = (
-            "Signal aligned with regime — entry timing and score confirmation worked well."
+            "Signal aligned with regime - entry timing and score confirmation worked well."
         )
         sentiment_tag = "SENTIMENT: POSITIVE"
     elif net_pnl < 0:
@@ -101,7 +101,7 @@ def _build_prompt(trade: dict[str, Any]) -> str:
         )
         sentiment_tag = "SENTIMENT: NEGATIVE"
     else:
-        lesson = "Breakeven trade — conditions were mixed."
+        lesson = "Breakeven trade - conditions were mixed."
         sentiment_tag = "SENTIMENT: NEUTRAL"
 
     parts.append(lesson)

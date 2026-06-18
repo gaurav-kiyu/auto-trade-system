@@ -37,7 +37,7 @@ class RiskService:
         self._daily_start_equity: float = risk_limits.account_equity
         self._consecutive_losses: int = 0
         self._peak_equity: float = risk_limits.account_equity
-        self._risk_lock = threading.Lock()
+        self._risk_lock = threading.RLock()
 
     def evaluate_trade(
         self,
@@ -91,7 +91,7 @@ class RiskService:
 
     def _reset_daily_tracking(self):
         """Reset daily tracking at start of new trading day."""
-        # Called from within _risk_lock in evaluate_trade() — no separate lock needed
+        # Called from within _risk_lock in evaluate_trade() - no separate lock needed
         pass  # Simplified - in reality would check date change
 
     def _check_position_limits(self, symbol: str, suggested_size: int) -> RiskDecision:

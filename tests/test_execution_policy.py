@@ -1,4 +1,4 @@
-"""Tests for core.execution_policy — ExecutionPolicy.apply()."""
+"""Tests for core.execution_policy - ExecutionPolicy.apply()."""
 from __future__ import annotations
 
 from core.execution_policy import ExecutionPolicy

@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 # ---------------------------------------------------------------------------
-# AuditEngine — thread safety, trace_id, severity
+# AuditEngine - thread safety, trace_id, severity
 # ---------------------------------------------------------------------------
 
 class TestAuditEngine:
@@ -118,7 +118,7 @@ class TestAuditEngine:
 
 
 # ---------------------------------------------------------------------------
-# TradeJournal — VALID_EXIT_REASONS, sanitize_exit_reason
+# TradeJournal - VALID_EXIT_REASONS, sanitize_exit_reason
 # ---------------------------------------------------------------------------
 
 class TestTradeJournalExitReason:
@@ -200,7 +200,7 @@ class TestTradeJournalExitReason:
 
 
 # ---------------------------------------------------------------------------
-# ReconciliationEngine — has_qty_mismatch, ok computation
+# ReconciliationEngine - has_qty_mismatch, ok computation
 # ---------------------------------------------------------------------------
 
 class TestReconciliationHardening:
@@ -240,7 +240,7 @@ class TestReconciliationHardening:
             qty_mismatch_halts=False,  # qty mismatches are tolerated
         )
         report = engine.reconcile_positions({"NIFTY": {"qty": 50, "entry": 100.0}})
-        # Only a qty mismatch — should be ok=True when halts disabled
+        # Only a qty mismatch - should be ok=True when halts disabled
         assert report.items[0].has_qty_mismatch is True
         assert report.ok is True
 
@@ -253,7 +253,7 @@ class TestReconciliationHardening:
         assert report.ok is False
 
     def test_price_mismatch_makes_ok_false_even_when_halts_disabled(self):
-        """Price mismatch is NOT a qty mismatch — ok must be False even if halts disabled."""
+        """Price mismatch is NOT a qty mismatch - ok must be False even if halts disabled."""
         engine = ReconciliationEngine(
             broker_snapshot_fn=lambda: {"NIFTY": {"qty": 50, "avg_price": 120.0}},
             price_tolerance_pct=0.05,
@@ -275,7 +275,7 @@ class TestReconciliationHardening:
 
 
 # ---------------------------------------------------------------------------
-# StateManager — positions_aligned
+# StateManager - positions_aligned
 # ---------------------------------------------------------------------------
 
 class TestStateManagerHardening:
@@ -309,7 +309,7 @@ class TestStateManagerHardening:
             broker_positions_fn=lambda: {"NIFTY": {"qty": 50}},
         )
         report = sm.session_recovery_report()
-        # No local positions to match — trivially aligned
+        # No local positions to match - trivially aligned
         assert report.positions_aligned is True
 
     def test_existing_fields_unchanged(self):
@@ -332,7 +332,7 @@ class TestStateManagerHardening:
 
 
 # ---------------------------------------------------------------------------
-# soft_reload_common — ignored_keys_warning
+# soft_reload_common - ignored_keys_warning
 # ---------------------------------------------------------------------------
 
 class TestIgnoredKeysWarning:
@@ -367,7 +367,7 @@ class TestIgnoredKeysWarning:
 
 
 # ---------------------------------------------------------------------------
-# config.json — CONFIG_VERSION present
+# config.json - CONFIG_VERSION present
 # ---------------------------------------------------------------------------
 
 class TestConfigVersion:

@@ -2,7 +2,7 @@
 Tests for SHAP explainability additions to core/ml_classifier.py (Phase B).
 
 All SHAP tests are designed to pass whether or not the optional ``shap``
-package is installed — the module contract guarantees graceful no-ops.
+package is installed - the module contract guarantees graceful no-ops.
 
 Covers:
   - explain_prediction() with shap_enabled=False → always {}
@@ -160,7 +160,7 @@ class TestShapToJson:
         assert isinstance(parsed, dict)
 
 
-# ── Regression guards — existing functions unaffected ─────────────────────────
+# ── Regression guards - existing functions unaffected ─────────────────────────
 
 class TestRegressionGuards:
     def test_extract_features_returns_all_cols(self):

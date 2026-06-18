@@ -1,4 +1,4 @@
-"""Tests for scripts/institutional_challenge.py — Adversarial Certification."""
+"""Tests for scripts/institutional_challenge.py - Adversarial Certification."""
 from __future__ import annotations
 
 import json

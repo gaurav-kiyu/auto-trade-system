@@ -1,7 +1,7 @@
 """
 Unit tests for core/iv_rank.py
 
-All tests run fully offline — Yahoo Finance is mocked throughout.
+All tests run fully offline - Yahoo Finance is mocked throughout.
 No network calls, no file writes to production paths.
 """
 from __future__ import annotations
@@ -301,7 +301,7 @@ class TestCacheBehaviour:
         _reset_module_cache()
 
     def test_in_memory_cache_avoids_refetch(self):
-        """Second call must use in-memory cache — _fetch_vix_history called once."""
+        """Second call must use in-memory cache - _fetch_vix_history called once."""
         closes = _make_closes(10.0, 30.0, 50)
         with patch("core.iv_rank._fetch_vix_history", return_value=closes) as mock_fetch:
             with patch("core.iv_rank._load_file_cache", return_value={}):

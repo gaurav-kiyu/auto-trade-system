@@ -1,5 +1,5 @@
 """
-Tests for Phase 2 — Realistic Paper Fill Simulation.
+Tests for Phase 2 - Realistic Paper Fill Simulation.
 
 Covers:
   - PaperFill dataclass structure
@@ -250,7 +250,7 @@ class TestConfigurePaperSimulation:
         """Passing None for optional args should not clear existing getters."""
         adapter = PaperBrokerAdapter(price_getter=_make_price_getter(100.0))
         adapter.configure_paper_simulation(price_getter=None)
-        # Price getter is not cleared — configure_paper_simulation skips None
+        # Price getter is not cleared - configure_paper_simulation skips None
         oid = adapter.place_order("NIFTY", "CALL", 50, 22500)
         assert adapter.get_fill_price(oid) is not None
 
@@ -306,7 +306,7 @@ class TestTradeJournalMigration:
         assert "slippage_drift" in columns
 
     def test_slippage_drift_column_added_to_existing_db(self):
-        """Simulate a pre-Phase2 DB (has journal table but no slippage_drift) — migration adds it."""
+        """Simulate a pre-Phase2 DB (has journal table but no slippage_drift) - migration adds it."""
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
         # Create a realistic pre-Phase2 journal table (has tier but no slippage_drift)

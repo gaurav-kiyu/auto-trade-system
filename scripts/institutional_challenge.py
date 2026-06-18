@@ -274,7 +274,7 @@ def challenge_data_leakage() -> ChallengeResult:
                     # Check if it's redacted or a variable name, not the actual value
                     if "os.getenv" not in stripped and "get(" not in stripped and "config.get" not in stripped:
                         if "redact" not in stripped.lower():
-                            # Exclude SECRET_HYGIENE — it's the security feature itself, not a leak
+                            # Exclude SECRET_HYGIENE - it's the security feature itself, not a leak
                             if "SECRET_HYGIENE" not in stripped:
                                 failures.append(
                                     f"Line {i}: Potential secret leak: {stripped[:80]}"

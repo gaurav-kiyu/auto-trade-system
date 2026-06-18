@@ -35,7 +35,7 @@ class SlippageModel:
     intercept:       float   # baseline slippage in ticks / pct
     lot_coeff:       float   # marginal slippage per additional lot
     spread_coeff:    float   # marginal slippage per 1% spread widening
-    r_squared:       float   # fit quality  0–1
+    r_squared:       float   # fit quality  0-1
     n_samples:       int
     calibrated_at:   str     # ISO timestamp
 

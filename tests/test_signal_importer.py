@@ -1,4 +1,4 @@
-"""Tests for SignalImporter — import signals from CSV, text, and parse lines."""
+"""Tests for SignalImporter - import signals from CSV, text, and parse lines."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class TestImportResult:
 
 
 class TestParseSignalText:
-    """parse_signal_text — free-text signal parsing."""
+    """parse_signal_text - free-text signal parsing."""
 
     def test_valid_minimal(self):
         result = parse_signal_text("NIFTY CALL 82")
@@ -98,7 +98,7 @@ class TestParseSignalText:
 
 
 class TestImportFromText:
-    """import_from_text — import signals from newline-separated text."""
+    """import_from_text - import signals from newline-separated text."""
 
     def test_import_single(self):
         queue = MagicMock()

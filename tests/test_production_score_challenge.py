@@ -1,5 +1,5 @@
 """
-Smoke tests for scripts.production_score_challenge — Adversarial Score Challenge.
+Smoke tests for scripts.production_score_challenge - Adversarial Score Challenge.
 
 Verifies:
 - Module imports correctly

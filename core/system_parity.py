@@ -1,5 +1,5 @@
 """
-System Parity Checker — fail-fast assertion that backtest and live share identical constants.
+System Parity Checker - fail-fast assertion that backtest and live share identical constants.
 
 Call assert_backtest_live_parity() at application startup before any signal evaluation.
 A mismatch means the simulation used different thresholds than the live engine, making
@@ -23,7 +23,7 @@ def assert_backtest_live_parity() -> None:
     Hard assertion: simulation_engine tier constants must mirror tier_engine constants.
 
     Raises AssertionError with a clear diagnostic if any constant diverges.
-    Called at startup — failing here means the backtest results are unreliable.
+    Called at startup - failing here means the backtest results are unreliable.
     """
     from core.simulation_engine import SIGNAL_CONFIRMED, SIGNAL_EARLY, SIGNAL_STRONG
     from core.tier_engine import TIER_MODERATE_MIN, TIER_STRONG_MIN, TIER_WEAK_MIN
@@ -48,7 +48,7 @@ def assert_backtest_live_parity() -> None:
 
     if mismatches:
         msg = (
-            "BACKTEST ↔ LIVE PARITY FAILURE — constants diverged:\n"
+            "BACKTEST ↔ LIVE PARITY FAILURE - constants diverged:\n"
             + "\n".join(f"  • {m}" for m in mismatches)
             + "\nBacktest statistics are unreliable. Fix the constants and restart."
         )
@@ -130,7 +130,7 @@ def log_startup_parity(config: dict[str, Any], logger: logging.Logger = None) ->
     """
     L = logger or log
 
-    # 1. Hard assertion — must pass before any signal evaluation
+    # 1. Hard assertion - must pass before any signal evaluation
     assert_backtest_live_parity()
 
     # 2. Config-vs-code alignment

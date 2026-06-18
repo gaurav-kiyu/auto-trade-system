@@ -138,7 +138,7 @@ def live_signal_confidence(
     default_threshold: int,
     trade_snap: dict[str, Any],
 ) -> tuple[int, str]:
-    """Heuristic 1–99 confidence score and A/B/C/D band; `trade_snap` from recent_trade_learning_snapshot."""
+    """Heuristic 1-99 confidence score and A/B/C/D band; `trade_snap` from recent_trade_learning_snapshot."""
     score = int(sig.get("score") or 0)
     threshold = int(sig.get("threshold") or default_threshold)
     gap = max(-20, min(20, score - threshold))

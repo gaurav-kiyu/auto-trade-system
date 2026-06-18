@@ -1,5 +1,5 @@
 """
-Tests for core/data_engine.py — DataEngine and ProviderChain.
+Tests for core/data_engine.py - DataEngine and ProviderChain.
 
 Covers:
 - MarketDataSnapshot and ProviderResult dataclasses
@@ -84,7 +84,7 @@ class TestProviderResult:
 
 
 class TestProviderChain:
-    """ProviderChain — ordered provider fallback."""
+    """ProviderChain - ordered provider fallback."""
 
     def test_fetch_primary_succeeds(self, chain, provider1):
         result = chain.fetch(["primary", "secondary"], "NIFTY")
@@ -154,7 +154,7 @@ class TestProviderChain:
 
 
 class TestDataEngine:
-    """DataEngine — market data boundary with caching and fallback."""
+    """DataEngine - market data boundary with caching and fallback."""
 
     def test_fetch_all_frames(self):
         fetch_fn = MagicMock(return_value={"NIFTY": [1, 2, 3]})

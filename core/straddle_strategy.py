@@ -80,8 +80,8 @@ def check_straddle_conditions(
     Check if straddle entry conditions are met.
 
     Returns:
-        (True, "")                  — conditions met
-        (False, reason_string)      — blocked with reason
+        (True, "")                  - conditions met
+        (False, reason_string)      - blocked with reason
     """
     sc = get_strategy_cfg(cfg, "straddle")
     if not sc.get("enabled", False):

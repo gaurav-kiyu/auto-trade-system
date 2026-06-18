@@ -1,5 +1,5 @@
 """
-AD-KIYU AI Governance — AIGovernanceBoard.
+AD-KIYU AI Governance - AIGovernanceBoard.
 
 Orchestrates the full AI governance pipeline:
   ModelRegistry → CanaryManager → RollbackController
@@ -37,7 +37,7 @@ class AIGovernanceBoard:
         canary_manager: CanaryManager | None = None,
         rollback_controller: RollbackController | None = None,
     ):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self.model_registry = model_registry or ModelRegistry()
         self.canary_manager = canary_manager or CanaryManager()
         self.rollback_controller = rollback_controller or RollbackController(

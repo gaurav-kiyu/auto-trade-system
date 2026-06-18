@@ -1,5 +1,5 @@
 """
-Signal Safety Tests — manual-mode gate validation for error paths.
+Signal Safety Tests - manual-mode gate validation for error paths.
 
 Covers three critical safety behaviors:
 
@@ -12,13 +12,13 @@ Covers three critical safety behaviors:
   2. Zombie PnL Confirmation (capital_adj_pending)
      - check_pending_reconciliation(): non-zero cap_adj in non-PAPER mode must emit
        a critical Telegram warning and NOT silently apply the amount to capital.
-     - daily_reset(): same requirement — unresolved zombie PnL must alert, not auto-apply.
+     - daily_reset(): same requirement - unresolved zombie PnL must alert, not auto-apply.
 
   3. Reconciliation Hard Halt (qty mismatch)
      - When broker qty != bot qty (both > 0) and RECONCILE_HALT_ON_QTY_MISMATCH=true,
        _reconcile_positions_live() must call _trip_hard_halt(), setting _HARD_HALT.
 
-All tests are @pytest.mark.slow — they load index_trader via subprocess with config.json.
+All tests are @pytest.mark.slow - they load index_trader via subprocess with config.json.
 Config thresholds (from config.json): SIGNAL_MAX_AGE=65, SIGNAL_TS_MAX_AGE=300.
 """
 from __future__ import annotations
@@ -63,7 +63,7 @@ def _preamble() -> str:
 
 
 # ---------------------------------------------------------------------------
-# 1. Signal Staleness — SIGNAL_MAX_AGE enforcement
+# 1. Signal Staleness - SIGNAL_MAX_AGE enforcement
 # ---------------------------------------------------------------------------
 
 @pytest.mark.slow
@@ -90,7 +90,7 @@ stale_ts = time.time() - mod.SIGNAL_MAX_AGE - 30
 with mod._bos_lock:
     mod.breakout_state["NIFTY"] = {"type": "CALL", "confirmed_ts": stale_ts}
 
-# Capture send() calls — should NOT be called for a stale signal
+# Capture send() calls - should NOT be called for a stale signal
 sent = []
 mod.send = lambda msg, critical=False, **kw: sent.append(msg)
 
@@ -120,10 +120,10 @@ mod._is_monday_gap_window = lambda: False
 mod._expiry_controller._enable_controls = False
 # Bypass auction session gate (flaky during 09:00-09:15 / 15:30-15:45 IST)
 mod.is_in_auction_session = lambda now=None: False
-# Bypass sniper gate (needs price/sup/res fields we don't need here) — not what this test checks
+# Bypass sniper gate (needs price/sup/res fields we don't need here) - not what this test checks
 mod.sniper_ok = lambda name, data, signal_type: False
 
-fresh_ts = time.time() - 5  # 5 seconds old — well within 65s limit
+fresh_ts = time.time() - 5  # 5 seconds old - well within 65s limit
 with mod._bos_lock:
     mod.breakout_state["NIFTY"] = {"type": "CALL", "confirmed_ts": fresh_ts}
 
@@ -149,7 +149,7 @@ mod._is_monday_gap_window = lambda: False
 mod._expiry_controller._enable_controls = False
 # Bypass auction session gate (flaky during 09:00-09:15 / 15:30-15:45 IST)
 mod.is_in_auction_session = lambda now=None: False
-# Bypass sniper gate (needs price/sup/res fields we don't need here) — not what this test checks
+# Bypass sniper gate (needs price/sup/res fields we don't need here) - not what this test checks
 mod.sniper_ok = lambda name, data, signal_type: False
 
 # Verify SIGNAL_MAX_AGE loaded from config.json
@@ -246,7 +246,7 @@ print("STATUS:PASS")
 class TestZombiePnLConfirmation:
     """
     Non-zero capital_adj_pending in non-PAPER mode must always emit a critical warning.
-    Capital must NOT be silently updated — operator must manually verify with broker.
+    Capital must NOT be silently updated - operator must manually verify with broker.
     """
 
     def test_check_pending_reconciliation_emits_warning(self):
@@ -463,13 +463,13 @@ with mod._pos_lock:
 
 class MockBroker:
     def get_position_qty(self, name, signal, strike):
-        return 0  # Broker has 0 — zombie exit path, not mismatch halt
+        return 0  # Broker has 0 - zombie exit path, not mismatch halt
 
 mod._broker = MockBroker()
 mod._HARD_HALT.clear()
 mod._reconcile_positions_live()
 
-# broker=0, local=50 is a zombie case — marked for age-out, NOT a hard halt
+# broker=0, local=50 is a zombie case - marked for age-out, NOT a hard halt
 assert not mod._HARD_HALT.is_set(), (
     "Hard halt should NOT fire when broker qty is 0 (zombie exit path)"
 )
@@ -526,7 +526,7 @@ with mod._pos_lock:
 mod._periodic_reconcile()
 
 assert not mod._HARD_HALT.is_set(), (
-    "Reconciliation ran in MANUAL mode — it should be skipped entirely"
+    "Reconciliation ran in MANUAL mode - it should be skipped entirely"
 )
 print("STATUS:PASS")
 """

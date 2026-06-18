@@ -121,11 +121,11 @@ class RetryPolicy:
         if not succeeded:
             if safety == RetrySafety.UNKNOWN:
                 raise RuntimeError(
-                    "Operation failed with unknown status — manual intervention required"
+                    "Operation failed with unknown status - manual intervention required"
                 )
             elif safety == RetrySafety.UNSAFE:
                 raise RuntimeError(
-                    "Operation failed with permanent error — do not retry"
+                    "Operation failed with permanent error - do not retry"
                 )
             else:
                 raise RuntimeError(

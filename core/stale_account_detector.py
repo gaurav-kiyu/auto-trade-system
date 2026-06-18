@@ -1,10 +1,10 @@
 """
-Stale Account Detector — Session & Credential Staleness Monitor.
+Stale Account Detector - Session & Credential Staleness Monitor.
 
 Detects three classes of account staleness:
-  1. BROKER_SESSION  — Trading session expired or no activity beyond TTL
-  2. CREDENTIAL      — API key/token expired or due for rotation
-  3. TRADING_STATE   — No trades, no heartbeats, no activity beyond threshold
+  1. BROKER_SESSION  - Trading session expired or no activity beyond TTL
+  2. CREDENTIAL      - API key/token expired or due for rotation
+  3. TRADING_STATE   - No trades, no heartbeats, no activity beyond threshold
 
 Integrates with:
   - core/services/broker_health_service.py  (broker connectivity status)
@@ -134,7 +134,7 @@ class StaleAccountConfig:
 
 class StaleAccountDetector:
     """
-    Stale Account Detector — monitors broker session, credential,
+    Stale Account Detector - monitors broker session, credential,
     and trading state for staleness.
 
     Designed as a passive monitor that checks conditions on demand
@@ -160,7 +160,7 @@ class StaleAccountDetector:
         self._session_store = session_store
         self._alert_fn = alert_fn
 
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._last_check: dict[str, float] = {}   # broker -> last check timestamp
         self._last_trade_time: dict[str, float] = {}  # broker -> last trade time
         self._last_heartbeat: float = 0.0
@@ -291,7 +291,7 @@ class StaleAccountDetector:
         for broker_name in known_brokers:
             last = self._last_check.get(broker_name, 0.0)
             if last == 0.0:
-                # Never checked — skip, unknown is not stale
+                # Never checked - skip, unknown is not stale
                 continue
             age = now - last
 
@@ -343,7 +343,7 @@ class StaleAccountDetector:
                     recommendation="No action required yet, but monitor session health.",
                 ))
             else:
-                # Broker is healthy — remove from stale set if present
+                # Broker is healthy - remove from stale set if present
                 if broker_name in self._detected_stale_brokers:
                     self._detected_stale_brokers.discard(broker_name)
                     if self.config.enable_alerts and self.config.alert_on_recovery and self._alert_fn:
@@ -376,7 +376,7 @@ class StaleAccountDetector:
             # Check credential age
             last_check = self._last_check.get(broker_name, 0.0)
             if last_check == 0.0:
-                # Never checked — skip, unknown is not stale
+                # Never checked - skip, unknown is not stale
                 continue
             credential_age_days = (now - last_check) / 86400
 

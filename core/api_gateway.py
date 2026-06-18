@@ -214,7 +214,7 @@ class ControlPlane:
 
 
 _control_plane: ControlPlane | None = None
-_control_plane_lock = threading.Lock()
+_control_plane_lock = threading.RLock()
 
 
 def get_control_plane() -> ControlPlane:

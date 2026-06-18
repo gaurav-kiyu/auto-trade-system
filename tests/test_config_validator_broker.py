@@ -92,7 +92,7 @@ class TestBrokerDriverLiveCapability:
         assert any("BROKER_DRIVER" in e for e in errors)
 
     def test_driver_check_skipped_when_broker_api_disabled(self):
-        # API off: driver doesn't matter — no error expected for GENERIC
+        # API off: driver doesn't matter - no error expected for GENERIC
         cfg = _base()
         cfg["EXECUTION_MODE"]     = "AUTO"
         cfg["BROKER_API_ENABLED"]  = False
@@ -204,7 +204,7 @@ class TestDuplicateCredentialWarning:
 
     def test_empty_broker_config_no_false_alarm(self):
         cfg = _auto_kite()
-        cfg["BROKER_CONFIG"] = {}          # empty — no api_key
+        cfg["BROKER_CONFIG"] = {}          # empty - no api_key
         cfg["KITE_API_KEY"]  = "fallback"  # only legacy present
         _, warnings = validate_config(cfg)
         assert not any("BROKER_CONFIG" in w and "KITE_API_KEY" in w for w in warnings)

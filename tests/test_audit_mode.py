@@ -1,5 +1,5 @@
 """
-Smoke tests for core.audit_mode — Independent Audit Mode.
+Smoke tests for core.audit_mode - Independent Audit Mode.
 
 Verifies:
 - Module imports correctly

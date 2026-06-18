@@ -706,7 +706,7 @@ class AuditLogger:
 
 
 # Module-level globals for singleton access
-_audit_logger_lock: threading.Lock = threading.Lock()
+_audit_logger_lock: threading.RLock = threading.RLock()
 _audit_logger: AuditLogger | None = None
 
 

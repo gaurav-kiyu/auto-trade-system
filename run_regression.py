@@ -101,7 +101,7 @@ def main() -> None:
     args = sys.argv[1:]
     if not args:
         # Default: run the "new" group
-        print("No arguments — running 'new' group. Use --help for options.")
+        print("No arguments - running 'new' group. Use --help for options.")
         sys.exit(run_tests(GROUPS["new"]))
 
     if "--help" in args or "-h" in args:

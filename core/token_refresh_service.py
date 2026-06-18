@@ -40,7 +40,7 @@ class TokenRefreshService:
         self._interval = float(c.get("token_refresh_interval_mins", 60))
         self._grace = float(c.get("token_refresh_grace_period_mins", 30))
         self._retry = int(c.get("token_refresh_retry_count", 3))
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._last_check: dict[str, float] = {}
         self._refresh_count: dict[str, int] = {}
         self._last_error: dict[str, str] = {}
@@ -220,7 +220,7 @@ class TokenRefreshService:
             from core.adapters.broker_adapters import broker_connection_secrets
             return broker_connection_secrets(cfg, name.upper())
         except (ImportError, ValueError, TypeError, AttributeError, KeyError):
-            _log.debug("[TOKEN_REFRESH] Secrets fetch failed for %s — using empty", name)
+            _log.debug("[TOKEN_REFRESH] Secrets fetch failed for %s - using empty", name)
             return {}
 
     def validate_token(self, adapter: Any) -> bool:

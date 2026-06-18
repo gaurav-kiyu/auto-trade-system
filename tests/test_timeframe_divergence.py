@@ -1,4 +1,4 @@
-"""Tests for Item 5 — TimeframeAgreement in core/adaptive_signal.py."""
+"""Tests for Item 5 - TimeframeAgreement in core/adaptive_signal.py."""
 from core.adaptive_signal import TimeframeAgreement, compute_timeframe_agreement
 
 

@@ -1,4 +1,4 @@
-"""Tests for core/nlp_journal.py (v2.45 Item 17) — template-based, no AI API required."""
+"""Tests for core/nlp_journal.py (v2.45 Item 17) - template-based, no AI API required."""
 from core.nlp_journal import (
     TradeNarrative,
     _build_prompt,
@@ -72,7 +72,7 @@ def test_disabled_returns_none():
 
 
 def test_enabled_returns_narrative_without_api_key():
-    # Template-based: no API key needed — returns narrative when enabled
+    # Template-based: no API key needed - returns narrative when enabled
     result = generate_trade_narrative(
         _trade(),
         cfg={"nlp_journal_enabled": True},
@@ -111,7 +111,7 @@ def test_format_contains_summary():
     assert "Trend was strong." in out
 
 
-# ── _build_prompt — negative / breakeven P&L branches ─────────────────────────
+# ── _build_prompt - negative / breakeven P&L branches ─────────────────────────
 # Lines 98-105: elif net_pnl < 0 / else (breakeven)
 
 
@@ -141,7 +141,7 @@ def test_prompt_breakeven_missing_key():
     assert "Breakeven" in p
 
 
-# ── _classify_sentiment — all three branches (lines 122-126) ───────────────────
+# ── _classify_sentiment - all three branches (lines 122-126) ───────────────────
 
 
 def test_classify_sentiment_positive():
@@ -156,7 +156,7 @@ def test_classify_sentiment_neutral():
     assert _classify_sentiment(0.0) == "NEUTRAL"
 
 
-# ── generate_trade_narrative — negative PnL end-to-end ─────────────────────────
+# ── generate_trade_narrative - negative PnL end-to-end ─────────────────────────
 
 
 def test_enabled_negative_pnl_returns_negative_sentiment():

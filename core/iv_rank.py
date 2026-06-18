@@ -1,5 +1,5 @@
 """
-IV Rank / IV Percentile — 52-week VIX-based premium cost indicator.
+IV Rank / IV Percentile - 52-week VIX-based premium cost indicator.
 
 Definitions
 -----------
@@ -16,7 +16,7 @@ Data source : Yahoo Finance ^INDIAVIX daily closes
 Cache       : data/iv_history_cache.json, refreshed every 24 h
 Fallback    : if data unavailable, multiplier = 1.0 (no-op), logged at WARNING
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ----------------------------------------------------
   iv_rank_high_threshold : float  default 70.0  (rank above which buying is expensive)
   iv_rank_low_threshold  : float  default 30.0  (rank below which buying is cheap)
@@ -52,7 +52,7 @@ _DEF_HIGH_MULT = 0.60
 _DEF_LOW_MULT  = 1.20
 _DEF_TTL_HRS   = 24.0
 
-# Module-level in-memory cache — avoids file I/O on every scan cycle
+# Module-level in-memory cache - avoids file I/O on every scan cycle
 _mem_cache: dict[str, Any] = {}
 
 
@@ -141,7 +141,7 @@ def _get_history(config: dict[str, Any], force_refresh: bool = False) -> list[fl
 
     # 4. Stale fallback (data unavailable today)
     if file_data and file_data.get("closes"):
-        _log.warning("[IV_RANK] Fetch failed — using stale cache (%d sessions)", len(file_data["closes"]))
+        _log.warning("[IV_RANK] Fetch failed - using stale cache (%d sessions)", len(file_data["closes"]))
         _mem_cache = file_data
         return list(file_data["closes"])
 
@@ -183,7 +183,7 @@ def get_iv_rank(
     low_52w  = min(closes)
     high_52w = max(closes)
     if high_52w <= low_52w:
-        return 50.0  # flat VIX environment — return neutral
+        return 50.0  # flat VIX environment - return neutral
 
     rank = (current_vix - low_52w) / (high_52w - low_52w) * 100.0
     return round(max(0.0, min(100.0, rank)), 2)
@@ -232,7 +232,7 @@ def get_score_multiplier(
     Score multiplier:
         iv_rank > high_threshold → config["iv_rank_high_mult"]   (e.g. 0.60)
         iv_rank < low_threshold  → config["iv_rank_low_mult"]    (e.g. 1.20)
-        otherwise                → 1.0 (neutral — no adjustment)
+        otherwise                → 1.0 (neutral - no adjustment)
 
     Returns (1.0, -1.0, "iv_rank_unavailable") when history is missing.
 
@@ -313,10 +313,10 @@ def invalidate_cache() -> None:
     """Force next call to re-fetch from Yahoo Finance (e.g. at daily reset)."""
     global _mem_cache
     _mem_cache = {}
-    _log.info("[IV_RANK] In-memory cache invalidated — next call will re-fetch")
+    _log.info("[IV_RANK] In-memory cache invalidated - next call will re-fetch")
 
 
-# ── IV Skew (Item 11 — v2.44) ─────────────────────────────────────────────────
+# ── IV Skew (Item 11 - v2.44) ─────────────────────────────────────────────────
 
 from dataclasses import dataclass as _dataclass
 

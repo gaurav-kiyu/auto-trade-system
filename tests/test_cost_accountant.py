@@ -1,4 +1,4 @@
-"""Tests for CostAccountant — accurate cost-adjusted PnL calculations."""
+"""Tests for CostAccountant - accurate cost-adjusted PnL calculations."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from core.cost_accountant import CostAccountant, get_cost_accountant
 
 
 class TestCostAccountant:
-    """CostAccountant — trading cost calculations."""
+    """CostAccountant - trading cost calculations."""
 
     def test_default_config_uses_default_rates(self):
         ca = CostAccountant()

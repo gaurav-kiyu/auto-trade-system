@@ -1,5 +1,5 @@
 """
-Tests for core/services/execution_service.py — ExecutionService (new, replaces legacy execution_engine).
+Tests for core/services/execution_service.py - ExecutionService (new, replaces legacy execution_engine).
 
 Covers:
   - ExecutionService initialization with defaults

@@ -53,7 +53,7 @@ def test_active_broker_changes_after_failover():
 
 def test_failure_on_non_active_broker_no_switch():
     mgr = _mgr(failover_threshold=2)
-    # angel is not active — failures should not trigger switch
+    # angel is not active - failures should not trigger switch
     for _ in range(5):
         mgr.record_failure("angel")
     assert mgr.get_active_broker() == "kite"

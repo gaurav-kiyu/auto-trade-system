@@ -1,5 +1,5 @@
 """
-Enterprise Web Dashboard — premium FastAPI + Jinja2 + Tailwind CSS UI.
+Enterprise Web Dashboard - premium FastAPI + Jinja2 + Tailwind CSS UI.
 
 Provides a world-class admin interface with full auth, RBAC, config management,
 kill switch, and monitoring.
@@ -57,6 +57,42 @@ def _freeze(obj: Any) -> Any:
     return obj
 
 
+
+# -- Error-rate tracking for market data providers ------------------------------
+
+_PROVIDER_REQUESTS: list[float] = []
+_LOCK = threading.RLock()
+
+
+def _record_provider_request() -> None:
+    """Record a request timestamp for rate/error tracking."""
+    global _PROVIDER_REQUESTS
+    now = time.time()
+    with _LOCK:
+        _PROVIDER_REQUESTS.append(now)
+        # Keep only last 5 minutes of requests
+        _PROVIDER_REQUESTS = [t for t in _PROVIDER_REQUESTS if now - t < 300]
+
+
+def _get_provider_error_info(details: dict) -> dict:
+    """Get error-rate info for each adapter from health details."""
+    error_info: dict[str, Any] = {}
+    now = time.time()
+    for name, detail in details.items():
+        if not isinstance(detail, dict):
+            continue
+        error_rate = detail.get("error_rate", 0.0)
+        last_error = detail.get("last_error", None)
+        last_error_ts = detail.get("last_error_ts", None)
+        error_info[name] = {
+            "error_rate": error_rate,
+            "last_error": last_error,
+            "last_error_ts": last_error_ts,
+            "error_age": round(now - last_error_ts, 2) if last_error_ts else None,
+        }
+    return error_info
+
+
 class EnterpriseDashboard:
     """Enterprise-grade web dashboard with auth, RBAC, and admin UI."""
 
@@ -90,7 +126,7 @@ class EnterpriseDashboard:
         self._rate_limiter: Any = None
         self._control_plane: Any = None
         self._bot_refs: dict[str, Any] = {}
-        self._config_lock: threading.Lock = threading.Lock()
+        self._config_lock: threading.Lock = threading.RLock()
 
         # Create the FastAPI app
         self.app = self._create_app()
@@ -134,19 +170,27 @@ class EnterpriseDashboard:
             return None
 
     def wire_bot_refs(self, **refs: Any) -> None:
-        """Wire external bot references."""
-        self._bot_refs.update(refs)
-        if "pause_event" in refs:
+        """Wire external bot references.
+
+        Only overwrites internal references if the supplied value is not None,
+        preserving constructor defaults. This prevents callers that pass
+        ``pause_event=None`` from accidentally overwriting the default
+        ``threading.Event()``.
+        """
+        # Filter out None values to preserve constructor defaults in
+        # both the refs dict and the dedicated attributes
+        self._bot_refs.update({k: v for k, v in refs.items() if v is not None})
+        if "pause_event" in refs and refs["pause_event"] is not None:
             self._pause_event = refs["pause_event"]
-        if "signal_log" in refs:
+        if "signal_log" in refs and refs["signal_log"] is not None:
             self._signal_log = refs["signal_log"]
-        if "signal_queue" in refs:
+        if "signal_queue" in refs and refs["signal_queue"] is not None:
             self._signal_queue = refs["signal_queue"]
-        if "ws_feed_manager" in refs:
+        if "ws_feed_manager" in refs and refs["ws_feed_manager"] is not None:
             self._ws_feed_manager = refs["ws_feed_manager"]
-        if "rate_limiter" in refs:
+        if "rate_limiter" in refs and refs["rate_limiter"] is not None:
             self._rate_limiter = refs["rate_limiter"]
-        if "control_plane" in refs:
+        if "control_plane" in refs and refs["control_plane"] is not None:
             self._control_plane = refs["control_plane"]
 
     def _create_app(self) -> FastAPI:
@@ -163,7 +207,43 @@ class EnterpriseDashboard:
         @asynccontextmanager
         async def lifespan(app: FastAPI):
             _log.info("[DASH] Enterprise dashboard started")
+            # Start periodic Prometheus gauge updater for market data providers
+            _metrics_stop = threading.Event()
+
+            def _update_provider_metrics_loop():
+                while not _metrics_stop.is_set():
+                    if _metrics_stop.wait(30):
+                        break
+                    try:
+                        from core.metrics_exporter import update_metrics
+                        mds = self._bot_refs.get("market_data_service")
+                        if mds is not None:
+                            health = mds.health_check()
+                            total = health.get("total_adapters", 0)
+                            connected = health.get("connected_adapters", 0)
+                            disconnected_pct = round(((total - connected) / max(total, 1)) * 100, 1) if total > 0 else 0.0
+                            worst_state = 0  # healthy
+                            if connected < total:
+                                worst_state = 1  # degraded
+                            if connected == 0 and total > 0:
+                                worst_state = 2  # critical
+
+                            update_metrics({
+                                "data_providers_total": total,
+                                "data_providers_connected": connected,
+                                "data_providers_disconnected_pct": disconnected_pct,
+                                "data_providers_worst_state": worst_state,
+                            })
+                            _log.debug(
+                                "[DASH] Updated Prometheus gauges: %d/%d providers connected",
+                                connected, total,
+                            )
+                    except (ValueError, TypeError, AttributeError, ImportError, RuntimeError) as exc:
+                        _log.debug("[DASH] Prometheus metrics update skipped: %s", exc)
+            t = threading.Thread(target=_update_provider_metrics_loop, daemon=True, name="provider_metrics_updater")
+            t.start()
             yield
+            _metrics_stop.set()
             _log.info("[DASH] Enterprise dashboard shutting down gracefully")
 
         app = FastAPI(
@@ -174,19 +254,19 @@ class EnterpriseDashboard:
             openapi_tags=[
                 {
                     "name": "Auth",
-                    "description": "Authentication and session management — login, register, change password",
+                    "description": "Authentication and session management - login, register, change password",
                 },
                 {
                     "name": "System",
-                    "description": "System state, health, diagnostics, uptime, trades, signals — read-only observability",
+                    "description": "System state, health, diagnostics, uptime, trades, signals - read-only observability",
                 },
                 {
                     "name": "Admin",
-                    "description": "Admin-only operations — config management, kill switch, user management, self-test",
+                    "description": "Admin-only operations - config management, kill switch, user management, self-test",
                 },
                 {
                     "name": "Risk",
-                    "description": "Risk metrics — position concentration and exposure analysis",
+                    "description": "Risk metrics - position concentration and exposure analysis",
                 },
                 {
                     "name": "Broker",
@@ -194,7 +274,7 @@ class EnterpriseDashboard:
                 },
                 {
                     "name": "ML",
-                    "description": "ML model status — accuracy, drift detection, calibration",
+                    "description": "ML model status - accuracy, drift detection, calibration",
                 },
                 {
                     "name": "Webhook",
@@ -230,11 +310,13 @@ class EnterpriseDashboard:
         csrf_protection.exempt("/signals/inject")
         csrf_protection.exempt("/static")
         csrf_protection.exempt("/api/system/self-test")
+        # Fundamentals API endpoints (programmatic access, not browser forms)
+        csrf_protection.exempt("/api/fundamentals")
         csrf_protection.exempt("/api/docs")
         csrf_protection.exempt("/api/redoc")
         csrf_protection.exempt("/openapi.json")
 
-        # ── Middleware: Security Headers ────────────────────────────────────────
+        # -- Middleware: Security Headers ----------------------------------------
 
         @app.middleware("http")
         async def security_headers_middleware(request: Request, call_next: Any):
@@ -247,7 +329,7 @@ class EnterpriseDashboard:
             response.headers["X-XSS-Protection"] = "1; mode=block"
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
             response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-            # HSTS: 1 year, include subdomains, preload — only on HTTPS
+            # HSTS: 1 year, include subdomains, preload - only on HTTPS
             # Check both direct scheme and X-Forwarded-Proto (for reverse proxy)
             forwarded_proto = request.headers.get("X-Forwarded-Proto", "")
             is_secure = request.url.scheme == "https" or forwarded_proto == "https"
@@ -267,10 +349,10 @@ class EnterpriseDashboard:
             )
             return response
 
-        # ── API Rate Limiter ─────────────────────────────────────────────────
+        # -- API Rate Limiter -------------------------------------------------
 
         _rate_limit_store: dict[str, list[float]] = {}
-        _rate_limit_lock = threading.Lock()
+        _rate_limit_lock = threading.RLock()
         API_RATE_LIMIT = int(self._cfg.get("api_rate_limit_per_minute", 60))
         ADMIN_RATE_LIMIT = int(self._cfg.get("admin_api_rate_limit_per_minute", 20))
 
@@ -285,7 +367,7 @@ class EnterpriseDashboard:
                 _rate_limit_store[ip] = attempts
             return True
 
-        # ── Middleware: CORS ───────────────────────────────────────────────────
+        # -- Middleware: CORS ---------------------------------------------------
 
         allowed_origins = self._cfg.get("cors_allowed_origins", "")
         if allowed_origins:
@@ -298,7 +380,7 @@ class EnterpriseDashboard:
                 allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
             )
 
-        # ── Middleware: API Rate Limiting ──────────────────────────────────────
+        # -- Middleware: API Rate Limiting --------------------------------------
 
         @app.middleware("http")
         async def rate_limit_middleware(request: Request, call_next: Any):
@@ -312,7 +394,7 @@ class EnterpriseDashboard:
             response = await call_next(request)
             return response
 
-        # ── Middleware: Request ID + Tracing ─────────────────────────────────────
+        # -- Middleware: Request ID + Tracing -------------------------------------
 
         @app.middleware("http")
         async def request_id_middleware(request: Request, call_next: Any):
@@ -326,7 +408,7 @@ class EnterpriseDashboard:
             response.headers["X-Response-Time-Ms"] = str(elapsed_ms)
             return response
 
-        # ── Middleware: CSRF ────────────────────────────────────────────────────
+        # -- Middleware: CSRF ----------------------------------------------------
 
         @app.middleware("http")
         async def csrf_middleware(request: Request, call_next: Any):
@@ -339,7 +421,7 @@ class EnterpriseDashboard:
                 _log.warning("[DASH] CSRF cookie set failed: %s", exc)
             return response
 
-        # ── Error handlers ─────────────────────────────────────────────────────
+        # -- Error handlers -----------------------------------------------------
 
         @app.exception_handler(403)
         async def forbidden_error(request: Request, exc: Any):
@@ -350,7 +432,7 @@ class EnterpriseDashboard:
             return self._templates.TemplateResponse(
                 request=request,
                 name="error.html",
-                context={"code": 403, "message": "Access denied — admin role required", "nonce": nonce},
+                context={"code": 403, "message": "Access denied - admin role required", "nonce": nonce},
                 status_code=403,
             )
 
@@ -379,7 +461,7 @@ class EnterpriseDashboard:
                 status_code=500,
             )
 
-        # ── HTML Routes ───────────────────────────────────────────────────────
+        # -- HTML Routes -------------------------------------------------------
 
         @app.get("/", response_class=HTMLResponse)
         async def root(request: Request):
@@ -417,7 +499,7 @@ class EnterpriseDashboard:
                 context={"nonce": nonce},
             )
 
-        # ── Helper: require admin role for HTML pages ──────────────────────────
+        # -- Helper: require admin role for HTML pages --------------------------
         def _require_admin_page(request: Request):
             """Check session auth and admin role, return (user, error_response).
 
@@ -506,7 +588,7 @@ class EnterpriseDashboard:
                 context={"nonce": nonce},
             )
 
-        # ── API Routes: System ────────────────────────────────────────────────
+        # -- API Routes: System ------------------------------------------------
 
         admin_only = self._auth_deps.require_role("admin")
 
@@ -526,7 +608,7 @@ class EnterpriseDashboard:
         async def api_signals(user: Any = Depends(self._auth_deps.require_auth_optional)):
             return self._get_signals()
 
-        # ── Config management API (admin only) ────────────────────────────────
+        # -- Config management API (admin only) --------------------------------
 
         @app.get("/api/config")
         async def api_get_config(user: Any = Depends(admin_only)):
@@ -568,6 +650,71 @@ class EnterpriseDashboard:
         async def api_config_history(user: Any = Depends(admin_only)):
             return self._get_config_history()
 
+        @app.get("/api/config/drift")
+        async def api_config_drift(user: Any = Depends(admin_only)):
+            """Detect configuration drift between live config and defaults.
+
+            Compares every key in the live config dict against the corresponding
+            default value in index_config.defaults.json. Reports:
+              - changed: keys whose live value differs from default
+              - added:   keys present in live config but absent from defaults
+              - removed: keys present in defaults but absent from live config
+
+            Returns:
+                Dict with drift summary: total keys in each category,
+                list of change details (key, old/default, new/current),
+                and a drift_pct score.
+            """
+            try:
+                defaults = self._load_defaults()
+                live = dict(self._cfg)
+                changed: list[dict[str, Any]] = []
+                added: list[str] = []
+                removed: list[str] = []
+
+                # Keys in both: check for differences
+                for key in set(live) & set(defaults):
+                    live_val = live[key]
+                    default_val = defaults[key]
+                    # Serialize consistently for comparison
+                    live_s = json.dumps(live_val, sort_keys=True, default=str)
+                    default_s = json.dumps(default_val, sort_keys=True, default=str)
+                    if live_s != default_s:
+                        changed.append({
+                            "key": key,
+                            "default": default_val,
+                            "current": live_val,
+                        })
+
+                # Keys only in live config
+                for key in set(live) - set(defaults):
+                    if not key.startswith("_"):  # skip internal keys
+                        added.append(key)
+
+                # Keys only in defaults
+                for key in set(defaults) - set(live):
+                    removed.append(key)
+
+                total_keys = len(set(live) | set(defaults))
+                drift_count = len(changed) + len(added) + len(removed)
+                drift_pct = round((drift_count / max(total_keys, 1)) * 100, 1)
+
+                return {
+                    "drift_pct": drift_pct,
+                    "drift_count": drift_count,
+                    "total_keys": total_keys,
+                    "changed_count": len(changed),
+                    "added_count": len(added),
+                    "removed_count": len(removed),
+                    "changes": changed,
+                    "added_keys": added,
+                    "removed_keys": removed[:50],  # limit output size
+                    "timestamp": time.time(),
+                }
+            except (ValueError, TypeError, KeyError, OSError) as exc:
+                _log.warning("[DASH] Config drift check failed: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
         @app.post("/api/config/rollback/{version}")
         async def api_rollback_config(
             version: str,
@@ -575,7 +722,7 @@ class EnterpriseDashboard:
         ):
             return self._rollback_config(version, user.username)
 
-        # ── Kill switch API ───────────────────────────────────────────────────
+        # -- Kill switch API ---------------------------------------------------
 
         @app.post("/api/system/kill")
         async def api_kill(
@@ -596,7 +743,7 @@ class EnterpriseDashboard:
         async def api_kill_status(user: Any = Depends(self._auth_deps.require_auth_optional)):
             return {"halted": self._pause_event.is_set()}
 
-        # ── Broker info API ─────────────────────────────────────────────────────
+        # -- Broker info API -----------------------------------------------------
 
         @app.get("/api/broker/info")
         async def api_broker_info(user: Any = Depends(self._auth_deps.require_auth_optional)):
@@ -612,7 +759,7 @@ class EnterpriseDashboard:
                 "failover_active": False,
             }
 
-        # ── ML status API ───────────────────────────────────────────────────────
+        # -- ML status API -------------------------------------------------------
 
         @app.get("/api/ml/status")
         async def api_ml_status(user: Any = Depends(self._auth_deps.require_auth_optional)):
@@ -631,7 +778,7 @@ class EnterpriseDashboard:
                 "psi": self._bot_refs.get("ml_psi"),
             }
 
-        # ── Bot control API (admin + operator) ────────────────────────────────
+        # -- Bot control API (admin + operator) --------------------------------
 
         operator_or_admin = self._auth_deps.require_role("admin", "operator")
 
@@ -649,7 +796,62 @@ class EnterpriseDashboard:
             self._pause_event.clear()
             return {"status": "resumed"}
 
-        # ── Observability: Docker health check ─────────────────────────────────
+        # -- Observability: Docker health check ---------------------------------
+
+        @app.get("/api/system/ws-status")
+        async def api_ws_status(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get WebSocket feed status - connection health, LTP cache, and tick count.
+
+            Reads ``ws_feed_manager`` (``KiteTickerFeedManager`) or
+            ``nse_ws_adapter`` (``NseIndexWebSocketAdapter``) from ``_bot_refs``.
+
+            Returns:
+                Dict with ``connected``, ``enabled``, ``cache_size``,
+                ``tick_mode``, ``has_feed``, or ``{"status": "unavailable"}``.
+            """
+            # Check self-contained NSE WebSocket adapter first
+            ws_adapter = self._bot_refs.get("nse_ws_adapter")
+            if ws_adapter is not None:
+                try:
+                    st = ws_adapter.status()
+                    return {
+                        "status": "ok",
+                        "adapter_type": "NseIndexWebSocketAdapter",
+                        "connected": st.get("connected", False),
+                        "enabled": st.get("enabled", False),
+                        "cache_size": st.get("cache_size", 0),
+                        "cache_ttl": st.get("cache_ttl", 5.0),
+                        "tick_mode": st.get("tick_mode", "ltp"),
+                        "has_kws": st.get("has_kws", False),
+                        "tokens": st.get("tokens", {}),
+                        "index_tokens": st.get("index_tokens", []),
+                    }
+                except (AttributeError, TypeError, ValueError) as exc:
+                    _log.debug("[DASH] NSE WS adapter status error: %s", exc)
+
+            # Fallback: legacy KiteTickerFeedManager
+            ws_feed = self._ws_feed_manager
+            if ws_feed is not None:
+                try:
+                    st = ws_feed.status()
+                    return {
+                        "status": "ok",
+                        "adapter_type": "KiteTickerFeedManager",
+                        "connected": st.get("connected", False),
+                        "enabled": st.get("enabled", False),
+                        "cache_size": st.get("ltp_cache_size", 0),
+                        "tick_mode": st.get("tick_mode", "ltp"),
+                        "has_feed": st.get("has_kws", False),
+                        "reconnect_count": st.get("reconnect_count", 0),
+                        "last_error": st.get("last_error", ""),
+                    }
+                except (AttributeError, TypeError, ValueError) as exc:
+                    _log.debug("[DASH] WS feed status error: %s", exc)
+
+            return {
+                "status": "unavailable",
+                "detail": "No WebSocket feed wired - set kite_ticker_enabled=true in config",
+            }
 
         @app.get("/api/system/health/docker")
         async def docker_health_check():
@@ -679,15 +881,15 @@ class EnterpriseDashboard:
                 "uptime_human": f"{int(uptime_secs//3600)}h{int(uptime_secs%3600//60)}m",
                 "db_connected": db_ok,
                 "auth_db_connected": auth_db_ok,
-                "paused": self._pause_event.is_set(),
+                "paused": self._pause_event.is_set() if self._pause_event is not None else False,
                 "hard_halt": state.get("hard_halt", False),
                 "open_positions": state.get("open_positions", 0),
                 "timestamp": time.time(),
             }
 
-        # ── Observability: Uptime / diagnostics ─────────────────────────────────
+        # -- Observability: Uptime / diagnostics ---------------------------------
 
-        # ── OI Snapshot Summary API ────────────────────────────────────────────
+        # -- OI Snapshot Summary API --------------------------------------------
 
         @app.get("/api/system/oi", tags=["System"])
         async def api_oi_summary(user: Any = Depends(self._auth_deps.require_auth_optional)):
@@ -733,7 +935,7 @@ class EnterpriseDashboard:
                 "timestamp": time.time(),
             }
 
-        # ── Invariants API ────────────────────────────────────────────────────
+        # -- Invariants API ----------------------------------------------------
 
         @app.get("/api/system/invariants", tags=["System"])
         async def api_invariants(user: Any = Depends(self._auth_deps.require_auth_optional)):
@@ -778,13 +980,13 @@ class EnterpriseDashboard:
                 "auth_sessions": self._auth.get_stats().get("active_sessions", 0),
                 "total_users": self._auth.get_stats().get("total_users", 0),
                 "open_positions": state.get("open_positions", 0),
-                "paused": self._pause_event.is_set(),
+                "paused": self._pause_event.is_set() if self._pause_event is not None else False,
                 "hard_halt": state.get("hard_halt", False),
                 "execution_mode": state.get("execution_mode", self._cfg.get("execution_mode", "paper")),
                 "uptime": time.time() - self._startup_ts,
             }
 
-        # ── CSV Export: Trades ───────────────────────────────────────────────────
+        # -- CSV Export: Trades ---------------------------------------------------
 
         @app.get("/api/system/trades/export")
         async def api_trades_export(user: Any = Depends(self._auth_deps.require_auth_optional)):
@@ -820,7 +1022,7 @@ class EnterpriseDashboard:
                 headers={"Content-Disposition": "attachment; filename=trades_export.csv"},
             )
 
-        # ── Risk: Position Concentration ─────────────────────────────────────────
+        # -- Risk: Position Concentration -----------------------------------------
 
         @app.get("/api/risk/concentration")
         async def api_risk_concentration(user: Any = Depends(self._auth_deps.require_auth_optional)):
@@ -859,7 +1061,7 @@ class EnterpriseDashboard:
                 "timestamp": time.time(),
             }
 
-        # ── v2.45 Webhook: Signal Injection ──────────────────────────────────────
+        # -- v2.45 Webhook: Signal Injection --------------------------------------
         # Exempt from auth so external systems can push signals
 
         @app.post("/signals/inject")
@@ -911,7 +1113,373 @@ class EnterpriseDashboard:
 
             return {"status": "queued", "ts": time.time()}
 
-        # ── v2.45 Options Chain Viz ──────────────────────────────────────────────
+        # -- Multi-Asset Portfolio Allocation ------------------------------------
+
+        @app.get("/api/portfolio/asset-allocation", tags=["Risk"])
+        async def api_portfolio_allocation(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get multi-asset portfolio allocation breakdown across all 6 asset classes.
+
+            Uses the ``MultiAssetPortfolioAggregator`` (wired via bot_refs) to compute
+            per-class exposure, P&L, and allocation percentages.
+
+            Returns:
+                Dict with ``total_value``, ``cash``, ``allocation_by_asset``,
+                ``positions_count``, and individual position details, or
+                ``{"status": "unavailable"}`` if no aggregator is wired.
+            """
+            aggregator = self._bot_refs.get("portfolio_aggregator")
+            if aggregator is None:
+                return {"status": "unavailable", "detail": "Portfolio aggregator not wired"}
+
+            try:
+                state = self._read_state()
+                cash = state.get("capital", state.get("base_capital", 0)) or 0
+
+                # Read trader state for open positions
+                equity_positions = self._bot_refs.get("equity_positions", [])
+                fo_futures = self._bot_refs.get("fo_futures", [])
+                fo_options = self._bot_refs.get("fo_options", [])
+                commodity_positions = self._bot_refs.get("commodity_positions", [])
+                currency_positions = self._bot_refs.get("currency_positions", [])
+                bond_positions = self._bot_refs.get("bond_positions", [])
+                equity_holdings = self._bot_refs.get("equity_holdings", [])
+                sip_plans = self._bot_refs.get("sip_plans", [])
+                mf_holdings = self._bot_refs.get("mf_holdings", [])
+
+                snapshot = aggregator.aggregate(
+                    equity_positions=equity_positions,
+                    fo_futures=fo_futures,
+                    fo_options=fo_options,
+                    commodity_positions=commodity_positions,
+                    currency_positions=currency_positions,
+                    bond_positions=bond_positions,
+                    equity_holdings=equity_holdings,
+                    sip_plans=sip_plans,
+                    mf_holdings=mf_holdings,
+                    cash_balance=float(cash),
+                )
+
+                return {
+                    "status": "ok",
+                    "total_value": round(snapshot.total_value, 2),
+                    "cash": round(snapshot.cash, 2),
+                    "positions_count": len(snapshot.positions),
+                    "allocation_by_asset": snapshot.metadata.get("exposures", {}),
+                    "timestamp": time.time(),
+                }
+
+            except (ValueError, TypeError, AttributeError, RuntimeError) as exc:
+                _log.warning("[DASH] Portfolio allocation error: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
+        # -- Fundamentals Analysis API --------------------------------------------
+
+        @app.get("/api/fundamentals/weights", tags=["Fundamentals"])
+        async def api_fundamentals_weights(
+            user: Any = Depends(self._auth_deps.require_auth_optional),
+        ):
+            """Get current fundamental analysis dimension weights.
+
+            Returns the 4 dimension weights (value, growth, quality, momentum)
+            that sum to 1.0.
+            """
+            try:
+                from core.fundamental_analyzer import get_fundamental_analyzer
+                fa = get_fundamental_analyzer()
+                return {
+                    "weights": fa.current_weights,
+                    "default_weights": {
+                        "value": 0.30,
+                        "growth": 0.25,
+                        "quality": 0.25,
+                        "momentum": 0.20,
+                    },
+                    "timestamp": time.time(),
+                }
+            except (ValueError, TypeError, ImportError, AttributeError) as exc:
+                _log.warning("[DASH] Fundamentals weights fetch failed: %s", exc)
+                return {"error": str(exc), "weights": {}, "timestamp": time.time()}
+
+        @app.put("/api/fundamentals/weights", tags=["Fundamentals"])
+        async def api_fundamentals_weights_update(
+            request: Request,
+            user: Any = Depends(self._auth_deps.require_auth_optional),
+        ):
+            """Update fundamental analysis dimension weights at runtime.
+
+            Accepts a JSON body with partial or full weight overrides.
+            All 4 keys (value, growth, quality, momentum) must still sum to 1.0.
+            """
+            try:
+                body = await request.json()
+                weights: dict[str, float] = body.get("weights", {})
+                if not weights:
+                    return {"error": "No weights provided", "success": False}
+
+                from core.fundamental_analyzer import get_fundamental_analyzer
+                fa = get_fundamental_analyzer()
+                fa.set_weights(weights)
+
+                return {
+                    "success": True,
+                    "weights": fa.current_weights,
+                    "timestamp": time.time(),
+                }
+            except (ValueError, TypeError, KeyError, ImportError, AttributeError) as exc:
+                _log.warning("[DASH] Fundamentals weights update failed: %s", exc)
+                return {"error": str(exc), "success": False, "timestamp": time.time()}
+
+        @app.get("/api/fundamentals/analyze/{symbol}", tags=["Fundamentals"])
+        async def api_fundamentals_analyze(
+            symbol: str,
+            request: Request,
+            user: Any = Depends(self._auth_deps.require_auth_optional),
+        ):
+            """Analyze a single symbol's fundamentals.
+
+            Accepts a Yahoo Finance symbol (e.g. ``RELIANCE.NS``, ``TCS.NS``).
+            Query param ``force_refresh=true`` bypasses cache.
+            Query param ``weights`` as JSON-encoded dict overrides dimension weights.
+
+            Returns a ``ScreeningResult`` with composite score, dimension
+            breakdown (Value/Growth/Quality/Momentum), and verdict.
+
+            Returns:
+                Dict with ``symbol``, ``composite_score``, ``verdict``,
+                ``dimension_scores``, ``details`` list, and raw metrics.
+                On error, ``error`` field is set.
+            """
+            try:
+                from core.fundamental_analyzer import get_fundamental_analyzer
+                fa = get_fundamental_analyzer()
+
+                force_refresh = request.query_params.get("force_refresh", "false").lower() == "true"
+                weights_str = request.query_params.get("weights", "")
+
+                # Apply custom weights for this request if provided
+                prev_weights = None
+                if weights_str:
+                    try:
+                        custom_w = json.loads(weights_str)
+                        prev_weights = fa.current_weights
+                        fa.set_weights(custom_w)
+                    except (json.JSONDecodeError, ValueError, TypeError) as exc:
+                        _log.warning("[DASH] Invalid weights JSON in analyze: %s", exc)
+
+                result = fa.analyze(symbol, force_refresh=force_refresh)
+
+                # Restore previous weights if we temporarily changed them
+                if prev_weights is not None:
+                    try:
+                        fa.set_weights(prev_weights)
+                    except ValueError:
+                        pass
+
+                return {
+                    "symbol": result.symbol,
+                    "name": result.name,
+                    "sector": result.sector,
+                    "current_price": result.current_price,
+                    "market_cap": result.market_cap,
+                    "pe_ratio": result.pe_ratio,
+                    "pb_ratio": result.pb_ratio,
+                    "dividend_yield": result.dividend_yield,
+                    "eps_ttm": result.eps_ttm,
+                    "roe_pct": result.roe_pct,
+                    "debt_to_equity": result.debt_to_equity,
+                    "earnings_growth": result.earnings_growth,
+                    "composite_score": result.composite_score,
+                    "verdict": result.verdict,
+                    "dimension_scores": {
+                        "value": result.dimension_scores.value,
+                        "growth": result.dimension_scores.growth,
+                        "quality": result.dimension_scores.quality,
+                        "momentum": result.dimension_scores.momentum,
+                    },
+                    "details": [
+                        {
+                            "metric": d.metric,
+                            "raw_value": d.raw_value,
+                            "score": d.score,
+                            "weight": d.weight,
+                            "rationale": d.rationale,
+                        }
+                        for d in result.details
+                    ],
+                    "short_summary": result.short_summary,
+                    "error": result.error,
+                    "timestamp": time.time(),
+                }
+            except (ValueError, TypeError, KeyError, ImportError, AttributeError) as exc:
+                _log.warning("[DASH] Fundamentals analyze failed: %s", exc)
+                return {"error": str(exc), "symbol": symbol, "timestamp": time.time()}
+
+        @app.post("/api/fundamentals/screen", tags=["Fundamentals"])
+        async def api_fundamentals_screen(
+            request: Request,
+            user: Any = Depends(self._auth_deps.require_auth_optional),
+        ):
+            """Screen multiple symbols by fundamental scores.
+
+            Accepts a JSON body with ``symbols`` (list of Yahoo Finance symbols)
+            and optional ``min_score`` (float), ``force_refresh`` (bool),
+            and ``weights`` (dict) to override dimension scoring weights.
+
+            Returns:
+                Dict with ``results`` list (sorted by composite_score desc),
+                ``count``, ``min_score``, and ``error`` if any.
+            """
+            try:
+                body = await request.json()
+                symbols: list[str] = body.get("symbols", [])
+                min_score: float = float(body.get("min_score", 0.0))
+                force_refresh: bool = bool(body.get("force_refresh", False))
+                weights: dict[str, float] | None = body.get("weights", None)
+
+                if not symbols:
+                    return {"error": "No symbols provided", "results": [], "count": 0}
+                MAX_SCREEN_SYMBOLS = 50
+                if len(symbols) > MAX_SCREEN_SYMBOLS:
+                    symbols = symbols[:MAX_SCREEN_SYMBOLS]
+                    _log.warning("[DASH] Fundamentals screen truncated to %d symbols", MAX_SCREEN_SYMBOLS)
+
+                from core.fundamental_analyzer import get_fundamental_analyzer, FundamentalAnalyzer
+                fa = get_fundamental_analyzer()
+
+                # Apply custom weights for this screen if provided
+                prev_weights = None
+                if weights:
+                    prev_weights = fa.current_weights
+                    fa.set_weights(weights)
+
+                results = fa.screen(symbols, min_score=min_score, force_refresh=force_refresh)
+
+                # Restore weights
+                if prev_weights is not None:
+                    try:
+                        fa.set_weights(prev_weights)
+                    except ValueError:
+                        pass
+
+                return {
+                    "results": [
+                        {
+                            "symbol": r.symbol,
+                            "name": r.name,
+                            "sector": r.sector,
+                            "current_price": r.current_price,
+                            "pe_ratio": r.pe_ratio,
+                            "composite_score": r.composite_score,
+                            "verdict": r.verdict,
+                            "dimension_scores": {
+                                "value": r.dimension_scores.value,
+                                "growth": r.dimension_scores.growth,
+                                "quality": r.dimension_scores.quality,
+                                "momentum": r.dimension_scores.momentum,
+                            },
+                            "short_summary": r.short_summary,
+                            "error": r.error,
+                        }
+                        for r in results
+                    ],
+                    "count": len(results),
+                    "min_score": min_score,
+                    "timestamp": time.time(),
+                }
+            except (ValueError, TypeError, KeyError, ImportError, AttributeError) as exc:
+                _log.warning("[DASH] Fundamentals screen failed: %s", exc)
+                return {"error": str(exc), "results": [], "count": 0, "timestamp": time.time()}
+
+        # -- Data Provider Status ------------------------------------------------
+
+        @app.get("/api/system/data-providers")
+        async def api_data_providers(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get status of all registered market data providers.
+
+            Reads ``market_data_service`` (MarketDataService) from ``_bot_refs``.
+
+            Returns:
+                Dict with ``providers`` list, ``total``, ``connected``, ``health``,
+                or ``{"status": "unavailable"}`` if no service is wired.
+            """
+            mds = self._bot_refs.get("market_data_service")
+            if mds is None:
+                return {"status": "unavailable", "detail": "MarketDataService not wired"}
+
+            try:
+                adapters = mds.list_adapters()
+                health = mds.health_check()
+
+                providers_list = []
+                for name, info in adapters.items():
+                    providers_list.append({
+                        "name": name,
+                        "type": info.get("adapter_type", "unknown"),
+                        "asset_classes": info.get("asset_classes", []),
+                        "priority": info.get("priority", 10),
+                        "connected": info.get("connected", False),
+                    })
+
+                return {
+                    "status": "ok",
+                    "total": health.get("total_adapters", 0),
+                    "connected": health.get("connected_adapters", 0),
+                    "disconnected": health.get("disconnected_adapters", 0),
+                    "providers": providers_list,
+                    "timestamp": time.time(),
+                }
+            except (ValueError, TypeError, AttributeError, RuntimeError) as exc:
+                _log.warning("[DASH] Data providers status error: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
+        @app.get("/api/system/data-providers/health")
+        async def api_data_providers_health(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get aggregate health metrics for the market data provider mesh.
+
+            Returns a simplified health summary: overall status (healthy/degraded/critical),
+            connected/total counts, per-provider status breakdown, and error-rate
+            tracking for each adapter.
+
+            This endpoint is designed for the auto-refresh cycle and dashboard widgets
+            that only need the health summary without the full provider list.
+            """
+            mds = self._bot_refs.get("market_data_service")
+            if mds is None:
+                return {"status": "unavailable", "detail": "MarketDataService not wired"}
+
+            try:
+                health = mds.health_check()
+                total = health.get("total_adapters", 0)
+                connected = health.get("connected_adapters", 0)
+                disconnected = health.get("disconnected_adapters", 0)
+                details = health.get("adapter_details", {})
+
+                if total == 0:
+                    overall = "idle"
+                elif connected == total:
+                    overall = "healthy"
+                elif connected > 0:
+                    overall = "degraded"
+                else:
+                    overall = "critical"
+
+                # Collect error-rate tracking per adapter
+                _record_provider_request()
+                error_info = _get_provider_error_info(details)
+
+                return {
+                    "status": overall,
+                    "total": total,
+                    "connected": connected,
+                    "disconnected": disconnected,
+                    "health_pct": round((connected / total * 100) if total > 0 else 0, 1),
+                    "adapter_details": details,
+                    "error_tracking": error_info,
+                    "timestamp": time.time(),
+                }
+            except (ValueError, TypeError, AttributeError, RuntimeError) as exc:
+                _log.warning("[DASH] Data providers health error: %s", exc)
+                return {"status": "error", "detail": str(exc)}
 
         @app.get("/chain/{index_name}")
         async def options_chain_viz(index_name: str, user: Any = Depends(self._auth_deps.require_auth_optional)):
@@ -944,7 +1512,7 @@ class EnterpriseDashboard:
             chain_data["spot_price"] = self._bot_refs.get(f"ltp_{index_name.upper()}", 0)
             return chain_data
 
-        # ── Execution Safety: Startup Self-Test ──────────────────────────────────
+        # -- Execution Safety: Startup Self-Test ----------------------------------
 
         @app.post("/api/system/self-test")
         async def api_self_test(user: Any = Depends(admin_only)):
@@ -1006,7 +1574,7 @@ class EnterpriseDashboard:
 
         return app
 
-    # ── Config management ────────────────────────────────────────────────────
+    # -- Config management ----------------------------------------------------
 
     def _resolve_defaults_path(self) -> Path:
         """Resolve the path to the index_config.defaults.json file.
@@ -1028,7 +1596,7 @@ class EnterpriseDashboard:
     def _load_defaults(self) -> dict:
         """Load the defaults JSON file as a dict.
 
-        Returns empty dict if file is missing or unreadable — never raises.
+        Returns empty dict if file is missing or unreadable - never raises.
         """
         defaults_path = self._resolve_defaults_path()
         try:
@@ -1125,7 +1693,7 @@ class EnterpriseDashboard:
         except (OSError, ValueError, TypeError) as e:
             try:
                 config_path.write_text(json.dumps(original, indent=4), encoding="utf-8")
-                _log.info("[DASH] Config write failed — original restored")
+                _log.info("[DASH] Config write failed - original restored")
             except (OSError, ValueError, TypeError) as restore_exc:
                 _log.critical("[DASH] Config write failed AND rollback failed! %s", restore_exc)
             return {"success": False, "error": f"Write failed, rolled back: {e}"}
@@ -1185,7 +1753,7 @@ class EnterpriseDashboard:
         backup_path = raw_path.resolve()
         safe_prefix = str(config_path.parent.resolve())
         if not str(backup_path).startswith(safe_prefix):
-            return {"success": False, "error": "Invalid backup path — directory traversal blocked"}
+            return {"success": False, "error": "Invalid backup path - directory traversal blocked"}
         if not backup_path.is_file():
             return {"success": False, "error": "Backup file not found"}
         try:
@@ -1203,6 +1771,7 @@ class EnterpriseDashboard:
             return {"success": False, "error": f"Rollback failed: {e}"}
 
     def _log_config_audit(self, username: str, keys: list, values: list, action: str) -> None:
+        """Log a config change to the audit trail (config_audit.jsonl)."""
         try:
             audit_file = Path("config_audit.jsonl")
             with open(audit_file, "a", encoding="utf-8") as f:
@@ -1217,7 +1786,7 @@ class EnterpriseDashboard:
         except (OSError, ValueError, TypeError) as exc:
             _log.warning("[DASH] Config audit write failed: %s", exc)
 
-    # ── Kill switch ──────────────────────────────────────────────────────────
+    # -- Kill switch ----------------------------------------------------------
 
     def _execute_kill(self, reason: str, username: str) -> dict:
         """Execute emergency kill: halt all trading immediately.
@@ -1264,7 +1833,7 @@ class EnterpriseDashboard:
         _log.warning("[DASH] System resumed via dashboard")
         return {"success": True, "halted": False}
 
-    # ── Data helpers ─────────────────────────────────────────────────────────
+    # -- Data helpers ---------------------------------------------------------
 
     def _read_state(self) -> dict:
         try:
@@ -1301,7 +1870,7 @@ class EnterpriseDashboard:
         uptime_secs = time.time() - self._startup_ts if hasattr(self, '_startup_ts') else 0
         return {
             "status": "ok",
-            "paused": self._pause_event.is_set(),
+            "paused": self._pause_event.is_set() if self._pause_event is not None else False,
             "daily_pnl": state.get("daily_pnl", 0),
             "open_positions": state.get("open_positions", 0),
             "hard_halt": state.get("hard_halt", False),

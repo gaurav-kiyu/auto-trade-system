@@ -1,4 +1,4 @@
-"""Tests for core/ltp_resolver.py — LtpResolver fallback chain."""
+"""Tests for core/ltp_resolver.py - LtpResolver fallback chain."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def test_resolve_ws_disconnected():
     ws = MagicMock()
     ws.is_connected.return_value = False
     r = LtpResolver(ws_feed=ws)
-    # No broker, no yf — returns None
+    # No broker, no yf - returns None
     assert r.resolve("NIFTY") is not None  # yfinance fallback may work
     # If we really want to test the WS layer in isolation, disable yf
     with patch.object(r, "_resolve_yfinance", return_value=None):

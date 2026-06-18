@@ -1,4 +1,4 @@
-"""Unit tests for core.auto_learner — config, state management, threshold adjustment."""
+"""Unit tests for core.auto_learner - config, state management, threshold adjustment."""
 
 from __future__ import annotations
 

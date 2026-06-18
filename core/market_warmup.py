@@ -57,7 +57,7 @@ class MarketWarmup:
         self._size_mult = float(c.get("warmup_size_mult", 0.5))
         self._score_boost = int(c.get("warmup_score_boost", 10))
         self._max_trades = int(c.get("warmup_max_trades", 2))
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._entries: dict[str, float] = {}  # name -> timestamp
         self._current_day: date | None = None
         self._warmup_end: datetime | None = None

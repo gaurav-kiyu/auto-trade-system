@@ -1,5 +1,5 @@
 """
-AD-KIYU AI Governance — Rollback Controller.
+AD-KIYU AI Governance - Rollback Controller.
 
 Monitors model performance drift and triggers automated rollback
 to the last known-good model within 15 minutes of detection threshold breach.
@@ -33,7 +33,7 @@ class RollbackController:
     """Monitors drift and triggers rollback to last ACTIVE model."""
 
     def __init__(self, drift_detector: Any = None, model_registry: Any = None):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._history: list[RollbackEvent] = []
         self._drift_detector = drift_detector
         self._model_registry = model_registry

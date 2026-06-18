@@ -1,4 +1,4 @@
-"""Tests for ProductionMandateEnforcer — trade mandate checks (deprecated but tested)."""
+"""Tests for ProductionMandateEnforcer - trade mandate checks (deprecated but tested)."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ class TestMandateState:
 
 
 class TestProductionMandateEnforcer:
-    """ProductionMandateEnforcer — trade gates and position sizing."""
+    """ProductionMandateEnforcer - trade gates and position sizing."""
 
     def setup_method(self):
         self.enforcer = ProductionMandateEnforcer({"BASE_CAPITAL": 5000})

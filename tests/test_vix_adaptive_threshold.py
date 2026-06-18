@@ -1,4 +1,4 @@
-"""Tests for core/vix_adaptive_threshold.py — VIX-based threshold adjustment & blocking."""
+"""Tests for core/vix_adaptive_threshold.py - VIX-based threshold adjustment & blocking."""
 
 from __future__ import annotations
 
@@ -69,13 +69,13 @@ class TestVIXAdaptiveThreshold:
         assert engine.get_adjusted_threshold(65) == 65
 
     def test_vix_at_low_threshold_boundary(self) -> None:
-        """At exact low threshold — not below, so no adjustment."""
+        """At exact low threshold - not below, so no adjustment."""
         engine = VIXAdaptiveThreshold(VIXAdaptiveConfig(vix_low_threshold=15.0, vix_low_bonus=-2))
         engine.update_vix(15.0)  # not below
         assert engine.get_adjusted_threshold(65) == 65
 
     def test_vix_at_high_threshold_boundary(self) -> None:
-        """At exact high threshold — not above, so no adjustment."""
+        """At exact high threshold - not above, so no adjustment."""
         engine = VIXAdaptiveThreshold(VIXAdaptiveConfig(vix_high_threshold=25.0, vix_high_penalty=5))
         engine.update_vix(25.0)  # not above
         assert engine.get_adjusted_threshold(65) == 65

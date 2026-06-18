@@ -139,7 +139,7 @@ def is_saturday_allowed() -> bool:
 
 
 def now_ist() -> datetime.datetime:
-    """Naive datetime in IST for logs and filenames — not a tzinfo-aware value."""
+    """Naive datetime in IST for logs and filenames - not a tzinfo-aware value."""
     return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + IST_OFFSET
 
 
@@ -156,8 +156,8 @@ def now_ist_aware() -> datetime.datetime:
 
 def is_nse_cash_session(now: datetime.datetime | None = None) -> bool:
     """
-    True during NSE cash / index cash hours (Mon–Fri, IST), using bounds from
-    :func:`configure_nse_cash_session` (defaults 09:15–15:20).
+    True during NSE cash / index cash hours (Mon-Fri, IST), using bounds from
+    :func:`configure_nse_cash_session` (defaults 09:15-15:20).
     Allows Saturday trading when _SATURDAY_ALLOWED is set (e.g. Muhurat session).
     """
     dt = now or now_ist()
@@ -173,7 +173,7 @@ def is_nse_cash_session(now: datetime.datetime | None = None) -> bool:
 
 
 def is_nse_continuous_trading_window(clock: datetime.time | None = None) -> bool:
-    """True when time is within continuous cash session (default 09:20–15:20 IST)."""
+    """True when time is within continuous cash session (default 09:20-15:20 IST)."""
     t = clock or now_ist().time()
     lo = nse_continuous_open_time()
     hi = nse_cash_close_time()
@@ -181,7 +181,7 @@ def is_nse_continuous_trading_window(clock: datetime.time | None = None) -> bool
 
 
 def is_nse_post_open_no_trade_zone(clock: datetime.time | None = None) -> bool:
-    """True from cash open through open + configured post-open minutes (default 9:15–9:25)."""
+    """True from cash open through open + configured post-open minutes (default 9:15-9:25)."""
     t = clock or now_ist().time()
     start = nse_cash_open_time()
     end_dt = datetime.datetime.combine(datetime.date(2000, 1, 1), start) + datetime.timedelta(

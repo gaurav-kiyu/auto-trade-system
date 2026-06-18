@@ -1,5 +1,5 @@
 """
-Tests for Phase 5 — ML Signal Classifier (core/ml_classifier.py).
+Tests for Phase 5 - ML Signal Classifier (core/ml_classifier.py).
 
 Covers:
   - extract_features: correct values, all FEATURE_COLS present, types are float

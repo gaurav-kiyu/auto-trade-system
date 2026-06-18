@@ -1,4 +1,4 @@
-"""Tests for core.regime_transition_detector — thread-safe VIX history + transition detection."""
+"""Tests for core.regime_transition_detector - thread-safe VIX history + transition detection."""
 from __future__ import annotations
 
 import threading

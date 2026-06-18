@@ -5,20 +5,20 @@ Covers every module in ``core/auth/``:
   1. Password hashing (PBKDF2) & verification
   2. Password strength validation (all rules)
   3. CSRF token generation & validation
-  4. AuthHandler — default admin, authenticate, user CRUD,
+  4. AuthHandler - default admin, authenticate, user CRUD,
      password management, session management, token expiry,
      concurrent session limits, account lockout, brute-force
      rate limiting, audit logging, password reset tokens,
      stats, purge expired sessions
-  5. AuthDependencies — require_auth, require_auth_optional,
+  5. AuthDependencies - require_auth, require_auth_optional,
      require_role, require_permission, optional_auth_with_fallback
-  6. CSRFProtection — token generation, validation (valid/missing/
+  6. CSRFProtection - token generation, validation (valid/missing/
      mismatch), exempt paths, ensure_cookie_set
-  7. RoleManager — assign, revoke, get_role, check, has_permission,
+  7. RoleManager - assign, revoke, get_role, check, has_permission,
      load_from_config, list_assignments
-  8. SessionStore — create, get, touch, delete, TTL expiry,
+  8. SessionStore - create, get, touch, delete, TTL expiry,
      purge_expired, active_count, list_active
-  9. Permissions — role_has_permission for all roles,
+  9. Permissions - role_has_permission for all roles,
      get_role_permissions, PermissionDenied exception
 
 All tests are self-contained.  Uses conftest fixtures where possible.
@@ -369,7 +369,7 @@ class TestCSRFToken:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# 4. AuthHandler — Comprehensive
+# 4. AuthHandler - Comprehensive
 # ═══════════════════════════════════════════════════════════════════════
 
 
@@ -579,7 +579,7 @@ class TestAuthHandlerPasswordManagement:
         handler.admin_reset_password("testuser", "Reset@1234!", "admin")
         user = handler.get_user("testuser")
         assert user is not None and user.must_change_password
-        # Now user changes password — flag should clear
+        # Now user changes password - flag should clear
         handler.update_password("testuser", "Reset@1234!", "Final@1234!")
         user = handler.get_user("testuser")
         assert user is not None and not user.must_change_password
@@ -796,7 +796,7 @@ class TestAuthHandlerBruteForceAndLockout:
         for _ in range(12):
             handler._clear_lockout(uname)
             handler.authenticate(uname, "WrongP@ss!", "127.0.0.1")
-        # Rate limiter should be bypassed for localhost — login should succeed
+        # Rate limiter should be bypassed for localhost - login should succeed
         handler._clear_lockout(uname)
         user = handler.authenticate(uname, pwd, "127.0.0.1")
         assert user is not None
@@ -848,7 +848,7 @@ class TestAuthHandlerBruteForceAndLockout:
         uname, pwd = self._make_user(handler, "rlimit_exp")
         for _ in range(10):
             handler.authenticate(uname, "WrongP@ss!", "10.0.1.1")
-        # Simulate window expiry — set old timestamps for both rate-limit and lockout
+        # Simulate window expiry - set old timestamps for both rate-limit and lockout
         handler._login_attempts["10.0.1.1"] = [time.time() - BRUTE_FORCE_WINDOW_SECONDS - 10]
         handler._clear_lockout(uname)
         user = handler.authenticate(uname, pwd, "10.0.1.1")
@@ -1730,7 +1730,7 @@ class TestSessionStore:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# 9. Permissions — role_has_permission, get_role_permissions,
+# 9. Permissions - role_has_permission, get_role_permissions,
 #    PermissionDenied
 # ═══════════════════════════════════════════════════════════════════════
 

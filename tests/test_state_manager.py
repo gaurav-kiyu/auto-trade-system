@@ -1,5 +1,5 @@
 """
-Tests for core/state_manager.py — Authoritative State Manager.
+Tests for core/state_manager.py - Authoritative State Manager.
 
 Covers:
   - StateManager initialization and load/save

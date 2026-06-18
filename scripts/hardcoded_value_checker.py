@@ -1,7 +1,7 @@
 """
 Hardcoded Value Checker (v2.46 Sprint 0).
 
-CI guard — scans the codebase for values that must live in config, not code.
+CI guard - scans the codebase for values that must live in config, not code.
 Exits 0 if clean, exits 1 and prints violations if any found.
 
 Usage:
@@ -10,10 +10,10 @@ Usage:
 
 Rules checked
 -------------
-R05  datetime.now() (local time) — must use now_ist() from core.datetime_ist
+R05  datetime.now() (local time) - must use now_ist() from core.datetime_ist
      (datetime.now(timezone.utc) is allowed for audit/UTC logging)
-R06  time.sleep() in core/ modules (warn only — some background threads allowed)
-R10  import anthropic / import openai / from anthropic — prohibited AI SDKs
+R06  time.sleep() in core/ modules (warn only - some background threads allowed)
+R10  import anthropic / import openai / from anthropic - prohibited AI SDKs
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parent.parent
 _SCAN_DIRS = ["core", "index_app"]
 
-# Global excludes — these files/patterns are never checked for any rule
+# Global excludes - these files/patterns are never checked for any rule
 _GLOBAL_EXCLUDES = [
     "scripts/hardcoded_value_checker.py",
     "scripts/generate_config_schemas.py",
@@ -62,7 +62,7 @@ class Violation:
 _RULES: list[dict] = [
     {
         "id": "R05",
-        "desc": "datetime.now() (local time) — use now_ist() from core.datetime_ist",
+        "desc": "datetime.now() (local time) - use now_ist() from core.datetime_ist",
         # Match datetime.now( but NOT datetime.now(timezone.utc) or datetime.now(tz=
         "pattern": re.compile(r"datetime\.now\s*\(\s*\)"),
         "exclude_files": {
@@ -85,7 +85,7 @@ _RULES: list[dict] = [
     },
     {
         "id": "R06",
-        "desc": "time.sleep() in core/ — background threads should prefer shutdown-aware waits",
+        "desc": "time.sleep() in core/ - background threads should prefer shutdown-aware waits",
         "pattern": re.compile(r"\btime\.sleep\s*\("),
         "exclude_files": {
             "core/news_sentinel.py",     # intentional background thread
@@ -100,7 +100,7 @@ _RULES: list[dict] = [
     },
     {
         "id": "R10",
-        "desc": "AI SDK detected (anthropic/openai) — prohibited per project policy",
+        "desc": "AI SDK detected (anthropic/openai) - prohibited per project policy",
         "pattern": re.compile(r"^\s*(import\s+(anthropic|openai)|from\s+anthropic\s+import)", re.MULTILINE),
         "exclude_files": set(),
         "code_only": False,  # catch even in strings / comments
@@ -170,19 +170,19 @@ def main() -> int:
     warnings = [v for v in all_violations if v.severity == "warn"]
 
     if warnings:
-        print(f"\nHardcoded value checker — {len(warnings)} warning(s):")
+        print(f"\nHardcoded value checker - {len(warnings)} warning(s):")
         for v in warnings:
             print(v)
         print()
 
     if errors:
-        print(f"Hardcoded value checker — {len(errors)} ERROR(s) (CI blocking):")
+        print(f"Hardcoded value checker - {len(errors)} ERROR(s) (CI blocking):")
         for v in errors:
             print(v)
         print()
 
     if not all_violations:
-        print(f"Hardcoded value checker: {len(files)} files scanned — all clean.")
+        print(f"Hardcoded value checker: {len(files)} files scanned - all clean.")
         return 0
 
     if errors and not args.warn_only:

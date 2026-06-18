@@ -1,4 +1,4 @@
-"""Tests for core/reconciliation_controller.py — ReconciliationController."""
+"""Tests for core/reconciliation_controller.py - ReconciliationController."""
 
 from __future__ import annotations
 

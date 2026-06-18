@@ -5,7 +5,7 @@ Extends the basic candle backtest with:
   • Trailing stop-loss (% trail from peak premium, activates after profit target)
   • Score component decomposition (which of the 7 scoring factors fired per trade)
   • Signal classification: EARLY (65-74) / CONFIRMED (75-82) / STRONG (83+)
-  • Deterministic bid-ask spread on option premium (no random noise — reproducible)
+  • Deterministic bid-ask spread on option premium (no random noise - reproducible)
   • Per-trade feature analysis: breakout, regime, RSI, MACD presence logged
   • Score segment analysis: weak/medium/strong bucket performance
   • Failure mode tagging: which condition was present in losing trades
@@ -42,12 +42,12 @@ from core.pure_index_signal import (
 )
 from core.tier_engine import adaptive_threshold, classify_tier, get_tier_rules
 
-# ── Signal type thresholds — must mirror tier_engine.py constants ──────────
+# ── Signal type thresholds - must mirror tier_engine.py constants ──────────
 # Single source of truth for tier boundaries: core/tier_engine.py
 # These aliases keep simulation_engine self-contained for import safety.
-SIGNAL_EARLY     = 60   # TIER_WEAK_MIN     — minimum to trade
-SIGNAL_CONFIRMED = 70   # TIER_MODERATE_MIN — medium confidence
-SIGNAL_STRONG    = 80   # TIER_STRONG_MIN   — full size / high confidence
+SIGNAL_EARLY     = 60   # TIER_WEAK_MIN     - minimum to trade
+SIGNAL_CONFIRMED = 70   # TIER_MODERATE_MIN - medium confidence
+SIGNAL_STRONG    = 80   # TIER_STRONG_MIN   - full size / high confidence
 
 def classify_signal_type(score: int) -> str:
     if score >= SIGNAL_STRONG:    return "STRONG"
@@ -122,7 +122,7 @@ class SimConfig:
     # Session open filter
     # NSE opens 03:45 UTC (09:15 IST). Skip signal generation for the first N minutes
     # of each trading session to avoid gap-open noise (overbought RSI, no VWAP confirmation).
-    session_open_skip_minutes: int = 15  # skip 03:45–03:59 UTC = 09:15–09:29 IST
+    session_open_skip_minutes: int = 15  # skip 03:45-03:59 UTC = 09:15-09:29 IST
 
     # Costs
     fee_per_lot: float     = 40.0    # round-trip brokerage + STT per lot

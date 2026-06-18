@@ -65,7 +65,7 @@ class ChallengeReport:
 
     def summary(self) -> str:
         lines = [
-            f"PRODUCTION SCORE CHALLENGE — Category: {self.category}",
+            f"PRODUCTION SCORE CHALLENGE - Category: {self.category}",
             f"  Challenges: {self.total} | ✅ {self.passed} passed | ❌ {self.failed} failed | "
             f"🚫 {self.critical_failures} critical",
             f"  Original Score: {self.original_score:.1f}",
@@ -149,7 +149,7 @@ def _challenge_no_bare_excepts() -> ChallengeResult:
                 severity="CRITICAL",
                 description="0 bare 'except:' and 0 'except Exception:' patterns found in core/, index_app/, scripts/. All exceptions are typed.",
                 evidence="Scanned core/, index_app/, scripts/",
-                recommendation="Maintain this standard — all new exception handlers must be typed",
+                recommendation="Maintain this standard - all new exception handlers must be typed",
             )
         return ChallengeResult(
             category="risk",
@@ -282,7 +282,7 @@ def _challenge_execution_timeout() -> ChallengeResult:
                 passed=True,
                 severity="HIGH",
                 description=f"Found timeout handling in {len(exec_findings)} execution-related files.",
-                evidence="core/execution/ — timeout patterns found",
+                evidence="core/execution/ - timeout patterns found",
                 recommendation="Verify timeout values are appropriate for production latency",
             )
         return ChallengeResult(
@@ -324,7 +324,7 @@ def _challenge_replay_determinism() -> ChallengeResult:
                 passed=True,
                 severity="CRITICAL",
                 description=f"Replay certification: {report.deterministic_count}/{report.tested_trades} trades deterministic{'. No trades to test (vacuously true)' if report.tested_trades == 0 else ''}",
-                evidence=f"core/certification/replay_certifier.py — {report.verdict}",
+                evidence=f"core/certification/replay_certifier.py - {report.verdict}",
                 recommendation="Run paper trading to accumulate trade data, then re-verify replay determinism",
             )
         return ChallengeResult(
@@ -333,8 +333,8 @@ def _challenge_replay_determinism() -> ChallengeResult:
             passed=False,
             severity="CRITICAL",
             description=f"{report.failed_count} trades found non-deterministic",
-            evidence=f"core/certification/replay_certifier.py — {report.verdict}",
-            recommendation="Investigate non-deterministic trades — check for unseeded randomness or time-dependent logic",
+            evidence=f"core/certification/replay_certifier.py - {report.verdict}",
+            recommendation="Investigate non-deterministic trades - check for unseeded randomness or time-dependent logic",
         )
     except (ImportError, AttributeError, ValueError, OSError) as exc:
         return ChallengeResult(
@@ -343,7 +343,7 @@ def _challenge_replay_determinism() -> ChallengeResult:
             passed=True,
             severity="INFO",
             description=f"Cannot verify replay determinism: {exc}. Assuming deterministic (seeded randomness in replay_trace()).",
-            evidence=f"core/certification/replay_certifier.py — skip reason: {exc}",
+            evidence=f"core/certification/replay_certifier.py - skip reason: {exc}",
             recommendation="Run replay certification when trades.db is available",
         )
 
@@ -471,7 +471,7 @@ def _challenge_lookahead_bias() -> ChallengeResult:
                 challenge_name="No Look-Ahead Bias Detected",
                 passed=True,
                 severity="HIGH",
-                description="No .shift(-1) patterns found via AST scan — signal computation respects bar boundaries.",
+                description="No .shift(-1) patterns found via AST scan - signal computation respects bar boundaries.",
                 evidence="AST scan of core/, index_app/, scripts/ (excluding own file)",
                 recommendation="Maintain this discipline. Use .shift(1) for lagged values, never .shift(-1) for future data.",
             )
@@ -543,11 +543,11 @@ def run_challenge(category: str) -> ChallengeReport:
     challenged_score = max(0, original_score - score_reduction)
 
     if critical_failures > 0 or (total > 0 and failed > total * 0.3):
-        verdict = "CHALLENGE_FAILED — Score not validated"
+        verdict = "CHALLENGE_FAILED - Score not validated"
     elif failed > 0:
-        verdict = f"CHALLENGE_WARN — Score reduced by {score_reduction:.1f} points"
+        verdict = f"CHALLENGE_WARN - Score reduced by {score_reduction:.1f} points"
     else:
-        verdict = "CHALLENGE_PASSED — Score validated"
+        verdict = "CHALLENGE_PASSED - Score validated"
 
     return ChallengeReport(
         category=category,
@@ -578,7 +578,7 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(
         prog="python scripts/production_score_challenge.py",
-        description="Production Score Challenge — adversarially validate scores",
+        description="Production Score Challenge - adversarially validate scores",
     )
     ap.add_argument("--category", "-c", default="all",
                     choices=["all"] + list(CATEGORIES.keys()))

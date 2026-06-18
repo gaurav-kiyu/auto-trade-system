@@ -1,5 +1,5 @@
 """
-Tests for core.services.risk_service.RiskService — canonical risk engine.
+Tests for core.services.risk_service.RiskService - canonical risk engine.
 
 This replaces the previous tests for the deprecated core.risk_engine module.
 All risk decision logic now routes through RiskService.evaluate_trade().

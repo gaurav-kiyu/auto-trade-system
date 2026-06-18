@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dead Code Scanner — Enforces the Constitution's Technical Debt Governance.
+Dead Code Scanner - Enforces the Constitution's Technical Debt Governance.
 
 Detects and reports:
   - Unused imports in Python modules
@@ -57,7 +57,7 @@ EXCLUDED_MODULES: set[str] = {
     "scripts/__init__.py",
 }
 
-# Quick mode — excludes test files, scripts, and infra modules for faster CI runs
+# Quick mode - excludes test files, scripts, and infra modules for faster CI runs
 QUICK_MODE_EXCLUDED_DIRS: set[str] = {
     "tests", "scripts", "infrastructure",
 }
@@ -256,14 +256,14 @@ def scan_orphaned_symbols() -> list[DeadCodeFinding]:
     """Find functions/classes defined in a module but never imported externally."""
     findings: list[DeadCodeFinding] = []
 
-    # Build map: module_path -> {exported names} — ASTs already cached from _walk_files
+    # Build map: module_path -> {exported names} - ASTs already cached from _walk_files
     module_exports: dict[Path, set[str]] = {}
     for py_file in _walk_files():
         exports = collect_module_exports(py_file)
         if exports:
             module_exports[py_file] = exports
 
-    # Build map of all imports across the project — ASTs already cached
+    # Build map of all imports across the project - ASTs already cached
     all_imports = find_all_imports()
 
     # For each module, check if its exports are imported elsewhere
@@ -390,7 +390,7 @@ def scan_duplicate_code() -> list[DuplicateFinding]:
             # Exclude known-duplicate symbols by convention
             if name in DUPLICATE_EXCLUDED_SYMBOLS:
                 continue
-            # Exclude test_* symbols — test files are naturally isomorphic by convention
+            # Exclude test_* symbols - test files are naturally isomorphic by convention
             if name.startswith("test_"):
                 continue
             for i in range(len(locations)):
@@ -567,7 +567,7 @@ def _remove_unused_imports(findings: list[DeadCodeFinding]) -> list[dict[str, An
     Remove unused imports from source files.
 
     Reads each file, removes the identified import lines, and writes back.
-    Only removes exact line matches — avoids removing multi-line imports
+    Only removes exact line matches - avoids removing multi-line imports
     or imports that share a line with other code.
 
     Args:
@@ -606,7 +606,7 @@ def _remove_unused_imports(findings: list[DeadCodeFinding]) -> list[dict[str, An
                 # Safety check: only remove single-line import statements
                 stripped = line_text.strip()
                 if not (stripped.startswith("import ") or stripped.startswith("from ")):
-                    log.warning("[REMOVE] Line %d in %s is not an import — skipping", ln, file_path_str)
+                    log.warning("[REMOVE] Line %d in %s is not an import - skipping", ln, file_path_str)
                     continue
                 new_lines[idx] = ""  # Blank the line (maintains line numbering)
                 removed.append({

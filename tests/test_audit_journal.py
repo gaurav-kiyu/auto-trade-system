@@ -1,4 +1,4 @@
-"""Tests for core/audit_journal.py — Audit Event Journal."""
+"""Tests for core/audit_journal.py - Audit Event Journal."""
 
 from __future__ import annotations
 

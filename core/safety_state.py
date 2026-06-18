@@ -1,5 +1,5 @@
 """
-Global Safety State — Single source of truth for process-wide safety events.
+Global Safety State - Single source of truth for process-wide safety events.
 
 This module is the ONLY place where _HARD_HALT and _shutdown are defined.
 All risk checks, broker adapters, and execution paths import from here.
@@ -30,14 +30,14 @@ _shutdown: Final[threading.Event] = threading.Event()
 # ── Hard halt guardrails ─────────────────────────────────────────
 # clear_hard_halt() audit trail: records who cleared it and when.
 _clear_halt_history: list[dict] = []
-_clear_halt_lock: threading.Lock = threading.Lock()
+_clear_halt_lock: threading.Lock = threading.RLock()
 _LAST_CLEAR_TIME: float = 0.0  # monotonic time of last clear
 _HALT_CLEAR_COOLDOWN: float = 60.0  # minimum seconds between clears
 
 # ── Background kill file watcher ──────────────────────────────────
 _KILL_FILE_POLL_INTERVAL: float = 1.0  # Check every 1 second
 _kill_watcher_started: bool = False
-_kill_watcher_lock: threading.Lock = threading.Lock()
+_kill_watcher_lock: threading.Lock = threading.RLock()
 
 
 def _kill_file_watcher() -> None:
@@ -45,8 +45,8 @@ def _kill_file_watcher() -> None:
     while not _shutdown.is_set():
         try:
             if is_kill_file_present():
-                # Log BEFORE tripping halt — daemon thread may be killed on exit
-                _log.critical("[KILL_WATCHER] STOP_TRADING file DETECTED in project root — halting immediately")
+                # Log BEFORE tripping halt - daemon thread may be killed on exit
+                _log.critical("[KILL_WATCHER] STOP_TRADING file DETECTED in project root - halting immediately")
                 trip_hard_halt("STOP_TRADING file found in project root", source="kill_file_watcher")
                 break
         except (ImportError, RuntimeError) as _watcher_err:
@@ -96,7 +96,7 @@ def trip_hard_halt(reason: str, *, source: str = "") -> None:
     """
     global _hard_halt_reason
     if _HARD_HALT.is_set():
-        return  # Already halted — no double-trip
+        return  # Already halted - no double-trip
     _hard_halt_reason = f"[{source}] {reason}" if source else reason
     _HARD_HALT.set()
     # NOTE: logging here would cause circular import in some contexts.
@@ -107,7 +107,7 @@ def trip_hard_halt(reason: str, *, source: str = "") -> None:
 # Multiple risk engines track consecutive losses independently.
 # This is the single source of truth.
 _consecutive_losses: int = 0
-_consecutive_losses_lock = threading.Lock()
+_consecutive_losses_lock = threading.RLock()
 
 
 def get_consecutive_losses() -> int:
@@ -146,7 +146,7 @@ def reset_consecutive_losses() -> None:
 # Running P&L tracked throughout the session. Used to trip hard halt
 # when intraday loss limit is breached (before MAX_DAILY_LOSS).
 _intraday_pnl: float = 0.0
-_intraday_pnl_lock = threading.Lock()
+_intraday_pnl_lock = threading.RLock()
 _intraday_loss_limit: float = -float("inf")  # set via set_intraday_loss_limit()
 
 

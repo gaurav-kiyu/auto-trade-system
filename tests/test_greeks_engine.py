@@ -1,5 +1,5 @@
 """
-Tests for core.risk.greeks_engine — Options Greeks Risk Engine (Phase 5).
+Tests for core.risk.greeks_engine - Options Greeks Risk Engine (Phase 5).
 
 Validates:
   - GreeksCalculator computes correct position Greeks

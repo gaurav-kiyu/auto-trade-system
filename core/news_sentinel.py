@@ -1,9 +1,9 @@
 """
-News sentiment guard (Item 12 — v2.44).
+News sentiment guard (Item 12 - v2.44).
 
 Lightweight background RSS scanner that detects high-risk news events.
 Runs in a daemon thread; scan loop reads cached result (never blocks).
-Free RSS sources only — no paid API.
+Free RSS sources only - no paid API.
 
 Config keys
 -----------
@@ -117,7 +117,7 @@ class NewsSentinel:
 
     def __init__(self, cfg: dict[str, Any] | None = None) -> None:
         self._cfg     = cfg or {}
-        self._lock    = threading.Lock()
+        self._lock    = threading.RLock()
         self._cache:  NewsRiskAssessment = _CLEAR_ASSESSMENT
         self._thread: threading.Thread | None = None
         self._stop    = threading.Event()

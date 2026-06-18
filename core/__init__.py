@@ -1,4 +1,10 @@
-"""Core trading engines for the index option trading system. v1.2 Consolidated."""
+"""Core trading engines for the index option trading system. v1.2 Consolidated.
+
+Sub-packages exposed at top level:
+  - core.domains       : All domain models (execution, fo, equity, commodity, etc.)
+  - core.ports         : All port interfaces (broker, risk, strategy, etc.)
+  - core.risk          : Risk subsystem (Greeks, limits, sizing, margin)
+"""
 
 from .adapters import (
     BrokerRuntimeContext,
@@ -82,6 +88,15 @@ from .db_migration import (
     migrate_to_latest,
     register_schema,
 )
+from .fundamental_analyzer import (
+    DEFAULT_WEIGHTS,
+    DimensionScore,
+    FundamentalAnalyzer,
+    FundamentalData,
+    ScreeningResult,
+    get_fundamental_analyzer,
+    reset_fundamental_analyzer,
+)
 from .defaults_loader import load_defaults_file
 from .environment import Environment, guard_dev_config_in_production, guard_mode_env_compatibility, validate_environment
 from .hybrid_execution import apply_execution_mode, normalize_execution_mode
@@ -99,6 +114,22 @@ from .strategy_engine import StrategyEngine
 from .trade_journal import VALID_EXIT_REASONS, TradeJournal
 from .utils_numeric import safe_float, safe_num
 from .walkforward_engine import WalkForwardEngine, WalkForwardReport, WalkForwardWindow
+
+# ── Multi-asset portfolio adapters ─────────────────────────────────────────
+from .portfolio.adapters import (
+    AssetClassExposure,
+    CapitalAllocationService,
+    MultiAssetPortfolioAggregator,
+)
+
+# ── Database Port Adapters (Sprint 8) ──────────────────────────────────
+from .adapters.database import SQLiteDatabaseAdapter
+
+# ── Domain models (accessible as core.domains) ──────────────────────────
+from . import domains as domains_module
+
+# ── Port interfaces (accessible as core.ports) ──────────────────────────
+from . import ports as ports_module
 
 __all__ = [
     "AIDecision",
@@ -210,4 +241,13 @@ __all__ = [
     "nse_cash_open_time",
     "safe_float",
     "safe_num",
+    # Database Port
+    "SQLiteDatabaseAdapter",
+    # Domain & port packages
+    "domains_module",
+    "ports_module",
+    # Multi-asset portfolio adapters
+    "AssetClassExposure",
+    "CapitalAllocationService",
+    "MultiAssetPortfolioAggregator",
 ]

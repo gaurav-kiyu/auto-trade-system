@@ -40,8 +40,8 @@ class ExpirySession(str, Enum):
 
 # ── Index-specific expiry day map ────────────────────────────────────────
 # NIFTY: Thursday (weekday=3)
-# BANKNIFTY: Thursday (weekday=3) — same as NIFTY
-# FINNIFTY: Thursday (weekday=3) — same as NIFTY
+# BANKNIFTY: Thursday (weekday=3) - same as NIFTY
+# FINNIFTY: Thursday (weekday=3) - same as NIFTY
 # MIDCPNIFTY: Thursday (weekday=3)
 # SENSEX: Friday (weekday=4)
 # BANKEX: Friday (weekday=4)

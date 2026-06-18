@@ -211,7 +211,7 @@ class TestTrailingStop:
         # Drop: underlying at 18300, should hit trail
         m["ltp"].resolve.return_value = 18300.0
         # PositionService.monitor_positions() calls self.exit_position(), not
-        # the module-level _exit_position — patch at the service method level
+        # the module-level _exit_position - patch at the service method level
         with patch("core.position_service.PositionService.exit_position") as mock_exit:
             monitor()
             mock_exit.assert_called_with("NIFTY", "TRAIL_HIT")

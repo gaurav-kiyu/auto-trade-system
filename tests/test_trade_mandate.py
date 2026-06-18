@@ -1,4 +1,4 @@
-"""Tests for core/trade_mandate.py — comprehensive mandate rule enforcement."""
+"""Tests for core/trade_mandate.py - comprehensive mandate rule enforcement."""
 
 from __future__ import annotations
 

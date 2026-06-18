@@ -64,7 +64,7 @@ def build_pdf(output_path: Path) -> None:
     styles.add(ParagraphStyle(
         "Small", parent=styles["Normal"], fontSize=8, leading=10,
     ))
-    # Bullet style — use a unique name to avoid KeyError if already defined
+    # Bullet style - use a unique name to avoid KeyError if already defined
     if "Bullet_style" not in styles:
         styles.add(ParagraphStyle(
             "Bullet_style", parent=styles["Normal"], fontSize=10, leading=14,
@@ -80,12 +80,12 @@ def build_pdf(output_path: Path) -> None:
     story.append(Spacer(1, 8 * mm))
     story.append(Paragraph("Architecture Summary & Analysis", styles["Title2"]))
     story.append(Spacer(1, 4 * mm))
-    story.append(Paragraph(f"Version 2.53.0 — {datetime.now().strftime('%B %d, %Y')}", styles["Normal"]))
+    story.append(Paragraph(f"Version 2.53.0 - {datetime.now().strftime('%B %d, %Y')}", styles["Normal"]))
     story.append(Spacer(1, 20 * mm))
     story.append(HRFlowable(width="100%", thickness=2))
     story.append(Spacer(1, 10 * mm))
     story.append(Paragraph(
-        "Confidential — NSE Index Options Buying System<br/>"
+        "Confidential - NSE Index Options Buying System<br/>"
         "Status: Production Ready | Confidence: HIGH",
         styles["Normal"]
     ))
@@ -102,20 +102,20 @@ def build_pdf(output_path: Path) -> None:
     story.append(Spacer(1, 2 * mm))
 
     layers = [
-        ("<b>Trading Brain</b> (<i>index_app/index_trader.py</i>) — Main loop: signal generation → "
+        ("<b>Trading Brain</b> (<i>index_app/index_trader.py</i>) - Main loop: signal generation → "
          "risk validation → execution → reconciliation → reporting."),
-        ("<b>Core Services</b> (<i>core/</i>) — Risk engine, signal pipeline, ML classifier, "
+        ("<b>Core Services</b> (<i>core/</i>) - Risk engine, signal pipeline, ML classifier, "
          "broker abstraction, reconciliation, governance modules."),
-        ("<b>Infrastructure</b> (<i>core/adapters/</i>) — Broker adapters (Kite, Angel, Paper), "
+        ("<b>Infrastructure</b> (<i>core/adapters/</i>) - Broker adapters (Kite, Angel, Paper), "
          "database stores, web dashboard, Telegram notifications."),
-        ("<b>Tests</b> (<i>tests/</i>) — 2,397 unit/integration/stress tests covering all components."),
+        ("<b>Tests</b> (<i>tests/</i>) - 2,397 unit/integration/stress tests covering all components."),
     ]
     for lay in layers:
         story.append(Paragraph(f"• {lay}", styles["Bullet_style"]))
     story.append(Spacer(1, 6 * mm))
 
     # ── 2. Best Architectural Components ─────────────────────────────
-    story.append(Paragraph("2. Strengths — Best Architectural Components", styles["Heading1"]))
+    story.append(Paragraph("2. Strengths - Best Architectural Components", styles["Heading1"]))
     story.append(Spacer(1, 4 * mm))
 
     story.append(Paragraph("2.1 Execution Service with Reconciliation", styles["SubTitle"]))
@@ -155,26 +155,26 @@ def build_pdf(output_path: Path) -> None:
     story.append(Spacer(1, 6 * mm))
 
     # ── 3. Weaknesses ───────────────────────────────────────────────
-    story.append(Paragraph("3. Weaknesses — Areas Requiring Improvement", styles["Heading1"]))
+    story.append(Paragraph("3. Weaknesses - Areas Requiring Improvement", styles["Heading1"]))
     story.append(Spacer(1, 4 * mm))
 
     weaknesses = [
-        ("<b>Risk Engine Fragmentation</b> — Approximately 10 risk-related modules exist (risk_engine.py, "
+        ("<b>Risk Engine Fragmentation</b> - Approximately 10 risk-related modules exist (risk_engine.py, "
          "capital_manager.py, kelly_sizer.py, var_calculator.py, stress_tester.py, scalein_manager.py, "
          "reentry_evaluator.py, intraday_performance_monitor.py, correlation_guard.py, liquidity_guard.py). "
          "This fragmentation makes it difficult to audit risk policies holistically. A consolidated "
          "<i>RiskAuthority</i> service is recommended (see docs/RISK_MIGRATION_PLAN.md)."),
-        ("<b>Backend Data Quality</b> — Yahoo Finance is the primary data source. It lacks real OI/PCR "
+        ("<b>Backend Data Quality</b> - Yahoo Finance is the primary data source. It lacks real OI/PCR "
          "data, has a 30-day 1m cap, and provides no corporate action adjustments. This limits "
          "backtest reliability. Real NSE option chain data is needed for production signal accuracy."),
-        ("<b>CI/CD Discipline</b> — No automated pre-commit hooks, CI pipeline, or release automation. "
+        ("<b>CI/CD Discipline</b> - No automated pre-commit hooks, CI pipeline, or release automation. "
          "All testing is manual via pytest. This creates risk of regression when multiple developers "
          "contribute simultaneously."),
-        ("<b>Release Hygiene</b> — The build_exe.bat script works but there is no automated release "
+        ("<b>Release Hygiene</b> - The build_exe.bat script works but there is no automated release "
          "pipeline. Version tagging, changelog generation, and artifact signing are manual processes."),
-        ("<b>Test Debris</b> — Reconciliation tests leave orphan .db files in the project root. "
+        ("<b>Test Debris</b> - Reconciliation tests leave orphan .db files in the project root. "
          "The test runner should clean these up automatically."),
-        ("<b>Documentation Drift</b> — While core documentation is accurate, some inline comments "
+        ("<b>Documentation Drift</b> - While core documentation is accurate, some inline comments "
          "and module docstrings reference outdated version numbers or configurations."),
     ]
     for w in weaknesses:
@@ -186,21 +186,21 @@ def build_pdf(output_path: Path) -> None:
     story.append(Spacer(1, 4 * mm))
 
     suggestions = [
-        ("<b>RiskAuthority Consolidation</b> (Priority: HIGH) — Merge all risk modules into a single "
+        ("<b>RiskAuthority Consolidation</b> (Priority: HIGH) - Merge all risk modules into a single "
          "RiskAuthority service with canonical risk policy, uniform limit checks, and consolidated "
          "audit logging. See RISK_MIGRATION_PLAN.md for phased approach."),
-        ("<b>Real NSE Data Feed</b> (Priority: HIGH) — Integrate a real NSE option chain data provider "
+        ("<b>Real NSE Data Feed</b> (Priority: HIGH) - Integrate a real NSE option chain data provider "
          "(e.g., NSE Smart API, Bloomberg, or TrueData) for accurate PCR, OI, and IV data. "
          "This alone adds 15+ points to signal accuracy."),
-        ("<b>CI Pipeline with Pre-commit Hooks</b> (Priority: MEDIUM) — Add pre-commit hooks for "
+        ("<b>CI Pipeline with Pre-commit Hooks</b> (Priority: MEDIUM) - Add pre-commit hooks for "
          "ruff, mypy, and pytest smoke tests. Set up GitHub Actions CI for automated regression "
          "on every push."),
-        ("<b>Automated Release Pipeline</b> (Priority: MEDIUM) — Create a GitHub Actions release "
+        ("<b>Automated Release Pipeline</b> (Priority: MEDIUM) - Create a GitHub Actions release "
          "workflow that runs full test suite, builds EXE, generates changelog, and creates "
          "GitHub release with artifacts."),
-        ("<b>Test Artifact Cleanup</b> (Priority: LOW) — Add pytest fixture cleanup for "
+        ("<b>Test Artifact Cleanup</b> (Priority: LOW) - Add pytest fixture cleanup for "
          "reconciliation tests that leaves no .db files behind. Use tmp_path fixtures."),
-        ("<b>Walk-Forward Optimization</b> (Priority: MEDIUM) — Use core/walkforward_engine.py "
+        ("<b>Walk-Forward Optimization</b> (Priority: MEDIUM) - Use core/walkforward_engine.py "
          "and core/param_optimizer.py for systematic parameter optimization across multiple "
          "time windows instead of fixed-config backtests."),
     ]
@@ -235,7 +235,7 @@ def build_pdf(output_path: Path) -> None:
                     r.get("verdict", "N/A"),
                 ])
             else:
-                data.append([label, "—", "—", "—", "—", "—", "—", "NO DATA"])
+                data.append([label, "-", "-", "-", "-", "-", "-", "NO DATA"])
 
         col_widths = [50, 45, 45, 40, 50, 50, 50, 70]
         t = Table(data, colWidths=col_widths, repeatRows=1)

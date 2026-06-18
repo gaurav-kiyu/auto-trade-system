@@ -1,4 +1,4 @@
-"""Unit tests for core.live_analysis — performance analysis via mocked SQLite DB."""
+"""Unit tests for core.live_analysis - performance analysis via mocked SQLite DB."""
 
 from __future__ import annotations
 

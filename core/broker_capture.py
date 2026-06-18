@@ -26,7 +26,7 @@ class JsonlCaptureWriter:
 
     def __init__(self, path: str | Path) -> None:
         self._path = Path(path)
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._path.parent.mkdir(parents=True, exist_ok=True)
 
     def write(self, event: BrokerEvent | dict[str, Any]) -> None:

@@ -1,4 +1,4 @@
-"""Tests for WalkForwardEngine — walk-forward validation and drift monitoring."""
+"""Tests for WalkForwardEngine - walk-forward validation and drift monitoring."""
 
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ class TestWalkForwardReport:
 # ── WalkForwardEngine tests ─────────────────────────────────────
 
 class TestWalkForwardEngine:
-    """WalkForwardEngine — strategy quality over train/test windows."""
+    """WalkForwardEngine - strategy quality over train/test windows."""
 
     def test_init_with_strategy(self, mock_strategy):
         engine = WalkForwardEngine(mock_strategy)
@@ -135,7 +135,7 @@ class TestWalkForwardEngine:
 # ── Statistical significance tests ──────────────────────────────
 
 class TestCalculateStatisticalSignificance:
-    """calculate_statistical_significance — Welch's t-test approximation."""
+    """calculate_statistical_significance - Welch's t-test approximation."""
 
     def test_empty_returns_zero(self):
         drift, conf = calculate_statistical_significance([], [])
@@ -161,7 +161,7 @@ class TestCalculateStatisticalSignificance:
 # ── Parameter drift analysis tests ──────────────────────────────
 
 class TestAnalyzeParameterDrift:
-    """analyze_parameter_drift — stability across windows."""
+    """analyze_parameter_drift - stability across windows."""
 
     def test_empty_windows(self):
         reports = analyze_parameter_drift([], lambda r: {"value": 1.0})
@@ -179,7 +179,7 @@ class TestAnalyzeParameterDrift:
 # ── Adaptive retrain trigger tests ──────────────────────────────
 
 class TestCalculateAdaptiveRetrainTrigger:
-    """calculate_adaptive_retrain_trigger — when to retrain."""
+    """calculate_adaptive_retrain_trigger - when to retrain."""
 
     def test_no_trigger_when_healthy(self):
         result = calculate_adaptive_retrain_trigger(
@@ -221,7 +221,7 @@ class TestCalculateAdaptiveRetrainTrigger:
 # ── WalkForwardDriftMonitor tests ───────────────────────────────
 
 class TestWalkForwardDriftMonitor:
-    """WalkForwardDriftMonitor — integrated drift monitoring."""
+    """WalkForwardDriftMonitor - integrated drift monitoring."""
 
     def test_init(self, mock_strategy):
         monitor = WalkForwardDriftMonitor(mock_strategy)

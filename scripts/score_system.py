@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Constitution Scoring System — CLI for evaluating system scores across 23 categories.
+Constitution Scoring System - CLI for evaluating system scores across 23 categories.
 
 Usage:
     python scripts/score_system.py                         # Full report
@@ -80,7 +80,7 @@ def _load_constitution_evidence() -> dict[str, list[dict[str, Any]]]:
 
 
 def _scan_filesystem_evidence() -> dict[str, list[dict[str, Any]]]:
-    """Fallback evidence collector — scans the filesystem directly.
+    """Fallback evidence collector - scans the filesystem directly.
 
     Used when the ConstitutionValidator cannot be imported.
     """

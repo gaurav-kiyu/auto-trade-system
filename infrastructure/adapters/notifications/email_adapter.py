@@ -74,14 +74,14 @@ class EmailNotificationAdapter(NotificationPort):
         self._enabled = enabled
 
         # Rate limiting state
-        self._rate_limit_lock = threading.Lock()
+        self._rate_limit_lock = threading.RLock()
         self._send_timestamps: list[float] = []
         self._rate_limit = rate_limit
         self._rate_window = rate_window
 
         # Reusable SMTP connection
         self._smtp_connection: smtplib.SMTP | None = None
-        self._connection_lock = threading.Lock()
+        self._connection_lock = threading.RLock()
         self._last_connect: float = 0.0
         self._connect_timeout: float = 30.0  # reconnect after 30s idle
 

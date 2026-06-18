@@ -915,7 +915,7 @@ class ReferenceDataService:
 
 # Global reference data service instance
 _reference_data_service: ReferenceDataService | None = None
-_reference_data_service_lock = threading.Lock()
+_reference_data_service_lock = threading.RLock()
 
 
 def get_reference_data_service() -> ReferenceDataService:

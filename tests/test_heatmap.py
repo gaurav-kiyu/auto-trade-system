@@ -15,8 +15,8 @@ def make_trades(n=20, win_frac=0.5):
     trades = []
     for i in range(n):
         pnl = 100 if i < int(n * win_frac) else -50
-        i % 5   # Mon–Fri
-        hr  = 9 + (i % 7)  # 9–15
+        i % 5   # Mon-Fri
+        hr  = 9 + (i % 7)  # 9-15
         ts  = f"2024-01-{(i % 22) + 2:02d}T{hr:02d}:30:00"
         trades.append({
             "ts":         ts,

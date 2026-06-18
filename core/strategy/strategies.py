@@ -1,5 +1,5 @@
 """
-AD-KIYU Strategy implementations — used by ScoringEngine.
+AD-KIYU Strategy implementations - used by ScoringEngine.
 """
 from __future__ import annotations
 

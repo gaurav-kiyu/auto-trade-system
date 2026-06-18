@@ -1,5 +1,5 @@
 """
-Position Service — extracted from index_app/index_trader.py (GAP-05b).
+Position Service - extracted from index_app/index_trader.py (GAP-05b).
 
 Encapsulates trade entry, position monitoring, and position exit logic
 that was previously inline in index_trader.py.  Reduces the main file
@@ -149,12 +149,12 @@ class PositionService:
                 pass
 
         if is_hard_halted():
-            self._decision_log[name] = {"msg": "HARD HALT ACTIVE — blocked"}
+            self._decision_log[name] = {"msg": "HARD HALT ACTIVE - blocked"}
             return
 
         # Intraday P&L gate
         if check_intraday_pnl_and_halt(source="enter_trade"):
-            self._decision_log[name] = {"msg": "INTRADAY_LOSS_LIMIT — hard halt tripped"}
+            self._decision_log[name] = {"msg": "INTRADAY_LOSS_LIMIT - hard halt tripped"}
             return
 
         # News risk gate
@@ -163,9 +163,9 @@ class PositionService:
                 news_risk = self._news_sentinel.get_current_risk()
                 if news_risk.risk_level in ("HIGH", "EXTREME"):
                     self._decision_log[name] = {
-                        "msg": f"NEWS_BLOCK: {news_risk.risk_level} — {news_risk.headline}",
+                        "msg": f"NEWS_BLOCK: {news_risk.risk_level} - {news_risk.headline}",
                     }
-                    _log.warning("[NEWS_BLOCK] %s blocked: %s — %s", name, news_risk.risk_level, news_risk.headline)
+                    _log.warning("[NEWS_BLOCK] %s blocked: %s - %s", name, news_risk.risk_level, news_risk.headline)
                     return
             except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _news_err:
                 _log.debug("News sentinel check failed (fail-open): %s", _news_err)
@@ -221,7 +221,7 @@ class PositionService:
                             pass
                     return
             except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as e:
-                self._decision_log[name] = {"msg": f"RISK_EVAL_ERROR: {e} — trade blocked (fail-closed)"}
+                self._decision_log[name] = {"msg": f"RISK_EVAL_ERROR: {e} - trade blocked (fail-closed)"}
                 return
 
         # 1. Time Validation
@@ -240,11 +240,11 @@ class PositionService:
         now = time.time()
 
         if confirmed_ts is not None and (now - confirmed_ts) > self._signal_max_age:
-            self._decision_log[name] = {"msg": f"stale — confirmed_ts {now - confirmed_ts:.0f}s old"}
+            self._decision_log[name] = {"msg": f"stale - confirmed_ts {now - confirmed_ts:.0f}s old"}
             return
 
         if (now - signal_ts) > self._signal_max_age:
-            self._decision_log[name] = {"msg": f"stale — signal_ts {now - signal_ts:.0f}s old"}
+            self._decision_log[name] = {"msg": f"stale - signal_ts {now - signal_ts:.0f}s old"}
             return
 
         is_manual = self._manual_signals_only or self._execution_mode.upper() in (
@@ -454,15 +454,15 @@ class PositionService:
                     exit_price = order_result.average_price or entry_price
                 else:
                     _log.warning(
-                        "Exit order for %s not filled: %s — using entry price",
+                        "Exit order for %s not filled: %s - using entry price",
                         name, order_result.reject_reason,
                     )
                     exit_price = entry_price
             else:
-                _log.warning("No execution service available for exit — using entry price")
+                _log.warning("No execution service available for exit - using entry price")
                 exit_price = entry_price
         except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as e:
-            _log.error("Exit order failed for %s: %s — using entry price", name, e)
+            _log.error("Exit order failed for %s: %s - using entry price", name, e)
             exit_price = entry_price
 
         exit_failed = (exit_price == entry_price and reason != "MANUAL")
@@ -533,7 +533,7 @@ class PositionService:
         )
 
     def _get_underlying_ltp(self, name: str) -> float | None:
-        """Resolve underlying LTP — uses stored resolver if available, else returns None."""
+        """Resolve underlying LTP - uses stored resolver if available, else returns None."""
         if self._ltp_resolver is not None:
             try:
                 return self._ltp_resolver.resolve(name)
@@ -542,13 +542,13 @@ class PositionService:
         return None
 
     def _get_position_size(self, name: str, price: float) -> int:
-        """Get position size — delegates to mandate service."""
+        """Get position size - delegates to mandate service."""
         if self._mandate_service is not None:
             return self._mandate_service.get_position_size(name, price)
         return 1
 
     def _send_notification(self, message: str, **kwargs) -> None:
-        """Send notification — uses stored notification service if available."""
+        """Send notification - uses stored notification service if available."""
         if self._notification_service is not None:
             try:
                 if hasattr(self._notification_service, 'send'):
@@ -567,7 +567,7 @@ class PositionService:
         self, name: str, price: float, qty: int, sig: dict[str, Any],
         order_direction: str, idempotency_key: str,
     ) -> Any:
-        """Submit order under state lock — covers margin check + submission."""
+        """Submit order under state lock - covers margin check + submission."""
         from core.ports.execution.execution_port import OrderRequest, OrderStatus, OrderType
 
         available_margin = 0.0
@@ -668,7 +668,7 @@ class PositionService:
             pos["exit_failed"] = True
             pos["exit_retries"] = pos.get("exit_retries", 0) + 1
             if pos["exit_retries"] >= 3:
-                _log.error("EXIT %s FAILED after %d retries — giving up", name, pos["exit_retries"])
+                _log.error("EXIT %s FAILED after %d retries - giving up", name, pos["exit_retries"])
                 self._positions.pop(name, None)
         else:
             self._positions.pop(name, None)
@@ -677,7 +677,7 @@ class PositionService:
 # ── Singleton factory ─────────────────────────────────────────────────────────
 
 _position_service_instance: PositionService | None = None
-_position_service_lock = threading.Lock()
+_position_service_lock = threading.RLock()
 
 
 def get_position_service(

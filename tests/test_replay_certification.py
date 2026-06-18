@@ -189,7 +189,7 @@ def empty_trades_db():
 # ── Tests ───────────────────────────────────────────────────────────────────
 
 class TestReplayCertifierCertify:
-    """ReplayCertifier.certify() — end-to-end certification."""
+    """ReplayCertifier.certify() - end-to-end certification."""
 
     def test_certify_with_valid_trades(self, tmp_trades_db):
         """Certify with a database containing valid trades."""
@@ -219,7 +219,7 @@ class TestReplayCertifierCertify:
             assert h1 == h2, f"Trade {tid} hash changed between runs: {h1} vs {h2}"
 
     def test_certify_with_empty_db(self, empty_trades_db):
-        """Certify with an empty database (trades table exists but no rows — vacuously true)."""
+        """Certify with an empty database (trades table exists but no rows - vacuously true)."""
         certifier = ReplayCertifier()
         report = certifier.certify(db_path=empty_trades_db)
 
@@ -269,7 +269,7 @@ class TestConvenienceFunction:
 
 
 class TestReplayCertificationReport:
-    """ReplayCertificationReport — data integrity checks."""
+    """ReplayCertificationReport - data integrity checks."""
 
     def test_summary_format(self, tmp_trades_db):
         certifier = ReplayCertifier()
@@ -309,7 +309,7 @@ class TestDeterminismGuarantee:
         """_simulate_price_bars with seed=42 produces identical output."""
         from core.certification.replay_certifier import replay_trace
 
-        # We need a valid trade in a DB — create one
+        # We need a valid trade in a DB - create one
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
             db_path = tmp.name
         try:

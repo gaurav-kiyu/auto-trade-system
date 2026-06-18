@@ -264,7 +264,7 @@ def test_config_drift_no_drift_with_matching_configs(caplog):
 
 
 def test_config_drift_handles_invalid_defaults_json_gracefully(caplog):
-    """Invalid JSON in defaults file should not crash — just debug log and return."""
+    """Invalid JSON in defaults file should not crash - just debug log and return."""
     with tempfile.TemporaryDirectory() as tmp:
         defaults_file = os.path.join(tmp, "defaults.json")
         with open(defaults_file, "w") as f:

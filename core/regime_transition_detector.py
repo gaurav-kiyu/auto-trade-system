@@ -38,7 +38,7 @@ _log = logging.getLogger(__name__)
 class TransitionSignal:
     from_regime:  str
     to_regime:    str
-    confidence:   float   # 0.0–1.0
+    confidence:   float   # 0.0-1.0
     score_bonus:  int     # positive = add to score, negative = subtract
     reason:       str
 
@@ -51,7 +51,7 @@ class _VixHistoryTracker:
     def __init__(self, max_size: int = 10) -> None:
         self._history: list[float] = []
         self._max_size = max_size
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def update(self, vix: float) -> None:
         if vix <= 0:
@@ -74,7 +74,7 @@ class _VixHistoryTracker:
             self._history.clear()
 
 
-# Module-level singleton — preserves existing API while adding thread safety.
+# Module-level singleton - preserves existing API while adding thread safety.
 _vix_tracker = _VixHistoryTracker()
 
 

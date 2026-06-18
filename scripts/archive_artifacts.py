@@ -162,7 +162,7 @@ def _summarize(results: dict[str, int], output_dir: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="AD-KIYU Artifact Archiver — compress old runtime artifacts into dated ZIP files",
+        description="AD-KIYU Artifact Archiver - compress old runtime artifacts into dated ZIP files",
     )
     parser.add_argument(
         "--root",
@@ -278,7 +278,7 @@ def main() -> int:
     _log.info("Total files to archive: %d", total_collected)
 
     if not total_collected:
-        _log.info("Nothing to archive — system is tidy!")
+        _log.info("Nothing to archive - system is tidy!")
         return 0
 
     if args.dry_run:

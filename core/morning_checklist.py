@@ -206,7 +206,7 @@ class MorningChecklist:
         if not self._broker_port:
             return True, "Broker token (no broker configured)"
 
-        # Try multiple token freshness paths — fail-closed on all exceptions
+        # Try multiple token freshness paths - fail-closed on all exceptions
         try:
             # Preferred: TokenRefreshService.validate_token()
             from core.services.token_refresh_service import TokenRefreshService
@@ -219,7 +219,7 @@ class MorningChecklist:
                 refreshed = svc.force_refresh()
                 if refreshed:
                     return True, "Broker token refreshed successfully"
-                return False, "Broker token EXPIRED — refresh via TokenRefreshService failed"
+                return False, "Broker token EXPIRED - refresh via TokenRefreshService failed"
         except ImportError:
             pass  # TokenRefreshService not available, try _ensure_token_fresh
         except (AttributeError, OSError, ValueError) as e:
@@ -232,13 +232,13 @@ class MorningChecklist:
                 if self._broker_port._ensure_token_fresh():
                     return True, "Broker token valid (fresh)"
                 else:
-                    return False, "Broker token EXPIRED — _ensure_token_fresh failed"
+                    return False, "Broker token EXPIRED - _ensure_token_fresh failed"
         except (AttributeError, OSError, ValueError) as e:
             self._logger.warning("Token check failed (fallback): %s" % e)
-            return False, f"Token check FAILED — cannot validate: {e}"
+            return False, f"Token check FAILED - cannot validate: {e}"
 
-        # No method to check — fail-closed for safety
-        return False, "Broker token UNVERIFIABLE — no validation method available"
+        # No method to check - fail-closed for safety
+        return False, "Broker token UNVERIFIABLE - no validation method available"
 
     def _check_broker_reachable(self) -> tuple[bool, str]:
         """Check if broker API is reachable."""

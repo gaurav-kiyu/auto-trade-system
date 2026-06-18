@@ -115,10 +115,114 @@ class DIContainer:
             self._transients.clear()
 
 
-# Global container instance
-container = DIContainer()
+
+# ── Convenience factory for default wiring ────────────────────────────────
+
+def wire_default_services(container_instance: DIContainer | None = None) -> DIContainer:
+    """Register default service implementations into the container.
+
+    This wires the standard port-to-implementation mappings so callers
+    can resolve interfaces without manual setup.  Safe to call multiple
+    times (idempotent via is_registered checks).
+    """
+    c = container_instance or container
+
+    # Capital Allocation (multi-asset)
+    try:
+        from core.portfolio.adapters.multi_asset_aggregator import CapitalAllocationService
+        from core.ports.capital_allocation import CapitalAllocationPort
+        if not c.is_registered(CapitalAllocationPort):
+            c.register_singleton(CapitalAllocationPort, CapitalAllocationService)
+    except ImportError:
+        pass  # Optional dependency - container works without it
+
+    # Multi-Asset Portfolio Aggregator (wired with CapitalAllocationPort from container if available)
+    try:
+        from core.portfolio.adapters.multi_asset_aggregator import MultiAssetPortfolioAggregator
+        if not c.is_registered(MultiAssetPortfolioAggregator):
+            # Use factory to resolve CapitalAllocationPort from container
+            def _make_aggregator():
+                cap_alloc = c.try_resolve(CapitalAllocationPort) if hasattr(c, 'try_resolve') else None
+                return MultiAssetPortfolioAggregator(capital_allocation=cap_alloc)
+            c.register_factory(MultiAssetPortfolioAggregator, _make_aggregator)
+    except ImportError:
+        pass
+
+    # Market Data Adapters (multi-asset) - each adapter registered under its own type
+    try:
+        from infrastructure.adapters.market_data.equity.nse_equity_adapter import (
+            NseEquityAdapter,
+        )
+        if not c.is_registered(NseEquityAdapter):
+            c.register_singleton(NseEquityAdapter, NseEquityAdapter)
+    except ImportError:
+        pass
+
+    try:
+        from infrastructure.adapters.market_data.commodity.mcx_commodity_adapter import (
+            McxCommodityAdapter,
+        )
+        if not c.is_registered(McxCommodityAdapter):
+            c.register_singleton(McxCommodityAdapter, McxCommodityAdapter)
+    except ImportError:
+        pass
+
+    try:
+        from infrastructure.adapters.market_data.currency.cds_currency_adapter import (
+            CdsCurrencyAdapter,
+        )
+        if not c.is_registered(CdsCurrencyAdapter):
+            c.register_singleton(CdsCurrencyAdapter, CdsCurrencyAdapter)
+    except ImportError:
+        pass
+
+    # Market Data Service - multi-adapter aggregator
+    try:
+        from core.services.market_data_service import MarketDataService
+        if not c.is_registered(MarketDataService):
+            c.register_singleton(MarketDataService, MarketDataService)
+    except ImportError:
+        pass
+
+    # ConfigManager — register via factory so it's lazily resolved from
+    # the module-level _cfg_manager set by index_trader._load_config()
+    try:
+        from index_app.domains.config.manager import ConfigManager as _ConfigManager
+        if not c.is_registered(_ConfigManager):
+            c.register_factory(_ConfigManager, _resolve_config_manager)
+    except ImportError:
+        pass
+
+    return c
+
+
+def _resolve_config_manager() -> Any:
+    """Lazily resolve the global ConfigManager instance from index_trader."""
+    try:
+        from index_app.index_trader import _cfg_manager
+        if _cfg_manager is not None:
+            return _cfg_manager
+    except ImportError:
+        pass
+    # Fallback: return an empty ConfigManager (fail-safe defaults will apply)
+    from index_app.domains.config.manager import ConfigManager
+    return ConfigManager(name="di-fallback")
+
+
+# Global container instance with default services wired
+container = wire_default_services(DIContainer())
 
 
 def get_container() -> DIContainer:
     """Get the global DI container instance."""
     return container
+
+
+def reset_container() -> None:
+    """Clear the global container and re-wire default services.
+
+    Primarily useful for testing isolation.
+    """
+    global container
+    container.clear()
+    container = wire_default_services(DIContainer())

@@ -62,7 +62,7 @@ class InvariantViolation:
 
 
 _INVARIANTS: list[InvariantCheck] = []
-_lock = threading.Lock()
+_lock = threading.RLock()
 _violations: list[InvariantViolation] = []
 _max_violations = 1000
 _halt_callback: Callable[[str], None] | None = None
@@ -140,9 +140,9 @@ def check_all() -> list[InvariantCheck]:
                         _violations.pop(0)
 
                     if inv.severity == InvariantSeverity.HALT:
-                        _log.critical("INVARIANT HALT: %s — %s", inv.name, message)
+                        _log.critical("INVARIANT HALT: %s - %s", inv.name, message)
                         if _halt_callback:
-                            _halt_callback(f"INVARIANT_HALT: {inv.name} — {message}")
+                            _halt_callback(f"INVARIANT_HALT: {inv.name} - {message}")
 
                 results.append(inv)
             except Exception as e:

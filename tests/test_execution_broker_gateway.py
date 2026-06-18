@@ -1,4 +1,4 @@
-"""Tests for core/execution/broker_gateway.py — Broker Gateway."""
+"""Tests for core/execution/broker_gateway.py - Broker Gateway."""
 
 from __future__ import annotations
 

@@ -70,7 +70,7 @@ class ExecutionGuards:
         self._min_trade_interval_seconds = self._config.get("MIN_TRADE_INTERVAL_SECONDS", 30)
         self._trade_history: deque[TradeFrequencyRecord] = deque(maxlen=1000)
 
-        # Consecutive loss config — centralized in safety_state
+        # Consecutive loss config - centralized in safety_state
         self._max_consecutive_losses = self._config.get("MAX_CONSECUTIVE_LOSSES", 3)
         self._last_trade_time: datetime | None = None
 

@@ -1,5 +1,5 @@
 """
-Tests for Phase 3 — Time-of-Day Intelligence Layer (session_classifier.py).
+Tests for Phase 3 - Time-of-Day Intelligence Layer (session_classifier.py).
 
 Covers:
   - classify_session: correct SessionType at each boundary
@@ -38,7 +38,7 @@ def _t(h: int, m: int, s: int = 0) -> datetime.time:
 _EMPTY_CFG: dict = {}
 
 
-# ── Class 1: classify_session — boundary correctness ─────────────────────────
+# ── Class 1: classify_session - boundary correctness ─────────────────────────
 
 
 class TestClassifySessionBoundaries:
@@ -112,7 +112,7 @@ class TestClassifySessionConfigOverride:
         assert classify_session(_t(14, 30), cfg) == SessionType.PRE_CLOSE
 
 
-# ── Class 2: get_session_score_adj — defaults ─────────────────────────────────
+# ── Class 2: get_session_score_adj - defaults ─────────────────────────────────
 
 
 class TestGetSessionScoreAdj:
@@ -329,7 +329,7 @@ class TestClassifySessionDatetimeInput:
 
 class TestFallbackBoundaryFunctions:
     """Covers the except Exception blocks in _nse_open_time, _nse_early_end_time,
-    _nse_block_time — lines 93-94, 107-108, 121-122."""
+    _nse_block_time - lines 93-94, 107-108, 121-122."""
 
     @_patch("core.datetime_ist.nse_cash_open_time", side_effect=ImportError("mock"))
     def test_nse_open_time_fallback(self, _):
@@ -348,7 +348,7 @@ class TestFallbackBoundaryFunctions:
 
 
 class TestIsExpiryDay:
-    """Covers the is_expiry_day function — lines 297-320."""
+    """Covers the is_expiry_day function - lines 297-320."""
 
     def test_nifty_not_expiry_day(self):
         assert is_expiry_day("NIFTY", check_date=datetime.date(2026, 5, 27)) is False
@@ -393,7 +393,7 @@ class TestIsExpiryDay:
 
 
 class TestGetExpirySession:
-    """Covers the get_expiry_session function — lines 333-383."""
+    """Covers the get_expiry_session function - lines 333-383."""
 
     def test_not_expiry_day_returns_none(self):
         """May 27 is Wednesday, not NIFTY expiry day → None."""

@@ -1,5 +1,5 @@
 """
-Backtest benchmark comparison (Item 10 — v2.44).
+Backtest benchmark comparison (Item 10 - v2.44).
 
 Fetches buy-and-hold benchmark returns for strategy alpha measurement.
 Results cached locally; fetch failures never block report generation.

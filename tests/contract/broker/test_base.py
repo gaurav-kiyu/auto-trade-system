@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Test Base — production-grade certification suite.
+AD-KIYU Broker Contract Test Base - production-grade certification suite.
 
 Every broker adapter must pass the full suite before being certified for live use.
 """

@@ -1,5 +1,5 @@
 """
-AD-KIYU RBAC — Role-Based Access Control for admin control plane.
+AD-KIYU RBAC - Role-Based Access Control for admin control plane.
 
 Permission matrix:
 | Action            | ADMIN | OPERATOR | OBSERVER | DEVELOPER |

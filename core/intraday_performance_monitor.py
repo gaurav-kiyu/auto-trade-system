@@ -1,8 +1,8 @@
 """
-Intraday performance feedback loop (Item 9 — v2.44).
+Intraday performance feedback loop (Item 9 - v2.44).
 
 Adapts signal thresholds and position sizing based on current session
-win-rate quality — separate from the loss-based circuit breaker.
+win-rate quality - separate from the loss-based circuit breaker.
 
 Config keys
 -----------
@@ -53,7 +53,7 @@ class IntradayPerformanceMonitor:
 
     def __init__(self, cfg: dict[str, Any] | None = None) -> None:
         self._cfg   = cfg or {}
-        self._lock  = threading.Lock()
+        self._lock  = threading.RLock()
         self._reset_state()
 
     def _reset_state(self) -> None:

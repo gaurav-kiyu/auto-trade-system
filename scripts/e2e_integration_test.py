@@ -119,7 +119,7 @@ def run_phase2():
 # ═══════════════════════════════════════════════════════════════════
 def run_phase3():
     def test_signal_engine():
-        import signal_engine
+        from core.legacy import signal_engine
         assert signal_engine is not None
     test("P3-SIGNAL", "Signal engine import", test_signal_engine)
 
@@ -367,7 +367,7 @@ def generate_report() -> str:
 if __name__ == "__main__":
     print()
     print("=" * 70)
-    print("  OPB TRADING SYSTEM — END-TO-END INTEGRATION TEST")
+    print("  OPB TRADING SYSTEM - END-TO-END INTEGRATION TEST")
     print(f"  Started at: {NOW}")
     print("=" * 70)
     print()

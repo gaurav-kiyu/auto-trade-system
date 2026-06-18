@@ -61,7 +61,7 @@ def test_banknifty_not_expiry_on_friday():
 
 
 def test_unknown_index_defaults_to_thursday():
-    # Unknown index defaults to weekday 3 (Thursday) — so True on Thursday
+    # Unknown index defaults to weekday 3 (Thursday) - so True on Thursday
     assert is_expiry_day("SENSEX", CFG, check_date=THURSDAY) is True
     # And False on non-Thursday
     assert is_expiry_day("SENSEX", CFG, check_date=MONDAY) is False

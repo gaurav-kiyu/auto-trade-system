@@ -1,4 +1,4 @@
-"""Tests for core/mandate_service.py — MandateService."""
+"""Tests for core/mandate_service.py - MandateService."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """
-Tests for core/adaptive_signal.py — Adaptive signal evaluator with soft rejection.
+Tests for core/adaptive_signal.py - Adaptive signal evaluator with soft rejection.
 
 Covers:
   - AdaptiveSignal dataclass

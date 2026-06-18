@@ -83,7 +83,7 @@ def test_disabled_returns_empty():
 
 
 def test_default_disabled():
-    # default is disabled — no config key means disabled
+    # default is disabled - no config key means disabled
     result = analyze_banknifty_constituents({})
     assert result == []
 

@@ -1,4 +1,4 @@
-"""Tests for core/position_service.py — PositionService."""
+"""Tests for core/position_service.py - PositionService."""
 
 from __future__ import annotations
 

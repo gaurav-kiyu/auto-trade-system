@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for scripts/scan_dead_code.py — Dead code and duplicate code scanning."""
+"""Tests for scripts/scan_dead_code.py - Dead code and duplicate code scanning."""
 from __future__ import annotations
 
 
@@ -20,7 +20,7 @@ from scripts.scan_dead_code import (
 
 
 class TestDeadCodeFinding:
-    """Test DeadCodeFinding data class (fast — no I/O)."""
+    """Test DeadCodeFinding data class (fast - no I/O)."""
 
     def test_default_severity(self) -> None:
         f = DeadCodeFinding(category="UNUSED_IMPORT", file_path="test.py", line=1, name="foo", description="unused")
@@ -40,7 +40,7 @@ class TestDeadCodeFinding:
 
 
 class TestDuplicateFinding:
-    """Test DuplicateFinding data class (fast — no I/O)."""
+    """Test DuplicateFinding data class (fast - no I/O)."""
 
     def test_default_severity(self) -> None:
         f = DuplicateFinding(
@@ -71,7 +71,7 @@ class TestDuplicateFinding:
 
 
 class TestCollectModuleExports:
-    """Test AST-based export collection (fast — single file with tempfile)."""
+    """Test AST-based export collection (fast - single file with tempfile)."""
 
     def test_finds_functions(self) -> None:
         with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False, encoding="utf-8") as f:
@@ -136,7 +136,7 @@ class TestCollectModuleExports:
 
 
 class TestUpdateSectionInFile:
-    """Test the append-only register update helper (fast — tempfile)."""
+    """Test the append-only register update helper (fast - tempfile)."""
 
     def test_preserves_existing_content(self) -> None:
         with tempfile.NamedTemporaryFile(suffix=".md", mode="w", delete=False, encoding="utf-8") as f:

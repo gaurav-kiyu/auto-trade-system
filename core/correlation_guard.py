@@ -6,9 +6,9 @@ in the same direction simultaneously, increasing hidden portfolio risk.
 
 Example: If NIFTY CALL is already open and BANKNIFTY sends a CALL signal,
 and the last N bars of their price history are highly correlated (r > threshold),
-the BANKNIFTY entry is blocked — it would just double the same risk exposure.
+the BANKNIFTY entry is blocked - it would just double the same risk exposure.
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ---------------------------------------------------
   correlation_guard_enabled  : bool  default true
   correlation_threshold      : float default 0.85  (block when r > this)
@@ -141,15 +141,15 @@ def check_portfolio_correlation(
             continue
         existing_dir = str(pos.get("signal", "")).upper()
         if existing_dir != new_dir_norm:
-            continue  # opposite directions hedge each other — fine
+            continue  # opposite directions hedge each other - fine
 
-        # Same direction in a correlated pair — check price correlation
+        # Same direction in a correlated pair - check price correlation
         closes_new      = get_closes(new_name,      lookback)
         closes_existing = get_closes(existing_name, lookback)
 
         if len(closes_new) < 5 or len(closes_existing) < 5:
             _log.debug(
-                "[CORR_GUARD] Insufficient price history for %s↔%s — skipping check",
+                "[CORR_GUARD] Insufficient price history for %s↔%s - skipping check",
                 new_name, existing_name,
             )
             continue
@@ -159,14 +159,14 @@ def check_portfolio_correlation(
         if r >= threshold:
             reason = (
                 f"Correlation guard: {new_name}/{existing_name} both {new_dir_norm}, "
-                f"r={r:.3f} ≥ threshold={threshold:.2f} — blocked"
+                f"r={r:.3f} ≥ threshold={threshold:.2f} - blocked"
             )
             _log.info("[CORR_GUARD] %s", reason)
             return False, reason
 
         if r >= warn_thresh:
             _log.warning(
-                "[CORR_GUARD] %s/%s both %s, r=%.3f (warn threshold=%.2f) — proceeding with caution",
+                "[CORR_GUARD] %s/%s both %s, r=%.3f (warn threshold=%.2f) - proceeding with caution",
                 new_name, existing_name, new_dir_norm, r, warn_thresh,
             )
 

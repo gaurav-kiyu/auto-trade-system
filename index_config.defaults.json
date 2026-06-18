@@ -118,6 +118,7 @@
   "SLIPPAGE": 0.002,
   "_comment_signal_filters": "Signal Tuning & Volatility Filters \u2014 score thresholds, volatility confirmation, anomaly detection",
   "AI_THRESHOLD": 60,
+  "SIGNAL_ENGINE_V2": false,
   "IV_SPIKE_THRESHOLD": 60.0,
   "VOL_RATIO_MIN": 1.2,
   "COOLDOWN": 300,

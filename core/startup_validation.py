@@ -24,9 +24,9 @@ log = logging.getLogger("startup_validation")
 AUTHORITATIVE_RISK_MODULE = "core.services.risk_service"
 AUTHORITATIVE_RISK_CLASS = "RiskService"
 
-# Deprecated risk engine modules — any loaded at startup is a violation
+# Deprecated risk engine modules - any loaded at startup is a violation
 DEPRECATED_RISK_MODULES = {
-    "core.risk_engine": "Removed in v2.54 — use core.services.risk_service.RiskService via RiskPort",
+    "core.risk_engine": "Removed in v2.54 - use core.services.risk_service.RiskService via RiskPort",
     "core.predictive_risk": "Removed",
     "core.trading_risk": "Removed",
     "core.risk.risk_policy_engine": "Removed",
@@ -44,13 +44,13 @@ def validate_risk_engine() -> tuple[bool, str]:
     # Check deprecated modules loaded (warn only, not blocking)
     loaded = [m for m in sys.modules if m in DEPRECATED_RISK_MODULES]
     for mod in loaded:
-        log.warning("Deprecated risk module loaded: %s — %s", mod, DEPRECATED_RISK_MODULES[mod])
+        log.warning("Deprecated risk module loaded: %s - %s", mod, DEPRECATED_RISK_MODULES[mod])
 
     # Check authoritative engine is importable
     try:
         __import__(AUTHORITATIVE_RISK_MODULE)
         log.info(
-            "%s.%s available — PASS",
+            "%s.%s available - PASS",
             AUTHORITATIVE_RISK_MODULE,
             AUTHORITATIVE_RISK_CLASS,
         )

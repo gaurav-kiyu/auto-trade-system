@@ -1,4 +1,4 @@
-"""Tests for core/execution/shadow_mode.py — Shadow Mode Engine."""
+"""Tests for core/execution/shadow_mode.py - Shadow Mode Engine."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Tests for core.data_freshness_guard — stale data rejection."""
+"""Tests for core.data_freshness_guard - stale data rejection."""
 from __future__ import annotations
 
 import time

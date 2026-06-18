@@ -1,4 +1,4 @@
-"""DB migration governance — schema versioning via PRAGMA user_version + migration registry."""
+"""DB migration governance - schema versioning via PRAGMA user_version + migration registry."""
 
 import logging
 import sqlite3
@@ -105,7 +105,97 @@ def _get_migration_log_inner(conn: sqlite3.Connection) -> list[dict]:
 @register_schema(1, "Track schema versions via PRAGMA user_version; no structural changes")
 def _migration_v1(conn: sqlite3.Connection) -> None:
     """Baseline migration: mark version 1 for all existing tables.
-    No DDL needed — all tables use CREATE TABLE IF NOT EXISTS on startup."""
+    No DDL needed - all tables use CREATE TABLE IF NOT EXISTS on startup."""
+
+
+@register_schema(2, "Create SME stocks and positions tables")
+def _migration_v2(conn: sqlite3.Connection) -> None:
+    """Create tables for SME (Small and Medium Enterprise) equity domain."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS sme_stocks (
+            symbol          TEXT PRIMARY KEY,
+            name            TEXT NOT NULL DEFAULT '',
+            isin            TEXT NOT NULL DEFAULT '',
+            sector          TEXT NOT NULL DEFAULT 'OTHER',
+            platform        TEXT NOT NULL DEFAULT 'nse_emerge',
+            face_value      REAL NOT NULL DEFAULT 10.0,
+            last_price      REAL NOT NULL DEFAULT 0.0,
+            change_pct      REAL NOT NULL DEFAULT 0.0,
+            week_52_high    REAL NOT NULL DEFAULT 0.0,
+            week_52_low     REAL NOT NULL DEFAULT 0.0,
+            avg_volume_10d  INTEGER NOT NULL DEFAULT 0,
+            avg_delivery_pct REAL NOT NULL DEFAULT 0.0,
+            market_cap      REAL NOT NULL DEFAULT 0.0,
+            pe_ratio        REAL NOT NULL DEFAULT 0.0,
+            promoter_holding REAL NOT NULL DEFAULT 0.0,
+            circuit_limit   REAL NOT NULL DEFAULT 5.0,
+            min_lot_size    INTEGER NOT NULL DEFAULT 0,
+            t2t_settlement  INTEGER NOT NULL DEFAULT 0,
+            issue_price     REAL NOT NULL DEFAULT 0.0,
+            listed_date     TEXT,
+            is_active       INTEGER NOT NULL DEFAULT 1,
+            updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS sme_positions (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol          TEXT NOT NULL,
+            quantity        INTEGER NOT NULL,
+            average_price   REAL NOT NULL,
+            current_price   REAL NOT NULL,
+            direction       TEXT NOT NULL DEFAULT 'LONG',
+            unrealized_pnl  REAL NOT NULL DEFAULT 0.0,
+            realized_pnl    REAL NOT NULL DEFAULT 0.0,
+            is_t2t          INTEGER NOT NULL DEFAULT 0,
+            min_lot_qty     INTEGER NOT NULL DEFAULT 0,
+            entry_time      TEXT NOT NULL DEFAULT (datetime('now')),
+            exit_time       TEXT,
+            exit_reason     TEXT,
+            is_open         INTEGER NOT NULL DEFAULT 1,
+            notes           TEXT DEFAULT ''
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_sme_positions_symbol
+        ON sme_positions(symbol)
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_sme_positions_open
+        ON sme_positions(is_open)
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_sme_stocks_platform
+        ON sme_stocks(platform)
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_sme_stocks_active
+        ON sme_stocks(is_active)
+    """)
+
+
+@register_schema(3, "Create fundamental_cache table for equity fundamental snapshots")
+def _migration_v3(conn: sqlite3.Connection) -> None:
+    """Create table for caching fundamental analysis snapshots."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS fundamental_cache (
+            symbol          TEXT PRIMARY KEY,
+            data_json       TEXT NOT NULL,
+            fetched_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            pe_ratio        REAL DEFAULT 0.0,
+            pb_ratio        REAL DEFAULT 0.0,
+            market_cap      REAL DEFAULT 0.0,
+            eps_ttm         REAL DEFAULT 0.0,
+            dividend_yield  REAL DEFAULT 0.0,
+            debt_to_equity  REAL DEFAULT 0.0,
+            roe_pct         REAL DEFAULT 0.0,
+            composite_score REAL DEFAULT 0.0
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_fundamental_cache_composite
+        ON fundamental_cache(composite_score DESC)
+    """)
 
 
 def ensure_schema_version(db_path: str) -> int:

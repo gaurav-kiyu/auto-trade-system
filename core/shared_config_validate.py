@@ -297,7 +297,7 @@ def append_broker_api_config_errors(
         )
     if drv not in allowed_drivers_without_factory:
         opts = ", ".join(sorted(allowed_drivers_without_factory))
-        errors.append(f"BROKER_DRIVER must be one of: {opts} — or set BROKER_CUSTOM_FACTORY to module:function")
+        errors.append(f"BROKER_DRIVER must be one of: {opts} - or set BROKER_CUSTOM_FACTORY to module:function")
     return {"driver": drv, "custom_factory": bcf, "live_secrets": live}
 
 
@@ -310,7 +310,7 @@ def append_execution_hybrid_warnings(
     """Shared MANUAL_SIGNALS_ONLY + EXECUTION_MODE hints (index and stock)."""
     if bool(cfg.get("MANUAL_SIGNALS_ONLY", False)):
         warnings.append(
-            "MANUAL_SIGNALS_ONLY: signals/alerts only — bot does not auto-place or track positions until you change mode."
+            "MANUAL_SIGNALS_ONLY: signals/alerts only - bot does not auto-place or track positions until you change mode."
         )
     if bool(cfg.get("MANUAL_SIGNALS_ONLY", False)) and broker_api_enabled:
         warnings.append(
@@ -320,6 +320,6 @@ def append_execution_hybrid_warnings(
     if em == "AUTO":
         warnings.append("EXECUTION_MODE=AUTO: broker orders may be placed automatically when all gates pass")
     elif em == "MANUAL":
-        warnings.append("EXECUTION_MODE=MANUAL: live signals only — you place orders yourself")
+        warnings.append("EXECUTION_MODE=MANUAL: live signals only - you place orders yourself")
     elif em == "SIGNALS":
-        warnings.append("EXECUTION_MODE=SIGNALS: alert-oriented path — confirm behavior in SETUP_AND_TRADING_GUIDE.md.")
+        warnings.append("EXECUTION_MODE=SIGNALS: alert-oriented path - confirm behavior in SETUP_AND_TRADING_GUIDE.md.")

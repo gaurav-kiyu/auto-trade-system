@@ -1,11 +1,11 @@
 """
-Adaptive signal evaluator — soft-rejection wrapper around evaluate_index_signal_partial.
+Adaptive signal evaluator - soft-rejection wrapper around evaluate_index_signal_partial.
 
 Hard rejections in evaluate_index_signal_partial (tf_mismatch, choppy) are converted
 to score penalties + confidence reduction instead of returning None. This lets the
 tiered system trade partial setups at reduced position size rather than skip entirely.
 
-Hard blocks that stay hard (genuine data gaps — no signal is possible):
+Hard blocks that stay hard (genuine data gaps - no signal is possible):
     1m_short, 5m_short, 15m_short, partial_drop, bad_price, iv_spike
 
 Soft-converted blocks (traded with penalty):
@@ -25,13 +25,13 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pandas as pd
-import signal_engine as SE
+from core.legacy import signal_engine as SE
 
 _log = logging.getLogger(__name__)
 
 from core.feature_engine import FeatureEngine
 from core.market_calc import detect_regime_and_adx as mc_detect_regime_and_adx
-from core.position_sizer import PositionSizer, PositionSpec
+from core.services.risk_service import PositionSizer, PositionSpec  # consolidated
 from core.pure_index_signal import (
     PureIndexSignalParams,
     _drop_partial_candle,  # resampling artifact cleaner
@@ -196,7 +196,7 @@ def compute_confidence_band(
 @dataclass
 class TimeframeAgreement:
     """Agreement score across 1m / 5m / 15m timeframes."""
-    agreement_score:  float   # 0.0 (full divergence) – 1.0 (all agree)
+    agreement_score:  float   # 0.0 (full divergence) - 1.0 (all agree)
     bullish_count:    int     # how many TFs are bullish
     bearish_count:    int     # how many TFs are bearish
     divergence_detail: str    # human-readable summary
@@ -295,7 +295,7 @@ def _compute_features_and_score(
     t15 = FeatureEngine.ema_trend(df15)
 
     if force_direction is not None:
-        # Direction is forced — use its corresponding trend for scoring
+        # Direction is forced - use its corresponding trend for scoring
         direction_tf = "UP" if force_direction == "CALL" else "DOWN"
     elif not allow_tf_mismatch:
         if t5 == "FLAT" or t15 == "FLAT" or t5 != t15:
@@ -304,7 +304,7 @@ def _compute_features_and_score(
     else:
         # Pick direction from the stronger (5m) timeframe; fall back to 15m
         if t5 == "FLAT" and t15 == "FLAT":
-            return None  # no direction at all — irrecoverable
+            return None  # no direction at all - irrecoverable
         direction_tf = t5 if t5 != "FLAT" else t15
 
     price = FeatureEngine.get_price(df1)
@@ -338,7 +338,7 @@ def _compute_features_and_score(
         learning_score_bonus=learning_score_bonus, rsi=rsi_val,
     )
 
-    # Component breakdown — mirrors pure_index_signal.py formulas exactly
+    # Component breakdown - mirrors pure_index_signal.py formulas exactly
     _vwap_ref_ = max(float(vwap_val), 1.0)
     if (direction_tf == "UP" and price > _vwap_ref_) or (direction_tf == "DOWN" and price < _vwap_ref_):
         _vwap_dist_ = abs(price - _vwap_ref_) / _vwap_ref_
@@ -540,7 +540,7 @@ def evaluate_adaptive_signal(
             confidence *= _CONF_MULT_TF_MISMATCH
             reasons.append(f"[TF] divergence fallback → {data['_tf_divergence_fallback']}")
     elif reason == "tf_mismatch":
-        # Fall back to soft-rejection path — allow both tf_mismatch AND choppy
+        # Fall back to soft-rejection path - allow both tf_mismatch AND choppy
         data = _compute_features_and_score(
             params=params,
             df1=df1, df5=df5, df15=df15,
@@ -765,7 +765,7 @@ def evaluate_adaptive_signal(
         reasons += [f"[SOFT] {b}" for b in soft_blocks]
 
     # ── v2.45 optional score layers (Items 1-4) ──────────────────────────────
-    # Each is a thin try/except wrapper — never blocks signal on failure.
+    # Each is a thin try/except wrapper - never blocks signal on failure.
 
     # Item 1: FII/DII institutional flow
     _fii_pts: int = 0

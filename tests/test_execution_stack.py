@@ -1,10 +1,10 @@
-"""Tests for core.execution_stack — paper fills vs broker-backed orders."""
+"""Tests for core.execution_stack - paper fills vs broker-backed orders."""
 
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from core.execution_stack import (
+from tests.helpers.legacy_execution_stack import (
     ExecutionRouter,
     PaperExecutionSimulator,
     PaperFill,

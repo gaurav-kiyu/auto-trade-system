@@ -1,4 +1,4 @@
-"""Tests for TimeOfDayFilter — blocks or restricts trading during low liquidity periods."""
+"""Tests for TimeOfDayFilter - blocks or restricts trading during low liquidity periods."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from core.time_of_day_filter import (
 
 
 class TestTimeOfDayFilter:
-    """TimeOfDayFilter — should_allow_entry and get_restriction_level."""
+    """TimeOfDayFilter - should_allow_entry and get_restriction_level."""
 
     def test_default_config(self):
         cfg = TimeOfDayConfig()

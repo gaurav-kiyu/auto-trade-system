@@ -1,4 +1,4 @@
-"""Tests for core/sovereignty_guard.py — broker/AI dependency control."""
+"""Tests for core/sovereignty_guard.py - broker/AI dependency control."""
 
 from __future__ import annotations
 

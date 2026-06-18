@@ -1,4 +1,4 @@
-"""Tests for core.performance_metrics — trade analytics and drawdown."""
+"""Tests for core.performance_metrics - trade analytics and drawdown."""
 from __future__ import annotations
 
 from core.performance_metrics import (

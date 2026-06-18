@@ -1,4 +1,4 @@
-"""Tests for core.execution_wiring — execution safety component integration."""
+"""Tests for core.execution_wiring - execution safety component integration."""
 
 from __future__ import annotations
 

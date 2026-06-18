@@ -1,4 +1,4 @@
-"""Tests for core.system_parity — backtest/live consistency checks."""
+"""Tests for core.system_parity - backtest/live consistency checks."""
 
 from __future__ import annotations
 

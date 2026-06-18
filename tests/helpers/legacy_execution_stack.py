@@ -1,28 +1,24 @@
 """
-Execution layer: paper fills vs broker-backed orders behind one small router.
+Legacy ExecutionRouter, TradingMode, PaperExecutionSimulator — preserved for test backward-compatibility.
 
-``core.execution_engine.ExecutionEngine`` remains the broker primitive; this module adds
-paper simulation and a config-driven router for future AUTO mode.
+This is a copy of the old ``core/execution_stack.py``, kept in the test helper
+package so existing test files can continue to import these classes without
+depending on the (now removed) production module.
+
+Migration guide:
+    - Replace ``ExecutionRouter(mode=TradingMode.AUTO, broker_engine=...)``
+      with ``build_clean_trading_orchestrator(cfg, broker_port=...)``
+    - Replace ``PaperExecutionSimulator`` with ``PaperBrokerAdapter``
 """
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
 from core.ports.execution.execution_port import OrderResult, OrderStatus
-
-warnings.warn(
-    "DEPRECATED: core/execution_stack.py (and core/execution_engine) are deprecated. "
-    "Use index_app/orchestrator_facade.py (build_clean_trading_orchestrator) with "
-    "core/services/use_cases/trading_orchestrator.py and core/services/execution_service.py instead. "
-    "These modules will be removed in v2.55.",
-    DeprecationWarning,
-    stacklevel=2,
-)
 
 
 class TradingMode(str, Enum):
@@ -63,7 +59,7 @@ class PaperExecutionSimulator:
 
 class ExecutionRouter:
     """
-    Routes to paper simulation or broker ``ExecutionEngine`` based on ``TradingMode``.
+    Routes to paper simulation or broker engine based on TradingMode.
 
     MANUAL/SIGNALS: do not auto-place; caller should only surface signals.
     """
@@ -94,7 +90,7 @@ class ExecutionRouter:
         return self._mode == TradingMode.PAPER
 
     def should_route_paper_via_broker(self) -> bool:
-        """When True, PAPER mode uses ``broker_engine`` (e.g. PaperAdapter) instead of the in-memory simulator."""
+        """When True, PAPER mode uses broker_engine (e.g. PaperAdapter) instead of the in-memory simulator."""
         return (
             self._mode == TradingMode.PAPER
             and self._paper_routes_via_broker
@@ -113,7 +109,7 @@ class ExecutionRouter:
         retry_wait_s: float = 1.0,
     ) -> OrderResult | PaperFill:
         if self._mode in (TradingMode.MANUAL, TradingMode.SIGNALS):
-            self._log(f"[exec] mode={self._mode.value} — no auto entry for {name}")
+            self._log(f"[exec] mode={self._mode.value} - no auto entry for {name}")
             return PaperFill(False, 0, 0.0, reason="manual_signals_only")
 
         if self._mode == TradingMode.PAPER:

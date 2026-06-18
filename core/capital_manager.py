@@ -1,5 +1,16 @@
 """
-Capital Manager — equity-aware position scaling and drawdown control.
+[DEPRECATED] Capital Manager — use core.services.risk_service.RiskService instead.
+
+This module is retained for backward compatibility. New code should import
+from ``core.services.risk_service`` directly (``RiskService`` provides
+capital scaling, drawdown tracking, and profit locking).
+
+.. deprecated:: 2.54.0
+    Use ``RiskService`` with ``RiskServiceConfig`` instead.
+
+---
+
+Capital Manager - equity-aware position scaling and drawdown control.
 
 Scaling formula:
     scale_factor = capital_growth × drawdown_factor × consec_loss_factor × daily_loss_factor
@@ -12,7 +23,7 @@ Design principles:
   - Stateful (tracks equity curve, daily PnL, consecutive losses)
   - Thread-safe
   - Deterministic (no randomness)
-  - Never modifies thresholds or scores — only position size
+  - Never modifies thresholds or scores - only position size
 """
 
 from __future__ import annotations
@@ -90,7 +101,7 @@ class CapitalManager:
     ):
         if max_daily_loss >= 0:
             raise ValueError("max_daily_loss must be negative")
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._max_daily_loss = max_daily_loss
         self._max_dd = max_drawdown_pct
         self._daily_warn_pct = daily_loss_warn_pct
@@ -126,7 +137,7 @@ class CapitalManager:
             # 2. Drawdown factor
             dd_pct = self._drawdown_pct_unlocked(st)
             if dd_pct >= self._max_dd:
-                dd_factor = 0.0    # hard block — caller checks decide_trade_allowed()
+                dd_factor = 0.0    # hard block - caller checks decide_trade_allowed()
             elif dd_pct > 0:
                 dd_factor = round(
                     max(_DD_SCALE_FLOOR, 1.0 - (dd_pct / self._max_dd)),
@@ -217,7 +228,7 @@ class CapitalManager:
         Extract `lock_pct` of unrealised profits above initial_capital.
         Locked profit is removed from current_capital (moved to safe account).
 
-        CRITICAL FIX (C11): peak_capital is NOT reduced — it tracks the true equity
+        CRITICAL FIX (C11): peak_capital is NOT reduced - it tracks the true equity
         peak. Reducing it would understate drawdown and prevent the hard halt from
         triggering when it should.
 
@@ -232,7 +243,7 @@ class CapitalManager:
             st.current_capital -= amount
             st.locked_profit   += amount
             # CRITICAL FIX: Do NOT reduce peak_capital here. Peak capital is the
-            # HIGHEST the portfolio has ever been — locking profits is a cash
+            # HIGHEST the portfolio has ever been - locking profits is a cash
             # movement, not a portfolio loss. Reducing peak_capital would
             # understate drawdown and delay the hard halt.
             log.info(

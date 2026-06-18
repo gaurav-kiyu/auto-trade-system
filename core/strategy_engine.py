@@ -1,5 +1,5 @@
 """
-AD-KIYU StrategyEngine — DEPRECATED.
+AD-KIYU StrategyEngine - DEPRECATED.
 
 This module is deprecated. New code should use StrategyOrchestrator from
 core.strategy.orchestrator.
@@ -65,7 +65,7 @@ class StrategyEngine:
         self._top_signals_fn = top_signals_fn
         self._detect_regime_fn = detect_regime_fn
         self._detect_regime_and_adx_fn = detect_regime_and_adx_fn
-        _log.warning("StrategyEngine is DEPRECATED — use StrategyOrchestrator")
+        _log.warning("StrategyEngine is DEPRECATED - use StrategyOrchestrator")
 
     def generate_signal(self, name: str, frames: dict[str, Any], vix: float = 0.0) -> SignalDict | None:
         if self._generate_signal_fn:

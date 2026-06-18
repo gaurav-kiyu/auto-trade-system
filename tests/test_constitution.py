@@ -1,5 +1,5 @@
 """
-Tests for core/constitution.py — Constitution Validation Engine.
+Tests for core/constitution.py - Constitution Validation Engine.
 
 Covers:
   - CategoryScore evidence/regression calculations

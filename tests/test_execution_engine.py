@@ -1,5 +1,13 @@
 """
-Tests for core/execution_engine.py — Legacy Execution Engine.
+Tests for core/execution_engine.py - Legacy Execution Engine.
+
+.. deprecated:: v2.55
+    ``core/execution_engine.py`` has been removed. These tests use
+    the preserved helper in ``tests/helpers/legacy_execution_engine.py``.
+    New execution code should use ``core/services/execution_service.py``
+    (``ExecutionService``) + ``core/execution/deterministic_state_machine.py``
+    (``ExecutionStateMachine``) + ``core/execution/idempotency/certifier.py``
+    (``IdempotencyCertifier``) + ``core/wal/journal.py`` (WAL Journal).
 
 Covers:
   - ExecutionFill and ExecutionResult dataclasses
@@ -19,7 +27,7 @@ from typing import Any
 
 import pytest
 
-from core.execution_engine import ExecutionEngine, ExecutionFill, ExecutionResult
+from tests.helpers.legacy_execution_engine import ExecutionEngine, ExecutionFill, ExecutionResult
 from core.exceptions import BrokerAuthError, BrokerConnectionError, BrokerRateLimitError, BrokerRejectedError, BrokerTimeoutError
 
 
@@ -316,7 +324,7 @@ class TestErrorClassification:
             retries=3,
         )
         assert not result.ok
-        assert len(call_count) == 1  # Not retried — PERMANENT
+        assert len(call_count) == 1  # Not retried - PERMANENT
         assert "PERMANENT" in result.reason
 
     def test_rejected_error_not_retried(

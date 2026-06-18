@@ -1,5 +1,5 @@
 """
-NSE Event Calendar — High-Volatility Event Day Filter (Phase 7D).
+NSE Event Calendar - High-Volatility Event Day Filter (Phase 7D).
 
 Blocks or reduces position sizing on known high-volatility event days such as
 Union Budget, RBI Monetary Policy, FOMC announcements, and custom user dates.
@@ -7,7 +7,7 @@ Union Budget, RBI Monetary Policy, FOMC announcements, and custom user dates.
 v2.45 Item 15 adds Corporate Action Calendar support: dividend ex-dates,
 stock splits, and bonus issues for BANKNIFTY constituent stocks.
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ---------------------------------------------------
   event_calendar_enabled : bool  default true
   event_dates            : list  default []
@@ -21,8 +21,8 @@ Config keys (all optional — safe defaults built in)
       "size_mult":     0.5               # position size multiplier 0-1 (default 1.0)
     }
 
-  event_day_block_entries : bool  default false  (global fallback — overridden per event)
-  event_day_size_mult     : float default 1.0    (global fallback — overridden per event)
+  event_day_block_entries : bool  default false  (global fallback - overridden per event)
+  event_day_size_mult     : float default 1.0    (global fallback - overridden per event)
 
   # Corporate Action Calendar (v2.45)
   corp_action_calendar_enabled : bool   default false
@@ -133,14 +133,14 @@ def event_entry_allowed(
         cfg  : Bot config dict.
 
     Returns:
-        (True,  "")      — no event today, or event allows entries.
-        (False, reason)  — event today with block_entries=True.
+        (True,  "")      - no event today, or event allows entries.
+        (False, reason)  - event today with block_entries=True.
     """
     ev = get_event(date, cfg)
     if ev is None:
         return True, ""
     if ev.block_entries:
-        reason = f"{ev.event_type} day ({ev.name}) — entries blocked"
+        reason = f"{ev.event_type} day ({ev.name}) - entries blocked"
         _log.info("[EVENT_CAL] %s", reason)
         return False, reason
     return True, ""
@@ -166,7 +166,7 @@ def event_size_multiplier(
     mult = round(max(0.0, min(1.0, ev.size_mult)), 4)
     if mult < 1.0:
         _log.info(
-            "[EVENT_CAL] %s day (%s) — position size × %.2f",
+            "[EVENT_CAL] %s day (%s) - position size × %.2f",
             ev.event_type, ev.name, mult,
         )
     return mult
@@ -190,14 +190,14 @@ def event_summary(
     }
 
 
-# ── Market day / holiday calendar (Item 5 — v2.44) ───────────────────────────
+# ── Market day / holiday calendar (Item 5 - v2.44) ───────────────────────────
 
 import time as _time
 from enum import Enum
 
 
 class MarketStatus(str, Enum):
-    OPEN        = "OPEN"         # 09:15–15:30 on a trading day
+    OPEN        = "OPEN"         # 09:15-15:30 on a trading day
     PRE_MARKET  = "PRE_MARKET"   # before 09:15 on a trading day
     POST_MARKET = "POST_MARKET"  # after 15:30 on a trading day
     NON_TRADING = "NON_TRADING"  # weekend or holiday
@@ -213,7 +213,7 @@ _NSE_HOLIDAY_API  = "https://www.nseindia.com/api/holiday-master?type=trading"
 _LIVE_HOLIDAYS: set[datetime.date] | None = None
 _LIVE_HOLIDAYS_TS: float = 0.0
 _LIVE_HOLIDAYS_TTL: float = 3600.0  # 1 hour cache
-_LIVE_HOLIDAYS_LOCK = threading.Lock()
+_LIVE_HOLIDAYS_LOCK = threading.RLock()
 
 
 def _fetch_nse_holidays() -> set[datetime.date]:
@@ -247,7 +247,7 @@ def _fetch_nse_holidays() -> set[datetime.date]:
             _log.info("[HOLIDAY] Fetched %d NSE trading holidays from API", len(holidays))
         return holidays
     except (ValueError, OSError, ConnectionError, ImportError) as exc:
-        _log.warning("[HOLIDAY] Could not fetch from NSE API: %s — using config-based holidays", exc)
+        _log.warning("[HOLIDAY] Could not fetch from NSE API: %s - using config-based holidays", exc)
         return set()
 
 
@@ -293,7 +293,7 @@ def is_market_day(
         from core.datetime_ist import now_ist
         today = check_date or now_ist().date()
     except (ImportError, ValueError, TypeError):
-        today = check_date or datetime.date.today()  # nosec — safe fallback when import fails
+        today = check_date or datetime.date.today()  # nosec - safe fallback when import fails
 
     if today.weekday() in (5, 6):   # Saturday=5, Sunday=6
         return False
@@ -304,7 +304,7 @@ def is_market_day(
         try:
             holidays.add(datetime.date.fromisoformat(str(raw)))
         except (ValueError, TypeError) as _ex:
-            logging.getLogger(__name__).debug(f"Invalid NSE_HOLIDAY entry: {raw} — {_ex}")
+            logging.getLogger(__name__).debug(f"Invalid NSE_HOLIDAY entry: {raw} - {_ex}")
     return today not in holidays
 
 
@@ -314,7 +314,7 @@ def get_market_status(
 ) -> MarketStatus:
     """
     Returns MarketStatus for the given datetime (default: now IST).
-    OPEN: 09:15–15:30 on a trading day
+    OPEN: 09:15-15:30 on a trading day
     PRE_MARKET: before 09:15 on a trading day
     POST_MARKET: after 15:30 on a trading day
     NON_TRADING: weekend or holiday
@@ -405,7 +405,7 @@ def sleep_until(target_dt: datetime.datetime, stop_event=None) -> None:
             return
 
         if os.path.exists("STOP_TRADING"):
-            _log.info("[MARKET_CAL] STOP_TRADING detected during sleep — exiting")
+            _log.info("[MARKET_CAL] STOP_TRADING detected during sleep - exiting")
             return
 
         if stop_event is not None:

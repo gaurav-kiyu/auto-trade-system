@@ -1,4 +1,4 @@
-"""Unit tests for core.auto_tuner — recommendation generation, blocked keys, config safety."""
+"""Unit tests for core.auto_tuner - recommendation generation, blocked keys, config safety."""
 
 from __future__ import annotations
 

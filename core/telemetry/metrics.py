@@ -1,5 +1,5 @@
 """
-AD-KIYU Telemetry — SRE-grade metrics collection.
+AD-KIYU Telemetry - SRE-grade metrics collection.
 
 Metric domains:
   - Execution: submit/ACK/fill latencies, retry count, reject %
@@ -51,7 +51,7 @@ class MetricsCollector:
     """Thread-safe metrics collector with domain-specific buckets."""
 
     def __init__(self):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         # Execution metrics
         self.order_submit_latency = MetricBucket()
         self.order_ack_latency = MetricBucket()
@@ -213,7 +213,7 @@ class MetricsCollector:
 
 
 _collector: MetricsCollector | None = None
-_collector_lock = threading.Lock()
+_collector_lock = threading.RLock()
 
 
 def get_metrics_collector() -> MetricsCollector:

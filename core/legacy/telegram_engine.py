@@ -85,7 +85,7 @@ class TelegramEngine:
         self.pin_timeout = pin_timeout
         self.rate_window = rate_window_seconds
 
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._cooldowns: dict = {}
         self._last_signals: dict = {}
         self._send_times: list = []
@@ -100,7 +100,7 @@ class TelegramEngine:
                 % ", ".join(sorted(unset))
             )
             if not str(default_chat_id).strip():
-                log.warning("%s — and default_chat_id is empty", msg)
+                log.warning("%s - and default_chat_id is empty", msg)
             else:
                 log.info(msg)
 
@@ -150,7 +150,7 @@ class TelegramEngine:
 
     def _check_cooldown_fresh(self, signal: dict) -> bool:
         """Check-only: returns True if alert CAN fire (not on cooldown, not duplicate).
-        Does NOT commit state — call _commit_cooldown after successful send."""
+        Does NOT commit state - call _commit_cooldown after successful send."""
         symbol = signal.get("symbol", "")
         direction = signal.get("direction", "")
         price = _safe_num(signal.get("price"), 0)
@@ -245,11 +245,11 @@ class TelegramEngine:
 
         # ── Execution intelligence fields (from enrich_signal_with_policy) ──
         tier         = signal.get("exec_tier") or signal.get("tier") or strength
-        regime       = signal.get("mkt_regime") or signal.get("regime") or "–"
+        regime       = signal.get("mkt_regime") or signal.get("regime") or "-"
         position_pct = _safe_num(signal.get("exec_position_pct", signal.get("position_pct", 0)))
-        exec_lots    = signal.get("exec_lots") or signal.get("lots") or "–"
+        exec_lots    = signal.get("exec_lots") or signal.get("lots") or "-"
         quality      = _safe_num(signal.get("exec_quality", signal.get("quality_score", 0)))
-        exec_mode    = signal.get("exec_mode") or "–"
+        exec_mode    = signal.get("exec_mode") or "-"
         soft_blocks  = signal.get("soft_blocks", [])
         soft_str     = ", ".join(soft_blocks) if soft_blocks else "None"
 

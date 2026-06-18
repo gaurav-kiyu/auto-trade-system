@@ -1,5 +1,5 @@
 """
-AD-KIYU Enterprise Auth Handler — password hashing, JWT tokens,
+AD-KIYU Enterprise Auth Handler - password hashing, JWT tokens,
 session management, brute-force protection, account lockout.
 """
 
@@ -19,6 +19,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from core.db_utils import get_connection
 from core.exceptions import DatabaseError
 
 _log = logging.getLogger(__name__)
@@ -176,10 +177,8 @@ class AuthHandler:
         self._init_db()
 
     def _get_conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self._db_path, timeout=5)
+        conn = get_connection(self._db_path, busy_timeout_ms=3000)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA busy_timeout=3000")
         return conn
 
     def _init_db(self) -> None:
@@ -260,7 +259,7 @@ class AuthHandler:
             (uuid.uuid4().hex[:16], DEFAULT_ADMIN_USERNAME, pwd_hash, "admin", "Administrator", 1, time.time()),
         )
         conn.commit()
-        _log.warning("[AUTH] Default admin user created — FORCE PASSWORD CHANGE REQUIRED")
+        _log.warning("[AUTH] Default admin user created - FORCE PASSWORD CHANGE REQUIRED")
 
     # ── User management ────────────────────────────────────────────────────────
 

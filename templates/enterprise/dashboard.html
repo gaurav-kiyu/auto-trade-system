@@ -137,6 +137,7 @@
             <div class="nav-item" data-page="signals"><i class="fas fa-bolt"></i> Signals</div>
             <div class="nav-item" data-page="risk"><i class="fas fa-shield-alt"></i> Risk</div>
             <div class="nav-item" data-page="oi"><i class="fas fa-database"></i> OI Data</div>
+            <div class="nav-item" data-page="fundamentals"><i class="fas fa-chart-bar"></i> Fundamentals</div>
             <div class="nav-section">System</div>
             <div class="nav-item" data-page="health"><i class="fas fa-heartbeat"></i> Health</div>
             <div class="nav-item" data-page="broker"><i class="fas fa-exchange-alt"></i> Broker</div>
@@ -148,6 +149,10 @@
             <div class="nav-item admin-nav" data-page="system-state" style="display:none"><i class="fas fa-info-circle"></i> System State</div>
             <div class="nav-item admin-nav" data-page="logs" style="display:none"><i class="fas fa-list"></i> Audit Log</div>
             <div class="nav-section">Account</div>
+            <div class="nav-item" id="providerHealthIndicator" onclick="navigate('overview')" title="Data Provider Health - Click to open Data Providers card" style="cursor:pointer;opacity:0.8;">
+                <span id="providerHealthDot" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:#475569;flex-shrink:0;transition:box-shadow .3s;"></span>
+                <span id="providerHealthText" style="font-size:.72rem;">Providers --/--</span>
+            </div>
             <div class="nav-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
         </nav>
     </aside>
@@ -174,9 +179,14 @@
 
         <div id="page-overview" class="page active">
             <div class="grid-overview" id="statsGrid"></div>
-            <div class="grid-2">
+            <div class="grid-3">
                 <div class="card"><div class="card-header"><h3><i class="fas fa-exchange-alt"></i> Recent Trades</h3><button class="btn btn-ghost btn-sm" id="loadTradesBtn"><i class="fas fa-sync-alt"></i></button></div><div class="card-body" style="padding:0;" id="tradesTable"><div class="empty-state"><p>Loading...</p></div></div></div>
                 <div class="card"><div class="card-header"><h3><i class="fas fa-heartbeat"></i> System Status</h3></div><div class="card-body" id="systemStatus"><div class="empty-state"><p>Loading...</p></div></div></div>
+                <div class="card"><div class="card-header"><h3><i class="fas fa-wifi"></i> WebSocket Feed</h3><button class="btn btn-ghost btn-sm" onclick="loadWsStatus()"><i class="fas fa-sync-alt"></i></button></div><div class="card-body" id="wsStatusCard"><div class="empty-state"><p>Loading...</p></div></div></div>
+            </div>
+            <div class="grid-2" style="margin-top:1.5rem;">
+                <div class="card"><div class="card-header"><h3><i class="fas fa-database"></i> Data Providers</h3><button class="btn btn-ghost btn-sm" onclick="loadDataProviders()"><i class="fas fa-sync-alt"></i></button></div><div class="card-body" id="dataProvidersCard"><div class="empty-state"><p>Loading...</p></div></div></div>
+                <div class="admin-nav card-block" style="display:none"><div class="card"><div class="card-header"><h3><i class="fas fa-code-branch"></i> Config Drift</h3><button class="btn btn-ghost btn-sm" onclick="loadConfigDrift()"><i class="fas fa-sync-alt"></i></button></div><div class="card-body" id="configDriftCard"><div class="empty-state"><p>Loading...</p></div></div></div></div>
             </div>
         </div>
 
@@ -187,6 +197,43 @@
         <div id="page-broker" class="page"><div id="brokerContent"><div class="empty-state"><p>Loading broker data...</p></div></div></div>
         <div id="page-ml" class="page"><div id="mlContent"><div class="empty-state"><p>Loading ML data...</p></div></div></div>
         <div id="page-oi" class="page"><div id="oiContent"><div class="empty-state"><p>Loading OI data...</p></div></div></div>
+        <div id="page-fundamentals" class="page">
+            <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
+                <input type="text" id="faSymbolInput" placeholder="e.g. RELIANCE.NS" style="flex:1;max-width:300px;">
+                <button class="btn btn-primary" onclick="analyzeFundamentals()"><i class="fas fa-search"></i> Analyze</button>
+                <button class="btn btn-ghost" onclick="toggleFaScreen()"><i class="fas fa-list"></i> Screen</button>
+                <button class="btn btn-ghost" onclick="toggleFaWeights()" id="faWeightsToggle"><i class="fas fa-sliders-h"></i> Weights</button>
+                <button class="btn btn-ghost" onclick="faResetWeights()" title="Reset weights to defaults"><i class="fas fa-undo"></i> Reset</button>
+            </div>
+            <div id="faWeightsPanel" style="display:none;margin-bottom:1rem;">
+                <div class="card"><div class="card-header"><h3><i class="fas fa-sliders-h"></i> Dimension Weights</h3><span id="faWeightSum" style="font-size:.72rem;color:var(--text-muted);">Sum: 100%</span><span id="faWeightStatus" style="font-size:.72rem;"></span></div><div class="card-body">
+                    <div style="display:grid;gap:1rem;">
+                        <div id="faWeightSliders">
+                            <div class="form-group"><label>Value <span id="faWVal" style="float:right;color:var(--accent);font-weight:600;">30%</span></label><input type="range" id="faWeightValue" min="0" max="100" value="30" oninput="updateFaWeightPreview()"></div>
+                            <div class="form-group"><label>Growth <span id="faWGrowth" style="float:right;color:var(--accent);font-weight:600;">25%</span></label><input type="range" id="faWeightGrowth" min="0" max="100" value="25" oninput="updateFaWeightPreview()"></div>
+                            <div class="form-group"><label>Quality <span id="faWQuality" style="float:right;color:var(--accent);font-weight:600;">25%</span></label><input type="range" id="faWeightQuality" min="0" max="100" value="25" oninput="updateFaWeightPreview()"></div>
+                            <div class="form-group"><label>Momentum <span id="faWMomentum" style="float:right;color:var(--accent);font-weight:600;">20%</span></label><input type="range" id="faWeightMomentum" min="0" max="100" value="20" oninput="updateFaWeightPreview()"></div>
+                        </div>
+                        <button class="btn btn-primary" onclick="faApplyWeights()" id="faApplyWeightsBtn"><i class="fas fa-save"></i> Apply Weights</button>
+                    </div>
+                </div></div>
+            </div>
+            <div id="faLoading" style="display:none;" class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Analyzing...</p></div>
+            <div id="faResult" style="display:none;"></div>
+            <div id="faScreen" style="display:none;">
+                <div class="card"><div class="card-header"><h3><i class="fas fa-list"></i> Screen Stocks</h3></div><div class="card-body">
+                    <div style="display:flex;gap:.75rem;margin-bottom:1rem;">
+                        <textarea id="faScreenInput" placeholder="Enter symbols, one per line or comma-separated" style="flex:1;min-height:80px;">RELIANCE.NS, TCS.NS, HDFCBANK.NS, INFY.NS, ICICIBANK.NS</textarea>
+                        <div style="display:flex;flex-direction:column;gap:.5rem;">
+                            <label style="font-size:.7rem;">Min Score</label>
+                            <input type="number" id="faMinScore" value="0" min="0" max="100" style="width:80px;">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="screenFundamentals()"><i class="fas fa-search"></i> Screen</button>
+                </div></div>
+                <div id="faScreenResults" style="margin-top:1rem;"></div>
+            </div>
+        </div>
         <div id="page-users" class="page"><div id="usersContent"><div class="empty-state"><p>Loading user management...</p></div></div></div>
         <div id="page-config" class="page"><div id="configContent"><div class="empty-state"><p>Loading config editor...</p></div></div></div>
         <div id="page-kill-switch" class="page"><div id="killSwitchContent"><div class="empty-state"><p>Loading kill switch...</p></div></div></div>
@@ -279,12 +326,14 @@
                 overview: 'Dashboard', trading: 'Positions', signals: 'Signals', risk: 'Risk',
                 oi: 'OI Data', health: 'Health', broker: 'Broker', ml: 'ML',
                 users: 'User Management', config: 'Configuration', 'kill-switch': 'Kill Switch',
-                'system-state': 'System State', logs: 'Audit Log'
+                'system-state': 'System State', logs: 'Audit Log',
+                fundamentals: 'Fundamentals'
             };
             document.getElementById('pageTitle').textContent = titles[page] || page;
             const subs = {
                 overview: 'System overview and key metrics', trading: 'Live positions and orders',
                 signals: 'Signal diagnostics and feed', risk: 'Risk controls and exposure',
+                fundamentals: 'Multi-dimension equity fundamental scoring engine',
                 oi: 'Options chain OI and PCR data', health: 'System health and dependencies',
                 broker: 'Broker connectivity and status', ml: 'ML model status and metrics',
                 users: 'Manage users and roles', config: 'System configuration management',
@@ -299,7 +348,7 @@
         function loadPageData(page) {
             const fns = {
                 overview: loadOverview, trading: loadTrading, signals: loadSignals, risk: loadRisk,
-                oi: loadOI, health: loadHealth, broker: loadBroker, ml: loadML,
+                oi: loadOI, fundamentals: loadFundamentals, health: loadHealth, broker: loadBroker, ml: loadML,
                 users: loadUsers, config: loadConfigPage, 'kill-switch': loadKillSwitch,
                 'system-state': loadSystemState, logs: loadLogs
             };
@@ -360,6 +409,7 @@
             document.getElementById('userAvatar').textContent = (currentUser.display_name || currentUser.username).charAt(0).toUpperCase();
             if (currentUser.role === 'admin') {
                 document.querySelectorAll('.admin-nav').forEach(el => el.style.display = 'flex');
+                document.querySelectorAll('.admin-nav.card-block').forEach(el => el.style.display = 'block');
                 document.getElementById('adminSection').style.display = 'block';
             }
             if (currentUser.must_change_password) showToast('Please change your password', 'warning');
@@ -400,6 +450,10 @@
             } catch (e) { showToast('Failed to load overview', 'error'); }
             loadTradesTable();
             loadSystemStatus();
+            loadWsStatus();
+            loadDataProviders();
+            loadConfigDrift();
+            loadProviderHealthSidebar();
         }
 
         async function loadTradesTable() {
@@ -1052,6 +1106,150 @@
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        //  DATA PROVIDERS CARD
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadDataProviders() {
+            try {
+                const dp = await apiFetch('/api/system/data-providers');
+                const el = document.getElementById('dataProvidersCard');
+                if (!dp || dp.status === 'unavailable') {
+                    el.innerHTML = '<div class="empty-state"><i class="fas fa-plug" style="color:#475569;"></i><p style="color:var(--text-muted);font-size:.72rem;">' + (dp?.detail || 'No market data service wired') + '</p></div>';
+                    return;
+                }
+                const providers = dp.providers || [];
+                const total = dp.total || 0;
+                const connected = dp.connected || 0;
+
+                if (providers.length === 0) {
+                    el.innerHTML = '<div class="empty-state"><p>No providers registered</p></div>';
+                    return;
+                }
+
+                let html = '<div style="margin-bottom:.75rem;display:flex;gap:.75rem;">';
+                html += '<span style="font-size:.72rem;color:var(--text-muted);">' + connected + '/' + total + ' connected</span>';
+                html += '<span style="font-size:.72rem;color:' + (connected === total ? '#4ade80' : '#f59e0b') + ';">' + (connected === total ? 'All healthy' : 'Degraded') + '</span>';
+                html += '</div>';
+                html += '<div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Type</th><th>Asset Classes</th><th>Priority</th><th>Status</th></tr></thead><tbody>';
+                providers.forEach(p => {
+                    html += '<tr><td style="font-weight:500;">' + p.name + '</td><td style="color:var(--text-muted);font-size:.72rem;">' + p.type + '</td><td>' + (p.asset_classes || []).map(a => '<span class="badge badge-neutral" style="font-size:.6rem;">' + a + '</span>').join(' ') + '</td><td>' + p.priority + '</td><td>' + (p.connected ? badge('healthy','Connected') : badge('critical','Disconnected')) + '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+                el.innerHTML = html;
+            } catch (e) {
+                document.getElementById('dataProvidersCard').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle" style="color:var(--danger-400);"></i><p style="color:var(--danger-400);font-size:.72rem;">Failed to load: ' + e.message + '</p></div>';
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  SIDEBAR PROVIDER HEALTH
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadProviderHealthSidebar() {
+            try {
+                const health = await apiFetch('/api/system/data-providers/health');
+                const dot = document.getElementById('providerHealthDot');
+                const text = document.getElementById('providerHealthText');
+                if (!dot || !text) return;
+                if (!health || health.status === 'unavailable' || health.status === 'error') {
+                    dot.style.background = '#475569';
+                    dot.style.boxShadow = 'none';
+                    text.textContent = 'Providers --/--';
+                    return;
+                }
+                const total = health.total || 0;
+                const connected = health.connected || 0;
+                const pct = total > 0 ? (connected / total) : 0;
+                if (total === 0) {
+                    dot.style.background = '#475569';
+                    dot.style.boxShadow = 'none';
+                } else if (pct === 1) {
+                    dot.style.background = '#4ade80';
+                    dot.style.boxShadow = '0 0 8px rgba(34,197,94,.4)';
+                } else if (pct > 0) {
+                    dot.style.background = '#f59e0b';
+                    dot.style.boxShadow = '0 0 8px rgba(245,158,11,.4)';
+                } else {
+                    dot.style.background = '#ef4444';
+                    dot.style.boxShadow = '0 0 8px rgba(239,68,68,.4)';
+                }
+                text.textContent = 'Providers ' + connected + '/' + total;
+                const indicator = document.getElementById('providerHealthIndicator');
+                if (indicator) {
+                    indicator.title = health.status === 'unavailable'
+                        ? 'Data Providers: Not available - Click to view'
+                        : 'Data Providers: ' + connected + '/' + total + ' (' + health.status + ') - Click to view';
+                }
+            } catch (e) {
+                const dot = document.getElementById('providerHealthDot');
+                const text = document.getElementById('providerHealthText');
+                if (dot) dot.style.background = '#475569';
+                if (text) text.textContent = 'Providers --/--';
+            }
+        }
+
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  CONFIG DRIFT CARD
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadConfigDrift() {
+            if (currentUser.role !== 'admin') return;
+            try {
+                const drift = await apiFetch('/api/config/drift');
+                const el = document.getElementById('configDriftCard');
+                if (!drift || drift.status === 'error') {
+                    el.innerHTML = '<div class="empty-state"><i class="fas fa-code-branch" style="color:#475569;"></i><p style="color:var(--text-muted);font-size:.72rem;">' + (drift?.detail || 'Config drift check unavailable') + '</p></div>';
+                    return;
+                }
+                const driftPct = drift.drift_pct || 0;
+                const driftColor = driftPct === 0 ? '#4ade80' : driftPct < 5 ? '#f59e0b' : '#ef4444';
+                let html = '<div style="margin-bottom:.75rem;display:flex;gap:.75rem;">';
+                html += '<span class="stat-value" style="font-size:1.1rem;color:' + driftColor + ';">' + driftPct.toFixed(1) + '% drift</span>';
+                html += '<span style="font-size:.72rem;color:var(--text-muted);align-self:center;">' + (drift.drift_count || 0) + ' key(s) differ from defaults</span>';
+                html += '</div>';
+                html += '<div style="display:grid;gap:.35rem;">';
+                html += '<div class="key-val"><span class="key">Total Keys</span><span class="val">' + (drift.total_keys || 0) + '</span></div>';
+                html += '<div class="key-val"><span class="key">Changed</span><span class="val" style="color:' + (drift.changed_count > 0 ? '#f59e0b' : '#4ade80') + ';">' + (drift.changed_count || 0) + '</span></div>';
+                html += '<div class="key-val"><span class="key">Added</span><span class="val" style="color:' + (drift.added_count > 0 ? '#f59e0b' : '#4ade80') + ';">' + (drift.added_count || 0) + '</span></div>';
+                html += '<div class="key-val"><span class="key">Removed (from defaults)</span><span class="val" style="color:' + (drift.removed_count > 0 ? '#ef4444' : '#4ade80') + ';">' + (drift.removed_count || 0) + '</span></div>';
+                html += '</div>';
+                el.innerHTML = html;
+            } catch (e) {
+                const el = document.getElementById('configDriftCard');
+                if (el) el.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle" style="color:var(--danger-400);"></i><p style="color:var(--danger-400);font-size:.72rem;">Failed to load: ' + e.message + '</p></div>';
+            }
+        }
+        // ══════════════════════════════════════════════════════════════════════
+        //  WEBSOCKET STATUS CARD
+        // ══════════════════════════════════════════════════════════════════════
+        async function loadWsStatus() {
+            try {
+                const ws = await apiFetch('/api/system/ws-status');
+                const el = document.getElementById('wsStatusCard');
+                if (!ws || ws.status === 'unavailable') {
+                    el.innerHTML = '<div class="empty-state"><i class="fas fa-wifi-slash" style="color:#475569;"></i><p style="color:var(--text-muted);font-size:.72rem;">' + (ws?.detail || 'No WebSocket feed wired') + '</p></div>';
+                    return;
+                }
+                const connected = ws.connected;
+                const enabled = ws.enabled;
+                const cacheSize = ws.cache_size || 0;
+                const tickMode = ws.tick_mode || 'ltp';
+                const tokens = ws.tokens || ws.index_tokens || [];
+                const tokenCount = Array.isArray(tokens) ? tokens.length : Object.keys(tokens).length;
+                const adapterType = ws.adapter_type || 'NseIndexWebSocketAdapter';
+                let html = '<div style="display:grid;gap:.5rem;">';
+                html += '<div class="key-val"><span class="key">Status</span><span class="val">' + (connected ? badge('healthy','Connected') : badge('critical','Disconnected')) + '</span></div>';
+                html += '<div class="key-val"><span class="key">Enabled</span><span class="val">' + (enabled ? badge('healthy','Yes') : badge('neutral','No')) + '</span></div>';
+                html += '<div class="key-val"><span class="key">Adapter</span><span class="val" style="font-size:.72rem;">' + adapterType + '</span></div>';
+                html += '<div class="key-val"><span class="key">Cache Size</span><span class="val">' + cacheSize + ' symbols</span></div>';
+                html += '<div class="key-val"><span class="key">Tick Mode</span><span class="val">' + (tickMode === 'full' ? badge('healthy','Full') : badge('neutral','LTP')) + '</span></div>';
+                html += '<div class="key-val"><span class="key">Tokens</span><span class="val">' + tokenCount + ' subscribed</span></div>';
+                html += '</div>';
+                el.innerHTML = html;
+            } catch (e) {
+                document.getElementById('wsStatusCard').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle" style="color:var(--danger-400);"></i><p style="color:var(--danger-400);font-size:.72rem;">Failed to load: ' + e.message + '</p></div>';
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
         //  INIT
         // ══════════════════════════════════════════════════════════════════════
         document.addEventListener('DOMContentLoaded', function() {
@@ -1074,8 +1272,237 @@
             });
             initUser();
             loadOverview();
+            loadWsStatus();
+            loadDataProviders();
+            loadProviderHealthSidebar();
             updateTimestamp();
         });
-    </script>
+    
+        // ══════════════════════════════════════════════════════════════════════
+        //  PAGE: FUNDAMENTALS
+        // ══════════════════════════════════════════════════════════════════════
+        let faScreenVisible = false;
+
+        function toggleFaScreen() {
+            faScreenVisible = !faScreenVisible;
+            document.getElementById('faScreen').style.display = faScreenVisible ? 'block' : 'none';
+        }
+
+        function renderFaResult(data) {
+            const el = document.getElementById('faResult');
+            if (data.error) {
+                el.innerHTML = '<div class="card"><div class="card-body"><div style="color:#f87171;font-size:.9rem;"><i class="fas fa-exclamation-circle"></i> ' + data.error + '</div></div></div>';
+                el.style.display = 'block';
+                return;
+            }
+            const ds = data.dimension_scores || {};
+            const details = data.details || [];
+            const verdictColor = {STRONG_BUY:'#4ade80',BUY:'#22c55e',HOLD:'#f59e0b',CAUTION:'#f87171',AVOID:'#ef4444'}[data.verdict] || '#64748b';
+            let html = '<div class="grid-overview">';
+            html += '<div class="stat-card"><div class="stat-label">Symbol</div><div class="stat-value" style="font-size:1rem;">'+data.symbol+'</div><div class="stat-sub">'+data.name+'</div></div>';
+            html += '<div class="stat-card"><div class="stat-label">Current Price</div><div class="stat-value" style="font-size:1rem;">₹'+(data.current_price||0).toLocaleString()+'</div><div class="stat-sub">'+data.sector+'</div></div>';
+            html += '<div class="stat-card"><div class="stat-label">Composite Score</div><div class="stat-value" style="font-size:1.4rem;color:'+verdictColor+';">'+data.composite_score.toFixed(1)+'</div><div class="stat-sub">'+data.verdict+'</div></div>';
+            html += '</div>';
+            html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
+            const dims = [
+                {k:'Value', v:ds.value, c:ds.value>=70?'#4ade80':ds.value>=45?'#f59e0b':'#f87171'},
+                {k:'Growth', v:ds.growth, c:ds.growth>=70?'#4ade80':ds.growth>=45?'#f59e0b':'#f87171'},
+                {k:'Quality', v:ds.quality, c:ds.quality>=70?'#4ade80':ds.quality>=45?'#f59e0b':'#f87171'},
+                {k:'Momentum', v:ds.momentum, c:ds.momentum>=70?'#4ade80':ds.momentum>=45?'#f59e0b':'#f87171'},
+            ];
+            dims.forEach(d => {
+                html += '<div class="card"><div class="card-body"><div class="stat-label">'+d.k+'</div><div class="stat-value" style="font-size:1.2rem;color:'+d.c+';">'+d.v.toFixed(1)+'</div></div></div>';
+            });
+            html += '</div>';
+            html += '<div class="grid-2">';
+            html += '<div class="card"><div class="card-header"><h3><i class="fas fa-chart-bar"></i> Key Metrics</h3></div><div class="card-body"><div style="display:grid;gap:.5rem;">';
+            const metrics = [
+                {k:'P/E Ratio', v:data.pe_ratio},
+                {k:'P/B Ratio', v:data.pb_ratio},
+                {k:'Dividend Yield', v:data.dividend_yield != null ? data.dividend_yield.toFixed(2)+'%' : '-'},
+                {k:'EPS (TTM)', v:'₹'+(data.eps_ttm||0).toFixed(2)},
+                {k:'ROE', v:data.roe_pct != null ? data.roe_pct.toFixed(1)+'%' : '-'},
+                {k:'Debt/Equity', v:data.debt_to_equity},
+                {k:'Earnings Growth', v:data.earnings_growth != null ? (data.earnings_growth*100).toFixed(1)+'%' : '-'},
+                {k:'Market Cap', v:data.market_cap ? '₹'+(data.market_cap/1e7).toFixed(0)+'Cr' : '-'},
+            ];
+            metrics.forEach(m => {
+                html += '<div class="key-val"><span class="key">'+m.k+'</span><span class="val">'+m.v+'</span></div>';
+            });
+            html += '</div></div></div>';
+            html += '<div class="card"><div class="card-header"><h3><i class="fas fa-list-ul"></i> Score Breakdown</h3></div><div class="card-body" style="padding:0;"><div class="table-wrap"><table class="table"><thead><tr><th>Metric</th><th>Value</th><th>Weight</th><th>Score</th></tr></thead><tbody>';
+            details.forEach(d => {
+                const sc = d.score >= 70 ? '#4ade80' : d.score >= 45 ? '#f59e0b' : '#f87171';
+                html += '<tr><td style="font-weight:500;">'+d.metric+'</td><td style="color:var(--text-muted);">'+(typeof d.raw_value === 'number' ? d.raw_value.toFixed(2) : d.raw_value)+'</td><td>'+(d.weight*100).toFixed(0)+'%</td><td style="color:'+sc+';font-weight:600;">'+d.score.toFixed(1)+'</td></tr>';
+            });
+            html += '</tbody></table></div></div></div>';
+            html += '</div>';
+            el.innerHTML = html;
+            el.style.display = 'block';
+        }
+
+        function renderFaScreenResults(results) {
+            const el = document.getElementById('faScreenResults');
+            if (!results || results.length === 0) {
+                el.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>No results matching criteria</p></div></div></div>';
+                return;
+            }
+            let html = '<div class="card"><div class="card-header"><h3><i class="fas fa-list"></i> Screening Results ('+results.length+')</h3></div><div class="card-body" style="padding:0;"><div class="table-wrap"><table class="table"><thead><tr><th>Symbol</th><th>Score</th><th>Verdict</th><th>Value</th><th>Growth</th><th>Quality</th><th>Momentum</th><th>P/E</th><th>View</th></tr></thead><tbody>';
+            results.forEach(r => {
+                const ds = r.dimension_scores || {};
+                const vc = {STRONG_BUY:'#4ade80',BUY:'#22c55e',HOLD:'#f59e0b',CAUTION:'#f87171',AVOID:'#ef4444'}[r.verdict] || '#64748b';
+                html += '<tr><td style="font-weight:500;">'+r.symbol+'</td><td style="color:'+vc+';font-weight:700;">'+r.composite_score.toFixed(1)+'</td><td>'+r.verdict+'</td>'
+                    + '<td>'+ds.value.toFixed(0)+'</td><td>'+ds.growth.toFixed(0)+'</td><td>'+ds.quality.toFixed(0)+'</td><td>'+ds.momentum.toFixed(0)+'</td>'
+                    + '<td>'+(r.pe_ratio||0).toFixed(1)+'</td>'
+                    + '<td><button class="btn btn-ghost btn-xs" onclick="document.getElementById(\'faSymbolInput\').value=\''+r.symbol+'\';analyzeFundamentals()"><i class="fas fa-search"></i></button></td></tr>';
+            });
+            html += '</tbody></table></div></div></div>';
+            el.innerHTML = html;
+        }
+
+        async function analyzeFundamentals() {
+            const sym = document.getElementById('faSymbolInput').value.trim();
+            if (!sym) { showToast('Enter a symbol', 'warning'); return; }
+            document.getElementById('faResult').style.display = 'none';
+            document.getElementById('faLoading').style.display = 'block';
+            try {
+                const data = await apiFetch('/api/fundamentals/analyze/' + encodeURIComponent(sym));
+                renderFaResult(data);
+            } catch (e) {
+                document.getElementById('faResult').innerHTML = '<div class="card"><div class="card-body"><div style="color:#f87171;">Error: ' + e.message + '</div></div></div>';
+                document.getElementById('faResult').style.display = 'block';
+            }
+            document.getElementById('faLoading').style.display = 'none';
+        }
+
+        async function screenFundamentals() {
+            const raw = document.getElementById('faScreenInput').value;
+            const minScore = parseFloat(document.getElementById('faMinScore').value) || 0;
+            const symbols = raw.split(/[,\n]+/).map(s => s.trim()).filter(s => s);
+            if (symbols.length === 0) { showToast('Enter at least one symbol', 'warning'); return; }
+            try {
+                const data = await apiFetch('/api/fundamentals/screen', {
+                    method: 'POST',
+                    body: JSON.stringify({symbols, min_score: minScore})
+                });
+                if (data.error) { showToast(data.error, 'error'); return; }
+                renderFaScreenResults(data.results);
+            } catch (e) { showToast('Screen failed: ' + e.message, 'error'); }
+        }
+
+        async function loadFundamentals() {
+            loadFaWeights();
+            // Just reset the UI state when navigating to the page
+            document.getElementById('faResult').style.display = 'none';
+            document.getElementById('faScreen').style.display = 'none';
+            faScreenVisible = false;
+            document.getElementById('faScreenResults').innerHTML = '';
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  FUNDAMENTALS WEIGHT SLIDERS
+        // ══════════════════════════════════════════════════════════════════════
+
+        let faCustomWeights = {};
+
+        function toggleFaWeights() {
+            const panel = document.getElementById('faWeightsPanel');
+            if (!panel) return;
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            if (panel.style.display === 'block') loadFaWeights();
+        }
+
+        async function loadFaWeights() {
+            try {
+                const data = await apiFetch('/api/fundamentals/weights');
+                if (!data || data.error) return;
+                const w = data.weights || {};
+                ['value', 'growth', 'quality', 'momentum'].forEach(function(d) {
+                    const el = document.getElementById('faW_' + d);
+                    if (el && w[d] !== undefined) {
+                        const pct = Math.round(w[d] * 100);
+                        el.value = pct;
+                        document.getElementById('faWv_' + d).textContent = pct + '%';
+                    }
+                });
+                updateFaWeightSum();
+            } catch (e) {}
+        }
+
+        function updateFaWeightPreview(dim, value) {
+            const pct = parseInt(value);
+            document.getElementById('faWv_' + dim).textContent = pct + '%';
+            updateFaWeightSum();
+        }
+
+        function updateFaWeightSum() {
+            const dims = ['value', 'growth', 'quality', 'momentum'];
+            let sum = 0;
+            dims.forEach(function(d) {
+                const el = document.getElementById('faW_' + d);
+                if (el) sum += parseInt(el.value) || 0;
+            });
+            const el = document.getElementById('faWeightSum');
+            const statusEl = document.getElementById('faWeightStatus');
+            const pct = sum;
+            if (el) {
+                el.textContent = 'Sum: ' + (pct / 100).toFixed(2);
+                el.style.color = Math.abs(pct - 100) < 0.5 ? '#4ade80' : '#f87171';
+            }
+            if (statusEl) {
+                statusEl.textContent = Math.abs(pct - 100) < 0.5
+                    ? 'Weights balanced'
+                    : 'Weights must sum to 100% (currently ' + pct + '%)';
+            }
+        }
+
+        async function faApplyWeights() {
+            const dims = ['value', 'growth', 'quality', 'momentum'];
+            const weights = {};
+            dims.forEach(function(d) {
+                const el = document.getElementById('faW_' + d);
+                if (el) weights[d] = parseFloat((parseInt(el.value) / 100).toFixed(2));
+            });
+            const sum = Object.values(weights).reduce(function(a, b) { return a + b; }, 0);
+            if (Math.abs(sum - 1.0) > 0.01) {
+                showToast('Weights must sum to 100% (currently ' + Math.round(sum * 100) + '%)', 'error');
+                return;
+            }
+            try {
+                const res = await apiFetch('/api/fundamentals/weights', {
+                    method: 'PUT',
+                    body: JSON.stringify({ weights: weights }),
+                });
+                if (res && res.success) {
+                    showToast('Dimension weights updated', 'success');
+                    faCustomWeights = weights;
+                    const resultEl = document.getElementById('faResult');
+                    const inputEl = document.getElementById('faSymbolInput');
+                    if (resultEl && resultEl.style.display !== 'none' && inputEl && inputEl.value.trim()) {
+                        analyzeFundamentals();
+                    }
+                } else {
+                    showToast((res && res.error) || 'Failed to update weights', 'error');
+                }
+            } catch (e) {
+                showToast('Failed to update weights: ' + e.message, 'error');
+            }
+        }
+
+        function faResetWeights() {
+            const defaults = { value: 30, growth: 25, quality: 25, momentum: 20 };
+            Object.entries(defaults).forEach(function(entry) {
+                const dim = entry[0], val = entry[1];
+                const el = document.getElementById('faW_' + dim);
+                if (el) {
+                    el.value = val;
+                    document.getElementById('faWv_' + dim).textContent = val + '%';
+                }
+            });
+            updateFaWeightSum();
+            faCustomWeights = {};
+            showToast('Weights reset to defaults. Click Apply Weights to save.', 'info');
+        }
+</script>
 </body>
 </html>

@@ -341,7 +341,7 @@ class TestRestartRecovery:
             symbol="NIFTY", direction="CALL", quantity=50,
             status="SUBMITTED", broker_order_id="broker_db",
         )
-        # Corrupt the DB — attempt WAL/SHM removal but ignore Windows locking
+        # Corrupt the DB - attempt WAL/SHM removal but ignore Windows locking
         import os as _os
         try:
             _os.remove(temp_db + "-wal") if _os.path.exists(temp_db + "-wal") else None
@@ -354,7 +354,7 @@ class TestRestartRecovery:
         # Write garbage to simulate corruption
         with open(temp_db, "wb") as f:
             f.write(b"GARBAGE")
-        # Should not crash — gracefully returns empty or raises caught exception
+        # Should not crash - gracefully returns empty or raises caught exception
         result = service.get_pending_orders()
         assert isinstance(result, list)
 

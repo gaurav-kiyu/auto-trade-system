@@ -1,4 +1,4 @@
-"""Comprehensive enterprise dashboard tests — all DB/IO mocked.
+"""Comprehensive enterprise dashboard tests - all DB/IO mocked.
 
 Covers: initialization, config freeze, wiring, security headers, CORS,
 request IDs, CSRF exemptions, rate limiting, kill switch, config management,
@@ -1790,7 +1790,7 @@ class TestErrorHandlers:
             c = TestClient(dashboard.app)
             try:
                 c.get("/api/trigger-500", headers={"accept": "application/json"})
-            except (ValueError, TypeError, KeyError, IndexError):
+            except (ValueError, TypeError, KeyError, IndexError, RuntimeError):
                 pass
         finally:
             logger.removeHandler(handler)

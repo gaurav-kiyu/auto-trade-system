@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Test — Order Rejection.
+AD-KIYU Broker Contract Test - Order Rejection.
 
 Verifies that broker adapters handle invalid inputs gracefully
 without crashing or corrupting internal state.

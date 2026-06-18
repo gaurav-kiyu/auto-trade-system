@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Test — Stale / Stuck Order Status.
+AD-KIYU Broker Contract Test - Stale / Stuck Order Status.
 
 Verifies that broker adapters return consistent and correct
 status values for orders.

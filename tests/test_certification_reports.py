@@ -1,5 +1,5 @@
 """
-Tests for core.certification.report_generators — Certification Reports (Phases 3/4/5/14/19).
+Tests for core.certification.report_generators - Certification Reports (Phases 3/4/5/14/19).
 
 Validates:
   - Architecture Certification (Phase 3)

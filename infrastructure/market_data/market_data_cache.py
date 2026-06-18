@@ -332,7 +332,7 @@ class MarketDataCache:
 
 # Global market data cache instance
 _market_data_cache: MarketDataCache | None = None
-_market_data_cache_lock = threading.Lock()
+_market_data_cache_lock = threading.RLock()
 
 
 def get_market_data_cache() -> MarketDataCache:

@@ -1,5 +1,5 @@
 """
-Tests for core/execution/broker_state_handler.py — Broker State Handler.
+Tests for core/execution/broker_state_handler.py - Broker State Handler.
 
 Covers:
 - BrokerStateCategory and ActionRecommendation enums
@@ -35,7 +35,7 @@ def handler():
 
 
 class TestBrokerStateCategory:
-    """BrokerStateCategory enum — 6 categories."""
+    """BrokerStateCategory enum - 6 categories."""
 
     def test_values(self):
         assert BrokerStateCategory.KNOWN_TERMINAL.value == "KNOWN_TERMINAL"
@@ -47,7 +47,7 @@ class TestBrokerStateCategory:
 
 
 class TestActionRecommendation:
-    """ActionRecommendation enum — 5 recommendations."""
+    """ActionRecommendation enum - 5 recommendations."""
 
     def test_values(self):
         assert ActionRecommendation.PROCEED.value == "PROCEED"

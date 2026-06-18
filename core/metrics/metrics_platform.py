@@ -18,6 +18,8 @@ from __future__ import annotations
 import logging
 import sqlite3
 import threading
+
+from core.db_utils import get_connection
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
@@ -65,14 +67,14 @@ class MetricsPlatform:
         self._gauges: dict[str, float] = {}
         self._histograms: dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
         self._timers: dict[str, TimerMetric] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._start_time = time.time()
         self._init_durable_storage()
 
     def _init_durable_storage(self) -> None:
         """Initialize metrics storage"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -155,7 +157,7 @@ class MetricsPlatform:
     def _record_latency(self, operation: str, duration_ms: float, success: bool) -> None:
         """Internal latency recording"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     INSERT INTO latency_metrics (operation, duration_ms, timestamp, success)
                     VALUES (?, ?, ?, ?)
@@ -219,7 +221,7 @@ class MetricsPlatform:
     def get_latency_stats(self, operation: str, limit: int = 1000) -> dict[str, float]:
         """Get latency statistics for operation"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 cursor = conn.execute("""
                     SELECT duration_ms FROM latency_metrics
                     WHERE operation = ?
@@ -276,7 +278,7 @@ class MetricsPlatform:
 
 
 _metrics_platform: MetricsPlatform | None = None
-_metrics_lock = threading.Lock()
+_metrics_lock = threading.RLock()
 
 
 def get_metrics_platform() -> MetricsPlatform:

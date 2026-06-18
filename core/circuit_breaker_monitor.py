@@ -35,7 +35,7 @@ class CircuitBreakerStateStore:
     """Thread-safe wrapper around CircuitBreakerState."""
     def __init__(self, initial: CircuitBreakerState):
         self._state = initial
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def get(self) -> CircuitBreakerState:
         with self._lock:
@@ -106,7 +106,7 @@ class NSECircuitBreakerMonitor:
             last_update=now_ist(),
             is_market_halted=False,
         ))
-        self._baseline_lock = threading.Lock()
+        self._baseline_lock = threading.RLock()
         self._baseline_price: float | None = None
         self._last_halt_time: datetime | None = None
 
@@ -163,7 +163,7 @@ class NSECircuitBreakerMonitor:
 
                 # Calculate percentage change from baseline
                 if self._baseline_price == 0:
-                    self._logger.warning("Circuit breaker baseline price is 0 — skipping check")
+                    self._logger.warning("Circuit breaker baseline price is 0 - skipping check")
                     return
                 change_pct = ((current_price - self._baseline_price) / self._baseline_price) * 100
 
@@ -201,7 +201,7 @@ class NSECircuitBreakerMonitor:
             self._logger.error(f"Error checking circuit breaker: {e} (type: {type(e).__name__})")
 
     def _handle_market_halt(self, level: str) -> None:
-        """Handle market halt event — blocks ALL new entries."""
+        """Handle market halt event - blocks ALL new entries."""
         self._last_halt_time = now_ist()
 
         alert = f"""
@@ -218,7 +218,7 @@ Check: https://www.nseindia.com/market-data/live-market-indices
 """
         self._send_fn(alert)
 
-        # Trip hard halt — block all new entries until manually cleared
+        # Trip hard halt - block all new entries until manually cleared
         trip_hard_halt(
             f"NSE circuit breaker triggered: {level} drop at {self._last_halt_time.strftime('%H:%M:%S')}",
             source="NSECircuitBreakerMonitor._handle_market_halt",

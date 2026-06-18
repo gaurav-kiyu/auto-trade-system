@@ -1,5 +1,5 @@
 """
-Tests for core/execution/durable_state.py — Durable Execution State Persistence.
+Tests for core/execution/durable_state.py - Durable Execution State Persistence.
 
 Covers:
 - ExecutionState enum (8 states)
@@ -52,7 +52,7 @@ def record():
 
 
 class TestExecutionState:
-    """ExecutionState enum — 8 states."""
+    """ExecutionState enum - 8 states."""
 
     def test_values(self):
         assert ExecutionState.PENDING.value == "PENDING"
@@ -69,7 +69,7 @@ class TestExecutionState:
 
 
 class TestDurableExecutionRecord:
-    """DurableExecutionRecord dataclass — default values and custom fields."""
+    """DurableExecutionRecord dataclass - default values and custom fields."""
 
     def test_default_created_at(self, record):
         assert record.created_at is not None

@@ -201,7 +201,7 @@ def test_stop_waits_when_important_messages_pending():
     """stop() loops sleeping 0.5s when the heap still has CRITICAL/HIGH (line 99)."""
     import heapq
     q = make_queue()
-    # Don't start the drain thread — CRITICAL message stays in heap
+    # Don't start the drain thread - CRITICAL message stays in heap
     with q._lock:
         heapq.heappush(q._heap, TelegramMessage(
             priority=int(TelegramPriority.CRITICAL), ts=time.time(), text="pending"
@@ -277,7 +277,7 @@ def test_rate_wait_sleeps_when_limit_exceeded():
     q = make_queue(cfg=dict(CFG, tg_rate_limit_per_min=2))
     now = time.time()
     q._sent_this_min = [now, now - 10]
-    # _stop.wait() replaces the old time.sleep() — verify it's called
+    # _stop.wait() replaces the old time.sleep() - verify it's called
     with patch.object(q._stop, 'wait', return_value=False) as mock_wait:
         q._rate_wait()
     assert mock_wait.called, "rate-limit wait not triggered"

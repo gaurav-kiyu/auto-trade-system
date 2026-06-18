@@ -1,22 +1,22 @@
 """
-Session Classifier — Time-of-Day Intelligence Layer (Phase 3).
+Session Classifier - Time-of-Day Intelligence Layer (Phase 3).
 
 Partitions the NSE trading day into named session bands and applies
 configurable score adjustments to the signal pipeline.
 
 Session bands (default IST boundaries):
-    PRE_MARKET   before 09:15                — market closed
-    OPENING      09:15 – 10:15 (early end)   — high-vol gap-fill zone
-    TRENDING     10:15 – 11:30               — best directional window
-    CHOPPY       11:30 – 13:30               — midday low-conviction
-    RECOVERY     13:30 – 14:15               — post-lunch drift
-    PRE_CLOSE    14:15 – 15:00 (block from)  — EOD squeeze caution
-    CLOSED       after 15:00                 — no new entries
+    PRE_MARKET   before 09:15                - market closed
+    OPENING      09:15 - 10:15 (early end)   - high-vol gap-fill zone
+    TRENDING     10:15 - 11:30               - best directional window
+    CHOPPY       11:30 - 13:30               - midday low-conviction
+    RECOVERY     13:30 - 14:15               - post-lunch drift
+    PRE_CLOSE    14:15 - 15:00 (block from)  - EOD squeeze caution
+    CLOSED       after 15:00                 - no new entries
 
 The OPENING / TRENDING boundaries reuse existing NSE_EARLY_SESSION_END and
 NSE_CASH_SESSION_START config keys so there is no new duplication.
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ----------------------------------------------------
   session_classifier_enabled     : bool  default true
   session_choppy_start_hour      : int   default 11
@@ -86,7 +86,7 @@ def _get_boundary(cfg: dict[str, Any], h_key: str, m_key: str, def_h: int, def_m
 
 
 def _nse_open_time(cfg: dict[str, Any]) -> datetime.time:
-    """NSE cash open — reuses NSE_CASH_SESSION_START_* config keys."""
+    """NSE cash open - reuses NSE_CASH_SESSION_START_* config keys."""
     try:
         from core.datetime_ist import nse_cash_open_time
         return nse_cash_open_time()
@@ -100,7 +100,7 @@ def _nse_open_time(cfg: dict[str, Any]) -> datetime.time:
 
 
 def _nse_early_end_time(cfg: dict[str, Any]) -> datetime.time:
-    """Early-session end — reuses NSE_EARLY_SESSION_END_* config keys."""
+    """Early-session end - reuses NSE_EARLY_SESSION_END_* config keys."""
     try:
         from core.datetime_ist import nse_early_session_end_time
         return nse_early_session_end_time()
@@ -114,7 +114,7 @@ def _nse_early_end_time(cfg: dict[str, Any]) -> datetime.time:
 
 
 def _nse_block_time(cfg: dict[str, Any]) -> datetime.time:
-    """No-new-entry time — reuses NSE_BLOCK_NEW_ENTRIES_FROM_* config keys."""
+    """No-new-entry time - reuses NSE_BLOCK_NEW_ENTRIES_FROM_* config keys."""
     try:
         from core.datetime_ist import nse_block_new_entries_from_time
         return nse_block_new_entries_from_time()
@@ -139,13 +139,13 @@ def classify_session(
 
     Args:
         t   : Current time (datetime.time or datetime.datetime, naive IST).
-        cfg : Bot config dict — used to read boundary overrides.
+        cfg : Bot config dict - used to read boundary overrides.
 
     Returns:
         SessionType enum value.
     """
     c = cfg or {}
-    # Accept both datetime and time objects — extract time component if needed
+    # Accept both datetime and time objects - extract time component if needed
     if isinstance(t, datetime.datetime):
         t = t.time()
     t_open     = _nse_open_time(c)
@@ -231,7 +231,7 @@ def session_entry_allowed(
     return True
 
 
-# ── Expiry-day session (Item 4 — v2.44) ──────────────────────────────────────
+# ── Expiry-day session (Item 4 - v2.44) ──────────────────────────────────────
 
 class ExpirySessionName(str, Enum):
     EXPIRY_MORNING = "EXPIRY_MORNING"
@@ -255,22 +255,22 @@ _EXPIRY_SESSION_DEFAULTS: dict[str, dict] = {
     ExpirySessionName.EXPIRY_MORNING: dict(
         lot_multiplier=0.6, sl_pct_override=0.82, score_adj=0,
         auto_execute_allowed=True,
-        reason="Expiry morning — high volatility, reduced size",
+        reason="Expiry morning - high volatility, reduced size",
     ),
     ExpirySessionName.EXPIRY_MIDDAY: dict(
         lot_multiplier=0.5, sl_pct_override=0.85, score_adj=-5,
         auto_execute_allowed=True,
-        reason="Expiry midday — elevated gamma risk",
+        reason="Expiry midday - elevated gamma risk",
     ),
     ExpirySessionName.EXPIRY_CAUTION: dict(
         lot_multiplier=0.0, sl_pct_override=None, score_adj=-10,
         auto_execute_allowed=False,
-        reason="Expiry caution window — no auto-execution",
+        reason="Expiry caution window - no auto-execution",
     ),
     ExpirySessionName.EXPIRY_BLOCKED: dict(
         lot_multiplier=0.0, sl_pct_override=None, score_adj=0,
         auto_execute_allowed=False,
-        reason="Expiry block — entries hard-blocked",
+        reason="Expiry block - entries hard-blocked",
     ),
 }
 

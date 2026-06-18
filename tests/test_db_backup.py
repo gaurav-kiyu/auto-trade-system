@@ -1,5 +1,5 @@
 """
-Tests for scripts/db_backup.py — automated database backup mechanism.
+Tests for scripts/db_backup.py - automated database backup mechanism.
 
 Remediates:
   - GAP-09: Add automated DB backup mechanism
@@ -21,7 +21,7 @@ from scripts.db_backup import (
 
 
 class TestFindProjectRoot:
-    """find_project_root — auto-detection of project root."""
+    """find_project_root - auto-detection of project root."""
 
     def test_returns_path(self):
         root = find_project_root()
@@ -34,7 +34,7 @@ class TestFindProjectRoot:
 
 
 class TestDiscoverDbFiles:
-    """discover_db_files — finding .db files."""
+    """discover_db_files - finding .db files."""
 
     def test_empty_directory(self, tmp_path):
         """Empty directory returns no files."""
@@ -71,7 +71,7 @@ class TestDiscoverDbFiles:
 
 
 class TestCreateBackup:
-    """create_backup — timestamped backup copies."""
+    """create_backup - timestamped backup copies."""
 
     def test_creates_backup_file(self, tmp_path):
         """Backup creates a copy of the source file."""
@@ -110,7 +110,7 @@ class TestCreateBackup:
 
 
 class TestCleanupOldBackups:
-    """cleanup_old_backups — retention-based removal."""
+    """cleanup_old_backups - retention-based removal."""
 
     def test_removes_old_backups(self, tmp_path):
         """Backups older than retention_days are removed."""
@@ -173,7 +173,7 @@ class TestCleanupOldBackups:
 
 
 class TestRunBackup:
-    """run_backup — full backup cycle."""
+    """run_backup - full backup cycle."""
 
     def test_backup_cycle(self, tmp_path):
         """Full backup cycle: discover → backup → cleanup."""

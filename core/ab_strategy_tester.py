@@ -1,7 +1,7 @@
 """
 A/B Strategy Tester (v2.44 Item 20).
 
-Runs two config variants — CONTROL (current live config) and VARIANT — on the
+Runs two config variants - CONTROL (current live config) and VARIANT - on the
 same signal stream in paper mode.  For each signal, both variants decide
 independently whether to enter and at what parameters.  Outcomes are recorded
 so statistical significance can be assessed via Mann-Whitney U test.
@@ -11,7 +11,7 @@ scipy is not installed.
 
 Public API
 ----------
-    ABStrategyTester(cfg, variant_cfg) — initialise the tester
+    ABStrategyTester(cfg, variant_cfg) - initialise the tester
     tester.evaluate_signal(signal_dict) → ABSignalDecision
     tester.record_trade_outcome(variant, pnl)
     tester.get_comparison() → ABComparisonResult
@@ -122,7 +122,7 @@ class ABStrategyTester:
         self._enabled  = bool(self._cfg.get("ab_testing_enabled", False))
         self._min_trades = int(self._cfg.get("ab_min_trades_for_significance", 30))
 
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self.control = ABVariantState(name="CONTROL")
         self.variant = ABVariantState(name=variant_name)
 
@@ -132,7 +132,7 @@ class ABStrategyTester:
         """
         Given a signal dict, decide whether CONTROL and VARIANT would enter.
 
-        The primary difference between variants is score threshold — if the
+        The primary difference between variants is score threshold - if the
         VARIANT has a different AI_THRESHOLD override, it may accept signals
         that CONTROL rejects and vice-versa.
 
@@ -140,7 +140,7 @@ class ABStrategyTester:
             signal : Dict with at least "score" and "allowed" keys.
 
         Returns:
-            ABSignalDecision — both enter flags and the effective scores.
+            ABSignalDecision - both enter flags and the effective scores.
         """
         if not self._enabled:
             return ABSignalDecision(True, True, 0, 0, "AB_DISABLED", "AB_DISABLED")
@@ -350,7 +350,7 @@ def _betainc(a: float, b: float, x: float) -> float:
         return 0.0
     if x >= 1:
         return 1.0
-    # Simple series approximation — sufficient for p-value indication
+    # Simple series approximation - sufficient for p-value indication
     try:
         import math
         ln_beta = math.lgamma(a) + math.lgamma(b) - math.lgamma(a + b)

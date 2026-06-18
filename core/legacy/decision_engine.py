@@ -1,5 +1,5 @@
 """
-DEPRECATED MODULE — Archived to core/legacy/.
+DEPRECATED MODULE - Archived to core/legacy/.
 
 This module has been superseded by core/services/risk_service.py
 and core/tier_engine.py for decision logic.
@@ -7,7 +7,7 @@ and core/tier_engine.py for decision logic.
 Will be removed in a future release.
 """
 """
-Decision Engine — maps signal score to class, eligibility, and tier.
+Decision Engine - maps signal score to class, eligibility, and tier.
 
 Threshold alignment (mirrors tier_engine.py):
     STRONG   ≥ 80  → full execution eligible, tier=STRONG
@@ -53,7 +53,7 @@ class DecisionEngine:
         # Guard: thresholds must be monotonically non-increasing; fix and warn if misconfigured
         if not (strong_thr >= moderate_thr >= early_thr > 0):
             log.warning(
-                "[DECISION] Thresholds not monotonic (strong=%d moderate=%d early=%d) — clamping to safe defaults",
+                "[DECISION] Thresholds not monotonic (strong=%d moderate=%d early=%d) - clamping to safe defaults",
                 strong_thr, moderate_thr, early_thr,
             )
             strong_thr   = max(strong_thr,   TIER_STRONG_MIN)
@@ -78,7 +78,7 @@ class DecisionEngine:
             signal_type  = "WATCH"
             eligible     = False
 
-        # Tier (from canonical tier_engine — single source of truth)
+        # Tier (from canonical tier_engine - single source of truth)
         tier = classify_tier(int(score))
 
         # Confidence: normalise score relative to tier minimum (0-1 within tier band)

@@ -1,9 +1,8 @@
-"""Tests for OperatingModeManager — mode transitions and execution gating."""
+"""Tests for OperatingModeManager - mode transitions and execution gating."""
 
 from __future__ import annotations
 
 import pytest
-from datetime import datetime
 
 from core.operating_mode import (
     OperatingMode,
@@ -14,7 +13,7 @@ from core.operating_mode import (
 
 
 class TestOperatingModeManager:
-    """OperatingModeManager — mode transitions and authority checks."""
+    """OperatingModeManager - mode transitions and authority checks."""
 
     def test_default_mode(self):
         mgr = OperatingModeManager()

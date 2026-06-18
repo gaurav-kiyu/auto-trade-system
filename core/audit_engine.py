@@ -35,7 +35,7 @@ class AuditEngine:
         self._path = Path(path)
         self._enabled = bool(enabled)
         self._now_fn = now_fn or (lambda: datetime.now(timezone.utc))
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def record(
         self,

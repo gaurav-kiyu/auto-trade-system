@@ -15,7 +15,7 @@ directly causing the "avg_loss >> avg_win" pathology.
 
 Model (no Black-Scholes required; calibrated to NSE empirics)
 --------------------------------------------------------------
-  ATM delta  ≈ 0.45 (well-established; drifts 0.35–0.55 with VIX / DTE)
+  ATM delta  ≈ 0.45 (well-established; drifts 0.35-0.55 with VIX / DTE)
   ATM premium ≈ ATR × iv_factor × delta_scale
   iv_factor   = 1.0 + clamp((vix - 15) / 50, -0.2, +0.5)
   delta_scale = 1.5  (empirically: NIFTY VIX=15, ATR=80 → premium ≈ 120; ✓ vs market)
@@ -141,7 +141,7 @@ def estimate_atm_premium(
 
     Returns
     -------
-    Positive float — estimated ATM option premium (CE or PE) in index points.
+    Positive float - estimated ATM option premium (CE or PE) in index points.
     """
     if atr <= 0.0 or index_price <= 0.0:
         return max(20.0, index_price * 0.004)

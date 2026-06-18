@@ -1,5 +1,5 @@
 """
-Web Dashboard — enterprise-only startup module.
+Web Dashboard - enterprise-only startup module.
 
 Provides the startup entry point for the EnterpriseDashboard (auth + RBAC +
 premium UI).  Legacy ``create_app()`` has been removed in favor of the
@@ -7,9 +7,9 @@ premium UI).  Legacy ``create_app()`` has been removed in favor of the
 
 Exports
 -------
-    SignalLog      — Thread-safe ring buffer for live signals (used by tests).
-    serve()        — Start uvicorn in a daemon thread.
-    maybe_start_dashboard() — Conditionally start the EnterpriseDashboard.
+    SignalLog      - Thread-safe ring buffer for live signals (used by tests).
+    serve()        - Start uvicorn in a daemon thread.
+    maybe_start_dashboard() - Conditionally start the EnterpriseDashboard.
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ class SignalLog:
     def __init__(self, maxlen: int = 200) -> None:
         self._buf: list[dict] = []
         self._maxlen = maxlen
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def append(self, signal: dict) -> None:
         with self._lock:
@@ -61,7 +61,7 @@ def serve(
     """
     Start the uvicorn server in a daemon thread.
 
-    Returns immediately — the server runs in the background.
+    Returns immediately - the server runs in the background.
     Call this only when ``web_dashboard_enabled=true``.
     """
     try:
@@ -95,7 +95,7 @@ def maybe_start_dashboard(
     Start the EnterpriseDashboard if ``web_dashboard_enabled=true``.
 
     Returns the FastAPI app (for testing) or None if disabled / import failure.
-    All exceptions are caught — never blocks the main thread.
+    All exceptions are caught - never blocks the main thread.
     """
     c = cfg or {}
     if not c.get("web_dashboard_enabled", False):
@@ -111,12 +111,23 @@ def maybe_start_dashboard(
             state_path=state_path,
             db_path=db_path,
         )
+        # Resolve MarketDataService from DI container if available
+        market_data_service = None
+        try:
+            from core.di_container import get_container
+            from core.services.market_data_service import MarketDataService
+            container = get_container()
+            market_data_service = container.try_resolve(MarketDataService)
+        except (ImportError, ValueError, TypeError, AttributeError):
+            pass
+
         dash.wire_bot_refs(
             pause_event=pause_event,
             signal_log=signal_log,
             signal_queue=signal_queue,
             ws_feed_manager=ws_feed_manager,
             rate_limiter=rate_limiter,
+            market_data_service=market_data_service,
         )
 
         serve(dash.app, host=host, port=port)

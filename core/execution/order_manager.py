@@ -1,13 +1,15 @@
 import json
 import logging
-import sqlite3
 import threading
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from core.adapters.base_adapter import OrderRequest, OrderResponse, OrderStatus
+from core.db_utils import create_database_port
 from core.execution.broker_gateway import broker_gateway
+from core.ports.database import DatabasePort
 from core.time_provider import time_provider
 
 log = logging.getLogger("order_manager")
@@ -33,6 +35,7 @@ class OrderManager:
     NEW -> VALIDATED -> SUBMITTED -> ACKNOWLEDGED -> FILLED
 
     Phase 0 Fix: Orders are persisted to SQLite for crash recovery.
+    Uses DatabasePort for all database access.
     """
     PERSISTENCE_PATH = "order_state.db"
 
@@ -42,63 +45,77 @@ class OrderManager:
         self._intent_map: dict[str, str] = {}     # intent_id -> broker_order_id
         self._intent_events: dict[str, threading.Event] = {}
         self._lock = __import__('threading').Lock()
+        self._db_port: DatabasePort | None = None
         if persistence_path:
             self.PERSISTENCE_PATH = str(persistence_path)
         self._init_durable_storage()
         self._load_orders_from_disk()  # Recover in-flight orders on restart
 
+    def _get_port(self) -> DatabasePort:
+        """Lazy-init the DatabasePort connection."""
+        if self._db_port is None:
+            self._db_port = create_database_port(self.PERSISTENCE_PATH)
+            self._db_port.connect()
+        return self._db_port
+
     def _init_durable_storage(self) -> None:
         """Initialize SQLite persistence for orders (Phase 0 fix)."""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
-                conn.execute("PRAGMA journal_mode=WAL")
-                conn.execute("PRAGMA busy_timeout=5000")
-                table_info = list(conn.execute("PRAGMA table_info(orders)"))
-                if table_info:
-                    broker_pk = next((row for row in table_info if row[1] == "broker_order_id"), None)
-                    intent_pk = next((row for row in table_info if row[1] == "intent_id"), None)
-                    if broker_pk and broker_pk[5] == 1 and (not intent_pk or intent_pk[5] != 1):
-                        conn.execute("""
-                            CREATE TABLE IF NOT EXISTS orders_new (
-                                intent_id TEXT PRIMARY KEY,
-                                broker_order_id TEXT UNIQUE,
-                                request_json TEXT,
-                                status TEXT,
-                                filled_qty INTEGER,
-                                avg_price REAL,
-                                created_at TEXT,
-                                updated_at TEXT,
-                                error_text TEXT
-                            )
-                        """)
-                        conn.execute("""
-                            INSERT OR REPLACE INTO orders_new
-                            (intent_id, broker_order_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text)
-                            SELECT intent_id, broker_order_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text
-                            FROM orders
-                        """)
-                        conn.execute("DROP TABLE orders")
-                        conn.execute("ALTER TABLE orders_new RENAME TO orders")
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS orders (
-                        intent_id TEXT PRIMARY KEY,
-                        broker_order_id TEXT UNIQUE,
-                        request_json TEXT,
-                        status TEXT,
-                        filled_qty INTEGER,
-                        avg_price REAL,
-                        created_at TEXT,
-                        updated_at TEXT,
-                        error_text TEXT
-                    )
-                """)
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_intent ON orders(intent_id)")
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_broker_order_id ON orders(broker_order_id)")
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_status ON orders(status)")
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_updated_at ON orders(updated_at)")
-                conn.commit()
+            db = self._get_port()
+
+            # Check for schema migration: if broker_order_id is PK, migrate to intent_id PK
+            try:
+                rows = db.fetchall("PRAGMA table_info(orders)")
+                table_info = list(rows) if rows else []
+            except Exception:
+                table_info = []
+
+            if table_info:
+                broker_pk = next((row for row in table_info if row[1] == "broker_order_id"), None)
+                intent_pk = next((row for row in table_info if row[1] == "intent_id"), None)
+                if broker_pk and broker_pk[5] == 1 and (not intent_pk or intent_pk[5] != 1):
+                    db.execute("""
+                        CREATE TABLE IF NOT EXISTS orders_new (
+                            intent_id TEXT PRIMARY KEY,
+                            broker_order_id TEXT UNIQUE,
+                            request_json TEXT,
+                            status TEXT,
+                            filled_qty INTEGER,
+                            avg_price REAL,
+                            created_at TEXT,
+                            updated_at TEXT,
+                            error_text TEXT
+                        )
+                    """)
+                    db.execute("""
+                        INSERT OR REPLACE INTO orders_new
+                        (intent_id, broker_order_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text)
+                        SELECT intent_id, broker_order_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text
+                        FROM orders
+                    """)
+                    db.execute("DROP TABLE orders")
+                    db.execute("ALTER TABLE orders_new RENAME TO orders")
+
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS orders (
+                    intent_id TEXT PRIMARY KEY,
+                    broker_order_id TEXT UNIQUE,
+                    request_json TEXT,
+                    status TEXT,
+                    filled_qty INTEGER,
+                    avg_price REAL,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    error_text TEXT
+                )
+            """)
+            db.execute("CREATE INDEX IF NOT EXISTS idx_intent ON orders(intent_id)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_broker_order_id ON orders(broker_order_id)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_status ON orders(status)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_updated_at ON orders(updated_at)")
+            db.commit()
             log.info("OrderManager: Durable storage initialized")
-        except (sqlite3.Error, OSError) as e:
+        except Exception as e:
             log.error(f"OrderManager: Failed to init durable storage: {e}")
 
     def _persist_order(self, order: OrderState) -> None:
@@ -115,74 +132,74 @@ class OrderManager:
                 "tag": order.request.tag,
                 "idempotency_key": order.request.idempotency_key,
             }, default=str)
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
-                conn.execute("""
-                    INSERT OR REPLACE INTO orders
-                    (intent_id, broker_order_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    order.intent_id,
-                    order.broker_order_id,
-                    req_json,
-                    order.status.name,
-                    order.filled_qty,
-                    order.avg_price,
-                    order.created_at,
-                    order.updated_at,
-                    order.error,
-                ))
-                conn.commit()
-        except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
+            db = self._get_port()
+            db.execute("""
+                INSERT OR REPLACE INTO orders
+                (intent_id, broker_order_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                order.intent_id,
+                order.broker_order_id,
+                req_json,
+                order.status.name,
+                order.filled_qty,
+                order.avg_price,
+                order.created_at,
+                order.updated_at,
+                order.error,
+            ))
+            db.commit()
+        except (json.JSONDecodeError, OSError) as e:
             log.warning(f"OrderManager: Failed to persist order: {e}")
 
     def _load_orders_from_disk(self) -> None:
         """Load in-flight orders from disk on startup."""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
-                cursor = conn.execute("""
-                    SELECT broker_order_id, intent_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text
-                    FROM orders
-                    WHERE status NOT IN ('FILLED', 'REJECTED', 'CANCELLED', 'FAILED')
-                """)
-                for row in cursor:
-                    broker_order_id, intent_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text = row
-                    try:
-                        request_data = json.loads(request_json or "{}")
-                    except (json.JSONDecodeError, TypeError, ValueError):
-                        request_data = {}
+            db = self._get_port()
+            rows = db.fetchall("""
+                SELECT broker_order_id, intent_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text
+                FROM orders
+                WHERE status NOT IN ('FILLED', 'REJECTED', 'CANCELLED', 'FAILED')
+            """)
+            for row in rows:
+                broker_order_id, intent_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text = row
+                try:
+                    request_data = json.loads(request_json or "{}")
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    request_data = {}
 
-                    request = OrderRequest(
-                        symbol=request_data.get("symbol", ""),
-                        qty=int(request_data.get("qty", 0)),
-                        price=float(request_data.get("price", 0.0)),
-                        order_type=request_data.get("order_type", "MARKET"),
-                        direction=request_data.get("direction", "BUY"),
-                        product=request_data.get("product", "MIS"),
-                        variety=request_data.get("variety", "REGULAR"),
-                        tag=request_data.get("tag", "OPB_BOT"),
-                        idempotency_key=request_data.get("idempotency_key", ""),
-                    )
-                    status_obj = OrderStatus.UNKNOWN
-                    if isinstance(status, str) and status in OrderStatus.__members__:
-                        status_obj = OrderStatus[status]
-                    order = OrderState(
-                        intent_id=intent_id or str(uuid.uuid4()),
-                        request=request,
-                        status=status_obj,
-                        broker_order_id=broker_order_id,
-                        filled_qty=int(filled_qty or 0),
-                        avg_price=float(avg_price or 0.0),
-                        created_at=created_at,
-                        updated_at=updated_at,
-                        error=error_text,
-                    )
-                    self._orders[order.intent_id] = order
-                    if broker_order_id:
-                        self._broker_map[broker_order_id] = order.intent_id
-                    if order.intent_id:
-                        self._intent_map[order.intent_id] = broker_order_id or ""
-                    log.warning(f"OrderManager: Loaded in-flight order {order.intent_id} from previous session (broker_order_id={broker_order_id})")
-        except (sqlite3.Error, OSError, json.JSONDecodeError, ValueError) as e:
+                request = OrderRequest(
+                    symbol=request_data.get("symbol", ""),
+                    qty=int(request_data.get("qty", 0)),
+                    price=float(request_data.get("price", 0.0)),
+                    order_type=request_data.get("order_type", "MARKET"),
+                    direction=request_data.get("direction", "BUY"),
+                    product=request_data.get("product", "MIS"),
+                    variety=request_data.get("variety", "REGULAR"),
+                    tag=request_data.get("tag", "OPB_BOT"),
+                    idempotency_key=request_data.get("idempotency_key", ""),
+                )
+                status_obj = OrderStatus.UNKNOWN
+                if isinstance(status, str) and status in OrderStatus.__members__:
+                    status_obj = OrderStatus[status]
+                order = OrderState(
+                    intent_id=intent_id or str(uuid.uuid4()),
+                    request=request,
+                    status=status_obj,
+                    broker_order_id=broker_order_id,
+                    filled_qty=int(filled_qty or 0),
+                    avg_price=float(avg_price or 0.0),
+                    created_at=created_at,
+                    updated_at=updated_at,
+                    error=error_text,
+                )
+                self._orders[order.intent_id] = order
+                if broker_order_id:
+                    self._broker_map[broker_order_id] = order.intent_id
+                if order.intent_id:
+                    self._intent_map[order.intent_id] = broker_order_id or ""
+                log.warning(f"OrderManager: Loaded in-flight order {order.intent_id} from previous session (broker_order_id={broker_order_id})")
+        except Exception as e:
             log.warning(f"OrderManager: Failed to load orders: {e}")
 
     def _validate_transition(self, current: OrderStatus, next_status: OrderStatus) -> bool:
@@ -246,20 +263,17 @@ class OrderManager:
                     error=existing_order.error,
                 )
 
-        # Phase 1: PRE_SUBMIT — create intent, stay in VALIDATED until broker confirms
+        # Phase 1: PRE_SUBMIT - create intent, stay in VALIDATED until broker confirms
         order = OrderState(intent_id=intent_id, request=request, status=OrderStatus.VALIDATED)
         self._orders[intent_id] = order
         self._intent_events[intent_id] = threading.Event()
         self._intent_map[intent_id] = ""
         self._persist_order(order)
 
-        # Phase 2: Call Broker Gateway — order is still VALIDATED, NOT SUBMITTED
-        # If broker receives order but connection drops, we stay in VALIDATED
-        # and startup reconciliation will query broker for status
+        # Phase 2: Call Broker Gateway - order is still VALIDATED, NOT SUBMITTED
         response = broker_gateway.place_order(request)
 
         if response.status == OrderStatus.FAILED:
-            # Broker explicitly rejected or connection failed before broker received
             order.status = OrderStatus.FAILED
             order.error = response.error
             order.updated_at = time_provider.format_ts()
@@ -269,8 +283,7 @@ class OrderManager:
                 event.set()
             return response
 
-        # Phase 3: CONFIRMED — broker returned a valid order_id
-        # Now safely transition to ACKNOWLEDGED (not SUBMITTED — we have confirmation)
+        # Phase 3: CONFIRMED - broker returned a valid order_id
         order.broker_order_id = response.order_id
         order.status = OrderStatus.ACKNOWLEDGED
         order.filled_qty = response.filled_qty
@@ -315,7 +328,6 @@ class OrderManager:
         if intent_id and intent_id in self._orders:
             order = self._orders[intent_id]
         else:
-            # Fall back to treat the input as an intent_id if no broker mapping exists
             order = self._orders.get(broker_order_id)
 
         if not order:

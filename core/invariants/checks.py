@@ -2,7 +2,7 @@
 AD-KIYU Standard Invariant Checks v1.1
 
 Pre-built invariant checks for common safety conditions.
-All checks use only available runtime APIs — no dangling references.
+All checks use only available runtime APIs - no dangling references.
 """
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ def _register_broker_positions_match():
             halted = is_hard_halted()
             losses = get_consecutive_losses()
             if halted:
-                return False, f"Hard halt active — potential position mismatch (losses={losses})"
+                return False, f"Hard halt active - potential position mismatch (losses={losses})"
             return True, f"Positions OK (consecutive losses={losses}, uptime={_uptime_seconds():.0f}s)"
         except ImportError:
             return True, "No reconciler configured (safety_state not available)"
@@ -86,7 +86,7 @@ def _register_single_risk_engine():
                 return False, "No authoritative risk engine (core.services.risk_service) loaded"
             return True, "Single authoritative risk engine loaded"
         except ImportError:
-            return True, "Risk module not loaded — check skipped"
+            return True, "Risk module not loaded - check skipped"
         except (GovernanceError, AttributeError, RuntimeError) as e:
             return False, f"Check error: {e}"
 
@@ -116,7 +116,7 @@ def _register_no_stale_data():
             if uptime > 300 and pnl == 0.0 and not halted:
                 return True, "System running but no trades yet (normal during market hours)"
             if halted:
-                return True, "System halted — data staleness expected"
+                return True, "System halted - data staleness expected"
             return True, f"Data OK (uptime={uptime:.0f}s, pnl={pnl:.0f})"
         except ImportError:
             return True, "Staleness check not available"
@@ -211,9 +211,9 @@ def _register_consecutive_loss_safety():
             losses = get_consecutive_losses()
             halted = is_hard_halted()
             if losses >= MAX_CONSECUTIVE_LOSSES and not halted:
-                return False, f"{losses} consecutive losses — threshold ({MAX_CONSECUTIVE_LOSSES}) breached"
+                return False, f"{losses} consecutive losses - threshold ({MAX_CONSECUTIVE_LOSSES}) breached"
             if losses >= MAX_CONSECUTIVE_LOSSES:
-                return True, f"{losses} consecutive losses (system halted — expected)"
+                return True, f"{losses} consecutive losses (system halted - expected)"
             return True, f"Consecutive losses: {losses}/{MAX_CONSECUTIVE_LOSSES}"
         except ImportError:
             return True, "safety_state not available"

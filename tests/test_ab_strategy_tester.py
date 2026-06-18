@@ -75,7 +75,7 @@ def test_variant_state_sharpe_zero_trades():
     assert v.sharpe == 0.0
 
 
-# ── ABStrategyTester — disabled ───────────────────────────────────────────────
+# ── ABStrategyTester - disabled ───────────────────────────────────────────────
 
 def make_tester(enabled=True, overrides=None):
     cfg = {
@@ -106,7 +106,7 @@ def test_disabled_comparison_returns_result():
     assert isinstance(result, ABComparisonResult)
 
 
-# ── ABStrategyTester — enabled ────────────────────────────────────────────────
+# ── ABStrategyTester - enabled ────────────────────────────────────────────────
 
 def test_evaluate_signal_both_enter_above_threshold():
     t = make_tester()

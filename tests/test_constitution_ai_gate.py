@@ -1,5 +1,5 @@
 """
-Tests for core/constitution_ai_gate.py — AI Governance Gate.
+Tests for core/constitution_ai_gate.py - AI Governance Gate.
 
 Covers:
   - AIGateResult construction
@@ -61,7 +61,7 @@ class TestAIGateResult:
         assert r.identity == "test_agent"
 
 
-# ── AIGovernanceGate — validate ───────────────────────────────────────────────
+# ── AIGovernanceGate - validate ───────────────────────────────────────────────
 
 
 class TestGateValidate:
@@ -302,7 +302,7 @@ class TestGateScoreEvidence:
         assert result.passed
 
 
-# ── AIGovernanceGate — acknowledge_constitution ───────────────────────────────
+# ── AIGovernanceGate - acknowledge_constitution ───────────────────────────────
 
 
 class TestGateAcknowledge:
@@ -320,7 +320,7 @@ class TestGateAcknowledge:
         assert any(l["action"] == "acknowledge" for l in log)
 
 
-# ── AIGovernanceGate — check_forbidden_action ─────────────────────────────────
+# ── AIGovernanceGate - check_forbidden_action ─────────────────────────────────
 
 
 class TestGateForbiddenAction:
@@ -361,7 +361,7 @@ class TestGateForbiddenAction:
         assert not result.passed
 
 
-# ── AIGovernanceGate — audit log ──────────────────────────────────────────────
+# ── AIGovernanceGate - audit log ──────────────────────────────────────────────
 
 
 class TestGateAuditLog:
@@ -394,7 +394,7 @@ class TestGateAuditLog:
         assert "result" in entry
 
 
-# ── AIGovernanceGate — identity ───────────────────────────────────────────────
+# ── AIGovernanceGate - identity ───────────────────────────────────────────────
 
 
 class TestGateIdentity:

@@ -211,7 +211,7 @@ def test_keys_are_independent():
 
 def test_default_config():
     rl = RateLimitingService()
-    # No update_config — uses default
+    # No update_config - uses default
     result = rl.is_allowed("new_key")
     assert result == LimitResult.ALLOWED
     status = rl.get_status("new_key")

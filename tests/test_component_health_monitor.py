@@ -1,10 +1,8 @@
-"""Tests for ComponentHealthMonitor — health monitoring for trading components."""
+"""Tests for ComponentHealthMonitor - health monitoring for trading components."""
 
 from __future__ import annotations
 
 from unittest.mock import MagicMock
-
-import pytest
 
 from core.component_health_monitor import (
     ComponentHealth,
@@ -32,7 +30,7 @@ class TestComponentHealth:
 
 
 class TestComponentHealthMonitor:
-    """ComponentHealthMonitor — monitors system component health."""
+    """ComponentHealthMonitor - monitors system component health."""
 
     def test_no_components_returns_empty(self):
         monitor = ComponentHealthMonitor()

@@ -1,5 +1,5 @@
 """
-Constitution Validation Engine — Runtime enforcement of the Final Master System Constitution.
+Constitution Validation Engine - Runtime enforcement of the Final Master System Constitution.
 
 Provides:
   - Scoring validation against the 23-category framework
@@ -228,7 +228,7 @@ class ConstitutionValidator:
                 results.append(ValidationResult(
                     passed=False,
                     category=f"pipeline.{step}",
-                    detail=f"Change pipeline step '{step}' missing — all 10 steps required",
+                    detail=f"Change pipeline step '{step}' missing - all 10 steps required",
                     evidence_required=[step],
                 ))
         self._audit("change_pipeline", {
@@ -470,7 +470,7 @@ class ConstitutionValidator:
             self.add_evidence("ARCH-01",
                 "Boundary rules enforced via pre_implementation_check.py",
                 "code_review", 0.3)
-        # ARCH-02: Single responsibility — additional evidence
+        # ARCH-02: Single responsibility - additional evidence
         srp_dirs = ["core/adapters", "core/ports", "core/services", "core/execution", "core/auth", "core/wal"]
         found_srp = [d for d in srp_dirs if (root / d).is_dir()]
         if found_srp:
@@ -481,7 +481,7 @@ class ConstitutionValidator:
             self.add_evidence("ARCH-02",
                 "ADR-0005 documents single-responsibility architecture",
                 "documentation", 0.2)
-        # ARCH-04: No circular dependencies — additional evidence
+        # ARCH-04: No circular dependencies - additional evidence
         if (root / "core" / "di_container.py").exists():
             self.add_evidence("ARCH-04",
                 "DI container enforces explicit dependency wiring without cycles",
@@ -884,7 +884,7 @@ class ConstitutionValidator:
             self.add_evidence("TST-02",
                 "Catastrophic scenarios test validates chaos resilience under multi-failure conditions",
                 "chaos", 0.4)
-        # TST-03: Contract testing — register each contract test file individually
+        # TST-03: Contract testing - register each contract test file individually
         contract_dir = root / "tests" / "contract" / "broker"
         if contract_dir.is_dir():
             contract_files = sorted(contract_dir.glob("test_*.py"))
@@ -2318,7 +2318,7 @@ class ConstitutionValidator:
             passed=True,
             category=f"score_evidence.{category}",
             detail=f"Score {score:.1f} has required evidence",
-        )    # ── Final Success Rule — Auto-Remediation ──────────────────────────────
+        )    # ── Final Success Rule - Auto-Remediation ──────────────────────────────
 
     FINAL_SUCCESS_TARGET = 9.5  # All categories must exceed this score
 
@@ -2490,7 +2490,7 @@ class ConstitutionValidator:
 # ── Module-level singleton ────────────────────────────────────────────────────
 
 _VALIDATOR: ConstitutionValidator | None = None
-_VALIDATOR_LOCK = threading.Lock()
+_VALIDATOR_LOCK = threading.RLock()
 
 
 def get_validator() -> ConstitutionValidator:

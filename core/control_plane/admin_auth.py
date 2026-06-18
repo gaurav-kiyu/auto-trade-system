@@ -1,5 +1,5 @@
 """
-AD-KIYU Admin Authentication — JWT-based auth for the control plane.
+AD-KIYU Admin Authentication - JWT-based auth for the control plane.
 
 Uses a config-based auth token to issue short-lived JWTs for admin sessions.
 Integrates with core.auth.session_store for session tracking.
@@ -58,9 +58,9 @@ class AdminAuth:
         self._auth_token = auth_token
         self._token_ttl = token_ttl_seconds
         self._session_store = session_store or SessionStore(ttl_seconds=token_ttl_seconds)
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         if not auth_token:
-            _log.warning("[AUTH] No auth_token configured — using ephemeral random key. Set AUTH_TOKEN config for secure operation.")
+            _log.warning("[AUTH] No auth_token configured - using ephemeral random key. Set AUTH_TOKEN config for secure operation.")
             self._secret_key = secrets.token_hex(32).encode("utf-8")
         else:
             self._secret_key = self._derive_key(auth_token)
@@ -180,10 +180,10 @@ class AdminAuth:
 
         # If no auth token configured, allow only if explicit token matches
         if not self._auth_token:
-            # No auth configured — accept any properly signed token
+            # No auth configured - accept any properly signed token
             return self.verify_token(token_str)
 
-        # Auth token configured — validate against config
+        # Auth token configured - validate against config
         # Direct token match (simplified auth for config-based tokens)
         if token_str == self._auth_token:
             return AdminToken(

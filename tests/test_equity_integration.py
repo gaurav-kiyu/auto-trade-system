@@ -1,4 +1,4 @@
-"""Integration tests for equity_trader — startup sequence, config wiring, and --equity flag."""
+"""Integration tests for equity_trader - startup sequence, config wiring, and --equity flag."""
 
 from __future__ import annotations
 

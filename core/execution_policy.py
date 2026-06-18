@@ -1,16 +1,16 @@
 """
-Execution Policy Layer — decides WHETHER to trade, HOW MUCH, and at WHAT risk params.
+Execution Policy Layer - decides WHETHER to trade, HOW MUCH, and at WHAT risk params.
 
 This sits between signal generation and broker execution. It is the single
 authoritative source for execution decisions, replacing hardcoded class=="STRONG"
 checks scattered across the codebase.
 
 Decision hierarchy (applied in order, first matching rule wins):
-  1. Hard veto rules  — always SKIP regardless of tier
-  2. Regime gates     — certain regime+tier combinations → SKIP
-  3. Quality filters  — configurable score/feature rules → SKIP
-  4. Position sizing  — tier × regime × score-within-tier → lots
-  5. Risk adjustments — SL/TP multipliers per tier
+  1. Hard veto rules  - always SKIP regardless of tier
+  2. Regime gates     - certain regime+tier combinations → SKIP
+  3. Quality filters  - configurable score/feature rules → SKIP
+  4. Position sizing  - tier × regime × score-within-tier → lots
+  5. Risk adjustments - SL/TP multipliers per tier
 
 All rules are configurable via config["execution_policy"] section.
 """
@@ -22,7 +22,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.position_sizer import PositionSizer, PositionSpec
+from core.services.risk_service import PositionSizer, PositionSpec  # consolidated
 from core.tier_engine import (
     TIER_WEAK_MIN,
     classify_tier,
@@ -168,7 +168,7 @@ class ExecutionPolicy:
 
         # ── 1. Hard veto: IGNORE tier ─────────────────────────────────────
         if tier == "IGNORE":
-            return _skip(f"score {score} below WEAK_MIN {TIER_WEAK_MIN} — IGNORE tier")
+            return _skip(f"score {score} below WEAK_MIN {TIER_WEAK_MIN} - IGNORE tier")
 
         # ── 2. WEAK tier gate ─────────────────────────────────────────────
         trade_weak = bool(pol.get("trade_weak", config.get("TIER_TRADE_WEAK", False)))
@@ -189,7 +189,7 @@ class ExecutionPolicy:
 
         # Rule: MODERATE + choppy → skip (too risky, too little conviction)
         if tier == "MODERATE" and regime == _REGIME_CHOPPY:
-            return _skip("MODERATE signal in CHOPPY regime — insufficient conviction")
+            return _skip("MODERATE signal in CHOPPY regime - insufficient conviction")
 
         # Rule: custom configurable rules from config
         for rule in pol.get("custom_skip_rules", []):

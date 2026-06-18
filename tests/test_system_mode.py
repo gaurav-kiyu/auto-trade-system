@@ -1,4 +1,4 @@
-"""Tests for SystemModeManager — system operational mode state machine."""
+"""Tests for SystemModeManager - system operational mode state machine."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from core.system_mode import (
 
 
 class TestSystemModeManager:
-    """SystemModeManager — thread-safe system mode state machine."""
+    """SystemModeManager - thread-safe system mode state machine."""
 
     def test_default_mode_is_normal(self):
         mgr = SystemModeManager()

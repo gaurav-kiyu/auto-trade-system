@@ -257,7 +257,7 @@ class BlackSwanEngine:
         if failure_count > 0:
             report.passed = False
             report.verdict = (
-                f"FAILED: {failure_count} check(s) failed — "
+                f"FAILED: {failure_count} check(s) failed - "
                 f"capital preservation mechanisms did not respond as expected"
             )
         else:
@@ -340,13 +340,13 @@ class BlackSwanEngine:
                 report.simulated_drawdown_pct = expected_dd * 0.9
                 report.capital_preserved = True
                 report.observations.append(
-                    f"Stress test returned no results — estimated drawdown {expected_dd * 0.9:.0f}%"
+                    f"Stress test returned no results - estimated drawdown {expected_dd * 0.9:.0f}%"
                 )
         except (ImportError, AttributeError, TypeError, ValueError) as exc:
             report.simulated_drawdown_pct = expected_dd * 0.9  # Fallback estimate
             report.capital_preserved = True
             report.observations.append(
-                f"Stress test unavailable ({exc}) — estimated drawdown {expected_dd * 0.9:.0f}%"
+                f"Stress test unavailable ({exc}) - estimated drawdown {expected_dd * 0.9:.0f}%"
             )
 
     def _verify_hard_halt(
@@ -361,7 +361,7 @@ class BlackSwanEngine:
                 reason = get_hard_halt_reason()
                 report.observations.append(f"Hard halt active: {reason}")
             else:
-                # The system is not halted — this is fine for informational scenarios
+                # The system is not halted - this is fine for informational scenarios
                 report.hard_halt_tripped = True
                 report.observations.append(
                     "Hard halt available but not tripped (system healthy)"
@@ -398,7 +398,7 @@ class BlackSwanEngine:
         self, report: BlackSwanReport, defn: dict[str, Any]
     ) -> None:
         """Verify that gap events are handled correctly."""
-        # Check both drop_pct AND gap_pct — different scenarios use different fields
+        # Check both drop_pct AND gap_pct - different scenarios use different fields
         drop_pct = abs(defn.get("drop_pct", 0))
         gap_pct = abs(defn.get("gap_pct", 0))
         vix_spike_amt = abs(defn.get("vix_to", 0) - defn.get("vix_from", 0))

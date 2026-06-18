@@ -1,5 +1,5 @@
 """
-Mandate Service — extracted from index_app/index_trader.py (GAP-05).
+Mandate Service - extracted from index_app/index_trader.py (GAP-05).
 
 Consolidates trade mandate/risk checking, position sizing, and market status
 into a single injectable service.  Reduces index_trader.py by ~200 lines.
@@ -37,10 +37,10 @@ class MandateService:
 
     Dependencies
     ------------
-    cfg              : dict          — Global config dict (``_CFG``)
-    risk_service     : RiskService | None  — Canonical risk service
-    warmup_manager   : MarketWarmup | None — Market warm-up throttle
-    mandate_enforcer : MandateEnforcer | None — Legacy fallback enforcer
+    cfg              : dict          - Global config dict (``_CFG``)
+    risk_service     : RiskService | None  - Canonical risk service
+    warmup_manager   : MarketWarmup | None - Market warm-up throttle
+    mandate_enforcer : MandateEnforcer | None - Legacy fallback enforcer
     """
 
     def __init__(
@@ -62,7 +62,7 @@ class MandateService:
     def market_status(self) -> str:
         """Return market status: OPEN / CLOSED / HOLIDAY.
 
-        Independent of any service — only depends on time and holiday set.
+        Independent of any service - only depends on time and holiday set.
         """
         try:
             now = now_ist()
@@ -78,7 +78,7 @@ class MandateService:
                 return "OPEN"
             return "CLOSED"
         except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _mkt_err:
-            _log.warning("Market status check failed: %s — assuming OPEN", _mkt_err)
+            _log.warning("Market status check failed: %s - assuming OPEN", _mkt_err)
             return "OPEN"
 
     # ── Position Sizing ───────────────────────────────────────────────────
@@ -112,7 +112,7 @@ class MandateService:
                 )
                 return int(self._risk_service.calculate_position_size(sizing_input))
             except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-                _log.debug("RiskService position sizing failed — using fallback sizing")
+                _log.debug("RiskService position sizing failed - using fallback sizing")
 
         # Fallback to mandate enforcer
         if self._mandate_enforcer is not None:
@@ -121,7 +121,7 @@ class MandateService:
                 sl_pct_val = 1.0 - sl_pct
                 return int(self._mandate_enforcer.get_position_size(entry, regime, sl_pct_val))
             except (ValueError, TypeError, AttributeError, IndexError, OSError):
-                _log.debug("Mandate enforcer fallback failed — returning 1")
+                _log.debug("Mandate enforcer fallback failed - returning 1")
 
         # Ultimate fallback
         return 1
@@ -189,7 +189,7 @@ class MandateService:
 
                 return True, "MANDATE_ALLOWED"
             except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-                _log.debug("RiskService mandate check failed — using legacy mandate enforcer")
+                _log.debug("RiskService mandate check failed - using legacy mandate enforcer")
 
         # Fallback to mandate enforcer
         if self._mandate_enforcer is not None:
@@ -222,9 +222,9 @@ class MandateService:
 
                 return True, "MANDATE_ALLOWED"
             except (ValueError, TypeError, AttributeError, IndexError, OSError):
-                _log.debug("Mandate enforcer fallback failed — allowing trade")
+                _log.debug("Mandate enforcer fallback failed - allowing trade")
 
-        # No enforcer available — allow by default (fail-open for safety)
+        # No enforcer available - allow by default (fail-open for safety)
         return True, "MANDATE_ALLOWED (no enforcer)"
 
     def get_mandate_status(self) -> dict[str, Any]:
@@ -247,13 +247,13 @@ class MandateService:
                     "viable_regimes": ["TRENDING", "BULLISH", "SIDEWAYS"],
                 }
             except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-                _log.debug("RiskService get_mandate_status failed — using legacy enforcer")
+                _log.debug("RiskService get_mandate_status failed - using legacy enforcer")
 
         if self._mandate_enforcer is not None:
             try:
                 return self._mandate_enforcer.get_status()
             except (ValueError, TypeError, AttributeError, IndexError, OSError):
-                _log.debug("Mandate enforcer fallback failed — returning defaults")
+                _log.debug("Mandate enforcer fallback failed - returning defaults")
 
         return {
             "trades_today": 0,
@@ -343,7 +343,7 @@ class MandateService:
 # ── Singleton factory ─────────────────────────────────────────────────────────
 
 _mandate_service_instance: MandateService | None = None
-_mandate_service_lock = threading.Lock()
+_mandate_service_lock = threading.RLock()
 
 
 def get_mandate_service(

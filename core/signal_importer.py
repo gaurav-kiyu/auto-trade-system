@@ -54,7 +54,7 @@ class ImportResult:
         return self.accepted > 0 and self.rejected == 0
 
     def summary(self) -> str:
-        return (f"Import: {self.total} rows — "
+        return (f"Import: {self.total} rows - "
                 f"{self.accepted} accepted, {self.rejected} rejected")
 
 
@@ -234,7 +234,7 @@ def _import_from_csv_text(
             _log.info("[IMPORTER] Row %d: submitted %s", i, sig.signal_id)
         except (ValueError, TypeError, AttributeError, KeyError, OSError) as exc:
             r.rejected += 1
-            r.errors.append(f"Row {i}: submit failed — {exc}")
+            r.errors.append(f"Row {i}: submit failed - {exc}")
 
     return r
 
@@ -281,7 +281,7 @@ def import_from_text(
             result.signal_ids.append(sig.signal_id)
         except (ValueError, TypeError, AttributeError, KeyError, OSError) as exc:
             result.rejected += 1
-            result.errors.append(f"Line {i}: submit failed — {exc}")
+            result.errors.append(f"Line {i}: submit failed - {exc}")
 
     return result
 
@@ -297,7 +297,7 @@ def watch_directory(
     """
     Poll a directory for new .csv files and import them.
     Processed files are renamed with .done suffix.
-    Runs in caller's thread — call from a daemon thread.
+    Runs in caller's thread - call from a daemon thread.
     """
     import time
     c = cfg or {}

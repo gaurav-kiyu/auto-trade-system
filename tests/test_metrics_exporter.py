@@ -40,7 +40,7 @@ def test_update_metrics_trades_inc_no_crash():
 
 
 def test_start_with_port_override():
-    # Should not raise; will fail to start without prometheus_client — returns False
+    # Should not raise; will fail to start without prometheus_client - returns False
     result = start_metrics_server({"metrics_enabled": True, "metrics_port": 9091})
     assert isinstance(result, bool)
 

@@ -1,4 +1,4 @@
-"""Data governance — retention policies per category, cleanup scheduler, model artifact cleanup."""
+"""Data governance - retention policies per category, cleanup scheduler, model artifact cleanup."""
 
 import logging
 import os
@@ -149,7 +149,7 @@ class CleanupScheduler:
         self._interval_hours = interval_hours
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def start(self) -> None:
         with self._lock:

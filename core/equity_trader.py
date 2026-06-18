@@ -1,10 +1,10 @@
 """
-Equity Trader (v2.54) — Stock (cash market) trading module.
+Equity Trader (v2.54) - Stock (cash market) trading module.
 
 Supports trading NSE cash market equities using the EQUITY_MAP config entries.
 Follows the same risk infrastructure as index options trading but adapted for
 equity-specific characteristics:
-  - Equity market hours: 09:15–15:30 IST (same as indices)
+  - Equity market hours: 09:15-15:30 IST (same as indices)
   - Position sizing based on stock price × lot size
   - Separate reentry trackers from index trading
   - No expiry day concerns for cash equities
@@ -20,8 +20,8 @@ Config keys (in EQUITY_MAP section):
 
 Public API
 ----------
-    EquityTrader          — Main equity trading engine
-    run_equity_trader     — Standalone entry point
+    EquityTrader          - Main equity trading engine
+    run_equity_trader     - Standalone entry point
 """
 
 from __future__ import annotations
@@ -138,7 +138,7 @@ class EquityTrader:
                        reason: str = "") -> bool:
         """Enter an equity position with risk checks."""
         if not self._is_market_open():
-            log.info("[EQUITY] %s: market closed — cannot enter", symbol)
+            log.info("[EQUITY] %s: market closed - cannot enter", symbol)
             return False
 
         with self._lock:
@@ -158,7 +158,7 @@ class EquityTrader:
                 cfg=self._cfg,
             )
             if not reentry_dec.allowed:
-                log.info("[EQUITY] %s: reentry blocked — %s", symbol, reentry_dec.reason)
+                log.info("[EQUITY] %s: reentry blocked - %s", symbol, reentry_dec.reason)
                 return False
 
         price = self._get_price_fn(symbol)
@@ -175,7 +175,7 @@ class EquityTrader:
                 if not result:
                     return False
             except (ValueError, TypeError, OSError) as e:
-                log.error("[EQUITY] %s: entry failed — %s", symbol, e)
+                log.error("[EQUITY] %s: entry failed - %s", symbol, e)
                 return False
 
         with self._lock:
@@ -211,7 +211,7 @@ class EquityTrader:
             try:
                 self._execute_exit_fn(symbol, pos["qty"], current_price)
             except (ValueError, TypeError, OSError) as e:
-                log.error("[EQUITY] %s: exit execution failed — %s", symbol, e)
+                log.error("[EQUITY] %s: exit execution failed - %s", symbol, e)
 
         log.info("[EQUITY] Exited %s: %s @ %.2f (P&L=%.0f)", symbol, reason, current_price, pnl)
         self._send_fn(f"[EQUITY] Exited {symbol}: {reason} @ {current_price:.2f} P&L={pnl:.0f}")

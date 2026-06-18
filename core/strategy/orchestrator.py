@@ -1,5 +1,5 @@
 """
-AD-KIYU StrategyOrchestrator v2.0 — Single authoritative strategy orchestration path.
+AD-KIYU StrategyOrchestrator v2.0 - Single authoritative strategy orchestration path.
 
 This module is the ONE entry point for signal generation, approval routing,
 and strategy execution. All strategy/signal routing must pass through here.
@@ -8,18 +8,18 @@ Implements core.ports.strategy.StrategyPort interface.
 
 Delegates to:
   - core.services.signal_orchestrator.SignalOrchestrator (signal generation pipeline)
-  - core.signal_approval_workflow.SignalApprovalWorkflow (approval routing) — internal integration
+  - core.signal_approval_workflow.SignalApprovalWorkflow (approval routing) - internal integration
 
 Pipeline:
-  1. generate_signal()  — run through signal generation pipeline
-  2. route_decision()   — run through SignalApprovalWorkflow for approval routing
-  3. evaluate()         — combined pipeline returning StrategyDecision
+  1. generate_signal()  - run through signal generation pipeline
+  2. route_decision()   - run through SignalApprovalWorkflow for approval routing
+  3. evaluate()         - combined pipeline returning StrategyDecision
 
 DEPRECATED (use StrategyOrchestrator instead):
-  - core.signal_approval_workflow  — merged into orchestrator
-  - core.strategy_engine           — backward compat shim only
-  - core.signal_router             — removed
-  - core.strategy_engine_v2        — removed
+  - core.signal_approval_workflow  - merged into orchestrator
+  - core.strategy_engine           - backward compat shim only
+  - core.signal_router             - removed
+  - core.strategy_engine_v2        - removed
 """
 from __future__ import annotations
 
@@ -147,7 +147,7 @@ class StrategyOrchestrator(StrategyPort):
         This is the single entry point for all strategy evaluations.
 
         Accepts kwargs for generation, plus:
-          signal_type, tier, index_name — for approval routing
+          signal_type, tier, index_name - for approval routing
         """
         # 1. Generate signal
         signal_intent = self.generate_signal(**kwargs)

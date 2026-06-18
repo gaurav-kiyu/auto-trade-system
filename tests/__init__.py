@@ -1,1 +1,1 @@
-# OPB Test Suite — enables Python packaging of the test directory
+# OPB Test Suite - enables Python packaging of the test directory

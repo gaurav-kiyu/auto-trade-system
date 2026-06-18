@@ -1,5 +1,5 @@
 """
-Concept Drift Detector (Phase C) — detects when the ML model's feature
+Concept Drift Detector (Phase C) - detects when the ML model's feature
 distribution has shifted relative to the training distribution.
 
 Two complementary statistics are computed:
@@ -8,12 +8,12 @@ Two complementary statistics are computed:
       Measures the shift in a single feature's distribution between a
       reference window (training era) and a recent window.
       PSI < 0.10 → no drift
-      PSI 0.10–0.25 → moderate drift (warn)
+      PSI 0.10-0.25 → moderate drift (warn)
       PSI > 0.25 → significant drift (alert)
 
-  KS (Kolmogorov–Smirnov statistic)
+  KS (Kolmogorov-Smirnov statistic)
       Maximum absolute difference between two empirical CDFs.
-      KS > 0.20 → drift warning (p-value not computed — fast path).
+      KS > 0.20 → drift warning (p-value not computed - fast path).
 
 The detector reads the ``ml_predictions`` table (written by ml_performance
 tracker) and the ``journal`` table (training data) to build reference and
@@ -32,7 +32,7 @@ Public API
 
     format_drift_report(results) → str
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ---------------------------------------------------
   drift_detector_enabled   : bool  default true
   drift_ref_days           : int   default 90   (training reference window)
@@ -102,7 +102,7 @@ def compute_psi(
     lo = min(reference)
     hi = max(reference)
     if hi == lo:
-        # Constant feature — count fraction outside single value in recent
+        # Constant feature - count fraction outside single value in recent
         ref_match    = sum(1 for v in reference if v == lo) / len(reference)
         recent_match = sum(1 for v in recent    if v == lo) / len(recent)
         diff = abs(recent_match - ref_match)
@@ -257,10 +257,10 @@ def detect_drift(
         msg = f"PSI={psi:.4f} ≥ {psi_alert} (significant drift)"
     elif psi >= psi_warn or ks >= ks_warn:
         status = "WARN"
-        msg = f"PSI={psi:.4f}, KS={ks:.4f} — moderate drift"
+        msg = f"PSI={psi:.4f}, KS={ks:.4f} - moderate drift"
     else:
         status = "OK"
-        msg = f"PSI={psi:.4f}, KS={ks:.4f} — stable"
+        msg = f"PSI={psi:.4f}, KS={ks:.4f} - stable"
 
     return DriftResult(
         feature=feature, psi=psi, ks=ks,
@@ -284,7 +284,7 @@ def detect_all_features(
     Run drift detection on all specified features (or all FEATURE_COLS by default).
 
     Returns:
-        {feature_name: DriftResult}  — non-empty even if all are "OK".
+        {feature_name: DriftResult}  - non-empty even if all are "OK".
     """
     if features is None:
         try:

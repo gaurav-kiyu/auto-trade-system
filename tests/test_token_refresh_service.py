@@ -308,7 +308,7 @@ def test_kite_token_expired_no_context():
     adapter = kite_adapter(token_date=date.today())
     adapter._context = None
     s = TokenRefreshService()
-    # Without context, falls back to date.today() — same date → not expired
+    # Without context, falls back to date.today() - same date → not expired
     assert s._kite_token_expired(adapter) is False
 
 

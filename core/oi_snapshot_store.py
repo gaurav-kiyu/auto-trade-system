@@ -1,5 +1,5 @@
 """
-OI Snapshot Store (Phase A1) — Point-in-time option chain recorder.
+OI Snapshot Store (Phase A1) - Point-in-time option chain recorder.
 
 Records live OI and PCR values during each scan cycle so that the backtest
 replay engine can look up historically accurate OI without look-ahead bias.
@@ -15,7 +15,7 @@ Key design rules
   oi_snapshots_archive on the next record_snapshot() call for that index
   (keeps the hot table small).
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ---------------------------------------------------
   oi_snapshot_enabled      : bool  default true
   oi_snapshot_db_path      : str   default "oi_snapshots.db"
@@ -38,7 +38,7 @@ _DEFAULT_DB           = "oi_snapshots.db"
 _DEFAULT_MIN_INTERVAL = 60
 _DEFAULT_ARCHIVE_DAYS = 90
 
-# ── In-process last-write cache — avoids DB query on every scan cycle ─────────
+# ── In-process last-write cache - avoids DB query on every scan cycle ─────────
 _last_snapshot_ts: dict[str, float] = {}   # {index_name: epoch_seconds}
 
 
@@ -128,7 +128,7 @@ def record_snapshot(
     Args:
         index_name : e.g. "NIFTY", "BANKNIFTY", "FINNIFTY"
         chain_data : Dict produced by ``get_oi_data()`` in index_trader.py.
-                     Expected keys (all optional — defaults to 0):
+                     Expected keys (all optional - defaults to 0):
                        pcr_ratio, call_oi, put_oi, call_volume, put_volume,
                        total_oi, strike, expiry_date, snapshot_source
         db_path    : Path to oi_snapshots.db
@@ -141,7 +141,7 @@ def record_snapshot(
     """
     now = time.time() if ts is None else float(ts)
 
-    # Deduplication check (in-process cache — no DB query needed)
+    # Deduplication check (in-process cache - no DB query needed)
     last = _last_snapshot_ts.get(index_name, 0.0)
     if now - last < min_interval:
         return False
@@ -308,7 +308,7 @@ def coverage_pct(
     db_path: str = _DEFAULT_DB,
 ) -> float:
     """
-    Return the fraction [0.0–1.0] of 1-minute bars in [start_ts, end_ts]
+    Return the fraction [0.0-1.0] of 1-minute bars in [start_ts, end_ts]
     that have at least one snapshot within ±bar_interval_sec.
 
     Used by the --strict-backtest flag to abort when coverage < 80%.

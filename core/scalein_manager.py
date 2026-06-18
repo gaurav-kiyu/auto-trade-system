@@ -19,7 +19,7 @@ Logic
 
 Public API
 ----------
-    ScaleInState — dataclass representing a pending second leg
+    ScaleInState - dataclass representing a pending second leg
     ScaleInManager.create_state(trade_id, entry_price, total_lots, direction, cfg) → ScaleInState
     ScaleInManager.should_fill_leg2(state, current_price, current_time) → bool
     ScaleInManager.compute_avg_price(state, leg2_fill_price) → float
@@ -62,7 +62,7 @@ class ScaleInState:
 # ── Manager ───────────────────────────────────────────────────────────────────
 
 class ScaleInManager:
-    """Stateless helper — state objects are persisted externally."""
+    """Stateless helper - state objects are persisted externally."""
 
     @staticmethod
     def is_enabled(cfg: dict[str, Any]) -> bool:

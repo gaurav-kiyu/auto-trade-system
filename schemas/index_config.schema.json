@@ -1014,6 +1014,9 @@
     "SHUTDOWN_ON_UI_CLOSE": {
       "type": "boolean"
     },
+    "SIGNAL_ENGINE_V2": {
+      "type": "boolean"
+    },
     "SIGNAL_MAX_AGE": {
       "type": "integer"
     },

@@ -2,10 +2,10 @@
 Chaos Engineering Framework (Phase 6).
 
 Simulates infrastructure and trading failures to validate:
-- Capital protection — no trades executed during chaos
-- Fail-closed behavior — system goes to safe state
-- Reconciliation — post-chaos state matches expected state
-- Graceful degradation — non-critical features degrade, critical ones stay
+- Capital protection - no trades executed during chaos
+- Fail-closed behavior - system goes to safe state
+- Reconciliation - post-chaos state matches expected state
+- Graceful degradation - non-critical features degrade, critical ones stay
 
 Scenarios
 ---------
@@ -184,7 +184,7 @@ class ChaosEngine:
 
     def __init__(self):
         self._services: dict[str, _InjectableService] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def register_service(
         self, name: str, health_check_fn: Callable[[], bool] | None = None

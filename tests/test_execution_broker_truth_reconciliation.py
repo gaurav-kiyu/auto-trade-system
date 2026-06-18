@@ -1,4 +1,4 @@
-"""Tests for core/execution/broker_truth_reconciliation.py — Truth Reconciliation."""
+"""Tests for core/execution/broker_truth_reconciliation.py - Truth Reconciliation."""
 
 from __future__ import annotations
 

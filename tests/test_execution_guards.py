@@ -1,5 +1,5 @@
 """
-Tests for core/execution_guards.py — Pre-trade validation and risk controls.
+Tests for core/execution_guards.py - Pre-trade validation and risk controls.
 
 Covers:
   - GuardResult dataclass

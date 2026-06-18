@@ -1,7 +1,7 @@
 # ================================================================
-# 🚀  TRADER BRAIN — PRODUCTION v2.53.0  (₹5 000 Capital Edition)
+# 🚀  TRADER BRAIN - PRODUCTION v2.53.0  (₹5 000 Capital Edition)
 #     v2.42: ExecutionRouter (AUTO + optional PAPER→adapter), chunked Yahoo quarter backtest, HOW_TO_USE refresh.
-#     v2.40: Final QA pass — pytest tests/test_smoke + --selftest OK; find dialog F3 + safer
+#     v2.40: Final QA pass - pytest tests/test_smoke + --selftest OK; find dialog F3 + safer
 #            Unicode selection end index (chars not c).
 #     v2.53.0: Dependency injection container wired for core services.
 # ----------------------------------------------------------------
@@ -23,18 +23,18 @@
 #             --nogui uses sys.exit(0). METRICS_PORT>0 on METRICS_BIND (default 127.0.0.1): /metrics, /health, /.
 # ================================================================
 #
-# RCA-REG (2026-04-04): warned_loss_soft vs warned_loss — the 60% daily-loss
+# RCA-REG (2026-04-04): warned_loss_soft vs warned_loss - the 60% daily-loss
 #         approach warning and the hard-limit breach alert used one flag,
 #         so the critical limit message could be suppressed after the soft
 #         warning. Split: warned_loss_soft for approach only; warned_loss for
 #         breach (unchanged). Regression: --selftest, main_loop path review.
 # RCA-REG (2026-04-04b): Stock bot validate_config + DAILY_LOSS_WARNING/_sync
-#         aligned to this file; index unchanged this pass — cross-regression
+#         aligned to this file; index unchanged this pass - cross-regression
 #         both scripts --selftest.
 #
 # RCA-211 (2026-04-08): _format_trading_desk_line() extracted for clarity + --selftest coverage of desk text/colors.
 #
-# RCA-213 (2026-04-09): Adaptive learning extracted to core.adaptive_learning — pure snapshot /
+# RCA-213 (2026-04-09): Adaptive learning extracted to core.adaptive_learning - pure snapshot /
 #         threshold / confidence / exit-update helpers; index_trader keeps locks + config wiring.
 #         Reusable from backtests/Orchestrator without duplicating index_trader.py.
 #
@@ -45,43 +45,43 @@
 #         (effective_broker_driver, append_broker_api_config_errors, append_execution_hybrid_warnings).
 # RCA-216 (2026-04-09): BROKER_CUSTOM_FACTORY path uses core.create_broker_adapter_with_runtime_context.
 #
-# RCA-212 (2026-04-09): Hybrid UX + GUI hardening — (1) gui_struct.manual_flow_banner + desk strip
+# RCA-212 (2026-04-09): Hybrid UX + GUI hardening - (1) gui_struct.manual_flow_banner + desk strip
 #         explain MANUAL/AUTO/PAPER/SIGNALS for smooth post-signal workflow; GUI_UX.show_manual_flow_banner
 #         toggles. (2) _desk_body.py indentation bugs fixed (paneconfig/wrap/config_status/target_hit).
 #         (3) trader_desk wraps _desk_body in __opbuying_desk_body() so early return compiles under exec
 #         (top-level return in exec is a SyntaxError). (4) RCA_AND_HYBRID_MODEL.txt + config template note.
 #
-# RCA-210 (2026-04-08): Pro desk UI — TRADING DESK strip (VIX, loss-budget %, RR, SL/target, circuit,
+# RCA-210 (2026-04-08): Pro desk UI - TRADING DESK strip (VIX, loss-budget %, RR, SL/target, circuit,
 #         halt, exec path, signal-quality + API lines); table columns ADX & IV; clearer section labels;
 #         Help → Desk guide; default geometry 1200×860. Data from existing scan (no extra network).
 #
-# RCA-209 (2026-04-08): Polish — now_ist() docstring (naive IST wall clock); watchdog uses
+# RCA-209 (2026-04-08): Polish - now_ist() docstring (naive IST wall clock); watchdog uses
 #         _shutdown.wait before os._exit; soft-reload rebuilds _broker when MANUAL_SIGNALS_ONLY
 #         flips; config_audit / save_state .bak failures log once instead of silent pass.
 #
-# RCA-208 (2026-04-08): Manual-only startup — MANUAL_SIGNALS_ONLY uses PaperAdapter so Kite
+# RCA-208 (2026-04-08): Manual-only startup - MANUAL_SIGNALS_ONLY uses PaperAdapter so Kite
 #         is not constructed (no token/API dependency); live RCA regression skips Kite check.
 #         Soft-reload of MANUAL_SIGNALS_ONLY rebuilds broker adapter without full restart.
 #
-# RCA-206 (2026-04-07): Manual-only workflow — MANUAL_SIGNALS_ONLY skips broker, positions,
+# RCA-206 (2026-04-07): Manual-only workflow - MANUAL_SIGNALS_ONLY skips broker, positions,
 #         trade_count, and NEW TRADE lifecycle; sends throttled “MANUAL SIGNAL” Telegram + dlog
 #         after the same entry gates (RR, portfolio SL cap). Soft-reload safe; dashboard/GUI
 #         show mode. Bot does not track manual fills.
 #
-# RCA-205 (2026-04-07): Reading & system integration — (1) Long logs: Edit→Find in details
+# RCA-205 (2026-04-07): Reading & system integration - (1) Long logs: Edit→Find in details
 #         (Ctrl+F) with Find next + wrap; highlights match in the Text widget. (2) Windows
-#         clipboard after Copy sometimes dropped without an event pump — update_idletasks()
+#         clipboard after Copy sometimes dropped without an event pump - update_idletasks()
 #         after clipboard_append. (3) SCAN_INTERVAL changes via soft-reload were invisible in
 #         the GUI; trades KPI line shows live scan interval. (4) Details title click focuses
 #         the log for keyboard scroll/find without hunting the caret.
 #
-# RCA-204 (2026-04-07): Support & multi-monitor habits — (1) Operators share logs via
+# RCA-204 (2026-04-07): Support & multi-monitor habits - (1) Operators share logs via
 #         screenshots or paste; File→Save details as… writes the current details Text to
-#         UTF-8 .txt (Ctrl+Shift+S). (2) Maximized window was lost on restart — layout JSON
+#         UTF-8 .txt (Ctrl+Shift+S). (2) Maximized window was lost on restart - layout JSON
 #         v4 adds win_state (zoomed|normal); restore zoomed after geometry (iconic not
 #         restored on purpose). (3) Header hint mentions max state in saved JSON.
 #
-# RCA-203 (2026-04-07): Desk ergonomics & diagnostics — (1) Snapshot age alone does not
+# RCA-203 (2026-04-07): Desk ergonomics & diagnostics - (1) Snapshot age alone does not
 #         expose a stuck main loop before watchdog; gui_struct carries loop_lag_s (monotonic
 #         gap since S.last_loop_heartbeat). KPI subtitle warns only when market status is OPEN
 #         (holiday/weekend long sleeps would false-positive otherwise). (2) Long logs:
@@ -89,7 +89,7 @@
 #         (3) Corrupt/off-screen layout: View → Reset saved layout deletes JSON and applies
 #         defaults without restarting the bot.
 #
-# RCA-202 (2026-04-07): Safety & robustness — (1) Accidental Alt+F4 / close on LIVE with
+# RCA-202 (2026-04-07): Safety & robustness - (1) Accidental Alt+F4 / close on LIVE with
 #         SHUTDOWN_ON_UI_CLOSE could stop the bot without intent; optional confirm dialog
 #         (GUI_CONFIRM_EXIT, default true, soft-reload). (2) Invalid saved geometry strings
 #         failed silently → operator thinks persistence is broken; log and fall back.
@@ -97,19 +97,19 @@
 #         debounced wrap sync. (4) Uncaught exceptions in Tk callbacks were easy to miss;
 #         route through log via report_callback_exception.
 #
-# RCA-201 (2026-04-07): Readability & soft-reload parity — (1) Header subtitle showed
+# RCA-201 (2026-04-07): Readability & soft-reload parity - (1) Header subtitle showed
 #         refresh period only at GUI start; after config soft-reload GUI_REFRESH_MS could
-#         change while the label stayed stale — sync each tick. (2) Large logs: Select all
+#         change while the label stayed stale - sync each tick. (2) Large logs: Select all
 #         (Ctrl+A) + Edit menu; Escape clears selection. (3) Corrupt layout JSON failed
 #         silently; log once so operators fix/rename the file. (4) Context menu: Select all.
 #
-# RCA-200 (2026-04-07): Operator workflow — (1) “Always on top” was session-only; persist
+# RCA-200 (2026-04-07): Operator workflow - (1) “Always on top” was session-only; persist
 #         to index_trader_gui_layout.json (v3) with geometry/sash. (2) Fixed 2s UI poll
-#         was not tunable; GUI_REFRESH_MS in config.json (500–30000, soft-reload safe).
+#         was not tunable; GUI_REFRESH_MS in config.json (500-30000, soft-reload safe).
 #         (3) F5 = same as View→Refresh (standard desktop habit). (4) File→Open script
 #         folder… opens Explorer/Finder for config.json / layout file edits.
 #
-# RCA-199 (2026-04-07): Desk polish & trust cues — (1) Default tk Scrollbars were light
+# RCA-199 (2026-04-07): Desk polish & trust cues - (1) Default tk Scrollbars were light
 #         “Office” gray on a dark UI; configure trough/bg to match cards. (2) Telegram &
 #         API status labels had no wraplength → horizontal overflow on narrow windows.
 #         (3) Users cannot tell frozen loop vs quiet market: KPI subtitle shows snapshot
@@ -117,7 +117,7 @@
 #         for side-by-side terminals. (5) Treeview last column stretches with pane width.
 #         (6) Details Text gets a subtle focus highlight; wheel bound on detail frame.
 #
-# RCA-198 (2026-04-07): Realistic desk UX — (1) Layout JSON missed sash moves when only
+# RCA-198 (2026-04-07): Realistic desk UX - (1) Layout JSON missed sash moves when only
 #         the divider moved (root <Configure> never fired): also queue save on pane
 #         <Configure>. (2) Details Text was wiped every 2s even when body unchanged →
 #         flicker; skip repaint when detail text equal to last paint. (3) Headline /
@@ -125,14 +125,14 @@
 #         (4) View→Refresh now + Ctrl+Q quit; context menu Copy selection when present.
 #         (5) Wheel scroll on table frame (not only on tree cells).
 #
-# RCA-197 (2026-04-07): GUI persistence & desk workflow — (1) Save/restore
+# RCA-197 (2026-04-07): GUI persistence & desk workflow - (1) Save/restore
 #         window geometry + paned sash to index_trader_gui_layout.json beside this
 #         script (debounced on resize, flush on exit). (2) Pane minsize so the
 #         index column cannot collapse. (3) Menu: File→Exit, Help→Shortcuts.
 #         (4) Details: Ctrl+C selection copy + right-click “Copy all” (clipboard).
 #         (5) Tree tag fonts use _FONT_MONO consistently.
 #
-# ── v2.12 NEW FIXES (RCA 132–136) ─────────────────────
+# ── v2.12 NEW FIXES (RCA 132-136) ─────────────────────
 #
 # RCA-132 DEADLOCK: nested _perf_lock → _state_lock in monitor().
 #         monitor() acquires _perf_lock (line 1669) then attempts
@@ -140,7 +140,7 @@
 #         other thread holds _state_lock and then tries _perf_lock,
 #         both threads deadlock permanently. Scenario: main thread
 #         in daily_reset() holds _state_lock (line 886) while
-#         monitor() runs in the same thread — single-threaded, no
+#         monitor() runs in the same thread - single-threaded, no
 #         issue. But with MAX_OPEN=2 and concurrent monitor(), the
 #         risk is real if a future refactor adds _perf_lock usage
 #         under _state_lock. Classic lock-ordering violation.
@@ -179,16 +179,16 @@
 #         3.12 and raises DeprecationWarning. Will be removed in
 #         Python 3.14. The function creates a naive datetime that
 #         claims to be UTC but has the IST offset baked into the
-#         timestamp — confusing and deprecated.
+#         timestamp - confusing and deprecated.
 #         FIX: Use datetime.now(timezone.utc) + IST offset.
 #         Produces identical naive-IST datetime without deprecated
-#         API. Compatible with Python 3.10–3.13+.
+#         API. Compatible with Python 3.10-3.13+.
 #
-# ── v2.13 REGRESSION FIXES (RCA 137–143) ─────────────────
+# ── v2.13 REGRESSION FIXES (RCA 137-143) ─────────────────
 #
 # RCA-137 _nse_fail_lock and _yf_fail_lock declared TWICE.
 #         Section 3 (line ~401) creates Lock objects. Section 12
-#         (line ~990) re-creates them — silently overwrites the
+#         (line ~990) re-creates them - silently overwrites the
 #         first pair. All code ends up using the Section 12 locks
 #         while Section 3 locks are orphaned. If any code between
 #         sections cached a reference to the first lock, it would
@@ -200,7 +200,7 @@
 #         Version gate: `(3,10)<=(major,minor)<(3,13)` rejects
 #         3.13 even though RCA-136 specifically fixed now_ist()
 #         for 3.12+ compatibility. Users on 3.13 get:
-#         "[ERROR] Python 3.10-3.12 required" — contradicting
+#         "[ERROR] Python 3.10-3.12 required" - contradicting
 #         the code that was just made 3.13-safe.
 #         FIX: Gate expanded to `<(3,14)`.
 #
@@ -209,7 +209,7 @@
 #         ThreadPoolExecutor thread) writes _tg_cache[key] while
 #         _prune_tg_cache() iterates the view, Python raises
 #         `RuntimeError: dictionary changed size during iteration`
-#         — crashing the main loop iteration.
+#         - crashing the main loop iteration.
 #         FIX: `list(_tg_cache.items())` creates a snapshot copy
 #         before iteration. Wrapped in try/except RuntimeError as
 #         a belt-and-suspenders defense.
@@ -218,7 +218,7 @@
 #         `S.exception_counts={}` is a STORE_ATTR that replaces
 #         the dict reference. If _track_exception() (running in
 #         an executor thread) is between reading and writing the
-#         old dict, the write goes to the orphaned old dict —
+#         old dict, the write goes to the orphaned old dict -
 #         count is silently lost.
 #         FIX: Wrapped in `with _exc_lock:` so reset is atomic
 #         with respect to _track_exception reads/writes.
@@ -234,7 +234,7 @@
 # RCA-142 `import tkinter` at module level fails on headless.
 #         Production trading bots often run on headless Linux
 #         servers (no X11/display). `import tkinter` raises
-#         ImportError/ModuleNotFoundError — the entire script
+#         ImportError/ModuleNotFoundError - the entire script
 #         crashes at import, before any trading logic runs.
 #         FIX: Conditional import with _TK_AVAILABLE flag.
 #         _start_gui() returns immediately if not available.
@@ -260,23 +260,23 @@
 #         config details. If the log file is accidentally shared
 #         (e.g., copying logs folder for debugging), all config
 #         is exposed. `config.json` contains KITE_PASSWORD in
-#         plaintext — extremely sensitive.
+#         plaintext - extremely sensitive.
 #         FIX: `_redact(s)` helper replaces the last 80% of any
 #         string with '*' chars (shows first 20% for identification).
 #         Applied to BOT_TOKEN, KITE_API_KEY, KITE_PASSWORD,
 #         KITE_TOTP_KEY in all log/print/Telegram output. Passwords
 #         in config.json can optionally be base64-encoded (not
-#         encrypted, just obfuscated) — a note in the template
+#         encrypted, just obfuscated) - a note in the template
 #         warns that config.json must never be committed to git.
 #         validate_config() prints "[REDACTED]" for all sensitive
 #         fields. Log file never receives raw secrets.
 #
-# ── v2.14 NEW FIXES (RCA 144–149) ─────────────────────
+# ── v2.14 NEW FIXES (RCA 144-149) ─────────────────────
 #
 # RCA-144 Positions NOT persisted in trader_state.json.
 #         If bot crashes mid-trade, positions are lost from memory
 #         while still open at the broker. reconcile_on_startup()
-#         iterates an empty dict — no recovery occurs.
+#         iterates an empty dict - no recovery occurs.
 #         FIX: save_state() now serialises positions dict. load_state()
 #         restores validated positions with index-map membership check.
 #
@@ -293,7 +293,7 @@
 #         FIX: Return "FLAT" when abs(fast-slow)/slow < 0.0005.
 #
 # RCA-147 NSE_HOLIDAYS hardcoded for 2026 only. If the bot runs
-#         into 2027+, holiday detection silently stops working —
+#         into 2027+, holiday detection silently stops working -
 #         the bot would trade on national holidays.
 #         FIX: Extract unique years from NSE_HOLIDAYS. market_status()
 #         logs a warning (once) when current year has no entries.
@@ -354,10 +354,7 @@ if str(_ROOT) not in sys.path:
 
 import requests
 from core.datetime_ist import is_in_auction_session, now_ist
-from core.execution.broker_exceptions import (
-    AuthExpiredError,
-    OrderRejectedError,
-)
+import core.execution.broker_exceptions  # noqa: F401
 from core.execution.broker_truth_reconciliation import get_broker_truth_reconciler
 from core.execution.deterministic_state_machine import get_execution_state_manager
 from core.execution.idempotency_alerts import get_idempotency_alert_manager
@@ -366,19 +363,7 @@ from core.hybrid_execution import apply_execution_mode, normalize_execution_mode
 from core.kite_ticker_feed import KiteTickerFeedManager
 from core.ltp_resolver import LtpResolver
 from core.market_warmup import MarketWarmup
-from core.ports.broker.health_port import BrokerHealthPort
-from core.ports.circuit_breaker.circuit_breaker_port import CircuitBreakerPort
 from core.ports.config import ConfigPort
-from core.ports.correlation_id import CorrelationIdPort
-from core.ports.execution import ExecutionPort
-from core.ports.logging import LoggingPort
-from core.ports.market_data import MarketDataPort
-from core.ports.metrics import MetricsPort
-from core.ports.ml_model import MlModelPort
-from core.ports.notification import NotificationPort
-from core.ports.persistence import PersistencePort
-from core.ports.rate_limiting.rate_limit_port import RateLimitPort
-from core.ports.risk import RiskPort
 from core.mandate_service import MandateService
 from core.position_service import get_position_service
 from core.signal_service import get_signal_service
@@ -392,24 +377,32 @@ from core.safety_state import (
     is_shutting_down,
     trip_hard_halt,
 )
-from core.services.broker_health_service import BrokerHealthService
-from core.services.circuit_breaker_service import CircuitBreakerService
-from core.services.notification_service import NotificationService
-from core.services.persistence_service import PersistenceService
-from core.services.rate_limiting_service import RateLimitingService
-from core.services.risk_service import RiskService
 from core.state_manager import state_manager
 
 # v2.45 hardening modules
 from core.token_refresh_service import TokenRefreshService
-from infrastructure.adapters.correlation_id.correlation_id_adapter import CorrelationIdAdapter
-from infrastructure.adapters.market_data.yahoofinance.adapter import YahooFinanceAdapter
-from infrastructure.adapters.metrics.metrics_adapter import MetricsAdapter
-from infrastructure.adapters.ml_model.ml_model_adapter import MLModelAdapter
-from infrastructure.config.logging_adapter import StructuredLoggerAdapter
 
-# Import secure configuration system
-from infrastructure.config.secure_config_adapter import SecureConfigAdapter
+
+# Config Domain (DEBT-008)
+from index_app.domains.config.loader import (
+    ConfigLoader,
+    ConfigResult,
+    get_config_loader,
+    make_fail_safe_config,
+)
+from index_app.domains.config.manager import ConfigManager
+
+# Broker Domain (DEBT-008)
+from index_app.domains.broker.factory import make_broker as _make_broker_extracted
+
+# Market Domain (DEBT-008)
+from index_app.domains.market.data import fetch_intraday_data as _fetch_intraday_data_extracted
+from index_app.domains.market.data import fetch_intraday_data_cached as _fetch_intraday_data_cached_extracted
+from index_app.domains.market.data import fetch_vix as _yf_fetch_vix_extracted
+from index_app.domains.market.holidays import fetch_nse_holidays
+
+# Trading Domain (DEBT-008)
+from index_app.domains.trading.service import TradingLoopService
 
 
 # Capture the original main before any shims overwrite it.
@@ -419,7 +412,7 @@ def _original_main() -> None:
     pass  # Real main is the DI container setup
 
 # =============================================================================
-# STUB EXPORTS — provide module-level names for test compatibility
+# STUB EXPORTS - provide module-level names for test compatibility
 # These are resolved at import time before the DI container is needed.
 # =============================================================================
 import logging
@@ -430,9 +423,9 @@ from core.reentry_evaluator import build_reentry_trackers
 
 _trip_hard_halt = trip_hard_halt
 
-_bos_lock = _threading.Lock()
-_state_lock = _threading.Lock()
-_pos_lock = _threading.Lock()
+_bos_lock = _threading.RLock()
+_state_lock = _threading.RLock()
+_pos_lock = _threading.RLock()
 
 breakout_state: dict[str, Any] = {}
 class _DecisionLog(dict):
@@ -501,111 +494,82 @@ EXECUTION_MODE = "MANUAL"
 # CRITICAL FIX: Helper for config load failure - force MANUAL mode and alert
 
 
-def _set_config_fail_safe():
+# CRITICAL FIX: Helper for config load failure - force MANUAL mode and alert
+
+
+# ── Config Domain (DEBT-008) ──────────────────────────────────────────────
+_config_loaded = False
+_CFG: dict[str, Any] = {}
+_cfg_manager: ConfigManager | None = None
+_circuit_breaker_service: Any = None
+_rate_limiting_service: Any = None
+
+
+def _apply_config_globals(cfg: dict[str, Any]) -> None:
+    """Apply a config dict to module-level globals."""
     global PAPER_MODE, MANUAL_SIGNALS_ONLY, BROKER_API_ENABLED, EXECUTION_MODE, _CFG
+    apply_execution_mode(cfg, cli_paper=False, infer_blank_from_broker=True)
+    MANUAL_SIGNALS_ONLY = cfg.get("MANUAL_SIGNALS_ONLY", True)
+    BROKER_API_ENABLED = cfg.get("BROKER_API_ENABLED", False)
+    EXECUTION_MODE = cfg.get("EXECUTION_MODE", "MANUAL")
+    PAPER_MODE = str(EXECUTION_MODE).upper() in ("PAPER", "SIM", "TEST")
+    _CFG = cfg
+
+
+def _set_config_fail_safe():
     """Force safe MANUAL mode on config load failure."""
-    _CFG = {}
-    _CFG["MANUAL_SIGNALS_ONLY"] = True
-    _CFG["EXECUTION_MODE"] = "MANUAL"
-    _CFG["BROKER_API_ENABLED"] = False
+    from index_app.domains.trading.signal_actions import set_config_fail_safe as _extracted
+    global PAPER_MODE, MANUAL_SIGNALS_ONLY, BROKER_API_ENABLED, EXECUTION_MODE, _CFG
+    _CFG = _extracted(make_fail_safe_config_fn=make_fail_safe_config)
+    PAPER_MODE = True
     MANUAL_SIGNALS_ONLY = True
     EXECUTION_MODE = "MANUAL"
     BROKER_API_ENABLED = False
-    PAPER_MODE = True
 
 
 def _notify_config_failure(detail: str):
     """Send critical Telegram alert about config failure."""
-    try:
-        send(f"[CONFIG_CRITICAL] {detail}. Force MANUAL mode.", critical=True)
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-        log.warning("Failed to send config failure notification")
+    from index_app.domains.trading.signal_actions import notify_config_failure as _extracted
+    _extracted(detail=detail, send_fn=send, log_fn=log.warning)
 
-_config_loaded = False
-_CFG: dict[str, Any] = {}
-_circuit_breaker_service: Any = None
-_rate_limiting_service: Any = None
+
 def _load_config(force: bool = False):
-    global PAPER_MODE, MANUAL_SIGNALS_ONLY, BROKER_API_ENABLED, EXECUTION_MODE, _config_loaded, _CFG
+    """Load configuration via ConfigLoader and apply to module-level globals."""
+    global _config_loaded, _CFG, _cfg_manager
     if _config_loaded and not force:
         return
-    try:
-        cfg_path = os.environ.get("OPBUYING_INDEX_CONFIG", "config.json")
-        # Validate config path is within project directory
-        from pathlib import Path as _Path
-        _resolved = _Path(cfg_path).resolve()
-        _project_root = _Path(__file__).resolve().parent.parent
-        try:
-            _resolved.relative_to(_project_root)
-        except ValueError:
-            log.warning("Config path '%s' resolves outside project root '%s' — using defaults", cfg_path, _project_root)
-            _CFG = {}
-            _config_loaded = True
-            return
-        # Config checksum verification: load raw bytes, compute SHA-256,
-        # compare against stored _checksum field (if present).
-        with open(cfg_path, "rb") as _f:
-            _raw_bytes = _f.read()
-        _computed_checksum = __import__("hashlib").sha256(_raw_bytes).hexdigest()
-        raw_cfg = json.loads(_raw_bytes.decode("utf-8"))
-        cfg = dict(raw_cfg)
-        _stored_checksum = cfg.pop("_checksum", None)
-        if _stored_checksum and _computed_checksum != _stored_checksum:
-            print(
-                f"ERROR: Config checksum mismatch for '{cfg_path}'. "
-                f"File may be corrupted or tampered with. Using defaults."
-            )
-            _CFG = {}
-            _config_loaded = True
-            return
-        apply_execution_mode(cfg, cli_paper=False, infer_blank_from_broker=True)
-        MANUAL_SIGNALS_ONLY = cfg.get("MANUAL_SIGNALS_ONLY", True)
-        BROKER_API_ENABLED = cfg.get("BROKER_API_ENABLED", False)
-        EXECUTION_MODE = cfg.get("EXECUTION_MODE", "MANUAL")
-        PAPER_MODE = str(EXECUTION_MODE).upper() in ("PAPER", "SIM", "TEST")
-        _CFG = cfg
-        _config_loaded = True
-        log.info("Config loaded from %s", _resolved)
-        # Validate resolved config and log critical values
-        try:
-            from core.config_validator import log_resolved_config, validate_and_log
-            errors, warnings = validate_and_log(cfg)
-            if errors:
-                log.warning("Config validation: %d errors", len(errors))
-            if warnings:
-                log.warning("Config validation: %d warnings", len(warnings))
-        except (ValueError, TypeError, KeyError) as _ve:
-            log.debug("Config validation skipped: %s", _ve)
-        # Secret hygiene check: warn if config contains potential secrets
-        try:
-            from core.secret_hygiene import check_config_secrets
-            _secret_result = check_config_secrets(cfg)
-            if _secret_result.secrets_found:
-                for s in _secret_result.secrets_found:
-                    log.warning("[SECRET_HYGIENE] %s", s)
-            if _secret_result.warnings:
-                for w in _secret_result.warnings:
-                    log.warning("[SECRET_HYGIENE] %s", w)
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-            log.debug("Secret hygiene check skipped (expected if module unavailable)")
-    except FileNotFoundError:
-        log.warning("Config file '%s' not found. Using default configuration.", cfg_path)
+
+    loader = get_config_loader(notifier=lambda msg: _notify_config_failure(msg))
+    # DEBT-005: Strict schema enforcement — checked via config key or env var
+    _strict = bool(
+        os.environ.get("OPBUYING_CONFIG_STRICT_SCHEMA_ENFORCEMENT", "")
+        .strip().lower() in ("1", "true", "yes")
+    )
+    result = loader.load(force=force, strict=_strict if _strict else None)
+
+    if not result.success:
         _set_config_fail_safe()
         _config_loaded = True
-        _notify_config_failure(f"Config file '{cfg_path}' not found")
-    except json.JSONDecodeError as _jex:
-        log.error("Config file '%s' is not valid JSON: %s. Using default configuration.", cfg_path, _jex)
-        _set_config_fail_safe()
-        _config_loaded = True
-        _notify_config_failure(f"Config file '{cfg_path}' not valid JSON")
-    except (ValueError, TypeError, KeyError, OSError) as _ex:
-        log.error("Failed to load config '%s': %s. Using default configuration.", cfg_path, _ex)
-        _set_config_fail_safe()
-        _config_loaded = True
-        _notify_config_failure(f"Config load FAILED: {_ex}")
+        if result.error_message:
+            _notify_config_failure(result.error_message)
+        return
+
+    _apply_config_globals(result.cfg)
+    _config_loaded = True
+
+    # Initialise ConfigManager for DI-aware consumers
+    if _cfg_manager is None:
+        _cfg_manager = ConfigManager(initial_cfg=result.cfg, name="index_trader")
+    else:
+        _cfg_manager.replace(result.cfg)
+
 
 # ── Load config before any config-dependent assignments ──
 _load_config()
+
+# Also export ConfigManager reference for DI consumers
+_config_manager = _cfg_manager
+
 
 SIGNAL_MAX_AGE = int(_CFG.get("SIGNAL_MAX_AGE", 90))
 RECONCILE_HALT_ON_QTY_MISMATCH = True
@@ -621,7 +585,7 @@ from core.services.signal_orchestrator import init_signal_orchestrator
 
 # Buffered _send_impl: stores messages before DI wiring, then flushes
 _send_buffer: list[tuple[str, bool]] = []
-_send_buffer_lock = _threading.Lock()
+_send_buffer_lock = _threading.RLock()
 _send_wired = False
 
 def _buffered_send(message: str, critical: bool = False, **kwargs) -> None:
@@ -693,13 +657,13 @@ _warmup_manager = MarketWarmup(_CFG)
 _ws_feed_manager = KiteTickerFeedManager(_CFG)
 _ltp_resolver = LtpResolver(cfg=_CFG, ws_feed=_ws_feed_manager)
 
-# NewsSentinel — background RSS risk scanner
+# NewsSentinel - background RSS risk scanner
 from core.news_sentinel import NewsSentinel
 
 _news_sentinel = NewsSentinel(_CFG)
 _news_sentinel.start()
 
-# Structured audit trail — JSONL event log
+# Structured audit trail - JSONL event log
 from core.audit_engine import AuditEngine
 
 _audit_engine = AuditEngine(
@@ -793,52 +757,19 @@ def _normalize_execution_mode(raw):
 
 
 def _make_broker():
-    """Legacy broker factory for compatibility with old index_trader tests and workflows."""
-    from core.adapters.broker_adapters import BrokerAdapter, PaperBrokerAdapter
-
-    # Validate broker selection against execution mode
-    driver = str(_CFG.get("BROKER_DRIVER", "PAPER")).upper()
-    is_real_driver = driver not in ("PAPER", "SIM", "TEST", "")
-    if is_real_driver and (MANUAL_SIGNALS_ONLY or not BROKER_API_ENABLED or PAPER_MODE):
-        log.warning(
-            f"[BROKER_CFG] BROKER_DRIVER={driver} but "
-            f"MANUAL_SIGNALS_ONLY={MANUAL_SIGNALS_ONLY}, "
-            f"BROKER_API_ENABLED={BROKER_API_ENABLED}, "
-            f"PAPER_MODE={PAPER_MODE} — forcing PAPER adapter"
-        )
-        return BrokerAdapter(PaperBrokerAdapter())
-
-    if MANUAL_SIGNALS_ONLY or EXECUTION_MODE in ("MANUAL", "MANUAL_ONLY", "SIGNAL_ONLY", "SIGNALS_ONLY"):
-        return BrokerAdapter(PaperBrokerAdapter())
-    if not (BROKER_API_ENABLED and not PAPER_MODE):
-        return BrokerAdapter(PaperBrokerAdapter())
-
-    try:
-        from core.adapters.broker_adapters import create_broker_adapter_with_runtime_context
-
-        return create_broker_adapter_with_runtime_context(
-            cfg=_CFG,
-            index_map=INDEX_MAP,
-            driver=driver,
-            broker_api_enabled=BROKER_API_ENABLED,
-            paper_mode=PAPER_MODE,
-            manual_signals_only=MANUAL_SIGNALS_ONLY,
-            execution_mode=EXECUTION_MODE,
-            now_fn=now_ist,
-            log_fn=log,
-            send_fn=send,
-            shutdown_is_set_fn=is_shutting_down,
-            hard_halt_is_set_fn=is_hard_halted,
-            sleep_fn=lambda secs: time.sleep(secs),
-            broker_wait_poll_sec=float(_CFG.get("BROKER_WAIT_POLL_SEC", 1.0)),
-            expiry_str_fn=lambda s: s,
-            circuit_breaker=_circuit_breaker_service,
-        )
-    except (ValueError, TypeError, OSError, ConnectionError) as _broker_err:
-        # Phase 2D: Log broker failure instead of silently falling back to paper
-        log.critical("[BROKER] Real broker adapter construction FAILED: %s — FALLING BACK to paper mode", _broker_err)
-        send(f"[BROKER] Real broker FAILED: {_broker_err}. Falling back to paper mode.", critical=True)
-        return BrokerAdapter(PaperBrokerAdapter())
+    """Legacy broker factory - delegates to extracted BrokerFactory (DEBT-008)."""
+    return _make_broker_extracted(
+        cfg=_CFG,
+        index_map=INDEX_MAP,
+        manual_signals_only=MANUAL_SIGNALS_ONLY,
+        broker_api_enabled=BROKER_API_ENABLED,
+        paper_mode=PAPER_MODE,
+        execution_mode=EXECUTION_MODE,
+        circuit_breaker=_circuit_breaker_service,
+        now_fn=now_ist,
+        log_fn=log,
+        send_fn=send,
+    )
 
 
 # Duplicate broker construction removed. Broker is created once in setup_di_container()
@@ -852,16 +783,15 @@ def _adaptive_threshold_adjustment(regime="", strength=""):
     return adaptive_threshold_adjustment(snap, regime, strength, enabled=ADAPTIVE_THRESHOLD_ENABLED)
 
 def _telegram_action_quality(sig):
-    breakout_ok = sig.get("breakout_ok", True)
-    if not breakout_ok:
-        return False, "breakout_ok false"
-    return True, "ok"
+    from index_app.domains.trading.signal_actions import telegram_action_quality as _extracted
+    return _extracted(sig)
 
 def _telegram_action_body(sig):
-    return f"[MANUAL SIGNAL] Conf={learning_state.get('confidence', 0)} Learner"
+    from index_app.domains.trading.signal_actions import telegram_action_body as _extracted
+    return _extracted(learning_state=learning_state)
 
-def enter_trade(name, sig):
-    """Entry gate for all trades. Delegates to PositionService."""
+def _get_position_service():
+    """Lazy-init singleton for PositionService."""
     global _position_service
     if _position_service is None:
         _position_service = get_position_service(
@@ -889,96 +819,58 @@ def enter_trade(name, sig):
             ltp_resolver=_ltp_resolver,
             signal_max_age=SIGNAL_MAX_AGE,
         )
-    return _position_service.enter_trade(name, sig)
+    return _position_service
+
+
+def enter_trade(name, sig):
+    """Entry gate for all trades. Delegates to PositionService."""
+    return _get_position_service().enter_trade(name, sig)
 
 def _check_hard_halt_reason():
     import core.safety_state as _ss
     return getattr(_ss, '_hard_halt_reason', '') or ''
 
 def check_pending_reconciliation():
-    adj = _portfolio_service.get_pending_adjustment()
-    if adj != 0:
-        send("ZOMBIE PnL: capital_adj_pending=" + str(adj) + " — requires manual reconciliation", critical=True)
-        return
-    with _state_lock:
-        S.capital_adj_pending = 0.0
+    """Check zombie PnL. Delegates to trading.reconciliation (DEBT-008)."""
+    from index_app.domains.trading.reconciliation import check_pending_reconciliation as _extracted
+    _extracted(
+        portfolio_service=_portfolio_service,
+        state_lock=_state_lock,
+        state_manager=state_manager,
+        send_fn=send,
+    )
 
 def daily_reset():
-    pending_adj = 0.0
-    try:
-        pending_adj = float(_portfolio_service.get_pending_adjustment())
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-        pending_adj = 0.0
-
-    if pending_adj != 0.0:
-        send(
-            f"ZOMBIE PnL detected during reset: {pending_adj}",
-            critical=True,
-        )
-
-    if _portfolio_service.handle_daily_reset():
-        log.info("Daily portfolio reset performed successfully.")
-    for _rt_name, _rt in list(_reentry_trackers.items()):
-        try:
-            _rt.reset_daily()
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-            log.debug("Reentry tracker daily reset failed for %s", _rt_name)
+    """Daily reset. Delegates to trading.reconciliation (DEBT-008)."""
+    from index_app.domains.trading.reconciliation import daily_reset as _extracted
+    _extracted(
+        portfolio_service=_portfolio_service,
+        reentry_trackers=_reentry_trackers,
+        send_fn=send,
+        log_fn=log,
+    )
 
 def _reconcile_positions_live():
-    if BROKER_API_ENABLED and RECONCILE_HALT_ON_QTY_MISMATCH:
-        # CRITICAL FIX #6: Use broker truth reconciler for authoritative positions
-        if _broker_truth_reconciler is not None:
-            try:
-                broker_positions = _broker_truth_reconciler.get_all_authoritative_positions()
-                with _pos_lock:
-                    for name, pos in list(positions.items()):
-                        local_qty = pos.get("qty", 0)
-                        broker_pos = broker_positions.get(name)
-                        broker_qty = broker_pos.get("qty", 0) if broker_pos else 0
-                        if broker_qty != local_qty and broker_qty > 0 and local_qty > 0:
-                            reason = f"qty mismatch: broker={broker_qty} vs local={local_qty} for {name}"
-                            trip_hard_halt(reason)
-                            return
-            except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as e:
-                log.error(f"Broker truth reconciliation failed: {e}")
-        else:
-            # Fallback to legacy method
-            with _pos_lock:
-                for name, pos in list(positions.items()):
-                    broker_qty = 0
-                    try:
-                        broker_qty = _broker.get_position_qty(
-                            name, pos.get("signal", ""), pos.get("strike", 0)
-                        )
-                    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-                        log.debug("Legacy broker position fetch failed for %s", name)
-                    local_qty = pos.get("qty", 0)
-                    if broker_qty != local_qty and broker_qty > 0 and local_qty > 0:
-                        reason = f"qty mismatch: broker={broker_qty} vs local={local_qty} for {name}"
-                        trip_hard_halt(reason)
-                        return
+    """Reconcile positions. Delegates to trading.reconciliation (DEBT-008)."""
+    from index_app.domains.trading.reconciliation import reconcile_positions_live as _extracted
+    _extracted(
+        broker_api_enabled=BROKER_API_ENABLED,
+        reconcile_halt_on_qty_mismatch=RECONCILE_HALT_ON_QTY_MISMATCH,
+        broker_truth_reconciler=_broker_truth_reconciler,
+        positions=positions,
+        pos_lock=_pos_lock,
+        broker=_broker,
+        trip_halt_fn=trip_hard_halt,
+        log_fn=log,
+    )
 
 def _periodic_reconcile():
-    """
-    Periodic reconciliation: compare internal state with broker, fix mismatches.
-    Runs ACK watchdog for stuck orders and reconciles pending positions.
-    """
-    global _execution_service
-    if _execution_service is not None:
-        try:
-            ack_result = _execution_service.run_ack_watchdog(max_ack_age_seconds=30.0)
-            if ack_result["acknowledged"] > 0:
-                log.info(f"[RECONCILE] Recovered {ack_result['acknowledged']} stuck orders via ACK watchdog")
-            if ack_result["errors"] > 0:
-                log.warning(f"[RECONCILE] ACK watchdog errors: {ack_result['errors']}")
-
-            # Reconcile pending orders with broker positions
-            if hasattr(_execution_service, 'reconcile_pending_orders'):
-                recon_result = _execution_service.reconcile_pending_orders()
-                if not recon_result.get("is_clean", True):
-                    log.warning(f"[RECONCILE] Pending order reconciliation found {recon_result.get('issues_count', 0)} issues")
-        except (ValueError, TypeError, KeyError, OSError) as exc:
-            log.warning(f"[RECONCILE] Error during reconciliation: {exc}", exc_info=True)
+    """Periodic reconciliation. Delegates to trading.reconciliation (DEBT-008)."""
+    from index_app.domains.trading.reconciliation import periodic_reconcile as _extracted
+    _extracted(
+        execution_service=_execution_service,
+        log_fn=log,
+    )
 
 def _broker_positions_snapshot():
     return {}
@@ -1089,75 +981,27 @@ def _telegram_alerts_enabled():
 def print_dashboard():
     status = market_status()
     if status == "CLOSED":
-        _display_snapshot["struct"] = {"headline": "Market CLOSED — no intraday scan"}
+        _display_snapshot["struct"] = {"headline": "Market CLOSED - no intraday scan"}
     else:
         _display_snapshot["struct"] = {"headline": "ok"}
 
 _display_snapshot: dict = {"struct": {"headline": "ok"}}
 
 def _fetch_nse_holidays_dynamic():
+    """Fetch NSE trading holidays. Delegates to index_app.domains.market.holidays (DEBT-008)."""
     global _nse_session, NSE_HOLIDAYS, _HOLIDAY_FETCH_META, _NSE_HOLIDAY_YEARS
-    try:
-        resp = _nse_session.get("https://www.nseindia.com/api/holiday-master?type=trading", timeout=15)
-        if resp.status_code != 200:
-            raise ValueError("Non-200 response")
-        try:
-            data = resp.json()
-            holidays = set()
-            # Handle "holidays" key (live API format) and "Special" key (fixture format)
-            holiday_lists = list(data.get("holidays", [])) + list(data.get("Special", []))
-            for item in holiday_lists:
-                # Try "date" first (holidays array format), then "tradingDate" (Special format)
-                date = str(item.get("date", item.get("tradingDate", ""))).strip()
-                if not date:
-                    continue
-                # Convert from Indian format "31-Dec-2026" to ISO "2026-12-31"
-                if "-" in date:
-                    parts = date.split("-")
-                    if len(parts) == 3:
-                        day, month_abbr, year = parts
-                        month_map = {"Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04",
-                                     "May": "05", "Jun": "06", "Jul": "07", "Aug": "08",
-                                     "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12"}
-                        month = month_map.get(month_abbr, "01")
-                        iso_date = f"{year}-{month}-{day}"
-                        holidays.add(iso_date)
-                else:
-                    holidays.add(date)
-            NSE_HOLIDAYS.update(holidays)
-            _NSE_HOLIDAY_YEARS.update({d[:4] for d in holidays})
-            _HOLIDAY_FETCH_META["fallback"] = False
-            _HOLIDAY_FETCH_META["note"] = "ok"
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError, AssertionError) as _parse_err:
-            log.warning("NSE holiday API returned non-JSON response: %s", _parse_err)
-            _HOLIDAY_FETCH_META["fallback"] = True
-            _HOLIDAY_FETCH_META["note"] = "non-json"
-            # Apply hardcoded fallback if API returns non-JSON
-            if not NSE_HOLIDAYS:
-                NSE_HOLIDAYS.update(_NSE_HOLIDAYS_FALLBACK)
-                _NSE_HOLIDAY_YEARS.update({d[:4] for d in _NSE_HOLIDAYS_FALLBACK})
-                _HOLIDAY_FETCH_META["fallback_applied"] = True
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-        _HOLIDAY_FETCH_META["fallback"] = True
-        _HOLIDAY_FETCH_META["note"] = "fetch-failed"
-        # Apply hardcoded fallback if API fetch fails
-        if not NSE_HOLIDAYS:
-            NSE_HOLIDAYS.update(_NSE_HOLIDAYS_FALLBACK)
-            _NSE_HOLIDAY_YEARS.update({d[:4] for d in _NSE_HOLIDAYS_FALLBACK})
-            _HOLIDAY_FETCH_META["fallback_applied"] = True
-    _HOLIDAY_FETCH_META["count"] = len(NSE_HOLIDAYS)
-    current_year = str(now_ist().year)
-    if current_year not in _NSE_HOLIDAY_YEARS and not _HOLIDAY_FETCH_META.get("_year_warning_logged"):
-        import logging
-        logging.getLogger(__name__).warning(
-            f"NSE holidays for {current_year} not found in NSE_HOLIDAYS. "
-            f"Holiday detection may not work. Years available: {sorted(_NSE_HOLIDAY_YEARS)}"
-        )
-        _HOLIDAY_FETCH_META["_year_warning_logged"] = True
+    NSE_HOLIDAYS, _NSE_HOLIDAY_YEARS, _HOLIDAY_FETCH_META = fetch_nse_holidays(
+        nse_session=_nse_session,
+        existing_holidays=NSE_HOLIDAYS,
+        existing_years=_NSE_HOLIDAY_YEARS,
+        fetch_meta=_HOLIDAY_FETCH_META,
+    )
 
 
 def _check_hard_stops_via_risk() -> tuple[bool, str]:
-    return _mandate_service._check_hard_stops_via_risk()
+    """Check hard stops. Delegates to trading.reconciliation (DEBT-008)."""
+    from index_app.domains.trading.reconciliation import check_hard_stops_via_risk as _extracted
+    return _extracted(mandate_service=_mandate_service)
 _nse_session: Any = requests.Session()
 _nse_session.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application/json, text/plain, */*"})
 NSE_HOLIDAYS: set = set()
@@ -1208,18 +1052,17 @@ _AUDIT_ENGINE: Any = None
 # =============================================================================
 
 # =============================================================================
-# TRADING LOOP — Phase 1A/1B: scan, evaluate, enter, monitor, exit
+# TRADING LOOP - Phase 1A/1B: scan, evaluate, enter, monitor, exit
 # =============================================================================
 
 
 def _fetch_intraday_data(name: str) -> tuple:
     """Fetch intraday OHLCV data (1m, 5m, 15m) for an index via yfinance.
 
-    Delegates to core.yf_data_provider.fetch_intraday_data.
+    Delegates to index_app.domains.market.data (DEBT-008).
     """
-    from core.yf_data_provider import fetch_intraday_data as _yf_fetch
     yf_sym = INDEX_MAP.get(name, {}).get("yf", "")
-    return _yf_fetch(yf_sym)
+    return _fetch_intraday_data_extracted(yf_sym)
 
 
 def _generate_trading_signal(name: str, frames: dict, vix: float = 0.0):
@@ -1235,212 +1078,63 @@ def _generate_trading_signal(name: str, frames: dict, vix: float = 0.0):
 
 def _exit_position(name: str, reason: str) -> None:
     """Exit an open position. Delegates to PositionService."""
-    global _position_service
-    if _position_service is None:
-        _position_service = get_position_service(
-            cfg=_CFG,
-            risk_service=_risk_service,
-            execution_service=_execution_service,
-            portfolio_service=_portfolio_service,
-            margin_validator=_margin_validator,
-            warmup_manager=_warmup_manager,
-            news_sentinel=_news_sentinel,
-            expiry_controller=_expiry_controller,
-            token_refresh_service=_token_refresh_service,
-            audit_engine=_audit_engine,
-            reentry_trackers=_reentry_trackers,
-            positions=positions,
-            decision_log=decision_log,
-            manual_sig_last=_manual_sig_last,
-            breakout_state=breakout_state,
-            bos_lock=_bos_lock,
-            state_lock=_state_lock,
-            pos_lock=_pos_lock,
-            mandate_service=_mandate_service,
-            manual_signals_only=MANUAL_SIGNALS_ONLY,
-            execution_mode=EXECUTION_MODE,
-            ltp_resolver=_ltp_resolver,
-            signal_max_age=SIGNAL_MAX_AGE,
-        )
-    return _position_service.exit_position(name, reason)
+    return _get_position_service().exit_position(name, reason)
 
 
 def _monitor_positions() -> None:
     """Monitor open positions. Delegates to PositionService."""
-    global _position_service
-    if _position_service is None:
-        _position_service = get_position_service(
-            cfg=_CFG,
-            risk_service=_risk_service,
-            execution_service=_execution_service,
-            portfolio_service=_portfolio_service,
-            margin_validator=_margin_validator,
-            warmup_manager=_warmup_manager,
-            news_sentinel=_news_sentinel,
-            expiry_controller=_expiry_controller,
-            token_refresh_service=_token_refresh_service,
-            audit_engine=_audit_engine,
-            reentry_trackers=_reentry_trackers,
-            positions=positions,
-            decision_log=decision_log,
-            manual_sig_last=_manual_sig_last,
-            breakout_state=breakout_state,
-            bos_lock=_bos_lock,
-            state_lock=_state_lock,
-            pos_lock=_pos_lock,
-            mandate_service=_mandate_service,
-            manual_signals_only=MANUAL_SIGNALS_ONLY,
-            execution_mode=EXECUTION_MODE,
-            ltp_resolver=_ltp_resolver,
-            signal_max_age=SIGNAL_MAX_AGE,
-        )
-    return _position_service.monitor_positions()
+    return _get_position_service().monitor_positions()
 
 
 # Cache for yfinance intraday data (avoids rate limiting)
 def _fetch_intraday_data_cached(name: str) -> tuple:
     """Fetch intraday data with cross-cycle caching to avoid yfinance rate limits.
 
-    Delegates to core.yf_data_provider.fetch_intraday_data_cached.
+    Delegates to index_app.domains.market.data (DEBT-008).
     """
-    from core.yf_data_provider import fetch_intraday_data_cached as _yf_fetch_cached
     yf_sym = INDEX_MAP.get(name, {}).get("yf", "")
-    return _yf_fetch_cached(yf_sym)
+    return _fetch_intraday_data_cached_extracted(yf_sym)
 
 
 def _yf_fetch_vix() -> float:
-    """Fetch India VIX via core.yf_data_provider.
-
-    Delegates to core.yf_data_provider.get_vix_from_intraday.
-    """
-    from core.yf_data_provider import get_vix_from_intraday
-    return get_vix_from_intraday()
+    """Fetch India VIX. Delegates to index_app.domains.market.data (DEBT-008)."""
+    return _yf_fetch_vix_extracted()
 
 
 def _run_trading_loop() -> None:
-    """Main trading loop: scan signals, enter trades, monitor positions, reconcile."""
+    """Main trading loop. Delegates to TradingLoopService (DEBT-008)."""
+    from core.nse_option_recorder import record_oi_snapshots_for_indices
     from core.safety_state import _shutdown
-    # Lazy import for periodic invariant checks
     try:
         from core.invariants.engine import check_all as _check_invariants
     except ImportError:
         _check_invariants = None
 
-    scan_interval = max(5, int(_CFG.get("SCAN_INTERVAL", 30)))
-    log.info("[TRADING LOOP] Entering main loop (interval=%ds)", scan_interval)
-    send("Bot started \u2014 entering trading loop")
-
-    _invariant_cycle_count = 0
-    while not _shutdown.is_set():
-        cycle_start = time.time()
-        # Record system heartbeat for stale account detector
-        try:
-            if _stale_detector is not None:
-                _stale_detector.record_heartbeat()
-        except (ValueError, TypeError, OSError) as _stale_err:
-            log.debug("Stale detector heartbeat failed: %s", _stale_err)
-        try:
-            mkt_status = market_status()
-            if mkt_status not in ("OPEN",):
-                _shutdown.wait(60 if mkt_status != "HOLIDAY" else 300)
-                continue
-            if is_hard_halted():
-                _shutdown.wait(scan_interval)
-                continue
-
-            # Fetch intraday data with cross-cycle caching to avoid rate limits
-            # Only fetch for indices without active positions
-            frames = {}
-            for name in INDEX_PRIORITY:
-                with _pos_lock:
-                    has_position = name in positions
-                if has_position:
-                    # Skip yfinance fetch for indices with positions (still get cached data)
-                    df1m, df5m, df15m = _fetch_intraday_data_cached(name)
-                    frames[name] = {"df1m": df1m, "df5m": df5m, "df15m": df15m}
-                    continue
-                df1m, df5m, df15m = _fetch_intraday_data_cached(name)
-                frames[name] = {"df1m": df1m, "df5m": df5m, "df15m": df15m}
-                # Feed close data to correlation guard for cross-index correlation computation
-                if df1m is not None and len(df1m) > 0:
-                    try:
-                        update_closes(name, df1m["Close"].to_list())
-                    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _corr_err:
-                        log.debug("Correlation guard feed failed for %s: %s", name, _corr_err)
-
-            # Get VIX (cached within same TTL window)
-            vix = _yf_fetch_vix()
-
-            # ── Record OI snapshots from NSE option chain data ──────────────
-            try:
-                from core.nse_option_recorder import record_oi_snapshots_for_indices
-                record_oi_snapshots_for_indices(INDEX_PRIORITY, _CFG)
-            except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _oi_err:
-                log.debug("[OI] Snapshot recording skipped: %s", _oi_err)
-
-            # Generate signals and enter trades
-            for name in INDEX_PRIORITY:
-                if is_hard_halted():
-                    break
-                with _pos_lock:
-                    if name in positions:
-                        continue
-                df1m = frames.get(name, {}).get("df1m")
-                if df1m is None or len(df1m) < 30:
-                    continue
-
-                sig = _generate_trading_signal(name, frames.get(name, {}), vix)
-                if sig and sig.get("signal") != "HOLD":
-                    score = int(sig.get("score", 0))
-                    threshold = int(_CFG.get("AI_THRESHOLD", 60))
-                    if score >= threshold:
-                        allowed, reason = check_mandate_trade_allowed(
-                            regime=sig.get("regime", "SIDEWAYS"),
-                            score=score,
-                        )
-                        if allowed:
-                            # --- REENTRY EVALUATOR ---
-                            _rt = _reentry_trackers.get(name)
-                            if _rt is not None:
-                                _reentry_dec = _rt.evaluate_reentry(
-                                    current_score=score,
-                                    current_direction=sig.get("direction", "CALL"),
-                                    cfg=_CFG,
-                                )
-                                if not _reentry_dec.allowed:
-                                    decision_log[name] = {"msg": f"REENTRY_BLOCK: {_reentry_dec.reason}"}
-                                    log.warning("[REENTRY_BLOCK] %s: %s", name, _reentry_dec.reason)
-                                    continue
-                            # --- CORRELATION GUARD ---
-                            _allowed_corr, _reason_corr = check_portfolio_correlation(
-                                name, sig.get("direction", "CALL"),
-                                dict(positions) if positions else {}, _CFG,
-                            )
-                            if not _allowed_corr:
-                                decision_log[name] = {"msg": f"CORRELATION_BLOCK: {_reason_corr}"}
-                                log.warning("[CORRELATION_BLOCK] %s: %s", name, _reason_corr)
-                                continue
-                            enter_trade(name, sig)
-
-            _monitor_positions()
-            _periodic_reconcile()
-
-            # Periodic invariant check (every 30 cycles)
-            _invariant_cycle_count += 1
-            if _invariant_cycle_count >= 30 and _check_invariants is not None:
-                _invariant_cycle_count = 0
-                try:
-                    _check_invariants()
-                except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _inv_err:
-                    log.warning("Invariant check failed: %s", _inv_err)
-
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as e:
-            log.error("Trading cycle error: %s", e, exc_info=True)
-
-        elapsed = time.time() - cycle_start
-        _shutdown.wait(max(1, scan_interval - elapsed))
-
-    log.info("[TRADING LOOP] Shutdown signal received")
+    service = TradingLoopService(
+        cfg=_CFG,
+        shutdown_event=_shutdown,
+        is_hard_halted_fn=is_hard_halted,
+        market_status_fn=market_status,
+        fetch_intraday_data_cached_fn=_fetch_intraday_data_cached,
+        fetch_vix_fn=_yf_fetch_vix,
+        generate_trading_signal_fn=_generate_trading_signal,
+        enter_trade_fn=enter_trade,
+        monitor_positions_fn=_monitor_positions,
+        periodic_reconcile_fn=_periodic_reconcile,
+        check_mandate_trade_allowed_fn=check_mandate_trade_allowed,
+        check_portfolio_correlation_fn=check_portfolio_correlation,
+        reentry_trackers=_reentry_trackers,
+        decision_log=decision_log,
+        index_priority=INDEX_PRIORITY,
+        positions=positions,
+        pos_lock=_pos_lock,
+        stale_detector=_stale_detector,
+        update_closes_fn=update_closes,
+        record_oi_fn=record_oi_snapshots_for_indices,
+        check_invariants_fn=_check_invariants,
+        send_fn=send,
+    )
+    service.run()
 
 
 # The DI container + stub exports provide the complete trading API.
@@ -1450,333 +1144,88 @@ def _run_trading_loop() -> None:
 
 def _on_ws_tick(msg: dict) -> None:
     """Callback for KiteTickerFeedManager tick messages."""
-    if not isinstance(msg, dict):
-        return
-    msg_type = msg.get("type", "")
-    if msg_type == "connect":
-        log.info("[WS] KiteTicker feed connected")
-    elif msg_type == "ticks":
-        ticks = msg.get("data", [])
-        if ticks:
-            # Log first tick symbol/price as a heartbeat
-            first = ticks[0]
-            token = first.get("instrument_token", "?")
-            price = first.get("last_price", "?")
-            log.debug("[WS] tick: token=%s price=%s", token, price)
+    from index_app.domains.trading.signal_actions import on_ws_tick as _extracted
+    _extracted(msg=msg, log_fn=log.info, debug_fn=log.debug)
 
 
 def setup_di_container() -> None:
-    """Set up the dependency injection container with all service implementations."""
-    # Fetch NSE holidays before any trading decision
-    _fetch_nse_holidays_dynamic()
+    """Set up the dependency injection container with all service implementations.
 
+    Delegates to ``index_app.domains.trading.container.setup_di_container``
+    (DEBT-008).
+    """
+    from index_app.domains.trading.container import setup_di_container as _extracted
 
-    from core.di_container import get_container
-    from core.ports.strategy import StrategyPort
-    from core.services.execution_service import ExecutionService, ExecutionServiceConfig
-    from core.services.signal_orchestrator import signal_orchestrator as _sig_orch
-    from core.strategy import StrategyOrchestrator
-    from infrastructure.adapters.persistence.sqlite_adapter import SQLiteAdapter
+    # Global declarations must precede any reference to these names
+    global _execution_service, _send_impl, _send_wired
+    global _mandate_service, _position_service, _signal_service
+    global _stale_detector, _strategy_orchestrator, _clean_trading_orchestrator
+    global _rate_limiting_service, _circuit_breaker_service
+    global _ws_feed_manager, RISK_ENGINE, DATA_ENGINE, STRATEGY_ENGINE
+    global EXECUTION_ENGINE, STATE_MANAGER
 
-    container = get_container()
-    config_adapter = SecureConfigAdapter()
-    container.register_instance(ConfigPort, config_adapter)
+    # Build the globals_store dict from module-level names
+    _globals: dict = {
+        "_ws_feed_manager": _ws_feed_manager,
+        "_execution_service": None,
+        "_send_impl": _send_impl,
+        "_send_wired": _send_wired,
+        "_send_buffer": _send_buffer,
+        "_send_buffer_lock": _send_buffer_lock,
+        "_mandate_service": _mandate_service,
+        "_position_service": _position_service,
+        "_signal_service": _signal_service,
+        "_stale_detector": _stale_detector,
+        "_strategy_orchestrator": _strategy_orchestrator,
+        "_clean_trading_orchestrator": _clean_trading_orchestrator,
+        "_rate_limiting_service": _rate_limiting_service,
+        "_circuit_breaker_service": _circuit_breaker_service,
+        "_portfolio_service": _portfolio_service,
+        "_margin_validator": _margin_validator,
+        "_warmup_manager": _warmup_manager,
+        "_news_sentinel": _news_sentinel,
+        "_expiry_controller": _expiry_controller,
+        "_token_refresh_service": _token_refresh_service,
+        "_audit_engine": _audit_engine,
+        "_reentry_trackers": _reentry_trackers,
+        "positions": positions,
+        "decision_log": decision_log,
+        "_manual_sig_last": _manual_sig_last,
+        "breakout_state": breakout_state,
+        "_bos_lock": _bos_lock,
+        "_state_lock": _state_lock,
+        "_pos_lock": _pos_lock,
+        "get_underlying_ltp_fn": get_underlying_ltp,
+        "state_manager": state_manager,
+    }
 
-    config = container.resolve(ConfigPort)
-
-    # Phase 3A: Use _make_broker() for consistent broker selection
-    # This ensures the same broker selection logic is used as the legacy path
-    # Phase 3A: Use _make_broker() for consistent broker selection
-    # This ensures the same broker selection logic is used as the legacy path
-    broker_port = _make_broker()
-
-    # Phase 4C: Initialize WAL journal for write-ahead logging in execution path
-    from core.wal.journal import WriteAheadJournal
-    _wal_journal = WriteAheadJournal(db_path=_CFG.get("wal_journal_db_path", "data/wal_journal.db"))
-
-    trade_persistence = SQLiteAdapter("data/trades.db")
-    market_data_port = YahooFinanceAdapter()
-
-    container.register_instance(MarketDataPort, market_data_port)
-
-    # Wire WS feed manager into the container for health checks / future use
-    global _ws_feed_manager
-    container.register_instance(type(_ws_feed_manager), _ws_feed_manager)
-
-    # Start Kite WebSocket feed on startup (gated internally by config/paper-mode/broker)
-    if _CFG.get("kite_ticker_startup_connect", True):
-        _ws_feed_manager.connect(on_message=_on_ws_tick)
-
-    global _execution_service
-    # Phase 4A-C: Persistent idempotency with proper DB path (not in-memory)
-    # Also wire WAL journal for write-ahead logging in execution path
-    idem_db_path = _CFG.get("idempotency_db_path", "data/execution_state.db")
-    os.makedirs(os.path.dirname(idem_db_path), exist_ok=True) if os.path.dirname(idem_db_path) else None
-    execution_service = ExecutionService(
-        broker_port=broker_port,
-        trade_persistence=trade_persistence,
-        config=ExecutionServiceConfig(idempotency_db_path=idem_db_path),
-        wal_journal=_wal_journal,
-    )
-    _execution_service = execution_service
-    container.register_instance(ExecutionPort, execution_service)
-
-    from core.services.risk_service import RiskServiceConfig
-    _risk_config = RiskServiceConfig(
-        max_daily_loss=float(_CFG.get("MAX_DAILY_LOSS", -2000)),
-        max_daily_trades=int(_CFG.get("MAX_TRADES_DAY", 10)),
-        max_open_positions=int(_CFG.get("MAX_OPEN", 5)),
-        max_consecutive_losses=int(_CFG.get("MAX_CONSECUTIVE_LOSSES", 3)),
-    )
-    risk_service = RiskService(
-        config=_risk_config,
-        trade_persistence=trade_persistence,
-        get_live_vix_fn=_yf_fetch_vix
-    )
-    container.register_instance(RiskPort, risk_service)
-    global RISK_ENGINE, _mandate_service
-    RISK_ENGINE = risk_service
-    _mandate_service._risk_service = risk_service
-    global _position_service
-    _position_service = get_position_service(
+    _extracted(
         cfg=_CFG,
-        risk_service=risk_service,
-        execution_service=_execution_service,
-        portfolio_service=_portfolio_service,
-        margin_validator=_margin_validator,
-        warmup_manager=_warmup_manager,
-        news_sentinel=_news_sentinel,
-        expiry_controller=_expiry_controller,
-        token_refresh_service=_token_refresh_service,
-        audit_engine=_audit_engine,
-        reentry_trackers=_reentry_trackers,
-        positions=positions,
-        decision_log=decision_log,
-        manual_sig_last=_manual_sig_last,
-        breakout_state=breakout_state,
-        bos_lock=_bos_lock,
-        state_lock=_state_lock,
-        pos_lock=_pos_lock,
-        mandate_service=_mandate_service,
-            signal_max_age=SIGNAL_MAX_AGE,
+        index_map=INDEX_MAP,
+        make_broker_fn=_make_broker,
+        fetch_vix_fn=_yf_fetch_vix,
+        fetch_nse_holidays_dynamic_fn=_fetch_nse_holidays_dynamic,
+        on_ws_tick_fn=_on_ws_tick,
+        globals_store=_globals,
     )
 
-    # Configure intraday P&L monitoring from config
-    from core.safety_state import set_intraday_loss_limit
-    set_intraday_loss_limit(float(_CFG.get("INTRADAY_LOSS_LIMIT", _CFG.get("MAX_DAILY_LOSS", -2000))))
-    _signal_service = get_signal_service(cfg=_CFG)
-
-    notification_service = NotificationService()
-    container.register_instance(NotificationPort, notification_service)
-
-    # Phase 2-3: Start morning checklist and session report services
-    from core.circuit_breaker_monitor import create_circuit_breaker_monitor
-    from core.morning_checklist import run_morning_checklist
-    from core.session_report import create_session_reporter
-
-    # Get send function from notification service
-    send_fn = getattr(notification_service, 'send_alert', None)
-    if not send_fn:
-        send_fn = getattr(notification_service, 'send', None)
-    if not send_fn:
-        def send_fn(x, critical=False, **kw):
-            return None
-
-    # Wire legacy send() to the real notification service
-    global _send_impl, _send_wired
-    # Flush buffered messages
-    with _send_buffer_lock:
-        for msg, crit in _send_buffer:
-            try:
-                send_fn(msg, critical=crit)
-            except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _flush_err:
-                log.debug("Failed to flush buffered message: %s", _flush_err)
-        _send_buffer.clear()
-    _send_impl = send_fn
-    _send_wired = True
-
-    # v2.47 Execution Hardening - Initialize for production hardening
-    from core.execution_hardening_integration import init_execution_hardening
-    _execution_hardening_services = init_execution_hardening(
-        config=dict(config),
-        broker_port=broker_port,
-        send_alert_fn=lambda msg, critical: send_fn(f"[HARDENING] {msg}"),
-        get_price_fn=lambda sym: broker_port.get_ltp(sym) if hasattr(broker_port, 'get_ltp') else None
-    )
-    log.info(f"Execution hardening initialized: {list(_execution_hardening_services.keys())}")
-
-    # Start morning checklist (runs at 9:00 AM IST)
-    run_morning_checklist(send_fn=send_fn, cfg=config)
-
-    # Start session report (runs at 3:35 PM IST)
-    create_session_reporter(send_fn=send_fn)
-    log.info("Session report service started")
-
-    # Start NSE circuit breaker monitor
-    create_circuit_breaker_monitor(
-        send_fn=send_fn,
-        get_index_price_fn=lambda: get_underlying_ltp("NIFTY") or None,
-        cfg=config
-    )
-
-    # Start background health check scheduler (runs Sunday EOD)
-    try:
-        from core.health_checker import start_health_check_scheduler
-        start_health_check_scheduler(cfg=config, db_path=_CFG.get("trades_db_path", "trades.db"), send_fn=send_fn)
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _health_err:
-        log.warning("[HEALTH] Failed to start health check scheduler: %s", _health_err)
-
-    persistence_service = PersistenceService()
-    container.register_instance(PersistencePort, persistence_service)
-
-    broker_health_service = BrokerHealthService(broker_adapters={"PAPER": broker_port})
-    container.register_instance(BrokerHealthPort, broker_health_service)
-
-    # Initialize Stale Account Detector (v2.53.0) - monitors session/credential/trading staleness
-    from core.stale_account_detector import StaleAccountDetector
-    global _stale_detector
-    _stale_detector = StaleAccountDetector(
-        broker_health_service=broker_health_service,
-        session_store=None,
-        alert_fn=lambda msg, priority: send_fn(msg) if priority == "CRITICAL" else None,
-    )
-    _stale_detector.run_check(comprehensive=False)
-
-    # v2.54 Equity Trader — stock (cash market) trading via EQUITY_MAP
-    # Gate: only start when --equity CLI flag is passed (launcher checkbox controls this)
-    if "--equity" in sys.argv:
-        try:
-            from core.equity_trader import run_equity_trader
-            equity_trader = run_equity_trader(
-                cfg=dict(config),
-                send_fn=send_fn,
-                get_price_fn=lambda sym: (broker_port.get_ltp(sym) if hasattr(broker_port, 'get_ltp') else None),
-            )
-            log.info("[EQUITY] Equity trader started with symbols: %s", equity_trader.status().get("symbols", []))
-        except (ValueError, TypeError, KeyError, AttributeError, ImportError, OSError) as _eq_err:
-            log.warning("[EQUITY] Equity trader not started: %s", _eq_err)
-    else:
-        log.info("[EQUITY] Equity trader disabled (pass --equity CLI flag to enable)")
-
-    rate_limiting_service = RateLimitingService()
-    _rate_limiting_service = rate_limiting_service
-    container.register_instance(RateLimitPort, rate_limiting_service)
-
-    circuit_breaker_service = CircuitBreakerService()
-    _circuit_breaker_service = circuit_breaker_service
-
-    # Configure broker-specific circuit breaker keys from config
-    raw_cfg = dict(config)
-    cb_enabled = raw_cfg.get("circuit_breaker_broker_enabled", True)
-    if cb_enabled:
-        from core.ports.circuit_breaker.circuit_breaker_port import CircuitBreakerConfig as CBCfg
-        broker_cfg = CBCfg(
-            failure_threshold=int(raw_cfg.get("circuit_breaker_broker_failure_threshold", 3)),
-            success_threshold=int(raw_cfg.get("circuit_breaker_success_threshold", 3)),
-            timeout=int(raw_cfg.get("circuit_breaker_broker_timeout_secs", 30)),
-            sliding_window_size=int(raw_cfg.get("circuit_breaker_sliding_window_size", 10)),
-            failure_rate_threshold=float(raw_cfg.get("circuit_breaker_failure_rate_threshold", 0.5)),
-            half_open_max_requests=int(raw_cfg.get("circuit_breaker_broker_half_open_max_requests", 2)),
-            timeout_exponential_base=float(raw_cfg.get("circuit_breaker_timeout_exponential_base", 2.0)),
-        )
-        for key in ("broker.place_order", "broker.exit_order", "broker.get_order_status", "broker.cancel_order"):
-            circuit_breaker_service.update_config(key, broker_cfg)
-        log.info("Broker circuit breaker configured with threshold=%d timeout=%d",
-                 broker_cfg.failure_threshold, broker_cfg.timeout)
-
-    container.register_instance(CircuitBreakerPort, circuit_breaker_service)
-
-    # Configure webhook rate limiter
-    if raw_cfg.get("rate_limiter_webhook_enabled", True) and _rate_limiting_service is not None:
-        try:
-            from core.ports.rate_limiting.rate_limit_port import RateLimitConfig as RLCfg
-            webhook_rl = RLCfg(
-                limit=int(raw_cfg.get("rate_limiter_webhook_limit", 5)),
-                window=int(raw_cfg.get("rate_limiter_webhook_window_secs", 60)),
-                algorithm="fixed_window",
-            )
-            _rate_limiting_service.update_config("webhook", webhook_rl)
-            log.info("Webhook rate limiter configured: %d req/%ds", webhook_rl.limit, webhook_rl.window)
-        except (ValueError, TypeError, KeyError, OSError) as exc:
-            log.warning("Failed to configure webhook rate limiter: %s", exc)
-
-    ml_model_service = MLModelAdapter()
-    container.register_instance(MlModelPort, ml_model_service)
-
-    correlation_id_service = CorrelationIdAdapter()
-    container.register_instance(CorrelationIdPort, correlation_id_service)
-
-    logging_service = StructuredLoggerAdapter()
-    container.register_instance(LoggingPort, logging_service)
-
-    metrics_service = MetricsAdapter({})
-    container.register_instance(MetricsPort, metrics_service)
-
-    # Also register concrete kernel/utility types for clean-architecture consumers
-    from core.common.kernels.correlation_id import CorrelationIdManager
-    from core.common.utilities.logging import StructuredLogger
-    from core.common.utilities.metrics import MetricsCollector
-    container.register_instance(CorrelationIdManager, CorrelationIdManager())
-    container.register_instance(StructuredLogger, StructuredLogger())
-    container.register_instance(MetricsCollector, MetricsCollector())
-    log.debug("Concrete kernel/utility types (CorrelationIdManager, StructuredLogger, MetricsCollector) registered in DI container")
-
-    # Wire StrategyOrchestrator into the container for the canonical strategy path
-    global _strategy_orchestrator
-    _strategy_orchestrator = StrategyOrchestrator(
-        signal_orchestrator=_sig_orch,
-        config=_CFG,
-    )
-    container.register_instance(StrategyPort, _strategy_orchestrator)
-    log.info("StrategyOrchestrator wired into DI container as StrategyPort")
-
-    # Register runtime invariant checks
-    try:
-        from core.invariants.checks import register_all as _register_invariants
-        _register_invariants()
-        log.info("Runtime invariant checks registered")
-    except (ValueError, TypeError, ImportError) as _ie:
-        log.debug("Invariant registration skipped: %s", _ie)
-
-    # ── Phase 1D: Wire engine variables for orchestrator compatibility ──
-    # RISK_ENGINE already declared global above; exclude from this list to avoid SyntaxError
-    global DATA_ENGINE, STRATEGY_ENGINE, EXECUTION_ENGINE, STATE_MANAGER
-    # DataEngine with yfinance callbacks for orchestrator compatibility
-    from core.data_engine import DataEngine
-
-    def _yf_fetch_all_frames(indices):
-        result = {}
-        for idx in indices:
-            yf_sym = INDEX_MAP.get(idx, {}).get("yf", "")
-            if not yf_sym:
-                continue
-            try:
-                import yfinance as _yf_local
-                df = _yf_local.download(yf_sym, period="2d", interval="1m", progress=False)
-                if not df.empty:
-                    result[idx] = df
-            except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as _yf_err:
-                log.debug("yfinance download failed for %s: %s", yf_sym, _yf_err)
-        return result
-
-    DATA_ENGINE = DataEngine(
-        fetch_all_frames_fn=_yf_fetch_all_frames,
-        vix_fetch_fn=_yf_fetch_vix,
-    )
-    STRATEGY_ENGINE = _strategy_orchestrator
-    EXECUTION_ENGINE = _execution_service
-    STATE_MANAGER = state_manager
-    RISK_ENGINE = risk_service
-    log.info("Engine variables wired: DATA_ENGINE, STRATEGY_ENGINE, EXECUTION_ENGINE, STATE_MANAGER")
-
-    # Wire clean-architecture TradingOrchestrator (graceful no-op if types unavailable)
-    global _clean_trading_orchestrator
-    from index_app.orchestrator_facade import build_clean_trading_orchestrator as _build_clean_orch
-    _clean_trading_orchestrator = _build_clean_orch()
-    if _clean_trading_orchestrator is not None:
-        log.info("Clean-architecture TradingOrchestrator wired")
-    else:
-        log.debug("Clean-architecture TradingOrchestrator not available (graceful skip)")
+    # Update module-level names from the globals_store
+    _execution_service = _globals.get("_execution_service")
+    _send_impl = _globals.get("_send_impl", _send_impl)
+    _send_wired = _globals.get("_send_wired", _send_wired)
+    _mandate_service = _globals.get("_mandate_service", _mandate_service)
+    _position_service = _globals.get("_position_service", _position_service)
+    _signal_service = _globals.get("_signal_service", _signal_service)
+    _stale_detector = _globals.get("_stale_detector", _stale_detector)
+    _strategy_orchestrator = _globals.get("_strategy_orchestrator", _strategy_orchestrator)
+    _clean_trading_orchestrator = _globals.get("_clean_trading_orchestrator", _clean_trading_orchestrator)
+    _rate_limiting_service = _globals.get("_rate_limiting_service", _rate_limiting_service)
+    _circuit_breaker_service = _globals.get("_circuit_breaker_service", _circuit_breaker_service)
+    RISK_ENGINE = _globals.get("RISK_ENGINE", RISK_ENGINE)
+    DATA_ENGINE = _globals.get("DATA_ENGINE", DATA_ENGINE)
+    STRATEGY_ENGINE = _globals.get("STRATEGY_ENGINE", STRATEGY_ENGINE)
+    EXECUTION_ENGINE = _globals.get("EXECUTION_ENGINE", EXECUTION_ENGINE)
+    STATE_MANAGER = _globals.get("STATE_MANAGER", STATE_MANAGER)
 
 
 # Backwards-compatible, read-only shim exports (use index_trader_interface for new code)
@@ -1815,93 +1264,19 @@ health_check = health_check_shim
 
 
 def _reload_config_handler() -> dict:
-    """Hot-reload configuration from disk + env vars. Returns status dict."""
-    try:
-        from core.config_bootstrap import get_effective_config
-        merged = get_effective_config()
-        return {"status": "ok", "detail": "Config reloaded via SecureConfig", "keys": len(merged)}
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as e:
-        log.exception("Config reload failed")
-        return {"status": "error", "detail": str(e)}
+    """Hot-reload configuration. Delegates to trading.reconciliation (DEBT-008)."""
+    from index_app.domains.trading.reconciliation import reload_config_handler as _extracted
+    return _extracted()
 
 
 def _init_admin_control_plane(cfg: dict) -> threading.Thread | None:
-    """Wire and start the admin control plane with live references.
-
-    Creates all necessary dependencies if the admin plane is enabled in config.
-    Returns the thread handle, or None if disabled.
-    """
-    enabled = cfg.get("admin_control_plane_enabled", False)
-    if not enabled:
-        log.info("Admin control plane disabled — skipping wiring")
-        return None
-
-    from core.auth.role_manager import RoleManager
-    from core.control_plane import maybe_start_control_plane
-    from core.execution.idempotency.certifier import IdempotencyCertifier
-    from core.operating_mode import OperatingModeManager
-    from core.safety_state import _HARD_HALT
-    from core.wal.journal import WriteAheadJournal
-
-    mode_mgr = OperatingModeManager()
-    wal = WriteAheadJournal(db_path=cfg.get("wal_journal_db_path", "data/wal_journal.db"))
-    certifier = IdempotencyCertifier(
-        db_path=cfg.get("idempotency_db_path", "execution_state.db"),
-        slot_seconds=int(cfg.get("idempotency_slot_seconds", 300)),
+    """Wire admin control plane. Delegates to admin domain (DEBT-008)."""
+    from index_app.domains.admin.control_plane import init_admin_control_plane as _extracted
+    return _extracted(
+        cfg=cfg,
+        reload_config_handler_fn=_reload_config_handler,
+        notify_fn=send,
     )
-    role_mgr = RoleManager(default_role=cfg.get("admin_default_role", "observer"))
-    role_mgr.load_from_config(dict(cfg))
-
-    # Audit logger singleton
-    try:
-        from infrastructure.security.audit_logger import get_audit_logger
-        audit_logger = get_audit_logger()
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-        log.warning("AuditLogger unavailable — admin audit trail degraded")
-        audit_logger = None
-
-    # Model registry (lazy, best-effort)
-    try:
-        from core.ai.model_registry import ModelRegistry
-        model_registry = ModelRegistry(db_path=cfg.get("model_registry_db_path", "data/model_registry.db"))
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-        log.warning("ModelRegistry unavailable — admin model endpoints degraded")
-        model_registry = None
-
-    # Simple in-memory registries for strategy/asset/feature toggles
-    strategy_registry: dict[str, bool] = {}
-    asset_registry: dict[str, bool] = {}
-    feature_flags: dict[str, bool] = {}
-
-    # Pre-populate from config if present
-    for s in (cfg.get("admin_strategies") or {}):
-        strategy_registry[s] = True
-    for a in (cfg.get("admin_assets") or {}):
-        asset_registry[a] = True
-    for f, v in (cfg.get("admin_feature_flags") or {}).items():
-        feature_flags[f] = bool(v)
-
-    # Wire invariants module as the engine reference
-    import core.invariants.engine as invariant_engine_module
-
-    thread = maybe_start_control_plane(
-        cfg=dict(cfg),
-        mode_manager=mode_mgr,
-        wal=wal,
-        certifier=certifier,
-        invariant_engine=invariant_engine_module,
-        role_manager=role_mgr,
-        audit_logger=audit_logger,
-        halt_event=_HARD_HALT,
-        strategy_registry=strategy_registry,
-        asset_registry=asset_registry,
-        feature_flags=feature_flags,
-        model_registry=model_registry,
-        config_reload=_reload_config_handler,
-    )
-    if thread is not None:
-        log.info("Admin control plane started (thread=%s)", thread.name)
-    return thread
 
 
 def main() -> None:
@@ -1948,7 +1323,7 @@ def main() -> None:
     from core.environment import validate_environment
     validate_environment(dict(config))
 
-    # AI Governance Gate — non-blocking startup validation
+    # AI Governance Gate - non-blocking startup validation
     # Verifies that AI governance checks were acknowledged before deployment
     try:
         from core.constitution_ai_gate import get_gate
@@ -1959,406 +1334,8 @@ def main() -> None:
     # CRITICAL FIX: Start the main trading loop - blocks until shutdown signal
     log.info("[MAIN] Setup complete - entering trading loop")
     _run_trading_loop()
-#           python -m index_app.index_trader --print-config      ← Dump config.json
-#           python -m index_app.index_trader --config-reset      ← After BASE_CAPITAL change
-#           python -m index_app.index_trader --report            ← Multi-session stats
-#           python -m index_app.index_trader --export-trades     ← Export trades to CSV
-# USER GUIDE: HOW_TO_USE.txt (layman steps)  |  Deep guide: SETUP_AND_TRADING_GUIDE.md
-# VERIFY    : pip install -r requirements-dev.txt && python -m pytest tests -v
-# CONFIG    : optional env OPBUYING_INDEX_CONFIG=path\to\config.json (tests/CI)
-# CLEAN EXIT: finally{} saves state, EOD report, closes NSE session. Telegram pool uses
-#             non-blocking shutdown (RCA-193). With dashboard: os._exit(0) when
-#             FORCE_EXIT_AFTER_SHUTDOWN (default true) so Windows CMD closes cleanly;
-#             --nogui uses sys.exit(0). METRICS_PORT>0 on METRICS_BIND (default 127.0.0.1): /metrics, /health, /.
-# ================================================================
-#
-# RCA-REG (2026-04-04): warned_loss_soft vs warned_loss — the 60% daily-loss
-#         approach warning and the hard-limit breach alert used one flag,
-#         so the critical limit message could be suppressed after the soft
-#         warning. Split: warned_loss_soft for approach only; warned_loss for
-#         breach (unchanged). Regression: --selftest, main_loop path review.
-# RCA-REG (2026-04-04b): Stock bot validate_config + DAILY_LOSS_WARNING/_sync
-#         aligned to this file; index unchanged this pass — cross-regression
-#         both scripts --selftest.
-#
-# RCA-211 (2026-04-08): _format_trading_desk_line() extracted for clarity + --selftest coverage of desk text/colors.
-#
-# RCA-213 (2026-04-09): Adaptive learning extracted to core.adaptive_learning — pure snapshot /
-#         threshold / confidence / exit-update helpers; index_trader keeps locks + config wiring.
-#         Reusable from backtests/Orchestrator without duplicating index_trader.py.
-#
-# RCA-214 (2026-04-09): _make_broker uses local PaperAdapter/KiteAdapter/AngelAdapter from
-#         BROKER_DRIVER + core.broker_connection_secrets (BROKER_CONFIG ∪ KITE_* / ANGEL_*); BROKER_NAME
-#         labels logs only. BROKER_CUSTOM_FACTORY uses core.create_broker_adapter_with_runtime_context.
-# RCA-215 (2026-04-09): Broker driver + hybrid warnings centralized in core.common_config_validate
-#         (effective_broker_driver, append_broker_api_config_errors, append_execution_hybrid_warnings).
-# RCA-216 (2026-04-09): BROKER_CUSTOM_FACTORY path uses core.create_broker_adapter_with_runtime_context.
-#
-# RCA-212 (2026-04-09): Hybrid UX + GUI hardening — (1) gui_struct.manual_flow_banner + desk strip
-#         explain MANUAL/AUTO/PAPER/SIGNALS for smooth post-signal workflow; GUI_UX.show_manual_flow_banner
-#         toggles. (2) _desk_body.py indentation bugs fixed (paneconfig/wrap/config_status/target_hit).
-#         (3) trader_desk wraps _desk_body in __opbuying_desk_body() so early return compiles under exec
-#         (top-level return in exec is a SyntaxError). (4) RCA_AND_HYBRID_MODEL.txt + config template note.
-#
-# RCA-210 (2026-04-08): Pro desk UI — TRADING DESK strip (VIX, loss-budget %, RR, SL/target, circuit,
-#         halt, exec path, signal-quality + API lines); table columns ADX & IV; clearer section labels;
-#         Help → Desk guide; default geometry 1200×860. Data from existing scan (no extra network).
-#
-# RCA-209 (2026-04-08): Polish — now_ist() docstring (naive IST wall clock); watchdog uses
-#         _shutdown.wait before os._exit; soft-reload rebuilds _broker when MANUAL_SIGNALS_ONLY
-#         flips; config_audit / save_state .bak failures log once instead of silent pass.
-#
-# RCA-208 (2026-04-08): Manual-only startup — MANUAL_SIGNALS_ONLY uses PaperAdapter so Kite
-#         is not constructed (no token/API dependency); live RCA regression skips Kite check.
-#         Soft-reload of MANUAL_SIGNALS_ONLY rebuilds broker adapter without full restart.
-#
-# RCA-206 (2026-04-07): Manual-only workflow — MANUAL_SIGNALS_ONLY skips broker, positions,
-#         trade_count, and NEW TRADE lifecycle; sends throttled “MANUAL SIGNAL” Telegram + dlog
-#         after the same entry gates (RR, portfolio SL cap). Soft-reload safe; dashboard/GUI
-#         show mode. Bot does not track manual fills.
-#
-# RCA-205 (2026-04-07): Reading & system integration — (1) Long logs: Edit→Find in details
-#         (Ctrl+F) with Find next + wrap; highlights match in the Text widget. (2) Windows
-#         clipboard after Copy sometimes dropped without an event pump — update_idletasks()
-#         after clipboard_append. (3) SCAN_INTERVAL changes via soft-reload were invisible in
-#         the GUI; trades KPI line shows live scan interval. (4) Details title click focuses
-#         the log for keyboard scroll/find without hunting the caret.
-#
-# RCA-204 (2026-04-07): Support & multi-monitor habits — (1) Operators share logs via
-#         screenshots or paste; File→Save details as… writes the current details Text to
-#         UTF-8 .txt (Ctrl+Shift+S). (2) Maximized window was lost on restart — layout JSON
-#         v4 adds win_state (zoomed|normal); restore zoomed after geometry (iconic not
-#         restored on purpose). (3) Header hint mentions max state in saved JSON.
-#
-# RCA-203 (2026-04-07): Desk ergonomics & diagnostics — (1) Snapshot age alone does not
-#         expose a stuck main loop before watchdog; gui_struct carries loop_lag_s (monotonic
-#         gap since S.last_loop_heartbeat). KPI subtitle warns only when market status is OPEN
-#         (holiday/weekend long sleeps would false-positive otherwise). (2) Long logs:
-#         Home/End/PgUp/PgDn on details + context-menu scroll targets + Edit entries.
-#         (3) Corrupt/off-screen layout: View → Reset saved layout deletes JSON and applies
-#         defaults without restarting the bot.
-#
-# RCA-202 (2026-04-07): Safety & robustness — (1) Accidental Alt+F4 / close on LIVE with
-#         SHUTDOWN_ON_UI_CLOSE could stop the bot without intent; optional confirm dialog
-#         (GUI_CONFIRM_EXIT, default true, soft-reload). (2) Invalid saved geometry strings
-#         failed silently → operator thinks persistence is broken; log and fall back.
-#         (3) After minimize/restore, wraplength can be wrong until resize; <Map> queues
-#         debounced wrap sync. (4) Uncaught exceptions in Tk callbacks were easy to miss;
-#         route through log via report_callback_exception.
-#
-# RCA-201 (2026-04-07): Readability & soft-reload parity — (1) Header subtitle showed
-#         refresh period only at GUI start; after config soft-reload GUI_REFRESH_MS could
-#         change while the label stayed stale — sync each tick. (2) Large logs: Select all
-#         (Ctrl+A) + Edit menu; Escape clears selection. (3) Corrupt layout JSON failed
-#         silently; log once so operators fix/rename the file. (4) Context menu: Select all.
-#
-# RCA-200 (2026-04-07): Operator workflow — (1) “Always on top” was session-only; persist
-#         to index_trader_gui_layout.json (v3) with geometry/sash. (2) Fixed 2s UI poll
-#         was not tunable; GUI_REFRESH_MS in config.json (500–30000, soft-reload safe).
-#         (3) F5 = same as View→Refresh (standard desktop habit). (4) File→Open script
-#         folder… opens Explorer/Finder for config.json / layout file edits.
-#
-# RCA-199 (2026-04-07): Desk polish & trust cues — (1) Default tk Scrollbars were light
-#         “Office” gray on a dark UI; configure trough/bg to match cards. (2) Telegram &
-#         API status labels had no wraplength → horizontal overflow on narrow windows.
-#         (3) Users cannot tell frozen loop vs quiet market: KPI subtitle shows snapshot
-#         age when backend hasn’t refreshed for several seconds. (4) View→Always on top
-#         for side-by-side terminals. (5) Treeview last column stretches with pane width.
-#         (6) Details Text gets a subtle focus highlight; wheel bound on detail frame.
-#
-# RCA-198 (2026-04-07): Realistic desk UX — (1) Layout JSON missed sash moves when only
-#         the divider moved (root <Configure> never fired): also queue save on pane
-#         <Configure>. (2) Details Text was wiped every 2s even when body unchanged →
-#         flicker; skip repaint when detail text equal to last paint. (3) Headline /
-#         Telegram lines used fixed wraplength; sync wrap to window width (debounced).
-#         (4) View→Refresh now + Ctrl+Q quit; context menu Copy selection when present.
-#         (5) Wheel scroll on table frame (not only on tree cells).
-#
-# RCA-197 (2026-04-07): GUI persistence & desk workflow — (1) Save/restore
-#         window geometry + paned sash to index_trader_gui_layout.json beside this
-#         script (debounced on resize, flush on exit). (2) Pane minsize so the
-#         index column cannot collapse. (3) Menu: File→Exit, Help→Shortcuts.
-#         (4) Details: Ctrl+C selection copy + right-click “Copy all” (clipboard).
-#         (5) Tree tag fonts use _FONT_MONO consistently.
-#
-# ── v2.12 NEW FIXES (RCA 132–136) ─────────────────────
-#
-# RCA-132 DEADLOCK: nested _perf_lock → _state_lock in monitor().
-#         monitor() acquires _perf_lock (line 1669) then attempts
-#         to acquire _state_lock inside it (line 1673). If any
-#         other thread holds _state_lock and then tries _perf_lock,
-#         both threads deadlock permanently. Scenario: main thread
-#         in daily_reset() holds _state_lock (line 886) while
-#         monitor() runs in the same thread — single-threaded, no
-#         issue. But with MAX_OPEN=2 and concurrent monitor(), the
-#         risk is real if a future refactor adds _perf_lock usage
-#         under _state_lock. Classic lock-ordering violation.
-#         FIX: Read S.daily_pnl and S.net_daily_pnl under
-#         _state_lock FIRST, then acquire _perf_lock separately.
-#         No nested locks. Lock ordering: always _state_lock
-#         before _perf_lock, never reverse.
-#
-# RCA-133 nse_fail_count read outside lock after increment.
-#         After `with _nse_fail_lock: nse_fail_count += 1`, the
-#         subsequent `if nse_fail_count >= threshold` reads the
-#         global WITHOUT the lock. Concurrent fetch failures can
-#         read a stale count, causing either missed session resets
-#         or incorrect backoff durations.
-#         FIX: Capture the count into a local `_nfc` variable
-#         while still holding the lock. All subsequent reads use
-#         the local copy. Same pattern applied to _yf_fail_lock.
-#
-# RCA-134 CSV file writes not thread-safe.
-#         log_csv() opens the CSV in append mode without any lock.
-#         Two concurrent exits (MAX_OPEN=2) both calling log_csv()
-#         can interleave writes, corrupting CSV rows.
-#         FIX: _csv_lock wraps the entire exists-check + write
-#         operation in log_csv().
-#
-# RCA-135 _track_exception() dict mutations not thread-safe.
-#         S.exception_counts and S.exception_alerted are plain
-#         dicts/sets modified from any thread that catches an
-#         exception. Concurrent modifications can lose increments
-#         or skip alerts entirely.
-#         FIX: _exc_lock wraps all reads and writes to both
-#         exception_counts and exception_alerted.
-#
-# RCA-136 now_ist() uses deprecated utcfromtimestamp().
-#         datetime.utcfromtimestamp() is deprecated since Python
-#         3.12 and raises DeprecationWarning. Will be removed in
-#         Python 3.14. The function creates a naive datetime that
-#         claims to be UTC but has the IST offset baked into the
-#         timestamp — confusing and deprecated.
-#         FIX: Use datetime.now(timezone.utc) + IST offset.
-#         Produces identical naive-IST datetime without deprecated
-#         API. Compatible with Python 3.10–3.13+.
-#
-# ── v2.13 REGRESSION FIXES (RCA 137–143) ─────────────────
-#
-# RCA-137 _nse_fail_lock and _yf_fail_lock declared TWICE.
-#         Section 3 (line ~401) creates Lock objects. Section 12
-#         (line ~990) re-creates them — silently overwrites the
-#         first pair. All code ends up using the Section 12 locks
-#         while Section 3 locks are orphaned. If any code between
-#         sections cached a reference to the first lock, it would
-#         use a different lock than the rest of the program.
-#         FIX: Lock declarations only in Section 3. Section 12
-#         declares only the counter variables (nse_fail_count=0).
-#
-# RCA-138 check_python_version() blocks Python 3.13+.
-#         Version gate: `(3,10)<=(major,minor)<(3,13)` rejects
-#         3.13 even though RCA-136 specifically fixed now_ist()
-#         for 3.12+ compatibility. Users on 3.13 get:
-#         "[ERROR] Python 3.10-3.12 required" — contradicting
-#         the code that was just made 3.13-safe.
-#         FIX: Gate expanded to `<(3,14)`.
-#
-# RCA-139 _prune_tg_cache() iterates _tg_cache.items() unsafely.
-#         `.items()` returns a view. If send() (called from a
-#         ThreadPoolExecutor thread) writes _tg_cache[key] while
-#         _prune_tg_cache() iterates the view, Python raises
-#         `RuntimeError: dictionary changed size during iteration`
-#         — crashing the main loop iteration.
-#         FIX: `list(_tg_cache.items())` creates a snapshot copy
-#         before iteration. Wrapped in try/except RuntimeError as
-#         a belt-and-suspenders defense.
-#
-# RCA-140 daily_reset() replaces S.exception_counts without lock.
-#         `S.exception_counts={}` is a STORE_ATTR that replaces
-#         the dict reference. If _track_exception() (running in
-#         an executor thread) is between reading and writing the
-#         old dict, the write goes to the orphaned old dict —
-#         count is silently lost.
-#         FIX: Wrapped in `with _exc_lock:` so reset is atomic
-#         with respect to _track_exception reads/writes.
-#
-# RCA-141 _rebuild_analytics() has lock inversion.
-#         Acquires _ac_lock THEN calls _get_trade_history_snapshot()
-#         which acquires _history_lock. Order: ac → history.
-#         monitor() does: _append_trade (history_lock) then
-#         _ac_lock. Order: history → ac.
-#         FIX: Snapshot history BEFORE acquiring _ac_lock.
-#         Lock order is now always: history → ac.
-#
-# RCA-142 `import tkinter` at module level fails on headless.
-#         Production trading bots often run on headless Linux
-#         servers (no X11/display). `import tkinter` raises
-#         ImportError/ModuleNotFoundError — the entire script
-#         crashes at import, before any trading logic runs.
-#         FIX: Conditional import with _TK_AVAILABLE flag.
-#         _start_gui() returns immediately if not available.
-#         All trading logic works without GUI.
-#
-# RCA-143 BrokerAdapter.wait_for_fill() ignores shutdown.
-#         10-second blocking loop with `time.sleep(2)` polls.
-#         If user presses Ctrl+C, the signal handler sets
-#         _shutdown but wait_for_fill sleeps through it for up
-#         to 10 seconds before checking. During EOD squareoff
-#         with 2 positions, this adds up to 20 seconds of
-#         unresponsive shutdown.
-#         FIX: Check _shutdown.is_set() at loop top. Replace
-#         time.sleep(2) with _shutdown.wait(2) for instant
-#         wakeup on shutdown signal.
-#
-#         The startup Telegram message and validate_config() print
-#         the full bot configuration. While BOT_TOKEN and CHAT_ID
-#         are not directly printed, KITE_API_KEY, KITE_USER_ID
-#         are visible in log files if DEBUG mode is enabled.
-#         More critically: `log()` writes every `send()` call to
-#         the file logger. The startup message contains full
-#         config details. If the log file is accidentally shared
-#         (e.g., copying logs folder for debugging), all config
-#         is exposed. `config.json` contains KITE_PASSWORD in
-#         plaintext — extremely sensitive.
-#         FIX: `_redact(s)` helper replaces the last 80% of any
-#         string with '*' chars (shows first 20% for identification).
-#         Applied to BOT_TOKEN, KITE_API_KEY, KITE_PASSWORD,
-#         KITE_TOTP_KEY in all log/print/Telegram output. Passwords
-#         in config.json can optionally be base64-encoded (not
-#         encrypted, just obfuscated) — a note in the template
-#         warns that config.json must never be committed to git.
-#         validate_config() prints "[REDACTED]" for all sensitive
-#         fields. Log file never receives raw secrets.
-#
-# ── v2.14 NEW FIXES (RCA 144–149) ─────────────────────
-#
-# RCA-144 Positions NOT persisted in trader_state.json.
-#         If bot crashes mid-trade, positions are lost from memory
-#         while still open at the broker. reconcile_on_startup()
-#         iterates an empty dict — no recovery occurs.
-#         FIX: save_state() now serialises positions dict. load_state()
-#         restores validated positions with index-map membership check.
-#
-# RCA-145 SQLite connection leak. _init_db(), _write_db_async(),
-#         print_report() all used conn=sqlite3.connect(…) without
-#         try/finally or context manager. Any exception between
-#         connect() and close() leaks the file handle.
-#         FIX: Replaced with `with sqlite3.connect(…) as conn:`.
-#
-# RCA-146 EMA FLAT detection missing. ema_trend() returned "UP"
-#         or "DOWN" with no in-between. When fast & slow EMAs
-#         converge within noise (< 0.05%), the direction is
-#         meaningless and entering causes whipsaws.
-#         FIX: Return "FLAT" when abs(fast-slow)/slow < 0.0005.
-#
-# RCA-147 NSE_HOLIDAYS hardcoded for 2026 only. If the bot runs
-#         into 2027+, holiday detection silently stops working —
-#         the bot would trade on national holidays.
-#         FIX: Extract unique years from NSE_HOLIDAYS. market_status()
-#         logs a warning (once) when current year has no entries.
-#
-# RCA-148 globals() hack for fail counters. nse_fail_count and
-#         yf_fail_count were modified via globals()["var"]+=1
-#         instead of using the proper `global` keyword. This
-#         bypasses linting, confuses IDEs, and is fragile.
-#         FIX: Added `global nse_fail_count` / `global yf_fail_count`
-#         to every function that mutates them. Removed all globals().
-#
-# ── BEGIN SECURITY ENHANCEMENTS (v2.53.0) ──────────────────
-#
-# RCA-SEC-01: Move secrets to environment variables with OPBUYING_* prefix
-#             All secrets (BOT_TOKEN, CHAT_ID, KITE_* etc.) must now come
-#             from environment variables, not config files.
-#             Legacy config.json secrets are ignored for security.
-#
-# RCA-SEC-02: Implement secure configuration loading via
-#             infrastructure.config.secure_config.SecureConfig
-#             Provides automatic secret redaction in logs and error messages
-#
-# ── END SECURITY ENHANCEMENTS (v2.53.0) ────────────────────
-#
-# ================================================================
-# INSTALL : pip install requests yfinance pandas kiteconnect pyotp
-# RUN     : python -m index_app.index_trader                    ← LIVE
-#           python -m index_app.index_trader --paper             ← PAPER/TEST
-#           python -m index_app.index_trader --debug             ← DEBUG
-#           python -m index_app.index_trader --print-config      ← Dump config.json (secrets redacted)
-#           python -m index_app.index_trader --config-reset      ← After BASE_CAPITAL change
-#           python -m index_app.index_trader --report            ← Multi-session stats
-#           python -m index_app.index_trader --export-trades     ← Export trades to CSV
-# USER GUIDE: HOW_TO_USE.txt (layman steps)  |  Deep guide: SETUP_AND_TRADING_GUIDE.md
-# VERIFY    : pip install -r requirements-dev.txt && python -m pytest tests -v
-# CONFIG    : optional env OPBUYING_INDEX_CONFIG=path\to\config.json (tests/CI)
-#             ALL SECRETS MUST BE IN OPBUYING_* ENVIRONMENT VARIABLES
-# CLEAN EXIT: finally{} saves state, EOD report, closes NSE session. Telegram pool uses
-#             non-blocking shutdown (RCA-193). With dashboard: os._exit(0) when
-#             FORCE_EXIT_AFTER_SHUTDOWN (default true) so Windows CMD closes cleanly;
-#             --nogui uses sys.exit(0). METRICS_PORT>0 on METRICS_BIND (default 127.0.0.1): /metrics, /health, /.
-# ================================================================
 
 
-import atexit
-import json
-import os
-import sys
-import time
-from pathlib import Path
-from typing import Any
-
-# ── Inject project root into sys.path BEFORE any core imports ──
-_ROOT = Path(__file__).resolve().parent.parent
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
-
-import requests
-from core.datetime_ist import is_in_auction_session, now_ist
-from core.execution.broker_exceptions import (
-    AuthExpiredError,
-    OrderRejectedError,
-)
-from core.execution.broker_truth_reconciliation import get_broker_truth_reconciler
-from core.execution.deterministic_state_machine import get_execution_state_manager
-from core.execution.idempotency_alerts import get_idempotency_alert_manager
-from core.expiry_day_controller import ExpiryDayController, StrategyType
-from core.hybrid_execution import apply_execution_mode, normalize_execution_mode
-from core.kite_ticker_feed import KiteTickerFeedManager
-from core.ltp_resolver import LtpResolver
-from core.market_warmup import MarketWarmup
-from core.ports.broker.health_port import BrokerHealthPort
-from core.ports.circuit_breaker.circuit_breaker_port import CircuitBreakerPort
-from core.ports.config import ConfigPort
-from core.ports.correlation_id import CorrelationIdPort
-from core.ports.execution import ExecutionPort
-from core.ports.logging import LoggingPort
-from core.ports.market_data import MarketDataPort
-from core.ports.metrics import MetricsPort
-from core.ports.ml_model import MlModelPort
-from core.ports.notification import NotificationPort
-from core.ports.persistence import PersistencePort
-from core.ports.rate_limiting.rate_limit_port import RateLimitPort
-from core.ports.risk import RiskPort
-
-# v2.49 CRITICAL FIX imports
-from core.risk.margin_validator import get_margin_validator
-from core.safety_state import (
-    check_intraday_pnl_and_halt,
-    hard_halt_reason,
-    is_hard_halted,
-    is_shutting_down,
-    trip_hard_halt,
-)
-from core.services.broker_health_service import BrokerHealthService
-from core.services.circuit_breaker_service import CircuitBreakerService
-from core.services.notification_service import NotificationService
-from core.services.persistence_service import PersistenceService
-from core.services.rate_limiting_service import RateLimitingService
-from core.services.risk_service import RiskService
-from core.state_manager import state_manager
-
-# v2.45 hardening modules
-from core.token_refresh_service import TokenRefreshService
-from infrastructure.adapters.correlation_id.correlation_id_adapter import CorrelationIdAdapter
-from infrastructure.adapters.market_data.yahoofinance.adapter import YahooFinanceAdapter
-from infrastructure.adapters.metrics.metrics_adapter import MetricsAdapter
-from infrastructure.adapters.ml_model.ml_model_adapter import MLModelAdapter
-from infrastructure.config.logging_adapter import StructuredLoggerAdapter
-
-# Import secure configuration system
-from infrastructure.config.secure_config_adapter import SecureConfigAdapter
-
-
-
-# [End of file — S2 duplicate section removed during ARCH-02 refactoring]
 if __name__ == "__main__":
     main()
 

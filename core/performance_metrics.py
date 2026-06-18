@@ -2,8 +2,8 @@
 Performance analytics for the OPB index options trading system.
 
 Primary data source: trades.db (written by index_trader.py on every exit)
-Optional rich source: trade_journal.db (written by TradeJournal — includes
-    slippage, execution delay, quality scores — may be empty at first).
+Optional rich source: trade_journal.db (written by TradeJournal - includes
+    slippage, execution delay, quality scores - may be empty at first).
 
 Usage (standalone):
     python -m core.performance_metrics
@@ -305,7 +305,7 @@ def generate_insights(trades: list[dict]) -> list[str]:
     Designed to be logged or sent via Telegram summary.
     """
     if not trades:
-        return ["No trades yet — insights will appear after the first trade exits."]
+        return ["No trades yet - insights will appear after the first trade exits."]
 
     insights: list[str] = []
     m   = compute_metrics(trades)
@@ -318,24 +318,24 @@ def generate_insights(trades: list[dict]) -> list[str]:
     if exp > 0:
         insights.append(f"System is PROFITABLE: expectancy ₹{exp:+.0f}/trade over {n} trades.")
     elif n < 20:
-        insights.append(f"Only {n} trades — too few for statistical conclusions (need 20+).")
+        insights.append(f"Only {n} trades - too few for statistical conclusions (need 20+).")
     else:
-        insights.append(f"System is UNPROFITABLE: expectancy ₹{exp:+.0f}/trade — review entry filters.")
+        insights.append(f"System is UNPROFITABLE: expectancy ₹{exp:+.0f}/trade - review entry filters.")
 
     if pf != "inf" and pf < 1.0:
-        insights.append(f"Profit factor {pf} < 1.0 — gross losses exceed gross wins.")
+        insights.append(f"Profit factor {pf} < 1.0 - gross losses exceed gross wins.")
     elif pf != "inf" and pf >= 1.5:
         insights.append(f"Profit factor {pf:.2f} is healthy (>1.5).")
 
     wl = m["win_loss_ratio"]
     if wr < 40 and wl < 2.0:
         insights.append(
-            f"Win rate {wr}% AND win/loss ratio {wl:.1f}x are both low — "
+            f"Win rate {wr}% AND win/loss ratio {wl:.1f}x are both low - "
             "raise entry score threshold or widen TP."
         )
     elif wr < 40 and wl >= 2.5:
         insights.append(
-            f"Low win rate ({wr}%) offset by large wins ({wl:.1f}x avg loss) — "
+            f"Low win rate ({wr}%) offset by large wins ({wl:.1f}x avg loss) - "
             "system depends on few big winners; consider improving filter to boost consistency."
         )
 
@@ -345,7 +345,7 @@ def generate_insights(trades: list[dict]) -> list[str]:
         dd_pct = round(max_dd / (m["total_net_pnl"] + max_dd) * 100, 1)
         if dd_pct > 30:
             insights.append(
-                f"Max drawdown ₹{max_dd:.0f} ({dd_pct}% of peak equity) — "
+                f"Max drawdown ₹{max_dd:.0f} ({dd_pct}% of peak equity) - "
                 "consider tighter daily loss limits."
             )
 
@@ -359,14 +359,14 @@ def generate_insights(trades: list[dict]) -> list[str]:
         if bwr > overall_wr + 10:
             insights.append(
                 f"Score bin {best_bin[0]} has highest win rate {bwr}% "
-                f"(+{bwr-overall_wr:.0f}% vs overall) — score threshold well calibrated."
+                f"(+{bwr-overall_wr:.0f}% vs overall) - score threshold well calibrated."
             )
     if worst_bin and worst_bin[1]["trades"] >= 3:
         wbwr = worst_bin[1]["win_rate"]
         if wbwr < overall_wr - 10 and worst_bin[0] != "below_60":
             insights.append(
                 f"Score bin {worst_bin[0]} has low win rate {wbwr}% "
-                f"({overall_wr-wbwr:.0f}% below overall) — "
+                f"({overall_wr-wbwr:.0f}% below overall) - "
                 "these entries drag performance; raise threshold."
             )
 
@@ -387,7 +387,7 @@ def generate_insights(trades: list[dict]) -> list[str]:
             if rm["trades"] >= 5 and rm["total_pnl"] < 0:
                 insights.append(
                     f"Regime {reg}: {rm['trades']} trades, total ₹{rm['total_pnl']:.0f} "
-                    "— consider disabling entries in this regime."
+                    "- consider disabling entries in this regime."
                 )
 
     # ── Exit reason analysis
@@ -398,7 +398,7 @@ def generate_insights(trades: list[dict]) -> list[str]:
         sl_pct = sl_data.get("pct_of_total", 0)
         if sl_pct > 60:
             insights.append(
-                f"{sl_pct:.0f}% of trades exit at stop loss — "
+                f"{sl_pct:.0f}% of trades exit at stop loss - "
                 "consider tighter entry filters or wider initial SL."
             )
     if tp_data and sl_data:
@@ -419,7 +419,7 @@ def generate_insights(trades: list[dict]) -> list[str]:
             worse   = "PUT"  if better == "CALL" else "CALL"
             insights.append(
                 f"{better} trades significantly outperform {worse} "
-                f"({by_dir[better]['win_rate']}% vs {by_dir[worse]['win_rate']}% WR) — "
+                f"({by_dir[better]['win_rate']}% vs {by_dir[worse]['win_rate']}% WR) - "
                 "review PUT/CALL asymmetry in entry criteria."
             )
 
@@ -427,7 +427,7 @@ def generate_insights(trades: list[dict]) -> list[str]:
     max_cl = m.get("max_consec_losses", 0)
     if max_cl >= 5:
         insights.append(
-            f"Max consecutive losses: {max_cl} — verify circuit breaker is active."
+            f"Max consecutive losses: {max_cl} - verify circuit breaker is active."
         )
 
     return insights

@@ -1,4 +1,4 @@
-"""Tests for LotSizeValidator — lot size validation against broker/NSE API."""
+"""Tests for LotSizeValidator - lot size validation against broker/NSE API."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ class TestLotSizeResult:
 
 
 class TestLotSizeValidator:
-    """LotSizeValidator — config validation and live fetch."""
+    """LotSizeValidator - config validation and live fetch."""
 
     def test_get_lot_size_from_config(self):
         validator = LotSizeValidator({"NIFTY_LOT_SIZE": 50})

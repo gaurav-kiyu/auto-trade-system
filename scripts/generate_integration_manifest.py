@@ -1,5 +1,5 @@
 """
-Regenerate docs/INTEGRATION_MANIFEST.md — full path + SHA256 parity vs upstream zips.
+Regenerate docs/INTEGRATION_MANIFEST.md - full path + SHA256 parity vs upstream zips.
 
 Run from project root:
   python scripts/generate_integration_manifest.py
@@ -189,13 +189,13 @@ def main() -> None:
                 lines.append(f"- `{x}`\n")
             lines.append("\n")
             lines.append(
-                "> Stub **app/** + stub **core/execution_engine.py** — must not replace this product’s real modules.\n\n"
+                "> Stub **app/** - must not replace this product’s real modules.\n\n"
             )
 
     lines.append("## Conclusion\n\n")
     lines.append(
         "- **Gap rule:** any path under `core/`, `index_app/`, `tests/`, `scripts/`, `templates/`, or root `*.py` "
-        "that appears **only in an upstream zip** and **not in final** is a defect — current run should show **0**.\n"
+        "that appears **only in an upstream zip** and **not in final** is a defect - current run should show **0**.\n"
     )
     lines.append("- **Excluded artifacts** (DB, logs, EXE, caches) are not required to match.\n")
 

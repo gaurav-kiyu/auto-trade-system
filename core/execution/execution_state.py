@@ -28,6 +28,8 @@ import json
 import logging
 import sqlite3
 import threading
+
+from core.db_utils import get_connection
 import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -323,9 +325,7 @@ class FormalOrderStateManager:
     def _init_durable_storage(self) -> None:
         """Initialize SQLite persistence for formal order states"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
-                conn.execute("PRAGMA journal_mode=WAL")
-                conn.execute("PRAGMA busy_timeout=5000")
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS formal_orders (
                         client_order_id TEXT PRIMARY KEY,
@@ -409,7 +409,7 @@ class FormalOrderStateManager:
     def persist(self, machine: FormalOrderState) -> bool:
         """Persist machine state to SQLite"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     INSERT OR REPLACE INTO formal_orders
                     (client_order_id, intent_id, symbol, quantity, price, direction, state,
@@ -447,7 +447,7 @@ class FormalOrderStateManager:
     def load_inflight(self) -> int:
         """Load non-terminal orders from disk on startup"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 cursor = conn.execute("""
                     SELECT client_order_id, intent_id, symbol, quantity, price, direction,
                            state, broker_order_id, filled_quantity, remaining_quantity,
@@ -490,7 +490,7 @@ class FormalOrderStateManager:
 
 
 _formal_order_manager: FormalOrderStateManager | None = None
-_manager_lock = threading.Lock()
+_manager_lock = threading.RLock()
 
 
 def get_formal_order_manager(persistence_callback: Callable | None = None) -> FormalOrderStateManager:

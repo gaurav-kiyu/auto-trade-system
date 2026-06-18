@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Test — Order Placement.
+AD-KIYU Broker Contract Test - Order Placement.
 
 Verifies that a broker adapter can place valid orders and returns
 a well-formed order ID for every successful submission.

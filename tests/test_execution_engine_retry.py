@@ -1,9 +1,15 @@
-"""Tests for execution_engine retry logic with exponential backoff + jitter."""
+"""Tests for execution_engine retry logic with exponential backoff + jitter.
+
+.. deprecated:: v2.55
+    ``core/execution_engine.py`` has been removed. These tests use
+    the preserved helper in ``tests/helpers/legacy_execution_engine.py``.
+    See ``tests/test_execution_service.py`` for equivalent new-path tests.
+"""
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from core.execution_engine import ExecutionEngine
+from tests.helpers.legacy_execution_engine import ExecutionEngine
 
 
 class TestExecutionEngineRetry:

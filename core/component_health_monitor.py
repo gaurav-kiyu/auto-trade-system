@@ -219,7 +219,7 @@ class ComponentHealthMonitor:
 
 
 _global_monitor: ComponentHealthMonitor | None = None
-_monitor_lock: threading.Lock = threading.Lock()
+_monitor_lock: threading.Lock = threading.RLock()
 
 
 def get_health_monitor() -> ComponentHealthMonitor:

@@ -1,5 +1,5 @@
 """
-Pre-entry liquidity quality checks (Item 1 — v2.44).
+Pre-entry liquidity quality checks (Item 1 - v2.44).
 
 Ensures options are tradeable before entry is attempted.
 Runs synchronously in the entry gate; never raises.
@@ -55,7 +55,7 @@ def check_entry_liquidity(
       6. volume >= min_volume_threshold
 
     If liquidity_guard_enabled=false: always passes.
-    Never raises — returns a failed check on any error.
+    Never raises - returns a failed check on any error.
     """
     c = cfg or {}
     try:

@@ -1,4 +1,4 @@
-"""Tests for core.capital_manager — equity-aware capital scaling and drawdown control."""
+"""Tests for core.capital_manager - equity-aware capital scaling and drawdown control."""
 from __future__ import annotations
 
 import pytest

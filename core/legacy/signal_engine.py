@@ -5,7 +5,7 @@ SHARED SIGNAL ENGINE v1.0
 ═════════════════════════
 One signal calculation module used by BOTH the dashboard + Telegram engine.
 No duplicated logic. All indicators computed from live OHLCV data.
-Zero hardcoded prices or levels — everything is dynamically calculated.
+Zero hardcoded prices or levels - everything is dynamically calculated.
 
 Indicators: RSI(14), MACD(12,26,9), EMA(20/50/200), VWAP, Volume Ratio,
             ATR-based Stop Loss, Fibonacci TP levels, OI-based Support/Resistance
@@ -58,7 +58,7 @@ def _learning_score_adj_limit(cfg: Optional[dict], asset_type: str = "index") ->
 
 
 # ═══════════════════════════════════════════════════════════════
-# CORE INDICATOR FUNCTIONS  — Pure, no side effects
+# CORE INDICATOR FUNCTIONS  - Pure, no side effects
 # ═══════════════════════════════════════════════════════════════
 
 get_price = FeatureEngine.get_price
@@ -238,7 +238,7 @@ def score_to_label(score: int, direction: str, threshold: int = 60) -> str:
     return "No Signal"
 
 # ═══════════════════════════════════════════════════════════════
-# UNIFIED SCORING ENGINE  — Parameterised for stock vs index
+# UNIFIED SCORING ENGINE  - Parameterised for stock vs index
 # ═══════════════════════════════════════════════════════════════
 
 def compute_score_stock(
@@ -249,7 +249,7 @@ def compute_score_stock(
     learning_adj: int = 0,
     atr_min: float = 0.5, pcr_bullish: float = 1.2, pcr_bearish: float = 0.8,
 ) -> int:
-    """Stock scoring — includes RSI component. All thresholds parameterised."""
+    """Stock scoring - includes RSI component. All thresholds parameterised."""
     s = 0
     s += 15 if t5 == t15 else 0
     s += 12 if (t5 == "UP" and price > vwap) or (t5 == "DOWN" and price < vwap) else 0
@@ -274,7 +274,7 @@ def compute_score_index(
     vol_min: float = 1.2, learning_adj: int = 0,
     atr_min: float = 0.5, pcr_bullish: float = 1.2, pcr_bearish: float = 0.8,
 ) -> int:
-    """Index scoring — all thresholds parameterised."""
+    """Index scoring - all thresholds parameterised."""
     s = 0
     s += 20 if t5 == t15 else 0
     s += 15 if (t5 == "UP" and price > vwap) else 0
@@ -293,7 +293,7 @@ def compute_score_index(
     return max(0, min(100, s))
 
 # ═══════════════════════════════════════════════════════════════
-# REGIME DETECTION  — Lightweight, pure, config-driven
+# REGIME DETECTION  - Lightweight, pure, config-driven
 # ═══════════════════════════════════════════════════════════════
 
 def detect_regime(features: dict, config: dict) -> str:
@@ -313,19 +313,19 @@ def detect_regime(features: dict, config: dict) -> str:
     vix_high  = float(config.get("REGIME_VIX_HIGH", 22))
 
     if vix >= vix_high:
-        return "HIGH_VOL"    # elevated fear — widen spreads, avoid new entries
+        return "HIGH_VOL"    # elevated fear - widen spreads, avoid new entries
 
     if adx >= adx_trend:
         return "TREND"       # directional momentum confirmed
 
     if adx > 0 and adx <= adx_range:
-        return "RANGE"       # low-ADX chop — mean-reversion conditions
+        return "RANGE"       # low-ADX chop - mean-reversion conditions
 
     return "NEUTRAL"         # ambiguous; apply mild caution
 
 
 # ═══════════════════════════════════════════════════════════════
-# FULL SIGNAL BUILDER — Returns standardised schema
+# FULL SIGNAL BUILDER - Returns standardised schema
 # ═══════════════════════════════════════════════════════════════
 
 def build_full_signal(
@@ -384,7 +384,7 @@ def build_full_signal(
     learning_clamped = max(-_lim, min(_lim, int(learning_adj)))
     final_score = score_data["total_score"] + learning_clamped
 
-    # 3. Regime detection — inject vix into features so detect_regime has all it needs
+    # 3. Regime detection - inject vix into features so detect_regime has all it needs
     features["vix"] = vix
     _regime_enabled = bool(cfg.get("REGIME_ENABLED", True))
     regime = detect_regime(features, cfg) if _regime_enabled else "NEUTRAL"
@@ -392,13 +392,13 @@ def build_full_signal(
     _pen = int(cfg.get("REGIME_SCORE_PENALTY", 5))
     _bon = int(cfg.get("REGIME_SCORE_BONUS",  5))
 
-    # 4. Breakout bonus — skip in RANGE: a breakout in choppy conditions is noise
+    # 4. Breakout bonus - skip in RANGE: a breakout in choppy conditions is noise
     if features.get("breakout_ok") and regime != "RANGE":
         final_score += 8
 
     # 5. Regime-based score adjustment
     if regime == "TREND":
-        # Trending market: optimal for directional options buying — no change
+        # Trending market: optimal for directional options buying - no change
         pass
 
     elif regime == "RANGE":
@@ -410,7 +410,7 @@ def build_full_signal(
             final_score -= _pen   # mid-RSI breakout in range = noise
 
     elif regime == "HIGH_VOL":
-        # Elevated VIX: option premiums inflated, spreads wide — strong penalty
+        # Elevated VIX: option premiums inflated, spreads wide - strong penalty
         final_score -= _pen * 2
 
     else:  # NEUTRAL
@@ -525,7 +525,7 @@ def build_full_signal(
     }
 
 # ═══════════════════════════════════════════════════════════════
-# DATA VALIDATION  — Shared OHLCV cleaner
+# DATA VALIDATION  - Shared OHLCV cleaner
 # ═══════════════════════════════════════════════════════════════
 
 def validate_ohlcv(df: pd.DataFrame, interval: str = "1m", max_drop_ratio: float = 0.15) -> tuple[pd.DataFrame | None, int]:
@@ -546,7 +546,7 @@ def validate_ohlcv(df: pd.DataFrame, interval: str = "1m", max_drop_ratio: float
     return (df.dropna() if len(df) >= 3 else None), n_drop
 
 # ═══════════════════════════════════════════════════════════════
-# EXPLAIN WHY  — Layman-readable signal explanation
+# EXPLAIN WHY  - Layman-readable signal explanation
 # ═══════════════════════════════════════════════════════════════
 
 def explain_signal(sig: dict, asset_label: str = "Stock") -> str:
@@ -573,8 +573,8 @@ def explain_signal(sig: dict, asset_label: str = "Stock") -> str:
 
     rsi = sig.get("rsi", 50)
     if 40 <= rsi <= 70: parts.append(f"RSI healthy ({rsi})")
-    elif rsi > 70: parts.append(f"RSI high ({rsi}) — overbought")
-    elif rsi < 30: parts.append(f"RSI low ({rsi}) — oversold")
+    elif rsi > 70: parts.append(f"RSI high ({rsi}) - overbought")
+    elif rsi < 30: parts.append(f"RSI low ({rsi}) - oversold")
 
     macd = sig.get("macd", {})
     if isinstance(macd, dict) and macd.get("histogram", 0) != 0:
@@ -584,12 +584,12 @@ def explain_signal(sig: dict, asset_label: str = "Stock") -> str:
     vix = sig.get("vix", 0)
     if 0 < vix <= 15: parts.append(f"low fear (VIX {vix})")
     elif 15 < vix <= 22: parts.append(f"moderate fear (VIX {vix})")
-    elif vix > 22: parts.append(f"high fear (VIX {vix}) — risky")
+    elif vix > 22: parts.append(f"high fear (VIX {vix}) - risky")
 
     return ", ".join(parts) if parts else "Multiple signals aligned"
 
 # ═══════════════════════════════════════════════════════════════
-# SCORE BREAKDOWN  — Human-readable component attribution
+# SCORE BREAKDOWN  - Human-readable component attribution
 # ═══════════════════════════════════════════════════════════════
 
 def score_breakdown(sig: dict, config: dict | None = None) -> str:
@@ -676,12 +676,12 @@ def score_breakdown(sig: dict, config: dict | None = None) -> str:
         
     gap      = score - thr
     status   = "PASS" if gap >= 0 else f"NEED +{abs(gap)}"
-    breakdown = ", ".join(f"{name} +{pts}" for name, pts in parts) if parts else "—"
+    breakdown = ", ".join(f"{name} +{pts}" for name, pts in parts) if parts else "-"
     return f"Score {score}/{thr} ({gap:+d}) [{status}]  \u2190  {breakdown}"
 
 
 # ═══════════════════════════════════════════════════════════════
-# FORMAT HELPERS  — Used by dashboard and Telegram
+# FORMAT HELPERS  - Used by dashboard and Telegram
 # ═══════════════════════════════════════════════════════════════
 
 R = chr(0x20B9)

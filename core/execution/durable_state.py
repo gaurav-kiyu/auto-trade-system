@@ -10,6 +10,8 @@ from __future__ import annotations
 import logging
 import sqlite3
 import threading
+
+from core.db_utils import get_connection
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -80,9 +82,7 @@ class DurableExecutionStore:
         """Initialize SQLite schema for execution state."""
         try:
             with self._lock:
-                with sqlite3.connect(self._db_path) as conn:
-                    conn.execute("PRAGMA journal_mode=WAL")
-                    conn.execute("PRAGMA busy_timeout=5000")
+                with get_connection(self._db_path) as conn:
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS execution_state (
                             intent_id TEXT PRIMARY KEY,
@@ -119,7 +119,7 @@ class DurableExecutionStore:
         """Save or update execution state atomically."""
         try:
             with self._lock:
-                with sqlite3.connect(self._db_path) as conn:
+                with get_connection(self._db_path) as conn:
                     conn.execute("""
                         INSERT OR REPLACE INTO execution_state (
                             intent_id, client_order_id, symbol, direction,
@@ -153,7 +153,7 @@ class DurableExecutionStore:
         """Get execution state by intent_id."""
         try:
             with self._lock:
-                with sqlite3.connect(self._db_path) as conn:
+                with get_connection(self._db_path) as conn:
                     conn.row_factory = sqlite3.Row
                     cursor = conn.execute(
                         "SELECT * FROM execution_state WHERE intent_id = ?",
@@ -171,7 +171,7 @@ class DurableExecutionStore:
         """Get all non-terminal executions for reconciliation."""
         try:
             with self._lock:
-                with sqlite3.connect(self._db_path) as conn:
+                with get_connection(self._db_path) as conn:
                     conn.row_factory = sqlite3.Row
                     cursor = conn.execute("""
                         SELECT * FROM execution_state
@@ -202,7 +202,7 @@ class DurableExecutionStore:
         """Update execution state atomically."""
         try:
             with self._lock:
-                with sqlite3.connect(self._db_path) as conn:
+                with get_connection(self._db_path) as conn:
                     updates = ["state = ?", "updated_at = ?"]
                     params = [state.value, now_ist().isoformat()]
 
@@ -240,7 +240,7 @@ class DurableExecutionStore:
         """Increment retry count and return new count."""
         try:
             with self._lock:
-                with sqlite3.connect(self._db_path) as conn:
+                with get_connection(self._db_path) as conn:
                     cursor = conn.execute(
                         "UPDATE execution_state SET retry_count = retry_count + 1, updated_at = ? WHERE intent_id = ?",
                         (now_ist().isoformat(), intent_id)
@@ -265,7 +265,7 @@ class DurableExecutionStore:
         """Clean up old terminal records to prevent DB bloat."""
         try:
             with self._lock:
-                with sqlite3.connect(self._db_path) as conn:
+                with get_connection(self._db_path) as conn:
                     cursor = conn.execute("""
                         DELETE FROM execution_state
                         WHERE state IN (?, ?, ?, ?)
@@ -284,7 +284,7 @@ class DurableExecutionStore:
         """Get execution state statistics."""
         try:
             with self._lock:
-                with sqlite3.connect(self._db_path) as conn:
+                with get_connection(self._db_path) as conn:
                     result = {}
                     for state in ExecutionState:
                         cursor = conn.execute(

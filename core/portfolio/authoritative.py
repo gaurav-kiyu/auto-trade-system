@@ -1,4 +1,4 @@
-"""AD-KIYU Portfolio Authority — single portfolio engine."""
+"""AD-KIYU Portfolio Authority - single portfolio engine."""
 from __future__ import annotations
 
 import logging
@@ -11,10 +11,10 @@ _log = logging.getLogger(__name__)
 
 
 class PortfolioAuthority:
-    """Single authoritative portfolio engine — exposure, capital, margin, budgets."""
+    """Single authoritative portfolio engine - exposure, capital, margin, budgets."""
 
     def __init__(self, data_service: PortfolioDataService | None = None):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._data = data_service or PortfolioDataService()
         self._correlation_limits: dict[str, float] = {}
         self._max_gross_exposure: float = 1_000_000.0

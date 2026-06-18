@@ -1,4 +1,4 @@
-"""Tests for core.logging — canonical logging abstraction."""
+"""Tests for core.logging - canonical logging abstraction."""
 
 from __future__ import annotations
 

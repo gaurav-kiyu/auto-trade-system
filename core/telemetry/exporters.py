@@ -1,5 +1,5 @@
 """
-AD-KIYU Telemetry — Metrics Exporters.
+AD-KIYU Telemetry - Metrics Exporters.
 
 Supported export formats:
   - Prometheus text format (:9090/metrics)
@@ -43,7 +43,7 @@ class PrometheusExporter:
 
     def __init__(self, collector: MetricsCollector):
         self._collector = collector
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._registry: dict[str, str] = {}
 
     def generate_text(self) -> str:

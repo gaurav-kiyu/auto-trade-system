@@ -151,7 +151,7 @@ class CostAccountant:
 
 
 _cost_accountant: CostAccountant = None
-_cost_accountant_lock = threading.Lock()
+_cost_accountant_lock = threading.RLock()
 
 
 def get_cost_accountant(config: dict = None) -> CostAccountant:

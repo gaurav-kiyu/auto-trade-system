@@ -1,4 +1,4 @@
-"""Tests for core.feature_engine — structured feature extraction from OHLCV data."""
+"""Tests for core.feature_engine - structured feature extraction from OHLCV data."""
 
 from __future__ import annotations
 

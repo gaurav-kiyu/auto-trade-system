@@ -160,7 +160,7 @@ class SecretHygieneChecker:
             return SecretHygieneResult(passed=True, secrets_found=[], warnings=[])
 
         # Skip binary files and common non-config files
-        # NOTE: .py is intentionally NOT excluded — secrets can be hardcoded in source.
+        # NOTE: .py is intentionally NOT excluded - secrets can be hardcoded in source.
         skip_extensions = {".md", ".txt", ".log", ".db", ".sqlite"}
         if file_path.suffix.lower() in skip_extensions:
             return SecretHygieneResult(passed=True, secrets_found=[], warnings=[])

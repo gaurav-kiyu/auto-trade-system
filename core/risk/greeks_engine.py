@@ -11,11 +11,11 @@ Implements comprehensive Greeks-based risk controls for options portfolios:
 
 Architecture
 ------------
-  GreeksEngine        — Main entry point, coordinates all Greeks checks
-  ├── GreeksCalculator — Computes Greeks from positions using BS model
-  ├── GreeksLimits     — Validates aggregated Greeks against config limits
-  ├── GreeksStressTester — Applies shock scenarios to portfolio Greeks
-  └── PortfolioGreeks  — Data class for aggregated portfolio Greeks
+  GreeksEngine        - Main entry point, coordinates all Greeks checks
+  ├── GreeksCalculator - Computes Greeks from positions using BS model
+  ├── GreeksLimits     - Validates aggregated Greeks against config limits
+  ├── GreeksStressTester - Applies shock scenarios to portfolio Greeks
+  └── PortfolioGreeks  - Data class for aggregated portfolio Greeks
 
 Usage
 -----
@@ -56,7 +56,6 @@ try:
         GreeksResult as LegacyGreeksResult,
         OptionType as LegacyOptionType,
         OptionsGreeksEngine as LegacyOptionsGreeksEngine,
-        PositionGreeksInput as LegacyPositionGreeksInput,
     )
 except ImportError as e:
     _log.debug("[GREEKS] non-critical error: %s", e)
@@ -330,7 +329,7 @@ class GreeksLimits:
 
     def __init__(self, config: GreeksLimitsConfig):
         self._config = config
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def check_delta(
         self,
@@ -542,7 +541,7 @@ class GreeksStressTester:
 
 class GreeksEngine:
     """
-    Main Greeks Risk Engine — coordinates validation, aggregation, and stress testing.
+    Main Greeks Risk Engine - coordinates validation, aggregation, and stress testing.
 
     No options strategy may bypass Greeks controls.
     Risk Engine remains the final authority for all execution decisions.
@@ -558,7 +557,7 @@ class GreeksEngine:
         self._calculator = GreeksCalculator()
         self._stress_tester = GreeksStressTester()
         self._log = log_fn or _log
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     # ── Entry Validation ─────────────────────────────────────────────────
 
@@ -735,7 +734,7 @@ class GreeksEngine:
 # ─── Singleton factory ────────────────────────────────────────────────────────
 
 _engine_instance: GreeksEngine | None = None
-_engine_lock = threading.Lock()
+_engine_lock = threading.RLock()
 
 
 def get_greeks_engine(

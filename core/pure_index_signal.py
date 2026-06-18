@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
-import signal_engine as SE
+from core.legacy import signal_engine as SE
 
 from core.feature_engine import FeatureEngine
 from core.market_calc import detect_regime_and_adx as mc_detect_regime_and_adx
@@ -41,7 +41,7 @@ def _drop_partial_candle(df: pd.DataFrame | None) -> pd.DataFrame | None:
         if float(df["Volume"].iloc[-1]) == 0 and float(df["Volume"].iloc[-2]) > 0:
             return df.iloc[:-1]
     except (KeyError, ValueError, TypeError, IndexError) as _candle_err:
-        pass  # partial candle detection failed — return full df
+        pass  # partial candle detection failed - return full df
     return df
 
 
@@ -85,19 +85,19 @@ def compute_index_score(
     rsi: float = 50.0,
 ) -> int:
     """
-    Index scoring — deterministic, regime-agnostic component scorer.
+    Index scoring - deterministic, regime-agnostic component scorer.
 
     Weight table (max without OI/PCR):
-      TF aligned    18  — both 5m and 15m trending same direction
-      VWAP confirm  15  — price on correct side of daily VWAP
-      D1 momentum   12  — 10-bar 1m delta confirms direction
-      D5 momentum    8  — 3-bar 5m delta confirms direction
-      Volume spike   8  — current vol ≥ vol_ratio_min × average
-      ATR floor      5  — sufficient ATR for viable trade
-      RSI health    +8  — RSI in continuation zone (40-70 CALL, 30-60 PUT)
-      RSI extreme   -8  — overbought (>75 CALL) or oversold (<25 PUT)
-      SmartMoney    10  — open-interest sentiment aligns (live only)
-      PCR confirm    5  — PCR aligns with direction (live only)
+      TF aligned    18  - both 5m and 15m trending same direction
+      VWAP confirm  15  - price on correct side of daily VWAP
+      D1 momentum   12  - 10-bar 1m delta confirms direction
+      D5 momentum    8  - 3-bar 5m delta confirms direction
+      Volume spike   8  - current vol ≥ vol_ratio_min × average
+      ATR floor      5  - sufficient ATR for viable trade
+      RSI health    +8  - RSI in continuation zone (40-70 CALL, 30-60 PUT)
+      RSI extreme   -8  - overbought (>75 CALL) or oversold (<25 PUT)
+      SmartMoney    10  - open-interest sentiment aligns (live only)
+      PCR confirm    5  - PCR aligns with direction (live only)
     Max without OI: 18+15+12+8+8+5+8 = 74  → spread to 82+ with breakout bonus
     Max with OI:    74+15 = 89              → spread to 97+ with breakout bonus
     """
@@ -136,17 +136,17 @@ def compute_index_score(
         s += min(14, 4 + int(min(1.0, _vol_excess) * 10))
     # ── ATR floor (5) ────────────────────────────────────────────────
     s +=  5 if atr > _atr_min else 0
-    # ── RSI: health bonus ONLY (no penalty — extreme RSI in a trending
+    # ── RSI: health bonus ONLY (no penalty - extreme RSI in a trending
     #    market is continuation, not reversal; penalty handled by regime
     #    filter and ADX penalty elsewhere) ────────────────────────────
     if t5 == "UP"   and _rsi_hl_c <= rsi <= _rsi_hh_c:
         s += _rsi_bonus
     elif t5 == "DOWN" and _rsi_hl_p <= rsi <= _rsi_hh_p:
         s += _rsi_bonus
-    # ── Smart money / OI sentiment (10) — non-zero only with live OI ─
+    # ── Smart money / OI sentiment (10) - non-zero only with live OI ─
     s += 10 if t5 == "UP"   and smart == "BULLISH" else 0
     s += 10 if t5 == "DOWN" and smart == "BEARISH" else 0
-    # ── PCR confirmation (5) — non-zero only with live OI ────────────
+    # ── PCR confirmation (5) - non-zero only with live OI ────────────
     s +=  5 if t5 == "UP"   and pcr > _pcr_bull else 0
     s +=  5 if t5 == "DOWN" and pcr < _pcr_bear else 0
     # ── Learning bonus (clamped) ──────────────────────────────────────
@@ -269,7 +269,7 @@ def evaluate_index_signal_partial(
         learning_score_bonus=learning_score_bonus, rsi=rsi_val,
     )
 
-    # Component-level breakdown — must mirror compute_index_score formulas exactly
+    # Component-level breakdown - must mirror compute_index_score formulas exactly
     _vwap_ref_ = max(float(vwap_val), 1.0)
     if (t5_scoring == "UP" and price > _vwap_ref_) or (t5_scoring == "DOWN" and price < _vwap_ref_):
         _vwap_dist_ = abs(price - _vwap_ref_) / _vwap_ref_
@@ -333,7 +333,7 @@ def evaluate_index_signal_partial(
     _score_components["adx_penalty"] = _adx_pen_applied
 
     # VWAP reclaim: price recently crossed from wrong side to correct side of VWAP.
-    # This is the key component of the VWAP-Reclaim strategy — institutional order
+    # This is the key component of the VWAP-Reclaim strategy - institutional order
     # flow confirming direction after a short-term deviation.
     # Gate: price must currently be on correct VWAP side (_vwap_pts > 0).
     _reclaim_bonus = int(sc.get("VWAP_RECLAIM_BONUS", 7))
@@ -349,7 +349,7 @@ def evaluate_index_signal_partial(
             score = min(100, score + _reclaim_pts)
     _score_components["vwap_reclaim"] = _reclaim_pts
 
-    # ADX trend bonus — symmetric with chop penalty. Strong trending markets
+    # ADX trend bonus - symmetric with chop penalty. Strong trending markets
     # (ADX above trend threshold) are structurally safer for directional options.
     _adx_trend_thr = float(sc.get("ADX_TREND_THRESHOLD", 20))
     _adx_trend_bonus = int(sc.get("ADX_TREND_BONUS_POINTS", 5))
@@ -359,7 +359,7 @@ def evaluate_index_signal_partial(
         score = min(100, score + _adx_trend_pts)
     _score_components["adx_trend_bonus"] = _adx_trend_pts
 
-    # Regime-based score penalty — HIGH_VOLATILITY and EVENT regimes inflate
+    # Regime-based score penalty - HIGH_VOLATILITY and EVENT regimes inflate
     # option premiums and widen spreads; require a higher quality bar before entry.
     _hv_pen = int(sc.get("REGIME_SCORE_PENALTY_HV", 8))
     _ev_pen = int(sc.get("REGIME_SCORE_PENALTY_EVENT", 10))
@@ -372,8 +372,8 @@ def evaluate_index_signal_partial(
         score = max(0, score - _ev_pen)
     _score_components["regime_penalty"] = _regime_pen
 
-    # ORB (Opening Range Breakout) bonus — institutional breakout above/below
-    # the 9:15–9:30 session range is a high-conviction directional signal.
+    # ORB (Opening Range Breakout) bonus - institutional breakout above/below
+    # the 9:15-9:30 session range is a high-conviction directional signal.
     _orb_bonus = int(sc.get("ORB_BONUS", 10))
     _orb_pts = 0
     try:
@@ -395,7 +395,7 @@ def evaluate_index_signal_partial(
                     _orb_pts = _orb_bonus
                     score = min(100, score + _orb_pts)
     except (ValueError, TypeError, KeyError, AttributeError, IndexError) as _orb_err:
-        pass  # ORB bonus failed — continue without it
+        pass  # ORB bonus failed - continue without it
     _score_components["orb_bonus"] = _orb_pts
 
     atr_sl_mult = float(sc.get("ATR_SL_MULTIPLIER", 1.2))
@@ -535,7 +535,7 @@ def evaluate_dual_direction_signal(
         (primary_dir == "CALL" and t5 == "DOWN")
         or (primary_dir == "PUT" and t5 == "UP")
     )
-    # If TF fallback fired, the direction might be counter-trend — mark it
+    # If TF fallback fired, the direction might be counter-trend - mark it
     if is_counter_primary and partial.get("_tf_divergence_fallback"):
         comps = dict(partial.get("score_components", {}))
         comps["counter_trend_penalty"] = -counter_trend_penalty
@@ -555,7 +555,7 @@ def evaluate_dual_direction_signal(
 
     opposite_dir = "PUT" if primary_dir == "CALL" else "CALL"
 
-    # Check if TF fallback already fired — if so, the "primary" is already
+    # Check if TF fallback already fired - if so, the "primary" is already
     # the forced direction, so evaluate the original trend direction as well
     opp_partial, opp_reason = evaluate_index_signal_partial(
         params=params,
@@ -584,7 +584,7 @@ def evaluate_dual_direction_signal(
     if is_counter_opp:
         penalty = counter_trend_penalty
         # Mean-reversion mode (Option B): waive penalty when RSI is extreme
-        # — overbought = PUT opportunity, oversold = CALL opportunity
+        # - overbought = PUT opportunity, oversold = CALL opportunity
         if mean_reversion_enabled:
             rsi_val = FeatureEngine.get_rsi(df5)
             _rsi_ob = float(sc.get("INDEX_RSI_OVERBOUGHT", 75))
@@ -593,7 +593,7 @@ def evaluate_dual_direction_signal(
                 (opposite_dir == "PUT" and rsi_val >= _rsi_ob)
                 or (opposite_dir == "CALL" and rsi_val <= _rsi_os)
             ):
-                penalty = 0  # Waive — mean-reversion opportunity
+                penalty = 0  # Waive - mean-reversion opportunity
 
     adjusted_opp_score = opp_score - penalty
 

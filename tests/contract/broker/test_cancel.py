@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Test — Order Cancellation.
+AD-KIYU Broker Contract Test - Order Cancellation.
 
 Verifies that broker adapters can cancel open orders and
 return appropriate status for cancelled orders.

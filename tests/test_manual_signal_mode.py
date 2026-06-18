@@ -62,7 +62,7 @@ def _load_mod_code() -> str:
 
 
 # ---------------------------------------------------------------------------
-# 1. apply_execution_mode — MANUAL derivation (pure unit tests)
+# 1. apply_execution_mode - MANUAL derivation (pure unit tests)
 # ---------------------------------------------------------------------------
 
 class TestManualModeDerivation:
@@ -106,7 +106,7 @@ class TestManualModeDerivation:
 
 
 # ---------------------------------------------------------------------------
-# 2. normalize_execution_mode — MANUAL aliases
+# 2. normalize_execution_mode - MANUAL aliases
 # ---------------------------------------------------------------------------
 
 class TestManualAliases:
@@ -147,7 +147,7 @@ class TestManualAliases:
 
 
 # ---------------------------------------------------------------------------
-# 3. PresentationEngine.manual_signal_message — format + action instruction
+# 3. PresentationEngine.manual_signal_message - format + action instruction
 # ---------------------------------------------------------------------------
 
 class TestManualSignalMessage:
@@ -208,14 +208,14 @@ class TestManualSignalMessage:
         assert "executing" not in lowered
 
     def test_message_ends_with_action(self):
-        """Last line must be the action instruction — nothing passive."""
+        """Last line must be the action instruction - nothing passive."""
         msg = self._msg()
         last_line = msg.strip().splitlines()[-1]
         assert "manually" in last_line.lower() or "broker" in last_line.lower()
 
 
 # ---------------------------------------------------------------------------
-# 4. PresentationEngine.dashboard_broker_mode — MANUAL label
+# 4. PresentationEngine.dashboard_broker_mode - MANUAL label
 # ---------------------------------------------------------------------------
 
 class TestDashboardBrokerModeManual:
@@ -260,7 +260,7 @@ class TestDashboardBrokerModeManual:
 
 
 # ---------------------------------------------------------------------------
-# 5. get_wait_reason_components — pure function via subprocess
+# 5. get_wait_reason_components - pure function via subprocess
 #    Config thresholds: ADX_CHOP=14, MIN_RR=1.5, VIX_BLOCK=27, EOD=40 mins
 # ---------------------------------------------------------------------------
 
@@ -306,7 +306,7 @@ print("STATUS:" + status)
         assert "ADX" in status
 
     def test_no_adx_block_above_threshold(self):
-        # score passes → PASS regardless of ADX value (correct behaviour — high score wins)
+        # score passes → PASS regardless of ADX value (correct behaviour - high score wins)
         status, _ = self._check({"score": 75, "threshold": 60, "adx": 20.0})
         assert status == "PASS"
 
@@ -449,7 +449,7 @@ print("ok")
         assert "ok" in r.stdout
 
     def test_execution_mode_is_manual_in_config(self):
-        """Baseline: config.json must be loaded as MANUAL — not AUTO or PAPER."""
+        """Baseline: config.json must be loaded as MANUAL - not AUTO or PAPER."""
         code = _load_mod_code() + """
 assert mod.EXECUTION_MODE == "MANUAL", (
     f"Expected EXECUTION_MODE=MANUAL but got {mod.EXECUTION_MODE}"
@@ -613,11 +613,11 @@ print("ok")
         assert "ok" in r.stdout
 
     def test_no_broker_order_placed_in_manual_mode(self):
-        """broker.place_order must NOT be called in MANUAL mode — the operator places the order."""
+        """broker.place_order must NOT be called in MANUAL mode - the operator places the order."""
         code = _load_mod_code() + _GOLDEN_PATH_SETUP + """
 mod.enter_trade("NIFTY", _SIGNAL)
 assert not _broker_calls, (
-    f"broker.place_order called in MANUAL mode — this is a regression: {_broker_calls!r}"
+    f"broker.place_order called in MANUAL mode - this is a regression: {_broker_calls!r}"
 )
 print("ok")
 """
@@ -639,7 +639,7 @@ print("ok")
         assert "ok" in r.stdout
 
     def test_stale_signal_does_not_reach_send(self):
-        """A signal confirmed more than SIGNAL_MAX_AGE seconds ago must be dropped — send() not called."""
+        """A signal confirmed more than SIGNAL_MAX_AGE seconds ago must be dropped - send() not called."""
         code = _load_mod_code() + _GOLDEN_PATH_SETUP + """
 # Override the confirmed_ts to be stale (beyond SIGNAL_MAX_AGE)
 with mod._bos_lock:

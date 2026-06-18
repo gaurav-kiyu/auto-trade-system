@@ -130,4 +130,4 @@ class TestPriceSanityChecks:
             vix_ts=None,
             cfg={"data_freshness_guard_enabled": False}
         )
-        assert result.passed is False  # Guard is always active — safety invariant
+        assert result.passed is False  # Guard is always active - safety invariant

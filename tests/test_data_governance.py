@@ -1,4 +1,4 @@
-"""Tests for core/data_governance.py — retention policies + cleanup scheduler."""
+"""Tests for core/data_governance.py - retention policies + cleanup scheduler."""
 
 import tempfile
 

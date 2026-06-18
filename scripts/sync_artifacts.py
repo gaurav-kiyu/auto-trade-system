@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script & Artifact Synchronization Checker — Enforces the Constitution's Mandatory Sync.
+Script & Artifact Synchronization Checker - Enforces the Constitution's Mandatory Sync.
 
 The Constitution mandates that whenever operational behavior changes:
   1. Verify and update: .bat, .ps1, .sh, CI/CD pipelines, deployment/recovery/backup scripts
@@ -165,7 +165,7 @@ def check_artifact_consistency() -> list[str]:
         if not any((ROOT / "build_exe.bat").exists() for _ in [1]):
             pass  # build_exe.bat exists -> spec files are build artifacts
         issues.append(
-            f"BUILD_ARTIFACT: {spec.name} — PyInstaller spec file, should be cleaned after build"
+            f"BUILD_ARTIFACT: {spec.name} - PyInstaller spec file, should be cleaned after build"
         )
 
     return issues
@@ -337,9 +337,9 @@ def main(argv: list[str] | None = None) -> int:
     #   - .env.example sync (env example out of date)
     #   - Config drift (defaults vs template mismatch)
     # Non-blocking in CI (aspirational):
-    #   - Documentation sync (missing test files — valid but not release-blocking)
-    #   - Documentation drift (missing docs — valid but not release-blocking)
-    #   - Config drift (603 keys mismatch — needs template regeneration, tracked separately)
+    #   - Documentation sync (missing test files - valid but not release-blocking)
+    #   - Documentation drift (missing docs - valid but not release-blocking)
+    #   - Config drift (603 keys mismatch - needs template regeneration, tracked separately)
     blocking_categories = {
         "script_sync",
         "artifact_consistency",
@@ -397,10 +397,10 @@ def main(argv: list[str] | None = None) -> int:
     print()
     print("=" * 70)
     if has_blocking:
-        print("  RESULT: ISSUES FOUND — resolve before release")
+        print("  RESULT: ISSUES FOUND - resolve before release")
         return 1
     else:
-        print("  RESULT: ALL SYNCHRONIZED — no issues found")
+        print("  RESULT: ALL SYNCHRONIZED - no issues found")
         return 0
 
 

@@ -1,5 +1,5 @@
 """
-Tests for scripts/score_system.py — Constitution Scoring System CLI.
+Tests for scripts/score_system.py - Constitution Scoring System CLI.
 
 Covers:
   - calculate_score() with various evidence/regression combinations

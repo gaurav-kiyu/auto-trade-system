@@ -1,4 +1,4 @@
-"""Adversarial gap audit script — run with: python scripts/gap_audit.py"""
+"""Adversarial gap audit script - run with: python scripts/gap_audit.py"""
 import os
 
 
@@ -79,5 +79,5 @@ all_pass = all([
 if all_pass:
     print("ALL 20 WORKSTREAMS + 6 SUB-ITEM GAPS: PASS")
 else:
-    print("SOME ITEMS STILL FAIL — review above")
+    print("SOME ITEMS STILL FAIL - review above")
 

@@ -1,5 +1,5 @@
 """
-AI Governance Gate — Pre-implementation validation for AI agents.
+AI Governance Gate - Pre-implementation validation for AI agents.
 
 Every AI agent MUST pass through this gate before making changes to the codebase.
 The gate enforces:
@@ -123,7 +123,7 @@ class AIGovernanceGate:
 
     def __init__(self, identity: str = "unknown") -> None:
         self._identity = identity
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._audit_log: list[AIGateEvent] = []
         self._gate_open = True
 
@@ -196,19 +196,19 @@ class AIGovernanceGate:
                     for kw in RISK_CONTROL_KEYWORDS:
                         if kw in content:
                             failures.append(
-                                f"Risk control '{kw}' present in {f} — verify risk control is not being modified"
+                                f"Risk control '{kw}' present in {f} - verify risk control is not being modified"
                             )
                     # Check for broker SDK calls
                     for sdk in BROKER_SDK_PATTERNS:
                         if sdk in content:
                             failures.append(
-                                f"Direct broker SDK call '{sdk}' detected in {f} — must use broker_adapters.py"
+                                f"Direct broker SDK call '{sdk}' detected in {f} - must use broker_adapters.py"
                             )
                     # Check for datetime.now() bypass
                     for bp in BYPASS_PATTERNS:
                         if bp in content:
                             failures.append(
-                                f"Bypass pattern '{bp}' found in {f} — use core.datetime_ist.now_ist() instead"
+                                f"Bypass pattern '{bp}' found in {f} - use core.datetime_ist.now_ist() instead"
                             )
 
         # ── Step 4: Score evidence check ─────────────────────────────────
@@ -226,7 +226,7 @@ class AIGovernanceGate:
                     )
 
         # ── Step 5: Change pipeline check ────────────────────────────────
-        # (This is a lightweight check — full pipeline validation is in constitution.py)
+        # (This is a lightweight check - full pipeline validation is in constitution.py)
 
         # ── Final result ─────────────────────────────────────────────────
         if failures:
@@ -331,7 +331,7 @@ class AIGovernanceGate:
 # ── Module-level singleton ────────────────────────────────────────────────────
 
 _GATE: AIGovernanceGate | None = None
-_GATE_LOCK = threading.Lock()
+_GATE_LOCK = threading.RLock()
 
 
 def get_gate(identity: str = "ai_agent") -> AIGovernanceGate:

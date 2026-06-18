@@ -1,4 +1,4 @@
-"""Tests for core/execution/retry_policy/manager.py — Retry Policy Manager."""
+"""Tests for core/execution/retry_policy/manager.py - Retry Policy Manager."""
 
 from __future__ import annotations
 

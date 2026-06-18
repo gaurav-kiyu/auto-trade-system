@@ -17,6 +17,8 @@ import json
 import logging
 import sqlite3
 import threading
+
+from core.db_utils import get_connection
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -65,7 +67,7 @@ class RegimeDetector:
         self._current_regime: MarketRegime = MarketRegime.NORMAL
         self._regime_history: deque = deque(maxlen=1000)
         self._price_history: deque = deque(maxlen=100)
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
         self._vol_threshold_low = 0.5
         self._vol_threshold_high = 2.0
@@ -75,7 +77,7 @@ class RegimeDetector:
     def _init_durable_storage(self) -> None:
         """Initialize regime detector storage"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS regime_history (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -296,7 +298,7 @@ class RegimeDetector:
     def _persist_regime(self, snapshot: RegimeSnapshot) -> None:
         """Persist regime snapshot"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     INSERT INTO regime_history
                     (regime, confidence, volatility, trend_strength, timestamp, metadata_json)
@@ -315,7 +317,7 @@ class RegimeDetector:
 
 
 _regime_detector: RegimeDetector | None = None
-_detector_lock = threading.Lock()
+_detector_lock = threading.RLock()
 
 
 def get_regime_detector() -> RegimeDetector:

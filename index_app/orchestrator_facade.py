@@ -6,7 +6,7 @@ this factory supports tests, tooling, and a gradual migration toward cycle-based
 
 Environment:
 
-- ``OPB_ORCHESTRATOR_MARKET_HOURS`` — if ``0``/``false``/``no``/``off``, the orchestrator
+- ``OPB_ORCHESTRATOR_MARKET_HOURS`` - if ``0``/``false``/``no``/``off``, the orchestrator
   does not gate on NSE cash hours (useful for backtests and CI). Default: enforce IST session.
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ def build_index_orchestrator():
     import index_app.index_trader as m
 
     if m.DATA_ENGINE is None or m.STRATEGY_ENGINE is None or m.RISK_ENGINE is None:
-        raise RuntimeError("Engines not initialized — call build_index_orchestrator() after _init_runtime_engines().")
+        raise RuntimeError("Engines not initialized - call build_index_orchestrator() after _init_runtime_engines().")
 
     # Wrap RISK_ENGINE (RiskService instance) in backward-compatible adapter
     from core.risk.legacy_adapter import RiskPortAdapter
@@ -69,11 +69,16 @@ def build_index_orchestrator():
     _mh = os.environ.get("OPB_ORCHESTRATOR_MARKET_HOURS", "1").strip().lower()
     enforce_ist = _mh not in ("0", "false", "no", "off")
 
+    # Use the new ExecutionService path when the configured engine is an
+    # ExecutionService instance (stored as EXECUTION_ENGINE for backward compat).
+    # This ensures OrderRequest/OrderResult are used instead of legacy place_order().
+    _exec_service = m.EXECUTION_ENGINE
+
     return Orchestrator(
         data_engine=m.DATA_ENGINE,
         strategy_engine=m.STRATEGY_ENGINE,
         risk_engine=risk_adapter,
-        execution_engine=m.EXECUTION_ENGINE,
+        execution_service=_exec_service
         state_manager=m.STATE_MANAGER,
         reconciliation_engine=recon,
         local_positions_fn=m._local_positions_snapshot,

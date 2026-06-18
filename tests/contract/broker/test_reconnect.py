@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Test — Connection / Reconnection.
+AD-KIYU Broker Contract Test - Connection / Reconnection.
 
 Verifies that broker adapters can handle multiple sequential
 operations without connection-related errors.

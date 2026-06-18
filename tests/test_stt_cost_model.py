@@ -1,4 +1,4 @@
-"""Tests for core/stt_cost_model.py — STT cost calculation for NSE options."""
+"""Tests for core/stt_cost_model.py - STT cost calculation for NSE options."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """
-Legacy RiskEngine Adapter — wraps RiskPort (RiskService) with the old RiskEngine interface.
+Legacy RiskEngine Adapter - wraps RiskPort (RiskService) with the old RiskEngine interface.
 
 This adapter allows the deprecated core/orchestrator.py to continue working
 without importing from the deprecated core/risk_engine.py module.

@@ -1,4 +1,4 @@
-"""Tests for core/reconciliation_engine.py — local vs broker position comparison."""
+"""Tests for core/reconciliation_engine.py - local vs broker position comparison."""
 
 from __future__ import annotations
 

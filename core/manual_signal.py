@@ -6,8 +6,8 @@ separate SQLite database so signals survive restarts and can be reviewed.
 
 Public API
 ----------
-    ManualSignal          — dataclass
-    ManualSignalQueue     — thread-safe queue with SQLite persistence
+    ManualSignal          - dataclass
+    ManualSignalQueue     - thread-safe queue with SQLite persistence
     build_signal_queue(cfg) → ManualSignalQueue
 
 Config keys
@@ -130,7 +130,7 @@ class ManualSignal:
 
 # ── ID generation ──────────────────────────────────────────────────────────────
 
-_counter_lock = threading.Lock()
+_counter_lock = threading.RLock()
 _counter = 0
 
 
@@ -199,9 +199,9 @@ class ManualSignalQueue:
         self._timeout_mins = int(cfg.get("manual_signal_timeout_mins", 30))
         self._auto_approve_secs = int(cfg.get("manual_signal_auto_approve_secs", 0))
         self._default_analyst = str(cfg.get("manual_signal_default_analyst", "Operator"))
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._conn = _open_db(self._db_path)
-        _log.info("[MANUAL_Q] Initialized — db=%s timeout=%dmin", self._db_path, self._timeout_mins)
+        _log.info("[MANUAL_Q] Initialized - db=%s timeout=%dmin", self._db_path, self._timeout_mins)
 
     # ── Public write operations ────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pre-Implementation Compliance Check — Mandatory before ANY code change.
+Pre-Implementation Compliance Check - Mandatory before ANY code change.
 
 Enforces the Constitution's Mandatory Pre-Implementation Review:
   1. Review architecture
@@ -114,7 +114,7 @@ def check_risk_controls(files: list[str]) -> list[str]:
         for pattern in RISK_SENSITIVE_PATTERNS:
             if pattern in content:
                 violations.append(
-                    f"RISK: {f} contains '{pattern}' — verify risk control is not being modified"
+                    f"RISK: {f} contains '{pattern}' - verify risk control is not being modified"
                 )
     return violations
 
@@ -126,7 +126,7 @@ def check_blocked_files(files: list[str]) -> list[str]:
         for blocked in BLOCKED_CHANGES:
             if blocked in f:
                 violations.append(
-                    f"BLOCKED: {f} — '{blocked}' requires explicit human approval"
+                    f"BLOCKED: {f} - '{blocked}' requires explicit human approval"
                 )
     return violations
 
@@ -206,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
     arch_ok = check_architecture_doc_exists()
     if not arch_ok:
         all_warnings.append(
-            "Architecture documents incomplete — review docs/ownership_matrix.md, "
+            "Architecture documents incomplete - review docs/ownership_matrix.md, "
             "docs/technical_debt.md, docs/adr/0010-architecture-governance.md"
         )
 
@@ -214,7 +214,7 @@ def main(argv: list[str] | None = None) -> int:
     git_ok = check_git_history()
     if not git_ok:
         all_warnings.append(
-            "Git history not accessible — historical version review not possible"
+            "Git history not accessible - historical version review not possible"
         )
 
     # ── Check 4 & 5: Risk and security controls ──────────────────────────
@@ -228,7 +228,7 @@ def main(argv: list[str] | None = None) -> int:
         sensitive = check_risk_sensitive_files(args.files)
         if sensitive:
             all_warnings.append(
-                f"Risk-sensitive files modified: {', '.join(sensitive)} — "
+                f"Risk-sensitive files modified: {', '.join(sensitive)} - "
                 "review impact thoroughly"
             )
 
@@ -255,7 +255,7 @@ def main(argv: list[str] | None = None) -> int:
                     if test_path.exists():
                         context_suggestions.append(f"  - tests/test_{Path(f).name}  (related test)")
                 elif not file_path.exists():
-                    context_suggestions.append(f"  - {f}  (NEW file — will be created)")
+                    context_suggestions.append(f"  - {f}  (NEW file - will be created)")
 
         # Always suggested readings
         context_suggestions.extend([

@@ -1,4 +1,4 @@
-"""Tests for EquityTrader — stock trading entry, exit, monitoring, and status."""
+"""Tests for EquityTrader - stock trading entry, exit, monitoring, and status."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def mock_send_fn():
 
 
 class TestEquityTrader:
-    """EquityTrader — core trading logic."""
+    """EquityTrader - core trading logic."""
 
     def test_default_config(self):
         trader = EquityTrader()

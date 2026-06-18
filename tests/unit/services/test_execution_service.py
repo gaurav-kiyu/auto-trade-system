@@ -264,7 +264,7 @@ class TestExecutionService:
         assert hasattr(self.service, '_lock')
 
     def test_retry_logic(self):
-        """Test retry logic for transient failures — service does NOT retry, returns REJECTED."""
+        """Test retry logic for transient failures - service does NOT retry, returns REJECTED."""
         # Setup
         order_request = OrderRequest(
             symbol="NIFTY24SepFUT",
@@ -275,7 +275,7 @@ class TestExecutionService:
             strategy_id="test_strategy"
         )
 
-        # First call fails, second would succeed — but service does NOT retry
+        # First call fails, second would succeed - but service does NOT retry
         expected_result = OrderResult(
             order_id="order_123",
             status=OrderStatus.FILLED,
@@ -292,10 +292,10 @@ class TestExecutionService:
         # Execute
         result = self.service.execute_order(order_request)
 
-        # Service does NOT retry — returns REJECTED with the error
+        # Service does NOT retry - returns REJECTED with the error
         assert result.status == OrderStatus.REJECTED
         assert "Transient error" in (result.reject_reason or "")
-        # Only 1 call attempt — service does not retry
+        # Only 1 call attempt - service does not retry
         assert self.broker_mock.place_order.call_count == 1
 
 

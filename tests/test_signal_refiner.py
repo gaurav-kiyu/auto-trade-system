@@ -1,4 +1,4 @@
-"""Tests for SignalRefiner — multi-indicator confirmation and false signal filtering."""
+"""Tests for SignalRefiner - multi-indicator confirmation and false signal filtering."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ class TestSignalRefinerConfig:
 
 
 class TestSignalRefiner:
-    """SignalRefiner — should_block_signal behavior."""
+    """SignalRefiner - should_block_signal behavior."""
 
     def setup_method(self):
         self.refiner = SignalRefiner(SignalRefinerConfig())

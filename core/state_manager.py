@@ -10,6 +10,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import json
+import logging
+import os
+import shutil
+import threading
+
 from core.time_provider import time_provider
 
 log = logging.getLogger("state_manager")
@@ -46,7 +52,7 @@ class StateManager:
         self._load_fn = load_fn
         self._local_positions_fn = local_positions_fn
         self._broker_positions_fn = broker_positions_fn
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
         if self._load_fn is not None:
             self._load_fn()

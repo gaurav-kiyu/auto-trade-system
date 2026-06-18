@@ -17,7 +17,7 @@ Architecture
 - Depends on ``core.oi_snapshot_store.record_snapshot()`` for persistence.
 - Uses the NSE market data adapter (``infrastructure.adapters.market_data.nse.adapter``)
   to fetch live option chain data.
-- Never blocks or raises — all exceptions are caught and logged.
+- Never blocks or raises - all exceptions are caught and logged.
 - **Caches the NSEAdapter instance across calls** to maintain session cookies.
 """
 from __future__ import annotations

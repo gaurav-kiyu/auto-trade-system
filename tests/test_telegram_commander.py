@@ -1,15 +1,15 @@
 """
-Tests for core.telegram_commander — Telegram message builders and factory.
+Tests for core.telegram_commander - Telegram message builders and factory.
 
 Covers:
-  - build_rich_signal_message — full decision-support signal message
-  - build_compact_signal_message — one-line compact signal
-  - build_trade_entry_message — trade open notification
-  - build_trade_exit_message — trade close notification with P&L
-  - build_status_message — bot status summary
-  - build_positions_message — open positions list
-  - build_pending_signals_message — pending signal queue
-  - build_commander factory — returns None when disabled
+  - build_rich_signal_message - full decision-support signal message
+  - build_compact_signal_message - one-line compact signal
+  - build_trade_entry_message - trade open notification
+  - build_trade_exit_message - trade close notification with P&L
+  - build_status_message - bot status summary
+  - build_positions_message - open positions list
+  - build_pending_signals_message - pending signal queue
+  - build_commander factory - returns None when disabled
 """
 
 from __future__ import annotations

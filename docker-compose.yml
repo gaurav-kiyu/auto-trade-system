@@ -8,6 +8,11 @@ version: "3.9"
 #   docker compose logs -f opb    # tail logs
 #   docker compose down           # stop
 #
+#   # Start with test infrastructure (Redis + MongoDB) for integration tests:
+#   docker compose --profile test up -d
+#   pytest tests/test_database_redis_adapter.py
+#   pytest tests/test_database_mongodb_adapter.py
+#
 # Sensitive values (broker keys, Telegram token) are read from a .env file
 # or from host environment variables — NEVER hard-coded here.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -83,6 +88,73 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+
+  # ── Test Infrastructure ─────────────────────────────────────────────────────
+  # Start with: docker compose --profile test up -d
+
+  redis-test:
+    profiles: ["test"]
+    image: redis:7-alpine
+    container_name: opb_redis_test
+    restart: unless-stopped
+    ports:
+      - "${REDIS_TEST_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mongodb-test:
+    profiles: ["test"]
+    image: mongo:7
+    container_name: opb_mongo_test
+    restart: unless-stopped
+    ports:
+      - "${MONGO_TEST_PORT:-27017}:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # PostgreSQL test instance (for full contract tests)
+  postgres-test:
+    profiles: ["test"]
+    image: postgres:16-alpine
+    container_name: opb_pg_test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+    ports:
+      - "${PG_TEST_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # MySQL test instance (for full contract tests)
+  mysql-test:
+    profiles: ["test"]
+    image: mysql:8
+    container_name: opb_mysql_test
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+      MYSQL_DATABASE: test
+    ports:
+      - "${MYSQL_TEST_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 
 # ── Named volumes ─────────────────────────────────────────────────────────────

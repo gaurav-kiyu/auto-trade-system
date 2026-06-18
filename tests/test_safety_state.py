@@ -1,5 +1,5 @@
 """
-Tests for core/safety_state.py — Global Safety State.
+Tests for core/safety_state.py - Global Safety State.
 
 Covers:
   - Hard halt trip, check, and reason storage

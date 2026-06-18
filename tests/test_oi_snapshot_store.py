@@ -21,7 +21,7 @@ import pytest
 _BASE_TS = int(time.time()) - 300
 
 
-# ── Fixture — temp DB per test ────────────────────────────────────────────────
+# ── Fixture - temp DB per test ────────────────────────────────────────────────
 
 @pytest.fixture()
 def db(tmp_path):

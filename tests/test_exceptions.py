@@ -1,4 +1,4 @@
-"""Tests for core/exceptions.py — Domain-Specific Exception Hierarchy."""
+"""Tests for core/exceptions.py - Domain-Specific Exception Hierarchy."""
 
 from __future__ import annotations
 

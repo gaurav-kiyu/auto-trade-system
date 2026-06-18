@@ -48,7 +48,7 @@ class STTCostModel:
     CRITICAL: Short options held to expiry face expiry STT which can
     exceed the premium received if the option is deep ITM.
 
-    NOTE: STT_SHORT_OPTIONS_PCT = 0.0005 (0.05%) — this is the actual NSE rate.
+    NOTE: STT_SHORT_OPTIONS_PCT = 0.0005 (0.05%) - this is the actual NSE rate.
     The audit finding (Finding #5) confirmed the rate was 0.0005, not 0.1%.
     """
 

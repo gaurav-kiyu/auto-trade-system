@@ -1,4 +1,4 @@
-"""Tests for scripts/sync_artifacts.py — Artifact Synchronization Checker."""
+"""Tests for scripts/sync_artifacts.py - Artifact Synchronization Checker."""
 from __future__ import annotations
 
 import json

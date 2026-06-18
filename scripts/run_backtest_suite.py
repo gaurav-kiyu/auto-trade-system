@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backtest Suite — NIFTY / BANKNIFTY / FINNIFTY
+Comprehensive Backtest Suite - NIFTY / BANKNIFTY / FINNIFTY
 =============================================================
 Runs candle backtests with strict_oi=False (Yahoo Finance data has no OI coverage).
 Saves structured JSON results for downstream use by reports.

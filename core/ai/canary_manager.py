@@ -1,5 +1,5 @@
 """
-AD-KIYU AI Governance — Canary Manager.
+AD-KIYU AI Governance - Canary Manager.
 
 Staged canary rollout of ML models:
   10% → 50% → 100% over configured trading days.
@@ -39,7 +39,7 @@ class CanaryManager:
             stage_days: Trading days at each stage (10%, 50%, 100%)
             stage_thresholds: Fraction of trades routed to canary at each stage
         """
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._canaries: dict[str, CanaryState] = {}
         self._stage_days = stage_days
         self._stage_thresholds = stage_thresholds

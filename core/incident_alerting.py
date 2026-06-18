@@ -76,7 +76,7 @@ class IncidentAlerting:
     ):
         self._config = config or {}
         self._send_alert = send_alert_fn
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._queue: list[Incident] = []
         self._running = False
         self._thread: threading.Thread | None = None
@@ -300,7 +300,7 @@ class IncidentAlerting:
         self.report_incident(
             IncidentType.ORDER_MODIFICATION_FAILED,
             IncidentSeverity.HIGH,
-            f"Modify failed: {order_id} — {reason}",
+            f"Modify failed: {order_id} - {reason}",
             details or {},
         )
 

@@ -1,5 +1,5 @@
 """
-LTP Resolver — fallback chain for underlying index prices (v2.45).
+LTP Resolver - fallback chain for underlying index prices (v2.45).
 
 Provides a single ``resolve(index_name)`` call that tries, in order:
 1. KiteTickerFeedManager LTP cache (live WebSocket tick)
@@ -56,7 +56,7 @@ class LtpResolver:
         self._yf_cache: dict[str, float] = {}
         self._yf_cache_ts: float = 0
         self._yf_cache_ttl: float = 300.0  # 5 min
-        self._cache_lock = threading.Lock()
+        self._cache_lock = threading.RLock()
 
     # ── Public API ──────────────────────────────────────────────────────────
 
@@ -75,12 +75,12 @@ class LtpResolver:
         if price is not None:
             return price
 
-        # Layer 3: yfinance last close (cached) — with staleness warning
+        # Layer 3: yfinance last close (cached) - with staleness warning
         price = self._resolve_yfinance(index_name)
         if price is not None:
             _log.warning(
                 "[LTP] yfinance fallback price used for %s: %.2f. "
-                "This is the last daily close — may be stale during live hours.",
+                "This is the last daily close - may be stale during live hours.",
                 index_name, price,
             )
         return price
@@ -141,7 +141,7 @@ class LtpResolver:
                 return None
             last_close_val = hist.iloc[-1]["Close"]
             if pd.isna(last_close_val):
-                _log.debug("[LTP] yfinance close is NaN for %s — skipping", yf_sym)
+                _log.debug("[LTP] yfinance close is NaN for %s - skipping", yf_sym)
                 return None
             last_close = float(last_close_val)
             with self._cache_lock:

@@ -1,4 +1,4 @@
-"""Tests for AdaptiveBehaviorGovernor — governance layer for auto-tuning systems."""
+"""Tests for AdaptiveBehaviorGovernor - governance layer for auto-tuning systems."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from core.adaptive_behavior_governance import (
 
 
 class TestAdaptiveBehaviorGovernor:
-    """AdaptiveBehaviorGovernor — governance for auto-tuning."""
+    """AdaptiveBehaviorGovernor - governance for auto-tuning."""
 
     BASE_CFG = {"AUTO_TUNE_MODE": "DISABLED", "AUTO_TUNE_REQUIRE_APPROVAL": True}
 

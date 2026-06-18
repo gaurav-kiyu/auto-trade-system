@@ -1,4 +1,4 @@
-"""Tests for core.simulation_engine — deep simulation engine for strategy edge validation."""
+"""Tests for core.simulation_engine - deep simulation engine for strategy edge validation."""
 
 from __future__ import annotations
 

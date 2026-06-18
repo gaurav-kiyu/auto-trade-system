@@ -143,7 +143,7 @@ def check_db_integrity(cfg: dict[str, Any]) -> list[HealthCheckResult]:
 
 
 def check_db_wal_size(cfg: dict[str, Any]) -> list[HealthCheckResult]:
-    """Check WAL file sizes — large WAL means checkpointing is lagging."""
+    """Check WAL file sizes - large WAL means checkpointing is lagging."""
     wal_warn_mb = float(cfg.get("health_check_wal_warn_mb", 10.0))
     results = []
     for db_name in _DB_WARN_MB_DEFAULTS:
@@ -155,7 +155,7 @@ def check_db_wal_size(cfg: dict[str, Any]) -> list[HealthCheckResult]:
         results.append(HealthCheckResult(
             "DB", f"{db_name} WAL size", status,
             round(size_mb, 2),
-            f"{size_mb:.1f} MB WAL — {'checkpoint may be lagging' if status == 'WARN' else 'normal'}",
+            f"{size_mb:.1f} MB WAL - {'checkpoint may be lagging' if status == 'WARN' else 'normal'}",
         ))
     return results
 
@@ -368,7 +368,7 @@ def check_broker_health(cfg: dict[str, Any]) -> list[HealthCheckResult]:
             if halted:
                 results.append(HealthCheckResult(
                     "BROKER", "Broker hard halt", "FAIL", True,
-                    "Hard halt is active — broker operations blocked."
+                    "Hard halt is active - broker operations blocked."
                 ))
     except (BrokerConnectionError, ImportError, AttributeError, OSError, ValueError) as exc:
         results.append(HealthCheckResult(
@@ -392,7 +392,7 @@ def run_full_health_check(
         db_path : Path to trades.db.
 
     Returns:
-        HealthReport — always returns even if all checks fail.
+        HealthReport - always returns even if all checks fail.
     """
     c = cfg or {}
     report = HealthReport()
@@ -420,7 +420,7 @@ def run_full_health_check(
         report.overall_status = "OK"
 
     report.summary = (
-        f"Health Check: {report.overall_status} — "
+        f"Health Check: {report.overall_status} - "
         f"{report.ok_count} OK, {report.warn_count} WARN, {report.fail_count} FAIL "
         f"({len(report.results)} checks total)"
     )

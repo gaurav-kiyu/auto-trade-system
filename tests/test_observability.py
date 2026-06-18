@@ -1,4 +1,4 @@
-"""Tests for core.observability — Prometheus metrics and system monitoring."""
+"""Tests for core.observability - Prometheus metrics and system monitoring."""
 
 from __future__ import annotations
 

@@ -12,7 +12,7 @@ if not _TK_AVAILABLE or ttk is None:
     )
     def _gui_log(msg:str, **extra)->None:
         _gui_logger.log(msg, **extra)
-    _gui_log("[GUI] tkinter not available — running headless")
+    _gui_log("[GUI] tkinter not available - running headless")
     import sys
     sys.exit(0)
 import logging
@@ -52,7 +52,7 @@ def _read_gui_layout()->dict:
             with open(_gui_layout_path,encoding="utf-8") as f: return json.load(f)
     except (tk.TclError, RuntimeError) as e:
         if _gui_layout_path.is_file():
-            _gui_log(f"[GUI] index_trader_gui_layout.json unreadable ({e!s}) — using defaults")
+            _gui_log(f"[GUI] index_trader_gui_layout.json unreadable ({e!s}) - using defaults")
     return {}
 def _write_gui_layout()->None:
     try:
@@ -79,7 +79,7 @@ _geo=_gui_layout_saved.get("geometry")
 if isinstance(_geo,str) and _geo.strip():
     try: root.geometry(_geo.strip())
     except (tk.TclError, RuntimeError) as e:
-        _logger.log(f"[GUI] Saved window geometry invalid ({e!s}) — using default size")
+        _logger.log(f"[GUI] Saved window geometry invalid ({e!s}) - using default size")
 _wst_saved=str(_gui_layout_saved.get("win_state") or "").strip().lower()
 if _wst_saved=="zoomed":
     def _restore_maximized()->None:
@@ -145,7 +145,7 @@ kpi_outer.pack(fill=tk.X,padx=10,pady=(10,6))
 def _card(parent,title,subtitle=False):
     f=tk.Frame(parent,bg=bg_card,highlightbackground=bd,highlightthickness=1)
     tk.Label(f,text=title,font=(_FONT_UI,8),bg=bg_card,fg=_GT.get("fg_muted","#8b949e")).pack(anchor="w",padx=10,pady=(8,0))
-    v=tk.Label(f,text="—",font=(_FONT_UI,14,"bold"),bg=bg_card,fg=_GT.get("fg_bright","#f0f6fc"))
+    v=tk.Label(f,text="-",font=(_FONT_UI,14,"bold"),bg=bg_card,fg=_GT.get("fg_bright","#f0f6fc"))
     v.pack(anchor="w",padx=10,pady=(0,8))
     if subtitle:
         s=tk.Label(f,text="",font=(_FONT_UI,8),bg=bg_card,fg=_GT.get("fg_dim","#6e7681"))
@@ -162,7 +162,7 @@ c3,v_tr=_card(kpi_row,"Trades / Open slots");c3.grid(row=0,column=3,padx=(6,0),s
 
 desk_fr=tk.Frame(root,bg=_GT.get("desk_bg","#0d1117"),highlightbackground=bd,highlightthickness=1)
 desk_fr.pack(fill=tk.X,padx=10,pady=(0,8))
-tk.Label(desk_fr,text="TRADING DESK — risk, data & how your orders are handled",font=(_FONT_UI,8,"bold"),bg=_GT.get("desk_bg","#0d1117"),fg=_GT.get("desk_title","#8b949e")).pack(anchor="w",padx=10,pady=(8,0))
+tk.Label(desk_fr,text="TRADING DESK - risk, data & how your orders are handled",font=(_FONT_UI,8,"bold"),bg=_GT.get("desk_bg","#0d1117"),fg=_GT.get("desk_title","#8b949e")).pack(anchor="w",padx=10,pady=(8,0))
 lbl_desk=tk.Label(desk_fr,text="Waiting for first dashboard snapshot…",font=(_FONT_UI,9),bg=_GT.get("desk_bg","#0d1117"),fg=_GT.get("fg_label","#c9d1d9"),
                        anchor="w",justify="left",wraplength=int(_GU.get("default_wraplength_desk",1040)))
 lbl_desk.pack(fill=tk.X,padx=10,pady=(4,4))
@@ -259,7 +259,7 @@ except (tk.TclError, RuntimeError) as _exc:
 
 left_col.grid_columnconfigure(0,weight=1)
 left_col.grid_rowconfigure(1,weight=1)
-tk.Label(left_col,text="Index snapshot — drag divider to widen status column",font=(_FONT_UI,9,"bold"),bg=bg_main,fg=accent).grid(row=0,column=0,sticky="w")
+tk.Label(left_col,text="Index snapshot - drag divider to widen status column",font=(_FONT_UI,9,"bold"),bg=bg_main,fg=accent).grid(row=0,column=0,sticky="w")
 
 tbl_fr=tk.Frame(left_col,bg=bd,bd=0)
 tbl_fr.grid(row=1,column=0,sticky=tk.NSEW,pady=(4,0))
@@ -285,7 +285,7 @@ tv.tag_configure("wait",foreground=_GT.get("fg_muted","#8b949e"))
 
 leg=tk.Frame(left_col,bg=bg_main)
 leg.grid(row=2,column=0,sticky="w",pady=(6,0))
-tk.Label(leg,text="Regime: TR=Trend  N=Neutral  CH=Chop  EV=Event  —=n/a",font=(_FONT_UI,8),bg=bg_main,fg="#6e7681").pack(anchor="w")
+tk.Label(leg,text="Regime: TR=Trend  N=Neutral  CH=Chop  EV=Event  -=n/a",font=(_FONT_UI,8),bg=bg_main,fg="#6e7681").pack(anchor="w")
 tk.Label(leg,text="Status: PASS (≥thr) · WATCH (below thr) · WAIT (gated) · IV = option IV from chain",font=(_FONT_UI,8),bg=bg_main,fg="#6e7681").pack(anchor="w")
 
 wait_fr=tk.Frame(left_col,bg=bg_card,highlightbackground=bd,highlightthickness=1)
@@ -313,7 +313,7 @@ dsy=tk.Scrollbar(detail_fr,command=tw.yview)
 tw.configure(yscrollcommand=dsy.set)
 tw.grid(row=0,column=0,sticky=tk.NSEW)
 dsy.grid(row=0,column=1,sticky=tk.NS)
-lbl_detail_hdr=tk.Label(right_col,text="Signal & dashboard log — read-only · click to focus · Ctrl+A select all · Ctrl+C copy · Ctrl+F find",font=(_FONT_UI,9,"bold"),bg=bg_main,fg=accent,cursor="hand2")
+lbl_detail_hdr=tk.Label(right_col,text="Signal & dashboard log - read-only · click to focus · Ctrl+A select all · Ctrl+C copy · Ctrl+F find",font=(_FONT_UI,9,"bold"),bg=bg_main,fg=accent,cursor="hand2")
 lbl_detail_hdr.grid(row=0,column=0,sticky="w",pady=(0,4))
 lbl_detail_hdr.bind("<Button-1>",lambda _e:tw.focus_set())
 _sb_bg=_GT.get("scrollbar_bg","#30363d");_sb_trough=_GT.get("scrollbar_trough","#161b22")
@@ -456,7 +456,7 @@ def _open_find_details()->None:
     w.resizable(False,False)
     fr=tk.Frame(w,bg=bg_card,padx=12,pady=10)
     fr.pack(fill=tk.BOTH,expand=True)
-    tk.Label(fr,text="Search (case-insensitive) — Enter / F3 = next, Esc = close:",bg=bg_card,fg="#c9d1d9",font=(_FONT_UI,9)).pack(anchor="w")
+    tk.Label(fr,text="Search (case-insensitive) - Enter / F3 = next, Esc = close:",bg=bg_card,fg="#c9d1d9",font=(_FONT_UI,9)).pack(anchor="w")
     en=tk.Entry(fr,textvariable=_find_var,width=44,bg="#0d1117",fg="#c9d1d9",insertbackground=accent,relief=tk.FLAT,highlightthickness=1,highlightbackground=bd)
     en.pack(fill=tk.X,pady=(4,6))
     st_lbl=tk.Label(fr,text="",bg=bg_card,fg="#8b949e",font=(_FONT_UI,8))
@@ -486,7 +486,7 @@ def _open_find_details()->None:
                 tw.mark_set("insert",end)
                 tw.see(pos)
                 _find_resume[0]=end
-                st_lbl.config(text="Match selected — Find next for more.",fg="#3fb950")
+                st_lbl.config(text="Match selected - Find next for more.",fg="#3fb950")
             else:
                 _find_resume[0]=None
                 st_lbl.config(text="No match (searched whole log).",fg="#f0883e")

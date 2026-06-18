@@ -66,7 +66,7 @@ def test_rejects_inverted_spread():
 
 def test_rejects_equal_bid_ask():
     r = _check(bid=100.0, ask=100.0)
-    # spread_pct = 0; mid=100; this may pass depending on impl — just check no exception
+    # spread_pct = 0; mid=100; this may pass depending on impl - just check no exception
     assert isinstance(r, LiquidityCheck)
 
 

@@ -1,10 +1,10 @@
 """
-Tests for ``core.strategy.config`` — structured strategy config reader.
+Tests for ``core.strategy.config`` - structured strategy config reader.
 
 Covers:
-  - get_strategy_block() — raw dict extraction
-  - get_strategy_param() — single param with fallback
-  - get_strategy_cfg() / StrategyConfigView — dict-like view
+  - get_strategy_block() - raw dict extraction
+  - get_strategy_param() - single param with fallback
+  - get_strategy_cfg() / StrategyConfigView - dict-like view
   - Flat-key backward compatibility
   - Structured block wins over flat keys
   - Unknown strategy names

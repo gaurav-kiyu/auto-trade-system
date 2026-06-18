@@ -1,4 +1,4 @@
-"""Tests for execution_hardening_integration — wiring together hardening modules."""
+"""Tests for execution_hardening_integration - wiring together hardening modules."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from core.execution_hardening_integration import (
 
 
 class TestInitExecutionHardening:
-    """init_execution_hardening — wire up all hardening modules."""
+    """init_execution_hardening - wire up all hardening modules."""
 
     def test_returns_dict(self):
         config = {"market_data_secondary_enabled": False}
@@ -70,7 +70,7 @@ class TestInitExecutionHardening:
 
 
 class TestShutdownExecutionHardening:
-    """shutdown_execution_hardening — graceful shutdown of services."""
+    """shutdown_execution_hardening - graceful shutdown of services."""
 
     def test_shutdown_empty_services(self):
         """Shutdown with empty dict should not crash."""

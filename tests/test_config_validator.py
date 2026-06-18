@@ -1,4 +1,4 @@
-"""Tests for config_validator — startup schema validation and consistency checks."""
+"""Tests for config_validator - startup schema validation and consistency checks."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ _VALID_CFG = {
 
 
 class TestValidateConfig:
-    """validate_config — type/range/consistency checks."""
+    """validate_config - type/range/consistency checks."""
 
     def test_valid_config_returns_empty_errors(self):
         errors, warnings = validate_config(dict(_VALID_CFG))
@@ -116,7 +116,7 @@ class TestValidateConfig:
 
 
 class TestAppendTierEngineErrors:
-    """append_tier_engine_errors — tier/intelligence checks."""
+    """append_tier_engine_errors - tier/intelligence checks."""
 
     def test_no_errors_for_valid_config(self):
         errors, warnings = [], []
@@ -149,7 +149,7 @@ class TestAppendTierEngineErrors:
 
 
 class TestGenerateConfigChecksum:
-    """generate_config_checksum — SHA-256 fingerprint."""
+    """generate_config_checksum - SHA-256 fingerprint."""
 
     def test_returns_16_char_hex(self):
         cs = generate_config_checksum(_VALID_CFG)
@@ -168,7 +168,7 @@ class TestGenerateConfigChecksum:
 
 
 class TestValidateStructuredBlocks:
-    """validate_structured_blocks — v2.46 structured config."""
+    """validate_structured_blocks - v2.46 structured config."""
 
     def test_empty_blocks_no_errors(self):
         errors, warnings = validate_structured_blocks({})
@@ -204,7 +204,7 @@ class TestValidateStructuredBlocks:
 
 
 class TestValidateAndLog:
-    """validate_and_log — one-shot validation + logging."""
+    """validate_and_log - one-shot validation + logging."""
 
     def test_valid_config_returns_true(self):
         assert validate_and_log(_VALID_CFG, abort_on_error=False) is True

@@ -1,5 +1,5 @@
 """
-ML Performance Tracker (Phase B) — tracks prediction quality over time.
+ML Performance Tracker (Phase B) - tracks prediction quality over time.
 
 Records each ML prediction alongside the actual trade outcome, then computes:
   - Brier score (mean squared calibration error)
@@ -10,7 +10,7 @@ All functions are non-blocking; every path catches exceptions and returns a
 safe fallback.  The SQLite DB is created on first write; the module is a no-op
 if the DB does not yet exist when reading.
 
-Schema versioning is handled by ``core.db_migration`` — see migration registry
+Schema versioning is handled by ``core.db_migration`` - see migration registry
 at module load time.
 
 Public API
@@ -29,7 +29,7 @@ Public API
 
     format_tracker_summary(*, db_path) → str
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ---------------------------------------------------
   ml_tracker_db_path : str  default "ml_tracker.db"
   ml_tracker_enabled : bool default true
@@ -58,7 +58,7 @@ _DEFAULT_DB = "ml_tracker.db"
 # ── Schema versioning via db_migration ─────────────────────────────────────────
 
 _ML_TRACKER_MIGRATIONS_REGISTERED = False
-_ML_TRACKER_MIGRATIONS_LOCK = threading.Lock()
+_ML_TRACKER_MIGRATIONS_LOCK = threading.RLock()
 
 
 def _register_ml_tracker_migrations() -> None:
@@ -77,7 +77,7 @@ def _register_ml_tracker_migrations() -> None:
     try:
         from core.db_migration import register_schema
 
-        @register_schema(2, "ML Performance Tracker baseline — ml_predictions table")
+        @register_schema(2, "ML Performance Tracker baseline - ml_predictions table")
         def _ml_migration_v2(conn: sqlite3.Connection) -> None:
             """Create the ml_predictions table if it doesn't exist."""
             conn.execute("""
@@ -95,7 +95,7 @@ def _register_ml_tracker_migrations() -> None:
         _ML_TRACKER_MIGRATIONS_REGISTERED = True
         _log.debug("[MLT] ML tracker schema migration v2 registered")
     except ImportError:
-        _log.debug("[MLT] db_migration not available — using direct DDL")
+        _log.debug("[MLT] db_migration not available - using direct DDL")
     except (AttributeError, TypeError) as exc:
         _log.debug("[MLT] Migration registration skipped: %s", exc)
 
@@ -338,7 +338,7 @@ def get_feature_importance_trend(
     """
     Return the mean absolute SHAP value per feature over the last N predictions.
 
-    This serves as a recency-weighted feature importance signal — features that
+    This serves as a recency-weighted feature importance signal - features that
     the model has been using heavily for recent decisions rank higher.
 
     Returns:
@@ -412,7 +412,7 @@ def format_tracker_summary(*, db_path: str = _DEFAULT_DB) -> str:
         trend = get_feature_importance_trend(db_path=db_path)
 
         lines = [
-            f"ML Performance Tracker — {n_total} predictions ({n_completed} completed)",
+            f"ML Performance Tracker - {n_total} predictions ({n_completed} completed)",
         ]
         if brier is not None:
             quality = "excellent" if brier < 0.15 else "good" if brier < 0.20 else "fair" if brier < 0.25 else "poor"

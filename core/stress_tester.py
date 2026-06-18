@@ -2,7 +2,7 @@
 Stress Test Engine (v2.45 Item 8).
 
 Applies shock scenarios to the current open position portfolio and reports
-the P&L impact of each scenario.  Pure math — no IO.  Runs on every scan
+the P&L impact of each scenario.  Pure math - no IO.  Runs on every scan
 cycle; must complete in < 5 ms.
 
 Scenarios

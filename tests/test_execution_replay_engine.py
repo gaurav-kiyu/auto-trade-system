@@ -1,4 +1,4 @@
-"""Tests for core/execution/replay_engine.py — Replay Engine."""
+"""Tests for core/execution/replay_engine.py - Replay Engine."""
 
 from __future__ import annotations
 

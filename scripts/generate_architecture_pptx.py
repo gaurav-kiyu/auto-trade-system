@@ -114,7 +114,7 @@ def build_pptx(output_path: Path) -> None:
                   "OPBuying Index Options Bot", font_size=44, bold=True, color=DARK_BLUE,
                   alignment=PP_ALIGN.CENTER)
     _add_text_box(slide, Inches(1), Inches(3.0), Inches(11.333), Inches(1),
-                  "Architecture Presentation — v2.53.0", font_size=28, color=MEDIUM_BLUE,
+                  "Architecture Presentation - v2.53.0", font_size=28, color=MEDIUM_BLUE,
                   alignment=PP_ALIGN.CENTER)
     _add_text_box(slide, Inches(1), Inches(4.5), Inches(11.333), Inches(0.8),
                   "May 21, 2026  |  Production Ready  |  NIFTY / BANKNIFTY / FINNIFTY",
@@ -128,16 +128,16 @@ def build_pptx(output_path: Path) -> None:
     _add_text_box(slide, Inches(0.5), Inches(1.2), Inches(5.5), Inches(0.5),
                   "Core Components", font_size=20, bold=True, color=DARK_BLUE)
     _add_bullet_box(slide, Inches(0.5), Inches(1.8), Inches(5.5), Inches(4.5), [
-        "Trading Brain (~8,200 lines) — Main loop",
-        "Execution Service — Deterministic state machine",
-        "Risk Service — Position sizing, limits, VaR",
-        "Signal Pipeline — RSI/MACD/ADX/IV rank/PCR",
-        "ML Classifier — LightGBM + SHAP (14 features)",
-        "Broker Adapters — Kite, Angel, Paper",
-        "Reconciliation — Broker-internal state sync",
-        "Governance — Environment, migration, retention",
-        "Dashboard — FastAPI web dashboard (opt-in)",
-        "Telegram — Command interface with security",
+        "Trading Brain (~8,200 lines) - Main loop",
+        "Execution Service - Deterministic state machine",
+        "Risk Service - Position sizing, limits, VaR",
+        "Signal Pipeline - RSI/MACD/ADX/IV rank/PCR",
+        "ML Classifier - LightGBM + SHAP (14 features)",
+        "Broker Adapters - Kite, Angel, Paper",
+        "Reconciliation - Broker-internal state sync",
+        "Governance - Environment, migration, retention",
+        "Dashboard - FastAPI web dashboard (opt-in)",
+        "Telegram - Command interface with security",
     ], font_size=13)
 
     _add_text_box(slide, Inches(6.8), Inches(1.2), Inches(5.5), Inches(0.5),
@@ -148,7 +148,7 @@ def build_pptx(output_path: Path) -> None:
         "60+ core modules",
         "490+ configuration keys",
         "~1.6M total SLOC (incl. tests)",
-        "Python 3.10–3.19 compatibility",
+        "Python 3.10-3.19 compatibility",
         "Windows primary / Linux Docker compatible",
         "Dual-broker support (Kite + Angel)",
         "Paper mode invariant (never touches real API)",
@@ -157,7 +157,7 @@ def build_pptx(output_path: Path) -> None:
     # ── Slide 3: Comparative Analysis ───────────────────────────────
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     _add_slide_bg(slide, prs)
-    _add_title_bar(slide, "Comparative Analysis — Previous vs Current", prs)
+    _add_title_bar(slide, "Comparative Analysis - Previous vs Current", prs)
 
     # Table
     rows, cols = 8, 3
@@ -202,12 +202,12 @@ def build_pptx(output_path: Path) -> None:
     _add_title_bar(slide, "Architecture Strengths", prs)
 
     _add_bullet_box(slide, Inches(0.5), Inches(1.3), Inches(12), Inches(5.5), [
-        "Execution Reconciliation — Deterministic state machine prevents duplicate orders after broker timeout/ambiguity. True broker-vs-internal state sync on startup eliminates zombie positions.",
-        "Broker Abstraction — Clean ports-and-adapters pattern. Paper mode NEVER touches real broker APIs. Thread-safe failover manager with recovery windows.",
-        "ML Pipeline — LightGBM with 14 features + SHAP explainability + Brier score calibration tracking. Concept drift detection with PSI + KS statistics.",
-        "Resilience Testing — 2,397 tests with 100% pass rate covering stress, catastrophic, failure injection, concurrency, and failover scenarios.",
-        "Governance Framework — Environment separation (DEV/QA/PAPER/SHADOW/STAGING/PRODUCTION), automatic DB migration, data retention policies, audit trails.",
-        "Realistic Paper Mode — OI/volume liquidity filter, bid-ask spread, slippage model, mid-price fill simulation for realistic paper trading.",
+        "Execution Reconciliation - Deterministic state machine prevents duplicate orders after broker timeout/ambiguity. True broker-vs-internal state sync on startup eliminates zombie positions.",
+        "Broker Abstraction - Clean ports-and-adapters pattern. Paper mode NEVER touches real broker APIs. Thread-safe failover manager with recovery windows.",
+        "ML Pipeline - LightGBM with 14 features + SHAP explainability + Brier score calibration tracking. Concept drift detection with PSI + KS statistics.",
+        "Resilience Testing - 2,397 tests with 100% pass rate covering stress, catastrophic, failure injection, concurrency, and failover scenarios.",
+        "Governance Framework - Environment separation (DEV/QA/PAPER/SHADOW/STAGING/PRODUCTION), automatic DB migration, data retention policies, audit trails.",
+        "Realistic Paper Mode - OI/volume liquidity filter, bid-ask spread, slippage model, mid-price fill simulation for realistic paper trading.",
     ], font_size=13)
 
     # ── Slide 5: Architecture Weaknesses ────────────────────────────
@@ -263,7 +263,7 @@ def build_pptx(output_path: Path) -> None:
                     res.get("verdict", "N/A"),
                 ]
             else:
-                vals = [label, "—", "—", "—", "—", "—", "—", "NO DATA"]
+                vals = [label, "-", "-", "-", "-", "-", "-", "NO DATA"]
             for c, val in enumerate(vals):
                 cell = table.cell(r, c)
                 cell.text = val
@@ -276,9 +276,9 @@ def build_pptx(output_path: Path) -> None:
 
     _add_text_box(slide, Inches(0.5), Inches(4.0), Inches(12), Inches(3.0),
                   "⚠️ Critical Caveat: Results are based on 30-day Yahoo 1m data with synthetic OI/PCR.\n"
-                  "0-10 trades per index — statistically insignificant.\n"
+                  "0-10 trades per index - statistically insignificant.\n"
                   "Real NSE option chain data and 6+ month validation are required for meaningful assessment.\n\n"
-                  "Data Period: April 27 – May 22, 2026  |  7,117 bars per index",
+                  "Data Period: April 27 - May 22, 2026  |  7,117 bars per index",
                   font_size=14, color=ORANGE)
 
     # ── Slide 7: Recommendations ────────────────────────────────────
@@ -336,7 +336,7 @@ def build_pptx(output_path: Path) -> None:
     _add_title_bar(slide, "Conclusion & Next Steps", prs)
 
     _add_text_box(slide, Inches(0.5), Inches(1.3), Inches(12), Inches(0.5),
-                  "Status: Production Ready — v2.53.0", font_size=22, bold=True, color=GREEN)
+                  "Status: Production Ready - v2.53.0", font_size=22, bold=True, color=GREEN)
 
     _add_text_box(slide, Inches(0.5), Inches(2.0), Inches(12), Inches(1.5),
                   "The OPBuying system demonstrates production-grade architecture with strong execution "

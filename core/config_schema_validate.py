@@ -23,7 +23,7 @@ def append_json_schema_errors(
     Append schema violations to ``errors`` (no-op if ``jsonschema`` is unavailable).
 
     Uses committed ``schemas/{index|stock}_config.schema.json`` generated from bundled
-    defaults — same single-source pattern as ``scripts/generate_config_schemas.py``.
+    defaults - same single-source pattern as ``scripts/generate_config_schemas.py``.
 
     Set ``OPB_SKIP_JSON_SCHEMA=1`` to skip (emergency operator override only).
     """

@@ -82,7 +82,7 @@ class ContinuousReconciliation:
         self._thread: threading.Thread | None = None
         self._last_cycle_time: datetime | None = None
         self._issues: list[ReconciliationIssue] = []
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def start(self) -> None:
         """Start the reconciliation thread."""
@@ -113,7 +113,7 @@ class ContinuousReconciliation:
             try:
                 now_ist()
 
-                # Check system mode — use result to adjust interval
+                # Check system mode - use result to adjust interval
                 can_trade_ok, _ = can_trade()
 
                 if not can_trade_ok:

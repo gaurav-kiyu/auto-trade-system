@@ -1,13 +1,16 @@
 """
-Position sizing engine for the tiered adaptive framework.
+[DEPRECATED] Position sizing engine — use ``core.services.risk_service`` instead.
 
-effective_pct = tier_base × regime_adj × score_within_tier_adj
+DEBT-013: This module is retained for backward compatibility only.
+All new code should import from ``core.services.risk_service`` which re-exports
+``PositionSizer`` and ``PositionSpec`` and provides the consolidated
+``RiskService.calculate_tier_position_size()`` API.
 
-    tier_base       — from TierRules.position_pct (1.00 / 0.60 / 0.30)
-    regime_adj      — market regime multiplier (TRENDING=1.0 → CHOPPY=0.5)
-    score_within    — linear scale within tier band → [0.90, 1.10]
+Legacy callers can safely delegate to:
 
-Final lots = floor(effective_pct × max_lots), minimum 1 if tier is tradeable.
+    from core.services.risk_service import PositionSizer, PositionSpec
+
+Will be removed in v3.0 together with ``core/capital_manager.py``.
 """
 
 from __future__ import annotations
@@ -55,7 +58,12 @@ class PositionSpec:
 
 
 class PositionSizer:
-    """Stateless position sizing calculator. All methods are static."""
+    """
+    [DEPRECATED] Stateless position sizing calculator.
+
+    DEBT-013: Use ``RiskService.calculate_tier_position_size()`` instead.
+    ``core.services.risk_service`` re-exports this class for backward compat.
+    """
 
     @staticmethod
     def calculate(
@@ -78,7 +86,7 @@ class PositionSizer:
             regime:    Market regime string
             max_lots:  Maximum configured lots per trade
             atr:       Current ATR (unused numerically, available for future ATR-scaling)
-            capital:   Available capital — used to cap lots when below BASE_CAPITAL
+            capital:   Available capital - used to cap lots when below BASE_CAPITAL
 
         Returns:
             PositionSpec with lots=0 for IGNORE tier.
@@ -89,7 +97,7 @@ class PositionSizer:
                 tier=tier, regime=regime, score=score,
                 tier_base_pct=0.0, regime_adj=0.0, score_adj=0.0,
                 effective_pct=0.0, lots=0,
-                reasoning="IGNORE tier — no trade",
+                reasoning="IGNORE tier - no trade",
             )
 
         tier_base  = rules.position_pct
@@ -109,7 +117,7 @@ class PositionSizer:
         # Baseline matches index_config.defaults.json BASE_CAPITAL default.
         _BASE_CAPITAL = 100_000.0
         if capital < _BASE_CAPITAL and capital > 0:
-            capital_ratio = capital / BASE_CAPITAL
+            capital_ratio = capital / _BASE_CAPITAL
             max_lots = max(1, int(max_lots * capital_ratio))
 
         # Always at least 1 lot if tier is tradeable and max_lots >= 1

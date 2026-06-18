@@ -158,8 +158,8 @@ class TestGenerateTradingSignal:
         frames = {"df1m": None, "df5m": None, "df15m": None}
 
         # Patch the signal_engine module import and iv_rank/OI at the source
-        with patch.dict(sys.modules, {"signal_engine": MagicMock()}):
-            sys.modules["signal_engine"].build_full_signal = MagicMock(
+        with patch.dict(sys.modules, {"core.legacy.signal_engine": MagicMock()}):
+            sys.modules["core.legacy.signal_engine"].build_full_signal = MagicMock(
                 return_value={"signal": "BUY", "score": 75, "direction": "CALL"}
             )
             with patch("core.iv_rank.get_iv_rank", return_value=0.5):
@@ -179,8 +179,8 @@ class TestGenerateTradingSignal:
 
         frames = {"df1m": None, "df5m": None, "df15m": None}
 
-        with patch.dict(sys.modules, {"signal_engine": MagicMock()}):
-            sys.modules["signal_engine"].build_full_signal = MagicMock(
+        with patch.dict(sys.modules, {"core.legacy.signal_engine": MagicMock()}):
+            sys.modules["core.legacy.signal_engine"].build_full_signal = MagicMock(
                 return_value={"signal": "SELL", "score": 30}
             )
             with patch("core.iv_rank.get_iv_rank", return_value=0.5):
@@ -198,8 +198,8 @@ class TestGenerateTradingSignal:
 
         frames = {"df1m": None, "df5m": None, "df15m": None}
 
-        with patch.dict(sys.modules, {"signal_engine": MagicMock()}):
-            sys.modules["signal_engine"].build_full_signal = MagicMock(
+        with patch.dict(sys.modules, {"core.legacy.signal_engine": MagicMock()}):
+            sys.modules["core.legacy.signal_engine"].build_full_signal = MagicMock(
                 return_value={"signal": "BUY"}
             )
             with patch("core.iv_rank.get_iv_rank", return_value=0.5):
@@ -217,9 +217,9 @@ class TestGenerateTradingSignal:
 
         frames = {"df1m": None, "df5m": None, "df15m": None}
 
-        with patch.dict(sys.modules, {"signal_engine": MagicMock()}):
+        with patch.dict(sys.modules, {"core.legacy.signal_engine": MagicMock()}):
             mock_build = MagicMock(return_value={"signal": "BUY", "threshold": 85})
-            sys.modules["signal_engine"].build_full_signal = mock_build
+            sys.modules["core.legacy.signal_engine"].build_full_signal = mock_build
             with patch("core.iv_rank.get_iv_rank", return_value=0.5):
                 with patch("core.oi_snapshot_store.get_oi_at", return_value=0.05):
                     with patch("core.oi_snapshot_store.get_pcr_at", return_value=1.1):

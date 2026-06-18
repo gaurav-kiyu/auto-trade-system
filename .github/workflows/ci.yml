@@ -55,5 +55,71 @@ jobs:
       - name: DB backup tests
         run: pytest tests/test_db_backup.py -q --tb=short
 
-      - name: Full test suite
-        run: pytest tests -q --ignore=tests/test_auth_system.py --ignore=tests/test_replay_certification.py --ignore=tests/test_db_backup.py
+      # ── Database adapter tests ─────────────────────────────────────────────
+
+      - name: SQLite + DuckDB adapter tests
+        run: |
+          pytest tests/test_database_port.py -q --tb=short
+          pytest tests/test_database_duckdb_adapter.py -q --tb=short
+
+      - name: Start Redis for integration tests
+        if: env.REDIS_TEST_HOST == ''
+        run: |
+          docker run -d --name redis-test -p 6379:6379 redis:7-alpine
+          sleep 3
+
+      - name: Redis adapter integration tests
+        run: |
+          REDIS_TEST_HOST=${REDIS_TEST_HOST:-127.0.0.1} \
+          REDIS_TEST_PORT=${REDIS_TEST_PORT:-6379} \
+          pytest tests/test_database_redis_adapter.py -q --tb=short
+
+      - name: Start MongoDB for integration tests
+        if: env.MONGO_TEST_HOST == ''
+        run: |
+          docker run -d --name mongodb-test -p 27017:27017 mongo:7
+          sleep 5
+
+      - name: MongoDB adapter integration tests
+        run: |
+          MONGO_TEST_HOST=${MONGO_TEST_HOST:-127.0.0.1} \
+          MONGO_TEST_PORT=${MONGO_TEST_PORT:-27017} \
+          pytest tests/test_database_mongodb_adapter.py -q --tb=short
+
+      - name: Start PostgreSQL for integration tests
+        if: env.PG_TEST_HOST == ''
+        run: |
+          docker run -d --name pg-test -p 5432:5432 \
+            -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test \
+            postgres:16-alpine
+          sleep 5
+
+      - name: PostgreSQL adapter integration tests
+        run: |
+          PG_TEST_HOST=${PG_TEST_HOST:-127.0.0.1} \
+          PG_TEST_PORT=${PG_TEST_PORT:-5432} \
+          pytest tests/test_database_postgres_adapter.py -q --tb=short
+
+      - name: Clean up Docker test containers
+        if: always()
+        run: |
+          docker rm -f redis-test mongodb-test pg-test 2>/dev/null || true
+
+      - name: DbUtils + Dashboard + E2E + benchmark tests
+        run: |
+          pytest tests/test_db_utils.py -q --tb=short
+          pytest tests/test_web_dashboard.py -q --tb=short
+          pytest tests/test_dashboard_integration.py -q --tb=short
+          pytest tests/test_end_to_end.py -q --tb=short
+          pytest tests/test_fundamental_analyzer_benchmark.py -q --tb=short
+
+      - name: Full test suite (no external DB adapters)
+        run: |
+          pytest tests -q \
+            --ignore=tests/test_auth_system.py \
+            --ignore=tests/test_replay_certification.py \
+            --ignore=tests/test_db_backup.py \
+            --ignore=tests/test_database_postgres_adapter.py \
+            --ignore=tests/test_database_mysql_adapter.py \
+            --ignore=tests/test_database_redis_adapter.py \
+            --ignore=tests/test_database_mongodb_adapter.py

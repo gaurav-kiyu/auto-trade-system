@@ -1,4 +1,4 @@
-"""Tests for CircuitBreakerDetector — NSE market halt and circuit breaker detection."""
+"""Tests for CircuitBreakerDetector - NSE market halt and circuit breaker detection."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ class TestMarketStatus:
 
 
 class TestCircuitBreakerDetector:
-    """CircuitBreakerDetector — circuit breaker logic."""
+    """CircuitBreakerDetector - circuit breaker logic."""
 
     def setup_method(self):
         self.detector = CircuitBreakerDetector(

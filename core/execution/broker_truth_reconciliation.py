@@ -222,7 +222,7 @@ def reconcile_broker_truth(broker_port: Any | None = None) -> dict:
                 "local_positions": 0,
                 "mismatches": 0,
                 "status": "WARN",
-                "message": "Broker not provided — reconciliation skipped",
+                "message": "Broker not provided - reconciliation skipped",
             }
         reconciler = BrokerTruthReconciler(broker_port, max_staleness_seconds=30)
         positions = reconciler.get_all_authoritative_positions()

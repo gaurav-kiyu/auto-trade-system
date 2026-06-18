@@ -5,15 +5,15 @@ Constructs and manages long-debit call/put spreads: buy the near-ATM leg,
 sell the further OTM leg.  This caps both max profit and max loss, giving a
 defined-risk structure suitable for buying-biased directional strategies.
 
-SAFETY — this module is disabled by default and must NEVER enter live order
+SAFETY - this module is disabled by default and must NEVER enter live order
 flow unless ``spread_strategy_enabled`` is explicitly set to ``true`` AND
 ``EXECUTION_MODE`` is ``PAPER``.
 
 Key structures
 --------------
-    SpreadLeg        — one side of the spread (strike, premium, type)
-    SpreadPosition   — two-leg position with P&L tracking
-    SpreadResult     — closed spread outcome
+    SpreadLeg        - one side of the spread (strike, premium, type)
+    SpreadPosition   - two-leg position with P&L tracking
+    SpreadResult     - closed spread outcome
 
 Public API
 ----------
@@ -28,7 +28,7 @@ Public API
 
     format_spread_summary(results) → str
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ---------------------------------------------------
   spread_strategy_enabled    : bool  default false  (NEVER set true in live mode)
   spread_width_strikes       : int   default 2      (# steps between legs)
@@ -70,7 +70,7 @@ class SpreadPosition:
     max_loss:    float          # net_debit (×lot_size)
     lot_size:    int
     open:        bool = True
-    # Partial exit tracking (Item 3 — v2.44)
+    # Partial exit tracking (Item 3 - v2.44)
     partial_exit_done: bool = False
     partial_exit_pnl:  float = 0.0
     partial_exit_ts:   float | None = None
@@ -162,7 +162,7 @@ def build_spread(
     net_debit  = (long_prem - short_prem) * lot_size
 
     if net_debit <= 0:
-        _log.debug("[SPREAD] Zero or negative net debit — spread not viable")
+        _log.debug("[SPREAD] Zero or negative net debit - spread not viable")
         return None
 
     width_pts  = abs(short_strike - long_strike)
@@ -170,7 +170,7 @@ def build_spread(
     max_loss   = net_debit
 
     if max_profit <= 0:
-        _log.debug("[SPREAD] No positive max profit — spread not viable")
+        _log.debug("[SPREAD] No positive max profit - spread not viable")
         return None
 
     long_leg = SpreadLeg(
@@ -292,7 +292,7 @@ def paper_fill_spread(
     )
 
 
-# ── Partial exit evaluation (Item 3 — v2.44) ─────────────────────────────────
+# ── Partial exit evaluation (Item 3 - v2.44) ─────────────────────────────────
 
 @dataclass(frozen=True)
 class SpreadExitDecision:
@@ -311,13 +311,13 @@ def evaluate_spread_exit(
     Evaluate exit decision for an open spread position.
 
     Priority order:
-      1. FULL EXIT — hard stop (pnl <= -max_loss * spread_stop_pct)
-      2. FULL EXIT — target hit (pnl >= max_profit * spread_exit_pnl_pct)
-      3. PARTIAL EXIT — near target (pnl >= max_profit * spread_partial_exit_pct,
+      1. FULL EXIT - hard stop (pnl <= -max_loss * spread_stop_pct)
+      2. FULL EXIT - target hit (pnl >= max_profit * spread_exit_pnl_pct)
+      3. PARTIAL EXIT - near target (pnl >= max_profit * spread_partial_exit_pct,
                          partial not yet done)
-      4. PARTIAL EXIT — theta decay guard (DTE=0 and time > spread_theta_exit_time
+      4. PARTIAL EXIT - theta decay guard (DTE=0 and time > spread_theta_exit_time
                          and pnl > 0)
-      5. HOLD — otherwise
+      5. HOLD - otherwise
     """
     sc = get_strategy_cfg(cfg or {}, "spread")
     if not position.open:
@@ -378,7 +378,7 @@ def evaluate_spread_exit(
             None,
         )
 
-    return SpreadExitDecision("HOLD", 0.0, "Hold — no exit condition met", None)
+    return SpreadExitDecision("HOLD", 0.0, "Hold - no exit condition met", None)
 
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
@@ -422,7 +422,7 @@ def format_spread_summary(results: list[SpreadResult]) -> str:
     if m.get("trades", 0) == 0:
         return "Spread Strategy: no closed spreads."
     lines = [
-        f"Debit Spread Summary — {m['trades']} trades",
+        f"Debit Spread Summary - {m['trades']} trades",
         f"  Win Rate:  {m['win_rate']:.1f}%  ({m['winners']}W / {m['losers']}L)",
         f"  Total P&L: ₹{m['total_pnl']:+,.2f}   Expectancy: ₹{m['expectancy']:+,.2f}",
         f"  Avg Win:   ₹{m['avg_win']:+,.2f}   Avg Loss: ₹{m['avg_loss']:+,.2f}",

@@ -1,4 +1,4 @@
-"""Tests for core/scoring_engine.py — multi-strategy signal score aggregation."""
+"""Tests for core/scoring_engine.py - multi-strategy signal score aggregation."""
 
 from __future__ import annotations
 

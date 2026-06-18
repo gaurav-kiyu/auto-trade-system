@@ -1,5 +1,5 @@
 """
-Tests for Phase 6 — PDF Report Generator (core/report_generator.py).
+Tests for Phase 6 - PDF Report Generator (core/report_generator.py).
 
 Covers:
   - generate_pdf_report: creates a valid PDF file when trades are present

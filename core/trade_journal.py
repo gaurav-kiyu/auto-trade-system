@@ -1,5 +1,5 @@
 """
-Trade Feedback Journal — tracks expected vs actual execution metrics.
+Trade Feedback Journal - tracks expected vs actual execution metrics.
 
 Closes the feedback loop:
     Signal score → expected_pnl (modelled)
@@ -37,7 +37,7 @@ VALID_EXIT_REASONS: frozenset[str] = frozenset({
     "trail_sl",     # trailing stop activated and hit
     "time_exit",    # forced exit at EOD or max position age
     "manual",       # operator closed the position manually
-    "unknown",      # fallback — should never appear in a healthy dataset
+    "unknown",      # fallback - should never appear in a healthy dataset
 })
 
 _SCHEMA_SQL = """
@@ -200,7 +200,7 @@ class TradeJournal:
 
     def __init__(self, db_path: str = _JOURNAL_DB):
         self._db = Path(db_path)
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="journal")
         self._init_db()
 
@@ -542,7 +542,7 @@ class TradeJournal:
         if reason in VALID_EXIT_REASONS:
             return reason
         log.warning(
-            "Unrecognised exit_reason %r — recording as 'unknown'. "
+            "Unrecognised exit_reason %r - recording as 'unknown'. "
             "Expected one of: %s",
             reason,
             ", ".join(sorted(VALID_EXIT_REASONS)),

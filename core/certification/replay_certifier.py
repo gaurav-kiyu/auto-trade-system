@@ -5,6 +5,7 @@ Verifies that the trade replay engine is **deterministic**:
   same input + same config → same output  every run.
 
 Also certifies that replay works correctly for all known trade files.
+Uses DatabasePort for all database access.
 
 Usage
 -----
@@ -17,11 +18,12 @@ Usage
 from __future__ import annotations
 
 import hashlib
-import sqlite3
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from core.db_utils import create_database_port
 
 _DEFAULT_DB = "trades.db"
 _DEFAULT_FRAMES = 10
@@ -97,6 +99,7 @@ class ReplayCertifier:
     For each trade in the database, runs replay twice and compares the
     SHA-256 hash of the output.  If any trade produces different output
     between runs, certification fails.
+    Uses DatabasePort for all database access.
     """
 
     def __init__(self, frames_to_show: int = _DEFAULT_FRAMES, bar_width: int = _DEFAULT_BAR_WIDTH):
@@ -124,17 +127,17 @@ class ReplayCertifier:
             report.duration_seconds = time.time() - start
             return report
 
-        # Load trade IDs from the database
+        # Load trade IDs from the database using DatabasePort
         try:
-            conn = sqlite3.connect(str(p), timeout=5)
-            conn.row_factory = sqlite3.Row
+            db = create_database_port(str(p))
+            db.connect()
             try:
-                rows = conn.execute(
+                rows = db.fetchall(
                     "SELECT id FROM trades WHERE net_pnl IS NOT NULL ORDER BY id"
-                ).fetchall()
+                )
             finally:
-                conn.close()
-        except (sqlite3.Error, OSError) as exc:
+                db.disconnect()
+        except Exception as exc:
             report.passed = False
             report.verdict = f"Database error: {exc}"
             report.duration_seconds = time.time() - start
@@ -145,7 +148,7 @@ class ReplayCertifier:
 
         if not trade_ids:
             report.passed = True
-            report.verdict = "No trades to certify — vacuously true"
+            report.verdict = "No trades to certify - vacuously true"
             report.duration_seconds = time.time() - start
             return report
 
@@ -154,7 +157,6 @@ class ReplayCertifier:
 
         for tid in tested:
             try:
-                # Run replay twice and compare hashes
                 from core.trade_replayer import replay_trade
 
                 result1 = replay_trace(tid, db_path, self._frames, self._bar_width)
@@ -181,7 +183,6 @@ class ReplayCertifier:
 
         report.duration_seconds = time.time() - start
 
-        # Determine verdict
         if report.failed_count > 0:
             report.passed = False
             report.verdict = (
@@ -196,7 +197,7 @@ class ReplayCertifier:
             )
         elif report.tested_trades == 0:
             report.passed = True
-            report.verdict = "No trades to certify — vacuously true"
+            report.verdict = "No trades to certify - vacuously true"
         else:
             report.passed = True
             report.verdict = (
@@ -209,9 +210,6 @@ class ReplayCertifier:
 def replay_trace(trade_id: int, db_path: str, frames: int, width: int) -> str:
     """
     Call replay_trade and ensure any randomness is seeded for determinism.
-
-    Note: The live _simulate_price_bars uses random.seed(42), so it is
-    already deterministic.  This wrapper exists for future proofing.
     """
     import random
     random.seed(42)
@@ -226,7 +224,7 @@ def certify_replay_determinism(
     width: int = _DEFAULT_BAR_WIDTH,
 ) -> ReplayCertificationReport:
     """
-    Convenience function — create a certifier and run certification.
+    Convenience function - create a certifier and run certification.
 
     Usage:
         report = certify_replay_determinism("trades.db")
@@ -237,7 +235,6 @@ def certify_replay_determinism(
 
 
 if __name__ == "__main__":
-    # CLI usage
     import argparse
     ap = argparse.ArgumentParser(
         prog="python -m core.certification.replay_certifier",

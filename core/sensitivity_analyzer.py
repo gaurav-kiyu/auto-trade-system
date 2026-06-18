@@ -11,9 +11,9 @@ P&L series.  Summary stats (Sharpe, win rate, profit factor) are computed for
 each point, and sensitivity_score = std(sharpes) / |mean(sharpes)| classifies
 the parameter as:
 
-    ROBUST    — sensitivity_score < 0.10
-    SENSITIVE — 0.10 ≤ sensitivity_score < 0.25
-    FRAGILE   — sensitivity_score ≥ 0.25
+    ROBUST    - sensitivity_score < 0.10
+    SENSITIVE - 0.10 ≤ sensitivity_score < 0.25
+    FRAGILE   - sensitivity_score ≥ 0.25
 
 Public API
 ----------
@@ -168,7 +168,7 @@ def _apply_exit_param(
         elif param == "AI_THRESHOLD":
             if score >= value:
                 pnls.append(pnl)
-            # else: trade would not have been taken — skip
+            # else: trade would not have been taken - skip
 
         elif param == "IV_SPIKE_THRESHOLD":
             float(base_cfg.get("IV_SPIKE_THRESHOLD", 1.5))
@@ -267,7 +267,7 @@ def run_single_parameter_sensitivity(
 
     if result.verdict == "ROBUST":
         result.insight = (
-            f"{param} is robust — performance stable across tested range. "
+            f"{param} is robust - performance stable across tested range. "
             f"Optimal value ≈ {result.best_value}."
         )
     elif result.verdict == "SENSITIVE":
@@ -278,7 +278,7 @@ def run_single_parameter_sensitivity(
         )
     else:
         result.insight = (
-            f"WARNING: {param} is FRAGILE — small changes cause large metric swings. "
+            f"WARNING: {param} is FRAGILE - small changes cause large metric swings. "
             f"Current config may be over-fitted. Best at {result.best_value}."
         )
 

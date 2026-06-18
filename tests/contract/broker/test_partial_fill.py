@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Test — Partial Fill Handling.
+AD-KIYU Broker Contract Test - Partial Fill Handling.
 
 Verifies that broker adapters correctly report fill information
 for placed orders.

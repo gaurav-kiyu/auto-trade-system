@@ -1,5 +1,5 @@
 """
-Tests for scripts/release_governance.py — Release Governance Automation.
+Tests for scripts/release_governance.py - Release Governance Automation.
 
 Covers:
   - run_pre_release_checks()
@@ -55,7 +55,7 @@ class TestPreReleaseChecks:
         version_file = Path(__file__).resolve().parent.parent / "VERSION"
         if version_file.exists():
             version_issue = [f for f in failures if "VERSION" in f]
-            # Version file exists — should not have a "not found" error
+            # Version file exists - should not have a "not found" error
             version_not_found = [f for f in failures if "VERSION file not found" in f]
             assert len(version_not_found) == 0
 

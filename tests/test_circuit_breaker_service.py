@@ -74,7 +74,7 @@ def test_sliding_window_resets_after_window():
     fn = MagicMock()
     fn.side_effect = ValueError("boom")
 
-    # One failure — should NOT trip (need 2)
+    # One failure - should NOT trip (need 2)
     with pytest.raises(ValueError):
         cb.call_with_key("test", fn)
 
@@ -94,7 +94,7 @@ def test_open_rejects_calls():
     with pytest.raises(ValueError):
         cb.call_with_key("test", fn)
 
-    # Circuit is now OPEN — subsequent calls should be rejected
+    # Circuit is now OPEN - subsequent calls should be rejected
     with pytest.raises(CircuitBreakerOpenException):
         cb.call_with_key("test", MagicMock(return_value="should not run"))
 

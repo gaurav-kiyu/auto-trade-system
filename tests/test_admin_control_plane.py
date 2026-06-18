@@ -1,5 +1,5 @@
 """
-AD-KIYU Admin Control Plane Certification — 22-endpoint test suite.
+AD-KIYU Admin Control Plane Certification - 22-endpoint test suite.
 
 Tests all 22 routes for:
   - Auth enforcement (X-Admin-Token)
@@ -64,7 +64,7 @@ def _auth(headers: dict | None = None) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Auth — all endpoints must enforce token
+# Auth - all endpoints must enforce token
 # ---------------------------------------------------------------------------
 
 
@@ -144,7 +144,7 @@ def test_roles_no_token(client):
 
 
 # ---------------------------------------------------------------------------
-# Graceful degradation — all refs are None
+# Graceful degradation - all refs are None
 # ---------------------------------------------------------------------------
 
 
@@ -217,7 +217,7 @@ def test_models_unavailable(client):
 
 
 # ---------------------------------------------------------------------------
-# Auth — bad token
+# Auth - bad token
 # ---------------------------------------------------------------------------
 
 
@@ -232,7 +232,7 @@ def test_bad_token_mutation(client):
 
 
 # ---------------------------------------------------------------------------
-# RBAC — no role_manager configured means no permission checks
+# RBAC - no role_manager configured means no permission checks
 # ---------------------------------------------------------------------------
 
 
@@ -358,7 +358,7 @@ def test_wired_invariant_toggle(wired_client):
     """Toggle an invariant check on/off via the engine module."""
     resp = wired_client.post("/invariants/dummy_check/toggle",
                               headers=_auth({"X-Operator-Identity": "alice"}))
-    # 200 even if check doesn't exist — toggle is idempotent
+    # 200 even if check doesn't exist - toggle is idempotent
     assert resp.status_code == 200
     assert "enabled" in resp.json()
 
@@ -453,6 +453,7 @@ def model_app():
 
     yield app
 
+    mr.close()
     os.unlink(db_path)
 
 

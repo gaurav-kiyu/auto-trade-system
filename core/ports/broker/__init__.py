@@ -83,7 +83,7 @@ LegacyOrderStatus = Enum(
 
 
 class LegacyOrderResult:
-    """Legacy order result (backward compat — simple attribute class)."""
+    """Legacy order result (backward compat - simple attribute class)."""
     def __init__(
         self,
         order_id: str,
@@ -176,7 +176,7 @@ class LegacyFill:
 
 class LegacyBrokerPort(ABC):
     """
-    Legacy broker port interface (backward compat — 10‑method streamlined ABC).
+    Legacy broker port interface (backward compat - 10‑method streamlined ABC).
 
     .. deprecated::
        New broker adapters should implement ``BrokerPort`` from
@@ -241,7 +241,7 @@ class BrokerAdapterFactory:
     """Factory for creating broker adapter instances (legacy)."""
     @staticmethod
     def create_broker_adapter(broker_type: str, config: dict[str, Any]) -> LegacyBrokerPort:
-        """Create a legacy broker adapter (deprecated — use create_broker_adapter() in broker_adapters.py)."""
+        """Create a legacy broker adapter (deprecated - use create_broker_adapter() in broker_adapters.py)."""
         raise NotImplementedError(f"Broker adapter for {broker_type} must be created via broker_adapters.py")
 
 

@@ -1,5 +1,5 @@
 """
-Tests for Phase 7D — NSE Event Calendar (core/event_calendar.py).
+Tests for Phase 7D - NSE Event Calendar (core/event_calendar.py).
 
 Covers:
   - get_event: returns None when disabled, None on non-event day, record on event day

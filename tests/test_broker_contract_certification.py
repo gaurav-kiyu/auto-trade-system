@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Certification Suite — v1.0.
+AD-KIYU Broker Contract Certification Suite - v1.0.
 
 Certifies all broker adapter contract scenarios:
   place, cancel, modify, reject, timeout, partial fill, reconnect,

@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Test — Authentication Expiry.
+AD-KIYU Broker Contract Test - Authentication Expiry.
 
 Verifies that broker adapters detect and report authentication
 expiry and recover gracefully when re-authenticated.
@@ -33,7 +33,7 @@ class TestAuthExpiryContract:
         assert isinstance(oid, str)
 
     def test_place_and_status_cycle(self):
-        """Place order then check status — must work without auth errors."""
+        """Place order then check status - must work without auth errors."""
         adapter = self.make_adapter()
         oid = adapter.place_order("NIFTY", "CALL", 50, 18000.0)
         status = adapter.get_order_status(oid)
@@ -41,7 +41,7 @@ class TestAuthExpiryContract:
         assert len(status) > 0
 
     def test_place_cancel_cycle(self):
-        """Place then cancel — must work without auth errors."""
+        """Place then cancel - must work without auth errors."""
         adapter = self.make_adapter()
         oid = adapter.place_order("NIFTY", "CALL", 50, 18000.0)
         result = adapter.cancel_order(oid)

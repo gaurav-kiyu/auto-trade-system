@@ -1,15 +1,15 @@
 """
-Signal Autopsy (Step 3) — post-trade analysis of why signals succeeded or failed.
+Signal Autopsy (Step 3) - post-trade analysis of why signals succeeded or failed.
 
 For each closed trade, the autopsy correlates the entry signal attributes
 (score, tier, direction, session, regime, IV rank, VIX, PCR) with the actual
 outcome (winner/loser, P&L, duration) to surface actionable patterns.
 
 Three analysis layers:
-  1. Feature breakdown  — win rate by score bin, tier, direction, regime,
+  1. Feature breakdown  - win rate by score bin, tier, direction, regime,
                           session, iv_rank bucket
-  2. Failure patterns   — most common feature combinations in losing trades
-  3. Edge decay check   — rolling win rate over time (are recent trades worse?)
+  2. Failure patterns   - most common feature combinations in losing trades
+  3. Edge decay check   - rolling win rate over time (are recent trades worse?)
 
 Public API
 ----------
@@ -25,7 +25,7 @@ Public API
 
     format_autopsy_report(report) → str
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ---------------------------------------------------
   signal_autopsy_enabled   : bool default true
   signal_autopsy_days      : int  default 30
@@ -84,7 +84,7 @@ class HeatmapCell:
     day_of_week: int            # 0=Monday … 6=Sunday
     n_trades:    int
     n_wins:      int
-    win_rate:    float          # 0.0–1.0
+    win_rate:    float          # 0.0-1.0
     avg_pnl:     float
 
 
@@ -309,7 +309,7 @@ def _generate_insights(
         if worst_reg[1]["win_rate"] < 40 and worst_reg[1]["trades"] >= 3:
             insights.append(
                 f"Regime '{worst_reg[0]}' has low win rate "
-                f"({worst_reg[1]['win_rate']:.1f}%) — consider reducing exposure."
+                f"({worst_reg[1]['win_rate']:.1f}%) - consider reducing exposure."
             )
 
     # 3. Top failure pattern
@@ -317,7 +317,7 @@ def _generate_insights(
         fp = report.failure_patterns[0]
         insights.append(
             f"Top failure pattern: {fp['direction']} in {fp['regime']} "
-            f"at score {fp['score_bin']} — {fp['count']} losses "
+            f"at score {fp['score_bin']} - {fp['count']} losses "
             f"({fp['pct_of_losses']:.1f}% of all losses)."
         )
 
@@ -363,13 +363,13 @@ def run_autopsy(
     Args:
         db_path : Path to trades.db.
         days    : Look-back window in days.
-        mode    : Trade mode filter — "PAPER", "LIVE", or None/ALL.
+        mode    : Trade mode filter - "PAPER", "LIVE", or None/ALL.
         window  : Rolling window size for edge decay.
         top_n   : Number of top failure patterns to surface.
         cfg     : Config dict (overrides individual params if set).
 
     Returns:
-        AutopsyReport — always returns even if there are no trades.
+        AutopsyReport - always returns even if there are no trades.
     """
     c      = cfg or {}
     db_path = str(c.get("trades_db", db_path))
@@ -413,7 +413,7 @@ def run_autopsy(
 def format_autopsy_report(report: AutopsyReport) -> str:
     """Return a compact multi-line autopsy summary."""
     lines = [
-        f"Signal Autopsy — {report.n_trades} trades  "
+        f"Signal Autopsy - {report.n_trades} trades  "
         f"Win: {report.n_winners}  Loss: {report.n_losers}  "
         f"Win Rate: {report.overall_win_rate:.1f}%"
     ]

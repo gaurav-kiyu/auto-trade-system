@@ -1,4 +1,4 @@
-"""Tests for core/execution/idempotency/certifier.py — IdempotencyCertifier."""
+"""Tests for core/execution/idempotency/certifier.py - IdempotencyCertifier."""
 
 from __future__ import annotations
 

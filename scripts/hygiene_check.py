@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Repository Hygiene Checker — Enforces the Constitution's Mandatory Repository Hygiene.
+Repository Hygiene Checker - Enforces the Constitution's Mandatory Repository Hygiene.
 
 The Constitution mandates:
   Release artifacts MUST NOT contain:

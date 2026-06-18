@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Try to import the existing TelegramEngine
 try:
-    from telegram_engine import TelegramEngine
+    from core.legacy.telegram_engine import TelegramEngine
     TELEGRAM_ENGINE_AVAILABLE = True
 except ImportError:
     TELEGRAM_ENGINE_AVAILABLE = False

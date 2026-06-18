@@ -4,10 +4,12 @@ Paper Trading Certification (Phase 5).
 Certifies that the paper trading environment produces realistic, auditable
 results across four dimensions:
 
-  1. Signal Quality    — win rate, Sharpe, profit factor
-  2. Execution Quality — slippage, fill latency, fill rate
-  3. Reconciliation   — order -> fill consistency, no phantom orders
-  4. Risk Enforcement  — hard halt, loss limits, position limits
+  1. Signal Quality    - win rate, Sharpe, profit factor
+  2. Execution Quality - slippage, fill latency, fill rate
+  3. Reconciliation   - order -> fill consistency, no phantom orders
+  4. Risk Enforcement  - hard halt, loss limits, position limits
+
+Uses DatabasePort for all database access.
 
 Usage
 -----
@@ -20,11 +22,13 @@ Usage
 from __future__ import annotations
 
 import json
-import sqlite3
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from core.db_utils import create_database_port
+from core.ports.database import DatabasePort
 
 _DEFAULT_DB = "trades.db"
 
@@ -49,10 +53,11 @@ def _safe_int(val: Any, default: int = 0) -> int:
         return default
 
 
-def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
-    """Convert a sqlite3.Row to a plain dict for attribute-style access."""
-    keys = row.keys()
-    return {k: row[k] for k in keys}
+def _row_to_dict(row: Any) -> dict[str, Any]:
+    """Convert a dict-like row to a plain dict."""
+    if isinstance(row, dict):
+        return row
+    return dict(row)
 
 
 @dataclass
@@ -147,11 +152,20 @@ class PaperCertifier:
     Certifies paper trading quality across all four dimensions.
 
     Reads from trades.db (closed trades) and trade_journal.db (execution quality)
-    to compute certification scores.
+    to compute certification scores. Uses DatabasePort for DB access.
     """
 
     def __init__(self):
         self._execution_db = "trade_journal.db"
+
+    def _open_db(self, db_path: str) -> DatabasePort | None:
+        """Open a DatabasePort for the given path, return None if file missing."""
+        p = Path(db_path)
+        if not p.is_file():
+            return None
+        db = create_database_port(str(p))
+        db.connect()
+        return db
 
     def certify(self, db_path: str = _DEFAULT_DB) -> PaperCertificationReport:
         """
@@ -169,39 +183,41 @@ class PaperCertifier:
         p = Path(db_path)
         if not p.is_file():
             report.passed = True
-            report.verdict = "No trades DB found — vacuously true (paper mode only)"
+            report.verdict = "No trades DB found - vacuously true (paper mode only)"
             report.duration_seconds = time.time() - start
             return report
 
         # ── 1. Load closed trades ────────────────────────────────────────
+        db = self._open_db(db_path)
+        if db is None:
+            report.passed = True
+            report.verdict = "No trades DB found - vacuously true (paper mode only)"
+            report.duration_seconds = time.time() - start
+            return report
+
         try:
-            conn = sqlite3.connect(str(p), timeout=5)
-            conn.row_factory = sqlite3.Row
-            try:
-                all_rows_raw = conn.execute(
-                    "SELECT * FROM trades WHERE net_pnl IS NOT NULL ORDER BY id"
-                ).fetchall()
-                # Convert to dicts for attribute-style access
-                all_rows = [_row_to_dict(r) for r in all_rows_raw]
-                # Closed trades (with exit data)
-                closed_rows = [
-                    r for r in all_rows
-                    if r.get("exit_time") or r.get("exit_price", 0) != 0 or r.get("reason", "") != ""
-                ]
-            finally:
-                conn.close()
-        except (sqlite3.Error, OSError) as exc:
+            all_rows_raw = db.fetchall(
+                "SELECT * FROM trades WHERE net_pnl IS NOT NULL ORDER BY id"
+            )
+            all_rows = [_row_to_dict(r) for r in all_rows_raw]
+            closed_rows = [
+                r for r in all_rows
+                if r.get("exit_time") or r.get("exit_price", 0) != 0 or r.get("reason", "") != ""
+            ]
+        except Exception as exc:
             report.passed = True
             report.verdict = f"Could not read trades DB: {exc} (non-fatal)"
             report.duration_seconds = time.time() - start
             return report
+        finally:
+            db.disconnect()
 
         report.total_trades = len(all_rows)
         report.closed_trades = len(closed_rows)
 
         if not closed_rows:
             report.passed = True
-            report.verdict = "No closed trades to certify — vacuously true"
+            report.verdict = "No closed trades to certify - vacuously true"
             report.duration_seconds = time.time() - start
             return report
 
@@ -236,12 +252,10 @@ class PaperCertifier:
         report.avg_loss = sum(losses) / len(losses) if losses else 0.0
         report.max_drawdown = max_dd
 
-        # Profit factor
         total_wins = sum(wins) if wins else 0.0
         total_losses_abs = abs(sum(losses)) if losses else 1.0
         report.profit_factor = total_wins / total_losses_abs if total_losses_abs > 0 else 0.0
 
-        # Sharpe ratio (simplified: mean / std of trade P&Ls)
         if len(pnls) > 1:
             mean_pnl = sum(pnls) / len(pnls)
             variance = sum((p - mean_pnl) ** 2 for p in pnls) / (len(pnls) - 1)
@@ -252,18 +266,13 @@ class PaperCertifier:
 
         # ── 3. Execution quality (slippage, fill rate, reconciliation) ───
         try:
-            exec_p = Path(self._execution_db)
-            if exec_p.is_file():
-                exec_conn = sqlite3.connect(str(exec_p), timeout=5)
+            exec_db = self._open_db(self._execution_db)
+            if exec_db is not None:
                 try:
-                    exec_cursor = exec_conn.execute(
+                    exec_rows_raw = exec_db.fetchall(
                         "SELECT * FROM execution_quality ORDER BY id"
                     )
-                    exec_columns = [desc[0] for desc in exec_cursor.description]
-                    exec_rows_raw = exec_cursor.fetchall()
-                    exec_rows = []
-                    for r in exec_rows_raw:
-                        exec_rows.append(dict(zip(exec_columns, r)))
+                    exec_rows = [_row_to_dict(r) for r in exec_rows_raw]
 
                     if exec_rows:
                         slippages = []
@@ -276,7 +285,6 @@ class PaperCertifier:
                                 fill = _safe_int(row.get("filled_quantity"), 0) > 0
                                 if fill or row.get("status") == "FILLED":
                                     fills += 1
-                                # Track reconciliation issues
                                 if row.get("reconciliation_issue") or row.get("recon_issue"):
                                     issues += 1
                             except (TypeError, ValueError):
@@ -289,42 +297,37 @@ class PaperCertifier:
                             report.reconciliation_clean = False
                             report.issues.append(f"{issues} reconciliation issue(s) found in execution quality")
                 finally:
-                    exec_conn.close()
-        except (sqlite3.Error, OSError):
+                    exec_db.disconnect()
+        except Exception:
             report.avg_slippage_pct = 0.0
             report.fill_rate = 1.0
 
         # ── 4. Compute dimension scores ──────────────────────────────────
-
-        # Signal quality score (0-10)
         signal_score = 0.0
         if report.win_rate > 0:
-            signal_score += min(4.0, report.win_rate * 5.0)  # 80% WR = 4.0
+            signal_score += min(4.0, report.win_rate * 5.0)
         if report.profit_factor > 0:
-            signal_score += min(3.0, report.profit_factor * 1.5)  # PF 2.0 = 3.0
+            signal_score += min(3.0, report.profit_factor * 1.5)
         if report.sharpe_ratio > 0:
-            signal_score += min(3.0, abs(report.sharpe_ratio) * 1.5)  # Sharpe 2.0 = 3.0
+            signal_score += min(3.0, abs(report.sharpe_ratio) * 1.5)
         report.signal_quality_score = signal_score
 
-        # Execution quality score (0-10)
-        exec_score = 8.0  # Start at 8
+        exec_score = 8.0
         if report.avg_slippage_pct > 0.5:
-            exec_score -= 2.0  # High slippage penalty
+            exec_score -= 2.0
         if report.fill_rate < 0.9:
-            exec_score -= 2.0  # Low fill rate penalty
+            exec_score -= 2.0
         if report.reconciliation_clean:
             exec_score += 1.0
         report.execution_quality_score = max(0, min(10, exec_score))
 
-        # Risk enforcement score (0-10)
-        risk_score = 8.0  # Start at 8
+        risk_score = 8.0
         if report.max_drawdown > 10000:
             risk_score -= 2.0
         if report.loss_count > 0 and report.avg_loss < -2000:
             risk_score -= 1.0
         report.risk_enforcement_score = max(0, min(10, risk_score))
 
-        # Overall score
         report.overall_score = round(
             (signal_score + exec_score + risk_score) / 3.0, 1
         )
@@ -347,7 +350,7 @@ class PaperCertifier:
 
 def certify_paper_trading(db_path: str = _DEFAULT_DB) -> PaperCertificationReport:
     """
-    Convenience function — create a certifier and run certification.
+    Convenience function - create a certifier and run certification.
 
     Usage:
         report = certify_paper_trading("trades.db")

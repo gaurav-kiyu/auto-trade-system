@@ -1,4 +1,4 @@
-"""Tests for core.market_data_fallback — dual-source market data with fallback."""
+"""Tests for core.market_data_fallback - dual-source market data with fallback."""
 
 from __future__ import annotations
 

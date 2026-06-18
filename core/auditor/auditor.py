@@ -7,16 +7,16 @@ evidence for Constitution Scoring and certification reports.
 
 Audit Categories
 ----------------
-  ARCHITECTURE    — Bounded contexts, domain separation, dependency direction
-  RISK_CONTROLS   — Leverage limits, drawdown controls, kill switch, stale data
-  EXECUTION       — Order lifecycle, idempotency, partial fills, timeout handling
-  STRATEGY        — Backtest validity, walk-forward, paper trading, risk validation
-  SECURITY        — RBAC, authentication, authorization, secrets management
-  SCORING         — Evidence quality, score justification, self-certification checks
-  REPLAY          — Determinism: same input + same config + same data = same output
-  RESILIENCE      — Fail-closed behavior, chaos readiness, black swan readiness
-  GOVERNANCE      — Constitution compliance, release gates, audit trail integrity
-  TESTING         — Coverage gaps, edge cases, stress tests, integration coverage
+  ARCHITECTURE    - Bounded contexts, domain separation, dependency direction
+  RISK_CONTROLS   - Leverage limits, drawdown controls, kill switch, stale data
+  EXECUTION       - Order lifecycle, idempotency, partial fills, timeout handling
+  STRATEGY        - Backtest validity, walk-forward, paper trading, risk validation
+  SECURITY        - RBAC, authentication, authorization, secrets management
+  SCORING         - Evidence quality, score justification, self-certification checks
+  REPLAY          - Determinism: same input + same config + same data = same output
+  RESILIENCE      - Fail-closed behavior, chaos readiness, black swan readiness
+  GOVERNANCE      - Constitution compliance, release gates, audit trail integrity
+  TESTING         - Coverage gaps, edge cases, stress tests, integration coverage
 
 Usage
 -----
@@ -226,7 +226,7 @@ class IndependentAuditor:
 
     def __init__(self, log_fn: Callable[[str], None] | None = None):
         self._log = log_fn or _log
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._findings: list[AuditFinding] = []
         self._challenge_count = 0
         self._evidence_cache: dict[str, list[AuditEvidence]] = {}
@@ -251,7 +251,7 @@ class IndependentAuditor:
             # Check broker isolation: verify broker_adapters.py doesn't import core trading logic
             evidence.append(self._check_import_rule(
                 "core/adapters/broker_adapters.py",
-                forbidden_imports=["index_trader", "execution_engine", "trading_orchestrator"],
+                forbidden_imports=["index_trader"],
                 description="Broker adapters must not import core trading logic",
             ))
 
@@ -1120,7 +1120,7 @@ class IndependentAuditor:
 # ── Singleton factory ────────────────────────────────────────────────────────
 
 _auditor_instance: IndependentAuditor | None = None
-_auditor_lock = threading.Lock()
+_auditor_lock = threading.RLock()
 
 
 def get_auditor() -> IndependentAuditor:

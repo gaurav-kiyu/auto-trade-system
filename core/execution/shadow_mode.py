@@ -14,6 +14,8 @@ import json
 import logging
 import sqlite3
 import threading
+
+from core.db_utils import get_connection
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -60,7 +62,7 @@ class ShadowModeEngine:
         self._enabled = False
         self._shadow_signals: dict[str, ShadowSignal] = {}
         self._comparisons: list[ShadowComparison] = []
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._stats = {
             "shadow_signals": 0,
             "shadow_trades": 0,
@@ -72,9 +74,7 @@ class ShadowModeEngine:
     def _init_durable_storage(self) -> None:
         """Initialize shadow mode storage"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
-                conn.execute("PRAGMA journal_mode=WAL")
-                conn.execute("PRAGMA busy_timeout=5000")
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS shadow_signals (
                         signal_id TEXT PRIMARY KEY,
@@ -228,7 +228,7 @@ class ShadowModeEngine:
     def get_signal_history(self, strategy_name: str = None, limit: int = 100) -> list[dict]:
         """Get signal history from DB"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 if strategy_name:
                     cursor = conn.execute("""
                         SELECT signal_id, timestamp, strategy_name, symbol, direction,
@@ -276,7 +276,7 @@ class ShadowModeEngine:
     def _persist_signal(self, signal: ShadowSignal) -> None:
         """Persist shadow signal"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     INSERT INTO shadow_signals
                     (signal_id, timestamp, strategy_name, symbol, direction, quantity,
@@ -301,7 +301,7 @@ class ShadowModeEngine:
     def _persist_comparison(self, comparison: ShadowComparison) -> None:
         """Persist comparison"""
         try:
-            with sqlite3.connect(self.PERSISTENCE_PATH) as conn:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
                     INSERT INTO shadow_comparisons
                     (comparison_id, timestamp, shadow_signal_json, real_signal_json, match, divergence_reason)
@@ -320,7 +320,7 @@ class ShadowModeEngine:
 
 
 _shadow_engine: ShadowModeEngine | None = None
-_engine_lock = threading.Lock()
+_engine_lock = threading.RLock()
 
 
 def get_shadow_engine() -> ShadowModeEngine:

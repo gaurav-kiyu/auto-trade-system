@@ -1,4 +1,4 @@
-"""Tests for core/execution/deterministic_state_machine.py — State Machine."""
+"""Tests for core/execution/deterministic_state_machine.py - State Machine."""
 
 from __future__ import annotations
 

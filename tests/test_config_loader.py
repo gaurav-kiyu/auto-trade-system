@@ -1,4 +1,4 @@
-"""Tests for core.config_loader — ConfigLoader + get_effective_config."""
+"""Tests for core.config_loader - ConfigLoader + get_effective_config."""
 
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def loader(config_dir: Path) -> ConfigLoader:
     return ConfigLoader(config_dir=config_dir)
 
 
-# ─── Tests – ConfigLoader ─────────────────────────────────────────────────────
+# ─── Tests - ConfigLoader ─────────────────────────────────────────────────────
 
 
 class TestConfigLoaderInit:
@@ -98,7 +98,7 @@ class TestConfigLoaderLoad:
         assert cfg["BASE_CAPITAL"] == 50000  # only base values
 
     def test_load_invalid_yaml_raises_error(self, config_dir: Path):
-        """YAML parser errors are not caught — they propagate."""
+        """YAML parser errors are not caught - they propagate."""
         (config_dir / "base.yaml").write_text("{invalid: yaml: unclosed", encoding="utf-8")
         loader = ConfigLoader(config_dir=config_dir)
         with pytest.raises(Exception):
@@ -190,7 +190,7 @@ NEW_KEY: 2
 
 class TestConfigLoaderCache:
     def test_cache_returns_same_object(self, loader: ConfigLoader, base_yaml: Path):
-        """load() returns the cached dict — identical objects."""
+        """load() returns the cached dict - identical objects."""
         cfg1 = loader.load("base")
         cfg2 = loader.load("base")
         assert cfg1 is cfg2
@@ -242,7 +242,7 @@ class TestEnvOverride:
         assert cfg["INDEX"] == "NIFTY"
 
 
-# ─── Tests – Module-level functions ───────────────────────────────────────────
+# ─── Tests - Module-level functions ───────────────────────────────────────────
 
 
 class TestLoadConfig:

@@ -7,11 +7,11 @@ direction.
 
 Public API
 ----------
-    FIIDIITracker(cfg)               — main class
-    FIIDIITracker.get_latest()       — FIIDIIData | None (from cache or fetch)
-    FIIDIITracker.score_adjustment() — int (±5, 0 if disabled or no data)
-    FIIDIITracker.start_background_refresh() — non-blocking daemon thread
-    FIIDIITracker.get_eod_summary()  — "FII: ₹{X}Cr | DII: ₹{Y}Cr"
+    FIIDIITracker(cfg)               - main class
+    FIIDIITracker.get_latest()       - FIIDIIData | None (from cache or fetch)
+    FIIDIITracker.score_adjustment() - int (±5, 0 if disabled or no data)
+    FIIDIITracker.start_background_refresh() - non-blocking daemon thread
+    FIIDIITracker.get_eod_summary()  - "FII: ₹{X}Cr | DII: ₹{Y}Cr"
 
 Config keys
 -----------
@@ -59,7 +59,7 @@ class FIIDIITracker:
 
     def __init__(self, cfg: dict[str, Any] | None = None) -> None:
         self._cfg          = cfg or {}
-        self._lock         = threading.Lock()
+        self._lock         = threading.RLock()
         self._data: FIIDIIData | None = None
         self._last_fetch   = 0.0
         self._bg_thread: threading.Thread | None = None
@@ -139,7 +139,7 @@ class FIIDIITracker:
             age = time.time() - self._last_fetch
             if self._data is not None and age < cache_hours * 3600:
                 return self._data
-        # Stale — try remote
+        # Stale - try remote
         fresh = self._fetch_remote()
         if fresh is not None:
             with self._lock:

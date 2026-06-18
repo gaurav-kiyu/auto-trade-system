@@ -1,5 +1,5 @@
 """
-Re-entry evaluator (Item 2 — v2.44).
+Re-entry evaluator (Item 2 - v2.44).
 
 Checks whether a new entry is warranted after a stop-loss on the same index.
 NSE intraday moves frequently fake-out stops before resuming original direction.
@@ -97,7 +97,7 @@ class ReentryTracker:
             )
 
         if self.last_sl_ts is None:
-            # No SL hit today — first entry, always allow
+            # No SL hit today - first entry, always allow
             return ReentryDecision(
                 allowed=True, reason="First entry (no prior SL today)",
                 cooldown_remaining_secs=0,

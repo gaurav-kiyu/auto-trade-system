@@ -37,7 +37,7 @@ if str(ROOT) not in sys.path:
 # core/ modules that are EXEMPT from the no-infrastructure-import rule.
 # These are known-legacy modules that bridge to infrastructure/.
 CORE_NO_INFRA_MODULES = {
-    # core.adapters is the adapter shim layer — allowed
+    # core.adapters is the adapter shim layer - allowed
     "core.adapters",
     # core.config_bootstrap imports SecureConfig from infrastructure
     "core.config_bootstrap",
@@ -60,7 +60,7 @@ STRATEGY_NO_BROKER_MODULES = {
     "core.signal_router",
 }
 
-# Removed/dead modules — any import is a violation.
+# Removed/dead modules - any import is a violation.
 # These are modules that have been REMOVED from the codebase entirely.
 # NOTE: Only list modules that NO LONGER EXIST on disk.
 # Do NOT add deprecated-but-still-present modules here.
@@ -249,7 +249,7 @@ def check_dead_modules_not_imported() -> list[str]:
             # Check each dead module against full import path
             for dead in DEAD_MODULES:
                 # Check if the import path matches the dead module exactly (or is a sub-import of it).
-                # Do NOT check just the top-level package prefix — that causes false positives.
+                # Do NOT check just the top-level package prefix - that causes false positives.
                 if imp == dead or imp.startswith(dead + "."):
                     violations.append(
                         f"DEAD_IMPORT: {mod} imports dead module '{imp}' (see {dead})"
@@ -269,7 +269,7 @@ def check_canonical_modules_importable() -> list[str]:
         spec = importlib.util.find_spec(mod_path)
         if spec is None:
             violations.append(
-                f"MISSING_CANONICAL: {mod_path} — module not found on sys.path"
+                f"MISSING_CANONICAL: {mod_path} - module not found on sys.path"
             )
     return violations
 
@@ -299,7 +299,7 @@ def check_no_direct_broker_sdk_imports() -> list[str]:
             top = imp.split(".")[0]
             if top in broker_sdk_modules:
                 violations.append(
-                    f"BROKER_SDK_IMPORT: {mod} directly imports '{imp}' — "
+                    f"BROKER_SDK_IMPORT: {mod} directly imports '{imp}' - "
                     f"must go through core/adapters/broker_adapters.py"
                 )
     return violations

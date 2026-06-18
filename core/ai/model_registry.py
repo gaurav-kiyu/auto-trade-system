@@ -1,18 +1,21 @@
 """
-AD-KIYU AI Governance — Model Registry.
+AD-KIYU AI Governance - Model Registry.
 
 SQLite-backed registry for ML model provenance, versioning, and lifecycle tracking.
+Uses DatabasePort for all database access.
 """
 from __future__ import annotations
 
 import json
 import logging
-import sqlite3
 import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from core.db_utils import create_database_port
+from core.ports.database import DatabasePort
 
 _log = logging.getLogger(__name__)
 
@@ -42,38 +45,46 @@ class ModelRecord:
 
 
 class ModelRegistry:
-    """Thread-safe SQLite-backed model registry."""
+    """Thread-safe SQLite-backed model registry using DatabasePort."""
 
     def __init__(self, db_path: str | Path = _DEFAULT_DB):
         self._db = Path(db_path)
         self._db.parent.mkdir(parents=True, exist_ok=True)
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
+        self._db_port: DatabasePort | None = None
         self._init_db()
 
+    def _get_port(self) -> DatabasePort:
+        """Lazy-init the DatabasePort connection."""
+        if self._db_port is None:
+            with self._lock:
+                if self._db_port is None:
+                    self._db_port = create_database_port(str(self._db))
+                    self._db_port.connect()
+        return self._db_port
+
     def _init_db(self) -> None:
-        with self._lock:
-            conn = sqlite3.connect(str(self._db))
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS model_registry (
-                    model_id TEXT PRIMARY KEY,
-                    version TEXT NOT NULL,
-                    name TEXT NOT NULL,
-                    status TEXT NOT NULL DEFAULT 'DRAFT',
-                    created_ts REAL NOT NULL,
-                    approved_ts REAL,
-                    activated_ts REAL,
-                    rollback_ts REAL,
-                    metrics TEXT DEFAULT '{}',
-                    metadata TEXT DEFAULT '{}',
-                    source_path TEXT DEFAULT '',
-                    checksum TEXT DEFAULT '',
-                    approved_by TEXT DEFAULT ''
-                )
-            """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_model_name ON model_registry(name)")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_model_status ON model_registry(status)")
-            conn.commit()
-            conn.close()
+        db = self._get_port()
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS model_registry (
+                model_id TEXT PRIMARY KEY,
+                version TEXT NOT NULL,
+                name TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'DRAFT',
+                created_ts REAL NOT NULL,
+                approved_ts REAL,
+                activated_ts REAL,
+                rollback_ts REAL,
+                metrics TEXT DEFAULT '{}',
+                metadata TEXT DEFAULT '{}',
+                source_path TEXT DEFAULT '',
+                checksum TEXT DEFAULT '',
+                approved_by TEXT DEFAULT ''
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_model_name ON model_registry(name)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_model_status ON model_registry(status)")
+        db.commit()
 
     def register(self, model_id: str, version: str, name: str, **kwargs) -> ModelRecord:
         """Register a new model with status DRAFT."""
@@ -87,108 +98,101 @@ class ModelRegistry:
             metrics=kwargs.get("metrics", {}),
             metadata=kwargs.get("metadata", {}),
         )
-        with self._lock:
-            conn = sqlite3.connect(str(self._db))
-            conn.execute(
-                """INSERT OR REPLACE INTO model_registry
-                   (model_id, version, name, status, created_ts, metrics, metadata, source_path, checksum)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (rec.model_id, rec.version, rec.name, rec.status, rec.created_ts,
-                 json.dumps(rec.metrics), json.dumps(rec.metadata),
-                 rec.source_path, rec.checksum),
-            )
-            conn.commit()
-            conn.close()
+        db = self._get_port()
+        db.execute(
+            """INSERT OR REPLACE INTO model_registry
+               (model_id, version, name, status, created_ts, metrics, metadata, source_path, checksum)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (rec.model_id, rec.version, rec.name, rec.status, rec.created_ts,
+             json.dumps(rec.metrics), json.dumps(rec.metadata),
+             rec.source_path, rec.checksum),
+        )
+        db.commit()
         _log.info(f"[ML-REGISTRY] Registered model {name} v{version} as {model_id}")
         return rec
 
     def update_status(self, model_id: str, status: str, **kwargs) -> None:
         """Update model status and optionally set approval/activation timestamps."""
-        with self._lock:
-            conn = sqlite3.connect(str(self._db))
-            fields = ["status = ?"]
-            params: list[Any] = [status]
-            if status == "ACTIVE" and "activated_ts" not in kwargs:
-                fields.append("activated_ts = ?")
-                params.append(time.time())
-            if "activated_ts" in kwargs:
-                fields.append("activated_ts = ?")
-                params.append(kwargs["activated_ts"])
-            if "approved_ts" in kwargs:
-                fields.append("approved_ts = ?")
-                params.append(kwargs["approved_ts"])
-            if "approved_by" in kwargs:
-                fields.append("approved_by = ?")
-                params.append(kwargs["approved_by"])
-            if "rollback_ts" in kwargs:
-                fields.append("rollback_ts = ?")
-                params.append(kwargs["rollback_ts"])
-            # Validate all field names against whitelist (defense-in-depth)
-            for f in fields:
-                col = f.split(" = ")[0].strip()
-                if col not in _ALLOWED_UPDATE_FIELDS:
-                    raise ValueError(f"Invalid column name: {col}")
-            fields_str = ", ".join(fields)
-            conn.execute(f"UPDATE model_registry SET {fields_str} WHERE model_id = ?", (*params, model_id))
-            conn.commit()
-            conn.close()
+        db = self._get_port()
+        fields = ["status = ?"]
+        params: list[Any] = [status]
+        if status == "ACTIVE" and "activated_ts" not in kwargs:
+            fields.append("activated_ts = ?")
+            params.append(time.time())
+        if "activated_ts" in kwargs:
+            fields.append("activated_ts = ?")
+            params.append(kwargs["activated_ts"])
+        if "approved_ts" in kwargs:
+            fields.append("approved_ts = ?")
+            params.append(kwargs["approved_ts"])
+        if "approved_by" in kwargs:
+            fields.append("approved_by = ?")
+            params.append(kwargs["approved_by"])
+        if "rollback_ts" in kwargs:
+            fields.append("rollback_ts = ?")
+            params.append(kwargs["rollback_ts"])
+        # Validate all field names against whitelist (defense-in-depth)
+        for f in fields:
+            col = f.split(" = ")[0].strip()
+            if col not in _ALLOWED_UPDATE_FIELDS:
+                raise ValueError(f"Invalid column name: {col}")
+        fields_str = ", ".join(fields)
+        db.execute(f"UPDATE model_registry SET {fields_str} WHERE model_id = ?", (*params, model_id))
+        db.commit()
         _log.info(f"[ML-REGISTRY] Model {model_id} status → {status}")
 
     def get(self, model_id: str) -> ModelRecord | None:
         """Get a model record by ID."""
-        with self._lock:
-            conn = sqlite3.connect(str(self._db))
-            row = conn.execute("SELECT * FROM model_registry WHERE model_id = ?", (model_id,)).fetchone()
-            conn.close()
+        db = self._get_port()
+        row = db.fetchone("SELECT * FROM model_registry WHERE model_id = ?", (model_id,))
         if row is None:
             return None
         return self._row_to_record(row)
 
     def get_active(self, name: str) -> ModelRecord | None:
         """Get the currently ACTIVE model for a given name."""
-        with self._lock:
-            conn = sqlite3.connect(str(self._db))
-            row = conn.execute(
-                "SELECT * FROM model_registry WHERE name = ? AND status = 'ACTIVE' ORDER BY activated_ts DESC LIMIT 1",
-                (name,),
-            ).fetchone()
-            conn.close()
+        db = self._get_port()
+        row = db.fetchone(
+            "SELECT * FROM model_registry WHERE name = ? AND status = 'ACTIVE' ORDER BY activated_ts DESC LIMIT 1",
+            (name,),
+        )
         if row is None:
             return None
         return self._row_to_record(row)
 
     def list_by_name(self, name: str) -> list[ModelRecord]:
         """List all model records for a given name, newest first."""
-        with self._lock:
-            conn = sqlite3.connect(str(self._db))
-            rows = conn.execute(
-                "SELECT * FROM model_registry WHERE name = ? ORDER BY created_ts DESC", (name,),
-            ).fetchall()
-            conn.close()
+        db = self._get_port()
+        rows = db.fetchall(
+            "SELECT * FROM model_registry WHERE name = ? ORDER BY created_ts DESC", (name,),
+        )
         return [self._row_to_record(r) for r in rows]
 
     def list_all(self) -> list[ModelRecord]:
         """List all models, newest first."""
-        with self._lock:
-            conn = sqlite3.connect(str(self._db))
-            rows = conn.execute("SELECT * FROM model_registry ORDER BY created_ts DESC").fetchall()
-            conn.close()
+        db = self._get_port()
+        rows = db.fetchall("SELECT * FROM model_registry ORDER BY created_ts DESC")
         return [self._row_to_record(r) for r in rows]
 
     def delete(self, model_id: str) -> bool:
         """Delete a model record. Returns True if existed."""
-        with self._lock:
-            conn = sqlite3.connect(str(self._db))
-            cur = conn.execute("DELETE FROM model_registry WHERE model_id = ?", (model_id,))
-            deleted = cur.rowcount > 0
-            conn.commit()
-            conn.close()
+        db = self._get_port()
+        cur = db.execute("DELETE FROM model_registry WHERE model_id = ?", (model_id,))
+        deleted = cur.rowcount > 0
+        db.commit()
         if deleted:
             _log.info(f"[ML-REGISTRY] Deleted model {model_id}")
         return deleted
 
+    def close(self) -> None:
+        """Close the database connection. Safe to call multiple times."""
+        with self._lock:
+            if self._db_port is not None:
+                self._db_port.disconnect()
+                self._db_port = None
+
     @staticmethod
-    def _row_to_record(row: sqlite3.Row | tuple) -> ModelRecord:
+    def _row_to_record(row: Any) -> ModelRecord:
         def safe_load(val: str | None) -> Any:
             if val:
                 try:
@@ -197,17 +201,17 @@ class ModelRegistry:
                     _log.debug("[AI.MODEL_REGISTRY] non-critical error: %s", e)
             return {}
         return ModelRecord(
-            model_id=str(row[0]),
-            version=str(row[1]),
-            name=str(row[2]),
-            status=str(row[3]),
-            created_ts=float(row[4]),
-            approved_ts=float(row[5]) if row[5] else None,
-            activated_ts=float(row[6]) if row[6] else None,
-            rollback_ts=float(row[7]) if row[7] else None,
-            metrics=safe_load(row[8]),
-            metadata=safe_load(row[9]),
-            source_path=str(row[10]) if len(row) > 10 else "",
-            checksum=str(row[11]) if len(row) > 11 else "",
-            approved_by=str(row[12]) if len(row) > 12 else "",
+            model_id=str(row["model_id"]),
+            version=str(row["version"]),
+            name=str(row["name"]),
+            status=str(row["status"]),
+            created_ts=float(row["created_ts"]),
+            approved_ts=float(row["approved_ts"]) if row["approved_ts"] else None,
+            activated_ts=float(row["activated_ts"]) if row["activated_ts"] else None,
+            rollback_ts=float(row["rollback_ts"]) if row["rollback_ts"] else None,
+            metrics=safe_load(row["metrics"]),
+            metadata=safe_load(row["metadata"]),
+            source_path=str(row["source_path"]) if len(row) > 10 else "",
+            checksum=str(row["checksum"]) if len(row) > 11 else "",
+            approved_by=str(row["approved_by"]) if len(row) > 12 else "",
         )

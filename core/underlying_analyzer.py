@@ -139,7 +139,7 @@ def get_sector_breadth(analyses: list[StockAnalysis]) -> float:
         analyses: list of StockAnalysis.
 
     Returns:
-        Float 0–1 (1 = all stocks bullish, 0 = all bearish).
+        Float 0-1 (1 = all stocks bullish, 0 = all bearish).
     """
     if not analyses:
         return 0.5

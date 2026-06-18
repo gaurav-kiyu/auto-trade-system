@@ -67,7 +67,7 @@ class StrategySandbox:
         self._config: SandboxConfig | None = None
         self._strategy: BaseStrategy | None = None
         self._results: list[SandboxResult] = []
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._market_data_callback: Callable | None = None
         self._stop_event = threading.Event()
 
@@ -299,7 +299,7 @@ class StrategySandbox:
 
 
 _sandbox: StrategySandbox | None = None
-_sandbox_lock = threading.Lock()
+_sandbox_lock = threading.RLock()
 
 
 def get_strategy_sandbox() -> StrategySandbox:

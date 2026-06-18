@@ -18,7 +18,7 @@ def test_scripts_exist():
     assert (ROOT / "index_app" / "index_trader.py").is_file()
     assert (ROOT / "index_app" / "gui" / "trader_desk.py").is_file()
     assert (ROOT / "core" / "strategy_engine.py").is_file()
-    assert (ROOT / "core" / "execution_engine.py").is_file()
+    assert (ROOT / "tests" / "helpers" / "legacy_execution_engine.py").is_file()
     assert (ROOT / "core" / "data_engine.py").is_file()
     assert (ROOT / "core" / "state_manager.py").is_file()
     for rel in (
@@ -34,7 +34,7 @@ def test_scripts_exist():
 def test_core_package_imports():
     code = """
 from core import DataEngine, RiskConfig, StateManager, StrategyEngine, now_ist
-from core.execution_engine import ExecutionEngine
+from tests.helpers.legacy_execution_engine import ExecutionEngine  # Deprecated - kept for test backward-compat
 assert DataEngine and ExecutionEngine and RiskConfig and StateManager and StrategyEngine
 assert now_ist().tzinfo is None
 print("ok")
@@ -238,7 +238,7 @@ mod._get_api_latency_report = lambda: "ok"
 mod._get_top_signals = lambda n: []
 mod._telegram_alerts_enabled = lambda: False
 mod.print_dashboard()
-assert mod._display_snapshot.get("struct", {{}}).get("headline") == "Market CLOSED — no intraday scan"
+assert mod._display_snapshot.get("struct", {{}}).get("headline") == "Market CLOSED - no intraday scan"
 """
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     r = subprocess.run(

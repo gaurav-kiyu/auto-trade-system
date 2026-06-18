@@ -24,7 +24,7 @@ from core.datetime_ist import now_ist
 
 _log = logging.getLogger(__name__)
 
-# ── Config change audit (Item 6 — v2.44) ────────────────────────
+# ── Config change audit (Item 6 - v2.44) ────────────────────────
 
 CRITICAL_CONFIG_KEYS: frozenset[str] = frozenset({
     "MAX_DAILY_LOSS", "MAX_DRAWDOWN", "MAX_OPEN", "MAX_TRADES_DAY",
@@ -198,7 +198,7 @@ def get_effective_config(
         for msg in error_msgs:
             _log.error(f"CONFIG ERROR: {msg}")
         raise RuntimeError(
-            f"Config validation FAILED — {len(result.errors)} error(s). "
+            f"Config validation FAILED - {len(result.errors)} error(s). "
             f"Fix config or set OPBUYING_SKIP_CONFIG_VALIDATION=1 to bypass.\n"
             + "\n".join(error_msgs)
         )
@@ -273,7 +273,7 @@ class ConfigChange:
 
 # Global secure config instance
 _SECURE_CONFIG: SecureConfig | None = None
-_CONFIG_LOCK: threading.Lock = threading.Lock()
+_CONFIG_LOCK: threading.Lock = threading.RLock()
 
 
 def initialize_secure_config(

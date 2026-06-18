@@ -1,4 +1,4 @@
-"""Tests for core.exposure_limits — exposure concentration limits."""
+"""Tests for core.exposure_limits - exposure concentration limits."""
 
 from __future__ import annotations
 

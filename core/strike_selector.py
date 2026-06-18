@@ -2,12 +2,12 @@
 Greeks-Aware Strike Selector (Phase 4).
 
 Selects the optimal option strike based on signal tier, VIX, DTE and
-config-driven mode. Works offline — no broker greeks feed required.
+config-driven mode. Works offline - no broker greeks feed required.
 Uses the same delta approximations as option_premium_model.py.
 
 Modes
 -----
-  ATM   (default) : always return ATM — zero change vs current behaviour
+  ATM   (default) : always return ATM - zero change vs current behaviour
   OTM             : tier-driven OTM step offset (STRONG=1 step, rest=0)
   DELTA           : select strike whose approximated delta is closest to
                     strike_target_delta (atm_delta + delta_per_step model)
@@ -17,7 +17,7 @@ Strike offset direction
   CALL : higher strike is OTM  →  selected = ATM + N × step
   PUT  : lower strike is OTM   →  selected = ATM - N × step
 
-Config keys (all optional — safe defaults built in)
+Config keys (all optional - safe defaults built in)
 ---------------------------------------------------
   strike_selection_mode      : str   "ATM"|"OTM"|"DELTA"  default "ATM"
   otm_step_offset            : int   default 0   (global fallback OTM steps)
@@ -136,7 +136,7 @@ def select_strike(
         atm       : ATM strike (int(round(spot / step) * step)).
         direction : "CALL" or "PUT".
         step      : Strike grid spacing (e.g. 50 for NIFTY, 100 for BANKNIFTY).
-        tier      : Signal tier — "STRONG", "MODERATE", "WEAK", "IGNORE".
+        tier      : Signal tier - "STRONG", "MODERATE", "WEAK", "IGNORE".
         vix       : India VIX reading (used for delta model + vega cap).
         dte       : Calendar days to expiry (0 = expiry day).
         cfg       : Bot config dict.
@@ -171,7 +171,7 @@ def select_strike(
             f"steps={steps} approx_d={approx_delta:.3f} dte={dte}"
         )
 
-    else:  # ATM (default — backward compatible)
+    else:  # ATM (default - backward compatible)
         strike = atm
         tag = "ATM (default)"
 
@@ -204,13 +204,13 @@ def dte_entry_check(
     warn_dte = _cfg_int(c, "theta_bleed_warn_dte", _DEF_WARN_DTE)
 
     if dte < min_dte:
-        reason = f"DTE={dte} < min_dte_for_entry={min_dte} — theta too high"
+        reason = f"DTE={dte} < min_dte_for_entry={min_dte} - theta too high"
         _log.info("[STRIKE] Entry blocked: %s", reason)
         return False, reason
 
     if dte <= warn_dte:
         _log.warning(
-            "[STRIKE] DTE=%d <= theta_bleed_warn_dte=%d — near-expiry theta risk elevated",
+            "[STRIKE] DTE=%d <= theta_bleed_warn_dte=%d - near-expiry theta risk elevated",
             dte, warn_dte,
         )
 

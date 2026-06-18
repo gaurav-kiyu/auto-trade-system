@@ -1,5 +1,5 @@
 """
-Tests for core/backtest_engine.py — Backtest simulation engine.
+Tests for core/backtest_engine.py - Backtest simulation engine.
 
 Covers:
   - ReplayConfig, BacktestConfig, BacktestReport dataclasses

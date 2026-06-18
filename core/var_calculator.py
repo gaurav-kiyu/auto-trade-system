@@ -94,7 +94,7 @@ def compute_var(
     Compute parametric VaR from recent daily trade P&L history.
 
     Args:
-        capital  : current capital value (₹) — used as portfolio base.
+        capital  : current capital value (₹) - used as portfolio base.
         db_path  : path to trades.db.
         cfg      : config dict.
 

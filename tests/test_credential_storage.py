@@ -1,4 +1,4 @@
-"""Tests for infrastructure.security.credential_storage — CredentialStorage class."""
+"""Tests for infrastructure.security.credential_storage - CredentialStorage class."""
 
 from __future__ import annotations
 

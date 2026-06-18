@@ -1,5 +1,5 @@
 """
-Kite Broker Adapter — Zerodha Kite Connect implementation of BrokerPort.
+Kite Broker Adapter - Zerodha Kite Connect implementation of BrokerPort.
 
 This adapter implements the ``BrokerPort`` interface (from
 ``core.ports.broker``) for the Zerodha Kite Connect API.  It is injected
@@ -165,14 +165,14 @@ class KiteBrokerAdapter(LegacyBrokerPort):
             profile = self._make_request(self._kite.profile)
             if profile is not None:
                 self._connected = True
-                self._log_fn("[KITE] Connected — profile verified")
+                self._log_fn("[KITE] Connected - profile verified")
                 return True
             self._connected = False
             self._log_fn("[KITE] connect() returned None profile")
             return False
         except (OSError, ConnectionError, TimeoutError, RuntimeError, ValueError, TypeError) as exc:
             self._connected = False
-            self._log_fn(f"[KITE] connect() failed: {_classify_kite_error(exc)} — {exc}")
+            self._log_fn(f"[KITE] connect() failed: {_classify_kite_error(exc)} - {exc}")
             return False
 
     def disconnect(self) -> None:
@@ -206,7 +206,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
                 return func(*args, **kwargs)
             # Controlled supervisor boundary: catch Exception to handle all SDK error types
             # (TokenException, OrderException, NetworkException, etc.) and retry.
-            # Re-raises as RuntimeError after exhausting retries — NOT a silent failure.
+            # Re-raises as RuntimeError after exhausting retries - NOT a silent failure.
             except Exception as exc:
                 last_exc = exc
                 category = _classify_kite_error(exc)
@@ -217,12 +217,12 @@ class KiteBrokerAdapter(LegacyBrokerPort):
                     backoff = (2.0 ** attempt) * 0.5
                     self._log_fn(
                         f"[KITE] Retry {attempt + 1}/{self._max_retries} "
-                        f"after {category} — backing off {backoff:.1f}s"
+                        f"after {category} - backing off {backoff:.1f}s"
                     )
                     time.sleep(backoff)
         raise RuntimeError(
             f"Kite API call failed after {self._max_retries} retries: "
-            f"{_classify_kite_error(last_exc)} — {last_exc}"
+            f"{_classify_kite_error(last_exc)} - {last_exc}"
         ) from last_exc
 
     # ── Instrument token resolution ──────────────────────────────────────────
@@ -257,7 +257,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
     def place_order(self, order: Order) -> str:
         """Place a Kite order and return the order ID."""
         if not self._connected or self._kite is None:
-            raise RuntimeError("Kite adapter is not connected — call connect() first")
+            raise RuntimeError("Kite adapter is not connected - call connect() first")
 
         symbol = getattr(order, "symbol", "")
         instrument_token = self._get_instrument_token(symbol)
@@ -298,7 +298,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
             raise
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as exc:
             raise RuntimeError(
-                f"place_order failed for {symbol}: {_classify_kite_error(exc)} — {exc}"
+                f"place_order failed for {symbol}: {_classify_kite_error(exc)} - {exc}"
             ) from exc
 
     def cancel_order(self, order_id: str) -> bool:
@@ -388,7 +388,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
     def get_quote(self, symbol: str) -> Quote:
         """Return the current market quote for a symbol."""
         if not self._connected or self._kite is None:
-            raise RuntimeError("Kite adapter is not connected — call connect() first")
+            raise RuntimeError("Kite adapter is not connected - call connect() first")
 
         instrument_token = self._get_instrument_token(symbol)
         if instrument_token is None:
@@ -439,7 +439,7 @@ class KiteBrokerAdapter(LegacyBrokerPort):
     ) -> list[dict[str, Any]]:
         """Return historical OHLCV bars from Kite."""
         if not self._connected or self._kite is None:
-            raise RuntimeError("Kite adapter is not connected — call connect() first")
+            raise RuntimeError("Kite adapter is not connected - call connect() first")
 
         instrument_token = self._get_instrument_token(symbol)
         if instrument_token is None:
@@ -548,8 +548,8 @@ def create_kite_adapter_from_context(
     Used by ``create_broker_adapter()`` in ``core/adapters/broker_adapters.py``.
 
     The *context* object must have at least:
-        - ``cfg`` (dict) — config containing ``BROKER_CONFIG`` / ``KITE_*`` keys
-        - ``log_fn`` (callable) — logging function
+        - ``cfg`` (dict) - config containing ``BROKER_CONFIG`` / ``KITE_*`` keys
+        - ``log_fn`` (callable) - logging function
     """
     cfg = context.cfg
     log_fn = context.log_fn

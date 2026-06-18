@@ -2,12 +2,13 @@
 Seed trades.db with simulated PAPER trades for testing live readiness checker.
 Run this script to create sample paper trades.
 """
-import sqlite3
 from datetime import datetime, timedelta, timezone
+
+from core.db_utils import get_connection
 
 DB = "trades.db"
 
-conn = sqlite3.connect(DB)
+conn = get_connection(DB, timeout=10)
 cur = conn.cursor()
 
 # Ensure schema exists

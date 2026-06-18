@@ -9,15 +9,29 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
-# ── DEPRECATED MODULE ──────────────────────────────────────────────
-# This module is the legacy synchronous Orchestrator. New code should use
-# core/services/use_cases/trading_orchestrator.py (TradingOrchestrator) or
-# core/execution/deterministic_state_machine.py for state machine operations.
-# This module is kept for backward compatibility and will be removed in v3.0.
+# ── DEPRECATED MODULE (REMOVAL TARGET v3.1) ────────────────────────
+# This module is the legacy synchronous Orchestrator. It MUST NOT be used
+# for new development.
+#
+# MIGRATION PATH:
+#   1. core/services/use_cases/trading_orchestrator.py (TradingOrchestrator)
+#      — Complete trading lifecycle from market data to notifications.
+#   2. core/services/execution_service.py (ExecutionService)
+#      — Order execution with deterministic state machine + idempotency.
+#   3. core/execution/deterministic_state_machine.py (ExecutionStateMachine)
+#      — Low-level order state machine with exactly-once guarantees.
+#
+# This module uses the port-based ExecutionService for order execution.
+#
+# See core/services/use_cases/trading_orchestrator.py for a reference
+# implementation of the port-based execution path.
+#
+# This module will be removed in v3.1.
 warnings.warn(
-    "core/orchestrator.py is DEPRECATED. Use core/services/use_cases/"
-    "trading_orchestrator.py (TradingOrchestrator) instead.",
-    DeprecationWarning,
+    "core/orchestrator.py is DEPRECATED (removal target v3.1). "
+    "Use core/services/use_cases/trading_orchestrator.py "
+    "(TradingOrchestrator) instead.",
+    FutureWarning,
     stacklevel=2,
 )
 
@@ -31,14 +45,14 @@ from .state_manager import StateManager
 from .strategy_engine import StrategyEngine
 
 
-# ── Local execution dataclasses (replaces deprecated import from execution_engine) ──
+# ── Local execution dataclasses (formerly mirrored from the removed execution_engine) ──
 
 
 @dataclass(frozen=True)
 class _ExecutionFill:
-    """Mirrors core.execution_engine.ExecutionFill to break the import dependency.
+    """Local dataclass for order fill info (formerly mirrored from the removed core.execution_engine).
 
-    This is a frozen dataclass with the same shape as the execution_engine version.
+    This is a frozen dataclass used by the Orchestrator to report fill status.
     """
     ok: bool
     filled_qty: int = 0
@@ -49,9 +63,9 @@ class _ExecutionFill:
 
 @dataclass(frozen=True)
 class _ExecutionResult:
-    """Mirrors core.execution_engine.ExecutionResult to break the import dependency.
+    """Local dataclass for order execution result (formerly mirrored from the removed core.execution_engine).
 
-    This is a frozen dataclass with the same shape as the execution_engine version.
+    This is a frozen dataclass used by the Orchestrator to report execution status.
     """
     ok: bool
     order_id: str | None = None
@@ -88,7 +102,7 @@ class Orchestrator:
         data_engine: DataEngine,
         strategy_engine: StrategyEngine,
         risk_engine: RiskPortAdapter,
-        execution_engine: Any | None,
+        execution_service: Any | None = None,
         state_manager: StateManager,
         reconciliation_engine: ReconciliationEngine | None = None,
         names_provider: Callable[[], list[str]] | None = None,
@@ -110,7 +124,9 @@ class Orchestrator:
         self._data_engine = data_engine
         self._strategy_engine = strategy_engine
         self._risk_engine = risk_engine
-        self._execution_engine = execution_engine
+        # Port-based ExecutionService — see core/services/execution_service.py
+        # Uses ExecutionService.execute_order() with OrderRequest/OrderResult
+        self._execution_service: Any | None = execution_service
         self._state_manager = state_manager
         self._reconciliation_engine = reconciliation_engine
         self._names_provider = names_provider or (lambda: [])
@@ -175,7 +191,9 @@ class Orchestrator:
                 execution_fill: _ExecutionFill | None = None
                 executed = False
                 mode = str(self._execution_mode_fn() or "MANUAL").upper()
-                if allowed.allowed and mode == "AUTO" and self._execution_engine and self._entry_gate_fn(name, signal):
+                # Safety gates (system_mode + circuit_breaker) fire regardless of executor
+                executor_available = self._execution_service is not None
+                if allowed.allowed and mode == "AUTO" and executor_available and self._entry_gate_fn(name, signal):
                     # System mode gate: block if system is halted/degraded/broker_down
                     if self._system_mode_fn:
                         system_mode = self._system_mode_fn()
@@ -189,20 +207,69 @@ class Orchestrator:
                             self._capture({"event": "circuit_breaker_blocked", "symbol": name})
                             allowed = RiskDecision(False, "CIRCUIT_BREAKER_ACTIVE")
 
-                    order = self._order_builder_fn(name, signal)
-                    intent_id = str(order.get("intent_id") or f"{name}_{int(time.time())}")
-                    execution_result = self._execution_engine.place_order(
-                        name=str(order.get("name") or name),
-                        direction=str(order.get("direction") or signal.get("direction") or "CALL"),
-                        qty=int(order.get("qty") or 1),
-                        strike=int(order.get("strike") or 0),
-                        intent_id=intent_id,
-                    )
-                    if execution_result and execution_result.ok and execution_result.order_id:
-                        execution_fill = self._execution_engine.verify_fill(str(execution_result.order_id))
-                        executed = bool(execution_fill.ok)
-                    else:
-                        executed = False
+                    # Execute via ExecutionService (port-based path only)
+                    if allowed.allowed and self._execution_service is not None:
+                        order = self._order_builder_fn(name, signal)
+                        intent_id = str(order.get("intent_id") or f"{name}_{int(time.time())}")
+                        direction = str(order.get("direction") or signal.get("direction") or "CALL")
+                        qty = int(order.get("qty") or 1)
+                        strike = int(order.get("strike") or 0)
+
+                        try:
+                            from core.ports.execution.execution_port import (
+                                ExecutionContext as ExCtx,
+                                ExecutionMode as ExMode,
+                                OrderRequest,
+                                OrderType,
+                                OrderStatus,
+                            )
+                            order_request = OrderRequest(
+                                symbol=name,
+                                direction=direction.upper(),
+                                strike_price=float(strike),
+                                lot_size=qty,
+                                order_type=OrderType.MARKET,
+                                strategy_id=signal.get("strategy_id", ""),
+                                idempotency_key=intent_id,
+                            )
+                            exec_ctx = ExCtx(
+                                execution_mode=ExMode.AUTOMATIC,
+                                correlation_id=intent_id,
+                            )
+                            order_result = self._execution_service.execute_order(
+                                order_request, exec_ctx
+                            )
+                            # Map OrderResult -> local _ExecutionResult / _ExecutionFill
+                            ok = order_result.status in (
+                                OrderStatus.FILLED,
+                                OrderStatus.PARTIALLY_FILLED,
+                                OrderStatus.SUBMITTED,
+                            )
+                            execution_result = _ExecutionResult(
+                                ok=ok,
+                                order_id=order_result.order_id or intent_id,
+                                broker_latency_ms=0,
+                                reason=order_result.reject_reason or "",
+                            )
+                            if ok and order_result.order_id:
+                                fill_ok = order_result.status in (
+                                    OrderStatus.FILLED,
+                                    OrderStatus.PARTIALLY_FILLED,
+                                )
+                                execution_fill = _ExecutionFill(
+                                    ok=fill_ok,
+                                    filled_qty=order_result.filled_quantity or 0,
+                                    fill_price=order_result.average_price or None,
+                                    status_verified=True,
+                                    reason="",
+                                )
+                                executed = fill_ok
+                            else:
+                                executed = False
+                        except (ValueError, TypeError, ImportError, AttributeError) as exc:
+                            _log.error("[ORCH] ExecutionService failed: %s", exc)
+                            execution_result = _ExecutionResult(False, reason=str(exc))
+                            executed = False
                 signals.append(
                     OrchestratorSignal(
                         name=name,
@@ -266,7 +333,7 @@ class Orchestrator:
         if not snapshot.healthy:
             note = snapshot.note
         elif outside_hours:
-            note = "skipped — outside NSE session hours (IST)"
+            note = "skipped - outside NSE session hours (IST)"
         else:
             note = f"processed {len(signals)} signal(s)"
         return OrchestratorCycle(snapshot=snapshot, signals=signals, reconciliation=reconciliation, saved=True, note=note)

@@ -1,4 +1,4 @@
-"""Environment separation — validates deployment environment, prevents misconfiguration."""
+"""Environment separation - validates deployment environment, prevents misconfiguration."""
 
 import logging
 import os
@@ -50,9 +50,9 @@ def guard_dev_config_in_production(cfg: dict) -> None:
     if str(cfg.get("BOT_TOKEN", "")).startswith("YOUR_") or str(cfg.get("CHAT_ID", "")).startswith("YOUR_"):
         warnings.append("BOT_TOKEN/CHAT_ID still have placeholder values")
     if float(cfg.get("BASE_CAPITAL", 0)) < 10000:
-        warnings.append(f"BASE_CAPITAL ({cfg.get('BASE_CAPITAL')}) is below 10,000 — suspiciously low for production")
+        warnings.append(f"BASE_CAPITAL ({cfg.get('BASE_CAPITAL')}) is below 10,000 - suspiciously low for production")
     if cfg.get("admin_control_plane_auth_token") in ("", "change_me"):
-        warnings.append("admin_control_plane_auth_token is empty — admin API is unprotected")
+        warnings.append("admin_control_plane_auth_token is empty - admin API is unprotected")
     if cfg.get("web_dashboard_enabled") and not cfg.get("web_dashboard_auth_token"):
         warnings.append("web_dashboard is enabled without auth token")
     if warnings:
@@ -111,7 +111,7 @@ def validate_environment(cfg: dict) -> Environment:
 
     log.info("Environment: %s", env.value)
     if env == Environment.DEV:
-        log.warning("Running in DEV mode — this is NOT suitable for production trading")
+        log.warning("Running in DEV mode - this is NOT suitable for production trading")
     guard_dev_config_in_production(cfg)
     execution_mode = str(cfg.get("EXECUTION_MODE", "SIGNAL_ONLY"))
     guard_mode_env_compatibility(execution_mode, env)

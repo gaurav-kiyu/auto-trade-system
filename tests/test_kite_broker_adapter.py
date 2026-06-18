@@ -25,7 +25,7 @@ from infrastructure.adapters.brokers.kite.adapter import (
 
 
 # ==============================================================================
-# Error classifier (stateless – no KiteConnect dependency)
+# Error classifier (stateless - no KiteConnect dependency)
 # ==============================================================================
 
 

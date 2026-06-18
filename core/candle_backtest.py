@@ -2,12 +2,12 @@
 Candle-by-candle backtester using the same pure index signal path as live trading.
 
 Key upgrades vs original:
-  • Option premium model — P&L in option space (delta-scaled), not raw index pts.
+  • Option premium model - P&L in option space (delta-scaled), not raw index pts.
     Eliminates the "avg_loss >> avg_win" artefact caused by measuring index moves.
-  • Regime-adaptive TP/SL — TRENDING gets wider TP, CHOPPY gets tighter targets.
-  • Expanded PerformanceMetrics — Sharpe, Calmar, RR ratio, score buckets,
+  • Regime-adaptive TP/SL - TRENDING gets wider TP, CHOPPY gets tighter targets.
+  • Expanded PerformanceMetrics - Sharpe, Calmar, RR ratio, score buckets,
     per-regime breakdown, directional breakdown (CALL vs PUT).
-  • Signal quality log — per-trade features triggered; used for edge analysis.
+  • Signal quality log - per-trade features triggered; used for edge analysis.
   • Score-gap filter (score >= threshold + score_gap) kept from previous session.
   • Proper double fee (entry + exit) and realistic slippage on options.
 """
@@ -76,7 +76,7 @@ def _historical_oi(
     Returns a 4-tuple (sup, res, pcr, smart) matching _synthetic_oi's contract,
     or None when no historical data exists (caller falls back to _synthetic_oi).
 
-    Never returns data AT or AFTER target_ts — no look-ahead.
+    Never returns data AT or AFTER target_ts - no look-ahead.
     """
     try:
         from core.oi_snapshot_store import get_pcr_at as _get_pcr
@@ -556,7 +556,7 @@ class CandleBacktestEngine:
         regime     = str(position.get("regime", "NEUTRAL"))
         meta       = position.get("meta") or {}
 
-        # Apply exit slippage — you always fill at a worse price when exiting.
+        # Apply exit slippage - you always fill at a worse price when exiting.
         # For CALL holders selling: adverse fill = lower underlying index.
         # For PUT holders selling: adverse fill = higher underlying index.
         _exit_slip = float(cfg.slippage_pct) + float(cfg.spread_pct) * 0.5

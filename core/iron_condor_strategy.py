@@ -86,8 +86,8 @@ def check_ic_conditions(
     Check if Iron Condor entry conditions are met.
 
     Returns:
-        (True, "")          — all conditions pass
-        (False, reason)     — blocked
+        (True, "")          - all conditions pass
+        (False, reason)     - blocked
     """
     sc = get_strategy_cfg(cfg, "iron_condor")
     if not sc.get("enabled", False):
@@ -187,7 +187,7 @@ def build_iron_condor(
     net_credit  = call_credit + put_credit
 
     if net_credit <= 0:
-        _log.debug("[IC] zero/negative net credit %.2f — skipping", net_credit)
+        _log.debug("[IC] zero/negative net credit %.2f - skipping", net_credit)
         return None
 
     spread_width = float(bc_k - sc_k)   # width of one wing (call spread = put spread)

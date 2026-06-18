@@ -38,7 +38,7 @@ class SignalOrchestrator:
         """
         # 1. Technical Analysis (Delegated to signal_engine.py)
         # In a full refactor, we would move signal_engine.py logic into a Strategy class
-        from signal_engine import build_full_signal
+        from core.legacy.signal_engine import build_full_signal
 
         signal = build_full_signal(
             symbol=symbol,
@@ -103,7 +103,7 @@ class SignalOrchestrator:
 
 # Singleton instance
 signal_orchestrator: SignalOrchestrator | None = None
-_orchestrator_lock = threading.Lock()
+_orchestrator_lock = threading.RLock()
 
 def init_signal_orchestrator(config: dict[str, Any]):
     global signal_orchestrator

@@ -1,4 +1,4 @@
-"""Tests for MarketWarmup — warm-up period throttled-entry mode."""
+"""Tests for MarketWarmup - warm-up period throttled-entry mode."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ _MOCK_MARKET_OPEN = datetime(2026, 6, 11, 9, 20)  # Thursday, 5 min after open (
 
 
 class TestMarketWarmup:
-    """MarketWarmup — warm-up period controller."""
+    """MarketWarmup - warm-up period controller."""
 
     def test_default_config(self):
         mw = MarketWarmup()

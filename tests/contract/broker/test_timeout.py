@@ -1,5 +1,5 @@
 """
-AD-KIYU Broker Contract Test — Timeout / Latency Handling.
+AD-KIYU Broker Contract Test - Timeout / Latency Handling.
 
 Verifies that broker adapters handle timeouts gracefully and
 do not hang indefinitely in any standard operation.

@@ -1,4 +1,4 @@
-"""Tests for core.ml_classifier thread safety — model cache race condition verification."""
+"""Tests for core.ml_classifier thread safety - model cache race condition verification."""
 from __future__ import annotations
 
 import threading
@@ -69,7 +69,7 @@ class TestModelCacheThreadSafety:
 
         def _access_cache(idx: int) -> None:
             try:
-                # LightGBM may not be installed; that's fine — we just test cache safety
+                # LightGBM may not be installed; that's fine - we just test cache safety
                 with _model_lock:
                     _model_cache["dummy"] = MagicMock()
                     _model_ts["dummy"] = time.time()
@@ -91,12 +91,15 @@ class TestModelCacheThreadSafety:
         with _model_lock:
             assert "dummy" in _model_cache
 
-    def test_lock_reentrance(self) -> None:
-        """_model_lock should be a regular (non-reentrant) Lock to force clean semantics."""
-        assert isinstance(_model_lock, threading.Lock)
+    def test_lock_is_rlock(self) -> None:
+        """_model_lock is an RLock to allow reentrant model cache access."""
         import threading as _th
         _rlock_type = type(_th.RLock())
-        assert not isinstance(_model_lock, _rlock_type)
+        assert isinstance(_model_lock, _rlock_type)
+        # RLock is a behavioral superset of Lock - can be acquired reentrantly
+        with _model_lock:
+            with _model_lock:
+                pass  # reentrant acquisition succeeds without deadlock
 
     def test_cache_clear_under_lock(self) -> None:
         """Clearing cache must happen under the lock."""

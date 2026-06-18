@@ -90,7 +90,7 @@ class AuditReport:
 
     def summary(self) -> str:
         lines = [
-            f"INDEPENDENT AUDIT REPORT — Scope: {self.scope.value}",
+            f"INDEPENDENT AUDIT REPORT - Scope: {self.scope.value}",
             f"  Checks: {self.total_checks} | ✅ {self.passed} passed | "
             f"⚠️ {self.warnings} warned | ❌ {self.failures} failed | "
             f"🚫 {self.criticals} critical",
@@ -135,7 +135,7 @@ class AuditReport:
 
 class Auditor:
     """
-    Independent Auditor — challenges system integrity across all dimensions.
+    Independent Auditor - challenges system integrity across all dimensions.
 
     The Auditor's mindset:
     - Assume every claim is wrong until proven otherwise
@@ -173,13 +173,13 @@ class Auditor:
 
         score = (passed / max(1, total)) * 10.0 if total > 0 else 10.0
         if criticals > 0:
-            verdict = "CRITICAL — Blocking production release"
+            verdict = "CRITICAL - Blocking production release"
         elif failures > 0:
-            verdict = "FAIL — Issues must be resolved before production"
+            verdict = "FAIL - Issues must be resolved before production"
         elif warnings > 0:
-            verdict = "WARN — Non-blocking issues identified"
+            verdict = "WARN - Non-blocking issues identified"
         else:
-            verdict = "PASS — All checks clear"
+            verdict = "PASS - All checks clear"
 
         return AuditReport(
             scope=AuditScope.ALL,
@@ -213,7 +213,7 @@ class Auditor:
         return self._build_report(AuditScope.ARCHITECTURE, findings)
 
     def audit_risk_controls(self) -> AuditReport:
-        """Challenge risk controls — try to find bypasses."""
+        """Challenge risk controls - try to find bypasses."""
         findings: list[AuditFinding] = []
 
         # Check 1: Hard halt cannot be bypassed
@@ -231,7 +231,7 @@ class Auditor:
         return self._build_report(AuditScope.RISK, findings)
 
     def audit_strategy(self) -> AuditReport:
-        """Challenge strategy assumptions — regime dependence, parameter sensitivity."""
+        """Challenge strategy assumptions - regime dependence, parameter sensitivity."""
         findings: list[AuditFinding] = []
 
         # Check 1: Strategies have minimum trade data
@@ -251,7 +251,7 @@ class Auditor:
         return self._build_report(AuditScope.STRATEGY, findings)
 
     def audit_execution(self) -> AuditReport:
-        """Challenge execution safety — idempotency, reconciliation, state transitions."""
+        """Challenge execution safety - idempotency, reconciliation, state transitions."""
         findings: list[AuditFinding] = []
 
         # Check 1: Idempotency enforced
@@ -290,7 +290,7 @@ class Auditor:
         return self._build_report(AuditScope.EXECUTION, findings)
 
     def audit_scoring(self) -> AuditReport:
-        """Challenge scoring integrity — evidence validity, score inflation."""
+        """Challenge scoring integrity - evidence validity, score inflation."""
         findings: list[AuditFinding] = []
 
         # Check 1: Constitution scoring has evidence
@@ -338,7 +338,7 @@ class Auditor:
         return self._build_report(AuditScope.SCORING, findings)
 
     def audit_security(self) -> AuditReport:
-        """Challenge security — bypass attempts, privilege escalation."""
+        """Challenge security - bypass attempts, privilege escalation."""
         findings: list[AuditFinding] = []
 
         # Check 1: Auth uses BCrypt
@@ -448,7 +448,7 @@ class Auditor:
             severity=AuditSeverity.INFO,
             title="Strategy Isolation Verified",
             description="Strategies operate on signal level only. Execution and risk decisions are handled by RiskService and ExecutionPort.",
-            evidence="core/strategy/sandbox.py, core/execution_engine.py",
+            evidence="core/strategy/sandbox.py, core/services/execution_service.py",
             recommendation="Verify this isolation in code review for all new strategies",
             passed=True,
         )
@@ -599,7 +599,7 @@ class Auditor:
 # ── Module-level singleton ────────────────────────────────────────────────────
 
 _AUDITOR: Auditor | None = None
-_AUDITOR_LOCK: threading.Lock = threading.Lock()
+_AUDITOR_LOCK: threading.RLock = threading.RLock()
 
 
 def get_auditor() -> Auditor:
@@ -643,7 +643,7 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(
         prog="python -m core.audit_mode",
-        description="Independent Audit Mode — challenge system integrity",
+        description="Independent Audit Mode - challenge system integrity",
     )
     ap.add_argument("--scope", "-s", default="all",
                     choices=["all", "architecture", "risk", "strategy", "execution", "scoring", "security"])
