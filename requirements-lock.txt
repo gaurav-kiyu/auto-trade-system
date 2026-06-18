@@ -14,7 +14,7 @@ scikit-learn>=1.3,<2
 shap>=0.42,<1
 reportlab>=4.0,<5
 kiteconnect>=5.0,<6  # optional — only needed for Zerodha
-SmartApi>=1.0,<2     # optional — only needed for Angel
+SmartApi>=1.1.0,<2     # optional — only needed for Angel
 
 # Dev / CI
 pytest>=8.0,<9
