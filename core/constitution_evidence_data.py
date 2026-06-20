@@ -152,10 +152,10 @@ def collect_all_evidence() -> Evidence:
     add("EXE-02", "Execution policy (core/execution_policy.py) defines retry policy rules", "code_review", 0.3)
 
     # EXE-03: State machine correctness (9.5)
-    add("EXE-03", "Deterministic state machine (core/execution/deterministic_state_machine.py) with FormalOrderStateManager", "code_review", 0.5)
+    add("EXE-03", "Deterministic state machine (core/execution/deterministic_state_machine.py) with ExecutionStateMachineManager", "code_review", 0.5)
     add("EXE-03", "Event system (core/execution/event_system.py) with EventStore for durable event sourcing", "code_review", 0.4)
     add("EXE-03", "State sync manager test (test_state_sync_manager.py) validates state machine transitions", "test_pass", 0.5)
-    add("EXE-03", "Durable state (core/execution/execution_state.py) with FormalOrderStateManager for persistence", "code_review", 0.3)
+    add("EXE-03", "Durable state (core/execution/deterministic_state_machine.py) with ExecutionStateMachineManager for persistence", "code_review", 0.3)
     add("EXE-03", "ADR-0001 documents formal state machine architecture", "documentation", 0.2)
 
     # EXE-04: Reconciliation (9.5)
@@ -283,7 +283,7 @@ def collect_all_evidence() -> Evidence:
     # DR-02: State persistence (9.0)
     add("DR-02", "State manager (core/state_manager.py) - JSON + SQLite dual persistence with crash recovery", "code_review", 0.4)
     add("DR-02", "Trader state persisted to trader_state.json - survives restarts", "code_review", 0.3)
-    add("DR-02", "State sync manager (core/execution/execution_state.py) with FormalOrderStateManager for durable order state", "code_review", 0.4)
+    add("DR-02", "State sync manager (core/execution/deterministic_state_machine.py) with ExecutionStateMachineManager for durable order state", "code_review", 0.4)
     add("DR-02", "State sync test (test_state_sync_manager.py) validates state recovery and failover", "test_pass", 0.4)
     add("DR-02", "Write-Ahead Intent Journal (core/wal/journal.py) for crash-safe state recovery", "code_review", 0.4)
 

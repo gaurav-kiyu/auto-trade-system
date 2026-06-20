@@ -1,0 +1,147 @@
+# Documentation Inventory
+
+Generated: 2026-06-20
+
+## All Documentation Files (99 total)
+- docs\19_PHASE_GAP_ANALYSIS.md (8,464 bytes)
+- docs\19_PHASE_STATUS_REPORT.md (2,652 bytes)
+- docs\adaptive_signal.md (2,614 bytes)
+- docs\adr\0001-formal-state-machine.md (812 bytes)
+- docs\adr\0002-event-driven-architecture.md (758 bytes)
+- docs\adr\0003-plugin-strategy-framework.md (859 bytes)
+- docs\adr\0004-broker-abstraction.md (932 bytes)
+- docs\adr\0005-portfolio-engine.md (777 bytes)
+- docs\adr\0006-shadow-mode.md (724 bytes)
+- docs\adr\0007-replay-engine.md (686 bytes)
+- docs\adr\0008-blue-green-deployment.md (652 bytes)
+- docs\adr\0009-api-gateway-control-plane.md (761 bytes)
+- docs\adr\0010-architecture-governance.md (6,156 bytes)
+- docs\AI_ENGINE_GUIDE.md (4,672 bytes)
+- docs\AI_GOVERNANCE_CERTIFICATION_REPORT.md (2,025 bytes)
+- docs\AI_GOVERNANCE_GUIDE.md (5,976 bytes)
+- docs\ARCHITECTURE_CERTIFICATION_GAP_REPORT.md (1,231 bytes)
+- docs\ARCHITECTURE_CERTIFICATION_REPORT.md (4,393 bytes)
+- docs\ARCHITECTURE_REFACTORING_PLAN.md (7,337 bytes)
+- docs\BACKTESTING_REPORT.md (3,858 bytes)
+- docs\BLACK_SWAN_CERTIFICATION_REPORT.md (1,825 bytes)
+- docs\branch_strategy.md (2,407 bytes)
+- docs\BRANCHING_CONVENTION.md (2,335 bytes)
+- docs\CHAOS_CERTIFICATION_REPORT.md (2,239 bytes)
+- docs\config_drift_register.md (1,783 bytes)
+- docs\CONFIG_DRIFT_REPORT.md (1,239 bytes)
+- docs\constitution_scoring_framework.md (8,271 bytes)
+- docs\db_migration.md (2,272 bytes)
+- docs\dead_code_register.md (4,452,180 bytes)
+- docs\DEAD_CODE_REPORT.md (528 bytes)
+- docs\deployment\DEPLOYMENT_GUIDE.md (16,841 bytes)
+- docs\deployment\disaster_recovery_plan.md (14,315 bytes)
+- docs\doc_drift_register.md (1,699 bytes)
+- docs\DOC_DRIFT_REPORT.md (1,190 bytes)
+- docs\DOCUMENTATION_CERTIFICATION_REPORT.md (2,376 bytes)
+- docs\DOCUMENTATION_SYNC_LOG.md (6,089 bytes)
+- docs\DOCUMENTATION_SYNC_REPORT.md (3,416 bytes)
+- docs\duplicate_code_register.md (1,860,654 bytes)
+- docs\E2E_INTEGRATION_TEST_REPORT.md (897 bytes)
+- docs\environment.md (1,898 bytes)
+- docs\EXCEPTION_AUDIT_REPORT.md (943 bytes)
+- docs\EXECUTION_CERTIFICATION_REPORT.md (2,664 bytes)
+- docs\EXECUTION_HARDENING.md (3,592 bytes)
+- docs\EXECUTION_SAFETY_REPORT.md (1,647 bytes)
+- docs\FINAL_CERTIFICATION_REPORT.md (1,471 bytes)
+- docs\GAP_CLOSURE_REPORT.md (4,779 bytes)
+- docs\implementation_roadmap.md (11,765 bytes)
+- docs\incident_response_sop.md (18,852 bytes)
+- docs\INDEPENDENT_AUDIT_REPORT.md (3,921 bytes)
+- docs\index_trader_split_plan.md (8,922 bytes)
+- docs\INSTITUTIONAL_AUDIT_REPORT_v2.53.md (24,167 bytes)
+- docs\INSTITUTIONAL_CERTIFICATION_REPORT.md (36,269 bytes)
+- docs\INTEGRATION_MANIFEST.md (11,111 bytes)
+- docs\inventory\ArchitectureInventory.md (24,777 bytes)
+- docs\inventory\ConfigInventory.md (1,617 bytes)
+- docs\inventory\RepositoryInventory.md (1,011 bytes)
+- docs\LIVE_CERTIFICATION_PLAN.md (50,346 bytes)
+- docs\live_dashboard_checklist.md (16,834 bytes)
+- docs\LIVE_MARKET_VALIDATION_REPORT.md (1,602 bytes)
+- docs\MARKET_REGIME_CERTIFICATION_REPORT.md (1,867 bytes)
+- docs\MASTER_CONSTITUTION_PROMPT_v1.0.md (9,742 bytes)
+- docs\ml_classifier.md (2,456 bytes)
+- docs\operator_sop.md (23,908 bytes)
+- docs\OPTIONS_GREEKS_CERTIFICATION_REPORT.md (8,725 bytes)
+- docs\OPTIONS_RISK_CERTIFICATION_REPORT.md (3,287 bytes)
+- docs\ORPHAN_FILE_REPORT.md (672 bytes)
+- docs\ownership_matrix.md (17,671 bytes)
+- docs\PAPER_TRADING_CERTIFICATION_REPORT.md (1,199 bytes)
+- docs\postgresql_migration_plan.md (22,190 bytes)
+- docs\PRODUCTION_CERTIFICATION_REPORT.md (3,410 bytes)
+- docs\QUICK_START_EQUITY.md (3,842 bytes)
+- docs\REGRESSION_TEST_SUMMARY.md (4,163 bytes)
+- docs\RELEASE_GOVERNANCE_CERTIFICATION_REPORT.md (1,717 bytes)
+- docs\REMEDIATION_REPORT.md (5,750 bytes)
+- docs\REPLAY_CERTIFICATION_REPORT.md (1,155 bytes)
+- docs\RISK_CERTIFICATION_REPORT.md (11,208 bytes)
+- docs\RISK_GOVERNANCE_REPORT.md (1,581 bytes)
+- docs\RISK_MIGRATION_PLAN.md (19,015 bytes)
+- docs\runbooks\auth_expiry.md (3,732 bytes)
+- docs\runbooks\broker_outage.md (3,167 bytes)
+- docs\runbooks\config_corruption.md (1,127 bytes)
+- docs\runbooks\db_corruption.md (4,205 bytes)
+- docs\runbooks\disk_pressure.md (1,082 bytes)
+- docs\runbooks\network_jitter.md (860 bytes)
+- docs\runbooks\postmortem_template.md (1,803 bytes)
+- docs\runbooks\runbook_template.md (1,228 bytes)
+- docs\runbooks\simultaneous_failover.md (1,384 bytes)
+- docs\runbooks\split_brain.md (1,066 bytes)
+- docs\runbooks\stale_feed.md (3,528 bytes)
+- docs\RUNTIME_RISK_CERTIFICATION_REPORT.md (1,634 bytes)
+- docs\SECURITY_AUDIT_REPORT.md (1,601 bytes)
+- docs\SECURITY_CERTIFICATION_REPORT.md (8,292 bytes)
+- docs\STRATEGY_CERTIFICATION_REPORT.md (1,416 bytes)
+- docs\strike_selector.md (1,679 bytes)
+- docs\technical_debt.md (13,842 bytes)
+- docs\THREADING_AUDIT_REPORT.md (8,679 bytes)
+- docs\VALIDATION_REPORT.md (15,850 bytes)
+- docs\ARCHITECTURE_SUMMARY.pdf (8,959 bytes)
+- docs\FINAL_SYSTEM_REPORT.pdf (21,681 bytes)
+
+## Report Files
+### Certification/Report Files (40)
+- docs\19_PHASE_STATUS_REPORT.md
+- docs\AI_GOVERNANCE_CERTIFICATION_REPORT.md
+- docs\ARCHITECTURE_CERTIFICATION_GAP_REPORT.md
+- docs\ARCHITECTURE_CERTIFICATION_REPORT.md
+- docs\BACKTESTING_REPORT.md
+- docs\BLACK_SWAN_CERTIFICATION_REPORT.md
+- docs\CHAOS_CERTIFICATION_REPORT.md
+- docs\CONFIG_DRIFT_REPORT.md
+- docs\DEAD_CODE_REPORT.md
+- docs\DOC_DRIFT_REPORT.md
+- docs\DOCUMENTATION_CERTIFICATION_REPORT.md
+- docs\DOCUMENTATION_SYNC_REPORT.md
+- docs\E2E_INTEGRATION_TEST_REPORT.md
+- docs\EXCEPTION_AUDIT_REPORT.md
+- docs\EXECUTION_CERTIFICATION_REPORT.md
+- docs\EXECUTION_SAFETY_REPORT.md
+- docs\FINAL_CERTIFICATION_REPORT.md
+- docs\GAP_CLOSURE_REPORT.md
+- docs\INDEPENDENT_AUDIT_REPORT.md
+- docs\INSTITUTIONAL_AUDIT_REPORT_v2.53.md
+- docs\INSTITUTIONAL_CERTIFICATION_REPORT.md
+- docs\LIVE_MARKET_VALIDATION_REPORT.md
+- docs\MARKET_REGIME_CERTIFICATION_REPORT.md
+- docs\OPTIONS_GREEKS_CERTIFICATION_REPORT.md
+- docs\OPTIONS_RISK_CERTIFICATION_REPORT.md
+- docs\ORPHAN_FILE_REPORT.md
+- docs\PAPER_TRADING_CERTIFICATION_REPORT.md
+- docs\PRODUCTION_CERTIFICATION_REPORT.md
+- docs\RELEASE_GOVERNANCE_CERTIFICATION_REPORT.md
+- docs\REMEDIATION_REPORT.md
+- docs\REPLAY_CERTIFICATION_REPORT.md
+- docs\RISK_CERTIFICATION_REPORT.md
+- docs\RISK_GOVERNANCE_REPORT.md
+- docs\RUNTIME_RISK_CERTIFICATION_REPORT.md
+- docs\SECURITY_AUDIT_REPORT.md
+- docs\SECURITY_CERTIFICATION_REPORT.md
+- docs\STRATEGY_CERTIFICATION_REPORT.md
+- docs\THREADING_AUDIT_REPORT.md
+- docs\VALIDATION_REPORT.md
+- docs\FINAL_SYSTEM_REPORT.pdf

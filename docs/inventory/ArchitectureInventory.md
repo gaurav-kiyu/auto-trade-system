@@ -1,0 +1,483 @@
+# Architecture Inventory
+
+Generated: 2026-06-20
+
+## Architecture Documents
+- docs\19_PHASE_GAP_ANALYSIS.md
+- docs\19_PHASE_STATUS_REPORT.md
+- docs\adaptive_signal.md
+- docs\adr\0001-formal-state-machine.md
+- docs\adr\0002-event-driven-architecture.md
+- docs\adr\0003-plugin-strategy-framework.md
+- docs\adr\0004-broker-abstraction.md
+- docs\adr\0005-portfolio-engine.md
+- docs\adr\0006-shadow-mode.md
+- docs\adr\0007-replay-engine.md
+- docs\adr\0008-blue-green-deployment.md
+- docs\adr\0009-api-gateway-control-plane.md
+- docs\adr\0010-architecture-governance.md
+- docs\AI_ENGINE_GUIDE.md
+- docs\AI_GOVERNANCE_CERTIFICATION_REPORT.md
+- docs\AI_GOVERNANCE_GUIDE.md
+- docs\ARCHITECTURE_CERTIFICATION_GAP_REPORT.md
+- docs\ARCHITECTURE_CERTIFICATION_REPORT.md
+- docs\ARCHITECTURE_PRESENTATION.pptx
+- docs\ARCHITECTURE_REFACTORING_PLAN.md
+- docs\ARCHITECTURE_SUMMARY.pdf
+- docs\BACKTESTING_REPORT.md
+- docs\BLACK_SWAN_CERTIFICATION_REPORT.md
+- docs\branch_strategy.md
+- docs\BRANCHING_CONVENTION.md
+- docs\CHAOS_CERTIFICATION_REPORT.md
+- docs\config_drift_register.md
+- docs\CONFIG_DRIFT_REPORT.md
+- docs\constitution_scoring_framework.md
+- docs\db_migration.md
+- docs\dead_code_register.md
+- docs\DEAD_CODE_REPORT.md
+- docs\deployment\DEPLOYMENT_GUIDE.md
+- docs\deployment\disaster_recovery_plan.md
+- docs\doc_drift_register.md
+- docs\DOC_DRIFT_REPORT.md
+- docs\DOCUMENTATION_CERTIFICATION_REPORT.md
+- docs\DOCUMENTATION_SYNC_LOG.md
+- docs\DOCUMENTATION_SYNC_REPORT.md
+- docs\duplicate_code_register.md
+- docs\E2E_INTEGRATION_TEST_REPORT.md
+- docs\environment.md
+- docs\EXCEPTION_AUDIT_REPORT.md
+- docs\EXECUTION_CERTIFICATION_REPORT.md
+- docs\EXECUTION_HARDENING.md
+- docs\EXECUTION_SAFETY_REPORT.md
+- docs\FINAL_CERTIFICATION_REPORT.md
+- docs\FINAL_PROJECT_PRESENTATION.pptx
+- docs\FINAL_SYSTEM_REPORT.pdf
+- docs\GAP_CLOSURE_REPORT.md
+- docs\implementation_roadmap.md
+- docs\incident_response_sop.md
+- docs\INDEPENDENT_AUDIT_REPORT.md
+- docs\index_trader_split_plan.md
+- docs\INSTITUTIONAL_AUDIT_REPORT_v2.53.md
+- docs\INSTITUTIONAL_CERTIFICATION_REPORT.md
+- docs\INTEGRATION_MANIFEST.md
+- docs\inventory\RepositoryInventory.md
+- docs\LIVE_CERTIFICATION_PLAN.md
+- docs\live_dashboard_checklist.md
+- docs\LIVE_MARKET_VALIDATION_REPORT.md
+- docs\MARKET_REGIME_CERTIFICATION_REPORT.md
+- docs\MASTER_CONSTITUTION_PROMPT_v1.0.md
+- docs\ml_classifier.md
+- docs\operator_sop.md
+- docs\OPTIONS_GREEKS_CERTIFICATION_REPORT.md
+- docs\OPTIONS_RISK_CERTIFICATION_REPORT.md
+- docs\ORPHAN_FILE_REPORT.md
+- docs\ownership_matrix.md
+- docs\PAPER_TRADING_CERTIFICATION_REPORT.md
+- docs\postgresql_migration_plan.md
+- docs\PRODUCTION_CERTIFICATION_REPORT.md
+- docs\QUICK_START_EQUITY.md
+- docs\REGRESSION_TEST_SUMMARY.md
+- docs\RELEASE_GOVERNANCE_CERTIFICATION_REPORT.md
+- docs\REMEDIATION_REPORT.md
+- docs\REPLAY_CERTIFICATION_REPORT.md
+- docs\RISK_CERTIFICATION_REPORT.md
+- docs\RISK_GOVERNANCE_REPORT.md
+- docs\RISK_MIGRATION_PLAN.md
+- docs\runbooks\auth_expiry.md
+- docs\runbooks\broker_outage.md
+- docs\runbooks\config_corruption.md
+- docs\runbooks\db_corruption.md
+- docs\runbooks\disk_pressure.md
+- docs\runbooks\network_jitter.md
+- docs\runbooks\postmortem_template.md
+- docs\runbooks\runbook_template.md
+- docs\runbooks\simultaneous_failover.md
+- docs\runbooks\split_brain.md
+- docs\runbooks\stale_feed.md
+- docs\RUNTIME_RISK_CERTIFICATION_REPORT.md
+- docs\SECURITY_AUDIT_REPORT.md
+- docs\SECURITY_CERTIFICATION_REPORT.md
+- docs\STRATEGY_CERTIFICATION_REPORT.md
+- docs\strike_selector.md
+- docs\technical_debt.md
+- docs\THREADING_AUDIT_REPORT.md
+- docs\VALIDATION_REPORT.md
+
+## Core Modules (369 files)
+- core\__init__.py: 0 classes, 0 functions
+- core\ab_strategy_tester.py: 4 classes, 14 functions
+- core\adapters\__init__.py: 0 classes, 0 functions
+- core\adapters\base_adapter.py: 4 classes, 8 functions
+- core\adapters\broker_adapters.py: 7 classes, 51 functions
+- core\adapters\database\__init__.py: 0 classes, 0 functions
+- core\adapters\database\duckdb_adapter.py: 1 classes, 18 functions
+- core\adapters\database\mongodb_adapter.py: 1 classes, 18 functions
+- core\adapters\database\mysql_adapter.py: 1 classes, 19 functions
+- core\adapters\database\postgres_adapter.py: 1 classes, 19 functions
+- core\adapters\database\redis_adapter.py: 1 classes, 19 functions
+- core\adapters\database\sqlalchemy_adapter.py: 1 classes, 18 functions
+- core\adapters\database\sqlite_adapter.py: 1 classes, 17 functions
+- core\adapters\market_adapters.py: 1 classes, 2 functions
+- core\adaptive_behavior_governance.py: 4 classes, 14 functions
+- core\adaptive_learning.py: 0 classes, 5 functions
+- core\adaptive_signal.py: 4 classes, 7 functions
+- core\admin_control_plane.py: 0 classes, 2 functions
+- core\ai\__init__.py: 0 classes, 0 functions
+- core\ai\canary_manager.py: 2 classes, 9 functions
+- core\ai\governance.py: 2 classes, 9 functions
+- core\ai\model_registry.py: 2 classes, 13 functions
+- core\ai\rollback_controller.py: 2 classes, 6 functions
+- core\ai\safety_gate.py: 2 classes, 11 functions
+- core\ai_engine.py: 3 classes, 14 functions
+- core\alert_router.py: 3 classes, 7 functions
+- core\anomaly_detector.py: 2 classes, 6 functions
+- core\api_gateway.py: 4 classes, 16 functions
+- core\audit_engine.py: 2 classes, 2 functions
+- core\audit_journal.py: 4 classes, 19 functions
+- core\audit_mode.py: 6 classes, 22 functions
+- core\auditor\__init__.py: 0 classes, 0 functions
+- core\auditor\auditor.py: 9 classes, 36 functions
+- core\auth\__init__.py: 0 classes, 0 functions
+- core\auth\csrf.py: 1 classes, 6 functions
+- core\auth\dependencies.py: 1 classes, 12 functions
+- core\auth\handler.py: 4 classes, 42 functions
+- core\auth\permissions.py: 3 classes, 2 functions
+- core\auth\role_manager.py: 1 classes, 8 functions
+- core\auth\routes.py: 0 classes, 21 functions
+- core\auth\session_store.py: 2 classes, 8 functions
+- core\auto_learner.py: 2 classes, 15 functions
+- core\auto_tuner.py: 4 classes, 21 functions
+- core\backtest_engine.py: 8 classes, 9 functions
+- core\benchmark.py: 2 classes, 9 functions
+- core\black_swan\__init__.py: 3 classes, 15 functions
+- core\broker_capture.py: 2 classes, 3 functions
+- core\broker_failover.py: 2 classes, 7 functions
+- core\candle_backtest.py: 7 classes, 14 functions
+- core\capital_manager.py: 3 classes, 10 functions
+- core\certification\__init__.py: 0 classes, 0 functions
+- core\certification\paper_certifier.py: 2 classes, 9 functions
+- core\certification\replay_certifier.py: 2 classes, 6 functions
+- core\certification\report_generators.py: 3 classes, 18 functions
+- core\certification\strategy_certifier.py: 3 classes, 19 functions
+- core\chaos\__init__.py: 5 classes, 20 functions
+- core\circuit_breaker_detector.py: 5 classes, 14 functions
+- core\circuit_breaker_monitor.py: 3 classes, 16 functions
+- core\cognitive_sentiment.py: 2 classes, 4 functions
+- core\common\exceptions\__init__.py: 66 classes, 7 functions
+- core\common\kernels\__init__.py: 0 classes, 0 functions
+- core\common\kernels\correlation_id.py: 2 classes, 12 functions
+- core\common\kernels\models.py: 6 classes, 0 functions
+- core\common\models\models.py: 14 classes, 16 functions
+- core\common\utilities\logging.py: 3 classes, 22 functions
+- core\common\utilities\metrics.py: 3 classes, 21 functions
+- core\common\utilities\result.py: 1 classes, 15 functions
+- core\common_config_validate.py: 0 classes, 0 functions
+- core\component_health_monitor.py: 2 classes, 12 functions
+- core\concept_drift_detector.py: 2 classes, 6 functions
+- core\config\feature_flags.py: 2 classes, 18 functions
+- core\config_audit_log.py: 0 classes, 2 functions
+- core\config_bootstrap.py: 1 classes, 20 functions
+- core\config_engine.py: 3 classes, 6 functions
+- core\config_helpers.py: 0 classes, 5 functions
+- core\config_loader.py: 1 classes, 10 functions
+- core\config_schema_validate.py: 0 classes, 1 functions
+- core\config_v2.py: 0 classes, 3 functions
+- core\config_validator.py: 0 classes, 13 functions
+- core\constitution.py: 5 classes, 26 functions
+- core\constitution_ai_gate.py: 3 classes, 11 functions
+- core\constitution_evidence_data.py: 0 classes, 5 functions
+- core\control_plane\__init__.py: 0 classes, 0 functions
+- core\control_plane\admin_auth.py: 2 classes, 12 functions
+- core\control_plane\rbac.py: 1 classes, 11 functions
+- core\control_plane\server.py: 4 classes, 60 functions
+- core\correlation_guard.py: 0 classes, 6 functions
+- core\cost_accountant.py: 1 classes, 7 functions
+- core\dashboard_engine.py: 1 classes, 2 functions
+- core\data_engine.py: 4 classes, 12 functions
+- core\data_freshness_guard.py: 1 classes, 1 functions
+- core\data_governance.py: 4 classes, 8 functions
+- core\data_quality_monitor.py: 2 classes, 4 functions
+- core\datetime_ist.py: 0 classes, 20 functions
+- core\db_migration.py: 1 classes, 13 functions
+- core\db_utils.py: 2 classes, 13 functions
+- core\defaults_loader.py: 0 classes, 1 functions
+- core\di_container.py: 1 classes, 14 functions
+- core\domains\__init__.py: 1 classes, 0 functions
+- core\domains\commodity\__init__.py: 0 classes, 0 functions
+- core\domains\commodity\models.py: 6 classes, 8 functions
+- core\domains\currency\__init__.py: 0 classes, 0 functions
+- core\domains\currency\models.py: 7 classes, 10 functions
+- core\domains\equity\__init__.py: 0 classes, 0 functions
+- core\domains\equity\models.py: 10 classes, 16 functions
+- core\domains\execution\__init__.py: 0 classes, 0 functions
+- core\domains\execution\model.py: 8 classes, 4 functions
+- core\domains\fixed_income\__init__.py: 0 classes, 0 functions
+- core\domains\fixed_income\models.py: 9 classes, 15 functions
+- core\domains\fo\__init__.py: 0 classes, 0 functions
+- core\domains\fo\models.py: 11 classes, 23 functions
+- core\domains\ml\__init__.py: 0 classes, 0 functions
+- core\domains\ml\model.py: 4 classes, 3 functions
+- core\domains\mutual_fund\__init__.py: 0 classes, 0 functions
+- core\domains\mutual_fund\models.py: 19 classes, 19 functions
+- core\domains\portfolio\__init__.py: 1 classes, 0 functions
+- core\domains\portfolio\model.py: 7 classes, 5 functions
+- core\domains\portfolio\service.py: 9 classes, 22 functions
+- core\domains\risk\__init__.py: 0 classes, 0 functions
+- core\domains\risk\model.py: 9 classes, 1 functions
+- core\domains\risk\service.py: 1 classes, 33 functions
+- core\domains\session\__init__.py: 0 classes, 0 functions
+- core\domains\session\model.py: 4 classes, 3 functions
+- core\domains\signal_engine\__init__.py: 0 classes, 0 functions
+- core\domains\signal_engine\model.py: 11 classes, 3 functions
+- core\domains\signal_engine\service.py: 1 classes, 27 functions
+- core\domains\sme\__init__.py: 0 classes, 0 functions
+- core\domains\sme\models.py: 8 classes, 15 functions
+- core\domains\state\__init__.py: 0 classes, 0 functions
+- core\domains\state\model.py: 2 classes, 2 functions
+- core\domains\strategy\__init__.py: 0 classes, 0 functions
+- core\domains\strategy\model.py: 3 classes, 3 functions
+- core\enterprise_dashboard.py: 3 classes, 84 functions
+- core\environment.py: 1 classes, 5 functions
+- core\equity_protection.py: 2 classes, 3 functions
+- core\equity_trader.py: 1 classes, 18 functions
+- core\event_calendar.py: 4 classes, 19 functions
+- core\exceptions.py: 29 classes, 4 functions
+- core\execution\broker_ack_validator.py: 4 classes, 10 functions
+- core\execution\broker_exceptions.py: 10 classes, 13 functions
+- core\execution\broker_gateway.py: 2 classes, 7 functions
+- core\execution\broker_state_handler.py: 4 classes, 8 functions
+- core\execution\broker_truth_reconciliation.py: 3 classes, 11 functions
+- core\execution\continuous_reconciliation.py: 3 classes, 17 functions
+- core\execution\deterministic_state_machine.py: 4 classes, 22 functions
+- core\execution\durable_state.py: 3 classes, 14 functions
+- core\execution\event_system.py: 5 classes, 24 functions
+- core\execution\idempotency\certifier.py: 3 classes, 16 functions
+- core\execution\idempotency\manager.py: 2 classes, 11 functions
+- core\execution\idempotency_alerts.py: 3 classes, 9 functions
+- core\execution\order_manager.py: 2 classes, 10 functions
+- core\execution\order_submission\manager.py: 1 classes, 2 functions
+- core\execution\reconciliation\__init__.py: 0 classes, 0 functions
+- core\execution\reconciliation\service.py: 5 classes, 23 functions
+- core\execution\replay_engine.py: 3 classes, 20 functions
+- core\execution\retry_policy\classifier.py: 2 classes, 3 functions
+- core\execution\retry_policy\manager.py: 3 classes, 6 functions
+- core\execution\shadow_mode.py: 3 classes, 16 functions
+- core\execution_error_classifier.py: 3 classes, 3 functions
+- core\execution_guards.py: 3 classes, 16 functions
+- core\execution_hardening_integration.py: 0 classes, 4 functions
+- core\execution_policy.py: 4 classes, 7 functions
+- core\execution_wiring.py: 2 classes, 6 functions
+- core\expiry_day_controller.py: 4 classes, 14 functions
+- core\exposure_limits.py: 3 classes, 8 functions
+- core\feature_engine.py: 1 classes, 13 functions
+- core\fii_dii_tracker.py: 3 classes, 10 functions
+- core\finnifty_filter.py: 2 classes, 4 functions
+- core\fundamental_analyzer.py: 5 classes, 28 functions
+- core\gex_analyzer.py: 2 classes, 5 functions
+- core\health_checker.py: 2 classes, 16 functions
+- core\health_reporter.py: 2 classes, 4 functions
+- core\hmm_regime_detector.py: 2 classes, 5 functions
+- core\hybrid_execution.py: 0 classes, 2 functions
+- core\implied_move.py: 3 classes, 3 functions
+- core\incident_alerting.py: 4 classes, 21 functions
+- core\index_map_loader.py: 0 classes, 2 functions
+- core\intraday_performance_monitor.py: 3 classes, 8 functions
+- core\invariants\checks.py: 0 classes, 18 functions
+- core\invariants\engine.py: 4 classes, 8 functions
+- core\iron_condor_strategy.py: 2 classes, 4 functions
+- core\iv_rank.py: 2 classes, 14 functions
+- core\kelly_sizer.py: 2 classes, 2 functions
+- core\kite_ticker_feed.py: 3 classes, 19 functions
+- core\legacy\__init__.py: 0 classes, 0 functions
+- core\legacy\decision_engine.py: 6 classes, 2 functions
+- core\legacy\signal_engine.py: 2 classes, 25 functions
+- core\legacy\telegram_engine.py: 1 classes, 12 functions
+- core\limit_order_engine.py: 2 classes, 2 functions
+- core\liquidity_guard.py: 1 classes, 1 functions
+- core\live_analysis.py: 0 classes, 10 functions
+- core\live_readiness_checker.py: 2 classes, 11 functions
+- core\log_helpers.py: 1 classes, 4 functions
+- core\logging.py: 3 classes, 22 functions
+- core\lot_size_validator.py: 2 classes, 12 functions
+- core\ltp_resolver.py: 1 classes, 8 functions
+- core\mandate_enforcer.py: 2 classes, 18 functions
+- core\mandate_service.py: 1 classes, 9 functions
+- core\mandate_validator.py: 3 classes, 9 functions
+- core\manual_signal.py: 2 classes, 25 functions
+- core\market_calc.py: 0 classes, 6 functions
+- core\market_data_fallback.py: 3 classes, 10 functions
+- core\market_warmup.py: 1 classes, 11 functions
+- core\metrics\metrics_platform.py: 3 classes, 21 functions
+- core\metrics_exporter.py: 2 classes, 9 functions
+- core\metrics_plaintext.py: 0 classes, 1 functions
+- core\ml\feature_store.py: 3 classes, 10 functions
+- core\ml_classifier.py: 1 classes, 15 functions
+- core\ml_exit_classifier.py: 3 classes, 4 functions
+- core\ml_inference.py: 2 classes, 5 functions
+- core\ml_performance_tracker.py: 0 classes, 9 functions
+- core\ml_regime_router.py: 2 classes, 4 functions
+- core\monte_carlo.py: 2 classes, 11 functions
+- core\monte_carlo_tail_risk.py: 1 classes, 11 functions
+- core\morning_checklist.py: 1 classes, 21 functions
+- core\news_sentinel.py: 2 classes, 10 functions
+- core\nlp_journal.py: 1 classes, 5 functions
+- core\nse_option_recorder.py: 0 classes, 4 functions
+- core\observability.py: 2 classes, 17 functions
+- core\oi_snapshot_store.py: 0 classes, 7 functions
+- core\opbuying_observability.py: 0 classes, 0 functions
+- core\operating_mode.py: 5 classes, 14 functions
+- core\option_chain_json.py: 0 classes, 2 functions
+- core\option_premium_model.py: 1 classes, 14 functions
+- core\options_greeks_engine.py: 12 classes, 21 functions
+- core\orchestrator.py: 9 classes, 4 functions
+- core\order_flow_analyzer.py: 2 classes, 2 functions
+- core\param_morpher.py: 2 classes, 3 functions
+- core\param_optimizer.py: 1 classes, 5 functions
+- core\performance_metrics.py: 0 classes, 14 functions
+- core\persistence\state\manager.py: 1 classes, 8 functions
+- core\persistence\trades\manager.py: 1 classes, 7 functions
+- core\pnl_attribution.py: 1 classes, 6 functions
+- core\portfolio\__init__.py: 0 classes, 0 functions
+- core\portfolio\adapters\__init__.py: 0 classes, 0 functions
+- core\portfolio\adapters\multi_asset_aggregator.py: 8 classes, 14 functions
+- core\portfolio\authoritative.py: 1 classes, 10 functions
+- core\portfolio_hedge.py: 2 classes, 3 functions
+- core\ports\__init__.py: 0 classes, 0 functions
+- core\ports\broker\__init__.py: 7 classes, 17 functions
+- core\ports\broker\broker_port.py: 18 classes, 27 functions
+- core\ports\broker\health_port.py: 6 classes, 10 functions
+- core\ports\capital_allocation\__init__.py: 0 classes, 0 functions
+- core\ports\capital_allocation\capital_allocation_port.py: 7 classes, 3 functions
+- core\ports\circuit_breaker\__init__.py: 0 classes, 0 functions
+- core\ports\circuit_breaker\circuit_breaker_port.py: 7 classes, 8 functions
+- core\ports\config\__init__.py: 0 classes, 0 functions
+- core\ports\config\config_port.py: 2 classes, 6 functions
+- core\ports\correlation_id.py: 2 classes, 4 functions
+- core\ports\database.py: 3 classes, 17 functions
+- core\ports\execution\__init__.py: 0 classes, 0 functions
+- core\ports\execution\execution_port.py: 9 classes, 9 functions
+- core\ports\logging.py: 2 classes, 7 functions
+- core\ports\market_data.py: 4 classes, 19 functions
+- core\ports\metrics.py: 2 classes, 4 functions
+- core\ports\ml_model\__init__.py: 0 classes, 0 functions
+- core\ports\ml_model\ml_model_port.py: 2 classes, 6 functions
+- core\ports\notification\__init__.py: 0 classes, 0 functions
+- core\ports\notification\notification_port.py: 7 classes, 6 functions
+- core\ports\persistence\__init__.py: 0 classes, 0 functions
+- core\ports\persistence\persistence_port.py: 10 classes, 37 functions
+- core\ports\rate_limiting\__init__.py: 0 classes, 0 functions
+- core\ports\rate_limiting\rate_limit_port.py: 5 classes, 6 functions
+- core\ports\risk\__init__.py: 0 classes, 0 functions
+- core\ports\risk\risk_port.py: 6 classes, 16 functions
+- core\ports\strategy\__init__.py: 0 classes, 0 functions
+- core\ports\strategy\strategy_port.py: 3 classes, 5 functions
+- core\position_service.py: 2 classes, 16 functions
+- core\position_sizer.py: 3 classes, 1 functions
+- core\presentation_engine.py: 1 classes, 8 functions
+- core\pure_index_signal.py: 2 classes, 8 functions
+- core\python_runtime.py: 0 classes, 7 functions
+- core\realtime_performance_monitor.py: 3 classes, 7 functions
+- core\reconciliation_controller.py: 1 classes, 7 functions
+- core\reconciliation_engine.py: 4 classes, 3 functions
+- core\reentry_evaluator.py: 2 classes, 6 functions
+- core\regime\regime_detector.py: 3 classes, 15 functions
+- core\regime_transition_detector.py: 3 classes, 9 functions
+- core\replay_engine.py: 0 classes, 0 functions
+- core\report_generator.py: 0 classes, 9 functions
+- core\retail_sentiment.py: 2 classes, 2 functions
+- core\retention_engine.py: 2 classes, 2 functions
+- core\risk\__init__.py: 0 classes, 0 functions
+- core\risk\greeks_engine.py: 13 classes, 25 functions
+- core\risk\legacy_adapter.py: 3 classes, 10 functions
+- core\risk\limits\manager.py: 2 classes, 4 functions
+- core\risk\margin_validator.py: 2 classes, 4 functions
+- core\risk\sizing\manager.py: 1 classes, 3 functions
+- core\rl_exit_optimizer.py: 2 classes, 6 functions
+- core\runtime_ops.py: 2 classes, 11 functions
+- core\safety_engine.py: 4 classes, 2 functions
+- core\safety_state.py: 0 classes, 19 functions
+- core\sanity_checks.py: 0 classes, 4 functions
+- core\scalein_manager.py: 4 classes, 7 functions
+- core\scoring_engine.py: 1 classes, 2 functions
+- core\secret_hygiene.py: 2 classes, 11 functions
+- core\sensitivity_analyzer.py: 2 classes, 7 functions
+- core\sentiment_engine.py: 1 classes, 2 functions
+- core\services\broker_health_service.py: 3 classes, 29 functions
+- core\services\circuit_breaker_service.py: 2 classes, 18 functions
+- core\services\execution_service.py: 2 classes, 31 functions
+- core\services\market_data_service.py: 11 classes, 20 functions
+- core\services\notification_service.py: 4 classes, 14 functions
+- core\services\persistence_service.py: 3 classes, 32 functions
+- core\services\portfolio_service.py: 1 classes, 14 functions
+- core\services\rate_limiting_service.py: 3 classes, 17 functions
+- core\services\risk_service.py: 4 classes, 39 functions
+- core\services\signal_orchestrator.py: 2 classes, 4 functions
+- core\services\sme_trading_service.py: 2 classes, 12 functions
+- core\services\use_cases\trading_orchestrator.py: 3 classes, 24 functions
+- core\session_classifier.py: 3 classes, 12 functions
+- core\session_report.py: 5 classes, 10 functions
+- core\shared_config_validate.py: 0 classes, 15 functions
+- core\signal_approval_workflow.py: 2 classes, 14 functions
+- core\signal_autopsy.py: 4 classes, 10 functions
+- core\signal_importer.py: 2 classes, 9 functions
+- core\signal_independence.py: 2 classes, 14 functions
+- core\signal_refiner.py: 2 classes, 4 functions
+- core\signal_service.py: 2 classes, 8 functions
+- core\simulation_engine.py: 5 classes, 18 functions
+- core\slippage_model.py: 1 classes, 5 functions
+- core\soft_reload_common.py: 0 classes, 4 functions
+- core\sovereignty_guard.py: 1 classes, 4 functions
+- core\spread_strategy.py: 4 classes, 7 functions
+- core\stale_account_detector.py: 5 classes, 14 functions
+- core\startup_checklist.py: 2 classes, 4 functions
+- core\startup_reconciliation.py: 2 classes, 9 functions
+- core\startup_validation.py: 0 classes, 5 functions
+- core\state_manager.py: 2 classes, 12 functions
+- core\state_sync_manager.py: 1 classes, 3 functions
+- core\straddle_strategy.py: 2 classes, 6 functions
+- core\strategy\__init__.py: 1 classes, 0 functions
+- core\strategy\config.py: 1 classes, 6 functions
+- core\strategy\orchestrator.py: 2 classes, 6 functions
+- core\strategy\plugin_framework.py: 12 classes, 33 functions
+- core\strategy\sandbox.py: 4 classes, 12 functions
+- core\strategy\strategies.py: 9 classes, 10 functions
+- core\strategy\strategy_versioning.py: 3 classes, 8 functions
+- core\strategy_engine.py: 2 classes, 7 functions
+- core\stress_tester.py: 2 classes, 3 functions
+- core\strike_selector.py: 0 classes, 9 functions
+- core\stt_cost_model.py: 4 classes, 5 functions
+- core\system_mode.py: 4 classes, 20 functions
+- core\system_parity.py: 0 classes, 4 functions
+- core\telegram\audit\manager.py: 1 classes, 4 functions
+- core\telegram\auth\manager.py: 2 classes, 4 functions
+- core\telegram\hardening.py: 3 classes, 11 functions
+- core\telegram_commander.py: 1 classes, 31 functions
+- core\telegram_queue.py: 3 classes, 16 functions
+- core\telemetry\__init__.py: 0 classes, 0 functions
+- core\telemetry\exporters.py: 3 classes, 10 functions
+- core\telemetry\metrics.py: 3 classes, 25 functions
+- core\tier_engine.py: 2 classes, 3 functions
+- core\time_of_day_filter.py: 2 classes, 4 functions
+- core\time_provider.py: 1 classes, 4 functions
+- core\token_refresh_service.py: 1 classes, 16 functions
+- core\trade_journal.py: 2 classes, 17 functions
+- core\trade_mandate.py: 5 classes, 14 functions
+- core\trade_replayer.py: 2 classes, 11 functions
+- core\underlying_analyzer.py: 1 classes, 4 functions
+- core\utils_numeric.py: 0 classes, 2 functions
+- core\var_calculator.py: 2 classes, 3 functions
+- core\vix_adaptive_threshold.py: 2 classes, 5 functions
+- core\wal\journal.py: 3 classes, 20 functions
+- core\walkforward_engine.py: 5 classes, 11 functions
+- core\web_dashboard.py: 1 classes, 6 functions
+- core\ws_feed_manager.py: 3 classes, 10 functions
+- core\yf_bar_fetch.py: 0 classes, 3 functions
+- core\yf_data_provider.py: 0 classes, 6 functions
+
+## Architecture Patterns
+- Port/Adapter (Hexagonal) Architecture - core/ports/ defines interfaces
+- Dependency Injection - core/di_container.py
+- Event-Driven - core/execution/event_system.py
+- State Machine - core/execution/deterministic_state_machine.py
+- Plugin Framework - core/strategy/plugin_framework.py
+- Clean Architecture Domains - core/domains/

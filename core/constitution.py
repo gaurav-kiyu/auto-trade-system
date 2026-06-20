@@ -803,9 +803,9 @@ class ConstitutionValidator:
             self.add_evidence("EXE-03",
                 "State sync manager test validates state machine transitions (10 tests)",
                 "test_pass", 0.5)
-        if (root / "core" / "execution" / "execution_state.py").exists():
+        if (root / "core" / "execution" / "deterministic_state_machine.py").exists():
             self.add_evidence("EXE-03",
-                "FormalOrderStateManager for durable order state",
+                "ExecutionStateMachine for durable order state",
                 "code_review", 0.3)
         if (root / "tests" / "test_execution_policy.py").exists():
             self.add_evidence("EXE-03",
@@ -1207,9 +1207,9 @@ class ConstitutionValidator:
             self.add_evidence("DR-02",
                 "State manager: JSON + SQLite dual persistence with crash recovery",
                 "code_review", 0.4)
-        if (root / "core" / "execution" / "execution_state.py").exists():
+        if (root / "core" / "execution" / "deterministic_state_machine.py").exists():
             self.add_evidence("DR-02",
-                "FormalOrderStateManager for durable order state",
+                "ExecutionStateMachine for durable order state",
                 "code_review", 0.4)
         if (root / "tests" / "test_state_sync_manager.py").exists():
             self.add_evidence("DR-02",
@@ -1889,7 +1889,7 @@ class ConstitutionValidator:
                 "test_pass", 0.3)
 
         # ── EXE-01: Additional exactly-once evidence ─────────────────────
-        if (root / "core" / "execution" / "execution_state.py").exists():
+        if (root / "core" / "execution" / "deterministic_state_machine.py").exists():
             self.add_evidence("EXE-01",
                 "Execution state module provides durable order state persistence for exactly-once crash recovery",
                 "code_review", 0.3)

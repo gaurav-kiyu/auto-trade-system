@@ -47,6 +47,7 @@ class BrokerHealthMetrics:
     consecutive_successes: int = 0
     rate_limit_remaining: int | None = None
     rate_limit_reset_time: datetime | None = None
+    error_message: str | None = None
     authentication_valid: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
 

@@ -25,7 +25,6 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-import pytest
 from hypothesis import HealthCheck, given, settings, strategies as st
 
 from core.db_utils import AsyncDbWriter, get_connection

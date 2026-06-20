@@ -8,7 +8,6 @@ import threading
 import pytest
 from core.config_bootstrap import _freeze_config
 from core.datetime_ist import now_ist
-from core.execution.execution_state import FormalOrderState
 from core.expiry_day_controller import ExpiryDayController, StrategyType
 from core.python_runtime import (
     _reset_shutdown_state_for_testing,
@@ -20,9 +19,9 @@ from core.state_manager import SessionRecoveryReport, StateManager
 
 # ── B1: Deadlock fix (threading.Lock → RLock) ──────────────────────────
 
-def test_formal_order_state_no_deadlock_on_recursive_access():
+def test_execution_state_machine_no_deadlock_on_recursive_access():
     """RLock prevents deadlock when same thread recurses into state transitions."""
-    state = FormalOrderState(
+    machine = ExecutionStateMachine(
         intent_id="test-001", client_order_id="co-001",
         symbol="NIFTY", quantity=75, price=100.0, direction="BUY",
     )
@@ -30,7 +29,7 @@ def test_formal_order_state_no_deadlock_on_recursive_access():
     def recursive_try(depth: int):
         if depth <= 0:
             return
-        state.try_transition(state.state)
+        machine.try_transition_to(machine.state)
         recursive_try(depth - 1)
 
     t = threading.Thread(target=recursive_try, args=(20,), daemon=True)

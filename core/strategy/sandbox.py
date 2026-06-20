@@ -103,7 +103,7 @@ class StrategySandbox:
             _log.error("Sandbox not configured or no strategy loaded")
             return None
 
-        run_id = f"SANDBOX-{int(time_provider.get_ts())}"
+        run_id = f"SANDBOX-{int(time.time())}"
         start_time = time_provider.format_ts()
 
         self._active = True
@@ -170,7 +170,7 @@ class StrategySandbox:
             _log.error("Sandbox not configured or no strategy loaded")
             return None
 
-        run_id = f"SANDBOX-LIVE-{int(time_provider.get_ts())}"
+        run_id = f"SANDBOX-LIVE-{int(time.time())}"
         start_time = time_provider.format_ts()
 
         self._active = True

@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
 
 from core.ports.market_data import MarketDataPort
 

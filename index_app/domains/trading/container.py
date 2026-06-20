@@ -170,7 +170,7 @@ def setup_di_container(
     globals_store["_stale_detector"] = _stale_detector
 
     # v2.54 Equity Trader (opt-in via --equity CLI flag)
-    _start_equity_trader_if_requested(cfg=dict(config), send_fn=send_fn, broker_port=broker_port)
+    _start_equity_trader_if_requested(cfg=dict(config), send_fn=send_fn, broker_port=broker_port, globals_store=globals_store)
 
     rate_limiting_service = RateLimitingService()
     globals_store["_rate_limiting_service"] = rate_limiting_service
@@ -338,6 +338,7 @@ def _start_equity_trader_if_requested(
     cfg: dict,
     send_fn: callable,
     broker_port: Any,
+    globals_store: dict[str, Any],
 ) -> None:
     """Start equity trader if --equity CLI flag is present."""
     if "--equity" in sys.argv:
@@ -350,6 +351,7 @@ def _start_equity_trader_if_requested(
                     broker_port.get_ltp(sym) if hasattr(broker_port, 'get_ltp') else None
                 ),
             )
+            globals_store["_equity_trader"] = equity_trader
             _log.info(
                 "[EQUITY] Equity trader started with symbols: %s",
                 equity_trader.status().get("symbols", []),

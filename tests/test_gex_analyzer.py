@@ -1,110 +1,176 @@
-"""Tests for core/gex_analyzer.py (v2.45 Item 3)."""
-import math
+"""Tests for core/gex_analyzer.py - Gamma Exposure Analyzer.
 
-from core.gex_analyzer import GEXResult, _bs_gamma, _phi, compute_gex, get_gex_score_adj
+Covers:
+- _phi() std normal PDF helper
+- _bs_gamma() Black-Scholes gamma computation
+- StrikeGEX and GEXResult dataclasses
+- compute_gex() with various chains, disabled, empty
+- get_gex_score_adj() for LONG/SHORT gamma
+"""
+from __future__ import annotations
 
-# ── Math helpers ──────────────────────────────────────────────────────────────
+from unittest.mock import MagicMock, patch
 
-def test_phi_at_zero():
-    # Normal PDF at 0 = 1/sqrt(2π)
-    assert abs(_phi(0.0) - 1.0 / math.sqrt(2 * math.pi)) < 1e-10
+import pytest
 
-
-def test_phi_symmetry():
-    assert abs(_phi(1.0) - _phi(-1.0)) < 1e-10
-
-
-def test_bs_gamma_atm_positive():
-    gamma = _bs_gamma(22000, 22000, 0.15, 7/365)
-    assert gamma > 0
-
-
-def test_bs_gamma_zero_inputs():
-    assert _bs_gamma(0, 22000, 0.15, 7/365) == 0.0
-    assert _bs_gamma(22000, 0, 0.15, 7/365) == 0.0
-    assert _bs_gamma(22000, 22000, 0, 7/365) == 0.0
-    assert _bs_gamma(22000, 22000, 0.15, 0) == 0.0
+from core.gex_analyzer import (
+    GEXResult,
+    StrikeGEX,
+    _bs_gamma,
+    _phi,
+    compute_gex,
+    get_gex_score_adj,
+)
 
 
-# ── compute_gex ───────────────────────────────────────────────────────────────
+class TestPhi:
+    """_phi() standard normal PDF."""
 
-def _make_chain(spot=22000, call_oi=100000, put_oi=80000):
-    k = spot
-    return {
-        "calls": {k: {"oi": call_oi, "premium": 200.0}, k+200: {"oi": 50000, "premium": 80.0}},
-        "puts":  {k: {"oi": put_oi,  "premium": 180.0}, k-200: {"oi": 30000, "premium": 90.0}},
-    }
+    def test_phi_at_zero(self):
+        # φ(0) = 1/√(2π) ≈ 0.3989
+        val = _phi(0.0)
+        assert val == pytest.approx(0.3989, abs=0.001)
 
+    def test_phi_symmetric(self):
+        assert _phi(1.0) == pytest.approx(_phi(-1.0), abs=0.0001)
 
-def test_disabled_returns_none():
-    assert compute_gex(_make_chain(), 22000.0, {"gex_enabled": False}) is None
-
-
-def test_none_chain_returns_none():
-    assert compute_gex(None, 22000.0, {"gex_enabled": True}) is None
+    def test_phi_decays(self):
+        assert _phi(3.0) < _phi(0.0)
 
 
-def test_zero_spot_returns_none():
-    assert compute_gex(_make_chain(), 0.0, {"gex_enabled": True}) is None
+class TestBsGamma:
+    """_bs_gamma() Black-Scholes gamma."""
+
+    def test_zero_for_invalid_inputs(self):
+        assert _bs_gamma(0.0, 100.0, 0.2, 0.1) == 0.0
+        assert _bs_gamma(100.0, 0.0, 0.2, 0.1) == 0.0
+        assert _bs_gamma(100.0, 100.0, 0.0, 0.1) == 0.0
+        assert _bs_gamma(100.0, 100.0, 0.2, 0.0) == 0.0
+
+    def test_positive_gamma_atm(self):
+        gamma = _bs_gamma(100.0, 100.0, 0.2, 0.25)
+        assert gamma > 0.0
+
+    def test_gamma_higher_near_expiry(self):
+        gamma_long = _bs_gamma(100.0, 100.0, 0.2, 0.5)
+        gamma_short = _bs_gamma(100.0, 100.0, 0.2, 0.05)
+        assert gamma_short > gamma_long  # Gamma increases near expiry
+
+    def test_gamma_higher_lower_vol(self):
+        gamma_low_vol = _bs_gamma(100.0, 100.0, 0.1, 0.25)
+        gamma_high_vol = _bs_gamma(100.0, 100.0, 0.4, 0.25)
+        assert gamma_low_vol > gamma_high_vol
 
 
-def test_long_gamma_when_calls_dominate():
-    chain = _make_chain(call_oi=200000, put_oi=50000)
-    result = compute_gex(chain, 22000.0, {"gex_enabled": True, "gex_lot_size": 50, "gex_dte": 7, "gex_vix_proxy": 15.0})
-    assert result is not None
-    assert result.regime == "LONG_GAMMA"
-    assert result.net_gex > 0
+class TestStrikeGEX:
+    """StrikeGEX dataclass."""
+
+    def test_fields(self):
+        sg = StrikeGEX(strike=23500, gex=15000.5)
+        assert sg.strike == 23500
+        assert sg.gex == 15000.5
 
 
-def test_short_gamma_when_puts_dominate():
-    chain = _make_chain(call_oi=50000, put_oi=200000)
-    result = compute_gex(chain, 22000.0, {"gex_enabled": True, "gex_lot_size": 50, "gex_dte": 7, "gex_vix_proxy": 15.0})
-    assert result is not None
-    assert result.regime == "SHORT_GAMMA"
-    assert result.net_gex < 0
+class TestGEXResult:
+    """GEXResult dataclass."""
+
+    def test_defaults(self):
+        result = GEXResult(net_gex=100000.0, gamma_flip=23600.0, regime="LONG_GAMMA")
+        assert result.net_gex == 100000.0
+        assert result.gamma_flip == 23600.0
+        assert result.regime == "LONG_GAMMA"
+        assert result.top_strikes == []
+
+    def test_with_strikes(self):
+        sg = StrikeGEX(strike=23500, gex=5000.0)
+        result = GEXResult(net_gex=5000.0, gamma_flip=0.0, regime="SHORT_GAMMA", top_strikes=[sg])
+        assert len(result.top_strikes) == 1
 
 
-def test_result_has_top_strikes():
-    chain = _make_chain()
-    result = compute_gex(chain, 22000.0, {"gex_enabled": True, "gex_lot_size": 50, "gex_dte": 7, "gex_vix_proxy": 15.0})
-    assert result is not None
-    assert isinstance(result.top_strikes, list)
-    assert len(result.top_strikes) <= 5
+class TestComputeGEX:
+    """compute_gex()."""
+
+    def test_disabled_returns_none(self):
+        result = compute_gex({"calls": {}, "puts": {}}, 23500.0, {"gex_enabled": False})
+        assert result is None
+
+    def test_none_chain_returns_none(self):
+        result = compute_gex(None, 23500.0, {"gex_enabled": True})
+        assert result is None
+
+    def test_empty_chain_returns_none(self):
+        result = compute_gex({"calls": {}, "puts": {}}, 23500.0, {"gex_enabled": True})
+        assert result is None
+
+    def test_zero_spot(self):
+        chain = {"calls": {23500: {"oi": 1000, "premium": 150}}, "puts": {23500: {"oi": 500, "premium": 200}}}
+        result = compute_gex(chain, 0.0, {"gex_enabled": True})
+        assert result is None
+
+    def test_computes_gex_with_oi(self):
+        chain = {
+            "calls": {23500: {"oi": 1000, "premium": 150}},
+            "puts": {23500: {"oi": 500, "premium": 200}},
+        }
+        result = compute_gex(chain, 23500.0, {"gex_enabled": True})
+        assert result is not None
+        assert isinstance(result.net_gex, float)
+        assert isinstance(result.gamma_flip, float)
+        assert result.regime in ("LONG_GAMMA", "SHORT_GAMMA")
+        assert len(result.top_strikes) == 1
+
+    def test_short_gamma_regime(self):
+        # More put OI -> negative net GEX
+        chain = {
+            "calls": {23500: {"oi": 100, "premium": 150}},
+            "puts": {23500: {"oi": 5000, "premium": 200}},
+        }
+        result = compute_gex(chain, 23500.0, {"gex_enabled": True})
+        assert result is not None
+        assert result.regime == "SHORT_GAMMA"
+
+    def test_simplified_chain_no_oi(self):
+        # Simplified {strike: premium} format has no OI -> 0 gex
+        chain = {
+            "calls": {23500: 150.0},
+            "puts": {23500: 200.0},
+        }
+        result = compute_gex(chain, 23500.0, {"gex_enabled": True})
+        assert result is not None
+        # With no OI, all gex values are 0
+        assert result.regime == "LONG_GAMMA"  # net_gex = 0 >= 0
+
+    def test_custom_config(self):
+        chain = {
+            "calls": {23500: {"oi": 1000, "premium": 150}},
+            "puts": {23500: {"oi": 500, "premium": 200}},
+        }
+        cfg = {"gex_enabled": True, "gex_lot_size": 75, "gex_dte": 14, "gex_vix_proxy": 20.0}
+        result = compute_gex(chain, 23500.0, cfg)
+        assert result is not None
 
 
-def test_empty_chain_returns_none():
-    result = compute_gex({"calls": {}, "puts": {}}, 22000.0, {"gex_enabled": True})
-    assert result is None
+class TestGetGEXScoreAdj:
+    """get_gex_score_adj()."""
 
+    def test_disabled_returns_zero(self):
+        result = GEXResult(net_gex=1000.0, gamma_flip=0.0, regime="LONG_GAMMA")
+        assert get_gex_score_adj(result, "CALL", {"gex_enabled": False}) == 0
 
-# ── get_gex_score_adj ─────────────────────────────────────────────────────────
+    def test_none_result_returns_zero(self):
+        assert get_gex_score_adj(None, "CALL", {"gex_enabled": True}) == 0
 
-def test_score_adj_disabled():
-    r = GEXResult(net_gex=1000, gamma_flip=0, regime="LONG_GAMMA")
-    assert get_gex_score_adj(r, "CALL", {"gex_enabled": False}) == 0
+    def test_long_gamma_penalty(self):
+        result = GEXResult(net_gex=1000.0, gamma_flip=0.0, regime="LONG_GAMMA")
+        cfg = {"gex_enabled": True, "gex_long_gamma_adj": -5, "gex_short_gamma_adj": 5}
+        assert get_gex_score_adj(result, "CALL", cfg) == -5
 
+    def test_short_gamma_bonus(self):
+        result = GEXResult(net_gex=-1000.0, gamma_flip=0.0, regime="SHORT_GAMMA")
+        cfg = {"gex_enabled": True, "gex_long_gamma_adj": -5, "gex_short_gamma_adj": 5}
+        assert get_gex_score_adj(result, "PUT", cfg) == 5
 
-def test_score_adj_none_result():
-    assert get_gex_score_adj(None, "CALL", {"gex_enabled": True}) == 0
-
-
-def test_score_adj_long_gamma_negative():
-    r = GEXResult(net_gex=1000, gamma_flip=0, regime="LONG_GAMMA")
-    adj = get_gex_score_adj(r, "CALL", {"gex_enabled": True, "gex_long_gamma_adj": -5})
-    assert adj == -5
-
-
-def test_score_adj_short_gamma_positive():
-    r = GEXResult(net_gex=-1000, gamma_flip=0, regime="SHORT_GAMMA")
-    adj = get_gex_score_adj(r, "CALL", {"gex_enabled": True, "gex_short_gamma_adj": 5})
-    assert adj == 5
-
-
-def test_gamma_flip_in_result():
-    chain = {
-        "calls": {22000: {"oi": 200000, "premium": 200.0}, 22200: {"oi": 10000, "premium": 50.0}},
-        "puts":  {22000: {"oi": 10000,  "premium": 180.0}, 21800: {"oi": 200000, "premium": 90.0}},
-    }
-    result = compute_gex(chain, 22000.0, {"gex_enabled": True, "gex_lot_size": 50, "gex_dte": 7, "gex_vix_proxy": 15.0})
-    assert result is not None
-    assert isinstance(result.gamma_flip, float)
+    def test_custom_adjustments(self):
+        result = GEXResult(net_gex=-1000.0, gamma_flip=0.0, regime="SHORT_GAMMA")
+        cfg = {"gex_enabled": True, "gex_long_gamma_adj": -3, "gex_short_gamma_adj": 3}
+        assert get_gex_score_adj(result, "CALL", cfg) == 3

@@ -14,7 +14,6 @@ Data Sources (priority order):
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
 from typing import Any
 
 from core.ports.market_data import MarketDataPort

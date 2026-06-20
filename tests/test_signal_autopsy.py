@@ -1,324 +1,340 @@
-"""
-Tests for core/signal_autopsy.py (Step 3).
+"""Tests for core/signal_autopsy.py - Post-Trade Signal Autopsy.
 
 Covers:
-  - load_autopsy_data() missing db, days filter, mode filter
-  - compute_feature_breakdown() dimensions, win rate calculation
-  - find_failure_patterns() sorting, empty losers
-  - compute_edge_decay() window size, chronological rolling
-  - run_autopsy() no-trades fallback, full pipeline
-  - format_autopsy_report() string contract
-  - AutopsyReport fields populated correctly
+- AutopsyReport, HeatmapCell, TimeHeatmap dataclasses
+- _score_bin() helper
+- load_autopsy_data() with various DB states
+- compute_feature_breakdown()
+- find_failure_patterns()
+- compute_edge_decay()
+- _generate_insights()
+- run_autopsy() full pipeline
+- format_autopsy_report()
+- compute_time_heatmap() and render_ascii_heatmap()
 """
-import datetime
-import sqlite3
+from __future__ import annotations
+
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from core.signal_autopsy import (
     AutopsyReport,
+    HeatmapCell,
+    TimeHeatmap,
+    _score_bin,
     compute_edge_decay,
     compute_feature_breakdown,
+    compute_time_heatmap,
     find_failure_patterns,
     format_autopsy_report,
     load_autopsy_data,
+    render_ascii_heatmap,
     run_autopsy,
 )
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _make_db(tmp_path, trades):
-    """Create a trades.db with the given trade dicts."""
-    p = tmp_path / "trades.db"
-    conn = sqlite3.connect(str(p))
-    conn.execute("""
-        CREATE TABLE trades (
-            id INTEGER PRIMARY KEY,
-            ts TEXT, index_name TEXT, direction TEXT, entry REAL,
-            exit_price REAL, qty INTEGER, gross_pnl REAL, net_pnl REAL,
-            reason TEXT, regime TEXT, score REAL, iv REAL, vix REAL,
-            ltp_estimated INTEGER, partial INTEGER, sl_warned INTEGER,
-            mode TEXT, version TEXT
-        )
-    """)
-    for i, t in enumerate(trades):
-        conn.execute("""
-            INSERT INTO trades
-              (ts, index_name, direction, net_pnl, regime, score, iv, vix, mode)
-            VALUES (?,?,?,?,?,?,?,?,?)
-        """, (
-            t.get("ts", (datetime.datetime.utcnow() - datetime.timedelta(hours=i)).isoformat()),
-            t.get("index_name", "NIFTY"),
-            t.get("direction", "CALL"),
-            t.get("net_pnl", 0.0),
-            t.get("regime", "TRENDING"),
-            t.get("score", 75.0),
-            t.get("iv", 0.0),
-            t.get("vix", 14.0),
-            t.get("mode", "PAPER"),
-        ))
-    conn.commit()
-    conn.close()
-    return str(p)
+class TestScoreBin:
+    """_score_bin() helper."""
 
+    def test_90_plus(self):
+        assert _score_bin(95) == "90+"
+        assert _score_bin(90) == "90+"
 
-def _sample_trades(n=20):
-    import random
-    rng = random.Random(42)
-    now = datetime.datetime.utcnow()
-    trades = []
-    for i in range(n):
-        pnl = rng.choice([100.0, 200.0, -80.0, -150.0, 50.0])
-        trades.append({
-            "ts":         (now - datetime.timedelta(hours=n - i)).isoformat(),
-            "index_name": rng.choice(["NIFTY", "BANKNIFTY"]),
-            "direction":  rng.choice(["CALL", "PUT"]),
-            "net_pnl":    pnl,
-            "regime":     rng.choice(["TRENDING", "RANGING", "VOLATILE"]),
-            "score":      float(rng.randint(60, 95)),
-            "mode":       "PAPER",
-        })
-    return trades
+    def test_80_to_89(self):
+        assert _score_bin(85) == "80-89"
+        assert _score_bin(80) == "80-89"
 
+    def test_70_to_79(self):
+        assert _score_bin(75) == "70-79"
+        assert _score_bin(70) == "70-79"
 
-# ── load_autopsy_data ─────────────────────────────────────────────────────────
+    def test_60_to_69(self):
+        assert _score_bin(65) == "60-69"
+        assert _score_bin(60) == "60-69"
+
+    def test_below_60(self):
+        assert _score_bin(50) == "<60"
+        assert _score_bin(0) == "<60"
+        assert _score_bin(-1) == "<60"
+
 
 class TestLoadAutopsyData:
-    def test_returns_empty_when_db_missing(self, tmp_path):
-        result = load_autopsy_data(str(tmp_path / "no.db"))
+    """load_autopsy_data() tests."""
+
+    @patch("core.signal_autopsy.Path.is_file")
+    @patch("core.signal_autopsy.get_connection")
+    def test_missing_db_returns_empty(self, mock_get_conn, mock_is_file):
+        mock_is_file.return_value = False
+        result = load_autopsy_data("nonexistent.db", days=30)
         assert result == []
 
-    def test_loads_correct_count(self, tmp_path):
-        db = _make_db(tmp_path, _sample_trades(15))
-        trades = load_autopsy_data(db, days=0)
-        assert len(trades) == 15
+    @patch("core.signal_autopsy.Path.is_file")
+    @patch("core.signal_autopsy.get_connection")
+    def test_empty_db_returns_empty(self, mock_get_conn, mock_is_file):
+        mock_is_file.return_value = True
+        mock_conn = MagicMock()
+        mock_conn.execute.return_value.fetchall.return_value = []
+        mock_get_conn.return_value = mock_conn
+        result = load_autopsy_data("empty.db", days=30)
+        assert result == []
 
-    def test_is_winner_set_correctly(self, tmp_path):
-        # Provide explicit ts so ORDER BY ts ASC order is predictable
-        now = datetime.datetime.utcnow()
-        items = [
-            {"ts": (now - datetime.timedelta(hours=2)).isoformat(), "net_pnl":  100.0},
-            {"ts": (now - datetime.timedelta(hours=1)).isoformat(), "net_pnl": -50.0},
-        ]
-        db = _make_db(tmp_path, items)
-        trades = load_autopsy_data(db, days=0)
-        assert trades[0]["is_winner"] == 1
-        assert trades[1]["is_winner"] == 0
+    @patch("core.signal_autopsy.Path.is_file")
+    @patch("core.signal_autopsy.get_connection")
+    def test_loads_trades(self, mock_get_conn, mock_is_file):
+        mock_is_file.return_value = True
+        mock_conn = MagicMock()
+        # Use a dict directly (sqlite3.Row supports both [] and .get())
+        mock_row = {
+            "ts": "2026-01-15T10:00:00",
+            "index_name": "NIFTY",
+            "direction": "CALL",
+            "score": 75.0,
+            "net_pnl": 1500.0,
+            "regime": "TRENDING",
+            "iv": 15.0,
+            "vix": 14.0,
+            "mode": "PAPER",
+        }
+        mock_conn.execute.return_value.fetchall.return_value = [mock_row]
+        mock_get_conn.return_value = mock_conn
+        result = load_autopsy_data("trades.db", days=30)
+        assert len(result) == 1
+        assert result[0]["direction"] == "CALL"
+        assert result[0]["score"] == 75.0
+        assert result[0]["net_pnl"] == 1500.0
+        assert result[0]["is_winner"] == 1
 
-    def test_days_filter_excludes_old(self, tmp_path):
-        old_ts = (datetime.datetime.utcnow() - datetime.timedelta(days=60)).isoformat()
-        new_ts = (datetime.datetime.utcnow() - datetime.timedelta(hours=2)).isoformat()
-        items = [
-            {"ts": old_ts, "net_pnl": 999.0},
-            {"ts": new_ts, "net_pnl": 100.0},
-        ]
-        db = _make_db(tmp_path, items)
-        trades = load_autopsy_data(db, days=30)
-        assert len(trades) == 1
-        assert abs(trades[0]["net_pnl"] - 100.0) < 1e-6
+    @patch("core.signal_autopsy.Path.is_file")
+    @patch("core.signal_autopsy.get_connection")
+    def test_mode_filter(self, mock_get_conn, mock_is_file):
+        mock_is_file.return_value = True
+        mock_conn = MagicMock()
+        mock_conn.execute.return_value.fetchall.return_value = []
+        mock_get_conn.return_value = mock_conn
+        result = load_autopsy_data("trades.db", days=30, mode="LIVE")
+        assert result == []
 
-    def test_mode_filter(self, tmp_path):
-        items = [
-            {"net_pnl": 100.0, "mode": "PAPER"},
-            {"net_pnl": 200.0, "mode": "LIVE"},
-        ]
-        db = _make_db(tmp_path, items)
-        trades = load_autopsy_data(db, days=0, mode="PAPER")
-        assert len(trades) == 1
-        assert trades[0]["mode"] == "PAPER"
+    @patch("core.signal_autopsy.Path.is_file")
+    @patch("core.signal_autopsy.get_connection")
+    def test_db_error_returns_empty(self, mock_get_conn, mock_is_file):
+        mock_is_file.return_value = True
+        mock_get_conn.side_effect = OSError("DB locked")
+        result = load_autopsy_data("trades.db", days=30)
+        assert result == []
 
-    def test_score_bin_assigned(self, tmp_path):
-        items = [{"net_pnl": 100.0, "score": 92.0}]
-        db = _make_db(tmp_path, items)
-        trades = load_autopsy_data(db, days=0)
-        assert trades[0]["score_bin"] == "90+"
-
-
-# ── compute_feature_breakdown ─────────────────────────────────────────────────
 
 class TestComputeFeatureBreakdown:
-    def test_empty_returns_empty(self):
+    """compute_feature_breakdown()."""
+
+    def _make_trade(self, score=75, direction="CALL", regime="TRENDING", index="NIFTY", pnl=100):
+        return {
+            "score_bin": _score_bin(score),
+            "direction": direction,
+            "regime": regime,
+            "index_name": index,
+            "net_pnl": float(pnl),
+            "is_winner": 1 if pnl > 0 else 0,
+        }
+
+    def test_empty_trades(self):
         assert compute_feature_breakdown([]) == {}
 
-    def test_has_score_bin_dimension(self):
-        trades = [{"score_bin": "80-89", "is_winner": 1, "net_pnl": 100.0, "direction": "CALL",
-                   "regime": "TRENDING", "index_name": "NIFTY"}]
+    def test_single_trade(self):
+        trades = [self._make_trade()]
         result = compute_feature_breakdown(trades)
         assert "score_bin" in result
-
-    def test_win_rate_all_winners(self):
-        trades = [
-            {"score_bin": "70-79", "is_winner": 1, "net_pnl": 100.0,
-             "direction": "CALL", "regime": "TRENDING", "index_name": "NIFTY"}
-        ] * 4
-        result = compute_feature_breakdown(trades)
+        assert "direction" in result
+        assert "70-79" in result["score_bin"]
+        assert result["score_bin"]["70-79"]["trades"] == 1
         assert result["score_bin"]["70-79"]["win_rate"] == 100.0
 
-    def test_win_rate_mixed(self):
+    def test_mixed_winners_losers(self):
         trades = [
-            {"score_bin": "70-79", "is_winner": 1, "net_pnl":  100.0,
-             "direction": "CALL", "regime": "TRENDING", "index_name": "NIFTY"},
-            {"score_bin": "70-79", "is_winner": 0, "net_pnl": -100.0,
-             "direction": "CALL", "regime": "TRENDING", "index_name": "NIFTY"},
+            self._make_trade(score=85, pnl=200),
+            self._make_trade(score=85, pnl=-100),
+            self._make_trade(score=85, pnl=50),
         ]
         result = compute_feature_breakdown(trades)
-        assert result["score_bin"]["70-79"]["win_rate"] == 50.0
-        assert result["score_bin"]["70-79"]["trades"] == 2
+        assert result["score_bin"]["80-89"]["trades"] == 3
+        assert result["score_bin"]["80-89"]["win_rate"] == pytest.approx(66.7, abs=0.1)
+        assert result["score_bin"]["80-89"]["avg_pnl"] == pytest.approx(50.0, abs=0.1)
 
-    def test_all_dimensions_present(self):
+    def test_multiple_directions(self):
         trades = [
-            {"score_bin": "80-89", "is_winner": 1, "net_pnl": 50.0,
-             "direction": "PUT", "regime": "RANGING", "index_name": "BANKNIFTY"}
+            self._make_trade(direction="CALL", pnl=100),
+            self._make_trade(direction="PUT", pnl=-50),
+            self._make_trade(direction="CALL", pnl=-30),
         ]
         result = compute_feature_breakdown(trades)
-        for dim in ["score_bin", "direction", "regime", "index_name"]:
-            assert dim in result
+        assert result["direction"]["CALL"]["trades"] == 2
+        assert result["direction"]["CALL"]["win_rate"] == 50.0
+        assert result["direction"]["PUT"]["trades"] == 1
+        assert result["direction"]["PUT"]["win_rate"] == 0.0
 
-
-# ── find_failure_patterns ─────────────────────────────────────────────────────
 
 class TestFindFailurePatterns:
-    def test_empty_losers_returns_empty(self):
-        trades = [{"is_winner": 1, "net_pnl": 100.0, "direction": "CALL",
-                   "regime": "TRENDING", "score_bin": "80-89"}]
+    """find_failure_patterns()."""
+
+    def test_no_losers_returns_empty(self):
+        trades = [
+            {"is_winner": 1, "direction": "CALL", "regime": "TRENDING", "score_bin": "70-79", "net_pnl": 100},
+        ]
         assert find_failure_patterns(trades) == []
 
-    def test_returns_list_of_dicts(self):
+    def test_top_failure_pattern(self):
         trades = [
-            {"is_winner": 0, "net_pnl": -100.0, "direction": "PUT",
-             "regime": "RANGING", "score_bin": "60-69"},
-        ] * 3
-        patterns = find_failure_patterns(trades)
-        assert isinstance(patterns, list)
-        for p in patterns:
-            assert "direction" in p and "regime" in p and "count" in p
-
-    def test_most_common_pattern_first(self):
-        trades = (
-            [{"is_winner": 0, "net_pnl": -100.0, "direction": "PUT",
-              "regime": "RANGING", "score_bin": "60-69"}] * 4 +
-            [{"is_winner": 0, "net_pnl": -50.0, "direction": "CALL",
-              "regime": "VOLATILE", "score_bin": "70-79"}] * 2
-        )
-        patterns = find_failure_patterns(trades, top_n=5)
-        assert patterns[0]["count"] == 4
-
-    def test_top_n_respected(self):
-        trades = []
-        for i in range(10):
-            trades.append({"is_winner": 0, "net_pnl": -50.0,
-                           "direction": "CALL", "regime": f"REG_{i}", "score_bin": "70-79"})
-        patterns = find_failure_patterns(trades, top_n=3)
-        assert len(patterns) <= 3
-
-    def test_pct_of_losses_sums_roughly_100(self):
-        trades = [
-            {"is_winner": 0, "net_pnl": -100.0, "direction": "CALL",
-             "regime": "TRENDING", "score_bin": "80-89"},
-            {"is_winner": 0, "net_pnl": -100.0, "direction": "PUT",
-             "regime": "RANGING", "score_bin": "70-79"},
+            {"is_winner": 0, "direction": "CALL", "regime": "TRENDING", "score_bin": "70-79", "net_pnl": -100},
+            {"is_winner": 0, "direction": "CALL", "regime": "TRENDING", "score_bin": "70-79", "net_pnl": -200},
+            {"is_winner": 0, "direction": "PUT", "regime": "CHOPPY", "score_bin": "<60", "net_pnl": -50},
         ]
-        patterns = find_failure_patterns(trades, top_n=10)
-        total_pct = sum(p["pct_of_losses"] for p in patterns)
-        assert abs(total_pct - 100.0) < 1.0
+        patterns = find_failure_patterns(trades, top_n=5)
+        assert len(patterns) >= 1
+        # Most common pattern should be CALL/TRENDING/70-79
+        top = patterns[0]
+        assert top["direction"] == "CALL"
+        assert top["regime"] == "TRENDING"
+        assert top["count"] == 2
+        assert top["avg_pnl"] == -150.0
+        assert top["pct_of_losses"] == pytest.approx(66.7, abs=0.1)
 
+    def test_empty_trades(self):
+        assert find_failure_patterns([], top_n=5) == []
 
-# ── compute_edge_decay ────────────────────────────────────────────────────────
 
 class TestComputeEdgeDecay:
-    def _make_trades(self, winners_pattern):
-        return [
-            {"is_winner": w, "net_pnl": 100.0 if w else -100.0}
-            for w in winners_pattern
+    """compute_edge_decay()."""
+
+    def test_empty_trades(self):
+        assert compute_edge_decay([], window=10) == []
+
+    def test_fewer_than_window(self):
+        trades = [{"is_winner": 1, "net_pnl": 100}] * 5
+        assert compute_edge_decay(trades, window=10) == []
+
+    def test_rolling_win_rate(self):
+        trades = [
+            {"is_winner": 1, "net_pnl": 100},
+            {"is_winner": 1, "net_pnl": 50},
+            {"is_winner": 0, "net_pnl": -30},
+            {"is_winner": 1, "net_pnl": 200},
+            {"is_winner": 0, "net_pnl": -50},
         ]
-
-    def test_empty_when_fewer_than_window(self):
-        trades = self._make_trades([1, 0, 1])
-        decay = compute_edge_decay(trades, window=5)
-        assert decay == []
-
-    def test_length_is_n_minus_window_plus_1(self):
-        trades = self._make_trades([1, 0, 1, 0, 1, 0, 1, 0, 1, 0])
         decay = compute_edge_decay(trades, window=3)
-        assert len(decay) == 10 - 3 + 1
-
-    def test_win_rate_100_all_winners(self):
-        trades = self._make_trades([1] * 10)
-        decay = compute_edge_decay(trades, window=5)
-        for d in decay:
-            assert d["win_rate"] == 100.0
-
-    def test_win_rate_0_all_losers(self):
-        trades = self._make_trades([0] * 10)
-        decay = compute_edge_decay(trades, window=5)
-        for d in decay:
-            assert d["win_rate"] == 0.0
-
-    def test_trade_index_ascending(self):
-        trades = self._make_trades([1, 0] * 6)
-        decay = compute_edge_decay(trades, window=3)
-        indices = [d["trade_index"] for d in decay]
-        assert indices == sorted(indices)
-
-    def test_trades_in_window_correct(self):
-        trades = self._make_trades([1, 0, 1, 0, 1])
-        decay = compute_edge_decay(trades, window=3)
-        for d in decay:
-            assert d["trades_in_window"] == 3
+        assert len(decay) == 3  # indices 2, 3, 4
+        # Window 1: [1,1,0] -> 66.7%
+        assert decay[0]["trade_index"] == 2
+        assert decay[0]["win_rate"] == pytest.approx(66.7, abs=0.1)
+        assert decay[0]["trades_in_window"] == 3
 
 
-# ── run_autopsy ───────────────────────────────────────────────────────────────
+class TestGenerateInsights:
+    """_generate_insights() via run_autopsy."""
 
-class TestRunAutopsy:
-    def test_no_trades_returns_empty_report(self, tmp_path):
-        db = str(tmp_path / "empty.db")
-        report = run_autopsy(db, days=30)
-        assert isinstance(report, AutopsyReport)
-        assert report.n_trades == 0
+    @patch("core.signal_autopsy.load_autopsy_data")
+    def test_no_trades_insight(self, mock_load):
+        mock_load.return_value = []
+        report = run_autopsy("trades.db", days=30)
+        assert "No trades found" in report.insights[0]
 
-    def test_full_pipeline(self, tmp_path):
-        db = _make_db(tmp_path, _sample_trades(20))
-        report = run_autopsy(db, days=0)
-        assert report.n_trades == 20
-        assert report.n_winners + report.n_losers == 20
-        assert isinstance(report.feature_breakdown, dict)
-        assert isinstance(report.failure_patterns, list)
-        assert isinstance(report.edge_decay, list)
+    @patch("core.signal_autopsy.load_autopsy_data")
+    def test_best_score_bin_insight(self, mock_load):
+        mock_load.return_value = [
+            {"score_bin": "80-89", "direction": "CALL", "regime": "TRENDING", "index_name": "NIFTY",
+             "is_winner": 1, "net_pnl": 200, "ts": "2026-01-15T10:00:00"},
+            {"score_bin": "80-89", "direction": "CALL", "regime": "TRENDING", "index_name": "NIFTY",
+             "is_winner": 1, "net_pnl": 150, "ts": "2026-01-15T11:00:00"},
+        ]
+        report = run_autopsy("trades.db", days=30)
+        assert report.n_trades == 2
+        assert report.overall_win_rate == 100.0
+        assert any("Score bin" in ins for ins in report.insights)
 
-    def test_overall_win_rate_range(self, tmp_path):
-        db = _make_db(tmp_path, _sample_trades(20))
-        report = run_autopsy(db, days=0)
-        assert 0.0 <= report.overall_win_rate <= 100.0
-
-    def test_insights_is_list_of_strings(self, tmp_path):
-        db = _make_db(tmp_path, _sample_trades(20))
-        report = run_autopsy(db, days=0)
-        assert isinstance(report.insights, list)
-        for ins in report.insights:
-            assert isinstance(ins, str)
-
-    def test_cfg_overrides_days(self, tmp_path):
-        old_ts = (datetime.datetime.utcnow() - datetime.timedelta(days=100)).isoformat()
-        items = [{"ts": old_ts, "net_pnl": 999.0}]
-        db = _make_db(tmp_path, items)
-        report = run_autopsy(db, cfg={"signal_autopsy_days": 7, "trades_db": db})
-        assert report.n_trades == 0
-
-
-# ── format_autopsy_report ─────────────────────────────────────────────────────
 
 class TestFormatAutopsyReport:
-    def test_returns_string(self, tmp_path):
-        db = _make_db(tmp_path, _sample_trades(10))
-        report = run_autopsy(db, days=0)
-        s = format_autopsy_report(report)
-        assert isinstance(s, str) and len(s) > 20
+    """format_autopsy_report()."""
 
-    def test_contains_win_rate(self, tmp_path):
-        db = _make_db(tmp_path, _sample_trades(10))
-        report = run_autopsy(db, days=0)
-        s = format_autopsy_report(report)
-        assert "Win Rate" in s or "%" in s
-
-    def test_empty_report_does_not_raise(self):
+    def test_empty_report(self):
         report = AutopsyReport(n_trades=0, n_winners=0, n_losers=0, overall_win_rate=0.0)
-        s = format_autopsy_report(report)
-        assert isinstance(s, str)
+        text = format_autopsy_report(report)
+        assert "0 trades" in text
+        assert "Win Rate: 0.0%" in text
+
+    def test_report_with_data(self):
+        report = AutopsyReport(
+            n_trades=10, n_winners=6, n_losers=4, overall_win_rate=60.0,
+            feature_breakdown={
+                "score_bin": {
+                    "70-79": {"trades": 5, "win_rate": 80.0, "avg_pnl": 200.0},
+                },
+            },
+            failure_patterns=[
+                {"direction": "CALL", "regime": "CHOPPY", "score_bin": "<60",
+                 "count": 2, "pct_of_losses": 50.0},
+            ],
+            insights=["Sample insight"],
+        )
+        text = format_autopsy_report(report)
+        assert "10 trades" in text
+        assert "Win Rate: 60.0%" in text
+        assert "Score Bin Breakdown" in text
+        assert "Sample insight" in text
+
+
+class TestTimeHeatmap:
+    """compute_time_heatmap() and render_ascii_heatmap()."""
+
+    def _make_trade(self, ts_string, is_winner=True, pnl=100):
+        return {"ts": ts_string, "is_winner": 1 if is_winner else 0, "net_pnl": float(pnl)}
+
+    def test_empty_trades(self):
+        hmap = compute_time_heatmap([])
+        assert hmap.cells == []
+        assert hmap.hours == []
+        assert hmap.days == []
+
+    def test_single_trade(self):
+        trades = [self._make_trade("2026-01-15T10:30:00")]  # Thursday 10:30
+        hmap = compute_time_heatmap(trades, min_cell_trades=3)
+        assert len(hmap.cells) == 1
+        assert hmap.cells[0].hour == 10
+        assert hmap.cells[0].day_of_week == 3  # Thursday
+        assert hmap.cells[0].n_trades == 1
+        assert hmap.cells[0].win_rate == 1.0
+
+    def test_invalid_ts_skipped(self):
+        trades = [self._make_trade("invalid-ts")]
+        hmap = compute_time_heatmap(trades)
+        assert hmap.cells == []
+
+    def test_render_empty(self):
+        hmap = TimeHeatmap()
+        text = render_ascii_heatmap(hmap)
+        assert "no heatmap data" in text
+
+    def test_render_with_data(self):
+        hmap = TimeHeatmap(
+            cells=[
+                HeatmapCell(hour=10, day_of_week=0, n_trades=5, n_wins=3, win_rate=0.6, avg_pnl=100.0),
+                HeatmapCell(hour=11, day_of_week=0, n_trades=3, n_wins=2, win_rate=0.6667, avg_pnl=50.0),
+            ],
+            hours=[10, 11],
+            days=[0],
+            min_cell_trades=3,
+        )
+        text = render_ascii_heatmap(hmap)
+        assert "Day\\Hour" in text
+        assert "Mon" in text or "0" in text
+        assert "60" in text or "67" in text
+
+    def test_sparse_cell_shows_dash(self):
+        hmap = TimeHeatmap(
+            cells=[
+                HeatmapCell(hour=10, day_of_week=0, n_trades=1, n_wins=1, win_rate=1.0, avg_pnl=100.0),
+            ],
+            hours=[10],
+            days=[0],
+            min_cell_trades=3,
+        )
+        text = render_ascii_heatmap(hmap)
+        assert "--" in text

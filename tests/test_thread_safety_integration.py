@@ -7,12 +7,9 @@ across the thread safety sweep.
 
 from __future__ import annotations
 
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from unittest.mock import MagicMock, patch
 
-import pytest
 
 
 # ── Reentrant access tests ───────────────────────────────────────────────

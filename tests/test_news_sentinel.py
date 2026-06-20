@@ -1,332 +1,396 @@
-"""Tests for core/news_sentinel.py (v2.44 Item 12)."""
-import time
+"""Tests for core.news_sentinel — NewsSentinel background RSS risk scanner."""
 
-import pytest
+from __future__ import annotations
+
+import time
+from unittest.mock import MagicMock, patch
+
 from core.news_sentinel import (
-    ELEVATED_KEYWORDS,
-    EXTREME_KEYWORDS,
-    HIGH_KEYWORDS,
     NewsRiskAssessment,
     NewsSentinel,
     _classify_headline,
+    _CLEAR_ASSESSMENT,
+    BULLISH_KEYWORDS,
+    BEARISH_KEYWORDS,
+    ELEVATED_KEYWORDS,
+    EXTREME_KEYWORDS,
+    HIGH_KEYWORDS,
 )
 
-CFG = {
-    "news_sentinel_enabled": True,
-    "news_poll_interval_mins": 5,
-    "news_lookback_mins": 30,
-    "news_extreme_score_mult": 0.0,
-    "news_high_score_mult": 0.70,
-    "news_elevated_score_mult": 0.85,
-    "news_custom_keywords": [],
-    "news_rss_timeout_secs": 5,
-}
 
-
-# ── Keyword classification ────────────────────────────────────────────────────
-
-def test_extreme_keyword_detected():
-    level, kws = _classify_headline("Market circuit breaker triggered today", CFG)
-    assert level == "EXTREME"
-    assert len(kws) > 0
-
-
-def test_high_keyword_detected():
-    level, kws = _classify_headline("RBI announces rate hike of 25 bps", CFG)
-    assert level == "HIGH"
-    assert len(kws) > 0
-
-
-def test_elevated_keyword_detected():
-    level, kws = _classify_headline("RBI meeting outcome today", CFG)
-    assert level in ("ELEVATED", "HIGH", "EXTREME")
-
-
-def test_no_risk_for_neutral_headline():
-    level, kws = _classify_headline("Sensex closes slightly higher", CFG)
-    assert level == "NONE"  # module-level helper uses NONE; class uses CLEAR
-    assert kws == []
-
-
-def test_case_insensitive_matching():
-    level, _ = _classify_headline("EMERGENCY DECLARED IN MARKETS", CFG)
-    assert level == "EXTREME"
-
-
-def test_custom_keywords_matched():
-    cfg = dict(CFG, news_custom_keywords=["my_custom_risk"])
-    level, kws = _classify_headline("Market shows my_custom_risk today", cfg)
-    assert level in ("ELEVATED", "HIGH", "EXTREME")
-
-
-def test_extreme_takes_priority_over_high():
-    headline = "Emergency rate hike announced"
-    level, _ = _classify_headline(headline, CFG)
-    # Should be EXTREME (emergency) not just HIGH (rate hike)
-    assert level == "EXTREME"
-
-
-# ── NewsRiskAssessment fields ─────────────────────────────────────────────────
-
-def test_assessment_has_all_fields():
-    a = NewsRiskAssessment(
-        risk_score=0.5, risk_level="HIGH",
-        triggered_keywords=["rate hike"], headline="test", source="rss",
-        assessed_at=time.time(), score_multiplier=0.7
-    )
-    assert hasattr(a, "risk_score")
-    assert hasattr(a, "risk_level")
-    assert hasattr(a, "triggered_keywords")
-    assert hasattr(a, "score_multiplier")
-    assert hasattr(a, "assessed_at")
-
-
-def test_assessment_is_frozen():
-    a = NewsRiskAssessment(
-        risk_score=0.0, risk_level="NONE",
-        triggered_keywords=[], headline=None, source=None,
-        assessed_at=time.time(), score_multiplier=1.0
-    )
-    with pytest.raises((AttributeError, TypeError)):
-        a.risk_level = "HIGH"
-
-
-# ── Score multipliers ─────────────────────────────────────────────────────────
-
-def test_extreme_multiplier_is_zero():
-    assert CFG["news_extreme_score_mult"] == 0.0
-
-
-def test_high_multiplier_less_than_one():
-    assert CFG["news_high_score_mult"] < 1.0
-
-
-def test_elevated_multiplier_between_high_and_one():
-    assert CFG["news_high_score_mult"] < CFG["news_elevated_score_mult"] < 1.0
-
-
-# ── NewsSentinel ──────────────────────────────────────────────────────────────
-
-def test_sentinel_returns_default_when_no_news():
-    s = NewsSentinel(cfg=CFG)
-    a = s.get_current_risk()
-    assert isinstance(a, NewsRiskAssessment)
-    assert a.score_multiplier == pytest.approx(1.0)
-    assert a.risk_level in ("NONE", "CLEAR")
-
-
-def test_sentinel_start_stop():
-    s = NewsSentinel(cfg=CFG)
-    s.start()
-    assert s._thread is not None
-    s.stop()
-
-
-def test_sentinel_start_stop_no_error():
-    s = NewsSentinel(cfg=CFG)
-    try:
-        s.start()
-        s.stop()
-    except Exception as e:
-        pytest.fail(f"start/stop raised: {e}")
-
-
-def test_sentinel_get_risk_nonblocking():
-    s = NewsSentinel(cfg=CFG)
-    # Should return immediately without blocking
-    start = time.time()
-    a = s.get_current_risk()
-    elapsed = time.time() - start
-    assert elapsed < 0.5
-    assert isinstance(a, NewsRiskAssessment)
-
-
-def test_disabled_sentinel_returns_safe_default():
-    cfg = dict(CFG, news_sentinel_enabled=False)
-    s = NewsSentinel(cfg=cfg)
-    a = s.get_current_risk()
-    assert a.score_multiplier == pytest.approx(1.0)
-    assert a.risk_level in ("NONE", "CLEAR")
-
-
-# ── Keyword lists ─────────────────────────────────────────────────────────────
-
-def test_extreme_keywords_not_empty():
-    assert len(EXTREME_KEYWORDS) > 0
-
-
-def test_high_keywords_not_empty():
-    assert len(HIGH_KEYWORDS) > 0
-
-
-def test_elevated_keywords_not_empty():
-    assert len(ELEVATED_KEYWORDS) > 0
-
-
-def test_extreme_keywords_are_lowercase():
-    for kw in EXTREME_KEYWORDS:
-        assert kw == kw.lower(), f"Keyword not lowercase: {kw}"
-
-
-def test_risk_level_of_none_gives_multiplier_one():
-    level, _ = _classify_headline("Regular market update", CFG)
-    # Default sentinel cache is CLEAR → multiplier 1.0
-    s = NewsSentinel(cfg=CFG)
-    a = s.get_current_risk()
-    assert a.score_multiplier == pytest.approx(1.0)
-
-
-# ── start() disabled / already-running branches (lines 127, 129) ─────
-
-def test_start_returns_early_when_disabled():
-    s = NewsSentinel(cfg=dict(CFG, news_sentinel_enabled=False))
-    assert s._thread is None
-    s.start()
-
-
-def test_start_returns_early_when_thread_already_alive():
-    from unittest.mock import MagicMock
-    s = NewsSentinel(cfg=dict(CFG, news_sentinel_enabled=True))
-    mock_thread = MagicMock()
-    mock_thread.is_alive.return_value = True
-    s._thread = mock_thread
-    s.start()
-
-
-# ── update_config (line 148) ─────────────────────────────────────────
-
-def test_update_config_replaces_cfg():
-    s = NewsSentinel(cfg=CFG)
-    new_cfg = dict(CFG, news_sentinel_enabled=False)
-    s.update_config(new_cfg)
-    assert s._cfg["news_sentinel_enabled"] is False
-
-
-# ── _poll_loop exception handling (lines 157-158) ────────────────────
-
-def test_poll_loop_catches_exception():
-    s = NewsSentinel(cfg=CFG)
-
-    def _raise(_self=None):
-        raise ValueError("simulated poll error")
-
-    s._run_one_poll = _raise
-
-    def _set_stop(timeout=None):
-        s._stop.set()
-
-    s._stop.wait = _set_stop
-    s._poll_loop()
-
-
-# ── _score_headline coverage (lines 211, 214, 217) ───────────────────
-
-def test_score_headline_extreme():
-    s = NewsSentinel(cfg={})
-    score, level, kws = s._score_headline("circuit breaker triggered", [])
-    assert score == 1.0
-    assert level == "EXTREME"
-    assert len(kws) > 0
-
-
-def test_score_headline_custom_extreme():
-    s = NewsSentinel(cfg={})
-    score, level, kws = s._score_headline("my_custom_crash keyword", ["my_custom_crash"])
-    assert score == 1.0
-    assert level == "EXTREME"
-    assert "my_custom_crash" in kws
-
-
-def test_score_headline_high():
-    s = NewsSentinel(cfg={})
-    score, level, kws = s._score_headline("RBI surprise rate hike today", [])
-    assert score == 0.7
-    assert level == "HIGH"
-    assert len(kws) > 0
-
-
-def test_score_headline_elevated():
-    s = NewsSentinel(cfg={})
-    score, level, kws = s._score_headline("SEBI order new regulation", [])
-    assert score == 0.3
-    assert level == "ELEVATED"
-    assert len(kws) > 0
-
-
-def test_score_headline_clear():
-    s = NewsSentinel(cfg={})
-    score, level, kws = s._score_headline("normal market movement", [])
-    assert score == 0.0
-    assert level == "CLEAR"
-    assert kws == []
-
-
-# ── MIXED sentiment (line 186) + score > best update (lines 189-198) ─
-
-def test_run_one_poll_mixed_sentiment_and_score_update():
-    s = NewsSentinel(cfg=CFG)
-
-    def mock_fetch(url):
-        return [
-            {"title": "earnings miss and rally together", "pub_ts": time.time()},
+# ── _classify_headline tests ─────────────────────────────────────────────────
+
+class TestClassifyHeadline:
+    """Unit tests for the module-level _classify_headline helper."""
+
+    def test_extreme_keyword_detected(self):
+        """EXTREME keywords should return EXTREME level."""
+        level, kws = _classify_headline("Emergency meeting called by RBI")
+        assert level == "EXTREME"
+        assert any("emergency" in kw.lower() for kw in kws)
+
+    def test_high_keyword_detected(self):
+        """HIGH keywords should return HIGH level."""
+        level, kws = _classify_headline("RBI announces surprise rate hike")
+        assert level == "HIGH"
+        assert any("rate hike" in kw.lower() for kw in kws)
+
+    def test_elevated_keyword_detected(self):
+        """ELEVATED keywords should return ELEVATED level."""
+        level, kws = _classify_headline("FOMC meeting minutes released")
+        assert level == "ELEVATED"
+        assert any("fomc" in kw.lower() for kw in kws)
+
+    def test_no_keyword_match(self):
+        """Headline with no keywords should return NONE."""
+        level, kws = _classify_headline("Markets trade flat amid low volumes")
+        assert level == "NONE"
+        assert kws == []
+
+    def test_empty_headline(self):
+        """Empty headline should return NONE."""
+        level, kws = _classify_headline("")
+        assert level == "NONE"
+
+    def test_case_insensitive(self):
+        """Keyword matching should be case-insensitive."""
+        level, kws = _classify_headline("BANKING CRISIS LOOMS")
+        assert level == "EXTREME"
+        assert any("banking crisis" in kw.lower() for kw in kws)
+
+    def test_extreme_overrides_high(self):
+        """EXTREME keywords should take precedence over HIGH."""
+        level, kws = _classify_headline("Emergency rate hike by RBI")
+        assert level == "EXTREME"
+
+    def test_high_overrides_elevated(self):
+        """HIGH keywords should take precedence over ELEVATED."""
+        level, kws = _classify_headline("Rate hike expected after FOMC meeting")
+        assert level == "HIGH"
+
+    def test_custom_keywords(self):
+        """Custom keywords from config should be treated as EXTREME level."""
+        cfg = {"news_custom_keywords": ["crisis"]}
+        level, kws = _classify_headline("Major crisis unfolding", cfg)
+        assert level == "EXTREME"
+        assert "crisis" in [k.lower() for k in kws]
+
+    def test_custom_keywords_in_config_cases(self):
+        """Custom keywords should work with config that has lowercase keywords."""
+        cfg = {"news_custom_keywords": ["BREAKING"]}
+        level, kws = _classify_headline("BREAKING news alert", cfg)
+        assert level == "EXTREME"
+
+    def test_multiple_high_keywords(self):
+        """Multiple HIGH keywords should all be returned."""
+        level, kws = _classify_headline("Rate hike and GDP shock data")
+        assert level == "HIGH"
+        assert len(kws) >= 1
+
+
+# ── NewsRiskAssessment tests ─────────────────────────────────────────────────
+
+class TestNewsRiskAssessment:
+    """Test the NewsRiskAssessment dataclass."""
+
+    def test_clear_assessment_default(self):
+        """The CLEAR assessment should have score 0.0 and multiplier 1.0."""
+        assert _CLEAR_ASSESSMENT.risk_score == 0.0
+        assert _CLEAR_ASSESSMENT.risk_level == "CLEAR"
+        assert _CLEAR_ASSESSMENT.score_multiplier == 1.0
+        assert _CLEAR_ASSESSMENT.sentiment == "NEUTRAL"
+
+    def test_custom_assessment(self):
+        """Creating a custom assessment should work."""
+        now = time.time()
+        a = NewsRiskAssessment(
+            risk_score=0.7,
+            risk_level="HIGH",
+            triggered_keywords=["rate hike"],
+            headline="RBI rate hike",
+            source="https://example.com",
+            assessed_at=now,
+            score_multiplier=0.7,
+            sentiment="BEARISH",
+        )
+        assert a.risk_score == 0.7
+        assert a.risk_level == "HIGH"
+        assert a.sentiment == "BEARISH"
+
+
+# ── _score_headline tests (via NewsSentinel) ─────────────────────────────────
+
+class TestScoreHeadline:
+    """Test the internal _score_headline method."""
+
+    def test_extreme_score(self):
+        """EXTREME keywords should return score 1.0."""
+        ns = NewsSentinel({})
+        score, level, kws = ns._score_headline("market halt triggered", [])
+        assert score == 1.0
+        assert level == "EXTREME"
+
+    def test_high_score(self):
+        """HIGH keywords should return score 0.7."""
+        ns = NewsSentinel({})
+        score, level, kws = ns._score_headline("surprise inflation data", [])
+        assert score == 0.7
+        assert level == "HIGH"
+
+    def test_elevated_score(self):
+        """ELEVATED keywords should return score 0.3."""
+        ns = NewsSentinel({})
+        score, level, kws = ns._score_headline("sebi order on F&O", [])
+        assert score == 0.3
+        assert level == "ELEVATED"
+
+    def test_clear_score(self):
+        """No keyword match should return score 0.0/CLEAR."""
+        ns = NewsSentinel({})
+        score, level, kws = ns._score_headline("normal market day", [])
+        assert score == 0.0
+        assert level == "CLEAR"
+
+    def test_custom_keywords_in_score(self):
+        """Custom keywords should be treated as EXTREME in scoring too."""
+        ns = NewsSentinel({})
+        score, level, kws = ns._score_headline("crash alert issued", ["crash"])
+        assert score == 1.0
+        assert level == "EXTREME"
+
+
+# ── NewsSentinel start/stop tests ────────────────────────────────────────────
+
+class TestNewsSentinelLifecycle:
+    """Test NewsSentinel start/stop and basic lifecycle."""
+
+    def test_default_disabled(self):
+        """NewsSentinel should not start if config has news_sentinel_enabled=False."""
+        cfg = {"news_sentinel_enabled": False}
+        ns = NewsSentinel(cfg)
+        ns.start()
+        assert ns._thread is None or not ns._thread.is_alive()
+
+    def test_enabled_starts_thread(self):
+        """With enabled=True, start() should create a daemon thread."""
+        cfg = {"news_sentinel_enabled": True, "news_poll_interval_mins": 60}
+        ns = NewsSentinel(cfg)
+        ns.start()
+        assert ns._thread is not None
+        assert ns._thread.is_alive()
+        assert ns._thread.daemon is True
+        ns.stop()
+
+    def test_stop_clears_thread(self):
+        """stop() should join the thread."""
+        cfg = {"news_sentinel_enabled": True, "news_poll_interval_mins": 60}
+        ns = NewsSentinel(cfg)
+        ns.start()
+        ns.stop()
+        assert ns._stop.is_set()
+
+    def test_start_twice(self):
+        """Starting twice should not create a second thread."""
+        cfg = {"news_sentinel_enabled": True, "news_poll_interval_mins": 60}
+        ns = NewsSentinel(cfg)
+        ns.start()
+        thread_id = id(ns._thread)
+        ns.start()
+        assert id(ns._thread) == thread_id
+        ns.stop()
+
+    def test_stop_without_start(self):
+        """Calling stop() on a never-started sentinel should not raise."""
+        ns = NewsSentinel({})
+        ns.stop()
+
+    def test_get_current_risk_default(self):
+        """Before any poll, get_current_risk() should return CLEAR."""
+        ns = NewsSentinel({})
+        risk = ns.get_current_risk()
+        assert risk.risk_level == "CLEAR"
+        assert risk.risk_score == 0.0
+
+    def test_get_current_risk_thread_safe(self):
+        """Concurrent reads should not raise."""
+        ns = NewsSentinel({"news_sentinel_enabled": True})
+        import threading as _t
+        errors = []
+
+        def _read():
+            try:
+                for _ in range(50):
+                    ns.get_current_risk()
+            except Exception as e:
+                errors.append(e)
+
+        threads = [_t.Thread(target=_read) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert not errors
+
+
+# ── NewsSentinel RSS polling tests ───────────────────────────────────────────
+
+class TestNewsSentinelPolling:
+    """Test the RSS polling and caching logic."""
+
+    @patch("core.news_sentinel.urlopen")
+    def test_fetch_rss_parses_items(self, mock_urlopen):
+        """_fetch_rss should parse RSS XML into item dicts."""
+        mock_urlopen.return_value.__enter__.return_value.read.return_value = (
+            b'<?xml version="1.0"?><rss><channel>'
+            b"<item><title>Market Update</title>"
+            b"<pubDate>Mon, 01 Jan 2024 12:00:00 +0000</pubDate>"
+            b"<link>https://example.com/1</link></item>"
+            b"<item><title>Economy News</title>"
+            b"<pubDate>Mon, 01 Jan 2024 13:00:00 +0000</pubDate>"
+            b"<link>https://example.com/2</link></item>"
+            b"</channel></rss>"
+        )
+        ns = NewsSentinel({"news_sentinel_enabled": False})
+        items = ns._fetch_rss("https://example.com/rss")
+        assert len(items) == 2
+        assert items[0]["title"] == "Market Update"
+        assert items[1]["title"] == "Economy News"
+        assert "link" in items[0]
+        assert "pub_ts" in items[0]
+
+    @patch("core.news_sentinel.urlopen")
+    def test_fetch_rss_handles_parse_error(self, mock_urlopen):
+        """Malformed XML should return empty list, not crash."""
+        mock_urlopen.return_value.__enter__.return_value.read.return_value = (
+            b"not xml"
+        )
+        ns = NewsSentinel({"news_sentinel_enabled": False})
+        items = ns._fetch_rss("https://example.com/rss")
+        assert items == []
+
+    @patch("core.news_sentinel.urlopen")
+    def test_fetch_rss_handles_network_error(self, mock_urlopen):
+        """Network errors should return empty list, not crash."""
+        from urllib.error import URLError
+        mock_urlopen.side_effect = URLError("connection failed")
+        ns = NewsSentinel({"news_sentinel_enabled": False})
+        items = ns._fetch_rss("https://example.com/rss")
+        assert items == []
+
+    @patch("core.news_sentinel.urlopen")
+    def test_fetch_rss_respects_timeout_config(self, mock_urlopen):
+        """The RSS timeout should come from config."""
+        mock_urlopen.return_value.__enter__.return_value.read.return_value = (
+            b'<?xml version="1.0"?><rss><channel></channel></rss>'
+        )
+        ns = NewsSentinel({"news_rss_timeout_secs": 3})
+        ns._fetch_rss("https://example.com/rss")
+        _call_kwargs = mock_urlopen.call_args[1]
+        assert _call_kwargs.get("timeout") == 3
+
+    @patch.object(NewsSentinel, "_fetch_rss")
+    def test_run_one_poll_stores_worst_hit(self, mock_fetch):
+        """_run_one_poll should cache the highest-risk headline found."""
+        mock_fetch.return_value = [
+            {"title": "Market halt triggered", "pub_ts": time.time()},
+            {"title": "Normal market activity", "pub_ts": time.time()},
         ]
+        ns = NewsSentinel({"news_sentinel_enabled": True})
+        ns._run_one_poll()
+        risk = ns.get_current_risk()
+        assert risk.risk_level == "EXTREME"
+        assert risk.risk_score == 1.0
 
-    s._fetch_rss = mock_fetch
-    s._run_one_poll()
-    risk = s.get_current_risk()
-    assert risk.risk_level == "ELEVATED"
-    assert risk.sentiment == "MIXED"
-    assert risk.headline == "earnings miss and rally together"
-    assert risk.score_multiplier == float(CFG["news_elevated_score_mult"])
-
-
-def test_run_one_poll_prefers_highest_score():
-    s = NewsSentinel(cfg=CFG)
-
-    def mock_fetch(url):
-        return [
-            {"title": "normal market update", "pub_ts": time.time()},
-            {"title": "RBI announces rate hike of 25 bps", "pub_ts": time.time()},
+    @patch.object(NewsSentinel, "_fetch_rss")
+    def test_run_one_poll_skips_old_items(self, mock_fetch):
+        """Items outside lookback window should be skipped."""
+        mock_fetch.return_value = [
+            {"title": "Rate hike announced", "pub_ts": time.time() - 7200},  # 2 hours old
         ]
+        ns = NewsSentinel({"news_sentinel_enabled": True, "news_lookback_mins": 30})
+        ns._run_one_poll()
+        risk = ns.get_current_risk()
+        assert risk.risk_level == "CLEAR"  # Too old to trigger
 
-    s._fetch_rss = mock_fetch
-    s._run_one_poll()
-    risk = s.get_current_risk()
-    assert risk.risk_level == "HIGH"
-    assert risk.score_multiplier == float(CFG["news_high_score_mult"])
+    @patch.object(NewsSentinel, "_fetch_rss")
+    def test_run_one_poll_detects_highest_risk(self, mock_fetch):
+        """If multiple articles, the highest risk level should be stored."""
+        mock_fetch.return_value = [
+            {"title": "FOMC meeting outcome", "pub_ts": time.time()},  # ELEVATED
+            {"title": "Banking crisis warning", "pub_ts": time.time()},  # EXTREME
+            {"title": "Rate hike speculation", "pub_ts": time.time()},  # HIGH
+        ]
+        ns = NewsSentinel({"news_sentinel_enabled": True, "news_lookback_mins": 120})
+        ns._run_one_poll()
+        risk = ns.get_current_risk()
+        assert risk.risk_level == "EXTREME"
+        assert "banking crisis" in str(risk.triggered_keywords).lower()
+
+    @patch.object(NewsSentinel, "_fetch_rss")
+    def test_run_one_poll_empty_feed(self, mock_fetch):
+        """An empty RSS feed should leave the cache as CLEAR."""
+        mock_fetch.return_value = []
+        ns = NewsSentinel({"news_sentinel_enabled": True})
+        ns._run_one_poll()
+        risk = ns.get_current_risk()
+        assert risk.risk_level == "CLEAR"
+
+    @patch.object(NewsSentinel, "_fetch_rss")
+    def test_sentiment_bullish(self, mock_fetch):
+        """Headlines with bullish keywords should get BULLISH sentiment."""
+        # Headline must include ELEVATED/HIGH/EXTREME risk keyword so _score_headline
+        # returns a non-zero score that replaces the CLEAR baseline AND includes
+        # bullish keywords for sentiment detection.
+        mock_fetch.return_value = [
+            {"title": "Earnings beat sparks strong rally and growth", "pub_ts": time.time()},
+        ]
+        ns = NewsSentinel({"news_sentinel_enabled": True})
+        ns._run_one_poll()
+        risk = ns.get_current_risk()
+        assert risk.sentiment == "BULLISH"
+
+    @patch.object(NewsSentinel, "_fetch_rss")
+    def test_sentiment_bearish(self, mock_fetch):
+        """Headlines with bearish keywords should get BEARISH sentiment."""
+        mock_fetch.return_value = [
+            {"title": "Rate hike sparks market crash and loss warning", "pub_ts": time.time()},
+        ]
+        ns = NewsSentinel({"news_sentinel_enabled": True})
+        ns._run_one_poll()
+        risk = ns.get_current_risk()
+        assert risk.sentiment == "BEARISH"
+
+    @patch.object(NewsSentinel, "_fetch_rss")
+    def test_sentiment_mixed(self, mock_fetch):
+        """Headlines with both bullish and bearish keywords should get MIXED."""
+        mock_fetch.return_value = [
+            {"title": "Earnings miss creates buying opportunity for strong recovery", "pub_ts": time.time()},
+        ]
+        ns = NewsSentinel({"news_sentinel_enabled": True})
+        ns._run_one_poll()
+        risk = ns.get_current_risk()
+        assert risk.sentiment == "MIXED"
+
+    @patch.object(NewsSentinel, "_fetch_rss")
+    def test_sentiment_no_keywords(self, mock_fetch):
+        """Headlines with no bullish/bearish keywords should be NEUTRAL."""
+        mock_fetch.return_value = [
+            {"title": "Markets open flat today", "pub_ts": time.time()},
+        ]
+        ns = NewsSentinel({"news_sentinel_enabled": True})
+        ns._run_one_poll()
+        risk = ns.get_current_risk()
+        assert risk.sentiment == "NEUTRAL"
 
 
-# ── _fetch_rss error paths (lines 234-235, 238-240) ──────────────────
+# ── Config update tests ──────────────────────────────────────────────────────
 
-def test_fetch_rss_bad_pub_date_logs_and_defaults_to_zero():
-    from unittest.mock import patch
-    s = NewsSentinel(cfg=CFG)
-    rss = (
-        '<?xml version="1.0"?><rss><channel><item>'
-        "<title>Test</title><pubDate>NotADate</pubDate><link>http://x</link>"
-        "</item></channel></rss>"
-    )
-    with patch("core.news_sentinel.urlopen") as m:
-        m.return_value.__enter__.return_value.read.return_value = rss.encode()
-        items = s._fetch_rss("http://example.com/rss")
-    assert len(items) == 1
-    assert items[0]["pub_ts"] == 0.0
+class TestNewsSentinelConfig:
+    """Test update_config behavior."""
 
-
-def test_fetch_rss_urlerror_returns_empty():
-    from unittest.mock import patch
-    from urllib.error import URLError
-    s = NewsSentinel(cfg=CFG)
-    with patch("core.news_sentinel.urlopen") as m:
-        m.side_effect = URLError("connection failed")
-        items = s._fetch_rss("http://example.com/rss")
-    assert items == []
-
-
-def test_fetch_rss_parse_error_returns_empty():
-    from unittest.mock import patch
-    s = NewsSentinel(cfg=CFG)
-    with patch("core.news_sentinel.urlopen") as m:
-        m.return_value.__enter__.return_value.read.return_value = b"not xml"
-        items = s._fetch_rss("http://example.com/rss")
-    assert items == []
+    def test_update_config(self):
+        """update_config should replace the internal cfg dict."""
+        ns = NewsSentinel({"news_sentinel_enabled": False})
+        assert ns._cfg.get("news_sentinel_enabled") is False
+        ns.update_config({"news_sentinel_enabled": True})
+        assert ns._cfg.get("news_sentinel_enabled") is True

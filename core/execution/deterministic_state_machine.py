@@ -429,3 +429,10 @@ def get_execution_state_manager(persistence_callback: Callable | None = None) ->
         if _state_machine_manager is None:
             _state_machine_manager = ExecutionStateMachineManager(persistence_callback)
         return _state_machine_manager
+
+
+def reset_execution_state_manager() -> None:
+    """Reset the singleton. Used exclusively by tests to ensure isolation."""
+    global _state_machine_manager
+    with _manager_lock:
+        _state_machine_manager = None

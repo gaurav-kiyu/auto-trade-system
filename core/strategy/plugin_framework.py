@@ -66,6 +66,7 @@ class StrategySignalOutput:
     signal: StrategySignal
     confidence: float
     score: float
+    price: float = 0.0
     strike: int | None = None
     expiry: str | None = None
     quantity: int = 1

@@ -340,7 +340,6 @@
 from __future__ import annotations
 
 import atexit
-import json
 import os
 import sys
 import time
@@ -354,7 +353,6 @@ if str(_ROOT) not in sys.path:
 
 import requests
 from core.datetime_ist import is_in_auction_session, now_ist
-import core.execution.broker_exceptions  # noqa: F401
 from core.execution.broker_truth_reconciliation import get_broker_truth_reconciler
 from core.execution.deterministic_state_machine import get_execution_state_manager
 from core.execution.idempotency_alerts import get_idempotency_alert_manager
@@ -366,7 +364,6 @@ from core.market_warmup import MarketWarmup
 from core.ports.config import ConfigPort
 from core.mandate_service import MandateService
 from core.position_service import get_position_service
-from core.signal_service import get_signal_service
 
 # v2.49 CRITICAL FIX imports
 from core.risk.margin_validator import get_margin_validator
@@ -644,6 +641,9 @@ _strategy_orchestrator = None
 
 # Clean-architecture TradingOrchestrator - initialized in setup_di_container
 _clean_trading_orchestrator = None
+
+# Equity Trader - initialized in setup_di_container (opt-in via --equity CLI flag)
+_equity_trader = None
 
 # Expiry day controller - blocks entries on expiry day after configurable cutoff
 _expiry_controller = ExpiryDayController(
@@ -1133,6 +1133,7 @@ def _run_trading_loop() -> None:
         record_oi_fn=record_oi_snapshots_for_indices,
         check_invariants_fn=_check_invariants,
         send_fn=send,
+        equity_trader=_equity_trader,
     )
     service.run()
 
@@ -1161,7 +1162,8 @@ def setup_di_container() -> None:
     global _mandate_service, _position_service, _signal_service
     global _stale_detector, _strategy_orchestrator, _clean_trading_orchestrator
     global _rate_limiting_service, _circuit_breaker_service
-    global _ws_feed_manager, RISK_ENGINE, DATA_ENGINE, STRATEGY_ENGINE
+    global _ws_feed_manager, _equity_trader
+    global RISK_ENGINE, DATA_ENGINE, STRATEGY_ENGINE
     global EXECUTION_ENGINE, STATE_MANAGER
 
     # Build the globals_store dict from module-level names
@@ -1226,6 +1228,7 @@ def setup_di_container() -> None:
     STRATEGY_ENGINE = _globals.get("STRATEGY_ENGINE", STRATEGY_ENGINE)
     EXECUTION_ENGINE = _globals.get("EXECUTION_ENGINE", EXECUTION_ENGINE)
     STATE_MANAGER = _globals.get("STATE_MANAGER", STATE_MANAGER)
+    _equity_trader = _globals.get("_equity_trader", _equity_trader)
 
 
 # Backwards-compatible, read-only shim exports (use index_trader_interface for new code)

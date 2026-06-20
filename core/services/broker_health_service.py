@@ -284,6 +284,21 @@ class BrokerHealthService(BrokerHealthPort):
                     result[broker_name] = self.check_broker_health(broker_name)
             return result
 
+    def get_broker_metrics(self, broker_name: str) -> BrokerHealthMetrics:
+        """
+        Get health metrics for a specific broker.
+
+        Args:
+            broker_name: Name of the broker to get metrics for
+
+        Returns:
+            BrokerHealthMetrics for the broker, or UNKNOWN status if not found
+        """
+        return self._health_metrics.get(
+            broker_name,
+            BrokerHealthMetrics(broker_name=broker_name, status=BrokerStatus.UNKNOWN),
+        )
+
     def is_broker_available(self, broker_name: str) -> bool:
         """
         Check if a broker is available for trading.

@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 
 from core.ports.market_data import MarketDataProvider
 

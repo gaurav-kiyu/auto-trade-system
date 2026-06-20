@@ -280,6 +280,9 @@
     "CONFIG_DRIFT_AUTO_RELOAD": {
       "type": "boolean"
     },
+    "CONFIG_STRICT_SCHEMA_ENFORCEMENT": {
+      "type": "boolean"
+    },
     "CONFIG_VERSION": {
       "type": "integer"
     },
@@ -356,15 +359,30 @@
     "ENVIRONMENT": {
       "type": "string"
     },
+    "EQUITY_DEFAULT_QTY": {
+      "type": "integer"
+    },
+    "EQUITY_ENABLED": {
+      "type": "boolean"
+    },
     "EQUITY_MAP": {
       "additionalProperties": true,
       "type": "object"
+    },
+    "EQUITY_MAX_DAILY_TRADES": {
+      "type": "integer"
     },
     "EQUITY_PRIORITY": {
       "items": {
         "type": "string"
       },
       "type": "array"
+    },
+    "EQUITY_SL_PCT": {
+      "type": "number"
+    },
+    "EQUITY_TARGET_PCT": {
+      "type": "number"
     },
     "EXCEPTION_ALERT_THRESHOLD": {
       "type": "integer"

@@ -15,11 +15,10 @@ This service provides entry/exit gates specific to SME trading constraints.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any
 
 from core.db_utils import get_connection
-from core.domains.sme import SmePlatform, SmeStock, SmeStockFundamentals, SmeTradingRestriction
+from core.domains.sme import SmePlatform
 
 _log = logging.getLogger(__name__)
 

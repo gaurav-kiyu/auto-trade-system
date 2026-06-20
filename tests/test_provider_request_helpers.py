@@ -11,11 +11,8 @@ without depending on exact list lengths across calls.
 
 from __future__ import annotations
 
-import copy
 import time
-from unittest.mock import patch
 
-import pytest
 
 
 # ── Tests for _record_provider_request ────────────────────────────────────────

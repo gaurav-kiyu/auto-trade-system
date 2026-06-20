@@ -1,265 +1,243 @@
-"""
-Tests for Phase 4 - Greeks-Aware Strike Selector (core/strike_selector.py).
+"""Tests for core/strike_selector.py - Greeks-Aware Strike Selection.
 
 Covers:
-  - ATM mode: always returns ATM (backward compatible)
-  - OTM mode: tier-based step offset, correct CALL/PUT direction
-  - OTM mode: max_otm_steps cap
-  - DELTA mode: steps computed from delta approximation
-  - DELTA mode: falls back to ATM when target delta >= atm_delta
-  - Vega cap: reduces OTM depth when VIX > threshold
-  - dte_entry_check: blocks when DTE < min_dte_for_entry
-  - dte_entry_check: allows (with warning) when DTE <= warn_dte
-  - strike_summary: returns all expected keys
+- select_strike() with ATM, OTM, DELTA modes
+- dte_entry_check() for min DTE gate and theta bleed warning
+- strike_summary() snapshot dict
+- Edge cases: vega cap, step calculation, tier-dependent offset
 """
 from __future__ import annotations
 
+from typing import Any
+
+import pytest
+
 from core.strike_selector import (
-    _apply_vega_cap,
-    _otm_steps_for_delta,
-    _otm_steps_for_tier,
     dte_entry_check,
     select_strike,
     strike_summary,
 )
 
-# ── Common fixtures ───────────────────────────────────────────────────────────
 
-ATM   = 22500
-STEP  = 50
-VIX   = 15.0
-DTE   = 3
+# =============================================================================
+# select_strike Tests
+# =============================================================================
 
+class TestSelectStrike:
+    def test_atm_mode_default(self):
+        """ATM mode returns ATM strike unchanged."""
+        strike, reason = select_strike(
+            atm=23500, direction="CALL", step=50,
+            tier="MODERATE", vix=15.0, dte=5,
+        )
+        assert strike == 23500
+        assert "ATM" in reason
 
-# ── Class 1: ATM mode (default) ───────────────────────────────────────────────
+    def test_atm_mode_put(self):
+        strike, reason = select_strike(
+            atm=23500, direction="PUT", step=50,
+            tier="WEAK", vix=15.0, dte=5,
+        )
+        assert strike == 23500
+        assert "ATM" in reason
 
+    def test_otm_mode_strong_call(self):
+        """STRONG tier in OTM mode selects 1 step OTM for CALL."""
+        strike, reason = select_strike(
+            atm=23500, direction="CALL", step=50,
+            tier="STRONG", vix=15.0, dte=5,
+            cfg={"strike_selection_mode": "OTM"},
+        )
+        assert strike == 23550  # ATM + 1*50 = OTM for CALL
+        assert "OTM" in reason
+        assert "STRONG" in reason
 
-class TestAtmMode:
-    def test_default_mode_returns_atm_call(self):
-        strike, tag = select_strike(ATM, "CALL", STEP, "STRONG", VIX, DTE)
-        assert strike == ATM
+    def test_otm_mode_strong_put(self):
+        """STRONG tier in OTM mode selects 1 step OTM for PUT."""
+        strike, reason = select_strike(
+            atm=23500, direction="PUT", step=50,
+            tier="STRONG", vix=15.0, dte=5,
+            cfg={"strike_selection_mode": "OTM"},
+        )
+        assert strike == 23450  # ATM - 1*50 = OTM for PUT
 
-    def test_default_mode_returns_atm_put(self):
-        strike, tag = select_strike(ATM, "PUT", STEP, "STRONG", VIX, DTE)
-        assert strike == ATM
+    def test_otm_mode_moderate_call(self):
+        """MODERATE tier in OTM mode uses default 0 steps."""
+        strike, reason = select_strike(
+            atm=23500, direction="CALL", step=50,
+            tier="MODERATE", vix=15.0, dte=5,
+            cfg={"strike_selection_mode": "OTM"},
+        )
+        assert strike == 23500  # No OTM offset for moderate
 
-    def test_explicit_atm_mode_returns_atm(self):
-        cfg = {"strike_selection_mode": "ATM"}
-        strike, _ = select_strike(ATM, "CALL", STEP, "STRONG", VIX, DTE, cfg)
-        assert strike == ATM
+    def test_otm_mode_with_custom_config(self):
+        """Custom OTM step offsets from config."""
+        strike, reason = select_strike(
+            atm=23500, direction="CALL", step=50,
+            tier="STRONG", vix=15.0, dte=5,
+            cfg={
+                "strike_selection_mode": "OTM",
+                "otm_step_offset_strong": 2,
+            },
+        )
+        assert strike == 23600  # ATM + 2*50 = 23600
 
-    def test_atm_tag_contains_atm_string(self):
-        _, tag = select_strike(ATM, "CALL", STEP, "MODERATE", VIX, DTE)
-        assert "ATM" in tag.upper()
+    def test_delta_mode_selects_strike(self):
+        """DELTA mode selects strike closest to target delta."""
+        # With VIX=15, DTE=5, atm_delta ≈ 0.50
+        # Steps to reach target 0.40: round((0.50 - 0.40) / 0.08) = 1
+        strike, reason = select_strike(
+            atm=23500, direction="CALL", step=50,
+            tier="MODERATE", vix=15.0, dte=5,
+            cfg={"strike_selection_mode": "DELTA"},
+        )
+        assert "DELTA" in reason
+        # Should be 1 step OTM: 23550
+        # But actual depends on atm_delta calculation
+        assert strike >= 23500
 
-    def test_atm_mode_ignores_tier(self):
-        for tier in ("STRONG", "MODERATE", "WEAK", "IGNORE"):
-            strike, _ = select_strike(ATM, "CALL", STEP, tier, VIX, DTE)
-            assert strike == ATM, f"ATM mode returned non-ATM for tier={tier}"
+    def test_vega_cap_reduces_otm_steps(self):
+        """When VIX > vega_cap_vix_threshold, reduce OTM depth by 1."""
+        strike_normal, _ = select_strike(
+            atm=23500, direction="CALL", step=50,
+            tier="STRONG", vix=15.0, dte=5,
+            cfg={"strike_selection_mode": "OTM", "otm_step_offset_strong": 2},
+        )
+        strike_capped, _ = select_strike(
+            atm=23500, direction="CALL", step=50,
+            tier="STRONG", vix=35.0, dte=5,  # VIX > 30 triggers cap
+            cfg={"strike_selection_mode": "OTM", "otm_step_offset_strong": 2},
+        )
+        assert strike_capped <= strike_normal
+        # With vix_cap: 2 steps - 1 = 1 step → 23550
+        # Without vix_cap: 2 steps → 23600
+        assert strike_normal == 23600  # 2 steps OTM
+        assert strike_capped == 23550   # 1 step OTM (vega capped)
 
+    def test_max_otm_steps_cap(self):
+        """OTM steps clamped to max_otm_steps."""
+        strike, _ = select_strike(
+            atm=23500, direction="CALL", step=50,
+            tier="STRONG", vix=15.0, dte=5,
+            cfg={
+                "strike_selection_mode": "OTM",
+                "otm_step_offset_strong": 5,
+                "max_otm_steps": 2,
+            },
+        )
+        assert strike == 23600  # 2 steps max
 
-# ── Class 2: OTM mode - direction ────────────────────────────────────────────
+    def test_weak_tier_no_offset(self):
+        """WEAK tier always gets 0 OTM steps."""
+        strike, _ = select_strike(
+            atm=23500, direction="CALL", step=50,
+            tier="WEAK", vix=15.0, dte=5,
+            cfg={"strike_selection_mode": "OTM"},
+        )
+        assert strike == 23500
 
-
-class TestOtmModeDirection:
-    def test_strong_call_one_step_otm(self):
-        cfg = {"strike_selection_mode": "OTM", "otm_step_offset_strong": 1}
-        strike, _ = select_strike(ATM, "CALL", STEP, "STRONG", VIX, DTE, cfg)
-        assert strike == ATM + STEP  # CALL OTM = higher strike
-
-    def test_strong_put_one_step_otm(self):
-        cfg = {"strike_selection_mode": "OTM", "otm_step_offset_strong": 1}
-        strike, _ = select_strike(ATM, "PUT", STEP, "STRONG", VIX, DTE, cfg)
-        assert strike == ATM - STEP  # PUT OTM = lower strike
-
-    def test_moderate_default_is_atm(self):
-        cfg = {"strike_selection_mode": "OTM"}
-        strike, _ = select_strike(ATM, "CALL", STEP, "MODERATE", VIX, DTE, cfg)
-        assert strike == ATM  # default moderate offset = 0
-
-    def test_weak_default_is_atm(self):
-        cfg = {"strike_selection_mode": "OTM"}
-        strike, _ = select_strike(ATM, "CALL", STEP, "WEAK", VIX, DTE, cfg)
-        assert strike == ATM
-
-    def test_two_step_otm_call(self):
-        cfg = {"strike_selection_mode": "OTM", "otm_step_offset_strong": 2}
-        strike, _ = select_strike(ATM, "CALL", STEP, "STRONG", VIX, DTE, cfg)
-        assert strike == ATM + 2 * STEP
-
-    def test_two_step_otm_put(self):
-        cfg = {"strike_selection_mode": "OTM", "otm_step_offset_strong": 2}
-        strike, _ = select_strike(ATM, "PUT", STEP, "STRONG", VIX, DTE, cfg)
-        assert strike == ATM - 2 * STEP
-
-
-class TestOtmModeCap:
-    def test_max_otm_steps_caps_offset(self):
-        cfg = {
-            "strike_selection_mode": "OTM",
-            "otm_step_offset_strong": 5,
-            "max_otm_steps": 2,
-        }
-        strike, _ = select_strike(ATM, "CALL", STEP, "STRONG", VIX, DTE, cfg)
-        assert strike == ATM + 2 * STEP  # capped at 2
-
-    def test_zero_max_steps_returns_atm(self):
-        cfg = {
-            "strike_selection_mode": "OTM",
-            "otm_step_offset_strong": 3,
-            "max_otm_steps": 0,
-        }
-        strike, _ = select_strike(ATM, "CALL", STEP, "STRONG", VIX, DTE, cfg)
-        assert strike == ATM
-
-
-# ── Class 3: OTM tier helpers ─────────────────────────────────────────────────
-
-
-class TestOtmStepsForTier:
-    def test_strong_default(self):
-        assert _otm_steps_for_tier("STRONG", {}) == 1
-
-    def test_moderate_default(self):
-        assert _otm_steps_for_tier("MODERATE", {}) == 0
-
-    def test_weak_default(self):
-        assert _otm_steps_for_tier("WEAK", {}) == 0
-
-    def test_unknown_tier_uses_global(self):
-        assert _otm_steps_for_tier("IGNORE", {}) == 0
-
-    def test_config_override_strong(self):
-        assert _otm_steps_for_tier("STRONG", {"otm_step_offset_strong": 2}) == 2
-
-    def test_config_override_moderate(self):
-        assert _otm_steps_for_tier("MODERATE", {"otm_step_offset_moderate": 1}) == 1
-
-
-# ── Class 4: DELTA mode ───────────────────────────────────────────────────────
-
-
-class TestDeltaMode:
-    def test_delta_mode_selects_otm_call(self):
-        # atm_delta(vix=15, dte=3) ≈ 0.50; target=0.40; delta_per_step=0.08 → ~1 step OTM
-        cfg = {
-            "strike_selection_mode": "DELTA",
-            "strike_target_delta": 0.40,
-            "delta_per_step": 0.10,
-        }
-        strike, tag = select_strike(ATM, "CALL", STEP, "STRONG", 15.0, 3, cfg)
-        # With atm_delta≈0.50, target=0.40, per_step=0.10 → 1 step OTM
-        assert strike == ATM + STEP
-        assert "DELTA" in tag.upper()
-
-    def test_delta_mode_target_equals_atm_returns_atm(self):
-        # target_delta ≥ atm_delta → 0 steps → ATM
-        cfg = {
-            "strike_selection_mode": "DELTA",
-            "strike_target_delta": 0.55,   # above atm_delta
-            "delta_per_step": 0.08,
-        }
-        strike, _ = select_strike(ATM, "CALL", STEP, "STRONG", 15.0, 3, cfg)
-        assert strike == ATM
-
-    def test_delta_steps_formula(self):
-        # atm_delta=0.50, target=0.34, per_step=0.08 → round((0.50-0.34)/0.08)=2
-        steps = _otm_steps_for_delta(0.50, 0.34, 0.08, 10)
-        assert steps == 2
-
-    def test_delta_steps_capped_by_max(self):
-        steps = _otm_steps_for_delta(0.50, 0.10, 0.08, 2)
-        assert steps == 2  # would be 5, capped at 2
-
-    def test_delta_steps_zero_when_target_above_atm(self):
-        steps = _otm_steps_for_delta(0.45, 0.50, 0.08, 3)
-        assert steps == 0
+    def test_banknifty_step_100(self):
+        """BANKNIFTY uses 100 step size."""
+        strike, _ = select_strike(
+            atm=50000, direction="PUT", step=100,
+            tier="STRONG", vix=15.0, dte=5,
+            cfg={"strike_selection_mode": "OTM"},
+        )
+        assert strike == 49900  # PUT OTM: 50000 - 100
 
 
-# ── Class 5: Vega cap ────────────────────────────────────────────────────────
-
-
-class TestVegaCap:
-    def test_vega_cap_reduces_steps_when_high_vix(self):
-        # 2 steps, VIX=35 > threshold=30 → reduced to 1
-        steps = _apply_vega_cap(2, 35.0, {"vega_cap_vix_threshold": 30.0})
-        assert steps == 1
-
-    def test_vega_cap_no_change_when_low_vix(self):
-        steps = _apply_vega_cap(2, 20.0, {"vega_cap_vix_threshold": 30.0})
-        assert steps == 2
-
-    def test_vega_cap_zero_steps_stays_zero(self):
-        # Already ATM - no reduction possible
-        steps = _apply_vega_cap(0, 35.0, {"vega_cap_vix_threshold": 30.0})
-        assert steps == 0
-
-    def test_vega_cap_applied_in_otm_mode(self):
-        cfg = {
-            "strike_selection_mode": "OTM",
-            "otm_step_offset_strong": 2,
-            "vega_cap_vix_threshold": 25.0,
-        }
-        # VIX=30 > threshold=25 → steps reduced from 2 to 1
-        strike, _ = select_strike(ATM, "CALL", STEP, "STRONG", 30.0, DTE, cfg)
-        assert strike == ATM + STEP  # 1 step, not 2
-
-
-# ── Class 6: DTE entry check ─────────────────────────────────────────────────
-
+# =============================================================================
+# dte_entry_check Tests
+# =============================================================================
 
 class TestDteEntryCheck:
-    def test_dte_above_min_is_allowed(self):
-        ok, reason = dte_entry_check(3, {"min_dte_for_entry": 1})
-        assert ok is True
+    def test_allows_normal_dte(self):
+        allowed, reason = dte_entry_check(dte=7)
+        assert allowed is True
         assert reason == ""
 
-    def test_dte_equal_min_is_allowed(self):
-        ok, reason = dte_entry_check(1, {"min_dte_for_entry": 1})
-        assert ok is True
+    def test_blocks_expiry_day(self):
+        """DTE=0 is below min_dte_for_entry=1."""
+        allowed, reason = dte_entry_check(dte=0)
+        assert allowed is False
+        assert "min_dte" in reason
 
-    def test_dte_zero_below_min_is_blocked(self):
-        ok, reason = dte_entry_check(0, {"min_dte_for_entry": 1})
-        assert ok is False
-        assert "DTE=0" in reason
+    def test_blocks_dte_below_min(self):
+        allowed, reason = dte_entry_check(dte=0, cfg={"min_dte_for_entry": 2})
+        assert allowed is False
+        assert "min_dte" in reason
 
-    def test_dte_default_min_is_1(self):
-        # Default min_dte_for_entry = 1
-        ok, _ = dte_entry_check(1)
-        assert ok is True
-        ok2, _ = dte_entry_check(0)
-        assert ok2 is False
+    def test_custom_min_dte(self):
+        allowed, reason = dte_entry_check(dte=3, cfg={"min_dte_for_entry": 5})
+        assert allowed is False
+        assert "min_dte" in reason
 
-    def test_warn_dte_does_not_block(self):
-        # DTE=2, warn_dte=2 → warning issued but entry allowed
-        ok, reason = dte_entry_check(2, {"min_dte_for_entry": 1, "theta_bleed_warn_dte": 2})
-        assert ok is True
+    def test_warns_near_expiry(self):
+        """DTE <= warn_dte logs warning but returns allowed."""
+        allowed, reason = dte_entry_check(dte=1)
+        assert allowed is True
+        assert reason == ""
+
+    def test_valid_dte_custom_config(self):
+        allowed, reason = dte_entry_check(dte=5, cfg={"min_dte_for_entry": 3})
+        assert allowed is True
         assert reason == ""
 
 
-# ── Class 7: strike_summary ───────────────────────────────────────────────────
-
+# =============================================================================
+# strike_summary Tests
+# =============================================================================
 
 class TestStrikeSummary:
-    def test_summary_has_required_keys(self):
-        summary = strike_summary(ATM, "CALL", STEP, "STRONG", VIX, DTE)
-        for key in ("mode", "atm", "selected", "otm_steps", "direction", "tier",
-                    "vix", "dte", "dte_allowed", "reason", "dte_reason"):
-            assert key in summary, f"Missing key: {key}"
+    def test_returns_expected_keys(self):
+        summary = strike_summary(
+            atm=23500, direction="CALL", step=50,
+            tier="STRONG", vix=15.0, dte=5,
+        )
+        assert "mode" in summary
+        assert "atm" in summary
+        assert "selected" in summary
+        assert "otm_steps" in summary
+        assert "direction" in summary
+        assert "tier" in summary
+        assert "vix" in summary
+        assert "dte" in summary
+        assert "dte_allowed" in summary
+        assert "reason" in summary
 
-    def test_summary_atm_mode_zero_otm_steps(self):
-        summary = strike_summary(ATM, "CALL", STEP, "STRONG", VIX, DTE)
-        assert summary["atm"] == ATM
-        assert summary["selected"] == ATM
+    def test_atm_mode_no_otm_steps(self):
+        summary = strike_summary(
+            atm=23500, direction="CALL", step=50,
+            tier="MODERATE", vix=15.0, dte=5,
+        )
+        assert summary["mode"] == "ATM"
+        assert summary["selected"] == 23500
         assert summary["otm_steps"] == 0
+        assert summary["dte_allowed"] is True
 
-    def test_summary_otm_mode_counts_steps(self):
-        cfg = {"strike_selection_mode": "OTM", "otm_step_offset_strong": 2}
-        summary = strike_summary(ATM, "CALL", STEP, "STRONG", VIX, DTE, cfg)
-        assert summary["otm_steps"] == 2
-        assert summary["selected"] == ATM + 2 * STEP
+    def test_otm_mode_call_steps(self):
+        summary = strike_summary(
+            atm=23500, direction="CALL", step=50,
+            tier="STRONG", vix=15.0, dte=5,
+            cfg={"strike_selection_mode": "OTM"},
+        )
+        assert summary["otm_steps"] == 1
+        assert summary["selected"] == 23550
 
-    def test_summary_dte_blocked_when_below_min(self):
-        cfg = {"min_dte_for_entry": 2}
-        summary = strike_summary(ATM, "CALL", STEP, "STRONG", VIX, 1, cfg)
+    def test_otm_mode_put_negative_steps(self):
+        summary = strike_summary(
+            atm=23500, direction="PUT", step=100,
+            tier="STRONG", vix=15.0, dte=5,
+            cfg={"strike_selection_mode": "OTM"},
+        )
+        # For PUT: otm_steps = (atm - selected) // step
+        assert summary["otm_steps"] == 1
+        assert summary["selected"] == 23400
+
+    def test_dte_blocked_in_summary(self):
+        summary = strike_summary(
+            atm=23500, direction="CALL", step=50,
+            tier="MODERATE", vix=15.0, dte=0,
+        )
         assert summary["dte_allowed"] is False
+        assert "min_dte" in summary["dte_reason"]

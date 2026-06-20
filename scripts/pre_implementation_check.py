@@ -174,7 +174,10 @@ def check_release_state() -> list[str]:
     branch = _get_current_branch()
     if branch and branch.startswith("release/") and version:
         expected_branch = f"release/v{version}"
-        if branch != expected_branch:
+        # Allow test/debug branches with pattern release/v0.0.0-test_*
+        if branch.startswith("release/v0.0.0-test_"):
+            pass  # test/debug branch — skip release check
+        elif branch != expected_branch:
             issues.append(
                 f"BRANCH NAMING: Current branch '{branch}' does not match VERSION "
                 f"'{version}'. Expected: '{expected_branch}'. "

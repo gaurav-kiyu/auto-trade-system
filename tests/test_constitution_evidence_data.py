@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 from core.constitution_evidence_data import (
     collect_all_evidence,
     _exists,

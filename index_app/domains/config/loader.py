@@ -12,7 +12,6 @@ import json
 import logging
 import os
 import threading as _threading
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
@@ -117,10 +116,10 @@ class ConfigLoader:
             Fallback path when *env_var* is not set.
         strict:
             If ``True``, schema violations block startup (``ConfigValidationError``
-            raised). If ``False`` or ``None``, violations are only logged.
-            Defaults to checking the ``CONFIG_STRICT_SCHEMA_ENFORCEMENT`` key
+            raised). If ``False``, violations are only logged.
+            If ``None`` (default), checks the ``CONFIG_STRICT_SCHEMA_ENFORCEMENT`` key
             in the loaded config (or the ``OPBUYING_CONFIG_STRICT_SCHEMA_ENFORCEMENT``
-            env var for early enforcement).
+            env var). **Default is now True** for production safety.
 
         Returns
         -------
@@ -212,8 +211,9 @@ class ConfigLoader:
         # ── Strict schema enforcement (DEBT-005) ───────────────────────────
         if strict is None:
             # Check config key (from the loaded config) or env var override
+            # DEFAULT to True for fail-fast startup (DEBT-005 fix)
             strict = bool(
-                cfg.get("CONFIG_STRICT_SCHEMA_ENFORCEMENT", False)
+                cfg.get("CONFIG_STRICT_SCHEMA_ENFORCEMENT", True)
                 or os.environ.get("OPBUYING_CONFIG_STRICT_SCHEMA_ENFORCEMENT", "")
                 .strip().lower() in ("1", "true", "yes")
             )

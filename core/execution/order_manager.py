@@ -1,10 +1,10 @@
 import json
 import logging
+import sqlite3
 import threading
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 from core.adapters.base_adapter import OrderRequest, OrderResponse, OrderStatus
 from core.db_utils import create_database_port
@@ -67,7 +67,7 @@ class OrderManager:
             try:
                 rows = db.fetchall("PRAGMA table_info(orders)")
                 table_info = list(rows) if rows else []
-            except Exception:
+            except (OSError, sqlite3.Error, ValueError, TypeError):
                 table_info = []
 
             if table_info:
@@ -115,7 +115,7 @@ class OrderManager:
             db.execute("CREATE INDEX IF NOT EXISTS idx_updated_at ON orders(updated_at)")
             db.commit()
             log.info("OrderManager: Durable storage initialized")
-        except Exception as e:
+        except (OSError, sqlite3.Error, ValueError, TypeError) as e:
             log.error(f"OrderManager: Failed to init durable storage: {e}")
 
     def _persist_order(self, order: OrderState) -> None:
@@ -199,7 +199,7 @@ class OrderManager:
                 if order.intent_id:
                     self._intent_map[order.intent_id] = broker_order_id or ""
                 log.warning(f"OrderManager: Loaded in-flight order {order.intent_id} from previous session (broker_order_id={broker_order_id})")
-        except Exception as e:
+        except (OSError, sqlite3.Error, json.JSONDecodeError, ValueError, TypeError) as e:
             log.warning(f"OrderManager: Failed to load orders: {e}")
 
     def _validate_transition(self, current: OrderStatus, next_status: OrderStatus) -> bool:

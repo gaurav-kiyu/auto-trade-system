@@ -26,6 +26,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from core.datetime_ist import now_ist
 from core.ports.strategy import StrategyDecision, StrategyPort
 
 _log = logging.getLogger(__name__)

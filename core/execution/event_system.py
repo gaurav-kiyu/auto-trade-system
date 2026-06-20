@@ -17,9 +17,17 @@ Benefits:
 - Replay capability
 - Auditability
 - Easier multi-strategy scaling
+
+v2.53.0 Enhancement: Hash-chained immutable event store.
+Each event stores the SHA-256 hash of the previous event, creating a
+cryptographic chain that makes tampering detectable.
+- `verify_chain()` validates chain integrity from genesis to latest event
+- `previous_hash` and `sha256` columns in the events table
+- Backward-compatible: existing events without hashes are skipped
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import sqlite3
@@ -153,7 +161,7 @@ class EventStore:
         self._init_durable_storage()
 
     def _init_durable_storage(self) -> None:
-        """Initialize SQLite event store"""
+        """Initialize SQLite event store with hash-chained integrity."""
         try:
             with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.execute("""
@@ -171,52 +179,213 @@ class EventStore:
                         quantity INTEGER,
                         price REAL,
                         metadata_json TEXT,
-                        sequence_number INTEGER
+                        sequence_number INTEGER,
+                        previous_hash TEXT,
+                        sha256 TEXT
                     )
                 """)
+                # Add hash columns to existing tables (safe for backward compat)
+                for col in ("previous_hash", "sha256"):
+                    try:
+                        conn.execute(f"ALTER TABLE events ADD COLUMN {col} TEXT")
+                    except sqlite3.OperationalError:
+                        pass  # column already exists
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON events(timestamp)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_event_type ON events(event_type)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_intent ON events(intent_id)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_client_order ON events(client_order_id)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_sha256 ON events(sha256)")
                 conn.commit()
-            _log.info("EventStore: Durable storage initialized")
+            _log.info("EventStore: Durable storage initialized (hash-chained)")
         except (sqlite3.Error, OSError) as e:
             _log.error(f"EventStore: Failed to init storage: {e}")
 
+    def _compute_hash(self, previous_hash: str | None, event_data: dict[str, Any]) -> str:
+        """
+        Compute SHA-256 hash for an event, chained to the previous event's hash.
+
+        The hash is computed over:
+        1. previous_hash (or empty string for genesis event)
+        2. All event fields (sorted for deterministic output)
+        3. The JSON-serialized metadata
+
+        This creates a tamper-evident chain: modifying any event in the chain
+        changes ALL subsequent hashes, making the tampering detectable via
+        verify_chain().
+        """
+        h = hashlib.sha256()
+        h.update((previous_hash or "").encode("utf-8"))
+        # Serialize event data deterministically
+        serialized = json.dumps(event_data, sort_keys=True, default=str).encode("utf-8")
+        h.update(serialized)
+        return h.hexdigest()
+
+    def _canonical_event_data(self, event: TradingEvent) -> dict[str, Any]:
+        """
+        Produce canonical event data for deterministic hashing.
+
+        All values are round-tripped through JSON so that the hash computed
+        in append() matches the hash recomputed in verify_chain() regardless
+        of Python object identity (tuples, custom types, etc.).
+        """
+        raw = event.to_dict()
+        # Round-trip metadata through JSON for canonical representation
+        raw["metadata"] = json.loads(json.dumps(raw.get("metadata", {}), default=str))
+        return raw
+
     def append(self, event: TradingEvent) -> bool:
-        """Append event to store (immutable - always append)"""
+        """Append event to store with hash-chain integrity.
+
+        Each event stores the SHA-256 hash of:
+        - The previous event's hash (previous_hash)
+        - This event's own data (sha256)
+
+        The read (SELECT MAX) and write (INSERT) are wrapped in an EXCLUSIVE
+        transaction so that concurrent callers cannot read the same
+        previous_hash and create a chain fork. See "EventStore append()
+        race condition" in THREADING_AUDIT_REPORT.md.
+
+        This creates an immutable, tamper-evident chain. To verify integrity,
+        call verify_chain() which recomputes all hashes and compares.
+        """
         try:
             with get_connection(self.PERSISTENCE_PATH) as conn:
-                cursor = conn.execute("SELECT MAX(sequence_number) FROM events")
-                seq = (cursor.fetchone()[0] or 0) + 1
+                # EXCLUSIVE transaction prevents concurrent reads/writes
+                conn.execute("BEGIN EXCLUSIVE")
+                try:
+                    cursor = conn.execute(
+                        "SELECT MAX(sequence_number), sha256 FROM events "
+                        "ORDER BY sequence_number DESC LIMIT 1"
+                    )
+                    row = cursor.fetchone()
+                    if row and row[0] is not None:
+                        seq = row[0] + 1
+                        prev_hash = row[1]
+                    else:
+                        seq = 1
+                        prev_hash = None
 
-                conn.execute("""
-                    INSERT INTO events
-                    (event_id, event_type, priority, timestamp, source, intent_id,
-                     client_order_id, broker_order_id, symbol, direction, quantity,
-                     price, metadata_json, sequence_number)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    event.event_id,
-                    event.event_type.value,
-                    event.priority.value,
-                    event.timestamp,
-                    event.source,
-                    event.intent_id,
-                    event.client_order_id,
-                    event.broker_order_id,
-                    event.symbol,
-                    event.direction,
-                    event.quantity,
-                    event.price,
-                    json.dumps(event.metadata, default=str),
-                    seq,
-                ))
-                conn.commit()
+                    event_data = self._canonical_event_data(event)
+                    sha256 = self._compute_hash(prev_hash, event_data)
+
+                    conn.execute("""
+                        INSERT INTO events
+                        (event_id, event_type, priority, timestamp, source, intent_id,
+                         client_order_id, broker_order_id, symbol, direction, quantity,
+                         price, metadata_json, sequence_number, previous_hash, sha256)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        event.event_id,
+                        event.event_type.value,
+                        event.priority.value,
+                        event.timestamp,
+                        event.source,
+                        event.intent_id,
+                        event.client_order_id,
+                        event.broker_order_id,
+                        event.symbol,
+                        event.direction,
+                        event.quantity,
+                        event.price,
+                        json.dumps(event.metadata, default=str),
+                        seq,
+                        prev_hash,
+                        sha256,
+                    ))
+                    conn.commit()
+                except (sqlite3.Error, OSError):
+                    conn.rollback()
+                    raise
             return True
         except (sqlite3.Error, OSError, json.JSONDecodeError) as e:
             _log.error(f"EventStore: Failed to append event {event.event_id}: {e}")
             return False
+
+    def verify_chain(self) -> tuple[bool, int, str]:
+        """
+        Verify the integrity of the entire hash chain.
+
+        Re-computes the SHA-256 hash for every event in sequence and compares
+        it against the stored sha256 value. Also verifies that each event's
+        previous_hash matches the sha256 of the preceding event.
+
+        Uses sqlite3.Row for named column access, avoiding fragile positional
+        unpacking (column-order assumption).
+
+        Returns:
+            (is_valid: bool, events_checked: int, message: str)
+
+        Constitution Rule #15 (Deterministic Replay):
+        Calls verify_chain() before any replay to ensure the event stream
+        has not been tampered with.
+
+        Constitution Rule #5 (Immutable Audit Trail):
+        Any chain verification failure immediately alerts operators.
+        """
+        try:
+            with get_connection(self.PERSISTENCE_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute(
+                    "SELECT event_id, event_type, priority, timestamp, source, intent_id, "
+                    "client_order_id, broker_order_id, symbol, direction, quantity, "
+                    "price, metadata_json, sequence_number, previous_hash, sha256 "
+                    "FROM events ORDER BY sequence_number"
+                )
+                rows = cursor.fetchall()
+        except (sqlite3.Error, OSError) as e:
+            return False, 0, f"DB error: {e}"
+
+        if not rows:
+            return True, 0, "Empty event store - nothing to verify"
+
+        expected_prev: str | None = None
+        for row in rows:
+            stored_hash = row["sha256"]
+            # Skip events without hashes (pre-upgrade records)
+            if not stored_hash:
+                expected_prev = None
+                continue
+
+            # Reconstruct event data from named columns for deterministic hash
+            event_data = {
+                "event_id": row["event_id"],
+                "event_type": row["event_type"],
+                "priority": row["priority"],
+                "timestamp": row["timestamp"],
+                "source": row["source"],
+                "intent_id": row["intent_id"],
+                "client_order_id": row["client_order_id"],
+                "broker_order_id": row["broker_order_id"],
+                "symbol": row["symbol"],
+                "direction": row["direction"],
+                "quantity": row["quantity"],
+                "price": row["price"],
+                "metadata": json.loads(row["metadata_json"] or "{}"),
+            }
+            stored_prev = row["previous_hash"]
+            seq = row["sequence_number"]
+            event_id = row["event_id"]
+
+            # Verify previous_hash matches
+            if stored_prev != expected_prev:
+                return False, seq, (
+                    f"Chain break at event {event_id} (seq {seq}): "
+                    f"expected previous_hash={expected_prev}, got {stored_prev}"
+                )
+
+            # Recompute hash and verify
+            recomputed = self._compute_hash(expected_prev, event_data)
+            if recomputed != stored_hash:
+                return False, seq, (
+                    f"Hash mismatch at event {event_id} (seq {seq}): "
+                    f"expected {stored_hash}, recomputed {recomputed}"
+                )
+
+            expected_prev = stored_hash
+
+        total = len(rows)
+        hashed = sum(1 for r in rows if r["sha256"])
+        return True, total, f"Chain valid: {total} events checked, {hashed} with hashes"
 
     def get_events_for_order(self, client_order_id: str) -> list[TradingEvent]:
         """Get all events for a specific order (for replay/debugging)"""

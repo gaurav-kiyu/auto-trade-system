@@ -126,7 +126,7 @@ class TradingSignal:
         return {
             "symbol": self.symbol,
             "direction": self.direction.name,
-            "strength": self.strength.name,
+            "strength": self.strength.quality if hasattr(self.strength, 'quality') else str(self.strength),
             "score": self.score,
             "threshold": self.threshold,
             "price": self.price,
@@ -136,7 +136,7 @@ class TradingSignal:
             "macd_histogram": self.macd_histogram,
             "pcr": self.pcr,
             "smart_money": self.smart_money,
-            "regime": self.regime.name,
+            "regime": self.regime.name if hasattr(self.regime, 'name') else str(self.regime),
             "session": self.session.value,
             "volume_ratio": self.volume_ratio,
             "timestamp": self.timestamp.isoformat(),
@@ -326,7 +326,7 @@ class Trade:
             "net_pnl": self.net_pnl,
             "strategy": self.strategy,
             "tags": self.tags,
-            "regime_at_entry": self.regime_at_entry.name if self.regime_at_entry else None,
+            "regime_at_entry": (self.regime_at_entry.name if hasattr(self.regime_at_entry, 'name') else str(self.regime_at_entry)) if self.regime_at_entry else None,
             "session_at_entry": self.session_at_entry.value if self.session_at_entry else None
         }
 

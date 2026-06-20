@@ -63,10 +63,14 @@ class SessionStore:
             return session
 
     def touch(self, session_id: str) -> bool:
-        """Update last_active_ts for a session. Returns False if not found."""
+        """Update last_active_ts for a session. Returns False if not found or expired."""
         with self._lock:
             session = self._sessions.get(session_id)
             if session is None:
+                return False
+            # Don't revive expired sessions
+            if time.time() - session.last_active_ts > self._ttl:
+                self._sessions.pop(session_id, None)
                 return False
             session.last_active_ts = time.time()
             return True

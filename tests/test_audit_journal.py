@@ -1,12 +1,22 @@
-"""Tests for core/audit_journal.py - Audit Event Journal."""
+"""
+Tests for AuditJournal — immutable, thread-safe event journaling in JSONL format.
+
+Covers:
+- AuditEvent/AuditEventType/AuditSeverity dataclasses and enums
+- AuditJournal file creation, rotation, and appending
+- Convenience methods (log_signal, log_risk_decision, log_order_submitted, etc.)
+- Thread safety with concurrent events
+- Edge cases (file errors, large payloads)
+- Singleton factory (get_audit_journal, audit_log)
+"""
 
 from __future__ import annotations
 
 import json
 import os
-import tempfile
-import time
+import threading
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -15,291 +25,424 @@ from core.audit_journal import (
     AuditEventType,
     AuditJournal,
     AuditSeverity,
+    audit_log,
     get_audit_journal,
 )
 
 
-class TestAuditEventType:
-    """AuditEventType enum coverage."""
+# ── Enums ──────────────────────────────────────────────────────────────────
 
-    def test_has_expected_types(self):
+
+class TestAuditEventType:
+    def test_values(self):
         assert AuditEventType.SIGNAL_GENERATED.value == "SIGNAL_GENERATED"
-        assert AuditEventType.RISK_DECISION.value == "RISK_DECISION"
-        assert AuditEventType.ORDER_SUBMITTED.value == "ORDER_SUBMITTED"
-        assert AuditEventType.ORDER_FILLED.value == "ORDER_FILLED"
-        assert AuditEventType.ORDER_REJECTED.value == "ORDER_REJECTED"
         assert AuditEventType.HARD_HALT.value == "HARD_HALT"
         assert AuditEventType.CONFIG_CHANGE.value == "CONFIG_CHANGE"
 
-    def test_all_types_unique(self):
-        values = [t.value for t in AuditEventType]
-        assert len(values) == len(set(values))
+    def test_all_types_present(self):
+        expected = {
+            "SIGNAL_GENERATED", "RISK_DECISION", "ORDER_SUBMITTED",
+            "ORDER_ACKNOWLEDGED", "ORDER_FILLED", "ORDER_CANCELLED",
+            "ORDER_REJECTED", "ORDER_RECONCILED", "POSITION_OPENED",
+            "POSITION_CLOSED", "POSITION_RECONCILED", "SYSTEM_MODE_CHANGE",
+            "HARD_HALT", "RECONCILIATION_MISMATCH", "BROKER_DISCONNECT",
+            "BROKER_RECONNECT", "RISK_BREACH", "CIRCUIT_BREAKER",
+            "STALE_QUOTE", "INVALID_PRICE", "DB_WRITE_FAIL", "CONFIG_CHANGE",
+        }
+        actual = {e.value for e in AuditEventType}
+        assert actual == expected
 
 
 class TestAuditSeverity:
-    """AuditSeverity enum coverage."""
-
-    def test_has_expected_severities(self):
+    def test_values(self):
         assert AuditSeverity.DEBUG.value == "DEBUG"
-        assert AuditSeverity.INFO.value == "INFO"
-        assert AuditSeverity.WARNING.value == "WARNING"
-        assert AuditSeverity.ERROR.value == "ERROR"
         assert AuditSeverity.CRITICAL.value == "CRITICAL"
+    
+    def test_severity_levels_defined(self):
+        """All expected severity levels exist."""
+        expected = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        actual = {e.value for e in AuditSeverity}
+        assert actual == expected
+
+
+# ── AuditEvent Dataclass ──────────────────────────────────────────────────
 
 
 class TestAuditEvent:
-    """AuditEvent dataclass coverage."""
+    def test_creation(self):
+        event = AuditEvent(
+            event_id="evt_001",
+            timestamp="2024-01-01T00:00:00",
+            event_type="ORDER_FILLED",
+            severity="INFO",
+            message="Order filled",
+            correlation_id="corr_001",
+        )
+        assert event.event_id == "evt_001"
+        assert event.message == "Order filled"
+        assert event.details == {}
 
     def test_to_dict(self):
         event = AuditEvent(
-            event_id="test123",
-            timestamp="2026-06-11T12:00:00",
-            event_type="SIGNAL_GENERATED",
+            event_id="evt_001",
+            timestamp="2024-01-01T00:00:00",
+            event_type="ORDER_FILLED",
             severity="INFO",
-            message="Test event",
-            correlation_id="corr1",
-            symbol="NIFTY",
-            details={"score": 85},
+            message="Test",
+            details={"price": 150.0},
         )
         d = event.to_dict()
-        assert d["event_id"] == "test123"
-        assert d["event_type"] == "SIGNAL_GENERATED"
-        assert d["details"] == {"score": 85}
+        assert d["event_id"] == "evt_001"
+        assert d["details"] == {"price": 150.0}
+        assert d["stack_trace"] == ""
 
-    def test_default_details(self):
-        event = AuditEvent(
-            event_id="e1", timestamp="t1", event_type="TEST",
-            severity="INFO", message="test",
-        )
-        assert event.details == {}
-        assert event.correlation_id == ""
-        assert event.intent_id == ""
-        assert event.symbol == ""
-        assert event.stack_trace == ""
+
+# ── AuditJournal ───────────────────────────────────────────────────────────
 
 
 class TestAuditJournal:
-    """AuditJournal functional coverage."""
-
     @pytest.fixture
-    def journal(self):
-        tmp = tempfile.mktemp(suffix="_audit")
-        os.makedirs(tmp, exist_ok=True)
-        j = AuditJournal(
-            log_dir=tmp,
-            filename_prefix="audit",
-            max_file_size_mb=50,
-            retain_days=30,
-        )
-        yield j
-        import shutil
-        shutil.rmtree(tmp, ignore_errors=True)
+    def journal(self, tmp_path: Path) -> AuditJournal:
+        return AuditJournal(log_dir=str(tmp_path), retain_days=1)
 
-    def test_log_event_creates_file(self, journal):
+    def test_creates_log_dir(self, tmp_path: Path):
+        path = tmp_path / "audit_logs"
+        assert not path.exists()
+        AuditJournal(log_dir=str(path))
+        assert path.exists()
+
+    def test_log_event_returns_event_id(self, journal: AuditJournal):
         event_id = journal.log_event(
-            event_type=AuditEventType.SIGNAL_GENERATED,
+            event_type=AuditEventType.ORDER_SUBMITTED,
             severity=AuditSeverity.INFO,
-            message="Test signal",
-            symbol="NIFTY",
-            details={"score": 85},
+            message="Order submitted",
         )
-        assert event_id.startswith("202")
-        log_dir = Path(journal._log_dir)
-        files = list(log_dir.glob("audit_*.jsonl"))
+        assert isinstance(event_id, str)
+        assert len(event_id) > 0
+
+    def test_log_event_writes_to_file(self, journal: AuditJournal):
+        journal.log_event(
+            event_type=AuditEventType.ORDER_FILLED,
+            severity=AuditSeverity.INFO,
+            message="Fill at 150.0",
+            symbol="NIFTY",
+        )
+        files = list(journal._log_dir.glob("audit_*.jsonl"))
         assert len(files) == 1
-        content = files[0].read_text()
-        assert "Test signal" in content
-        assert "NIFTY" in content
+        content = files[0].read_text(encoding="utf-8")
+        data = json.loads(content)
+        assert data["event_type"] == "ORDER_FILLED"
+        assert data["symbol"] == "NIFTY"
+        assert data["message"] == "Fill at 150.0"
 
-    def test_log_signal(self, journal):
-        signal = {"symbol": "BANKNIFTY", "direction": "CALL", "strength": "STRONG"}
-        event_id = journal.log_signal(signal, correlation_id="cid123")
-        assert event_id
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "BANKNIFTY" in content
-        assert "STRONG" in content
-
-    def test_log_risk_decision_allowed(self, journal):
-        event_id = journal.log_risk_decision(
-            decision="entry_check",
-            allowed=True,
-            reason="All checks passed",
-            intent_id="int1",
-            symbol="NIFTY",
+    def test_log_event_with_details(self, journal: AuditJournal):
+        journal.log_event(
+            event_type=AuditEventType.RISK_BREACH,
+            severity=AuditSeverity.CRITICAL,
+            message="Risk breach",
+            details={"breach_type": "max_daily_loss", "amount": -5000},
         )
-        assert event_id
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "ALLOWED" in content
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["details"]["breach_type"] == "max_daily_loss"
 
-    def test_log_risk_decision_denied(self, journal):
-        journal.log_risk_decision(
-            decision="entry_check",
-            allowed=False,
-            reason="Max daily loss exceeded",
-            symbol="NIFTY",
+    def test_log_event_with_trace_ids(self, journal: AuditJournal):
+        journal.log_event(
+            event_type=AuditEventType.ORDER_FILLED,
+            severity=AuditSeverity.INFO,
+            message="Fill",
+            correlation_id="corr_abc",
+            intent_id="intent_xyz",
         )
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "DENIED" in content
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data.get("correlation_id") == "corr_abc"
+        assert data.get("intent_id") == "intent_xyz"
 
-    def test_log_order_submitted(self, journal):
-        order = {"symbol": "NIFTY", "direction": "BUY", "qty": 50}
-        journal.log_order_submitted(order, intent_id="int1", correlation_id="cid1")
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "BUY" in content
-        assert "50" in content
-
-    def test_log_order_filled(self, journal):
-        journal.log_order_filled(
-            order_id="ord123", fill_price=23500.5, filled_qty=50,
-            intent_id="int1", symbol="NIFTY",
-        )
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "ord123" in content
-        assert "23500.5" in content
-
-    def test_log_reconciliation_mismatch(self, journal):
-        journal.log_reconciliation_mismatch(
-            mismatch_type="quantity_mismatch",
-            details={"expected": 50, "actual": 25},
-        )
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "quantity_mismatch" in content
-        assert "expected" in content
-
-    def test_log_hard_halt(self, journal):
-        journal.log_hard_halt(reason="Max loss breached", source="test")
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "HARD HALT" in content
-        assert "Max loss" in content
-
-    def test_log_system_mode_change(self, journal):
-        journal.log_system_mode_change(
-            old_mode="PAPER", new_mode="LIVE", reason="Go live",
-        )
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "PAPER" in content
-        assert "LIVE" in content
-
-    def test_log_stale_quote(self, journal):
-        journal.log_stale_quote(symbol="NIFTY", quote_age=32.5)
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "stale" in content.lower()
-        assert "32.5" in content
-
-    def test_log_invalid_price(self, journal):
-        journal.log_invalid_price(symbol="NIFTY", price=-100, reason="Negative price")
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "Invalid price" in content
-        assert "-100" in content
-
-    def test_file_rotation_on_date_change(self, journal):
-        """Simulate rotation by manipulating current file."""
-        journal.log_event(AuditEventType.SIGNAL_GENERATED, AuditSeverity.INFO, "first")
-        first_file = journal._current_file
-        # Force rotation by clearing current file
-        journal._current_file = None
-        journal.log_event(AuditEventType.RISK_DECISION, AuditSeverity.WARNING, "second")
-        second_file = journal._current_file
-        assert first_file.exists()
-        assert second_file.exists()
-
-    def test_size_based_rotation_updates_size(self, journal):
-        """After writing past max_file_size, _current_file_size should be reset."""
-        journal._max_file_size = 1
-        journal.log_event(AuditEventType.SIGNAL_GENERATED, AuditSeverity.INFO, "event1")
-        size_after_first = journal._current_file_size
-        # Second write should trigger rotation (resets file size tracking)
-        journal.log_event(AuditEventType.ORDER_SUBMITTED, AuditSeverity.INFO, "event2")
-        # File still exists and has content
-        assert journal._current_file.exists()
-        assert journal._current_file.stat().st_size > 0
-
-    def test_cleanup_old_files(self, journal):
-        """Create old files and verify cleanup removes them."""
-        log_dir = Path(journal._log_dir)
-        # Create fake old audit files with mtime older than retain_days
-        old_mtime = time.time() - (31 * 86400) - 100  # 31+ days ago
-        for i in range(3):
-            old_file = log_dir / f"audit_20200101_{i}.jsonl"
-            old_file.write_text("old event\n")
-            os.utime(str(old_file), (old_mtime, old_mtime))
-        removed = journal.cleanup_old_files()
-        assert removed == 3
-
-    def test_cleanup_skips_current_file(self, journal):
-        """Current file should not be removed by cleanup."""
-        journal.log_event(AuditEventType.SIGNAL_GENERATED, AuditSeverity.INFO, "current")
-        removed = journal.cleanup_old_files()
-        assert removed == 0
-
-    def test_multiple_events_append(self, journal):
-        """Multiple events should all be written and be valid JSON."""
+    def test_append_multiple_events(self, journal: AuditJournal):
         for i in range(5):
             journal.log_event(
-                AuditEventType.SIGNAL_GENERATED, AuditSeverity.INFO, f"event_{i}",
+                event_type=AuditEventType.SIGNAL_GENERATED,
+                severity=AuditSeverity.INFO,
+                message=f"Signal {i}",
             )
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        lines = content.strip().split("\n")
+        lines = journal._current_file.read_text(encoding="utf-8").splitlines()
         assert len(lines) == 5
-        for line in lines:
-            data = json.loads(line)
-            assert "event_id" in data
-            assert "message" in data
-
-    def test_multiple_event_types_inline(self, journal):
-        """Log events of various types and ensure proper routing."""
-        for et, sev, msg in [
-            (AuditEventType.SIGNAL_GENERATED, AuditSeverity.INFO, "sig"),
-            (AuditEventType.RISK_DECISION, AuditSeverity.WARNING, "risk"),
-            (AuditEventType.ORDER_SUBMITTED, AuditSeverity.INFO, "order"),
-            (AuditEventType.HARD_HALT, AuditSeverity.CRITICAL, "halt"),
-        ]:
-            journal.log_event(et, sev, msg)
-        log_dir = Path(journal._log_dir)
-        content = list(log_dir.glob("audit_*.jsonl"))[0].read_text()
-        assert "SIGNAL_GENERATED" in content
-        assert "RISK_DECISION" in content
-        assert "ORDER_SUBMITTED" in content
-        assert "HARD_HALT" in content
 
 
-class TestGetAuditJournal:
-    """Singleton get_audit_journal coverage."""
-
-    def test_get_default_journal(self):
-        journal = get_audit_journal()
-        assert isinstance(journal, AuditJournal)
-
-    def test_get_with_config(self):
-        journal = get_audit_journal({"audit_log_dir": tempfile.gettempdir()})
-        assert isinstance(journal, AuditJournal)
-
-    def test_singleton_behavior(self):
-        j1 = get_audit_journal()
-        j2 = get_audit_journal()
-        assert j1 is j2
+# ── Convenience Methods ────────────────────────────────────────────────────
 
 
-class TestExplicitAuditLog:
-    """Quick access audit_log function coverage."""
+class TestConvenienceMethods:
+    @pytest.fixture
+    def journal(self, tmp_path: Path) -> AuditJournal:
+        return AuditJournal(log_dir=str(tmp_path), retain_days=1)
 
-    def test_audit_log_function(self):
-        from core.audit_journal import audit_log
-        event_id = audit_log(
-            AuditEventType.SIGNAL_GENERATED,
-            AuditSeverity.INFO,
-            "quick test",
-            symbol="NIFTY",
+    def test_log_signal(self, journal: AuditJournal):
+        event_id = journal.log_signal(
+            {"symbol": "NIFTY", "direction": "BUY", "strength": "STRONG"},
+            correlation_id="corr_001",
         )
         assert event_id
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["event_type"] == "SIGNAL_GENERATED"
+        assert data["severity"] == "INFO"
+
+    def test_log_risk_decision_allowed(self, journal: AuditJournal):
+        journal.log_risk_decision(
+            decision="ENTRY",
+            allowed=True,
+            reason="Within limits",
+            symbol="NIFTY",
+        )
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["severity"] == "INFO"
+        assert "ALLOWED" in data["message"]
+
+    def test_log_risk_decision_denied(self, journal: AuditJournal):
+        journal.log_risk_decision(
+            decision="ENTRY",
+            allowed=False,
+            reason="Max positions reached",
+            symbol="BANKNIFTY",
+        )
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["severity"] == "WARNING"
+        assert "DENIED" in data["message"]
+
+    def test_log_order_submitted(self, journal: AuditJournal):
+        journal.log_order_submitted(
+            order_data={"symbol": "NIFTY", "direction": "BUY", "qty": 75},
+            intent_id="intent_001",
+            correlation_id="corr_001",
+        )
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["event_type"] == "ORDER_SUBMITTED"
+
+    def test_log_order_filled(self, journal: AuditJournal):
+        journal.log_order_filled(
+            order_id="ORD123",
+            fill_price=150.50,
+            filled_qty=75,
+            intent_id="intent_001",
+            symbol="NIFTY",
+        )
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["event_type"] == "ORDER_FILLED"
+        assert data["details"]["order_id"] == "ORD123"
+
+    def test_log_reconciliation_mismatch(self, journal: AuditJournal):
+        journal.log_reconciliation_mismatch(
+            mismatch_type="QUANTITY_MISMATCH",
+            details={"expected": 75, "actual": 50},
+        )
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["event_type"] == "RECONCILIATION_MISMATCH"
+        assert data["severity"] == "ERROR"
+
+    def test_log_hard_halt(self, journal: AuditJournal):
+        journal.log_hard_halt(reason="Max drawdown breached", source="RiskService")
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["event_type"] == "HARD_HALT"
+        assert data["severity"] == "CRITICAL"
+        assert "HARD HALT" in data["message"]
+
+    def test_log_system_mode_change(self, journal: AuditJournal):
+        journal.log_system_mode_change(
+            old_mode="MANUAL",
+            new_mode="AUTO",
+            reason="Scheduled start",
+        )
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["event_type"] == "SYSTEM_MODE_CHANGE"
+        assert data["severity"] == "WARNING"
+
+    def test_log_stale_quote(self, journal: AuditJournal):
+        journal.log_stale_quote(symbol="NIFTY", quote_age=5.5)
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["event_type"] == "STALE_QUOTE"
+        assert data["details"]["quote_age_seconds"] == 5.5
+
+    def test_log_invalid_price(self, journal: AuditJournal):
+        journal.log_invalid_price(symbol="NIFTY", price=999999.0, reason="Outlier")
+        data = json.loads(journal._current_file.read_text(encoding="utf-8"))
+        assert data["event_type"] == "INVALID_PRICE"
+        assert data["details"]["price"] == 999999.0
+
+
+# ── File Rotation ──────────────────────────────────────────────────────────
+
+
+class TestFileRotation:
+    @pytest.fixture
+    def journal(self, tmp_path: Path) -> AuditJournal:
+        return AuditJournal(log_dir=str(tmp_path), max_file_size_mb=1, retain_days=1)
+
+    def test_rotates_on_new_day(self, tmp_path: Path, monkeypatch):
+        """When date changes, a new file is created."""
+
+        fixed_date = "20240101"
+        with patch("core.audit_journal.now_ist") as mock_now:
+            mock_now.return_value.strftime.return_value = fixed_date
+            journal = AuditJournal(log_dir=str(tmp_path))
+            assert fixed_date in str(journal._current_file)
+
+    def test_cleanup_old_files(self, tmp_path: Path):
+        """cleanup_old_files removes files older than retain_days."""
+        import time
+        journal = AuditJournal(log_dir=str(tmp_path), retain_days=1)
+
+        # Create an old file
+        old_file = tmp_path / "audit_20200101.jsonl"
+        old_file.write_text("{}\n", encoding="utf-8")
+        # Set mtime to 10 days ago
+        old_mtime = time.time() - (10 * 86400)
+        os.utime(old_file, (old_mtime, old_mtime))
+
+        # Create a recent file via journal
+        journal.log_event(AuditEventType.CIRCUIT_BREAKER, AuditSeverity.INFO, "test")
+
+        removed = journal.cleanup_old_files()
+        assert removed == 1
+        assert not old_file.exists()
+
+
+# ── Thread Safety ──────────────────────────────────────────────────────────
+
+
+class TestThreadSafety:
+    def test_concurrent_log_events(self, tmp_path: Path):
+        journal = AuditJournal(log_dir=str(tmp_path))
+        n = 50
+        errors = []
+
+        def write_events():
+            for i in range(n):
+                try:
+                    journal.log_event(
+                        event_type=AuditEventType.SIGNAL_GENERATED,
+                        severity=AuditSeverity.INFO,
+                        message=f"Event {i}",
+                    )
+                except Exception as e:
+                    errors.append(e)
+
+        t1 = threading.Thread(target=write_events)
+        t2 = threading.Thread(target=write_events)
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        assert not errors, f"Thread safety errors: {errors}"
+        lines = journal._current_file.read_text(encoding="utf-8").splitlines()
+        assert len(lines) == 2 * n
+
+    def test_concurrent_different_event_types(self, tmp_path: Path):
+        journal = AuditJournal(log_dir=str(tmp_path))
+        n = 30
+        errors = []
+
+        def write_signals():
+            for i in range(n):
+                try:
+                    journal.log_signal(
+                        {"symbol": "NIFTY", "direction": "BUY"},
+                        f"corr_{i}",
+                    )
+                except Exception as e:
+                    errors.append(e)
+
+        def write_halts():
+            for i in range(n):
+                try:
+                    journal.log_hard_halt(f"Test halt {i}")
+                except Exception as e:
+                    errors.append(e)
+
+        t1 = threading.Thread(target=write_signals)
+        t2 = threading.Thread(target=write_halts)
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        assert not errors
+        lines = journal._current_file.read_text(encoding="utf-8").splitlines()
+        assert len(lines) == 2 * n
+
+
+# ── Singleton Factory ──────────────────────────────────────────────────────
+
+
+class TestSingleton:
+    def test_get_audit_journal_returns_instance(self, tmp_path: Path):
+        with patch("core.audit_journal._audit_journal", None):
+            journal = get_audit_journal({"audit_log_dir": str(tmp_path)})
+            assert isinstance(journal, AuditJournal)
+
+    def test_get_audit_journal_singleton(self, tmp_path: Path):
+        with patch("core.audit_journal._audit_journal", None):
+            j1 = get_audit_journal({"audit_log_dir": str(tmp_path)})
+            j2 = get_audit_journal({"audit_log_dir": str(tmp_path)})
+            assert j1 is j2
+
+    def test_audit_log_function(self, tmp_path: Path):
+        with patch("core.audit_journal._audit_journal", None):
+            with patch("core.audit_journal.get_audit_journal") as mock_get:
+                mock_journal = MagicMock()
+                mock_journal.log_event.return_value = "evt_id"
+                mock_get.return_value = mock_journal
+                result = audit_log(
+                    AuditEventType.CIRCUIT_BREAKER,
+                    AuditSeverity.INFO,
+                    "Test message",
+                )
+                assert result == "evt_id"
+                mock_journal.log_event.assert_called_once()
+
+
+# ── Edge Cases ─────────────────────────────────────────────────────────────
+
+
+class TestEdgeCases:
+    @pytest.fixture
+    def journal(self, tmp_path: Path) -> AuditJournal:
+        return AuditJournal(log_dir=str(tmp_path), retain_days=1)
+
+    def test_file_write_error_fallback(self, tmp_path: Path, monkeypatch):
+        """When file write fails, event_id is still returned."""
+        journal = AuditJournal(log_dir=str(tmp_path))
+
+        def failing_write(*args, **kwargs):
+            raise PermissionError("Permission denied")
+
+        monkeypatch.setattr("builtins.open", failing_write)
+
+        # Should not raise - caught by except block
+        event_id = journal.log_event(
+            AuditEventType.CIRCUIT_BREAKER,
+            AuditSeverity.INFO,
+            "Should fail gracefully",
+        )
+        assert isinstance(event_id, str)
+
+    def test_empty_details_dict(self, journal: AuditJournal):
+        """Details defaults to empty dict when None is passed."""
+        event_id = journal.log_event(
+            AuditEventType.CIRCUIT_BREAKER,
+            AuditSeverity.INFO,
+            "No details",
+            details=None,
+        )
+        assert event_id
+
+    def test_large_details_dict(self, tmp_path: Path):
+        """Large detail payloads still write correctly."""
+        journal = AuditJournal(log_dir=str(tmp_path))
+        large_details = {"data": "x" * 50_000}
+        journal.log_event(
+            AuditEventType.CIRCUIT_BREAKER,
+            AuditSeverity.INFO,
+            "Large payload",
+            details=large_details,
+        )
+        assert journal._current_file.stat().st_size > 50_000

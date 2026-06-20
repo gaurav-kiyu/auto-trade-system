@@ -10,6 +10,7 @@ The ``TradingLoopService`` encapsulates the main trading loop:
 4. Signal generation + entry gate pipeline (reentry, correlation)
 5. Position monitoring + periodic reconciliation
 6. Periodic invariant checks
+7. Equity signal evaluation + position monitoring
 """
 
 from __future__ import annotations
@@ -26,7 +27,8 @@ class TradingLoopService:
     """Main trading loop orchestrator.
 
     Runs a continuous scan → evaluate → enter → monitor → reconcile cycle
-    while the shutdown event is not set.
+    while the shutdown event is not set. Supports both index options and
+    equity cash market trading via the optional equity_trader parameter.
     """
 
     def __init__(
@@ -53,7 +55,35 @@ class TradingLoopService:
         record_oi_fn: Callable | None = None,
         check_invariants_fn: Callable | None = None,
         send_fn: Callable | None = None,
+        equity_trader: Any = None,
     ):
+        """Initialize the trading loop service.
+
+        Args:
+            cfg: Configuration dictionary.
+            shutdown_event: Event that signals shutdown.
+            is_hard_halted_fn: Returns True if hard halt is active.
+            market_status_fn: Returns current market status string.
+            fetch_intraday_data_cached_fn: Fetches cached intraday data.
+            fetch_vix_fn: Fetches current VIX value.
+            generate_trading_signal_fn: Generates trading signals.
+            enter_trade_fn: Enters a trade for index options.
+            monitor_positions_fn: Monitors index option positions.
+            periodic_reconcile_fn: Periodic reconciliation.
+            check_mandate_trade_allowed_fn: Checks mandate trade allowance.
+            check_portfolio_correlation_fn: Checks portfolio correlation.
+            reentry_trackers: Reentry tracker dict.
+            decision_log: Decision log dict.
+            index_priority: Index priority list.
+            positions: Positions dict.
+            pos_lock: Position lock.
+            stale_detector: Optional stale account detector.
+            update_closes_fn: Optional close price updater.
+            record_oi_fn: Optional OI snapshot recorder.
+            check_invariants_fn: Optional invariant checker.
+            send_fn: Optional notification function.
+            equity_trader: Optional EquityTrader instance (v2.54+).
+        """
         self._cfg = cfg
         self._shutdown = shutdown_event
         self._is_hard_halted = is_hard_halted_fn
@@ -76,6 +106,7 @@ class TradingLoopService:
         self._record_oi = record_oi_fn
         self._check_invariants = check_invariants_fn
         self._send = send_fn
+        self._equity_trader = equity_trader
 
     def run(self) -> None:
         """Run the main trading loop until shutdown is signalled."""
@@ -144,11 +175,14 @@ class TradingLoopService:
         # Record OI snapshots
         self._record_oi_snapshots()
 
-        # Generate signals and enter trades
+        # Generate signals and enter index trades
         self._evaluate_and_enter_trades(frames, vix)
 
-        # Monitor positions and reconcile
-        self._monitor_positions()
+        # Evaluate equity signals
+        self._evaluate_equity_trades(frames)
+
+        # Monitor positions (index + equity) and reconcile
+        self._monitor_positions_with_equity()
         self._periodic_reconcile()
 
     def _fetch_all_frames(self) -> dict[str, dict[str, Any]]:
@@ -176,6 +210,57 @@ class TradingLoopService:
                 self._record_oi(self._index_priority, self._cfg)
             except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as oi_err:
                 _log.debug("[OI] Snapshot recording skipped: %s", oi_err)
+
+    def _monitor_positions_with_equity(self) -> None:
+        """Monitor index and equity positions."""
+        self._monitor_positions()
+        if self._equity_trader is not None:
+            try:
+                self._equity_trader._monitor_positions()
+            except (ValueError, TypeError, OSError) as eq_err:
+                _log.debug("[EQUITY] Position monitoring failed: %s", eq_err)
+
+    def _evaluate_equity_trades(self, frames: dict[str, dict[str, Any]]) -> None:
+        """Evaluate equity signals using EquityTrader."""
+        eq = self._equity_trader
+        if eq is None:
+            return
+
+        try:
+            allowed, reason = eq.can_trade()
+            if not allowed:
+                return
+
+            for symbol in eq.equity_symbols:
+                if self._is_hard_halted():
+                    break
+
+                # Skip if already have position
+                if symbol in eq.positions:
+                    continue
+
+                # Get intraday data for signal generation
+                df1m, _df5m, _df15m = self._fetch_intraday_data_cached(symbol)
+                if df1m is None or len(df1m) < 20:
+                    continue
+
+                sig = eq.evaluate_equity_signal(symbol, df1m)
+                if sig is None:
+                    continue
+
+                score = sig.get("score", 0)
+                threshold = int(self._cfg.get("AI_THRESHOLD", 60))
+                if score < threshold:
+                    continue
+
+                direction = sig.get("direction", "BUY")
+                self._decision_log[symbol] = {
+                    "msg": f"EQUITY_SIGNAL: {direction} score={score} rsi={sig.get('rsi', '?')}",
+                }
+
+                eq.enter_position(symbol, direction, score, reason="signal_pipeline")
+        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError) as eq_err:
+            _log.warning("[EQUITY] Equity evaluation failed: %s", eq_err)
 
     def _evaluate_and_enter_trades(
         self, frames: dict[str, dict[str, Any]], vix: float

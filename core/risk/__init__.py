@@ -32,12 +32,14 @@ from core.risk.greeks_engine import (
     PositionGreeks,
     get_greeks_engine,
     reset_greeks_engine,
-    LegacyOptionType as OptionType,
-    LegacyOptionsGreeksEngine as OptionsGreeksEngine,
 )
 
-# PositionGreeksInput re-exported from legacy engine for backward compatibility
-from core.options_greeks_engine import PositionGreeksInput  # noqa: F811
+# Re-exports from options_greeks_engine (needed by risk_service.py)
+from core.options_greeks_engine import (  # noqa: F811
+    OptionType,
+    OptionsGreeksEngine,
+    PositionGreeksInput,
+)
 
 # Legacy adapter (backward compat for orchestrator.py)
 from core.risk.legacy_adapter import (
@@ -75,8 +77,6 @@ __all__ = [
     "GreeksLimitsConfig",
     "GreeksStressResult",
     "GreeksStressTester",
-    "OptionsGreeksEngine",
-    "OptionType",
     "PortfolioGreeks",
     "PositionGreeks",
     "PositionGreeksInput",

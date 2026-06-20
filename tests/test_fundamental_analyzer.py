@@ -13,12 +13,10 @@ Covers:
 
 from __future__ import annotations
 
-import json
 import os
 import sqlite3
 import tempfile
 import time
-from datetime import datetime
 
 import pytest
 

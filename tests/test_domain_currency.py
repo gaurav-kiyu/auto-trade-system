@@ -14,7 +14,7 @@ from datetime import date
 
 import pytest
 
-from core.domains.currency import (
+from core.domains.currency.models import (
     ContractSpec,
     CURRENCY_CONTRACT_SPECS,
     CurrencyContract,

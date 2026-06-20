@@ -633,6 +633,173 @@ class TestEventBusSubscribeDuplicate:
 # ── Singleton Tests ───────────────────────────────────────────────────────────
 
 
+# ── Hash-Chain Verification Tests ────────────────────────────────────────────
+
+
+class TestEventStoreHashChain:
+    """
+    Hash-chained immutable event store integrity verification.
+
+    Constitution Rule #15 (Deterministic Replay) and Rule #5 (Immutable Audit Trail):
+    The event store must support tamper-evident chain verification. These tests
+    verify that unmodified chains pass and tampered chains are detected.
+    """
+
+    def test_verify_chain_empty_store(self, event_store):
+        """Empty event store should report valid."""
+        valid, count, msg = event_store.verify_chain()
+        assert valid is True
+        assert count == 0
+        assert "Empty" in msg
+
+    def test_verify_chain_single_event(self, event_store):
+        """Single event chain should be valid."""
+        event = TradingEvent(event_type=EventType.ORDER_SUBMITTED, source="test")
+        event_store.append(event)
+        valid, count, msg = event_store.verify_chain()
+        assert valid is True
+        assert count == 1
+
+    def test_verify_chain_multiple_events(self, event_store):
+        """Multiple event chain should be valid."""
+        for i in range(5):
+            event = TradingEvent(
+                event_type=EventType.SIGNAL_GENERATED,
+                source=f"src-{i}",
+                symbol="NIFTY",
+                quantity=50,
+                price=150.0 + i,
+            )
+            event_store.append(event)
+        valid, count, msg = event_store.verify_chain()
+        assert valid is True
+        assert count == 5
+        assert "Chain valid" in msg
+
+    def test_verify_chain_detects_tampered_event_type(self, event_store):
+        """
+        Tampering with an event's event_type should be detected.
+
+        This simulates an attacker modifying an event in the SQLite database
+        directly. The hash chain should detect that the stored hash no longer
+        matches the recomputed hash for the modified event.
+        """
+        # Create a 3-event chain
+        for i in range(3):
+            event = TradingEvent(
+                event_type=EventType.SIGNAL_GENERATED,
+                source=f"src-{i}",
+                symbol="NIFTY",
+            )
+            event_store.append(event)
+
+        # Verify chain is valid before tampering
+        valid, count, _ = event_store.verify_chain()
+        assert valid is True
+        assert count == 3
+
+        # Tamper with the middle event - change event_type directly in SQLite
+        with sqlite3.connect(event_store.PERSISTENCE_PATH) as conn:
+            conn.execute(
+                "UPDATE events SET event_type = ? WHERE sequence_number = ?",
+                ("ORDER_SUBMITTED", 2),
+            )
+            conn.commit()
+
+        # Verify chain detects the tampering
+        valid, broken_seq, msg = event_store.verify_chain()
+        assert valid is False
+        assert "Hash mismatch" in msg
+        assert broken_seq >= 2  # Should fail at or after the tampered event
+
+    def test_verify_chain_detects_tampered_metadata(self, event_store):
+        """Tampering with event metadata should be detected."""
+        event = TradingEvent(
+            event_type=EventType.ORDER_SUBMITTED,
+            source="test",
+            metadata={"original": "data"},
+        )
+        event_store.append(event)
+
+        valid, count, _ = event_store.verify_chain()
+        assert valid is True
+
+        # Tamper with metadata
+        with sqlite3.connect(event_store.PERSISTENCE_PATH) as conn:
+            conn.execute(
+                "UPDATE events SET metadata_json = ? WHERE sequence_number = ?",
+                ("{\"tampered\": \"data\"}", 1),
+            )
+            conn.commit()
+
+        valid, _, msg = event_store.verify_chain()
+        assert valid is False
+        assert "Hash mismatch" in msg
+
+    def test_verify_chain_detects_broken_previous_hash(self, event_store):
+        """Breaking the previous_hash link should be detected."""
+        for i in range(3):
+            event = TradingEvent(event_type=EventType.SIGNAL_GENERATED, source=f"src-{i}")
+            event_store.append(event)
+
+        # Tamper with the previous_hash of the third event
+        with sqlite3.connect(event_store.PERSISTENCE_PATH) as conn:
+            conn.execute(
+                "UPDATE events SET previous_hash = ? WHERE sequence_number = ?",
+                ("DEADBEEF", 3),
+            )
+            conn.commit()
+
+        valid, _, msg = event_store.verify_chain()
+        assert valid is False
+        assert "Chain break" in msg
+
+    def test_verify_chain_multiple_chains_after_append(self, event_store):
+        """Chain should remain valid after multiple appends."""
+        for i in range(3):
+            event = TradingEvent(event_type=EventType.SIGNAL_GENERATED, source=f"src-{i}")
+            event_store.append(event)
+
+        valid, _, _ = event_store.verify_chain()
+        assert valid is True
+
+        # Append more events
+        for i in range(3, 6):
+            event = TradingEvent(event_type=EventType.FILL_RECEIVED, source=f"src-{i}")
+            event_store.append(event)
+
+        valid, count, msg = event_store.verify_chain()
+        assert valid is True
+        assert count == 6
+        assert "Chain valid" in msg
+
+    def test_canonical_hash_consistency(self, event_store):
+        """
+        Hash computed via _canonical_event_data + _compute_hash should match
+        the hash stored in the DB. This validates that the JSON round-trip
+        canonicalization produces consistent results.
+        """
+        event = TradingEvent(
+            event_type=EventType.RISK_LIMIT_BREACHED,
+            source="risk",
+            metadata={"limit": "max_daily_loss", "value": -500.0},
+        )
+        event_store.append(event)
+
+        # Read back the stored hash
+        with sqlite3.connect(event_store.PERSISTENCE_PATH) as conn:
+            cursor = conn.execute("SELECT sha256 FROM events WHERE sequence_number = 1")
+            stored_hash = cursor.fetchone()[0]
+
+        # Recompute hash using canonical method
+        canonical = event_store._canonical_event_data(event)
+        recomputed = event_store._compute_hash(None, canonical)
+
+        assert stored_hash == recomputed, (
+            f"Hash mismatch: stored={stored_hash}, recomputed={recomputed}"
+        )
+
+
 class TestSingletons:
     """Module-level singleton functions."""
 
@@ -653,7 +820,7 @@ class TestSingletons:
         assert isinstance(store, EventStore)
 
     def test_get_event_store_singleton(self):
-        """get_event_store should return the same store instance."""
+        """get_event_store should return the same instance."""
         store1 = get_event_store()
         store2 = get_event_store()
         assert store1 is store2

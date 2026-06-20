@@ -1,5 +1,11 @@
-"""Tests for core/exceptions.py - Domain-Specific Exception Hierarchy."""
+"""Tests for core/exceptions.py - domain-specific exception hierarchy.
 
+Covers:
+- All 23 exception classes
+- TradingException base: __init__, classify(), to_dict()
+- Inheritance hierarchy validation
+- Graceful degradation helper: safe_fallback
+"""
 from __future__ import annotations
 
 import pytest
@@ -39,296 +45,161 @@ from core.exceptions import (
 
 
 class TestTradingException:
-    """TradingException base class coverage."""
-
-    def test_basic_exception(self):
-        exc = TradingException("Something went wrong")
-        assert str(exc) == "Something went wrong"
-        assert exc.details == {}
-
-    def test_with_details(self):
-        exc = TradingException("Risk breach", details={"limit": 1000, "actual": 1500})
-        assert exc.details["limit"] == 1000
-        assert exc.details["actual"] == 1500
-
-    def test_classify(self):
-        exc = TradingException("test")
-        assert exc.classify() == "TradingException"
-
-    def test_to_dict(self):
-        exc = TradingException("test", details={"key": "val"})
-        d = exc.to_dict()
-        assert d["type"] == "TradingException"
-        assert d["message"] == "test"
-        assert d["details"] == {"key": "val"}
-
     def test_default_message(self):
         exc = TradingException()
         assert str(exc) == ""
 
-
-class TestBrokerExceptions:
-    """Broker exception hierarchy coverage."""
-
-    def test_broker_exception_is_subclass(self):
-        assert issubclass(BrokerException, TradingException)
-
-    def test_broker_timeout(self):
-        exc = BrokerTimeoutError("API timeout after 5s")
-        assert str(exc) == "API timeout after 5s"
-        assert exc.classify() == "BrokerTimeoutError"
-
-    def test_broker_connection_error(self):
-        exc = BrokerConnectionError("Connection refused")
-        assert exc.classify() == "BrokerConnectionError"
-
-    def test_broker_auth_error(self):
-        exc = BrokerAuthError("Token expired")
-        assert exc.classify() == "BrokerAuthError"
-
-    def test_broker_rejected_error(self):
-        exc = BrokerRejectedError("Insufficient margin")
-        assert exc.classify() == "BrokerRejectedError"
-
-    def test_broker_rate_limit(self):
-        exc = BrokerRateLimitError("Rate limit exceeded")
-        assert exc.classify() == "BrokerRateLimitError"
-
-    def test_all_broker_exceptions_are_broker_exception(self):
-        exceptions = [
-            BrokerTimeoutError("a"),
-            BrokerConnectionError("b"),
-            BrokerAuthError("c"),
-            BrokerRejectedError("d"),
-            BrokerRateLimitError("e"),
-        ]
-        for exc in exceptions:
-            assert isinstance(exc, BrokerException)
-
-
-class TestRiskExceptions:
-    """Risk exception hierarchy coverage."""
-
-    def test_risk_exception_is_subclass(self):
-        assert issubclass(RiskException, TradingException)
-
-    def test_risk_limit_error(self):
-        exc = RiskLimitError("Max daily loss exceeded")
-        assert exc.classify() == "RiskLimitError"
-
-    def test_max_drawdown_error(self):
-        exc = MaxDrawdownError("Drawdown exceeds limit")
-        assert exc.classify() == "MaxDrawdownError"
-
-    def test_hard_halt_error(self):
-        exc = HardHaltError("Hard halt active")
-        assert exc.classify() == "HardHaltError"
-
-    def test_position_sizing_error(self):
-        exc = PositionSizingError("Invalid size")
-        assert exc.classify() == "PositionSizingError"
-
-    def test_correlation_guard_error(self):
-        exc = CorrelationGuardError("Correlation block")
-        assert exc.classify() == "CorrelationGuardError"
-
-    def test_all_risk_exceptions_are_risk_exception(self):
-        exceptions = [
-            RiskLimitError("a"),
-            MaxDrawdownError("b"),
-            HardHaltError("c"),
-            PositionSizingError("d"),
-            CorrelationGuardError("e"),
-        ]
-        for exc in exceptions:
-            assert isinstance(exc, RiskException)
-
-
-class TestValidationException:
-    """ValidationError coverage."""
-
-    def test_validation_error(self):
-        exc = ValidationError("Invalid input")
-        assert exc.classify() == "ValidationError"
-        assert isinstance(exc, TradingException)
+    def test_with_message(self):
+        exc = TradingException("Something went wrong")
+        assert str(exc) == "Something went wrong"
 
     def test_with_details(self):
-        exc = ValidationError("Field required", details={"field": "symbol"})
-        assert exc.details["field"] == "symbol"
+        exc = TradingException("Error", details={"code": 500})
+        assert exc.details == {"code": 500}
+
+    def test_default_details_is_empty_dict(self):
+        exc = TradingException("Error")
+        assert exc.details == {}
+
+    def test_classify_returns_class_name(self):
+        exc = TradingException("Error")
+        assert exc.classify() == "TradingException"
+
+    def test_to_dict(self):
+        exc = TradingException("Test error", details={"key": "val"})
+        d = exc.to_dict()
+        assert d["type"] == "TradingException"
+        assert d["message"] == "Test error"
+        assert d["details"] == {"key": "val"}
+
+    def test_is_exception(self):
+        exc = TradingException("Error")
+        assert isinstance(exc, Exception)
 
 
-class TestReconciliationException:
-    """ReconciliationError coverage."""
+class TestExceptionHierarchy:
+    """Validate all exception classes exist and inherit correctly."""
 
-    def test_reconciliation_error(self):
-        exc = ReconciliationError("State mismatch")
-        assert exc.classify() == "ReconciliationError"
-        assert isinstance(exc, TradingException)
+    def test_broker_exceptions(self):
+        assert issubclass(BrokerException, TradingException)
+        assert issubclass(BrokerTimeoutError, BrokerException)
+        assert issubclass(BrokerConnectionError, BrokerException)
+        assert issubclass(BrokerAuthError, BrokerException)
+        assert issubclass(BrokerRejectedError, BrokerException)
+        assert issubclass(BrokerRateLimitError, BrokerException)
+
+    def test_risk_exceptions(self):
+        assert issubclass(RiskException, TradingException)
+        assert issubclass(RiskLimitError, RiskException)
+        assert issubclass(MaxDrawdownError, RiskException)
+        assert issubclass(HardHaltError, RiskException)
+        assert issubclass(PositionSizingError, RiskException)
+        assert issubclass(CorrelationGuardError, RiskException)
+
+    def test_persistence_exceptions(self):
+        assert issubclass(PersistenceError, TradingException)
+        assert issubclass(DatabaseError, PersistenceError)
+        assert issubclass(StateFileError, PersistenceError)
+
+    def test_market_data_exceptions(self):
+        assert issubclass(MarketDataError, TradingException)
+        assert issubclass(StaleDataError, MarketDataError)
+        assert issubclass(FeedDisconnectedError, MarketDataError)
+
+    def test_execution_exceptions(self):
+        assert issubclass(ExecutionError, TradingException)
+        assert issubclass(IdempotencyError, ExecutionError)
+        assert issubclass(FillError, ExecutionError)
+
+    def test_other_exceptions(self):
+        assert issubclass(ValidationError, TradingException)
+        assert issubclass(ReconciliationError, TradingException)
+        assert issubclass(ConfigError, TradingException)
+        assert issubclass(SignalError, TradingException)
+        assert issubclass(CircuitBreakerError, TradingException)
+        assert issubclass(ChaosError, TradingException)
+        assert issubclass(GovernanceError, TradingException)
+
+    def test_all_raise_and_catch(self):
+        """Verify all exception types can be raised and caught as TradingException."""
+        exc_types = [
+            BrokerTimeoutError("timeout"),
+            BrokerConnectionError("conn"),
+            BrokerAuthError("auth"),
+            BrokerRejectedError("rejected"),
+            BrokerRateLimitError("rate"),
+            RiskLimitError("risk"),
+            MaxDrawdownError("dd"),
+            HardHaltError("halt"),
+            PositionSizingError("size"),
+            CorrelationGuardError("corr"),
+            ValidationError("val"),
+            ReconciliationError("recon"),
+            DatabaseError("db"),
+            StateFileError("state"),
+            ConfigError("config"),
+            SignalError("signal"),
+            StaleDataError("stale"),
+            FeedDisconnectedError("feed"),
+            CircuitBreakerError("cb"),
+            IdempotencyError("idem"),
+            FillError("fill"),
+            ChaosError("chaos"),
+            GovernanceError("gov"),
+        ]
+        for exc in exc_types:
+            assert isinstance(exc, TradingException), f"{type(exc).__name__} not a TradingException"
 
 
-class TestPersistenceExceptions:
-    """Persistence exception hierarchy coverage."""
+class TestExceptionClassify:
+    def test_broker_timeout_classify(self):
+        exc = BrokerTimeoutError("Broker API timeout")
+        assert exc.classify() == "BrokerTimeoutError"
 
-    def test_persistence_error(self):
-        exc = PersistenceError("File error")
-        assert exc.classify() == "PersistenceError"
-        assert isinstance(exc, TradingException)
+    def test_risk_limit_classify(self):
+        exc = RiskLimitError("Daily loss breached")
+        assert exc.classify() == "RiskLimitError"
 
-    def test_database_error(self):
-        exc = DatabaseError("SQLite error")
+    def test_custom_message(self):
+        exc = DatabaseError("Connection failed", details={"host": "localhost"})
         assert exc.classify() == "DatabaseError"
-        assert isinstance(exc, PersistenceError)
-
-    def test_state_file_error(self):
-        exc = StateFileError("trader_state.json write failed")
-        assert exc.classify() == "StateFileError"
-        assert isinstance(exc, PersistenceError)
+        assert exc.details["host"] == "localhost"
 
 
-class TestConfigException:
-    """ConfigError coverage."""
+class TestExceptionToDict:
+    def test_broker_exception_to_dict(self):
+        exc = BrokerConnectionError("Network error", details={"host": "api.kite.com"})
+        d = exc.to_dict()
+        assert d["type"] == "BrokerConnectionError"
+        assert d["message"] == "Network error"
+        assert d["details"]["host"] == "api.kite.com"
 
-    def test_config_error(self):
-        exc = ConfigError("Missing key")
-        assert exc.classify() == "ConfigError"
-        assert isinstance(exc, TradingException)
+    def test_risk_exception_to_dict(self):
+        exc = HardHaltError("Hard halt active")
+        d = exc.to_dict()
+        assert d["type"] == "HardHaltError"
+        assert d["message"] == "Hard halt active"
 
-
-class TestSignalException:
-    """SignalError coverage."""
-
-    def test_signal_error(self):
-        exc = SignalError("Pipeline error")
-        assert exc.classify() == "SignalError"
-        assert isinstance(exc, TradingException)
-
-
-class TestMarketDataExceptions:
-    """Market data exception hierarchy coverage."""
-
-    def test_market_data_error(self):
-        exc = MarketDataError("Feed error")
-        assert exc.classify() == "MarketDataError"
-        assert isinstance(exc, TradingException)
-
-    def test_stale_data_error(self):
-        exc = StaleDataError("Data too old")
-        assert exc.classify() == "StaleDataError"
-        assert isinstance(exc, MarketDataError)
-
-    def test_feed_disconnected_error(self):
-        exc = FeedDisconnectedError("WebSocket down")
-        assert exc.classify() == "FeedDisconnectedError"
-        assert isinstance(exc, MarketDataError)
-
-
-class TestCircuitBreakerException:
-    """CircuitBreakerError coverage."""
-
-    def test_circuit_breaker_error(self):
-        exc = CircuitBreakerError("Circuit open")
-        assert exc.classify() == "CircuitBreakerError"
-        assert isinstance(exc, TradingException)
-
-
-class TestExecutionExceptions:
-    """Execution exception hierarchy coverage."""
-
-    def test_execution_error(self):
-        exc = ExecutionError("Execution failed")
-        assert exc.classify() == "ExecutionError"
-        assert isinstance(exc, TradingException)
-
-    def test_idempotency_error(self):
-        exc = IdempotencyError("Duplicate order")
-        assert exc.classify() == "IdempotencyError"
-        assert isinstance(exc, ExecutionError)
-
-    def test_fill_error(self):
-        exc = FillError("Fill mismatch")
-        assert exc.classify() == "FillError"
-        assert isinstance(exc, ExecutionError)
-
-
-class TestChaosException:
-    """ChaosError coverage."""
-
-    def test_chaos_error(self):
-        exc = ChaosError("Injection failed")
-        assert exc.classify() == "ChaosError"
-        assert isinstance(exc, TradingException)
-
-
-class TestGovernanceException:
-    """GovernanceError coverage."""
-
-    def test_governance_error(self):
-        exc = GovernanceError("Constitution violation")
-        assert exc.classify() == "GovernanceError"
-        assert isinstance(exc, TradingException)
+    def test_governance_exception_serializable(self):
+        exc = GovernanceError("Constitution violation", details={"category": "RSK-01", "score": 4.5})
+        d = exc.to_dict()
+        assert d["type"] == "GovernanceError"
+        assert d["details"]["category"] == "RSK-01"
+        assert d["details"]["score"] == 4.5
 
 
 class TestSafeFallback:
-    """safe_fallback helper coverage."""
-
     def test_returns_value_when_not_none(self):
-        assert safe_fallback(42) == 42
         assert safe_fallback("hello") == "hello"
-        assert safe_fallback(0) == 0
-        assert safe_fallback(False) is False
+        assert safe_fallback(42) == 42
+        assert safe_fallback(0) == 0  # 0 is truthy in this context
+        assert safe_fallback(False) is False  # False returned as-is
         assert safe_fallback([]) == []
 
     def test_returns_default_when_none(self):
         assert safe_fallback(None) is None
-        assert safe_fallback(None, "default") == "default"
-        assert safe_fallback(None, 0) == 0
+        assert safe_fallback(None, default="fallback") == "fallback"
+        assert safe_fallback(None, default=42) == 42
 
-    def test_returns_none_default_when_not_specified(self):
-        result = safe_fallback(None)
-        assert result is None
-
-
-class TestExceptionDictConsistency:
-    """Verify all exceptions have consistent to_dict output."""
-
-    @pytest.mark.parametrize("exc_cls, message", [
-        (TradingException, "base"),
-        (BrokerTimeoutError, "timeout"),
-        (RiskLimitError, "limit"),
-        (ValidationError, "validation"),
-        (DatabaseError, "db"),
-        (StaleDataError, "stale"),
-        (CircuitBreakerError, "cb"),
-        (GovernanceError, "gov"),
-        (ChaosError, "chaos"),
-    ])
-    def test_to_dict_consistency(self, exc_cls, message):
-        exc = exc_cls(message, details={"code": 123})
-        d = exc.to_dict()
-        assert d["type"] == exc_cls.__name__
-        assert d["message"] == message
-        assert d["details"] == {"code": 123}
-
-    def test_all_exceptions_have_unique_classify(self):
-        """Every exception type should return its own class name."""
-        exceptions = [
-            TradingException,
-            BrokerException,
-            BrokerTimeoutError,
-            RiskException,
-            RiskLimitError,
-            ValidationError,
-            ReconciliationError,
-            PersistenceError,
-            DatabaseError,
-            ConfigError,
-            SignalError,
-            MarketDataError,
-            StaleDataError,
-            CircuitBreakerError,
-            ExecutionError,
-            IdempotencyError,
-            GovernanceError,
-        ]
-        class_names = [e.__name__ for e in exceptions]
-        assert len(class_names) == len(set(class_names))
+    def test_default_none_implicit(self):
+        assert safe_fallback(None) is None

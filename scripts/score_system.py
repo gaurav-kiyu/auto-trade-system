@@ -285,8 +285,8 @@ def _scan_filesystem_evidence() -> dict[str, list[dict[str, Any]]]:
     if _exists("core/wal/journal.py"):
         add("DR-02", "Write-Ahead Intent Journal for crash-safe recovery", "code_review", 0.4)
         add("DR-03", "WAL journal: intents before execution", "code_review", 0.7)
-    if _exists("core/execution/execution_state.py"):
-        add("DR-02", "FormalOrderStateManager for durable order state", "code_review", 0.4)
+    if _exists("core/execution/deterministic_state_machine.py"):
+        add("DR-02", "ExecutionStateMachineManager for durable order state", "code_review", 0.4)
     if _exists("tests/test_state_sync_manager.py"):
         add("DR-02", "State sync test validates recovery and failover", "test_pass", 0.4)
     if _exists("core/execution/idempotency/certifier.py"):

@@ -170,6 +170,91 @@ class BrokerTimeoutError(BrokerException):
         )
 
 
+_BROKER_ERROR_CODES: dict[str, dict[str, tuple[str, BrokerExceptionType]]] = {}
+"""Registry of broker-specific error codes, populated lazily by _get_broker_codes()."""
+
+
+def _get_broker_codes() -> dict[str, dict[str, tuple[str, BrokerExceptionType]]]:
+    """Get or create the broker error code registry."""
+    if _BROKER_ERROR_CODES:
+        return _BROKER_ERROR_CODES
+
+    codes: dict[str, dict[str, tuple[str, BrokerExceptionType]]] = {
+        "KITE": {
+            "36001": ("Invalid symbol", BrokerExceptionType.PERMANENT),
+            "36002": ("Insufficient margin", BrokerExceptionType.PERMANENT),
+            "36003": ("Order quantity exceeds limit", BrokerExceptionType.PERMANENT),
+            "36004": ("Product type not allowed", BrokerExceptionType.PERMANENT),
+            "36005": ("Invalid order type", BrokerExceptionType.PERMANENT),
+            "36101": ("Market closed", BrokerExceptionType.TRANSIENT),
+            "36102": ("Order not allowed in this segment", BrokerExceptionType.PERMANENT),
+            "36201": ("Duplicate order", BrokerExceptionType.PERMANENT),
+            "36202": ("Pending order exists", BrokerExceptionType.TRANSIENT),
+            "40001": ("Session expired", BrokerExceptionType.AUTH_EXPIRED),
+            "40002": ("Invalid token", BrokerExceptionType.AUTH_EXPIRED),
+        },
+        "ANGEL": {
+            "AG001": ("Invalid API key", BrokerExceptionType.PERMANENT),
+            "AG002": ("Invalid token", BrokerExceptionType.AUTH_EXPIRED),
+            "AG003": ("Token expired", BrokerExceptionType.AUTH_EXPIRED),
+            "AG101": ("Insufficient margin", BrokerExceptionType.PERMANENT),
+            "AG102": ("Order rejected", BrokerExceptionType.ORDER_REJECTED),
+            "AG103": ("Duplicate order", BrokerExceptionType.PERMANENT),
+            "AG201": ("Rate limit exceeded", BrokerExceptionType.RATE_LIMIT),
+            "AG301": ("Market closed", BrokerExceptionType.TRANSIENT),
+        },
+        "FYERS": {
+            "F-1000": ("Invalid credentials", BrokerExceptionType.PERMANENT),
+            "F-1001": ("Token expired", BrokerExceptionType.AUTH_EXPIRED),
+            "F-1002": ("Invalid symbol", BrokerExceptionType.PERMANENT),
+            "F-1003": ("Insufficient balance", BrokerExceptionType.PERMANENT),
+            "F-1004": ("Order quantity exceeds limit", BrokerExceptionType.PERMANENT),
+            "F-1005": ("Market closed", BrokerExceptionType.TRANSIENT),
+            "F-2001": ("Rate limit exceeded", BrokerExceptionType.RATE_LIMIT),
+            "F-2002": ("Duplicate order", BrokerExceptionType.PERMANENT),
+            "F-3001": ("Instrument not traded", BrokerExceptionType.PERMANENT),
+            "F-3002": ("Invalid order type", BrokerExceptionType.PERMANENT),
+            "F-4001": ("Server error", BrokerExceptionType.TRANSIENT),
+            "F-4002": ("Request timeout", BrokerExceptionType.TIMEOUT),
+        },
+        "DHAN": {
+            "DH-001": ("Invalid client ID", BrokerExceptionType.PERMANENT),
+            "DH-002": ("Invalid token", BrokerExceptionType.AUTH_EXPIRED),
+            "DH-003": ("Token expired", BrokerExceptionType.AUTH_EXPIRED),
+            "DH-101": ("Insufficient margin", BrokerExceptionType.PERMANENT),
+            "DH-102": ("Invalid symbol", BrokerExceptionType.PERMANENT),
+            "DH-103": ("Order rejected", BrokerExceptionType.ORDER_REJECTED),
+            "DH-201": ("Rate limit exceeded", BrokerExceptionType.RATE_LIMIT),
+            "DH-301": ("Market closed", BrokerExceptionType.TRANSIENT),
+            "DH-302": ("Duplicate order", BrokerExceptionType.PERMANENT),
+            "DH-401": ("Server error", BrokerExceptionType.TRANSIENT),
+            "DH-402": ("Request timeout", BrokerExceptionType.TIMEOUT),
+        },
+    }
+
+    _BROKER_ERROR_CODES.update(codes)
+    return _BROKER_ERROR_CODES
+
+
+def _dispatch_error_code(
+    error_code: str,
+    msg: str,
+    exc_type: BrokerExceptionType,
+    exception: Exception,
+) -> BrokerException:
+    """Dispatch an error code to the correct exception subclass."""
+    constructor_map: dict[BrokerExceptionType, type] = {
+        BrokerExceptionType.PERMANENT: PermanentBrokerError,
+        BrokerExceptionType.AUTH_EXPIRED: AuthExpiredError,
+        BrokerExceptionType.TRANSIENT: TransientBrokerError,
+        BrokerExceptionType.RATE_LIMIT: RateLimitError,
+        BrokerExceptionType.ORDER_REJECTED: OrderRejectedError,
+        BrokerExceptionType.TIMEOUT: BrokerTimeoutError,
+    }
+    exc_cls = constructor_map.get(exc_type, TransientBrokerError)
+    return exc_cls(f"{msg} (code: {error_code})", broker_code=error_code, original=exception)  # type: ignore[call-arg]
+
+
 def classify_broker_exception(
     exception: Exception,
     broker_name: str = "UNKNOWN",
@@ -177,66 +262,31 @@ def classify_broker_exception(
     """
     Classify a raw exception into proper broker exception type.
     Maps broker-specific error codes to our taxonomy.
+
+    Supported brokers: KITE, ANGEL, FYERS, DHAN
     """
 
-    # Kite (Zerodha) error codes
-    kite_error_codes = {
-        "36001": ("Invalid symbol", BrokerExceptionType.PERMANENT),
-        "36002": ("Insufficient margin", BrokerExceptionType.PERMANENT),
-        "36003": ("Order quantity exceeds limit", BrokerExceptionType.PERMANENT),
-        "36004": ("Product type not allowed", BrokerExceptionType.PERMANENT),
-        "36005": ("Invalid order type", BrokerExceptionType.PERMANENT),
-        "36101": ("Market closed", BrokerExceptionType.TRANSIENT),
-        "36102": ("Order not allowed in this segment", BrokerExceptionType.PERMANENT),
-        "36201": ("Duplicate order", BrokerExceptionType.PERMANENT),
-        "36202": ("Pending order exists", BrokerExceptionType.TRANSIENT),
-        "40001": ("Session expired", BrokerExceptionType.AUTH_EXPIRED),
-        "40002": ("Invalid token", BrokerExceptionType.AUTH_EXPIRED),
-    }
-
-    # Angel One error codes
-    angel_error_codes = {
-        "AG001": ("Invalid API key", BrokerExceptionType.PERMANENT),
-        "AG002": ("Invalid token", BrokerExceptionType.AUTH_EXPIRED),
-        "AG003": ("Token expired", BrokerExceptionType.AUTH_EXPIRED),
-        "AG101": ("Insufficient margin", BrokerExceptionType.PERMANENT),
-        "AG102": ("Order rejected", BrokerExceptionType.ORDER_REJECTED),
-        "AG103": ("Duplicate order", BrokerExceptionType.PERMANENT),
-        "AG201": ("Rate limit exceeded", BrokerExceptionType.RATE_LIMIT),
-        "AG301": ("Market closed", BrokerExceptionType.TRANSIENT),
-    }
-
     # Map based on error code if present
+    # Normalize to string to handle int codes from broker SDKs
     error_code = getattr(exception, "code", None) or getattr(exception, "error_code", None)
+    if error_code is not None:
+        error_code = str(error_code)
 
-    if error_code and broker_name.upper() == "KITE":
-        if error_code in kite_error_codes:
-            msg, exc_type = kite_error_codes[error_code]
-            if exc_type == BrokerExceptionType.PERMANENT:
-                return PermanentBrokerError(f"{msg} (code: {error_code})", error_code, exception)
-            elif exc_type == BrokerExceptionType.AUTH_EXPIRED:
-                return AuthExpiredError(f"{msg} (code: {error_code})", error_code, exception)
-            elif exc_type == BrokerExceptionType.TRANSIENT:
-                return TransientBrokerError(f"{msg} (code: {error_code})", error_code, exception)
-            elif exc_type == BrokerExceptionType.RATE_LIMIT:
-                return RateLimitError(f"{msg} (code: {error_code})", error_code, exception)
-            elif exc_type == BrokerExceptionType.ORDER_REJECTED:
-                return OrderRejectedError(f"{msg} (code: {error_code})", error_code, exception)
-
-    if error_code and broker_name.upper() == "ANGEL":
-        if error_code in angel_error_codes:
-            msg, exc_type = angel_error_codes[error_code]
-            if exc_type == BrokerExceptionType.PERMANENT:
-                return PermanentBrokerError(f"{msg} (code: {error_code})", error_code, exception)
-            # ... similar mapping
+    if error_code:
+        broker_codes = _get_broker_codes()
+        broker_upper = broker_name.upper()
+        broker_map = broker_codes.get(broker_upper)
+        if broker_map and error_code in broker_map:
+            msg, exc_type = broker_map[error_code]
+            return _dispatch_error_code(error_code, msg, exc_type, exception)
 
     # Fallback classification based on exception type
     exc_msg = str(exception).lower()
 
-    if "timeout" in exc_msg:
+    if "timeout" in exc_msg or "timed out" in exc_msg:
         return BrokerTimeoutError(f"Timeout: {exception}", original=exception)
 
-    if "connection" in exc_msg or "network" in exc_msg:
+    if "connection" in exc_msg or "network" in exc_msg or "reset" in exc_msg:
         return NetworkError(f"Network issue: {exception}", original=exception)
 
     if "rate limit" in exc_msg:

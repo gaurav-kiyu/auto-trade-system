@@ -1263,7 +1263,7 @@ class ExecutionService(ExecutionPort):
                     return OrderResult(
                         order_id=order_id,
                         status=OrderStatus.PENDING,
-                        reason="Limit order not executed - price not reached",
+                        reject_reason="Limit order not executed - price not reached",
                         timestamp=now_ist()
                     )
             else:

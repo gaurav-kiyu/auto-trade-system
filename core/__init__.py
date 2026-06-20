@@ -95,7 +95,6 @@ from .fundamental_analyzer import (
     FundamentalData,
     ScreeningResult,
     get_fundamental_analyzer,
-    reset_fundamental_analyzer,
 )
 from .defaults_loader import load_defaults_file
 from .environment import Environment, guard_dev_config_in_production, guard_mode_env_compatibility, validate_environment

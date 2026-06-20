@@ -175,7 +175,7 @@ class TestExecutionService:
             strategy_id="test_strategy"
         )
 
-        self.broker_mock.place_order.side_effect = Exception("Broker error")
+        self.broker_mock.place_order.side_effect = ValueError("Broker error")
 
         # Execute and verify that we get a rejected order
         result = self.service.execute_order(order_request)
@@ -285,7 +285,7 @@ class TestExecutionService:
         )
 
         self.broker_mock.place_order.side_effect = [
-            Exception("Transient error"),
+            ValueError("Transient error"),
             expected_result
         ]
 

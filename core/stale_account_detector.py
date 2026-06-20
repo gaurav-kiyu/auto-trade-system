@@ -33,6 +33,7 @@ from typing import Any, Callable
 
 
 from core.logging import LoggingService
+from core.safety_state import trip_hard_halt as _trip_halt
 
 log = logging.getLogger("stale_account_detector")
 
@@ -161,6 +162,7 @@ class StaleAccountDetector:
         self._alert_fn = alert_fn
 
         self._lock = threading.RLock()
+        self._startup_time: float = time.time()  # Startup timestamp (used for grace period)
         self._last_check: dict[str, float] = {}   # broker -> last check timestamp
         self._last_trade_time: dict[str, float] = {}  # broker -> last trade time
         self._last_heartbeat: float = 0.0
@@ -227,17 +229,45 @@ class StaleAccountDetector:
         report.scan_duration_ms = (time.time() - start) * 1000
         report.total_findings = len(findings)
 
-        # Dispatch alerts for critical findings
-        if self.config.enable_alerts and self.config.alert_on_critical and self._alert_fn:
+        # Dispatch alerts for critical findings AND trip hard halt
+        has_critical = False
+        if self.config.enable_alerts and self.config.alert_on_critical:
             for f in findings:
                 if f.severity == "CRITICAL":
+                    has_critical = True
                     try:
-                        self._alert_fn(
-                            f"[STALE_ACCOUNT] {f.category.value}: {f.detail}",
-                            priority="CRITICAL",
-                        )
+                        if self._alert_fn:
+                            self._alert_fn(
+                                f"[STALE_ACCOUNT] {f.category.value}: {f.detail}",
+                                priority="CRITICAL",
+                            )
                     except (OSError, ConnectionError) as e:
                         log.warning("[STALE] Alert dispatch failed: %s", e)
+
+        # CRITICAL: Trip hard halt on critical findings to prevent trading
+        # on stale accounts. This is the centralized halting mechanism
+        # referenced in the Risk Certification gap (stale account protection).
+        #
+        # Grace period: Skip hard halt trips during the first 30 minutes
+        # after startup to avoid false positives on cold start (e.g., first
+        # launch with no trade history, or during market warmup).
+        if has_critical:
+            startup_elapsed = time.time() - self._startup_time
+            grace_period_seconds = self.config.check_interval_seconds * 6  # ~6 check cycles
+            if startup_elapsed < grace_period_seconds:
+                log.info(
+                    "[STALE] Skipping hard halt trip during startup grace period "
+                    "(%.0f/%.0f seconds elapsed)",
+                    startup_elapsed, grace_period_seconds,
+                )
+            else:
+                for f in findings:
+                    if f.severity == "CRITICAL":
+                        _trip_halt(
+                            f"Stale account detected: [{f.category.value}] {f.detail}",
+                            source="stale_account_detector.run_check",
+                        )
+                        break  # Only trip once
 
         return report
 

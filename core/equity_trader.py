@@ -307,6 +307,92 @@ class EquityTrader:
                     except (ValueError, TypeError, AttributeError):
                         pass
 
+    def evaluate_equity_signal(self, symbol: str, df1m: Any) -> dict[str, Any] | None:
+        """Generate a simple equity signal from 1m OHLCV data.
+
+        Uses RSI and short-term price momentum to determine direction.
+        Returns a signal dict with keys: direction, score, price, strength
+        or None if no actionable signal.
+        """
+        if df1m is None or len(df1m) < 20:
+            return None
+
+        try:
+            close = df1m["Close"].values
+            current_price = float(close[-1])
+
+            # Compute RSI (14-period)
+            deltas = close[1:] - close[:-1]
+            gains = deltas.copy()
+            losses = deltas.copy()
+            gains[gains < 0] = 0
+            losses[losses > 0] = 0
+            losses = abs(losses)
+
+            avg_gain = float(gains[-14:].mean())
+            avg_loss = float(losses[-14:].mean())
+            rsi = 50.0
+            if avg_loss > 0:
+                rs = avg_gain / avg_loss
+                rsi = 100.0 - (100.0 / (1.0 + rs))
+
+            # Short-term momentum (last 5 bars)
+            momentum = (close[-1] - close[-5]) / close[-5] if len(close) >= 5 else 0.0
+
+            # Volume confirmation
+            volume = df1m["Volume"].values if "Volume" in df1m.columns else None
+            avg_vol = float(volume[-20:].mean()) if volume is not None and len(volume) >= 20 else 1.0
+            recent_vol = float(volume[-5:].mean()) if volume is not None and len(volume) >= 5 else 1.0
+            vol_ratio = recent_vol / avg_vol if avg_vol > 0 else 1.0
+
+            direction = None
+            score = 0
+            strength = "NEUTRAL"
+
+            # RSI-based signals
+            if rsi < 30 and momentum > 0.002 and vol_ratio > 1.2:
+                direction = "BUY"
+                score = 75
+                strength = "MODERATE"
+            elif rsi > 70 and momentum < -0.002 and vol_ratio > 1.2:
+                direction = "SELL"
+                score = 70
+                strength = "MODERATE"
+            elif rsi < 25 and vol_ratio > 1.5:
+                direction = "BUY"
+                score = 80
+                strength = "STRONG"
+            elif rsi > 75 and vol_ratio > 1.5:
+                direction = "SELL"
+                score = 75
+                strength = "STRONG"
+
+            if direction is None:
+                return None
+
+            # Boost score for strong momentum
+            if abs(momentum) > 0.005:
+                score = min(95, score + 5)
+
+            return {
+                "direction": direction,
+                "score": score,
+                "price": current_price,
+                "strength": strength,
+                "rsi": round(rsi, 1),
+                "momentum_pct": round(momentum * 100, 2),
+                "vol_ratio": round(vol_ratio, 2),
+                "symbol": symbol,
+            }
+        except (ValueError, TypeError, KeyError, IndexError, AttributeError) as e:
+            log.debug("[EQUITY] Signal eval failed for %s: %s", symbol, e)
+            return None
+
+    @property
+    def equity_symbols(self) -> list[str]:
+        """Return configured equity symbols."""
+        return list(self._equity_symbols)
+
     def status(self) -> dict[str, Any]:
         """Return current equity trader status."""
         with self._lock:

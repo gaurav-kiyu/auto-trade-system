@@ -172,7 +172,6 @@ class TestConfigDrift:
     def test_drift_changed_keys_for_live_diff(self, state_file: str, defaults_file: str):
         """Live config with custom key should show as changed."""
         from core.enterprise_dashboard import EnterpriseDashboard
-        from core.auth.handler import AuthHandler
 
         # Create dashboard with drifted BASE_CAPITAL
         db = EnterpriseDashboard(config={

@@ -86,8 +86,10 @@ logs/control_plane_audit.jsonl
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 logs/*.log
+logs/*.log.*
 logs/*.bak
 logs/*.jsonl
+logs/audit/
 logs/metrics_report.json
 tg_fallback_alerts.log
 crash_recovery.log

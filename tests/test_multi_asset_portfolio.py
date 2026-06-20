@@ -15,9 +15,7 @@ Tests:
 
 from __future__ import annotations
 
-from datetime import date, datetime
 
-import pytest
 
 from core.domains.commodity import CommodityContract, CommodityPosition
 from core.domains.currency import CurrencyContract, CurrencyPosition, CurrencyPair
@@ -25,7 +23,6 @@ from core.domains.equity import EquityPosition, Holding, Stock
 from core.domains.fixed_income import Bond, BondPosition
 from core.domains.fo import FutureContract, FuturePosition, OptionContract, OptionPosition
 from core.domains.mutual_fund import FundHolding, InvIT, MutualFund, REIT, SIP, SIPFrequency
-from core.domains.portfolio import PortfolioSnapshot, PositionSnapshot
 from core.portfolio.adapters.multi_asset_aggregator import (
     AssetClassExposure,
     CapitalAllocationService,
