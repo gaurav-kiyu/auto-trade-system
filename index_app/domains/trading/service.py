@@ -56,6 +56,7 @@ class TradingLoopService:
         check_invariants_fn: Callable | None = None,
         send_fn: Callable | None = None,
         equity_trader: Any = None,
+        dashboard_notify_fn: Callable | None = None,
     ):
         """Initialize the trading loop service.
 
@@ -83,6 +84,7 @@ class TradingLoopService:
             check_invariants_fn: Optional invariant checker.
             send_fn: Optional notification function.
             equity_trader: Optional EquityTrader instance (v2.54+).
+            dashboard_notify_fn: Optional dashboard notification callback.
         """
         self._cfg = cfg
         self._shutdown = shutdown_event
@@ -107,6 +109,7 @@ class TradingLoopService:
         self._check_invariants = check_invariants_fn
         self._send = send_fn
         self._equity_trader = equity_trader
+        self._dashboard_notify = dashboard_notify_fn
 
     def run(self) -> None:
         """Run the main trading loop until shutdown is signalled."""
@@ -114,6 +117,8 @@ class TradingLoopService:
         _log.info("[TRADING LOOP] Entering main loop (interval=%ds)", scan_interval)
         if self._send:
             self._send("Bot started — entering trading loop")
+        if self._dashboard_notify:
+            self._dashboard_notify("Bot started — entering trading loop", severity="INFO", category="system")
 
         invariant_cycle_count = 0
         while not self._shutdown.is_set():
@@ -140,6 +145,10 @@ class TradingLoopService:
             self._shutdown.wait(max(1, scan_interval - elapsed))
 
         _log.info("[TRADING LOOP] Shutdown signal received")
+        if self._send:
+            self._send("Bot shutting down")
+        if self._dashboard_notify:
+            self._dashboard_notify("Bot shutting down", severity="INFO", category="system")
 
     def execute_cycle(self) -> None:
         """Execute a single trading cycle.  Useful for testing."""
@@ -163,6 +172,8 @@ class TradingLoopService:
             self._shutdown.wait(60 if mkt_status != "HOLIDAY" else 300)
             return
         if self._is_hard_halted():
+            if self._dashboard_notify:
+                self._dashboard_notify("Hard halt active — skipping cycle", severity="WARNING", category="risk")
             self._shutdown.wait(int(self._cfg.get("SCAN_INTERVAL", 30)))
             return
 
@@ -319,3 +330,9 @@ class TradingLoopService:
                 continue
 
             self._enter_trade(name, sig)
+            if self._dashboard_notify:
+                self._dashboard_notify(
+                    f"Trade entered: {name} {sig.get('direction', 'CALL')} score={score}",
+                    severity="INFO", category="trade",
+                    details={"symbol": name, "score": score, "direction": sig.get("direction")},
+                )

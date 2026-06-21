@@ -8,6 +8,7 @@ Modules
 -------
 replay_certifier   :  Deterministic Replay Certification (Phase 4)
 paper_certifier    :  Paper Trading Certification (Phase 5)
+gate               :  Unified Certification Gate (Phase 24)
 """
 
 from __future__ import annotations
@@ -27,6 +28,11 @@ from core.certification.strategy_certifier import (
     StrategyCertifier,
     certify_strategy,
 )
+from core.certification.gate import (
+    CertificationGate,
+    CertificationGateResult,
+    run_certification_gate,
+)
 
 __all__ = [
     "ReplayCertifier",
@@ -38,4 +44,7 @@ __all__ = [
     "StrategyCertifier",
     "StrategyCertificationReport",
     "certify_strategy",
+    "CertificationGate",
+    "CertificationGateResult",
+    "run_certification_gate",
 ]

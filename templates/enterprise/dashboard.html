@@ -76,6 +76,17 @@
         .btn-xs { padding: .15rem .35rem; font-size: .65rem; }
         .btn-icon { padding: .35rem; border-radius: .4rem; background: transparent; color: var(--text-muted); border: none; cursor: pointer; }
         .btn-icon:hover { background: rgba(148,163,184,.08); color: var(--text-secondary); }
+.notification-btn { position: relative; }
+.notification-badge { position: absolute; top: -2px; right: -2px; min-width: 14px; height: 14px; border-radius: 50%; font-size: .55rem; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,.4); }
+.notification-dropdown { position: absolute; top: 100%; right: 0; width: 360px; max-height: 400px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: .75rem; box-shadow: 0 12px 40px rgba(0,0,0,.4); display: none; z-index: 100; margin-top: .5rem; }
+.notification-dropdown.visible { display: block; }
+.notification-item { display: flex; gap: .65rem; padding: .65rem .85rem; border-bottom: 1px solid rgba(148,163,184,.04); cursor: pointer; transition: background .1s; }
+.notification-item:hover { background: rgba(59,130,246,.04); }
+.notification-item:last-child { border-bottom: none; }
+.notification-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.notification-msg { font-size: .78rem; color: var(--text-secondary); line-height: 1.3; }
+.notification-time { font-size: .65rem; color: var(--text-muted); margin-top: .15rem; }
+.notification-empty { text-align: center; padding: 2rem; color: var(--text-muted); font-size: .78rem; }
         .grid-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
@@ -138,6 +149,7 @@
             <div class="nav-item" data-page="risk"><i class="fas fa-shield-alt"></i> Risk</div>
             <div class="nav-item" data-page="oi"><i class="fas fa-database"></i> OI Data</div>
             <div class="nav-item" data-page="fundamentals"><i class="fas fa-chart-bar"></i> Fundamentals</div>
+            <div class="nav-item" data-page="performance"><i class="fas fa-trophy"></i> Performance</div>
             <div class="nav-section">System</div>
             <div class="nav-item" data-page="health"><i class="fas fa-heartbeat"></i> Health</div>
             <div class="nav-item" data-page="broker"><i class="fas fa-exchange-alt"></i> Broker</div>
@@ -169,7 +181,18 @@
                 <button class="btn btn-ghost btn-sm" id="autoRefreshBtn" title="Toggle auto-refresh"><i class="fas fa-play" id="autoRefreshIcon"></i></button>
                 <button class="btn btn-ghost btn-sm" id="refreshBtn" title="Refresh (Ctrl+R)"><i class="fas fa-sync-alt" id="refreshIcon"></i></button>
                 <button class="btn btn-ghost btn-sm" id="shortcutsBtn" title="Keyboard shortcuts"><i class="fas fa-keyboard"></i></button>
-                <span class="status-dot" id="statusDot" style="width:8px;height:8px;border-radius:50%;display:inline-block;"></span>
+                <div class="notification-btn" id="notificationBtn" style="position:relative;cursor:pointer;" title="Notifications">
+    <i class="fas fa-bell" style="color:var(--text-muted);font-size:.9rem;"></i>
+    <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
+    <div class="notification-dropdown" id="notificationDropdown">
+        <div class="notification-header" style="display:flex;justify-content:space-between;align-items:center;padding:.7rem .85rem;border-bottom:1px solid var(--border);">
+            <span style="font-size:.78rem;font-weight:600;color:var(--text-secondary);">Notifications</span>
+            <button class="btn btn-ghost btn-xs" id="clearNotificationsBtn" title="Acknowledge all"><i class="fas fa-check-double"></i></button>
+        </div>
+        <div id="notificationList"><div class="notification-empty">No notifications</div></div>
+    </div>
+</div>
+<span class="status-dot" id="statusDot" style="width:8px;height:8px;border-radius:50%;display:inline-block;"></span>
                 <div class="user-badge" id="userMenuBtn">
                     <div class="user-avatar" id="userAvatar">A</div>
                     <div class="user-info"><div class="name" id="userName">Admin</div><div class="role" id="userRole">admin</div></div>
@@ -234,6 +257,7 @@
                 <div id="faScreenResults" style="margin-top:1rem;"></div>
             </div>
         </div>
+        <div id="page-performance" class="page"><div id="performanceContent"><div class="empty-state"><p>Loading performance data...</p></div></div></div>
         <div id="page-users" class="page"><div id="usersContent"><div class="empty-state"><p>Loading user management...</p></div></div></div>
         <div id="page-config" class="page"><div id="configContent"><div class="empty-state"><p>Loading config editor...</p></div></div></div>
         <div id="page-kill-switch" class="page"><div id="killSwitchContent"><div class="empty-state"><p>Loading kill switch...</p></div></div></div>
@@ -327,13 +351,15 @@
                 oi: 'OI Data', health: 'Health', broker: 'Broker', ml: 'ML',
                 users: 'User Management', config: 'Configuration', 'kill-switch': 'Kill Switch',
                 'system-state': 'System State', logs: 'Audit Log',
-                fundamentals: 'Fundamentals'
+                fundamentals: 'Fundamentals',
+                performance: 'Performance Comparison'
             };
             document.getElementById('pageTitle').textContent = titles[page] || page;
             const subs = {
                 overview: 'System overview and key metrics', trading: 'Live positions and orders',
                 signals: 'Signal diagnostics and feed', risk: 'Risk controls and exposure',
                 fundamentals: 'Multi-dimension equity fundamental scoring engine',
+                performance: 'Compare performance across regimes, score bins, directions, and indices',
                 oi: 'Options chain OI and PCR data', health: 'System health and dependencies',
                 broker: 'Broker connectivity and status', ml: 'ML model status and metrics',
                 users: 'Manage users and roles', config: 'System configuration management',
@@ -348,7 +374,7 @@
         function loadPageData(page) {
             const fns = {
                 overview: loadOverview, trading: loadTrading, signals: loadSignals, risk: loadRisk,
-                oi: loadOI, fundamentals: loadFundamentals, health: loadHealth, broker: loadBroker, ml: loadML,
+                oi: loadOI, fundamentals: loadFundamentals, performance: loadPerformance, health: loadHealth, broker: loadBroker, ml: loadML,
                 users: loadUsers, config: loadConfigPage, 'kill-switch': loadKillSwitch,
                 'system-state': loadSystemState, logs: loadLogs
             };
@@ -390,7 +416,7 @@
             if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.visible').forEach(m => m.classList.remove('visible')); return; }
             if (e.key === '?' || e.key === 'h') { document.getElementById('shortcutsModal').classList.toggle('visible'); return; }
             if (e.key === 'a' && !e.ctrlKey && !_navBuffer) { toggleAutoRefresh(); return; }
-            const pages = ['overview','trading','signals','risk','oi','health','broker','ml','users','config','kill-switch','system-state','logs'];
+            const pages = ['overview','trading','signals','risk','oi','performance','health','broker','ml','users','config','kill-switch','system-state','logs'];
             if (e.key >= '1' && e.key <= '9' && !_navBuffer) { const idx = parseInt(e.key)-1; if (idx < pages.length) navigate(pages[idx]); return; }
             if (e.key === 'g' && !_navBuffer) { _navBuffer = 'g'; setTimeout(() => _navBuffer = '', 1000); return; }
             if (_navBuffer === 'g') {
@@ -1503,6 +1529,233 @@
             faCustomWeights = {};
             showToast('Weights reset to defaults. Click Apply Weights to save.', 'info');
         }
+
+// ══════════════════════════════════════════════════════════════════════
+//  REAL-TIME NOTIFICATIONS (SSE)
+// ══════════════════════════════════════════════════════════════════════
+let notifSSE = null;
+let notifCount = 0;
+
+function connectNotifSSE() {
+    if (notifSSE) { notifSSE.close(); }
+    notifSSE = new EventSource('/api/system/notifications/stream');
+    notifSSE.addEventListener('connected', function(e) {
+        const data = JSON.parse(e.data);
+        if (data.recent && data.recent.length > 0) {
+            notifCount = data.recent.filter(n => !n.acknowledged).length;
+            updateNotifBadge();
+            renderNotifList(data.recent.slice(-20));
+        }
+    });
+    notifSSE.addEventListener('notification', function(e) {
+        const n = JSON.parse(e.data);
+        notifCount++;
+        updateNotifBadge();
+        // Show toast for CRITICAL and ERROR
+        if (n.severity === 'CRITICAL' || n.severity === 'ERROR') {
+            showToast(n.message, n.severity === 'CRITICAL' ? 'error' : 'warning');
+        }
+        // Prepend to dropdown
+        const list = document.getElementById('notificationList');
+        if (list) {
+            const empty = list.querySelector('.notification-empty');
+            if (empty) empty.remove();
+            const item = document.createElement('div');
+            item.className = 'notification-item';
+            const dotColor = {CRITICAL:'#ef4444',ERROR:'#f87171',WARNING:'#f59e0b',INFO:'#3b82f6'}[n.severity] || '#3b82f6';
+            item.innerHTML = '<div class="notification-dot" style="background:'+dotColor+';"></div><div><div class="notification-msg">'+escapeHtml(n.message)+'</div><div class="notification-time">'+n.severity+' - '+n.timestamp_human+'</div></div>';
+            list.insertBefore(item, list.firstChild);
+            // Keep only last 50
+            while (list.children.length > 50) { list.removeChild(list.lastChild); }
+        }
+    });
+    notifSSE.onerror = function() {
+        // Reconnect after 3 seconds
+        setTimeout(connectNotifSSE, 3000);
+    };
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function updateNotifBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (badge) {
+        if (notifCount > 0) {
+            badge.style.display = 'flex';
+            badge.textContent = notifCount > 99 ? '99+' : notifCount;
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+function renderNotifList(notifs) {
+    const list = document.getElementById('notificationList');
+    if (!list) return;
+    if (!notifs || notifs.length === 0) {
+        list.innerHTML = '<div class="notification-empty">No notifications</div>';
+        return;
+    }
+    let html = '';
+    notifs.slice().reverse().forEach(function(n) {
+        const dotColor = {CRITICAL:'#ef4444',ERROR:'#f87171',WARNING:'#f59e0b',INFO:'#3b82f6'}[n.severity] || '#3b82f6';
+        html += '<div class="notification-item"><div class="notification-dot" style="background:'+dotColor+';"></div><div><div class="notification-msg">'+escapeHtml(n.message)+'</div><div class="notification-time">'+n.severity+' - '+n.timestamp_human+'</div></div></div>';
+    });
+    list.innerHTML = html;
+}
+
+// Toggle notification dropdown
+document.addEventListener('click', function(e) {
+    const btn = document.getElementById('notificationBtn');
+    const dd = document.getElementById('notificationDropdown');
+    if (btn && dd) {
+        if (btn.contains(e.target)) {
+            dd.classList.toggle('visible');
+            // Acknowledge all when opening
+            if (dd.classList.contains('visible') && notifCount > 0) {
+                apiFetch('/api/system/notifications/acknowledge-all', { method: 'POST', body: JSON.stringify({}) });
+                notifCount = 0;
+                updateNotifBadge();
+            }
+        } else if (!dd.contains(e.target)) {
+            dd.classList.remove('visible');
+        }
+    }
+});
+
+// Clear all button
+document.addEventListener('DOMContentLoaded', function() {
+    const clearBtn = document.getElementById('clearNotificationsBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            apiFetch('/api/system/notifications/acknowledge-all', { method: 'POST', body: JSON.stringify({}) });
+            notifCount = 0;
+            updateNotifBadge();
+            document.getElementById('notificationList').innerHTML = '<div class="notification-empty">No notifications</div>';
+            document.getElementById('notificationDropdown') && document.getElementById('notificationDropdown').classList.remove('visible');
+        });
+    }
+});
+
+// Connect SSE on load
+connectNotifSSE();
+
+// ══════════════════════════════════════════════════════════════════════
+//  PAGE: PERFORMANCE COMPARISON
+// ══════════════════════════════════════════════════════════════════════
+async function loadPerformance() {
+    try {
+        const perf = await apiFetch('/api/performance/comparison?days=90');
+        const el = document.getElementById('performanceContent');
+        if (!perf || perf.status === 'unavailable' || perf.trades_count === 0) {
+            el.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><i class="fas fa-trophy"></i><p>' + ((perf && perf.note) || 'No trade data available. Run the bot to generate performance data.') + '</p></div></div></div>';
+            return;
+        }
+        const o = perf.overall || {};
+        let html = '<div class="grid-overview">';
+        html += statCard('Total Trades', o.trades || perf.trades_count || 0);
+        html += statCard('Win Rate', o.win_rate ? o.win_rate + '%' : '--', { color: (o.win_rate || 0) >= 50 ? '#4ade80' : '#f87171' });
+        html += statCard('Net P&L', '₹' + fmtPnl(o.total_net_pnl || 0), { color: (o.total_net_pnl || 0) >= 0 ? '#4ade80' : '#f87171' });
+        html += statCard('Profit Factor', o.profit_factor || '--', { color: o.profit_factor !== 'inf' && o.profit_factor >= 1.5 ? '#4ade80' : '#f59e0b' });
+        html += statCard('Expectancy', '₹' + (o.expectancy || 0).toFixed(2), { color: (o.expectancy || 0) >= 0 ? '#4ade80' : '#f87171' });
+        html += statCard('Sharpe', o.sharpe_per_trade || '--', { color: (o.sharpe_per_trade || 0) >= 0.5 ? '#4ade80' : '#f59e0b' });
+        html += statCard('Max Drawdown', '₹' + (o.max_drawdown || 0).toLocaleString(), { color: (o.max_drawdown || 0) > 0 ? '#f87171' : '#4ade80' });
+        html += statCard('Period', perf.period_days + ' days');
+        html += '</div>';
+
+        // Tab bar for breakdowns
+        html += '<div class="tab-bar">';
+        html += '<div class="tab active" onclick="switchPerfTab(this, 'regime')">By Regime</div>';
+        html += '<div class="tab" onclick="switchPerfTab(this, 'score')">By Score</div>';
+        html += '<div class="tab" onclick="switchPerfTab(this, 'direction')">By Direction</div>';
+        html += '<div class="tab" onclick="switchPerfTab(this, 'index')">By Index</div>';
+        html += '<div class="tab" onclick="switchPerfTab(this, 'exit')">By Exit</div>';
+        html += '</div>';
+
+        // Regime breakdown
+        html += '<div class="perf-tab-content active" id="perfTab-regime"><div class="card"><div class="card-body" style="padding:0;">';
+        html += buildPerfTable(perf.by_regime || {}, 'Regime', 'trades', 'win_rate', 'avg_pnl', 'total_pnl');
+        html += '</div></div></div>';
+
+        // Score bin breakdown
+        html += '<div class="perf-tab-content" id="perfTab-score"><div class="card"><div class="card-body" style="padding:0;">';
+        html += buildPerfTable(perf.by_score_bin || {}, 'Score Bin', 'trades', 'win_rate', 'avg_pnl', 'total_pnl');
+        html += '</div></div></div>';
+
+        // Direction breakdown
+        html += '<div class="perf-tab-content" id="perfTab-direction"><div class="card"><div class="card-body" style="padding:0;">';
+        html += buildPerfTable(perf.by_direction || {}, 'Direction', 'trades', 'win_rate', 'avg_pnl', 'total_pnl');
+        html += '</div></div></div>';
+
+        // Index breakdown
+        html += '<div class="perf-tab-content" id="perfTab-index"><div class="card"><div class="card-body" style="padding:0;">';
+        html += buildPerfTable(perf.by_index || {}, 'Index', 'trades', 'win_rate', 'avg_pnl', 'total_pnl');
+        html += '</div></div></div>';
+
+        // Exit reason breakdown
+        html += '<div class="perf-tab-content" id="perfTab-exit"><div class="card"><div class="card-body" style="padding:0;">';
+        html += buildPerfTable(perf.by_exit_reason || {}, 'Exit Reason', 'trades', 'win_rate', 'avg_pnl', 'pct_of_total');
+        html += '</div></div></div>';
+
+        // Insights
+        if (perf.insights && perf.insights.length > 0) {
+            html += '<div class="card" style="margin-top:1.5rem;"><div class="card-header"><h3><i class="fas fa-lightbulb"></i> Insights</h3></div><div class="card-body">';
+            html += '<div style="display:grid;gap:.5rem;">';
+            perf.insights.forEach(function(insight, i) {
+                html += '<div style="padding:.5rem .7rem;background:rgba(59,130,246,.04);border-radius:.5rem;border:1px solid rgba(59,130,246,.08);font-size:.78rem;color:var(--text-secondary);line-height:1.4;">' + (i+1) + '. ' + insight + '</div>';
+            });
+            html += '</div></div></div>';
+        }
+
+        el.innerHTML = html;
+    } catch (e) {
+        document.getElementById('performanceContent').innerHTML = '<div class="card"><div class="card-body"><div class="empty-state"><p>Failed to load: ' + e.message + '</p></div></div></div>';
+    }
+}
+
+function buildPerfTable(data, nameKey, tradesKey, wrKey, avgKey, totalKey) {
+    const keys = Object.keys(data);
+    if (keys.length === 0) return '<div class="empty-state" style="padding:1.5rem;"><p>No data</p></div>';
+    let html = '<div class="table-wrap"><table class="table"><thead><tr><th>' + nameKey + '</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th><th>' + (totalKey === 'pct_of_total' ? '% Total' : 'Total P&L') + '</th></tr></thead><tbody>';
+    keys.forEach(function(k) {
+        const d = data[k];
+        const wr = d[wrKey] || 0;
+        const avg = d[avgKey] || 0;
+        const totalVal = d[totalKey] || 0;
+        html += '<tr><td style="font-weight:500;">' + k + '</td><td>' + d[tradesKey] + '</td><td style="color:' + (wr >= 50 ? '#4ade80' : '#f87171') + ';font-weight:600;">' + wr + '%</td><td style="color:' + (avg >= 0 ? '#4ade80' : '#f87171') + ';">₹' + fmtPnl(avg) + '</td><td style="color:' + (totalVal >= 0 ? '#4ade80' : '#f87171') + ';">₹' + fmtPnl(totalVal) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+}
+
+
+function switchPerfTab(el, tab) {
+    document.querySelectorAll('.perf-tab-content').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-bar .tab').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    var tc = document.getElementById('perfTab-' + tab);
+    if (tc) tc.classList.add('active');
+}
+
+// Style for perf tabs
+var perfStyle = document.createElement('style');
+perfStyle.textContent = '.perf-tab-content { display: none; } .perf-tab-content.active { display: block; }';
+document.head.appendChild(perfStyle);
+
+// Init notification bell on user load
+initUser = (function(orig) {
+    return function() {
+        if (orig) orig();
+        notifCount = 0;
+        updateNotifBadge();
+    };
+})(initUser);
+
 </script>
 </body>
 </html>

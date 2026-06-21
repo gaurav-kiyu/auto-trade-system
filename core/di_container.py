@@ -193,6 +193,81 @@ def wire_default_services(container_instance: DIContainer | None = None) -> DICo
     except ImportError:
         pass
 
+    # Portfolio Optimizer
+    try:
+        from core.portfolio.optimizer import PortfolioOptimizer
+        if not c.is_registered(PortfolioOptimizer):
+            c.register_singleton(PortfolioOptimizer, PortfolioOptimizer)
+    except ImportError:
+        pass
+
+    # Self-Healing Orchestrator — uses factory to resolve CircuitBreakerService from container
+    try:
+        from core.self_healing.orchestrator import SelfHealingOrchestrator
+        if not c.is_registered(SelfHealingOrchestrator):
+            from core.health_checker import run_full_health_check
+            def _make_healing():
+                from core.services.circuit_breaker_service import CircuitBreakerService
+                cb = c.try_resolve(CircuitBreakerService)
+                if cb is None:
+                    cb = CircuitBreakerService()
+                return SelfHealingOrchestrator(
+                    cfg={},
+                    health_check_fn=run_full_health_check,
+                    circuit_breaker_service=cb,
+                )
+            c.register_factory(SelfHealingOrchestrator, _make_healing)
+    except ImportError:
+        pass
+
+    # Capacity Planner
+    try:
+        from core.capacity_planning import CapacityPlanner
+        if not c.is_registered(CapacityPlanner):
+            c.register_singleton(CapacityPlanner, CapacityPlanner)
+    except ImportError:
+        pass
+
+    # Cost Governance (FinOps)
+    try:
+        from core.finops import CostGovernance
+        if not c.is_registered(CostGovernance):
+            c.register_singleton(CostGovernance, CostGovernance)
+    except ImportError:
+        pass
+
+    # Version Compatibility Matrix
+    try:
+        from core.version_compatibility import VersionCompatibilityMatrix
+        if not c.is_registered(VersionCompatibilityMatrix):
+            c.register_singleton(VersionCompatibilityMatrix, VersionCompatibilityMatrix)
+    except ImportError:
+        pass
+
+    # SLO / SLA Governance
+    try:
+        from core.slo_governance import SLOGovernance
+        if not c.is_registered(SLOGovernance):
+            c.register_singleton(SLOGovernance, SLOGovernance)
+    except ImportError:
+        pass
+
+    # Global Risk Dashboard
+    try:
+        from core.risk_dashboard import RiskDashboard
+        if not c.is_registered(RiskDashboard):
+            c.register_singleton(RiskDashboard, RiskDashboard)
+    except ImportError:
+        pass
+
+    # Change Management & Approval Workflow
+    try:
+        from core.change_management import ChangeManager
+        if not c.is_registered(ChangeManager):
+            c.register_singleton(ChangeManager, ChangeManager)
+    except ImportError:
+        pass
+
     return c
 
 

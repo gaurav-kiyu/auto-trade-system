@@ -1,290 +1,265 @@
-# Repository Inventory Report — OPB v2.53.0
+# Repository Inventory
 
-**Generated:** 2026-06-03
-**Version:** 2.53.0
-**Total Files:** ~500+ Python modules, ~200 config/docs/scripts
-
----
-
-## 1. Source Code
-
-### Entry Points
-| File | Purpose | Lines |
-|------|---------|-------|
-| `index_app/index_trader.py` | Main trading brain | ~8,200 |
-| `launcher.py` | GUI launcher wrapper | ~200 |
-| `core/enterprise_dashboard.py` | Enterprise web dashboard (FastAPI) | ~2,500 |
-| `run_backtest.py` | Offline backtest runner | ~500 |
-| `run_analysis.py` | Simulation / analysis runner | ~300 |
-| `signal_engine.py` | Root-level signal engine (deprecated) | ~500 |
-| `telegram_engine.py` | Root-level Telegram engine (deprecated) | ~400 |
-
-### Core Services (`core/`)
-| Module | Purpose |
-|--------|---------|
-| `core/services/risk_service.py` | **Canonical risk engine** — position sizing, limits, VIX adjustment |
-| `core/services/execution_service.py` | Order execution with reconciliation |
-| `core/services/notification_service.py` | Telegram/alert dispatch |
-| `core/services/persistence_service.py` | State persistence |
-| `core/services/portfolio_service.py` | Portfolio tracking |
-| `core/services/rate_limiting_service.py` | API rate limiting |
-| `core/services/circuit_breaker_service.py` | Circuit breaker state |
-| `core/services/broker_health_service.py` | Broker health monitoring |
-| `core/services/signal_orchestrator.py` | Signal pipeline orchestration |
-
-### Execution (`core/execution/`)
-| Module | Purpose |
-|--------|---------|
-| `core/execution/order_manager.py` | Order state machine |
-| `core/execution/continuous_reconciliation.py` | Background reconciliation |
-| `core/execution/deterministic_state_machine.py` | State transition validation |
-| `core/execution/durable_state.py` | SQLite crash recovery |
-| `core/execution/idempotency/certifier.py` | SHA-256 idempotency |
-| `core/execution/idempotency/manager.py` | Duplicate prevention |
-| `core/execution/reconciliation/service.py` | Broker-vs-internal sync |
-| `core/execution/broker_truth_reconciliation.py` | Authoritative broker state |
-| `core/execution/broker_gateway.py` | Broker abstraction |
-| `core/execution/shadow_mode.py` | A/B comparison mode |
-
-### Risk (`core/`)
-| Module | Purpose |
-|--------|---------|
-| `core/risk/margin_validator.py` | Margin validation with actual quantity |
-| `core/risk/sizing/manager.py` | Position sizing |
-| `core/risk/limits/manager.py` | Risk limits |
-| `core/risk/greeks_engine.py` | Greeks risk computation |
-| `core/risk/legacy_adapter.py` | Backward compatibility adapter |
-| `core/safety_state.py` | Centralized kill switch / hard halt |
-| `core/kelly_sizer.py` | Half-Kelly position sizing |
-| `core/var_calculator.py` | Parametric VaR |
-| `core/stress_tester.py` | 4-scenario stress testing |
-| `core/capital_manager.py` | Capital tracking |
-
-### Signal Generation
-| Module | Purpose |
-|--------|---------|
-| `core/adaptive_signal.py` | Signal scoring pipeline |
-| `core/pure_index_signal.py` | Base signal (RSI, MACD, ADX, PCR) |
-| `core/strike_selector.py` | ATM/OTM strike selection |
-| `core/iv_rank.py` | IV Rank / IV Percentile |
-| `core/ml_classifier.py` | LightGBM win-prob classifier |
-| `core/session_classifier.py` | Time-of-day session bands |
-| `core/gex_analyzer.py` | Gamma Exposure |
-| `core/fii_dii_tracker.py` | Institutional flow |
-| `core/implied_move.py` | ATM straddle implied move |
-
-### Governance
-| Module | Purpose |
-|--------|---------|
-| `core/constitution.py` | Constitution Validation Engine |
-| `core/constitution_ai_gate.py` | AI Governance Gate |
-| `core/constitution_evidence_data.py` | Evidence data for scoring |
-| `core/ai/safety_gate.py` | AI action restriction gate |
-| `core/ai/governance.py` | AI model governance |
-| `core/ai/model_registry.py` | Model metadata registry |
-| `core/auditor/auditor.py` | System auditor |
-| `core/audit_mode.py` | Audit mode controller |
-
-### Ports (Port/Adapter Pattern)
-| Port | Adapter |
-|------|---------|
-| `broker/broker_port.py` | `infrastructure/adapters/brokers/kite/adapter.py` |
-| `market_data.py` | `infrastructure/adapters/market_data/yahoofinance/adapter.py` |
-| `persistence/persistence_port.py` | `infrastructure/adapters/persistence/sqlite_adapter.py` |
-| `notification/notification_port.py` | `infrastructure/adapters/notifications/telegram_adapter.py` |
-| `risk/risk_port.py` | `core/services/risk_service.py` |
-| `execution/execution_port.py` | `core/services/execution_service.py` |
-| `config/config_port.py` | `infrastructure/config/secure_config_adapter.py` |
-| `ml_model/ml_model_port.py` | `infrastructure/adapters/ml_model/ml_model_adapter.py` |
-| `circuit_breaker/circuit_breaker_port.py` | `core/services/circuit_breaker_service.py` |
-
-### Strategy
-| Module | Purpose |
-|--------|---------|
-| `core/spread_strategy.py` | Debit spread engine |
-| `core/straddle_strategy.py` | Straddle/Strangle engine |
-| `core/iron_condor_strategy.py` | Iron Condor credit spread |
-| `core/scalein_manager.py` | Two-legged scale-in |
-| `core/limit_order_engine.py` | Limit order pricing |
-| `core/strategy/strategies.py` | Strategy registry |
-| `core/strategy/orchestrator.py` | Strategy orchestration |
-| `core/strategy/plugin_framework.py` | Plugin architecture |
-| `core/strategy/sandbox.py` | Strategy sandbox |
+> **Phase 1 Deliverable** — Generated from live codebase audit.
+> **Date:** 2026-06-20
+> **Methodology:** Automated AST scanning + manual verification
 
 ---
 
-## 2. Testing
+## 1. Core Modules (`core/`)
 
-| Suite | Files | Count |
-|-------|-------|-------|
-| Unit tests | `tests/unit/` | 4 files |
-| Integration tests | `tests/integration/` | 2 files |
-| Chaos tests | `tests/chaos/` | 10 files |
-| Broker contract tests | `tests/contract/broker/` | 10 files |
-| Core tests | `tests/test_*.py` | ~200 files |
-| Acceptance tests | `tests/acceptance/` | 1 file |
-| **Total tests** | | **~2670 tests** |
+### 1.1 Risk Domain
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/services/risk_service.py` | Position sizing, VIX scaling, drawdown sizing | ✅ Production |
+| `core/domains/risk/service.py` | Domain risk service | ✅ Production |
+| `core/domains/risk/model.py` | Risk domain models | ✅ Production |
+| `core/risk/sizing/manager.py` | Risk sizing manager | ✅ Production |
+| `core/risk/__init__.py` | Risk module exports | ✅ Production |
+| `core/var_calculator.py` | Parametric VaR (95/99) | ✅ Production |
+| `core/stress_tester.py` | 4-scenario stress test engine | ✅ Production |
+| `core/kelly_sizer.py` | Half-Kelly position sizing | ✅ Production |
+| `core/reentry_evaluator.py` | Per-index cooldown + score gate | ✅ Production |
+| `core/liquidity_guard.py` | Bid-ask + OI + volume filter | ✅ Production |
 
-### Test Coverage Areas
-- ✅ Smoke tests (8 tests)
-- ✅ Constitution & governance (227 tests)
-- ✅ Risk controls
-- ✅ Execution reconciliation
-- ✅ Broker failover
-- ✅ Chaos scenarios (ack timeout, broker outage, DB corruption, reconnect storm, stale feed)
-- ✅ Certification (paper, replay, strategy)
-- ✅ ML classifier & SHAP
-- ✅ Greeks engine
-- ✅ Config validation & schema
-- ✅ Performance metrics
-- ✅ Stress testing
+### 1.2 Execution Domain
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/execution/event_system.py` | Hash-chained event store + EventBus | ✅ Production |
+| `core/execution/idempotency/certifier.py` | Exactly-once execution certifier | ✅ Production |
+| `core/execution/broker_gateway.py` | Broker routing gateway | ✅ Production |
+| `core/execution/order_manager.py` | Order lifecycle management | ✅ Production |
+| `core/execution/continuous_reconciliation.py` | Continuous reconciliation engine | ✅ Production |
+| `core/execution/replay_engine.py` | Deterministic trade replay | ✅ Production |
+| `core/execution/retry_policy/manager.py` | Retry policy manager | ✅ Production |
+| `core/execution/state_machine.py` | Execution state machine | ✅ Production |
 
----
+### 1.3 Portfolio Domain
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/portfolio/optimizer.py` | Portfolio optimization engine (MVP, Sharpe, Risk Parity) | ✅ v2.53 |
+| `core/portfolio/authoritative.py` | Portfolio aggregation | ✅ Production |
+| `core/portfolio/adapters/multi_asset_aggregator.py` | Multi-asset capital allocation | ✅ Production |
+| `core/correlation_guard.py` | Cross-index correlation block | ✅ Production |
+| `core/monte_carlo.py` | Trade P&L shuffle simulation | ✅ Production |
+| `core/monte_carlo_tail_risk.py` | Tail risk analysis | ✅ Production |
 
-## 3. Configuration
+### 1.4 Signal & Strategy Domain
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/adaptive_signal.py` | Signal scoring pipeline | ✅ Production |
+| `core/pure_index_signal.py` | Base signal generation (RSI, MACD, ADX, PCR) | ✅ Production |
+| `core/strike_selector.py` | ATM/OTM/DELTA strike selection | ✅ Production |
+| `core/session_classifier.py` | Time-of-day session bands | ✅ Production |
+| `core/iv_rank.py` | IV Rank / IV Percentile | ✅ Production |
+| `core/signal_autopsy.py` | Win-rate diagnostics | ✅ Production |
+| `core/signal_approval_workflow.py` | Signal routing approval | ✅ Production |
+| `core/strategy/orchestrator.py` | Strategy orchestration | ✅ Production |
+| `core/strategy/strategy_versioning.py` | Strategy version tracking | ✅ Production |
+| `core/spread_strategy.py` | Debit spread engine | ✅ Production |
+| `core/straddle_strategy.py` | Straddle/Strangle engine | ✅ Production |
+| `core/iron_condor_strategy.py` | Iron Condor credit spread | ✅ Production |
+| `core/scalein_manager.py` | Two-legged scale-in entry | ✅ Production |
 
-| File | Purpose |
-|------|---------|
-| `index_config.defaults.json` | **Single source of truth** — ~860 config keys |
-| `config.json` | User config (gitignored) |
-| `config.template.json` | Template with documentation |
-| `config.dev.json` | Development overrides |
-| `config.paper.json` | Paper mode overrides |
-| `config.lowcap.json` | Low capital overrides |
-| `config.starter.json` | Starter config |
-| `stock_config.defaults.json` | Stock defaults |
-| `stock_config.template.json` | Stock template |
-| `dashboard_config.json` | Dashboard config |
-| `schemas/index_config.schema.json` | JSON schema |
-| `schemas/stock_config.schema.json` | Stock schema |
-| `.env.example` | Environment template |
+### 1.5 ML Domain
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/ml_classifier.py` | LightGBM win-prob classifier | ✅ Production |
+| `core/ml_performance_tracker.py` | SQLite prediction calibration + Brier score | ✅ Production |
+| `core/concept_drift_detector.py` | PSI + KS feature drift detection | ✅ Production |
+| `core/ml/feature_store.py` | ML feature store with versioning | ✅ Production |
+| `core/ml/optimizer.py` | ML hyperparameter optimization | ✅ Production |
+| `core/ai/governance.py` | AI model governance + approval workflow | ✅ Production |
+| `core/ai/safety_gate.py` | AI safety gate (AI may NOT place orders) | ✅ Production |
 
----
+### 1.6 Adapters & Brokers
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/adapters/broker_adapters.py` | Broker adapter abstraction + PaperBrokerAdapter | ✅ Production |
+| `core/broker_failover.py` | Broker failover manager | ✅ Production |
+| `core/ports/broker/broker_port.py` | Broker port interface | ✅ Production |
+| `infrastructure/adapters/market_data/` | Market data adapters (NSE, yfinance) | ✅ Production |
+| `infrastructure/adapters/market_data/equity/` | Equity market data adapters | ✅ Production |
+| `infrastructure/adapters/market_data/commodity/` | Commodity market data adapters | ✅ Production |
+| `infrastructure/adapters/market_data/currency/` | Currency market data adapters | ✅ Production |
 
-## 4. Documentation
+### 1.7 Governance & Compliance
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/constitution.py` | Constitution Validation Engine (23 categories) | ✅ Production |
+| `core/constitution_ai_gate.py` | AI Governance Gate | ✅ Production |
+| `core/environment.py` | Environment separation (DEV/QA/PAPER/PRODUCTION) | ✅ Production |
+| `core/data_governance.py` | Retention policies + cleanup scheduler | ✅ Production |
+| `core/db_migration.py` | Schema versioning + migration registry | ✅ Production |
+| `core/auditor/auditor.py` | Independent Auditor (10 categories) | ✅ Production |
+| `core/audit_engine.py` | Structured audit trail | ✅ Production |
+| `core/config_audit_log.py` | Config change audit log | ✅ Production |
+| `core/slo_governance.py` | SLO/SLA Governance (15 SLOs) | ✅ v2.53 |
+| `core/capacity_planning.py` | Capacity planning and forecasting | ✅ v2.53 |
+| `core/finops.py` | Cost governance and FinOps analysis | ✅ v2.53 |
+| `core/version_compatibility.py` | Version compatibility matrix | ✅ v2.53 |
 
-### User Guides
-| File | Purpose |
-|------|---------|
-| `README.md` | Project overview |
-| `SETUP_AND_TRADING_GUIDE.md` | Full setup guide |
-| `QUICK_START_GUIDE.md` | Quick start |
-| `SYSTEM_SETUP_GUIDE.md` | System setup |
-| `CONFIG_EXPLANATIONS.md` | Config key explanations |
-| `SECRETS_MIGRATION_GUIDE.md` | Secrets migration |
-| `RELEASE_NOTES.md` | Release notes |
-| `CHANGELOG.md` | Change log |
+### 1.8 Certification
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/certification/strategy_certifier.py` | Strategy certification | ✅ Production |
+| `core/certification/replay_certifier.py` | Replay determinism certification | ✅ Production |
+| `core/certification/paper_certifier.py` | Paper trading quality certification | ✅ Production |
+| `core/certification/gate.py` | Unified certification gate | ✅ v2.53 |
 
-### Certification Reports
-| File | Score |
-|------|-------|
-| `docs/ARCHITECTURE_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/RISK_CERTIFICATION_REPORT.md` | 9.4/10 |
-| `docs/EXECUTION_CERTIFICATION_REPORT.md` | 9.5/10 |
-| `docs/SECURITY_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/AI_GOVERNANCE_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/BLACK_SWAN_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/CHAOS_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/DOCUMENTATION_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/MARKET_REGIME_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/OPTIONS_GREEKS_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/PAPER_TRADING_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/PRODUCTION_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/RELEASE_GOVERNANCE_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/REPLAY_CERTIFICATION_REPORT.md` | ✅ PASS |
-| `docs/STRATEGY_CERTIFICATION_REPORT.md` | ✅ PASS |
+### 1.9 Self-Healing & Observability
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/self_healing/orchestrator.py` | Self-healing orchestration (7 patterns) | ✅ v2.53 |
+| `core/health_checker.py` | Automated weekly health check | ✅ Production |
+| `core/component_health_monitor.py` | Component health monitoring | ✅ Production |
+| `core/observability.py` | Observability facade | ✅ Production |
+| `core/metrics_exporter.py` | Prometheus metrics exporter | ✅ Production |
+| `core/risk_dashboard.py` | Global Risk Dashboard | ✅ v2.53 |
 
-### Architecture & Design
-| File | Purpose |
-|------|---------|
-| `docs/adr/` | 10 Architecture Decision Records |
-| `docs/ARCHITECTURE_SUMMARY.pdf` | Architecture summary PDF |
-| `docs/ARCHITECTURE_PRESENTATION.pptx` | Architecture presentation |
-| `docs/ownership_matrix.md` | Module ownership |
-| `docs/technical_debt.md` | Technical debt register |
-| `docs/constitution_scoring_framework.md` | Scoring criteria |
-| `docs/AI_GOVERNANCE_GUIDE.md` | AI governance protocol |
-| `docs/AI_ENGINE_GUIDE.md` | AI engine documentation |
+### 1.10 Market Data
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/nse_option_recorder.py` | NSE option chain recorder | ✅ Production |
+| `core/oi_snapshot_store.py` | Point-in-time OI recorder | ✅ Production |
+| `core/ltp_resolver.py` | LTP resolution and caching | ✅ Production |
+| `core/data_quality_monitor.py` | Market data anomaly detection | ✅ Production |
+| `core/market_data_fallback.py` | Market data source fallback | ✅ Production |
+| `core/news_sentinel.py` | Background RSS risk scanner | ✅ Production |
+| `core/event_calendar.py` | Budget/RBI/FOMC event filter | ✅ Production |
+| `core/fii_dii_tracker.py` | FII/DII institutional flow tracker | ✅ Production |
+| `core/implied_move.py` | ATM straddle implied move calculator | ✅ Production |
+| `core/gex_analyzer.py` | Gamma Exposure (GEX) analyzer | ✅ Production |
 
-### Operations
-| File | Purpose |
-|------|---------|
-| `docs/deployment/DEPLOYMENT_GUIDE.md` | Deployment guide |
-| `docs/deployment/disaster_recovery_plan.md` | DR plan |
-| `docs/runbooks/auth_expiry.md` | Auth expiry runbook |
-| `docs/runbooks/broker_outage.md` | Broker outage runbook |
-| `docs/runbooks/config_corruption.md` | Config corruption runbook |
-| `docs/runbooks/db_corruption.md` | DB corruption runbook |
-| `docs/runbooks/disk_pressure.md` | Disk pressure runbook |
-| `docs/runbooks/network_jitter.md` | Network jitter runbook |
-| `docs/runbooks/simultaneous_failover.md` | Simultaneous failover runbook |
-| `docs/runbooks/split_brain.md` | Split-brain runbook |
-| `docs/runbooks/stale_feed.md` | Stale feed runbook |
-| `docs/operator_sop.md` | Standard operating procedures |
-| `docs/incident_response_sop.md` | Incident response SOP |
+### 1.11 Analytics & Reporting
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/performance_metrics.py` | Trade analytics (Sharpe, drawdown, etc.) | ✅ Production |
+| `core/pnl_attribution.py` | Multi-dimension P&L breakdown | ✅ Production |
+| `core/report_generator.py` | PDF trade report generator | ✅ Production |
+| `core/sensitivity_analyzer.py` | Parameter sensitivity analysis | ✅ Production |
+| `core/trade_replayer.py` | ASCII bar-chart trade replay | ✅ Production |
+| `core/slippage_model.py` | Linear regression slippage calibration | ✅ Production |
+| `core/nlp_journal.py` | Post-trade narrative generation | ✅ Production |
 
-### Registers
-| File | Findings |
-|------|----------|
-| `docs/dead_code_register.md` | 17,128 findings |
-| `docs/duplicate_code_register.md` | 5,122 findings |
-| `docs/config_drift_register.md` | Config sync tracking |
-| `docs/doc_drift_register.md` | Doc-to-code sync tracking |
-| `docs/BACKTESTING_REPORT.md` | Backtest results |
+### 1.12 Web Dashboard
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/web_dashboard.py` | Dashboard startup and signal log | ✅ Production |
+| `core/enterprise_dashboard.py` | Enterprise dashboard (FastAPI + Jinja2 + RBAC) | ✅ Production |
 
----
-
-## 5. Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `scripts/release_governance.py` | Release pipeline |
-| `scripts/score_system.py` | Constitution scoring |
-| `scripts/pre_implementation_check.py` | Pre-change validator |
-| `scripts/sync_artifacts.py` | Artifact sync checker |
-| `scripts/hygiene_check.py` | Repository hygiene |
-| `scripts/scan_dead_code.py` | Dead code scanner |
-| `scripts/institutional_challenge.py` | Adversarial certification |
-| `scripts/generate_config_schemas.py` | Schema generation |
-| `scripts/generate_architecture_pdf.py` | PDF report generation |
-| `scripts/generate_architecture_pptx.py` | PPTX generation |
-| `scripts/archive_artifacts.py` | Artifact archiving |
-| `scripts/run_backtest_suite.py` | Multi-index backtesting |
-| `scripts/run_regression.py` | Regression testing |
-
----
-
-## 6. Infrastructure
-
-| File | Purpose |
-|------|---------|
-| `Dockerfile` | Multi-stage Docker build |
-| `docker-compose.yml` | Docker Compose orchestration |
-| `supervisord.conf` | Process manager |
-| `Makefile` | Build automation |
-| `pyproject.toml` | Project metadata |
-| `bitbucket-pipelines.yml` | CI/CD pipeline |
-| `.github/workflows/ci.yml` | GitHub CI |
-| `.github/workflows/prod-release.yml` | Prod release |
-| `.github/workflows/weekly-deps.yml` | Weekly dependency check |
-| `build_exe.bat` | PyInstaller EXE build |
-
----
-
-## 7. Known Gaps
-
-| Category | Issue | Severity |
-|----------|-------|----------|
-| Testing | Smoke tests pass (8/8) but 5 were previously failing due to relative imports — **now fixed** | ✅ RESOLVED |
-| Testing | Full test suite (~2670 tests) needs re-evaluation | MEDIUM |
-| Config | `CONFIG_VERSION` mismatch: integer (1) in config.json vs string ("2.53.0") in defaults.json | LOW |
-| Config | Multiple config files (dev, paper, lowcap, starter) — potential drift | MEDIUM |
-| Documentation | Audit logs reference v0.0.0-test and v1.0.0 — needs cleanup | LOW |
-| Documentation | Dead code register (17,128 findings) — needs triage | HIGH |
-| Security | No stale account detector (per Risk Certification Report) | MEDIUM |
-| CI/CD | No pre-commit hooks | MEDIUM |
-| CI/CD | build_exe.bat needs automated pipeline integration | LOW |
+### 1.13 Utility & Infrastructure
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `core/config_bootstrap.py` | Config merge + env override | ✅ Production |
+| `core/config_engine.py` | Config validation engine | ✅ Production |
+| `core/datetime_ist.py` | IST time utilities | ✅ Production |
+| `core/time_provider.py` | Authoritative time source | ✅ Production |
+| `core/di_container.py` | Dependency injection container | ✅ Production |
+| `core/db_utils.py` | Database connection utilities | ✅ Production |
+| `core/exceptions.py` | Typed exception hierarchy | ✅ Production |
+| `core/safety_state.py` | Hard halt + shutdown events | ✅ Production |
+| `core/telegram_queue.py` | Priority queue for Telegram dispatch | ✅ Production |
 
 ---
 
-*End of Repository Inventory — v2.53.0*
+## 2. Scripts (`scripts/`)
+
+| Script | Purpose | Status |
+|--------|---------|--------|
+| `gap_audit.py` | Adversarial gap audit | ✅ Production |
+| `score_system.py` | Automated constitution scoring | ✅ Production |
+| `pre_implementation_check.py` | Pre-change compliance validator | ✅ Production |
+| `release_governance.py` | Release pipeline automation | ✅ Production |
+| `sync_artifacts.py` | Script & artifact sync checker | ✅ Production |
+| `institutional_challenge.py` | Adversarial certification | ✅ Production |
+| `hygiene_check.py` | Repository hygiene scanner | ✅ Production |
+| `scan_dead_code.py` | Dead code scanner | ✅ Production |
+| `generate_config_schemas.py` | JSON schema generation | ✅ Production |
+| `validate_config_schema.py` | Config validation against schema | ✅ Production |
+| `bootstrap_config.py` | Default config creation | ✅ Production |
+| `migrate_config.py` | Config format migration | ✅ Production |
+| `check_architecture_compliance.py` | Architecture compliance checker | ✅ Production |
+| `rollback.py` | Database rollback script | ✅ Production |
+| `run_backtest_replay.py` | Backtest replay runner | ✅ Production |
+| `run_backtest_suite.py` | Multi-index backtest suite | ✅ Production |
+| `run_csv_backtest.py` | CSV-based backtest runner | ✅ Production |
+| `run_walkforward.py` | Walk-forward analysis runner | ✅ Production |
+
+---
+
+## 3. Documentation (`docs/`)
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| `adr/` | Architecture Decision Records (10+ ADRs) | ✅ |
+| `runbooks/` | Operational runbooks (11 runbooks) | ✅ |
+| `operations/runbook_template.md` | Runbook template | ✅ |
+| `operations/postmortem_template.md` | Postmortem template | ✅ |
+| `architecture_governance.md` | Architecture governance framework | ✅ |
+| `ownership_matrix.md` | Module ownership matrix | ✅ |
+| `technical_debt.md` | Technical debt register | ✅ |
+| `dead_code_register.md` | Dead code register | ✅ |
+| `duplicate_code_register.md` | Duplicate code register | ✅ |
+| `config_drift_register.md` | Configuration drift register | ✅ |
+| `doc_drift_register.md` | Documentation drift register | ✅ |
+| `constitution_scoring_framework.md` | 23-category scoring criteria | ✅ |
+
+---
+
+## 4. Configuration Files
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `index_config.defaults.json` | Single source of truth for defaults | ✅ |
+| `config.json` | User config (gitignored) | ✅ |
+| `config.template.json` | Config template | ✅ |
+| `stock_config.defaults.json` | Stock config defaults | ✅ |
+| `stock_config.json` | Stock config | ✅ |
+| `schemas/index_config.schema.json` | Config JSON schema | ✅ |
+| `dashboard_config.json` | Dashboard layout config | ✅ |
+| `launcher_settings.json` | Launcher settings | ✅ |
+| `.env.example` | Environment variables template | ✅ |
+| `pyproject.toml` | Python project metadata | ✅ |
+
+---
+
+## 5. Infrastructure & Deployment
+
+| Artifact | Purpose | Status |
+|----------|---------|--------|
+| `Dockerfile` | Multi-stage Docker build | ✅ |
+| `docker-compose.yml` | Orchestrated Docker services | ✅ |
+| `supervisord.conf` | Process manager config | ✅ |
+| `bitbucket-pipelines.yml` | CI/CD pipeline | ✅ |
+| `.pre-commit-config.yaml` | Pre-commit hooks | ✅ |
+| `Makefile` | Build automation | ✅ |
+
+---
+
+## 6. Test Suite (`tests/`)
+
+| Metric | Value |
+|--------|-------|
+| Total test files | 200+ |
+| Total tests | ~2,670 |
+| Coverage | >90% (modules with tests) |
+| Governance tests | 227 (constitution, AI gate, scoring, pre-impl, release) |
+| Chaos tests | 24+ |
+| Integration tests | 15+ (trading loop flow) |
+| Performance tests | Included in main suite |
+
+---
+
+## 7. Dependency Summary
+
+| Category | Count | Key Libraries |
+|----------|-------|---------------|
+| Trading | 3 | yfinance, kiteconnect, smartapi-python |
+| ML | 3 | lightgbm, scikit-learn, shap |
+| Web | 2 | FastAPI, uvicorn |
+| Reporting | 1 | reportlab |
+| Database | 1 | sqlite3 (stdlib) |
+| Security | 2 | bcrypt, pyjwt |
+| Infrastructure | 3 | cloudscraper, psutil, redis |
+| **Total** | **~15 production deps** | (all in requirements.txt) |

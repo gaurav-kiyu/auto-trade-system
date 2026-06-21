@@ -81,7 +81,14 @@ class BrokerFactory:
         from core.adapters.broker_adapters import BrokerAdapter, PaperBrokerAdapter
 
         _now_fn = now_fn or now_ist
-        _log_fn = log_fn or (lambda msg: log.info("%s", msg))
+        # Guard: log_fn may be a Logger instance instead of a callable
+        if log_fn is None:
+            _log_fn = lambda msg: log.info("%s", msg)
+        elif callable(log_fn):
+            _log_fn = log_fn
+        else:
+            _log_fn = lambda msg: log.info("%s", msg)
+            log.warning("[BROKER_CFG] log_fn is not callable (type=%s), using default", type(log_fn).__name__)
         _send_fn = send_fn or (lambda msg, **kw: None)
 
         driver = str(self._cfg.get("BROKER_DRIVER", "PAPER")).upper()

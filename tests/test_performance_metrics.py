@@ -21,6 +21,83 @@ class TestLoadTrades:
         result = load_trades(db_path=temp_db)
         assert result == []
 
+    def test_fallback_to_execution_orders_empty(self, temp_db: str) -> None:
+        """Fallback from trades to execution_orders table (empty table)."""
+        import sqlite3
+        conn = sqlite3.connect(temp_db)
+        conn.execute("CREATE TABLE execution_orders (order_id TEXT, symbol TEXT, created_at TEXT)")
+        conn.commit()
+        conn.close()
+        result = load_trades(db_path=temp_db)
+        assert result == []
+
+    def test_fallback_to_execution_orders_with_data(self, temp_db: str) -> None:
+        """Fallback loads rows from execution_orders table."""
+        import sqlite3
+        conn = sqlite3.connect(temp_db)
+        conn.execute("CREATE TABLE execution_orders (order_id TEXT, symbol TEXT, direction TEXT, quantity INT, status TEXT, created_at TEXT)")
+        conn.execute("INSERT INTO execution_orders VALUES ('o1', 'NIFTY', 'CALL', 75, 'FILLED', '2026-06-20T10:00:00')")
+        conn.execute("INSERT INTO execution_orders VALUES ('o2', 'BANKNIFTY', 'PUT', 50, 'FILLED', '2026-06-20T10:30:00')")
+        conn.commit()
+        conn.close()
+        result = load_trades(db_path=temp_db)
+        assert len(result) == 2
+        assert result[0]["symbol"] in ("NIFTY", "BANKNIFTY")
+
+    def test_legacy_trades_table_priority(self, temp_db: str) -> None:
+        """trades table is tried first; execution_orders ignored if trades exists."""
+        import sqlite3
+        conn = sqlite3.connect(temp_db)
+        conn.execute("CREATE TABLE trades (id INT, ts TEXT, index_name TEXT, direction TEXT, entry REAL, exit_price REAL, qty INT, gross_pnl REAL, net_pnl REAL, reason TEXT, mode TEXT)")
+        conn.execute("INSERT INTO trades VALUES (1, '2026-06-20T10:00:00', 'NIFTY', 'CALL', 100, 150, 75, 3750, 3500, 'TP', 'PAPER')")
+        # Also create execution_orders (should not be queried)
+        conn.execute("CREATE TABLE execution_orders (order_id TEXT, symbol TEXT, created_at TEXT)")
+        conn.execute("INSERT INTO execution_orders VALUES ('o1', 'IGNORED', '2026-06-20T10:00:00')")
+        conn.commit()
+        conn.close()
+        result = load_trades(db_path=temp_db)
+        assert len(result) == 1
+        assert result[0]["index_name"] == "NIFTY"
+
+    def test_fallback_with_mode_filter(self, temp_db: str) -> None:
+        """Fallback works with mode filter (mode column exists on execution_orders)."""
+        import sqlite3
+        conn = sqlite3.connect(temp_db)
+        conn.execute("CREATE TABLE execution_orders (order_id TEXT, symbol TEXT, direction TEXT, quantity INT, status TEXT, mode TEXT, created_at TEXT)")
+        conn.execute("INSERT INTO execution_orders VALUES ('o1', 'NIFTY', 'CALL', 75, 'FILLED', 'PAPER', '2026-06-20T10:00:00')")
+        conn.execute("INSERT INTO execution_orders VALUES ('o2', 'BANKNIFTY', 'PUT', 50, 'FILLED', 'LIVE', '2026-06-20T10:30:00')")
+        conn.commit()
+        conn.close()
+        result = load_trades(db_path=temp_db, mode="PAPER")
+        assert len(result) == 1
+        assert result[0]["symbol"] == "NIFTY"
+
+    def test_fallback_mode_filter_missing_column(self, temp_db: str) -> None:
+        """Fallback with mode= returns [] gracefully when execution_orders lacks mode column."""
+        import sqlite3
+        conn = sqlite3.connect(temp_db)
+        conn.execute("CREATE TABLE execution_orders (order_id TEXT, symbol TEXT, created_at TEXT)")
+        conn.execute("INSERT INTO execution_orders VALUES ('o1', 'NIFTY', '2026-06-20T10:00:00')")
+        conn.commit()
+        conn.close()
+        result = load_trades(db_path=temp_db, mode="PAPER")
+        assert result == []
+
+    def test_fallback_with_days_filter(self, temp_db: str) -> None:
+        """Fallback works with days filter (uses created_at column)."""
+        import sqlite3, datetime
+        conn = sqlite3.connect(temp_db)
+        conn.execute("CREATE TABLE execution_orders (order_id TEXT, symbol TEXT, created_at TEXT)")
+        recent = (datetime.datetime.now() - datetime.timedelta(hours=1)).isoformat()
+        old = (datetime.datetime.now() - datetime.timedelta(days=10)).isoformat()
+        conn.execute("INSERT INTO execution_orders VALUES ('o1', 'RECENT', ?)", (recent,))
+        conn.execute("INSERT INTO execution_orders VALUES ('o2', 'OLD', ?)", (old,))
+        conn.commit()
+        conn.close()
+        result = load_trades(db_path=temp_db, days=3)
+        assert len(result) == 1
+        assert result[0]["symbol"] == "RECENT"
+
 
 class TestComputeMetrics:
     def test_empty_trades(self) -> None:

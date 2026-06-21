@@ -54,7 +54,10 @@ def load_trades(
     mode: str | None = None,
     days: int | None = None,
 ) -> list[dict]:
-    """Load trades from trades.db.  Returns [] if DB missing or empty."""
+    """Load trades from trades.db.  Returns [] if DB missing or empty.
+
+    Supports both legacy `trades` table and refactored `execution_orders` table.
+    """
     path = Path(db_path)
     if not path.exists():
         log.warning("trades.db not found at %s", path)
@@ -70,9 +73,35 @@ def load_trades(
             clauses.append("ts >= ?")
             params.append(since)
         where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
-        rows = conn.execute(
-            f"SELECT * FROM trades {where} ORDER BY ts", params
-        ).fetchall()
+
+        # Try `trades` table first (legacy), fall back to `execution_orders` (refactored)
+        table_name = "trades"
+        try:
+            rows = conn.execute(
+                f"SELECT * FROM {table_name} {where} ORDER BY ts", params
+            ).fetchall()
+        except sqlite3.OperationalError:
+            table_name = "execution_orders"
+            if clauses:
+                # execution_orders uses created_at instead of ts
+                new_clauses = []
+                new_params = []
+                for c, p in zip(clauses, params):
+                    if "ts" in c:
+                        new_clauses.append("created_at >= ?")
+                        new_params.append(p)
+                    else:
+                        new_clauses.append(c)
+                        new_params.append(p)
+                where = "WHERE " + " AND ".join(new_clauses) if new_clauses else ""
+                params = new_params
+            else:
+                where = ""
+            rows = conn.execute(
+                f"SELECT * FROM {table_name} {where} ORDER BY created_at", params
+            ).fetchall()
+            log.debug("Using execution_orders table for trade data")
+
         conn.close()
         return [dict(r) for r in rows]
     except (sqlite3.Error, OSError) as exc:

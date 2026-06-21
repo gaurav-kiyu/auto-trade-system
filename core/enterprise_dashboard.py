@@ -7,6 +7,7 @@ kill switch, and monitoring.
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import json
@@ -29,6 +30,11 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from collections import deque
+from typing import AsyncGenerator
+
+from fastapi.responses import StreamingResponse
+
 from core.auth.csrf import csrf_protection
 from core.auth.dependencies import AuthDependencies
 from core.auth.handler import AuthHandler
@@ -36,6 +42,203 @@ from core.auth.routes import create_auth_router
 from core.db_utils import get_connection as _get_db_conn
 
 _log = logging.getLogger(__name__)
+
+
+# ── Notification Manager ──────────────────────────────────────────────────────
+
+class Notification:
+    """A single system notification with severity, message, and metadata."""
+
+    def __init__(
+        self,
+        message: str,
+        severity: str = "INFO",
+        category: str = "system",
+        source: str = "dashboard",
+        details: dict | None = None,
+    ):
+        self.id = uuid.uuid4().hex[:12]
+        self.message = message
+        self.severity = severity.upper()  # INFO, WARNING, ERROR, CRITICAL
+        self.category = category
+        self.source = source
+        self.timestamp = time.time()
+        self.details = details or {}
+        self.acknowledged = False
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "message": self.message,
+            "severity": self.severity,
+            "category": self.category,
+            "source": self.source,
+            "timestamp": self.timestamp,
+            "timestamp_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.timestamp)),
+            "timestamp_human": time.strftime("%H:%M:%S", time.localtime(self.timestamp)),
+            "acknowledged": self.acknowledged,
+        }
+
+
+class NotificationManager:
+    """Thread-safe notification manager with SSE subscriber support.
+
+    Holds up to ``maxlen`` notifications in memory. Subscribers receive
+    new notifications via an async generator for SSE streaming.
+    """
+
+    def __init__(self, maxlen: int = 200):
+        self._notifications: deque[Notification] = deque(maxlen=maxlen)
+        self._lock = threading.RLock()
+        self._subscribers: list[asyncio.Queue] = []
+        self._sub_lock = threading.RLock()
+
+    @property
+    def count(self) -> int:
+        with self._lock:
+            return len(self._notifications)
+
+    def push(self, message: str, severity: str = "INFO", category: str = "system", source: str = "dashboard", details: dict | None = None) -> Notification:
+        """Create and broadcast a new notification."""
+        notif = Notification(
+            message=message,
+            severity=severity,
+            category=category,
+            source=source,
+            details=details,
+        )
+        with self._lock:
+            self._notifications.append(notif)
+        with self._sub_lock:
+            dead: list[asyncio.Queue] = []
+            for q in self._subscribers:
+                try:
+                    q.put_nowait(notif.to_dict())
+                except asyncio.QueueFull:
+                    dead.append(q)
+            for q in dead:
+                self._subscribers.remove(q)
+        _log.debug("[NOTIFY] %s: %s", severity, message)
+        return notif
+
+    def recent(self, n: int = 50) -> list[dict]:
+        """Return the ``n`` most recent notifications as dicts."""
+        with self._lock:
+            return [n.to_dict() for n in list(self._notifications)[-n:]]
+
+    def acknowledge(self, notif_id: str) -> bool:
+        """Mark a notification as acknowledged by ID."""
+        with self._lock:
+            for n in self._notifications:
+                if n.id == notif_id:
+                    n.acknowledged = True
+                    return True
+        return False
+
+    def acknowledge_all(self, severity: str | None = None) -> int:
+        """Acknowledge all notifications, optionally filtered by severity."""
+        count = 0
+        with self._lock:
+            for n in self._notifications:
+                if severity is None or n.severity == severity.upper():
+                    n.acknowledged = True
+                    count += 1
+        return count
+
+    def clear(self) -> int:
+        """Clear all notifications. Returns the count cleared."""
+        with self._lock:
+            count = len(self._notifications)
+            self._notifications.clear()
+            return count
+
+    async def subscribe(self) -> AsyncGenerator[dict, None]:
+        """Async generator for SSE streaming. Yields notification dicts as they arrive.
+
+        Usage:
+            async for notif in manager.subscribe():
+                yield f"data: {json.dumps(notif)}\n\n"
+        """
+        q: asyncio.Queue = asyncio.Queue(maxsize=100)
+        with self._sub_lock:
+            self._subscribers.append(q)
+        try:
+            while True:
+                notif = await q.get()
+                yield notif
+        except asyncio.CancelledError:
+            pass
+        finally:
+            with self._sub_lock:
+                if q in self._subscribers:
+                    self._subscribers.remove(q)
+
+
+class DashboardNotifier:
+    """Lightweight HTTP client for pushing notifications to the dashboard API.
+
+    Posts to POST /api/system/notifications/push. Thread-safe, silently fails
+    when dashboard is unreachable. Auto-disables after 10 consecutive failures.
+    """
+
+    def __init__(self, base_url: str = "http://127.0.0.1:8765", timeout: float = 2.0):
+        self._base_url = base_url.rstrip("/")
+        self._timeout = timeout
+        self._lock = threading.RLock()
+        self._enabled = True
+        self._consecutive_failures = 0
+
+    @property
+    def enabled(self) -> bool:
+        return self._enabled
+
+    def disable(self) -> None:
+        with self._lock:
+            self._enabled = False
+
+    def send(self, message: str, severity: str = "INFO", category: str = "system", source: str = "bot", details: dict | None = None) -> bool:
+        if not self._enabled:
+            return False
+        try:
+            import requests as _req
+            resp = _req.post(
+                f"{self._base_url}/api/system/notifications/push",
+                json={"message": message, "severity": severity, "category": category, "source": source, "details": details or {}},
+                timeout=self._timeout,
+            )
+            if resp.status_code in (200, 201):
+                with self._lock:
+                    self._consecutive_failures = 0
+                return True
+            self._track_failure()
+            return False
+        except Exception:
+            self._track_failure()
+            return False
+
+    def _track_failure(self) -> None:
+        with self._lock:
+            self._consecutive_failures += 1
+            if self._consecutive_failures >= 10:
+                self._enabled = False
+
+    def push_bot_start(self, mode: str = "paper") -> None:
+        self.send("Bot started — mode=" + mode, severity="INFO", category="system")
+
+    def push_trade_entry(self, symbol: str, direction: str, score: int, price: float) -> None:
+        self.send("Trade entered: {symbol} {direction} @ {price:.2f} (score={score})", severity="INFO", category="trade", details={"symbol": symbol, "direction": direction, "score": score, "price": price})
+
+    def push_trade_exit(self, symbol: str, reason: str, pnl: float) -> None:
+        sev = "WARNING" if pnl < 0 else "INFO"
+        self.send("Trade exited: {symbol} {reason} P&L={pnl:+.2f}", severity=sev, category="trade", details={"symbol": symbol, "reason": reason, "pnl": pnl})
+
+    def push_risk_breach(self, metric: str, value: float, limit: float) -> None:
+        self.send("Risk breach: {metric}={value:.2f} (limit={limit:.2f})", severity="CRITICAL", category="risk", details={"metric": metric, "value": value, "limit": limit})
+
+    def push_shutdown(self, reason: str = "User initiated") -> None:
+        self.send("Bot shutting down: " + reason, severity="INFO", category="system")
+
+
 
 _DEFAULT_HOST = "0.0.0.0"
 _DEFAULT_PORT = 8765
@@ -133,6 +336,9 @@ class EnterpriseDashboard:
 
         # Start background session cleanup
         self._start_session_cleanup()
+
+        # Notification manager for real-time alerts
+        self._notifications = NotificationManager(maxlen=200)
 
     @property
     def config(self) -> MappingProxyType:
@@ -242,8 +448,34 @@ class EnterpriseDashboard:
                         _log.debug("[DASH] Prometheus metrics update skipped: %s", exc)
             t = threading.Thread(target=_update_provider_metrics_loop, daemon=True, name="provider_metrics_updater")
             t.start()
+
+            # Start health metrics → SLO governance poller (every 5 minutes)
+            _slo_stop = threading.Event()
+
+            def _slo_health_poller_loop():
+                while not _slo_stop.is_set():
+                    try:
+                        from core.slo_governance import ingest_health_report, get_slo_governance
+                        from core.health_checker import run_full_health_check
+                        report = run_full_health_check(self._cfg)
+                        ingest_health_report(report)
+                        # Also run SLO compliance check so data is fresh when UI queries /api/slo/compliance
+                        slo = get_slo_governance()
+                        slo.check_all_slos()
+                        _log.debug("[DASH] SLO health metrics ingested: %s", report.summary)
+                    except (ValueError, TypeError, AttributeError, OSError, ImportError) as exc:
+                        _log.debug("[DASH] SLO health poller skipped: %s", exc)
+                    # Wait 5 minutes (interruptible on shutdown), then loop again
+                    # Outer while ensures recovery from transient exceptions
+                    if _slo_stop.wait(300):
+                        break
+                _log.info("[DASH] SLO health poller stopped")
+            t2 = threading.Thread(target=_slo_health_poller_loop, daemon=True, name="slo-health-poller")
+            t2.start()
+            _log.info("[DASH] SLO health metrics poller started (5min interval)")
             yield
             _metrics_stop.set()
+            _slo_stop.set()
             _log.info("[DASH] Enterprise dashboard shutting down gracefully")
 
         app = FastAPI(
@@ -310,6 +542,8 @@ class EnterpriseDashboard:
         csrf_protection.exempt("/signals/inject")
         csrf_protection.exempt("/static")
         csrf_protection.exempt("/api/system/self-test")
+        # SSE notification stream (long-lived connection, not a browser form)
+        csrf_protection.exempt("/api/system/notifications/stream")
         # Fundamentals API endpoints (programmatic access, not browser forms)
         csrf_protection.exempt("/api/fundamentals")
         csrf_protection.exempt("/api/docs")
@@ -887,6 +1121,202 @@ class EnterpriseDashboard:
                 "timestamp": time.time(),
             }
 
+        # -- Change Management API -------------------------------------------------
+
+        @app.get("/api/changes/pending")
+        async def api_changes_pending(user: Any = Depends(admin_only)):
+            """List all pending change proposals awaiting approval."""
+            try:
+                from core.change_management import get_change_manager
+                mgr = get_change_manager(self._cfg)
+                pending = mgr.list_pending()
+                return {
+                    "pending": [p.to_dict() for p in pending],
+                    "count": len(pending),
+                    "timestamp": time.time(),
+                }
+            except ImportError:
+                return {"status": "unavailable", "detail": "ChangeManager not available"}
+            except (ValueError, TypeError, AttributeError) as exc:
+                _log.warning("[DASH] Changes pending failed: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
+        @app.post("/api/changes/propose")
+        async def api_changes_propose(request: Request, user: Any = Depends(admin_only)):
+            """Propose a new configuration or parameter change.
+
+            JSON body:
+                change_type: str (CONFIG|STRATEGY_PARAM|FEATURE_FLAG|INFRASTRUCTURE)
+                target_key: str
+                current_value: any
+                proposed_value: any
+                reason: str
+                risk_level: str (NORMAL|HIGH|CRITICAL)
+            """
+            try:
+                body = await request.json()
+                from core.change_management import get_change_manager
+                mgr = get_change_manager(self._cfg)
+                prop = mgr.propose(
+                    change_type=body.get("change_type", "CONFIG"),
+                    target_key=body.get("target_key", ""),
+                    current_value=body.get("current_value"),
+                    proposed_value=body.get("proposed_value"),
+                    reason=body.get("reason", "No reason provided"),
+                    proposed_by=user.username,
+                    risk_level=body.get("risk_level", "NORMAL"),
+                )
+                return {
+                    "success": True,
+                    "change_id": prop.id_,
+                    "status": prop.status.value,
+                    "proposal": prop.to_dict(),
+                    "timestamp": time.time(),
+                }
+            except ImportError:
+                return {"status": "unavailable", "detail": "ChangeManager not available"}
+            except (ValueError, TypeError, AttributeError, RuntimeError) as exc:
+                _log.warning("[DASH] Change propose failed: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
+        @app.post("/api/changes/approve/{change_id}")
+        async def api_changes_approve(change_id: str, user: Any = Depends(admin_only)):
+            """Approve a pending change proposal."""
+            try:
+                from core.change_management import get_change_manager
+                mgr = get_change_manager(self._cfg)
+                ok = mgr.approve(change_id, approved_by=user.username)
+                return {
+                    "success": ok,
+                    "change_id": change_id,
+                    "status": "approved" if ok else "failed",
+                    "timestamp": time.time(),
+                }
+            except ImportError:
+                return {"status": "unavailable", "detail": "ChangeManager not available"}
+            except (ValueError, TypeError, AttributeError) as exc:
+                _log.warning("[DASH] Change approve failed: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
+        @app.post("/api/changes/reject/{change_id}")
+        async def api_changes_reject(change_id: str, request: Request, user: Any = Depends(admin_only)):
+            """Reject a pending change proposal."""
+            try:
+                body = await request.json()
+                from core.change_management import get_change_manager
+                mgr = get_change_manager(self._cfg)
+                reason = body.get("reason", "Rejected via dashboard")
+                ok = mgr.reject(change_id, rejected_by=user.username, reason=reason)
+                return {
+                    "success": ok,
+                    "change_id": change_id,
+                    "status": "rejected" if ok else "failed",
+                    "timestamp": time.time(),
+                }
+            except ImportError:
+                return {"status": "unavailable", "detail": "ChangeManager not available"}
+            except (ValueError, TypeError, AttributeError) as exc:
+                _log.warning("[DASH] Change reject failed: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
+        @app.get("/api/changes/history")
+        async def api_changes_history(user: Any = Depends(admin_only)):
+            """Get recent change proposals with audit trail."""
+            try:
+                from core.change_management import get_change_manager
+                mgr = get_change_manager(self._cfg)
+                recent = mgr.list_recent(n=50)
+                audit = mgr.get_audit_log(n=100)
+                stats = mgr.get_stats()
+                return {
+                    "recent": [p.to_dict() for p in recent],
+                    "audit_log": audit,
+                    "stats": stats,
+                    "timestamp": time.time(),
+                }
+            except ImportError:
+                return {"status": "unavailable", "detail": "ChangeManager not available"}
+            except (ValueError, TypeError, AttributeError) as exc:
+                _log.warning("[DASH] Changes history failed: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
+        # -- Risk Dashboard API ---------------------------------------------------
+
+        @app.get("/api/risk/snapshot")
+        async def api_risk_snapshot(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get global risk snapshot - position, capital, drawdown, and execution risk."""
+            try:
+                from core.risk_dashboard import get_risk_dashboard
+                dash = get_risk_dashboard(self._cfg)
+                snap = dash.get_snapshot()
+                return snap.to_dict()
+            except ImportError:
+                return {"status": "unavailable", "detail": "RiskDashboard not available (import error)"}
+            except (ValueError, TypeError, AttributeError) as exc:
+                _log.warning("[DASH] Risk snapshot failed: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
+        @app.get("/api/slo/compliance")
+        async def api_slo_compliance(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get SLO/SLA compliance report for all registered SLOs."""
+            try:
+                from core.slo_governance import get_slo_governance
+                slo = get_slo_governance()
+                report = slo.check_all_slos()
+                return report.to_dict()
+            except ImportError:
+                return {"status": "unavailable", "detail": "SLOGovernance not available (import error)"}
+            except (ValueError, TypeError, AttributeError) as exc:
+                _log.warning("[DASH] SLO compliance check failed: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
+        @app.get("/api/risk/alerts")
+        async def api_risk_alerts(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get active risk alerts."""
+            try:
+                from core.risk_dashboard import get_risk_dashboard
+                dash = get_risk_dashboard(self._cfg)
+                alerts = dash.get_alerts(unacknowledged_only=True)
+                return {
+                    "alerts": [a.to_dict() for a in alerts],
+                    "count": len(alerts),
+                    "timestamp": time.time(),
+                }
+            except ImportError:
+                return {"status": "unavailable", "detail": "RiskDashboard not available"}
+            except (ValueError, TypeError, AttributeError) as exc:
+                _log.warning("[DASH] Risk alerts failed: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
+        @app.get("/api/risk/limits")
+        async def api_risk_limits(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get risk limit utilization across all categories."""
+            try:
+                from core.risk_dashboard import get_risk_dashboard
+                dash = get_risk_dashboard(self._cfg)
+                snap = dash.get_snapshot()
+                limits = [
+                    {
+                        "name": m.name,
+                        "utilization_pct": m.utilization_pct,
+                        "limit_value": m.limit_value,
+                        "current_value": m.current_value,
+                        "unit": m.unit,
+                        "status": m.status,
+                    }
+                    for m in snap.metrics
+                ]
+                return {
+                    "limits": limits,
+                    "count": len(limits),
+                    "timestamp": time.time(),
+                }
+            except ImportError:
+                return {"status": "unavailable", "detail": "RiskDashboard not available"}
+            except (ValueError, TypeError, AttributeError) as exc:
+                _log.warning("[DASH] Risk limits failed: %s", exc)
+                return {"status": "error", "detail": str(exc)}
+
         # -- Observability: Uptime / diagnostics ---------------------------------
 
         # -- OI Snapshot Summary API --------------------------------------------
@@ -968,6 +1398,69 @@ class EnterpriseDashboard:
                 "server_time": time.time(),
                 "server_time_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             }
+
+                # -- Real-Time Notifications: SSE Stream --------------------------------
+
+        @app.get("/api/system/notifications/stream")
+        async def api_notifications_stream(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Server-Sent Events stream for real-time notifications.
+
+            Returns a ``text/event-stream`` response. The client should
+            reconnect on connection loss. A keepalive comment is sent
+            every 30 seconds to prevent proxy timeouts.
+
+            Example client:
+                const evtSource = new EventSource('/api/system/notifications/stream');
+                evtSource.onmessage = (e) => { const n = JSON.parse(e.data); ... };
+            """
+            async def _event_generator():
+                # Send initial heartbeat with recent notifications
+                recent = self._notifications.recent(20)
+                yield f"event: connected\ndata: {json.dumps({'status': 'ok', 'recent': recent})}\n\n"
+                # Subscribe to new notifications
+                async for notif in self._notifications.subscribe():
+                    yield f"event: notification\ndata: {json.dumps(notif)}\n\n"
+                
+        # -- Notifications REST API ---------------------------------------------
+
+        @app.get("/api/system/notifications")
+        async def api_notifications_list(user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get recent notifications."""
+            n = self._notifications.recent(100)
+            unacknowledged = [x for x in n if not x["acknowledged"]]
+            return {
+                "notifications": n,
+                "total": len(n),
+                "unacknowledged": len(unacknowledged),
+                "timestamp": time.time(),
+            }
+
+        @app.post("/api/system/notifications/{notif_id}/acknowledge")
+        async def api_notifications_acknowledge(notif_id: str, user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Acknowledge a single notification."""
+            ok = self._notifications.acknowledge(notif_id)
+            return {"success": ok, "notification_id": notif_id}
+
+        @app.post("/api/system/notifications/acknowledge-all")
+        async def api_notifications_acknowledge_all(request: Request, user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Acknowledge all notifications, optionally filtered by severity."""
+            body = await request.json()
+            severity = body.get("severity", None)
+            count = self._notifications.acknowledge_all(severity=severity)
+            return {"success": True, "count": count}
+
+        @app.post("/api/system/notifications/push")
+        async def api_notifications_push(request: Request, user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Push a notification programmatically."""
+            body = await request.json()
+            notif = self._notifications.push(
+                message=body.get("message", ""),
+                severity=body.get("severity", "INFO"),
+                category=body.get("category", "system"),
+                source=body.get("source", "api"),
+                details=body.get("details"),
+            )
+            return {"success": True, "notification": notif.to_dict()}
 
         @app.get("/api/system/diagnostics")
         async def api_diagnostics(user: Any = Depends(admin_only)):
@@ -1388,6 +1881,85 @@ class EnterpriseDashboard:
             except (ValueError, TypeError, KeyError, ImportError, AttributeError) as exc:
                 _log.warning("[DASH] Fundamentals screen failed: %s", exc)
                 return {"error": str(exc), "results": [], "count": 0, "timestamp": time.time()}
+
+        # -- Performance Comparison Dashboard API ---------------------------------
+
+        @app.get("/api/performance/comparison")
+        async def api_performance_comparison(request: Request, user: Any = Depends(self._auth_deps.require_auth_optional)):
+            """Get comprehensive performance comparison data across multiple dimensions.
+
+            Provides trade performance breakdowns by regime, score bin, direction,
+            index, and exit reason. Also includes overall metrics and insights.
+
+            Query params:
+                days (int, default 90): lookback window in days.
+                mode (str, optional): filter by execution mode (PAPER/LIVE).
+
+            Returns:
+                Dict with overall metrics, breakdowns by regime/score/direction/index/exit,
+                insights list, and summary statistics.
+            """
+            try:
+                from core.performance_metrics import (
+                    compute_metrics,
+                    generate_insights,
+                    load_trades,
+                    metrics_by_direction,
+                    metrics_by_exit_reason,
+                    metrics_by_index,
+                    metrics_by_regime,
+                    metrics_by_score_bin,
+                )
+
+                # Parse query params
+                days_str = request.query_params.get("days", "90")
+                mode = request.query_params.get("mode", None)
+                try:
+                    days = int(days_str)
+                except (ValueError, TypeError):
+                    days = 90
+
+                trades = load_trades(self._db_path, mode=mode, days=days)
+
+                if not trades:
+                    return {
+                        "status": "ok",
+                        "trades_count": 0,
+                        "note": "No trades found in the specified period",
+                        "overall": {},
+                        "by_regime": {},
+                        "by_score_bin": {},
+                        "by_direction": {},
+                        "by_index": {},
+                        "by_exit_reason": {},
+                        "insights": [],
+                        "period_days": days,
+                        "timestamp": time.time(),
+                    }
+
+                overall = compute_metrics(trades)
+                insights = generate_insights(trades)
+
+                return {
+                    "status": "ok",
+                    "trades_count": len(trades),
+                    "overall": overall,
+                    "by_regime": metrics_by_regime(trades),
+                    "by_score_bin": metrics_by_score_bin(trades),
+                    "by_direction": metrics_by_direction(trades),
+                    "by_index": metrics_by_index(trades),
+                    "by_exit_reason": metrics_by_exit_reason(trades),
+                    "insights": insights,
+                    "period_days": days,
+                    "period_mode": mode,
+                    "timestamp": time.time(),
+                }
+            except ImportError as exc:
+                _log.warning("[DASH] Performance comparison unavailable: %s", exc)
+                return {"status": "unavailable", "detail": "performance_metrics module not available"}
+            except (ValueError, TypeError, RuntimeError, OSError) as exc:
+                _log.warning("[DASH] Performance comparison error: %s", exc)
+                return {"status": "error", "detail": str(exc)}
 
         # -- Data Provider Status ------------------------------------------------
 
@@ -1831,6 +2403,30 @@ class EnterpriseDashboard:
         self._pause_event.clear()
         _log.warning("[DASH] System resumed via dashboard")
         return {"success": True, "halted": False}
+
+    # -- Notification helpers -------------------------------------------------
+
+    def push_notification(self, message: str, severity: str = "INFO", category: str = "system", details: dict | None = None) -> Notification:
+        """Push a notification from any part of the system.
+
+        Can be called from bot refs or external code to broadcast
+        real-time alerts to the dashboard.
+
+        Example:
+            dashboard.push_notification(
+                "Daily loss limit reached",
+                severity="CRITICAL",
+                category="risk",
+                details={"loss_pct": 95.0, "limit": 600},
+            )
+        """
+        return self._notifications.push(
+            message=message,
+            severity=severity,
+            category=category,
+            source="system",
+            details=details,
+        )
 
     # -- Data helpers ---------------------------------------------------------
 

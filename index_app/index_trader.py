@@ -1110,6 +1110,16 @@ def _run_trading_loop() -> None:
     except ImportError:
         _check_invariants = None
 
+    # Create dashboard notifier (safe no-op if dashboard not running)
+    from core.enterprise_dashboard import DashboardNotifier
+    _dash_notifier = DashboardNotifier(
+        base_url=_CFG.get("web_dashboard_url", "http://127.0.0.1:8765"),
+    )
+    if _CFG.get("web_dashboard_enabled", False):
+        _dash_notifier.push_bot_start(mode=EXECUTION_MODE)
+    else:
+        _dash_notifier.disable()
+
     service = TradingLoopService(
         cfg=_CFG,
         shutdown_event=_shutdown,
@@ -1134,6 +1144,7 @@ def _run_trading_loop() -> None:
         check_invariants_fn=_check_invariants,
         send_fn=send,
         equity_trader=_equity_trader,
+        dashboard_notify_fn=_dash_notifier.send if _dash_notifier.enabled else None,
     )
     service.run()
 
