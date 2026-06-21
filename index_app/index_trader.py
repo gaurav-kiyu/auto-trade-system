@@ -1112,9 +1112,10 @@ def _run_trading_loop() -> None:
 
     # Create dashboard notifier (safe no-op if dashboard not running)
     from core.enterprise_dashboard import DashboardNotifier
-    _dash_notifier = DashboardNotifier(
-        base_url=_CFG.get("web_dashboard_url", "http://127.0.0.1:8765"),
-    )
+    _dash_host = _CFG.get("web_dashboard_host", "127.0.0.1")
+    _dash_port = int(_CFG.get("web_dashboard_port", 8765))
+    _dash_url = f"http://{_dash_host}:{_dash_port}"
+    _dash_notifier = DashboardNotifier(base_url=_dash_url)
     if _CFG.get("web_dashboard_enabled", False):
         _dash_notifier.push_bot_start(mode=EXECUTION_MODE)
     else:
