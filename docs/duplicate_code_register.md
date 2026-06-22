@@ -10,7 +10,7 @@
 ## Scan Results
 
 **Total findings:** 13904  
-**Last scanned:** 2026-06-22 17:30:19
+**Last scanned:** 2026-06-22 17:39:15
 
 | ID | Source A | Source B | Symbol | Similarity | Description | Severity |
 |----|----------|----------|--------|------------|-------------|----------|
@@ -5288,7 +5288,7 @@
 | DUP-5272 | core\circuit_breaker_detector.py:97 | core\data_governance.py:154 | start | 100% | 'start' defined in both circuit_breaker_detector.py and data_governance.py | MEDIUM |
 | DUP-5273 | core\circuit_breaker_detector.py:97 | core\db_utils.py:136 | start | 100% | 'start' defined in both circuit_breaker_detector.py and db_utils.py | MEDIUM |
 | DUP-5274 | core\circuit_breaker_detector.py:97 | core\equity_trader.py:192 | start | 100% | 'start' defined in both circuit_breaker_detector.py and equity_trader.py | MEDIUM |
-| DUP-5275 | core\circuit_breaker_detector.py:97 | core\incident_alerting.py:110 | start | 100% | 'start' defined in both circuit_breaker_detector.py and incident_alerting.py | MEDIUM |
+| DUP-5275 | core\circuit_breaker_detector.py:97 | core\incident_alerting.py:112 | start | 100% | 'start' defined in both circuit_breaker_detector.py and incident_alerting.py | MEDIUM |
 | DUP-5276 | core\circuit_breaker_detector.py:97 | core\morning_checklist.py:73 | start | 100% | 'start' defined in both circuit_breaker_detector.py and morning_checklist.py | MEDIUM |
 | DUP-5277 | core\circuit_breaker_detector.py:97 | core\news_sentinel.py:125 | start | 100% | 'start' defined in both circuit_breaker_detector.py and news_sentinel.py | MEDIUM |
 | DUP-5278 | core\circuit_breaker_detector.py:97 | core\telegram_commander.py:435 | start | 100% | 'start' defined in both circuit_breaker_detector.py and telegram_commander.py | MEDIUM |
@@ -5300,7 +5300,7 @@
 | DUP-5284 | core\circuit_breaker_monitor.py:113 | core\data_governance.py:154 | start | 100% | 'start' defined in both circuit_breaker_monitor.py and data_governance.py | MEDIUM |
 | DUP-5285 | core\circuit_breaker_monitor.py:113 | core\db_utils.py:136 | start | 100% | 'start' defined in both circuit_breaker_monitor.py and db_utils.py | MEDIUM |
 | DUP-5286 | core\circuit_breaker_monitor.py:113 | core\equity_trader.py:192 | start | 100% | 'start' defined in both circuit_breaker_monitor.py and equity_trader.py | MEDIUM |
-| DUP-5287 | core\circuit_breaker_monitor.py:113 | core\incident_alerting.py:110 | start | 100% | 'start' defined in both circuit_breaker_monitor.py and incident_alerting.py | MEDIUM |
+| DUP-5287 | core\circuit_breaker_monitor.py:113 | core\incident_alerting.py:112 | start | 100% | 'start' defined in both circuit_breaker_monitor.py and incident_alerting.py | MEDIUM |
 | DUP-5288 | core\circuit_breaker_monitor.py:113 | core\morning_checklist.py:73 | start | 100% | 'start' defined in both circuit_breaker_monitor.py and morning_checklist.py | MEDIUM |
 | DUP-5289 | core\circuit_breaker_monitor.py:113 | core\news_sentinel.py:125 | start | 100% | 'start' defined in both circuit_breaker_monitor.py and news_sentinel.py | MEDIUM |
 | DUP-5290 | core\circuit_breaker_monitor.py:113 | core\telegram_commander.py:435 | start | 100% | 'start' defined in both circuit_breaker_monitor.py and telegram_commander.py | MEDIUM |
@@ -5311,7 +5311,7 @@
 | DUP-5295 | core\circuit_breaker_monitor.py:113 | core\services\persistence_service.py:91 | start | 100% | 'start' defined in both circuit_breaker_monitor.py and persistence_service.py | MEDIUM |
 | DUP-5296 | core\data_governance.py:154 | core\db_utils.py:136 | start | 100% | 'start' defined in both data_governance.py and db_utils.py | MEDIUM |
 | DUP-5297 | core\data_governance.py:154 | core\equity_trader.py:192 | start | 100% | 'start' defined in both data_governance.py and equity_trader.py | MEDIUM |
-| DUP-5298 | core\data_governance.py:154 | core\incident_alerting.py:110 | start | 100% | 'start' defined in both data_governance.py and incident_alerting.py | MEDIUM |
+| DUP-5298 | core\data_governance.py:154 | core\incident_alerting.py:112 | start | 100% | 'start' defined in both data_governance.py and incident_alerting.py | MEDIUM |
 | DUP-5299 | core\data_governance.py:154 | core\morning_checklist.py:73 | start | 100% | 'start' defined in both data_governance.py and morning_checklist.py | MEDIUM |
 | DUP-5300 | core\data_governance.py:154 | core\news_sentinel.py:125 | start | 100% | 'start' defined in both data_governance.py and news_sentinel.py | MEDIUM |
 | DUP-5301 | core\data_governance.py:154 | core\telegram_commander.py:435 | start | 100% | 'start' defined in both data_governance.py and telegram_commander.py | MEDIUM |
@@ -5321,7 +5321,7 @@
 | DUP-5305 | core\data_governance.py:154 | core\services\notification_service.py:163 | start | 100% | 'start' defined in both data_governance.py and notification_service.py | MEDIUM |
 | DUP-5306 | core\data_governance.py:154 | core\services\persistence_service.py:91 | start | 100% | 'start' defined in both data_governance.py and persistence_service.py | MEDIUM |
 | DUP-5307 | core\db_utils.py:136 | core\equity_trader.py:192 | start | 100% | 'start' defined in both db_utils.py and equity_trader.py | MEDIUM |
-| DUP-5308 | core\db_utils.py:136 | core\incident_alerting.py:110 | start | 100% | 'start' defined in both db_utils.py and incident_alerting.py | MEDIUM |
+| DUP-5308 | core\db_utils.py:136 | core\incident_alerting.py:112 | start | 100% | 'start' defined in both db_utils.py and incident_alerting.py | MEDIUM |
 | DUP-5309 | core\db_utils.py:136 | core\morning_checklist.py:73 | start | 100% | 'start' defined in both db_utils.py and morning_checklist.py | MEDIUM |
 | DUP-5310 | core\db_utils.py:136 | core\news_sentinel.py:125 | start | 100% | 'start' defined in both db_utils.py and news_sentinel.py | MEDIUM |
 | DUP-5311 | core\db_utils.py:136 | core\telegram_commander.py:435 | start | 100% | 'start' defined in both db_utils.py and telegram_commander.py | MEDIUM |
@@ -5330,7 +5330,7 @@
 | DUP-5314 | core\db_utils.py:136 | core\services\broker_health_service.py:139 | start | 100% | 'start' defined in both db_utils.py and broker_health_service.py | MEDIUM |
 | DUP-5315 | core\db_utils.py:136 | core\services\notification_service.py:163 | start | 100% | 'start' defined in both db_utils.py and notification_service.py | MEDIUM |
 | DUP-5316 | core\db_utils.py:136 | core\services\persistence_service.py:91 | start | 100% | 'start' defined in both db_utils.py and persistence_service.py | MEDIUM |
-| DUP-5317 | core\equity_trader.py:192 | core\incident_alerting.py:110 | start | 100% | 'start' defined in both equity_trader.py and incident_alerting.py | MEDIUM |
+| DUP-5317 | core\equity_trader.py:192 | core\incident_alerting.py:112 | start | 100% | 'start' defined in both equity_trader.py and incident_alerting.py | MEDIUM |
 | DUP-5318 | core\equity_trader.py:192 | core\morning_checklist.py:73 | start | 100% | 'start' defined in both equity_trader.py and morning_checklist.py | MEDIUM |
 | DUP-5319 | core\equity_trader.py:192 | core\news_sentinel.py:125 | start | 100% | 'start' defined in both equity_trader.py and news_sentinel.py | MEDIUM |
 | DUP-5320 | core\equity_trader.py:192 | core\telegram_commander.py:435 | start | 100% | 'start' defined in both equity_trader.py and telegram_commander.py | MEDIUM |
@@ -5339,14 +5339,14 @@
 | DUP-5323 | core\equity_trader.py:192 | core\services\broker_health_service.py:139 | start | 100% | 'start' defined in both equity_trader.py and broker_health_service.py | MEDIUM |
 | DUP-5324 | core\equity_trader.py:192 | core\services\notification_service.py:163 | start | 100% | 'start' defined in both equity_trader.py and notification_service.py | MEDIUM |
 | DUP-5325 | core\equity_trader.py:192 | core\services\persistence_service.py:91 | start | 100% | 'start' defined in both equity_trader.py and persistence_service.py | MEDIUM |
-| DUP-5326 | core\incident_alerting.py:110 | core\morning_checklist.py:73 | start | 100% | 'start' defined in both incident_alerting.py and morning_checklist.py | MEDIUM |
-| DUP-5327 | core\incident_alerting.py:110 | core\news_sentinel.py:125 | start | 100% | 'start' defined in both incident_alerting.py and news_sentinel.py | MEDIUM |
-| DUP-5328 | core\incident_alerting.py:110 | core\telegram_commander.py:435 | start | 100% | 'start' defined in both incident_alerting.py and telegram_commander.py | MEDIUM |
-| DUP-5329 | core\incident_alerting.py:110 | core\telegram_queue.py:79 | start | 100% | 'start' defined in both incident_alerting.py and telegram_queue.py | MEDIUM |
-| DUP-5330 | core\incident_alerting.py:110 | core\execution\continuous_reconciliation.py:87 | start | 100% | 'start' defined in both incident_alerting.py and continuous_reconciliation.py | MEDIUM |
-| DUP-5331 | core\incident_alerting.py:110 | core\services\broker_health_service.py:139 | start | 100% | 'start' defined in both incident_alerting.py and broker_health_service.py | MEDIUM |
-| DUP-5332 | core\incident_alerting.py:110 | core\services\notification_service.py:163 | start | 100% | 'start' defined in both incident_alerting.py and notification_service.py | MEDIUM |
-| DUP-5333 | core\incident_alerting.py:110 | core\services\persistence_service.py:91 | start | 100% | 'start' defined in both incident_alerting.py and persistence_service.py | MEDIUM |
+| DUP-5326 | core\incident_alerting.py:112 | core\morning_checklist.py:73 | start | 100% | 'start' defined in both incident_alerting.py and morning_checklist.py | MEDIUM |
+| DUP-5327 | core\incident_alerting.py:112 | core\news_sentinel.py:125 | start | 100% | 'start' defined in both incident_alerting.py and news_sentinel.py | MEDIUM |
+| DUP-5328 | core\incident_alerting.py:112 | core\telegram_commander.py:435 | start | 100% | 'start' defined in both incident_alerting.py and telegram_commander.py | MEDIUM |
+| DUP-5329 | core\incident_alerting.py:112 | core\telegram_queue.py:79 | start | 100% | 'start' defined in both incident_alerting.py and telegram_queue.py | MEDIUM |
+| DUP-5330 | core\incident_alerting.py:112 | core\execution\continuous_reconciliation.py:87 | start | 100% | 'start' defined in both incident_alerting.py and continuous_reconciliation.py | MEDIUM |
+| DUP-5331 | core\incident_alerting.py:112 | core\services\broker_health_service.py:139 | start | 100% | 'start' defined in both incident_alerting.py and broker_health_service.py | MEDIUM |
+| DUP-5332 | core\incident_alerting.py:112 | core\services\notification_service.py:163 | start | 100% | 'start' defined in both incident_alerting.py and notification_service.py | MEDIUM |
+| DUP-5333 | core\incident_alerting.py:112 | core\services\persistence_service.py:91 | start | 100% | 'start' defined in both incident_alerting.py and persistence_service.py | MEDIUM |
 | DUP-5334 | core\morning_checklist.py:73 | core\news_sentinel.py:125 | start | 100% | 'start' defined in both morning_checklist.py and news_sentinel.py | MEDIUM |
 | DUP-5335 | core\morning_checklist.py:73 | core\telegram_commander.py:435 | start | 100% | 'start' defined in both morning_checklist.py and telegram_commander.py | MEDIUM |
 | DUP-5336 | core\morning_checklist.py:73 | core\telegram_queue.py:79 | start | 100% | 'start' defined in both morning_checklist.py and telegram_queue.py | MEDIUM |
@@ -5380,7 +5380,7 @@
 | DUP-5364 | core\circuit_breaker_detector.py:107 | core\db_utils.py:149 | stop | 100% | 'stop' defined in both circuit_breaker_detector.py and db_utils.py | MEDIUM |
 | DUP-5365 | core\circuit_breaker_detector.py:107 | core\equity_trader.py:205 | stop | 100% | 'stop' defined in both circuit_breaker_detector.py and equity_trader.py | MEDIUM |
 | DUP-5366 | core\circuit_breaker_detector.py:107 | core\fii_dii_tracker.py:202 | stop | 100% | 'stop' defined in both circuit_breaker_detector.py and fii_dii_tracker.py | MEDIUM |
-| DUP-5367 | core\circuit_breaker_detector.py:107 | core\incident_alerting.py:125 | stop | 100% | 'stop' defined in both circuit_breaker_detector.py and incident_alerting.py | MEDIUM |
+| DUP-5367 | core\circuit_breaker_detector.py:107 | core\incident_alerting.py:127 | stop | 100% | 'stop' defined in both circuit_breaker_detector.py and incident_alerting.py | MEDIUM |
 | DUP-5368 | core\circuit_breaker_detector.py:107 | core\morning_checklist.py:83 | stop | 100% | 'stop' defined in both circuit_breaker_detector.py and morning_checklist.py | MEDIUM |
 | DUP-5369 | core\circuit_breaker_detector.py:107 | core\news_sentinel.py:137 | stop | 100% | 'stop' defined in both circuit_breaker_detector.py and news_sentinel.py | MEDIUM |
 | DUP-5370 | core\circuit_breaker_detector.py:107 | core\telegram_commander.py:445 | stop | 100% | 'stop' defined in both circuit_breaker_detector.py and telegram_commander.py | MEDIUM |
@@ -5398,7 +5398,7 @@
 | DUP-5382 | core\circuit_breaker_monitor.py:123 | core\db_utils.py:149 | stop | 100% | 'stop' defined in both circuit_breaker_monitor.py and db_utils.py | MEDIUM |
 | DUP-5383 | core\circuit_breaker_monitor.py:123 | core\equity_trader.py:205 | stop | 100% | 'stop' defined in both circuit_breaker_monitor.py and equity_trader.py | MEDIUM |
 | DUP-5384 | core\circuit_breaker_monitor.py:123 | core\fii_dii_tracker.py:202 | stop | 100% | 'stop' defined in both circuit_breaker_monitor.py and fii_dii_tracker.py | MEDIUM |
-| DUP-5385 | core\circuit_breaker_monitor.py:123 | core\incident_alerting.py:125 | stop | 100% | 'stop' defined in both circuit_breaker_monitor.py and incident_alerting.py | MEDIUM |
+| DUP-5385 | core\circuit_breaker_monitor.py:123 | core\incident_alerting.py:127 | stop | 100% | 'stop' defined in both circuit_breaker_monitor.py and incident_alerting.py | MEDIUM |
 | DUP-5386 | core\circuit_breaker_monitor.py:123 | core\morning_checklist.py:83 | stop | 100% | 'stop' defined in both circuit_breaker_monitor.py and morning_checklist.py | MEDIUM |
 | DUP-5387 | core\circuit_breaker_monitor.py:123 | core\news_sentinel.py:137 | stop | 100% | 'stop' defined in both circuit_breaker_monitor.py and news_sentinel.py | MEDIUM |
 | DUP-5388 | core\circuit_breaker_monitor.py:123 | core\telegram_commander.py:445 | stop | 100% | 'stop' defined in both circuit_breaker_monitor.py and telegram_commander.py | MEDIUM |
@@ -5415,7 +5415,7 @@
 | DUP-5399 | core\data_governance.py:163 | core\db_utils.py:149 | stop | 100% | 'stop' defined in both data_governance.py and db_utils.py | MEDIUM |
 | DUP-5400 | core\data_governance.py:163 | core\equity_trader.py:205 | stop | 100% | 'stop' defined in both data_governance.py and equity_trader.py | MEDIUM |
 | DUP-5401 | core\data_governance.py:163 | core\fii_dii_tracker.py:202 | stop | 100% | 'stop' defined in both data_governance.py and fii_dii_tracker.py | MEDIUM |
-| DUP-5402 | core\data_governance.py:163 | core\incident_alerting.py:125 | stop | 100% | 'stop' defined in both data_governance.py and incident_alerting.py | MEDIUM |
+| DUP-5402 | core\data_governance.py:163 | core\incident_alerting.py:127 | stop | 100% | 'stop' defined in both data_governance.py and incident_alerting.py | MEDIUM |
 | DUP-5403 | core\data_governance.py:163 | core\morning_checklist.py:83 | stop | 100% | 'stop' defined in both data_governance.py and morning_checklist.py | MEDIUM |
 | DUP-5404 | core\data_governance.py:163 | core\news_sentinel.py:137 | stop | 100% | 'stop' defined in both data_governance.py and news_sentinel.py | MEDIUM |
 | DUP-5405 | core\data_governance.py:163 | core\telegram_commander.py:445 | stop | 100% | 'stop' defined in both data_governance.py and telegram_commander.py | MEDIUM |
@@ -5431,7 +5431,7 @@
 | DUP-5415 | core\data_governance.py:163 | core\strategy\sandbox.py:329 | stop | 100% | 'stop' defined in both data_governance.py and sandbox.py | MEDIUM |
 | DUP-5416 | core\db_utils.py:149 | core\equity_trader.py:205 | stop | 100% | 'stop' defined in both db_utils.py and equity_trader.py | MEDIUM |
 | DUP-5417 | core\db_utils.py:149 | core\fii_dii_tracker.py:202 | stop | 100% | 'stop' defined in both db_utils.py and fii_dii_tracker.py | MEDIUM |
-| DUP-5418 | core\db_utils.py:149 | core\incident_alerting.py:125 | stop | 100% | 'stop' defined in both db_utils.py and incident_alerting.py | MEDIUM |
+| DUP-5418 | core\db_utils.py:149 | core\incident_alerting.py:127 | stop | 100% | 'stop' defined in both db_utils.py and incident_alerting.py | MEDIUM |
 | DUP-5419 | core\db_utils.py:149 | core\morning_checklist.py:83 | stop | 100% | 'stop' defined in both db_utils.py and morning_checklist.py | MEDIUM |
 | DUP-5420 | core\db_utils.py:149 | core\news_sentinel.py:137 | stop | 100% | 'stop' defined in both db_utils.py and news_sentinel.py | MEDIUM |
 | DUP-5421 | core\db_utils.py:149 | core\telegram_commander.py:445 | stop | 100% | 'stop' defined in both db_utils.py and telegram_commander.py | MEDIUM |
@@ -5446,7 +5446,7 @@
 | DUP-5430 | core\db_utils.py:149 | core\services\persistence_service.py:109 | stop | 100% | 'stop' defined in both db_utils.py and persistence_service.py | MEDIUM |
 | DUP-5431 | core\db_utils.py:149 | core\strategy\sandbox.py:329 | stop | 100% | 'stop' defined in both db_utils.py and sandbox.py | MEDIUM |
 | DUP-5432 | core\equity_trader.py:205 | core\fii_dii_tracker.py:202 | stop | 100% | 'stop' defined in both equity_trader.py and fii_dii_tracker.py | MEDIUM |
-| DUP-5433 | core\equity_trader.py:205 | core\incident_alerting.py:125 | stop | 100% | 'stop' defined in both equity_trader.py and incident_alerting.py | MEDIUM |
+| DUP-5433 | core\equity_trader.py:205 | core\incident_alerting.py:127 | stop | 100% | 'stop' defined in both equity_trader.py and incident_alerting.py | MEDIUM |
 | DUP-5434 | core\equity_trader.py:205 | core\morning_checklist.py:83 | stop | 100% | 'stop' defined in both equity_trader.py and morning_checklist.py | MEDIUM |
 | DUP-5435 | core\equity_trader.py:205 | core\news_sentinel.py:137 | stop | 100% | 'stop' defined in both equity_trader.py and news_sentinel.py | MEDIUM |
 | DUP-5436 | core\equity_trader.py:205 | core\telegram_commander.py:445 | stop | 100% | 'stop' defined in both equity_trader.py and telegram_commander.py | MEDIUM |
@@ -5460,7 +5460,7 @@
 | DUP-5444 | core\equity_trader.py:205 | core\services\notification_service.py:202 | stop | 100% | 'stop' defined in both equity_trader.py and notification_service.py | MEDIUM |
 | DUP-5445 | core\equity_trader.py:205 | core\services\persistence_service.py:109 | stop | 100% | 'stop' defined in both equity_trader.py and persistence_service.py | MEDIUM |
 | DUP-5446 | core\equity_trader.py:205 | core\strategy\sandbox.py:329 | stop | 100% | 'stop' defined in both equity_trader.py and sandbox.py | MEDIUM |
-| DUP-5447 | core\fii_dii_tracker.py:202 | core\incident_alerting.py:125 | stop | 100% | 'stop' defined in both fii_dii_tracker.py and incident_alerting.py | MEDIUM |
+| DUP-5447 | core\fii_dii_tracker.py:202 | core\incident_alerting.py:127 | stop | 100% | 'stop' defined in both fii_dii_tracker.py and incident_alerting.py | MEDIUM |
 | DUP-5448 | core\fii_dii_tracker.py:202 | core\morning_checklist.py:83 | stop | 100% | 'stop' defined in both fii_dii_tracker.py and morning_checklist.py | MEDIUM |
 | DUP-5449 | core\fii_dii_tracker.py:202 | core\news_sentinel.py:137 | stop | 100% | 'stop' defined in both fii_dii_tracker.py and news_sentinel.py | MEDIUM |
 | DUP-5450 | core\fii_dii_tracker.py:202 | core\telegram_commander.py:445 | stop | 100% | 'stop' defined in both fii_dii_tracker.py and telegram_commander.py | MEDIUM |
@@ -5474,19 +5474,19 @@
 | DUP-5458 | core\fii_dii_tracker.py:202 | core\services\notification_service.py:202 | stop | 100% | 'stop' defined in both fii_dii_tracker.py and notification_service.py | MEDIUM |
 | DUP-5459 | core\fii_dii_tracker.py:202 | core\services\persistence_service.py:109 | stop | 100% | 'stop' defined in both fii_dii_tracker.py and persistence_service.py | MEDIUM |
 | DUP-5460 | core\fii_dii_tracker.py:202 | core\strategy\sandbox.py:329 | stop | 100% | 'stop' defined in both fii_dii_tracker.py and sandbox.py | MEDIUM |
-| DUP-5461 | core\incident_alerting.py:125 | core\morning_checklist.py:83 | stop | 100% | 'stop' defined in both incident_alerting.py and morning_checklist.py | MEDIUM |
-| DUP-5462 | core\incident_alerting.py:125 | core\news_sentinel.py:137 | stop | 100% | 'stop' defined in both incident_alerting.py and news_sentinel.py | MEDIUM |
-| DUP-5463 | core\incident_alerting.py:125 | core\telegram_commander.py:445 | stop | 100% | 'stop' defined in both incident_alerting.py and telegram_commander.py | MEDIUM |
-| DUP-5464 | core\incident_alerting.py:125 | core\telegram_queue.py:88 | stop | 100% | 'stop' defined in both incident_alerting.py and telegram_queue.py | MEDIUM |
-| DUP-5465 | core\incident_alerting.py:125 | infrastructure\market_data\market_data_cache.py:284 | stop | 100% | 'stop' defined in both incident_alerting.py and market_data_cache.py | MEDIUM |
-| DUP-5466 | core\incident_alerting.py:125 | core\execution\continuous_reconciliation.py:102 | stop | 100% | 'stop' defined in both incident_alerting.py and continuous_reconciliation.py | MEDIUM |
-| DUP-5467 | core\incident_alerting.py:125 | core\execution\event_system.py:53 | stop | 100% | 'stop' defined in both incident_alerting.py and event_system.py | MEDIUM |
-| DUP-5468 | core\incident_alerting.py:125 | core\metrics\metrics_platform.py:49 | stop | 100% | 'stop' defined in both incident_alerting.py and metrics_platform.py | MEDIUM |
-| DUP-5469 | core\incident_alerting.py:125 | core\observability\opentelemetry.py:422 | stop | 100% | 'stop' defined in both incident_alerting.py and opentelemetry.py | MEDIUM |
-| DUP-5470 | core\incident_alerting.py:125 | core\services\broker_health_service.py:160 | stop | 100% | 'stop' defined in both incident_alerting.py and broker_health_service.py | MEDIUM |
-| DUP-5471 | core\incident_alerting.py:125 | core\services\notification_service.py:202 | stop | 100% | 'stop' defined in both incident_alerting.py and notification_service.py | MEDIUM |
-| DUP-5472 | core\incident_alerting.py:125 | core\services\persistence_service.py:109 | stop | 100% | 'stop' defined in both incident_alerting.py and persistence_service.py | MEDIUM |
-| DUP-5473 | core\incident_alerting.py:125 | core\strategy\sandbox.py:329 | stop | 100% | 'stop' defined in both incident_alerting.py and sandbox.py | MEDIUM |
+| DUP-5461 | core\incident_alerting.py:127 | core\morning_checklist.py:83 | stop | 100% | 'stop' defined in both incident_alerting.py and morning_checklist.py | MEDIUM |
+| DUP-5462 | core\incident_alerting.py:127 | core\news_sentinel.py:137 | stop | 100% | 'stop' defined in both incident_alerting.py and news_sentinel.py | MEDIUM |
+| DUP-5463 | core\incident_alerting.py:127 | core\telegram_commander.py:445 | stop | 100% | 'stop' defined in both incident_alerting.py and telegram_commander.py | MEDIUM |
+| DUP-5464 | core\incident_alerting.py:127 | core\telegram_queue.py:88 | stop | 100% | 'stop' defined in both incident_alerting.py and telegram_queue.py | MEDIUM |
+| DUP-5465 | core\incident_alerting.py:127 | infrastructure\market_data\market_data_cache.py:284 | stop | 100% | 'stop' defined in both incident_alerting.py and market_data_cache.py | MEDIUM |
+| DUP-5466 | core\incident_alerting.py:127 | core\execution\continuous_reconciliation.py:102 | stop | 100% | 'stop' defined in both incident_alerting.py and continuous_reconciliation.py | MEDIUM |
+| DUP-5467 | core\incident_alerting.py:127 | core\execution\event_system.py:53 | stop | 100% | 'stop' defined in both incident_alerting.py and event_system.py | MEDIUM |
+| DUP-5468 | core\incident_alerting.py:127 | core\metrics\metrics_platform.py:49 | stop | 100% | 'stop' defined in both incident_alerting.py and metrics_platform.py | MEDIUM |
+| DUP-5469 | core\incident_alerting.py:127 | core\observability\opentelemetry.py:422 | stop | 100% | 'stop' defined in both incident_alerting.py and opentelemetry.py | MEDIUM |
+| DUP-5470 | core\incident_alerting.py:127 | core\services\broker_health_service.py:160 | stop | 100% | 'stop' defined in both incident_alerting.py and broker_health_service.py | MEDIUM |
+| DUP-5471 | core\incident_alerting.py:127 | core\services\notification_service.py:202 | stop | 100% | 'stop' defined in both incident_alerting.py and notification_service.py | MEDIUM |
+| DUP-5472 | core\incident_alerting.py:127 | core\services\persistence_service.py:109 | stop | 100% | 'stop' defined in both incident_alerting.py and persistence_service.py | MEDIUM |
+| DUP-5473 | core\incident_alerting.py:127 | core\strategy\sandbox.py:329 | stop | 100% | 'stop' defined in both incident_alerting.py and sandbox.py | MEDIUM |
 | DUP-5474 | core\morning_checklist.py:83 | core\news_sentinel.py:137 | stop | 100% | 'stop' defined in both morning_checklist.py and news_sentinel.py | MEDIUM |
 | DUP-5475 | core\morning_checklist.py:83 | core\telegram_commander.py:445 | stop | 100% | 'stop' defined in both morning_checklist.py and telegram_commander.py | MEDIUM |
 | DUP-5476 | core\morning_checklist.py:83 | core\telegram_queue.py:88 | stop | 100% | 'stop' defined in both morning_checklist.py and telegram_queue.py | MEDIUM |
@@ -7065,8 +7065,8 @@
 | DUP-7049 | tests\test_broker_health_port.py:202 | core\services\broker_health_service.py:177 | check_broker_health | 100% | 'check_broker_health' defined in both test_broker_health_port.py and broker_health_service.py | MEDIUM |
 | DUP-7050 | tests\test_broker_health_port.py:202 | core\ports\broker\health_port.py:77 | check_broker_health | 100% | 'check_broker_health' defined in both test_broker_health_port.py and health_port.py | MEDIUM |
 | DUP-7051 | core\services\broker_health_service.py:177 | core\ports\broker\health_port.py:77 | check_broker_health | 100% | 'check_broker_health' defined in both broker_health_service.py and health_port.py | MEDIUM |
-| DUP-7052 | core\incident_alerting.py:370 | core\incident_alerting.py:272 | alert_broker_disconnect | 100% | 'alert_broker_disconnect' defined in both incident_alerting.py and incident_alerting.py | MEDIUM |
-| DUP-7053 | core\incident_alerting.py:376 | core\incident_alerting.py:299 | alert_risk_breach | 100% | 'alert_risk_breach' defined in both incident_alerting.py and incident_alerting.py | MEDIUM |
+| DUP-7052 | core\incident_alerting.py:390 | core\incident_alerting.py:274 | alert_broker_disconnect | 100% | 'alert_broker_disconnect' defined in both incident_alerting.py and incident_alerting.py | MEDIUM |
+| DUP-7053 | core\incident_alerting.py:396 | core\incident_alerting.py:301 | alert_risk_breach | 100% | 'alert_risk_breach' defined in both incident_alerting.py and incident_alerting.py | MEDIUM |
 | DUP-7054 | core\intraday_performance_monitor.py:108 | core\news_sentinel.py:147 | update_config | 100% | 'update_config' defined in both intraday_performance_monitor.py and news_sentinel.py | MEDIUM |
 | DUP-7055 | core\intraday_performance_monitor.py:108 | core\options_greeks_engine.py:692 | update_config | 100% | 'update_config' defined in both intraday_performance_monitor.py and options_greeks_engine.py | MEDIUM |
 | DUP-7056 | core\intraday_performance_monitor.py:108 | core\telegram_queue.py:169 | update_config | 100% | 'update_config' defined in both intraday_performance_monitor.py and telegram_queue.py | MEDIUM |
