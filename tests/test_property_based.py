@@ -29,7 +29,7 @@ def _reset_invariant_registry():
     each test starts with a clean slate.
     """
     import core.invariants.engine as _ie
-    _ie._checks.clear()
+    _ie._INVARIANTS.clear()
     _ie._violations.clear()
     _ie._disabled_checks.clear()
     yield
