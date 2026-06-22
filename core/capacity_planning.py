@@ -642,5 +642,47 @@ def _cli() -> None:
         print(report.summary_text())
 
 
+# ── Bridge: Capacity Planner → Incident Alerting ─────────────────────────
+
+def wire_capacity_alerting(
+    cfg: dict[str, Any] | None = None,
+) -> CapacityPlanner:
+    """Create a CapacityPlanner wired to the IncidentAlerting system.
+
+    When capacity thresholds are breached, the planner's check_triggers()
+    will fire incidents into the IncidentAlerting priority queue, which
+    routes CRITICAL/HIGH alerts to notification channels and logs
+    NORMAL/LOW alerts for dashboard display.
+
+    This wires the integration called out in the scorecard:
+        "Auto-scaling capacity planning triggers integration with alerting"
+
+    Args:
+        cfg: Optional config dict.
+
+    Returns:
+        A configured CapacityPlanner with alerting wired.
+    """
+    planner = CapacityPlanner(cfg)
+
+    try:
+        from core.incident_alerting import get_incident_alerting
+        incident_mgr = get_incident_alerting()
+
+        def _alert_bridge(msg: str) -> None:
+            """Bridge callback: CapacityPlanner trigger → IncidentAlerting."""
+            is_critical = "CRITICAL" in msg.upper() or "WARN" in msg.upper()
+            if is_critical:
+                incident_mgr.alert_capacity_critical(msg, {"source": "capacity_planner"})
+            else:
+                incident_mgr.alert_capacity_warning(msg, {"source": "capacity_planner"})
+
+        planner.set_alert_callback(_alert_bridge)
+    except ImportError:
+        pass  # IncidentAlerting not available — run without alerting
+
+    return planner
+
+
 if __name__ == "__main__":
     _cli()

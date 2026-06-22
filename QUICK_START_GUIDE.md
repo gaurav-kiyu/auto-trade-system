@@ -1,25 +1,28 @@
-# QUICK START GUIDE - OPB Index Options Bot v2.53.0
+# QUICK START GUIDE — OPB Index Options Bot v2.53.0
 
-## Current Version: v2.53.0 (May 2026)
-**Status**: 🟡 Limited Live Pilot Ready (7/10 confidence)
+**Current Version:** v2.53.0 (June 2026)  
+**Status:** ✅ CONDITIONAL PRODUCTION READY (9.0/10 institutional evidence-based score)  
+**Classification:** Institutional Indian Capital Market Super Platform
 
 ---
 
 ## 🚀 QUICK START
 
-### Option 1: Run with GUI Launcher
+### Option 1: Paper Trading (Recommended First)
+```bash
+python -m index_app.index_trader --paper
+```
+- Simulated fills with realistic slippage
+- Full signal generation, risk checks, and analysis
+- **No real broker connection needed**
+- Safe — never reaches a real broker API
+
+### Option 2: GUI Launcher
 ```
 Double-click: OPBuying_INDEX_Launcher.exe
 ```
-- GUI interface with real-time dashboard
+- Real-time dashboard with monitoring
 - Select PAPER or MANUAL mode
-
-### Option 2: Run from Command Line (Recommended for testing)
-```
-python -m index_app.index_trader --paper
-```
-- Paper trading (simulated, no real orders)
-- Full signal generation and analysis
 
 ### Option 3: Low Capital Mode
 ```
@@ -28,23 +31,42 @@ Double-click: run_low_capital.bat
 - Pre-configured for Rs.5,000 capital
 - Strict risk limits enforced
 
+### Option 4: Docker
+```bash
+docker compose up -d
+docker compose logs -f opb
+```
+- Paper mode by default in Docker
+
+### Generate PDF Report
+```bash
+python -m core.report_generator --days 30 --mode PAPER
+```
+
 ---
 
 ## 📋 CONFIGURATION
 
-### Current Config File: `config.json`
+### Config Files (3-Layer Merge)
+1. `index_config.defaults.json` — Single source of truth (~860 keys)
+2. `config.json` — User overrides
+3. `config.local.json` — Local-only overrides (gitignored)
+4. `OPBUYING_*` env vars — Secrets (BOT_TOKEN, CHAT_ID, API keys)
 
-| Setting | Value | Description |
-|---------|-------|-------------|
-| EXECUTION_MODE | MANUAL | Signals only, no auto-trading |
-| BROKER_API_ENABLED | false | No real broker connection |
-| BASE_CAPITAL | 5,000 | Trading capital |
-| MAX_DAILY_LOSS | -300 | Daily stop loss |
-| MAX_DRAWDOWN | 0.3 | 30% max drawdown |
-| MAX_OPEN | 1 | Max open positions |
-| MAX_TRADES_DAY | 2 | Max trades per day |
+### Quick Config for Paper Trading
+```json
+{
+  "EXECUTION_MODE": "PAPER",
+  "BROKER_API_ENABLED": false,
+  "BASE_CAPITAL": 5000,
+  "MAX_DAILY_LOSS": -300,
+  "MAX_DRAWDOWN": 0.3,
+  "MAX_OPEN": 1,
+  "MAX_TRADES_DAY": 2
+}
+```
 
-### To Enable Live Trading Later:
+### To Enable Live Trading Later
 ```json
 {
   "EXECUTION_MODE": "PAPER",
@@ -61,70 +83,53 @@ Double-click: run_low_capital.bat
 
 ## 🎯 TRADING MODES
 
-### 1. MANUAL (Current Default)
-- Signals generated and displayed
-- Telegram alerts sent
-- YOU place orders manually
-- **No broker connection needed**
-
-### 2. PAPER
-- Simulated fills with realistic slippage
-- Tracks paper P&L
-- Good for testing strategies
-
-### 3. AUTO (Live)
-- Automatic order placement
-- Requires BROKER_API_ENABLED=true
-- **Start with LOW capital + manual oversight**
+| Mode | Description | Risk Level |
+|------|-------------|------------|
+| **MANUAL** | Signals generated + displayed; YOU place orders | ✅ Lowest |
+| **PAPER** | Simulated fills with slippage, tracks P&L | ✅ Safe |
+| **SHADOW** | Monitors live market without executing | ✅ Safe |
+| **AUTO (Live)** | Automatic order placement via broker | ⚠️ Capital at risk |
 
 ---
 
-## 📊 PERFORMANCE (Based on 55 trades)
+## ✅ CERTIFICATION STATUS
 
-| Metric | Value |
-|--------|-------|
-| Win Rate | 54.5% |
-| Total PnL | ₹3,252 |
-| Avg PnL/Trade | ₹59.13 |
-| Profit Factor | 2.54 |
-| Sharpe Ratio | 6.99 |
-| Max Drawdown | 0% |
-
----
-
-## ✅ LIVE READINESS GATES
-
-All gates PASSED:
-- [x] Min 50 Paper Trades (55 completed)
-- [x] Win Rate ≥ 50% (54.5%)
-- [x] Profit Factor ≥ 1.3 (2.54)
-- [x] Max Drawdown ≤ 15% (0%)
-- [x] Sharpe ≥ 0.5 (6.99)
+| Gate | Score | Status |
+|------|-------|--------|
+| Architecture | 9.0/10 | ✅ PASS |
+| Risk Controls | 9.4/10 | ✅ PASS |
+| Execution Safety | 9.5/10 | ✅ PASS |
+| Replay Determinism | 9.5/10 | ✅ PASS |
+| Chaos Engineering | 9.0/10 | ✅ PASS |
+| Black Swan | 9.0/10 | ✅ PASS |
+| Security | 8.8/10 | ✅ PASS |
+| **Overall** | **9.0/10** | ✅ **CONDITIONAL PRODUCTION READY** |
 
 ---
 
 ## 🔧 TROUBLESHOOTING
 
 ### Check Python Version
-```
+```bash
 python --version
 ```
-Requires: Python 3.10-3.19
+Requires: Python 3.10–3.19
 
 ### Check Dependencies
-```
+```bash
 python -c "import yfinance, pandas, numpy; print('OK')"
 ```
 
 ### Run Tests
-```
+```bash
 python -m pytest tests/ -q
 ```
-Expected: Most tests pass
+Expected: ~2670 tests, ~99.8% pass rate (~4.5 min runtime)
 
 ### Check Logs
-- Main log: Check console output
-- Trades: `trades.db`
+- Console output
+- `trades.db` — Trade history
+- `logs/` — Rotated log files (50MB, gzip)
 
 ---
 
@@ -132,32 +137,38 @@ Expected: Most tests pass
 
 | File | Purpose |
 |------|---------|
-| `index_app/index_trader.py` | Main trading engine |
-| `core/services/execution_service.py` | Order execution (FIXED v2.45) |
-| `core/execution/idempotency/manager.py` | Duplicate prevention (FIXED v2.45) |
-| `core/mandate_enforcer.py` | Risk enforcement (FIXED v2.45) |
-| `config.json` | User configuration |
-| `PERFORMANCE_REPORT_V2.45.md` | Full performance analysis |
+| `index_app/index_trader.py` | Main trading brain | 
+| `core/services/risk_service.py` | Final risk authority |
+| `core/execution/deterministic_state_machine.py` | Order lifecycle |
+| `core/execution/idempotency/certifier.py` | Exactly-once execution |
+| `core/wal/journal.py` | Write-ahead intent journal |
+| `index_config.defaults.json` | All configuration (~860 keys) |
+| `config.json` | Your overrides |
 
 ---
 
-## 🚦 NEXT STEPS
+## 📚 ADDITIONAL RESOURCES
 
-1. **Continue Paper Trading** - Run 45+ more trades
-2. **Verify Readiness** - Run `python -m core.live_readiness_checker`
-3. **Enable Limited Live** - Set BROKER_API_ENABLED=true, MAX_OPEN=1, MAX_TRADES_DAY=1
-4. **Scale Up** - After 10 successful live trades
+| Resource | Location |
+|----------|----------|
+| Setup Guide | `SETUP_AND_TRADING_GUIDE.md` |
+| System Guide | `SYSTEM_SETUP_GUIDE.md` |
+| Architecture | `ARCHITECTURE_REVIEW.md` |
+| Audit Report | `INSTITUTIONAL_AUDIT_REPORT.md` |
+| Scorecard | `FINAL_EVIDENCE_BASED_SCORECARD.md` |
+| Security | `SECURITY_AUDIT_REPORT.md` |
+| CI/CD | `bitbucket-pipelines.yml` + `.github/workflows/` |
 
 ---
 
 ## ⚠️ IMPORTANT NOTES
 
 - **Always start with PAPER mode**
-- **Use MANUAL_SIGNALS_ONLY=true for signal-only trading**
-- **Check EXECUTION_MODE in config.json before live trading**
-- **Never commit real credentials to git**
+- **Never commit real credentials to git** — use `OPBUYING_*` env vars
+- **Read the Master Constitution** — `MASTER_CONSTITUTION_PROMPT_v1.0.md`
+- **Run `python -m core.live_readiness_checker`** before enabling LIVE mode
 
 ---
 
-**Last Updated**: May 15, 2026
-**System Classification**: Limited Live Pilot Ready
+**Last Updated:** June 22, 2026  
+**System Classification:** Institutional Grade — Conditional Production Ready

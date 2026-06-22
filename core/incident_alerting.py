@@ -42,6 +42,8 @@ class IncidentType(Enum):
     SYSTEM_MODE_CHANGE = "system_mode_change"
     UNKNOWN_STATE = "unknown_state"
     ORDER_MODIFICATION_FAILED = "order_modification_failed"
+    CAPACITY_WARNING = "capacity_warning"
+    CAPACITY_CRITICAL = "capacity_critical"
 
 
 class IncidentSeverity(Enum):
@@ -349,6 +351,24 @@ class IncidentAlerting:
             IncidentSeverity.HIGH,
             f"Modify failed: {order_id} - {reason}",
             details or {},
+        )
+
+    def alert_capacity_warning(self, message: str, details: dict | None = None) -> None:
+        """Alert: Capacity threshold warning (e.g. disk < 5GB)."""
+        self.report_incident(
+            IncidentType.CAPACITY_WARNING,
+            IncidentSeverity.NORMAL,
+            message,
+            details,
+        )
+
+    def alert_capacity_critical(self, message: str, details: dict | None = None) -> None:
+        """Alert: Capacity threshold critical (e.g. disk < 1GB, DB > 900MB)."""
+        self.report_incident(
+            IncidentType.CAPACITY_CRITICAL,
+            IncidentSeverity.HIGH,
+            message,
+            details,
         )
 
 
