@@ -25,7 +25,8 @@ Design
 - Config-driven: tracing_enabled, otlp_endpoint, service_name config keys
 - Thread-safe singleton for the tracer provider
 - Graceful fallback to no-op if packages are missing
-- Compatible with OpenTelemetry SDK and OTLP exporters
+- Compatible with OpenTelemetry SDK and OTLP, Jaeger, and Zipkin exporters
+- Backend selection via ``tracing_backend`` config key (otlp / jaeger / zipkin)
 """
 
 from __future__ import annotations
@@ -132,26 +133,17 @@ def init_tracing(config: dict[str, Any] | None = None) -> bool:
                 except ImportError:
                     _log.debug("[OTEL] Console span exporter not available")
 
-            # OTLP exporter (for production — Jaeger, Zipkin, Grafana Tempo)
-            otlp_endpoint = cfg.get("otlp_endpoint", "http://localhost:4317")
-            if otlp_endpoint:
-                try:
-                    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
-                        OTLPSpanExporter,
-                    )
-                    otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
-                    provider.add_span_processor(
-                        BatchSpanProcessor(otlp_exporter)
-                    )
-                    exporters_configured += 1
-                    _log.info("[OTEL] OTLP exporter configured for %s", otlp_endpoint)
-                except ImportError:
-                    _log.debug(
-                        "[OTEL] OTLP exporter not available — "
-                        "install opentelemetry-exporter-otlp for production tracing"
-                    )
-                except Exception as exc:
-                    _log.warning("[OTEL] OTLP exporter init failed: %s", exc)
+            # Select tracing backend: otlp (default), jaeger, or zipkin
+            tracing_backend = cfg.get("tracing_backend", "otlp").lower()
+            _log.debug("[OTEL] Tracing backend: %s", tracing_backend)
+
+            if tracing_backend == "jaeger":
+                exporters_configured += _configure_jaeger_exporter(provider, cfg)
+            elif tracing_backend == "zipkin":
+                exporters_configured += _configure_zipkin_exporter(provider, cfg)
+            else:
+                # Default: OTLP exporter (works with Jaeger, Zipkin, Grafana Tempo via OTLP protocol)
+                exporters_configured += _configure_otlp_exporter(provider, cfg)
 
             trace.set_tracer_provider(provider)
             _tracer_provider = provider
@@ -284,6 +276,129 @@ class _NoOpTracer:
 
     def start_span(self, name: str, attributes: dict | None = None) -> _NoOpSpan:
         return _NoOpSpan()
+
+
+# ── Individual exporter configuration ───────────────────────────────────────
+
+
+def _configure_otlp_exporter(provider: Any, cfg: dict[str, Any]) -> int:
+    """Configure OTLP gRPC exporter (default backend — works with Jaeger, Zipkin, Tempo)."""
+    count = 0
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+    otlp_endpoint = cfg.get("otlp_endpoint", "http://localhost:4317")
+    if not otlp_endpoint:
+        return 0
+
+    try:
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+            OTLPSpanExporter,
+        )
+        insecure = cfg.get("otlp_insecure", True)
+        kwargs = {"endpoint": otlp_endpoint, "insecure": insecure}
+        if cfg.get("otlp_headers"):
+            kwargs["headers"] = cfg["otlp_headers"]
+        if cfg.get("otlp_timeout"):
+            kwargs["timeout"] = cfg["otlp_timeout"]
+
+        otlp_exporter = OTLPSpanExporter(**kwargs)
+        provider.add_span_processor(
+            BatchSpanProcessor(otlp_exporter)
+        )
+        count += 1
+        _log.info("[OTEL] OTLP exporter configured for %s", otlp_endpoint)
+    except ImportError:
+        _log.debug(
+            "[OTEL] OTLP exporter not available — "
+            "install opentelemetry-exporter-otlp"
+        )
+    except Exception as exc:
+        _log.warning("[OTEL] OTLP exporter init failed: %s", exc)
+
+    return count
+
+
+def _configure_jaeger_exporter(provider: Any, cfg: dict[str, Any]) -> int:
+    """Configure Jaeger exporter via Thrift compact protocol.
+
+    Requires: pip install opentelemetry-exporter-jaeger
+
+    Config keys:
+        - jaeger_agent_host (str): Jaeger agent host (default "localhost").
+        - jaeger_agent_port (int): Jaeger agent compact port (default 6831).
+        - jaeger_endpoint (str): Optional HTTP endpoint for collector (overrides agent).
+    """
+    count = 0
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+    try:
+        from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+
+        jaeger_kwargs: dict[str, Any] = {}
+        http_endpoint = cfg.get("jaeger_endpoint", "")
+        if http_endpoint:
+            jaeger_kwargs["collector_endpoint"] = http_endpoint
+            if cfg.get("jaeger_auth_token"):
+                jaeger_kwargs["collector_token"] = cfg["jaeger_auth_token"]
+        else:
+            jaeger_kwargs["agent_host_name"] = cfg.get("jaeger_agent_host", "localhost")
+            jaeger_kwargs["agent_port"] = cfg.get("jaeger_agent_port", 6831)
+
+        jaeger_exporter = JaegerExporter(**jaeger_kwargs)
+        provider.add_span_processor(
+            BatchSpanProcessor(jaeger_exporter)
+        )
+        count += 1
+        _log.info("[OTEL] Jaeger exporter configured: %s", jaeger_kwargs)
+    except ImportError:
+        _log.debug(
+            "[OTEL] Jaeger exporter not available — "
+            "install opentelemetry-exporter-jaeger"
+        )
+    except Exception as exc:
+        _log.warning("[OTEL] Jaeger exporter init failed: %s", exc)
+
+    return count
+
+
+def _configure_zipkin_exporter(provider: Any, cfg: dict[str, Any]) -> int:
+    """Configure Zipkin exporter via HTTP.
+
+    Requires: pip install opentelemetry-exporter-zipkin
+
+    Config keys:
+        - zipkin_endpoint (str): Zipkin HTTP endpoint (default "http://localhost:9411/api/v2/spans").
+        - zipkin_local_endpoint (dict): Local endpoint info (service_name, ipv4, port).
+    """
+    count = 0
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+
+    try:
+        from opentelemetry.exporter.zipkin.json import ZipkinExporter
+
+        zipkin_endpoint = cfg.get("zipkin_endpoint", "http://localhost:9411/api/v2/spans")
+        local_endpoint = cfg.get("zipkin_local_endpoint", {
+            "service_name": _service_name,
+        })
+
+        zipkin_exporter = ZipkinExporter(
+            endpoint=zipkin_endpoint,
+            local_endpoint=local_endpoint,
+        )
+        provider.add_span_processor(
+            SimpleSpanProcessor(zipkin_exporter)
+        )
+        count += 1
+        _log.info("[OTEL] Zipkin exporter configured for %s", zipkin_endpoint)
+    except ImportError:
+        _log.debug(
+            "[OTEL] Zipkin exporter not available — "
+            "install opentelemetry-exporter-zipkin"
+        )
+    except Exception as exc:
+        _log.warning("[OTEL] Zipkin exporter init failed: %s", exc)
+
+    return count
 
 
 # ── Manual timing helper ─────────────────────────────────────────────────────

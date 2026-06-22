@@ -30,6 +30,7 @@ from core.auth.permissions import Permission, PermissionDenied, Role, role_has_p
 from core.auth.role_manager import RoleManager
 from core.auth.routes import create_auth_router
 from core.auth.session_store import SessionStore
+from core.auth.sso import OAUTH_PROVIDERS, SSOAuthenticator, SSOConfig, SSOUser
 
 __all__ = [
     "AuthHandler",
@@ -55,4 +56,8 @@ __all__ = [
     "csrf_protection",
     "AuthDependencies",
     "create_auth_router",
+    "SSOAuthenticator",
+    "SSOConfig",
+    "SSOUser",
+    "OAUTH_PROVIDERS",
 ]

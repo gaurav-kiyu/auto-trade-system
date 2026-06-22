@@ -27,6 +27,7 @@ from core.auth.mfa import (
     hash_recovery_code,
     verify_mfa_token,
 )
+from core.auth.sso import SSOAuthenticator
 
 _log = logging.getLogger(__name__)
 
@@ -36,11 +37,26 @@ def create_auth_router(
     auth_deps: AuthDependencies,
     cookie_secure: bool = False,
     cookie_domain: str = "",
+    sso_config: dict[str, Any] | None = None,
 ) -> APIRouter:
-    """Create a FastAPI router with all auth endpoints."""
+    """Create a FastAPI router with all auth endpoints.
+
+    Args:
+        auth_handler: The AuthHandler instance.
+        auth_deps: The AuthDependencies instance.
+        cookie_secure: Whether to set Secure flag on cookies.
+        cookie_domain: Optional cookie domain.
+        sso_config: Optional SSO config dict with sso_* keys.
+    """
     router = APIRouter(prefix="/api/auth", tags=["Authentication"])
     _cookie_secure = cookie_secure
     _cookie_domain = cookie_domain
+
+    # Create singleton SSO authenticator if config is provided
+    _sso_authenticator = None
+    if sso_config and sso_config.get("sso_enabled", False):
+        from core.auth.sso import SSOAuthenticator
+        _sso_authenticator = SSOAuthenticator.from_config(auth_handler, sso_config)
 
     def _set_session_cookie(response: Response, token_str: str, max_age: int, request: Request | None = None) -> None:
         secure = _cookie_secure
@@ -490,6 +506,102 @@ def create_auth_router(
             "remaining": len(codes),
             "total_initial": 8,
             "note": "Recovery codes are stored hashed and cannot be retrieved.",
+        }
+
+    # ── SSO / OAuth2 Routes ───────────────────────────────────────────────────
+
+    @router.get("/sso/login")
+    async def sso_login(
+        request: Request,
+        provider: str = "google",
+    ) -> dict:
+        """Initiate SSO login with the specified provider.
+
+        Query params:
+            provider: OAuth2 provider (google, microsoft, github).
+
+        Returns:
+            Dict with ``authorization_url`` to redirect the user to.
+        """
+        # Use singleton SSO authenticator (closure) or create from req state
+        sso = _sso_authenticator
+        if sso is None:
+            app_config = getattr(request.app.state, "config", {}) or {}
+            app_config["sso_redirect_uri"] = str(request.base_url) + "api/auth/sso/callback"
+            sso = SSOAuthenticator.from_config(auth_handler, app_config)
+
+        # Override redirect_uri to match the actual request
+        sso._config.redirect_uri = str(request.base_url) + "api/auth/sso/callback"
+
+        url = sso.get_authorization_url()
+        if url is None:
+            ready, issues = sso.is_ready()
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "SSO not available",
+                    "issues": issues,
+                    "hint": "Install authlib: pip install authlib httpx",
+                },
+            )
+        return {"success": True, "authorization_url": url}
+
+    @router.get("/sso/callback")
+    async def sso_callback(
+        request: Request,
+        code: str = "",
+        state: str = "",
+    ) -> dict:
+        """Handle SSO OAuth2 callback.
+
+        Query params:
+            code: Authorization code from provider.
+            state: OAuth2 state parameter.
+
+        Returns:
+            Dict with session token and user info on success.
+        """
+        if not code or not state:
+            raise HTTPException(status_code=400, detail="Missing code or state parameter")
+
+        # Use the same SSO authenticator instance (preserves OAuth2 state)
+        sso = _sso_authenticator
+        if sso is None:
+            app_config = getattr(request.app.state, "config", {}) or {}
+            sso = SSOAuthenticator.from_config(auth_handler, app_config)
+
+        sso_user = await sso.handle_callback(code, state)
+        if sso_user is None:
+            raise HTTPException(status_code=401, detail="SSO authentication failed")
+
+        # Get or create local user
+        local_user = sso.get_or_create_user(sso_user)
+        if local_user is None:
+            raise HTTPException(status_code=500, detail="Failed to create local user from SSO")
+
+        # Create session
+        ip = get_client_ip(request)
+        ua = request.headers.get("user-agent", "")
+        token = auth_handler.create_session(local_user, ip, ua)
+
+        return {
+            "success": True,
+            "user": local_user.to_dict(),
+            "session": token.to_dict(),
+            "sso_provider": sso_user.provider,
+        }
+
+    @router.get("/sso/providers")
+    async def sso_providers() -> dict:
+        """List available SSO/OAuth2 providers."""
+        from core.auth.sso import OAUTH_PROVIDERS
+        return {
+            "success": True,
+            "providers": list(OAUTH_PROVIDERS.keys()),
+            "details": {
+                name: {"scope": cfg["scope"]}
+                for name, cfg in OAUTH_PROVIDERS.items()
+            },
         }
 
     return router

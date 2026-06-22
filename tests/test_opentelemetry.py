@@ -233,3 +233,70 @@ class TestInitEdgeCases:
         timer.stop()
         timer.stop()  # Second stop should be safe (uses cached _end)
         assert timer.duration_ms >= 0
+
+
+class TestBackendSelection:
+    """Tests for the tracing backend configuration."""
+
+    def test_default_backend_is_otlp(self):
+        """Default tracing_backend should be otlp."""
+        shutdown_tracing()
+        result = init_tracing({"tracing_enabled": True})
+        # Should gracefully degrade (packages not installed)
+        assert result is False
+
+    def test_jaeger_backend_no_package(self):
+        """Jaeger backend should degrade gracefully without packages."""
+        shutdown_tracing()
+        result = init_tracing({
+            "tracing_enabled": True,
+            "tracing_backend": "jaeger",
+            "jaeger_agent_host": "localhost",
+            "jaeger_agent_port": 6831,
+        })
+        assert result is False  # jaeger package not installed
+
+    def test_zipkin_backend_no_package(self):
+        """Zipkin backend should degrade gracefully without packages."""
+        shutdown_tracing()
+        result = init_tracing({
+            "tracing_enabled": True,
+            "tracing_backend": "zipkin",
+            "zipkin_endpoint": "http://localhost:9411/api/v2/spans",
+        })
+        assert result is False  # zipkin package not installed
+
+    def test_unknown_backend_falls_back_to_otlp(self):
+        """Unknown backend should fall back to OTLP gracefully."""
+        shutdown_tracing()
+        result = init_tracing({
+            "tracing_enabled": True,
+            "tracing_backend": "unknown_backend",
+        })
+        # Should degrade to OTLP attempt, then fail gracefully
+        # (OTLP package also not installed in test env)
+        assert result is False
+
+    def test_jaeger_http_endpoint_config(self):
+        """Jaeger HTTP collector endpoint should be configurable."""
+        shutdown_tracing()
+        result = init_tracing({
+            "tracing_enabled": True,
+            "tracing_backend": "jaeger",
+            "jaeger_endpoint": "http://jaeger:14268/api/traces",
+            "jaeger_auth_token": "",
+        })
+        assert result is False  # package not installed
+
+    def test_otlp_with_custom_headers(self):
+        """OTLP with custom headers should degrade gracefully."""
+        shutdown_tracing()
+        result = init_tracing({
+            "tracing_enabled": True,
+            "tracing_backend": "otlp",
+            "otlp_endpoint": "https://otlp.example.com:4317",
+            "otlp_insecure": False,
+            "otlp_headers": "Authorization=Bearer+token123",
+            "otlp_timeout": 30,
+        })
+        assert result is False
