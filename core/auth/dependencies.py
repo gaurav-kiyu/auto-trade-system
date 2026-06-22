@@ -10,6 +10,7 @@ from typing import Any
 from fastapi import Depends, HTTPException, Request
 
 from core.auth.handler import AuthHandler, AuthUser
+from core.auth.mfa import get_mfa_session_state
 from core.auth.permissions import role_has_permission
 from core.auth.role_manager import RoleManager
 
@@ -127,6 +128,37 @@ class AuthDependencies:
                     display_name="Anonymous",
                 )
         return _resolve
+
+    # ── MFA dependency ────────────────────────────────────────────────────────
+
+    async def require_mfa_verified(self, request: Request) -> None:
+        """Dependency that checks MFA verification status for the current session.
+
+        If the user has MFA enabled and the session is not yet verified,
+        raises HTTP 403 with detail "MFA required".
+
+        Usage:
+            @app.get("/protected")
+            async def protected(user: AuthUser = Depends(auth.require_auth),
+                                 _: None = Depends(auth.require_mfa_verified)):
+                ...
+        """
+        user = getattr(request.state, "user", None)
+        token = getattr(request.state, "token", None)
+
+        if user is None or token is None:
+            return
+
+        # Check if MFA is enabled for this user
+        if not self._auth.is_mfa_enabled(user.username):
+            return  # No MFA required
+
+        # Check if session has been MFA-verified
+        if not get_mfa_session_state().is_verified(token.token):
+            raise HTTPException(
+                status_code=403,
+                detail="MFA required. Call POST /api/auth/mfa/verify-session first.",
+            )
 
 
 # ── Non-dependency helpers ─────────────────────────────────────────────────────

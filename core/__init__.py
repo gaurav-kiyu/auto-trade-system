@@ -99,7 +99,10 @@ from .fundamental_analyzer import (
 from .defaults_loader import load_defaults_file
 from .environment import Environment, guard_dev_config_in_production, guard_mode_env_compatibility, validate_environment
 from .hybrid_execution import apply_execution_mode, normalize_execution_mode
-from .orchestrator import Orchestrator, OrchestratorCycle, OrchestratorSignal
+import warnings
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message=".*orchestrator.*DEPRECATED")
+    from .orchestrator import Orchestrator, OrchestratorCycle, OrchestratorSignal
 from .presentation_engine import PresentationEngine
 from .reconciliation_engine import ReconciliationEngine, ReconciliationItem, ReconciliationReport
 from .replay_engine import ReplayEngine

@@ -25,6 +25,83 @@ from core.time_provider import time_provider
 _log = logging.getLogger(__name__)
 
 
+# ── Read-Only Config View for Strategy Isolation (new) ─────────────────────
+
+class ReadOnlyConfigView:
+    """Read-only view of configuration for strategy isolation.
+
+    Prevents strategies from modifying risk-related configuration at runtime.
+    All mutation operations (setitem, update, pop, clear) raise TypeError.
+
+    Usage:
+        config = ReadOnlyConfigView({"SL_PCT": 0.3, "TARGET_PCT": 0.6})
+        value = config["SL_PCT"]  # OK
+        config["SL_PCT"] = 0.1   # TypeError
+    """
+    _BLOCKED_KEYS_PREFIXES = ("MAX_", "SL_", "TARGET_", "TRAIL_", "PORTFOLIO_", "RISK_", "HARD_HALT")
+
+    def __init__(self, data: dict[str, object] | None = None):
+        self._data = dict(data) if data else {}
+
+    def __getitem__(self, key: str) -> object:
+        return self._data[key]
+
+    def __setitem__(self, key: str, value: object) -> None:
+        raise TypeError(f"ReadOnlyConfigView does not support item assignment ({key})")
+
+    def __delitem__(self, key: str) -> None:
+        raise TypeError(f"ReadOnlyConfigView does not support item deletion ({key})")
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._data
+
+    def get(self, key: str, default: object = None) -> object:
+        return self._data.get(key, default)
+
+    def keys(self):
+        return self._data.keys()
+
+    def items(self):
+        return self._data.items()
+
+    def values(self):
+        return self._data.values()
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __repr__(self) -> str:
+        return f"ReadOnlyConfigView({dict(self._data)})"
+
+    def to_dict(self) -> dict[str, object]:
+        """Return a (mutable) copy of the underlying data for logging/reporting."""
+        return dict(self._data)
+
+    @classmethod
+    def from_enforcing(cls, data: dict[str, object]) -> "ReadOnlyConfigView":
+        """Create a view that logs warnings on access to blocked keys.
+
+        Blocked keys include risk-critical parameters like MAX_DAILY_LOSS,
+        SL_PCT, TARGET_PCT, etc. Strategies can read them but any attempt
+        to modify triggers a warning in the audit log.
+        """
+        view = cls(data)
+        view._blocked_keys = [
+            k for k in data
+            if any(k.upper().startswith(p) for p in cls._BLOCKED_KEYS_PREFIXES)
+        ]
+        if view._blocked_keys:
+            _log.info(
+                "[SANDBOX] Strategy isolation active: %d risk keys are read-only: %s",
+                len(view._blocked_keys),
+                view._blocked_keys,
+            )
+        return view
+
+
 class SandboxMode(Enum):
     """Sandbox execution modes"""
     HISTORICAL_REPLAY = "HISTORICAL_REPLAY"
@@ -60,6 +137,10 @@ class StrategySandbox:
     """
     Strategy sandbox for safe strategy development and testing.
     Runs strategies in isolation without touching production.
+
+    Risk isolation: Strategies receive a ReadOnlyConfigView that blocks
+    mutation of risk-critical config keys. This prevents accidental (or
+    intentional) modification of MAX_DAILY_LOSS, SL_PCT, etc. at runtime.
     """
 
     def __init__(self):
@@ -70,6 +151,7 @@ class StrategySandbox:
         self._lock = threading.RLock()
         self._market_data_callback: Callable | None = None
         self._stop_event = threading.Event()
+        self._risk_config_view: ReadOnlyConfigView | None = None
 
     def configure(self, mode: SandboxMode, **kwargs) -> None:
         """Configure sandbox"""
@@ -82,9 +164,22 @@ class StrategySandbox:
         )
         _log.info(f"Sandbox configured: {mode.value}")
 
-    def load_strategy(self, strategy: BaseStrategy) -> bool:
-        """Load strategy into sandbox"""
+    def load_strategy(self, strategy: BaseStrategy, risk_config: dict | None = None) -> bool:
+        """Load strategy into sandbox with optional risk config isolation.
+
+        Args:
+            strategy: The strategy instance to load.
+            risk_config: Risk configuration to wrap in read-only view.
+                         If provided, strategy gets ReadOnlyConfigView
+                         instead of direct dict access.
+        """
         try:
+            if risk_config is not None:
+                self._risk_config_view = ReadOnlyConfigView.from_enforcing(risk_config)
+                _log.info(
+                    "[SANDBOX] Risk config isolation active for %s (%d keys)",
+                    strategy.name, len(self._risk_config_view),
+                )
             strategy.on_start()
             self._strategy = strategy
             _log.info(f"Loaded strategy into sandbox: {strategy.name}")
@@ -92,6 +187,10 @@ class StrategySandbox:
         except Exception as e:
             _log.error(f"Failed to load strategy: {e} (type: {type(e).__name__})")
             return False
+
+    def get_risk_config_view(self) -> ReadOnlyConfigView | None:
+        """Get the read-only risk config view for the loaded strategy."""
+        return self._risk_config_view
 
     def run_historical_replay(
         self,

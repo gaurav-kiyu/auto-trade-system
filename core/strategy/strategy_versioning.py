@@ -161,6 +161,59 @@ class StrategyVersionManager:
         config_str = json.dumps(config, sort_keys=True)
         return hashlib.sha256(config_str.encode()).hexdigest()[:16]
 
+    def compare_versions(self, strategy_name: str, version_a: str, version_b: str) -> dict[str, Any]:
+        """Compare two versions of the same strategy for config diff and metadata."""
+        va = self.get_version(strategy_name, version_a)
+        vb = self.get_version(strategy_name, version_b)
+        return {
+            "strategy": strategy_name,
+            "version_a": version_a,
+            "version_b": version_b,
+            "a_found": va is not None,
+            "b_found": vb is not None,
+            "config_match": (va.config_hash == vb.config_hash) if va and vb else None,
+            "metadata_diff": (
+                {k: (va.metadata.get(k), vb.metadata.get(k))
+                 for k in set(list(va.metadata.keys()) + list(vb.metadata.keys()))
+                 if va.metadata.get(k) != vb.metadata.get(k)}
+            ) if va and vb else {},
+        }
+
+    def get_performance_summary(self, strategy_name: str, db_path: str = "trades.db") -> dict[str, Any]:
+        """Get performance summary per version for a strategy.
+
+        Returns dict keyed by version with win count, loss count,
+        total P&L, and average P&L for each version.
+        """
+        from core.db_utils import get_connection as _get_sv_conn
+        summary: dict[str, dict[str, float]] = {}
+        try:
+            with _get_sv_conn(db_path, timeout=5, row_factory=False) as conn:
+                rows = conn.execute(
+                    "SELECT strategy_version, net_pnl FROM trades "
+                    "WHERE strategy_name = ? AND net_pnl IS NOT NULL",
+                    (strategy_name,),
+                ).fetchall()
+                for row in rows:
+                    ver = str(row[0]) if row[0] else "unknown"
+                    pnl = float(row[1]) if row[1] else 0.0
+                    if ver not in summary:
+                        summary[ver] = {"wins": 0, "losses": 0, "total_pnl": 0.0, "count": 0}
+                    summary[ver]["count"] += 1
+                    summary[ver]["total_pnl"] += pnl
+                    if pnl > 0:
+                        summary[ver]["wins"] += 1
+                    elif pnl < 0:
+                        summary[ver]["losses"] += 1
+        except Exception as exc:
+            _log.warning("Failed to load performance for %s: %s", strategy_name, exc)
+
+        for ver, data in summary.items():
+            c = data["count"]
+            data["avg_pnl"] = round(data["total_pnl"] / c, 2) if c > 0 else 0.0
+            data["win_rate"] = round(data["wins"] / c * 100, 1) if c > 0 else 0.0
+        return summary
+
     def _persist_version(self, version: StrategyVersion) -> None:
         """Persist version to DB"""
         try:

@@ -118,6 +118,20 @@ class DIContainer:
 
 # ── Convenience factory for default wiring ────────────────────────────────
 
+
+def _register_multi_asset_adapters(container_instance: DIContainer) -> None:
+    """Register multi-asset market data adapters.
+
+    Delegates to the app-layer factory to maintain ADR-0010 compliance
+    (no core/ -> infrastructure/ imports).
+    """
+    try:
+        from index_app.domains.market.adapter_factory import register_multi_asset_adapters as _real_register
+        _real_register(container_instance)
+    except ImportError:
+        pass  # App layer not available - adapters will not be registered
+
+
 def wire_default_services(container_instance: DIContainer | None = None) -> DIContainer:
     """Register default service implementations into the container.
 
@@ -148,33 +162,10 @@ def wire_default_services(container_instance: DIContainer | None = None) -> DICo
     except ImportError:
         pass
 
-    # Market Data Adapters (multi-asset) - each adapter registered under its own type
-    try:
-        from infrastructure.adapters.market_data.equity.nse_equity_adapter import (
-            NseEquityAdapter,
-        )
-        if not c.is_registered(NseEquityAdapter):
-            c.register_singleton(NseEquityAdapter, NseEquityAdapter)
-    except ImportError:
-        pass
-
-    try:
-        from infrastructure.adapters.market_data.commodity.mcx_commodity_adapter import (
-            McxCommodityAdapter,
-        )
-        if not c.is_registered(McxCommodityAdapter):
-            c.register_singleton(McxCommodityAdapter, McxCommodityAdapter)
-    except ImportError:
-        pass
-
-    try:
-        from infrastructure.adapters.market_data.currency.cds_currency_adapter import (
-            CdsCurrencyAdapter,
-        )
-        if not c.is_registered(CdsCurrencyAdapter):
-            c.register_singleton(CdsCurrencyAdapter, CdsCurrencyAdapter)
-    except ImportError:
-        pass
+    # Market Data Adapters (multi-asset) - deferred registration
+    # These are registered in index_app/domains/trading/container.py (app layer)
+    # to avoid core/ -> infrastructure/ import violations (ADR-0010)
+    _register_multi_asset_adapters(c)
 
     # Market Data Service - multi-adapter aggregator
     try:

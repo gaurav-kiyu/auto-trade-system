@@ -22,6 +22,8 @@ _log = logging.getLogger(__name__)
 
 _DEFAULT_HOST = "0.0.0.0"
 _DEFAULT_PORT = 8765
+_DEFAULT_SSL_CERT = ""
+_DEFAULT_SSL_KEY = ""
 
 
 # ── In-process signal ring buffer ─────────────────────────────────────────────
@@ -57,12 +59,24 @@ def serve(
     host: str = _DEFAULT_HOST,
     port: int = _DEFAULT_PORT,
     log_level: str = "warning",
+    ssl_certfile: str = "",
+    ssl_keyfile: str = "",
 ) -> None:
     """
-    Start the uvicorn server in a daemon thread.
+    Start the uvicorn server in a daemon thread (optionally with TLS).
 
     Returns immediately - the server runs in the background.
     Call this only when ``web_dashboard_enabled=true``.
+
+    Args:
+        app: FastAPI application instance.
+        host: Bind address.
+        port: Bind port.
+        log_level: Uvicorn log level.
+        ssl_certfile: Path to TLS certificate file (PEM format).
+                      If provided, enables HTTPS.
+        ssl_keyfile: Path to TLS private key file (PEM format).
+                     Required if ssl_certfile is set.
     """
     try:
         import uvicorn
@@ -71,12 +85,28 @@ def serve(
             "uvicorn is required to serve the dashboard: pip install uvicorn"
         ) from exc
 
-    config = uvicorn.Config(app, host=host, port=port, log_level=log_level)
+    config = uvicorn.Config(
+        app,
+        host=host,
+        port=port,
+        log_level=log_level,
+        ssl_certfile=ssl_certfile or None,
+        ssl_keyfile=ssl_keyfile or None,
+    )
     server = uvicorn.Server(config)
 
     t = threading.Thread(target=server.run, daemon=True, name="web_dashboard")
     t.start()
-    _log.info("[DASH] Dashboard started at http://%s:%d", host, port)
+    proto = "https" if ssl_certfile else "http"
+    _log.info("[DASH] Dashboard started at %s://%s:%d", proto, host, port)
+
+    # Warn if dashboard bound to 0.0.0.0 without TLS
+    if host == "0.0.0.0" and not ssl_certfile:
+        _log.warning(
+            "[DASH] Dashboard bound to 0.0.0.0 without TLS - "
+            "set web_ssl_certfile and web_ssl_keyfile in config "
+            "for HTTPS in production"
+        )
 
 
 # ── Convenience launcher (called from index_trader.py) ───────────────────────
@@ -103,6 +133,8 @@ def maybe_start_dashboard(
     try:
         host = str(c.get("web_dashboard_host", _DEFAULT_HOST))
         port = int(c.get("web_dashboard_port", _DEFAULT_PORT))
+        ssl_certfile = str(c.get("web_ssl_certfile", _DEFAULT_SSL_CERT))
+        ssl_keyfile = str(c.get("web_ssl_keyfile", _DEFAULT_SSL_KEY))
 
         from core.enterprise_dashboard import EnterpriseDashboard
 
@@ -130,7 +162,7 @@ def maybe_start_dashboard(
             market_data_service=market_data_service,
         )
 
-        serve(dash.app, host=host, port=port)
+        serve(dash.app, host=host, port=port, ssl_certfile=ssl_certfile, ssl_keyfile=ssl_keyfile)
         return dash.app
     except Exception as exc:
         _log.warning("[DASH] Dashboard startup failed (non-fatal): %s", exc)

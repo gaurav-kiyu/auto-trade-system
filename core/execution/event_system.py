@@ -42,22 +42,40 @@ from typing import Any
 
 from core.time_provider import time_provider
 
+# Optional OpenTelemetry tracing — gracefully no-ops if disabled or package missing
+try:
+    from core.observability.opentelemetry import trace_event, Timer as _OtelTimer
+except ImportError:
+    # Fallback no-ops if the module itself has import issues
+    class _NoOpCtx:
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def stop(self): return 0.0
+        @property
+        def duration_ms(self): return 0.0
+    trace_event = lambda *a, **kw: _NoOpCtx()  # noqa: E731
+    _OtelTimer = lambda *a, **kw: _NoOpCtx()  # noqa: E731
+
 _log = logging.getLogger(__name__)
 
 
 class EventType(Enum):
-    """Core event types"""
+    """Core event types per ULTIMATE Master Prompt Phase 5."""
     SIGNAL_GENERATED = "SIGNAL_GENERATED"
     RISK_APPROVED = "RISK_APPROVED"
     ORDER_SUBMITTED = "ORDER_SUBMITTED"
+    ORDER_FILLED = "ORDER_FILLED"          # Alias: FILL_RECEIVED
     BROKER_ACK_RECEIVED = "BROKER_ACK_RECEIVED"
     FILL_RECEIVED = "FILL_RECEIVED"
     PARTIAL_FILL_RECEIVED = "PARTIAL_FILL_RECEIVED"
     POSITION_UPDATED = "POSITION_UPDATED"
+    POSITION_CHANGED = "POSITION_CHANGED"    # Alias: POSITION_UPDATED
     ORDER_CANCELLED = "ORDER_CANCELLED"
     ORDER_REJECTED = "ORDER_REJECTED"
     RISK_LIMIT_BREACHED = "RISK_LIMIT_BREACHED"
+    RISK_BREACHED = "RISK_BREACHED"          # Alias: RISK_LIMIT_BREACHED
     CIRCUIT_BREAKER_TRIGGERED = "CIRCUIT_BREAKER_TRIGGERED"
+    KILL_SWITCH_TRIGGERED = "KILL_SWITCH_TRIGGERED"
     TRADING_SESSION_STARTED = "TRADING_SESSION_STARTED"
     TRADING_SESSION_ENDED = "TRADING_SESSION_ENDED"
     STRATEGY_INITIALIZED = "STRATEGY_INITIALIZED"
@@ -88,6 +106,12 @@ class TradingEvent:
     timestamp: str = field(default_factory=lambda: time_provider.format_ts())
     source: str = ""
 
+    # Event sourcing fields (Phase 5 specification)
+    aggregate_id: str | None = None
+    correlation_id: str | None = None
+    causation_id: str | None = None
+    version: int = 1
+
     intent_id: str | None = None
     client_order_id: str | None = None
     broker_order_id: str | None = None
@@ -107,6 +131,10 @@ class TradingEvent:
             "priority": self.priority.value,
             "timestamp": self.timestamp,
             "source": self.source,
+            "aggregate_id": self.aggregate_id,
+            "correlation_id": self.correlation_id,
+            "causation_id": self.causation_id,
+            "version": self.version,
             "intent_id": self.intent_id,
             "client_order_id": self.client_order_id,
             "broker_order_id": self.broker_order_id,
@@ -130,6 +158,10 @@ class TradingEvent:
             priority=EventPriority(data.get("priority", 2)),
             timestamp=data.get("timestamp", time_provider.format_ts()),
             source=data.get("source", ""),
+            aggregate_id=data.get("aggregate_id"),
+            correlation_id=data.get("correlation_id"),
+            causation_id=data.get("causation_id"),
+            version=data.get("version", 1),
             intent_id=data.get("intent_id"),
             client_order_id=data.get("client_order_id"),
             broker_order_id=data.get("broker_order_id"),
@@ -171,6 +203,10 @@ class EventStore:
                         priority INTEGER,
                         timestamp TEXT NOT NULL,
                         source TEXT,
+                        aggregate_id TEXT,
+                        correlation_id TEXT,
+                        causation_id TEXT,
+                        version INTEGER DEFAULT 1,
                         intent_id TEXT,
                         client_order_id TEXT,
                         broker_order_id TEXT,
@@ -184,8 +220,8 @@ class EventStore:
                         sha256 TEXT
                     )
                 """)
-                # Add hash columns to existing tables (safe for backward compat)
-                for col in ("previous_hash", "sha256"):
+                # Add columns to existing tables (safe for backward compat)
+                for col in ("previous_hash", "sha256", "aggregate_id", "correlation_id", "causation_id"):
                     try:
                         conn.execute(f"ALTER TABLE events ADD COLUMN {col} TEXT")
                     except sqlite3.OperationalError:
@@ -270,16 +306,22 @@ class EventStore:
 
                     conn.execute("""
                         INSERT INTO events
-                        (event_id, event_type, priority, timestamp, source, intent_id,
-                         client_order_id, broker_order_id, symbol, direction, quantity,
-                         price, metadata_json, sequence_number, previous_hash, sha256)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (event_id, event_type, priority, timestamp, source,
+                         aggregate_id, correlation_id, causation_id, version,
+                         intent_id, client_order_id, broker_order_id, symbol,
+                         direction, quantity, price, metadata_json,
+                         sequence_number, previous_hash, sha256)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         event.event_id,
                         event.event_type.value,
                         event.priority.value,
                         event.timestamp,
                         event.source,
+                        event.aggregate_id,
+                        event.correlation_id,
+                        event.causation_id,
+                        event.version,
                         event.intent_id,
                         event.client_order_id,
                         event.broker_order_id,
@@ -326,9 +368,10 @@ class EventStore:
             with get_connection(self.PERSISTENCE_PATH) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute(
-                    "SELECT event_id, event_type, priority, timestamp, source, intent_id, "
-                    "client_order_id, broker_order_id, symbol, direction, quantity, "
-                    "price, metadata_json, sequence_number, previous_hash, sha256 "
+                    "SELECT event_id, event_type, priority, timestamp, source, "
+                    "aggregate_id, correlation_id, causation_id, version, "
+                    "intent_id, client_order_id, broker_order_id, symbol, direction, "
+                    "quantity, price, metadata_json, sequence_number, previous_hash, sha256 "
                     "FROM events ORDER BY sequence_number"
                 )
                 rows = cursor.fetchall()
@@ -348,20 +391,24 @@ class EventStore:
 
             # Reconstruct event data from named columns for deterministic hash
             event_data = {
-                "event_id": row["event_id"],
-                "event_type": row["event_type"],
-                "priority": row["priority"],
-                "timestamp": row["timestamp"],
-                "source": row["source"],
-                "intent_id": row["intent_id"],
-                "client_order_id": row["client_order_id"],
-                "broker_order_id": row["broker_order_id"],
-                "symbol": row["symbol"],
-                "direction": row["direction"],
-                "quantity": row["quantity"],
-                "price": row["price"],
-                "metadata": json.loads(row["metadata_json"] or "{}"),
-            }
+                        "event_id": row["event_id"],
+                        "event_type": row["event_type"],
+                        "priority": row["priority"],
+                        "timestamp": row["timestamp"],
+                        "source": row["source"],
+                        "aggregate_id": row["aggregate_id"],
+                        "correlation_id": row["correlation_id"],
+                        "causation_id": row["causation_id"],
+                        "version": row["version"],
+                        "intent_id": row["intent_id"],
+                        "client_order_id": row["client_order_id"],
+                        "broker_order_id": row["broker_order_id"],
+                        "symbol": row["symbol"],
+                        "direction": row["direction"],
+                        "quantity": row["quantity"],
+                        "price": row["price"],
+                        "metadata": json.loads(row["metadata_json"] or "{}"),
+                    }
             stored_prev = row["previous_hash"]
             seq = row["sequence_number"]
             event_id = row["event_id"]
@@ -392,9 +439,10 @@ class EventStore:
         try:
             with get_connection(self.PERSISTENCE_PATH) as conn:
                 cursor = conn.execute("""
-                    SELECT event_id, event_type, priority, timestamp, source, intent_id,
-                           client_order_id, broker_order_id, symbol, direction, quantity,
-                           price, metadata_json
+                    SELECT event_id, event_type, priority, timestamp, source,
+                           aggregate_id, correlation_id, causation_id, version,
+                           intent_id, client_order_id, broker_order_id, symbol,
+                           direction, quantity, price, metadata_json
                     FROM events
                     WHERE client_order_id = ?
                     ORDER BY sequence_number
@@ -408,14 +456,18 @@ class EventStore:
                         priority=EventPriority(row[2]),
                         timestamp=row[3],
                         source=row[4],
-                        intent_id=row[5],
-                        client_order_id=row[6],
-                        broker_order_id=row[7],
-                        symbol=row[8],
-                        direction=row[9],
-                        quantity=row[10],
-                        price=row[11],
-                        metadata=json.loads(row[12] or "{}"),
+                        aggregate_id=row[5],
+                        correlation_id=row[6],
+                        causation_id=row[7],
+                        version=row[8] or 1,
+                        intent_id=row[9],
+                        client_order_id=row[10],
+                        broker_order_id=row[11],
+                        symbol=row[12],
+                        direction=row[13],
+                        quantity=row[14],
+                        price=row[15],
+                        metadata=json.loads(row[16] or "{}"),
                     ))
                 return events
         except (sqlite3.Error, OSError, json.JSONDecodeError, KeyError, ValueError) as e:
@@ -427,9 +479,10 @@ class EventStore:
         try:
             with get_connection(self.PERSISTENCE_PATH) as conn:
                 cursor = conn.execute("""
-                    SELECT event_id, event_type, priority, timestamp, source, intent_id,
-                           client_order_id, broker_order_id, symbol, direction, quantity,
-                           price, metadata_json
+                    SELECT event_id, event_type, priority, timestamp, source,
+                           aggregate_id, correlation_id, causation_id, version,
+                           intent_id, client_order_id, broker_order_id, symbol,
+                           direction, quantity, price, metadata_json
                     FROM events
                     WHERE event_type = ?
                     ORDER BY sequence_number DESC
@@ -446,9 +499,10 @@ class EventStore:
         try:
             with get_connection(self.PERSISTENCE_PATH) as conn:
                 cursor = conn.execute("""
-                    SELECT event_id, event_type, priority, timestamp, source, intent_id,
-                           client_order_id, broker_order_id, symbol, direction, quantity,
-                           price, metadata_json
+                    SELECT event_id, event_type, priority, timestamp, source,
+                           aggregate_id, correlation_id, causation_id, version,
+                           intent_id, client_order_id, broker_order_id, symbol,
+                           direction, quantity, price, metadata_json
                     FROM events
                     WHERE timestamp >= ? AND timestamp <= ?
                     ORDER BY sequence_number
@@ -469,14 +523,18 @@ class EventStore:
                 priority=EventPriority(row[2]),
                 timestamp=row[3],
                 source=row[4],
-                intent_id=row[5],
-                client_order_id=row[6],
-                broker_order_id=row[7],
-                symbol=row[8],
-                direction=row[9],
-                quantity=row[10],
-                price=row[11],
-                metadata=json.loads(row[12] or "{}"),
+                aggregate_id=row[5],
+                correlation_id=row[6],
+                causation_id=row[7],
+                version=row[8] or 1,
+                intent_id=row[9],
+                client_order_id=row[10],
+                broker_order_id=row[11],
+                symbol=row[12],
+                direction=row[13],
+                quantity=row[14],
+                price=row[15],
+                metadata=json.loads(row[16] or "{}"),
             ))
         return events
 
@@ -514,6 +572,8 @@ class EventBus:
         Publish event to all subscribers.
         Events are also persisted to event store (event sourcing).
         """
+        timer = _OtelTimer(f"publish.{event.event_type.value}")
+
         self._event_store.append(event)
 
         with self._lock:
@@ -525,12 +585,24 @@ class EventBus:
         with self._lock:
             handlers = self._subscribers.get(event.event_type, []).copy()
 
-        for handler in handlers:
-            try:
-                handler(event)
-            except (ValueError, TypeError, KeyError, AttributeError, OSError) as e:
-                _log.error(f"Event handler failed for {event.event_type.value}: {e}")
+        # Trace event distribution if OpenTelemetry is active
+        with trace_event(
+            f"event.{event.event_type.value}",
+            {
+                "event_id": event.event_id,
+                "event_type": event.event_type.value,
+                "source": event.source,
+                "symbol": event.symbol or "",
+                "handler_count": len(handlers),
+            },
+        ):
+            for handler in handlers:
+                try:
+                    handler(event)
+                except (ValueError, TypeError, KeyError, AttributeError, OSError) as e:
+                    _log.error(f"Event handler failed for {event.event_type.value}: {e}")
 
+        timer.stop()
         return True
 
     def publish_signal_generated(

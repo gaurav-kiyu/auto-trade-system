@@ -41,15 +41,21 @@ Config keys (all optional - safe defaults built in)
   drift_psi_alert          : float default 0.25
   drift_ks_warn            : float default 0.20
   drift_db_path            : str   default "ml_tracker.db"
+  drift_auto_retrain       : bool  default False  (auto-trigger retraining on ALERT)
+  drift_retrain_callback   : callable or None     (function to call for retraining)
+  drift_sla_max_alert_periods : int default 3     (max consecutive ALERT periods before escalation)
+  drift_sla_callback       : callable or None     (function to call for SLA breach)
 """
 from __future__ import annotations
 
 import logging
 import math
 import sqlite3
+import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Callable
 
 from core.db_utils import get_connection
 
@@ -61,6 +67,7 @@ _DEFAULT_RECENT_DAYS = 14
 _DEFAULT_PSI_WARN    = 0.10
 _DEFAULT_PSI_ALERT   = 0.25
 _DEFAULT_KS_WARN     = 0.20
+_DEFAULT_SLA_MAX_ALERT_PERIODS = 3
 
 
 # ── Result dataclass ──────────────────────────────────────────────────────────
@@ -74,6 +81,21 @@ class DriftResult:
     recent_n:   int
     status:     str    # "OK" | "WARN" | "ALERT"
     message:    str
+
+
+@dataclass
+class DriftSLAReport:
+    """SLA monitoring report for concept drift."""
+    total_features: int = 0
+    alert_count: int = 0
+    warn_count: int = 0
+    ok_count: int = 0
+    consecutive_alert_periods: int = 0
+    sla_breached: bool = False
+    last_retrain_ts: float | None = None
+    hours_since_retrain: float = 0.0
+    retrain_recommended: bool = False
+    summary: str = ""
 
 
 # ── Core statistics ───────────────────────────────────────────────────────────
@@ -313,6 +335,178 @@ def detect_all_features(
                 status="OK", message=f"Error: {exc}",
             )
     return results
+
+
+# ── Auto-Retraining & SLA Monitoring (new) ──────────────────────────────────
+
+class DriftMonitor:
+    """
+    Monitors concept drift over time and triggers auto-retraining when
+    drift exceeds thresholds. Tracks consecutive alert periods for SLA
+    compliance and provides retraining recommendations.
+
+    Thread-safe background monitor that checks drift on configurable intervals.
+    """
+
+    def __init__(
+        self,
+        cfg: dict[str, Any] | None = None,
+        retrain_callback: Callable[[str], None] | None = None,
+        sla_callback: Callable[[str], None] | None = None,
+    ):
+        self._cfg = cfg or {}
+        self._retrain_callback = retrain_callback
+        self._sla_callback = sla_callback
+        self._lock = threading.RLock()
+        self._stop_event = threading.Event()
+        self._background_thread: threading.Thread | None = None
+
+        self._auto_retrain = bool(self._cfg.get("drift_auto_retrain", False))
+        self._sla_max_alert = int(self._cfg.get("drift_sla_max_alert_periods", _DEFAULT_SLA_MAX_ALERT_PERIODS))
+        self._db_path = str(self._cfg.get("drift_db_path", _DEFAULT_DB))
+        self._ref_days = int(self._cfg.get("drift_ref_days", _DEFAULT_REF_DAYS))
+        self._recent_days = int(self._cfg.get("drift_recent_days", _DEFAULT_RECENT_DAYS))
+        self._check_interval = int(self._cfg.get("drift_check_interval_sec", 3600))
+
+        # State
+        self._consecutive_alert_periods = 0
+        self._last_check_ts: float | None = None
+        self._last_results: dict[str, DriftResult] | None = None
+        self._last_retrain_ts: float | None = self._load_last_retrain_ts()
+        self._alert_history: list[dict[str, Any]] = []
+
+    def _load_last_retrain_ts(self) -> float | None:
+        """Load last retraining timestamp from DB or config."""
+        ts = self._cfg.get("drift_last_retrain_ts", None)
+        if ts is not None:
+            return float(ts)
+        return None
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self._cfg.get("drift_detector_enabled", True))
+
+    def run_check(self) -> DriftSLAReport:
+        """Run a drift detection check and evaluate SLA status."""
+        now = time.time()
+        self._last_check_ts = now
+
+        results = detect_all_features(
+            db_path=self._db_path,
+            ref_days=self._ref_days,
+            recent_days=self._recent_days,
+            _now=now,
+        )
+        self._last_results = results
+
+        n_alert = sum(1 for r in results.values() if r.status == "ALERT")
+        n_warn = sum(1 for r in results.values() if r.status == "WARN")
+        n_ok = sum(1 for r in results.values() if r.status == "OK")
+
+        with self._lock:
+            if n_alert > 0:
+                self._consecutive_alert_periods += 1
+            else:
+                self._consecutive_alert_periods = 0
+
+        sla_breached = self._consecutive_alert_periods >= self._sla_max_alert
+
+        # Auto-retrain logic
+        retrain_needed = n_alert > 0 and self._auto_retrain
+        if retrain_needed and self._retrain_callback:
+            try:
+                alert_features = [f for f, r in results.items() if r.status == "ALERT"]
+                self._retrain_callback(",".join(alert_features))
+                self._last_retrain_ts = time.time()
+                _log.info("[DRIFT-MONITOR] Auto-retrain triggered for features: %s", alert_features)
+            except Exception as exc:
+                _log.warning("[DRIFT-MONITOR] Auto-retrain callback failed: %s", exc)
+
+        # SLA breach escalation
+        if sla_breached and self._sla_callback:
+            try:
+                msg = (
+                    f"[DRIFT-SLA] Drift SLA BREACHED: {n_alert} feature(s) in ALERT "
+                    f"for {self._consecutive_alert_periods} consecutive periods "
+                    f"(max allowed: {self._sla_max_alert})"
+                )
+                self._sla_callback(msg)
+                # Record SLA breach in history
+                self._alert_history.append({
+                    "ts": now,
+                    "event": "SLA_BREACH",
+                    "consecutive_alert_periods": self._consecutive_alert_periods,
+                    "alert_features": [f for f, r in results.items() if r.status == "ALERT"],
+                })
+            except Exception as exc:
+                _log.warning("[DRIFT-MONITOR] SLA callback failed: %s", exc)
+
+        hours_since = 0.0
+        if self._last_retrain_ts:
+            hours_since = (now - self._last_retrain_ts) / 3600
+
+        retrain_recommended = n_alert > 0 or hours_since > 168  # >1 week
+
+        report = DriftSLAReport(
+            total_features=len(results),
+            alert_count=n_alert,
+            warn_count=n_warn,
+            ok_count=n_ok,
+            consecutive_alert_periods=self._consecutive_alert_periods,
+            sla_breached=sla_breached,
+            last_retrain_ts=self._last_retrain_ts,
+            hours_since_retrain=round(hours_since, 1),
+            retrain_recommended=retrain_recommended,
+            summary=(
+                f"Drift Monitor: {len(results)} features, {n_alert} ALERT, {n_warn} WARN, {n_ok} OK. "
+                f"Consecutive ALERTs: {self._consecutive_alert_periods}/{self._sla_max_alert}. "
+                f"Retrain: {'RECOMMENDED' if retrain_recommended else 'NOT NEEDED'}"
+            ),
+        )
+        return report
+
+    def get_sla_status(self) -> dict[str, Any]:
+        """Get SLA monitoring status snapshot."""
+        with self._lock:
+            return {
+                "enabled": self.enabled,
+                "auto_retrain": self._auto_retrain,
+                "consecutive_alert_periods": self._consecutive_alert_periods,
+                "sla_max_alert_periods": self._sla_max_alert,
+                "sla_breached": self._consecutive_alert_periods >= self._sla_max_alert,
+                "last_check_ts": self._last_check_ts,
+                "last_retrain_ts": self._last_retrain_ts,
+                "alert_history_count": len(self._alert_history),
+                "check_interval_sec": self._check_interval,
+            }
+
+    def start_background_monitor(self) -> threading.Thread:
+        """Start background drift monitoring thread."""
+        if self._background_thread and self._background_thread.is_alive():
+            return self._background_thread
+
+        self._stop_event.clear()
+
+        def _loop():
+            _log.info("[DRIFT-MONITOR] Background monitor started (interval=%ds)", self._check_interval)
+            while not self._stop_event.is_set():
+                try:
+                    if self.enabled:
+                        report = self.run_check()
+                        _log.info("[DRIFT-MONITOR] %s", report.summary)
+                except Exception as exc:
+                    _log.warning("[DRIFT-MONITOR] Check failed: %s", exc)
+                self._stop_event.wait(self._check_interval)
+
+        self._background_thread = threading.Thread(target=_loop, daemon=True,
+                                                    name="drift-monitor")
+        self._background_thread.start()
+        return self._background_thread
+
+    def stop_background_monitor(self) -> None:
+        """Stop background monitor."""
+        self._stop_event.set()
+        _log.info("[DRIFT-MONITOR] Background monitor stopped")
 
 
 # ── Report formatter ──────────────────────────────────────────────────────────

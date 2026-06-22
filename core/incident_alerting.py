@@ -67,6 +67,15 @@ class IncidentAlerting:
     """
     Thread-safe incident alerting system with priority queue.
     Sends alerts via callback (typically Telegram notification).
+
+    Severity-based channel routing (NEW):
+      - CRITICAL: sent via primary alert channel (Telegram + optional secondary)
+      - HIGH:     sent via primary alert channel with cooldown
+      - NORMAL:   logged only (no notification) unless escalated
+      - LOW:      suppressed entirely unless explicitly requested
+
+    This reduces alert fatigue by filtering lower-severity incidents
+    from noisy notification channels while still tracking them in the queue.
     """
 
     def __init__(
@@ -90,6 +99,13 @@ class IncidentAlerting:
         # Cooldown to prevent alert storms
         self._cooldown_seconds = self._config.get("INCIDENT_COOLDOWN_SECONDS", 60)
         self._last_alert_time: dict[IncidentType, float] = {}
+
+        # Severity-based channel routing (new — reduces alert fatigue)
+        # Define which severity levels get delivered via callback vs logged only
+        threshold_name = self._config.get("INCIDENT_DELIVERY_THRESHOLD", "HIGH").upper()
+        self._delivery_threshold = IncidentSeverity[threshold_name]
+        # Only severities at or above this threshold are actually sent
+        # CRITICAL=0, HIGH=1 are sent; NORMAL=2, LOW=3 are logged only
 
     def start(self) -> None:
         """Start the incident processing thread."""
@@ -169,8 +185,28 @@ class IncidentAlerting:
             if self._stop_event.wait(self._dequeue_interval):
                 break
 
+    def _should_deliver(self, severity_value: int) -> bool:
+        """Determine if an incident of this severity should be delivered.
+
+        Only incidents at or above the delivery threshold are sent via
+        the callback channel. Lower-severity incidents are tracked in
+        the queue but not delivered, reducing notification noise.
+
+        Args:
+            severity_value: IncidentSeverity.value (0=CRITICAL, 3=LOW).
+
+        Returns:
+            True if the incident should be delivered to the notification channel.
+        """
+        return severity_value <= self._delivery_threshold.value
+
     def _process_incidents(self) -> None:
-        """Process queued incidents in priority order."""
+        """Process queued incidents in priority order.
+
+        Respects severity-based delivery threshold:
+        - Incidents at or above threshold: sent via callback
+        - Incidents below threshold: tracked in queue but not sent
+        """
         while True:
             incident = None
 
@@ -182,6 +218,17 @@ class IncidentAlerting:
             if incident is None:
                 break
 
+            # Check delivery threshold — skip low-severity notifications
+            if not self._should_deliver(incident.severity):
+                log.debug(
+                    "[ALERT-FILTER] Suppressed %s (severity=%d, threshold=%d): %s",
+                    incident.incident_type,
+                    incident.severity,
+                    self._delivery_threshold.value,
+                    incident.message[:100],
+                )
+                continue
+
             # Send alert via callback
             if self._send_alert:
                 try:
@@ -189,8 +236,8 @@ class IncidentAlerting:
                     formatted = self._format_alert(incident)
                     is_critical = incident.severity <= IncidentSeverity.HIGH.value
                     self._send_alert(formatted, is_critical)
-                except Exception as e:
-                    log.error(f"Failed to send incident alert: {e} (type: {type(e).__name__})")
+                except Exception as exc:
+                    log.error("Failed to send incident alert: %s (type=%s)", exc, type(exc).__name__)
 
     def _format_alert(self, incident: Incident) -> str:
         """Format incident as alert message."""

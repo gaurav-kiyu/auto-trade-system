@@ -19,6 +19,14 @@ from core.auth.handler import (
     AuthUser,
     generate_csrf_token,
 )
+from core.auth.mfa import (
+    generate_mfa_secret,
+    generate_recovery_codes,
+    get_mfa_provisioning_uri,
+    get_mfa_session_state,
+    hash_recovery_code,
+    verify_mfa_token,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -307,6 +315,182 @@ def create_auth_router(
     ) -> dict:
         """Get auth system statistics."""
         return auth_handler.get_stats()
+
+    # ── MFA Routes ────────────────────────────────────────────────────────────
+
+    @router.post("/mfa/setup")
+    async def mfa_setup(
+        current_user: AuthUser = Depends(auth_deps.require_auth),
+    ) -> dict:
+        """Generate a new MFA secret and provisioning URI for the current user.
+
+        This does NOT enable MFA yet. The user must verify a token first
+        via POST /api/auth/mfa/verify.
+
+        Returns:
+            Dict with ``secret``, ``provisioning_uri``, and ``recovery_codes``.
+            The recovery codes are shown only once — the user must save them.
+        """
+        secret = generate_mfa_secret()
+        provisioning_uri = get_mfa_provisioning_uri(
+            username=current_user.username,
+            secret=secret,
+            issuer="OPB Enterprise",
+        )
+        recovery_codes = generate_recovery_codes()
+
+        # Save secret (but don't enable MFA yet)
+        auth_handler.set_mfa_secret(current_user.username, secret)
+
+        # Return hashed recovery codes for storage
+        hashed_codes = [hash_recovery_code(c) for c in recovery_codes]
+        auth_handler.update_mfa_recovery_codes(current_user.username, hashed_codes)
+
+        return {
+            "success": True,
+            "secret": secret,
+            "provisioning_uri": provisioning_uri,
+            "recovery_codes": recovery_codes,
+            "note": "Save these recovery codes securely. They will not be shown again.",
+        }
+
+    @router.post("/mfa/verify")
+    async def mfa_verify(
+        request: Request,
+        current_user: AuthUser = Depends(auth_deps.require_auth),
+        current_token: AuthToken = Depends(_get_token_from_state),
+    ) -> dict:
+        """Verify a TOTP token to enable MFA.
+
+        JSON body:
+            token: The 6-digit TOTP code from the authenticator app.
+
+        On success, MFA is enabled for the user.
+        """
+        body = await request.json()
+        token = str(body.get("token", "")).strip()
+
+        if not token:
+            raise HTTPException(status_code=400, detail="Token required")
+
+        secret = auth_handler.get_mfa_secret(current_user.username)
+        if not secret:
+            raise HTTPException(status_code=400, detail="MFA not set up yet. Call POST /api/auth/mfa/setup first.")
+
+        if auth_handler.is_mfa_enabled(current_user.username):
+            raise HTTPException(status_code=400, detail="MFA is already enabled")
+
+        if not verify_mfa_token(secret, token):
+            raise HTTPException(status_code=400, detail="Invalid token")
+
+        # Enable MFA (recovery codes were already saved during setup)
+        codes = auth_handler.get_mfa_recovery_codes(current_user.username)
+        auth_handler.enable_mfa(current_user.username, codes)
+
+        return {"success": True, "message": "MFA enabled successfully"}
+
+    @router.post("/mfa/disable")
+    async def mfa_disable(
+        request: Request,
+        current_user: AuthUser = Depends(auth_deps.require_auth),
+    ) -> dict:
+        """Disable MFA for the current user. Requires password confirmation.
+
+        JSON body:
+            password: Current password for verification.
+        """
+        body = await request.json()
+        password = str(body.get("password", ""))
+        ip = get_client_ip(request)
+
+        if not password:
+            raise HTTPException(status_code=400, detail="Password required to disable MFA")
+
+        # Verify password via public authenticate() method
+        verified_user = auth_handler.authenticate(current_user.username, password, ip)
+        if verified_user is None:
+            raise HTTPException(status_code=403, detail="Invalid password")
+
+        auth_handler.disable_mfa(current_user.username)
+
+        return {"success": True, "message": "MFA disabled"}
+
+    @router.get("/mfa/status")
+    async def mfa_status(
+        current_user: AuthUser = Depends(auth_deps.require_auth),
+        current_token: AuthToken = Depends(_get_token_from_state),
+    ) -> dict:
+        """Get MFA status for the current user.
+
+        Returns:
+            Dict with ``enabled``, ``setup_complete`` (secret exists),
+            and ``session_verified`` (MFA completed in this session).
+        """
+        enabled = auth_handler.is_mfa_enabled(current_user.username)
+        secret = auth_handler.get_mfa_secret(current_user.username)
+        session_verified = get_mfa_session_state().is_verified(current_token.token)
+
+        return {
+            "enabled": enabled,
+            "setup_complete": bool(secret),
+            "session_verified": session_verified,
+            "username": current_user.username,
+        }
+
+    @router.post("/mfa/verify-session")
+    async def mfa_verify_session(
+        request: Request,
+        current_user: AuthUser = Depends(auth_deps.require_auth),
+        current_token: AuthToken = Depends(_get_token_from_state),
+    ) -> dict:
+        """Verify MFA for the current session (used during login when MFA is enabled).
+
+        JSON body:
+            token: The 6-digit TOTP code, OR
+            recovery_code: A recovery code (8 alphanumeric characters)
+
+        On success, the session is marked as MFA-verified.
+        """
+        body = await request.json()
+        token = str(body.get("token", "")).strip()
+        recovery_code = str(body.get("recovery_code", "")).strip()
+
+        if not token and not recovery_code:
+            raise HTTPException(status_code=400, detail="Token or recovery code required")
+
+        if not auth_handler.is_mfa_enabled(current_user.username):
+            raise HTTPException(status_code=400, detail="MFA is not enabled")
+
+        # Try TOTP token first
+        if token:
+            secret = auth_handler.get_mfa_secret(current_user.username)
+            if secret and verify_mfa_token(secret, token):
+                get_mfa_session_state().mark_verified(current_token.token)
+                return {"success": True, "method": "totp"}
+
+        # Try recovery code
+        if recovery_code:
+            if auth_handler.use_recovery_code(current_user.username, recovery_code):
+                get_mfa_session_state().mark_verified(current_token.token)
+                return {"success": True, "method": "recovery_code"}
+
+        raise HTTPException(status_code=400, detail="Invalid token or recovery code")
+
+    @router.get("/mfa/recovery-codes")
+    async def mfa_recovery_codes(
+        request: Request,
+        current_user: AuthUser = Depends(auth_deps.require_auth),
+    ) -> dict:
+        """Get the count of remaining recovery codes for the current user.
+
+        For security, the actual codes are not returned — only the count.
+        """
+        codes = auth_handler.get_mfa_recovery_codes(current_user.username)
+        return {
+            "remaining": len(codes),
+            "total_initial": 8,
+            "note": "Recovery codes are stored hashed and cannot be retrieved.",
+        }
 
     return router
 

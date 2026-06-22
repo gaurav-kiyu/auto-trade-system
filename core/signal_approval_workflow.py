@@ -30,14 +30,20 @@ Config keys
     manual_signal_workflow_mode  : str  default "SIGNALS_ONLY"
     manual_signal_min_score      : int  default 50
     manual_signal_max_score      : int  default 100
+    manual_signal_auto_escalate  : bool default False  (enable time-based auto-escalation)
+    manual_signal_escalate_secs  : int  default 300    (time before queued signal auto-escalates)
+    manual_signal_auto_approve_score : int default 90  (score threshold for auto-approve)
+    manual_signal_auto_approve_secs  : int default 120 (time before high-score signal auto-approves)
 
 See core/strategy/orchestrator.py for the canonical implementation.
 """
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 _log = logging.getLogger(__name__)
 
@@ -97,7 +103,7 @@ class SignalApprovalWorkflow:
     that tells the caller what to do next.
     """
 
-    def __init__(self, cfg: dict[str, Any], queue=None) -> None:
+    def __init__(self, cfg: dict[str, Any], queue=None, escalate_callback: Callable | None = None) -> None:
         raw_mode = str(cfg.get("manual_signal_workflow_mode", SIGNALS_ONLY)).upper()
         if raw_mode not in _ALL_MODES:
             _log.warning("[WORKFLOW] Unknown mode %r - defaulting to SIGNALS_ONLY", raw_mode)
@@ -112,8 +118,26 @@ class SignalApprovalWorkflow:
         # Live-path-risk guard
         self._broker_api_enabled = bool(cfg.get("BROKER_API_ENABLED", False))
         self._execution_mode = str(cfg.get("EXECUTION_MODE", "MANUAL")).upper()
-        _log.info("[WORKFLOW] Mode=%s broker_api=%s exec=%s",
-                  self._mode, self._broker_api_enabled, self._execution_mode)
+
+        # Auto-escalation config (new)
+        self._escalate_callback = escalate_callback
+        self._auto_escalate = bool(cfg.get("manual_signal_auto_escalate", False))
+        self._escalate_secs = int(cfg.get("manual_signal_escalate_secs", 300))
+        self._auto_approve_score = int(cfg.get("manual_signal_auto_approve_score", 90))
+        self._auto_approve_secs = int(cfg.get("manual_signal_auto_approve_secs", 120))
+        self._lock = threading.RLock()
+        self._pending_signals: dict[str, dict[str, Any]] = {}  # signal_id -> metadata
+        self._escalation_thread: threading.Thread | None = None
+        self._stop_event = threading.Event()
+
+        _log.info(
+            "[WORKFLOW] Mode=%s broker_api=%s exec=%s auto_escalate=%s",
+            self._mode, self._broker_api_enabled, self._execution_mode, self._auto_escalate,
+        )
+
+        # Start background escalator if enabled
+        if self._auto_escalate:
+            self._start_escalator()
 
     @property
     def mode(self) -> str:
@@ -246,6 +270,113 @@ class SignalApprovalWorkflow:
         if score >= self._moderate_min:
             return "MODERATE"
         return "WEAK"
+
+    # ── Auto-Escalation methods (new) ──────────────────────────────────────
+
+    def _start_escalator(self) -> None:
+        """Start background thread that checks for signal escalation."""
+        if self._escalation_thread and self._escalation_thread.is_alive():
+            return
+
+        self._stop_event.clear()
+
+        def _escalator_loop():
+            _log.info("[ESCALATOR] Started (check every 30s, escalate after %ds, auto-approve after %ds for score>=%d)",
+                      self._escalate_secs, self._auto_approve_secs, self._auto_approve_score)
+            while not self._stop_event.is_set():
+                try:
+                    self._check_pending_signals()
+                except Exception as exc:
+                    _log.warning("[ESCALATOR] Check error: %s", exc)
+                self._stop_event.wait(30)
+
+        self._escalation_thread = threading.Thread(target=_escalator_loop, daemon=True,
+                                                    name="signal-escalator")
+        self._escalation_thread.start()
+
+    def track_pending_signal(self, decision: SignalDecision, score: int, reason: str) -> None:
+        """Register a queued or deferred signal for escalation tracking."""
+        if not self._auto_escalate:
+            return
+        if decision.queue_signal_id is None:
+            return
+        with self._lock:
+            self._pending_signals[decision.queue_signal_id] = {
+                "score": score,
+                "reason": reason,
+                "queued_at": time.time(),
+                "action": decision.action,
+                "escalated": False,
+                "auto_approved": False,
+            }
+
+    def _check_pending_signals(self) -> None:
+        """Check all pending signals and escalate/auto-approve as needed."""
+        now = time.time()
+        to_escalate: list[str] = []
+        to_auto_approve: list[str] = []
+
+        with self._lock:
+            for sig_id, meta in list(self._pending_signals.items()):
+                elapsed = now - meta["queued_at"]
+                score = meta["score"]
+
+                # Auto-approve high-confidence signals after short timeout
+                if (
+                    not meta["auto_approved"]
+                    and not meta["escalated"]
+                    and score >= self._auto_approve_score
+                    and elapsed >= self._auto_approve_secs
+                ):
+                    meta["auto_approved"] = True
+                    to_auto_approve.append(sig_id)
+
+                # Escalate if pending too long
+                if not meta["escalated"] and elapsed >= self._escalate_secs:
+                    meta["escalated"] = True
+                    to_escalate.append(sig_id)
+
+        # Fire escalation callbacks outside lock
+        for sig_id in to_auto_approve:
+            meta = self._pending_signals.get(sig_id, {})
+            sig_score = meta.get("score", 0)
+            msg = f"[ESCALATOR] Signal {sig_id} auto-approved (score={sig_score}, elapsed>{self._auto_approve_secs}s)"
+            _log.info("%s", msg)
+            self._fire_escalation(sig_id, msg, "AUTO_APPROVED")
+
+        for sig_id in to_escalate:
+            meta = self._pending_signals.get(sig_id, {})
+            sig_score = meta.get("score", 0)
+            reason = meta.get("reason", "")
+            msg = f"[ESCALATOR] Signal {sig_id} escalated (score={sig_score}, queued>{self._escalate_secs}s): {reason[:100]}"
+            _log.warning("%s", msg)
+            self._fire_escalation(sig_id, msg, "ESCALATED")
+
+    def _fire_escalation(self, signal_id: str, message: str, event: str) -> None:
+        """Deliver escalation notification via callback."""
+        if self._escalate_callback:
+            try:
+                self._escalate_callback(message, event, signal_id)
+            except Exception as exc:
+                _log.warning("[ESCALATOR] Callback failed: %s", exc)
+
+    def resolve_pending_signal(self, signal_id: str) -> None:
+        """Remove a signal from escalation tracking after it's resolved."""
+        with self._lock:
+            self._pending_signals.pop(signal_id, None)
+
+    def stop_escalator(self) -> None:
+        """Stop the background escalation thread."""
+        self._stop_event.set()
+        _log.info("[ESCALATOR] Stopped")
+
+    def get_pending_signals(self) -> dict[str, dict[str, Any]]:
+        """Get snapshot of pending signals for monitoring."""
+        with self._lock:
+            return {
+                k: {kk: vv for kk, vv in v.items() if kk != "reason" or len(str(vv)) < 50}
+                for k, v in self._pending_signals.items()
+            }
 
 
 # ── Factory ────────────────────────────────────────────────────────────────────

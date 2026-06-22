@@ -10,6 +10,9 @@ Tracks and analyzes all costs associated with trading operations:
   - Exchange transaction charges
   - Infrastructure costs (API subscriptions, data feeds)
   - Cumulative cost analysis
+  - Budget alerts with notification callback
+  - Cost trend analysis (period-over-period)
+  - Prometheus metric exposure via callback
 
 Usage
 -----
@@ -27,9 +30,15 @@ Config keys (all optional — safe defaults built in)
     finops_gst_pct                : float  default 0.18    (GST on brokerage)
     finops_stamp_duty_pct         : float  default 0.00003 (stamp duty as %)
     finops_sebi_turnover_fee_pct  : float  default 0.000001 (SEBI turnover fee)
-    finops_exchange_charges_pct   : float  default 0.00053 (exchange transaction charges)    finops_report_days            : int    default 30     (lookback for cost analysis)
+    finops_exchange_charges_pct   : float  default 0.00053 (exchange transaction charges)
+    finops_report_days            : int    default 30     (lookback for cost analysis)
     finops_mode                   : str   default "ALL"   (filter by mode: PAPER, LIVE, SIGNAL_ONLY, ALL)
-    finops_ignore_mode            : bool  default False   (if True, ignore mode filter)"""
+    finops_ignore_mode            : bool  default False   (if True, ignore mode filter)
+    finops_budget_alert_enabled   : bool  default False   (enable budget alerts)
+    finops_budget_monthly_total   : float default 5000.0  (monthly cost budget before alert)
+    finops_budget_pct_warn        : float default 80.0    (% of budget that triggers WARN)
+    finops_trend_periods          : int   default 3       (periods for trend comparison)
+    finops_alert_callback         : callable or None       (notification callback)"""
 
 from __future__ import annotations
 
@@ -86,6 +95,10 @@ class CostReport:
     net_pnl_after_costs: float = 0.0
     status: str = "OK"
     warnings: list[str] = field(default_factory=list)
+    # Budget alert fields (new)
+    monthly_projected_cost: float = 0.0
+    budget_usage_pct: float = 0.0
+    budget_status: str = "OK"
 
     def summary(self) -> str:
         """Return a human-readable summary."""
@@ -154,6 +167,13 @@ class CostGovernance:
         self._infrastructure_monthly = float(self._cfg.get("finops_infrastructure_monthly", 500.0))
         self._mode = str(self._cfg.get("finops_mode", "ALL")).upper()
         self._ignore_mode = bool(self._cfg.get("finops_ignore_mode", False))
+
+        # Budget alerts (new)
+        self._budget_enabled = bool(self._cfg.get("finops_budget_alert_enabled", False))
+        self._budget_monthly = float(self._cfg.get("finops_budget_monthly_total", 5000.0))
+        self._budget_warn_pct = float(self._cfg.get("finops_budget_pct_warn", 80.0))
+        self._alert_callback = self._cfg.get("finops_alert_callback", None)
+        self._trend_periods = int(self._cfg.get("finops_trend_periods", 3))
 
     @property
     def report_days(self) -> int:
@@ -339,7 +359,111 @@ class CostGovernance:
                 "Brokerage exceeds STT — consider flat-fee broker plan"
             )
 
+        # ── Budget alerts (new) ──────────────────────────────────────────────
+        if self._budget_enabled:
+            self._check_budget_alerts(report)
+        # ──────────────────────────────────────────────────────────────────────
+
         return report
+
+    # ── Budget Alert Methods (new) ────────────────────────────────────────────
+
+    def _check_budget_alerts(self, report: CostReport) -> None:
+        """Check cost report against configured budget thresholds."""
+        monthly_total = report.total_costs.total
+        monthly_projected = monthly_total * (30.0 / max(report.period_days, 1))
+
+        usage_pct = (monthly_projected / self._budget_monthly) * 100
+        report.monthly_projected_cost = round(monthly_projected, 2)
+        report.budget_usage_pct = round(usage_pct, 1)
+
+        if usage_pct >= 100:
+            report.budget_status = "EXCEEDED"
+            msg = (
+                f"[FINOPS] Budget EXCEEDED: projected monthly cost Rs{monthly_projected:,.0f} "
+                f"exceeds budget Rs{self._budget_monthly:,.0f} ({usage_pct:.0f}%)"
+            )
+            report.warnings.append(msg)
+            self._fire_alert(msg, "CRITICAL")
+        elif usage_pct >= self._budget_warn_pct:
+            report.budget_status = "WARN"
+            msg = (
+                f"[FINOPS] Budget WARNING: projected monthly cost Rs{monthly_projected:,.0f} "
+                f"is {usage_pct:.0f}% of budget Rs{self._budget_monthly:,.0f}"
+            )
+            report.warnings.append(msg)
+            self._fire_alert(msg, "WARN")
+        else:
+            report.budget_status = "OK"
+
+    def _fire_alert(self, message: str, severity: str = "WARN") -> None:
+        """Deliver budget alert via configured callback."""
+        _log.log(logging.WARNING if severity == "WARN" else logging.ERROR, "%s", message)
+        if self._alert_callback is not None:
+            try:
+                self._alert_callback(message, severity)
+            except Exception as exc:
+                _log.warning("[FINOPs] Alert callback failed: %s", exc)
+
+    # ── Cost Trend Analysis (new) ────────────────────────────────────────────
+
+    def analyze_cost_trends(self, db_path: str = _DEFAULT_DB) -> dict[str, Any]:
+        """Analyze cost trends over multiple periods.
+
+        Returns a dict with period-by-period cost breakdown and trend direction.
+        """
+        periods: list[dict[str, Any]] = []
+        base_days = self.report_days
+
+        for i in range(self._trend_periods):
+            period_cfg = dict(self._cfg)
+            period_cfg["finops_report_days"] = base_days * (i + 1)
+            cg = CostGovernance(period_cfg)
+            report = cg.analyze_costs(db_path=db_path)
+            periods.append({
+                "period_days": report.period_days,
+                "label": f"last_{base_days * (i + 1)}d",
+                "total_costs": report.total_costs.total,
+                "total_trades": report.total_trades,
+                "cost_per_trade": report.cost_per_trade.total,
+                "cost_pct_of_turnover": report.cost_pct_of_turnover,
+                "cost_pct_of_pnl": report.cost_pct_of_pnl,
+                "status": report.status,
+            })
+
+        # Determine trend direction
+        trend = "stable"
+        if len(periods) >= 2:
+            costs = [p["total_costs"] for p in periods if p["total_costs"] > 0]
+            if len(costs) >= 2:
+                if costs[-1] > costs[0] * 1.1:
+                    trend = "increasing"
+                elif costs[-1] < costs[0] * 0.9:
+                    trend = "decreasing"
+
+        return {
+            "periods": periods,
+            "trend": trend,
+            "budget_monthly": self._budget_monthly if self._budget_enabled else None,
+        }
+
+    def get_prometheus_metrics(self, db_path: str = _DEFAULT_DB) -> dict[str, float]:
+        """Export key cost metrics for Prometheus collection.
+
+        Returns a flat dict of metric_name → value suitable for
+        the Prometheus metrics exporter.
+        """
+        report = self.analyze_costs(db_path=db_path)
+        return {
+            "finops_total_costs": report.total_costs.total,
+            "finops_cost_per_trade": report.cost_per_trade.total,
+            "finops_cost_pct_turnover": report.cost_pct_of_turnover,
+            "finops_net_pnl_after_costs": report.net_pnl_after_costs,
+            "finops_brokerage": report.total_costs.brokerage,
+            "finops_stt": report.total_costs.stt,
+            "finops_monthly_projected": getattr(report, "monthly_projected_cost", 0.0),
+            "finops_budget_usage_pct": getattr(report, "budget_usage_pct", 0.0),
+        }
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────

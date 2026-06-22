@@ -593,6 +593,257 @@ class PortfolioOptimizer:
 
         return method_map[method](returns, cov_matrix, risk_free_rate)
 
+    # ── CVaR (Conditional Value at Risk) Optimization ───────────────────────────
+
+    def _norm_pdf(self, x: float) -> float:
+        """Standard normal PDF (no scipy dependency)."""
+        return math.exp(-x * x / 2.0) / math.sqrt(2.0 * math.pi)
+
+    def _norm_ppf(self, p: float) -> float:
+        """Standard normal quantile function (no scipy dependency).
+
+        Uses the Hastings rational approximation:
+          For p > 0.5: x = t - (c0 + c1*t + c2*t^2) / (1 + d1*t + d2*t^2 + d3*t^3)
+          For p <= 0.5: x = -ppf(1-p)
+        where t = sqrt(-2 * ln(min(p, 1-p)))
+
+        Accurate to ~0.00045, sufficient for portfolio optimization.
+        """
+        if p <= 0.0:
+            return -8.0
+        if p >= 1.0:
+            return 8.0
+
+        # Hastings coefficients
+        c0, c1, c2 = 2.515517, 0.802853, 0.010328
+        d1, d2, d3 = 1.432788, 0.189269, 0.001308
+
+        # Use the smaller tail for better accuracy
+        tail = p if p <= 0.5 else 1.0 - p
+        t = math.sqrt(-2.0 * math.log(tail))
+        num = c0 + t * (c1 + t * c2)
+        den = 1.0 + t * (d1 + t * (d2 + t * d3))
+        x = t - num / den
+
+        # Negate for lower tail (p < 0.5)
+        if p < 0.5:
+            x = -x
+        return x
+
+    def cvar_optimization(self, returns: dict[str, float],
+                          cov_matrix: dict[str, dict[str, float]],
+                          risk_free_rate: float = 0.05,
+                          confidence_level: float = 0.95) -> OptimizationResult:
+        """
+        Find the portfolio that minimizes Conditional Value at Risk (CVaR).
+
+        CVaR (Expected Shortfall) measures the expected loss in the worst
+        (1-confidence_level) percentile of outcomes. This optimization finds
+        the weight allocation that minimizes this tail risk metric.
+
+        Uses a grid search over weight space, estimating CVaR via portfolio
+        variance under a normal distribution assumption:
+          CVaR = -μ + σ × φ(Z_α) / (1-α)
+        where φ is the standard normal PDF and Z_α is the α-quantile.
+
+        Args:
+            returns: Expected returns per asset
+            cov_matrix: Covariance matrix
+            risk_free_rate: Risk-free rate (used for Sharpe reporting)
+            confidence_level: Confidence level for CVaR (default 0.95 = 95%)
+
+        Returns:
+            OptimizationResult with weights that minimize CVaR
+        """
+        issues = self._validate_inputs(returns, cov_matrix)
+        if issues:
+            return OptimizationResult(
+                method="cvar", weights={},
+                expected_return=0.0, expected_volatility=0.0,
+                sharpe_ratio=0.0, diversification_ratio=1.0,
+                n_assets=0, status="FAILED",
+                message=f"Validation failed: {'; '.join(issues[:3])}",
+            )
+
+        symbols = list(set(returns.keys()) & set(cov_matrix.keys()))
+        if not symbols:
+            return OptimizationResult(
+                method="cvar", weights={},
+                expected_return=0.0, expected_volatility=0.0,
+                sharpe_ratio=0.0, diversification_ratio=1.0,
+                n_assets=0, status="FAILED", message="No assets available",
+            )
+
+        # Pre-compute CVaR parameters (no scipy dependency)
+        z_alpha = self._norm_ppf(confidence_level)
+        pdf_z = self._norm_pdf(z_alpha)
+        cvar_factor = pdf_z / (1.0 - confidence_level)
+
+        if len(symbols) < 2:
+            sym = symbols[0]
+            ret = returns.get(sym, 0.0)
+            vol = math.sqrt(max(cov_matrix.get(sym, {}).get(sym, 0.01), 0.0001))
+            cvar = -ret + vol * cvar_factor
+            sharpe = self._portfolio_sharpe(ret, vol, risk_free_rate)
+            return OptimizationResult(
+                method="cvar", weights={sym: 1.0},
+                expected_return=ret, expected_volatility=vol,
+                sharpe_ratio=sharpe, diversification_ratio=1.0,
+                n_assets=1, status="SUCCESS",
+                details={"cvar": round(cvar, 6)},
+            )
+
+        vol_map = {s: math.sqrt(max(cov_matrix.get(s, {}).get(s, 0.0001), 0.0001))
+                   for s in symbols}
+
+        best_cvar = float("inf")
+        best_weights: dict[str, float] = {}
+        best_ret = best_vol = 0.0
+
+        portfolios = self._weight_grid(symbols)
+        for weights in portfolios:
+            ret = self._portfolio_return(weights, returns)
+            vol = self._portfolio_volatility(weights, cov_matrix)
+            cvar = -ret + vol * cvar_factor
+            if cvar < best_cvar:
+                best_cvar = cvar
+                best_weights = weights
+                best_ret = ret
+                best_vol = vol
+
+        sharpe = self._portfolio_sharpe(best_ret, best_vol, risk_free_rate)
+        div_ratio = self._diversification_ratio(best_weights, vol_map, best_vol)
+
+        return OptimizationResult(
+            method="cvar", weights=best_weights,
+            expected_return=best_ret, expected_volatility=best_vol,
+            sharpe_ratio=sharpe, diversification_ratio=div_ratio,
+            n_assets=len(symbols), status="SUCCESS",
+            details={"cvar": round(best_cvar, 6), "confidence_level": confidence_level},
+        )
+
+    # ── Equal Risk Contribution (ERC) ───────────────────────────────────────────
+
+    def equal_risk_contribution(self, returns: dict[str, float],
+                                cov_matrix: dict[str, dict[str, float]],
+                                risk_free_rate: float = 0.05) -> OptimizationResult:
+        """
+        Equal Risk Contribution portfolio (a.k.a. risk budgeting).
+
+        Allocates capital so that each asset contributes equally to total
+        portfolio risk. Unlike risk_parity (inverse volatility), ERC accounts
+        for correlations between assets.
+
+        Uses iterative numerical optimization to find weights that equalize
+        each asset's marginal risk contribution:
+          min Σ_i Σ_j (RC_i - RC_j)²
+        where RC_i = w_i × (Σ w)_i / σ_portfolio
+
+        Args:
+            returns: Expected returns per asset
+            cov_matrix: Covariance matrix
+            risk_free_rate: Risk-free rate
+
+        Returns:
+            OptimizationResult with ERC weights
+        """
+        issues = self._validate_inputs(returns, cov_matrix)
+        if issues:
+            return OptimizationResult(
+                method="erc", weights={},
+                expected_return=0.0, expected_volatility=0.0,
+                sharpe_ratio=0.0, diversification_ratio=1.0,
+                n_assets=0, status="FAILED",
+                message=f"Validation failed: {'; '.join(issues[:3])}",
+            )
+
+        symbols = list(set(returns.keys()) & set(cov_matrix.keys()))
+        if not symbols:
+            return OptimizationResult(
+                method="erc", weights={},
+                expected_return=0.0, expected_volatility=0.0,
+                sharpe_ratio=0.0, diversification_ratio=1.0,
+                n_assets=0, status="FAILED", message="No assets available",
+            )
+
+        if len(symbols) < 2:
+            sym = symbols[0]
+            ret = returns.get(sym, 0.0)
+            vol = math.sqrt(max(cov_matrix.get(sym, {}).get(sym, 0.01), 0.0001))
+            sharpe = self._portfolio_sharpe(ret, vol, risk_free_rate)
+            return OptimizationResult(
+                method="erc", weights={sym: 1.0},
+                expected_return=ret, expected_volatility=vol,
+                sharpe_ratio=sharpe, diversification_ratio=1.0,
+                n_assets=1, status="SUCCESS",
+            )
+
+        vol_map = {s: math.sqrt(max(cov_matrix.get(s, {}).get(s, 0.0001), 0.0001))
+                   for s in symbols}
+
+        # Iterative risk budgeting: start from equal weight, then adjust
+        weights = {s: 1.0 / len(symbols) for s in symbols}
+
+        for _iteration in range(100):
+            vol = self._portfolio_volatility(weights, cov_matrix)
+            if vol <= 1e-12:
+                break
+
+            # Compute risk contributions
+            rc_squared_sum = 0.0
+            target_rc = 1.0 / len(symbols)  # Target: equal risk contribution
+
+            # Σ w (covariance vector)
+            sigma_w: dict[str, float] = {}
+            for si in symbols:
+                total = 0.0
+                for sj in symbols:
+                    total += cov_matrix.get(si, {}).get(sj, 0.0) * weights.get(sj, 0.0)
+                sigma_w[si] = total
+
+            # Compute risk contributions and gradient
+            risk_contribs: dict[str, float] = {}
+            for s in symbols:
+                rc = weights.get(s, 0.0) * sigma_w.get(s, 0.0) / max(vol, 1e-12)
+                risk_contribs[s] = rc
+
+            total_rc = sum(risk_contribs.values())
+            if total_rc > 1e-12:
+                # Normalize risk contributions
+                risk_contribs = {s: rc / total_rc for s, rc in risk_contribs.items()}
+
+            # Compute convergence metric: how far from equal risk contribution?
+            rc_squared_sum = sum((rc - target_rc) ** 2 for rc in risk_contribs.values())
+            if rc_squared_sum < 1e-8:
+                break
+
+            # Update weights: scale each weight by (target_rc / rc) and renormalize
+            for s in symbols:
+                rc_s = risk_contribs.get(s, target_rc)
+                if rc_s > 1e-12:
+                    weights[s] = weights.get(s, 0.0) * (target_rc / rc_s)
+
+            # Normalize
+            total_w = sum(weights.values())
+            if total_w > 1e-12:
+                weights = {s: w / total_w for s, w in weights.items()}
+            else:
+                weights = {s: 1.0 / len(symbols) for s in symbols}
+                break
+
+        ret = self._portfolio_return(weights, returns)
+        vol = self._portfolio_volatility(weights, cov_matrix)
+        sharpe = self._portfolio_sharpe(ret, vol, risk_free_rate)
+        div_ratio = self._diversification_ratio(weights, vol_map, vol)
+
+        return OptimizationResult(
+            method="erc", weights=weights,
+            expected_return=ret, expected_volatility=vol,
+            sharpe_ratio=sharpe, diversification_ratio=div_ratio,
+            n_assets=len(symbols), status="SUCCESS",
+            details={"rc_convergence": round(rc_squared_sum, 10)},
+        )
+
 
 # ── Convenience API ───────────────────────────────────────────────────────────
 

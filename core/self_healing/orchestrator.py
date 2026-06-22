@@ -68,6 +68,11 @@ class RecoveryAction(Enum):
     RECYCLE_SESSION = "recycle_session"
     RESTART_WATCHDOG = "restart_watchdog"
     NOTIFY_OPERATOR = "notify_operator"
+    # Auto-remediation actions (new)
+    DISK_CLEANUP = "disk_cleanup"
+    FORCE_WAL_CHECKPOINT = "force_wal_checkpoint"
+    CLEAR_STALE_LOCKS = "clear_stale_locks"
+    RUN_RUNBOOK = "run_runbook"
 
 
 # ── Dataclasses ───────────────────────────────────────────────────────────────
@@ -198,6 +203,44 @@ class SelfHealingOrchestrator:
             recovery_actions=[RecoveryAction.RESTART_WATCHDOG, RecoveryAction.RECYCLE_SESSION],
             cooldown_seconds=120,
         ),
+        # Auto-remediation patterns (new)
+        FailurePattern(
+            name="disk_space_low",
+            description="Available disk space below threshold — risk of write failures",
+            recovery_actions=[RecoveryAction.DISK_CLEANUP, RecoveryAction.NOTIFY_OPERATOR],
+            cooldown_seconds=600,
+        ),
+        FailurePattern(
+            name="wal_lag",
+            description="WAL file size exceeds threshold — checkpoint is lagging",
+            recovery_actions=[RecoveryAction.FORCE_WAL_CHECKPOINT, RecoveryAction.DISK_CLEANUP],
+            cooldown_seconds=300,
+        ),
+        FailurePattern(
+            name="stale_locks",
+            description="Stale file or process locks detected — cleanup needed",
+            recovery_actions=[RecoveryAction.CLEAR_STALE_LOCKS, RecoveryAction.FORCE_WAL_CHECKPOINT],
+            cooldown_seconds=600,
+        ),
+        # Runbook-backed patterns (integrated with RunbookExecutor)
+        FailurePattern(
+            name="auth_expiry",
+            description="Broker authentication token expired — refresh needed",
+            recovery_actions=[RecoveryAction.RUN_RUNBOOK, RecoveryAction.NOTIFY_OPERATOR],
+            cooldown_seconds=120,
+        ),
+        FailurePattern(
+            name="network_jitter",
+            description="Network instability detected — increased latency or packet loss",
+            recovery_actions=[RecoveryAction.RUN_RUNBOOK, RecoveryAction.NOTIFY_OPERATOR],
+            cooldown_seconds=300,
+        ),
+        FailurePattern(
+            name="split_brain",
+            description="Split-brain condition detected — inconsistent state between instances",
+            recovery_actions=[RecoveryAction.RUN_RUNBOOK, RecoveryAction.NOTIFY_OPERATOR],
+            cooldown_seconds=900,
+        ),
     ]
 
     def __init__(
@@ -230,6 +273,7 @@ class SelfHealingOrchestrator:
         self._stop_event = threading.Event()
         self._background_thread: threading.Thread | None = None
         self._patterns = list(self.DEFAULT_PATTERNS)
+        self._runbook_executor: Any = None
 
     # ── Configuration ────────────────────────────────────────────────────
 
@@ -276,6 +320,14 @@ class SelfHealingOrchestrator:
     def set_notify_fn(self, fn: Callable) -> None:
         """Set the notification function."""
         self._notify_fn = fn
+
+    def set_runbook_executor(self, executor: Any) -> None:
+        """Set the runbook executor for runbook auto-execution."""
+        self._runbook_executor = executor
+
+    def get_runbook_executor(self) -> Any | None:
+        """Get the current runbook executor."""
+        return self._runbook_executor
 
     # ── Core healing cycle ───────────────────────────────────────────────
 
@@ -454,6 +506,14 @@ class SelfHealingOrchestrator:
                 return self._restart_watchdog()
             elif action == RecoveryAction.NOTIFY_OPERATOR:
                 return self._notify_operator(f"Action required: {component}")
+            elif action == RecoveryAction.DISK_CLEANUP:
+                return self._disk_cleanup()
+            elif action == RecoveryAction.FORCE_WAL_CHECKPOINT:
+                return self._force_wal_checkpoint()
+            elif action == RecoveryAction.CLEAR_STALE_LOCKS:
+                return self._clear_stale_locks()
+            elif action == RecoveryAction.RUN_RUNBOOK:
+                return self._run_runbook(component)
             else:
                 return {"status": "FAILED", "message": f"Unknown action: {action}"}
         except Exception as exc:
@@ -572,6 +632,248 @@ class SelfHealingOrchestrator:
     def _restart_watchdog(self) -> dict[str, Any]:
         """Restart the watchdog thread."""
         return {"status": "SUCCESS", "message": "Watchdog restart initiated"}
+
+    # ── Auto-remediation implementations (new) ────────────────────────────
+
+    def _disk_cleanup(self) -> dict[str, Any]:
+        """Free disk space by cleaning old backups, temp files, and stale artifacts."""
+        from pathlib import Path as _DiskPath
+        freed_mb = 0
+        cleaned = []
+        errors = []
+
+        # 1. Clean old backup directories (keep newest 3)
+        try:
+            backup_root = _DiskPath("backups")
+            if backup_root.is_dir():
+                backup_dirs = sorted(
+                    [d for d in backup_root.iterdir() if d.is_dir()],
+                    key=lambda d: d.stat().st_mtime, reverse=True
+                )
+                for stale_dir in backup_dirs[3:]:
+                    size = sum(f.stat().st_size for f in stale_dir.rglob("*") if f.is_file())
+                    import shutil
+                    shutil.rmtree(stale_dir)
+                    freed_mb += size / (1024 * 1024)
+                    cleaned.append(f"rm {stale_dir.name} ({size/1024/1024:.1f}MB)")
+        except Exception as exc:
+            errors.append(f"backup cleanup: {exc}")
+
+        # 2. Clean temp files (*.tmp, *.pyc artifacts)
+        try:
+            for tmp_pattern in ["*.tmp", "*.temp", "*.swp"]:
+                for tmp_file in _DiskPath(".").rglob(tmp_pattern):
+                    try:
+                        sz = tmp_file.stat().st_size
+                        tmp_file.unlink()
+                        freed_mb += sz / (1024 * 1024)
+                        cleaned.append(f"rm {tmp_file.name}")
+                    except (OSError, PermissionError):
+                        pass
+        except Exception as exc:
+            errors.append(f"temp cleanup: {exc}")
+
+        # 3. Rotate large log files (>100MB), keep last 3
+        try:
+            log_dir = _DiskPath("logs")
+            if log_dir.is_dir():
+                for log_file in sorted(log_dir.iterdir(), key=lambda f: f.stat().st_mtime):
+                    if log_file.stat().st_size > 100 * 1024 * 1024:
+                        # Rename to .old instead of deleting (safety)
+                        old_path = log_file.with_suffix(".old")
+                        if old_path.exists():
+                            sz = old_path.stat().st_size
+                            old_path.unlink()
+                            freed_mb += sz / (1024 * 1024)
+                            cleaned.append(f"rotated {old_path.name}")
+                        log_file.rename(old_path)
+        except Exception as exc:
+            errors.append(f"log rotation: {exc}")
+
+        # 4. Remove stale pytest caches
+        for cache_dir in [".pytest_cache", ".mypy_cache", ".ruff_cache", ".hypothesis"]:
+            try:
+                d = _DiskPath(cache_dir)
+                if d.is_dir():
+                    import shutil
+                    sz = sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
+                    shutil.rmtree(d)
+                    freed_mb += sz / (1024 * 1024)
+                    cleaned.append(f"rm {cache_dir}")
+            except Exception:
+                pass
+
+        _log.info("[SELF-HEALING] Disk cleanup freed ~%.1f MB: %s", freed_mb, ", ".join(cleaned[:10]))
+        if errors:
+            _log.warning("[SELF-HEALING] Disk cleanup partial errors: %s", "; ".join(errors))
+
+        if freed_mb > 0:
+            return {
+                "status": "SUCCESS",
+                "message": f"Disk cleanup freed ~{freed_mb:.1f} MB ({len(cleaned)} actions)",
+                "details": {"freed_mb": round(freed_mb, 1), "actions": cleaned[:10], "errors": errors[:3]},
+            }
+        return {"status": "SKIPPED", "message": "No cleanup needed — nothing to free", "details": {}}
+
+    def _force_wal_checkpoint(self) -> dict[str, Any]:
+        """Force WAL checkpoint on all known databases to reduce WAL file sizes."""
+        from pathlib import Path as _WalPath
+        from core.db_utils import get_connection as _wal_conn
+        dbs = ["trades.db", "trade_journal.db", "ml_tracker.db", "oi_snapshots.db",
+               "strategy_versioning.db"]
+        checkpointed = 0
+        errors = []
+        total_freed_mb = 0.0
+
+        for db_name in dbs:
+            p = _WalPath(db_name)
+            if not p.is_file():
+                continue
+            try:
+                # Record WAL size before
+                wal_path = _WalPath(f"{db_name}-wal")
+                before_size = wal_path.stat().st_size if wal_path.is_file() else 0
+
+                conn = _wal_conn(db_name, timeout=5)
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                conn.close()
+
+                # Record WAL size after
+                after_size = wal_path.stat().st_size if wal_path.is_file() else 0
+                freed = (before_size - after_size) / (1024 * 1024)
+                if freed > 0:
+                    total_freed_mb += freed
+                checkpointed += 1
+            except Exception as exc:
+                errors.append(f"{db_name}: {exc}")
+
+        if checkpointed > 0:
+            msg = f"WAL checkpoint on {checkpointed} DB(s), freed ~{total_freed_mb:.1f} MB"
+            _log.info("[SELF-HEALING] %s", msg)
+            return {
+                "status": "SUCCESS",
+                "message": msg,
+                "details": {
+                    "databases": checkpointed,
+                    "freed_mb": round(total_freed_mb, 1),
+                    "errors": errors[:3],
+                },
+            }
+        return {"status": "SKIPPED", "message": "No databases to checkpoint"}
+
+    def _clear_stale_locks(self) -> dict[str, Any]:
+        """Clear stale file locks and lock artifacts.
+
+        Removes SQLite WAL/SHM files for databases that are not actively open,
+        and clears any leftover lock files from crashed sessions.
+        """
+        from pathlib import Path as _LockPath
+        cleared = []
+        errors = []
+
+        # Check for stale .db-wal / .db-shm files that are no longer in active use
+        # by seeing if the process that created them is still alive (best-effort)
+        # For simplicity, we check if the main .db file is still being written to.
+        for ext in ["-wal", "-shm"]:
+            for lock_file in _LockPath(".").glob(f"*{ext}"):
+                try:
+                    db_path = lock_file.with_suffix(".db")
+                    if not db_path.is_file():
+                        # Orphaned lock file with no corresponding DB
+                        sz = lock_file.stat().st_size
+                        lock_file.unlink()
+                        cleared.append(f"orphaned {lock_file.name} ({sz} bytes)")
+                        continue
+
+                    # If the DB hasn't been modified in >1 hour, assume stale
+                    age_hours = (time.time() - db_path.stat().st_mtime) / 3600
+                    if age_hours > 1:
+                        # Check if WAL is larger than DB — indicates unclean shutdown
+                        wal_sz = lock_file.stat().st_size
+                        db_sz = db_path.stat().st_size
+                        if wal_sz > db_sz * 0.5:
+                            # Force checkpoint to clear WAL
+                            try:
+                                from core.db_utils import get_connection as _lock_conn
+                                conn = _lock_conn(str(db_path), timeout=2)
+                                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                                conn.close()
+                                cleared.append(f"checkpointed {db_path.name}")
+                            except Exception:
+                                pass
+                except (OSError, PermissionError) as exc:
+                    errors.append(f"{lock_file.name}: {exc}")
+
+        if cleared:
+            msg = f"Cleared {len(cleared)} stale lock artifact(s)"
+            _log.info("[SELF-HEALING] %s: %s", msg, ", ".join(cleared[:5]))
+            return {"status": "SUCCESS", "message": msg, "details": {"cleared": cleared[:10], "errors": errors[:3]}}
+        return {"status": "SKIPPED", "message": "No stale locks found"}
+
+    # ── Runbook integration (new) ────────────────────────────────────────
+
+    def _run_runbook(self, failure_name: str) -> dict[str, Any]:
+        """Execute a runbook for a detected failure pattern.
+
+        Maps the failure pattern name to a runbook file and executes
+        the first step. Falls back gracefully if runbook executor is
+        not configured or runbook not found.
+        """
+        if self._runbook_executor is None:
+            return {"status": "SKIPPED", "message": f"No runbook executor configured for {failure_name}"}
+
+        try:
+            runbook = self._runbook_executor.get_runbook_for_failure(failure_name)
+            if runbook is None:
+                return {
+                    "status": "SKIPPED",
+                    "message": f"No runbook mapped for failure pattern: {failure_name}",
+                }
+
+            # Log the runbook info
+            _log.info(
+                "[SELF-HEALING] Runbook %s (%s) triggered for %s",
+                runbook.runbook_id, runbook.title, failure_name,
+            )
+
+            # If auto-execute is enabled, run the steps
+            if self._runbook_executor.auto_execute and runbook.steps:
+                results = self._runbook_executor.execute_runbook(runbook, max_steps=1)
+                if results:
+                    first = results[0]
+                    if first.status == "SUCCESS":
+                        return {
+                            "status": "SUCCESS",
+                            "message": f"Executed runbook {runbook.runbook_id}: step 1 OK",
+                            "details": {
+                                "runbook": runbook.name,
+                                "runbook_id": runbook.runbook_id,
+                                "step": first.step_number,
+                                "step_title": first.step_title,
+                                "output": first.output[:200],
+                            },
+                        }
+                    return {
+                        "status": "FAILED",
+                        "message": f"Runbook step 1 failed: {first.error}",
+                        "details": {"error": first.error[:200]},
+                    }
+
+            # Auto-execute disabled — just provide the runbook reference
+            return {
+                "status": "SUCCESS",
+                "message": f"Runbook {runbook.runbook_id} ({runbook.title}) — {len(runbook.steps)} step(s) available",
+                "details": {
+                    "runbook": runbook.name,
+                    "runbook_id": runbook.runbook_id,
+                    "steps": len(runbook.steps),
+                    "severity": runbook.severity,
+                },
+            }
+
+        except Exception as exc:
+            _log.warning("[SELF-HEALING] Runbook execution failed: %s", exc)
+            return {"status": "FAILED", "message": f"Runbook execution error: {exc}"}
 
     def _notify_operator(self, message: str) -> dict[str, Any]:
         """Notify an operator about a situation requiring attention."""

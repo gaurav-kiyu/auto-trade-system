@@ -182,13 +182,15 @@ class TestIncidentAlertingProcess:
         msg = args[0] if args else ""
         assert "HARD_HALT" in msg
 
-    def test_process_normal_alert(self, alerting_with_callback):
+    def test_process_normal_alert_suppressed(self, alerting_with_callback):
+        """NORMAL incidents are suppressed below HIGH delivery threshold."""
         a, callback = alerting_with_callback
         a.report_incident(IncidentType.STALE_QUOTE, IncidentSeverity.NORMAL, "stale")
         a._process_incidents()
-        args, _ = callback.call_args
-        msg = args[0] if args else ""
-        assert "STALE_QUOTE" in msg
+        # NORMAL (2) is below delivery threshold HIGH (1) -> suppressed
+        assert callback.call_count == 0, "NORMAL incidents should be suppressed"
+        # Queue should now be empty
+        assert a.get_queue_size() == 0
 
     def test_callback_error_does_not_crash(self, alerting_with_callback):
         a, callback = alerting_with_callback

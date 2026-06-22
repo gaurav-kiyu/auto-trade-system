@@ -111,8 +111,8 @@ class TestFailurePattern:
 
 class TestSelfHealingOrchestrator:
     def test_default_patterns(self, orchestrator):
-        """Should have 7 default failure patterns."""
-        assert len(orchestrator.DEFAULT_PATTERNS) == 7
+        """Should have 13 default failure patterns (7 original + 3 auto-remediation + 3 runbook-backed)."""
+        assert len(orchestrator.DEFAULT_PATTERNS) == 13
 
     def test_enabled_by_default(self):
         h = SelfHealingOrchestrator()
@@ -174,10 +174,9 @@ class TestSelfHealingOrchestrator:
             recovery_actions=[RecoveryAction.NOTIFY_OPERATOR],
         )
         orchestrator.register_pattern(pattern)
-        assert len(orchestrator.DEFAULT_PATTERNS) + 1 == 8  # 7 default + 1 custom
-        # Actually register_pattern adds to _patterns, not changing DEFAULT_PATTERNS
+        # register_pattern adds to _patterns, not changing DEFAULT_PATTERNS
         status = orchestrator.get_health_status()
-        assert status["patterns_registered"] == 8
+        assert status["patterns_registered"] == 14  # 13 default + 1 custom
 
     def test_circuit_breaker_reset_no_service(self, orchestrator):
         """Without circuit breaker service, reset should be skipped."""

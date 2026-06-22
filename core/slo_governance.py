@@ -510,6 +510,141 @@ def start_health_metrics_poller(
     return t
 
 
+# ── Capacity-to-SLO bridge ──────────────────────────────────────────────────────
+
+def ingest_capacity_report(report: Any) -> None:
+    """Ingest a CapacityReport into the SLO governance tracker.
+
+    Maps capacity planning metrics to SLO metrics for automated
+    capacity → SLO → alerting integration.
+
+    Maps:
+        disk_free_space (GB)    → recovery_time (proxy for RTO readiness)
+        db_*.db_size (MB)        → rpo (proxy for data growth risk)
+        log_directory_size (MB)  → uptime (proxy for log management health)
+        trade_throughput          → order_latency_p99 (proxy for throughput health)
+        process_memory (MB)       → recovery_time (secondary)
+        forecast_90d (MB)         → rpo (forecast-based risk)
+
+    Also triggers alerts via SLO breach mechanism when capacity thresholds
+    are exceeded (disk < 1GB, DB > 900MB, memory > 500MB, etc.).
+    """
+    slo = get_slo_governance()
+
+    try:
+        # Handle both object and dict representations
+        if hasattr(report, "metrics"):
+            for m in report.metrics:
+                _ingest_capacity_metric(m, slo)
+        elif isinstance(report, dict):
+            metrics = report.get("metrics", [])
+            for m in metrics:
+                _ingest_capacity_metric(m, slo)
+
+        # Ingest growth forecasts
+        if hasattr(report, "forecasts"):
+            for f in report.forecasts:
+                _ingest_capacity_forecast(f, slo)
+        elif isinstance(report, dict):
+            forecasts = report.get("forecasts", [])
+            for f in forecasts:
+                _ingest_capacity_forecast(f, slo)
+
+        # Record overall platform health signal
+        if hasattr(report, "overall_status"):
+            status_map = {"OK": 1.0, "WARN": 0.7, "CRITICAL": 0.3}
+            slo.record_metric("platform_capacity", status_map.get(report.overall_status, 0.5))
+        elif isinstance(report, dict):
+            status_map = {"OK": 1.0, "WARN": 0.7, "CRITICAL": 0.3}
+            slo.record_metric("platform_capacity", status_map.get(report.get("overall_status", ""), 0.5))
+
+    except Exception as exc:
+        _log.warning("[SLO-CAPACITY] Capacity ingestion failed: %s", exc)
+
+    # Cascade to Prometheus metrics exporter
+    try:
+        from core.metrics_exporter import update_metrics as _update_prom
+        ok = getattr(report, "ok_count", 0) if hasattr(report, "ok_count") else 0
+        warn = getattr(report, "warn_count", 0) if hasattr(report, "warn_count") else 0
+        crit = getattr(report, "critical_count", 0) if hasattr(report, "critical_count") else 0
+        _update_prom({
+            "capacity_checks_ok": float(ok),
+            "capacity_checks_warn": float(warn),
+            "capacity_checks_critical": float(crit),
+            "capacity_checks_total": float(ok + warn + crit),
+        })
+    except Exception:
+        pass
+
+
+def _ingest_capacity_metric(m: Any, slo: SLOGovernance) -> None:
+    """Ingest a single capacity ResourceMetric into SLO tracker."""
+    try:
+        resource = m.resource if hasattr(m, "resource") else m.get("resource", "")
+        value = float(m.current_value if hasattr(m, "current_value") else m.get("current_value", 0))
+        status = (m.status if hasattr(m, "status") else m.get("status", "")).upper()
+
+        if "disk_free_space" in resource:
+            # Free disk < 1GB → recovery_time risk (RTO may be impacted)
+            if value < 1.0 and status == "CRITICAL":
+                slo.record_metric("recovery_time", 120.0)  # RTO breach risk
+            elif value < 5.0:
+                slo.record_metric("recovery_time", 90.0)   # Warning
+            else:
+                slo.record_metric("recovery_time", 30.0)   # Healthy
+
+        elif resource.startswith("db_") and resource.endswith("_size"):
+            # DB size > 900MB → RPO risk (data loss window increases with large DB)
+            if value > 900.0:
+                slo.record_metric("rpo", 120.0)  # RPO breach risk
+            elif value > 500.0:
+                slo.record_metric("rpo", 90.0)
+            else:
+                slo.record_metric("rpo", 30.0)
+
+        elif "log_directory_size" in resource:
+            # Logs > 2GB → uptime risk (disk space exhaustion)
+            uptime_val = 95.0 if value > 2000.0 else 99.9
+            slo.record_metric("uptime", uptime_val)
+
+        elif "trade_throughput" in resource:
+            # Trade throughput as proxy for order_latency_p99
+            latency_val = 200.0 if value > 100 else 100.0
+            slo.record_metric("order_latency_p99", latency_val)
+
+        elif "process_memory" in resource:
+            # Memory > 500MB → recovery_time risk
+            if value > 500.0:
+                slo.record_metric("recovery_time", 120.0)
+
+        elif "disk_usage_pct" in resource:
+            # Disk > 90% → uptime risk
+            uptime_val = 95.0 if value > 90.0 else 99.9
+            slo.record_metric("uptime", uptime_val)
+
+    except Exception as exc:
+        _log.debug("[SLO-CAPACITY] Metric ingestion skipped: %s", exc)
+
+
+def _ingest_capacity_forecast(f: Any, slo: SLOGovernance) -> None:
+    """Ingest a single capacity GrowthForecast into SLO tracker."""
+    try:
+        resource = f.resource if hasattr(f, "resource") else f.get("resource", "")
+        forecast_90d = float(f.forecast_90d_mb if hasattr(f, "forecast_90d_mb") else f.get("forecast_90d_mb", 0))
+        days_until = f.days_until_capacity if hasattr(f, "days_until_capacity") else f.get("days_until_capacity")
+
+        if days_until is not None and days_until < 30:
+            # DB within 30 days of capacity — RPO concern
+            slo.record_metric("rpo", 120.0)
+            _log.warning(
+                "[SLO-CAPACITY] %s will reach capacity in %d days "
+                "(90d forecast: %.0f MB)",
+                resource, days_until, forecast_90d,
+            )
+    except Exception as exc:
+        _log.debug("[SLO-CAPACITY] Forecast ingestion skipped: %s", exc)
+
+
 # ── Convenience API ───────────────────────────────────────────────────────────
 
 def check_slo_compliance() -> SLOReport:

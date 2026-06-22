@@ -16,6 +16,16 @@ from __future__ import annotations
 from core.auth.csrf import CSRFProtection, csrf_protection
 from core.auth.dependencies import AuthDependencies
 from core.auth.handler import AuthHandler, AuthToken, AuthUser, hash_password, verify_password
+from core.auth.mfa import (
+    MFASessionState,
+    generate_mfa_secret,
+    generate_recovery_codes,
+    get_mfa_provisioning_uri,
+    get_mfa_session_state,
+    hash_recovery_code,
+    verify_mfa_token,
+    verify_recovery_code,
+)
 from core.auth.permissions import Permission, PermissionDenied, Role, role_has_permission
 from core.auth.role_manager import RoleManager
 from core.auth.routes import create_auth_router
@@ -27,6 +37,14 @@ __all__ = [
     "AuthUser",
     "hash_password",
     "verify_password",
+    "MFASessionState",
+    "generate_mfa_secret",
+    "generate_recovery_codes",
+    "get_mfa_provisioning_uri",
+    "get_mfa_session_state",
+    "hash_recovery_code",
+    "verify_mfa_token",
+    "verify_recovery_code",
     "Permission",
     "PermissionDenied",
     "Role",

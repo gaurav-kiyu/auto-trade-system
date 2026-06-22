@@ -18,6 +18,37 @@ definitions:
         artifacts:
           - reports/**
 
+    - step: &coverage-step
+        name: Coverage
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]" coverage
+          - python -m coverage run -m pytest tests/ -q --tb=short -k "not slow" -x
+          - python -m coverage report --fail-under=70 --show-missing
+          - python -m coverage xml -o reports/coverage.xml
+        artifacts:
+          - reports/**
+
+    - step: &security-audit-step
+        name: Security Audit
+        caches: [pip]
+        script:
+          - pip install pip-audit bandit
+          - pip-audit || { echo "FAIL: pip-audit found vulnerabilities"; exit 1; }
+          - bandit -r core/ scripts/ -f json -o reports/bandit-report.json || echo "Bandit warnings — review before release"
+        artifacts:
+          - reports/**
+
+    - step: &benchmark-step
+        name: Performance Benchmark
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - python -m pytest tests/benchmarks/ -q --tb=short --benchmark-json=reports/benchmark.json || echo "No benchmark tests yet"
+          - echo "Benchmark results saved to reports/benchmark.json"
+        artifacts:
+          - reports/**
+
     - step: &test-step
         name: Test
         caches: [pip]
@@ -116,6 +147,8 @@ pipelines:
     - parallel:
         - step: *lint-step
         - step: *test-step
+        - step: *coverage-step
+        - step: *security-audit-step
     - step: *governance-step
     - step: *slow-test-step
     - step: *chaos-step
@@ -126,6 +159,8 @@ pipelines:
       - parallel:
           - step: *lint-step
           - step: *test-step
+      - step: *coverage-step
+      - step: *security-audit-step
       - step: *governance-step
       - step: *chaos-step
 
@@ -134,16 +169,21 @@ pipelines:
       - parallel:
           - step: *lint-step
           - step: *test-step
+          - step: *coverage-step
+          - step: *security-audit-step
       - step: *governance-step
       - step: *slow-test-step
       - step: *chaos-step
       - step: *exactly-once-step
+      - step: *benchmark-step
       - step: *dist-step
 
     develop:
       - parallel:
           - step: *lint-step
           - step: *test-step
+      - step: *coverage-step
+      - step: *security-audit-step
       - step: *governance-step
       - step: *chaos-step
 
@@ -151,10 +191,13 @@ pipelines:
       - parallel:
           - step: *lint-step
           - step: *test-step
+          - step: *coverage-step
+          - step: *security-audit-step
       - step: *governance-step
       - step: *slow-test-step
       - step: *chaos-step
       - step: *exactly-once-step
+      - step: *benchmark-step
       - step: *dist-step
       - step: *governance-release-step
       - step: *release-step

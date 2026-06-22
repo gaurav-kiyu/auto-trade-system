@@ -524,6 +524,28 @@ def start_health_check_scheduler(
                         except (OSError, ValueError, AttributeError) as exc:
                             _log.warning("[HEALTH] send_fn failed: %s", exc)
                     _log.info("[HEALTH] Sunday EOD health check: %s", report.summary)
+
+                    # ── Phase 17: Automated DB backup on Sunday EOD ──────
+                    try:
+                        from scripts.backup_databases import backup_databases
+                        success, fail, errors = backup_databases(retain=7)
+                        if fail > 0:
+                            _log.warning(
+                                "[BACKUP] %d database(s) failed to back up: %s",
+                                fail, errors,
+                            )
+                            if send_fn:
+                                send_fn(
+                                    f"[BACKUP] {success} OK, {fail} FAILED during Sunday EOD backup"
+                                )
+                        else:
+                            _log.info(
+                                "[BACKUP] Sunday EOD backup complete: %d databases", success
+                            )
+                    except (ImportError, OSError, ValueError) as back_exc:
+                        _log.warning("[BACKUP] Sunday EOD backup skipped: %s", back_exc)
+                    # ──────────────────────────────────────────────────────
+
                     checked_today = today_key
             except (ValueError, OSError, TimeoutError) as exc:
                 _log.warning("[HEALTH] Scheduler loop error: %s", exc)

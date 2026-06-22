@@ -339,10 +339,6 @@ class ExecutionService(ExecutionPort):
                     self._logger.info("Manual approval required for order %s", order_request.symbol)
         # ─────────────────────────────────────────────────────────────────────
 
-        # Generate execution ID for tracking (outside lock - thread-safe counter)
-        execution_id = f"exec_{self._execution_counter}_{int(time.time())}"
-        self._execution_counter += 1
-
         # Set default execution context if not provided
         if execution_context is None:
             execution_context = ExecutionContext()
@@ -358,6 +354,10 @@ class ExecutionService(ExecutionPort):
         # CRITICAL FIX: Wrap entire check→execute→store in atomic lock
         # to prevent TOCTOU race condition under concurrent load
         with self._lock:
+            # Generate execution ID under lock to prevent counter data race
+            execution_id = f"exec_{self._execution_counter}_{int(time.time())}"
+            self._execution_counter += 1
+
             intent_id = f"{order_request.symbol}_{order_request.direction}_{order_request.strike_price}_{order_request.lot_size}"
 
             # ── Phase 5B: WAL journal intent logging ──────────────────────
