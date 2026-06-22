@@ -40,6 +40,7 @@ def _load_json(path: Path) -> dict:
 def main(argv: list[str] | None = None) -> int:
     # Early check: jsonschema must be installed (preserved from legacy behaviour)
     try:
+        import jsonschema  # noqa: F401
     except ImportError:
         print("validate_config_schema: install jsonschema (requirements-dev.txt)", file=sys.stderr)
         return 1

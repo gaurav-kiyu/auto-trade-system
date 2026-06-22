@@ -81,6 +81,7 @@ def test_wal_persistence():
             created_at="",
         )
         wal1.append(intent)
+        wal1.flush()  # ensure async write is flushed before reading
         # find our PENDING intent
         pending = wal1.get_pending()
         matching = [i for i in pending if i.action == "BUY"]

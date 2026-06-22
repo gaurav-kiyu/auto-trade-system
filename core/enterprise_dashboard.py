@@ -1836,6 +1836,7 @@ class EnterpriseDashboard:
                     symbols = symbols[:MAX_SCREEN_SYMBOLS]
                     _log.warning("[DASH] Fundamentals screen truncated to %d symbols", MAX_SCREEN_SYMBOLS)
 
+                from core.fundamental_analyzer import get_fundamental_analyzer
                 fa = get_fundamental_analyzer()
 
                 # Apply custom weights for this screen if provided
