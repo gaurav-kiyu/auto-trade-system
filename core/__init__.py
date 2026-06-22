@@ -58,6 +58,13 @@ from .config_bootstrap import (
     merge_bot_config,
 )
 from .config_engine import ConfigIssue, ConfigValidationResult, ConfigValidator
+from .data_lineage import (
+    DataLineageEngine,
+    DataLineageRecord,
+    ImpactAnalysis,
+    ProvenanceChain,
+    get_lineage_engine,
+)
 from .config_helpers import (
     build_audit_config_snapshot,
     decode_if_b64,
@@ -252,4 +259,10 @@ __all__ = [
     "AssetClassExposure",
     "CapitalAllocationService",
     "MultiAssetPortfolioAggregator",
+    # Data Lineage Engine
+    "DataLineageEngine",
+    "DataLineageRecord",
+    "ImpactAnalysis",
+    "ProvenanceChain",
+    "get_lineage_engine",
 ]
