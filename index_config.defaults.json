@@ -1335,6 +1335,12 @@
   "idempotency_db_path": "execution_state.db",
   "idempotency_slot_seconds": 300,
   "model_registry_db_path": "data/model_registry.db",
+  "_comment_sebi_circulars": "SEBI Regulatory Circular Calendar \u2014 track dates of SEBI circulars that may affect trading (margin changes, expiry changes, position limit changes)",
+  "sebi_circulars_enabled": false,
+  "sebi_circulars": [],
+  "_comment_ipo_calendar": "IPO/FPO/OFS/QIP Calendar \u2014 config-driven tracking of upcoming primary market issues",
+  "ipo_calendar_enabled": false,
+  "ipo_calendar_entries": [],
   "_comment_sso": "SSO / OAuth2 Enterprise Authentication \u2014 OAuth2/OIDC single sign-on for Google, Microsoft, Github, or custom providers",
   "sso_enabled": false,
   "sso_provider": "",
@@ -1388,5 +1394,117 @@
     "BANKNIFTY_FUT",
     "FINNIFTY_FUT"
   ],
+  "_comment_etf_map": "ETF_MAP \u2014 Indian ETF symbols for NSE. ETFS trade on the equity segment and are accessible via yfinance with .NS suffix.",
+  "ETF_MAP": {
+    "NIFTYBEES": {
+      "yf": "NIFTYBEES.NS",
+      "nse": "NIFTYBEES",
+      "sector": "INDEX_ETF",
+      "category": "EQUITY_ETF",
+      "lot": 1,
+      "expense_ratio": 0.05,
+      "enabled": false
+    },
+    "BANKBEES": {
+      "yf": "BANKBEES.NS",
+      "nse": "BANKBEES",
+      "sector": "INDEX_ETF",
+      "category": "EQUITY_ETF",
+      "lot": 1,
+      "expense_ratio": 0.05,
+      "enabled": false
+    },
+    "GOLDBEES": {
+      "yf": "GOLDBEES.NS",
+      "nse": "GOLDBEES",
+      "sector": "COMMODITY_ETF",
+      "category": "GOLD_ETF",
+      "lot": 1,
+      "expense_ratio": 0.05,
+      "enabled": false
+    },
+    "SILVERBEES": {
+      "yf": "SILVERBEES.NS",
+      "nse": "SILVERBEES",
+      "sector": "COMMODITY_ETF",
+      "category": "SILVER_ETF",
+      "lot": 1,
+      "expense_ratio": 0.05,
+      "enabled": false
+    },
+    "LIQUIDBEES": {
+      "yf": "LIQUIDBEES.NS",
+      "nse": "LIQUIDBEES",
+      "sector": "DEBT_ETF",
+      "category": "LIQUID_ETF",
+      "lot": 1,
+      "expense_ratio": 0.01,
+      "enabled": false
+    },
+    "JUNIORBEES": {
+      "yf": "JUNIORBEES.NS",
+      "nse": "JUNIORBEES",
+      "sector": "INDEX_ETF",
+      "category": "EQUITY_ETF",
+      "lot": 1,
+      "expense_ratio": 0.05,
+      "enabled": false
+    }
+  },
+  "_comment_reit_map": "REIT_MAP \u2014 Indian REIT (Real Estate Investment Trust) symbols listed on NSE. Accessible via yfinance with .NS suffix.",
+  "REIT_MAP": {
+    "EMBASSY": {
+      "yf": "EMBASSY.NS",
+      "nse": "EMBASSY",
+      "sector": "REAL_ESTATE",
+      "category": "REIT",
+      "lot": 1,
+      "enabled": false
+    },
+    "MINDSPACE": {
+      "yf": "MINDSPACE.NS",
+      "nse": "MINDSPACE",
+      "sector": "REAL_ESTATE",
+      "category": "REIT",
+      "lot": 1,
+      "enabled": false
+    },
+    "BROOKFIELD": {
+      "yf": "BROOKFIELD.NS",
+      "nse": "BROOKFIELD",
+      "sector": "REAL_ESTATE",
+      "category": "REIT",
+      "lot": 1,
+      "enabled": false
+    }
+  },
+  "_comment_invit_map": "INVIT_MAP \u2014 Indian InvIT (Infrastructure Investment Trust) symbols listed on NSE. Accessible via yfinance with .NS suffix.",
+  "INVIT_MAP": {
+    "IRBINVIT": {
+      "yf": "IRBINVIT.NS",
+      "nse": "IRBINVIT",
+      "sector": "INFRASTRUCTURE",
+      "category": "INVIT",
+      "lot": 1,
+      "enabled": false
+    },
+    "POWERGRID_INVIT": {
+      "yf": "POWERGRID.NS",
+      "nse": "POWERGRID_INVIT",
+      "sector": "ENERGY",
+      "category": "INVIT",
+      "lot": 1,
+      "enabled": false
+    }
+  },
+  "_comment_sme_map": "SME_MAP \u2014 SME (Small and Medium Enterprise) stocks listed on NSE Emerge / BSE SME. Accessible via yfinance with .NS suffix.",
+  "SME_MAP": {},
+  "_comment_etf_config": "ETF/REIT/InvIT/SME configuration keys. All default to disabled. Enable per-symbol by setting enabled:true in the respective MAP. All accessible via yfinance (.NS suffix).",
+  "ETF_ENABLED": false,
+  "ETF_DEFAULT_QTY": 1,
+  "ETF_PRIORITY": ["NIFTYBEES", "BANKBEES", "GOLDBEES", "SILVERBEES"],
+  "REIT_ENABLED": false,
+  "INVIT_ENABLED": false,
+  "SME_ENABLED": false,
   "_comment_equity_config": "EQUITY_ENABLED \u2014 enable/disable equity trading. EQUITY_SL_PCT/EQUITY_TARGET_PCT \u2014 SL & target thresholds. EQUITY_MAX_DAILY_TRADES \u2014 daily trade cap. EQUITY_DEFAULT_QTY \u2014 default entry quantity. EQUITY_PRIORITY \u2014 scan order for equities. FUTURES_PRIORITY \u2014 scan order for futures. Each must match keys in EQUITY_MAP and FUTURES_MAP."
 }

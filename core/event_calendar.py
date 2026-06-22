@@ -421,6 +421,24 @@ from dataclasses import dataclass as _dataclass
 
 
 @_dataclass(frozen=True)
+class SEBICircular:
+    """SEBI regulatory circular or exchange notice.
+
+    Attributes:
+        date: Circular effective/applicable date.
+        category: Category of the circular (MARGIN, EXPIRY, POSITION_LIMIT, REPORTING, OTHER).
+        title: Short description of the circular.
+        details: Full description or link to the circular.
+        impact: Impact level (INFO, WARNING, CRITICAL).
+    """
+    date: datetime.date
+    category: str = "OTHER"
+    title: str = ""
+    details: str = ""
+    impact: str = "INFO"
+
+
+@_dataclass(frozen=True)
 class CorporateAction:
     symbol:      str
     date:        datetime.date
@@ -459,6 +477,185 @@ def fetch_corporate_actions(
             _log.debug("[CORP_ACTION] bad entry %s: %s", entry, exc)
 
     return sorted(actions, key=lambda a: a.date)
+
+
+@_dataclass(frozen=True)
+class IPOEvent:
+    """IPO / FPO / OFS / QIP primary market event.
+
+    Attributes:
+        company_name: Name of the issuing company.
+        symbol: Proposed trading symbol.
+        ipo_type: Type (IPO, FPO, OFS, QIP).
+        issue_price_min: Lower end of price band.
+        issue_price_max: Upper end of price band.
+        lot_size: Minimum lot size for retail.
+        open_date: Subscription open date.
+        close_date: Subscription close date.
+        listing_date: Expected listing date.
+        total_issue_size: Total issue size in crores.
+        status: Current status (ANNOUNCED, OPEN, CLOSED, LISTED, WITHDRAWN, CANCELLED).
+    """
+    company_name: str = ""
+    symbol: str = ""
+    ipo_type: str = "IPO"
+    issue_price_min: float = 0.0
+    issue_price_max: float = 0.0
+    lot_size: int = 0
+    open_date: datetime.date | None = None
+    close_date: datetime.date | None = None
+    listing_date: datetime.date | None = None
+    total_issue_size: float = 0.0
+    status: str = "ANNOUNCED"
+
+
+def fetch_ipo_events(
+    cfg: dict[str, Any] | None = None,
+) -> list[IPOEvent]:
+    """Load IPO/FPO/OFS/QIP events from config's ipo_calendar_entries list.
+
+    Args:
+        cfg: config dict (may contain ipo_calendar_entries list).
+
+    Returns:
+        List of IPOEvent sorted by open_date ascending.
+    """
+    c = cfg or {}
+    if not c.get("ipo_calendar_enabled", False):
+        return []
+    raw: list[dict] = c.get("ipo_calendar_entries", []) or []
+    events: list[IPOEvent] = []
+    for entry in raw:
+        try:
+            open_date = datetime.date.fromisoformat(str(entry["open_date"])) if entry.get("open_date") else None
+            close_date = datetime.date.fromisoformat(str(entry["close_date"])) if entry.get("close_date") else None
+            listing_date = datetime.date.fromisoformat(str(entry["listing_date"])) if entry.get("listing_date") else None
+            events.append(IPOEvent(
+                company_name=str(entry.get("company_name", "")),
+                symbol=str(entry.get("symbol", "")).upper(),
+                ipo_type=str(entry.get("ipo_type", "IPO")).upper(),
+                issue_price_min=float(entry.get("issue_price_min", 0.0)),
+                issue_price_max=float(entry.get("issue_price_max", 0.0)),
+                lot_size=int(entry.get("lot_size", 0)),
+                open_date=open_date,
+                close_date=close_date,
+                listing_date=listing_date,
+                total_issue_size=float(entry.get("total_issue_size", 0.0)),
+                status=str(entry.get("status", "ANNOUNCED")).upper(),
+            ))
+        except (ValueError, TypeError, KeyError) as exc:
+            _log.debug("[IPO_CAL] bad entry %s: %s", entry, exc)
+
+    def _sort_key(e: IPOEvent) -> datetime.date:
+        return e.open_date or datetime.date.max
+    return sorted(events, key=_sort_key)
+
+
+def get_upcoming_ipos(
+    cfg: dict[str, Any] | None = None,
+) -> list[IPOEvent]:
+    """Get IPO events whose open_date >= today."""
+    c = cfg or {}
+    try:
+        from core.datetime_ist import now_ist
+        today = now_ist().date()
+    except (ImportError, ValueError, TypeError):
+        today = datetime.date.today()
+    return [ev for ev in fetch_ipo_events(c) if ev.open_date is None or ev.open_date >= today]
+
+
+def is_ipo_issue_date(
+    check_date: datetime.date | None = None,
+    cfg: dict[str, Any] | None = None,
+) -> tuple[bool, str]:
+    """Check if check_date falls within any IPO subscription window.
+
+    Returns:
+        (True, description) if check_date is between open_date and close_date for any IPO.
+        (False, "") otherwise.
+    """
+    c = cfg or {}
+    if not c.get("ipo_calendar_enabled", False):
+        return False, ""
+    if check_date is None:
+        try:
+            from core.datetime_ist import now_ist
+            check_date = now_ist().date()
+        except (ImportError, ValueError, TypeError):
+            check_date = datetime.date.today()
+    for ev in fetch_ipo_events(c):
+        if ev.open_date and ev.close_date:
+            if ev.open_date <= check_date <= ev.close_date:
+                desc = f"{ev.ipo_type} {ev.company_name} ({ev.symbol}) open {ev.open_date}-{ev.close_date}"
+                return True, desc
+    return False, ""
+
+
+def fetch_sebi_circulars(
+    cfg: dict[str, Any] | None = None,
+) -> list[SEBICircular]:
+    """Load SEBI circular dates from config's sebi_circulars list.
+
+    Args:
+        cfg: config dict (may contain sebi_circulars list).
+
+    Returns:
+        List of SEBICircular sorted by date ascending.
+    """
+    c = cfg or {}
+    if not c.get("sebi_circulars_enabled", False):
+        return []
+    raw: list[dict] = c.get("sebi_circulars", []) or []
+    circulars: list[SEBICircular] = []
+    for entry in raw:
+        try:
+            d = datetime.date.fromisoformat(str(entry["date"]))
+            circulars.append(SEBICircular(
+                date=d,
+                category=str(entry.get("category", "OTHER")).upper(),
+                title=str(entry.get("title", "")),
+                details=str(entry.get("details", "")),
+                impact=str(entry.get("impact", "INFO")).upper(),
+            ))
+        except (ValueError, TypeError, KeyError) as exc:
+            _log.debug("[SEBI_CIRC] bad entry %s: %s", entry, exc)
+    return sorted(circulars, key=lambda c: c.date)
+
+
+def get_sebi_circulars_for_date(
+    check_date: datetime.date | None = None,
+    cfg: dict[str, Any] | None = None,
+) -> list[SEBICircular]:
+    """Get SEBI circulars effective on check_date."""
+    c = cfg or {}
+    if check_date is None:
+        try:
+            from core.datetime_ist import now_ist
+            check_date = now_ist().date()
+        except (ImportError, ValueError, TypeError):
+            check_date = datetime.date.today()
+    return [circ for circ in fetch_sebi_circulars(c) if circ.date == check_date]
+
+
+def sebi_circular_summary(
+    cfg: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Get a summary dict of all upcoming SEBI circulars."""
+    try:
+        from core.datetime_ist import now_ist
+        today = now_ist().date()
+    except (ImportError, ValueError, TypeError):
+        today = datetime.date.today()
+    result = []
+    for circ in fetch_sebi_circulars(cfg):
+        if circ.date >= today:
+            result.append({
+                "date": str(circ.date),
+                "category": circ.category,
+                "title": circ.title,
+                "impact": circ.impact,
+            })
+    return result
 
 
 def is_corp_action_day(

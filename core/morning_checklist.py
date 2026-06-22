@@ -178,6 +178,10 @@ class MorningChecklist:
         if readiness_ok is not None:
             report_lines.append(f"  [{'✓' if readiness_ok else '✗'}] Live readiness: {readiness_ok}")
 
+        # 13. Check IPO calendar
+        ipo_ok, ipo_msg = self._check_ipo_calendar()
+        report_lines.append(f"  [{'ℹ' if ipo_ok else 'i'}] {ipo_msg}")
+
         # Summary
         report_lines.append("")
         if critical_failed:
@@ -394,6 +398,37 @@ class MorningChecklist:
             return report.overall_ready
         except (ImportError, AttributeError, OSError):
             return None
+
+    def _check_ipo_calendar(self) -> tuple[bool, str]:
+        """Check IPO calendar for ongoing/upcoming IPOs."""
+        try:
+            from core.event_calendar import (
+                get_upcoming_ipos,
+                is_ipo_issue_date,
+                fetch_ipo_events,
+            )
+            cfg = self._cfg
+            if not cfg.get("ipo_calendar_enabled", False):
+                return True, "IPO calendar: disabled"
+
+            today = now_ist().date()
+
+            # Check if today is an IPO issue date
+            ipo_found, ipo_desc = is_ipo_issue_date(today, cfg)
+            if ipo_found:
+                return True, f"🚀 IPO today: {ipo_desc}"
+
+            # Check upcoming IPOs
+            upcoming = get_upcoming_ipos(cfg)
+            if upcoming:
+                total = len(upcoming)
+                next_ipo = upcoming[0]
+                return True, f"IPO calendar: {total} upcoming (next: {next_ipo.company_name})"
+
+            return True, "IPO calendar: no upcoming issues"
+        except (ImportError, AttributeError, ValueError) as e:
+            self._logger.warning("IPO calendar check failed: %s" % e)
+            return True, "IPO calendar check unavailable"
 
 
 def run_morning_checklist(
