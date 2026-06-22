@@ -10,7 +10,7 @@
 ## Scan Results
 
 **Total findings:** 13904  
-**Last scanned:** 2026-06-22 17:39:15
+**Last scanned:** 2026-06-22 18:09:39
 
 | ID | Source A | Source B | Symbol | Similarity | Description | Severity |
 |----|----------|----------|--------|------------|-------------|----------|
