@@ -1,0 +1,164 @@
+---
+# OPB Bot — Kubernetes Deployment
+# ─────────────────────────────────────────────────────────────────────────────
+# Runs the OPB Index Options Buying Bot as a stateless pod (state is persisted
+# on an attached PersistentVolumeClaim).
+#
+# Exposes two ports:
+#   - 9090 (metrics) — consumed by Prometheus + HPA
+#   - 8765 (dashboard) — optional FastAPI web dashboard
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opb-deployment
+  labels:
+    app: opb-bot
+    tier: trading
+    version: v2.53.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opb-bot
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: opb-bot
+        tier: trading
+        version: v2.53.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: opb-bot
+          image: opb-bot:2.53.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+            - name: dashboard
+              containerPort: 8765
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: opb-config
+            - secretRef:
+                name: opb-secrets
+                optional: true
+          env:
+            # ── Secrets from environment (or .env file in container) ────
+            - name: OPBUYING_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: opb-secrets
+                  key: bot-token
+                  optional: true
+            - name: OPBUYING_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: opb-secrets
+                  key: chat-id
+                  optional: true
+            - name: OPBUYING_KITE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opb-secrets
+                  key: kite-api-key
+                  optional: true
+            - name: OPBUYING_KITE_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: opb-secrets
+                  key: kite-access-token
+                  optional: true
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+              subPath: db
+            - name: data
+              mountPath: /data/models
+              subPath: models
+            - name: data
+              mountPath: /data/reports
+              subPath: reports
+            - name: data
+              mountPath: /data/logs
+              subPath: logs
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - |
+                  import sys
+                  try:
+                      from core.health_checker import run_full_health_check
+                      report = run_full_health_check()
+                      ok = getattr(report, 'overall_status', 'OK')
+                      sys.exit(0 if ok in ('OK', 'WARN') else 1)
+                  except Exception:
+                      sys.exit(1)
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - |
+                  import sys
+                  try:
+                      from core.metrics_exporter import get_metrics_text
+                      text = get_metrics_text()
+                      if '# no metrics' not in text and text:
+                          sys.exit(0)
+                  except Exception:
+                      pass
+                  sys.exit(1)  # Not ready until metrics exporter initializes
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          startupProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - |
+                  import sys
+                  modules = [
+                      'core.metrics_exporter',
+                      'core.safety_state',
+                      'core.health_checker',
+                  ]
+                  for m in modules:
+                      try:
+                          __import__(m)
+                      except Exception:
+                          sys.exit(1)
+                  sys.exit(0)
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30  # 150s max startup time
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: opb-data-pvc
+            readOnly: false

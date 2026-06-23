@@ -1,0 +1,39 @@
+---
+# OPB Bot — Kubernetes ConfigMap
+# ─────────────────────────────────────────────────────────────────────────────
+# Non-sensitive configuration values loaded into the deployment as environment
+# variables and/or mounted as a config file.  Secrets (broker keys, Telegram
+# tokens) go in a Secret, never here.
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opb-config
+  labels:
+    app: opb-bot
+    tier: trading
+data:
+  # ── Execution mode ──────────────────────────────────────────────────────
+  OPBUYING_EXECUTION_MODE: "PAPER"
+  OPBUYING_BASE_CAPITAL: "5000"
+
+  # ── Runtime ──────────────────────────────────────────────────────────────
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+  TZ: "Asia/Kolkata"
+
+  # ── Paths (within container) ─────────────────────────────────────────────
+  OPBUYING_TRADES_DB:           "/data/db/trades.db"
+  OPBUYING_OI_SNAPSHOT_DB_PATH: "/data/db/oi_snapshots.db"
+  OPBUYING_ML_TRACKER_DB_PATH:  "/data/db/ml_tracker.db"
+  OPBUYING_DRIFT_DB_PATH:       "/data/db/ml_tracker.db"
+  OPBUYING_ML_MODEL_PATH:       "/data/models/signal_classifier.pkl"
+  OPBUYING_REPORT_OUTPUT_DIR:   "/data/reports"
+
+  # ── Metrics (for HPA) ───────────────────────────────────────────────────
+  OPBUYING_METRICS_ENABLED: "true"
+  OPBUYING_METRICS_PORT:    "9090"
+
+  # ── Dashboard (optional) ─────────────────────────────────────────────────
+  OPBUYING_WEB_DASHBOARD_ENABLED: "false"
+  OPBUYING_WEB_DASHBOARD_PORT:    "8765"

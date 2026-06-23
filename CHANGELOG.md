@@ -1,57 +1,46 @@
 # Changelog
 
-## v0.0.0-test (2026-06-22)
+## v2.53.0 (2026-06-23)
 
-## v0.0.0 (2026-06-22)
+**Institutional Hardening & Master Constitution Compliance — Final Cycle**
 
-## v0.0.0-test (2026-06-15)
+### New Features
 
-## v0.0.0-test (2026-06-15)
+#### Infrastructure & Operations
+- **Kubernetes HPA Auto-Scaling** — 6 K8s manifests (deployment, service, HPA, configmap, PVC, kustomization) with Prometheus metrics scraping, health probes, and rolling update strategy
+- **Observability Stack** — Loki + Promtail + Grafana Docker Compose stack with 30-day log retention, JSON audit log parsing, and auto-provisioned datasources
 
-## v0.0.0-test (2026-06-15)
+#### ML & Data Quality
+- **Feature Quality SLA Monitor** — Automated freshness monitoring for 14 ML features with configurable per-feature max-age thresholds, quality scoring (age × anomaly rate), and background poller integration with SLO governance
+- **Data Quality Integration** — FeatureQualitySLA bridges DataQualityMonitor, DataFreshnessGuard, MetricsExporter, and SLOGovernance into a unified freshness pipeline
 
-## v0.0.0-test (2026-06-15)
+#### Enterprise Dashboard
+- **MTTR / Error Budget Pages** — 3 API endpoints with full dashboard widgets showing MTTR breakdown, P50/P90/P99, error budget consumption, burn rates, and at-risk flags
+- **Cross-Asset Correlation Matrix** — Real-time correlation API with fallback to correlation guard, relative value Z-score analysis, and color-coded strength visualization
 
-## v0.0.0-test (2026-06-15)
+#### CI/CD
+- **Walk-Forward in CI** — Walk-forward validation step added to Bitbucket Pipelines for main, develop, and release branches
 
-## v0.0.0-test (2026-06-15)
+### Architecture Changes
+- `k8s/` directory added with Kustomize-based deployment framework
+- `deploy/loki/`, `deploy/promtail/`, `deploy/grafana/datasources/` added
+- `core/feature_quality_sla.py` — new module bridging 4 existing systems
 
-## v0.0.0-test (2026-06-15)
+### Bug Fixes
+- K8s liveness probe fixed (was always-exit-0 no-op; now uses `health_checker`)
+- `feature_quality_sla.py` lock scope fixed (`_emit_metrics` moved outside RLock)
+- Empty feature SLA dict handled correctly (`is not None` vs truthiness bug)
+- Promtail audit log path fixed to `/home/opb/` (matches Docker user)
+- Grafana Prometheus datasource URL fixed to match Docker Compose service name
+- Quality score weights promoted to named constants (`QUALITY_WEIGHT_AGE`, `QUALITY_WEIGHT_ANOMALY`)
 
-## v0.0.0-test (2026-06-11)
+### Documentation
+- `RELEASE_NOTES.md` — replaced `v0.0.0-test` placeholder with comprehensive v2.53.0 notes
+- `PRIORITIZED_BACKLOG.md` — P3/P6/P7/P8/P9/P10 moved to Completed
+- `FINAL_EVIDENCE_BASED_SCORECARD.md` — updated scores and evidence
 
-## v0.0.0-test (2026-06-11)
-
-## v0.0.0-test (2026-06-11)
-
-## v0.0.0-test (2026-06-11)
-
-## v0.0.0-test (2026-06-03)
-
-## v0.0.0-test (2026-06-03)
-
-## v2.53.0 (2026-05-30)
-
-Enterprise hardening release — Security, DI container, execution hardening, governance framework.
-
-- **Security:** Secrets moved to OPBUYING_* environment variables, secure config loading via SecureConfigAdapter, secret hygiene scanner
-- **Architecture:** Dependency injection container wired for core services, port/adapter pattern enforcement
-- **Execution:** Continuous reconciliation, ACK watchdog, deterministic state machine, WAL journal, idempotency certifier
-- **Risk:** RiskService as canonical risk authority, mandate enforcer consolidated, margin validator with actual quantity
-- **Testing:** ~2670 tests, 47 new test files, chaos test suite, certification test framework
-- **Governance:** Constitution validation engine, AI safety gate, pre-implementation checks, release governance pipeline
-- **Infrastructure:** Control plane server, admin RBAC, enterprise dashboard, Prometheus metrics exporter
-- **Documentation:** 14 certification reports, architecture summary PDF/PPTX, disaster recovery plan
-- **Repository hygiene:** Dead code scanner, duplicate code scanner, artifact sync checker, hygiene checker
-
-## v2.45.0 (date unknown)
-
-Sprint release — FII/DII tracker, implied move, GEX analyzer, Kelly sizing, VaR, stress tests, strategy expansion.
-
-## v2.44.0 (date unknown)
-
-Feature release — Liquidity guard, re-entry evaluator, news sentinel, confidence bands, benchmark comparison.
-
-## v2.40.0 (date unknown)
-
-Final QA pass — smoke tests, selftest, Find dialog, Unicode fixes.
+### Previous Versions
+- **v2.44.0** — Enhancement pack: Liquidity Guard, News Sentinel, Health Checker, Trade Replay
+- **v2.45.0** — Institutional: FII/DII, GEX, Kelly Sizer, Stress Testing, Greeks Engine
+- **v2.50.0** — Architecture overhaul: Event system, DI container, deterministic state machine
+- **v2.52.0** — Institutional hardening: 21 certification reports, chaos testing

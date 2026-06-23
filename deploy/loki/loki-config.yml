@@ -1,0 +1,71 @@
+# OPB Bot — Loki Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# Loki is a horizontally-scalable, highly-available, multi-tenant log
+# aggregation system inspired by Prometheus.
+#
+# This config is for a single-binary Loki instance suitable for
+# development and small production deployments.
+# ─────────────────────────────────────────────────────────────────────────────
+auth_enabled: false
+
+http:
+  listen_port: 3100
+  server_read_timeout: 600s
+  server_write_timeout: 600s
+
+server:
+  grpc_listen_port: 9095
+  log_level: info
+
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+  chunk_idle_period: 30m
+  chunk_retain_period: 1m
+  max_chunk_age: 1h
+  chunk_target_size: 1572864  # 1.5 MB
+  wal:
+    enabled: true
+    dir: /data/loki/wal
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v12
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /data/loki/index
+    cache_location: /data/loki/cache
+    shared_store: filesystem
+  filesystem:
+    directory: /data/loki/chunks
+
+compactor:
+  working_directory: /data/loki/compactor
+  shared_store: filesystem
+  retention_enabled: true
+  retention_delete_delay: 2h
+
+limits_config:
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+  max_query_series: 10000
+  max_query_lookback: 720h  # 30 days
+  ingestion_rate_mb: 10
+  ingestion_burst_size_mb: 20
+
+table_manager:
+  retention_deletes_enabled: true
+  retention_period: 720h  # 30 days
+
+chunk_store_config:
+  max_look_back_period: 720h  # 30 days

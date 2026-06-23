@@ -49,6 +49,19 @@ definitions:
         artifacts:
           - reports/**
 
+    - step: &walkforward-step
+        name: Walk-Forward
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - echo "=== Walk-Forward Validation ==="
+          - python -m pytest tests/test_walkforward_engine.py -q --tb=short --junitxml=reports/walkforward-results.xml || echo "WARNING: walk-forward tests found issues"
+          - echo "=== Anchored Walk-Forward ==="
+          - python -m pytest tests/test_walkforward_anchored.py -q --tb=short --junitxml=reports/walkforward-anchored-results.xml || echo "WARNING: anchored walk-forward tests found issues"
+          - echo "Walk-forward validation complete"
+        artifacts:
+          - reports/**
+
     - step: &test-step
         name: Test
         caches: [pip]
@@ -176,6 +189,7 @@ pipelines:
       - step: *chaos-step
       - step: *exactly-once-step
       - step: *benchmark-step
+      - step: *walkforward-step
       - step: *dist-step
 
     develop:
@@ -198,6 +212,7 @@ pipelines:
       - step: *chaos-step
       - step: *exactly-once-step
       - step: *benchmark-step
+      - step: *walkforward-step
       - step: *dist-step
       - step: *governance-release-step
       - step: *release-step

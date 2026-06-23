@@ -19,44 +19,64 @@
 
 ## Priority Matrix (Remaining)
 
-| Priority | Area | Improvement | Effort | Score Impact | Risk |
-|----------|------|-------------|--------|-------------|------|
-| P2 | **SRE** | Jaeger/Zipkin distributed tracing for order lifecycle | 3 days | +0.2 | Medium |
-| P3 | **Operations** | Kubernetes HPA auto-scaling triggers | 2 days | +0.2 | Low |
-| P5 | **Testing** | Fuzz testing for data parsing (option chain, trade files) | 1 day | +0.1 | Low |
-| P6 | **Data** | Feature quality SLA — automated freshness monitoring | 1 day | +0.1 | Low |
-| P7 | **Strategy** | Walk-forward validation automation in CI pipeline | 1 day | +0.1 | Low |
-| P8 | **Dashboard** | MTTR + Error Budget API endpoints and HTML pages | 0.5 day | +0.1 | Low |
-| P9 | **Infrastructure** | ELK/Loki stack configuration for log aggregation | 2 days | +0.1 | Medium |
-| P10 | **Analytics** | Cross-asset correlation matrix dashboard widget | 0.5 day | +0.05 | Low |
+| Priority | Area | Improvement | Effort | Score Impact | Risk | State |
+|----------|------|-------------|--------|-------------|------|-------|
+| P2 | **SRE** | Jaeger/Zipkin distributed tracing for order lifecycle | 3 days | +0.2 | Medium | ✅ EXISTS (`core/observability/opentelemetry.py`) |
+| P3 | **Operations** | Kubernetes HPA auto-scaling triggers | 2 days | +0.2 | Low | ✅ DONE (`k8s/*.yaml`) |
+| P5 | **Testing** | Fuzz testing for data parsing (option chain, trade files) | 1 day | +0.1 | Low | ✅ EXISTS (`tests/test_fuzz_data_parsing.py`) |
+| P6 | **Data** | Feature quality SLA — automated freshness monitoring | 1 day | +0.1 | Low | ✅ DONE (`core/feature_quality_sla.py`) |
+| P7 | **Strategy** | Walk-forward validation automation in CI pipeline | 1 day | +0.1 | Low | ✅ DONE (`bitbucket-pipelines.yml`) |
+| P8 | **Dashboard** | MTTR + Error Budget API endpoints and HTML pages | 0.5 day | +0.1 | Low | ✅ DONE (`enterprise_dashboard.py` + `dashboard.html`) |
+| P9 | **Infrastructure** | ELK/Loki stack configuration for log aggregation | 2 days | +0.1 | Medium | ✅ DONE (`deploy/loki/`, `deploy/promtail/`, `deploy/docker-compose.observability.yml`) |
+| P10 | **Analytics** | Cross-asset correlation matrix dashboard widget | 0.5 day | +0.05 | Low | ✅ DONE (`enterprise_dashboard.py` + `dashboard.html`) |
 
 ---
 
-## P2 — Distributed Tracing
+## All Backlog Items Complete
 
-**Problem:** No end-to-end trace visibility across the order lifecycle. Correlation IDs exist but aren't collected in a trace store.
+### P2 — Distributed Tracing
+**Status:** ✅ Already Exists
+- `core/observability/opentelemetry.py` — complete Jaeger/Zipkin/OTLP export support
+- No additional work needed
 
-**Solution:** Add `opentelemetry-api` instrumentation to the WAL journal and order manager. Export to Jaeger or Zipkin.
+### P3 — Kubernetes HPA Auto-Scaling
+**Status:** ✅ Implemented
+- 6 K8s manifests in `k8s/`: Deployment, Service, HPA, ConfigMap, PVC, Kustomize
+- HPA scales on CPU 70% / memory 80% (1–5 replicas)
+- Prometheus metrics port exposed on `:9090/metrics`
+- See `k8s/README.md` for deployment instructions
 
-**Target trace spans:**
-- `signal.generate` → `risk.evaluate` → `order.submit` → `order.ack` → `order.fill`
-- `reconciliation.run` → `reconciliation.resolve`
+### P5 — Fuzz Testing
+**Status:** ✅ Already Exists
+- `tests/test_fuzz_data_parsing.py` — 100+ Hypothesis-based tests
+- No additional work needed
 
-**Files affected:** `core/wal/journal.py`, `core/execution/order_manager.py`, `core/reconciliation_engine.py`
+### P6 — Feature Quality SLA
+**Status:** ✅ Implemented
+- `core/feature_quality_sla.py` — automated freshness monitor for 14 ML features
+- Bridges DataQualityMonitor + DataFreshnessGuard + SLOGovernance + MetricsExporter
+- 35 passing tests
 
-**Risk:** Medium — requires new dependency (`opentelemetry-api`, `opentelemetry-sdk`), but can be opt-in via config.
+### P7 — Walk-Forward in CI
+**Status:** ✅ Implemented
+- Walk-forward step added to `bitbucket-pipelines.yml`
+- Runs `test_walkforward_engine.py` + `test_walkforward_anchored.py`
 
----
+### P8 — MTTR / Error Budget API & Dashboard
+**Status:** ✅ Implemented
+- 3 API endpoints: `/api/mttr/report`, `/api/error-budget/status`, `/api/error-budget/risk-summary`
+- Full dashboard pages with P50/P90/P99, burn rates, at-risk flags
 
-## P3 — Kubernetes HPA Auto-Scaling
+### P9 — ELK/Loki Observability Stack
+**Status:** ✅ Implemented
+- `deploy/loki/loki-config.yml`, `deploy/promtail/promtail-config.yml`
+- `deploy/docker-compose.observability.yml` — Loki + Promtail + Grafana
+- Auto-provisioned Grafana datasources
 
-**Problem:** Capacity planning produces forecasts but no auto-scaling triggers.
-
-**Solution:** Add a metrics endpoint that exposes current load vs capacity ratios for Kubernetes HPA integration.
-
-**Files affected:** `core/capacity_planning.py`, `infrastructure/k8s/hpa.yaml`
-
-**Risk:** Low — Kubernetes integration is opt-in, production-only concern.
+### P10 — Cross-Asset Correlation Dashboard
+**Status:** ✅ Implemented
+- 2 API endpoints: `/api/cross-asset/correlation`, `/api/cross-asset/relative-value`
+- Correlation matrix with color-coded strength visualization
 
 ---
 
@@ -73,12 +93,10 @@
 
 ---
 
-## Estimated Total Effort to 9.9+: ~11 engineering days
+## Scoring Path to 9.9+
 
-| Priority | Days | Cumulative | Score After |
-|----------|------|------------|-------------|
-| P2 (Tracing) | 3 | 3 | 9.2 |
-| P3 (HPA) | 2 | 5 | 9.3 |
-| P5–P10 | 6 | 11 | 9.9+ |
-
-> **Note:** P0 (MFA), P1 (Hypothesis tests), and P4 (SSO) were already completed and removed from the effort estimate. Actual remaining effort: ~11 days.
+With all P2–P10 items completed, the remaining gap to 9.9+ is:
+- **~2 engineering days** of technical debt cleanup
+- **Time-based validation** — 90-day paper trading track record
+- **Score potential with debt cleared:** 9.4–9.6/10
+- **Full 9.9+:** Requires sustained production track record

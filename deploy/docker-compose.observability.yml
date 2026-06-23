@@ -1,0 +1,87 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OPB Bot — Observability Stack (Loki + Promtail + Grafana)
+# ─────────────────────────────────────────────────────────────────────────────
+# Provides centralized log aggregation and visualization for the OPB bot.
+#
+# Usage:
+#   docker compose -f deploy/docker-compose.observability.yml up -d
+#   docker compose -f deploy/docker-compose.observability.yml logs -f
+#   docker compose -f deploy/docker-compose.observability.yml down
+#
+# Services:
+#   loki     - Log aggregation (HTTP port 3100)
+#   promtail - Log shipping agent (reads from /data/logs/)
+#   grafana  - Dashboards and visualization (HTTP port 3000, admin/admin)
+#
+# Access Grafana at http://localhost:3000
+#   - Add Loki data source: http://loki:3100
+#   - Import dashboard from deploy/grafana/opb_dashboard.json
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Loki (Log Aggregation) ─────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: opb_loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - opb_loki_data:/data/loki
+    command: -config.file=/etc/loki/loki-config.yml
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--tries=1", "-O-", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Promtail (Log Shipper) ─────────────────────────────────────────────────
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: opb_promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - ../logs:/data/logs:ro           # Shared OPB bot logs
+      - promtail_positions:/data/promtail
+    command: -config.file=/etc/promtail/promtail-config.yml
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  # ── Grafana (Dashboard Visualization) ─────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: opb_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: ""
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - opb_grafana_data:/var/lib/grafana
+      - ../deploy/grafana/opb_dashboard.json:/etc/grafana/provisioning/dashboards/opb_dashboard.json:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--tries=1", "-O-", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  opb_loki_data:
+  opb_promtail_positions:
+  opb_grafana_data:

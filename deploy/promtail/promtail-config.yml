@@ -1,0 +1,86 @@
+# OPB Bot — Promtail Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# Promtail is an agent which ships the contents of local logs to a Loki
+# instance. It discovers log files via file system scraping and attaches
+# labels (job, instance, level) for querying in Grafana.
+# ─────────────────────────────────────────────────────────────────────────────
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: info
+
+positions:
+  filename: /data/promtail/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # ── Main bot logs ──────────────────────────────────────────────────────
+  - job_name: opb-bot
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: opb-bot
+          app: opb
+          __path__: /data/logs/opb_bot.log
+    pipeline_stages:
+      - regex:
+          # Parse structured log lines:
+          # 2024-01-01 12:00:00,000 - module - LEVEL - message
+          expression: "^(?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})\\s+-\\s+(?P<module>\\S+)\\s+-\\s+(?P<level>\\w+)\\s+-\\s+(?P<message>.*)$"
+      - labels:
+          level:
+          module:
+
+  # ── Error logs ─────────────────────────────────────────────────────────
+  - job_name: opb-errors
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: opb-bot
+          app: opb
+          level: ERROR
+          __path__: /data/logs/opb_bot_err.log
+
+  # ── Dashboard logs (optional) ──────────────────────────────────────────
+  - job_name: opb-dashboard
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: opb-dashboard
+          app: opb
+          __path__: /data/logs/dashboard.log
+    pipeline_stages:
+      - regex:
+          expression: "^(?P<level>\\w+)\\s+(?P<message>.*)$"
+      - labels:
+          level:
+
+  # ── Supervisor logs ────────────────────────────────────────────────────
+  - job_name: opb-supervisor
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: opb-supervisor
+          app: opb
+          __path__: /data/logs/supervisord.log
+
+  # ── Audit logs ─────────────────────────────────────────────────────────
+  # Audit logs are written by infrastructure/security/audit_logger.py.
+  # In Docker, the bot runs as user 'opb' so the path is ~opb/.opb/audit.log.
+  # This scrape config is best-effort; audit logs are also replicated to
+  # the structured Python logging pipeline (opb_bot.log) for full coverage.
+  - job_name: opb-audit
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: opb-audit
+          app: opb
+          __path__: /home/opb/.opb/audit.log*
+    pipeline_stages:
+      - regex:
+          expression: '^{"event_id":"(?P<event_id>.*?)","event_type":"(?P<event_type>.*?)","severity":"(?P<severity>.*?)"}'
+      - labels:
+          event_type:
+          severity:
