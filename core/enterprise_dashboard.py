@@ -42,6 +42,20 @@ from core.db_utils import get_connection as _get_db_conn
 
 _log = logging.getLogger(__name__)
 
+# ── Standardized Error Response --------------------------------------------------
+
+
+def _error_response(message: str, code: int, **kwargs: Any) -> dict:
+    """Standardized error response body for all API endpoints.
+
+    Usage:
+        return JSONResponse(_error_response("Not found", 404), status_code=404)
+        return JSONResponse(_error_response("Rate limited", 429, retry_after=60), status_code=429)
+    """
+    resp: dict[str, Any] = {"error": message, "code": code}
+    resp.update(kwargs)
+    return resp
+
 
 # ── Notification Manager ──────────────────────────────────────────────────────
 
@@ -623,7 +637,7 @@ class EnterpriseDashboard:
                 is_admin = path.startswith("/api/config") or path.startswith("/api/system/kill") or path.startswith("/api/system/resume") or path.startswith("/api/system/self-test") or path.startswith("/api/system/diagnostics")
                 limit = ADMIN_RATE_LIMIT if is_admin else API_RATE_LIMIT
                 if not _check_rate_limit(ip, limit):
-                    return JSONResponse({"error": "Rate limit exceeded", "retry_after": 60}, status_code=429)
+                    return JSONResponse(_error_response("Rate limit exceeded", 429, retry_after=60), status_code=429)
             response = await call_next(request)
             return response
 
@@ -661,7 +675,7 @@ class EnterpriseDashboard:
             nonce = getattr(request.state, 'nonce', '')
             _log.warning("[DASH] Forbidden: %s", exc)
             if "application/json" in request.headers.get("accept", ""):
-                return JSONResponse({"error": "Forbidden", "code": 403}, status_code=403)
+                return JSONResponse(_error_response("Forbidden", 403), status_code=403)
             return self._templates.TemplateResponse(
                 request=request,
                 name="error.html",
@@ -673,7 +687,7 @@ class EnterpriseDashboard:
         async def not_found(request: Request, exc: Any):
             nonce = getattr(request.state, 'nonce', '')
             if "application/json" in request.headers.get("accept", ""):
-                return JSONResponse({"error": "Not found", "code": 404}, status_code=404)
+                return JSONResponse(_error_response("Not found", 404), status_code=404)
             return self._templates.TemplateResponse(
                 request=request,
                 name="error.html",
@@ -686,7 +700,7 @@ class EnterpriseDashboard:
             nonce = getattr(request.state, 'nonce', '')
             _log.exception("[DASH] Unhandled error: %s", exc)
             if "application/json" in request.headers.get("accept", ""):
-                return JSONResponse({"error": "Internal server error", "code": 500}, status_code=500)
+                return JSONResponse(_error_response("Internal server error", 500), status_code=500)
             return self._templates.TemplateResponse(
                 request=request,
                 name="error.html",

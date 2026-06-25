@@ -1579,6 +1579,9 @@
     "attribution_days": {
       "type": "integer"
     },
+    "auth_db_path": {
+      "type": "string"
+    },
     "benchmark_cache_hours": {
       "type": "integer"
     },
@@ -2678,6 +2681,9 @@
     },
     "trade_replayer_frames_to_show": {
       "type": "integer"
+    },
+    "trades_db": {
+      "type": "string"
     },
     "transition_adx_look_bars": {
       "type": "integer"
