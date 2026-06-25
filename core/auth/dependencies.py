@@ -171,3 +171,9 @@ def get_client_ip(request: Request) -> str:
     if request.client:
         return request.client.host or ""
     return ""
+
+
+__all__ = [
+    "AuthDependencies",
+    "get_client_ip",
+]

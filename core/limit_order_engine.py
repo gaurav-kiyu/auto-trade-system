@@ -142,3 +142,11 @@ def simulate_paper_fill(
         filled=False, fill_price=0.0, limit_price=limit_price,
         elapsed_secs=elapsed_secs, timed_out=False, slippage_vs_limit=0.0,
     )
+
+
+__all__ = [
+    "LimitOrderResult",
+    "compute_limit_price",
+    "simulate_paper_fill",
+]
+

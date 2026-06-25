@@ -378,3 +378,9 @@ class PostgreSQLDatabaseAdapter(DatabasePort):
                 "Database connection was closed. Call .connect() to re-establish."
             )
         return self._conn
+
+
+__all__ = [
+    "PostgreSQLDatabaseAdapter",
+]
+

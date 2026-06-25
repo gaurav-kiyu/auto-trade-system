@@ -45,3 +45,9 @@ class PositionSizingManager:
             ratio = (volatility - self.config.vix_threshold_low) / (self.config.vix_threshold_high - self.config.vix_threshold_low)
             ratio = max(0, min(1, ratio))
             return self.config.vix_size_multiplier_low + (ratio * (self.config.vix_size_multiplier_high - self.config.vix_size_multiplier_low))
+
+
+__all__ = [
+    "PositionSizingManager",
+]
+

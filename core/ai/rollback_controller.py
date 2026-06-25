@@ -122,3 +122,10 @@ class RollbackController:
             self._accuracy_threshold = float(kwargs["accuracy_threshold"])
         if "rolling_window_minutes" in kwargs:
             self._rolling_window_minutes = int(kwargs["rolling_window_minutes"])
+
+
+__all__ = [
+    "RollbackController",
+    "RollbackEvent",
+]
+

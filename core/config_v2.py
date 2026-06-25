@@ -5,6 +5,14 @@ from typing import Any
 
 
 # Basic dotenv loader to avoid external dependencies
+
+
+__all__ = [
+    "get_legacy_flat_config",
+    "load_config_v2",
+    "load_dotenv",
+]
+
 def load_dotenv(env_path: str | Path | None = None) -> None:
     path = Path(env_path) if env_path is not None else Path(__file__).resolve().parent.parent / ".env"
     if not path.exists():

@@ -32,6 +32,11 @@ from core.ports.strategy import StrategyDecision, StrategyPort
 _log = logging.getLogger(__name__)
 
 
+__all__ = [
+    "StrategyOrchestrator",
+]
+
+
 class StrategyOrchestrator(StrategyPort):
     """
     Single authoritative strategy orchestrator.

@@ -18,6 +18,15 @@ tier-specific risk/execution parameters from TierRules.
 
 from __future__ import annotations
 
+__all__ = [
+    "AdaptiveSignal",
+    "SignalConfidenceBand",
+    "TimeframeAgreement",
+    "evaluate_adaptive_signal",
+    "compute_confidence_band",
+    "compute_timeframe_agreement",
+]
+
 import datetime
 import logging
 import sqlite3

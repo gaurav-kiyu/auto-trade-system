@@ -6,6 +6,10 @@ from core.market_calc import calc_adx
 from core.utils_numeric import safe_float
 
 
+__all__ = [
+    "FeatureEngine",
+]
+
 class FeatureEngine:
     """
     Extracts structured features from raw OHLCV data.

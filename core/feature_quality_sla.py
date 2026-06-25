@@ -627,3 +627,17 @@ def _cli() -> None:
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "DEFAULT_FEATURE_SLAS",
+    "FeatureQualitySLA",
+    "FeatureSLAConfig",
+    "FeatureSLAReport",
+    "FeatureSLAStatus",
+    "QUALITY_WEIGHT_AGE",
+    "QUALITY_WEIGHT_ANOMALY",
+    "get_feature_quality_sla",
+    "start_feature_sla_poller",
+]
+

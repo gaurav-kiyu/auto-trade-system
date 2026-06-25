@@ -70,3 +70,10 @@ class SessionState:
 
         if self.total_trades < 0:
             raise ValueError(f"Total trades cannot be negative, got {self.total_trades}")
+
+
+__all__ = [
+    "SessionState",
+    "TradingState",
+]
+

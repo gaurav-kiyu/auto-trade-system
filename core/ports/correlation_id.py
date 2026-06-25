@@ -54,3 +54,9 @@ class CorrelationIdPort(ABC):
         Reset the correlation ID to None/empty.
         """
         pass
+
+
+__all__ = [
+    "CorrelationIdPort",
+]
+

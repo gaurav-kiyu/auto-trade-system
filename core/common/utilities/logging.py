@@ -274,3 +274,20 @@ def with_context(**kwargs) -> LogContextManager:
         A context manager that adds the specified fields to the log context
     """
     return structured_logger.contextualize(**kwargs)
+
+
+__all__ = [
+    "LogContext",
+    "LogContextManager",
+    "StructuredLogger",
+    "get_logger",
+    "log_critical",
+    "log_debug",
+    "log_error",
+    "log_exception",
+    "log_info",
+    "log_warning",
+    "structured_logger",
+    "with_context",
+]
+

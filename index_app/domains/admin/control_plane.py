@@ -9,6 +9,11 @@ import logging
 import threading
 from typing import Any, Callable
 
+
+__all__ = [
+    "init_admin_control_plane",
+]
+
 _log = logging.getLogger(__name__)
 
 

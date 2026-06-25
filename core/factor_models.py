@@ -932,3 +932,18 @@ def _cli() -> None:
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "BaseFactorModel",
+    "Carhart4Factor",
+    "FactorResult",
+    "FactorReturn",
+    "FamaFrench3Factor",
+    "PortfolioAttribution",
+    "RiskAttribution",
+    "compute_factor_attribution",
+    "compute_portfolio_attribution",
+    "compute_risk_attribution",
+]
+

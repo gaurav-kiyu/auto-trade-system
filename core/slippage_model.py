@@ -162,3 +162,12 @@ def format_slippage_summary(model: SlippageModel | None) -> str:
         f"intercept={model.intercept:.4f} lot={model.lot_coeff:.4f} "
         f"spread={model.spread_coeff:.4f} @ {model.calibrated_at}"
     )
+
+
+__all__ = [
+    "SlippageModel",
+    "calibrate_model",
+    "format_slippage_summary",
+    "predict_slippage",
+]
+

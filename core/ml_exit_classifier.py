@@ -6,6 +6,11 @@ import joblib
 import numpy as np
 
 
+__all__ = [
+    "ExitPrediction",
+    "MLExitClassifier",
+]
+
 @dataclass
 class ExitPrediction:
     exit_probability: float

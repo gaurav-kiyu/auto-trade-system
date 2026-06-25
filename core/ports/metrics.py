@@ -65,3 +65,9 @@ class MetricsPort(ABC):
             tags: Optional tags for dimensional metrics
         """
         pass
+
+
+__all__ = [
+    "MetricsPort",
+]
+

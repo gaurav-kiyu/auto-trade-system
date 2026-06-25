@@ -120,3 +120,11 @@ class ConfigValidator:
             self._error("AUDIT_LOG_FILE", "must be set when audit logging is enabled")
 
         return ConfigValidationResult(errors=list(self._errors), warnings=list(self._warnings))
+
+
+__all__ = [
+    "ConfigIssue",
+    "ConfigValidationResult",
+    "ConfigValidator",
+]
+

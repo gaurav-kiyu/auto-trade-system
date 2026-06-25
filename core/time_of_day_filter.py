@@ -61,3 +61,11 @@ def create_time_of_day_filter(config: dict) -> TimeOfDayFilter:
         allow_trending_only=config.get("TIME_OF_DAY_ALLOW_TRENDING_ONLY", True),
     )
     return TimeOfDayFilter(cfg)
+
+
+__all__ = [
+    "TimeOfDayConfig",
+    "TimeOfDayFilter",
+    "create_time_of_day_filter",
+]
+

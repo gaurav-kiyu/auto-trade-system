@@ -103,3 +103,9 @@ class ConfigPort(ABC):
             Dictionary containing configuration with secrets replaced by '[REDACTED]'
         """
         pass
+
+
+__all__ = [
+    "ConfigPort",
+]
+

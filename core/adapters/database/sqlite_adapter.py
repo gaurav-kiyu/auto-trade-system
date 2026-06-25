@@ -224,3 +224,9 @@ class SQLiteDatabaseAdapter(DatabasePort):
                 f"Database not connected: {self._db_path}. Call .connect() first."
             )
         return self._conn
+
+
+__all__ = [
+    "SQLiteDatabaseAdapter",
+]
+

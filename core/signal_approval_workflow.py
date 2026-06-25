@@ -388,3 +388,22 @@ def build_workflow(cfg: dict[str, Any], queue=None) -> SignalApprovalWorkflow:
     except Exception as exc:
         _log.error("[WORKFLOW] Init failed: %s", exc)
         return SignalApprovalWorkflow({"manual_signal_workflow_mode": SIGNALS_ONLY}, None)
+
+
+__all__ = [
+    "AUTO_WITH_OVERRIDE",
+    "EXECUTE",
+    "FULLY_AUTO",
+    "FULL_MANUAL",
+    "MANUAL_PRIORITY",
+    "NOTIFY_ONLY",
+    "QUEUE",
+    "SIGNALS_ONLY",
+    "SIG_AUTO",
+    "SIG_MANUAL",
+    "SKIP",
+    "SignalApprovalWorkflow",
+    "SignalDecision",
+    "build_workflow",
+]
+

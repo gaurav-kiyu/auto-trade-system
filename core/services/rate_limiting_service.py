@@ -13,9 +13,15 @@ from __future__ import annotations
 import threading
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
+
+__all__ = [
+    "RateLimitingService",
+    "rate_limit",
+]
 
 from core.logging import LoggingService
 from core.ports.rate_limiting.rate_limit_port import LimitResult, RateLimitConfig, RateLimitPort, RateLimitStatus

@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 
+__all__ = [
+    "load_defaults_file",
+]
+
 def load_defaults_file(project_root: Path, filename: str) -> dict[str, Any]:
     """
     Load ``filename`` from ``project_root`` (typically the repository root).

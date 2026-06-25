@@ -356,3 +356,16 @@ def check_ai_action(
     """Quick check helper for AI actions."""
     gate = get_safety_gate()
     return gate.check_action(action_type, params, source)
+
+
+__all__ = [
+    "AISafetyGate",
+    "AISafetyVerdict",
+    "ALLOWED_ACTIONS",
+    "FORBIDDEN_ACTIONS",
+    "PROTECTED_RISK_KEYS",
+    "check_ai_action",
+    "get_safety_gate",
+    "log",
+]
+

@@ -223,3 +223,11 @@ def run_startup_checklist(
         items=tuple(items),
         failed_count=sum(1 for i in items if not i.passed),
     )
+
+
+__all__ = [
+    "StartupCheckItem",
+    "StartupCheckResult",
+    "run_startup_checklist",
+]
+

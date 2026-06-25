@@ -84,3 +84,11 @@ class CSRFProtection:
 
 
 csrf_protection = CSRFProtection()
+
+
+__all__ = [
+    "CSRF_COOKIE_NAME",
+    "CSRF_HEADER_NAME",
+    "CSRFProtection",
+    "csrf_protection",
+]

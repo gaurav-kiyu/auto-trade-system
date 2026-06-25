@@ -129,3 +129,16 @@ _REGIME_THRESHOLD_ADJ: dict[str, int] = {
 def adaptive_threshold(base: int, regime: str) -> int:
     """Return the effective minimum score for entry, adjusted by market regime."""
     return base + _REGIME_THRESHOLD_ADJ.get(regime, 0)
+
+
+__all__ = [
+    "TIER_MODERATE_MIN",
+    "TIER_RULES",
+    "TIER_STRONG_MIN",
+    "TIER_WEAK_MIN",
+    "TierRules",
+    "adaptive_threshold",
+    "classify_tier",
+    "get_tier_rules",
+]
+

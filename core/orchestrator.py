@@ -7,6 +7,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+
+__all__ = [
+    "Orchestrator",
+    "OrchestratorCycle",
+    "OrchestratorSignal",
+]
+
 _log = logging.getLogger(__name__)
 
 # ── DEPRECATED MODULE (REMOVAL TARGET v3.1) ────────────────────────

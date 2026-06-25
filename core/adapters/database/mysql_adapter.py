@@ -321,8 +321,8 @@ class MySQLDatabaseAdapter(DatabasePort):
             row = self.fetchone("SELECT VERSION() as version")
             if row:
                 return row[0]
-        except Exception:
-            pass
+        except Exception as _ver_exc:
+            _log.debug("[MYSQL_DB] Version fetch skipped: %s", _ver_exc)
         return None
 
     def stats(self) -> DatabaseStats:
@@ -350,3 +350,9 @@ class MySQLDatabaseAdapter(DatabasePort):
                 "Database connection was closed. Call .connect() to re-establish."
             )
         return self._conn
+
+
+__all__ = [
+    "MySQLDatabaseAdapter",
+]
+

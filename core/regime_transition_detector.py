@@ -182,3 +182,12 @@ def get_transition_score_adj(
     if not c.get("regime_transition_enabled", False) or signal is None:
         return 0
     return signal.score_bonus
+
+
+__all__ = [
+    "TransitionSignal",
+    "detect_transition",
+    "get_transition_score_adj",
+    "reset_vix_history",
+]
+

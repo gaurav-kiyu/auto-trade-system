@@ -49,6 +49,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+
+__all__ = [
+    "CostGovernance",
+    "CostReport",
+    "TradeCostBreakdown",
+]
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB = "trades.db"
@@ -238,8 +245,8 @@ class CostGovernance:
                     try:
                         conn.execute("SELECT mode FROM trades LIMIT 0")
                         has_mode = True
-                    except Exception:
-                        pass
+                    except Exception as _mode_exc:
+                        _log.debug("[FINOPS] No 'mode' column in trades DB: %s", _mode_exc)
 
                     if has_mode:
                         rows = conn.execute(

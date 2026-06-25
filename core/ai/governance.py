@@ -182,3 +182,10 @@ class AIGovernanceBoard:
         """Get recent governance actions."""
         with self._lock:
             return list(self._audit_log[-limit:])
+
+
+__all__ = [
+    "AIGovernanceBoard",
+    "AIGovernanceError",
+]
+

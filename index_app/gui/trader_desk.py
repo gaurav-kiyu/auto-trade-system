@@ -5,6 +5,10 @@ import textwrap
 from pathlib import Path
 
 
+__all__ = [
+    "run_trader_desk_gui",
+]
+
 def run_trader_desk_gui() -> None:
     import index_app.index_trader as mod
 

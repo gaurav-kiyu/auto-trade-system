@@ -429,3 +429,18 @@ def format_spread_summary(results: list[SpreadResult]) -> str:
         f"  Best:      ₹{m['max_profit']:+,.2f}   Worst: ₹{m['max_loss']:+,.2f}",
     ]
     return "\n".join(lines)
+
+
+__all__ = [
+    "SpreadExitDecision",
+    "SpreadLeg",
+    "SpreadPosition",
+    "SpreadResult",
+    "build_spread",
+    "compute_spread_metrics",
+    "evaluate_spread_exit",
+    "format_spread_summary",
+    "mark_to_market",
+    "paper_fill_spread",
+]
+

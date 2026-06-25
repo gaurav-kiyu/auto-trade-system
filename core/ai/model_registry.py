@@ -17,6 +17,11 @@ from typing import Any
 from core.db_utils import create_database_port
 from core.ports.database import DatabasePort
 
+__all__ = [
+    "ModelRecord",
+    "ModelRegistry",
+]
+
 _log = logging.getLogger(__name__)
 
 # Whitelist of allowed column names for dynamic SQL updates

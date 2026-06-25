@@ -206,3 +206,10 @@ class DatabasePort(ABC):
     def __exit__(self, *args: Any) -> None:
         """Context manager exit — auto-disconnect."""
         self.disconnect()
+
+
+__all__ = [
+    "DatabasePort",
+    "DatabaseStats",
+]
+

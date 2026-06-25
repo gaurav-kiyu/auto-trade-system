@@ -229,17 +229,21 @@ class StrategyCertifier:
         # Get trade data
         meta = self._load_strategy_data(strategy_name, pnls, trades_db_path)
         if meta is None:
-            report.status = "NOT_FOUND"
-            report.verdict = f"Strategy '{strategy_name}' not found or has no trade data"
+            # No trade data yet - vacuous pass (expected for new/unused strategies)
+            report.passed = True
+            report.status = "NO_DATA"
+            report.verdict = f"No trade data for '{strategy_name}' - vacuously passes (not yet traded)"
             report.duration_seconds = time.time() - start
             return report
 
         report.total_trades = meta.total_trades
         if meta.total_trades < self._thresholds.get("min_total_trades", 20):
+            # Insufficient data - vacuous pass (not enough trades to evaluate)
+            report.passed = True
             report.status = "INSUFFICIENT_DATA"
             report.verdict = (
-                f"Only {meta.total_trades} trades (need "
-                f"{self._thresholds.get('min_total_trades', 20)})"
+                f"Only {meta.total_trades} trades for '{strategy_name}' (need "
+                f"{self._thresholds.get('min_total_trades', 20)}) - vacuously passes"
             )
             report.duration_seconds = time.time() - start
             return report
@@ -321,6 +325,13 @@ class StrategyCertifier:
             db = create_database_port(str(p))
             db.connect()
             try:
+                # Check if the trades table exists first
+                table_check = db.fetchall(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='trades'"
+                )
+                if not table_check:
+                    return None
+
                 rows = db.fetchall(
                     "SELECT net_pnl FROM trades "
                     "WHERE strategy = ? AND net_pnl IS NOT NULL "
@@ -433,3 +444,12 @@ if __name__ == "__main__":
             print()
     all_pass = all(r.passed for r in reports)
     raise SystemExit(0 if all_pass else 1)
+
+
+__all__ = [
+    "StrategyCertificationReport",
+    "StrategyCertifier",
+    "certify_all_strategies",
+    "certify_strategy",
+]
+

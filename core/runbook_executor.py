@@ -579,3 +579,13 @@ if __name__ == "__main__":
         print(f"Runbook Executor — {len(executor.get_all_runbooks())} runbooks discovered")
         print(f"  {len(executor.get_failure_mapping())} failure pattern mappings")
         print("Use --list to see all, --show <name> to inspect, --failure <pattern> to map")
+
+
+__all__ = [
+    "Runbook",
+    "RunbookExecutionResult",
+    "RunbookExecutor",
+    "RunbookStep",
+    "get_runbook_executor",
+]
+

@@ -1079,3 +1079,13 @@ def maybe_start_control_plane(
     t.start()
     _log.info("[CTRL] Admin control plane started at http://%s:%d", host, port)
     return t
+
+
+__all__ = [
+    "AuditStore",
+    "ControlAction",
+    "ControlPlaneServer",
+    "create_control_plane_app",
+    "maybe_start_control_plane",
+]
+

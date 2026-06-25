@@ -148,3 +148,11 @@ class RiskPortAdapter:
     def health_check(self) -> dict[str, Any]:
         """Forward to RiskService.health_check()."""
         return self._risk_service.health_check()
+
+
+__all__ = [
+    "RiskConfig",
+    "RiskDecision",
+    "RiskPortAdapter",
+]
+

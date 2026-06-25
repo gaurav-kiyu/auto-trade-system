@@ -168,3 +168,11 @@ def get_idempotency_alert_manager(
     if _alert_manager is None:
         _alert_manager = IdempotencyAlertManager(freeze_on_critical, alert_callback)
     return _alert_manager
+
+
+__all__ = [
+    "DegradationMode",
+    "IdempotencyAlert",
+    "IdempotencyAlertManager",
+    "get_idempotency_alert_manager",
+]

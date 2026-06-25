@@ -21,6 +21,13 @@ from typing import Any
 
 from core.time_provider import time_provider
 
+__all__ = [
+    "FeatureDefinition",
+    "FeatureStore",
+    "FeatureVector",
+    "get_feature_store",
+]
+
 _log = logging.getLogger(__name__)
 
 

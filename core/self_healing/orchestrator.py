@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 import threading
 import time
 from dataclasses import dataclass, field
@@ -589,8 +590,8 @@ class SelfHealingOrchestrator:
                         conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
                         conn.close()
                         reconnected += 1
-                    except Exception:
-                        pass
+                    except (sqlite3.OperationalError, OSError, ValueError) as _wal_exc:
+                        _log.debug("[SELF-HEALING] WAL checkpoint skip %s: %s", db_name, _wal_exc)
             if reconnected > 0:
                 return {"status": "SUCCESS", "message": f"Database checkpoint completed on {reconnected} DB(s)"}
             return {"status": "SKIPPED", "message": "No databases to reconnect"}
@@ -656,7 +657,7 @@ class SelfHealingOrchestrator:
                     shutil.rmtree(stale_dir)
                     freed_mb += size / (1024 * 1024)
                     cleaned.append(f"rm {stale_dir.name} ({size/1024/1024:.1f}MB)")
-        except Exception as exc:
+        except (OSError, PermissionError, RuntimeError) as exc:
             errors.append(f"backup cleanup: {exc}")
 
         # 2. Clean temp files (*.tmp, *.pyc artifacts)
@@ -668,9 +669,9 @@ class SelfHealingOrchestrator:
                         tmp_file.unlink()
                         freed_mb += sz / (1024 * 1024)
                         cleaned.append(f"rm {tmp_file.name}")
-                    except (OSError, PermissionError):
-                        pass
-        except Exception as exc:
+                    except (OSError, PermissionError) as _tmp_exc:
+                        _log.debug("[SELF-HEALING] Temp file skip: %s - %s", tmp_file.name, _tmp_exc)
+        except (OSError, PermissionError, RuntimeError) as exc:
             errors.append(f"temp cleanup: {exc}")
 
         # 3. Rotate large log files (>100MB), keep last 3
@@ -687,7 +688,7 @@ class SelfHealingOrchestrator:
                             freed_mb += sz / (1024 * 1024)
                             cleaned.append(f"rotated {old_path.name}")
                         log_file.rename(old_path)
-        except Exception as exc:
+        except (OSError, PermissionError, RuntimeError) as exc:
             errors.append(f"log rotation: {exc}")
 
         # 4. Remove stale pytest caches
@@ -700,8 +701,8 @@ class SelfHealingOrchestrator:
                     shutil.rmtree(d)
                     freed_mb += sz / (1024 * 1024)
                     cleaned.append(f"rm {cache_dir}")
-            except Exception:
-                pass
+            except (OSError, PermissionError, FileNotFoundError) as _cache_exc:
+                _log.debug("[SELF-HEALING] Cache dir cleanup skip: %s - %s", cache_dir, _cache_exc)
 
         _log.info("[SELF-HEALING] Disk cleanup freed ~%.1f MB: %s", freed_mb, ", ".join(cleaned[:10]))
         if errors:
@@ -799,9 +800,9 @@ class SelfHealingOrchestrator:
                                 conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
                                 conn.close()
                                 cleared.append(f"checkpointed {db_path.name}")
-                            except Exception:
-                                pass
-                except (OSError, PermissionError) as exc:
+                            except (sqlite3.OperationalError, OSError, ValueError) as _stale_exc:
+                                _log.debug("[SELF-HEALING] Stale lock checkpoint skip %s: %s", db_path.name, _stale_exc)
+                except (OSError, PermissionError, RuntimeError) as exc:
                     errors.append(f"{lock_file.name}: {exc}")
 
         if cleared:
@@ -1044,3 +1045,15 @@ if __name__ == "__main__":
         print(f"  Monitor Running: {status['monitor_running']}")
         print(f"  Patterns: {status['patterns_registered']}")
         print(f"  Cooldown Active: {status['cooldown_active_actions']}")
+
+
+__all__ = [
+    "FailurePattern",
+    "HealingAction",
+    "HealingCycleResult",
+    "HealthStatus",
+    "RecoveryAction",
+    "SelfHealingOrchestrator",
+    "get_orchestrator",
+]
+

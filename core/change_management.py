@@ -738,3 +738,16 @@ def _cli() -> None:
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "ChangeAuditEntry",
+    "ChangeManager",
+    "ChangeProposal",
+    "ChangeRisk",
+    "ChangeStatus",
+    "ChangeType",
+    "get_change_manager",
+    "propose_change",
+]
+

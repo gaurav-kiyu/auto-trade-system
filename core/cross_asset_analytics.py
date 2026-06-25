@@ -553,3 +553,13 @@ if __name__ == "__main__":
     else:
         print("Cross Asset Analytics CLI")
         print("Run with --demo for a demonstration")
+
+
+__all__ = [
+    "CrossAssetAnalytics",
+    "CrossAssetCorrelation",
+    "FlightToSafetyResult",
+    "RelativeValueResult",
+    "compute_cross_asset_correlation",
+]
+

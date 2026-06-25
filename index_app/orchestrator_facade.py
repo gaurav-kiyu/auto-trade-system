@@ -15,6 +15,11 @@ import os
 from typing import Any
 
 
+__all__ = [
+    "build_clean_trading_orchestrator",
+    "build_index_orchestrator",
+]
+
 def build_index_orchestrator():
     """Return an :class:`~core.Orchestrator` after engines exist (post-``_init_runtime_engines()``)."""
     from core import Orchestrator, ReconciliationEngine
@@ -78,7 +83,7 @@ def build_index_orchestrator():
         data_engine=m.DATA_ENGINE,
         strategy_engine=m.STRATEGY_ENGINE,
         risk_engine=risk_adapter,
-        execution_service=_exec_service
+        execution_service=_exec_service,
         state_manager=m.STATE_MANAGER,
         reconciliation_engine=recon,
         local_positions_fn=m._local_positions_snapshot,

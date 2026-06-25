@@ -338,3 +338,12 @@ def enrich_signal_with_policy(
         "exec_tp_mult":     decision.tp_mult,
         "exec_reasons":     decision.reasons,
     }
+
+
+__all__ = [
+    "ExecutionDecision",
+    "ExecutionPolicy",
+    "enrich_signal_with_policy",
+    "log",
+]
+

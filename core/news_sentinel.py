@@ -238,3 +238,16 @@ class NewsSentinel:
         except (URLError, ET.ParseError, Exception) as exc:
             _log.debug("[NEWS] RSS fetch error %s: %s", url, exc)
             return []
+
+
+__all__ = [
+    "BEARISH_KEYWORDS",
+    "BULLISH_KEYWORDS",
+    "ELEVATED_KEYWORDS",
+    "EXTREME_KEYWORDS",
+    "HIGH_KEYWORDS",
+    "NewsRiskAssessment",
+    "NewsSentinel",
+    "RSS_SOURCES",
+]
+

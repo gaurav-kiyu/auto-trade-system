@@ -166,3 +166,10 @@ def compute_kelly_lots(
         n_trades   = n,
         used_fallback = False,
     )
+
+
+__all__ = [
+    "KellyResult",
+    "compute_kelly_lots",
+]
+

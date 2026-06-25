@@ -178,3 +178,12 @@ if __name__ == "__main__":
         print("[pnl_attribution] no trades found in the last", args.days, "days")
         sys.exit(0)
     print(format_attribution_table(results, f"P&L Attribution - last {args.days} days"))
+
+
+__all__ = [
+    "AttributionResult",
+    "DIMENSIONS",
+    "compute_pnl_attribution",
+    "format_attribution_table",
+]
+

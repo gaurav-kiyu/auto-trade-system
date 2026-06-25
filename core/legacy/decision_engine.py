@@ -103,3 +103,10 @@ class DecisionEngine:
             "reasons":        score_data.get("reasons", []),
             "regime":         score_data.get("mkt_regime") or score_data.get("regime", "NEUTRAL"),
         }
+
+
+__all__ = [
+    "DecisionEngine",
+    "log",
+]
+

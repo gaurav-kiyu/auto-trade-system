@@ -538,3 +538,16 @@ def format_drift_report(results: dict[str, DriftResult]) -> str:
             f"ref={r.ref_n}  recent={r.recent_n}"
         )
     return "\n".join(lines)
+
+
+__all__ = [
+    "DriftMonitor",
+    "DriftResult",
+    "DriftSLAReport",
+    "compute_ks",
+    "compute_psi",
+    "detect_all_features",
+    "detect_drift",
+    "format_drift_report",
+]
+

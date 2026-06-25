@@ -615,3 +615,8 @@ async def _get_token_from_state(request: Request) -> Any:
     if token is None:
         raise HTTPException(status_code=401, detail="No active session")
     return token
+
+
+__all__ = [
+    "create_auth_router",
+]

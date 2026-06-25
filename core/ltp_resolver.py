@@ -161,3 +161,9 @@ class LtpResolver:
             "yf_cache_size": len(self._yf_cache),
             "yf_cache_age_s": time.time() - self._yf_cache_ts if self._yf_cache_ts else -1,
         }
+
+
+__all__ = [
+    "LtpResolver",
+]
+

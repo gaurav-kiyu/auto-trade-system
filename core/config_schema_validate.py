@@ -8,6 +8,11 @@ from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Any, Literal
 
+
+__all__ = [
+    "append_json_schema_errors",
+]
+
 _FLAVOUR = Literal["index", "stock"]
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _SCHEMA_NAMES = {"index": "index_config.schema.json", "stock": "stock_config.schema.json"}

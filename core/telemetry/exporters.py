@@ -103,3 +103,11 @@ def start_prometheus_exporter(
     t.start()
     _log.info(f"Prometheus exporter thread started on {host}:{port}")
     return t
+
+
+__all__ = [
+    "JSONLogExporter",
+    "PrometheusExporter",
+    "start_prometheus_exporter",
+]
+

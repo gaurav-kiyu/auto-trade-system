@@ -254,3 +254,13 @@ class MetricsAdapter:
 
     def record_histogram(self, name: str, value: float, tags: dict | None = None) -> None:
         update_metrics({f"{name}_hist": value})
+
+
+__all__ = [
+    "MetricsAdapter",
+    "get_metrics_text",
+    "start_metrics_server",
+    "update_hardening_metrics",
+    "update_metrics",
+]
+

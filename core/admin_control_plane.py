@@ -79,3 +79,10 @@ def start_admin_control_plane(
 
 
 # Re-export shared state from the new package
+
+
+__all__ = [
+    "create_admin_app",
+    "start_admin_control_plane",
+]
+

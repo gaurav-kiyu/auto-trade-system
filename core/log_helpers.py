@@ -5,6 +5,13 @@ import time
 from typing import Any
 
 
+__all__ = [
+    "JsonFormatter",
+    "cleanup_old_prefixed_logs",
+    "log_structured_event",
+    "setup_structured_logger",
+]
+
 def cleanup_old_prefixed_logs(
     logs_dir: str,
     filename_prefix: str,

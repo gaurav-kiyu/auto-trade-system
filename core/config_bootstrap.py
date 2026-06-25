@@ -5,6 +5,33 @@ Updated to use SecureConfig for enhanced security.
 
 from __future__ import annotations
 
+__all__ = [
+    "CRITICAL_CONFIG_KEYS",
+    "HIGH_RISK_CONFIG_KEYS",
+    "CONFIG_B64_SECRET_KEYS_STOCK",
+    "CONFIG_B64_SECRET_KEYS_INDEX",
+    "CONFIG_DEFAULTS_PATH_INDEX",
+    "ConfigChange",
+    "classify_change_risk",
+    "diff_configs",
+    "write_config_changes_jsonl",
+    "read_recent_config_changes",
+    "get_effective_config",
+    "initialize_secure_config",
+    "get_secure_config",
+    "get_config_value",
+    "get_config_secret",
+    "get_config_bool",
+    "get_config_int",
+    "get_config_float",
+    "get_config_list",
+    "get_config_dict",
+    "apply_env_overrides",
+    "merge_bot_config",
+    "decode_secret_keys",
+    "coerce_config_values_to_defaults_types",
+]
+
 import json
 import logging
 import os

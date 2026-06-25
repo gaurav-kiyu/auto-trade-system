@@ -180,3 +180,13 @@ def update_learning_after_exit(state: dict[str, Any], tag: str) -> None:
         state["score_adj"] = min(10, int(state.get("score_adj", 0)) + 3)
         state["confidence"] = max(-5, int(state.get("confidence", 0)) - 1)
     clamp_learning_state(state)
+
+
+__all__ = [
+    "adaptive_threshold_adjustment",
+    "clamp_learning_state",
+    "live_signal_confidence",
+    "recent_trade_learning_snapshot",
+    "update_learning_after_exit",
+]
+

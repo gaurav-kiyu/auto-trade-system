@@ -20,6 +20,15 @@ from __future__ import annotations
 from typing import Any
 
 # Lazy import - resolved inside _ensure_initialized to break circular dependency
+
+
+__all__ = [
+    "generate_signal_snapshot",
+    "get_state_snapshot",
+    "health_check",
+    "start_trader",
+]
+
 _container = None
 _setup_di_container = None
 

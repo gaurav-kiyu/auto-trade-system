@@ -3,6 +3,11 @@ from dataclasses import dataclass
 from typing import Any
 
 
+__all__ = [
+    "CognitiveSentimentEngine",
+    "SentimentAnalysis",
+]
+
 @dataclass
 class SentimentAnalysis:
     score: float        # -1.0 (Bearish) to 1.0 (Bullish)

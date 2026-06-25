@@ -140,3 +140,9 @@ class ControlRBAC:
     def load_from_config(self, cfg: dict[str, Any]) -> None:
         """Load RBAC configuration from config dict."""
         self._role_manager.load_from_config(cfg)
+
+
+__all__ = [
+    "ControlRBAC",
+]
+

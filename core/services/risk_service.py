@@ -12,6 +12,16 @@ Implements a comprehensive risk management service that handles:
 from __future__ import annotations
 
 import threading
+
+__all__ = [
+    "RiskServiceConfig",
+    "RiskService",
+    "PositionSizer",
+    "PositionSpec",
+    "CapitalManager",
+    "CapitalState",
+    "ScaleResult",
+]
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass

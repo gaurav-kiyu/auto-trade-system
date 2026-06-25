@@ -94,6 +94,19 @@ class MomentumStrategy(BaseStrategy):
         return {"score": 0, "status": False, "reason": "MACD Neutral/Contradictory"}
 
 
+__all__ = [
+    "BaseStrategy",
+    "TrendAlignmentStrategy",
+    "MeanReversionStrategy",
+    "VWAPStrategy",
+    "VolumeStrategy",
+    "ATRStrategy",
+    "MomentumStrategy",
+    "RSIStrategy",
+    "SmartMoneyStrategy",
+]
+
+
 class RSIStrategy(BaseStrategy):
     def evaluate(self, features: dict[str, Any], direction: str) -> dict[str, Any]:
         rsi = features.get("rsi", 50.0)

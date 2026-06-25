@@ -372,3 +372,11 @@ def reset_mandate_service() -> None:
     global _mandate_service_instance
     with _mandate_service_lock:
         _mandate_service_instance = None
+
+
+__all__ = [
+    "MandateService",
+    "get_mandate_service",
+    "reset_mandate_service",
+]
+

@@ -1120,3 +1120,20 @@ class AuthHandler:
             "failed_logins_24h": failed_logins,
             "token_ttl_seconds": self._token_ttl,
         }
+
+
+__all__ = [
+    "TOKEN_TTL_SECONDS",
+    "SESSION_COOKIE_NAME",
+    "CSRF_COOKIE_NAME",
+    "CSRF_HEADER_NAME",
+    "AuthUser",
+    "AuthToken",
+    "PasswordResetToken",
+    "hash_password",
+    "verify_password",
+    "validate_password_strength",
+    "generate_token",
+    "generate_csrf_token",
+    "AuthHandler",
+]

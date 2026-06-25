@@ -168,3 +168,11 @@ def format_narrative(narrative: TradeNarrative | None) -> str:
         f"[Trade #{narrative.trade_id} | {narrative.sentiment}]\n"
         f"{narrative.summary}"
     )
+
+
+__all__ = [
+    "TradeNarrative",
+    "format_narrative",
+    "generate_trade_narrative",
+]
+

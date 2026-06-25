@@ -84,6 +84,17 @@ Be concise. Never hallucinate broker or price data not given."""
 
 # ─── Data classes ─────────────────────────────────────────────────────────────
 
+
+__all__ = [
+    "AIDecision",
+    "AIEngine",
+    "AIEngineConfig",
+    "ai_engine_config_from_cfg",
+    "get_ai_engine",
+    "log",
+    "reset_ai_engine",
+]
+
 @dataclass
 class AIDecision:
     symbol: str

@@ -66,3 +66,11 @@ def create_vix_adaptive_threshold(config: dict) -> VIXAdaptiveThreshold:
         vix_block_threshold=config.get("VIX_BLOCK_THRESHOLD", 30.0),
     )
     return VIXAdaptiveThreshold(cfg)
+
+
+__all__ = [
+    "VIXAdaptiveConfig",
+    "VIXAdaptiveThreshold",
+    "create_vix_adaptive_threshold",
+]
+

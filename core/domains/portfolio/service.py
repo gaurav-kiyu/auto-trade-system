@@ -601,3 +601,14 @@ class PortfolioDataService:
         for p in self._portfolio._positions.values():
             net += p.market_value if p.quantity > 0 else -p.market_value
         return net
+
+
+__all__ = [
+    "PerformanceMetrics",
+    "PortfolioDataService",
+    "PortfolioService",
+    "Position",
+    "TradeRecord",
+    "create_portfolio_service",
+]
+

@@ -9,6 +9,11 @@ from pathlib import Path
 from typing import Any
 
 
+__all__ = [
+    "AuditEngine",
+    "AuditRecord",
+]
+
 @dataclass(frozen=True)
 class AuditRecord:
     event: str

@@ -41,3 +41,9 @@ class TelegramAuditManager:
         _log.warning(f"SECURITY: {entry}")
         with open(self.log_file, "a", encoding="utf-8") as f:
             f.write(entry + "\n")
+
+
+__all__ = [
+    "TelegramAuditManager",
+]
+

@@ -36,6 +36,13 @@ Usage
 
 from __future__ import annotations
 
+__all__ = [
+    "PositionService",
+    "TradeBlockError",
+    "get_position_service",
+    "reset_position_service",
+]
+
 import logging
 import threading
 import time

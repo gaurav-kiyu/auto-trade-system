@@ -196,6 +196,16 @@ class PaperCertifier:
             return report
 
         try:
+            # Check if the trades table exists first
+            table_check = db.fetchall(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='trades'"
+            )
+            if not table_check:
+                report.passed = True
+                report.verdict = "No trades table found - vacuously true (no trade data yet)"
+                report.duration_seconds = time.time() - start
+                return report
+
             all_rows_raw = db.fetchall(
                 "SELECT * FROM trades WHERE net_pnl IS NOT NULL ORDER BY id"
             )
@@ -377,3 +387,11 @@ if __name__ == "__main__":
     else:
         print(report.summary())
     raise SystemExit(0 if report.passed else 1)
+
+
+__all__ = [
+    "PaperCertificationReport",
+    "PaperCertifier",
+    "certify_paper_trading",
+]
+

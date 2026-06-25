@@ -156,3 +156,11 @@ def format_stress_summary(results: list[StressResult]) -> str:
         k   = r.total_pnl_shock / 1000
         parts.append(f"{tag}={R}{k:+.1f}k{'!' if r.alert else ''}")
     return "Stress: " + " | ".join(parts)
+
+
+__all__ = [
+    "StressResult",
+    "format_stress_summary",
+    "run_stress_test",
+]
+

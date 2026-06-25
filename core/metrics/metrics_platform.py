@@ -26,6 +26,13 @@ from typing import Any
 
 from core.time_provider import time_provider
 
+__all__ = [
+    "Metric",
+    "MetricsPlatform",
+    "TimerMetric",
+    "get_metrics_platform",
+]
+
 _log = logging.getLogger(__name__)
 
 

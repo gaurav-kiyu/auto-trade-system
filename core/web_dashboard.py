@@ -167,3 +167,11 @@ def maybe_start_dashboard(
     except Exception as exc:
         _log.warning("[DASH] Dashboard startup failed (non-fatal): %s", exc)
         return None
+
+
+__all__ = [
+    "SignalLog",
+    "maybe_start_dashboard",
+    "serve",
+]
+

@@ -380,15 +380,15 @@ def ingest_health_report(report: Any) -> None:
             for r in report:
                 if hasattr(r, "category"):
                     _ingest_single_check(r, slo)
-    except Exception as exc:
-        _log.warning("[SLO-HEALTH] Health ingestion failed: %s", exc)
+    except (ValueError, TypeError, AttributeError) as exc:
+        _log.warning("[SLO-HEALTH] Health ingestion error: %s", exc)
 
     # Record overall health status as a metric
     try:
         overall = getattr(report, "overall_status", "UNKNOWN")
         slo.record_metric("platform_health", {"OK": 1.0, "WARN": 0.7, "FAIL": 0.0, "HEALTHY": 1.0}.get(overall, 0.5))
-    except Exception:
-        pass
+    except (ValueError, TypeError, AttributeError):
+        _log.debug("[SLO-HEALTH] Overall health metric skipped")
 
     # Also push health check status to Prometheus metrics exporter if available.
     # This is an intentional side effect to keep Prometheus gauges in sync.
@@ -404,8 +404,8 @@ def ingest_health_report(report: Any) -> None:
             "health_checks_total": float(ok + warn + fail),
             "health_overall": {"OK": 1.0, "WARN": 0.5, "FAIL": 0.0}.get(getattr(report, "overall_status", "UNKNOWN"), 0.0),
         })
-    except Exception:
-        pass
+    except (ImportError, ValueError, TypeError, AttributeError) as _prom_exc:
+        _log.debug("[SLO-HEALTH] Prometheus metric push skipped: %s", _prom_exc)
 
 
 def _ingest_single_check(r: Any, slo: SLOGovernance) -> None:
@@ -559,9 +559,7 @@ def ingest_capacity_report(report: Any) -> None:
             slo.record_metric("platform_capacity", status_map.get(report.get("overall_status", ""), 0.5))
 
     except Exception as exc:
-        _log.warning("[SLO-CAPACITY] Capacity ingestion failed: %s", exc)
-
-    # Cascade to Prometheus metrics exporter
+        _log.warning("[SLO-CAPACITY] Capacity ingestion failed: %s", exc)        # Cascade to Prometheus metrics exporter
     try:
         from core.metrics_exporter import update_metrics as _update_prom
         ok = getattr(report, "ok_count", 0) if hasattr(report, "ok_count") else 0
@@ -573,8 +571,8 @@ def ingest_capacity_report(report: Any) -> None:
             "capacity_checks_critical": float(crit),
             "capacity_checks_total": float(ok + warn + crit),
         })
-    except Exception:
-        pass
+    except (ImportError, ValueError, TypeError, AttributeError):
+        _log.debug("[SLO-CAPACITY] Prometheus metric push skipped")
 
 
 def _ingest_capacity_metric(m: Any, slo: SLOGovernance) -> None:
@@ -706,3 +704,20 @@ def _cli() -> None:
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "DEFAULT_SLOS",
+    "SLODefinition",
+    "SLOGovernance",
+    "SLOReport",
+    "SLOResult",
+    "SLOTracker",
+    "check_slo_compliance",
+    "get_slo_governance",
+    "ingest_capacity_report",
+    "ingest_health_report",
+    "record_metric",
+    "start_health_metrics_poller",
+]
+

@@ -25,6 +25,15 @@ All connections produced by get_connection() have:
 
 from __future__ import annotations
 
+__all__ = [
+    "DEFAULT_BUSY_TIMEOUT_MS",
+    "get_connection",
+    "get_connection_cached",
+    "create_database_port",
+    "AsyncDbWriter",
+    "WriteOperation",
+]
+
 import logging
 import queue
 import sqlite3

@@ -334,3 +334,12 @@ class CapitalManager:
     def current_capital(self) -> float:
         with self._lock:
             return self._state.current_capital
+
+
+__all__ = [
+    "CapitalManager",
+    "CapitalState",
+    "ScaleResult",
+    "log",
+]
+

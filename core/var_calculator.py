@@ -158,3 +158,11 @@ def format_var_summary(result: VaRResult) -> str:
         f"VaR(95%): {R}{result.var_95:,.0f} ({result.var_95_pct:.1f}% of capital)"
         f"  |  VaR(99%): {R}{result.var_99:,.0f}"
     )
+
+
+__all__ = [
+    "VaRResult",
+    "compute_var",
+    "format_var_summary",
+]
+

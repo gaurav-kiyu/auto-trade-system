@@ -51,6 +51,15 @@ from typing import Any
 from core.db_utils import get_connection
 from core.exceptions import DatabaseError
 
+__all__ = [
+    "compute_brier_score",
+    "compute_calibration",
+    "format_tracker_summary",
+    "get_feature_importance_trend",
+    "record_prediction",
+    "update_outcome",
+]
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB = "ml_tracker.db"
@@ -77,8 +86,8 @@ def _register_ml_tracker_migrations() -> None:
     try:
         from core.db_migration import register_schema
 
-        @register_schema(2, "ML Performance Tracker baseline - ml_predictions table")
-        def _ml_migration_v2(conn: sqlite3.Connection) -> None:
+        @register_schema(4, "ML Performance Tracker baseline - ml_predictions table")
+        def _ml_migration_v4(conn: sqlite3.Connection) -> None:
             """Create the ml_predictions table if it doesn't exist."""
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS ml_predictions (

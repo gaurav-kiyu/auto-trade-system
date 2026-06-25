@@ -104,3 +104,9 @@ class SessionStore:
         self.purge_expired()
         with self._lock:
             return list(self._sessions.values())
+
+
+__all__ = [
+    "Session",
+    "SessionStore",
+]

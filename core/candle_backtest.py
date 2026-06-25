@@ -737,3 +737,16 @@ def run_candle_backtest(
         name=symbol,
     )
     return eng.run(df_1m, backtest_cfg or CandleBacktestConfig())
+
+
+__all__ = [
+    "CandleBacktestConfig",
+    "CandleBacktestEngine",
+    "CandleBacktestResult",
+    "PerformanceMetrics",
+    "RegimeStats",
+    "ScoreBucket",
+    "TradeJournalRow",
+    "run_candle_backtest",
+]
+

@@ -1,5 +1,13 @@
 """Shared soft-reload primitives for long-running stock/index bots.
 
+
+__all__ = [
+    "apply_safe_key_patch",
+    "ignored_keys_warning",
+    "partition_soft_reload_changes",
+    "soft_reload_diff_entry",
+]
+
 Keeps change classification and diff-entry shape identical across processes
 without pulling in logging, globals, or bot-specific _SAFE_RELOAD_KEY sets.
 """
@@ -8,6 +16,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Set
 from typing import Any
+
+__all__ = [
+    "apply_safe_key_patch",
+    "ignored_keys_warning",
+    "partition_soft_reload_changes",
+    "soft_reload_diff_entry",
+]
 
 
 def partition_soft_reload_changes(

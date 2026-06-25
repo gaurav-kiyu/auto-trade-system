@@ -214,3 +214,38 @@ class GovernanceError(TradingException):
 def safe_fallback(value: Any, default: Any = None) -> Any:
     """Return value if truthy, else default - for optional-feature wrappers."""
     return value if value is not None else default
+
+
+__all__ = [
+    "BrokerAuthError",
+    "BrokerConnectionError",
+    "BrokerException",
+    "BrokerRateLimitError",
+    "BrokerRejectedError",
+    "BrokerTimeoutError",
+    "ChaosError",
+    "CircuitBreakerError",
+    "ConfigError",
+    "CorrelationGuardError",
+    "DatabaseError",
+    "ExecutionError",
+    "FeedDisconnectedError",
+    "FillError",
+    "GovernanceError",
+    "HardHaltError",
+    "IdempotencyError",
+    "MarketDataError",
+    "MaxDrawdownError",
+    "PersistenceError",
+    "PositionSizingError",
+    "ReconciliationError",
+    "RiskException",
+    "RiskLimitError",
+    "SignalError",
+    "StaleDataError",
+    "StateFileError",
+    "TradingException",
+    "ValidationError",
+    "safe_fallback",
+]
+

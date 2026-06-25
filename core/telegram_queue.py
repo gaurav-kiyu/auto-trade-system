@@ -246,3 +246,11 @@ class TelegramQueue:
         _log.warning("[TG_Q] %s message not delivered after %d attempts: %s",
                      level, max_retries + 1, msg.text[:80])
         self._dropped_by_level[level] += 1
+
+
+__all__ = [
+    "TelegramMessage",
+    "TelegramPriority",
+    "TelegramQueue",
+]
+

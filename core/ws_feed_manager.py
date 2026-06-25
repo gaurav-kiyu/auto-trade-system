@@ -198,3 +198,9 @@ class WebSocketFeedManager:
                 "last_disconnect_ts": self._last_disconnect_ts,
                 "last_error": self._last_error,
             }
+
+
+__all__ = [
+    "WebSocketFeedManager",
+]
+

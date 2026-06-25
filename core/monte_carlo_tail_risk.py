@@ -1,5 +1,11 @@
 """Monte Carlo Tail Risk Analysis — worst-case scenario simulation.
 
+
+__all__ = [
+    "TailRiskResult",
+    "run_tail_risk_simulation",
+]
+
 Extends the ``core.monte_carlo`` module with tail-risk-specific metrics:
 
 - **CVaR** (Conditional Value at Risk): Expected loss in the worst ``alpha``% of outcomes
@@ -20,6 +26,11 @@ import math
 import random
 from dataclasses import dataclass, field
 from typing import Any
+
+__all__ = [
+    "TailRiskResult",
+    "run_tail_risk_simulation",
+]
 
 from core.datetime_ist import now_ist as _now_ist
 

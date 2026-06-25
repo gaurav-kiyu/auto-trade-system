@@ -364,3 +364,13 @@ def _cli() -> None:
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "CompatibilityReport",
+    "CompatibilityResult",
+    "ComponentVersion",
+    "VersionCompatibilityMatrix",
+    "check_version_compatibility",
+]
+

@@ -433,3 +433,11 @@ class SSOAuthenticator:
         if not self.is_available:
             issues.append("authlib package not installed: pip install authlib")
         return len(issues) == 0, issues
+
+
+__all__ = [
+    "OAUTH_PROVIDERS",
+    "SSOConfig",
+    "SSOUser",
+    "SSOAuthenticator",
+]

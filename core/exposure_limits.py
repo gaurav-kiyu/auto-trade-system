@@ -232,3 +232,13 @@ def get_exposure_limiter(config: dict | None = None) -> ExposureConcentrationLim
     if _exposure_limiter is None:
         _exposure_limiter = ExposureConcentrationLimiter(config)
     return _exposure_limiter
+
+
+__all__ = [
+    "ExposureCheckResult",
+    "ExposureConcentrationLimiter",
+    "ExposureSnapshot",
+    "get_exposure_limiter",
+    "log",
+]
+

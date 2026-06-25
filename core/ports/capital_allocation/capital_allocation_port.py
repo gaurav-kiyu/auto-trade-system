@@ -1,5 +1,13 @@
 """Capital Allocation Port Interface - Multi-asset capital allocation.
 
+
+__all__ = [
+    "AllocationRequest",
+    "AllocationResult",
+    "AssetClass",
+    "CapitalAllocationPort",
+]
+
 Defines the contract for intelligently allocating capital across
 different asset classes: equity, F&O, commodity, currency, fixed income.
 
@@ -13,6 +21,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+__all__ = [
+    "AllocationRequest",
+    "AllocationResult",
+    "AssetClass",
+    "CapitalAllocationPort",
+]
 
 
 class AssetClass(Enum):

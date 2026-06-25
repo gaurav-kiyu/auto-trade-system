@@ -5,6 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 
+__all__ = [
+    "apply_execution_mode",
+    "normalize_execution_mode",
+]
+
 def normalize_execution_mode(raw: Any) -> str:
     mode = str(raw or "MANUAL").strip().upper()
     alias_map = {

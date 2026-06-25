@@ -357,3 +357,15 @@ def audit_log(
     """Quick access to log an audit event."""
     journal = get_audit_journal()
     return journal.log_event(event_type, severity, message, **kwargs)
+
+
+__all__ = [
+    "AuditEvent",
+    "AuditEventType",
+    "AuditJournal",
+    "AuditSeverity",
+    "audit_log",
+    "get_audit_journal",
+    "log",
+]
+

@@ -5,6 +5,10 @@ import time
 from typing import Any
 
 
+__all__ = [
+    "StateSyncManager",
+]
+
 class StateSyncManager:
     """
     High-Availability state synchronization.

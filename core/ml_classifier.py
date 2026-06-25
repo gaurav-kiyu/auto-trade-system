@@ -32,7 +32,23 @@ Config keys (all optional - safe defaults built in)
   drift_retrain_top_features : int    default 5      # Number of top features to check for drift
   drift_retrain_trend_count  : int    default 1000   # Number of recent predictions to use for feature importance trend
 """
+
 from __future__ import annotations
+
+__all__ = [
+    "FEATURE_COLS",
+    "extract_features",
+    "load_training_data",
+    "train",
+    "save_model",
+    "load_model",
+    "predict_win_prob",
+    "score_adj_from_prob",
+    "explain_prediction",
+    "get_top_features",
+    "shap_to_json",
+    "get_classifier",
+]
 
 import hashlib
 import json

@@ -113,3 +113,12 @@ class BrokerErrorClassifier:
 def classify_broker_error(error: Exception) -> RetryDecision:
     """Convenience function for error classification."""
     return BrokerErrorClassifier.classify(error)
+
+
+__all__ = [
+    "BrokerErrorClassifier",
+    "RetryDecision",
+    "classify_broker_error",
+    "log",
+]
+

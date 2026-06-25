@@ -397,3 +397,16 @@ def alert_risk_breach(breach_type: str, details: dict | None = None) -> None:
     """Quick access to alert risk breach."""
     if _incident_alerting:
         _incident_alerting.alert_risk_breach(breach_type, details)
+
+
+__all__ = [
+    "Incident",
+    "IncidentAlerting",
+    "IncidentSeverity",
+    "IncidentType",
+    "alert_broker_disconnect",
+    "alert_risk_breach",
+    "get_incident_alerting",
+    "log",
+]
+

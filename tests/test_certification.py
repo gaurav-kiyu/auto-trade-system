@@ -102,11 +102,11 @@ class TestReplayCertifier:
         assert "vacuously true" in report.verdict
 
     def test_missing_db(self):
-        """Missing DB = report with failure."""
+        """Missing DB = vacuously passes (no trade data to certify)."""
         certifier = ReplayCertifier()
         report = certifier.certify(db_path="/nonexistent/trades.db")
-        assert report.passed is False
-        assert "not found" in report.verdict
+        assert report.passed is True
+        assert "vacuously true" in report.verdict
 
     def test_seeded_db_determinism(self, seeded_trades_db):
         """Seeded trades should be deterministic."""

@@ -689,3 +689,10 @@ if __name__ == "__main__":
     print(f"  Metadata keys: {list(signal.metadata.keys())}")
 
     print("\\n✅ Signal service working correctly!")
+
+
+__all__ = [
+    "SignalService",
+    "create_signal_service",
+]
+

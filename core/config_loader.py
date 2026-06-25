@@ -163,3 +163,15 @@ def load_config(environment: str = "base") -> dict[str, Any]:
 def get_effective_config(environment: str = "base") -> dict[str, Any]:
     """Convenience function to get validated effective configuration."""
     return get_loader().get_effective_config(environment)
+
+
+__all__ = [
+    "CONFIG_DIR",
+    "ConfigLoader",
+    "SCHEMA_PATH",
+    "get_effective_config",
+    "get_loader",
+    "load_config",
+    "logger",
+]
+

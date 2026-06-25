@@ -198,3 +198,14 @@ def invalidate_cache() -> None:
     with _last_close_cache_lock:
         _last_close_cache_ts = 0.0
         _last_close_cache.clear()
+
+
+__all__ = [
+    "fetch_intraday_data",
+    "fetch_intraday_data_cached",
+    "fetch_last_close_summary",
+    "fetch_vix",
+    "get_vix_from_intraday",
+    "invalidate_cache",
+]
+

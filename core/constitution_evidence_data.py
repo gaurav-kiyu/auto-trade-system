@@ -295,3 +295,11 @@ def collect_all_evidence() -> Evidence:
     add("DR-03", "Exactly-once certifier + WAL journal: dual-layer crash safety", "code_review", 0.4)
 
     return evidence
+
+
+__all__ = [
+    "Evidence",
+    "ROOT",
+    "collect_all_evidence",
+]
+

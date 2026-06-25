@@ -146,3 +146,13 @@ def log_startup_parity(config: dict[str, Any], logger: logging.Logger = None) ->
     fp = generate_runtime_fingerprint(config)
     L.info("Config fingerprint: %s (log this; alert on change between restarts)", fp)
     return fp
+
+
+__all__ = [
+    "assert_backtest_live_parity",
+    "check_execution_policy_consistency",
+    "generate_runtime_fingerprint",
+    "log",
+    "log_startup_parity",
+]
+

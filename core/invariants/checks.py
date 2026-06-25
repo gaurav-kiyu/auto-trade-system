@@ -252,3 +252,9 @@ def _register_intraday_pnl_monitor():
         InvariantSeverity.WARN,
         _check,
     )
+
+
+__all__ = [
+    "register_all",
+]
+

@@ -9,6 +9,16 @@ import sys
 import threading
 from collections.abc import Callable
 
+
+__all__ = [
+    "ensure_supported_python",
+    "execute_shutdown",
+    "log",
+    "register_graceful_shutdown_signals",
+    "register_shutdown_callback",
+    "setup_graceful_shutdown",
+]
+
 log = logging.getLogger(__name__)
 
 _shutdown_callbacks: list[Callable[[], None]] = []

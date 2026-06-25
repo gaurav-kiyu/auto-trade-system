@@ -36,3 +36,10 @@ class OrderSubmissionManager:
                 status="REJECTED",
                 reject_reason=str(e),
             )
+
+
+__all__ = [
+    "OrderSubmissionManager",
+    "log",
+]
+

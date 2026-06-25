@@ -261,3 +261,17 @@ def sanitize_for_log(data: dict) -> dict:
     """Quick sanitize data for logging."""
     checker = get_secret_checker()
     return checker.sanitize_for_logging(data)
+
+
+__all__ = [
+    "KNOWN_SECRET_KEYS",
+    "SECRET_KEY_PARTS",
+    "SECRET_PATTERNS",
+    "SecretHygieneChecker",
+    "SecretHygieneResult",
+    "check_config_secrets",
+    "get_secret_checker",
+    "log",
+    "sanitize_for_log",
+]
+

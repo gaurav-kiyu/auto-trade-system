@@ -303,3 +303,19 @@ def classify_broker_exception(
 
     # Default to transient for unknown errors
     return TransientBrokerError(f"Unknown broker error: {exception}", original=exception)
+
+
+__all__ = [
+    "AmbiguousExecutionStateError",
+    "AuthExpiredError",
+    "BrokerException",
+    "BrokerExceptionType",
+    "BrokerTimeoutError",
+    "NetworkError",
+    "OrderRejectedError",
+    "PermanentBrokerError",
+    "RateLimitError",
+    "TransientBrokerError",
+    "classify_broker_exception",
+]
+

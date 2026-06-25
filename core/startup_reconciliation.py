@@ -165,3 +165,12 @@ def run_startup_reconciliation(
     """Run startup reconciliation."""
     reconciler = StartupReconciler(broker_port, durable_store)
     return reconciler.reconcile()
+
+
+__all__ = [
+    "ReconciliationResult",
+    "StartupReconciler",
+    "log",
+    "run_startup_reconciliation",
+]
+

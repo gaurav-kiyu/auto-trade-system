@@ -31,7 +31,24 @@ Config keys (index_config.defaults.json)
     health_check_spread_warn_pct  : float  default 6.0
     health_check_log_dir_warn_gb  : float  default 2.0
 """
+
 from __future__ import annotations
+
+__all__ = [
+    "HealthCheckResult",
+    "HealthReport",
+    "run_full_health_check",
+    "format_health_report",
+    "start_health_check_scheduler",
+    "check_db_sizes",
+    "check_db_integrity",
+    "check_db_wal_size",
+    "check_ml_health",
+    "check_recent_performance",
+    "check_config_sanity",
+    "check_system_health",
+    "check_broker_health",
+]
 
 import argparse
 import logging

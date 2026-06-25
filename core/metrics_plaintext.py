@@ -1,8 +1,17 @@
 """Plain-text /metrics body shared by stock and index trader processes.
 
+
+__all__ = [
+    "format_bot_metrics_plaintext",
+]
+
 Keeping one formatter avoids silent drift when operators scrape both bots
 or when new observability fields are added.
 """
+
+__all__ = [
+    "format_bot_metrics_plaintext",
+]
 
 
 def format_bot_metrics_plaintext(

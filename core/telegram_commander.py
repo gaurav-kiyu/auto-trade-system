@@ -869,3 +869,17 @@ def build_commander(
     except (ValueError, TypeError, KeyError, OSError) as exc:
         _log.error("[TG_CMD] Init failed: %s", exc)
         return None
+
+
+__all__ = [
+    "TelegramCommander",
+    "build_commander",
+    "build_compact_signal_message",
+    "build_pending_signals_message",
+    "build_positions_message",
+    "build_rich_signal_message",
+    "build_status_message",
+    "build_trade_entry_message",
+    "build_trade_exit_message",
+]
+

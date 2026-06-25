@@ -558,3 +558,11 @@ def run_equity_trader(
     )
     trader.start()
     return trader
+
+
+__all__ = [
+    "EquityTrader",
+    "log",
+    "run_equity_trader",
+]
+

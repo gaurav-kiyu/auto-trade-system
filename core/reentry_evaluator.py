@@ -153,3 +153,11 @@ class ReentryTracker:
 def build_reentry_trackers(index_names: list[str]) -> dict[str, ReentryTracker]:
     """Convenience: build one ReentryTracker per index."""
     return {name: ReentryTracker(index_name=name) for name in index_names}
+
+
+__all__ = [
+    "ReentryDecision",
+    "ReentryTracker",
+    "build_reentry_trackers",
+]
+

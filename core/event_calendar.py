@@ -47,6 +47,33 @@ from typing import Any
 _log = logging.getLogger(__name__)
 
 
+__all__ = [
+    "CorporateAction",
+    "EventRecord",
+    "IPOEvent",
+    "MarketStatus",
+    "SEBICircular",
+    "event_entry_allowed",
+    "event_size_multiplier",
+    "event_summary",
+    "fetch_corporate_actions",
+    "fetch_ipo_events",
+    "fetch_sebi_circulars",
+    "get_event",
+    "get_market_status",
+    "get_next_market_open",
+    "get_sebi_circulars_for_date",
+    "get_time_until_market_open",
+    "get_upcoming_ipos",
+    "is_corp_action_day",
+    "is_ipo_issue_date",
+    "is_market_day",
+    "is_pre_market",
+    "sebi_circular_summary",
+    "sleep_until",
+]
+
+
 # ── Event record ──────────────────────────────────────────────────────────────
 
 class EventRecord:
@@ -270,6 +297,7 @@ def _nse_holidays(cfg: dict[str, Any]) -> set[datetime.date]:
     """Extract holiday dates from event_dates where block_entries=True,
     merged with live NSE API data."""
     # Config-based holidays from event_dates
+
     index = _build_index(cfg)
     holidays = {d for d, ev in index.items() if ev.block_entries}
 

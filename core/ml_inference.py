@@ -6,6 +6,16 @@ from typing import Any
 import numpy as np
 
 # Lazy import for ML libraries to ensure the bot starts even if ML deps are missing
+
+
+__all__ = [
+    "MLInferenceEngine",
+    "MLPrediction",
+    "init_ml_engine",
+    "log",
+    "ml_engine",
+]
+
 try:
     import joblib
 

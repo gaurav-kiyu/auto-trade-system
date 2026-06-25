@@ -974,3 +974,19 @@ def run_simulation(
         name=symbol,
     )
     return engine.run(df_1m, sim_cfg or SimConfig())
+
+
+__all__ = [
+    "SIGNAL_CONFIRMED",
+    "SIGNAL_EARLY",
+    "SIGNAL_STRONG",
+    "SegmentStats",
+    "SimConfig",
+    "SimulationEngine",
+    "SimulationResult",
+    "TradeRecord",
+    "classify_signal_type",
+    "run_simulation",
+    "score_segment",
+]
+

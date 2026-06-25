@@ -540,3 +540,19 @@ def render_ascii_heatmap(heatmap: TimeHeatmap) -> str:
     lines.append("")
     lines.append("  Values: win% per cell (-- = sparse, blank = no trades)")
     return "\n".join(lines)
+
+
+__all__ = [
+    "AutopsyReport",
+    "HeatmapCell",
+    "TimeHeatmap",
+    "compute_edge_decay",
+    "compute_feature_breakdown",
+    "compute_time_heatmap",
+    "find_failure_patterns",
+    "format_autopsy_report",
+    "load_autopsy_data",
+    "render_ascii_heatmap",
+    "run_autopsy",
+]
+

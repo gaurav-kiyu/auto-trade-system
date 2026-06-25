@@ -184,3 +184,11 @@ class StrategyConfigView:
 def get_strategy_cfg(cfg: dict[str, Any], name: str) -> StrategyConfigView:
     """Convenience: return a ``StrategyConfigView`` for the given strategy."""
     return StrategyConfigView(cfg, name)
+
+
+__all__ = [
+    "get_strategy_block",
+    "get_strategy_param",
+    "StrategyConfigView",
+    "get_strategy_cfg",
+]

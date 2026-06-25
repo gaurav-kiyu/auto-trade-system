@@ -21,6 +21,11 @@ import os
 import sys
 from typing import Any
 
+
+__all__ = [
+    "setup_di_container",
+]
+
 _log = logging.getLogger(__name__)
 
 
@@ -51,6 +56,13 @@ def setup_di_container(
 
     # Fetch NSE holidays before any trading decision
     fetch_nse_holidays_dynamic_fn()
+
+    # Initialize OpenTelemetry distributed tracing (config-driven, graceful no-op)
+    try:
+        from core.observability.opentelemetry import auto_init as _otel_auto_init
+        _otel_auto_init(cfg)
+    except (ValueError, TypeError, ImportError, AttributeError) as _otel_err:
+        _log.debug("[OTEL] OpenTelemetry auto-init skipped: %s", _otel_err)
 
     from core.di_container import get_container
     from core.ports import (
@@ -313,7 +325,7 @@ def _flush_and_wire_send(send_fn: callable, globals_store: dict[str, Any]) -> No
             for msg, crit in send_buffer:
                 try:
                     send_fn(msg, critical=crit)
-                except Exception as _flush_err:
+                except (ValueError, TypeError, OSError, RuntimeError) as _flush_err:
                     _log.debug("Failed to flush buffered message: %s", _flush_err)
             send_buffer.clear()
 
@@ -370,20 +382,19 @@ def _start_background_services(
         try:
             from core.di_container import get_container
             cb_svc = get_container().try_resolve(CircuitBreakerService)
-        except Exception:
-            pass
-        healing = get_orchestrator(
-            cfg=cfg,
-            health_check_fn=run_full_health_check,
-            circuit_breaker_service=cb_svc or CircuitBreakerService(),
-        )
-        if cfg.get("self_healing_enabled", True):
-            healing.start_background_monitor()
-            _log.info("[SELF-HEALING] Background monitor started (interval=%ds)", healing.interval_seconds)
-        else:
-            _log.info("[SELF-HEALING] Disabled by config")
-    except Exception as _sh_err:
-        _log.warning("[SELF-HEALING] Failed to start: %s", _sh_err)
+        except (ValueError, TypeError, AttributeError):
+            cb_svc = None            healing = get_orchestrator(
+                cfg=cfg,
+                health_check_fn=run_full_health_check,
+                circuit_breaker_service=cb_svc or CircuitBreakerService(),
+            )
+            if cfg.get("self_healing_enabled", True):
+                healing.start_background_monitor()
+                _log.info("[SELF-HEALING] Background monitor started (interval=%ds)", healing.interval_seconds)
+            else:
+                _log.info("[SELF-HEALING] Disabled by config")
+        except (ValueError, TypeError, ImportError, OSError, RuntimeError) as _sh_err:
+            _log.warning("[SELF-HEALING] Failed to start: %s", _sh_err)
 
     # Start SLO Governance periodic tracking
     try:
@@ -396,7 +407,7 @@ def _start_background_services(
         slo.record_metric("risk_enforcement", 100.0)
         slo.record_metric("test_coverage", 92.0)
         _log.info("[SLO] SLO Governance initialized with 15 objectives")
-    except Exception as _slo_err:
+    except (ValueError, TypeError, ImportError, OSError) as _slo_err:
         _log.warning("[SLO] SLO Governance init failed: %s", _slo_err)
 
     # Wire Risk Dashboard via global singleton
@@ -404,7 +415,7 @@ def _start_background_services(
         from core.risk_dashboard import get_risk_dashboard
         risk_dash = get_risk_dashboard(config=cfg)
         _log.info("[RISK-DASH] Risk Dashboard initialized")
-    except Exception as _rd_err:
+    except (ValueError, TypeError, ImportError, OSError) as _rd_err:
         _log.warning("[RISK-DASH] Risk Dashboard init failed: %s", _rd_err)
 
     # Start NTP Clock Sync background checker
@@ -423,11 +434,11 @@ def _start_background_services(
                                      status.drift_seconds, ntp._max_drift)
                 else:
                     _log.debug("[NTP] Server unreachable: %s", status.error)
-            except Exception as _ntp_err:
+            except (ValueError, TypeError, AttributeError, OSError) as _ntp_err:
                 _log.debug("[NTP] Check failed: %s", _ntp_err)
         t = threading.Thread(target=_ntp_startup_check, daemon=True, name="ntp-startup")
         t.start()
-    except Exception as _ntp_err:
+    except (ValueError, TypeError, ImportError, OSError, RuntimeError) as _ntp_err:
         _log.debug("[NTP] Init skipped: %s", _ntp_err)
 
     # Initialize Multi-Tenant Manager (if enabled)
@@ -438,8 +449,18 @@ def _start_background_services(
             _log.info("[MT] Multi-Tenant Manager enabled: %d tenants", len(mtm.list_tenants()))
         else:
             _log.debug("[MT] Multi-Tenant Manager disabled")
-    except Exception as _mt_err:
+    except (ValueError, TypeError, ImportError, OSError) as _mt_err:
         _log.debug("[MT] Multi-Tenant Manager init skipped: %s", _mt_err)
+
+    # Start Feature Quality SLA background poller (P6)
+    try:
+        from core.feature_quality_sla import get_feature_quality_sla, start_feature_sla_poller
+        fq_sla = get_feature_quality_sla()
+        start_feature_sla_poller(monitor=fq_sla)
+        _log.info("[FQ-SLA] Feature Quality SLA background poller started — monitoring %d features",
+                  len(fq_sla._feature_slas))
+    except (ValueError, TypeError, ImportError, OSError, RuntimeError) as _fq_err:
+        _log.debug("[FQ-SLA] Feature Quality SLA init skipped: %s", _fq_err)
 
     # Initialize Change Management & Approval Workflow
     try:
@@ -449,7 +470,7 @@ def _start_background_services(
             _log.info("[CM] Change Management initialized (%d pending)", len(cm.list_pending()))
         else:
             _log.debug("[CM] Change Management disabled by config")
-    except Exception as _cm_err:
+    except (ValueError, TypeError, ImportError, OSError) as _cm_err:
         _log.debug("[CM] Change Management init skipped: %s", _cm_err)
 
 
@@ -545,7 +566,7 @@ def _register_invariants() -> None:
         from core.invariants.checks import register_all as _register_invariants
         _register_invariants()
         _log.info("Runtime invariant checks registered")
-    except Exception as _ie:
+    except (ValueError, TypeError, ImportError, AttributeError) as _ie:
         _log.debug("Invariant registration skipped: %s", _ie)
 
 
@@ -572,7 +593,7 @@ def _wire_engine_variables(
                 df = _yf_local.download(yf_sym, period="2d", interval="1m", progress=False)
                 if not df.empty:
                     result[idx] = df
-            except Exception as _yf_err:
+            except (ValueError, TypeError, OSError, RuntimeError) as _yf_err:
                 _log.debug("yfinance download failed for %s: %s", yf_sym, _yf_err)
         return result
 
@@ -597,5 +618,5 @@ def _wire_clean_orchestrator(globals_store: dict[str, Any]) -> None:
             _log.info("Clean-architecture TradingOrchestrator wired")
         else:
             _log.debug("Clean-architecture TradingOrchestrator not available (graceful skip)")
-    except Exception as exc:
+    except (ValueError, TypeError, ImportError, AttributeError, OSError) as exc:
         _log.debug("Clean-architecture TradingOrchestrator unavailable: %s", exc)

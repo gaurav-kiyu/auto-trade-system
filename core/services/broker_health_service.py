@@ -11,6 +11,12 @@ Implements a comprehensive broker health monitoring service that:
 from __future__ import annotations
 
 import threading
+
+__all__ = [
+    "HealthCheckResult",
+    "BrokerHealthServiceConfig",
+    "BrokerHealthService",
+]
 import time
 from collections import deque
 from dataclasses import dataclass, field

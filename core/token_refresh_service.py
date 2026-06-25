@@ -260,3 +260,9 @@ class TokenRefreshService:
                 "refresh_count": dict(self._refresh_count),
                 "last_error": dict(self._last_error),
             }
+
+
+__all__ = [
+    "TokenRefreshService",
+]
+

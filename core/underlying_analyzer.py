@@ -157,3 +157,12 @@ def format_breadth_summary(analyses: list[StockAnalysis]) -> str:
         f"[underlying] breadth={breadth:.0%} {label} | "
         f"top mover {top.symbol}: {top.change_pct:+.2f}%"
     )
+
+
+__all__ = [
+    "StockAnalysis",
+    "analyze_banknifty_constituents",
+    "format_breadth_summary",
+    "get_sector_breadth",
+]
+

@@ -1027,3 +1027,18 @@ def _cli() -> None:
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "AppliedChange",
+    "Recommendation",
+    "TuneResult",
+    "apply_recommendations",
+    "backup_config",
+    "eod_auto_tune_hook",
+    "generate_recommendations",
+    "log",
+    "print_tune_report",
+    "run_auto_tune",
+]
+

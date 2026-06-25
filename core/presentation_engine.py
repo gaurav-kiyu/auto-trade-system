@@ -4,6 +4,10 @@ from collections.abc import Callable
 from typing import Any
 
 
+__all__ = [
+    "PresentationEngine",
+]
+
 class PresentationEngine:
     """Simple operator-facing wording layer for alerts and dashboard text."""
 

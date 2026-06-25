@@ -361,3 +361,9 @@ class MongoDBDatabaseAdapter(DatabasePort):
                 "MongoDB not connected. Call .connect() first."
             )
         return self._client
+
+
+__all__ = [
+    "MongoDBDatabaseAdapter",
+]
+

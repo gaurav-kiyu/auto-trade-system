@@ -15,6 +15,12 @@ from typing import Any
 
 from core.ports.market_data import MarketDataPort
 
+
+__all__ = [
+    "create_market_data_adapter",
+    "register_multi_asset_adapters",
+]
+
 _log = logging.getLogger(__name__)
 
 

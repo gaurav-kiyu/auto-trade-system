@@ -473,3 +473,14 @@ def reset_auto_learner() -> None:
     global _learner_instance
     with _learner_lock:
         _learner_instance = None
+
+
+__all__ = [
+    "AutoLearner",
+    "LearnerConfig",
+    "get_auto_learner",
+    "learner_config_from_cfg",
+    "log",
+    "reset_auto_learner",
+]
+

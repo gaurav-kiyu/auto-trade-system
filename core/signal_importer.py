@@ -34,6 +34,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+__all__ = [
+    "ImportResult",
+    "import_from_csv",
+    "import_from_csv_text",
+    "import_from_text",
+    "parse_signal_text",
+    "watch_directory",
+]
+
 _log = logging.getLogger(__name__)
 
 _VALID_INDICES    = {"NIFTY", "BANKNIFTY", "FINNIFTY"}

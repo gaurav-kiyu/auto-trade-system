@@ -185,3 +185,11 @@ def shutdown_execution_hardening(services: dict) -> None:
             log.error(f"Error stopping ContinuousReconciliation: {e}")
 
     log.info("Execution hardening shutdown complete")
+
+
+__all__ = [
+    "init_execution_hardening",
+    "log",
+    "shutdown_execution_hardening",
+]
+

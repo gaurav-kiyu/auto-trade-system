@@ -9,6 +9,15 @@ out of this module.
 
 from __future__ import annotations
 
+__all__ = [
+    "PureIndexRegimeParams",
+    "PureIndexSignalParams",
+    "compute_index_score",
+    "evaluate_index_signal_partial",
+    "evaluate_dual_direction_signal",
+    "finalize_index_signal_with_threshold",
+]
+
 import datetime
 from collections.abc import Mapping
 from dataclasses import dataclass

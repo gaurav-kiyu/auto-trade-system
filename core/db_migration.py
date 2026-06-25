@@ -7,6 +7,18 @@ from dataclasses import dataclass
 
 from core.db_utils import get_connection as _get_mig_conn
 
+
+__all__ = [
+    "Migration",
+    "ensure_schema_version",
+    "get_migration_log",
+    "get_schema_version",
+    "log",
+    "migrate_to_latest",
+    "register_schema",
+    "set_schema_version",
+]
+
 log = logging.getLogger(__name__)
 
 

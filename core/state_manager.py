@@ -20,6 +20,12 @@ from core.time_provider import time_provider
 
 log = logging.getLogger("state_manager")
 
+__all__ = [
+    "StateManager",
+    "SessionRecoveryReport",
+    "state_manager",
+]
+
 @dataclass(frozen=True)
 class SessionRecoveryReport:
     local_positions: int

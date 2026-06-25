@@ -2515,3 +2515,17 @@ def check_final_success(auto_remediate: bool = True) -> dict[str, Any]:
     """Quick-access function for the Final Success Rule check."""
     validator = get_validator()
     return validator.check_final_success(auto_remediate=auto_remediate)
+
+
+__all__ = [
+    "CategoryScore",
+    "ConstitutionValidator",
+    "ScoreEvidence",
+    "ScoreReport",
+    "ValidationResult",
+    "check_final_success",
+    "get_validator",
+    "log",
+    "validate_and_report",
+]
+

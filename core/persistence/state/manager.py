@@ -96,3 +96,9 @@ class StatePersistenceManager:
             if temp_path.exists():
                 temp_path.unlink(missing_ok=True)
             raise
+
+
+__all__ = [
+    "StatePersistenceManager",
+]
+

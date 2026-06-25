@@ -90,3 +90,9 @@ class RoleManager:
             self._default_role = Role(default.lower())
         except ValueError:
             _log.warning(f"[RBAC] Unknown default_role {default!r} - keeping {self._default_role.value}")
+
+
+__all__ = [
+    "RoleManager",
+]
+

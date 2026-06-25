@@ -1,6 +1,10 @@
 from typing import Any
 
 
+__all__ = [
+    "SentimentEngine",
+]
+
 class SentimentEngine:
     """
     Simulated LLM / News Sentiment Engine.

@@ -265,4 +265,11 @@ __all__ = [
     "ImpactAnalysis",
     "ProvenanceChain",
     "get_lineage_engine",
+    # Fundamental Analyzer
+    "DEFAULT_WEIGHTS",
+    "DimensionScore",
+    "FundamentalAnalyzer",
+    "FundamentalData",
+    "ScreeningResult",
+    "get_fundamental_analyzer",
 ]

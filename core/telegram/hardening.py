@@ -320,3 +320,13 @@ def create_validator(
 def create_shield(validator: TelegramCommandValidator) -> DangerousCommandShield:
     """Create dangerous command shield."""
     return DangerousCommandShield(validator)
+
+
+__all__ = [
+    "CommandSpec",
+    "DangerousCommandShield",
+    "TelegramCommandValidator",
+    "create_shield",
+    "create_validator",
+]
+

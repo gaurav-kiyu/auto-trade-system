@@ -312,3 +312,9 @@ class DuckDBDatabaseAdapter(DatabasePort):
                 f"DuckDB not connected ({self._db_path}). Call .connect() first."
             )
         return self._conn
+
+
+__all__ = [
+    "DuckDBDatabaseAdapter",
+]
+

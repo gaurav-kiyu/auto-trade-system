@@ -3,6 +3,11 @@ from dataclasses import dataclass
 from typing import Any
 
 
+__all__ = [
+    "HedgeAction",
+    "PortfolioHedgeManager",
+]
+
 @dataclass
 class HedgeAction:
     should_hedge: bool

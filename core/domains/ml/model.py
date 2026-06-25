@@ -143,3 +143,12 @@ class ModelMetrics:
             raise ValueError(
                 f"Winning trades ({self.winning_trades}) cannot exceed total trades ({self.total_trades})"
             )
+
+
+__all__ = [
+    "MLConfidence",
+    "MLPrediction",
+    "ModelFeature",
+    "ModelMetrics",
+]
+

@@ -509,3 +509,15 @@ if __name__ == "__main__":
         print("  --scenario EXCHANGE_HALT Exchange circuit breaker")
         print("  --scenario GAP_OPEN     Gap open scenario")
         print("  --scenario CHAOS        All failures at elevated rates")
+
+
+__all__ = [
+    "ExchangeFailureType",
+    "MAX_LATENCY_MS",
+    "MarketSimulator",
+    "RejectionType",
+    "SimulatedOrderResult",
+    "SimulatorConfig",
+    "run_market_simulation",
+]
+

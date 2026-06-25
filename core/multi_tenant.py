@@ -33,6 +33,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sqlite3
 import threading
 import time
 from dataclasses import dataclass, field
@@ -140,7 +141,7 @@ class TenantContext:
                 try:
                     conn.execute("SELECT tenant_id FROM trades LIMIT 0")
                     has_tenant_col = True
-                except Exception:
+                except (sqlite3.OperationalError, AttributeError):
                     pass
 
                 if has_tenant_col:
@@ -350,3 +351,12 @@ def _cli() -> None:
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "MultiTenantManager",
+    "Tenant",
+    "TenantContext",
+    "get_multi_tenant_manager",
+]
+

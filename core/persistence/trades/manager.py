@@ -70,3 +70,9 @@ class TradesPersistenceManager:
 
     def health_check(self) -> dict[str, Any]:
         return self._adapter.health_check()
+
+
+__all__ = [
+    "TradesPersistenceManager",
+]
+

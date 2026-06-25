@@ -5,6 +5,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+
+__all__ = [
+    "HMMRegimeDetector",
+    "RegimeState",
+]
+
 try:
     from hmmlearn.hmm import GaussianHMM
 except ImportError:

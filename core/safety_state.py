@@ -8,7 +8,31 @@ CRITICAL RULE:
 Never import _HARD_HALT from any other module. Always import from this module.
 All _trip_hard_halt() calls must come through here.
 """
+
 from __future__ import annotations
+
+__all__ = [
+    "_HARD_HALT",
+    "_shutdown",
+    "is_hard_halted",
+    "is_shutting_down",
+    "trip_hard_halt",
+    "clear_hard_halt",
+    "request_shutdown",
+    "hard_halt_reason",
+    "start_kill_file_watcher",
+    "is_kill_file_present",
+    "check_kill_file_and_halt",
+    "get_consecutive_losses",
+    "record_trade_outcome",
+    "reset_consecutive_losses",
+    "set_intraday_pnl",
+    "get_intraday_pnl",
+    "set_intraday_loss_limit",
+    "get_intraday_loss_limit",
+    "check_intraday_pnl_and_halt",
+    "reset_intraday_pnl",
+]
 
 import logging
 import threading

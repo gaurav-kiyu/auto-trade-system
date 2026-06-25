@@ -163,3 +163,11 @@ class SignalIndependenceValidator:
 
 def create_signal_validator() -> SignalIndependenceValidator:
     return SignalIndependenceValidator()
+
+
+__all__ = [
+    "SignalIndependenceValidator",
+    "SignalPillar",
+    "create_signal_validator",
+]
+

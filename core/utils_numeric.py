@@ -6,6 +6,11 @@ import math
 from typing import Any
 
 
+__all__ = [
+    "safe_float",
+    "safe_num",
+]
+
 def safe_float(v: Any, default: float = 0.0) -> float:
     """Coerce to float; return ``default`` for None, NaN, Inf, or bad types."""
     if v is None:

@@ -1137,3 +1137,18 @@ def reset_auditor() -> None:
     global _auditor_instance
     with _auditor_lock:
         _auditor_instance = None
+
+
+__all__ = [
+    "AuditCategory",
+    "AuditEvidence",
+    "AuditFinding",
+    "AuditReport",
+    "AuditResult",
+    "AuditSeverity",
+    "AuditStatus",
+    "IndependentAuditor",
+    "get_auditor",
+    "reset_auditor",
+]
+

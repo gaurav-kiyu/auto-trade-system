@@ -40,3 +40,10 @@ class TelegramAuthManager:
 
     def is_admin(self, user_id: str) -> bool:
         return user_id in self._admin_ids
+
+
+__all__ = [
+    "TelegramAuthManager",
+    "UserPermissions",
+]
+

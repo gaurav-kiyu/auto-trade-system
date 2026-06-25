@@ -218,3 +218,13 @@ def validate_broker_ack(acknowledgment: dict[str, Any], broker_type: BrokerType 
     """Convenience function for validation."""
     validator = BrokerAckValidator(broker_type)
     return validator.validate_acknowledgment(acknowledgment, broker_type)
+
+
+__all__ = [
+    "BrokerType",
+    "VALID_BROKER_STATUSES",
+    "REQUIRED_ACK_FIELDS",
+    "AckValidationResult",
+    "BrokerAckValidator",
+    "validate_broker_ack",
+]

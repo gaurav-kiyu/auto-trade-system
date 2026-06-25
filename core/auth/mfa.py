@@ -192,8 +192,9 @@ def verify_recovery_code(code: str, hashed_codes: list[str]) -> bool:
         True if the code matches one of the hashed codes, False otherwise.
     """
     code = code.strip().upper()
-    # Normalize: allow XXXX-XXXX or XXXXXXXX
-    if "-" not in code and len(code) == 8:
+    # Normalize: allow XXXX-XXXXXXXX (12 hex chars = 6 bytes) or XXXXXXXXXXXX
+    # without dash.  Support legacy 8-char format too.
+    if "-" not in code and len(code) in (8, 12):
         code = f"{code[:4]}-{code[4:]}"
     hashed = hash_recovery_code(code)
     return hashed in hashed_codes
@@ -210,7 +211,7 @@ def consume_recovery_code(code: str, hashed_codes: list[str]) -> list[str]:
         Updated list of hashed codes (with the used one removed).
     """
     code = code.strip().upper()
-    if "-" not in code and len(code) == 8:
+    if "-" not in code and len(code) in (8, 12):
         code = f"{code[:4]}-{code[4:]}"
     hashed = hash_recovery_code(code)
     result = [h for h in hashed_codes if h != hashed]
@@ -281,3 +282,16 @@ def get_mfa_session_state() -> MFASessionState:
             if _mfa_session_state is None:
                 _mfa_session_state = MFASessionState()
     return _mfa_session_state
+
+
+__all__ = [
+    "generate_mfa_secret",
+    "get_mfa_provisioning_uri",
+    "verify_mfa_token",
+    "generate_recovery_codes",
+    "hash_recovery_code",
+    "verify_recovery_code",
+    "consume_recovery_code",
+    "MFASessionState",
+    "get_mfa_session_state",
+]

@@ -656,3 +656,16 @@ if __name__ == "__main__":
     else:
         print(report.summary())
     raise SystemExit(0 if report.verdict == "PASS" else 1)
+
+
+__all__ = [
+    "AuditFinding",
+    "AuditReport",
+    "AuditScope",
+    "AuditSeverity",
+    "AuditVerdict",
+    "Auditor",
+    "get_auditor",
+    "run_audit",
+]
+

@@ -441,3 +441,10 @@ def run_morning_checklist(
     checklist = MorningChecklist(send_fn=send_fn, cfg=cfg, broker_port=broker_port, stop_event=stop_event)
     checklist.start()
     return checklist
+
+
+__all__ = [
+    "MorningChecklist",
+    "run_morning_checklist",
+]
+

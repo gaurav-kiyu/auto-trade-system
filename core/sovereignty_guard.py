@@ -2,6 +2,10 @@ import logging
 from typing import Any
 
 
+__all__ = [
+    "SovereigntyGuard",
+]
+
 class SovereigntyGuard:
     """
     Enforces strict control over external dependencies.

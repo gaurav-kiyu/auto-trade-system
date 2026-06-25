@@ -104,3 +104,12 @@ def get_role_permissions(role: Role | str) -> set[Permission]:
 
 class PermissionDenied(Exception):
     """Raised when a role lacks permission for a requested action."""
+
+
+__all__ = [
+    "Role",
+    "Permission",
+    "role_has_permission",
+    "get_role_permissions",
+    "PermissionDenied",
+]

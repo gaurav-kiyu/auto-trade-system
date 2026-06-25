@@ -519,3 +519,13 @@ def _cli() -> None:
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "BudgetStatus",
+    "ErrorBudget",
+    "ErrorBudgetManager",
+    "get_error_budget_manager",
+    "register_error_budget",
+]
+

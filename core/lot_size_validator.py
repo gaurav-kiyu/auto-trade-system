@@ -255,3 +255,13 @@ def validate_lot_sizes(cfg: dict[str, Any], broker_port=None, strict: bool = Tru
     """Validate lot sizes at startup."""
     validator = LotSizeValidator(cfg)
     return validator.validate(broker_port, strict)
+
+
+__all__ = [
+    "DEFAULT_INDEX_LOT_SIZES",
+    "LotSizeResult",
+    "LotSizeValidator",
+    "log",
+    "validate_lot_sizes",
+]
+

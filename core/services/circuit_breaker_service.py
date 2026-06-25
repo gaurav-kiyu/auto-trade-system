@@ -8,6 +8,10 @@ cascading failures and provide graceful degradation.
 from __future__ import annotations
 
 import logging
+
+__all__ = [
+    "CircuitBreakerService",
+]
 import threading
 import time
 from collections import deque

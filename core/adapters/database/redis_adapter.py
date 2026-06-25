@@ -319,8 +319,8 @@ class RedisDatabaseAdapter(DatabasePort):
         """Discard the Redis transaction (DISCARD)."""
         try:
             self.execute("DISCARD")
-        except Exception:
-            pass  # DISCARD raises if no transaction active — safe to ignore
+        except Exception as _rb_exc:
+            _log.debug("[REDIS_DB] Rollback (DISCARD) skipped: %s", _rb_exc)
 
     # ── DDL helpers ──────────────────────────────────────────────────────
 
@@ -347,8 +347,8 @@ class RedisDatabaseAdapter(DatabasePort):
                 self.execute("PING")
                 try:
                     info = self.execute("INFO", ("server",))
-                except Exception:
-                    pass
+                except Exception as _info_exc:
+                    _log.debug("[REDIS_DB] INFO fetch skipped: %s", _info_exc)
             latency = time.monotonic() - start
             return {
                 "status": "healthy" if connected else "disconnected",
@@ -399,3 +399,9 @@ class RedisDatabaseAdapter(DatabasePort):
                 "Redis not connected. Call .connect() first."
             )
         return self._client
+
+
+__all__ = [
+    "RedisDatabaseAdapter",
+]
+

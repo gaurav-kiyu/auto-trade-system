@@ -6,6 +6,11 @@ import numpy as np
 import pandas as pd
 
 
+__all__ = [
+    "RetailSentimentAnalyzer",
+    "RetailSentimentResult",
+]
+
 @dataclass
 class RetailSentimentResult:
     is_blocked: bool

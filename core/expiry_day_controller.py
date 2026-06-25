@@ -337,3 +337,15 @@ def get_index_expiry_weekday(index_name: str) -> int:
         Weekday integer (0=Monday .. 6=Sunday).
     """
     return _INDEX_EXPIRY_MAP.get(index_name.upper(), _DEFAULT_EXPIRY_WEEKDAY)
+
+
+__all__ = [
+    "ExpiryControlResult",
+    "ExpiryDayController",
+    "ExpirySession",
+    "StrategyType",
+    "create_expiry_controller",
+    "get_index_expiry_weekday",
+    "log",
+]
+

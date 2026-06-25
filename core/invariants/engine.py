@@ -197,3 +197,20 @@ def get_state() -> dict:
             "violation_count": len(_violations),
             "disabled_checks": sorted(_disabled_checks),
         }
+
+
+__all__ = [
+    "InvariantCheck",
+    "InvariantResult",
+    "InvariantSeverity",
+    "InvariantViolation",
+    "check_all",
+    "get_state",
+    "get_violations",
+    "is_check_enabled",
+    "register_halt_callback",
+    "register_invariant",
+    "resolve_violation",
+    "toggle_check",
+]
+

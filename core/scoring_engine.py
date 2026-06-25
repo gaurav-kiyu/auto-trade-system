@@ -12,6 +12,10 @@ from core.strategy.strategies import (
     VWAPStrategy,
 )
 
+__all__ = [
+    "ScoringEngine",
+]
+
 
 class ScoringEngine:
     def __init__(self, config: dict[str, Any]):

@@ -644,3 +644,21 @@ def _cli() -> None:
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "compute_drawdown",
+    "compute_metrics",
+    "export_jsonl",
+    "generate_insights",
+    "load_trades",
+    "log",
+    "metrics_by_direction",
+    "metrics_by_exit_reason",
+    "metrics_by_index",
+    "metrics_by_regime",
+    "metrics_by_score_bin",
+    "periodic_summary",
+    "print_report",
+]
+

@@ -160,3 +160,10 @@ def detect_anomaly(
     """
     detector = AnomalyDetector(history_file=history_file, window_size=window_size, z_threshold=z_threshold)
     return detector.update_and_check(metric_name, value)
+
+
+__all__ = [
+    "AnomalyDetector",
+    "detect_anomaly",
+]
+

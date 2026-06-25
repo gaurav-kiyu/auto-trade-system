@@ -494,3 +494,12 @@ if __name__ == "__main__":
     else:
         print("Recommendation Engine CLI")
         print("Run with --demo for a demonstration")
+
+
+__all__ = [
+    "Recommendation",
+    "RecommendationEngine",
+    "RecommendationReport",
+    "generate_recommendations",
+]
+

@@ -517,3 +517,14 @@ class StaleAccountDetector:
                 log.debug("[STALE_ACCOUNT_DETECTOR] non-critical error: %s", e)
 
         return [b for b in known if b not in stale_brokers]
+
+
+__all__ = [
+    "StaleAccountConfig",
+    "StaleAccountDetector",
+    "StaleAccountFinding",
+    "StaleAccountReport",
+    "StalenessCategory",
+    "log",
+]
+

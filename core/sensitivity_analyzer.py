@@ -377,3 +377,15 @@ def _cli() -> None:
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "DEFAULT_SENSITIVITY_PARAMS",
+    "ParameterTestPoint",
+    "SensitivityResult",
+    "format_sensitivity_report",
+    "load_trades_for_sensitivity",
+    "run_sensitivity_analysis",
+    "run_single_parameter_sensitivity",
+]
+

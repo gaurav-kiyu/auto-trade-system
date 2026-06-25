@@ -8,6 +8,12 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 
 
+__all__ = [
+    "CircuitBreaker",
+    "PerfAccumulator",
+    "check_manual_kill_switch",
+]
+
 class CircuitBreaker:
     """Rolling-window failure counter; trips and logs when threshold is hit."""
 

@@ -24,6 +24,12 @@ from typing import Any
 from core.datetime_ist import now_ist
 from core.db_utils import get_connection
 
+__all__ = [
+    "JournalEntry",
+    "TradeJournal",
+    "VALID_EXIT_REASONS",
+]
+
 log = logging.getLogger("trade_journal")
 
 _JOURNAL_DB = "trade_journal.db"

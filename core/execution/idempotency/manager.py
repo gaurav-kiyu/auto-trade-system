@@ -232,3 +232,11 @@ class IdempotencyManager:
         stale_keys = [k for k, t in self._in_flight.items() if t < stale_time]
         for k in stale_keys:
             del self._in_flight[k]
+
+
+__all__ = [
+    "IdempotencyManager",
+    "IdempotencyRecord",
+    "log",
+]
+

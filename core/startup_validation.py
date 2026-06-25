@@ -253,3 +253,17 @@ def run_startup_validation(
         )
 
     return False
+
+
+__all__ = [
+    "AUTHORITATIVE_RISK_CLASS",
+    "AUTHORITATIVE_RISK_MODULE",
+    "DEPRECATED_RISK_MODULES",
+    "log",
+    "run_startup_validation",
+    "validate_app_config",
+    "validate_dependencies",
+    "validate_environment_vars",
+    "validate_risk_engine",
+]
+

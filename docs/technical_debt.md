@@ -148,9 +148,9 @@ prioritized by impact severity and estimated remediation effort.
 | **Description** | Core modules have unit tests, but integration/chaos tests are incomplete. |
 | **Impact** | MEDIUM — Regression risk in edge cases |
 | **Effort** | L |
-| **Status** | IN_PROGRESS |
+| **Status** | **RESOLVED** |
 | **Target** | v2.54 |
-| **Notes** | 3500+ tests currently pass. Stress, catastrophic, failover, and reconciliation tests all pass. ✅ Created `tests/test_exit_idempotency.py` with 11 tests covering deterministic exit key generation, different-reason differentiation, certifier duplicate prevention, and IdempotencyManager integration for exit operations. Constitution evidence score improved to **9.34** with **530 evidence items** across all 31 categories. |
+| **Notes** | ✅ All 23 previously uncovered `core/` modules now have dedicated test suites (313 new tests across 23 files, all passing). Modules covered: utils_numeric, execution_error_classifier, recommendation_engine, order_flow_analyzer, portfolio_hedge, ml_inference, ml_exit_classifier, ml_regime_router, strategy_engine, finnifty_filter, health_reporter, equity_protection, realtime_performance_monitor, retention_engine, hmm_regime_detector, param_morpher, presentation_engine, runbook_executor, dashboard_engine, common_config_validate, config_v2, market_simulator, opbuying_observability. |
 
 ### DEBT-012: ML Performance Tracker Schema Migration Not Versioned
 | Field | Value |
@@ -230,9 +230,9 @@ prioritized by impact severity and estimated remediation effort.
 |----------|-------|----------------|
 | CRITICAL | 0 (3 resolved) | All resolved |
 | HIGH | 1 (4 resolved) | 1 remaining: DEBT-008 (monolith, ACCEPTED) |
-| MEDIUM | 1 (5 resolved) | 1 remaining: DEBT-011 (test coverage, IN_PROGRESS) |
+| MEDIUM | 0 (6 resolved) | All resolved — DEBT-011 now closed |
 | LOW | 0 (4 resolved) | All resolved |
-| **Total** | **2 active** (16 resolved) | Down from 17 to 2 active items: DEBT-008 (HIGH/ACCEPTED), DEBT-011 (MEDIUM/IN_PROGRESS). DEBT-002 RESOLVED. DEBT-009 RESOLVED. |
+| **Total** | **1 active** (17 resolved) | Down from 17 to 1 active item: DEBT-008 (HIGH/ACCEPTED). |
 
 ## Review Cycle
 This register is reviewed during release planning and every month thereafter.
@@ -240,4 +240,4 @@ Items with changed status are annotated with the review date.
 
 ---
 
-*Updated: June 2, 2026 — 16 of 17 debt items resolved. 2 active items remain (DEBT-008 ACCEPTED, DEBT-011 IN_PROGRESS). Constitution score: **9.34** (530 evidence items). DEBT-002 RESOLVED: idempotency fully wired. DEBT-009 RESOLVED: shared SQLite helper with WAL mode deployed to critical modules (core/db_utils.py).*
+*Updated: June 23, 2026 — 17 of 18 debt items resolved. 1 active item remains (DEBT-008 ACCEPTED). DEBT-011 RESOLVED: 23 previously uncovered core modules now have 313 dedicated tests, all passing.*

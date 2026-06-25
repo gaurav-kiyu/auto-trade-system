@@ -32,6 +32,14 @@ from typing import Any
 
 from core.db_utils import get_connection
 
+__all__ = [
+    "coverage_pct",
+    "get_oi_at",
+    "get_pcr_at",
+    "get_snapshot_at",
+    "record_snapshot",
+]
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_DB           = "oi_snapshots.db"

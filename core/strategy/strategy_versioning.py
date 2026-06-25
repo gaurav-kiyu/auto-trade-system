@@ -246,3 +246,11 @@ def get_strategy_version_manager() -> StrategyVersionManager:
         if _version_manager is None:
             _version_manager = StrategyVersionManager()
         return _version_manager
+
+
+__all__ = [
+    "StrategyVersion",
+    "TradeRecord",
+    "StrategyVersionManager",
+    "get_strategy_version_manager",
+]

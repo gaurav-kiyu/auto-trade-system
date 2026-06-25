@@ -20,6 +20,11 @@ from typing import Any
 from core.db_utils import get_connection
 from core.domains.sme import SmePlatform
 
+__all__ = [
+    "SmeCircuitGateError",
+    "SmeTradingService",
+]
+
 _log = logging.getLogger(__name__)
 
 # Default circuit limits by platform

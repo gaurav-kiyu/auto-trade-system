@@ -253,3 +253,13 @@ def format_benchmark_table(
         f"  Benchmark Max DD: -{benchmark.max_drawdown_pct:.1f}%",
     ]
     return "\n".join(lines)
+
+
+__all__ = [
+    "AlphaMetrics",
+    "BenchmarkReturn",
+    "compute_alpha_metrics",
+    "fetch_benchmark",
+    "format_benchmark_table",
+]
+

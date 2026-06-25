@@ -224,3 +224,12 @@ def get_metrics_collector() -> MetricsCollector:
             if _collector is None:
                 _collector = MetricsCollector()
     return _collector
+
+
+__all__ = [
+    "CounterMetric",
+    "MetricBucket",
+    "MetricsCollector",
+    "get_metrics_collector",
+]
+

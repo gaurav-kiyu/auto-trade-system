@@ -23,6 +23,12 @@ from typing import Any
 
 from core.db_utils import get_connection
 
+__all__ = [
+    "analyze_live_performance",
+    "main",
+    "print_live_performance",
+]
+
 _log = logging.getLogger(__name__)
 
 

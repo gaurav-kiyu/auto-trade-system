@@ -12,6 +12,11 @@ import requests
 
 from core.datetime_ist import now_ist
 
+
+__all__ = [
+    "fetch_nse_holidays",
+]
+
 _log = logging.getLogger(__name__)
 
 # Hardcoded fallback for 2026 NSE trading holidays in case API fetch fails

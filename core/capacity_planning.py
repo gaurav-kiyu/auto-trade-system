@@ -686,3 +686,15 @@ def wire_capacity_alerting(
 
 if __name__ == "__main__":
     _cli()
+
+
+__all__ = [
+    "CapacityPlanner",
+    "CapacityReport",
+    "DEFAULT_SCALING_TRIGGERS",
+    "GrowthForecast",
+    "ResourceMetric",
+    "ScalingTrigger",
+    "wire_capacity_alerting",
+]
+

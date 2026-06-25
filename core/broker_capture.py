@@ -7,6 +7,11 @@ from pathlib import Path
 from typing import Any
 
 
+__all__ = [
+    "BrokerEvent",
+    "JsonlCaptureWriter",
+]
+
 @dataclass(frozen=True)
 class BrokerEvent:
     ts: str

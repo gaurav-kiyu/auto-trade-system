@@ -330,3 +330,11 @@ def get_shadow_engine() -> ShadowModeEngine:
         if _shadow_engine is None:
             _shadow_engine = ShadowModeEngine()
         return _shadow_engine
+
+
+__all__ = [
+    "ShadowSignal",
+    "ShadowComparison",
+    "ShadowModeEngine",
+    "get_shadow_engine",
+]

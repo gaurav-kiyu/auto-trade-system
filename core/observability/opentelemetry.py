@@ -477,3 +477,15 @@ def auto_init(config: dict[str, Any] | None = None) -> bool:
             return _tracing_enabled
         _auto_inited = True
         return init_tracing(config)
+
+
+__all__ = [
+    "Timer",
+    "auto_init",
+    "get_tracer",
+    "init_tracing",
+    "is_tracing_enabled",
+    "shutdown_tracing",
+    "trace_event",
+]
+

@@ -372,3 +372,9 @@ class SQLAlchemyDatabaseAdapter(DatabasePort):
                 "Engine not initialized. Call .connect() first."
             )
         return self._conn
+
+
+__all__ = [
+    "SQLAlchemyDatabaseAdapter",
+]
+

@@ -2496,3 +2496,13 @@ def create_enterprise_dashboard(
     dashboard = EnterpriseDashboard(config=config)
     dashboard.wire_bot_refs(**refs)
     return dashboard
+
+
+__all__ = [
+    "DashboardNotifier",
+    "EnterpriseDashboard",
+    "Notification",
+    "NotificationManager",
+    "create_enterprise_dashboard",
+]
+

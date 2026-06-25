@@ -39,3 +39,10 @@ def load_index_map(project_root: Path | None = None) -> dict[str, dict[str, Any]
         if ne:
             out[str(k)] = ne
     return out
+
+
+__all__ = [
+    "load_index_map",
+    "normalize_index_map_entry",
+]
+

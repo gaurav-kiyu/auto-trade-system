@@ -237,3 +237,12 @@ def get_feature_flags() -> FeatureFlagManager:
 def is_enabled(flag_name: str) -> bool:
     """Quick check if flag is enabled"""
     return get_feature_flags().is_enabled(flag_name)
+
+
+__all__ = [
+    "FeatureFlag",
+    "FeatureFlagManager",
+    "get_feature_flags",
+    "is_enabled",
+]
+

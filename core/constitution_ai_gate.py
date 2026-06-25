@@ -359,3 +359,18 @@ def validate_ai_action(
         risk_controls_verified=True,
         changed_files=changed_files,
     )
+
+
+__all__ = [
+    "AIGateEvent",
+    "AIGateResult",
+    "AIGovernanceGate",
+    "BROKER_SDK_PATTERNS",
+    "BYPASS_PATTERNS",
+    "FORBIDDEN_FILE_TARGETS",
+    "RISK_CONTROL_KEYWORDS",
+    "get_gate",
+    "log",
+    "validate_ai_action",
+]
+

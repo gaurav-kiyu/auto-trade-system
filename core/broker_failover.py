@@ -157,3 +157,9 @@ class BrokerFailoverManager:
                     for b, s in self._states.items()
                 },
             }
+
+
+__all__ = [
+    "BrokerFailoverManager",
+]
+

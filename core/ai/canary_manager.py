@@ -120,3 +120,10 @@ class CanaryManager:
         """List all active canary deployments."""
         with self._lock:
             return list(self._canaries.values())
+
+
+__all__ = [
+    "CanaryManager",
+    "CanaryState",
+]
+

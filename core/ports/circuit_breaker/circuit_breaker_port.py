@@ -142,3 +142,14 @@ class CircuitBreakerOpenException(Exception):
 class CircuitBreakerHalfOpenException(Exception):
     """Exception raised when circuit breaker is half-open and rejects call."""
     pass
+
+
+__all__ = [
+    "CircuitBreakerConfig",
+    "CircuitBreakerHalfOpenException",
+    "CircuitBreakerOpenException",
+    "CircuitBreakerPort",
+    "CircuitBreakerStats",
+    "CircuitState",
+]
+

@@ -300,3 +300,14 @@ class AdaptiveBehaviorGovernor:
 def create_governor(config: dict[str, Any]) -> AdaptiveBehaviorGovernor:
     """Create adaptive behavior governor from config."""
     return AdaptiveBehaviorGovernor(config)
+
+
+__all__ = [
+    "AdaptiveAction",
+    "AdaptiveBehaviorGovernor",
+    "AdaptiveMode",
+    "GovernanceConfig",
+    "create_governor",
+    "log",
+]
+

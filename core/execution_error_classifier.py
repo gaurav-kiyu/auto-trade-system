@@ -117,3 +117,13 @@ def classify_broker_error(error: Exception) -> ErrorClassification:
     """Convenience function for error classification."""
     classifier = BrokerErrorClassifier()
     return classifier.classify(error)
+
+
+__all__ = [
+    "BrokerErrorClassifier",
+    "ErrorCategory",
+    "ErrorClassification",
+    "classify_broker_error",
+    "log",
+]
+

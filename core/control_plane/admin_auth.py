@@ -209,3 +209,10 @@ class AdminAuth:
     def has_auth_enabled(self) -> bool:
         """Returns True if authentication is configured."""
         return bool(self._auth_token)
+
+
+__all__ = [
+    "AdminAuth",
+    "AdminToken",
+]
+

@@ -132,3 +132,12 @@ def create_performance_monitor(config: dict) -> RealtimePerformanceMonitor:
         alert_loss_streak=config.get("REAL_TIME_ALERT_ON_LOSS_STREAK", 3),
     )
     return RealtimePerformanceMonitor(cfg)
+
+
+__all__ = [
+    "PerformanceConfig",
+    "PerformanceSnapshot",
+    "RealtimePerformanceMonitor",
+    "create_performance_monitor",
+]
+

@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from typing import Any
 
 
+__all__ = [
+    "RLAction",
+    "RLExitOptimizer",
+]
+
 @dataclass
 class RLAction:
     action: str  # "HOLD" or "EXIT"

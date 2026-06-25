@@ -448,3 +448,12 @@ if __name__ == "__main__":
         print(result.summary())
 
     raise SystemExit(0 if result.passed else 1)
+
+
+__all__ = [
+    "CertificationGate",
+    "CertificationGateResult",
+    "ROOT",
+    "run_certification_gate",
+]
+

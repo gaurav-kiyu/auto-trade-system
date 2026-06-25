@@ -193,3 +193,14 @@ def correlation_summary(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
         "threshold": c.get("correlation_threshold", 0.85),
         "pairs":     results,
     }
+
+
+__all__ = [
+    "are_correlated_pair",
+    "check_portfolio_correlation",
+    "correlation_summary",
+    "get_closes",
+    "pearson_r",
+    "update_closes",
+]
+

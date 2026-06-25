@@ -1,5 +1,12 @@
 """Signal Service - consolidates signal generation and validation logic.
 
+
+__all__ = [
+    "SignalService",
+    "get_signal_service",
+    "reset_signal_service",
+]
+
 Extracted from index_trader.py (GAP-05b split). Provides a singleton-backed
 SignalService class with methods for signal pillar validation, trading signal
 generation, and quality reporting.
@@ -10,6 +17,12 @@ from __future__ import annotations
 import logging
 import threading
 from typing import Any
+
+__all__ = [
+    "SignalService",
+    "get_signal_service",
+    "reset_signal_service",
+]
 
 _log = logging.getLogger(__name__)
 

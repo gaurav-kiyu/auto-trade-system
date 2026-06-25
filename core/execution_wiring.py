@@ -139,3 +139,11 @@ def create_safety_wiring(
     wiring = ExecutionSafetyWiring(db_path=db_path, broker_port=broker_port)
     wiring.initialize()
     return wiring
+
+
+__all__ = [
+    "ExecutionSafetyWiring",
+    "create_safety_wiring",
+    "log",
+]
+

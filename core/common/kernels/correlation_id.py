@@ -141,3 +141,16 @@ def with_correlation_id(correlation_id: str):
                 clear_correlation_id()
 
     return CorrelationIdContext()
+
+
+__all__ = [
+    "CorrelationIdManager",
+    "clear_correlation_id",
+    "correlation_id_context",
+    "correlation_id_manager",
+    "generate_correlation_id",
+    "get_correlation_id",
+    "set_correlation_id",
+    "with_correlation_id",
+]
+

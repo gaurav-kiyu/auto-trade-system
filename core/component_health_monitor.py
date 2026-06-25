@@ -230,3 +230,12 @@ def get_health_monitor() -> ComponentHealthMonitor:
             if _global_monitor is None:
                 _global_monitor = ComponentHealthMonitor()
     return _global_monitor
+
+
+__all__ = [
+    "ComponentHealth",
+    "ComponentHealthMonitor",
+    "get_health_monitor",
+    "log",
+]
+

@@ -328,3 +328,9 @@ class KiteTickerFeedManager(WebSocketFeedManager):
     def _cfg(self) -> dict[str, Any]:
         """Expose config for _broker_secrets lookup."""
         return self._cfg_store
+
+
+__all__ = [
+    "KiteTickerFeedManager",
+]
+

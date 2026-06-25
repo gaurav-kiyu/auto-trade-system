@@ -296,3 +296,14 @@ def evaluate_straddle_exit(
         )
 
     return StraddleExitDecision(action="HOLD", exit_leg="", reason="within bounds")
+
+
+__all__ = [
+    "StraddleExitDecision",
+    "StraddlePosition",
+    "build_straddle",
+    "build_strangle",
+    "check_straddle_conditions",
+    "evaluate_straddle_exit",
+]
+

@@ -280,3 +280,15 @@ def create_session_reporter(
 ) -> DailySessionReporter:
     """Factory function to create session reporter."""
     return DailySessionReporter(db_path=db_path, send_fn=send_fn)
+
+
+__all__ = [
+    "DailySessionReporter",
+    "PnLBreakdown",
+    "RiskMetrics",
+    "SessionReport",
+    "TradeSummary",
+    "create_session_reporter",
+    "log",
+]
+

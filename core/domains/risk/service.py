@@ -582,3 +582,10 @@ if __name__ == "__main__":
         print("✅ No risk alerts")
 
     print("\\n✅ Risk service working correctly!")
+
+
+__all__ = [
+    "RiskService",
+    "create_risk_service",
+]
+

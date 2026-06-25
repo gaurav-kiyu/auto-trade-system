@@ -7,6 +7,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
+__all__ = [
+    "RetentionEngine",
+    "RetentionPolicy",
+]
+
 @dataclass(frozen=True)
 class RetentionPolicy:
     max_files: int

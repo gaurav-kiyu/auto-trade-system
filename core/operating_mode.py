@@ -222,3 +222,13 @@ class OperatingModeManager:
                     not in (OperatingMode.SIGNAL_ONLY, OperatingMode.BACKTEST),
                 "transition_count": len(self._history),
             }
+
+
+__all__ = [
+    "ExecutionAction",
+    "ModeTransition",
+    "OperatingMode",
+    "OperatingModeManager",
+    "OperatingModeViolationError",
+]
+

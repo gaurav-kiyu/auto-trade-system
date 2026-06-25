@@ -332,7 +332,7 @@ class StrategyRegistry:
 class StrategyLoader:
     """
     Dynamic strategy loader.
-    Loads strategies from plugins directory.
+    Loads strategies from plugins directory or config definitions.
     """
 
     def __init__(self, registry: StrategyRegistry):
@@ -357,6 +357,83 @@ class StrategyLoader:
             _log.error(f"Failed to load strategy from {module_path}: {e} (type: {type(e).__name__})")
             return None
 
+    def load_from_config(self, config: dict[str, Any]) -> list[BaseStrategy]:
+        """Load strategies from a structured config definition.
+
+        Expects a ``strategies`` config block with the following structure::
+
+            {
+              "strategies": [
+                {
+                  "enabled": true,
+                  "name": "TrendAligner",
+                  "module": "/path/to/strategies/my_strat.py",
+                  "class": "TrendAlignmentStrategy",
+                  "params": {"vol_ratio_min": 1.5}
+                },
+                {
+                  "enabled": false,
+                  "name": "MeanReversion",
+                  "module": "/path/to/strategies/mean_rev.py",
+                  "class": "MeanReversionStrategy",
+                  "params": {}
+                }
+              ]
+            }
+
+        Only strategies with ``enabled: true`` are loaded. If ``module`` and
+        ``class`` are not provided, the strategy definition is treated as a
+        reference-only entry and logged as informational.
+
+        Args:
+            config: Full merged config dict or strategies block.
+
+        Returns:
+            List of successfully loaded BaseStrategy instances.
+        """
+        loaded: list[BaseStrategy] = []
+        strategies_block = config.get("strategies", [])
+
+        if isinstance(strategies_block, dict):
+            # The strategies block might be a dict of dicts
+            strategies_block = list(strategies_block.values())
+
+        if not isinstance(strategies_block, list):
+            _log.warning("[Loader] strategies config is not a list; skipping")
+            return loaded
+
+        for entry in strategies_block:
+            if not isinstance(entry, dict):
+                continue
+
+            enabled = entry.get("enabled", False)
+            if not enabled:
+                continue
+
+            name = entry.get("name", "unnamed")
+            module_path = entry.get("module", "")
+            class_name = entry.get("class", "")
+            params = entry.get("params", {})
+
+            if not module_path or not class_name:
+                _log.info("[Loader] Strategy '%s' has no module/class (reference entry)", name)
+                continue
+
+            try:
+                strategy = self.load_from_module(module_path, class_name, params)
+                if strategy:
+                    loaded.append(strategy)
+                    _log.info("[Loader] Loaded strategy '%s' from config", name)
+                else:
+                    _log.warning("[Loader] Failed to load strategy '%s' from config", name)
+            except Exception as exc:
+                _log.error("[Loader] Error loading strategy '%s': %s", name, exc)
+
+        _log.info("[Loader] Loaded %d/%d enabled strategies from config",
+                  len(loaded),
+                  sum(1 for e in strategies_block if isinstance(e, dict) and e.get("enabled")))
+        return loaded
+
 
 _strategy_registry: StrategyRegistry | None = None
 _registry_lock = threading.RLock()
@@ -369,3 +446,17 @@ def get_strategy_registry() -> StrategyRegistry:
         if _strategy_registry is None:
             _strategy_registry = StrategyRegistry()
         return _strategy_registry
+
+
+__all__ = [
+    "StrategySignal",
+    "StrategyState",
+    "MarketData",
+    "StrategySignalOutput",
+    "FillInfo",
+    "RiskUpdate",
+    "BaseStrategy",
+    "StrategyRegistry",
+    "StrategyLoader",
+    "get_strategy_registry",
+]

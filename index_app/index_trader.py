@@ -347,6 +347,39 @@ from pathlib import Path
 from typing import Any
 
 # ── Inject project root into sys.path BEFORE any core imports ──
+
+
+__all__ = [
+    "PositionProxy",
+    "StateProxy",
+    "breakout_state",
+    "check_mandate_trade_allowed",
+    "check_pending_reconciliation",
+    "daily_reset",
+    "decision_log",
+    "enter_trade",
+    "fetch_last_close_summary",
+    "generate_signal_snapshot",
+    "get_all_dlogs",
+    "get_mandate_status",
+    "get_position_size",
+    "get_state_snapshot",
+    "get_underlying_ltp",
+    "get_wait_reason_components",
+    "health_check",
+    "learning_state",
+    "log",
+    "main",
+    "market_status",
+    "performance",
+    "positions",
+    "print_dashboard",
+    "send",
+    "setup_di_container",
+    "start_trader",
+    "validate_signal_pillars",
+]
+
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))

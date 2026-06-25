@@ -65,3 +65,10 @@ class RiskLimitsManager:
                 risk_score=0.9
             )
         return RiskEvaluation(decision=RiskDecision.ALLOWED, reason="Portfolio limits check passed", risk_score=0.1)
+
+
+__all__ = [
+    "LimitConfig",
+    "RiskLimitsManager",
+]
+

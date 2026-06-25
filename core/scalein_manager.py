@@ -173,3 +173,10 @@ class ScaleInManager:
             (state.entry_price * state.leg1_lots + leg2_fill * state.leg2_lots) / total,
             2,
         )
+
+
+__all__ = [
+    "ScaleInManager",
+    "ScaleInState",
+]
+

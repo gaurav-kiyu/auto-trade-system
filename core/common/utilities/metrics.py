@@ -330,3 +330,17 @@ def get_metric(metric_name: str) -> Any:
         return summary
 
     return None
+
+
+__all__ = [
+    "MetricPoint",
+    "MetricSummary",
+    "MetricsCollector",
+    "get_metric",
+    "increment_counter",
+    "metrics_collector",
+    "record_metric",
+    "set_gauge",
+    "time_operation",
+]
+

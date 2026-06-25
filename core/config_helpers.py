@@ -6,6 +6,14 @@ import base64
 from typing import Any
 
 
+__all__ = [
+    "build_audit_config_snapshot",
+    "decode_if_b64",
+    "deep_merge_dict",
+    "normalize_tg_trade_patterns",
+    "redact",
+]
+
 def decode_if_b64(s: Any) -> Any:
     """Decode values prefixed with ``b64:`` in config JSON for light obfuscation."""
     if not s or not isinstance(s, str):

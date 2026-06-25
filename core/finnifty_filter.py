@@ -62,3 +62,11 @@ def create_finnifty_filter(config: dict) -> FINNIFTYFilter:
         require_trending_regime=config.get("FINNIFTY_REGIME_REQUIRE_TRENDING", True),
     )
     return FINNIFTYFilter(cfg)
+
+
+__all__ = [
+    "FINNIFTYFilter",
+    "FINNIFTYFilterConfig",
+    "create_finnifty_filter",
+]
+

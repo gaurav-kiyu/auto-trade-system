@@ -87,3 +87,9 @@ class BrokerGateway:
 
 # Singleton instance
 broker_gateway = BrokerGateway()
+
+
+__all__ = [
+    "BrokerGateway",
+    "broker_gateway",
+]

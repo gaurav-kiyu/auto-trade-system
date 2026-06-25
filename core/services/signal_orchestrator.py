@@ -3,6 +3,13 @@ import threading
 from dataclasses import dataclass, field
 from typing import Any
 
+__all__ = [
+    "SignalIntent",
+    "SignalOrchestrator",
+    "signal_orchestrator",
+    "init_signal_orchestrator",
+]
+
 from core.ml_inference import ml_engine
 from core.time_provider import time_provider
 
