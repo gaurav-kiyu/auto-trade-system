@@ -5,7 +5,6 @@ Tests for core/iv_surface.py - IV Surface Calculator.
 from __future__ import annotations
 
 import json
-import math
 
 import pytest
 

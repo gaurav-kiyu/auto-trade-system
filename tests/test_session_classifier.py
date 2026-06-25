@@ -13,12 +13,9 @@ Covers:
 from __future__ import annotations
 
 import datetime
-from typing import Any
 
-import pytest
 
 from core.session_classifier import (
-    ExpirySession,
     ExpirySessionName,
     SessionType,
     classify_session,

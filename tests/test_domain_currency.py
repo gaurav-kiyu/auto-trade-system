@@ -22,7 +22,6 @@ from core.domains.currency.models import (
     CurrencyPair,
     CurrencyPosition,
     PositionType,
-    SettlementType,
 )
 
 

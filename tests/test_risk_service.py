@@ -31,7 +31,6 @@ from core.services.risk_service import (
     PortfolioRiskMetrics,
     PositionSizingInput,
     RiskDecision,
-    RiskEvaluation,
 )
 
 

@@ -5,12 +5,10 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from core.runbook_executor import (
     Runbook,
     RunbookExecutor,
-    RunbookExecutionResult,
     RunbookStep,
     get_runbook_executor,
 )

@@ -33,8 +33,8 @@ import logging
 import math
 import time
 from dataclasses import dataclass, field
-from statistics import mean, stdev
-from typing import Any, Callable
+from statistics import mean
+from typing import Any
 
 _log = logging.getLogger(__name__)
 

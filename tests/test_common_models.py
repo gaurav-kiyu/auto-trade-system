@@ -10,9 +10,7 @@ Covers:
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
 
-import pytest
 
 from core.domains.strategy.model import SignalStrength
 from core.common.models.models import (

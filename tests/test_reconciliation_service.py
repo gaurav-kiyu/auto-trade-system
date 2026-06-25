@@ -20,7 +20,7 @@ import sqlite3
 import threading
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -1004,4 +1004,3 @@ class TestEdgeCases:
     def test_order_with_all_none_fields(self, service: ReconciliationService):
         """Handles requests where all optional fields are None."""
         # Would fail validation; fields are not nullable in schema
-        pass

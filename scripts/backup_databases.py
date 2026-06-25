@@ -25,11 +25,8 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 import shutil
 import sys
-import time
-from datetime import timedelta
 from pathlib import Path
 
 # Use IST-aware timestamp for backup directory naming

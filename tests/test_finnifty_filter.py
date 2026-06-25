@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from core.finnifty_filter import FINNIFTYFilter, FINNIFTYFilterConfig, create_finnifty_filter
 

@@ -12,11 +12,8 @@ from __future__ import annotations
 
 import json
 import time
-from pathlib import Path
-from threading import Event
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
-import pytest
 
 from core.fii_dii_tracker import FIIDIIData, FIIDIITracker
 

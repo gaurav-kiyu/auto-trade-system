@@ -13,7 +13,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-import pytest
 
 from core.ports.broker.health_port import (
     BrokerHealthMetrics,

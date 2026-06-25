@@ -16,17 +16,15 @@ Covers:
 
 from __future__ import annotations
 
-import json
 import os
 import threading
-import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from core.adapters.base_adapter import OrderRequest, OrderResponse, OrderStatus
-from core.execution.order_manager import OrderManager, OrderState, order_manager
+from core.execution.order_manager import OrderManager, OrderState
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ Covers:
 """
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -19,12 +19,10 @@ from core.ports.broker.health_port import (
     BrokerHealthMetrics,
     BrokerStatus,
     FailoverConfig,
-    HealthCheckType,
 )
 from core.services.broker_health_service import (
     BrokerHealthService,
     BrokerHealthServiceConfig,
-    HealthCheckResult,
 )
 
 

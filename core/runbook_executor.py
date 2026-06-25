@@ -32,7 +32,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import subprocess  # nosec — only used for safe shell commands from runbook steps
 import threading

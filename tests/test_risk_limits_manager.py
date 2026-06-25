@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 
 from core.risk.limits.manager import LimitConfig, RiskLimitsManager
 from core.ports.risk.risk_port import RiskDecision

@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 
-import numpy as np
-import pytest
 
 from core.ml_inference import MLInferenceEngine, MLPrediction, init_ml_engine
 import core.ml_inference

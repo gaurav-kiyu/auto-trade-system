@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
 
 from core.realtime_performance_monitor import (
     PerformanceConfig,

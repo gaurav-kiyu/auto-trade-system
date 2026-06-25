@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
-import pytest
 
-from core.order_flow_analyzer import OrderFlowAnalyzer, OrderFlowResult
+from core.order_flow_analyzer import OrderFlowAnalyzer
 
 
 def _make_df(close_values: list[float], volume_values: list[float]) -> pd.DataFrame:

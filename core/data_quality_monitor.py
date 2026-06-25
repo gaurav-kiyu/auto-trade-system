@@ -31,7 +31,7 @@ import statistics
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 _log = logging.getLogger(__name__)

@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import math
 import pytest
 from core.portfolio.optimizer import (
     PortfolioOptimizer,
-    OptimizationResult,
-    EfficientFrontierResult,
 )
 
 

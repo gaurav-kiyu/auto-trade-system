@@ -9,7 +9,6 @@ Covers:
 """
 from __future__ import annotations
 
-import pytest
 
 from core.config_helpers import (
     _AUDIT_REDACT_SCALARS,

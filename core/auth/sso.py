@@ -33,7 +33,6 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import logging
 import secrets
 import time
@@ -246,7 +245,6 @@ class SSOAuthenticator:
             return None
 
         try:
-            import httpx
             from authlib.integrations.httpx_client import OAuth2Client
 
             async with OAuth2Client(

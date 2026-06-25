@@ -15,7 +15,7 @@ from __future__ import annotations
 import pytest
 
 from core.auth.dependencies import AuthDependencies, get_client_ip
-from core.auth.handler import AuthHandler, AuthUser, hash_password
+from core.auth.handler import AuthHandler, AuthUser
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

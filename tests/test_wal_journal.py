@@ -14,10 +14,8 @@ Covers:
 from __future__ import annotations
 
 import sqlite3
-import threading
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
-import pytest
 
 from core.wal.journal import (
     Intent,
@@ -287,7 +285,6 @@ class TestCleanup:
     @patch("core.wal.journal.get_connection")
     @patch("core.wal.journal.now_ist")
     def test_cleanup_deletes_old_settled(self, mock_now, mock_get_conn):
-        from datetime import timedelta
         mock_now_inst = MagicMock()
         mock_now_inst.__sub__.return_value.__str__.return_value = "2026-01-01T00:00:00"
         mock_now.return_value = mock_now_inst

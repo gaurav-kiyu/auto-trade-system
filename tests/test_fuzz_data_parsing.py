@@ -14,7 +14,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
@@ -330,7 +329,6 @@ class TestConfigEdgeCases:
 
     def test_config_change_dataclass_frozen(self):
         """ConfigChange should be a frozen dataclass."""
-        import json
         from datetime import datetime
         change = ConfigChange(
             key="TEST_KEY",

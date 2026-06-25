@@ -31,7 +31,6 @@ Design
 
 from __future__ import annotations
 
-import json
 import logging
 import threading
 import time
@@ -101,7 +100,6 @@ def init_tracing(config: dict[str, Any] | None = None) -> bool:
         try:
             from opentelemetry import trace
             from opentelemetry.sdk.trace import TracerProvider
-            from opentelemetry.sdk.trace.export import BatchSpanProcessor
             from opentelemetry.sdk.resources import Resource
 
             # Create resource with service name

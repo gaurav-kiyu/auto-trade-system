@@ -33,7 +33,6 @@ from fastapi.templating import Jinja2Templates
 from collections import deque
 from typing import AsyncGenerator
 
-from fastapi.responses import StreamingResponse
 
 from core.auth.csrf import csrf_protection
 from core.auth.dependencies import AuthDependencies

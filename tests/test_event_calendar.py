@@ -16,9 +16,8 @@ Covers:
 from __future__ import annotations
 
 import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from core.event_calendar import (
     CorporateAction,
@@ -31,7 +30,6 @@ from core.event_calendar import (
     get_event,
     get_market_status,
     get_next_market_open,
-    get_time_until_market_open,
     is_corp_action_day,
     is_market_day,
     is_pre_market,

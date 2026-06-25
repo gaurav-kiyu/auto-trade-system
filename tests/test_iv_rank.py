@@ -11,11 +11,8 @@ Covers:
 """
 from __future__ import annotations
 
-import json
 import time
-from pathlib import Path
-from typing import Any
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import patch
 
 import pytest
 

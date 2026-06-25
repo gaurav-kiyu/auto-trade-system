@@ -15,14 +15,11 @@ a stateless order simulation engine. This test validates that:
 
 from __future__ import annotations
 
-import pytest
 
 from core.market_simulator import (
     MarketSimulator,
     SimulatorConfig,
     SimulatedOrderResult,
-    RejectionType,
-    ExchangeFailureType,
 )
 
 

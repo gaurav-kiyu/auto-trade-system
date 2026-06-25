@@ -5,7 +5,6 @@
 import ast
 import os
 import re
-import sys
 import py_compile
 
 

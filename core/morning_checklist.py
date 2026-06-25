@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import os
 import threading
-import time
 from datetime import time as dt_time
 from typing import Any
 
@@ -405,7 +404,6 @@ class MorningChecklist:
             from core.event_calendar import (
                 get_upcoming_ipos,
                 is_ipo_issue_date,
-                fetch_ipo_events,
             )
             cfg = self._cfg
             if not cfg.get("ipo_calendar_enabled", False):

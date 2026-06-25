@@ -11,12 +11,10 @@ Follows the same patterns as test_enterprise_dashboard.py.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import threading
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 

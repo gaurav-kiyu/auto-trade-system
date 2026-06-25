@@ -12,11 +12,9 @@ Covers:
 """
 from __future__ import annotations
 
-import sqlite3
 import threading
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from core.execution.idempotency.certifier import (
     CertStatus,

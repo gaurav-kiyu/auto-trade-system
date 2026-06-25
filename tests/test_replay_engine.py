@@ -14,10 +14,8 @@ Covers:
 """
 from __future__ import annotations
 
-import threading
 from unittest.mock import MagicMock, call, patch
 
-import pytest
 
 from core.execution.replay_engine import (
     ReplayEngine,

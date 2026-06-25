@@ -10,15 +10,11 @@ Covers:
 """
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from core.intraday_performance_monitor import (
-    AdaptationParams,
     IntradayPerformanceMonitor,
-    IntradayStats,
     _CAUTIOUS_PARAMS,
     _DEFENSIVE_PARAMS,
     _NORMAL_PARAMS,

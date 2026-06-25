@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import time
 import pytest
-from core.error_budget import ErrorBudget, ErrorBudgetManager, BudgetStatus
+from core.error_budget import ErrorBudget, ErrorBudgetManager
 
 
 class TestErrorBudget:

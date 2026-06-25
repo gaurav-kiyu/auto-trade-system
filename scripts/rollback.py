@@ -32,7 +32,6 @@ import os
 import shutil
 import subprocess
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -467,7 +466,6 @@ def test_rollback() -> int:
 
     # Check safety_state import
     try:
-        from core.safety_state import trip_hard_halt, _HARD_HALT
         log.info("  ✓ safety_state import (trip_hard_halt available)")
     except ImportError as e:
         log.warning("  ⚠ safety_state import failed: %s", e)

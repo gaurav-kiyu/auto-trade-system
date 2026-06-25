@@ -10,12 +10,8 @@ Covers:
 
 from __future__ import annotations
 
-import os
-import tempfile
 from typing import Any
-from unittest.mock import MagicMock, patch
 
-import pytest
 
 from core.strategy.benchmark import (
     BenchmarkReport,
@@ -271,7 +267,6 @@ class TestRunFromTracker:
 
     def test_no_tracker_data(self):
         # Pass a fresh tracker instance directly to avoid singleton leakage
-        import sqlite3
         fresh_tracker = StrategyPerformanceTracker(db_path=":memory:")
         bm = StrategyBenchmark(tracker=fresh_tracker)
         report = bm.run_from_tracker()

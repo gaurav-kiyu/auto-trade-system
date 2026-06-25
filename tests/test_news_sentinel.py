@@ -3,18 +3,13 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from core.news_sentinel import (
     NewsRiskAssessment,
     NewsSentinel,
     _classify_headline,
     _CLEAR_ASSESSMENT,
-    BULLISH_KEYWORDS,
-    BEARISH_KEYWORDS,
-    ELEVATED_KEYWORDS,
-    EXTREME_KEYWORDS,
-    HIGH_KEYWORDS,
 )
 
 

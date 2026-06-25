@@ -13,9 +13,7 @@ from __future__ import annotations
 import io
 import json
 import logging
-import sys
 import threading
-from typing import Any
 
 import pytest
 
@@ -24,11 +22,6 @@ from core.common.utilities.logging import (
     LogContextManager,
     StructuredLogger,
     get_logger,
-    log_critical,
-    log_debug,
-    log_error,
-    log_info,
-    log_warning,
     structured_logger,
     with_context,
 )

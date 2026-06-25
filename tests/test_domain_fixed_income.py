@@ -17,14 +17,12 @@ from datetime import date
 import pytest
 
 from core.domains.fixed_income import (
-    AccrualBasis,
     Bond,
     BondPosition,
     CorporateBond,
     GovernmentSecurity,
     SecurityType,
     TBill,
-    YieldType,
 )
 from core.domains.fixed_income.models import CouponSchedule
 

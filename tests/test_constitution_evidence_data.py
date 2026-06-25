@@ -6,7 +6,6 @@ from core.constitution_evidence_data import (
     collect_all_evidence,
     _exists,
     _is_dir,
-    _count_files,
 )
 
 

@@ -11,7 +11,6 @@ Covers (40 tests):
 
 from __future__ import annotations
 
-import pytest
 
 from core.execution.broker_exceptions import (
     AmbiguousExecutionStateError,

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 
-from core.portfolio_hedge import HedgeAction, PortfolioHedgeManager
+from core.portfolio_hedge import PortfolioHedgeManager
 
 
 class TestPortfolioHedgeManager:
