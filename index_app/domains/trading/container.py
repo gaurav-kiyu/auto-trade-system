@@ -383,17 +383,18 @@ def _start_background_services(
             from core.di_container import get_container
             cb_svc = get_container().try_resolve(CircuitBreakerService)
         except (ValueError, TypeError, AttributeError):
-            cb_svc = None            healing = get_orchestrator(
-                cfg=cfg,
-                health_check_fn=run_full_health_check,
-                circuit_breaker_service=cb_svc or CircuitBreakerService(),
-            )
-            if cfg.get("self_healing_enabled", True):
-                healing.start_background_monitor()
-                _log.info("[SELF-HEALING] Background monitor started (interval=%ds)", healing.interval_seconds)
-            else:
-                _log.info("[SELF-HEALING] Disabled by config")
-        except (ValueError, TypeError, ImportError, OSError, RuntimeError) as _sh_err:
+            cb_svc = None
+        healing = get_orchestrator(
+            cfg=cfg,
+            health_check_fn=run_full_health_check,
+            circuit_breaker_service=cb_svc or CircuitBreakerService(),
+        )
+        if cfg.get("self_healing_enabled", True):
+            healing.start_background_monitor()
+            _log.info("[SELF-HEALING] Background monitor started (interval=%ds)", healing.interval_seconds)
+        else:
+            _log.info("[SELF-HEALING] Disabled by config")
+    except (ValueError, TypeError, ImportError, OSError, RuntimeError) as _sh_err:
             _log.warning("[SELF-HEALING] Failed to start: %s", _sh_err)
 
     # Start SLO Governance periodic tracking
