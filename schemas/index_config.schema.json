@@ -1208,15 +1208,7 @@
       "type": "boolean"
     },
     "TG_TRADE_CRITICAL_PATTERNS": {
-      "type": [
-        "string",
-        "number",
-        "integer",
-        "boolean",
-        "object",
-        "array",
-        "null"
-      ]
+      "type": "array"
     },
     "TG_TRADE_ONLY": {
       "type": "boolean"
