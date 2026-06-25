@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.53.0 (2026-06-25)
+
+- Comprehensive exception hardening: 9 pass-only except Exception blocks eliminated, 16 blocks narrowed to typed exceptions
+- Certification gate vacuous pass fixes for replay, strategy, and paper certifiers
+- OpenTelemetry auto_init() wired into DI container startup
+- __all__ exports added across 387 core modules
+- Zero bare except: blocks across entire codebase
+
 ## v0.0.0-test (2026-06-23)
 
 ## v0.0.0 (2026-06-23)
