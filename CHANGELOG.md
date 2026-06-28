@@ -1,5 +1,7 @@
 # Changelog
 
+## v0.0.0 (2026-06-28)
+
 ## v2.53.0 (2026-06-25)
 
 - Comprehensive exception hardening: 9 pass-only except Exception blocks eliminated, 16 blocks narrowed to typed exceptions
