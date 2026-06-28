@@ -134,7 +134,7 @@ class ExecutionStateMachine:
             ]:
                 try:
                     self._persistence_callback(self)
-                except Exception as e:
+                except (KeyError, ValueError, TypeError, OSError, RuntimeError) as e:
                     self.state = old_state  # Revert on persistence failure
                     _log.critical(f"PERSISTENCE FAILURE on transition to {new_state.value}: {e} (type: {type(e).__name__})")
                     return TransitionResult.PERSISTENCE_FAILED, f"Critical: {e}"
@@ -259,7 +259,7 @@ class ExecutionStateMachineManager:
             return 0
         try:
             records = store.get_non_terminal_executions()
-        except Exception as ex:
+        except (KeyError, ValueError, TypeError, OSError, AttributeError, RuntimeError) as ex:
             _log.warning("Could not recover state machines from durable store: %s", ex)
             return 0
 
@@ -373,7 +373,11 @@ class ExecutionStateMachineManager:
                 if m is None:
                     continue
                 if m.state in terminal_states:
-                    created_ts = _time.mktime(_time.strptime(m.created_at)) if m.created_at else 0
+                    # created_at uses time_provider.format_ts() which returns ISO format: %Y-%m-%d %H:%M:%S
+                    try:
+                        created_ts = _time.mktime(_time.strptime(m.created_at, "%Y-%m-%d %H:%M:%S")) if m.created_at else 0
+                    except (ValueError, OverflowError, OSError):
+                        created_ts = 0
                     if created_ts > 0 and (now_ts - created_ts) > max_age_hours * 3600:
                         del self._machines[k]
                         removed += 1

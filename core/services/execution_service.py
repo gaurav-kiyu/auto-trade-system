@@ -182,6 +182,9 @@ class ExecutionService(ExecutionPort):
         )
         self._logger.info("Broker state handler initialized")
 
+        # Initialize reconciliation freeze flag before any callbacks fire
+        self._is_reconciliation_frozen = False
+
     def set_operating_mode_manager(self, manager) -> None:
         """Inject operating mode manager for execution gating."""
         self._operating_mode_manager = manager
@@ -189,8 +192,114 @@ class ExecutionService(ExecutionPort):
             mode = manager.current_mode
             self._logger.info("Operating mode set: %s", mode.value if hasattr(mode, 'value') else mode)
 
-        self._is_reconciliation_frozen = False
-        self._logger.info("ExecutionService initialized")
+    def run_stale_order_timeout(self, max_stale_seconds: float = 300.0) -> dict:
+        """
+        Cancel orders stuck in non-terminal states beyond the stale threshold.
+
+        Scans all state machines for orders that have been in a non-terminal,
+        non-progressing state (SUBMITTED, ACKNOWLEDGED, CANCEL_PENDING,
+        PENDING_SUBMISSION) for longer than max_stale_seconds, then attempts
+        to cancel them via the broker and transitions the machine to FAILED.
+
+        This prevents "zombie orders" from blocking capacity and consuming
+        risk capital indefinitely.
+
+        Args:
+            max_stale_seconds: Maximum time (in seconds) an order can remain
+                               in a non-terminal state before being cancelled.
+                               Default 300 (5 minutes).
+
+        Returns:
+            dict with keys: checked, cancelled, already_terminal, errors
+        """
+        result = {"checked": 0, "cancelled": 0, "already_terminal": 0, "errors": 0}
+        try:
+            manager = get_execution_state_manager()
+            now = now_ist()
+            stale_states = {
+                ExecutionState.SUBMITTED,
+                ExecutionState.ACKNOWLEDGED,
+                ExecutionState.CANCEL_PENDING,
+                ExecutionState.PENDING_SUBMISSION,
+                ExecutionState.VALIDATED,
+                ExecutionState.PERSISTED,
+            }
+
+            for machine in manager.get_all():
+                with machine._lock:
+                    if machine.is_terminal():
+                        result["already_terminal"] += 1
+                        continue
+
+                    if machine.state not in stale_states:
+                        continue
+
+                    # Determine age based on which timestamp is relevant
+                    if machine.submitted_at:
+                        try:
+                            last_activity = datetime.fromisoformat(machine.submitted_at)
+                        except (ValueError, TypeError):
+                            result["errors"] += 1
+                            continue
+                    else:
+                        try:
+                            last_activity = datetime.fromisoformat(machine.updated_at)
+                        except (ValueError, TypeError):
+                            result["errors"] += 1
+                            continue
+
+                    age_seconds = (now - last_activity).total_seconds()
+                    if age_seconds < max_stale_seconds:
+                        continue
+
+                    result["checked"] += 1
+
+                    # Capture stale state INSIDE the lock for the error message
+                    stale_state = machine.state
+                    broker_order_id = machine.broker_order_id
+
+                    self._logger.warning(
+                        "Stale order detected: client_order_id=%s, state=%s, "
+                        "age=%.1fs, broker_order_id=%s",
+                        machine.client_order_id,
+                        stale_state.value,
+                        age_seconds,
+                        broker_order_id or "N/A",
+                    )
+
+                    # Attempt to cancel via broker if we have a broker order ID
+                    if broker_order_id and hasattr(self._broker_port, 'cancel_order'):
+                        try:
+                            cancel_success = self._broker_port.cancel_order(broker_order_id)
+                            if cancel_success:
+                                self._logger.info(
+                                    "Stale order cancelled via broker: %s", broker_order_id
+                                )
+                        except (ValueError, OSError, ConnectionError) as ex:
+                            self._logger.warning(
+                                "Failed to cancel stale order via broker: %s - %s",
+                                broker_order_id, ex,
+                            )
+
+                # Use record_failure OUTSIDE the lock to avoid deadlock
+                # with persistence callbacks. record_failure sets error_message
+                # BEFORE the transition, ensuring the callback sees the correct reason.
+                machine.record_failure(
+                    f"Stale order timeout ({age_seconds:.0f}s in {stale_state.value})"
+                )
+                result["cancelled"] += 1
+
+        except (ValueError, OSError, AttributeError) as e:
+            self._logger.error(f"Error in stale order timeout run: {e}", exc_info=True)
+            result["errors"] += 1
+
+        if result["cancelled"] > 0:
+            self._logger.warning(
+                "Stale order timeout: cancelled %d of %d checked orders",
+                result["cancelled"],
+                result["checked"],
+            )
+        return result
 
     def run_ack_watchdog(self, max_ack_age_seconds: float = 30.0) -> dict:
         """
@@ -1469,7 +1578,7 @@ class ExecutionService(ExecutionPort):
                 reason=reason,
                 details=details,
             )
-        except Exception as exc:
+        except (ImportError, AttributeError, OSError, ValueError) as exc:
             self._logger.debug(f"Incident alerting unavailable for order {order_id}: {exc}")
 
     def _poll_for_fill_status(

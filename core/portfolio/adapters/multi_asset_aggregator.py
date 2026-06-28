@@ -21,17 +21,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from core.domains.commodity import CommodityContract, CommodityPosition
-from core.domains.currency import CurrencyContract, CurrencyPosition
+from core.domains.commodity import CommodityPosition
+from core.domains.currency import CurrencyPosition
 from core.domains.equity import EquityPosition, Holding
 from core.domains.sme import SmePosition
-from core.domains.fixed_income import Bond, BondPosition
-from core.domains.fo import FutureContract, FuturePosition, OptionContract, OptionPosition
-from core.domains.mutual_fund import FundHolding, InvIT, MutualFund, REIT, SIP
+from core.domains.fixed_income import BondPosition
+from core.domains.fo import FuturePosition, OptionPosition
+from core.domains.mutual_fund import FundHolding, InvIT, REIT, SIP
 from core.domains.portfolio import (
-    ExposureRecord,
-    MarginRequirement,
-    PortfolioPerformance,
     PortfolioSnapshot,
     PositionSnapshot,
 )

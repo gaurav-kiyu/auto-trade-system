@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kill Switch - OPB Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-full bg-gray-900">
+    <nav class="bg-gray-800 border-b border-gray-700">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-white">OPB Enterprise</a>
+                    <div class="ml-10 flex space-x-4">
+                        <a href="/" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm">Dashboard</a>
+                        <a href="/admin/users" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm">Users</a>
+                        <a href="/admin/config" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm">Config</a>
+                        <a href="/admin/kill-switch" class="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium">Kill Switch</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <main class="mx-auto max-w-7xl py-6 px-4">
+        <h2 class="text-2xl font-bold text-white mb-6">Emergency Kill Switch</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-lg font-medium text-red-400 mb-4">Emergency Halt</h3>
+                <p class="text-gray-300 text-sm mb-4">Immediately halt all trading activity. This will block new entries and prevent any order submission.</p>
+                <button onclick="executeKill()" class="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-md transition-colors">
+                    🛑 EMERGENCY KILL
+                </button>
+                <div id="kill-result" class="mt-4"></div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-lg font-medium text-green-400 mb-4">Resume Trading</h3>
+                <p class="text-gray-300 text-sm mb-4">Clear the halt and resume normal trading operations.</p>
+                <button onclick="executeResume()" class="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-md transition-colors">
+                    ▶ RESUME TRADING
+                </button>
+                <div id="resume-result" class="mt-4"></div>
+            </div>
+        </div>
+    </main>
+    <script nonce="{{ nonce }}">
+        function executeKill() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'EXECUTING...';
+            fetch('/api/system/kill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: 'Manual kill via dashboard' }) })
+                .then(r => r.json()).then(data => {
+                    document.getElementById('kill-result').innerHTML = `<p class="text-green-400 text-sm">Kill executed: ${data.reason}</p>`;
+                }).catch(() => {
+                    document.getElementById('kill-result').innerHTML = '<p class="text-red-400 text-sm">Failed to execute kill</p>';
+                }).finally(() => { btn.disabled = false; btn.textContent = '🛑 EMERGENCY KILL'; });
+        }
+        function executeResume() {
+            fetch('/api/system/resume', { method: 'POST' })
+                .then(r => r.json()).then(data => {
+                    document.getElementById('resume-result').innerHTML = `<p class="text-green-400 text-sm">System resumed</p>`;
+                }).catch(() => {
+                    document.getElementById('resume-result').innerHTML = '<p class="text-red-400 text-sm">Failed to resume</p>';
+                });
+        }
+    </script>
+</body>
+</html>

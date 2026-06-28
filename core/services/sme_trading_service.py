@@ -36,7 +36,6 @@ _CIRCUIT_LIMITS: dict[SmePlatform, float] = {
 
 class SmeCircuitGateError(Exception):
     """Raised when an SME circuit gate check blocks a trade."""
-    pass
 
 
 class SmeTradingService:

@@ -194,8 +194,24 @@
 </div>
 <span class="status-dot" id="statusDot" style="width:8px;height:8px;border-radius:50%;display:inline-block;"></span>
                 <div class="user-badge" id="userMenuBtn">
-                    <div class="user-avatar" id="userAvatar">A</div>
-                    <div class="user-info"><div class="name" id="userName">Admin</div><div class="role" id="userRole">admin</div></div>
+                    <div class="user-avatar" id="userAvatar">A<span id="mfaBadgeIcon" style="display:none;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:2px;box-shadow:0 0 6px rgba(34,197,94,.4);" title="MFA Enabled"></span></div>
+                    <div class="user-info"><div class="name" id="userName">Admin</div>
+                <!-- ── User Dropdown Menu ─────────────────────────────────────────── -->
+                <div id="userDropdown" class="notification-dropdown" style="width:200px;right:0;left:auto;">
+                    <div class="notification-header" style="cursor:pointer;" onclick="showMFAModal()">
+                        <i class="fas fa-shield-alt" style="color:#3b82f6;width:18px;text-align:center;"></i>
+                        <span style="font-size:.78rem;">MFA Settings</span>
+                    </div>
+                    <div class="notification-header" style="cursor:pointer;" onclick="window.location.href='/change-password'">
+                        <i class="fas fa-key" style="color:#f59e0b;width:18px;text-align:center;"></i>
+                        <span style="font-size:.78rem;">Change Password</span>
+                    </div>
+                    <div class="notification-header" style="cursor:pointer;border-top:1px solid var(--border);" onclick="logout()">
+                        <i class="fas fa-sign-out-alt" style="color:#f87171;width:18px;text-align:center;"></i>
+                        <span style="font-size:.78rem;" style="color:#f87171;">Logout</span>
+                    </div>
+                </div>
+<div class="role" id="userRole">admin</div></div>
                 </div>
             </div>
         </div>
@@ -267,6 +283,19 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- ── MFA Settings Modal ────────────────────────────────────────────── -->
+    <div class="modal-overlay" id="mfaModal">
+        <div class="modal" style="max-width:560px;">
+            <h3><i class="fas fa-shield-alt"></i> Two-Factor Authentication (MFA)</h3>
+            <div id="mfaModalBody">
+                <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading MFA status...</p></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeMFAModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="shortcutsModal">
         <div class="modal" style="max-width:550px;">
             <h3><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h3>
@@ -286,7 +315,20 @@
             </div>
             <div class="modal-actions"><button class="btn btn-primary" id="closeShortcutsBtn">Close</button></div>
         </div>
+        <!-- ── MFA Settings Modal ────────────────────────────────────────────── -->
+    <div class="modal-overlay" id="mfaModal">
+        <div class="modal" style="max-width:560px;">
+            <h3><i class="fas fa-shield-alt"></i> Two-Factor Authentication (MFA)</h3>
+            <div id="mfaModalBody">
+                <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading MFA status...</p></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeMFAModal()">Close</button>
+            </div>
+        </div>
     </div>
+
+</div>
 
     <script nonce="{{ nonce }}">
         let currentUser = {{ user|tojson|safe }};
@@ -410,6 +452,24 @@
             window.location.href = '/login';
         }
 
+
+        // ── User dropdown toggle ──────────────────────────────────────────────
+        document.getElementById("userMenuBtn")?.addEventListener("click", function(e) {
+            e.stopPropagation();
+            var dd = document.getElementById("userDropdown");
+            if (dd) {
+                var isVisible = dd.classList.contains("visible");
+                document.querySelectorAll(".notification-dropdown").forEach(function(el) {
+                    el.classList.remove("visible");
+                });
+                if (!isVisible) dd.classList.add("visible");
+            }
+        });
+        document.addEventListener("click", function() {
+            var dd = document.getElementById("userDropdown");
+            if (dd) dd.classList.remove("visible");
+        });
+
         // ── Keyboard shortcuts ────────────────────────────────────────────────
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && e.key === 'r') { e.preventDefault(); refreshAll(); return; }
@@ -439,7 +499,37 @@
                 document.getElementById('adminSection').style.display = 'block';
             }
             if (currentUser.must_change_password) showToast('Please change your password', 'warning');
+        
+            // Load MFA status
+            loadMFAStatusBadge();
         }
+
+        async function loadMFAStatusBadge() {
+            try {
+                var status = await apiFetch("/api/auth/mfa/status");
+                if (status && status.enabled) {
+                    var badge = document.getElementById("mfaBadgeIcon");
+                    if (badge) badge.style.display = "inline-block";
+                }
+            } catch (e) {
+                // MFA check is non-critical
+            }
+
+            // Load MFA status
+            loadMFAStatusBadge();
+        }
+
+        async function loadMFAStatusBadge() {
+            try {
+                var status = await apiFetch("/api/auth/mfa/status");
+                if (status && status.enabled) {
+                    var badge = document.getElementById("mfaBadgeIcon");
+                    if (badge) badge.style.display = "inline-block";
+                }
+            } catch (e) {
+                // MFA check is non-critical
+            }
+}
 
         // ── Stat card helper ──────────────────────────────────────────────────
         function statCard(label, value, extra) {
@@ -1755,6 +1845,217 @@ initUser = (function(orig) {
         updateNotifBadge();
     };
 })(initUser);
+
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  MFA: Two-Factor Authentication Management
+        // ══════════════════════════════════════════════════════════════════════
+        var _mfaSetupData = null;
+
+        function showMFAModal() {
+            document.getElementById("mfaModal").classList.add("visible");
+            loadMFAStatus();
+        }
+
+        function closeMFAModal() {
+            document.getElementById("mfaModal").classList.remove("visible");
+            _mfaSetupData = null;
+        }
+
+        async function loadMFAStatus() {
+            var body = document.getElementById("mfaModalBody");
+            try {
+                var status = await apiFetch("/api/auth/mfa/status");
+                if (!status) {
+                    body.innerHTML = "<div class=\"empty-state\"><p>Failed to load MFA status.</p></div>";
+                    return;
+                }
+                var enabled = status.enabled;
+                var setupComplete = status.setup_complete;
+                var html = "";
+
+                if (enabled) {
+                    html += "<div style=\"text-align:center;padding:1rem 0;\">";
+                    html += "<div style=\"width:64px;height:64px;border-radius:50%;background:rgba(34,197,94,.1);border:2px solid rgba(34,197,94,.2);display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;\">";
+                    html += "<i class=\"fas fa-check-circle\" style=\"font-size:1.5rem;color:#4ade80;\"></i></div>";
+                    html += "<div style=\"font-size:.95rem;font-weight:600;color:#4ade80;margin-bottom:.25rem;\">MFA is Enabled</div>";
+                    html += "<p style=\"font-size:.78rem;color:var(--text-muted);\">Your account is protected with two-factor authentication.</p>";
+                    html += "<div style=\"margin-top:1rem;\"><button class=\"btn btn-ghost btn-sm\" onclick=\"loadMFARecoveryCodes()\"><i class=\"fas fa-key\"></i> View Recovery Codes Status</button></div>";
+                    html += "<div style=\"margin-top:.75rem;border-top:1px solid var(--border);padding-top:1rem;\">";
+                    html += "<button class=\"btn btn-danger btn-sm\" onclick=\"showDisableMFA()\"><i class=\"fas fa-trash\"></i> Disable MFA</button></div>";
+                    html += "</div>";
+                } else if (setupComplete) {
+                    html = getMFAVerifyStepHTML();
+                } else {
+                    html += "<div style=\"text-align:center;padding:1rem 0;\">";
+                    html += "<div style=\"width:64px;height:64px;border-radius:50%;background:rgba(148,163,184,.08);border:2px solid rgba(148,163,184,.12);display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;\">";
+                    html += "<i class=\"fas fa-shield-alt\" style=\"font-size:1.5rem;color:var(--text-muted);\"></i></div>";
+                    html += "<div style=\"font-size:.95rem;font-weight:600;color:var(--text-primary);margin-bottom:.25rem;\">MFA is Not Configured</div>";
+                    html += "<p style=\"font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;\">Add an extra layer of security to your account.</p>";
+                    html += "<button class=\"btn btn-primary\" onclick=\"startMFASetup()\"><i class=\"fas fa-plus-circle\"></i> Enable Two-Factor Auth</button>";
+                    html += "</div>";
+                }
+                body.innerHTML = html;
+            } catch (e) {
+                body.innerHTML = "<div class=\"empty-state\"><p>Error loading MFA status</p></div>";
+            }
+        }
+
+        function getMFAVerifyStepHTML() {
+            return "<div style=\"text-align:center;padding:1rem 0;\">" +
+                "<div style=\"width:64px;height:64px;border-radius:50%;background:rgba(59,130,246,.1);border:2px solid rgba(59,130,246,.2);display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;\">" +
+                "<i class=\"fas fa-qrcode\" style=\"font-size:1.5rem;color:#60a5fa;\"></i></div>" +
+                "<div style=\"font-size:.95rem;font-weight:600;margin-bottom:.25rem;\">Verify Setup</div>" +
+                "<p style=\"font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;\">Enter the 6-digit code from your authenticator app to enable MFA.</p>" +
+                "<div class=\"form-group\">" +
+                "<input type=\"text\" id=\"mfaVerifyToken\" placeholder=\"000000\" maxlength=\"6\" style=\"text-align:center;font-size:1.25rem;letter-spacing:.4rem;font-family:monospace;\">" +
+                "</div>" +
+                "<div style=\"display:flex;gap:.5rem;justify-content:center;\">" +
+                "<button class=\"btn btn-primary\" onclick=\"verifyMFASetup()\"><i class=\"fas fa-check\"></i> Verify &amp; Enable</button>" +
+                "<button class=\"btn btn-ghost\" onclick=\"cancelMFASetup()\">Cancel</button></div></div>";
+        }
+
+        async function startMFASetup() {
+            var body = document.getElementById("mfaModalBody");
+            _mfaSetupData = null;
+            body.innerHTML = "<div class=\"empty-state\"><i class=\"fas fa-spinner fa-spin\"></i><p>Generating MFA secret...</p></div>";
+            try {
+                var res = await apiFetch("/api/auth/mfa/setup", { method: "POST" });
+                if (!res || !res.success) {
+                    body.innerHTML = "<div class=\"empty-state\"><p>Failed to generate MFA secret</p></div>";
+                    return;
+                }
+                _mfaSetupData = res;
+                var secret = res.secret;
+                var uri = res.provisioning_uri;
+                var codes = res.recovery_codes || [];
+
+                var html = "<div style=\"max-height:400px;overflow-y:auto;\">";
+
+                // QR Code section
+                html += "<div style=\"text-align:center;margin-bottom:1rem;\">";
+                html += "<div style=\"font-size:.9rem;font-weight:600;color:var(--text-primary);margin-bottom:.5rem;\">1. Scan QR Code</div>";
+                html += "<p style=\"font-size:.72rem;color:var(--text-muted);margin-bottom:.75rem;\">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>";
+                html += "<div style=\"display:inline-block;padding:.5rem;background:#fff;border-radius:.5rem;\">";
+                html += "<div style=\"width:180px;height:180px;display:flex;align-items:center;justify-content:center;background:#f8fafc;border-radius:.35rem;color:#64748b;font-size:.72rem;text-align:center;padding:.5rem;flex-direction:column;\">";
+                html += "<i class=\"fas fa-qrcode\" style=\"font-size:3rem;color:#3b82f6;margin-bottom:.5rem;\"></i>";
+                html += "<div style=\"word-break:break-all;font-size:.6rem;color:#94a3b8;max-width:160px;\">" + uri.substring(0,60) + "...</div>";
+                html += "</div></div></div>";
+
+                // Secret key
+                html += "<div style=\"text-align:center;margin-bottom:1rem;\">";
+                html += "<div style=\"font-size:.9rem;font-weight:600;color:var(--text-primary);margin-bottom:.5rem;\">2. Or Enter Secret Key</div>";
+                html += "<div style=\"background:var(--bg-secondary);padding:.5rem .75rem;border-radius:.5rem;border:1px solid var(--border);display:inline-block;\">";
+                html += "<code style=\"font-size:.8rem;color:#60a5fa;letter-spacing:.15rem;\">" + secret + "</code></div>";
+                html += "<p style=\"font-size:.65rem;color:var(--text-muted);margin-top:.35rem;\">Issuer: <strong>OPB Enterprise</strong></p></div>";
+
+                // Recovery codes
+                html += "<div style=\"margin-bottom:1rem;\">";
+                html += "<div style=\"font-size:.9rem;font-weight:600;color:var(--text-primary);margin-bottom:.5rem;text-align:center;\">3. Save Recovery Codes</div>";
+                html += "<p style=\"font-size:.72rem;color:var(--text-muted);margin-bottom:.5rem;text-align:center;\">These codes will NOT be shown again. Store them securely.</p>";
+                html += "<div style=\"background:var(--bg-secondary);border:1px solid var(--border);border-radius:.5rem;padding:.5rem;display:grid;grid-template-columns:1fr 1fr;gap:.25rem;\">";
+                for (var i = 0; i < codes.length; i++) {
+                    html += "<div style=\"font-family:monospace;font-size:.75rem;color:#fbbf24;padding:.2rem .4rem;\">" + codes[i] + "</div>";
+                }
+                html += "</div></div>";
+
+                // Verify step
+                html += "<div style=\"text-align:center;border-top:1px solid var(--border);padding-top:1rem;\">";
+                html += "<div style=\"font-size:.9rem;font-weight:600;color:var(--text-primary);margin-bottom:.5rem;\">4. Verify Setup</div>";
+                html += "<p style=\"font-size:.72rem;color:var(--text-muted);margin-bottom:.75rem;\">Enter the 6-digit code from your authenticator app to confirm setup.</p>";
+                html += "<div style=\"max-width:200px;margin:0 auto 1rem;\">";
+                html += "<input type=\"text\" id=\"mfaSetupToken\" placeholder=\"000000\" maxlength=\"6\" style=\"text-align:center;font-size:1.25rem;letter-spacing:.4rem;font-family:monospace;\">";
+                html += "</div>";
+                html += "<button class=\"btn btn-primary\" onclick=\"verifyMFASetup()\"><i class=\"fas fa-check-circle\"></i> Verify &amp; Enable</button>";
+                html += "</div></div>";
+
+                body.innerHTML = html;
+                setTimeout(function() {
+                    var inp = document.getElementById("mfaSetupToken");
+                    if (inp) inp.focus();
+                }, 100);
+            } catch (e) {
+                body.innerHTML = "<div class=\"empty-state\"><p>Error: " + e.message + "</p></div>";
+            }
+        }
+
+        async function verifyMFASetup() {
+            var tokenEl = document.getElementById("mfaSetupToken") || document.getElementById("mfaVerifyToken");
+            if (!tokenEl) return;
+            var token = tokenEl.value.trim();
+            if (!token || token.length !== 6 || !/^\d+$/.test(token)) {
+                showToast("Please enter a valid 6-digit code", "error");
+                return;
+            }
+            try {
+                var res = await apiFetch("/api/auth/mfa/verify", { method: "POST", body: JSON.stringify({token: token}) });
+                if (res && res.success) {
+                    showToast("MFA enabled successfully!", "success");
+                    _mfaSetupData = null;
+                    loadMFAStatus();
+                } else {
+                    showToast((res && res.detail) || "Invalid code. Try again.", "error");
+                }
+            } catch (e) {
+                showToast("Verification failed: " + e.message, "error");
+            }
+        }
+
+        function cancelMFASetup() {
+            _mfaSetupData = null;
+            loadMFAStatus();
+        }
+
+        function showDisableMFA() {
+            var body = document.getElementById("mfaModalBody");
+            body.innerHTML = "<div style=\"text-align:center;padding:1rem 0;\">" +
+                "<div style=\"width:64px;height:64px;border-radius:50%;background:rgba(239,68,68,.1);border:2px solid rgba(239,68,68,.2);display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;\">" +
+                "<i class=\"fas fa-exclamation-triangle\" style=\"font-size:1.5rem;color:#f87171;\"></i></div>" +
+                "<div style=\"font-size:.95rem;font-weight:600;color:#f87171;margin-bottom:.25rem;\">Disable MFA?</div>" +
+                "<p style=\"font-size:.78rem;color:var(--text-muted);margin-bottom:1rem;\">Your account will no longer require two-factor authentication. Enter your password to confirm.</p>" +
+                "<div class=\"form-group\" style=\"max-width:280px;margin:0 auto;\">" +
+                "<input type=\"password\" id=\"mfaDisablePassword\" placeholder=\"Enter your password\">" +
+                "</div>" +
+                "<div style=\"display:flex;gap:.5rem;justify-content:center;\">" +
+                "<button class=\"btn btn-danger\" onclick=\"disableMFA()\"><i class=\"fas fa-trash\"></i> Disable MFA</button>" +
+                "<button class=\"btn btn-ghost\" onclick=\"loadMFAStatus()\">Cancel</button></div></div>";
+        }
+
+        async function disableMFA() {
+            var password = document.getElementById("mfaDisablePassword").value;
+            if (!password) {
+                showToast("Password required to disable MFA", "error");
+                return;
+            }
+            try {
+                var res = await apiFetch("/api/auth/mfa/disable", { method: "POST", body: JSON.stringify({password: password}) });
+                if (res && res.success) {
+                    showToast("MFA disabled", "success");
+                    loadMFAStatus();
+                } else {
+                    showToast((res && res.detail) || "Failed to disable MFA", "error");
+                }
+            } catch (e) {
+                showToast("Error: " + e.message, "error");
+            }
+        }
+
+        async function loadMFARecoveryCodes() {
+            try {
+                var res = await apiFetch("/api/auth/mfa/recovery-codes");
+                if (!res) return;
+                var body = document.getElementById("mfaModalBody");
+                body.innerHTML = "<div style=\"text-align:center;padding:1rem 0;\">" +
+                    "<i class=\"fas fa-key\" style=\"font-size:2rem;color:#fbbf24;margin-bottom:.5rem;display:block;\"></i>" +
+                    "<div style=\"font-size:.9rem;font-weight:600;margin-bottom:.25rem;\">Recovery Codes</div>" +
+                    "<p style=\"font-size:.72rem;color:var(--text-muted);margin-bottom:1rem;\">You have <strong>" + res.remaining + " of " + res.total_initial + "</strong> recovery codes remaining.</p>" +
+                    "<p style=\"font-size:.68rem;color:#475569;\">For security, recovery codes are stored hashed and cannot be retrieved. " +
+                    "If you have used all your codes, disable and re-enable MFA to generate new ones.</p>" +
+                    "<div style=\"margin-top:1rem;\"><button class=\"btn btn-ghost btn-sm\" onclick=\"loadMFAStatus()\"><i class=\"fas fa-arrow-left\"></i> Back</button></div></div>";
+            } catch (e) {
+                showToast("Failed to load recovery codes info", "error");
+            }
+        }
 
 </script>
 </body>

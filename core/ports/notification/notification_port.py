@@ -105,7 +105,6 @@ class NotificationPort(ABC):
         Returns:
             NotificationResult indicating success or failure
         """
-        pass
 
     @abstractmethod
     def send_notifications(
@@ -121,7 +120,6 @@ class NotificationPort(ABC):
         Returns:
             List of NotificationResults corresponding to each notification
         """
-        pass
 
     @abstractmethod
     def is_channel_available(self, channel: NotificationChannel) -> bool:
@@ -134,7 +132,6 @@ class NotificationPort(ABC):
         Returns:
             True if channel is available, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_rate_limit_status(self, channel: NotificationChannel) -> dict[str, Any]:
@@ -147,7 +144,6 @@ class NotificationPort(ABC):
         Returns:
             Dictionary containing rate limit information
         """
-        pass
 
 
 __all__ = [

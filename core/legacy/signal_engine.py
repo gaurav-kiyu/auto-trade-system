@@ -13,8 +13,8 @@ Indicators: RSI(14), MACD(12,26,9), EMA(20/50/200), VWAP, Volume Ratio,
 Signal output follows a strict schema consumed by dashboard and Telegram.
 """
 
-import math, logging
-from datetime import datetime, timezone, timedelta
+import logging
+from datetime import timezone, timedelta
 from pathlib import Path
 from typing import Any, Optional
 

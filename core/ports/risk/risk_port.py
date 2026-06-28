@@ -94,7 +94,6 @@ class RiskPort(ABC):
         Returns:
             RiskEvaluation indicating whether the trade is allowed and any constraints
         """
-        pass
 
     @abstractmethod
     def calculate_position_size(
@@ -110,7 +109,6 @@ class RiskPort(ABC):
         Returns:
             Number of lots/contracts to trade
         """
-        pass
 
     @abstractmethod
     def validate_margin_requirements(
@@ -130,7 +128,6 @@ class RiskPort(ABC):
         Returns:
             True if margin requirements are satisfied, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_portfolio_risk_metrics(self) -> PortfolioRiskMetrics:
@@ -140,7 +137,6 @@ class RiskPort(ABC):
         Returns:
             PortfolioRiskMetrics object with current risk statistics
         """
-        pass
 
     @abstractmethod
     def update_position(
@@ -159,7 +155,6 @@ class RiskPort(ABC):
             entry_price: Entry price per share/lot
             timestamp: Time of the position update
         """
-        pass
 
     @abstractmethod
     def remove_position(self, symbol: str) -> None:
@@ -169,12 +164,10 @@ class RiskPort(ABC):
         Args:
             symbol: Trading symbol to remove
         """
-        pass
 
     @abstractmethod
     def reset_daily_metrics(self) -> None:
         """Reset daily risk metrics (called at start of new trading day)."""
-        pass
 
     @abstractmethod
     def health_check(self) -> dict[str, Any]:
@@ -184,44 +177,36 @@ class RiskPort(ABC):
         Returns:
             Dictionary containing health check results
         """
-        pass
 
     # ── Trading Policy Gates (consolidated from ProductionMandateEnforcer) ──
 
     @abstractmethod
     def is_in_trading_window(self) -> bool:
         """Check if current time is within NSE trading windows (9:20-11:30, 13:00-14:45)."""
-        pass
 
     @abstractmethod
     def should_skip_first_20_min(self) -> bool:
         """Skip first 20 minutes after market open (9:20-9:40)."""
-        pass
 
     @abstractmethod
     def should_skip_last_45_min(self) -> bool:
         """Skip last 45 minutes before market close (14:35-15:20)."""
-        pass
 
     @abstractmethod
     def get_min_score_for_regime(self, regime: str) -> int:
         """Get minimum signal score required for a given market regime."""
-        pass
 
     @abstractmethod
     def should_block_false_signal(self, score: int, iv_rank: float) -> bool:
         """Check whether a high-score signal with elevated IV should be blocked as false."""
-        pass
 
     @abstractmethod
     def get_max_trades_per_day(self, vix: float | None = None, consecutive_losses: int = 0) -> int:
         """Get maximum trades allowed per day, adjusted for VIX and loss streak."""
-        pass
 
     @abstractmethod
     def get_live_vix(self) -> float:
         """Get current India VIX for real-time risk adjustment."""
-        pass
 
 
 __all__ = [

@@ -35,11 +35,24 @@ class StrategySignal(Enum):
 
 
 class StrategyState(Enum):
-    """Strategy lifecycle state"""
+    """Strategy lifecycle state.
+
+    Governance states (Master Prompt Phase 13):
+        DONT_RUN:      Strategy is known but must never execute
+        PAPER_ONLY:    Strategy may run in paper mode only
+        LIVE_APPROVED: Strategy is certified for live execution
+        DEPRECATED:    Strategy is retired; kept for audit/historical reference
+    """
+    # Operational states
     INITIALIZED = "INITIALIZED"
     ACTIVE = "ACTIVE"
     PAUSED = "PAUSED"
     STOPPED = "STOPPED"
+    # Governance states (Phase 13)
+    DONT_RUN = "DONT_RUN"
+    PAPER_ONLY = "PAPER_ONLY"
+    LIVE_APPROVED = "LIVE_APPROVED"
+    DEPRECATED = "DEPRECATED"
 
 
 @dataclass
@@ -120,7 +133,6 @@ class BaseStrategy(ABC):
     @abstractmethod
     def name(self) -> str:
         """Strategy name - must be unique"""
-        pass
 
     @property
     def version(self) -> str:
@@ -143,7 +155,6 @@ class BaseStrategy(ABC):
         Called on each market data update.
         Use to update internal state/indicators.
         """
-        pass
 
     @abstractmethod
     def generate_signal(self, data: MarketData) -> StrategySignalOutput | None:
@@ -151,7 +162,6 @@ class BaseStrategy(ABC):
         Generate trading signal based on current market data.
         Return None for HOLD, or StrategySignalOutput for actionable signals.
         """
-        pass
 
     @abstractmethod
     def on_fill(self, fill: FillInfo) -> None:
@@ -159,7 +169,6 @@ class BaseStrategy(ABC):
         Called when an order is filled.
         Use to update position tracking.
         """
-        pass
 
     @abstractmethod
     def on_risk_update(self, risk: RiskUpdate) -> None:
@@ -167,13 +176,19 @@ class BaseStrategy(ABC):
         Called on risk engine updates.
         Use to adjust position sizing or pause trading.
         """
-        pass
 
     def on_start(self) -> None:
-        """Called when strategy is started"""
+        """Called when strategy is started.
+
+        Preserves governance states (DONT_RUN, PAPER_ONLY, LIVE_APPROVED,
+        DEPRECATED). Only transitions operational states (INITIALIZED,
+        STOPPED, PAUSED) to ACTIVE.
+        """
         with self._lock:
-            self._state = StrategyState.ACTIVE
-        _log.info(f"Strategy {self.name} started")
+            # Governance states are preserved — they control run eligibility
+            if self._state in (StrategyState.INITIALIZED, StrategyState.STOPPED, StrategyState.PAUSED):
+                self._state = StrategyState.ACTIVE
+        _log.info(f"Strategy {self.name} started (state={self._state.value})")
 
     def on_stop(self) -> None:
         """Called when strategy is stopped"""
@@ -298,9 +313,20 @@ class StrategyRegistry:
                     _log.error(f"Error forwarding risk update to {strategy.name}: {e} (type: {type(e).__name__})")
 
     def start_all(self) -> None:
-        """Start all registered strategies"""
+        """Start all registered strategies.
+
+        Respects governance states: strategies in DONT_RUN or DEPRECATED
+        state are skipped (their on_start() is not called).
+        """
         with self._lock:
             for strategy in self._strategies.values():
+                # Skip strategies blocked by governance
+                if strategy.state in (StrategyState.DONT_RUN, StrategyState.DEPRECATED):
+                    _log.info(
+                        "Skipping start of %s (state=%s) — governance block",
+                        strategy.name, strategy.state.value,
+                    )
+                    continue
                 strategy.on_start()
 
     def stop_all(self) -> None:

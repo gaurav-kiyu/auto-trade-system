@@ -254,12 +254,12 @@ def _run_architecture_gate(failures: list[str]) -> None:
 
 
 def create_release_branch(version: str) -> tuple[bool, str]:
-    """Create a date-wise release branch.
+    """Create a release branch per BRANCHING_CONVENTION.md.
 
-    Format: release/v{VERSION}_YYYY-MM-DD
+    Format: release/v{VERSION}  (semver-based, no date suffix)
+    Convention: docs/BRANCHING_CONVENTION.md
     """
-    today = date.today().isoformat()
-    branch_name = f"release/v{version}_{today}"
+    branch_name = f"release/v{version}"
 
     try:
         # Check if branch already exists

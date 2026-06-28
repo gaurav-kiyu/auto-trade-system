@@ -22,6 +22,17 @@ Architecture:
     - Dedicated port (7080), separate from web dashboard (8765)
 """
 
+from core.control_plane.audit_store import (
+    AuditStore,
+    ControlAction,
+)
+from core.control_plane.helpers import (
+    check_token,
+    get_client_ip,
+    get_identity,
+    legacy_audit_log,
+    require_permission,
+)
 from core.control_plane.server import (
     ControlPlaneServer,
     create_control_plane_app,
@@ -29,7 +40,14 @@ from core.control_plane.server import (
 )
 
 __all__ = [
-    "create_control_plane_app",
-    "maybe_start_control_plane",
+    "AuditStore",
+    "ControlAction",
     "ControlPlaneServer",
+    "check_token",
+    "create_control_plane_app",
+    "get_client_ip",
+    "get_identity",
+    "legacy_audit_log",
+    "maybe_start_control_plane",
+    "require_permission",
 ]

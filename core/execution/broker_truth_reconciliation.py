@@ -6,6 +6,7 @@ Risk engine must never rely solely on stale internal assumptions.
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -16,6 +17,9 @@ from core.datetime_ist import now_ist
 from core.time_provider import time_provider
 
 _log = logging.getLogger(__name__)
+
+# Thread lock for the singleton reconciler
+_reconciler_lock: threading.Lock = threading.Lock()
 
 
 class ReconciliationStatus(Enum):
@@ -68,8 +72,8 @@ class BrokerTruthReconciler:
         try:
             positions = self._broker_port.get_positions()
             return positions if positions else {}
-        except Exception as e:
-            _log.error(f"Failed to fetch broker positions: {e} (type: {type(e).__name__})")
+        except (ValueError, TypeError, OSError, AttributeError, ConnectionError) as e:
+            _log.error(f"Failed to fetch broker positions: {e}")
             return {}
 
     def _fetch_broker_orders(self) -> dict[str, dict]:
@@ -77,8 +81,8 @@ class BrokerTruthReconciler:
         try:
             orders = self._broker_port.get_orders()
             return orders if orders else {}
-        except Exception as e:
-            _log.error(f"Failed to fetch broker orders: {e} (type: {type(e).__name__})")
+        except (ValueError, TypeError, OSError, AttributeError, ConnectionError) as e:
+            _log.error(f"Failed to fetch broker orders: {e}")
             return {}
 
     def get_authoritative_position(self, symbol: str) -> ReconciliationResult:
@@ -142,8 +146,8 @@ class BrokerTruthReconciler:
                 "used_margin": funds.get("used_margin", 0),
                 "total_value": funds.get("total_value", 0),
             }
-        except Exception as e:
-            _log.error(f"Failed to fetch broker balance: {e} (type: {type(e).__name__})")
+        except (ValueError, TypeError, OSError, AttributeError, ConnectionError) as e:
+            _log.error(f"Failed to fetch broker balance: {e}")
             return {"available_cash": 0, "used_margin": 0, "total_value": 0}
 
     def reconcile_order(
@@ -233,7 +237,7 @@ def reconcile_broker_truth(broker_port: Any | None = None) -> dict:
             "status": "OK",
             "message": f"Broker reports {len(positions)} open positions",
         }
-    except Exception as exc:
+    except (ValueError, TypeError, OSError, AttributeError, ConnectionError) as exc:
         _log.error("Broker truth reconciliation report error: %s", exc)
         return {
             "broker_positions": 0,
@@ -245,12 +249,20 @@ def reconcile_broker_truth(broker_port: Any | None = None) -> dict:
 
 
 def get_broker_truth_reconciler(broker_port, config: dict = None) -> BrokerTruthReconciler:
+    """Get or create the singleton BrokerTruthReconciler.
+
+    Thread-safe via _reconciler_lock.
+    """
     global _reconciler
-    if _reconciler is None:
-        max_staleness = config.get("RECONCILIATION_MAX_STALENESS_SEC", 30) if config else 30
-        interval = config.get("RECONCILIATION_INTERVAL_SEC", 60) if config else 60
-        _reconciler = BrokerTruthReconciler(broker_port, max_staleness, interval)
-    return _reconciler
+    if _reconciler is not None:
+        return _reconciler
+    with _reconciler_lock:
+        # Double-checked locking
+        if _reconciler is None:
+            max_staleness = config.get("RECONCILIATION_MAX_STALENESS_SEC", 30) if config else 30
+            interval = config.get("RECONCILIATION_INTERVAL_SEC", 60) if config else 60
+            _reconciler = BrokerTruthReconciler(broker_port, max_staleness, interval)
+        return _reconciler
 
 
 __all__ = [

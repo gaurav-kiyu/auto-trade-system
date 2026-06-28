@@ -15,7 +15,6 @@ from core.datetime_ist import now_ist
 
 class RiskError(Exception):
     """Custom exception for risk management errors."""
-    pass
 
 
 @dataclass

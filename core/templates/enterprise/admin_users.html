@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - OPB Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-full bg-gray-900">
+    <nav class="bg-gray-800 border-b border-gray-700">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-white">OPB Enterprise</a>
+                    <div class="ml-10 flex space-x-4">
+                        <a href="/" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm">Dashboard</a>
+                        <a href="/admin/users" class="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium">Users</a>
+                        <a href="/admin/config" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm">Config</a>
+                        <a href="/admin/kill-switch" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm">Kill Switch</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <main class="mx-auto max-w-7xl py-6 px-4">
+        <h2 class="text-2xl font-bold text-white mb-6">User Management</h2>
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div id="user-list" class="text-gray-300">
+                <p>Loading users...</p>
+            </div>
+        </div>
+    </main>
+    <script nonce="{{ nonce }}">
+        fetch('/api/auth/users').then(r => r.json()).then(users => {
+            const html = users.length ? `
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead><tr class="text-left text-gray-400 text-sm">
+                        <th class="py-2">Username</th><th class="py-2">Role</th><th class="py-2">Created</th>
+                    </tr></thead>
+                    <tbody class="divide-y divide-gray-700">
+                        ${users.map(u => `<tr class="text-gray-300"><td class="py-2">${u.username}</td><td class="py-2">${u.role}</td><td class="py-2">${new Date(u.created_ts * 1000).toLocaleDateString()}</td></tr>`).join('')}
+                    </tbody>
+                </table>
+            ` : '<p>No users found</p>';
+            document.getElementById('user-list').innerHTML = html;
+        }).catch(() => {
+            document.getElementById('user-list').innerHTML = '<p class="text-red-400">Failed to load users</p>';
+        });
+    </script>
+</body>
+</html>

@@ -26,7 +26,6 @@ class CorrelationIdPort(ABC):
         Returns:
             Current correlation ID for the request/context
         """
-        pass
 
     @abstractmethod
     def set_correlation_id(self, correlation_id: str) -> None:
@@ -36,7 +35,6 @@ class CorrelationIdPort(ABC):
         Args:
             correlation_id: Correlation ID to set
         """
-        pass
 
     @abstractmethod
     def new_correlation_id(self) -> str:
@@ -46,14 +44,12 @@ class CorrelationIdPort(ABC):
         Returns:
             Newly generated correlation ID
         """
-        pass
 
     @abstractmethod
     def reset(self) -> None:
         """
         Reset the correlation ID to None/empty.
         """
-        pass
 
 
 __all__ = [

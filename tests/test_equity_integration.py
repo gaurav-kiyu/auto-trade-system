@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pandas as pd
 from unittest.mock import MagicMock, patch
 
 from core.equity_trader import EquityTrader, run_equity_trader

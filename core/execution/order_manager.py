@@ -341,8 +341,27 @@ class OrderManager:
             error=order.error
         )
 
-# Singleton instance
-order_manager = OrderManager()
+# ── Lazy singleton (DEBT-009 / CODE-009: avoid import-time side effects) ──
+# Previously declared as ``order_manager = OrderManager()`` at module level,
+# which created a DB connection on every import of this module.
+# Now lazily initialized on first access via __getattr__.
+_order_manager_instance: OrderManager | None = None
+
+
+def __getattr__(name: str) -> OrderManager:
+    """Lazy-init the singleton OrderManager on first attribute access.
+
+    Allows ``from core.execution.order_manager import order_manager`` to work
+    without triggering a DB connection at import time. The connection is only
+    established when ``order_manager`` is first dereferenced.
+    """
+    if name == "order_manager":
+        global _order_manager_instance
+        if _order_manager_instance is None:
+            _order_manager_instance = OrderManager()
+        return _order_manager_instance
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
 
 
 __all__ = [

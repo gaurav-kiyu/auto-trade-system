@@ -38,7 +38,7 @@ import time
 from typing import Any, Callable
 
 from core.datetime_ist import now_ist
-from core.reentry_evaluator import ReentryTracker, build_reentry_trackers
+from core.reentry_evaluator import build_reentry_trackers
 
 log = logging.getLogger(__name__)
 
@@ -424,80 +424,178 @@ class EquityTrader:
                         pass
 
     def evaluate_equity_signal(self, symbol: str, df1m: Any) -> dict[str, Any] | None:
-        """Generate a simple trading signal from 1m OHLCV data.
+        """Generate a comprehensive trading signal from 1m OHLCV data.
 
-        Uses RSI and short-term price momentum to determine direction.
-        Returns a signal dict with keys: direction, score, price, strength
-        or None if no actionable signal.
+        Uses FeatureEngine indicators (VWAP, ATR, volume ratio, MACD, EMA trends,
+        RSI, ADX, price deltas) — matching the indicator quality of the
+        AdaptiveSignal pipeline used for index options. Score components are
+        broken down per-contributor similar to ``core.pure_index_signal``.
+
+        Returns a signal dict with keys: direction, score, price, strength,
+        score_components, regime, features, risk, rsi, momentum_pct, vol_ratio,
+        vwap, atr, symbol, macd — or None if no actionable signal or insufficient data.
         """
-        if df1m is None or len(df1m) < 20:
+        if df1m is None or len(df1m) < 30:
             return None
 
         try:
-            close = df1m["Close"].values
-            current_price = float(close[-1])
+            from core.feature_engine import FeatureEngine as _FE
 
-            # Compute RSI (14-period)
-            deltas = close[1:] - close[:-1]
-            gains = deltas.copy()
-            losses = deltas.copy()
-            gains[gains < 0] = 0
-            losses[losses > 0] = 0
-            losses = abs(losses)
+            price      = _FE.get_price(df1m)
+            vwap       = _FE.get_vwap(df1m)
+            atr        = _FE.get_atr(df1m)
+            vol_ratio  = _FE.get_vol_ratio(df1m)
+            rsi_val    = _FE.get_rsi(df1m)
+            macd       = _FE.get_macd(df1m)
+            adx_val    = _FE.get_adx(df1m)
+            d10        = _FE.price_delta(df1m, 10)
+            d30        = _FE.price_delta(df1m, 30)  # longer-term momentum
+            ema_trend  = _FE.ema_trend(df1m)
 
-            avg_gain = float(gains[-14:].mean())
-            avg_loss = float(losses[-14:].mean())
-            rsi = 50.0
-            if avg_loss > 0:
-                rs = avg_gain / avg_loss
-                rsi = 100.0 - (100.0 / (1.0 + rs))
-
-            # Short-term momentum (last 5 bars)
-            momentum = (close[-1] - close[-5]) / close[-5] if len(close) >= 5 else 0.0
-
-            # Volume confirmation
-            volume = df1m["Volume"].values if "Volume" in df1m.columns else None
-            avg_vol = float(volume[-20:].mean()) if volume is not None and len(volume) >= 20 else 1.0
-            recent_vol = float(volume[-5:].mean()) if volume is not None and len(volume) >= 5 else 1.0
-            vol_ratio = recent_vol / avg_vol if avg_vol > 0 else 1.0
-
-            direction = None
-            score = 0
-            strength = "NEUTRAL"
-
-            # RSI-based signals
-            if rsi < 30 and momentum > 0.002 and vol_ratio > 1.2:
-                direction = "BUY"
-                score = 75
-                strength = "MODERATE"
-            elif rsi > 70 and momentum < -0.002 and vol_ratio > 1.2:
-                direction = "SELL"
-                score = 70
-                strength = "MODERATE"
-            elif rsi < 25 and vol_ratio > 1.5:
-                direction = "BUY"
-                score = 80
-                strength = "STRONG"
-            elif rsi > 75 and vol_ratio > 1.5:
-                direction = "SELL"
-                score = 75
-                strength = "STRONG"
-
-            if direction is None:
+            if price <= 0:
                 return None
 
-            # Boost score for strong momentum
-            if abs(momentum) > 0.005:
-                score = min(95, score + 5)
+            # ── Regime detection from ADX ─────────────────────────────────
+            regime = "TRENDING" if adx_val > 25 else ("CHOPPY" if adx_val < 20 else "NEUTRAL")
+            if adx_val < 15:
+                regime = "WEAK"
+
+            # ── Score components (modelled after core.pure_index_signal) ──
+            _score = 0
+            direction: str | None = None
+            score_comps: dict[str, int] = {}
+
+            # EMA trend direction
+            if ema_trend == "UP":
+                _score += 15
+                score_comps["ema_trend"] = 15
+                direction = "BUY" if direction is None else direction
+            elif ema_trend == "DOWN":
+                _score += 15
+                score_comps["ema_trend"] = 15
+                direction = "SELL" if direction is None else direction
+            else:
+                score_comps["ema_trend"] = 0
+
+            # VWAP position check
+            if price > vwap and direction == "BUY":
+                _vwap_dist = abs(price - vwap) / max(vwap, 1.0)
+                _vwap_pts = min(15, 5 + int(min(1.0, _vwap_dist / 0.005) * 10))
+                _score += _vwap_pts
+                score_comps["vwap"] = _vwap_pts
+            elif price < vwap and direction == "SELL":
+                _vwap_dist = abs(price - vwap) / max(vwap, 1.0)
+                _vwap_pts = min(15, 5 + int(min(1.0, _vwap_dist / 0.005) * 10))
+                _score += _vwap_pts
+                score_comps["vwap"] = _vwap_pts
+            else:
+                score_comps["vwap"] = 0
+
+            # Price momentum (10-bar)
+            _d1_pts = 10 if (direction == "BUY" and d10 > 0) or (direction == "SELL" and d10 < 0) else 0
+            _score += _d1_pts
+            score_comps["momentum"] = _d1_pts
+
+            # Longer momentum (30-bar)
+            _d30_pts = 8 if (direction == "BUY" and d30 > 0) or (direction == "SELL" and d30 < 0) else 0
+            _score += _d30_pts
+            score_comps["momentum_30"] = _d30_pts
+
+            # Volume confirmation
+            if vol_ratio >= 1.2:
+                _vol_excess = (vol_ratio - 1.2) / 1.2
+                _vol_pts = min(12, 3 + int(min(1.0, _vol_excess) * 9))
+                _score += _vol_pts
+                score_comps["volume"] = _vol_pts
+            else:
+                score_comps["volume"] = 0
+
+            # RSI healthy zone
+            if direction == "BUY" and 40 <= rsi_val <= 70:
+                score_comps["rsi_bonus"] = 8
+                _score += 8
+            elif direction == "SELL" and 30 <= rsi_val <= 60:
+                score_comps["rsi_bonus"] = 8
+                _score += 8
+            else:
+                score_comps["rsi_bonus"] = 0
+
+            # ATR floor (minimum volatility to trade)
+            if atr > price * 0.001:
+                score_comps["atr_floor"] = 5
+                _score += 5
+            else:
+                score_comps["atr_floor"] = 0
+
+            # MACD histogram direction
+            if macd["histogram"] > 0 and direction == "BUY":
+                score_comps["macd"] = 5
+                _score += 5
+            elif macd["histogram"] < 0 and direction == "SELL":
+                score_comps["macd"] = 5
+                _score += 5
+            else:
+                score_comps["macd"] = 0
+
+            # ADX trend bonus
+            if adx_val >= 25:
+                score_comps["adx_trend"] = 5
+                _score += 5
+            else:
+                score_comps["adx_trend"] = 0
+
+            # Regime penalty
+            if regime == "CHOPPY":
+                _pen = 8
+                _score = max(0, _score - _pen)
+                score_comps["regime_penalty"] = -_pen
+            elif regime == "WEAK":
+                _pen = 15
+                _score = max(0, _score - _pen)
+                score_comps["regime_penalty"] = -_pen
+            else:
+                score_comps["regime_penalty"] = 0
+
+            # Clamp final score
+            score = min(100, max(0, _score))
+
+            # ── Strength classification ───────────────────────────────────
+            if score >= 75:
+                strength = "STRONG"
+            elif score >= 55:
+                strength = "MODERATE"
+            elif score >= 35:
+                strength = "WEAK"
+            else:
+                return None  # Not actionable
+
+            # Features list (positive contributors)
+            features = [k for k, v in score_comps.items() if v > 0]
+
+            # ── Risk metadata ─────────────────────────────────────────────
+            risk = {
+                "atr_pct": round(atr / max(price, 1.0) * 100, 2),
+                "regime": regime,
+                "adx": round(adx_val, 1),
+                "volatility_tier": "HIGH" if atr / max(price, 1.0) > 0.02 else "NORMAL",
+            }
 
             return {
                 "direction": direction,
                 "score": score,
-                "price": current_price,
+                "price": price,
                 "strength": strength,
-                "rsi": round(rsi, 1),
-                "momentum_pct": round(momentum * 100, 2),
+                "score_components": score_comps,
+                "features": features,
+                "regime": regime,
+                "risk": risk,
+                "rsi": round(rsi_val, 1),
+                "momentum_pct": round(d10 / max(price, 1.0) * 100, 2),
                 "vol_ratio": round(vol_ratio, 2),
+                "vwap": round(vwap, 2),
+                "atr": round(atr, 2),
+                "adx": round(adx_val, 1),
+                "macd": macd,
                 "symbol": symbol,
             }
         except (ValueError, TypeError, KeyError, IndexError, AttributeError) as e:

@@ -1,8 +1,9 @@
 """
-Canonical Logging Abstraction (v2.46)
+Canonical Logging Abstraction (v2.53+)
 
 Provides standardized logging for the trading system.
-Replaces legacy trading_system.core.logging.service imports.
+Delegates to ``core.common.utilities.logging.StructuredLogger`` for the
+canonical implementation with JSON output and thread-local context.
 
 Usage:
     from core.logging import get_logger
@@ -13,6 +14,14 @@ from __future__ import annotations
 
 import logging
 import sys
+
+# Import canonical StructuredLogger from common utilities
+from core.common.utilities.logging import (
+    StructuredLogger as _CanonicalStructuredLogger,
+    LogContextManager,
+    with_context,
+)
+
 
 # Singleton logging configuration
 _configured = False
@@ -40,7 +49,8 @@ def _configure_root_logger():
 
 def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
-    Get a configured logger instance.
+    Get a configured logger instance (backward compat).
+    For structured logging with context, use StructuredLogger from core.common.utilities.logging.
 
     Args:
         name: Logger name (typically __name__)
@@ -55,52 +65,76 @@ def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     return logger
 
 
+def create_logger(name: str) -> StructuredLogger:
+    """Create a structured logger (delegates to canonical implementation)."""
+    return StructuredLogger(name)
+
+
 class StructuredLogger:
     """
-    Structured logging wrapper with context support.
+    Structured logging wrapper with context support (v2.53+).
+
+    Backward-compatible wrapper around ``core.common.utilities.logging.StructuredLogger``.
+    Delegates to the canonical implementation with JSON output and thread-local
+    LogContext, while preserving the original dict-based ``_context`` / ``set_context()`` API.
+    New code should use ``LogContextManager`` / ``with_context()`` directly.
     """
 
     def __init__(self, name: str):
-        self._logger = get_logger(name)
+        self._impl = _CanonicalStructuredLogger(name)
         self._context: dict = {}
+        # Enable propagation so caplog and root handlers can capture
+        self._impl.logger.propagate = True
+
+    @property
+    def _logger(self) -> logging.Logger:
+        """Access underlying logger (backward compat)."""
+        return self._impl.logger
 
     def set_context(self, **kwargs):
-        """Set logging context."""
+        """Set logging context (backward compat)."""
         self._context.update(kwargs)
 
     def clear_context(self):
-        """Clear logging context."""
+        """Clear logging context (backward compat)."""
         self._context = {}
 
     def _format(self, msg: str) -> str:
-        """Format message with context."""
+        """Format message with context (backward compat)."""
         if self._context:
             ctx_str = " | ".join(f"{k}={v}" for k, v in self._context.items())
             return f"{msg} [{ctx_str}]"
         return msg
 
     def debug(self, msg: str, **kwargs):
-        self._logger.debug(self._format(msg), **kwargs)
+        if self._context:
+            kwargs.update(self._context)
+        self._impl.debug(msg, **kwargs)
 
     def info(self, msg: str, **kwargs):
-        self._logger.info(self._format(msg), **kwargs)
+        if self._context:
+            kwargs.update(self._context)
+        self._impl.info(msg, **kwargs)
 
     def warning(self, msg: str, **kwargs):
-        self._logger.warning(self._format(msg), **kwargs)
+        if self._context:
+            kwargs.update(self._context)
+        self._impl.warning(msg, **kwargs)
 
     def error(self, msg: str, **kwargs):
-        self._logger.error(self._format(msg), **kwargs)
+        if self._context:
+            kwargs.update(self._context)
+        self._impl.error(msg, **kwargs)
 
     def critical(self, msg: str, **kwargs):
-        self._logger.critical(self._format(msg), **kwargs)
+        if self._context:
+            kwargs.update(self._context)
+        self._impl.critical(msg, **kwargs)
 
     def exception(self, msg: str, **kwargs):
-        self._logger.exception(self._format(msg), **kwargs)
-
-
-def create_logger(name: str) -> StructuredLogger:
-    """Create a structured logger."""
-    return StructuredLogger(name)
+        if self._context:
+            kwargs.update(self._context)
+        self._impl.exception(msg, **kwargs)
 
 
 # Convenience: default logger for quick imports
@@ -180,10 +214,12 @@ class LoggingService:
 
 
 __all__ = [
+    "LogContextManager",
     "LoggingService",
     "StructuredLogger",
     "create_logger",
     "default_logger",
     "get_logger",
+    "with_context",
 ]
 

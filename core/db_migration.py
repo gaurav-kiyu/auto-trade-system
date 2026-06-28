@@ -118,7 +118,6 @@ def _get_migration_log_inner(conn: sqlite3.Connection) -> list[dict]:
 def _migration_v1(conn: sqlite3.Connection) -> None:
     """Baseline migration: mark version 1 for all existing tables.
     No DDL needed - all tables use CREATE TABLE IF NOT EXISTS on startup."""
-    pass
 
 
 @register_schema(2, "Create SME stocks and positions tables")

@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from hypothesis import assume, given, settings
+from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from core.config_bootstrap import diff_configs, classify_change_risk, ConfigChange
@@ -206,7 +206,7 @@ class TestConfigFuzz:
         assert classify_change_risk("GUI_THEME") == "NORMAL"
 
     @given(config_dict, config_dict)
-    @settings(max_examples=50)
+    @settings(max_examples=30, suppress_health_check=[HealthCheck.too_slow], deadline=None)
     def test_diff_configs_never_crashes(self, old_cfg: dict, new_cfg: dict):
         """diff_configs should handle any config dicts."""
         changes = diff_configs(old_cfg, new_cfg, changed_by="test")

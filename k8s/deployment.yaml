@@ -156,7 +156,7 @@ spec:
                   sys.exit(0)
             initialDelaySeconds: 5
             periodSeconds: 5
-            failureThreshold: 30  # 150s max startup time
+            failureThreshold: 10  # 50s max startup time (reduced from 30 to catch crash-loops faster)
       volumes:
         - name: data
           persistentVolumeClaim:

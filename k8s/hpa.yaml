@@ -1,9 +1,9 @@
 ---
 # OPB Bot — HorizontalPodAutoscaler
 # ─────────────────────────────────────────────────────────────────────────────
-# Scales the bot deployment based on Prometheus metrics exposed at :9090.
+# Scales the bot deployment based on CPU/memory metrics.
 #
-# Scaling triggers (requires Prometheus Adapter):
+# Scaling triggers (requires Prometheus Adapter for custom metrics):
 #   - opb_signal_score_last < 30  → trade activity is low, scale down
 #   - opb_trades_total rate > 10/min → high trade activity, scale up
 #   - opb_reconciliation_lag_seconds > 60 → reconciliation backlog, scale up

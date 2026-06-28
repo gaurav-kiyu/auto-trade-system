@@ -38,19 +38,27 @@ SAFETY: Disabled by default. Set admin_control_plane_enabled: true to enable.
 """
 from __future__ import annotations
 
-import json
 import logging
 import os
 import threading
 import uuid
-from collections import deque
 from collections.abc import Callable
-from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from core.auth.permissions import PermissionDenied
+from core.control_plane.audit_store import (
+    AuditStore,
+    ControlAction,
+    _AUDIT_EVENTS,
+    _AUDIT_LOCK,
+)
+from core.control_plane.helpers import (
+    check_token,
+    get_client_ip,
+    get_identity,
+    legacy_audit_log,
+    require_permission,
+)
 from core.datetime_ist import now_ist
 
 _log = logging.getLogger(__name__)
@@ -64,10 +72,6 @@ except (OSError, ValueError):
 
 _DEFAULT_HOST = "127.0.0.1"
 _DEFAULT_PORT = 7080
-
-# ── In-memory audit ring buffer (last 500 events) - legacy compat ──────────
-_AUDIT_EVENTS: deque[dict[str, Any]] = deque(maxlen=500)
-_AUDIT_LOCK = threading.RLock()
 
 # ── FastAPI availability ─────────────────────────────────────────────────────
 
@@ -89,81 +93,6 @@ except ImportError:
     uvicorn = None  # type: ignore[assignment]
     _HAVE_UVICORN = False
     _log.warning("uvicorn not installed - admin control plane cannot serve")
-
-
-# ── Data classes ──────────────────────────────────────────────────────────────
-
-@dataclass
-class ControlAction:
-    """Record of a single control action with full audit trail."""
-    action_id: str
-    action: str
-    target: str
-    value: str
-    identity: str
-    timestamp: datetime
-    success: bool
-    previous_state: dict[str, Any] | None = None
-    new_state: dict[str, Any] | None = None
-    reason: str = ""
-    reversible: bool = True
-
-
-# ── AuditStore ────────────────────────────────────────────────────────────────
-
-class AuditStore:
-    """Thread-safe in-memory + JSONL audit store for control actions."""
-
-    def __init__(self, max_entries: int = 1000, persist_path: str = ""):
-        self._lock = threading.RLock()
-        self._entries: list[ControlAction] = []
-        self._max_entries = max_entries
-        self._persist_path = persist_path
-
-    def append(self, action: ControlAction) -> None:
-        with self._lock:
-            self._entries.append(action)
-            if len(self._entries) > self._max_entries:
-                self._entries.pop(0)
-        if self._persist_path:
-            try:
-                Path(self._persist_path).parent.mkdir(parents=True, exist_ok=True)
-                with open(self._persist_path, "a", encoding="utf-8") as f:
-                    f.write(json.dumps({
-                        "action_id": action.action_id,
-                        "action": action.action,
-                        "target": action.target,
-                        "value": action.value,
-                        "identity": action.identity,
-                        "timestamp": str(action.timestamp),
-                        "success": action.success,
-                        "reason": action.reason,
-                    }, default=str) + "\n")
-            except (OSError, ValueError, TypeError) as e:
-                _log.warning("[CTRL] Failed to persist audit entry: %s", e)
-
-        # Also write to legacy _AUDIT_EVENTS ring buffer
-        legacy_ev = {
-            "event_id": action.action_id,
-            "timestamp": str(action.timestamp),
-            "event_type": action.action,
-            "resource": action.target,
-            "action": action.action,
-            "outcome": "success" if action.success else "failure",
-            "details": {"value": action.value, "reason": action.reason},
-            "user_id": action.identity,
-            "ip_address": "local",
-        }
-        with _AUDIT_LOCK:
-            _AUDIT_EVENTS.append(legacy_ev)
-
-    def get_recent(self, limit: int = 100) -> list[ControlAction]:
-        with self._lock:
-            return list(self._entries[-limit:])
-
-    def count(self) -> int:
-        with self._lock:
-            return len(self._entries)
 
 
 # ── ControlPlaneServer ────────────────────────────────────────────────────────
@@ -342,69 +271,9 @@ class ControlPlaneServer:
             return {"success": True, "action_id": rec.action_id, "flag": name, "enabled": bool_value, "previous": previous}
 
 
-# ── Legacy helpers ────────────────────────────────────────────────────────────
-
-def _check_token(request: Any, token: str | None) -> None:
-    """Raise 401 if token is configured and request header doesn't match."""
-    if not token:
-        return
-    header = request.headers.get("x-admin-token", "")
-    if header != token:
-        raise HTTPException(status_code=401, detail="Invalid or missing X-Admin-Token")
-
-
-def _get_identity(request: Any) -> str:
-    """Extract operator identity from request header."""
-    return request.headers.get("x-operator-identity", "").strip() or "anonymous"
-
-
-def _get_client_ip(request: Any) -> str:
-    forwarded = request.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
-
-
-def _require_permission(role_manager: Any, identity: str, permission: str) -> None:
-    """Check RBAC permission. Raises 403 if denied."""
-    if role_manager is None:
-        return
-    try:
-        role_manager.check(identity, permission)
-    except (KeyError, ValueError, TypeError) as exc:
-        raise HTTPException(status_code=403, detail=str(exc))
-    except PermissionDenied as exc:
-        raise HTTPException(status_code=403, detail=str(exc))
-
-
-def _legacy_audit_log(
-    audit_logger: Any, event_type: str, resource: str, action: str,
-    outcome: str = "success", details: dict | None = None,
-    user_id: str | None = None, ip_address: str | None = None,
-) -> None:
-    """Write event to persistent audit logger and in-memory ring buffer."""
-    ev = {
-        "event_id": uuid.uuid4().hex[:16],
-        "timestamp": str(now_ist()),
-        "event_type": event_type,
-        "resource": resource,
-        "action": action,
-        "outcome": outcome,
-        "details": details or {},
-        "user_id": user_id,
-        "ip_address": ip_address,
-    }
-    with _AUDIT_LOCK:
-        _AUDIT_EVENTS.append(ev)
-    if audit_logger is not None:
-        try:
-            audit_logger.log_event(
-                event_type=event_type, resource=resource, action=action,
-                outcome=outcome, details=details, severity="info",
-                user_id=user_id, ip_address=ip_address,
-            )
-        except (ValueError, TypeError, AttributeError):
-            _log.warning("[ADMIN] audit_logger.log_event failed", exc_info=True)
+# Legacy helpers are now in core.control_plane.helpers
+# Imports at top of file provide: check_token, get_identity, get_client_ip,
+# require_permission, legacy_audit_log
 
 
 # ── FastAPI App Factory (legacy API) ──────────────────────────────────────────
@@ -494,9 +363,9 @@ def create_control_plane_app(
 
     @app.get("/mode")
     async def get_mode(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         if mode_manager_ref is None:
             return {"mode": "unavailable", "detail": "No ModeManager reference provided"}
         try:
@@ -506,9 +375,9 @@ def create_control_plane_app(
 
     @app.post("/mode/{target}")
     async def set_mode(target: str, request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "modify_config")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "modify_config")
         if mode_manager_ref is None:
             raise HTTPException(status_code=503, detail="ModeManager not wired")
         try:
@@ -516,9 +385,9 @@ def create_control_plane_app(
             new_mode = OperatingMode(target.upper())
             mode_manager_ref.set_mode(new_mode, reason="admin override", authorized_by=identity)
             _log.warning("[ADMIN] Mode set to %s by %s", new_mode, identity)
-            _legacy_audit_log(audit_logger_ref, "mode_change", "operating_mode", "set",
+            legacy_audit_log(audit_logger_ref, "mode_change", "operating_mode", "set",
                               details={"target": target, "mode": str(new_mode)},
-                              user_id=identity, ip_address=_get_client_ip(request))
+                              user_id=identity, ip_address=get_client_ip(request))
             return {"mode": str(new_mode), "status": "applied"}
         except (ValueError, Exception) as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -527,9 +396,9 @@ def create_control_plane_app(
 
     @app.get("/wal")
     async def get_wal(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         if wal_ref is None:
             return {"wal": "unavailable", "detail": "No WALJournal reference provided"}
         try:
@@ -552,9 +421,9 @@ def create_control_plane_app(
 
     @app.get("/cert")
     async def get_certs(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         if certifier_ref is None:
             return {"cert": "unavailable", "detail": "No IdempotencyCertifier reference provided"}
         try:
@@ -576,9 +445,9 @@ def create_control_plane_app(
 
     @app.get("/invariants")
     async def get_invariants(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         if invariant_engine_ref is None:
             return {"invariants": "unavailable", "detail": "No InvariantEngine reference provided"}
         try:
@@ -591,9 +460,9 @@ def create_control_plane_app(
 
     @app.post("/invariants/{name}/toggle")
     async def toggle_invariant(name: str, request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "modify_config")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "modify_config")
         if invariant_engine_ref is None:
             raise HTTPException(status_code=503, detail="InvariantEngine not wired")
         try:
@@ -602,9 +471,9 @@ def create_control_plane_app(
             else:
                 from core.invariants.engine import toggle_check as _toggle_invariant
                 new_state = _toggle_invariant(name)
-            _legacy_audit_log(audit_logger_ref, "invariant_toggle", f"invariant:{name}", "toggle",
+            legacy_audit_log(audit_logger_ref, "invariant_toggle", f"invariant:{name}", "toggle",
                               details={"name": name, "enabled": new_state},
-                              user_id=identity, ip_address=_get_client_ip(request))
+                              user_id=identity, ip_address=get_client_ip(request))
             return {"invariant": name, "enabled": new_state, "status": "toggled"}
         except HTTPException:
             raise
@@ -615,41 +484,41 @@ def create_control_plane_app(
 
     @app.post("/control/halt")
     async def halt_trading(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "halt_trading")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "halt_trading")
         if halt_event_ref is None:
             raise HTTPException(status_code=503, detail="HaltEvent not wired")
         try:
             halt_event_ref.set()
             _log.warning("[ADMIN] Trading halted by %s", identity)
-            _legacy_audit_log(audit_logger_ref, "kill_switch", "trading", "halt",
-                              user_id=identity, ip_address=_get_client_ip(request))
+            legacy_audit_log(audit_logger_ref, "kill_switch", "trading", "halt",
+                              user_id=identity, ip_address=get_client_ip(request))
             return {"status": "halted"}
         except (ValueError, KeyError, RuntimeError) as e:
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.post("/control/resume")
     async def resume_trading(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "halt_trading")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "halt_trading")
         if halt_event_ref is None:
             raise HTTPException(status_code=503, detail="HaltEvent not wired")
         try:
             halt_event_ref.clear()
             _log.warning("[ADMIN] Trading resumed by %s", identity)
-            _legacy_audit_log(audit_logger_ref, "kill_switch", "trading", "resume",
-                              user_id=identity, ip_address=_get_client_ip(request))
+            legacy_audit_log(audit_logger_ref, "kill_switch", "trading", "resume",
+                              user_id=identity, ip_address=get_client_ip(request))
             return {"status": "resumed"}
         except (ValueError, KeyError, RuntimeError) as e:
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/control/status")
     async def control_status(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         halted = halt_event_ref.is_set() if halt_event_ref is not None else None
         return {"halted": halted}
 
@@ -657,9 +526,9 @@ def create_control_plane_app(
 
     @app.get("/strategies")
     async def list_strategies(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         if strategy_registry_ref is None:
             return {"strategies": "unavailable", "detail": "No strategy registry wired"}
         try:
@@ -670,18 +539,18 @@ def create_control_plane_app(
 
     @app.post("/strategies/{name}/toggle")
     async def toggle_strategy(name: str, request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "toggle_strategies")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "toggle_strategies")
         if strategy_registry_ref is None:
             raise HTTPException(status_code=503, detail="No strategy registry wired")
         try:
             current = bool(strategy_registry_ref.get(name, False))
             new_val = not current
             strategy_registry_ref[name] = new_val
-            _legacy_audit_log(audit_logger_ref, "strategy_toggle", f"strategy:{name}", "toggle",
+            legacy_audit_log(audit_logger_ref, "strategy_toggle", f"strategy:{name}", "toggle",
                               details={"name": name, "enabled": new_val},
-                              user_id=identity, ip_address=_get_client_ip(request))
+                              user_id=identity, ip_address=get_client_ip(request))
             return {"strategy": name, "enabled": new_val}
         except (ValueError, KeyError, TypeError) as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -690,9 +559,9 @@ def create_control_plane_app(
 
     @app.get("/assets")
     async def list_assets(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         if asset_registry_ref is None:
             return {"assets": "unavailable", "detail": "No asset registry wired"}
         try:
@@ -703,18 +572,18 @@ def create_control_plane_app(
 
     @app.post("/assets/{name}/toggle")
     async def toggle_asset(name: str, request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "toggle_strategies")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "toggle_strategies")
         if asset_registry_ref is None:
             raise HTTPException(status_code=503, detail="No asset registry wired")
         try:
             current = bool(asset_registry_ref.get(name, False))
             new_val = not current
             asset_registry_ref[name] = new_val
-            _legacy_audit_log(audit_logger_ref, "asset_toggle", f"asset:{name}", "toggle",
+            legacy_audit_log(audit_logger_ref, "asset_toggle", f"asset:{name}", "toggle",
                               details={"name": name, "enabled": new_val},
-                              user_id=identity, ip_address=_get_client_ip(request))
+                              user_id=identity, ip_address=get_client_ip(request))
             return {"asset": name, "enabled": new_val}
         except (ValueError, KeyError, TypeError) as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -723,9 +592,9 @@ def create_control_plane_app(
 
     @app.get("/features")
     async def list_features(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         if feature_flags_ref is None:
             return {"features": "unavailable", "detail": "No feature flags wired"}
         try:
@@ -736,18 +605,18 @@ def create_control_plane_app(
 
     @app.post("/features/{name}")
     async def set_feature(name: str, request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "modify_config")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "modify_config")
         if feature_flags_ref is None:
             raise HTTPException(status_code=503, detail="No feature flags wired")
         try:
             body = await request.json()
             enabled = bool(body.get("enabled", True))
             feature_flags_ref[name] = enabled
-            _legacy_audit_log(audit_logger_ref, "feature_toggle", f"feature:{name}", "set",
+            legacy_audit_log(audit_logger_ref, "feature_toggle", f"feature:{name}", "set",
                               details={"name": name, "enabled": enabled},
-                              user_id=identity, ip_address=_get_client_ip(request))
+                              user_id=identity, ip_address=get_client_ip(request))
             return {"feature": name, "enabled": enabled}
         except (ValueError, KeyError, TypeError) as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -756,9 +625,9 @@ def create_control_plane_app(
 
     @app.get("/models")
     async def list_models(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         if model_registry_ref is None:
             return {"models": "unavailable", "detail": "No model registry wired"}
         try:
@@ -775,9 +644,9 @@ def create_control_plane_app(
 
     @app.post("/models/{model_id}/select")
     async def select_model(model_id: str, request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "deploy_models")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "deploy_models")
         if model_registry_ref is None:
             raise HTTPException(status_code=503, detail="No model registry wired")
         try:
@@ -785,9 +654,9 @@ def create_control_plane_app(
                 model_registry_ref.update_status(model_id, "ACTIVE")
             else:
                 raise HTTPException(status_code=501, detail="Model selection not supported by registry")
-            _legacy_audit_log(audit_logger_ref, "model_select", f"model:{model_id}", "select",
+            legacy_audit_log(audit_logger_ref, "model_select", f"model:{model_id}", "select",
                               details={"model_id": model_id},
-                              user_id=identity, ip_address=_get_client_ip(request))
+                              user_id=identity, ip_address=get_client_ip(request))
             return {"model": model_id, "status": "selected"}
         except HTTPException:
             raise
@@ -798,9 +667,9 @@ def create_control_plane_app(
 
     @app.get("/broker")
     async def get_broker_summary(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         mode_str = str(mode_manager_ref.current_mode) if mode_manager_ref else "unavailable"
         return {"operating_mode": mode_str}
 
@@ -808,9 +677,9 @@ def create_control_plane_app(
 
     @app.get("/audit")
     async def get_audit_log(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_logs")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_logs")
         limit = int(request.query_params.get("limit", 100))
         with _AUDIT_LOCK:
             events = list(_AUDIT_EVENTS)[-limit:]
@@ -820,9 +689,9 @@ def create_control_plane_app(
 
     @app.get("/roles")
     async def list_roles(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "view_state")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "view_state")
         if role_manager_ref is None:
             return {"roles": "unavailable", "detail": "No RoleManager wired"}
         try:
@@ -833,18 +702,18 @@ def create_control_plane_app(
 
     @app.post("/roles/{operator}")
     async def assign_role(operator: str, request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "modify_config")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "modify_config")
         if role_manager_ref is None:
             raise HTTPException(status_code=503, detail="No RoleManager wired")
         try:
             body = await request.json()
             role = str(body.get("role", "observer"))
             role_manager_ref.assign(operator, role)
-            _legacy_audit_log(audit_logger_ref, "role_assign", f"role:{operator}", "assign",
+            legacy_audit_log(audit_logger_ref, "role_assign", f"role:{operator}", "assign",
                               details={"operator": operator, "role": role},
-                              user_id=identity, ip_address=_get_client_ip(request))
+                              user_id=identity, ip_address=get_client_ip(request))
             return {"operator": operator, "role": role}
         except (ValueError, KeyError, TypeError) as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -853,16 +722,16 @@ def create_control_plane_app(
 
     @app.post("/config/reload")
     async def reload_config(request: Request):
-        _check_token(request, token)
-        identity = _get_identity(request)
-        _require_permission(role_manager_ref, identity, "modify_config")
+        check_token(request, token)
+        identity = get_identity(request)
+        require_permission(role_manager_ref, identity, "modify_config")
         if config_reload_ref is None:
             return {"status": "unavailable", "detail": "No config reload handler registered"}
         try:
             result = config_reload_ref()
-            _legacy_audit_log(audit_logger_ref, "config_reload", "config", "reload",
+            legacy_audit_log(audit_logger_ref, "config_reload", "config", "reload",
                               details={"result": str(result)},
-                              user_id=identity, ip_address=_get_client_ip(request))
+                              user_id=identity, ip_address=get_client_ip(request))
             return {"status": "ok", "detail": "Config reloaded", "result": result}
         except (ValueError, OSError, TypeError) as e:
             _log.exception("Config reload failed")
@@ -1082,8 +951,6 @@ def maybe_start_control_plane(
 
 
 __all__ = [
-    "AuditStore",
-    "ControlAction",
     "ControlPlaneServer",
     "create_control_plane_app",
     "maybe_start_control_plane",

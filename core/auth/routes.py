@@ -27,7 +27,6 @@ from core.auth.mfa import (
     hash_recovery_code,
     verify_mfa_token,
 )
-from core.auth.sso import SSOAuthenticator
 
 _log = logging.getLogger(__name__)
 
@@ -129,10 +128,13 @@ def create_auth_router(
         _set_session_cookie(response, token.token, auth_handler._token_ttl, request=request)
         _set_csrf_cookie(response, csrf_token, request=request)
 
+        mfa_required = auth_handler.is_mfa_enabled(username)
+
         return {
             "success": True,
             "user": user.to_dict(),
             "must_change_password": user.must_change_password,
+            "mfa_required": mfa_required,
         }
 
     # ── Logout ────────────────────────────────────────────────────────────────

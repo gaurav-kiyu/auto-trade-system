@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opb-trading
+  labels:
+    app.kubernetes.io/name: opb-index-options-bot
+    app.kubernetes.io/version: "2.53.0"
+    app.kubernetes.io/component: trading-platform

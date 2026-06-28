@@ -175,8 +175,11 @@ def check_release_state() -> list[str]:
     if branch and branch.startswith("release/") and version:
         expected_branch = f"release/v{version}"
         # Allow test/debug branches with pattern release/v0.0.0-test_*
-        if branch.startswith("release/v0.0.0-test_"):
+        if branch.startswith("release/v0.0.0-test_") or branch == "release/v0.0.0-test":
             pass  # test/debug branch — skip release check
+        # Allow legacy date-suffixed branches (migration period)
+        elif branch.startswith(f"release/v{version}_"):
+            pass  # legacy date-suffixed branch — allow during migration
         elif branch != expected_branch:
             issues.append(
                 f"BRANCH NAMING: Current branch '{branch}' does not match VERSION "

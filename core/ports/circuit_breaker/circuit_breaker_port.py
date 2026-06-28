@@ -75,7 +75,6 @@ class CircuitBreakerPort(ABC):
             The exception from the function if circuit is closed or half-open
             CircuitBreakerOpenException if circuit is open
         """
-        pass
 
     @abstractmethod
     def get_state(self) -> CircuitState:
@@ -85,7 +84,6 @@ class CircuitBreakerPort(ABC):
         Returns:
             Current circuit state
         """
-        pass
 
     @abstractmethod
     def get_stats(self) -> CircuitBreakerStats:
@@ -95,22 +93,18 @@ class CircuitBreakerPort(ABC):
         Returns:
             CircuitBreakerStats object with current statistics
         """
-        pass
 
     @abstractmethod
     def reset(self) -> None:
         """Reset the circuit breaker to closed state."""
-        pass
 
     @abstractmethod
     def force_open(self) -> None:
         """Force the circuit breaker into open state."""
-        pass
 
     @abstractmethod
     def force_close(self) -> None:
         """Force the circuit breaker into closed state."""
-        pass
 
     @abstractmethod
     def update_config(self, config: CircuitBreakerConfig) -> None:
@@ -120,7 +114,6 @@ class CircuitBreakerPort(ABC):
         Args:
             config: New circuit breaker configuration
         """
-        pass
 
     @abstractmethod
     def health_check(self) -> dict[str, Any]:
@@ -130,18 +123,15 @@ class CircuitBreakerPort(ABC):
         Returns:
             Dictionary containing health check results
         """
-        pass
 
 
 # Exception classes
 class CircuitBreakerOpenException(Exception):
     """Exception raised when circuit breaker is open."""
-    pass
 
 
 class CircuitBreakerHalfOpenException(Exception):
     """Exception raised when circuit breaker is half-open and rejects call."""
-    pass
 
 
 __all__ = [

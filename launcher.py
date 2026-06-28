@@ -150,7 +150,7 @@ def _load_packages_from_requirements(path: Path | None = None) -> list[tuple[str
                     continue
                 # Extract package name and version
                 # PEP 508: package_name>=version[,constraint]...
-                m = re.match(r"([a-zA-Z0-9_.-]+?)((?:\[[^\]]*\])?)\s*((?:[><=!~]+\s*[a-zA-Z0-9.*_]+(?:\s*,\s*[><=!~]+\s*[a-zA-Z0-9.*_]+)*)?)", clean)
+                m = re.match(r"([a-zA-Z0-9_.-]+)((?:\[[^\]]*\])?)\s*((?:[><=!~]+\s*[a-zA-Z0-9.*_]+(?:\s*,\s*[><=!~]+\s*[a-zA-Z0-9.*_]+)*)?)", clean)
                 if m:
                     name = m.group(1).lower()
                     # Use the full original line (without extras) for pip install

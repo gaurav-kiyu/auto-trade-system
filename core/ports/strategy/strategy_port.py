@@ -55,7 +55,6 @@ class StrategyPort(ABC):
         Returns:
             StrategyDecision with combined signal and approval info
         """
-        pass
 
     @abstractmethod
     def generate_signal(self, **kwargs: Any) -> dict[str, Any] | None:
@@ -68,7 +67,6 @@ class StrategyPort(ABC):
         Returns:
             Raw signal dict, or None if no signal generated
         """
-        pass
 
     @abstractmethod
     def route_decision(
@@ -94,7 +92,6 @@ class StrategyPort(ABC):
         Returns:
             StrategyDecision with approval routing result
         """
-        pass
 
     @abstractmethod
     def get_status(self) -> dict[str, Any]:
@@ -104,7 +101,6 @@ class StrategyPort(ABC):
         Returns:
             Dictionary with last action, score, reason, decision count, etc.
         """
-        pass
 
     @abstractmethod
     def health_check(self) -> dict[str, Any]:
@@ -114,7 +110,6 @@ class StrategyPort(ABC):
         Returns:
             Dictionary containing health check results
         """
-        pass
 
 
 __all__ = [

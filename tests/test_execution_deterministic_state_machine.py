@@ -268,12 +268,12 @@ class TestExecutionStateMachineManager:
         mgr = ExecutionStateMachineManager()
         m1, _ = mgr.create_or_get("intent_106", "NIFTY", 50, 23500.0, "BUY")
         m2, _ = mgr.create_or_get("intent_107", "BANKNIFTY", 30, 50000.0, "SELL")
-        # Mark both as terminal and set created_at to match strptime format
+        # Mark both as terminal and set created_at to ISO format (matching time_provider.format_ts())
         m1.state = ExecutionState.FILLED
         m2.state = ExecutionState.REJECTED
-        # Set created_at well in the past so prune works
-        m1.created_at = "Thu Jun 10 12:00:00 2026"  # Match strptime default format
-        m2.created_at = "Thu Jun 10 12:00:00 2026"
+        # Set created_at well in the past so prune works (ISO format matching time_provider)
+        m1.created_at = "2026-06-10 12:00:00"
+        m2.created_at = "2026-06-10 12:00:00"
         # Prune with 0 max age to force removal
         removed = mgr.prune_terminals(max_age_hours=0)
         assert removed == 2
@@ -284,7 +284,7 @@ class TestExecutionStateMachineManager:
         m1, _ = mgr.create_or_get("intent_108", "NIFTY", 50, 23500.0, "BUY")
         m2, _ = mgr.create_or_get("intent_109", "BANKNIFTY", 30, 50000.0, "SELL")
         m1.state = ExecutionState.FILLED  # Terminal
-        m1.created_at = "Thu Jun 10 12:00:00 2026"  # Match strptime default format
+        m1.created_at = "2026-06-10 12:00:00"  # ISO format matching time_provider
         # m2 stays in INIT (non-terminal)
         removed = mgr.prune_terminals(max_age_hours=0)
         assert removed == 1

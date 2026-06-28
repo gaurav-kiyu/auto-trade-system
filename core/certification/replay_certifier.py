@@ -167,7 +167,7 @@ class ReplayCertifier:
 
         for tid in tested:
             try:
-                from core.trade_replayer import replay_trade
+                pass
 
                 result1 = replay_trace(tid, db_path, self._frames, self._bar_width)
                 result2 = replay_trace(tid, db_path, self._frames, self._bar_width)

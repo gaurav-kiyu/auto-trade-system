@@ -32,7 +32,6 @@ class ConfigPort(ABC):
         Returns:
             Configuration value or default
         """
-        pass
 
     @abstractmethod
     def get_secret(self, key: str, default: Any = None) -> Any:
@@ -50,7 +49,6 @@ class ConfigPort(ABC):
         Note:
             Access to secrets through this method is logged for audit purposes.
         """
-        pass
 
     @abstractmethod
     def get_bool(self, key: str, default: bool = False) -> bool:
@@ -64,7 +62,6 @@ class ConfigPort(ABC):
         Returns:
             Boolean configuration value
         """
-        pass
 
     @abstractmethod
     def get_int(self, key: str, default: int = 0) -> int:
@@ -78,7 +75,6 @@ class ConfigPort(ABC):
         Returns:
             Integer configuration value
         """
-        pass
 
     @abstractmethod
     def get_float(self, key: str, default: float = 0.0) -> float:
@@ -92,7 +88,6 @@ class ConfigPort(ABC):
         Returns:
             Float configuration value
         """
-        pass
 
     @abstractmethod
     def get_safe_config(self) -> dict[str, Any]:
@@ -102,7 +97,6 @@ class ConfigPort(ABC):
         Returns:
             Dictionary containing configuration with secrets replaced by '[REDACTED]'
         """
-        pass
 
 
 __all__ = [

@@ -49,7 +49,9 @@ from .reconciliation_engine import ReconciliationEngine, ReconciliationReport
 from .risk.legacy_adapter import RiskDecision, RiskPortAdapter
 from .safety_engine import SafetyContext, SafetyDecision, SafetyEngine
 from .state_manager import StateManager
-from .strategy_engine import StrategyEngine
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
+    from .strategy_engine import StrategyEngine
 
 
 # ── Local execution dataclasses (formerly mirrored from the removed execution_engine) ──

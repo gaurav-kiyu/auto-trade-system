@@ -474,6 +474,20 @@ def _start_background_services(
     except (ValueError, TypeError, ImportError, OSError) as _cm_err:
         _log.debug("[CM] Change Management init skipped: %s", _cm_err)
 
+    # Wire Capacity Planning → Incident Alerting bridge (scorecard item)
+    # Runs an initial capacity check at startup; triggers with cooldowns prevent repeat alerts
+    try:
+        from core.capacity_planning import wire_capacity_alerting
+        capacity_planner = wire_capacity_alerting(cfg)
+        # Run initial capacity check and check triggers
+        triggered = capacity_planner.check_triggers()
+        if triggered:
+            for t in triggered:
+                _log.info("[SCALE] Initial capacity trigger fired: %s", t.get("trigger", {}).get("name", "unknown"))
+        _log.info("[SCALE] Capacity Planning → Incident Alerting bridge wired")
+    except (ValueError, TypeError, ImportError, OSError, RuntimeError) as _cap_err:
+        _log.debug("[SCALE] Capacity alerting bridge skipped: %s", _cap_err)
+
 
 def _start_equity_trader_if_requested(
     cfg: dict,

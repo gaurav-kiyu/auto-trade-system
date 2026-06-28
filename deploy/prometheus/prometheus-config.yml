@@ -1,0 +1,18 @@
+---
+# OPB Bot — Prometheus Scrape Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# Scrapes the OPB bot's metrics exporter on port 9090.
+# Used with docker-compose.observability.yml for a full metrics + logs stack.
+# ─────────────────────────────────────────────────────────────────────────────
+
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'opb-bot'
+    static_configs:
+      - targets: ['host.docker.internal:9090']
+        labels:
+          app: opb-bot
+          tier: trading

@@ -49,6 +49,8 @@ from core.config_helpers import deep_merge_dict
 # Import IST datetime function for timestamps
 from core.datetime_ist import now_ist
 
+import warnings as _cw
+
 _log = logging.getLogger(__name__)
 
 # ── Config change audit (Item 6 - v2.44) ────────────────────────
@@ -216,8 +218,10 @@ def get_effective_config(
         _log.info("Applied %d OPBUYING_* environment variable override(s)", applied)
 
     # 4. Validate the final result
-    from core.config_engine import ConfigValidator
-    validator = ConfigValidator(effective_dict)
+    with _cw.catch_warnings():
+        _cw.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
+        from core.config_engine import ConfigValidator
+        validator = ConfigValidator(effective_dict)
     result = validator.validate()
 
     if not result.ok:

@@ -800,4 +800,3 @@ class BrokerHealthService(BrokerHealthPort):
         self._logger.debug("Performing comprehensive health check")
         # This could include additional checks like rate limit status, etc.
         # For now, we rely on the regular checks which are quite comprehensive
-        pass

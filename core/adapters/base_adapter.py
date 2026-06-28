@@ -61,39 +61,31 @@ class BrokerAdapter(ABC):
     @abstractmethod
     def authenticate(self, credentials: dict[str, Any]) -> bool:
         """Establish session with the broker."""
-        pass
 
     @abstractmethod
     def place_order(self, request: OrderRequest) -> OrderResponse:
         """Submit an order to the exchange."""
-        pass
 
     @abstractmethod
     def cancel_order(self, order_id: str) -> OrderResponse:
         """Cancel an existing order."""
-        pass
 
     @abstractmethod
     def get_ltp(self, symbol: str) -> float:
         """Fetch Last Traded Price for a symbol."""
-        pass
 
     @abstractmethod
     def get_positions(self) -> list[dict[str, Any]]:
         """Fetch all current open positions."""
-        pass
 
     @abstractmethod
     def get_order_status(self, order_id: str) -> OrderResponse:
         """Fetch the current status of a specific order."""
-        pass
 
     @abstractmethod
     def get_instrument_token(self, symbol: str) -> str:
         """Resolve a trading symbol to a broker-specific token."""
-        pass
 
     @abstractmethod
     def is_healthy(self) -> bool:
         """Perform a health check on the broker connection."""
-        pass

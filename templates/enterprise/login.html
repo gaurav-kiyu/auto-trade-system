@@ -56,18 +56,58 @@
             </div>
             <div class="error-msg" id="errorMsg"></div>
             <form id="loginForm" autocomplete="off">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="Enter your username" autocomplete="username" required autofocus>
+                <!-- Step 1: Credentials -->
+                <div id="loginStep1">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" placeholder="Enter your username" autocomplete="username" required autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="loginBtn">
+                        <span id="btnText">Sign In</span>
+                        <span class="spinner" id="btnSpinner"></span>
+                    </button>
+
+                    <!-- SSO Divider -->
+                    <div id="ssoDivider" style="display:none;margin:1.25rem 0 .75rem;text-align:center;">
+                        <div style="display:flex;align-items:center;gap:.75rem;">
+                            <span style="flex:1;height:1px;background:rgba(148,163,184,.12);"></span>
+                            <span style="font-size:.72rem;color:#475569;white-space:nowrap;">or continue with</span>
+                            <span style="flex:1;height:1px;background:rgba(148,163,184,.12);"></span>
+                        </div>
+                    </div>
+                    <div id="ssoButtons" style="display:none;gap:.5rem;flex-direction:column;"></div>
                 </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+
+                <!-- Step 2: MFA (hidden initially) -->
+                <div id="loginStep2" style="display:none;">
+                    <div style="text-align:center;margin-bottom:1.25rem;">
+                        <i class="fas fa-shield-alt" style="font-size:1.75rem;color:#3b82f6;margin-bottom:.5rem;display:block;"></i>
+                        <div style="font-size:.85rem;color:#e2e8f0;font-weight:500;">Two-Factor Authentication</div>
+                        <p style="font-size:.72rem;color:#64748b;margin-top:.2rem;">Enter the 6-digit code from your authenticator app</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="mfaToken">Authentication Code</label>
+                        <input type="text" id="mfaToken" name="mfaToken" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" style="text-align:center;font-size:1.5rem;letter-spacing:.5rem;font-family:monospace;" required>
+                    </div>
+                    <div style="text-align:center;margin-bottom:1rem;">
+                        <a href="#" id="useRecoveryCodeLink" style="font-size:.72rem;color:#64748b;text-decoration:none;">Use a recovery code instead</a>
+                    </div>
+                    <div id="recoveryCodeSection" style="display:none;" class="form-group">
+                        <label for="recoveryCode">Recovery Code</label>
+                        <input type="text" id="recoveryCode" name="recoveryCode" placeholder="XXXX-XXXX" autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="mfaVerifyBtn">
+                        <span id="mfaBtnText">Verify</span>
+                        <span class="spinner" id="mfaBtnSpinner"></span>
+                    </button>
+                    <div style="text-align:center;margin-top:.75rem;">
+                        <a href="#" id="backToLoginLink" style="font-size:.72rem;color:#64748b;text-decoration:none;">&larr; Back to login</a>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary" id="loginBtn">
-                    <span id="btnText">Sign In</span>
-                    <span class="spinner" id="btnSpinner"></span>
-                </button>
             </form>
             <div class="security-badge">
                 <i class="fas fa-lock" style="color:#475569;"></i>
@@ -80,8 +120,125 @@
     </div>
 
     <script nonce="{{ nonce }}">
+        let _loginCredentials = {};
+
+        // ── SSO Provider icons and names ───────────────────────────────────────
+        const SSO_PROVIDERS = {
+            google: { icon: 'fab fa-google', color: '#ea4335', bg: 'rgba(234,67,53,.08)', name: 'Google' },
+            microsoft: { icon: 'fab fa-microsoft', color: '#00a4ef', bg: 'rgba(0,164,239,.08)', name: 'Microsoft' },
+            github: { icon: 'fab fa-github', color: '#fff', bg: 'rgba(255,255,255,.06)', name: 'GitHub' },
+        };
+
+        // ── Check SSO providers on load ───────────────────────────────────────
+        async function checkSSOProviders() {
+            try {
+                const res = await fetch('/api/auth/sso/providers', {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' },
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.providers && data.providers.length > 0) {
+                    renderSSOButtons(data.providers);
+                }
+            } catch (e) {
+                // SSO check is non-critical; silently ignore errors
+            }
+        }
+
+        function renderSSOButtons(providers) {
+            const container = document.getElementById('ssoButtons');
+            const divider = document.getElementById('ssoDivider');
+            if (!container || !divider) return;
+
+            let html = '';
+            providers.forEach(function(p) {
+                const cfg = SSO_PROVIDERS[p] || { icon: 'fas fa-key', color: '#64748b', bg: 'rgba(148,163,184,.08)', name: p.charAt(0).toUpperCase() + p.slice(1) };
+                html += '<button type="button" class="btn sso-btn" data-provider="' + p + '" style="background:' + cfg.bg + ';border:1px solid rgba(148,163,184,.1);color:var(--text-secondary);">';
+                html += '<i class="' + cfg.icon + '" style="color:' + cfg.color + ';"></i>';
+                html += 'Sign in with ' + cfg.name;
+                html += '</button>';
+            });
+
+            if (html) {
+                container.innerHTML = html;
+                container.style.display = 'flex';
+                divider.style.display = 'block';
+
+                // Bind click handlers
+                container.querySelectorAll('.sso-btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const provider = this.dataset.provider;
+                        redirectSSOLogin(provider);
+                    });
+                });
+            }
+        }
+
+        async function redirectSSOLogin(provider) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.classList.remove('visible');
+
+            try {
+                const res = await fetch('/api/auth/sso/login?provider=' + encodeURIComponent(provider), {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' },
+                });
+                const data = await res.json();
+                if (res.ok && data.authorization_url) {
+                    // Redirect to SSO provider
+                    window.location.href = data.authorization_url;
+                } else {
+                    const detail = data.detail || {};
+                    const msg = detail.message || 'SSO login not available';
+                    errorMsg.textContent = msg;
+                    if (detail.hint) {
+                        errorMsg.textContent += '. ' + detail.hint;
+                    }
+                    errorMsg.classList.add('visible');
+                }
+            } catch (e) {
+                errorMsg.textContent = 'Connection error. Please try again.';
+                errorMsg.classList.add('visible');
+            }
+        }
+
+        // Check SSO providers on page load
+        document.addEventListener('DOMContentLoaded', checkSSOProviders);
+
+        // ── Toggle recovery code input ───────────────────────────────────────
+        document.getElementById('useRecoveryCodeLink')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            const rc = document.getElementById('recoveryCodeSection');
+            const isHidden = rc.style.display === 'none';
+            rc.style.display = isHidden ? 'block' : 'none';
+            this.textContent = isHidden ? 'Use authenticator app code instead' : 'Use a recovery code instead';
+            if (isHidden) {
+                document.getElementById('recoveryCode').focus();
+            } else {
+                document.getElementById('mfaToken').focus();
+            }
+        });
+
+        // ── Back to login link ──────────────────────────────────────────────
+        document.getElementById('backToLoginLink')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('loginStep1').style.display = 'block';
+            document.getElementById('loginStep2').style.display = 'none';
+            document.getElementById('errorMsg').classList.remove('visible');
+        });
+
+        // ── Login form submit (Step 1) ──────────────────────────────────────
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            // Check if we're in MFA step
+            if (document.getElementById('loginStep2').style.display !== 'none') {
+                // MFA verification
+                await verifyMFA();
+                return;
+            }
+
             const btn = document.getElementById('loginBtn');
             const btnText = document.getElementById('btnText');
             const spinner = document.getElementById('btnSpinner');
@@ -111,9 +268,21 @@
                 if (res.ok) {
                     if (data.must_change_password) {
                         window.location.href = '/change-password?force=true';
-                    } else {
-                        window.location.href = '/';
+                        return;
                     }
+                    if (data.mfa_required) {
+                        // Save credentials for MFA step
+                        _loginCredentials = { username, password };
+                        // Switch to MFA step
+                        document.getElementById('loginStep1').style.display = 'none';
+                        document.getElementById('loginStep2').style.display = 'block';
+                        document.getElementById('mfaToken').focus();
+                        btn.disabled = false;
+                        btnText.textContent = 'Sign In';
+                        spinner.classList.remove('visible');
+                        return;
+                    }
+                    window.location.href = '/';
                 } else {
                     errorMsg.textContent = data.detail || 'Invalid username or password';
                     errorMsg.classList.add('visible');
@@ -127,6 +296,84 @@
                 btn.disabled = false;
                 btnText.textContent = 'Sign In';
                 spinner.classList.remove('visible');
+            }
+        });
+
+        // ── MFA Verification ────────────────────────────────────────────────
+        async function verifyMFA() {
+            const btn = document.getElementById('mfaVerifyBtn');
+            const btnText = document.getElementById('mfaBtnText');
+            const spinner = document.getElementById('mfaBtnSpinner');
+            const errorMsg = document.getElementById('errorMsg');
+            const token = document.getElementById('mfaToken').value.trim();
+            const recoveryCode = document.getElementById('recoveryCode').value.trim();
+
+            errorMsg.classList.remove('visible');
+
+            if (!token && !recoveryCode) {
+                errorMsg.textContent = 'Please enter your authentication code or recovery code';
+                errorMsg.classList.add('visible');
+                return;
+            }
+
+            // Validate TOTP format (6 digits)
+            if (token && (token.length !== 6 || !/^\d+$/.test(token))) {
+                errorMsg.textContent = 'Authentication code must be 6 digits';
+                errorMsg.classList.add('visible');
+                return;
+            }
+
+            btn.disabled = true;
+            btnText.textContent = 'Verifying...';
+            spinner.classList.add('visible');
+
+            try {
+                const body = recoveryCode
+                    ? { recovery_code: recoveryCode }
+                    : { token: token };
+
+                const res = await fetch('/api/auth/mfa/verify-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                    credentials: 'include',
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    window.location.href = '/';
+                } else {
+                    errorMsg.textContent = data.detail || 'Invalid verification code';
+                    errorMsg.classList.add('visible');
+                    btn.disabled = false;
+                    btnText.textContent = 'Verify';
+                    spinner.classList.remove('visible');
+                    document.getElementById('mfaToken').value = '';
+                    document.getElementById('mfaToken').focus();
+                }
+            } catch (err) {
+                errorMsg.textContent = 'Verification error. Please try again.';
+                errorMsg.classList.add('visible');
+                btn.disabled = false;
+                btnText.textContent = 'Verify';
+                spinner.classList.remove('visible');
+            }
+        }
+
+        // Auto-focus MFA token field and navigate on Enter
+        document.getElementById('mfaToken')?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                verifyMFA();
+            }
+        });
+
+        document.getElementById('recoveryCode')?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // If recovery code section is visible, try to verify
+                if (document.getElementById('recoveryCodeSection').style.display !== 'none') {
+                    verifyMFA();
+                }
             }
         });
 

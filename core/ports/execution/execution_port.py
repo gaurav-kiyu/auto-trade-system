@@ -121,7 +121,6 @@ class ExecutionPort(ABC):
         Returns:
             OrderResult indicating success or failure
         """
-        pass
 
     @abstractmethod
     def modify_order(
@@ -149,7 +148,6 @@ class ExecutionPort(ABC):
         Returns:
             OrderResult with modification status
         """
-        pass
 
     @abstractmethod
     def cancel_order(self, order_id: str) -> bool:
@@ -162,7 +160,6 @@ class ExecutionPort(ABC):
         Returns:
             True if cancellation successful, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_order_status(self, order_id: str) -> OrderStatus:
@@ -175,7 +172,6 @@ class ExecutionPort(ABC):
         Returns:
             Current order status
         """
-        pass
 
     @abstractmethod
     def verify_order_fill(
@@ -193,7 +189,6 @@ class ExecutionPort(ABC):
         Returns:
             Dictionary containing fill verification results
         """
-        pass
 
     @abstractmethod
     def is_duplicate_order(self, idempotency_key: str) -> bool:
@@ -206,7 +201,6 @@ class ExecutionPort(ABC):
         Returns:
             True if order is duplicate, False otherwise
         """
-        pass
 
     @abstractmethod
     def record_execution_audit(
@@ -222,7 +216,6 @@ class ExecutionPort(ABC):
         Returns:
             True if recording successful, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_execution_audit_trail(
@@ -238,7 +231,6 @@ class ExecutionPort(ABC):
         Returns:
             ExecutionAuditTrail if found, None otherwise
         """
-        pass
 
     @abstractmethod
     def health_check(self) -> dict[str, Any]:
@@ -248,7 +240,6 @@ class ExecutionPort(ABC):
         Returns:
             Dictionary containing health check results
         """
-        pass
 
 
 __all__ = [

@@ -948,7 +948,7 @@ class TestAuthHandlerPasswordResetTokens:
         assert handler.verify_password_reset_token(token) is None
 
     def test_password_reset_token_expiry(self, handler: Any, test_user: dict[str, Any]):
-        from core.auth.handler import hashlib
+        import hashlib
         token = handler.create_password_reset_token("testuser")
         assert token is not None
         # Simulate expiry by updating the DB directly

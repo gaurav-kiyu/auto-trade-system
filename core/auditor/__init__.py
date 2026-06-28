@@ -14,7 +14,13 @@ Auditor MUST:
 Every audit result provides objective evidence for Constitution Scoring.
 """
 
+# Import data models from models.py and the auditor class from auditor.py
 from core.auditor.auditor import (
+    IndependentAuditor,
+    get_auditor,
+    reset_auditor,
+)
+from core.auditor.models import (
     AuditCategory,
     AuditEvidence,
     AuditFinding,
@@ -22,9 +28,6 @@ from core.auditor.auditor import (
     AuditResult,
     AuditSeverity,
     AuditStatus,
-    IndependentAuditor,
-    get_auditor,
-    reset_auditor,
 )
 
 __all__ = [

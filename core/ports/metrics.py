@@ -28,7 +28,6 @@ class MetricsPort(ABC):
             value: Value to increment by
             tags: Optional tags for dimensional metrics
         """
-        pass
 
     @abstractmethod
     def set_gauge(self, name: str, value: float, tags: dict[str, str] | None = None) -> None:
@@ -40,7 +39,6 @@ class MetricsPort(ABC):
             value: Current value
             tags: Optional tags for dimensional metrics
         """
-        pass
 
     @abstractmethod
     def record_timer(self, name: str, value: float, tags: dict[str, str] | None = None) -> None:
@@ -52,7 +50,6 @@ class MetricsPort(ABC):
             value: Elapsed time in seconds
             tags: Optional tags for dimensional metrics
         """
-        pass
 
     @abstractmethod
     def record_histogram(self, name: str, value: float, tags: dict[str, str] | None = None) -> None:
@@ -64,7 +61,6 @@ class MetricsPort(ABC):
             value: Value to record
             tags: Optional tags for dimensional metrics
         """
-        pass
 
 
 __all__ = [

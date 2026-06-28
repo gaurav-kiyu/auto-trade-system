@@ -64,7 +64,6 @@ class RateLimitPort(ABC):
         Returns:
             LimitResult indicating whether the request is allowed
         """
-        pass
 
     @abstractmethod
     def get_status(self, key: str) -> RateLimitStatus:
@@ -77,7 +76,6 @@ class RateLimitPort(ABC):
         Returns:
             RateLimitStatus object with current status information
         """
-        pass
 
     @abstractmethod
     def reset(self, key: str) -> None:
@@ -87,7 +85,6 @@ class RateLimitPort(ABC):
         Args:
             key: Identifier for the rate limit to reset
         """
-        pass
 
     @abstractmethod
     def get_retry_after(self, key: str) -> float | None:
@@ -100,7 +97,6 @@ class RateLimitPort(ABC):
         Returns:
             Number of seconds to wait, or None if no retry is needed
         """
-        pass
 
     @abstractmethod
     def update_config(self, key: str, config: RateLimitConfig) -> None:
@@ -111,7 +107,6 @@ class RateLimitPort(ABC):
             key: Identifier for the rate limit
             config: New rate limit configuration
         """
-        pass
 
     @abstractmethod
     def health_check(self) -> dict[str, Any]:
@@ -121,7 +116,6 @@ class RateLimitPort(ABC):
         Returns:
             Dictionary containing health check results
         """
-        pass
 
 
 __all__ = [

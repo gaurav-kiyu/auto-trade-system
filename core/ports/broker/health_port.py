@@ -84,7 +84,6 @@ class BrokerHealthPort(ABC):
         Returns:
             BrokerHealthMetrics object with current health status
         """
-        pass
 
     @abstractmethod
     def get_all_brokers_health(self) -> dict[str, BrokerHealthMetrics]:
@@ -94,7 +93,6 @@ class BrokerHealthPort(ABC):
         Returns:
             Dictionary mapping broker names to their health metrics
         """
-        pass
 
     @abstractmethod
     def is_broker_available(self, broker_name: str) -> bool:
@@ -107,7 +105,6 @@ class BrokerHealthPort(ABC):
         Returns:
             True if broker is available, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_recommended_broker(self) -> str | None:
@@ -117,7 +114,6 @@ class BrokerHealthPort(ABC):
         Returns:
             Name of the recommended broker, or None if no healthy brokers available
         """
-        pass
 
     @abstractmethod
     def record_broker_success(self, broker_name: str, latency_ms: float = 0.0) -> None:
@@ -128,7 +124,6 @@ class BrokerHealthPort(ABC):
             broker_name: Name of the broker
             latency_ms: Latency of the operation in milliseconds
         """
-        pass
 
     @abstractmethod
     def record_broker_error(self, broker_name: str, error: Exception, latency_ms: float = 0.0) -> None:
@@ -140,7 +135,6 @@ class BrokerHealthPort(ABC):
             error: The exception that occurred
             latency_ms: Latency of the operation in milliseconds (if applicable)
         """
-        pass
 
     @abstractmethod
     def update_failover_config(self, config: FailoverConfig) -> None:
@@ -150,7 +144,6 @@ class BrokerHealthPort(ABC):
         Args:
             config: New failover configuration
         """
-        pass
 
     @abstractmethod
     def get_failover_status(self) -> dict[str, Any]:
@@ -160,7 +153,6 @@ class BrokerHealthPort(ABC):
         Returns:
             Dictionary containing failover status information
         """
-        pass
 
     @abstractmethod
     def force_failover(self, target_broker: str) -> bool:
@@ -173,7 +165,6 @@ class BrokerHealthPort(ABC):
         Returns:
             True if failover was successful, False otherwise
         """
-        pass
 
     @abstractmethod
     def health_check(self) -> dict[str, Any]:
@@ -183,7 +174,6 @@ class BrokerHealthPort(ABC):
         Returns:
             Dictionary containing health check results
         """
-        pass
 
 
 __all__ = [

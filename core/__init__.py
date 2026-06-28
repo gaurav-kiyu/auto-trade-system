@@ -6,6 +6,8 @@ Sub-packages exposed at top level:
   - core.risk          : Risk subsystem (Greeks, limits, sizing, margin)
 """
 
+import warnings
+
 from .adapters import (
     BrokerRuntimeContext,
     DataRuntimeContext,
@@ -57,7 +59,9 @@ from .config_bootstrap import (
     coerce_config_values_to_defaults_types,
     merge_bot_config,
 )
-from .config_engine import ConfigIssue, ConfigValidationResult, ConfigValidator
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
+    from .config_engine import ConfigIssue, ConfigValidationResult, ConfigValidator
 from .data_lineage import (
     DataLineageEngine,
     DataLineageRecord,
@@ -106,7 +110,6 @@ from .fundamental_analyzer import (
 from .defaults_loader import load_defaults_file
 from .environment import Environment, guard_dev_config_in_production, guard_mode_env_compatibility, validate_environment
 from .hybrid_execution import apply_execution_mode, normalize_execution_mode
-import warnings
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=".*orchestrator.*DEPRECATED")
     from .orchestrator import Orchestrator, OrchestratorCycle, OrchestratorSignal
@@ -119,7 +122,9 @@ from .safety_engine import SafetyConfig, SafetyContext, SafetyDecision, SafetyEn
 from .soft_reload_common import ignored_keys_warning
 from .startup_checklist import StartupCheckItem, StartupCheckResult, run_startup_checklist
 from .state_manager import SessionRecoveryReport, StateManager
-from .strategy_engine import StrategyEngine
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
+    from .strategy_engine import StrategyEngine
 from .trade_journal import VALID_EXIT_REASONS, TradeJournal
 from .utils_numeric import safe_float, safe_num
 from .walkforward_engine import WalkForwardEngine, WalkForwardReport, WalkForwardWindow

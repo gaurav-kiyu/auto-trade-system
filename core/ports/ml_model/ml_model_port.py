@@ -49,7 +49,6 @@ class MlModelPort(ABC):
             ValueError: If features are invalid or missing required fields
             RuntimeError: If model is not ready or prediction fails
         """
-        pass
 
     @abstractmethod
     def is_model_ready(self) -> bool:
@@ -59,7 +58,6 @@ class MlModelPort(ABC):
         Returns:
             True if model is ready, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_model_info(self) -> dict[str, Any]:
@@ -69,7 +67,6 @@ class MlModelPort(ABC):
         Returns:
             Dictionary containing model metadata (version, features, training date, etc.)
         """
-        pass
 
     @abstractmethod
     def get_feature_importance(self) -> dict[str, float]:
@@ -79,7 +76,6 @@ class MlModelPort(ABC):
         Returns:
             Dictionary mapping feature names to importance scores (0.0 to 1.0)
         """
-        pass
 
     @abstractmethod
     def retrain_model(self, training_data: list[dict[str, Any]], labels: list[int]) -> bool:
@@ -93,7 +89,6 @@ class MlModelPort(ABC):
         Returns:
             True if retraining was successful, False otherwise
         """
-        pass
 
     @abstractmethod
     def validate_features(self, features: dict[str, Any]) -> tuple[bool, list[str]]:
@@ -106,7 +101,6 @@ class MlModelPort(ABC):
         Returns:
             Tuple of (is_valid, list_of_missing_or_invalid_features)
         """
-        pass
 
 
 __all__ = [

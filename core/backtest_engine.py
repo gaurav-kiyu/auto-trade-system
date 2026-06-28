@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import warnings as _bw
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from .strategy_engine import StrategyEngine
+with _bw.catch_warnings():
+    _bw.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
+    from .strategy_engine import StrategyEngine
 
 
 __all__ = [

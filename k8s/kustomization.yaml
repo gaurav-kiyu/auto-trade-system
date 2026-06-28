@@ -1,56 +1,21 @@
----
-# OPB Bot — Kustomize Configuration
-# ─────────────────────────────────────────────────────────────────────────────
-# Simplifies deployment across environments (dev / staging / production)
-# by layering environment-specific patches on top of base manifests.
-#
-# Usage:
-#   kubectl kustomize k8s/ | kubectl apply -f -
-#   kubectl kustomize k8s/overlays/production | kubectl apply -f -
-# ─────────────────────────────────────────────────────────────────────────────
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Namespace all resources are created in
-namespace: opb
+namespace: opb-trading
 
-# Base resources (applied in order)
 resources:
-  - opb-configmap.yaml
-  - opb-service.yaml
-  - opb-deployment.yaml
-  - opb-hpa.yaml
-  - opb-pvc.yaml
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - secret.yaml
+  - hpa.yaml
 
-# Common labels added to all resources
+generatorOptions:
+  disableNameSuffixHash: true
+
 commonLabels:
-  app: opb-bot
-  tier: trading
-  managed-by: kustomize
-
-# Common annotations
-commonAnnotations:
-  opb/version: v2.53.0
-  opb/deployment-tool: kustomize
-
-# ConfigMap generator (merges with base configmap)
-configMapGenerator:
-  - name: opb-config
-    behavior: merge
-    literals:
-      - OPBUYING_EXECUTION_MODE=PAPER
-
-# Secrets are created externally (see README.md for instructions) and not
-# stored in version control. The Deployment uses optional: true on all
-# secretKeyRef entries so the pod starts cleanly without secrets.
-
-# ── StorageClass patch (override for non-standard clusters) ──────────────────
-# Uncomment and modify the storageClassName for your cluster:
-# patches:
-#   - target:
-#       kind: PersistentVolumeClaim
-#       name: opb-data-pvc
-#     patch: |-
-#       - op: replace
-#         path: /spec/storageClassName
-#         value: local-path
+  app.kubernetes.io/name: opb-index-options-bot
+  app.kubernetes.io/component: trading-platform
+  app.kubernetes.io/version: "2.53.0"

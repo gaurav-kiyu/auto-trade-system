@@ -1,0 +1,13 @@
+chore: finalize all master prompt deliverables and fixes
+
+- BLACK_SWAN_CERTIFICATION.md — 8/8 black swan scenarios passed
+- FINANCE_SECTION_REPORT.md — complete financial architecture doc
+- docs/technical_debt.md — updated with 10 latest session fixes
+- docs/master_prompt_gap_analysis.md — 24-phase evidence map
+- config.template.json — fixed encoding corruption (ensure_ascii=True)
+- config.json — TG_TRADE_CRITICAL_PATTERNS null -> [] for schema
+- core/templates/enterprise/ — 8 missing Jinja2 HTML templates created
+- tests/test_load_execution.py — 9-test load/benchmark suite
+- core/auth/handler/handler.py — fixed generate_token NameError
+- core/execution/deterministic_state_machine.py — fixed strptime bug
+- Various adapter cleanups (unused imports, bare pass removal)

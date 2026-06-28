@@ -23,7 +23,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Any
 
-from core.domains.equity import CorporateAction, CorporateActionType, Sector
+from core.domains.equity import CorporateAction, Sector
 
 
 class SmePlatform(Enum):

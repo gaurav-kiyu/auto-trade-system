@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import os
 import threading
 from typing import Any
 
@@ -239,15 +240,76 @@ _NSE_HOLIDAY_API  = "https://www.nseindia.com/api/holiday-master?type=trading"
 # In-memory cache for live holidays
 _LIVE_HOLIDAYS: set[datetime.date] | None = None
 _LIVE_HOLIDAYS_TS: float = 0.0
-_LIVE_HOLIDAYS_TTL: float = 3600.0  # 1 hour cache
+_LIVE_HOLIDAYS_TTL: float = 3600.0  # 1 hour cache (in-memory)
 _LIVE_HOLIDAYS_LOCK = threading.RLock()
+
+# Persistent file cache path (survives restarts)
+# Uses os.path.dirname(__file__) so it resolves relative to the module, not CWD
+_NSE_HOLIDAY_CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+_NSE_HOLIDAY_CACHE_FILE = os.path.abspath(os.path.join(_NSE_HOLIDAY_CACHE_DIR, "nse_holidays_cache.json"))
+_NSE_HOLIDAY_CACHE_TTL: float = 86400.0  # 24 hours before re-fetch
+
+
+def _load_persistent_holiday_cache() -> set[datetime.date]:
+    """Load NSE holidays from a persistent JSON cache file.
+
+    Returns empty set if cache file is missing, stale (>24h), or corrupt.
+    """
+    try:
+        import json
+        if not os.path.exists(_NSE_HOLIDAY_CACHE_FILE):
+            return set()
+        with open(_NSE_HOLIDAY_CACHE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        cached_ts = data.get("timestamp", 0.0)
+        # Consider cache stale after TTL
+        if _time.time() - cached_ts > _NSE_HOLIDAY_CACHE_TTL:
+            _log.debug("[HOLIDAY] Persistent cache expired (>24h)")
+            return set()
+        raw_dates = data.get("dates", [])
+        holidays: set[datetime.date] = set()
+        for raw in raw_dates:
+            try:
+                holidays.add(datetime.date.fromisoformat(str(raw)[:10]))
+            except (ValueError, TypeError):
+                continue
+        if holidays:
+            _log.info("[HOLIDAY] Loaded %d NSE trading holidays from persistent cache", len(holidays))
+        return holidays
+    except (ValueError, OSError, ImportError) as exc:
+        _log.debug("[HOLIDAY] Could not load persistent cache: %s", exc)
+        return set()
+
+
+def _save_persistent_holiday_cache(holidays: set[datetime.date]) -> None:
+    """Save NSE holidays to a persistent JSON cache file."""
+    try:
+        import json
+        os.makedirs(os.path.dirname(_NSE_HOLIDAY_CACHE_FILE) or ".", exist_ok=True)
+        data = {
+            "timestamp": _time.time(),
+            "dates": sorted(str(d) for d in holidays),
+        }
+        with open(_NSE_HOLIDAY_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        _log.debug("[HOLIDAY] Saved %d NSE holidays to persistent cache", len(holidays))
+    except (ValueError, OSError, ImportError) as exc:
+        _log.debug("[HOLIDAY] Could not save persistent cache: %s", exc)
 
 
 def _fetch_nse_holidays() -> set[datetime.date]:
     """Fetch NSE trading holiday calendar from the NSE holiday-master API.
 
-    Falls back to empty set if the API is unreachable.
+    Try persistent file cache first (avoids startup delay when NSE is unreachable).
+    On successful API fetch, update the persistent cache.
+    Falls back to config-based holidays if both cache and API fail.
     """
+    # Try persistent cache first — avoids API call on every restart
+    cached = _load_persistent_holiday_cache()
+    if cached:
+        _log.info("[HOLIDAY] Using %d cached NSE holidays (skip API call)", len(cached))
+        return cached
+
     try:
         import json
         import urllib.request
@@ -272,6 +334,8 @@ def _fetch_nse_holidays() -> set[datetime.date]:
                 continue
         if holidays:
             _log.info("[HOLIDAY] Fetched %d NSE trading holidays from API", len(holidays))
+            # Persist to file cache so it survives restarts
+            _save_persistent_holiday_cache(holidays)
         return holidays
     except (ValueError, OSError, ConnectionError, ImportError) as exc:
         _log.warning("[HOLIDAY] Could not fetch from NSE API: %s - using config-based holidays", exc)

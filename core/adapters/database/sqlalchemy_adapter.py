@@ -179,7 +179,6 @@ class SQLAlchemyDatabaseAdapter(DatabasePort):
         if self._conn is None:
             return False
         try:
-            import sqlalchemy as sa
             result = self._conn.exec_driver_sql("SELECT 1")
             result.close()
             return True
@@ -306,7 +305,6 @@ class SQLAlchemyDatabaseAdapter(DatabasePort):
 
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists using SQLAlchemy Inspector."""
-        import sqlalchemy as sa
         try:
             from sqlalchemy import inspect
             inspector = inspect(self._engine)

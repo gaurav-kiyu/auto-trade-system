@@ -231,6 +231,8 @@ class EventStore:
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_intent ON events(intent_id)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_client_order ON events(client_order_id)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_sha256 ON events(sha256)")
+                # WAL mode for concurrent write throughput (PERF-001)
+                conn.execute("PRAGMA journal_mode=WAL;")
                 conn.commit()
             _log.info("EventStore: Durable storage initialized (hash-chained)")
         except (sqlite3.Error, OSError) as e:

@@ -66,15 +66,18 @@ def test_structured_logger_error(caplog) -> None:
     sl = StructuredLogger("test_err")
     with caplog.at_level(logging.ERROR):
         sl.error("Something failed", exc_info=False)
-    assert len(caplog.records) >= 1
-    assert "Something failed" in caplog.text
+    # StructuredLogger uses JSON output; check that the message is present
+    # in some form (JSON string or direct) in caplog
+    found = any("Something failed" in r.getMessage() for r in caplog.records)
+    assert found
 
 
 def test_structured_logger_warning(caplog) -> None:
     sl = StructuredLogger("test_warn")
     with caplog.at_level(logging.WARNING):
         sl.warning("Warning message")
-    assert "Warning message" in caplog.text
+    found = any("Warning message" in r.getMessage() for r in caplog.records)
+    assert found
 
 
 # ── create_logger convenience ────────────────────────────────────────────

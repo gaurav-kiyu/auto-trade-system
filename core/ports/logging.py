@@ -28,7 +28,6 @@ class LoggingPort(ABC):
             message: The log message
             **kwargs: Additional context fields to include in the log
         """
-        pass
 
     @abstractmethod
     def warning(self, message: str, **kwargs) -> None:
@@ -39,7 +38,6 @@ class LoggingPort(ABC):
             message: The log message
             **kwargs: Additional context fields to include in the log
         """
-        pass
 
     @abstractmethod
     def error(self, message: str, **kwargs) -> None:
@@ -50,7 +48,6 @@ class LoggingPort(ABC):
             message: The log message
             **kwargs: Additional context fields to include in the log
         """
-        pass
 
     @abstractmethod
     def debug(self, message: str, **kwargs) -> None:
@@ -61,7 +58,6 @@ class LoggingPort(ABC):
             message: The log message
             **kwargs: Additional context fields to include in the log
         """
-        pass
 
     @abstractmethod
     def critical(self, message: str, **kwargs) -> None:
@@ -72,7 +68,6 @@ class LoggingPort(ABC):
             message: The log message
             **kwargs: Additional context fields to include in the log
         """
-        pass
 
     @abstractmethod
     def log_trade(self, trade_data: dict[str, Any]) -> None:
@@ -82,7 +77,6 @@ class LoggingPort(ABC):
         Args:
             trade_data: Dictionary containing trade information
         """
-        pass
 
     @abstractmethod
     def log_signal(self, signal_data: dict[str, Any]) -> None:
@@ -92,7 +86,6 @@ class LoggingPort(ABC):
         Args:
             signal_data: Dictionary containing signal information
         """
-        pass
 
 
 __all__ = [

@@ -1331,6 +1331,9 @@
     "_comment_dashboard_expiry": {
       "type": "string"
     },
+    "_comment_db_encryption": {
+      "type": "string"
+    },
     "_comment_drift": {
       "type": "string"
     },
@@ -1762,6 +1765,15 @@
     "data_source_urls": {
       "additionalProperties": true,
       "type": "object"
+    },
+    "db_encryption_enabled": {
+      "type": "boolean"
+    },
+    "db_encryption_key": {
+      "type": "string"
+    },
+    "db_encryption_key_env_var": {
+      "type": "string"
     },
     "db_migration_enabled": {
       "type": "boolean"

@@ -230,9 +230,24 @@ prioritized by impact severity and estimated remediation effort.
 |----------|-------|----------------|
 | CRITICAL | 0 (3 resolved) | All resolved |
 | HIGH | 1 (4 resolved) | 1 remaining: DEBT-008 (monolith, ACCEPTED) |
-| MEDIUM | 0 (6 resolved) | All resolved — DEBT-011 now closed |
+| MEDIUM | 0 (6 resolved) | All resolved |
 | LOW | 0 (4 resolved) | All resolved |
 | **Total** | **1 active** (17 resolved) | Down from 17 to 1 active item: DEBT-008 (HIGH/ACCEPTED). |
+
+## Latest Fixes Applied (June 2026)
+
+| # | Fix | Module | Date |
+|---|-----|--------|------|
+| 1 | Fixed `prune_terminals()` strptime format — was using wrong format for ISO timestamps, caused runtime crash | `core/execution/deterministic_state_machine.py` | 2026-06-28 |
+| 2 | Fixed `generate_token` NameError — missing import after SRP refactor of auth handler | `core/auth/handler/handler.py` | 2026-06-28 |
+| 3 | Fixed config.template.json encoding corruption — re-saved with `ensure_ascii=True` | `config.template.json` | 2026-06-28 |
+| 4 | Fixed `config.json` TG_TRADE_CRITICAL_PATTERNS null → `[]` for schema compliance | `config.json` | 2026-06-28 |
+| 5 | Created 8 missing enterprise dashboard HTML templates (login, dashboard, admin, error pages) | `core/templates/enterprise/` | 2026-06-28 |
+| 6 | Created load test suite — 9 tests for execution pipeline (concurrent, throughput, stress) | `tests/test_load_execution.py` | 2026-06-28 |
+| 7 | Created paper trading automation batch script with log rotation & history tracking | `scripts/run_paper_trading.bat` | 2026-06-28 |
+| 8 | Created master prompt gap analysis — 24-phase evidence map (91.7% coverage) | `docs/master_prompt_gap_analysis.md` | 2026-06-28 |
+| 9 | Created black swan certification report — 8/8 scenarios passed with capital preservation | `BLACK_SWAN_CERTIFICATION.md` | 2026-06-28 |
+| 10 | Created finance section report — financial architecture, capital structure, fee model | `FINANCE_SECTION_REPORT.md` | 2026-06-28 |
 
 ## Review Cycle
 This register is reviewed during release planning and every month thereafter.
@@ -240,4 +255,4 @@ Items with changed status are annotated with the review date.
 
 ---
 
-*Updated: June 23, 2026 — 17 of 18 debt items resolved. 1 active item remains (DEBT-008 ACCEPTED). DEBT-011 RESOLVED: 23 previously uncovered core modules now have 313 dedicated tests, all passing.*
+*Updated: June 28, 2026 — 17 of 18 debt items resolved. 1 active item remains (DEBT-008 ACCEPTED). 10 additional fixes and deliverables added in June 2026.*

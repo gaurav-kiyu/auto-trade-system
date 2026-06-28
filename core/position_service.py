@@ -287,7 +287,7 @@ class PositionService:
                 _log.debug("Token refresh failed: %s", _tok_err)
 
         # 2. Route to Execution Service
-        from core.ports.execution.execution_port import OrderRequest, OrderStatus, OrderType
+        from core.ports.execution.execution_port import OrderStatus
         from core.execution.broker_exceptions import (
             AuthExpiredError,
             OrderRejectedError,
@@ -575,7 +575,7 @@ class PositionService:
         order_direction: str, idempotency_key: str,
     ) -> Any:
         """Submit order under state lock - covers margin check + submission."""
-        from core.ports.execution.execution_port import OrderRequest, OrderStatus, OrderType
+        from core.ports.execution.execution_port import OrderRequest, OrderType
 
         available_margin = 0.0
         if self._portfolio_service is not None:

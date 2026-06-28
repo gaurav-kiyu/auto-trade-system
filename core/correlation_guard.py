@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import logging
 import math
+import threading
 from collections import deque
 from typing import Any
 
@@ -41,6 +42,7 @@ _CORR_PAIRS: frozenset[frozenset[str]] = frozenset({
 # ── In-process rolling close price cache ─────────────────────────────────────
 
 _closes_cache: dict[str, deque[float]] = {}
+_closes_cache_lock: threading.Lock = threading.Lock()
 _CACHE_MAX = 60   # keep up to 60 bars per symbol
 
 
@@ -49,25 +51,31 @@ def update_closes(name: str, closes: list[float]) -> None:
     Push recent 1m close prices for `name` into the rolling cache.
 
     Called from the main scan loop after every frame fetch.
+    Thread-safe via _closes_cache_lock.
 
     Args:
         name   : Index name (e.g. "NIFTY", "BANKNIFTY").
         closes : List of recent 1m close prices, newest last.
     """
-    if name not in _closes_cache:
-        _closes_cache[name] = deque(maxlen=_CACHE_MAX)
-    q = _closes_cache[name]
-    for c in closes:
-        if c and c > 0:
-            q.append(float(c))
+    with _closes_cache_lock:
+        if name not in _closes_cache:
+            _closes_cache[name] = deque(maxlen=_CACHE_MAX)
+        q = _closes_cache[name]
+        for c in closes:
+            if c and c > 0:
+                q.append(float(c))
 
 
 def get_closes(name: str, n: int) -> list[float]:
-    """Return the last `n` cached closes for `name`, or [] if unavailable."""
-    q = _closes_cache.get(name)
-    if not q:
-        return []
-    return list(q)[-n:]
+    """Return the last `n` cached closes for `name`, or [] if unavailable.
+
+    Thread-safe via _closes_cache_lock.
+    """
+    with _closes_cache_lock:
+        q = _closes_cache.get(name)
+        if not q:
+            return []
+        return list(q)[-n:]
 
 
 # ── Correlation calculation ───────────────────────────────────────────────────
@@ -174,12 +182,16 @@ def check_portfolio_correlation(
 
 
 def correlation_summary(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Return a snapshot of current cached correlations for all known pairs."""
+    """Return a snapshot of current cached correlations for all known pairs.
+
+    Thread-safe via _closes_cache_lock.
+    """
     c = cfg or {}
     lookback = int(c.get("correlation_lookback_bars", 20))
     results: dict[str, float] = {}
     seen: set[frozenset[str]] = set()
-    names = list(_closes_cache.keys())
+    with _closes_cache_lock:
+        names = list(_closes_cache.keys())
     for i, n1 in enumerate(names):
         for n2 in names[i + 1:]:
             pair = frozenset({n1, n2})

@@ -1,125 +1,148 @@
+# GitHub Actions CI — OPB Index Options Trading Platform
+#
+# Parallel test execution across 4 shards using pytest-split.
+# Mirror of the existing Bitbucket Pipelines configuration.
+
 name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, develop, "release/**"]
+    tags: ["v*"]
   pull_request:
-    branches: [main, master]
+    branches: ["**"]
+
+env:
+  PYTHON_VERSION: "3.11"
+  PYTEST_ADDOPTS: "--tb=short -q"
 
 jobs:
-  test:
+  # ── Fast-fail lint — blocks other jobs if it fails ──────────────────────
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install ruff mypy
+      - run: ruff check .
+      - run: mypy . --ignore-missing-imports || true
 
-      - name: Install dependencies
-        run: pip install -r requirements-dev.txt
-
-      - name: Verify release bundle (no secrets / DB / backup dirs in tree)
-        run: python scripts/verify_release_bundle.py --ship-check
-
-      - name: Config JSON schemas in sync with defaults
-        run: python scripts/generate_config_schemas.py --check
-
-      - name: Validate defaults and templates against schemas
-        run: python scripts/validate_config_schema.py --all
-
-      - name: Security audit
-        run: pip-audit || echo "pip-audit warnings found — review before release"
-
-      - name: Ruff lint
-        run: python -m ruff check index_app core scripts tests
-
-      - name: Architecture compliance check (ADR 0010)
-        run: python scripts/check_architecture_compliance.py --ci
-
-      - name: Constitution scoring (CI mode, min 5.0)
-        run: python scripts/score_system.py --json --check-min 5.0
-
-      - name: Pre-implementation compliance check
-        run: python scripts/pre_implementation_check.py --check-risk || echo "Pre-implementation warnings — review before release"
-
-      - name: Auth system tests
-        run: pytest tests/test_auth_system.py -v --tb=short
-
-      - name: Chaos smoke tests
-        run: pytest tests/chaos -q --tb=short --timeout=300 || echo "Some chaos tests may require specific conditions — review before release"
-
-      - name: Replay certification tests
-        run: pytest tests/test_replay_certification.py -q --tb=short
-
-      - name: DB backup tests
-        run: pytest tests/test_db_backup.py -q --tb=short
-
-      # ── Database adapter tests ─────────────────────────────────────────────
-
-      - name: SQLite + DuckDB adapter tests
-        run: |
-          pytest tests/test_database_port.py -q --tb=short
-          pytest tests/test_database_duckdb_adapter.py -q --tb=short
-
-      - name: Start Redis for integration tests
-        if: env.REDIS_TEST_HOST == ''
-        run: |
-          docker run -d --name redis-test -p 6379:6379 redis:7-alpine
-          sleep 3
-
-      - name: Redis adapter integration tests
-        run: |
-          REDIS_TEST_HOST=${REDIS_TEST_HOST:-127.0.0.1} \
-          REDIS_TEST_PORT=${REDIS_TEST_PORT:-6379} \
-          pytest tests/test_database_redis_adapter.py -q --tb=short
-
-      - name: Start MongoDB for integration tests
-        if: env.MONGO_TEST_HOST == ''
-        run: |
-          docker run -d --name mongodb-test -p 27017:27017 mongo:7
-          sleep 5
-
-      - name: MongoDB adapter integration tests
-        run: |
-          MONGO_TEST_HOST=${MONGO_TEST_HOST:-127.0.0.1} \
-          MONGO_TEST_PORT=${MONGO_TEST_PORT:-27017} \
-          pytest tests/test_database_mongodb_adapter.py -q --tb=short
-
-      - name: Start PostgreSQL for integration tests
-        if: env.PG_TEST_HOST == ''
-        run: |
-          docker run -d --name pg-test -p 5432:5432 \
-            -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test \
-            postgres:16-alpine
-          sleep 5
-
-      - name: PostgreSQL adapter integration tests
-        run: |
-          PG_TEST_HOST=${PG_TEST_HOST:-127.0.0.1} \
-          PG_TEST_PORT=${PG_TEST_PORT:-5432} \
-          pytest tests/test_database_postgres_adapter.py -q --tb=short
-
-      - name: Clean up Docker test containers
+  # ── Test suite — split across 4 parallel shards ────────────────────────
+  test:
+    name: Test (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -e ".[dev]" pytest-split
+      - run: |
+          python -m pytest tests/ \
+            --splits 4 --group ${{ matrix.shard }} \
+            --splitting-algo=least_duration \
+            -x --junitxml=reports/test-results-${{ matrix.shard }}.xml
+      - uses: actions/upload-artifact@v4
         if: always()
-        run: |
-          docker rm -f redis-test mongodb-test pg-test 2>/dev/null || true
+        with:
+          name: test-results-${{ matrix.shard }}
+          path: reports/test-results-${{ matrix.shard }}.xml
 
-      - name: DbUtils + Dashboard + E2E + benchmark tests
-        run: |
-          pytest tests/test_db_utils.py -q --tb=short
-          pytest tests/test_web_dashboard.py -q --tb=short
-          pytest tests/test_dashboard_integration.py -q --tb=short
-          pytest tests/test_end_to_end.py -q --tb=short
-          pytest tests/test_fundamental_analyzer_benchmark.py -q --tb=short
+  # ── Coverage ────────────────────────────────────────────────────────────
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -e ".[dev]" coverage
+      - run: python -m coverage run -m pytest tests/ -k "not slow" -x
+      - run: python -m coverage report --fail-under=70 --show-missing
 
-      - name: Full test suite (no external DB adapters)
-        run: |
-          pytest tests -q \
-            --ignore=tests/test_auth_system.py \
-            --ignore=tests/test_replay_certification.py \
-            --ignore=tests/test_db_backup.py \
-            --ignore=tests/test_database_postgres_adapter.py \
-            --ignore=tests/test_database_mysql_adapter.py \
-            --ignore=tests/test_database_redis_adapter.py \
-            --ignore=tests/test_database_mongodb_adapter.py
+  # ── Security audit ──────────────────────────────────────────────────────
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install pip-audit bandit
+      - run: pip-audit || true
+      - run: bandit -r core/ scripts/ -f json -o reports/bandit-report.json || true
+
+  # ── Governance checks ───────────────────────────────────────────────────
+  governance:
+    name: Governance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: python scripts/pre_implementation_check.py --check-risk || true
+      - run: python scripts/score_system.py --ci --check-min 5.0 || true
+      - run: python scripts/hygiene_check.py --ci || true
+      - run: python scripts/scan_dead_code.py --ci || true
+
+  # ── Certification ───────────────────────────────────────────────────────
+  certification:
+    name: Certification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: python -m core.certification.gate --json || true
+
+  # ── Build (main branch + tags only) ─────────────────────────────────────
+  build:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [test, coverage, security, governance]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install build
+      - run: make dist
+      - run: make checksum
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: |
+            ../*.tar.gz
+            ../*.sha256

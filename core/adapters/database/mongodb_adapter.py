@@ -284,11 +284,9 @@ class MongoDBDatabaseAdapter(DatabasePort):
 
     def commit(self) -> None:
         """No-op for standalone MongoDB."""
-        pass
 
     def rollback(self) -> None:
         """No-op for standalone MongoDB."""
-        pass
 
     # ── DDL helpers ──────────────────────────────────────────────────────
 

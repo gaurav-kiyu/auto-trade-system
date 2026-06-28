@@ -38,7 +38,6 @@ class TradingState:
         """Validate trading state after initialization."""
         # We'll do light validation here - more thorough validation would require
         # importing the actual types, which we avoid to prevent circular imports
-        pass
 
 
 @dataclass

@@ -28,11 +28,25 @@ from core.certification.strategy_certifier import (
     StrategyCertifier,
     certify_strategy,
 )
-from core.certification.gate import (
-    CertificationGate,
-    CertificationGateResult,
-    run_certification_gate,
-)
+import importlib
+from typing import Any
+
+
+# Gate symbols loaded lazily to avoid RuntimeWarning when running
+# python -m core.certification.gate (eager import conflicts with runpy)
+_GATE_MODULE = None
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy-load gate symbols on first access."""
+    gate_symbols = {"CertificationGate", "CertificationGateResult", "run_certification_gate"}
+    if name in gate_symbols:
+        global _GATE_MODULE
+        if _GATE_MODULE is None:
+            _GATE_MODULE = importlib.import_module("core.certification.gate")
+        return getattr(_GATE_MODULE, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "ReplayCertifier",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings as _ww
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -7,7 +8,10 @@ from typing import Any
 import pandas as pd
 
 from .backtest_engine import BacktestConfig, BacktestEngine, BacktestReport, ReplayConfig
-from .strategy_engine import StrategyEngine
+
+with _ww.catch_warnings():
+    _ww.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
+    from .strategy_engine import StrategyEngine
 
 
 __all__ = [

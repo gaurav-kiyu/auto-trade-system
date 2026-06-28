@@ -15,7 +15,7 @@ Alert Rules:
 
 import time, logging, threading, hashlib
 
-from datetime import datetime, timezone, timedelta
+from datetime import timezone, timedelta
 
 try:
     import requests

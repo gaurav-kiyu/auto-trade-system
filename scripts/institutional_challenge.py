@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -201,37 +202,119 @@ def challenge_hidden_bugs() -> ChallengeResult:
     )
 
 
+def _module_has_shared_mutable_state(content: str) -> bool:
+    """Check if a module has module-level shared mutable state.
+
+    Looks for patterns that indicate module-level mutable containers or caches
+    that could be accessed concurrently without locks.
+    Excludes all-uppercase constants, class-level definitions, and type annotations.
+
+    Returns True if the module likely has modifiable shared state.
+    """
+    lines = content.split("\n")
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        # Skip comments, imports, string literals
+        if stripped.startswith("#") or stripped.startswith("import") or stripped.startswith("from"):
+            continue
+        if stripped.startswith("def ") or stripped.startswith("class ") or stripped.startswith("if "):
+            continue
+        if stripped.startswith("@"):  # decorators
+            continue
+        # Skip lines inside functions (indented) and methods (indented)
+        if stripped.startswith(("    ", "\t")):
+            continue
+        # Skip all-uppercase constants (e.g. _DEFAULT_DB = "trades.db")
+        if re.match(r'^_?[A-Z][A-Z_0-9]+\s*=', stripped):
+            continue
+        # Skip frozenset/literals (immutable)
+        if 'frozenset' in stripped or 'FrozenSet' in stripped:
+            continue
+        # Check for module-level mutable state: _cache, _registry, _instances, etc.
+        # Check module-level dict/literal initialization
+        if re.search(r'^_?[a-z_][a-z0-9_]*\s*[=:]\s*\{\}', stripped) and \
+           "Literal" not in stripped and "TypedDict" not in stripped:
+            return True
+        if re.search(r'^_?[a-z_][a-z0-9_]*\s*[=:]\s*\[\]', stripped) and 'List[' not in stripped:
+            return True
+        # Check module-level list()/dict() calls
+        if re.search(r'^_?[a-z_][a-z0-9_]*\s*=\s*(?:dict|list)\(\)', stripped):
+            return True
+        # Check for cache/registry patterns at module level
+        m = re.match(r'^_?[a-z_][a-z0-9_]*(cache|registry|store|pool|instances|clients|sessions|listeners|handlers|callbacks)\s*[=:]', stripped)
+        if m:
+            var_name = m.group(0).split(r"\s*[=:]")[0] if "=" in m.group(0) or ":" in m.group(0) else m.group(0)
+            # Exclude logger assignments (e.g. _log = logging.getLogger)
+            if 'log' not in var_name.lower() and 'logger' not in var_name.lower():
+                return True
+        # Check for mutable defaults (None assigned to module-level variable with state-indicating name)
+        m2 = re.match(r'^_?[a-z_][a-z0-9_]*\s*=\s*None', stripped)
+        if m2 and 'Optional' not in stripped and 'NoneType' not in stripped:
+            # Check the preceding line for a cache/state-related comment
+            if i > 0 and any(kw in lines[i - 1].strip().lower() for kw in
+                             ["cache", "state", "pool", "registry", "adapter", "instance"]):
+                return True
+    return False
+
+
+def _module_has_lock(content: str) -> bool:
+    """Check if a module has any locking or synchronization mechanism."""
+    lock_patterns = [
+        "threading.Lock",
+        "threading.RLock",
+        "threading.Semaphore",
+        "from threading import Lock",
+        "from threading import RLock",
+        "from threading import Semaphore",
+        "_lock: threading.",
+        "_lock = threading.",
+        "__lock = ",
+        "_LOCK = ",
+        "self._lock",
+        "self._mutex",
+        "@synchronized",
+    ]
+    return any(pattern in content for pattern in lock_patterns)
+
+
 def challenge_race_condition() -> ChallengeResult:
-    """Challenge: Check for potential race conditions in shared state."""
+    """Challenge: Check for potential race conditions in shared module state."""
     start = time.time()
     failures: list[str] = []
 
-    # Check that all module-level shared state uses threading locks
+    # Check that all module-level shared mutable state uses threading locks
     core_dir = ROOT / "core"
+    module_dir = ROOT / "index_app"
     lock_free_shared: list[str] = []
-    if core_dir.is_dir():
-        for py_file in core_dir.rglob("*.py"):
+
+    for directory in [core_dir, module_dir]:
+        if not directory.is_dir():
+            continue
+        for py_file in directory.rglob("*.py"):
             try:
                 content = py_file.read_text(encoding="utf-8", errors="ignore")
-                has_global_var = "_" in content and any(
-                    pattern in content for pattern in ["= None", "= []", "= {}"]
-                )
-                has_lock = "threading.Lock" in content or "threading.RLock" in content
-                if has_global_var and not has_lock:
-                    # Check if it's a simple module without shared state
-                    if any(pattern in content for pattern in [
-                        " = threading.", "_lock = ", "_LOCK = ", "_lock:", "self._lock",
-                    ]):
-                        continue
-                    # This might still be fine, but flag for review
-                    lock_free_shared.append(py_file.name)
+                # Skip __init__ files, test files, and proto/interface files
+                if py_file.name == "__init__.py":
+                    continue
+                rel_path = py_file.relative_to(ROOT)
+
+                has_shared_state = _module_has_shared_mutable_state(content)
+                has_lock = _module_has_lock(content)
+
+                if has_shared_state and not has_lock:
+                    lock_free_shared.append(str(rel_path))
             except (ValueError, TypeError, KeyError, OSError):
                 pass
 
-    if len(lock_free_shared) > 10:
+    if len(lock_free_shared) > 5:
         failures.append(
-            f"Potential race conditions: {len(lock_free_shared)} modules may have "
-            f"unprotected shared state: {', '.join(lock_free_shared[:5])}"
+            f"Potential race conditions: {len(lock_free_shared)} module(s) with "
+            f"shared mutable state but no lock found: {', '.join(lock_free_shared[:5])}"
+        )
+    elif lock_free_shared:
+        failures.append(
+            f"Minor: {len(lock_free_shared)} module(s) with shared state lacking "
+            f"explicit locks (review: {', '.join(lock_free_shared)})"
         )
 
     if failures:
@@ -239,7 +322,7 @@ def challenge_race_condition() -> ChallengeResult:
             challenge_id="CH-RACE-01",
             name="Race Condition Analysis",
             category="race",
-            passed=False,
+            passed=len(lock_free_shared) <= 5,  # Pass if 5 or fewer minor findings
             detail="; ".join(failures),
             duration_s=time.time() - start,
             score_impact="warn",
@@ -250,7 +333,7 @@ def challenge_race_condition() -> ChallengeResult:
         name="Race Condition Analysis",
         category="race",
         passed=True,
-        detail="No obvious race condition patterns found",
+        detail="No obvious race condition patterns found - all shared state appears to have locks",
         duration_s=time.time() - start,
     )
 
