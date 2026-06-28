@@ -189,7 +189,7 @@ class LoggingService:
                     self._json_handler.setFormatter(_JsonFormatter())
                     self._logger.addHandler(self._json_handler)
             except (OSError, PermissionError) as e:
-                _log.debug("[LOGGING] non-critical error: %s", e)
+                logging.getLogger(__name__).debug("[LOGGING] non-critical error: %s", e)
 
     def log(self, level: int, message: str, **kwargs):
         self._logger.log(level, message, **kwargs)
