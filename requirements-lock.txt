@@ -1,27 +1,82 @@
 # AD-KIYU Exact Dependency Lock
-# Generated: DO NOT EDIT MANUALLY — run `pip freeze > requirements-lock.txt` to refresh
-# This file pins every transitive dependency for reproducible builds.
-# Requirements: Python 3.10–3.19
+# Generated: pip freeze > requirements-lock.txt (curated)
+# This file pins exact versions for reproducible builds.
+# Requirements: Python 3.10-3.19
 
 # Core runtime
-jsonschema>=4.20,<5
-requests>=2.31.0,<3
-yfinance>=0.2.36,<1
-pandas>=2.0.0,<3
-numpy>=1.24.0,<2
-lightgbm>=4.0,<5
-scikit-learn>=1.3,<2
-shap>=0.42,<1
-reportlab>=4.0,<5
-kiteconnect>=5.0,<6  # optional — only needed for Zerodha
-SmartApi>=1.0,<2     # optional — only needed for Angel
-
-# Dev / CI
-pytest>=8.0,<9
-ruff>=0.1,<1
-build>=1.0,<2
-pip-audit>=2.0,<3   # security audit
-
-# Optional
-fastapi>=0.100,<1    # admin control plane + web dashboard
-uvicorn>=0.20,<1     # ASGI server for admin CP
+annotated-types==0.7.0
+anyio==4.13.0
+attrs==26.1.0
+certifi==2026.5.20
+cffi==2.0.0
+charset-normalizer==3.4.7
+click==8.4.1
+cryptography==48.0.1
+duckdb==1.5.4
+fastapi==0.136.1
+feedparser==6.0.12
+Flask==3.1.3
+Flask-SocketIO==5.6.1
+greenlet==3.5.1
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.18
+itsdangerous==2.2.0
+Jinja2==3.1.6
+jiter==0.15.0
+joblib==1.5.3
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+lightgbm==4.6.0
+lxml==6.1.1
+MarkupSafe==3.0.3
+multitasking==0.0.13
+numpy==2.4.6
+nselib==2.5.1
+nsepython==2.97
+openai==2.38.0
+packaging==26.2
+pandas==3.0.3
+peewee==4.0.5
+pillow==12.2.0
+protobuf==7.34.1
+psycopg2-binary==2.9.12
+pycparser==3.0
+pydantic==2.13.4
+pydantic_core==2.46.4
+pymongo==4.17.0
+PyMySQL==1.2.0
+PyOTP==2.10.0
+pyparsing==3.3.2
+pypdf==6.13.3
+python-dateutil==2.9.0.post0
+python-engineio==4.13.2
+python-pptx==1.0.2
+python-socketio==5.16.2
+pytz==2026.2
+PyYAML==6.0.3
+redis==8.0.0
+referencing==0.37.0
+reportlab==4.5.0
+requests==2.34.2
+rpds-py==0.30.0
+scikit-learn==1.8.0
+scipy==1.17.1
+sgmllib3k==1.0.0
+simple-websocket==1.1.0
+six==1.17.0
+sniffio==1.3.1
+SQLAlchemy==2.0.51
+starlette==1.3.1
+threadpoolctl==3.6.0
+toolz==1.1.0
+tqdm==4.67.3
+typing_extensions==4.15.0
+tzdata==2026.2
+urllib3==2.7.0
+uvicorn==0.49.0
+websockets==16.0
+Werkzeug==3.1.8
+xlsxwriter==3.2.9
+yfinance==1.3.0
