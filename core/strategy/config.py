@@ -31,7 +31,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 # ── Flat-key alias maps ──────────────────────────────────────────────────────
 # Each entry: structured_key -> flat_key
 

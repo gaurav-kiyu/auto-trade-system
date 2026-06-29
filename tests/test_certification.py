@@ -8,7 +8,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from core.certification import (
     PaperCertificationReport,
     PaperCertifier,
@@ -17,7 +16,6 @@ from core.certification import (
     certify_paper_trading,
     certify_replay_determinism,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

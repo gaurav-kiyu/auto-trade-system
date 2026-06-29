@@ -16,8 +16,8 @@ Usage:
     )
 """
 from core.domains.currency.models import (
-    ContractSpec,
     CURRENCY_CONTRACT_SPECS,
+    ContractSpec,
     CurrencyContract,
     CurrencyOptionContract,
     CurrencyPair,

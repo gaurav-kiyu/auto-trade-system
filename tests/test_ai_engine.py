@@ -16,10 +16,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.ai_engine import (
     AIDecision,
     AIEngine,
@@ -29,7 +28,6 @@ from core.ai_engine import (
     get_ai_engine,
     reset_ai_engine,
 )
-
 
 # ── AIEngineConfig ────────────────────────────────────────────────────────
 
@@ -384,7 +382,7 @@ class TestCooldown:
     def test_cooldown_respected(self):
         """Cooldown between calls triggers sleep."""
         with patch("core.ai_engine.time.sleep") as mock_sleep:
-            with patch("core.ai_engine.time.monotonic", return_value=100.0) as mock_monotonic:
+            with patch("core.ai_engine.time.monotonic", return_value=100.0):
                 cfg = ai_engine_config_from_cfg({
                     "AI_ENGINE_ENABLED": True,
                     "AI_ENGINE_PROVIDER": "anthropic",

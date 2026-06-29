@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Compute configuration drift between index_config.defaults.json and template files."""
 from __future__ import annotations
+
 import json
 import sys
+
 
 def load_json(path: str) -> dict:
     with open(path, encoding="utf-8") as f:
@@ -17,7 +19,7 @@ try:
     template_keys = set(k for k in t.keys() if not k.startswith("_"))
     missing = defaults_keys - template_keys
     extra = template_keys - defaults_keys
-    print(f"=== STOCK CONFIG TEMPLATE DRIFT ===")
+    print("=== STOCK CONFIG TEMPLATE DRIFT ===")
     print(f"Defaults (non-comment): {len(defaults_keys)}")
     print(f"Template (non-comment): {len(template_keys)}")
     print(f"Missing from template: {len(missing)}")
@@ -38,7 +40,7 @@ try:
     ct = load_json("config.template.json")
     ct_keys = set(k for k in ct.keys() if not k.startswith("_"))
     missing_ct = defaults_keys - ct_keys
-    print(f"\n=== CONFIG TEMPLATE DRIFT ===")
+    print("\n=== CONFIG TEMPLATE DRIFT ===")
     print(f"Config.template (non-comment): {len(ct_keys)}")
     print(f"Missing from config.template: {len(missing_ct)}")
     if missing_ct:
@@ -56,7 +58,7 @@ try:
     c_keys = set(k for k in c.keys() if not k.startswith("_"))
     extra_c = c_keys - defaults_keys
     if extra_c:
-        print(f"\n=== CONFIG.JSON HAS EXTRA KEYS NOT IN DEFAULTS ===")
+        print("\n=== CONFIG.JSON HAS EXTRA KEYS NOT IN DEFAULTS ===")
         for k in sorted(extra_c):
             print(f"  EXTRA: {k}")
 except Exception as e:

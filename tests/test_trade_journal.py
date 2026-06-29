@@ -19,13 +19,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from core.trade_journal import (
     VALID_EXIT_REASONS,
     JournalEntry,
     TradeJournal,
 )
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 

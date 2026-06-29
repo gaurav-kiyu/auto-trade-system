@@ -12,10 +12,8 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-
-from core.strategy.orchestrator import StrategyOrchestrator
 from core.ports.strategy import StrategyDecision
-
+from core.strategy.orchestrator import StrategyOrchestrator
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

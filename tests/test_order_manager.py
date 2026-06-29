@@ -22,10 +22,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.adapters.base_adapter import OrderRequest, OrderResponse, OrderStatus
 from core.execution.order_manager import OrderManager, OrderState
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -107,7 +105,7 @@ class TestOrderState:
 class TestInit:
     def test_creates_db_file(self, tmp_path: Path):
         db_path = str(tmp_path / "test_orders.db")
-        mgr = OrderManager(persistence_path=db_path)
+        OrderManager(persistence_path=db_path)
         assert os.path.exists(db_path)
 
     def test_initializes_empty_orders(self, mgr: OrderManager):
@@ -492,7 +490,7 @@ class TestSchemaMigration:
         """Running init twice should not cause errors."""
         db_path = str(tmp_path / "dup_migrate.db")
 
-        mgr1 = OrderManager(persistence_path=db_path)
+        OrderManager(persistence_path=db_path)
         mgr2 = OrderManager(persistence_path=db_path)
 
         assert mgr2._orders == {}

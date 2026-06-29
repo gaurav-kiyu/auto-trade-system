@@ -12,16 +12,13 @@ Tests cover:
 
 from __future__ import annotations
 
-
 import pytest
-
 from core.di_container import (
     DIContainer,
     get_container,
     reset_container,
     wire_default_services,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # DIContainer Unit Tests

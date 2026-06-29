@@ -24,7 +24,6 @@ from core.enterprise_dashboard.utils import (
     _record_provider_request,
 )
 
-
 __all__ = [
     "DashboardNotifier",
     "EnterpriseDashboard",

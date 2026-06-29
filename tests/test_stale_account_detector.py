@@ -6,10 +6,9 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock
 
-
 from core.stale_account_detector import (
-    StaleAccountDetector,
     StaleAccountConfig,
+    StaleAccountDetector,
     StaleAccountFinding,
     StaleAccountReport,
     StalenessCategory,

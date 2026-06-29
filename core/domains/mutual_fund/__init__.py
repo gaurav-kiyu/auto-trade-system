@@ -17,8 +17,10 @@ Usage:
     )
 """
 from core.domains.mutual_fund.models import (
-    DividendType,
     ETF,
+    REIT,
+    SIP,
+    DividendType,
     ExpenseRatioType,
     FundCategory,
     FundHolding,
@@ -31,8 +33,6 @@ from core.domains.mutual_fund.models import (
     MutualFund,
     NavRecord,
     PortfolioAllocation,
-    REIT,
-    SIP,
     SIPFrequency,
 )
 

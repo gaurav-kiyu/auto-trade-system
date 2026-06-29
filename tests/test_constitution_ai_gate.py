@@ -18,17 +18,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 from core.constitution_ai_gate import (
-    AIGateResult,
-    AIGovernanceGate,
     BYPASS_PATTERNS,
     FORBIDDEN_FILE_TARGETS,
     RISK_CONTROL_KEYWORDS,
+    AIGateResult,
+    AIGovernanceGate,
     get_gate,
     validate_ai_action,
 )
-
 
 # ── AIGateResult ──────────────────────────────────────────────────────────────
 
@@ -317,7 +315,7 @@ class TestGateAcknowledge:
         gate = AIGovernanceGate(identity="test")
         gate.acknowledge_constitution()
         log = gate.get_audit_log()
-        assert any(l["action"] == "acknowledge" for l in log)
+        assert any(entry["action"] == "acknowledge" for entry in log)
 
 
 # ── AIGovernanceGate - check_forbidden_action ─────────────────────────────────

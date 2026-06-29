@@ -13,17 +13,14 @@ Trading Platform Exception Hierarchy — DEPRECATED SHIM
 from __future__ import annotations
 
 import warnings
-from typing import Any
 
-from core.exceptions import (  # noqa: F401
-    # Base
-    TradingException,
+from core.exceptions import (
     # Authentication & Authorization
     AuthenticationError,
     AuthorizationError,
+    BrokerAuthenticationError,
     # Broker
     BrokerAuthError,
-    BrokerAuthenticationError,
     BrokerConnectionError,
     BrokerException,
     BrokerRateLimitError,
@@ -37,46 +34,48 @@ from core.exceptions import (  # noqa: F401
     CircuitBreakerError,
     # Config
     ConfigError,
+    # Risk
+    CorrelationGuardError,
+    # Persistence
+    DatabaseError,
     # Execution
     ExecutionError,
-    FillError,
-    IdempotencyError,
-    # Governance
-    GovernanceError,
-    # Health Check
-    HealthCheckError,
-    # Insufficient Data
-    InsufficientDataError,
-    InstrumentNotFoundError,
     # Market Data
     FeedDisconnectedError,
+    FillError,
+    # Governance
+    GovernanceError,
+    HardHaltError,
+    # Health Check
+    HealthCheckError,
+    IdempotencyError,
+    InstrumentNotFoundError,
+    # Insufficient Data
+    InsufficientDataError,
+    MarginInsufficientError,
     MarketDataError,
     MarketDataSourceError,
     MarketDataStalenessError,
     MarketDataValidationError,
-    StaleDataError,
-    # Persistence
-    DatabaseError,
+    MaxDrawdownError,
     PersistenceConnectionError,
     PersistenceError,
     PersistenceReadError,
     PersistenceWriteError,
-    StateFileError,
-    # Reconciliation
-    ReconciliationError,
-    # Risk
-    CorrelationGuardError,
-    HardHaltError,
-    MarginInsufficientError,
-    MaxDrawdownError,
     PositionLimitExceededError,
     PositionSizingError,
+    # Reconciliation
+    ReconciliationError,
     RiskException,
     RiskLimitError,
     RiskLimitExceededError,
     # Signal
     SignalError,
     SignalValidationError,
+    StaleDataError,
+    StateFileError,
+    # Base
+    TradingException,
     # Validation
     ValidationError,
     # Helpers

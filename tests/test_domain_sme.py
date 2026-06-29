@@ -13,7 +13,6 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
-
 from core.domains.equity import CorporateAction, CorporateActionType, Sector
 from core.domains.sme import (
     SmeIpo,

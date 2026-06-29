@@ -8,7 +8,6 @@ Covers:
 """
 from __future__ import annotations
 
-
 from core.exceptions import (
     BrokerAuthError,
     BrokerConnectionError,

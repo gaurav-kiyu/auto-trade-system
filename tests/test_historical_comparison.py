@@ -4,18 +4,16 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-
+from core.capacity_planning import ScalingTrigger
 from scripts.historical_comparison import (
     ComparisonReport,
     ConfigDiff,
     DiffStat,
     DocDiff,
+    FileDiffReport,
     HistoricalComparer,
     ModuleDiff,
-    FileDiffReport,
 )
-
-from core.capacity_planning import ScalingTrigger
 
 
 class TestDiffStat:
@@ -310,7 +308,7 @@ class TestCapacityPlannerScalingIntegration:
     """Tests for scaling trigger integration with CapacityPlanner."""
 
     def test_load_default_triggers(self):
-        from core.capacity_planning import CapacityPlanner, DEFAULT_SCALING_TRIGGERS
+        from core.capacity_planning import DEFAULT_SCALING_TRIGGERS, CapacityPlanner
         planner = CapacityPlanner()
         triggers = planner.get_triggers()
         assert len(triggers) > 0

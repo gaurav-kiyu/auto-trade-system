@@ -24,7 +24,7 @@ class MfaHandlerMixin:
 
     def get_mfa_secret(self, username: str) -> str:
         """Get the MFA secret for a user. Returns empty string if not set."""
-        conn = self._get_conn()  # noqa
+        conn = self._get_conn()
         try:
             cursor = conn.execute(
                 "SELECT mfa_secret FROM users WHERE username = ?",
@@ -39,7 +39,7 @@ class MfaHandlerMixin:
 
     def set_mfa_secret(self, username: str, secret: str) -> bool:
         """Set (or reset) the MFA secret for a user. MFA remains disabled until verified."""
-        conn = self._get_conn()  # noqa
+        conn = self._get_conn()
         try:
             conn.execute(
                 "UPDATE users SET mfa_secret = ?, mfa_enabled = 0 WHERE username = ?",
@@ -52,7 +52,7 @@ class MfaHandlerMixin:
 
     def enable_mfa(self, username: str, recovery_codes: list[str]) -> bool:
         """Enable MFA for a user by setting mfa_enabled=1 and storing recovery codes."""
-        conn = self._get_conn()  # noqa
+        conn = self._get_conn()
         try:
             conn.execute(
                 "UPDATE users SET mfa_enabled = 1, mfa_recovery_codes = ? WHERE username = ?",
@@ -62,14 +62,14 @@ class MfaHandlerMixin:
             ok = conn.total_changes > 0
             if ok:
                 _log.info("[AUTH] MFA enabled for %s", username)
-                self._audit_log("mfa_enabled", username, "")  # noqa
+                self._audit_log("mfa_enabled", username, "")
             return ok
         finally:
             conn.close()
 
     def disable_mfa(self, username: str) -> bool:
         """Disable MFA for a user by clearing the secret and recovery codes."""
-        conn = self._get_conn()  # noqa
+        conn = self._get_conn()
         try:
             conn.execute(
                 "UPDATE users SET mfa_enabled = 0, mfa_secret = '', mfa_recovery_codes = '[]' "
@@ -80,14 +80,14 @@ class MfaHandlerMixin:
             ok = conn.total_changes > 0
             if ok:
                 _log.info("[AUTH] MFA disabled for %s", username)
-                self._audit_log("mfa_disabled", username, "")  # noqa
+                self._audit_log("mfa_disabled", username, "")
             return ok
         finally:
             conn.close()
 
     def is_mfa_enabled(self, username: str) -> bool:
         """Check if MFA is enabled for a user."""
-        conn = self._get_conn()  # noqa
+        conn = self._get_conn()
         try:
             cursor = conn.execute(
                 "SELECT mfa_enabled FROM users WHERE username = ?",
@@ -102,7 +102,7 @@ class MfaHandlerMixin:
 
     def get_mfa_recovery_codes(self, username: str) -> list[str]:
         """Get the hashed recovery codes for a user."""
-        conn = self._get_conn()  # noqa
+        conn = self._get_conn()
         try:
             cursor = conn.execute(
                 "SELECT mfa_recovery_codes FROM users WHERE username = ?",
@@ -120,7 +120,7 @@ class MfaHandlerMixin:
 
     def update_mfa_recovery_codes(self, username: str, recovery_codes: list[str]) -> bool:
         """Update (e.g., after consuming a recovery code) the stored recovery codes."""
-        conn = self._get_conn()  # noqa
+        conn = self._get_conn()
         try:
             conn.execute(
                 "UPDATE users SET mfa_recovery_codes = ? WHERE username = ?",
@@ -141,7 +141,7 @@ class MfaHandlerMixin:
             return False
         updated = consume_recovery_code(code, codes)
         self.update_mfa_recovery_codes(username, updated)
-        self._audit_log("mfa_recovery_code_used", username, "", {"remaining": len(updated)})  # noqa
+        self._audit_log("mfa_recovery_code_used", username, "", {"remaining": len(updated)})
         return True
 
 

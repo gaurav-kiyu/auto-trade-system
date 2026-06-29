@@ -14,13 +14,11 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
-
 from core.domains.fo import (
+    NFO_CONTRACT_SPECS,
     ContractSpec,
-    ExpiryType,
     FutureContract,
     FuturePosition,
-    NFO_CONTRACT_SPECS,
     OptionContract,
     OptionPosition,
     PositionType,

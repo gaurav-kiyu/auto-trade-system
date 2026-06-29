@@ -2,23 +2,17 @@
 """Tests for scripts/hygiene_check.py - Repository Hygiene automation."""
 from __future__ import annotations
 
-
-
-
-
-
 import pytest
-
 from scripts.hygiene_check import (
     ROOT,
     HygieneIssue,
     HygieneReport,
+    _is_gitignored,
+    _load_gitignore_patterns,
     check_gitignore,
     check_stale_reports,
     main,
     scan_duplicate_implementations,
-    _load_gitignore_patterns,
-    _is_gitignored,
 )
 
 

@@ -12,9 +12,8 @@ Usage:
 
 from __future__ import annotations
 
-import json
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Generator
 
 import pytest
 
@@ -22,7 +21,6 @@ fastapi = pytest.importorskip("fastapi", reason="fastapi not installed")
 
 from core.fundamental_analyzer import reset_fundamental_analyzer
 from core.web_dashboard import maybe_start_dashboard
-
 from fastapi.testclient import TestClient
 
 

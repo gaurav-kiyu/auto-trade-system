@@ -324,11 +324,10 @@ class SQLAlchemyDatabaseAdapter(DatabasePort):
         start = time.monotonic()
         try:
             connected = self.is_connected()
-            version = ""
             if connected:
                 row = self.fetchone("SELECT sqlite_version()")
                 if row:
-                    version = str(row[0])
+                    str(row[0])
             latency = time.monotonic() - start
             return {
                 "status": "healthy" if connected else "disconnected",

@@ -6,7 +6,6 @@ from pathlib import Path
 
 from core.secret_hygiene import (
     KNOWN_SECRET_KEYS,
-    SECRET_KEY_PARTS,
     SECRET_PATTERNS,
     SecretHygieneChecker,
     SecretHygieneResult,
@@ -14,7 +13,6 @@ from core.secret_hygiene import (
     get_secret_checker,
     sanitize_for_log,
 )
-
 
 # ── SecretHygieneResult ─────────────────────────────────────────────────
 

@@ -15,9 +15,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.cognitive_sentiment import CognitiveSentimentEngine, SentimentAnalysis
-
 
 # ── SentimentAnalysis Dataclass ────────────────────────────────────────────
 
@@ -182,7 +180,6 @@ class TestAiPath:
         guard.can_use_ai.return_value = True
         engine = CognitiveSentimentEngine(cfg={}, sov_guard=guard)
         # Force _get_ai_reasoning to raise
-        original_method = engine._get_ai_reasoning
         engine._get_ai_reasoning = MagicMock(side_effect=RuntimeError("API down"))
 
         result = engine.analyze_sentiment("Strong breakout")

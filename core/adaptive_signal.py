@@ -34,13 +34,13 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pandas as pd
+
 from core.legacy import signal_engine as SE
 
 _log = logging.getLogger(__name__)
 
 from core.feature_engine import FeatureEngine
 from core.market_calc import detect_regime_and_adx as mc_detect_regime_and_adx
-from core.services.risk_service import PositionSizer, PositionSpec  # consolidated
 from core.pure_index_signal import (
     PureIndexSignalParams,
     _drop_partial_candle,  # resampling artifact cleaner
@@ -48,6 +48,7 @@ from core.pure_index_signal import (
     compute_index_score,
     evaluate_dual_direction_signal,
 )
+from core.services.risk_service import PositionSizer, PositionSpec  # consolidated
 from core.tier_engine import TIER_RULES, classify_tier
 
 # ── Soft-rejection penalty constants ─────────────────────────────────────────
@@ -155,8 +156,9 @@ def compute_confidence_band(
     bin_w   = int(cfg.get("confidence_band_score_bin_width", 5))
     lo, hi  = score - bin_w, score + bin_w
 
-    from core.db_utils import get_connection as _get_conn
     from pathlib import Path as _Path
+
+    from core.db_utils import get_connection as _get_conn
 
     p = _Path(db_path)
     if not p.is_file():

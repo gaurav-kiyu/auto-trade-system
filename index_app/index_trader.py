@@ -385,7 +385,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import requests
-from core.datetime_ist import is_in_auction_session, now_ist
+from core.datetime_ist import now_ist
 from core.execution.broker_truth_reconciliation import get_broker_truth_reconciler
 from core.execution.deterministic_state_machine import get_execution_state_manager
 from core.execution.idempotency_alerts import get_idempotency_alert_manager
@@ -393,18 +393,16 @@ from core.expiry_day_controller import ExpiryDayController, StrategyType
 from core.hybrid_execution import apply_execution_mode, normalize_execution_mode
 from core.kite_ticker_feed import KiteTickerFeedManager
 from core.ltp_resolver import LtpResolver
+from core.mandate_service import MandateService
 from core.market_warmup import MarketWarmup
 from core.ports.config import ConfigPort
-from core.mandate_service import MandateService
 from core.position_service import get_position_service
 
 # v2.49 CRITICAL FIX imports
 from core.risk.margin_validator import get_margin_validator
 from core.safety_state import (
-    check_intraday_pnl_and_halt,
     hard_halt_reason,
     is_hard_halted,
-    is_shutting_down,
     trip_hard_halt,
 )
 from core.state_manager import state_manager
@@ -412,18 +410,15 @@ from core.state_manager import state_manager
 # v2.45 hardening modules
 from core.token_refresh_service import TokenRefreshService
 
+# Broker Domain (DEBT-008)
+from index_app.domains.broker.factory import make_broker as _make_broker_extracted
 
 # Config Domain (DEBT-008)
 from index_app.domains.config.loader import (
-    ConfigLoader,
-    ConfigResult,
     get_config_loader,
     make_fail_safe_config,
 )
 from index_app.domains.config.manager import ConfigManager
-
-# Broker Domain (DEBT-008)
-from index_app.domains.broker.factory import make_broker as _make_broker_extracted
 
 # Market Domain (DEBT-008)
 from index_app.domains.market.data import fetch_intraday_data as _fetch_intraday_data_extracted
@@ -446,6 +441,7 @@ def _original_main() -> None:
 # These are resolved at import time before the DI container is needed.
 # =============================================================================
 import logging
+import threading
 import threading as _threading
 
 from core.correlation_guard import check_portfolio_correlation, update_closes

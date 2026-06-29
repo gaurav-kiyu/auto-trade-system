@@ -13,17 +13,19 @@ Alert Rules:
   - Route to correct channel by category
 """
 
-import time, logging, threading, hashlib
-
-from datetime import timezone, timedelta
+import hashlib
+import logging
+import threading
+import time
+from datetime import timedelta, timezone
 
 try:
     import requests
 except ImportError:
     requests = None
 
-from core.utils_numeric import safe_num as _safe_num
 from core.time_provider import time_provider
+from core.utils_numeric import safe_num as _safe_num
 
 log = logging.getLogger("telegram_engine")
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -106,8 +108,7 @@ class TelegramEngine:
         unset = [k for k, v in self.channel_map.items() if v is None and k != "DEFAULT"]
         if unset:
             msg = (
-                "TelegramEngine: optional channel keys are None (%s); routing falls back to default_chat_id"
-                % ", ".join(sorted(unset))
+                "TelegramEngine: optional channel keys are None ({}); routing falls back to default_chat_id".format(", ".join(sorted(unset)))
             )
             if not str(default_chat_id).strip():
                 log.warning("%s - and default_chat_id is empty", msg)

@@ -11,10 +11,8 @@ Covers:
 """
 from __future__ import annotations
 
-
 import pandas as pd
 import pytest
-
 from core.pure_index_signal import (
     PureIndexRegimeParams,
     PureIndexSignalParams,
@@ -27,7 +25,6 @@ from core.pure_index_signal import (
     evaluate_index_signal_partial,
     finalize_index_signal_with_threshold,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 

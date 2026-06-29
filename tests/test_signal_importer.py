@@ -6,10 +6,10 @@ from unittest.mock import MagicMock
 
 from core.signal_importer import (
     ImportResult,
-    parse_signal_text,
     import_from_csv,
     import_from_csv_text,
     import_from_text,
+    parse_signal_text,
 )
 
 

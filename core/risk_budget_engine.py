@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any

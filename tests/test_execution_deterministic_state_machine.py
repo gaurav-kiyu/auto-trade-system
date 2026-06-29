@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-
 from core.execution.deterministic_state_machine import (
+    VALID_TRANSITIONS,
     ExecutionState,
     ExecutionStateMachine,
     ExecutionStateMachineManager,
     TransitionResult,
-    VALID_TRANSITIONS,
     get_execution_state_manager,
 )
 

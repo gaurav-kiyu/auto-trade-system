@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-
 from core.equity_trader import EquityTrader
 
 
@@ -386,7 +385,7 @@ class TestLoggingMultiAsset:
             "ETF_PRIORITY": ["NIFTYBEES"],
             "ETF_ENABLED": True,
         }
-        trader = EquityTrader(cfg=cfg)
+        EquityTrader(cfg=cfg)
         # Check that log.info was called with correct message
         # Check format string contains expected content (format args checked separately)
         expected_fmt = any(

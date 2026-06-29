@@ -9,7 +9,6 @@ from core.exposure_limits import (
     get_exposure_limiter,
 )
 
-
 # ── ExposureSnapshot ─────────────────────────────────────────────────────
 
 def test_exposure_snapshot_defaults() -> None:

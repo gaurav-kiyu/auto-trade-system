@@ -18,7 +18,7 @@ import logging
 from typing import Any
 
 from core.db_utils import get_connection
-from core.domains.sme import SmePlatform
+from core.domains.sme import SmePlatform, SmeStock
 
 __all__ = [
     "SmeCircuitGateError",

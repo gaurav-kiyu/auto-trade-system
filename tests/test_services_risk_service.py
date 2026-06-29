@@ -21,16 +21,19 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-
 from core.datetime_ist import now_ist
 from core.safety_state import (
     _HARD_HALT,
-    get_consecutive_losses,
     is_hard_halted,
     reset_consecutive_losses,
 )
-from core.services.risk_service import RiskService, RiskServiceConfig, PortfolioRiskMetrics, PositionSizingInput, RiskDecision
-
+from core.services.risk_service import (
+    PortfolioRiskMetrics,
+    PositionSizingInput,
+    RiskDecision,
+    RiskService,
+    RiskServiceConfig,
+)
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
@@ -308,7 +311,7 @@ class TestPortfolioRiskMetrics:
             get_daily_pnl_fn=lambda: 1000.0,
             get_capital_fn=lambda: 100000.0,
         )
-        m1 = service.get_portfolio_risk_metrics()
+        service.get_portfolio_risk_metrics()
         # Now simulate drop
         service._get_daily_pnl = lambda: 500.0
         m2 = service.get_portfolio_risk_metrics()

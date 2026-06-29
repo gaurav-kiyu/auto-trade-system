@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from core.config_audit_log import (
+    append_soft_reload_audit_diff as _ORIG_APPEND,
+)
 from core.opbuying_observability import (
     append_soft_reload_audit_diff,
     apply_safe_key_patch,
@@ -10,9 +13,6 @@ from core.opbuying_observability import (
     ignored_keys_warning,
     partition_soft_reload_changes,
     soft_reload_diff_entry,
-)
-from core.config_audit_log import (
-    append_soft_reload_audit_diff as _ORIG_APPEND,
 )
 from core.soft_reload_common import (
     apply_safe_key_patch as _ORIG_PATCH,

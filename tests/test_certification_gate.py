@@ -4,18 +4,16 @@ from __future__ import annotations
 
 import json
 
-
 from core.certification.gate import (
     CertificationGate,
     CertificationGateResult,
-    run_certification_gate,
-    _run_hygiene_check,
     _run_architecture_compliance,
-    _run_strategy_certification,
-    _run_replay_certification,
+    _run_hygiene_check,
     _run_paper_certification,
+    _run_replay_certification,
+    _run_strategy_certification,
+    run_certification_gate,
 )
-
 
 # ── CertificationGateResult Tests ─────────────────────────────────────────────
 

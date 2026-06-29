@@ -8,7 +8,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.health_checker import (
     HealthCheckResult,
     HealthReport,
@@ -24,7 +23,6 @@ from core.health_checker import (
     run_full_health_check,
     start_health_check_scheduler,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -220,6 +218,7 @@ class TestCheckMlHealth:
     def test_ml_health_ok(self):
         """Good ML metrics should return OK."""
         import importlib
+
         import core.ml_performance_tracker
         importlib.reload(core.ml_performance_tracker)
         with patch.object(core.ml_performance_tracker, "compute_brier_score", return_value=0.15):
@@ -241,6 +240,7 @@ class TestCheckMlHealth:
     def test_ml_health_warn_brier(self):
         """High Brier score should return WARN."""
         import importlib
+
         import core.ml_performance_tracker
         importlib.reload(core.ml_performance_tracker)
         with patch.object(core.ml_performance_tracker, "compute_brier_score", return_value=0.45):

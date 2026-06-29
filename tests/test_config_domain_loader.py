@@ -7,13 +7,10 @@ import json
 from pathlib import Path
 
 import pytest
-
 from index_app.domains.config.loader import (
-    ConfigLoader,
-    ConfigResult,
     _FAIL_SAFE_CONFIG,
+    ConfigLoader,
     get_config_loader,
-    load_config,
     make_fail_safe_config,
 )
 

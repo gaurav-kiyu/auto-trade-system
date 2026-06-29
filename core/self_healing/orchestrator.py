@@ -40,7 +40,8 @@ import logging
 import sqlite3
 import threading
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from core.self_healing.models import (
     FailurePattern,
@@ -624,6 +625,7 @@ class SelfHealingOrchestrator:
     def _force_wal_checkpoint(self) -> dict[str, Any]:
         """Force WAL checkpoint on all known databases to reduce WAL file sizes."""
         from pathlib import Path as _WalPath
+
         from core.db_utils import get_connection as _wal_conn
         dbs = ["trades.db", "trade_journal.db", "ml_tracker.db", "oi_snapshots.db",
                "strategy_versioning.db"]
@@ -944,7 +946,7 @@ if __name__ == "__main__":
     else:
         # Show status
         status = healing.get_health_status()
-        print(f"Self-Healing Orchestrator Status")
+        print("Self-Healing Orchestrator Status")
         print(f"  Enabled: {status['enabled']}")
         print(f"  Interval: {status['interval_seconds']}s")
         print(f"  Monitor Running: {status['monitor_running']}")

@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.execution.broker_truth_reconciliation import (
     BrokerTruthReconciler,
     ReconciliationResult,
@@ -84,7 +83,7 @@ class TestBrokerTruthReconciler:
         assert result.broker_position is None
 
     def test_get_authoritative_position_caches(self, reconciler):
-        r1 = reconciler.get_authoritative_position("NIFTY")
+        reconciler.get_authoritative_position("NIFTY")
         r2 = reconciler.get_authoritative_position("NIFTY")
         assert r2.status == ReconciliationStatus.MATCH
 
@@ -128,7 +127,6 @@ class TestBrokerTruthReconciler:
     def test_staleness_detection(self, reconciler):
         """Set cache age to be stale and verify STALE status."""
         # Set cache to very old
-        old_time = reconciler._cached_positions_time
         # Position is cached, check again with fresh cache
         result = reconciler.get_authoritative_position("NIFTY")
         assert result.status in (ReconciliationStatus.MATCH, ReconciliationStatus.STALE)

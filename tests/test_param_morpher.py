@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from core.param_morpher import ParamMorpher, MorphedParams
+from core.param_morpher import MorphedParams, ParamMorpher
 
 
 class TestMorphedParams:

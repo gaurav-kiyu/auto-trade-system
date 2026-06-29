@@ -64,7 +64,7 @@ class OptimizationResult:
             f"  Expected Volatility: {self.expected_volatility:.4f} ({self.expected_volatility*100:.2f}%)",
             f"  Sharpe Ratio: {self.sharpe_ratio:.4f}",
             f"  Diversification Ratio: {self.diversification_ratio:.4f}",
-            f"  Weights:",
+            "  Weights:",
         ]
         for symbol, wt in sorted(self.weights.items(), key=lambda x: -x[1]):
             lines.append(f"    {symbol:<20s} {wt:>8.4f} ({wt*100:>5.1f}%)")

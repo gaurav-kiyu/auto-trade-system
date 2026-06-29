@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import warnings
 
-
 from core.strategy_engine import (
+    SignalDict,
     StrategyEngine,
     StrategySnapshot,
-    SignalDict,
 )
 
 

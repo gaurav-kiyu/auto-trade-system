@@ -26,10 +26,14 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from core.exceptions import (
+    BrokerConnectionError,
+    BrokerRateLimitError,
+    BrokerRejectedError,
+    BrokerTimeoutError,
+)
 
 from tests.helpers.legacy_execution_engine import ExecutionEngine, ExecutionFill, ExecutionResult
-from core.exceptions import BrokerAuthError, BrokerConnectionError, BrokerRateLimitError, BrokerRejectedError, BrokerTimeoutError
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 

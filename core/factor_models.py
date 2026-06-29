@@ -178,7 +178,7 @@ def _ols_regression(
     X: list[list[float]] = [[1.0] + row for row in x_matrix]  # (n, k+1)
 
     # Compute X'X and X'y using basic matrix operations
-    def _mat_mul(A: list[list[float]], B: list[list[float]]) -> list[list[float]]:
+    def _mat_mul(A: list[list[float]], B: list[list[float]]) -> list[list[float]]:  # noqa: N803
         """Matrix multiplication."""
         m, n_a = len(A), len(A[0]) if A else 0
         n_b = len(B[0]) if B else 0
@@ -191,7 +191,7 @@ def _ols_regression(
                 result[i][j] = s
         return result
 
-    def _mat_transpose(A: list[list[float]]) -> list[list[float]]:
+    def _mat_transpose(A: list[list[float]]) -> list[list[float]]:  # noqa: N803
         """Matrix transpose."""
         m, n_a = len(A), len(A[0]) if A else 0
         return [[A[i][j] for i in range(m)] for j in range(n_a)]
@@ -274,7 +274,7 @@ def _ols_regression(
     }
 
 
-def _mat_inverse(A: list[list[float]], n: int) -> list[list[float]]:
+def _mat_inverse(A: list[list[float]], n: int) -> list[list[float]]:  # noqa: N803
     """Compute matrix inverse using Gauss-Jordan elimination."""
     # Augment A with identity
     aug = [row[:] + [1.0 if i == j else 0.0 for j in range(n)] for i, row in enumerate(A)]

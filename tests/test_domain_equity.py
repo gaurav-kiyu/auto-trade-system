@@ -15,15 +15,12 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
-
 from core.domains.equity import (
-    BoardLot,
+    IPO,
     CorporateAction,
     CorporateActionType,
     EquityPosition,
     Holding,
-    IPO,
-    IPOStatus,
     Sector,
     Stock,
     StockFundamentals,

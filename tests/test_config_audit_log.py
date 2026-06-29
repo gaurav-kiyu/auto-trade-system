@@ -13,12 +13,10 @@ import pathlib
 from pathlib import Path
 from unittest.mock import MagicMock
 
-
 from core.config_audit_log import (
     append_soft_reload_audit_diff,
     format_config_audit_log_line,
 )
-
 
 # ── format_config_audit_log_line ──────────────────────────────────────────
 

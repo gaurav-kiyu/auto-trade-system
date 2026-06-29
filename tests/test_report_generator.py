@@ -14,7 +14,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.report_generator import (
     _breakdown_table,
     _equity_curve_drawing,

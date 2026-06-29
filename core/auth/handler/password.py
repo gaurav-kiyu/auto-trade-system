@@ -9,11 +9,11 @@ import re
 import secrets
 
 from core.auth.handler.constants import (
+    HASH_ALGO,
     MIN_PASSWORD_LENGTH,
     PBKDF2_ITERATIONS,
     SALT_BYTES,
     TOKEN_BYTES,
-    HASH_ALGO,
 )
 
 

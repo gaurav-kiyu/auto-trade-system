@@ -13,7 +13,6 @@ Covers:
 from __future__ import annotations
 
 import pytest
-
 from core.auth.permissions import (
     Permission,
     PermissionDenied,
@@ -21,7 +20,6 @@ from core.auth.permissions import (
     get_role_permissions,
     role_has_permission,
 )
-
 
 # ── Role Enum Tests ──────────────────────────────────────────────────────────
 

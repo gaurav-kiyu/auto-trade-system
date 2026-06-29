@@ -15,7 +15,6 @@ import time
 from typing import Any
 from unittest.mock import MagicMock
 
-
 from core.db_utils import (
     AsyncDbWriter,
     WriteOperation,
@@ -25,7 +24,6 @@ from core.db_utils import (
     get_connection,
     get_connection_cached,
 )
-
 
 # =============================================================================
 # WriteOperation Tests
@@ -40,7 +38,8 @@ class TestWriteOperation:
         assert op.submitted_at > 0
 
     def test_creation_with_callback(self):
-        cb = lambda s, m: None
+        def cb(s, m):
+            return None
         op = WriteOperation(sql="UPDATE test SET x=1", callback=cb)
         assert op.callback is cb
 

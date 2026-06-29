@@ -560,7 +560,7 @@ class TradeJournal:
         try:
             # Drain pending async writes before closing
             self._pool.shutdown(wait=True)
-        except (RuntimeError, ValueError):
+        except (RuntimeError, ValueError) as _shut_err:
             log.debug("[TradeJournal] Shutdown drain: %s", _shut_err)
         try:
             conn = self._connect()

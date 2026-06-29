@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-
-
-from core.ml_inference import MLInferenceEngine, MLPrediction, init_ml_engine
 import core.ml_inference
+from core.ml_inference import MLInferenceEngine, MLPrediction, init_ml_engine
 
 
 class TestMLPrediction:

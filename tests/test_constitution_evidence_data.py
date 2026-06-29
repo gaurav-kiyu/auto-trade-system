@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from core.constitution_evidence_data import (
-    collect_all_evidence,
     _exists,
     _is_dir,
+    collect_all_evidence,
 )
 
 

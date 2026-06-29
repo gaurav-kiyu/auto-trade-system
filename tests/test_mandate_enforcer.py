@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
 from datetime import datetime
+from unittest.mock import patch
 
 from core.mandate_enforcer import (
-    ProductionMandateEnforcer,
     MandateState,
+    ProductionMandateEnforcer,
     get_mandate_enforcer,
     reset_mandate_enforcer,
 )

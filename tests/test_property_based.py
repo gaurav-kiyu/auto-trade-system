@@ -14,9 +14,9 @@ import tempfile
 from datetime import date, timedelta
 
 import pytest
-from hypothesis import assume, given, settings, strategies as st
+from hypothesis import assume, given
+from hypothesis import strategies as st
 from hypothesis.strategies import floats, lists
-
 
 # ── Global state cleanup ──────────────────────────────────────────────────────
 
@@ -43,7 +43,6 @@ from core.invariants.engine import (
     register_invariant,
 )
 from core.var_calculator import VaRResult, compute_var
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # VaR Calculator — Property-Based Tests

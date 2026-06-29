@@ -119,7 +119,7 @@ def _backup_file(src: Path, suffix: str = "") -> Path | None:
 
 def _verify_paper_mode() -> tuple[bool, str]:
     """Verify paper mode works by checking config defaults and critical imports.
-    
+
     Note: This is a fast static check. It does NOT actually start the trading
     loop. For full verification, run:
         python index_app/index_trader.py --paper --debug

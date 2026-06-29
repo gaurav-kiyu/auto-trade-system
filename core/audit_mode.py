@@ -405,7 +405,7 @@ class Auditor:
                             continue
                         path = os.path.join(root, fname)
                         try:
-                            with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+                            with open(path, encoding="utf-8", errors="ignore") as fh:
                                 content = fh.read()
                                 if _import_pattern.search(content):
                                     violations.append(path)
@@ -416,7 +416,7 @@ class Auditor:
                     scope=AuditScope.ARCHITECTURE,
                     severity=AuditSeverity.WARNING,
                     title=f"Direct Broker SDK Imports in {len(violations)} Non-Adapter Files",
-                    description=f"Found direct broker SDK imports outside core/adapters/",
+                    description="Found direct broker SDK imports outside core/adapters/",
                     evidence="\n".join(violations[:5]),
                     recommendation="Refactor to use BrokerAdapter abstraction",
                     passed=False,

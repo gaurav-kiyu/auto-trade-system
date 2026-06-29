@@ -13,15 +13,15 @@ Components:
 
 Usage:
     from core.iv_surface import IVSurfaceBuilder, IVPoint
-    
+
     builder = IVSurfaceBuilder()
     builder.add_point(strike=25000, dte=7, iv=0.15, option_type="CE")
     builder.add_point(strike=25500, dte=7, iv=0.18, option_type="CE")
     surface = builder.build()
-    
+
     # Get IV for any (strike, dte) via interpolation
     iv_estimate = surface.interpolate(strike=25200, dte=7)
-    
+
     # CLI
     python -m core.iv_surface --spot 23363 --demo
 """

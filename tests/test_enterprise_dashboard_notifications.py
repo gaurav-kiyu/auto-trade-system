@@ -21,7 +21,6 @@ import pytest
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-
 # ── Helper ───────────────────────────────────────────────────────────────────
 
 
@@ -572,8 +571,9 @@ class TestApiPerformanceComparison:
 
     def test_performance_empty_db(self, tmp_path: Path, state_file: str):
         """No trades in empty DB returns empty breakdowns."""
-        from core.enterprise_dashboard import EnterpriseDashboard
         import sqlite3
+
+        from core.enterprise_dashboard import EnterpriseDashboard
 
         empty_db = str(tmp_path / "empty_trades.db")
         conn = sqlite3.connect(empty_db)

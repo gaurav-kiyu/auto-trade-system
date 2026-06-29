@@ -49,7 +49,7 @@ class TestInitExecutionHardening:
 
     def test_handles_import_errors_gracefully(self):
         """Should not crash even if submodules are missing."""
-        with patch("core.execution_hardening_integration.log.error") as mock_log:
+        with patch("core.execution_hardening_integration.log.error"):
             services = init_execution_hardening(
                 {"SECRET_HYGIENE_SCAN_ON_STARTUP": False},
                 MagicMock(),

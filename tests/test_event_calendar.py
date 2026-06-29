@@ -18,7 +18,6 @@ from __future__ import annotations
 import datetime
 from unittest.mock import patch
 
-
 from core.event_calendar import (
     CorporateAction,
     EventRecord,

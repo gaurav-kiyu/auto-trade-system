@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
 from datetime import datetime
+from unittest.mock import patch
 
 from core.time_of_day_filter import (
-    TimeOfDayFilter,
     TimeOfDayConfig,
+    TimeOfDayFilter,
     create_time_of_day_filter,
 )
 

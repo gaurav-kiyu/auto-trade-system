@@ -395,8 +395,8 @@ class TestMaybeStartDashboard:
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
             from core.fundamental_analyzer import reset_fundamental_analyzer
+            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
             client = TestClient(result)
             resp = client.get('/api/fundamentals/weights')
@@ -415,8 +415,8 @@ class TestMaybeStartDashboard:
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
             from core.fundamental_analyzer import reset_fundamental_analyzer
+            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
             client = TestClient(result)
             new_weights = {"weights": {"value": 0.40, "growth": 0.20, "quality": 0.20, "momentum": 0.20}}
@@ -436,8 +436,8 @@ class TestMaybeStartDashboard:
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
             from core.fundamental_analyzer import reset_fundamental_analyzer
+            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
             client = TestClient(result)
             # Missing 'weights' key
@@ -455,8 +455,8 @@ class TestMaybeStartDashboard:
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
             from core.fundamental_analyzer import reset_fundamental_analyzer
+            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
             client = TestClient(result)
             # PUT new weights
@@ -478,8 +478,8 @@ class TestMaybeStartDashboard:
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
             from core.fundamental_analyzer import reset_fundamental_analyzer
+            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
             client = TestClient(result)
             weights = {"value": 0.40, "growth": 0.20, "quality": 0.20, "momentum": 0.20}
@@ -497,8 +497,8 @@ class TestMaybeStartDashboard:
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
             from core.fundamental_analyzer import reset_fundamental_analyzer
+            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
             client = TestClient(result)
             # Malformed JSON in weights param
@@ -515,8 +515,8 @@ class TestMaybeStartDashboard:
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
             from core.fundamental_analyzer import reset_fundamental_analyzer
+            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
             client = TestClient(result)
             payload = {
@@ -536,8 +536,8 @@ class TestMaybeStartDashboard:
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
             from core.fundamental_analyzer import reset_fundamental_analyzer
+            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
             client = TestClient(result)
             resp = client.post("/api/fundamentals/screen", json={
@@ -556,8 +556,8 @@ class TestMaybeStartDashboard:
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
             from core.fundamental_analyzer import reset_fundamental_analyzer
+            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
             client = TestClient(result)
             # min_score=10.0 should return fewer or equal results than min_score=0.0

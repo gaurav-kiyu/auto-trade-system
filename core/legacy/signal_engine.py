@@ -14,19 +14,18 @@ Signal output follows a strict schema consumed by dashboard and Telegram.
 """
 
 import logging
-from datetime import timezone, timedelta
+from datetime import timedelta, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 
-
 from core.defaults_loader import load_defaults_file
 from core.feature_engine import FeatureEngine
-from core.scoring_engine import ScoringEngine
 from core.legacy.decision_engine import DecisionEngine
-from core.utils_numeric import safe_num as _safe_num
+from core.scoring_engine import ScoringEngine
 from core.time_provider import time_provider
+from core.utils_numeric import safe_num as _safe_num
 
 log = logging.getLogger("signal_engine")
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -43,7 +42,7 @@ def _bundled_stock_defaults() -> dict[str, Any]:
     return dict(load_defaults_file(_REPO_ROOT, "stock_config.defaults.json"))
 
 
-def _learning_score_adj_limit(cfg: Optional[dict], asset_type: str = "index") -> int:
+def _learning_score_adj_limit(cfg: dict | None, asset_type: str = "index") -> int:
     raw = None
     if isinstance(cfg, dict) and "LEARNING_SCORE_ADJ_CLAMP" in cfg:
         raw = cfg.get("LEARNING_SCORE_ADJ_CLAMP")
@@ -141,7 +140,7 @@ def calc_fibonacci_targets(entry: float, atr: float, direction: str,
     """ATR-based Fibonacci extension targets with dynamic VIX scaling."""
     if atr <= 0:
         atr = entry * 0.01
-        
+
     # Dynamic Volatility-Adjusted Profit Targets
     # If VIX is high (>18), shrink targets to secure profits quickly.
     # If VIX is low (<12), expand targets to let runners run.
@@ -150,11 +149,11 @@ def calc_fibonacci_targets(entry: float, atr: float, direction: str,
         scale_factor = 0.8
     elif vix < 12 and vix > 0:
         scale_factor = 1.2
-        
+
     adj_r1 = fib_r1 * scale_factor
     adj_r2 = fib_r2 * scale_factor
     adj_r3 = fib_r3 * scale_factor
-        
+
     if direction in ("CALL", "UP", "BUY"):
         return {
             "tp1": round(entry + adj_r1 * atr, 2),
@@ -175,7 +174,7 @@ def calc_chandelier_exit(df: pd.DataFrame, period: int = 22, multiplier: float =
     """
     if df is None or len(df) < period:
         return 0.0
-        
+
     try:
         atr_series = pd.DataFrame()
         atr_series["tr0"] = abs(df["High"] - df["Low"])
@@ -183,7 +182,7 @@ def calc_chandelier_exit(df: pd.DataFrame, period: int = 22, multiplier: float =
         atr_series["tr2"] = abs(df["Low"] - df["Close"].shift())
         tr = atr_series[["tr0", "tr1", "tr2"]].max(axis=1)
         atr = tr.rolling(period).mean().iloc[-1]
-        
+
         atr_val: float = float(atr)
         if direction in ("CALL", "UP", "BUY"):
             highest_high: float = float(df["High"].rolling(period).max().iloc[-1])
@@ -334,7 +333,7 @@ def build_full_signal(
     df5m: pd.DataFrame,
     df15m: pd.DataFrame,
     asset_type: str = "stock",
-    oi_data: Optional[dict] = None,
+    oi_data: dict | None = None,
     iv: float = 0.0,
     vix: float = 0.0,
     sector: str = "",
@@ -343,13 +342,13 @@ def build_full_signal(
     threshold: int = 60,
     learning_adj: int = 0,
     config: dict | None = None,
-) -> Optional[dict]:
+) -> dict | None:
     """
     Build a complete signal from raw OHLCV frames using V2 Engines.
     Returns the standardised signal schema with explicit reasons payload.
     """
     cfg = config or {}
-    
+
     if df1m is None or len(df1m) < 30: return None
     if df5m is None or len(df5m) < 10: return None
     if df15m is None or len(df15m) < 2: return None
@@ -357,13 +356,13 @@ def build_full_signal(
     # 1. Feature Extraction
     fe = FeatureEngine(config=cfg)
     features = fe.extract_features(df1m, df5m, df15m, oi_data)
-    
+
     t5 = features.get("trend_5m", "FLAT")
     t15 = features.get("trend_15m", "FLAT")
-    
+
     # Safe direction fallback
     direction = "CALL" if t5 == "UP" or (t5 == "FLAT" and features.get("vwap_position") == "above") else "PUT"
-    
+
     # Map config for Scoring Engine (bridge flat config to V2 if needed)
     se_config = {
         "rsi_overbought": cfg.get("RSI_OVERBOUGHT", 70),
@@ -378,7 +377,7 @@ def build_full_signal(
     # 2. Strategy Scoring
     se = ScoringEngine(se_config)
     score_data = se.score(features, direction)
-    
+
     # Learning adjustment (positive or negative); clamp once after all score tweaks.
     _lim = _learning_score_adj_limit(cfg, str(asset_type or "index"))
     learning_clamped = max(-_lim, min(_lim, int(learning_adj)))
@@ -442,11 +441,11 @@ def build_full_signal(
 
     price = features["price"]
     atr_val = _safe_num(features["atr"], price * 0.01)
-    
+
     ind_cfg = cfg.get("indicators", {})
     chandelier_period = ind_cfg.get("chandelier_period", 22)
     chandelier_multiplier = ind_cfg.get("chandelier_multiplier", 3.0)
-    
+
     atr_sl_mult = cfg.get("ATR_SL_MULTIPLIER", 1.5)
     stop_loss = calc_atr_stop_loss(price, atr_val, direction, atr_sl_mult)
     trailing_sl = calc_chandelier_exit(df1m, period=chandelier_period, multiplier=chandelier_multiplier, direction=direction)
@@ -455,10 +454,10 @@ def build_full_signal(
     except (TypeError, ValueError, IndexError):
         ts = 0.0
     trailing_sl = ts if ts != 0.0 else stop_loss
-        
-    targets = calc_fibonacci_targets(price, atr_val, direction, 
-                                     cfg.get("FIB_TP1_RATIO", 0.618), 
-                                     cfg.get("FIB_TP2_RATIO", 1.0), 
+
+    targets = calc_fibonacci_targets(price, atr_val, direction,
+                                     cfg.get("FIB_TP1_RATIO", 0.618),
+                                     cfg.get("FIB_TP2_RATIO", 1.0),
                                      cfg.get("FIB_TP3_RATIO", 1.618),
                                      vix=vix)
     pivots = calc_support_resistance_pivot(df1m)
@@ -480,7 +479,7 @@ def build_full_signal(
         "is_eligible": decision.get("eligible", False),
         "confidence": confidence,
         "signal_type": signal_type,
-        
+
         # --- Legacy Payload (Must be preserved for index_trader.py) ---
         "symbol": symbol,
         "asset_type": asset_type,
@@ -661,7 +660,7 @@ def score_breakdown(sig: dict, config: dict | None = None) -> str:
         s_line = _safe_num(macd.get("signal"), 0)
         if (is_call and hist > 0 and m_line > s_line) or \
            (not is_call and hist < 0 and m_line < s_line):
-            parts.append((f"MACD", macd_b))
+            parts.append(("MACD", macd_b))
 
     # RSI
     rsi = sig.get("rsi", 50)
@@ -673,7 +672,7 @@ def score_breakdown(sig: dict, config: dict | None = None) -> str:
     # Breakout
     if sig.get("breakout_ok"):
         parts.append(("Breakout", 8))
-        
+
     gap      = score - thr
     status   = "PASS" if gap >= 0 else f"NEED +{abs(gap)}"
     breakdown = ", ".join(f"{name} +{pts}" for name, pts in parts) if parts else "-"

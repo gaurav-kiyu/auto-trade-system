@@ -117,7 +117,7 @@ class PortfolioGreeks:
     net_rho: float = 0.0
     gross_exposure_premium: float = 0.0
     positions_count: int = 0
-    by_symbol: dict[str, "PositionGreeksSummary"] = field(default_factory=dict)
+    by_symbol: dict[str, PositionGreeksSummary] = field(default_factory=dict)
     timestamp: float = 0.0
 
 
@@ -204,7 +204,7 @@ class GreeksConfig:
     short_option_block: bool = True
 
     @classmethod
-    def from_dict(cls, cfg: dict[str, Any] | None) -> "GreeksConfig":
+    def from_dict(cls, cfg: dict[str, Any] | None) -> GreeksConfig:
         c = cfg or {}
         return cls(
             delta_limit_per_pos=float(c.get("greeks_delta_limit_per_pos", 0.20)),
@@ -492,7 +492,7 @@ class OptionsGreeksEngine:
         delta_exposure = abs(proposed_greeks.delta * qty)
         gamma_exposure = abs(proposed_greeks.gamma * qty)
         vega_exposure = proposed_greeks.vega * qty
-        theta_exposure = proposed_greeks.theta * qty
+        proposed_greeks.theta * qty
 
         # Delta limit per position - delta_contracts = delta × qty
         # For a typical ATM 1-lot NIFTY call: delta≈0.50, qty=25, delta_contracts≈12.5

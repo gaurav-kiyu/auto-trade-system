@@ -14,7 +14,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.ports.broker.health_port import (
     BrokerHealthMetrics,
     BrokerStatus,
@@ -24,7 +23,6 @@ from core.services.broker_health_service import (
     BrokerHealthService,
     BrokerHealthServiceConfig,
 )
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────────
 

@@ -6,7 +6,7 @@ The Constitution mandates:
   Before certifying the system, actively attempt to prove it is NOT worthy of certification.
   Search for: hidden bugs, silent failures, race conditions, data leakage, replay
   inconsistencies, execution flaws, risk bypasses, catastrophic loss scenarios.
-  
+
   Only surviving systems may receive institutional-grade ratings.
 
 This framework runs a battery of adversarial challenges and reports results.
@@ -31,9 +31,10 @@ import logging
 import re
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:

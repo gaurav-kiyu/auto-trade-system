@@ -85,7 +85,8 @@ class TestLoadTrades:
 
     def test_fallback_with_days_filter(self, temp_db: str) -> None:
         """Fallback works with days filter (uses created_at column)."""
-        import sqlite3, datetime
+        import datetime
+        import sqlite3
         conn = sqlite3.connect(temp_db)
         conn.execute("CREATE TABLE execution_orders (order_id TEXT, symbol TEXT, created_at TEXT)")
         recent = (datetime.datetime.now() - datetime.timedelta(hours=1)).isoformat()

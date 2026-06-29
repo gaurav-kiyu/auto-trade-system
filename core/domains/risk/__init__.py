@@ -19,12 +19,14 @@ from core.domains.risk.model import (
     HistoricalStats,
     MarketConditions,
     PortfolioRiskMetrics,
-    Position as RiskDomainPosition,
     PriceLevel,
     RiskDecision,
     RiskError,
     RiskLimits,
     VolumeProfile,
+)
+from core.domains.risk.model import (
+    Position as RiskDomainPosition,
 )
 
 __all__ = [

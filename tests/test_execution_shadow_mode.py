@@ -6,7 +6,6 @@ import itertools
 from unittest.mock import patch
 
 import pytest
-
 from core.execution.shadow_mode import (
     ShadowComparison,
     ShadowModeEngine,
@@ -14,7 +13,6 @@ from core.execution.shadow_mode import (
     get_shadow_engine,
 )
 from core.time_provider import time_provider
-
 
 _ts_counter = itertools.count(1000)
 

@@ -13,7 +13,6 @@ from __future__ import annotations
 import sys
 from unittest.mock import MagicMock, patch
 
-
 from core.startup_validation import (
     AUTHORITATIVE_RISK_CLASS,
     AUTHORITATIVE_RISK_MODULE,
@@ -22,7 +21,6 @@ from core.startup_validation import (
     validate_dependencies,
     validate_risk_engine,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════
 #  Constants

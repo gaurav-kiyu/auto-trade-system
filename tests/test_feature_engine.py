@@ -6,9 +6,7 @@ from typing import Any
 
 import pandas as pd
 import pytest
-
 from core.feature_engine import FeatureEngine
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
 

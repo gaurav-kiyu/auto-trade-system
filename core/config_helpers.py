@@ -5,7 +5,6 @@ from __future__ import annotations
 import base64
 from typing import Any
 
-
 __all__ = [
     "build_audit_config_snapshot",
     "decode_if_b64",

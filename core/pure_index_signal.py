@@ -24,9 +24,9 @@ from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
-from core.legacy import signal_engine as SE
 
 from core.feature_engine import FeatureEngine
+from core.legacy import signal_engine as SE
 from core.market_calc import detect_regime_and_adx as mc_detect_regime_and_adx
 from core.utils_numeric import safe_num
 

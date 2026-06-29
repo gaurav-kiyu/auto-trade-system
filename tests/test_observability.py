@@ -5,15 +5,9 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from core.observability.metrics import (
-    BROKER_HEALTH,
-    DAILY_PNL,
-    ML_FALLBACK_COUNT,
-    ORDER_LATENCY,
     ObservabilityManager,
-    RISK_LIMIT_PROXIMITY,
     obs_manager,
 )
-
 
 # ── ObservabilityManager construction ───────────────────────────────────
 

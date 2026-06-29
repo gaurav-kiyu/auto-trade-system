@@ -11,20 +11,16 @@ from __future__ import annotations
 
 import json
 import sqlite3
-
-
 import tempfile
 from pathlib import Path
 
 import pytest
-
 from core.certification import (
     PaperCertifier,
     ReplayCertifier,
     certify_paper_trading,
     certify_replay_determinism,
 )
-
 
 # ── Fixture: seeded trade DB for E2E tests ──────────────────────────────────
 
@@ -138,12 +134,8 @@ class TestCertificationPipeline:
     def test_certification_modules_importable(self):
         """All certification modules should be importable."""
         from core.certification import (
-            ReplayCertifier,
-            ReplayCertificationReport,
-            PaperCertifier,
             PaperCertificationReport,
-            certify_replay_determinism,
-            certify_paper_trading,
+            ReplayCertificationReport,
         )
         assert ReplayCertifier is not None
         assert ReplayCertificationReport is not None
@@ -152,7 +144,7 @@ class TestCertificationPipeline:
 
     def test_chaos_modules_importable(self):
         """Chaos engineering modules should be importable."""
-        from core.chaos import ChaosEngine, ChaosScenario, ChaosReport, FailureType
+        from core.chaos import ChaosEngine, ChaosScenario, FailureType
         assert ChaosEngine is not None
         assert ChaosScenario is not None
         assert FailureType is not None

@@ -14,11 +14,10 @@ from __future__ import annotations
 import json
 import logging
 import threading
-
-from core.db_utils import get_connection
 from dataclasses import dataclass, field
 from typing import Any
 
+from core.db_utils import get_connection
 from core.time_provider import time_provider
 
 __all__ = [

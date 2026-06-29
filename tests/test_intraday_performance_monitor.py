@@ -10,14 +10,12 @@ Covers:
 """
 from __future__ import annotations
 
-
 import pytest
-
 from core.intraday_performance_monitor import (
-    IntradayPerformanceMonitor,
     _CAUTIOUS_PARAMS,
     _DEFENSIVE_PARAMS,
     _NORMAL_PARAMS,
+    IntradayPerformanceMonitor,
 )
 
 
@@ -108,14 +106,14 @@ class TestRecordTradeClose:
         assert monitor.record_trade_close(-100.0, was_winner=False).level == "DEFENSIVE"
 
         # Now 3 wins should recover to CAUTIOUS
-        p1 = monitor.record_trade_close(100.0, was_winner=True)
-        p2 = monitor.record_trade_close(100.0, was_winner=True)
+        monitor.record_trade_close(100.0, was_winner=True)
+        monitor.record_trade_close(100.0, was_winner=True)
         p3 = monitor.record_trade_close(100.0, was_winner=True)
         assert p3.level == "CAUTIOUS"
 
         # 3 more wins should recover to NORMAL
-        p4 = monitor.record_trade_close(100.0, was_winner=True)
-        p5 = monitor.record_trade_close(100.0, was_winner=True)
+        monitor.record_trade_close(100.0, was_winner=True)
+        monitor.record_trade_close(100.0, was_winner=True)
         p6 = monitor.record_trade_close(100.0, was_winner=True)
         assert p6.level == "NORMAL"
 

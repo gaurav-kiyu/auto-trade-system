@@ -3,6 +3,7 @@ import gzip
 import logging
 import os
 import tempfile
+import time
 
 # ── Log rotation size ─────────────────────────────────────────────────────────
 

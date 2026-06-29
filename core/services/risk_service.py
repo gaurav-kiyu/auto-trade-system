@@ -28,24 +28,24 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-# ── Consolidated re-exports from legacy modules ──
-# These are the canonical import targets for tier-based position sizing
-# and capital scaling. The legacy modules (core.position_sizer, core.capital_manager)
-# remain as deprecated wrappers for backward compatibility.
-from core.position_sizer import PositionSizer, PositionSpec  # noqa: F401
-from core.capital_manager import CapitalManager, CapitalState, ScaleResult  # noqa: F401
-
+from core.capital_manager import CapitalManager, CapitalState, ScaleResult
 from core.datetime_ist import now_ist
 from core.logging import LoggingService
 from core.ports.persistence.persistence_port import TradePersistencePort
 from core.ports.risk.risk_port import PortfolioRiskMetrics, PositionSizingInput, RiskDecision, RiskEvaluation, RiskPort
-from core.risk.limits.manager import LimitConfig, RiskLimitsManager
-from core.risk.sizing.manager import PositionSizingManager
+
+# ── Consolidated re-exports from legacy modules ──
+# These are the canonical import targets for tier-based position sizing
+# and capital scaling. The legacy modules (core.position_sizer, core.capital_manager)
+# remain as deprecated wrappers for backward compatibility.
+from core.position_sizer import PositionSizer, PositionSpec
 from core.risk import (
-    OptionType,
     OptionsGreeksEngine,
+    OptionType,
     PositionGreeksInput,
 )
+from core.risk.limits.manager import LimitConfig, RiskLimitsManager
+from core.risk.sizing.manager import PositionSizingManager
 from core.safety_state import (
     get_consecutive_losses,
     reset_consecutive_losses,

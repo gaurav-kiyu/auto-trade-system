@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-
 # ── Enums ─────────────────────────────────────────────────────────────────────
 
 
@@ -119,7 +118,7 @@ class AuditReport:
         """Print a human-readable summary of the audit report."""
         lines = [
             "=" * 60,
-            f"  INDEPENDENT AUDIT REPORT",
+            "  INDEPENDENT AUDIT REPORT",
             f"  Generated: {self.generated_at}",
             "=" * 60,
             f"  Overall Score: {self.overall_score:.2f} / 10.0",

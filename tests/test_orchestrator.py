@@ -12,17 +12,16 @@ from core.orchestrator import (
     _ExecutionResult,
 )
 
-
 # ── Shared helper ─────────────────────────────────────────────────────────
 
 
 def _make_mock_execution_service():
     """Create a mock ExecutionService for orchestrator integration tests."""
-    from unittest.mock import MagicMock
-    from core.ports.execution.execution_port import OrderResult, OrderStatus
-    from datetime import datetime
-
     import time as _time_module
+    from datetime import datetime
+    from unittest.mock import MagicMock
+
+    from core.ports.execution.execution_port import OrderResult, OrderStatus
 
     def execute_order(order_request, execution_context=None):
         """Simulate order execution, returning a mock OrderResult."""
@@ -611,9 +610,10 @@ class TestOrchestratorExecutionService:
 
     def test_run_cycle_execution_service_rejected_order(self) -> None:
         """ExecutionService path handles rejected orders."""
-        from unittest.mock import MagicMock, patch
-        from core.ports.execution.execution_port import OrderResult, OrderStatus
         from datetime import datetime
+        from unittest.mock import MagicMock, patch
+
+        from core.ports.execution.execution_port import OrderResult, OrderStatus
 
         mock_snapshot = MagicMock(healthy=True, note="ok")
         mock_snapshot.frames = {"NIFTY": {"1m": "data"}}

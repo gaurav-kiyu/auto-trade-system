@@ -36,9 +36,10 @@ import re
 import subprocess  # nosec — only used for safe shell commands from runbook steps
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 _log = logging.getLogger(__name__)
 

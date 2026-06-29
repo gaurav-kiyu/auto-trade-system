@@ -13,7 +13,6 @@ from core.session_report import (
     create_session_reporter,
 )
 
-
 # ── TradeSummary ─────────────────────────────────────────────────────────
 
 def test_trade_summary_defaults() -> None:

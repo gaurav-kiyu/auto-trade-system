@@ -10,8 +10,8 @@ import logging
 import sys
 import time
 
-from core.invariants.engine import InvariantSeverity, register_invariant
 from core.exceptions import GovernanceError
+from core.invariants.engine import InvariantSeverity, register_invariant
 
 _log = logging.getLogger(__name__)
 

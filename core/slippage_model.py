@@ -67,7 +67,7 @@ def _load_journal(db_path: str, days: int) -> list[tuple[float, float, float]]:
         return []
 
 
-def _ols(X: list[list[float]], y: list[float]) -> tuple[list[float], float]:
+def _ols(X: list[list[float]], y: list[float]) -> tuple[list[float], float]:  # noqa: N803
     """
     Ordinary least squares via numpy.  Returns (coefficients, r_squared).
     coefficients = [intercept, coeff_1, coeff_2, ...]

@@ -38,7 +38,8 @@ def _run_case(name: str, fn: Callable[[], str]) -> CheckResult:
     try:
         detail = fn() or ""
         duration_ms = int((_now_ist() - start).total_seconds() * 1000)
-        return CheckResult(name=name, ok=True, detail=str(detail), duration_ms=duration_ms)        except (ValueError, TypeError, KeyError, IndexError, AttributeError, ImportError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, AssertionError) as exc:
+        return CheckResult(name=name, ok=True, detail=str(detail), duration_ms=duration_ms)
+    except (ValueError, TypeError, KeyError, IndexError, AttributeError, ImportError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, AssertionError) as exc:
         duration_ms = int((_now_ist() - start).total_seconds() * 1000)
         return CheckResult(name=name, ok=False, detail=str(exc), duration_ms=duration_ms)
 

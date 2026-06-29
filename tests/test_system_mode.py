@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import Mock
 
-
 from core.system_mode import (
     SystemMode,
     SystemModeManager,

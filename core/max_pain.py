@@ -13,12 +13,12 @@ Formula:
     Call value = Σ max(0, spot - S_i) × OI_call(S_i)  for all strikes S_i < spot
     Put value  = Σ max(0, S_i - spot) × OI_put(S_i)   for all strikes S_i > spot
     Total payout = call_value + put_value × multiplier
-    
+
     Max Pain = argmin(total_payout) over all strikes
 
 Usage:
     from core.max_pain import compute_max_pain, MaxPainResult
-    
+
     # From option chain data
     result = compute_max_pain(spot=23363.35, option_chain={
         "calls": {25000: {"oi": 12345, "ltp": 150.0}, ...},
@@ -116,13 +116,13 @@ def compute_max_pain(
     """
     if spot_price <= 0:
         raise ValueError(f"Invalid spot price: {spot_price}")
-    
+
     now = time.time()
-    
+
     # Parse option chain into sorted list of strikes
     call_oi_map: dict[float, int] = {}
     put_oi_map: dict[float, int] = {}
-    
+
     if option_chain:
         calls_data = option_chain.get("calls", {})
         puts_data = option_chain.get("puts", {})
@@ -136,7 +136,7 @@ def compute_max_pain(
             put_oi_map[s.strike] = s.put_oi
     else:
         raise ValueError("Either option_chain or strikes must be provided")
-    
+
     # Merge all strikes
     all_strikes = sorted(set(call_oi_map.keys()) | set(put_oi_map.keys()))
     if not all_strikes:
@@ -151,31 +151,31 @@ def compute_max_pain(
             pain_curve={},
             timestamp=now,
         )
-    
+
     # Calculate pain curve
     pain_curve: dict[float, float] = {}
     total_call_oi = sum(call_oi_map.values())
     total_put_oi = sum(put_oi_map.values())
-    
+
     for pain_strike in all_strikes:
         total_pain = 0.0
-        
+
         # For each strike, calculate value at expiry if pain_strike is the settlement
         for s in all_strikes:
             call_oi = call_oi_map.get(s, 0)
             put_oi = put_oi_map.get(s, 0)
-            
+
             if call_oi > 0 and s < pain_strike:
                 total_pain += (pain_strike - s) * call_oi
             if put_oi > 0 and s > pain_strike:
                 total_pain += (s - pain_strike) * put_oi
-        
+
         pain_curve[pain_strike] = round(total_pain, 2)
-    
+
     # Find strike with minimum pain (maximum pain for option buyers)
     min_pain_strike = min(pain_curve, key=pain_curve.get)
     min_pain_value = pain_curve[min_pain_strike]
-    
+
     # Build nearest strikes list (around max pain)
     sorted_strikes = sorted(pain_curve.keys())
     idx = sorted_strikes.index(min_pain_strike) if min_pain_strike in sorted_strikes else 0
@@ -190,9 +190,9 @@ def compute_max_pain(
                 "pain": pain_curve[s],
                 "diff_from_min_pct": round(diff_pct, 1),
             })
-    
+
     pcr = round(total_put_oi / max(total_call_oi, 1), 4)
-    
+
     return MaxPainResult(
         max_pain_strike=min_pain_strike,
         pain_index=min_pain_value,
@@ -218,7 +218,7 @@ def compute_pain_index(
     """
     result = compute_max_pain(spot_price, option_chain=option_chain)
     distance_pct = ((spot_price - result.max_pain_strike) / spot_price) * 100 if spot_price > 0 else 0.0
-    
+
     return {
         "max_pain_strike": result.max_pain_strike,
         "spot_price": spot_price,

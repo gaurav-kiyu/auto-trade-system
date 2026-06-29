@@ -15,11 +15,10 @@ a stateless order simulation engine. This test validates that:
 
 from __future__ import annotations
 
-
 from core.market_simulator import (
     MarketSimulator,
-    SimulatorConfig,
     SimulatedOrderResult,
+    SimulatorConfig,
 )
 
 

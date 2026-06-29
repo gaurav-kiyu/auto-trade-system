@@ -6,9 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-
 from core.anomaly_detector import AnomalyDetector, detect_anomaly
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

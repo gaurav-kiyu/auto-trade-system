@@ -14,13 +14,11 @@ Covers (30+ tests):
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
 from core.adapters.base_adapter import BrokerAdapter, OrderRequest, OrderResponse, OrderStatus
 from core.execution.broker_gateway import BrokerGateway, broker_gateway
-
 
 # ── Mock Broker Adapter ──────────────────────────────────────────────────────
 

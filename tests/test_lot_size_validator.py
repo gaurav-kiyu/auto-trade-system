@@ -5,8 +5,8 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from core.lot_size_validator import (
-    LotSizeValidator,
     LotSizeResult,
+    LotSizeValidator,
     validate_lot_sizes,
 )
 

@@ -31,7 +31,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-
 # Import stress test engine for capital preservation verification
 from core.stress_tester import run_stress_test
 
@@ -292,8 +291,8 @@ class BlackSwanEngine:
 
             index_name = defn.get("index", "NIFTY")
             drop_pct = abs(defn.get("drop_pct", defn.get("gap_pct", 0)))
-            vix_mult = 1.0 + abs(drop_pct) / 5.0  # Scale VIX with drop
-            time_mins = defn.get("timeframe_minutes", 30)
+            1.0 + abs(drop_pct) / 5.0  # Scale VIX with drop
+            defn.get("timeframe_minutes", 30)
 
             # Build synthetic positions to simulate
             synthetic_positions = [{

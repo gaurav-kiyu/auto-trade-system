@@ -13,12 +13,11 @@ from __future__ import annotations
 
 import logging
 import threading
-
-from core.db_utils import get_connection
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from core.db_utils import get_connection
 from core.execution.event_system import TradingEvent, get_event_store
 from core.time_provider import time_provider
 

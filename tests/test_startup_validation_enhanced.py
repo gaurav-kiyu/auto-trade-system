@@ -18,7 +18,6 @@ import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.startup_validation import (
     run_startup_validation,
     validate_app_config,
@@ -26,7 +25,6 @@ from core.startup_validation import (
     validate_environment_vars,
     validate_risk_engine,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════
 #  Helpers

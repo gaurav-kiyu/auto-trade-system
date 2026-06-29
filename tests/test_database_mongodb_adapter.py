@@ -14,10 +14,10 @@ from __future__ import annotations
 
 import os
 import threading
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 
 import pytest
-
 from core.adapters.database import MongoDBDatabaseAdapter
 from core.adapters.database.mongodb_adapter import _parse_mongo_dsn
 from core.ports.database import DatabasePort, DatabaseStats

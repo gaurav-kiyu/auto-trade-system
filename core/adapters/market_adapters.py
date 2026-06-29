@@ -6,7 +6,6 @@ from typing import Any
 
 from ..data_engine import ProviderChain
 
-
 __all__ = [
     "DataRuntimeContext",
     "build_provider_chain",

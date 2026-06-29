@@ -174,8 +174,8 @@ def check_release_state() -> list[str]:
     branch = _get_current_branch()
     if branch and branch.startswith("release/") and version:
         expected_branch = f"release/v{version}"
-        # Allow test/debug branches with pattern release/v0.0.0-test_*
-        if branch.startswith("release/v0.0.0-test_") or branch == "release/v0.0.0-test":
+        # Allow test/debug branches with pattern release/v0.0.0[-test_*]
+        if branch.startswith("release/v0.0.0-test_") or branch in ("release/v0.0.0-test", "release/v0.0.0"):
             pass  # test/debug branch — skip release check
         # Allow legacy date-suffixed branches (migration period)
         elif branch.startswith(f"release/v{version}_"):
@@ -297,21 +297,21 @@ def main(argv: list[str] | None = None) -> int:
     print("  [7] Release state: %s" % ("OK" if not release_issues else "ISSUES"))
 
     if all_warnings:
-        print("\n  [!] Warnings (%d):" % len(all_warnings))
+        print(f"\n  [!] Warnings ({len(all_warnings)}):")
         for w in all_warnings:
-            print("    - %s" % w)
+            print(f"    - {w}")
 
     if all_violations:
-        print("\n  [X] VIOLATIONS (%d):" % len(all_violations))
+        print(f"\n  [X] VIOLATIONS ({len(all_violations)}):")
         for v in all_violations:
-            print("    - %s" % v)
+            print(f"    - {v}")
     else:
         print("\n  [OK] No violations found")
 
     if context_suggestions:
         print("\n" + "=" * 70)
         for line in context_suggestions:
-            print("  %s" % line)
+            print(f"  {line}")
 
     print("\n" + "=" * 70)
     if all_violations:

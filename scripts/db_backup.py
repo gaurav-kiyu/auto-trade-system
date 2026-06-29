@@ -249,7 +249,7 @@ def main() -> None:
         exclude=args.exclude,
     )
 
-    print(f"\nBackup Summary:")
+    print("\nBackup Summary:")
     print(f"  Project root: {results['project_root']}")
     print(f"  Backup dir:   {results['backup_dir']}")
     print(f"  DB files:     {len(results['db_files_found'])} found")

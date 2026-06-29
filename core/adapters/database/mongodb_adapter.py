@@ -192,7 +192,7 @@ class MongoDBDatabaseAdapter(DatabasePort):
             adapter.execute("command", ("ping",))
             adapter.execute("delete_many", ("items", {}))
         """
-        client = self._require_client()
+        self._require_client()
         db = self._db
         with self._lock:
             try:

@@ -86,7 +86,7 @@ class YahooFinanceAdapter(MarketDataPort):
         # Track last fetch time per symbol for freshness checks
         self._last_fetch_time: dict[str, float] = {}
 
-        logger = self._get_logger()
+        self._get_logger()
         self._logger = LoggingService(
             log_dir="logs",
             log_filename_prefix="yahoo_finance_adapter_",
@@ -242,7 +242,7 @@ class YahooFinanceAdapter(MarketDataPort):
             return self._convert_to_quote(symbol, quote_data)
 
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.error(f"Failed to get quote for {symbol}: {e}")
             return None  # Caller must handle None vs zero-price
 
@@ -263,7 +263,7 @@ class YahooFinanceAdapter(MarketDataPort):
             self._last_fetch_time[symbol] = time.time()
             return data
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.error(f"Failed to get latest data for {symbol}: {e}")
             return {}
 
@@ -408,7 +408,7 @@ class YahooFinanceAdapter(MarketDataPort):
             return result
 
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.error(f"Failed to get historical data for {symbol}: {e}")
             return []
 
@@ -487,7 +487,7 @@ class YahooFinanceAdapter(MarketDataPort):
             return result
 
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.error(f"Failed to get option chain for {symbol}: {e}")
             return []
 
@@ -529,7 +529,7 @@ class YahooFinanceAdapter(MarketDataPort):
             return details
 
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.error(f"Failed to get instrument details for {symbol}: {e}")
             return {}
 

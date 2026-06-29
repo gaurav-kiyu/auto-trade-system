@@ -15,12 +15,12 @@ Usage:
     )
 """
 from core.domains.commodity.models import (
+    MCX_CONTRACT_SPECS,
     CommodityCategory,
     CommodityContract,
     CommodityPosition,
     ContractSpec,
     DeliveryType,
-    MCX_CONTRACT_SPECS,
     PositionType,
 )
 

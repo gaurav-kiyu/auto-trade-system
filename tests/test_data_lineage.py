@@ -18,7 +18,6 @@ import tempfile
 import threading
 
 import pytest
-
 from core.data_lineage import (
     DataLineageEngine,
     DataLineageRecord,

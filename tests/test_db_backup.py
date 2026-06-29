@@ -10,7 +10,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-
 from scripts.db_backup import (
     cleanup_old_backups,
     create_backup,

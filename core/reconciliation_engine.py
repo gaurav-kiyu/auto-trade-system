@@ -4,7 +4,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-
 __all__ = [
     "ReconciliationEngine",
     "ReconciliationItem",

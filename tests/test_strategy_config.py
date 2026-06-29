@@ -15,7 +15,6 @@ from __future__ import annotations
 from typing import Any
 
 from core.strategy.config import (
-    StrategyConfigView,
     get_strategy_block,
     get_strategy_cfg,
     get_strategy_param,

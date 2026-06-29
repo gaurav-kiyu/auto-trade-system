@@ -35,7 +35,6 @@ import time
 from datetime import date
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -313,21 +312,21 @@ def generate_release_notes(version: str, changes: list[str] | None = None) -> st
                 capture_output=True, text=True, cwd=str(ROOT), timeout=15,
             )
             if result.returncode == 0:
-                commits = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+                commits = [c.strip() for c in result.stdout.strip().split("\n") if c.strip()]
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
     notes = [
         f"# Release v{version}",
-        f"",
+        "",
         f"**Date:** {date.today().isoformat()}",
         f"**Previous Release:** {last_tag or 'N/A'}",
         f"**Commits Since Last Release:** {len(commits)}",
-        f"",
-        f"---",
-        f"",
-        f"## Changes",
-        f"",
+        "",
+        "---",
+        "",
+        "## Changes",
+        "",
     ]
 
     if changes:
@@ -336,7 +335,7 @@ def generate_release_notes(version: str, changes: list[str] | None = None) -> st
         notes.append("")
 
     if commits:
-        notes.append(f"### Commits")
+        notes.append("### Commits")
         notes.append("")
         notes.append("```")
         for c in commits[:50]:
@@ -347,16 +346,16 @@ def generate_release_notes(version: str, changes: list[str] | None = None) -> st
         notes.append("")
 
     notes.extend([
-        f"---",
-        f"",
-        f"## Verification",
-        f"",
-        f"- [ ] All tests pass",
-        f"- [ ] Architecture compliance check passed",
-        f"- [ ] Config schemas regenerated",
-        f"- [ ] Documentation synced",
-        f"- [ ] Pre-implementation checks passed",
-        f"- [ ] Repository hygiene verified",
+        "---",
+        "",
+        "## Verification",
+        "",
+        "- [ ] All tests pass",
+        "- [ ] Architecture compliance check passed",
+        "- [ ] Config schemas regenerated",
+        "- [ ] Documentation synced",
+        "- [ ] Pre-implementation checks passed",
+        "- [ ] Repository hygiene verified",
     ])
 
     return "\n".join(notes)
@@ -554,7 +553,7 @@ def main(argv: list[str] | None = None) -> int:
         if failures:
             print("\n  [X] %d failure(s):" % len(failures))
             for f in failures:
-                print("    - %s" % f)
+                print(f"    - {f}")
             return 1
         print("\n  [OK] All pre-release checks passed")
         return 0
@@ -569,7 +568,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.commit:
         ok, msg = git_commit(args.commit)
         if not ok:
-            print("[FAIL] %s" % msg, file=sys.stderr)
+            print(f"[FAIL] {msg}", file=sys.stderr)
             return 1
         print(msg)
         return 0
@@ -597,7 +596,7 @@ def main(argv: list[str] | None = None) -> int:
         print("\n[2/6] Creating release branch...")
         ok, branch = create_release_branch(version)
         if not ok:
-            print("  [FAIL] %s" % branch, file=sys.stderr)
+            print(f"  [FAIL] {branch}", file=sys.stderr)
             return 1
     else:
         branch = "current"
@@ -625,9 +624,9 @@ def main(argv: list[str] | None = None) -> int:
     print("\n[6/6] Creating release tag...")
     ok, tag = git_tag(version)
     if ok:
-        print("  [OK] Tagged: %s" % tag)
+        print(f"  [OK] Tagged: {tag}")
     else:
-        print("  [!] Tagging skipped: %s" % tag)
+        print(f"  [!] Tagging skipped: {tag}")
 
     # Step 7: Push (opt-in - requires --push flag)
     if args.push:
@@ -637,14 +636,14 @@ def main(argv: list[str] | None = None) -> int:
         if ok:
             print("  [OK] Push successful")
         else:
-            print("  [!] Push warning: %s" % push_msg)
+            print(f"  [!] Push warning: {push_msg}")
         # Also push the tag if created
         if tag:
             subprocess.run(
                 ["git", "push", "origin", tag],
                 capture_output=True, text=True, cwd=str(ROOT), timeout=30,
             )
-            print("  [OK] Tag pushed: %s" % tag)
+            print(f"  [OK] Tag pushed: {tag}")
     else:
         print("\n[7/7] Push skipped (use --push to push to origin)")
 
@@ -652,15 +651,15 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  RELEASE v{version} PREPARED")
     print(f"  Branch: {branch}")
     print(f"  Tag: v{version}")
-    print(f"  Release notes: RELEASE_NOTES.md")
-    print(f"  Changelog: CHANGELOG.md")
+    print("  Release notes: RELEASE_NOTES.md")
+    print("  Changelog: CHANGELOG.md")
     print(f"  Audit: logs/audit/release_v{version}_{date.today().isoformat()}.json")
     print("=" * 70)
 
     next_steps = [
         "  Next steps:",
-        f"    1. Review RELEASE_NOTES.md",
-        f"    2. Run full test suite: python -m pytest tests/ -q",
+        "    1. Review RELEASE_NOTES.md",
+        "    2. Run full test suite: python -m pytest tests/ -q",
         f"    3. Push: git push origin {branch} && git push origin v{version}",
     ]
     print("\n" + "\n".join(next_steps))

@@ -11,10 +11,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-
-from core.risk.limits.manager import LimitConfig, RiskLimitsManager
 from core.ports.risk.risk_port import RiskDecision
-
+from core.risk.limits.manager import LimitConfig, RiskLimitsManager
 
 # =============================================================================
 # LimitConfig Tests

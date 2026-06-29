@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from core.risk_dashboard import (
     RiskAlert,
     RiskDashboard,

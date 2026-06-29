@@ -15,12 +15,11 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-
+import sys
 from core.adapters.database.redis_adapter import (
     RedisDatabaseAdapter,
     _parse_redis_dsn,
 )
-
 
 # =============================================================================
 # _parse_redis_dsn Tests
@@ -108,7 +107,7 @@ class TestInit:
 @pytest.fixture
 def mock_redis():
     """Patch the redis module so we don't need a real Redis server."""
-    with patch.dict("sys.modules", {"redis": MagicMock()}) as patches:
+    with patch.dict("sys.modules", {"redis": MagicMock()}):
         import redis
         redis_module_mock = MagicMock()
         redis.StrictRedis = MagicMock(return_value=MagicMock())

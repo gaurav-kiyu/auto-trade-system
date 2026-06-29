@@ -17,10 +17,9 @@ from __future__ import annotations
 
 import os
 import threading
-from typing import Any, Generator
+from collections.abc import Generator
 
 import pytest
-
 from core.adapters.database import RedisDatabaseAdapter
 from core.adapters.database.redis_adapter import _parse_redis_dsn
 from core.ports.database import DatabasePort, DatabaseStats

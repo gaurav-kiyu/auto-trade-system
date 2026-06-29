@@ -7,14 +7,12 @@ dataclass instances to consumer-friendly dicts.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
 from core.adaptive_signal import AdaptiveSignal
 from index_app.domains.signal.converter import AdaptiveSignalConverter
 from index_app.domains.signal.evaluator import SignalEvaluator
-
 
 # ==============================================================================
 # Fixtures

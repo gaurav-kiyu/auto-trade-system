@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import threading
 import tempfile
+import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from core.data_governance import CleanupScheduler, DataCategory, DataGovernor
-
+from core.data_governance import CleanupScheduler, DataGovernor
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-import pytest
 
+import pytest
 from core.adapters.base_adapter import OrderRequest, OrderStatus
 from core.execution.order_manager import OrderManager, OrderState, order_manager
 
@@ -76,7 +76,7 @@ class TestOrderManager:
         """Same intent_id should return existing order."""
         req = make_order_request()
         intent_id = manager.create_order_intent(req)
-        response1 = manager.execute_intent(intent_id, req)
+        manager.execute_intent(intent_id, req)
         # Execute again with same intent
         response2 = manager.execute_intent(intent_id, req)
         assert response2.status in (OrderStatus.ACKNOWLEDGED, OrderStatus.FAILED)

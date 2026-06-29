@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import pytest
-
 from core.sovereignty_guard import SovereigntyGuard
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

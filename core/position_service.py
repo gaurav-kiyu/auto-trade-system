@@ -287,12 +287,12 @@ class PositionService:
                 _log.debug("Token refresh failed: %s", _tok_err)
 
         # 2. Route to Execution Service
-        from core.ports.execution.execution_port import OrderStatus
         from core.execution.broker_exceptions import (
             AuthExpiredError,
             OrderRejectedError,
             classify_broker_exception,
         )
+        from core.ports.execution.execution_port import OrderStatus
 
         price = sig.get("price", 0.0)
         qty = self._get_position_size(name, price)

@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import json
 
-
-
-from core.chaos import ChaosEngine, ChaosScenario, ChaosReport, FailureType
+from core.chaos import ChaosEngine, ChaosReport, ChaosScenario, FailureType
 
 
 class TestChaosScenario:

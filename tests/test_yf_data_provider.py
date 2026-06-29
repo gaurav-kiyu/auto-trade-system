@@ -5,11 +5,10 @@ Tests the 6 exported functions using mocked yfinance responses.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
-
 from core.yf_data_provider import (
     fetch_intraday_data,
     fetch_intraday_data_cached,
@@ -18,7 +17,6 @@ from core.yf_data_provider import (
     get_vix_from_intraday,
     invalidate_cache,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

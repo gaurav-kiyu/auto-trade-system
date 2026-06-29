@@ -99,8 +99,8 @@ def init_tracing(config: dict[str, Any] | None = None) -> bool:
 
         try:
             from opentelemetry import trace
-            from opentelemetry.sdk.trace import TracerProvider
             from opentelemetry.sdk.resources import Resource
+            from opentelemetry.sdk.trace import TracerProvider
 
             # Create resource with service name
             resource = Resource.create({
@@ -421,7 +421,6 @@ class Timer:
         """Stop the timer and record the duration."""
         self._end = time.time()
         duration = self.duration_ms
-        attrs = {"duration_ms": duration, "name": self.name}
 
         # Also record as a tracing event if enabled
         if _tracing_enabled and _otel_available:

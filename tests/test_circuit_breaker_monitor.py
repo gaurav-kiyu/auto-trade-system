@@ -6,14 +6,12 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.circuit_breaker_monitor import (
     CircuitBreakerState,
     CircuitBreakerStateStore,
     NSECircuitBreakerMonitor,
     create_circuit_breaker_monitor,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -150,7 +148,7 @@ class TestCircuitBreakerDetection:
         """A 10% drop should trigger circuit breaker."""
         mock_send.reset_mock()
         monitor._get_index_price = MagicMock(return_value=8950.0)  # -10.5%
-        with patch("core.circuit_breaker_monitor.trip_hard_halt") as mock_trip:
+        with patch("core.circuit_breaker_monitor.trip_hard_halt"):
             monitor._check_circuit_breaker()
         assert monitor._state.level == "10%"
         assert monitor._state.is_market_halted is True
@@ -160,7 +158,7 @@ class TestCircuitBreakerDetection:
         """A 15% drop should trigger circuit breaker."""
         mock_send.reset_mock()
         monitor._get_index_price = MagicMock(return_value=8400.0)  # -16%
-        with patch("core.circuit_breaker_monitor.trip_hard_halt") as mock_trip:
+        with patch("core.circuit_breaker_monitor.trip_hard_halt"):
             monitor._check_circuit_breaker()
         assert monitor._state.level == "15%"
         assert monitor._state.is_market_halted is True
@@ -169,7 +167,7 @@ class TestCircuitBreakerDetection:
         """A 20% drop should trigger circuit breaker at highest level."""
         mock_send.reset_mock()
         monitor._get_index_price = MagicMock(return_value=7900.0)  # -21%
-        with patch("core.circuit_breaker_monitor.trip_hard_halt") as mock_trip:
+        with patch("core.circuit_breaker_monitor.trip_hard_halt"):
             monitor._check_circuit_breaker()
         assert monitor._state.level == "20%"
         assert monitor._state.is_market_halted is True

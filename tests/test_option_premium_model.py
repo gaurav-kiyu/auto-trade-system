@@ -5,10 +5,7 @@ from __future__ import annotations
 import math
 
 import pytest
-
 from core.option_premium_model import (
-    NSE_LOT_SIZES,
-    OptionTradeSpec,
     atm_delta,
     black_scholes_greeks,
     build_option_trade,

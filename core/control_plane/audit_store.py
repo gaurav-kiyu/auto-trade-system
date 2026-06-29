@@ -16,7 +16,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-
 _log = logging.getLogger(__name__)
 
 # ── In-memory audit ring buffer (last 500 events) - legacy compat ──────────

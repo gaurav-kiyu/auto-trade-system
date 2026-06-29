@@ -29,8 +29,41 @@ Usage:
 
 from __future__ import annotations
 
-# ── Core domain models ──────────────────────────────────────────────────
+from core.domains.commodity import (
+    MCX_CONTRACT_SPECS,
+    CommodityCategory,
+    CommodityContract,
+    CommodityPosition,
+    DeliveryType,
+)
+from core.domains.commodity import (
+    ContractSpec as CommodityContractSpec,
+)
+from core.domains.currency import (
+    CURRENCY_CONTRACT_SPECS,
+    CurrencyContract,
+    CurrencyOptionContract,
+    CurrencyPair,
+    CurrencyPosition,
+    SettlementType,
+)
+from core.domains.currency import (
+    ContractSpec as CurrencyContractSpec,
+)
+from core.domains.equity import (
+    IPO,
+    BoardLot,
+    CorporateAction,
+    CorporateActionType,
+    EquityPosition,
+    Holding,
+    IPOStatus,
+    Sector,
+    Stock,
+    StockFundamentals,
+)
 
+# ── Core domain models ──────────────────────────────────────────────────
 from core.domains.execution import (
     ExecutionContext,
     Fill,
@@ -41,11 +74,57 @@ from core.domains.execution import (
     Position,
     PositionSide,
 )
+from core.domains.fixed_income import (
+    AccrualBasis,
+    Bond,
+    BondPosition,
+    CorporateBond,
+    GovernmentSecurity,
+    SecurityType,
+    TBill,
+    YieldType,
+)
+from core.domains.fo import (
+    NFO_CONTRACT_SPECS,
+    ExpiryType,
+    FutureContract,
+    FuturePosition,
+    OptionContract,
+    OptionPosition,
+    PositionType,
+    SpreadLeg,
+    SpreadPosition,
+    SpreadType,
+    UnderlyingType,
+)
+
+# ── Multi-asset domain models ───────────────────────────────────────────
+from core.domains.fo import (
+    ContractSpec as FOContractSpec,
+)
 from core.domains.ml import (
     MLConfidence,
     MLPrediction,
     ModelFeature,
     ModelMetrics,
+)
+from core.domains.mutual_fund import (
+    ETF,
+    REIT,
+    SIP,
+    DividendType,
+    FundCategory,
+    FundHolding,
+    FundOption,
+    FundPlan,
+    FundType,
+    InvIT,
+    MFTransaction,
+    MFTransactionType,
+    MutualFund,
+    NavRecord,
+    PortfolioAllocation,
+    SIPFrequency,
 )
 from core.domains.portfolio import (
     ExposureRecord,
@@ -57,13 +136,15 @@ from core.domains.portfolio import (
 )
 from core.domains.risk import (
     HistoricalStats,
-    MarketConditions as RiskMarketConditions,
     PortfolioRiskMetrics,
     PriceLevel,
     RiskDecision,
     RiskError,
     RiskLimits,
     VolumeProfile,
+)
+from core.domains.risk import (
+    MarketConditions as RiskMarketConditions,
 )
 from core.domains.session import (
     MarketSession,
@@ -89,80 +170,6 @@ from core.domains.strategy import (
     SignalStrength,
     StrategyConfig,
     StrategyDecision,
-)
-
-# ── Multi-asset domain models ───────────────────────────────────────────
-
-from core.domains.fo import (
-    ContractSpec as FOContractSpec,
-    ExpiryType,
-    FutureContract,
-    FuturePosition,
-    NFO_CONTRACT_SPECS,
-    OptionContract,
-    OptionPosition,
-    PositionType,
-    SpreadLeg,
-    SpreadPosition,
-    SpreadType,
-    UnderlyingType,
-)
-from core.domains.commodity import (
-    CommodityCategory,
-    CommodityContract,
-    CommodityPosition,
-    ContractSpec as CommodityContractSpec,
-    DeliveryType,
-    MCX_CONTRACT_SPECS,
-)
-from core.domains.currency import (
-    ContractSpec as CurrencyContractSpec,
-    CURRENCY_CONTRACT_SPECS,
-    CurrencyContract,
-    CurrencyOptionContract,
-    CurrencyPair,
-    CurrencyPosition,
-    SettlementType,
-)
-from core.domains.equity import (
-    BoardLot,
-    CorporateAction,
-    CorporateActionType,
-    EquityPosition,
-    Holding,
-    IPO,
-    IPOStatus,
-    Sector,
-    Stock,
-    StockFundamentals,
-)
-from core.domains.fixed_income import (
-    AccrualBasis,
-    Bond,
-    BondPosition,
-    CorporateBond,
-    GovernmentSecurity,
-    SecurityType,
-    TBill,
-    YieldType,
-)
-from core.domains.mutual_fund import (
-    DividendType,
-    ETF,
-    FundCategory,
-    FundHolding,
-    FundOption,
-    FundPlan,
-    FundType,
-    InvIT,
-    MFTransaction,
-    MFTransactionType,
-    MutualFund,
-    NavRecord,
-    PortfolioAllocation,
-    REIT,
-    SIP,
-    SIPFrequency,
 )
 
 __all__ = [

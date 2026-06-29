@@ -15,7 +15,6 @@ from __future__ import annotations
 import threading
 from unittest.mock import MagicMock, patch
 
-
 from core.execution.idempotency.certifier import (
     CertStatus,
     ExecutionCert,
@@ -71,7 +70,7 @@ class TestCertifierInit:
     def test_db_init_creates_tables(self, mock_get_conn):
         mock_conn = MagicMock()
         mock_get_conn.return_value = mock_conn
-        certifier = IdempotencyCertifier(db_path=":memory:")
+        IdempotencyCertifier(db_path=":memory:")
         assert mock_conn.execute.call_count >= 3  # pragma, CREATE TABLE, CREATE INDEX x2
 
 
@@ -148,7 +147,7 @@ class TestBegin:
             mock_get_conn.return_value = mock_conn
             certifier = IdempotencyCertifier(db_path=":memory:")
             # First begin
-            cert_id1 = certifier.begin("exec_dupe", "NIFTY", "BUY", {"qty": 50})
+            certifier.begin("exec_dupe", "NIFTY", "BUY", {"qty": 50})
             # mock_conn.execute.call_args[0][0] changes now
             # Reset to test duplicate
             cert_id2 = certifier.begin("exec_dupe", "NIFTY", "BUY", {"qty": 50})

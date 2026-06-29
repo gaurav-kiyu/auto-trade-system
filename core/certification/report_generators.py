@@ -52,9 +52,9 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from core.datetime_ist import now_ist
-
 
 _log = logging.getLogger(__name__)
 
@@ -207,7 +207,6 @@ def generate_architecture_certification(
     - Execution isolation
     - Broker isolation
     """
-    cfg = config or {}
     criteria: list[CertCriteria] = []
 
     # Criterion 1: Broker Isolation
@@ -271,7 +270,7 @@ def generate_architecture_certification(
     ))
 
     # Score check
-    score = sum(c.score for c in criteria) / len(criteria) * 10.0
+    sum(c.score for c in criteria) / len(criteria) * 10.0
 
     return CertificationReport(
         title="Architecture Certification",
@@ -402,7 +401,6 @@ def generate_security_certification(
     - Privilege escalation prevention
     - Secrets management
     """
-    cfg = config or {}
     criteria: list[CertCriteria] = []
 
     # Criterion 1: Authentication exists

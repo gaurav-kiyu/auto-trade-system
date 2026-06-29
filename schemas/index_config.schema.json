@@ -284,7 +284,7 @@
       "type": "boolean"
     },
     "CONFIG_VERSION": {
-      "type": "integer"
+      "type": "string"
     },
     "CONSEC_LOSS_LIMIT": {
       "type": "integer"

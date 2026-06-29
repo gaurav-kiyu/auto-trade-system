@@ -8,10 +8,9 @@ Covers:
 """
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
 from core.kelly_sizer import KellyResult, compute_kelly_lots
 
 

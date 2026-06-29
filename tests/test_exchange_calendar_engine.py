@@ -6,15 +6,13 @@ import datetime
 from unittest.mock import patch
 
 import pytest
-
 from core.exchange_calendar_engine import (
     ExchangeCalendarEngine,
-    ExtendedMarketStatus,
     ExpiryRecord,
+    ExtendedMarketStatus,
     TradingHours,
     get_calendar_engine,
 )
-
 
 # ── Fixture ──────────────────────────────────────────────────────────────────
 
@@ -43,8 +41,8 @@ class TestExchangeCalendarEngineModule:
         """All public symbols should be importable."""
         from core.exchange_calendar_engine import (
             ExchangeCalendarEngine,
-            ExtendedMarketStatus,
             ExpiryRecord,
+            ExtendedMarketStatus,
             TradingHours,
             get_calendar_engine,
         )

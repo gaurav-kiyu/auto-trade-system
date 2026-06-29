@@ -27,10 +27,9 @@ Coverage targets:
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, PropertyMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.execution.deterministic_state_machine import ExecutionState
 from core.ports.execution.execution_port import (
     ExecutionAuditTrail,
@@ -42,7 +41,6 @@ from core.ports.execution.execution_port import (
     OrderType,
 )
 from core.services.execution_service import ExecutionService, ExecutionServiceConfig
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
@@ -359,7 +357,7 @@ class TestWalJournalIntegration:
     def test_wal_pending_on_execute(self, service: ExecutionService, order_request: OrderRequest):
         mock_wal = MagicMock()
         service._wal_journal = mock_wal
-        result = service.execute_order(order_request, ExecutionContext(execution_mode=ExecutionMode.PAPER))
+        service.execute_order(order_request, ExecutionContext(execution_mode=ExecutionMode.PAPER))
         # PENDING intent written
         mock_wal.append.assert_called_once()
         args = mock_wal.append.call_args[0][0]
@@ -368,7 +366,7 @@ class TestWalJournalIntegration:
     def test_wal_commit_on_fill(self, service: ExecutionService, order_request: OrderRequest):
         mock_wal = MagicMock()
         service._wal_journal = mock_wal
-        result = service.execute_order(order_request, ExecutionContext(execution_mode=ExecutionMode.PAPER))
+        service.execute_order(order_request, ExecutionContext(execution_mode=ExecutionMode.PAPER))
         # Should commit since paper fills immediately
         mock_wal.commit.assert_called_once()
 
@@ -378,7 +376,7 @@ class TestWalJournalIntegration:
         mock_broker.place_order.return_value = OrderResult(
             order_id="", status=OrderStatus.REJECTED, reject_reason="Bad order",
         )
-        result = service.execute_order(order_request, ExecutionContext(execution_mode=ExecutionMode.AUTOMATIC))
+        service.execute_order(order_request, ExecutionContext(execution_mode=ExecutionMode.AUTOMATIC))
         # Should fail the intent
         mock_wal.fail.assert_called_once()
 
@@ -568,7 +566,7 @@ class TestGetCurrentPriceForSymbol:
         for i in range(60):
             service._paper_price_cache[f"SYM_{i}"] = float(i)
         # Access a symbol to trigger cleanup
-        price = service._get_current_price_for_symbol("NIFTY")
+        service._get_current_price_for_symbol("NIFTY")
         # Cache should now have < 60 entries
         assert len(service._paper_price_cache) < 60
 
@@ -823,7 +821,7 @@ class TestExecuteWithRetriesHardHaltGate:
     def test_execute_with_retries_state_machine_blocks_duplicate(self, service: ExecutionService, order_request: OrderRequest, mock_broker: MagicMock):
         """
         When state machine returns existing non-terminal machine, duplicate is blocked.
-        
+
         The state machine blocks re-entry when an order is in a non-terminal state
         (e.g. VALIDATED/PERSISTED/SUBMITTED). We simulate this by pre-creating
         a machine in VALIDATED state, then attempting execution.

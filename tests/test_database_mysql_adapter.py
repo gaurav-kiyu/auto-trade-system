@@ -17,10 +17,9 @@ from __future__ import annotations
 
 import os
 import threading
-from typing import Any, Generator
+from collections.abc import Generator
 
 import pytest
-
 from core.adapters.database import MySQLDatabaseAdapter
 from core.adapters.database.mysql_adapter import _parse_mysql_dsn
 from core.ports.database import DatabasePort, DatabaseStats

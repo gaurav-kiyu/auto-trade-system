@@ -14,12 +14,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from core.config_bootstrap import ConfigChange, classify_change_risk, diff_configs
+from core.option_chain_json import option_chain_has_rows, option_chain_records
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
-
-from core.config_bootstrap import diff_configs, classify_change_risk, ConfigChange
-from core.option_chain_json import option_chain_has_rows, option_chain_records
-
 
 # ==============================================================================
 # Hypothesis Strategies — Generate Malformed / Edge-Case Inputs
@@ -279,6 +277,7 @@ class TestConfigEdgeCases:
     def test_apply_env_overrides_type_coercion_bool(self):
         """Boolean env override should coerce string to bool."""
         import os
+
         from core.config_bootstrap import apply_env_overrides
         cfg = {"ENABLED": True}
         os.environ["OPBUYING_ENABLED"] = "false"
@@ -292,6 +291,7 @@ class TestConfigEdgeCases:
     def test_apply_env_overrides_type_coercion_int(self):
         """Integer env override should coerce string to int."""
         import os
+
         from core.config_bootstrap import apply_env_overrides
         cfg = {"COUNT": 42}
         os.environ["OPBUYING_COUNT"] = "100"
@@ -305,6 +305,7 @@ class TestConfigEdgeCases:
     def test_apply_env_overrides_type_coercion_float(self):
         """Float env override should coerce string to float."""
         import os
+
         from core.config_bootstrap import apply_env_overrides
         cfg = {"RATE": 0.5}
         os.environ["OPBUYING_RATE"] = "0.75"
@@ -318,6 +319,7 @@ class TestConfigEdgeCases:
     def test_apply_env_overrides_no_match(self):
         """Non-matching env vars should be ignored."""
         import os
+
         from core.config_bootstrap import apply_env_overrides
         cfg = {"KEY": "value"}
         os.environ["OTHER_VAR"] = "value"

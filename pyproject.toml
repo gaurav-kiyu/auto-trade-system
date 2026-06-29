@@ -57,7 +57,7 @@ src = ["index_app", "core", "scripts", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP", "N", "BLE", "RUF100"]
-ignore = ["E501", "N806", "BLE001"]
+ignore = ["E501", "N806", "N801", "N812", "N814", "N818", "BLE001"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["N802", "N803", "N806"]

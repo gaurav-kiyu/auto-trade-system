@@ -5,7 +5,6 @@ import os
 import threading
 from dataclasses import dataclass
 
-
 __all__ = [
     "CleanupScheduler",
     "DataCategory",

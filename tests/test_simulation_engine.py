@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 from core.simulation_engine import (
-    SIGNAL_EARLY,
     SIGNAL_CONFIRMED,
+    SIGNAL_EARLY,
     SIGNAL_STRONG,
     SimConfig,
     SimulationEngine,
     SimulationResult,
     TradeRecord,
-    classify_signal_type,
-    score_segment,
     _calc_max_dd,
     _make_seg,
+    classify_signal_type,
+    score_segment,
 )
-
 
 # ── Signal type classification ───────────────────────────────────────────
 

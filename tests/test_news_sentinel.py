@@ -6,12 +6,11 @@ import time
 from unittest.mock import patch
 
 from core.news_sentinel import (
+    _CLEAR_ASSESSMENT,
     NewsRiskAssessment,
     NewsSentinel,
     _classify_headline,
-    _CLEAR_ASSESSMENT,
 )
-
 
 # ── _classify_headline tests ─────────────────────────────────────────────────
 

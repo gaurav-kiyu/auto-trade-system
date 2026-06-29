@@ -18,10 +18,8 @@ from __future__ import annotations
 import threading
 
 import pytest
-
 from core.auth.permissions import Permission, PermissionDenied, Role
 from core.auth.role_manager import RoleManager
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

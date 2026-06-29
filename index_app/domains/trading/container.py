@@ -21,7 +21,6 @@ import os
 import sys
 from typing import Any
 
-
 __all__ = [
     "setup_di_container",
 ]
@@ -52,7 +51,8 @@ def setup_di_container(
         globals_store: Dict of module-level mutable references updated in-place
             (e.g. ``_execution_service``, ``_risk_service``, ``_send_impl``, etc.)
     """
-    sg = lambda k: globals_store.get(k)  # shorthand for globals_store.get
+    def sg(k):
+        return globals_store.get(k)  # shorthand for globals_store.get
 
     # Fetch NSE holidays before any trading decision
     fetch_nse_holidays_dynamic_fn()
@@ -67,7 +67,6 @@ def setup_di_container(
     from core.di_container import get_container
     from core.ports import (
         BrokerHealthPort,
-        CircuitBreakerPort,
         ConfigPort,
         CorrelationIdPort,
         ExecutionPort,
@@ -374,8 +373,8 @@ def _start_background_services(
 
     # Start Self-Healing Orchestrator background monitor
     try:
-        from core.self_healing.orchestrator import get_orchestrator
         from core.health_checker import run_full_health_check
+        from core.self_healing.orchestrator import get_orchestrator
         from core.services.circuit_breaker_service import CircuitBreakerService
         # resolve circuit breaker from container if available
         cb_svc = None
@@ -414,7 +413,7 @@ def _start_background_services(
     # Wire Risk Dashboard via global singleton
     try:
         from core.risk_dashboard import get_risk_dashboard
-        risk_dash = get_risk_dashboard(config=cfg)
+        get_risk_dashboard(config=cfg)
         _log.info("[RISK-DASH] Risk Dashboard initialized")
     except (ValueError, TypeError, ImportError, OSError) as _rd_err:
         _log.warning("[RISK-DASH] Risk Dashboard init failed: %s", _rd_err)

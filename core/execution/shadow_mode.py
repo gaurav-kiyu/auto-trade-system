@@ -14,11 +14,10 @@ import json
 import logging
 import sqlite3
 import threading
-
-from core.db_utils import get_connection
 from dataclasses import dataclass, field
 from typing import Any
 
+from core.db_utils import get_connection
 from core.time_provider import time_provider
 
 _log = logging.getLogger(__name__)

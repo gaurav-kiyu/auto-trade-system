@@ -8,9 +8,8 @@ across the thread safety sweep.
 from __future__ import annotations
 
 import time
+from unittest.mock import MagicMock
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-
 
 # ── Reentrant access tests ───────────────────────────────────────────────
 
@@ -93,6 +92,7 @@ def test_reentrant_ai_engine() -> None:
 def test_reentrant_audit_engine() -> None:
     """AuditEngine RLock prevents interleaved JSONL writes."""
     import tempfile
+
     from core.audit_engine import AuditEngine
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -117,6 +117,7 @@ def test_reentrant_alert_router() -> None:
 def test_reentrant_event_calendar() -> None:
     """EventCalendar holiday cache RLock handles concurrent reads."""
     import datetime
+
     from core.event_calendar import is_market_day
 
     result = is_market_day(cfg={}, check_date=datetime.date(2026, 1, 1))
@@ -174,6 +175,7 @@ def test_concurrent_capital_manager() -> None:
 def test_concurrent_audit_engine() -> None:
     """Multiple threads writing to AuditEngine simultaneously."""
     import tempfile
+
     from core.audit_engine import AuditEngine
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -252,6 +254,7 @@ def test_lock_is_rlock_not_lock() -> None:
     assert isinstance(cm._lock, rlock_type)
 
     import tempfile
+
     from core.audit_engine import AuditEngine
     with tempfile.TemporaryDirectory() as tmp:
         ae = AuditEngine(f"{tmp}/check.jsonl")

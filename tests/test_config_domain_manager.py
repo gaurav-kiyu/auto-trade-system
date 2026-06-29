@@ -5,9 +5,7 @@ from __future__ import annotations
 import threading
 
 import pytest
-
 from index_app.domains.config.manager import ConfigManager
-
 
 # ==============================================================================
 # Fixtures

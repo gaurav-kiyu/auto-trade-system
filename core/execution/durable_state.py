@@ -10,8 +10,6 @@ from __future__ import annotations
 import logging
 import sqlite3
 import threading
-
-from core.db_utils import get_connection
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -19,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.db_utils import get_connection
 from core.exceptions import DatabaseError
 
 log = logging.getLogger(__name__)

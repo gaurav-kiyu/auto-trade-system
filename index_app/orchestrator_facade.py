@@ -14,7 +14,6 @@ from __future__ import annotations
 import os
 from typing import Any
 
-
 __all__ = [
     "build_clean_trading_orchestrator",
     "build_index_orchestrator",

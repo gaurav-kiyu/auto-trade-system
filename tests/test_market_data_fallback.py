@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-
 from core.market_data_fallback import (
     DualSourceMarketData,
     PriceQuote,
     PriceValidationResult,
     get_market_data,
 )
-
 
 # ── PriceQuote ───────────────────────────────────────────────────────────
 

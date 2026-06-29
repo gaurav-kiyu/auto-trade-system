@@ -26,7 +26,6 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.execution.durable_state import (
     DurableExecutionRecord,
     DurableExecutionStore,
@@ -37,7 +36,6 @@ from core.execution.durable_state import (
 
 def _cleanup_db(db_path: str) -> None:
     """Safely remove a SQLite DB file on Windows (retry with backoff)."""
-    import time as _time
     for suffix in ("-wal", "-shm"):
         companion = db_path + suffix
         if os.path.exists(companion):
@@ -300,7 +298,7 @@ class TestDurableExecutionStore:
 
     def test_cleanup_keeps_recent(self):
         self.store.save_execution(_make_record("INT-RECENT", ExecutionState.FILLED))
-        deleted = self.store.cleanup_old_records(hours=24)
+        self.store.cleanup_old_records(hours=24)
         assert self.store.get_execution("INT-RECENT") is not None
 
     # ── get_stats ────────────────────────────────────────────────────

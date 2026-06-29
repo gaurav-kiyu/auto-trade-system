@@ -18,9 +18,6 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-
-
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
@@ -54,7 +51,7 @@ class TestPreReleaseChecks:
         failures = rg.run_pre_release_checks()
         version_file = Path(__file__).resolve().parent.parent / "VERSION"
         if version_file.exists():
-            version_issue = [f for f in failures if "VERSION" in f]
+            [f for f in failures if "VERSION" in f]
             # Version file exists - should not have a "not found" error
             version_not_found = [f for f in failures if "VERSION file not found" in f]
             assert len(version_not_found) == 0

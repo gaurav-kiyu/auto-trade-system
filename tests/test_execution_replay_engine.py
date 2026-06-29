@@ -6,7 +6,6 @@ import itertools
 from unittest.mock import patch
 
 import pytest
-
 from core.execution.replay_engine import (
     ReplayEngine,
     ReplaySession,
@@ -14,7 +13,6 @@ from core.execution.replay_engine import (
     get_replay_engine,
 )
 from core.time_provider import time_provider
-
 
 _ts_counter = itertools.count(1000)
 

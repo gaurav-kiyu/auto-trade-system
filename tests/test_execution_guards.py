@@ -16,10 +16,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 import pytest
-
 from core.execution_guards import ExecutionGuards, GuardResult, TradeFrequencyRecord, get_execution_guards
 from core.safety_state import _HARD_HALT, get_consecutive_losses, reset_consecutive_losses
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 

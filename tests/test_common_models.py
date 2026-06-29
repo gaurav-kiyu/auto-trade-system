@@ -11,8 +11,6 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-
-from core.domains.strategy.model import SignalStrength
 from core.common.models.models import (
     DEFAULT_BASE_CAPITAL,
     DEFAULT_CONSEC_LOSS_LIMIT,
@@ -35,6 +33,7 @@ from core.common.models.models import (
     MIN_LOT_SIZE,
     MIN_SCORE_THRESHOLD,
     MIN_TRADE_DURATION_MINUTES,
+    PERCENTAGE_PRECISION,
     PNL_PRECISION,
     PRICE_PRECISION,
     RSI_NEUTRAL_HIGH,
@@ -53,7 +52,6 @@ from core.common.models.models import (
     OrderFill,
     OrderRequest,
     OrderStatus,
-    PERCENTAGE_PRECISION,
     Position,
     PositionSide,
     SessionType,
@@ -70,7 +68,7 @@ from core.common.models.models import (
     is_market_open,
     is_trading_allowed,
 )
-
+from core.domains.strategy.model import SignalStrength
 
 # =============================================================================
 # Enum Tests

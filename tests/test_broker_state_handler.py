@@ -20,9 +20,9 @@ Covers:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
-
+from core.datetime_ist import now_ist
 from core.execution.broker_state_handler import (
     ActionRecommendation,
     BrokerStateCategory,
@@ -30,8 +30,6 @@ from core.execution.broker_state_handler import (
     StateResolution,
     create_state_handler,
 )
-from core.datetime_ist import now_ist
-
 
 # ═══════════════════════════════════════════════════════════════════════
 #  Enums

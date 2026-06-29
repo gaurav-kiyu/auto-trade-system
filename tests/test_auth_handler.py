@@ -8,11 +8,7 @@ import time
 from unittest.mock import patch
 
 import pytest
-
 from core.auth.handler import (
-    AuthHandler,
-    AuthToken,
-    AuthUser,
     CSRF_COOKIE_NAME,
     CSRF_HEADER_NAME,
     DEFAULT_ADMIN_USERNAME,
@@ -20,13 +16,15 @@ from core.auth.handler import (
     MIN_PASSWORD_LENGTH,
     SESSION_COOKIE_NAME,
     TOKEN_TTL_SECONDS,
+    AuthHandler,
+    AuthToken,
+    AuthUser,
     generate_csrf_token,
     generate_token,
     hash_password,
     validate_password_strength,
     verify_password,
 )
-
 
 # ── Password Utilities ────────────────────────────────────────────────────────
 
@@ -151,7 +149,7 @@ def auth_with_user(auth: AuthHandler) -> AuthHandler:
 class TestInit:
     def test_init_creates_db(self, tmp_path):
         db_path = str(tmp_path / "new_auth.db")
-        handler = AuthHandler(db_path=db_path)
+        AuthHandler(db_path=db_path)
         assert os.path.exists(db_path)
 
     def test_init_creates_default_admin(self, auth: AuthHandler):
@@ -641,7 +639,7 @@ class TestPurgeExpiredSessions:
     def test_purge_expired(self, auth_with_user: AuthHandler):
         user = auth_with_user.get_user("testuser")
         assert user is not None
-        token = auth_with_user.create_session(user)
+        auth_with_user.create_session(user)
         # Create a very short-lived handler to test purge with real expiry
         short_handler = AuthHandler(db_path=auth_with_user._db_path, token_ttl=1)
         short_user = short_handler.get_user("testuser")

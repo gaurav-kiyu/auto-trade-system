@@ -9,9 +9,8 @@ Covers:
 from __future__ import annotations
 
 import pytest
-
-from core.risk.sizing.manager import PositionSizingManager
 from core.ports.risk.risk_port import PositionSizingInput
+from core.risk.sizing.manager import PositionSizingManager
 
 # Can't use TestConfigNamedTuple here since it's internal to the source module.
 # We'll use a simple class/object with the required attributes instead.

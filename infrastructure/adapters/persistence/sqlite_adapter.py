@@ -6,7 +6,6 @@ Implements the PersistencePort interface using SQLite for structured data storag
 
 from __future__ import annotations
 
-import csv
 import json
 import logging
 import sqlite3

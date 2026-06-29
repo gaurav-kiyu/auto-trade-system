@@ -102,13 +102,6 @@ class TestDatabaseAdapterSelection:
         """All 7 adapters are exported from core.adapters.database."""
         from core.adapters.database import (
             __all__,
-            DuckDBDatabaseAdapter,
-            MongoDBDatabaseAdapter,
-            MySQLDatabaseAdapter,
-            PostgreSQLDatabaseAdapter,
-            RedisDatabaseAdapter,
-            SQLAlchemyDatabaseAdapter,
-            SQLiteDatabaseAdapter,
         )
         expected = {"DuckDBDatabaseAdapter", "MongoDBDatabaseAdapter",
                     "MySQLDatabaseAdapter", "PostgreSQLDatabaseAdapter",

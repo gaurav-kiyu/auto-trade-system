@@ -19,7 +19,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.audit_journal import (
     AuditEvent,
     AuditEventType,
@@ -28,7 +27,6 @@ from core.audit_journal import (
     audit_log,
     get_audit_journal,
 )
-
 
 # ── Enums ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +55,7 @@ class TestAuditSeverity:
     def test_values(self):
         assert AuditSeverity.DEBUG.value == "DEBUG"
         assert AuditSeverity.CRITICAL.value == "CRITICAL"
-    
+
     def test_severity_levels_defined(self):
         """All expected severity levels exist."""
         expected = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}

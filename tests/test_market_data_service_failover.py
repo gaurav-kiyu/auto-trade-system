@@ -6,9 +6,7 @@ from datetime import datetime
 from typing import Any
 
 import pytest
-
 from core.services.market_data_service import MarketDataService
-
 
 # ── Mock adapters ─────────────────────────────────────────────────────────────
 
@@ -209,7 +207,7 @@ class TestFailoverGetQuote:
         svc.register(
             "index", index_adapter, asset_classes=["index"], priority=10
         )
-        result = svc.get_quote("NIFTY", "index")
+        svc.get_quote("NIFTY", "index")
         # equity adapter should NOT be called for index asset class
         assert "get_quote:equity_only:NIFTY" not in equity_adapter.call_log
 

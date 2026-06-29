@@ -15,9 +15,8 @@ Key scenarios:
 
 from __future__ import annotations
 
-from core.execution.idempotency.manager import IdempotencyManager
 from core.execution.idempotency.certifier import IdempotencyCertifier
-
+from core.execution.idempotency.manager import IdempotencyManager
 
 # ── Exit idempotency key format tests ────────────────────────────────────────
 
@@ -198,7 +197,7 @@ class TestExitIdempotencyViaCertifier:
             eid = cert.generate_execution_id("NIFTY", "EXIT", 0, 75, timestamp_slot=6100)
             assert not cert.is_duplicate(eid)
 
-            cid = cert.begin(eid, "NIFTY", "SELL", {"qty": 75, "reason": "stop_loss"})
+            cert.begin(eid, "NIFTY", "SELL", {"qty": 75, "reason": "stop_loss"})
             assert cert.is_pending(eid)
             assert cert.is_duplicate(eid)
 

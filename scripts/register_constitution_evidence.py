@@ -14,14 +14,13 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-
 # Ensure project root is on sys.path
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core.constitution import get_validator
-from core.constitution_evidence_data import collect_all_evidence, Evidence
+from core.constitution_evidence_data import Evidence, collect_all_evidence
 
 
 def register_all_evidence(evidence: Evidence) -> dict[str, int]:

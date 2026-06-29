@@ -18,10 +18,10 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
-
 from core.domains.mutual_fund import (
-    DividendType,
     ETF,
+    REIT,
+    SIP,
     FundCategory,
     FundHolding,
     FundOption,
@@ -33,8 +33,6 @@ from core.domains.mutual_fund import (
     MutualFund,
     NavRecord,
     PortfolioAllocation,
-    REIT,
-    SIP,
     SIPFrequency,
 )
 

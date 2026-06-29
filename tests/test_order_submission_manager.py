@@ -14,11 +14,9 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.common.kernels.models import OrderResult as KernelOrderResult
 from core.execution.order_submission.manager import OrderSubmissionManager
 from core.ports.broker import LegacyBrokerPort, OrderRequest
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

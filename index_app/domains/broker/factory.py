@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from core.datetime_ist import now_ist
 from core.safety_state import is_hard_halted, is_shutting_down
@@ -83,11 +84,13 @@ class BrokerFactory:
         _now_fn = now_fn or now_ist
         # Guard: log_fn may be a Logger instance instead of a callable
         if log_fn is None:
-            _log_fn = lambda msg: log.info("%s", msg)
+            def _log_fn(msg):
+                return log.info("%s", msg)
         elif callable(log_fn):
             _log_fn = log_fn
         else:
-            _log_fn = lambda msg: log.info("%s", msg)
+            def _log_fn(msg):
+                return log.info("%s", msg)
             log.warning("[BROKER_CFG] log_fn is not callable (type=%s), using default", type(log_fn).__name__)
         _send_fn = send_fn or (lambda msg, **kw: None)
 

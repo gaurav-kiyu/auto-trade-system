@@ -14,15 +14,13 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from infrastructure.adapters.brokers.kite.adapter import (
     KiteBrokerAdapter,
-    _KiteContext,
     _classify_kite_error,
+    _KiteContext,
     create_kite_adapter,
     create_kite_adapter_from_context,
 )
-
 
 # ==============================================================================
 # Error classifier (stateless - no KiteConnect dependency)
@@ -302,6 +300,7 @@ class TestKiteBrokerAdapterMocked:
     @pytest.fixture(autouse=True)
     def _reimport_adapter(self, mock_kite_module):
         import importlib
+
         from infrastructure.adapters.brokers import kite as kite_pkg
         importlib.reload(kite_pkg.adapter)
         self.module = kite_pkg.adapter
@@ -491,6 +490,7 @@ class TestKiteBrokerAdapterEdgeCases:
     @pytest.mark.usefixtures("mock_kite_module")
     def test_place_order_unknown_symbol(self):
         import importlib
+
         from infrastructure.adapters.brokers import kite as kite_pkg
         importlib.reload(kite_pkg.adapter)
 
@@ -508,6 +508,7 @@ class TestKiteBrokerAdapterEdgeCases:
     @pytest.mark.usefixtures("mock_kite_module")
     def test_get_quote_unknown_symbol(self):
         import importlib
+
         from infrastructure.adapters.brokers import kite as kite_pkg
         importlib.reload(kite_pkg.adapter)
 
@@ -530,6 +531,7 @@ class TestKiteBrokerAdapterEdgeCases:
     @pytest.mark.usefixtures("mock_kite_module")
     def test_get_positions_skip_zero_quantity(self):
         import importlib
+
         from infrastructure.adapters.brokers import kite as kite_pkg
         importlib.reload(kite_pkg.adapter)
         with patch.object(MockKiteConnect, "positions", return_value={

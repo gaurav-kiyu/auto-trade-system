@@ -1,22 +1,23 @@
-"""Tkinter trading desk for the index bot. Body lives in _desk_body.py and runs in the trader module namespace."""
+"""Tkinter trading desk for the index bot. Delegates to _desk_body.build_desk_gui()."""
 from __future__ import annotations
 
-import textwrap
 from pathlib import Path
-
 
 __all__ = [
     "run_trader_desk_gui",
 ]
 
-def run_trader_desk_gui() -> None:
+def _collect_context() -> dict:
+    """Collect context dict from the index_trader module namespace."""
     import index_app.index_trader as mod
 
-    g = dict(mod.__dict__)
-    g["_GUI_PROJECT_ROOT"] = str(Path(mod.__file__).resolve().parent.parent)
-    path = Path(__file__).with_name("_desk_body.py")
-    body = path.read_text(encoding="utf-8")
-    # Desk body uses early `return` when tkinter is missing; that is only valid inside a function.
-    wrapped = "def __opbuying_desk_body():\n" + textwrap.indent(body, "    ") + "\n__opbuying_desk_body()\n"
-    code = compile(wrapped, str(path), "exec")
-    exec(code, g, g)
+    ctx = dict(mod.__dict__)
+    ctx["_GUI_PROJECT_ROOT"] = str(Path(mod.__file__).resolve().parent.parent)
+    return ctx
+
+
+def run_trader_desk_gui() -> None:
+    from index_app.gui._desk_body import build_desk_gui
+
+    ctx = _collect_context()
+    build_desk_gui(ctx)

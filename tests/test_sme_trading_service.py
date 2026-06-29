@@ -17,7 +17,6 @@ import os
 import tempfile
 
 import pytest
-
 from core.domains.equity import Sector
 from core.domains.sme import (
     SmePlatform,
@@ -26,7 +25,6 @@ from core.domains.sme import (
     SmeTradingRestriction,
 )
 from core.services.sme_trading_service import SmeTradingService
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -296,7 +294,7 @@ class TestGateLogging:
         service.validate_entry(stock, price=200.0)
         logs = service.get_recent_gate_log(limit=5)
         # Should have at least the BLOCKED entry
-        blocked = [l for l in logs if l["gate_result"] == "BLOCKED"]
+        blocked = [entry for entry in logs if entry["gate_result"] == "BLOCKED"]
         assert len(blocked) >= 1
 
     def test_log_filter_by_symbol(self, service):
@@ -305,7 +303,7 @@ class TestGateLogging:
         service.validate_entry(stock_a, price=101.0)
         service.validate_entry(stock_b, price=101.0)
         logs_a = service.get_recent_gate_log(symbol="STOCKA")
-        assert all(l["symbol"] == "STOCKA" for l in logs_a)
+        assert all(entry["symbol"] == "STOCKA" for entry in logs_a)
 
     def test_log_limit(self, service):
         stock = _make_sme_stock(price=100.0)

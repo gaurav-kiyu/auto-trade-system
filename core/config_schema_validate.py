@@ -8,7 +8,6 @@ from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Any, Literal
 
-
 __all__ = [
     "append_json_schema_errors",
 ]

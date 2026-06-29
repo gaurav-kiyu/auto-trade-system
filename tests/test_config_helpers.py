@@ -9,7 +9,6 @@ Covers:
 """
 from __future__ import annotations
 
-
 from core.config_helpers import (
     _AUDIT_REDACT_SCALARS,
     _AUDIT_REDACT_SUBOBJECTS,
@@ -19,7 +18,6 @@ from core.config_helpers import (
     normalize_tg_trade_patterns,
     redact,
 )
-
 
 # =============================================================================
 # decode_if_b64 Tests

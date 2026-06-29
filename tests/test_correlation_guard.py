@@ -9,9 +9,7 @@ Covers:
 """
 from __future__ import annotations
 
-
 import pytest
-
 from core.correlation_guard import (
     _closes_cache,
     are_correlated_pair,

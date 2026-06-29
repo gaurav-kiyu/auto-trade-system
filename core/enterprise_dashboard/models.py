@@ -12,8 +12,7 @@ import threading
 import time
 import uuid
 from collections import deque
-from typing import AsyncGenerator
-
+from collections.abc import AsyncGenerator
 
 _log = logging.getLogger(__name__)
 
@@ -226,18 +225,18 @@ class DashboardNotifier:
         self.send("Bot started - mode=" + mode, severity="INFO", category="system")
 
     def push_trade_entry(self, symbol: str, direction: str, score: int, price: float) -> None:
-        msg = "Trade entered: {} {} @ {:.2f} (score={})".format(symbol, direction, price, score)
+        msg = f"Trade entered: {symbol} {direction} @ {price:.2f} (score={score})"
         self.send(msg, severity="INFO", category="trade",
                   details={"symbol": symbol, "direction": direction, "score": score, "price": price})
 
     def push_trade_exit(self, symbol: str, reason: str, pnl: float) -> None:
         sev = "WARNING" if pnl < 0 else "INFO"
-        msg = "Trade exited: {} {} P&L={:+.2f}".format(symbol, reason, pnl)
+        msg = f"Trade exited: {symbol} {reason} P&L={pnl:+.2f}"
         self.send(msg, severity=sev, category="trade",
                   details={"symbol": symbol, "reason": reason, "pnl": pnl})
 
     def push_risk_breach(self, metric: str, value: float, limit: float) -> None:
-        msg = "Risk breach: {}={:.2f} (limit={:.2f})".format(metric, value, limit)
+        msg = f"Risk breach: {metric}={value:.2f} (limit={limit:.2f})"
         self.send(msg, severity="CRITICAL", category="risk",
                   details={"metric": metric, "value": value, "limit": limit})
 

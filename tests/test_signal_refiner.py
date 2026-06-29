@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from core.signal_refiner import (
     SignalRefiner,
     SignalRefinerConfig,

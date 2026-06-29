@@ -20,7 +20,6 @@ import tempfile
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-
 from core.execution.idempotency.manager import IdempotencyManager, IdempotencyRecord
 
 
@@ -82,7 +81,7 @@ class TestInitialization:
         fd, db_path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
         try:
-            mgr = IdempotencyManager(persistence_path=db_path)
+            IdempotencyManager(persistence_path=db_path)
             # Table should be created
             import sqlite3
             conn = sqlite3.connect(db_path)

@@ -18,7 +18,6 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.circuit_breaker_detector import (
     CircuitBreakerDetector,
     CircuitBreakerLevel,
@@ -27,7 +26,6 @@ from core.circuit_breaker_detector import (
     NseHalts,
     create_circuit_breaker_detector,
 )
-
 
 # =============================================================================
 # Enum Tests

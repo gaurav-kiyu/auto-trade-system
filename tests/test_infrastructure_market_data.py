@@ -14,10 +14,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-
 from core.ports.market_data import MarketDataPort
-
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # NSE Equity Adapter
@@ -68,6 +65,7 @@ class TestNseEquityAdapterQuotes:
 
     def test_get_quote_returns_none_on_empty_history(self):
         from unittest.mock import MagicMock, patch
+
         from infrastructure.adapters.market_data.equity.nse_equity_adapter import (
             NseEquityAdapter,
         )

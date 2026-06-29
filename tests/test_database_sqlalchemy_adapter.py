@@ -11,10 +11,10 @@ Usage:
 from __future__ import annotations
 
 import threading
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 
 import pytest
-
 from core.adapters.database import SQLAlchemyDatabaseAdapter
 from core.ports.database import DatabasePort, DatabaseStats
 

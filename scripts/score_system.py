@@ -380,7 +380,7 @@ def calculate_score(
         capped = 8.0
 
     score = max(0.0, capped)
-    has_evidence = len([e for e in evidence_items if e.get("verified")]) > 0
+    len([e for e in evidence_items if e.get("verified")]) > 0
 
     return {
         "category_id": category_id,

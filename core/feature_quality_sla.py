@@ -197,7 +197,7 @@ class FeatureQualitySLA:
     def _wire_slo_governance(self) -> None:
         """Register feature quality SLOs with the SLO governance engine."""
         try:
-            from core.slo_governance import get_slo_governance, SLODefinition
+            from core.slo_governance import SLODefinition, get_slo_governance
 
             slo = get_slo_governance()
             slo.register_slo(SLODefinition(
@@ -374,7 +374,7 @@ class FeatureQualitySLA:
             List of updated feature statuses.
         """
         updated = []
-        now = time.time()
+        time.time()
 
         with self._lock:
             stalest_sec = getattr(freshness_result, "stalest_bar_sec", 0)

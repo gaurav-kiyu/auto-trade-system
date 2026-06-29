@@ -33,7 +33,6 @@ from core.constitution.models import (
     ValidationResult,
 )
 
-
 log = logging.getLogger(__name__)
 
 
@@ -453,20 +452,20 @@ class ConstitutionValidator:
             return ValidationResult(
                 passed=False,
                 category=category,
-                detail="Score {:.2f} > 9.0 requires objective evidence. No evidence registered.".format(score),
+                detail=f"Score {score:.2f} > 9.0 requires objective evidence. No evidence registered.",
                 evidence_required=["objective_evidence"],
             )
         if not has_evidence and score > 8.0:
             return ValidationResult(
                 passed=False,
                 category=category,
-                detail="Score {:.2f} > 8.0 without evidence is not allowed.".format(score),
+                detail=f"Score {score:.2f} > 8.0 without evidence is not allowed.",
                 evidence_required=["objective_evidence"],
             )
         return ValidationResult(
             passed=True,
             category=category,
-            detail="Score {:.2f} validated against constitution criteria.".format(score),
+            detail=f"Score {score:.2f} validated against constitution criteria.",
         )
 
     def validate_repository_hygiene(
@@ -503,8 +502,7 @@ class ConstitutionValidator:
             results.append(ValidationResult(
                 passed=False,
                 category="hygiene.prohibited_artifacts",
-                detail="Prohibited artifacts found: {} items (e.g., {})".format(
-                    len(found_items), found_items[0]),
+                detail=f"Prohibited artifacts found: {len(found_items)} items (e.g., {found_items[0]})",
                 evidence_required=["clean_repository"],
             ))
         else:

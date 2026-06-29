@@ -13,27 +13,20 @@ Covers:
 
 from __future__ import annotations
 
-
-
-
 import pytest
-
 from core.options_greeks_engine import (
-    GreeksCheckResult,
     GreeksConfig,
     GreeksLimitStatus,
     GreeksResult,
-    GreeksStressScenario,
     GreeksStressResult,
-    OptionType,
+    GreeksStressScenario,
     OptionsGreeksEngine,
-    PortfolioGreeks,
+    OptionType,
     PositionGreeksInput,
     PositionGreeksSummary,
     compute_greeks_quick,
     get_greeks_engine,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

@@ -15,21 +15,19 @@ Tests:
 
 from __future__ import annotations
 
-
-
 from core.domains.commodity import CommodityContract, CommodityPosition
-from core.domains.currency import CurrencyContract, CurrencyPosition, CurrencyPair
+from core.domains.currency import CurrencyContract, CurrencyPair, CurrencyPosition
 from core.domains.equity import EquityPosition, Holding, Stock
 from core.domains.fixed_income import Bond, BondPosition
 from core.domains.fo import FutureContract, FuturePosition, OptionContract, OptionPosition
-from core.domains.mutual_fund import FundHolding, InvIT, MutualFund, REIT, SIP, SIPFrequency
+from core.domains.mutual_fund import SIP, MutualFund, SIPFrequency
+from datetime import date
+from core.domains.portfolio import PortfolioSnapshot
 from core.portfolio.adapters.multi_asset_aggregator import (
-    AssetClassExposure,
     CapitalAllocationService,
     MultiAssetPortfolioAggregator,
 )
-from core.ports.capital_allocation import AssetClass, AllocationRequest
-
+from core.ports.capital_allocation import AllocationRequest, AssetClass
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

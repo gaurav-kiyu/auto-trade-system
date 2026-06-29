@@ -15,6 +15,7 @@ from core.python_runtime import (
     register_shutdown_callback,
     setup_graceful_shutdown,
 )
+from core.execution.deterministic_state_machine import ExecutionStateMachine
 from core.state_manager import SessionRecoveryReport, StateManager
 
 # ── B1: Deadlock fix (threading.Lock → RLock) ──────────────────────────

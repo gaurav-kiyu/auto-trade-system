@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import math
+
 import pytest
 from core.factor_models import (
-    FamaFrench3Factor,
-    Carhart4Factor,
     BaseFactorModel,
+    Carhart4Factor,
     FactorReturn,
-    compute_factor_attribution,
+    FamaFrench3Factor,
     _ols_regression,
+    compute_factor_attribution,
 )
 
 

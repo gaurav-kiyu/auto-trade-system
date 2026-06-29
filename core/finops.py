@@ -48,7 +48,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-
 __all__ = [
     "CostGovernance",
     "CostReport",
@@ -117,7 +116,7 @@ class CostReport:
             f"  Trades: {self.total_trades}",
             f"  Turnover: {R}{self.total_turnover:,.2f}",
             f"  Gross P&L: {R}{self.total_pnl:+,.2f}",
-            f"",
+            "",
             f"  Total Costs: {R}{self.total_costs.total:,.2f}",
             f"    Brokerage:      {R}{self.total_costs.brokerage:,.2f}",
             f"    STT:            {R}{self.total_costs.stt:,.2f}",
@@ -126,8 +125,8 @@ class CostReport:
             f"    SEBI Fee:       {R}{self.total_costs.sebi_fee:,.2f}",
             f"    Exchange Chg:   {R}{self.total_costs.exchange_charges:,.2f}",
             f"    Infrastructure: {R}{self.total_costs.infrastructure:,.2f}",
-            f"",
-            f"  Cost Metrics:",
+            "",
+            "  Cost Metrics:",
             f"    Cost per trade:     {R}{self.cost_per_trade.total:,.2f}",
             f"    Cost as % of turnover: {self.cost_pct_of_turnover:.4f}%",
             f"    Cost as % of P&L:     {self.cost_pct_of_pnl:.2f}%",

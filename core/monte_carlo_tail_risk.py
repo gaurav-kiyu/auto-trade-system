@@ -34,7 +34,6 @@ __all__ = [
 
 from core.datetime_ist import now_ist as _now_ist
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 def _percentile(sorted_vals: list[float], pct: float) -> float:
@@ -264,7 +263,7 @@ def run_tail_risk_simulation(
     tail_ratio = mean_best / mean_worst if mean_worst > 0 else 0.0
 
     # Worst 1%
-    worst_1pct_cutoff = int(0.01 * n_simulations)
+    int(0.01 * n_simulations)
     worst_1pct = _percentile(final_pnls, 0.01)
 
     # Drawdown extremes

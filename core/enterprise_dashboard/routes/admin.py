@@ -15,7 +15,6 @@ from typing import Any
 
 from fastapi import Depends, Request
 
-
 _log = logging.getLogger(__name__)
 
 
@@ -273,8 +272,9 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin):
     @app.post("/api/system/self-test")
     async def api_self_test(user: Any = Depends(admin_only)):
         """Run startup self-test to verify critical modules are healthy."""
-        from core.db_utils import get_connection as _get_db_conn
         import json
+
+        from core.db_utils import get_connection as _get_db_conn
 
         results = []
         all_pass = True
@@ -325,9 +325,9 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin):
 
         # 5. Template rendering works
         try:
-            tmpl = dashboard._templates.get_template("login.html")
+            dashboard._templates.get_template("login.html")
             results.append({"test": "templates", "status": "pass",
-                "detail": f"Login template loaded"})
+                "detail": "Login template loaded"})
         except (ValueError, TypeError, AttributeError) as e:
             results.append({"test": "templates", "status": "warn", "detail": str(e)})
 

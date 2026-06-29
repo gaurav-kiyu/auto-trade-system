@@ -32,11 +32,11 @@ _log = logging.getLogger(__name__)
 # ============================================================================
 # Singleton
 # ============================================================================
-_signal_service_instance: "SignalService | None" = None
+_signal_service_instance: SignalService | None = None
 _signal_service_lock = threading.RLock()
 
 
-def get_signal_service(cfg: dict[str, Any] | None = None) -> "SignalService":
+def get_signal_service(cfg: dict[str, Any] | None = None) -> SignalService:
     """Return the process-level SignalService singleton."""
     global _signal_service_instance
     with _signal_service_lock:

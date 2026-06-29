@@ -106,7 +106,7 @@ def scan_exceptions(start_dir: str = "."):
                 print(f"    {p}  [bare:{b} gen:{g} pass:{pa} other:{npa}]")
 
     if results:
-        print(f"\n  --- ALL files with issues sorted ---")
+        print("\n  --- ALL files with issues sorted ---")
         for p, b, g, pa, npa in sorted(results):
             print(f"    {p}  [bare:{b} gen:{g} pass:{pa} other:{npa}]")
 

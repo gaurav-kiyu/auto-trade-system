@@ -7,7 +7,6 @@ from typing import Any
 
 from core.domains.portfolio.service import PortfolioDataService
 
-
 __all__ = [
     "PortfolioAuthority",
 ]

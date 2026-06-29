@@ -27,11 +27,9 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import time
 from dataclasses import dataclass, field
 from typing import Any
-
 
 # ── Dataclasses ──────────────────────────────────────────────────────────────
 
@@ -122,7 +120,7 @@ def _scan_source_dirs(pattern_fn) -> list[str]:
                     continue
                 path = os.path.join(root, f)
                 try:
-                    with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+                    with open(path, encoding="utf-8", errors="ignore") as fh:
                         content = fh.read()
                     results.extend(pattern_fn(content, path))
                 except (OSError, UnicodeDecodeError):
@@ -188,7 +186,7 @@ def _challenge_hard_halt() -> ChallengeResult:
                         continue
                     path = os.path.join(root, f)
                     try:
-                        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+                        with open(path, encoding="utf-8", errors="ignore") as fh:
                             tree = ast.parse(fh.read())
                         for node in ast.walk(tree):
                             if isinstance(node, ast.Call) and hasattr(node.func, 'id'):
@@ -377,7 +375,7 @@ def _challenge_capital_preservation() -> ChallengeResult:
             passed=False,
             severity="CRITICAL",
             description=f"MAX_DAILY_LOSS={max_daily_loss} allows {loss_pct:.0f}% single-day loss",
-            evidence=f"core/services/risk_service.py",
+            evidence="core/services/risk_service.py",
             recommendation="Reduce max_daily_loss to prevent catastrophic loss",
         )
     except (ImportError, AttributeError) as exc:
@@ -451,7 +449,7 @@ def _challenge_lookahead_bias() -> ChallengeResult:
                     if abspath == own_path:
                         continue
                     try:
-                        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+                        with open(path, encoding="utf-8", errors="ignore") as fh:
                             tree = ast.parse(fh.read())
                         for node in ast.walk(tree):
                             # Look for method calls like obj.shift(-1)

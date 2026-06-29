@@ -23,7 +23,6 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.execution.reconciliation.service import (
     ReconciliationIssue,
     ReconciliationResult,
@@ -31,7 +30,6 @@ from core.execution.reconciliation.service import (
     ReconciliationState,
     TradingFreezeReason,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════
 # Helpers
@@ -185,9 +183,9 @@ class TestDataclasses:
 
     def test_reconciliation_result_timestamp_on_creation(self):
         """timestamp is set to now_ist() by default via field factory."""
-        before = datetime.now(timezone.utc)
+        datetime.now(timezone.utc)
         result = ReconciliationResult(is_clean=True, issues=[], freeze_reason=None)
-        after = datetime.now(timezone.utc)
+        datetime.now(timezone.utc)
         # IST is UTC+5:30, so the timestamp should be a future-aware or naive IST datetime
         assert result.timestamp is not None
 
@@ -198,14 +196,14 @@ class TestDataclasses:
 
 class TestInit:
     def test_creates_db_and_table(self, db_path: str):
-        svc = ReconciliationService(db_path=db_path)
+        ReconciliationService(db_path=db_path)
         assert os.path.exists(db_path)
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='execution_orders'")
             assert cursor.fetchone() is not None
 
     def test_table_has_all_columns(self, db_path: str):
-        svc = ReconciliationService(db_path=db_path)
+        ReconciliationService(db_path=db_path)
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute("PRAGMA table_info(execution_orders)")
             cols = {row[1] for row in cursor.fetchall()}
@@ -215,7 +213,7 @@ class TestInit:
         assert required.issubset(cols), f"Missing columns: {required - cols}"
 
     def test_has_required_indexes(self, db_path: str):
-        svc = ReconciliationService(db_path=db_path)
+        ReconciliationService(db_path=db_path)
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='index'")
             indexes = {row[0] for row in cursor.fetchall()}
@@ -754,7 +752,7 @@ class TestAutoRepair:
 
     def test_no_auto_repair_when_disabled(self, service_no_repair):
         service_no_repair.record_order("INT-001", "IT-001", "NIFTY", "BUY", 50, "ACKNOWLEDGED")
-        issue = ReconciliationIssue(
+        ReconciliationIssue(
             issue_type=ReconciliationState.STALE_ORDER,
             order_id="INT-001",
             internal_value="ACKNOWLEDGED",

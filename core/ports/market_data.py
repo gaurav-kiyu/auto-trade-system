@@ -10,12 +10,11 @@ create infrastructure adapters live in index_app/domains/market/adapter_factory.
 
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any
-
-import logging
 
 from .broker import Quote
 

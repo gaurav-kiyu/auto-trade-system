@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-
 from core.version_compatibility import (
-    ComponentVersion,
     CompatibilityReport,
     CompatibilityResult,
+    ComponentVersion,
     VersionCompatibilityMatrix,
     check_version_compatibility,
 )

@@ -13,8 +13,6 @@ from __future__ import annotations
 
 import time
 
-
-
 # ── Tests for _record_provider_request ────────────────────────────────────────
 
 
@@ -25,6 +23,7 @@ class TestRecordProviderRequest:
     def _mod(self):
         """Re-import module each time to get fresh global references."""
         import importlib
+
         import core.enterprise_dashboard as m
         importlib.reload(m)
         return m

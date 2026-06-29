@@ -53,9 +53,10 @@ import math
 import sqlite3
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from core.db_utils import get_connection
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-
 from core.capacity_planning import (
     CapacityPlanner,
     GrowthForecast,
@@ -152,8 +151,8 @@ class TestCapacityPlanner:
 
     def test_file_age_days_positive(self):
         """_file_age_days returns a positive value for existing files."""
-        import tempfile
         import os
+        import tempfile
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(b"test")
             fname = f.name

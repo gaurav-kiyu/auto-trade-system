@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.mandate_service import MandateService, get_mandate_service, reset_mandate_service
 
 

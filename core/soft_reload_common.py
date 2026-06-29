@@ -14,7 +14,7 @@ without pulling in logging, globals, or bot-specific _SAFE_RELOAD_KEY sets.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Set
+from collections.abc import Callable, Mapping, MutableMapping, Set
 from typing import Any
 
 __all__ = [

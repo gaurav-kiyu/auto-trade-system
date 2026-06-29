@@ -8,13 +8,10 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
-import sys
 from pathlib import Path
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import patch
 
 import pytest
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  _load_packages_from_requirements
@@ -185,8 +182,9 @@ def test_load_settings_handles_corrupted_json(tmp_path: Path) -> None:
 
 def test_find_python_success() -> None:
     """Should find the current Python interpreter (matches version)."""
-    from launcher import LauncherApp
     import tkinter as tk
+
+    from launcher import LauncherApp
 
     try:
         root = tk.Tk()
@@ -208,7 +206,6 @@ def test_find_python_success() -> None:
 
 def test_find_python_version_check() -> None:
     """Version parsing should handle various Python version strings."""
-    from launcher import LauncherApp
 
     # Version tuple comparison from _find_python logic
     v_ok = (3, 10)
@@ -273,8 +270,9 @@ def test_check_packages_script_generation() -> None:
 
 def test_check_packages_invalid_python() -> None:
     """_check_packages should handle subprocess failures gracefully."""
-    from launcher import PACKAGES, LauncherApp
     import tkinter as tk
+
+    from launcher import PACKAGES, LauncherApp
 
     if not PACKAGES:
         pytest.skip("No packages loaded")
@@ -305,7 +303,7 @@ def test_check_packages_invalid_python() -> None:
 
 def test_launch_command_paper_mode() -> None:
     """PAPER mode should include --paper flag."""
-    from launcher import MODES, _S
+    from launcher import MODES
 
     args = ["python", str(Path("index_app/index_trader.py"))]
     mode_info = MODES["PAPER"]
@@ -381,7 +379,7 @@ def test_default_settings_structure() -> None:
 
 def test_acquire_lock_creates_file(tmp_path: Path) -> None:
     """Lock file should be created when acquired."""
-    from launcher import _acquire_single_instance_lock, _LOCK_FILE
+    from launcher import _acquire_single_instance_lock
 
     with patch("launcher._LOCK_FILE", tmp_path / "test.lock"):
         result = _acquire_single_instance_lock()
@@ -391,7 +389,7 @@ def test_acquire_lock_creates_file(tmp_path: Path) -> None:
 
 def test_release_lock_removes_file(tmp_path: Path) -> None:
     """Lock file should be removed when released."""
-    from launcher import _release_lock, _LOCK_FILE
+    from launcher import _release_lock
 
     lock_path = tmp_path / "test.lock"
     lock_path.write_text(str(os.getpid()), encoding="utf-8")

@@ -15,16 +15,13 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.ports.execution.execution_port import OrderStatus as _OrderStatus
-
 from core.position_service import (
     PositionService,
     TradeBlockError,
     get_position_service,
     reset_position_service,
 )
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────────
 

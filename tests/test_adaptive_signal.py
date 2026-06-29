@@ -15,7 +15,6 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
-
 from core.adaptive_signal import (
     AdaptiveSignal,
     SignalConfidenceBand,
@@ -25,7 +24,6 @@ from core.adaptive_signal import (
     evaluate_adaptive_signal,
 )
 from core.pure_index_signal import PureIndexRegimeParams, PureIndexSignalParams
-
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 

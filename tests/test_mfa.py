@@ -17,7 +17,6 @@ import time
 from unittest.mock import patch
 
 import pytest
-
 from core.auth.mfa import (
     RECOVERY_CODE_COUNT,
     MFASessionState,
@@ -30,7 +29,6 @@ from core.auth.mfa import (
     verify_mfa_token,
     verify_recovery_code,
 )
-
 
 # ── Secret Generation ─────────────────────────────────────────────────────
 

@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import sqlite3
 import tempfile
-
 from typing import Any
 
 import pytest
-
 from core.live_analysis import (
     _calc_max_drawdown,
     _generate_decisions,
@@ -16,7 +14,6 @@ from core.live_analysis import (
     analyze_live_performance,
     print_live_performance,
 )
-
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 

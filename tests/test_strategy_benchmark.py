@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 from core.strategy.benchmark import (
     BenchmarkReport,
     BenchmarkResult,
@@ -29,7 +28,6 @@ from core.strategy.plugin_framework import (
     StrategySignal,
     StrategySignalOutput,
 )
-
 
 # ── Mock Strategies ────────────────────────────────────────────────────────
 

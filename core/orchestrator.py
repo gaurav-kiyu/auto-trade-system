@@ -7,7 +7,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-
 __all__ = [
     "Orchestrator",
     "OrchestratorCycle",
@@ -49,6 +48,7 @@ from .reconciliation_engine import ReconciliationEngine, ReconciliationReport
 from .risk.legacy_adapter import RiskDecision, RiskPortAdapter
 from .safety_engine import SafetyContext, SafetyDecision, SafetyEngine
 from .state_manager import StateManager
+
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
     from .strategy_engine import StrategyEngine
@@ -227,10 +227,14 @@ class Orchestrator:
                         try:
                             from core.ports.execution.execution_port import (
                                 ExecutionContext as ExCtx,
+                            )
+                            from core.ports.execution.execution_port import (
                                 ExecutionMode as ExMode,
+                            )
+                            from core.ports.execution.execution_port import (
                                 OrderRequest,
-                                OrderType,
                                 OrderStatus,
+                                OrderType,
                             )
                             order_request = OrderRequest(
                                 symbol=name,

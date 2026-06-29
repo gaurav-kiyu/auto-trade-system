@@ -196,9 +196,14 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin):
         """Get comprehensive performance comparison data."""
         try:
             from core.performance_metrics import (
-                compute_metrics, generate_insights, load_trades,
-                metrics_by_direction, metrics_by_exit_reason, metrics_by_index,
-                metrics_by_regime, metrics_by_score_bin,
+                compute_metrics,
+                generate_insights,
+                load_trades,
+                metrics_by_direction,
+                metrics_by_exit_reason,
+                metrics_by_index,
+                metrics_by_regime,
+                metrics_by_score_bin,
             )
 
             days_str = request.query_params.get("days", "90")

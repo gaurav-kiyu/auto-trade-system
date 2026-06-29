@@ -9,17 +9,11 @@ All tests verify domain invariants that must hold for any valid input.
 """
 from __future__ import annotations
 
-import os
-import sqlite3
-import tempfile
-from datetime import date, timedelta
 from typing import Any
 
-import pytest
-from hypothesis import assume, given, settings, strategies as st
-from hypothesis import HealthCheck, settings
+from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import strategies as st
 from hypothesis.strategies import floats, integers, sampled_from
-
 
 # ── Increase default deadline for all Hypothesis tests in this file ──
 # Many tests involve module imports or nested loops that can exceed the
@@ -206,8 +200,8 @@ def test_volatility_multiplier_threshold_boundaries(
     threshold_low: float, threshold_high: float
 ) -> None:
     """Multiplier should equal low_mult at/below low threshold, high_mult at/above high threshold."""
-    from core.services.risk_service import RiskService, RiskServiceConfig
     from core.risk.sizing.manager import PositionSizingManager
+    from core.services.risk_service import RiskServiceConfig
 
     assume(threshold_low < threshold_high)
 
@@ -549,6 +543,7 @@ def test_sizing_manager_zero_on_invalid_input(
 ) -> None:
     """PositionSizingManager should return 0 when inputs are invalid."""
     from dataclasses import dataclass
+
     from core.ports.risk.risk_port import PositionSizingInput
     from core.risk.sizing.manager import PositionSizingManager
 
@@ -596,6 +591,7 @@ def test_sizing_manager_never_negative_with_volatility(
 ) -> None:
     """Sizing manager should never return negative values regardless of VIX multiplier."""
     from dataclasses import dataclass
+
     from core.ports.risk.risk_port import PositionSizingInput
     from core.risk.sizing.manager import PositionSizingManager
 

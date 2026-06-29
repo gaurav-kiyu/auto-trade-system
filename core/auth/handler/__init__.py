@@ -26,7 +26,6 @@ from core.auth.handler.constants import (
 )
 from core.auth.handler.handler import AuthHandler
 from core.auth.handler.mfa_handler import MfaHandlerMixin
-from core.auth.handler.session_manager import SessionManagerMixin
 from core.auth.handler.models import AuthToken, AuthUser, PasswordResetToken
 from core.auth.handler.password import (
     generate_csrf_token,
@@ -35,6 +34,7 @@ from core.auth.handler.password import (
     validate_password_strength,
     verify_password,
 )
+from core.auth.handler.session_manager import SessionManagerMixin
 
 __all__ = [
     # Constants

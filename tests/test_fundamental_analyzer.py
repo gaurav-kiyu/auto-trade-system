@@ -19,7 +19,6 @@ import tempfile
 import time
 
 import pytest
-
 from core.fundamental_analyzer import (
     DEFAULT_WEIGHTS,
     DimensionScore,
@@ -27,16 +26,15 @@ from core.fundamental_analyzer import (
     FundamentalData,
     ScoreDetail,
     ScreeningResult,
-    get_fundamental_analyzer,
-    reset_fundamental_analyzer,
-    _compute_value_score,
     _compute_growth_score,
-    _compute_quality_score,
     _compute_momentum_score,
+    _compute_quality_score,
+    _compute_value_score,
     _score_direct,
     _score_inverse,
+    get_fundamental_analyzer,
+    reset_fundamental_analyzer,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Scoring helper tests

@@ -27,6 +27,8 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
+from core.data_engine import DataEngine
+
 logger = logging.getLogger(__name__)
 
 

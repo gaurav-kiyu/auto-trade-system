@@ -9,18 +9,18 @@ configuration-driven initialization logic.
 from __future__ import annotations
 
 import time
-import pytest
 
+import pytest
 from core.observability.opentelemetry import (
+    Timer,
+    _NoOpSpan,
+    _NoOpTracer,
+    auto_init,
     get_tracer,
     init_tracing,
     is_tracing_enabled,
     shutdown_tracing,
     trace_event,
-    Timer,
-    auto_init,
-    _NoOpSpan,
-    _NoOpTracer,
 )
 
 

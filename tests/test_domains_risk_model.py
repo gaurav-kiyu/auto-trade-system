@@ -16,7 +16,6 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
-
 from core.domains.risk.model import (
     HistoricalStats,
     MarketConditions,
@@ -28,7 +27,6 @@ from core.domains.risk.model import (
     RiskLimits,
     VolumeProfile,
 )
-
 
 # ── RiskError Tests ───────────────────────────────────────────────────────────
 

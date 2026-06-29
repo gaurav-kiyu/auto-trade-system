@@ -15,6 +15,8 @@ import secrets
 import threading
 import time
 import uuid
+from collections import deque
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from types import MappingProxyType
@@ -25,10 +27,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
-from collections import deque
-from typing import AsyncGenerator
-
 
 from core.auth.csrf import csrf_protection
 from core.auth.dependencies import AuthDependencies
@@ -463,8 +461,8 @@ class EnterpriseDashboard:
             def _slo_health_poller_loop():
                 while not _slo_stop.is_set():
                     try:
-                        from core.slo_governance import ingest_health_report, get_slo_governance
                         from core.health_checker import run_full_health_check
+                        from core.slo_governance import get_slo_governance, ingest_health_report
                         report = run_full_health_check(self._cfg)
                         ingest_health_report(report)
                         # Also run SLO compliance check so data is fresh when UI queries /api/slo/compliance
@@ -728,12 +726,12 @@ class EnterpriseDashboard:
                 )
             return user, None
 
-        from core.enterprise_dashboard.routes.pages import register_page_routes
-        from core.enterprise_dashboard.routes.system import register_system_routes
         from core.enterprise_dashboard.routes.admin import register_admin_routes
-        from core.enterprise_dashboard.routes.risk import register_risk_routes
-        from core.enterprise_dashboard.routes.monitoring import register_monitoring_routes
         from core.enterprise_dashboard.routes.fundamentals import register_fundamentals_routes
+        from core.enterprise_dashboard.routes.monitoring import register_monitoring_routes
+        from core.enterprise_dashboard.routes.pages import register_page_routes
+        from core.enterprise_dashboard.routes.risk import register_risk_routes
+        from core.enterprise_dashboard.routes.system import register_system_routes
         from core.enterprise_dashboard.routes.webhooks import register_webhook_routes
 
         register_page_routes(app, self, _require_admin_page)

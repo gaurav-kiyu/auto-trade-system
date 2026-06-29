@@ -40,12 +40,12 @@ import importlib
 import logging
 import threading
 import time
-
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 # Import data models from separate module (SRP compliance)
-from core.auditor.models import (  # noqa: F401
+from core.auditor.models import (
     AuditCategory,
     AuditEvidence,
     AuditFinding,

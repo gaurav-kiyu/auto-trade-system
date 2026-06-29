@@ -1,6 +1,6 @@
 """Observability package — metrics, tracing, and monitoring."""
 
-from core.observability.metrics import (  # noqa: F401
+from core.observability.metrics import (
     BROKER_HEALTH,
     BROKER_UPTIME,
     DAILY_PNL,

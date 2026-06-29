@@ -5,14 +5,12 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-
 from core.runbook_executor import (
     Runbook,
     RunbookExecutor,
     RunbookStep,
     get_runbook_executor,
 )
-
 
 SAMPLE_RUNBOOK = """# Broker Outage
 

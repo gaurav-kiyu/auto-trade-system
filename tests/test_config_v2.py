@@ -73,7 +73,7 @@ class TestLoadConfigV2:
         try:
             os.environ["BOT_TOKEN"] = "env-token"
             os.environ["CHAT_ID"] = "env-chat"
-            cfg = load_config_v2(str(Path(config_path).name))
+            load_config_v2(str(Path(config_path).name))
             # Since load_config_v2 resolves relative to CWD, use absolute
             cfg2 = load_config_v2(config_path)
             assert cfg2.get("thresholds", {}).get("strong") == 80

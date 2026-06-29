@@ -46,7 +46,7 @@ except ImportError:
 
 # Try to import nsepython library if available
 try:
-    from nsepython import nse_get_index_quote, nse_get_quote, nse_get_option_chain
+    from nsepython import nse_get_index_quote, nse_get_option_chain, nse_get_quote
     NSEPYTHON_AVAILABLE = True
 except ImportError:
     NSEPYTHON_AVAILABLE = False
@@ -386,7 +386,7 @@ class NSEAdapter(MarketDataPort):
                         if data:
                             return self._convert_to_quote(symbol, data)
                 except (KeyError, TypeError, ValueError, IndexError, OSError, ConnectionError) as e:
-                    logger = self._get_logger()
+                    self._get_logger()
                     self._logger.debug(f"nsepython failed for {symbol}: {e}")
                     # Fall back to direct API
 
@@ -420,11 +420,11 @@ class NSEAdapter(MarketDataPort):
                         return self._convert_to_quote(symbol, quote_data)
 
             # If we got here, we didn't get valid data
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.warning(f"No valid quote data received for {symbol}")
 
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError, json.JSONDecodeError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.error(f"Failed to get quote for {symbol}: {e}")
 
         # Return empty quote on failure
@@ -461,7 +461,7 @@ class NSEAdapter(MarketDataPort):
                 'timestamp': quote.timestamp.isoformat()
             }
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.error(f"Failed to get latest data for {symbol}: {e}")
             return {}
 
@@ -515,7 +515,7 @@ class NSEAdapter(MarketDataPort):
         #
         # For this implementation, we'll return False to indicate
         # that real-time subscriptions are not supported via this method
-        logger = self._get_logger()
+        self._get_logger()
         self._logger.info("NSE adapter does not support real-time subscriptions via standard API")
         return False
 
@@ -558,7 +558,7 @@ class NSEAdapter(MarketDataPort):
             # 2. Use a third-party provider with NSE data
             # 3. Store your own historical data from daily downloads
 
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.info(f"Fetching historical data for {symbol} from {from_date} to {to_date}")
 
             # For now, we'll fall back to a simulated response or suggest using yfinance
@@ -568,7 +568,7 @@ class NSEAdapter(MarketDataPort):
         except RuntimeError:
             raise
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.error(f"Failed to get historical data for {symbol}: {e}")
             return []
 
@@ -632,7 +632,7 @@ class NSEAdapter(MarketDataPort):
         except ImportError:
             pass  # yfinance not available
         except (ValueError, TypeError, OSError, KeyError, RuntimeError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.warning(f"yfinance fallback failed for {symbol}: {e}")
 
         # Final fallback: simulate historical data
@@ -679,7 +679,7 @@ class NSEAdapter(MarketDataPort):
                     if data:
                         return self._parse_option_chain_data(data, symbol)
                 except (KeyError, TypeError, ValueError, IndexError, OSError, ConnectionError) as e:
-                    logger = self._get_logger()
+                    self._get_logger()
                     self._logger.debug(f"nsepython option chain failed for {symbol}: {e}")
 
             # Fallback to direct API
@@ -704,7 +704,7 @@ class NSEAdapter(MarketDataPort):
                 return self._parse_option_chain_data(data, symbol)
 
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError, json.JSONDecodeError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.error(f"Failed to get option chain for {symbol}: {e}")
 
         return []
@@ -825,7 +825,7 @@ class NSEAdapter(MarketDataPort):
             }
 
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError) as e:
-            logger = self._get_logger()
+            self._get_logger()
             self._logger.error(f"Failed to get instrument details for {symbol}: {e}")
             return {}
 

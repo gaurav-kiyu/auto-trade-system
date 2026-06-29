@@ -59,16 +59,10 @@ from .config_bootstrap import (
     coerce_config_values_to_defaults_types,
     merge_bot_config,
 )
+
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
     from .config_engine import ConfigIssue, ConfigValidationResult, ConfigValidator
-from .data_lineage import (
-    DataLineageEngine,
-    DataLineageRecord,
-    ImpactAnalysis,
-    ProvenanceChain,
-    get_lineage_engine,
-)
 from .config_helpers import (
     build_audit_config_snapshot,
     decode_if_b64,
@@ -79,6 +73,13 @@ from .config_helpers import (
 from .dashboard_engine import DashboardEngine
 from .data_engine import DataEngine, MarketDataSnapshot, ProviderChain, ProviderResult
 from .data_governance import CleanupScheduler, DataGovernor
+from .data_lineage import (
+    DataLineageEngine,
+    DataLineageRecord,
+    ImpactAnalysis,
+    ProvenanceChain,
+    get_lineage_engine,
+)
 from .datetime_ist import (
     IST_OFFSET,
     apply_nse_session_from_cfg,
@@ -99,6 +100,8 @@ from .db_migration import (
     migrate_to_latest,
     register_schema,
 )
+from .defaults_loader import load_defaults_file
+from .environment import Environment, guard_dev_config_in_production, guard_mode_env_compatibility, validate_environment
 from .fundamental_analyzer import (
     DEFAULT_WEIGHTS,
     DimensionScore,
@@ -107,9 +110,8 @@ from .fundamental_analyzer import (
     ScreeningResult,
     get_fundamental_analyzer,
 )
-from .defaults_loader import load_defaults_file
-from .environment import Environment, guard_dev_config_in_production, guard_mode_env_compatibility, validate_environment
 from .hybrid_execution import apply_execution_mode, normalize_execution_mode
+
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=".*orchestrator.*DEPRECATED")
     from .orchestrator import Orchestrator, OrchestratorCycle, OrchestratorSignal
@@ -122,12 +124,18 @@ from .safety_engine import SafetyConfig, SafetyContext, SafetyDecision, SafetyEn
 from .soft_reload_common import ignored_keys_warning
 from .startup_checklist import StartupCheckItem, StartupCheckResult, run_startup_checklist
 from .state_manager import SessionRecoveryReport, StateManager
+
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
     from .strategy_engine import StrategyEngine
-from .trade_journal import VALID_EXIT_REASONS, TradeJournal
-from .utils_numeric import safe_float, safe_num
-from .walkforward_engine import WalkForwardEngine, WalkForwardReport, WalkForwardWindow
+# ── Domain models (accessible as core.domains) ──────────────────────────
+from . import domains as domains_module
+
+# ── Port interfaces (accessible as core.ports) ──────────────────────────
+from . import ports as ports_module
+
+# ── Database Port Adapters (Sprint 8) ──────────────────────────────────
+from .adapters.database import SQLiteDatabaseAdapter
 
 # ── Multi-asset portfolio adapters ─────────────────────────────────────────
 from .portfolio.adapters import (
@@ -135,15 +143,9 @@ from .portfolio.adapters import (
     CapitalAllocationService,
     MultiAssetPortfolioAggregator,
 )
-
-# ── Database Port Adapters (Sprint 8) ──────────────────────────────────
-from .adapters.database import SQLiteDatabaseAdapter
-
-# ── Domain models (accessible as core.domains) ──────────────────────────
-from . import domains as domains_module
-
-# ── Port interfaces (accessible as core.ports) ──────────────────────────
-from . import ports as ports_module
+from .trade_journal import VALID_EXIT_REASONS, TradeJournal
+from .utils_numeric import safe_float, safe_num
+from .walkforward_engine import WalkForwardEngine, WalkForwardReport, WalkForwardWindow
 
 __all__ = [
     "AIDecision",

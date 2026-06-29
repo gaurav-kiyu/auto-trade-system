@@ -4,14 +4,12 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 from core.risk_budget_engine import (
     BudgetAllocation,
     RiskBudgetEngine,
     RiskBudgetResult,
     RiskBudgetStatus,
 )
-
 
 # ── BudgetAllocation tests ───────────────────────────────────────────────────
 

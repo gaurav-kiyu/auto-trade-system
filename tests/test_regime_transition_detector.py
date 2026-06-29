@@ -13,11 +13,10 @@ from __future__ import annotations
 import threading
 
 import pytest
-
 from core.regime_transition_detector import (
     TransitionSignal,
-    _VixHistoryTracker,
     _vix_tracker,
+    _VixHistoryTracker,
     detect_transition,
     get_transition_score_adj,
     reset_vix_history,

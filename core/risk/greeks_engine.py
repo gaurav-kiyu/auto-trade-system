@@ -32,18 +32,13 @@ Usage
 
 from __future__ import annotations
 
-
 import logging
-
-
 import threading
 from dataclasses import dataclass, field
-
 from enum import Enum
 from typing import Any
 
 from core.datetime_ist import now_ist
-
 from core.option_premium_model import black_scholes_greeks, lot_size
 
 _log = logging.getLogger(__name__)

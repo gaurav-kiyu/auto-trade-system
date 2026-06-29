@@ -17,8 +17,6 @@ import json
 import logging
 import sqlite3
 import threading
-
-from core.db_utils import get_connection
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -26,6 +24,7 @@ from enum import Enum
 from typing import Any
 
 from core.datetime_ist import now_ist
+from core.db_utils import get_connection
 from core.time_provider import time_provider
 
 __all__ = [
@@ -181,7 +180,7 @@ class RegimeDetector:
         sum_x = sum(x)
         sum_y = sum(prices)
         sum_xy = sum(x[i] * prices[i] for i in range(n))
-        sum(x[i] * x[i] for i in range(n))
+        sumxx = sum(x[i] * x[i] for i in range(n))
 
         slope = (n * sum_xy - sum_x * sum_y) / (n * sumxx - sum_x * sum_x) if (n * sumxx - sum_x * sum_x) != 0 else 0
 

@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import datetime
 
-
 from core.session_classifier import (
     ExpirySessionName,
     SessionType,
@@ -25,7 +24,6 @@ from core.session_classifier import (
     session_entry_allowed,
     session_summary,
 )
-
 
 # =============================================================================
 # SessionType Enum Tests

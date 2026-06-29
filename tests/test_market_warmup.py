@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
 from datetime import datetime
+from unittest.mock import patch
 
 from core.datetime_ist import now_ist
 from core.market_warmup import MarketWarmup
-
 
 _MOCK_MARKET_OPEN = datetime(2026, 6, 11, 9, 20)  # Thursday, 5 min after open (warmup active)
 

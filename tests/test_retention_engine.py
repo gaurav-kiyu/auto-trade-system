@@ -7,7 +7,6 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-
 from core.retention_engine import RetentionEngine, RetentionPolicy
 
 
@@ -74,7 +73,7 @@ class TestRetentionEngine:
             self._touch_file(f"fresh_{i}.log", age_days=1)
         for i in range(10):
             self._touch_file(f"old_{i}.log", age_days=60)
-        result = self.engine.apply(str(self.tmpdir), ["*.log"], RetentionPolicy(max_files=10, max_age_days=30))
+        self.engine.apply(str(self.tmpdir), ["*.log"], RetentionPolicy(max_files=10, max_age_days=30))
         # All 10 old files exceed max_age_days=30 → removed regardless of count
         # Only 5 fresh files within age remain
         remaining = list(self.tmpdir.glob("*.log"))

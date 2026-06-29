@@ -22,6 +22,8 @@ from core.common_config_validate import (
 )
 from core.shared_config_validate import (
     BROKER_ALLOWED_DRIVERS_INDEX as _ORIG_INDEX,
+)
+from core.shared_config_validate import (
     effective_broker_driver as _ORIG_DRIVER,
 )
 

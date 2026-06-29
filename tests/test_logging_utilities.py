@@ -16,7 +16,6 @@ import logging
 import threading
 
 import pytest
-
 from core.common.utilities.logging import (
     LogContext,
     LogContextManager,
@@ -25,7 +24,6 @@ from core.common.utilities.logging import (
     structured_logger,
     with_context,
 )
-
 
 # =============================================================================
 # LogContext Tests

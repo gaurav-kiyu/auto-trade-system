@@ -591,7 +591,7 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
             conn.commit()
             _log.info("[AUTH] Password reset token created for %s", username)
             return token_str
-        except (DatabaseError, sqlite3.Error, OSError) as e:
+        except (DatabaseError, sqlite3.Error, OSError):
             _log.exception("[AUTH] Failed to create password reset token")
             return None
         finally:
@@ -618,7 +618,7 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
             conn.execute("UPDATE password_reset_tokens SET used = 1 WHERE token_hash = ?", (t_hash,))
             conn.commit()
             return row["username"]
-        except (DatabaseError, sqlite3.Error, OSError, ValueError) as e:
+        except (DatabaseError, sqlite3.Error, OSError, ValueError):
             _log.exception("[AUTH] Failed to verify password reset token")
             return None
         finally:

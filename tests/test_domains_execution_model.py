@@ -15,7 +15,6 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
-
 from core.domains.execution.model import (
     ExecutionContext,
     Fill,
@@ -26,7 +25,6 @@ from core.domains.execution.model import (
     Position,
     PositionSide,
 )
-
 
 # ── Enum Tests ────────────────────────────────────────────────────────────────
 

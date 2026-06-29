@@ -15,7 +15,6 @@ import time
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.incident_alerting import (
     Incident,
     IncidentAlerting,
@@ -25,7 +24,6 @@ from core.incident_alerting import (
     alert_risk_breach,
     get_incident_alerting,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

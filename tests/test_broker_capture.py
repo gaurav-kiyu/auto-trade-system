@@ -15,9 +15,7 @@ import threading
 from pathlib import Path
 
 import pytest
-
 from core.broker_capture import BrokerEvent, JsonlCaptureWriter
-
 
 # ── BrokerEvent Dataclass ──────────────────────────────────────────────────
 
@@ -113,7 +111,7 @@ class TestJsonlCaptureWriter:
         writer.write(BrokerEvent(ts="2024-01-03", event="event3"))
         lines = path.read_text(encoding="utf-8").splitlines()
         assert len(lines) == 3
-        data = [json.loads(l) for l in lines]
+        data = [json.loads(line) for line in lines]
         assert data[0]["event"] == "event1"
         assert data[1]["event"] == "event2"
         assert data[2]["event"] == "event3"
@@ -243,7 +241,7 @@ class TestThreadSafety:
 
         lines = path.read_text(encoding="utf-8").splitlines()
         assert len(lines) == 2 * n
-        events = [json.loads(l)["event"] for l in lines]
+        events = [json.loads(line)["event"] for line in lines]
         assert events.count("order_placed") == n
         assert events.count("order_filled") == n
 

@@ -39,10 +39,11 @@ _initialized = False
 def _ensure_initialized() -> None:
     global _initialized, _container, _setup_di_container
     if not _initialized:
-        from index_app.index_trader import container as _c, setup_di_container as _s
+        from index_app.index_trader import container as _c
+        from index_app.index_trader import setup_di_container as _s
         _container = _c
         _setup_di_container = _s
-        __setup_di_container()
+        _setup_di_container()
         _initialized = True
 
 

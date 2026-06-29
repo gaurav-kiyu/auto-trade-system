@@ -25,12 +25,12 @@ Usage inside EnterpriseDashboard._create_app():
 
 from __future__ import annotations
 
-from core.enterprise_dashboard.routes.pages import register_page_routes
-from core.enterprise_dashboard.routes.system import register_system_routes
 from core.enterprise_dashboard.routes.admin import register_admin_routes
-from core.enterprise_dashboard.routes.risk import register_risk_routes
-from core.enterprise_dashboard.routes.monitoring import register_monitoring_routes
 from core.enterprise_dashboard.routes.fundamentals import register_fundamentals_routes
+from core.enterprise_dashboard.routes.monitoring import register_monitoring_routes
+from core.enterprise_dashboard.routes.pages import register_page_routes
+from core.enterprise_dashboard.routes.risk import register_risk_routes
+from core.enterprise_dashboard.routes.system import register_system_routes
 from core.enterprise_dashboard.routes.webhooks import register_webhook_routes
 
 __all__ = [

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import time
 
-
 from core.telegram.hardening import (
     CommandSpec,
     DangerousCommandShield,
@@ -24,7 +23,6 @@ from core.telegram.hardening import (
     create_shield,
     create_validator,
 )
-
 
 # =============================================================================
 # CommandSpec Tests

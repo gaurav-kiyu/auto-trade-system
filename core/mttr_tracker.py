@@ -122,7 +122,7 @@ class MTTRReport:
             f"  Overall MTTR:       {self.overall_mttr:.1f}s",
             f"  MTBF:               {self.mtbf_hours:.2f}h",
             "",
-            f"  Resolution Times:",
+            "  Resolution Times:",
             f"    P50:  {self.p50_mttr:.1f}s",
             f"    P90:  {self.p90_mttr:.1f}s",
             f"    P99:  {self.p99_mttr:.1f}s",

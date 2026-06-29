@@ -9,9 +9,7 @@ import logging
 from typing import Any
 
 import requests
-
 from core.datetime_ist import now_ist
-
 
 __all__ = [
     "fetch_nse_holidays",

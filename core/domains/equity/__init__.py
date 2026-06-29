@@ -15,12 +15,12 @@ Usage:
     )
 """
 from core.domains.equity.models import (
+    IPO,
     BoardLot,
     CorporateAction,
     CorporateActionType,
     EquityPosition,
     Holding,
-    IPO,
     IPOStatus,
     Sector,
     Stock,

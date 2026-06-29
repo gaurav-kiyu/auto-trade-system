@@ -337,8 +337,8 @@ class RiskProbe:
 
         # Check circuit breaker status via DI container
         try:
-            from core.services.circuit_breaker_service import CircuitBreakerService
             from core.di_container import get_container
+            from core.services.circuit_breaker_service import CircuitBreakerService
             container = get_container()
             cb = container.try_resolve(CircuitBreakerService)
             if cb is not None and hasattr(cb, "get_state"):

@@ -81,7 +81,7 @@ class ReadOnlyConfigView:
         return dict(self._data)
 
     @classmethod
-    def from_enforcing(cls, data: dict[str, object]) -> "ReadOnlyConfigView":
+    def from_enforcing(cls, data: dict[str, object]) -> ReadOnlyConfigView:
         """Create a view that logs warnings on access to blocked keys.
 
         Blocked keys include risk-critical parameters like MAX_DAILY_LOSS,

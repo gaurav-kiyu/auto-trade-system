@@ -14,7 +14,6 @@ Covers:
 """
 from __future__ import annotations
 
-
 import time
 from pathlib import Path
 
@@ -24,7 +23,6 @@ from core.constitution import (
     ConstitutionValidator,
     ScoreEvidence,
     ScoreReport,
-    ValidationResult,
     get_validator,
     validate_and_report,
 )
@@ -249,7 +247,7 @@ class TestPreImplementation:
     def test_all_checks_fail(self) -> None:
         v = ConstitutionValidator()
         results = v.validate_pre_implementation()
-        passed = [r for r in results if r.passed]
+        [r for r in results if r.passed]
         # Only affected_files should fail since it's missing
         assert any(not r.passed for r in results)
 
@@ -524,14 +522,14 @@ class TestAuditLog:
         v = ConstitutionValidator()
         v.validate_change_pipeline({"review": True, "release": True})
         log = v.get_audit_log()
-        actions = [l["action"] for l in log]
+        actions = [entry["action"] for entry in log]
         assert "change_pipeline" in actions
 
     def test_audit_log_pre_implementation(self) -> None:
         v = ConstitutionValidator()
         v.validate_pre_implementation(constitution_read=True)
         log = v.get_audit_log()
-        actions = [l["action"] for l in log]
+        actions = [entry["action"] for entry in log]
         assert "pre_implementation" in actions
 
 

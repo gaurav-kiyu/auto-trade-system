@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 from typing import Any
 
-
 __all__ = [
     "safe_float",
     "safe_num",

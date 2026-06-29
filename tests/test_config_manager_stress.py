@@ -10,7 +10,6 @@ import threading
 import time
 
 import pytest
-
 from index_app.domains.config.manager import ConfigManager
 
 pytestmark = pytest.mark.stress
@@ -213,7 +212,7 @@ class TestConfigManagerStress:
             for i in range(iterations):
                 try:
                     idx = (tid * 100 + i) % 1000
-                    old = mgr.get_str(f"KEY_{idx}")
+                    mgr.get_str(f"KEY_{idx}")
                     mgr.set(f"KEY_{idx}", f"updated_by_{tid}_{i}")
                     assert mgr.get_str(f"KEY_{idx}") is not None
                     all_cfg = mgr.all()

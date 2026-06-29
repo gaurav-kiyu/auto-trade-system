@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-
-
 from core.multi_tenant import (
     MultiTenantManager,
     Tenant,

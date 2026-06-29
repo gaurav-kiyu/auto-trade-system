@@ -4,8 +4,8 @@
 
 import ast
 import os
-import re
 import py_compile
+import re
 
 
 def get_module_level_all(filepath):
@@ -16,7 +16,7 @@ def get_module_level_all(filepath):
         tree = ast.parse(content, filename=filepath)
     except SyntaxError:
         return None, content
-    
+
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, ast.Assign):
             for target in node.targets:
@@ -49,9 +49,9 @@ def insert_all_at_module(content, all_lines):
     """Insert __all__ list at module level (after imports/before code)."""
     if not all_lines:
         return content
-    
+
     lines = content.split('\n')
-    
+
     # Find insertion point: after last import
     insert_at = 0
     in_docstring = False
@@ -70,22 +70,22 @@ def insert_all_at_module(content, all_lines):
                     in_docstring = False
                     insert_at = i + 1
             continue
-        
+
         if s.startswith(('import ', 'from ')):
             insert_at = i + 1
-    
+
     # Verify we're not inserting into existing code block
     for i in range(insert_at, min(insert_at + 3, len(lines))):
         s = lines[i].strip()
         if s and not s.startswith('#') and not s.startswith(('"""', "'''")):
             if s.startswith(('@', 'class ', 'def ')):
                 break
-    
+
     # Check if __all__ already exists at module level
     for line in lines[insert_at:insert_at+5]:
         if line.strip().startswith('__all__'):
             return content  # Already exists
-    
+
     # Insert __all__ block
     all_text = '\n'.join(all_lines)
     new_lines = lines[:insert_at]
@@ -103,20 +103,20 @@ def fix_file(filepath):
         return False, "Already has module-level __all__"
     if content is None:
         return False, "Syntax error in file"
-    
+
     original = content
     lines = content.split('\n')
     new_lines = []
     removed_all = False
-    
+
     # Phase 1: Remove __all__ blocks that are NOT at module level
     # Detect if we're inside a triple-quoted string
     in_triple = False
     triple_type = None
-    
+
     for i, line in enumerate(lines):
         stripped = line.strip()
-        
+
         # Track triple-quoted strings
         if not in_triple:
             if '"""' in stripped or "'''" in stripped:
@@ -132,14 +132,14 @@ def fix_file(filepath):
                 cnt = stripped.count(triple_type)
                 if cnt % 2 == 1:
                     in_triple = False
-        
+
         # Check if this line contains a real __all__ assignment
         # that should be removed from its current location
         if '__all__' in stripped and '=' in stripped and '[' in stripped:
             indent = len(line) - len(line.lstrip())
             is_at_module_level = (indent == 0)
             is_in_triple = in_triple
-            
+
             if is_in_triple or not is_at_module_level:
                 # Skip this line and continue until the list is closed
                 removed_all = True
@@ -161,26 +161,26 @@ def fix_file(filepath):
                     continue
                 else:
                     continue
-        
+
         new_lines.append(line)
-    
+
     content = '\n'.join(new_lines)
-    
+
     if not removed_all:
         # Check if this is a docstring-only pattern
         # Find __all__ text in original and extract it
         pass
-    
+
     if content == original and removed_all:
         # The __all__ was removed, but we need to track the removed lines
         # Simpler approach: find all __all__ blocks in original, filter to module-level only
         return fix_file_v2(filepath)
-    
+
     if removed_all:
         # Extract __all__ text from original
         all_lines = extract_all_from_text(original)
         content = insert_all_at_module(content, all_lines)
-    
+
     if content != original:
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
@@ -190,7 +190,7 @@ def fix_file(filepath):
             return True, "Fixed"
         else:
             return False, "Fix failed verification"
-    
+
     # If we get here, the file has __all__ text but not as module-level assignment
     # Check for docstring-only pattern
     return fix_file_v2(filepath)
@@ -200,19 +200,19 @@ def fix_file_v2(filepath):
     """Alternative fix: find __all__ text anywhere and add it at module level."""
     with open(filepath, encoding='utf-8', errors='replace') as f:
         content = f.read()
-    
+
     # Find __all__ = [...] pattern anywhere in file (even in docstrings)
     all_match = re.search(r'__all__\s*=\s*\[.*?\]', content, re.DOTALL)
     if not all_match:
         return False, "No __all__ text found"
-    
+
     # Remove all instances of __all__ = [...] from non-module context
     # by finding ALL occurrences and keeping only the ones at indent=0
     lines = content.split('\n')
     new_lines = []
     in_all_block = False
     kept_lines = []
-    
+
     for line in lines:
         stripped = line.strip()
         if '__all__' in stripped and '=' in stripped and '[' in stripped:
@@ -241,7 +241,7 @@ def fix_file_v2(filepath):
                 in_all_block = False
         else:
             new_lines.append(line)
-    
+
     # Reconstruct content with module-level __all__
     if kept_lines:
         all_text = '\n'.join(kept_lines)
@@ -254,7 +254,7 @@ def fix_file_v2(filepath):
                 return True, "Fixed (v2)"
             else:
                 return False, "v2 fix failed"
-    
+
     return False, "No fixable __all__ found"
 
 
@@ -275,21 +275,21 @@ def main():
         for fname in sorted(files):
             if fname.endswith('.py'):
                 files_to_check.append(os.path.join(root, fname))
-    
+
     print(f"Checking {len(files_to_check)} files...")
-    
+
     fixed = 0
     failed = 0
     skipped = 0
     syntax_broken = []
-    
+
     for filepath in files_to_check:
         try:
             ok, _ = get_module_level_all(filepath)
             if ok:
                 skipped += 1
                 continue
-            
+
             success, msg = fix_file(filepath)
             if success:
                 # Verify syntax
@@ -308,8 +308,8 @@ def main():
             failed += 1
             syntax_broken.append(filepath)
             print(f"  ERROR: {filepath}: {e}")
-    
-    print(f"\n=== Summary ===")
+
+    print("\n=== Summary ===")
     print(f"  Total files: {len(files_to_check)}")
     print(f"  Already have __all__: {skipped}")
     print(f"  Fixed: {fixed}")
@@ -318,7 +318,7 @@ def main():
         print(f"  Syntax errors: {len(syntax_broken)}")
         for f in syntax_broken:
             print(f"    {f}")
-    
+
     return fixed, failed
 
 

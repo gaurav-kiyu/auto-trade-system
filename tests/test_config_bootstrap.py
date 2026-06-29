@@ -21,7 +21,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from core.config_bootstrap import (
     CRITICAL_CONFIG_KEYS,
     HIGH_RISK_CONFIG_KEYS,
@@ -34,7 +33,6 @@ from core.config_bootstrap import (
     read_recent_config_changes,
     write_config_changes_jsonl,
 )
-
 
 # ── Module Constants ──────────────────────────────────────────────────────
 
@@ -365,9 +363,10 @@ class TestCoerceConfigValues:
 
 class TestDecodeSecretKeys:
     def test_returns_dict_copy(self):
-        result = decode_secret_keys({"KEY": "value"}, frozenset())
-        assert result == {"KEY": "value"}
-        assert result is not {"KEY": "value"}  # different object
+        original = {"KEY": "value"}
+        result = decode_secret_keys(original, frozenset())
+        assert result == original
+        assert result is not original  # different object, same values
 
 
 # ── _freeze_config (tested via behavior) ──────────────────────────────────

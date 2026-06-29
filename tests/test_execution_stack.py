@@ -12,7 +12,6 @@ from tests.helpers.legacy_execution_stack import (
     trading_mode_from_cfg,
 )
 
-
 # ── TradingMode enum ──────────────────────────────────────────────────────
 
 def test_trading_mode_values() -> None:

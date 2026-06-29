@@ -15,7 +15,6 @@ Usage:
 """
 from core.domains.signal_engine.model import (
     Candle,
-    MarketConditions as MarketConditionsModel,
     MarketData,
     OrderFlowData,
     PriceLevel,
@@ -25,6 +24,9 @@ from core.domains.signal_engine.model import (
     TimeFrame,
     TradingSignal,
     VolumeProfile,
+)
+from core.domains.signal_engine.model import (
+    MarketConditions as MarketConditionsModel,
 )
 from core.domains.signal_engine.service import SignalService, create_signal_service
 

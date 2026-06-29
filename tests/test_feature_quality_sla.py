@@ -16,21 +16,17 @@ Tests cover:
 
 from __future__ import annotations
 
-import time
 import threading
+import time
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.feature_quality_sla import (
     FeatureQualitySLA,
     FeatureSLAConfig,
-    FeatureSLAReport,
-    FeatureSLAStatus,
     get_feature_quality_sla,
     start_feature_sla_poller,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -276,7 +272,7 @@ class TestSLOGovernanceIntegration:
             # lazy import: from core.slo_governance import get_slo_governance.
             # The patch on core.slo_governance.get_slo_governance makes that
             # import return our mock.
-            sla_instance = FeatureQualitySLA()
+            FeatureQualitySLA()
             assert mock_instance.register_slo.called
 
 

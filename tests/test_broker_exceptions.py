@@ -11,7 +11,6 @@ Covers (40 tests):
 
 from __future__ import annotations
 
-
 from core.execution.broker_exceptions import (
     AmbiguousExecutionStateError,
     AuthExpiredError,
@@ -25,7 +24,6 @@ from core.execution.broker_exceptions import (
     TransientBrokerError,
     classify_broker_exception,
 )
-
 
 # ── BrokerExceptionType Enum Tests ─────────────────────────────────────────
 

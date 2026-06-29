@@ -5,17 +5,17 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from core.signal_approval_workflow import (
+    AUTO_WITH_OVERRIDE,
     EXECUTE,
-    FULLY_AUTO,
     FULL_MANUAL,
+    FULLY_AUTO,
     MANUAL_PRIORITY,
     NOTIFY_ONLY,
     QUEUE,
-    SIGNALS_ONLY,
     SIG_AUTO,
     SIG_MANUAL,
+    SIGNALS_ONLY,
     SKIP,
-    AUTO_WITH_OVERRIDE,
     SignalApprovalWorkflow,
     SignalDecision,
     build_workflow,

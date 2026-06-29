@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import pytest
-
 from core.system_parity import (
     assert_backtest_live_parity,
     check_execution_policy_consistency,
     generate_runtime_fingerprint,
     log_startup_parity,
 )
-
 
 # ── assert_backtest_live_parity ──────────────────────────────────────────
 

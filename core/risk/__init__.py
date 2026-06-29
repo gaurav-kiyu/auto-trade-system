@@ -18,6 +18,12 @@ been removed. Use RiskService directly for any new risk-related code.
 """
 
 # Greeks Engine
+# Re-exports from options_greeks_engine (needed by risk_service.py)
+from core.options_greeks_engine import (
+    OptionsGreeksEngine,
+    OptionType,
+    PositionGreeksInput,
+)
 from core.risk.greeks_engine import (
     GreeksCalculator,
     GreeksCheckLevel,
@@ -34,17 +40,14 @@ from core.risk.greeks_engine import (
     reset_greeks_engine,
 )
 
-# Re-exports from options_greeks_engine (needed by risk_service.py)
-from core.options_greeks_engine import (  # noqa: F811
-    OptionType,
-    OptionsGreeksEngine,
-    PositionGreeksInput,
-)
-
 # Legacy adapter (backward compat for orchestrator.py)
 from core.risk.legacy_adapter import (
     RiskConfig as LegacyRiskConfig,
+)
+from core.risk.legacy_adapter import (
     RiskDecision as LegacyRiskDecision,
+)
+from core.risk.legacy_adapter import (
     RiskPortAdapter,
 )
 
@@ -54,16 +57,16 @@ from core.risk.limits.manager import (
     RiskLimitsManager,
 )
 
-# Sizing Manager
-from core.risk.sizing.manager import (
-    PositionSizingManager,
-)
-
 # Margin Validator
 from core.risk.margin_validator import (
     MarginValidationResult,
     MarginValidator,
     get_margin_validator,
+)
+
+# Sizing Manager
+from core.risk.sizing.manager import (
+    PositionSizingManager,
 )
 
 __all__ = [

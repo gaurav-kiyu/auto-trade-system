@@ -10,7 +10,6 @@ from core.startup_reconciliation import (
     run_startup_reconciliation,
 )
 
-
 # ── ReconciliationResult ─────────────────────────────────────────────────
 
 def test_reconciliation_result_default() -> None:

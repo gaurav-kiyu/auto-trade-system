@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import pytest
-
 from core.operating_mode import (
+    ExecutionAction,
     OperatingMode,
     OperatingModeManager,
     OperatingModeViolationError,
-    ExecutionAction,
 )
 
 

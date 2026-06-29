@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import json
 
-
-
 from core.ai.safety_gate import (
+    ALLOWED_ACTIONS,
+    FORBIDDEN_ACTIONS,
     AISafetyGate,
     AISafetyVerdict,
-    FORBIDDEN_ACTIONS,
-    ALLOWED_ACTIONS,
     check_ai_action,
     get_safety_gate,
 )

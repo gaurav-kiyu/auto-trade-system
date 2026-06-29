@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from core.datetime_ist import now_ist, is_saturday_allowed
+from core.datetime_ist import is_saturday_allowed, now_ist
 
 _log = logging.getLogger(__name__)
 
@@ -556,8 +556,7 @@ class ExchangeCalendarEngine:
         Args:
             stop_event: Optional threading.Event to interrupt sleep.
         """
-        from core.event_calendar import sleep_until
-        from core.event_calendar import get_next_market_open
+        from core.event_calendar import get_next_market_open, sleep_until
 
         next_open = get_next_market_open(self._cfg)
         sleep_until(next_open, stop_event)

@@ -11,7 +11,6 @@ from core.logging import (
     get_logger,
 )
 
-
 # ── get_logger ────────────────────────────────────────────────────────────
 
 def test_get_logger_returns_logger() -> None:

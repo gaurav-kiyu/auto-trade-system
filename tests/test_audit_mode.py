@@ -11,21 +11,19 @@ Covers:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
 from core.audit_mode import (
     AuditFinding,
+    Auditor,
     AuditReport,
     AuditScope,
     AuditSeverity,
     AuditVerdict,
-    Auditor,
     get_auditor,
     run_audit,
 )
-
 
 # ── Enums ──────────────────────────────────────────────────────────────────
 

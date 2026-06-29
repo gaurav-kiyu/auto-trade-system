@@ -12,7 +12,6 @@ from datetime import datetime
 from typing import Any
 
 import pytest
-
 from core.ports.broker.broker_port import (
     BrokerAuthStatus,
     BrokerCapability,
@@ -31,7 +30,6 @@ from core.ports.broker.broker_port import (
     ProductType,
     Trade,
 )
-
 
 # ── Enum Tests ────────────────────────────────────────────────────────────────
 

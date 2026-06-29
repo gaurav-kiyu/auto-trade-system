@@ -331,7 +331,7 @@ class TestAuditorSingleton:
 
     def test_import_from_package(self) -> None:
         """Import from core.auditor should work."""
-        from core.auditor import IndependentAuditor, AuditCategory, AuditReport
+        from core.auditor import AuditCategory, AuditReport, IndependentAuditor
         assert IndependentAuditor is not None
         assert AuditCategory is not None
         assert AuditReport is not None

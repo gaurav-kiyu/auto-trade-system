@@ -4,7 +4,6 @@ import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.signal_service import (
     SignalService,
     get_signal_service,
@@ -61,7 +60,7 @@ class TestSignalServiceSingleton:
 class TestValidateSignalPillars:
     def test_valid_two_pillar_consensus(self):
         """Should pass when 2 independent pillars agree.
-        
+
         Pillar 1 (Price/Momentum BULLISH) + Pillar 3 (Institutional Flow BULLISH)
         must both agree on direction for consensus.
         """
@@ -129,7 +128,7 @@ class TestValidateSignalPillars:
 
     def test_bearish_direction_returned(self):
         """Consensus should identify bearish direction.
-        
+
         Pillar 1 (Price/Momentum BEARISH) + Pillar 3 (Institutional Flow BEARISH).
         """
         svc = SignalService()

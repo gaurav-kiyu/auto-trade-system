@@ -6,9 +6,6 @@ from __future__ import annotations
 
 import threading
 
-
-
-
 from core.invariants.engine import (
     InvariantResult,
     InvariantSeverity,

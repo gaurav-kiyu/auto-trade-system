@@ -18,7 +18,6 @@ import os
 import tempfile
 
 import pytest
-
 from core.strategy.strategy_versioning import (
     StrategyVersion,
     StrategyVersionManager,

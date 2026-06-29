@@ -24,7 +24,6 @@ from core.data_quality_monitor import (
     create_data_quality_monitor,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════
 #  DataQualityConfig
 # ═══════════════════════════════════════════════════════════════════════

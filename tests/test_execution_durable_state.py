@@ -14,14 +14,12 @@ import sqlite3
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.execution.durable_state import (
     DurableExecutionRecord,
     DurableExecutionStore,
     ExecutionState,
     get_durable_store,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -279,7 +277,7 @@ class TestDurableExecutionStoreCleanup:
             intent_id="pending-1", client_order_id="OPB-pending", symbol="NIFTY",
             direction="BUY", quantity=50, strike_price=150.0, state=ExecutionState.PENDING,
         ))
-        deleted = store.cleanup_old_records(hours=0)
+        store.cleanup_old_records(hours=0)
         remaining = store.get_execution("pending-1")
         assert remaining is not None
 

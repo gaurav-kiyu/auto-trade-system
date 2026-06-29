@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+
 import pytest
 from core.mttr_tracker import MTTRTracker
 

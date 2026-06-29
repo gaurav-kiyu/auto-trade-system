@@ -144,7 +144,7 @@ def backup_databases(
             f.write(f"Success: {success_count}\n")
             f.write(f"Failed: {fail_count}\n")
             if errors:
-                f.write(f"Errors:\n")
+                f.write("Errors:\n")
                 for e in errors:
                     f.write(f"  - {e}\n")
         _log.info("[OK]   Manifest written: %s", manifest_path)

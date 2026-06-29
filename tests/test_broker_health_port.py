@@ -13,7 +13,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-
 from core.ports.broker.health_port import (
     BrokerHealthMetrics,
     BrokerHealthPort,
@@ -21,7 +20,6 @@ from core.ports.broker.health_port import (
     FailoverConfig,
     HealthCheckType,
 )
-
 
 # ── BrokerStatus Enum Tests ───────────────────────────────────────────────────
 

@@ -154,7 +154,6 @@ def validate_app_config(cfg: dict[str, Any], flavour: str = "index") -> tuple[bo
 
 def validate_environment_vars() -> tuple[bool, str]:
     """Validate critical OPBUYING_* environment variables."""
-    errors: list[str] = []
     for key, default in [
         ("OPBUYING_BOT_TOKEN", ""),
         ("OPBUYING_CHAT_ID", ""),

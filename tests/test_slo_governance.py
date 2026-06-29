@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import pytest
-
 from core.slo_governance import (
     DEFAULT_SLOS,
     SLODefinition,
     SLOGovernance,
     SLOResult,
     SLOTracker,
-    get_slo_governance,
     check_slo_compliance,
+    get_slo_governance,
     ingest_health_report,
 )
 

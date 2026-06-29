@@ -26,6 +26,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from dataclasses import dataclass
 from datetime import datetime
 
 # Ensure project root is on path
@@ -145,6 +146,7 @@ def run_phase4():
     test("P4-DATA", "yfinance import", test_yf)
 
     def test_yf_provider():
+        from index_app.domains.market.data import fetch_intraday_data
         r = fetch_intraday_data("")
         assert r == (None, None, None), "Empty symbol should return None tuple"
     test("P4-DATA", "yf_data_provider API", test_yf_provider)
@@ -162,8 +164,7 @@ def run_phase4():
 # ═══════════════════════════════════════════════════════════════════
 def run_phase5():
     def test_paper():
-        from core.adapters.broker_adapters import PaperBrokerAdapter
-        from core.adapters.broker_adapters import BrokerAdapter
+        from core.adapters.broker_adapters import BrokerAdapter, PaperBrokerAdapter
         paper = PaperBrokerAdapter()
         broker = BrokerAdapter(paper)
         assert broker is not None
@@ -215,7 +216,7 @@ def run_phase6():
 # ═══════════════════════════════════════════════════════════════════
 def run_phase7():
     def test_safety():
-        from core.safety_state import is_hard_halted, is_shutting_down, _HARD_HALT
+        from core.safety_state import _HARD_HALT, is_hard_halted, is_shutting_down
         assert callable(is_hard_halted)
         assert callable(is_shutting_down)
         assert not _HARD_HALT.is_set(), "HALT should not be set at startup"
@@ -274,7 +275,8 @@ def run_phase10():
     test("P10-NOTIF", "Telegram queue module", test_queue)
 
     def test_audit():
-        import tempfile, os
+        import os
+
         from core.audit_engine import AuditEngine
         tmp = tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False)
         tmp.close()

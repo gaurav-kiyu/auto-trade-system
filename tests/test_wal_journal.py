@@ -16,7 +16,6 @@ from __future__ import annotations
 import sqlite3
 from unittest.mock import MagicMock, patch
 
-
 from core.wal.journal import (
     Intent,
     IntentStatus,
@@ -70,7 +69,7 @@ class TestWriteAheadJournalInit:
     def test_init_runs_ddl(self, mock_get_conn):
         mock_conn = MagicMock()
         mock_get_conn.return_value = mock_conn
-        journal = WriteAheadJournal(db_path=":memory:")
+        WriteAheadJournal(db_path=":memory:")
         mock_conn.executescript.assert_called_once()
         assert "CREATE TABLE IF NOT EXISTS intents" in mock_conn.executescript.call_args[0][0]
 

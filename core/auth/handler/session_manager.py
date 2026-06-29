@@ -35,7 +35,7 @@ class SessionManagerMixin:
       - self._account_lockouts (dict[str, float])
     """
 
-    def create_session(self, user: AuthUser, ip_address: str = "", user_agent: str = "") -> AuthToken:  # noqa: F821
+    def create_session(self, user: AuthUser, ip_address: str = "", user_agent: str = "") -> AuthToken:
         """Create a new session token for a user."""
         token_str = generate_token()
         token_hash = hashlib.sha256(token_str.encode()).hexdigest()

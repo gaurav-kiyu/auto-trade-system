@@ -17,7 +17,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.ports.execution.execution_port import (
     ExecutionContext,
     ExecutionMode,
@@ -28,7 +27,6 @@ from core.ports.execution.execution_port import (
     OrderType,
 )
 from core.services.execution_service import ExecutionService, ExecutionServiceConfig
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
@@ -143,7 +141,7 @@ class TestExecuteOrder:
     ) -> None:
         """Calling with same idempotency key is safe (no crash, no invalid state)."""
         order_request.idempotency_key = "dup-safe-key-001"
-        result1 = service.execute_order(order_request, execution_context)
+        service.execute_order(order_request, execution_context)
         # Second attempt with same key should not crash and should return a result
         result2 = service.execute_order(order_request, execution_context)
         assert isinstance(result2, OrderResult), "Second call must return OrderResult"
@@ -319,6 +317,7 @@ class TestPortInterface:
     def test_all_abstract_methods_implemented(self) -> None:
         """Check that ExecutionService has concrete implementations for all abstract methods."""
         import inspect
+
         from core.ports.execution.execution_port import ExecutionPort
 
         abstract_methods = [

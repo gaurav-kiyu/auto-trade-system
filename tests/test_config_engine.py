@@ -16,9 +16,7 @@ from __future__ import annotations
 import warnings
 
 import pytest
-
 from core.config_engine import ConfigIssue, ConfigValidationResult, ConfigValidator
-
 
 # ── ConfigIssue Dataclass ──────────────────────────────────────────────────
 
@@ -384,6 +382,7 @@ class TestDeprecation:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             import importlib
+
             import core.config_engine
             importlib.reload(core.config_engine)
             deprecations = [x for x in w if issubclass(x.category, DeprecationWarning)]

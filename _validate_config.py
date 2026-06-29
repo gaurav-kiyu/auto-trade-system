@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validate config template is in sync with defaults."""
 from __future__ import annotations
+
 import json
 import sys
 
@@ -30,7 +31,7 @@ if missing:
         print(f"  MISSING: {k}")
 
 if extra:
-    print(f"\nExtra keys (not in defaults, may be stale):")
+    print("\nExtra keys (not in defaults, may be stale):")
     for k in sorted(extra):
         print(f"  EXTRA: {k}")
 

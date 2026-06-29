@@ -15,7 +15,6 @@ import time
 from unittest.mock import patch
 
 import pytest
-
 from core.iv_rank import (
     IVSkewData,
     compute_iv_skew,
@@ -26,7 +25,6 @@ from core.iv_rank import (
     invalidate_cache,
     iv_summary,
 )
-
 
 # =============================================================================
 # Fixtures

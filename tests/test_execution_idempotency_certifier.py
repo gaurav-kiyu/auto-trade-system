@@ -5,7 +5,6 @@ from __future__ import annotations
 import time
 
 import pytest
-
 from core.execution.idempotency.certifier import (
     CertStatus,
     ExecutionCert,
@@ -77,8 +76,8 @@ class TestIdempotencyCertifier:
 
     def test_begin_existing_returns_cert_id(self, certifier):
         exec_id = certifier.generate_execution_id("NIFTY", "BUY", 23500.0, 50)
-        cert_id1 = certifier.begin(exec_id, "NIFTY", "BUY", {"qty": 50})
-        cert_id2 = certifier.begin(exec_id, "NIFTY", "BUY", {"qty": 50})
+        certifier.begin(exec_id, "NIFTY", "BUY", {"qty": 50})
+        certifier.begin(exec_id, "NIFTY", "BUY", {"qty": 50})
         # Returns a cert_id (may differ due to timestamp), but execution_id is already known
         assert certifier.is_duplicate(exec_id) is True
 
@@ -144,7 +143,7 @@ class TestIdempotencyCertifier:
         certifier.commit(c1, "BROKER_ORD_005")
         certifier.settle(c1)
         e2 = certifier.generate_execution_id("BANKNIFTY", "SELL", 50000.0, 30)
-        c2 = certifier.begin(e2, "BANKNIFTY", "SELL", {"qty": 30})
+        certifier.begin(e2, "BANKNIFTY", "SELL", {"qty": 30})
         counts = certifier.count_by_status()
         assert counts.get(CertStatus.SETTLED) == 1
         assert counts.get(CertStatus.PENDING) == 1

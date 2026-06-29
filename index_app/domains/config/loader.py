@@ -12,10 +12,10 @@ import json
 import logging
 import os
 import threading as _threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
-
+from typing import Any
 
 log = logging.getLogger(__name__)
 

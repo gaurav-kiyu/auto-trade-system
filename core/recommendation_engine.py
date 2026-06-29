@@ -220,7 +220,7 @@ class RecommendationEngine:
                 score=70,
                 source="CROSS_ASSET",
                 priority="HIGH",
-                rationale=f"Flight-to-safety detected: risk assets declining, safe assets rising",
+                rationale="Flight-to-safety detected: risk assets declining, safe assets rising",
                 tags=["flight_to_safety", "risk_off", "reduce_signal"],
                 details=flight,
             ))
@@ -282,7 +282,7 @@ class RecommendationEngine:
 
         risk_attribution = risk.get("risk_attribution", {})
         if risk_attribution:
-            total_risk = risk_attribution.get("total_risk", 0.0)
+            risk_attribution.get("total_risk", 0.0)
             specific_risk = risk_attribution.get("specific_risk", 0.0)
             explained_pct = risk_attribution.get("explained_risk_pct", 100.0)
 

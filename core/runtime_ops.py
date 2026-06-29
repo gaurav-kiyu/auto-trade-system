@@ -7,7 +7,6 @@ import time
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
-
 __all__ = [
     "CircuitBreaker",
     "PerfAccumulator",

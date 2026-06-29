@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-
 from core.adaptive_behavior_governance import (
     AdaptiveAction,
     AdaptiveBehaviorGovernor,
     AdaptiveMode,
-    GovernanceConfig,
     create_governor,
 )
 

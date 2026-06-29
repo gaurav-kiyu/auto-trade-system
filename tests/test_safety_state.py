@@ -12,16 +12,13 @@ Covers:
 """
 from __future__ import annotations
 
-
-import pytest
-
 from unittest.mock import patch
 
 import core.safety_state
+import pytest
 from core.safety_state import (
     _HARD_HALT,
     _clear_halt_history,
-    _hard_halt_reason,
     _shutdown,
     check_intraday_pnl_and_halt,
     check_kill_file_and_halt,

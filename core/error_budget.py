@@ -171,7 +171,7 @@ class ErrorBudget:
         """Error budget consumed in seconds within the given window."""
         cutoff = time.time() - (window_seconds or self._window_seconds)
         failures = 0.0
-        now = time.time()
+        time.time()
         with self._lock:
             # Prune old events
             self._events = [e for e in self._events if e[0] >= cutoff]
@@ -288,7 +288,7 @@ class ErrorBudget:
         # Projected exhaustion
         if burn_rate > 0 and remaining_pct < 50 and budget_remaining < budget_total * 0.5:
             if burn_rate > 0.5:
-                remaining_seconds = budget_remaining / (budget_consumed / max(budget_total, 1) * burn_rate) if budget_consumed > 0 else float('inf')
+                budget_remaining / (budget_consumed / max(budget_total, 1) * burn_rate) if budget_consumed > 0 else float('inf')
                 # Simpler: time until exhaustion = remaining_budget / (failures_per_second)
                 elapsed = now - self._start_time
                 if elapsed > 0:

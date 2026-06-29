@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Merge missing defaults keys into config.template.json."""
 from __future__ import annotations
+
 import json
 
 with open("index_config.defaults.json", encoding="utf-8") as f:
@@ -35,7 +36,7 @@ with open("config.template.json", encoding="utf-8") as f:
     updated = json.load(f)
 updated_keys = set(k for k in updated.keys() if not k.startswith("_"))
 still_missing = set(defaults_keys.keys()) - updated_keys
-print(f"\nVerification:")
+print("\nVerification:")
 print(f"  Template keys before: {len(template_keys)}")
 print(f"  Template keys now: {len(updated_keys)}")
 print(f"  Still missing: {len(still_missing)}")

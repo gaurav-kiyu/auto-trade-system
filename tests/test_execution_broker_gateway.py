@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from core.adapters.base_adapter import BrokerAdapter, OrderRequest, OrderResponse, OrderStatus
 from core.execution.broker_gateway import BrokerGateway, broker_gateway
 
@@ -195,7 +194,6 @@ class TestBrokerGateway:
         """Simulate an adapter that raises ConnectionError during order placement."""
         gateway.connect("healthy", {"key": "valid"})
         adapter = gateway._active_adapter
-        original_place = adapter.place_order
 
         def failing_place(request):
             raise ConnectionError("Network error")

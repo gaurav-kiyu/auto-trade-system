@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-
 __all__ = [
     "ltp_sane",
     "ohlcv_bar_sane",

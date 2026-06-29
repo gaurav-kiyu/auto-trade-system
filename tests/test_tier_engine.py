@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 from core.tier_engine import (
+    TIER_MODERATE_MIN,
     TIER_RULES,
     TIER_STRONG_MIN,
-    TIER_MODERATE_MIN,
     TIER_WEAK_MIN,
     TierRules,
     adaptive_threshold,
     classify_tier,
     get_tier_rules,
 )
-
 
 # ── Constants ─────────────────────────────────────────────────────────────
 

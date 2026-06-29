@@ -12,9 +12,7 @@ Covers:
 from __future__ import annotations
 
 import pytest
-
 from core.safety_engine import SafetyConfig, SafetyContext, SafetyDecision, SafetyEngine
-
 
 # ── SafetyConfig ────────────────────────────────────────────────────
 

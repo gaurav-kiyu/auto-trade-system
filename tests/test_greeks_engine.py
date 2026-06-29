@@ -25,8 +25,8 @@ from core.risk.greeks_engine import (
     GreeksLimits,
     GreeksLimitsConfig,
     GreeksSeverity,
-    GreeksStressTester,
     GreeksStressResult,
+    GreeksStressTester,
     PortfolioGreeks,
     PositionGreeks,
     get_greeks_engine,
@@ -331,7 +331,7 @@ class TestGreeksStressTester:
             theta_pct=0.625, vega_pct=0.25, concentration=1.0,
             position_count=1, timestamp="2026-01-01T00:00:00",
         ), pos, 100000.0)
-        alerts = [r for r in results if r.alert]
+        [r for r in results if r.alert]
         # Should return results with alert flags
         for r in results:
             assert hasattr(r, 'alert')
@@ -432,14 +432,14 @@ class TestGreeksEngineSingleton:
 
     def test_get_engine(self) -> None:
         """get_greeks_engine should return an engine."""
-        from core.risk.greeks_engine import get_greeks_engine, reset_greeks_engine
+        from core.risk.greeks_engine import reset_greeks_engine
         reset_greeks_engine()
         engine = get_greeks_engine()
         assert isinstance(engine, GreeksEngine)
 
     def test_singleton(self) -> None:
         """get_greeks_engine should return same instance."""
-        from core.risk.greeks_engine import get_greeks_engine, reset_greeks_engine
+        from core.risk.greeks_engine import reset_greeks_engine
         reset_greeks_engine()
         e1 = get_greeks_engine()
         e2 = get_greeks_engine()
@@ -447,7 +447,7 @@ class TestGreeksEngineSingleton:
 
     def test_reset(self) -> None:
         """reset_greeks_engine should clear singleton."""
-        from core.risk.greeks_engine import get_greeks_engine, reset_greeks_engine
+        from core.risk.greeks_engine import reset_greeks_engine
         reset_greeks_engine()
         e1 = get_greeks_engine()
         reset_greeks_engine()

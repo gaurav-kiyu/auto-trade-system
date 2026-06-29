@@ -9,7 +9,6 @@ from core.execution_wiring import (
     create_safety_wiring,
 )
 
-
 # ── ExecutionSafetyWiring construction ───────────────────────────────────
 
 def test_wiring_defaults() -> None:

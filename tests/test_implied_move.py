@@ -8,9 +8,7 @@ Covers:
 """
 from __future__ import annotations
 
-
 import pytest
-
 from core.implied_move import (
     ImpliedMove,
     check_implied_move_gate,

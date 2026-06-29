@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import joblib
 import numpy as np
 
-
 __all__ = [
     "ExitPrediction",
     "MLExitClassifier",

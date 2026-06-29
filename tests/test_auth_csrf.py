@@ -19,10 +19,8 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+from core.auth.csrf import CSRF_COOKIE_NAME, CSRF_HEADER_NAME, CSRFProtection
 from fastapi import HTTPException, Request, Response
-
-from core.auth.csrf import CSRFProtection, CSRF_COOKIE_NAME, CSRF_HEADER_NAME
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -89,7 +87,7 @@ class TestCSRFTokenGeneration:
         window = int(time.time() / 900)
         expected_msg = f"{session_id}:{window}"
         expected = hmac.new(
-            "test_secret_key_32_chars_long!!!".encode(),
+            b"test_secret_key_32_chars_long!!!",
             expected_msg.encode(),
             hashlib.sha256,
         ).hexdigest()

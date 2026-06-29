@@ -32,19 +32,19 @@ import json
 import logging
 import sqlite3
 import threading
-
-from core.db_utils import get_connection
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum
 from typing import Any
 
+from core.db_utils import get_connection
 from core.time_provider import time_provider
 
 # Optional OpenTelemetry tracing — gracefully no-ops if disabled or package missing
 try:
-    from core.observability.opentelemetry import trace_event, Timer as _OtelTimer
+    from core.observability.opentelemetry import Timer as _OtelTimer
+    from core.observability.opentelemetry import trace_event
 except ImportError:
     # Fallback no-ops if the module itself has import issues
     class _NoOpCtx:

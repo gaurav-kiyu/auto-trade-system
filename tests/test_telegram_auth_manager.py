@@ -9,9 +9,7 @@ Covers:
 """
 from __future__ import annotations
 
-
 from core.telegram.auth.manager import TelegramAuthManager, UserPermissions
-
 
 # =============================================================================
 # UserPermissions Tests

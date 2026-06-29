@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 
-
 from core.expiry_day_controller import (
     ExpiryControlResult,
     ExpiryDayController,

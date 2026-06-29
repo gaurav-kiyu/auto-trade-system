@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import json
 
-
-
 from core.black_swan import (
+    SCENARIO_DEFINITIONS,
     BlackSwanEngine,
     BlackSwanReport,
     BlackSwanType,
-    SCENARIO_DEFINITIONS,
     run_black_swan_suite,
     run_critical_suite,
 )

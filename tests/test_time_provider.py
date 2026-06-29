@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import patch
 
-
 from core.time_provider import (
     IST,
     NTPClockSync,

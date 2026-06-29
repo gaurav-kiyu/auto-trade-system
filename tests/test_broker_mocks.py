@@ -257,7 +257,7 @@ def test_broker_failover_simulation():
             expiry_str_fn=lambda name: "25JAN",
         )
     )
-    assert type(adapter_paper) == type(adapter_paper2)
+    assert type(adapter_paper) is type(adapter_paper2)
 
 
 if __name__ == "__main__":

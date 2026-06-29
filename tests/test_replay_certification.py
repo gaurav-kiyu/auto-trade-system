@@ -18,9 +18,7 @@ import sqlite3
 import tempfile
 
 import pytest
-
 from core.certification.replay_certifier import ReplayCertifier, certify_replay_determinism
-
 
 # ── Fixture factories ───────────────────────────────────────────────────────
 

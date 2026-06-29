@@ -25,10 +25,9 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from hypothesis import HealthCheck, given, settings, strategies as st
-
 from core.db_utils import AsyncDbWriter, get_connection
-
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 

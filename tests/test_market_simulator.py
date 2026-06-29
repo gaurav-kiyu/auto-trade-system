@@ -133,7 +133,7 @@ class TestMarketSimulatorLatency:
         for i in range(50):
             r = self.sim.simulate_order(f"ORD-{i}", 1, 100.0, inject_failures=False)
             latencies.append(r.latency_ms)
-        assert all(l >= 0 for l in latencies)
+        assert all(lat >= 0 for lat in latencies)
         # Most should be within a reasonable range of the mean
         mean = sum(latencies) / len(latencies)
         assert 20 < mean < 120

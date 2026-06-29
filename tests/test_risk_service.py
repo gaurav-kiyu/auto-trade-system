@@ -24,15 +24,13 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.services.risk_service import (
-    RiskService,
-    RiskServiceConfig,
     PortfolioRiskMetrics,
     PositionSizingInput,
     RiskDecision,
+    RiskService,
+    RiskServiceConfig,
 )
-
 
 # ── RiskServiceConfig ─────────────────────────────────────────────────────
 

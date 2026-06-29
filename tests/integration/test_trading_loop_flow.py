@@ -15,7 +15,7 @@ import os
 import threading
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -104,8 +104,8 @@ def mock_config_file() -> str:
 @pytest.fixture
 def mock_yfinance():
     """Mock yfinance intraday data to return realistic OHLCV."""
-    import pandas as pd
     import numpy as np
+    import pandas as pd
 
     # Generate 60 bars of realistic 1m data
     now = time.time()
@@ -254,7 +254,8 @@ class TestFullTradingLoopFlow:
 
         # Mock risk_service at module level (it's None after reset_globals)
         mock_risk = MagicMock()
-        from core.services.risk_service import RiskEvaluation, RiskDecision as RiskServiceDecision
+        from core.services.risk_service import RiskDecision as RiskServiceDecision
+        from core.services.risk_service import RiskEvaluation
         mock_risk_eval = MagicMock(spec=RiskEvaluation)
         mock_risk_eval.decision = RiskServiceDecision.ALLOWED
         mock_risk_eval.reason = "All checks passed"
@@ -295,8 +296,9 @@ class TestFullTradingLoopFlow:
         - Exit orders are placed correctly
         - Positions are cleaned up after exit
         """
-        import index_app.index_trader as it
         from unittest.mock import MagicMock as _MagicMock
+
+        import index_app.index_trader as it
 
         # Clear any existing positions
         it.positions.clear()
@@ -924,7 +926,8 @@ class TestFullTradingLoopFlow:
         assert callable(it._exit_position)
 
         # Verify module-level __getattr__ works for hidden imports
-        from core.safety_state import _HARD_HALT, _shutdown as shutdown_event
+        from core.safety_state import _HARD_HALT
+        from core.safety_state import _shutdown as shutdown_event
 
         assert it._HARD_HALT is _HARD_HALT
         assert it._shutdown is shutdown_event
@@ -937,7 +940,7 @@ class TestSecurityAndSafetyGates:
     def test_hard_halt_blocks_entry(self, mock_now_ist: MagicMock):
         """Hard halt must block ALL new trade entries."""
         import index_app.index_trader as it
-        from core.safety_state import trip_hard_halt, is_hard_halted
+        from core.safety_state import is_hard_halted, trip_hard_halt
 
         mock_now_ist.return_value = time.time()
 

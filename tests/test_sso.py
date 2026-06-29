@@ -8,9 +8,7 @@ graceful degradation behavior and configuration validation.
 
 from __future__ import annotations
 
-
 import pytest
-
 from core.auth.sso import OAUTH_PROVIDERS, SSOAuthenticator, SSOConfig, SSOUser
 
 

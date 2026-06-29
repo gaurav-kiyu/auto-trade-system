@@ -5,9 +5,6 @@ from __future__ import annotations
 import pytest
 from core.cross_asset_analytics import (
     CrossAssetAnalytics,
-    CrossAssetCorrelation,
-    RelativeValueResult,
-    FlightToSafetyResult,
     compute_cross_asset_correlation,
 )
 

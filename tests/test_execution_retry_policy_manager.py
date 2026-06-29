@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
+import threading
 from unittest.mock import MagicMock
 
-import threading
-
 import pytest
-
 from core.execution.retry_policy.manager import (
     RetryPolicy,
     RetryResult,

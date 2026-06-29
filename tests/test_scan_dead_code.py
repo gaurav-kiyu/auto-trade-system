@@ -2,20 +2,16 @@
 """Tests for scripts/scan_dead_code.py - Dead code and duplicate code scanning."""
 from __future__ import annotations
 
-
-
 import tempfile
 from pathlib import Path
 
 import pytest
-
 from scripts.scan_dead_code import (
-    ROOT,
     DeadCodeFinding,
     DuplicateFinding,
-    main,
-    collect_module_exports,
     _update_section_in_file,
+    collect_module_exports,
+    main,
 )
 
 

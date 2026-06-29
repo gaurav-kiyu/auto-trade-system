@@ -28,8 +28,8 @@ _log = logging.getLogger(__name__)
 # ── Kite Connect availability ────────────────────────────────────────────────
 
 try:
-    from kiteconnect import KiteConnect
     import kiteconnect.exceptions as KiteExceptions
+    from kiteconnect import KiteConnect
 
     KITE_AVAILABLE = True
 except ImportError:

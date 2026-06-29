@@ -15,13 +15,6 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-
-from core.strategy.sandbox import (
-    SandboxMode,
-    SandboxResult,
-    StrategySandbox,
-    get_strategy_sandbox,
-)
 from core.strategy.plugin_framework import (
     BaseStrategy,
     FillInfo,
@@ -30,7 +23,12 @@ from core.strategy.plugin_framework import (
     StrategySignal,
     StrategySignalOutput,
 )
-
+from core.strategy.sandbox import (
+    SandboxMode,
+    SandboxResult,
+    StrategySandbox,
+    get_strategy_sandbox,
+)
 
 # ── Mock Strategy ─────────────────────────────────────────────────────────────
 
@@ -303,7 +301,7 @@ class TestSimulateFill:
 
     def test_default_slippage(self, sandbox: StrategySandbox):
         sandbox.configure(SandboxMode.HISTORICAL_REPLAY)
-        signal = StrategySignalOutput(signal=StrategySignal.BUY, confidence=0.8, score=75, price=100.0, quantity=1)
+        StrategySignalOutput(signal=StrategySignal.BUY, confidence=0.8, score=75, price=100.0, quantity=1)
         assert sandbox._config.slippage_pct == 0.001
 
 

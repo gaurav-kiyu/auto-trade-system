@@ -18,7 +18,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
 import pytest
-
 from core.execution.deterministic_state_machine import (
     ExecutionState,
     ExecutionStateMachine,
@@ -26,7 +25,6 @@ from core.execution.deterministic_state_machine import (
     TransitionResult,
     reset_execution_state_manager,
 )
-
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 

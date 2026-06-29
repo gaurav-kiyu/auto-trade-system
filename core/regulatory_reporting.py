@@ -224,7 +224,7 @@ class RegulatoryReporter:
         """Generate risk limits utilization report."""
         report = ComplianceReport(
             report_type="RISK_LIMITS",
-            report_period=f"CURRENT",
+            report_period="CURRENT",
             trader_id=self._trader_id,
             broker_name=self._broker_name,
         )
@@ -407,7 +407,7 @@ def _cli() -> None:
     if args.type == "package":
         package = reporter.generate_compliance_package(db_path=args.db)
         paths = package.save_to(args.output)
-        print(f"Compliance package saved:")
+        print("Compliance package saved:")
         for report_type, path in paths.items():
             print(f"  {report_type}: {path}")
     elif args.type == "trade_register":

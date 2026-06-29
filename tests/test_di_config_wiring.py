@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import pytest
-
-from core.di_container import DIContainer, wire_default_services, reset_container, get_container
+from core.di_container import DIContainer, get_container, reset_container, wire_default_services
 from index_app.domains.config.manager import ConfigManager
 
 

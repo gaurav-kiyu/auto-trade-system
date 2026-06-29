@@ -6,7 +6,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-
 __all__ = [
     "BrokerEvent",
     "JsonlCaptureWriter",

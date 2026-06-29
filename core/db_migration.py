@@ -7,7 +7,6 @@ from dataclasses import dataclass
 
 from core.db_utils import get_connection as _get_mig_conn
 
-
 __all__ = [
     "Migration",
     "ensure_schema_version",
@@ -96,7 +95,7 @@ def get_migration_log(conn_or_path: "str | sqlite3.Connection") -> list[dict]:
     Accepts a sqlite3.Connection or a file path str.
     """
     if isinstance(conn_or_path, str):
-        conn = _get_mig_conn(conn_or_path, row_factory=False)  # noqa: F811
+        conn = _get_mig_conn(conn_or_path, row_factory=False)
         try:
             return _get_migration_log_inner(conn)
         finally:

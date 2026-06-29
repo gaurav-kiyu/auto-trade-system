@@ -12,14 +12,12 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
-
 from core.domains.commodity import (
+    MCX_CONTRACT_SPECS,
     CommodityCategory,
     CommodityContract,
     CommodityPosition,
     ContractSpec,
-    DeliveryType,
-    MCX_CONTRACT_SPECS,
     PositionType,
 )
 

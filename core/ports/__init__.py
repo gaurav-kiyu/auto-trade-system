@@ -1,6 +1,6 @@
 """Ports Package - Hexagonal Architecture Port Interfaces.
 
-All port interfaces that define contracts between the core domain and 
+All port interfaces that define contracts between the core domain and
 external adapters. Each sub-package defines a specific port boundary.
 
 Port Sub-Packages:
@@ -29,7 +29,6 @@ Usage:
 from __future__ import annotations
 
 # ── Sub-package architectures ────────────────────────────────────────────
-
 from core.ports.broker import (
     BrokerAuthStatus,
     BrokerCapability,
@@ -59,41 +58,39 @@ from core.ports.broker import (
     Quote,
     Trade,
 )
-from core.ports.circuit_breaker import CircuitBreakerPort
-from core.ports.config import ConfigPort
-from core.ports.execution import ExecutionPort
-from core.ports.ml_model import MLPrediction, MlModelPort
-from core.ports.notification import NotificationPort
-from core.ports.persistence import PersistencePort
-from core.ports.rate_limiting import RateLimitPort
-from core.ports.risk import RiskPort
-from core.ports.strategy import StrategyDecision, StrategyPort
-
-# ── Direct module port interfaces ────────────────────────────────────────
-
-from core.ports.correlation_id import CorrelationIdPort
-from core.ports.logging import LoggingPort
-from core.ports.market_data import MarketDataPort, MarketDataAdapterFactory
-from core.ports.metrics import MetricsPort
 
 # ── Capital Allocation (multi-asset) ─────────────────────────────────────
-
 from core.ports.capital_allocation import (
     AllocationRequest,
     AllocationResult,
     AssetClass,
     CapitalAllocationPort,
 )
+from core.ports.circuit_breaker import CircuitBreakerPort
+from core.ports.config import ConfigPort
+
+# ── Direct module port interfaces ────────────────────────────────────────
+from core.ports.correlation_id import CorrelationIdPort
+from core.ports.execution import ExecutionPort
+from core.ports.logging import LoggingPort
+from core.ports.market_data import MarketDataAdapterFactory, MarketDataPort
+from core.ports.metrics import MetricsPort
+from core.ports.ml_model import MlModelPort, MLPrediction
+from core.ports.notification import NotificationPort
+from core.ports.persistence import PersistencePort
+from core.ports.rate_limiting import RateLimitPort
+from core.ports.risk import RiskPort
 
 # ── Risk port types (shared with domain models) ──────────────────────────
-
 from core.ports.risk.risk_port import (
-    PositionSizingInput,
-    RiskDecision as RiskPortDecision,
-    RiskEvaluation,
     PortfolioRiskMetrics,
+    PositionSizingInput,
+    RiskEvaluation,
 )
-
+from core.ports.risk.risk_port import (
+    RiskDecision as RiskPortDecision,
+)
+from core.ports.strategy import StrategyDecision, StrategyPort
 
 __all__ = [
     # Broker

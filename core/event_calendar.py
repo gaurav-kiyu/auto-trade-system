@@ -259,7 +259,7 @@ def _load_persistent_holiday_cache() -> set[datetime.date]:
         import json
         if not os.path.exists(_NSE_HOLIDAY_CACHE_FILE):
             return set()
-        with open(_NSE_HOLIDAY_CACHE_FILE, "r", encoding="utf-8") as f:
+        with open(_NSE_HOLIDAY_CACHE_FILE, encoding="utf-8") as f:
             data = json.load(f)
         cached_ts = data.get("timestamp", 0.0)
         # Consider cache stale after TTL

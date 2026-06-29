@@ -182,7 +182,7 @@ class Stock:
     average_volume_10d: int = 0
     average_delivery_pct: float = 0.0
     fundamentals: StockFundamentals | None = None
-    corporate_actions: list['CorporateAction'] = field(default_factory=list)
+    corporate_actions: list[CorporateAction] = field(default_factory=list)
     is_active: bool = True
     timestamp: datetime = field(default_factory=datetime.now)
 

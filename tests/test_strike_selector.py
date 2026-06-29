@@ -8,14 +8,11 @@ Covers:
 """
 from __future__ import annotations
 
-
-
 from core.strike_selector import (
     dte_entry_check,
     select_strike,
     strike_summary,
 )
-
 
 # =============================================================================
 # select_strike Tests

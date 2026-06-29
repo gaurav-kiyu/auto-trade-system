@@ -69,7 +69,7 @@ class TestFindConfigFiles:
         configs = sync_artifacts.find_config_files()
         json_files = [c for c in configs if c.suffix == ".json"]
         # Check for important configs specifically
-        found_important = [
+        [
             c for c in configs if c.name in ("config.template.json", "index_config.defaults.json")
         ]
         # Either we found configs or the list is reasonable
@@ -78,7 +78,7 @@ class TestFindConfigFiles:
     def test_find_config_files_has_env_example(self) -> None:
         """Should find .env.example."""
         configs = sync_artifacts.find_config_files()
-        env_files = [c for c in configs if ".env" in c.name]
+        [c for c in configs if ".env" in c.name]
         # Or just check for .env.example directly
         env_example = ROOT / ".env.example"
         assert env_example.exists()

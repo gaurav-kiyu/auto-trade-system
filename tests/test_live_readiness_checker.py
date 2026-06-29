@@ -15,7 +15,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-
 from core.live_readiness_checker import (
     CriterionResult,
     ReadinessReport,
@@ -27,7 +26,6 @@ from core.live_readiness_checker import (
     mark_sent_today,
     should_send_today,
 )
-
 
 # ── CriterionResult ─────────────────────────────────────────────────
 

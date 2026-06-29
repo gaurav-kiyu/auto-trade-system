@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, call, patch
 
-
 from core.execution.replay_engine import (
     ReplayEngine,
     ReplaySession,
@@ -250,8 +249,10 @@ class TestStartReplay:
         mock_get_conn.return_value.__enter__.return_value = mock_conn
         engine = ReplayEngine()
         sess = engine.create_session(start_time="09:15", end_time="15:30")
-        md_cb = lambda x: None
-        ev_cb = lambda x: None
+        def md_cb(x):
+            return None
+        def ev_cb(x):
+            return None
         engine.start_replay(sess.session_id, on_market_data=md_cb, on_event=ev_cb)
         assert engine._market_data_callback is md_cb
         assert engine._event_callback is ev_cb

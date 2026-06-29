@@ -124,7 +124,7 @@ class TenantContext:
 
     def get_trades(self, db_path: str = "trades.db", days: int = 30) -> list[dict[str, Any]]:
         """Get trades scoped to this tenant.
-        
+
         Requires a 'tenant_id' column in the trades table.
         Falls back to all trades if column doesn't exist.
         """

@@ -11,7 +11,6 @@ import time
 from types import MappingProxyType
 from typing import Any
 
-
 __all__ = [
     "_DEFAULT_HOST",
     "_DEFAULT_PORT",

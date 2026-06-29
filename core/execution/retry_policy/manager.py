@@ -8,6 +8,7 @@ Distinguishes between SAFE and UNSAFE retries to prevent duplicate orders.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections.abc import Callable
 from enum import Enum

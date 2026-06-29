@@ -18,16 +18,18 @@ New code should use the canonical types (``BrokerPort``, ``OrderResult``,
 
 from __future__ import annotations
 
-
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
 from typing import Any
 
-# ── Canonical types from broker_port.py (the canonical interface) ────────────
-
-from core.ports.broker.broker_port import BrokerPort as BrokerPort
+# ── Shared kernel models (used by legacy broker adapters) ────────────────────
+from core.common.kernels.models import Fill as SharedFill
+from core.common.kernels.models import Order as SharedOrder
+from core.common.kernels.models import Position as SharedPosition
+from core.common.kernels.models import Quote as SharedQuote
+from core.datetime_ist import now_ist
 from core.ports.broker.broker_port import (
     BrokerAuthStatus,
     BrokerCapability,
@@ -46,15 +48,8 @@ from core.ports.broker.broker_port import (
     Trade,
 )
 
-# ── Shared kernel models (used by legacy broker adapters) ────────────────────
-
-from core.common.kernels.models import Fill as SharedFill
-from core.common.kernels.models import Order as SharedOrder
-
-from core.common.kernels.models import Position as SharedPosition
-from core.common.kernels.models import Quote as SharedQuote
-
-from core.datetime_ist import now_ist
+# ── Canonical types from broker_port.py (the canonical interface) ────────────
+from core.ports.broker.broker_port import BrokerPort as BrokerPort
 
 # ── Legacy backward‑compatible aliases ───────────────────────────────────────
 
@@ -248,7 +243,6 @@ class BrokerAdapterFactory:
 # ── Health port ───────────────────────────────────────────────────────────────
 
 from core.ports.broker.health_port import BrokerHealthPort
-
 
 __all__ = [
     # Canonical types (from broker_port.py)

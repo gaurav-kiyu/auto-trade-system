@@ -16,10 +16,8 @@ import threading
 import time
 
 import pytest
-
 from core.auth.permissions import Role
 from core.auth.session_store import Session, SessionStore
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -182,8 +180,8 @@ class TestSessionStoreExpiry:
 
     def test_purge_expired_removes_only_expired(self, short_ttl_store):
         """Purge should remove expired but keep valid sessions."""
-        s1 = short_ttl_store.create("alice", Role.ADMIN)
-        s2 = short_ttl_store.create("bob", Role.OPERATOR)
+        short_ttl_store.create("alice", Role.ADMIN)
+        short_ttl_store.create("bob", Role.OPERATOR)
         time.sleep(0.15)  # both expire
         s3 = short_ttl_store.create("charlie", Role.VIEWER)  # new session
         purged = short_ttl_store.purge_expired()

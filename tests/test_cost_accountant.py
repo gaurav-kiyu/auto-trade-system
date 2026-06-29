@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from core.cost_accountant import CostAccountant, get_cost_accountant
 
 

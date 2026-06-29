@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-
 import pytest
-
 from core.config_validator import (
     append_tier_engine_errors,
     generate_config_checksum,
@@ -17,7 +15,6 @@ from core.config_validator import (
     validate_config,
     validate_structured_blocks,
 )
-
 
 # ── Helper: a config that should pass basic validation ────────────
 _VALID_CFG = {

@@ -13,12 +13,16 @@ Tests cover:
 from __future__ import annotations
 
 import time
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.ports.market_data import MarketDataPort
 
+if TYPE_CHECKING:
+    from infrastructure.adapters.market_data.websocket.nse_index_ws_adapter import (
+        NseIndexWebSocketAdapter,
+    )
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -40,7 +44,7 @@ def _fake_kiteconnect():
         yield
 
 
-def _make_adapter(**overrides) -> "NseIndexWebSocketAdapter":
+def _make_adapter(**overrides) -> NseIndexWebSocketAdapter:
     """Create an adapter with kite_ticker_enabled=True + optional overrides."""
     from infrastructure.adapters.market_data.websocket.nse_index_ws_adapter import (
         NseIndexWebSocketAdapter,

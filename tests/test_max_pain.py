@@ -7,9 +7,7 @@ from __future__ import annotations
 import json
 
 import pytest
-
 from core.max_pain import MaxPainResult, compute_max_pain, compute_pain_index
-
 
 # Sample option chain for testing
 _SAMPLE_CHAIN = {

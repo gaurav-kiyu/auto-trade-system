@@ -8,7 +8,6 @@ from core.startup_checklist import (
     run_startup_checklist,
 )
 
-
 # ── StartupCheckItem ─────────────────────────────────────────────────────
 
 def test_startup_check_item_default() -> None:

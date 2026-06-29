@@ -1,7 +1,6 @@
 import logging
 import time
 
-
 __all__ = [
     "BROKER_HEALTH",
     "BROKER_UPTIME",

@@ -9,7 +9,6 @@ import sys
 import threading
 from collections.abc import Callable
 
-
 __all__ = [
     "ensure_supported_python",
     "execute_shutdown",

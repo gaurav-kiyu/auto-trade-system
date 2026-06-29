@@ -17,9 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from core.state_manager import SessionRecoveryReport, StateManager
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
@@ -48,7 +46,7 @@ class TestInit:
         assert m._state == {}
 
     def test_init_does_not_create_file_prematurely(self, state_file: str, db_file: str) -> None:
-        m = StateManager(state_file=state_file, db_path=db_file)
+        StateManager(state_file=state_file, db_path=db_file)
         assert not Path(state_file).exists()
 
     def test_init_with_custom_state_file(self, state_file: str, db_file: str) -> None:

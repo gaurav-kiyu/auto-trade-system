@@ -20,7 +20,6 @@ pytestmark = pytest.mark.integration
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-
 # ==============================================================================
 # Helpers
 # ==============================================================================

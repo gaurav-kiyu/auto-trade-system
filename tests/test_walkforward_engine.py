@@ -6,17 +6,15 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
-
 from core.walkforward_engine import (
+    WalkForwardDriftMonitor,
     WalkForwardEngine,
     WalkForwardReport,
     WalkForwardWindow,
     analyze_parameter_drift,
     calculate_adaptive_retrain_trigger,
     calculate_statistical_significance,
-    WalkForwardDriftMonitor,
 )
-
 
 # ── Fixtures ─────────────────────────────────────────────────────
 

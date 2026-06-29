@@ -13,24 +13,24 @@ gate               :  Unified Certification Gate (Phase 24)
 
 from __future__ import annotations
 
-from core.certification.replay_certifier import (
-    ReplayCertificationReport,
-    ReplayCertifier,
-    certify_replay_determinism,
-)
+import importlib
+from typing import Any
+
 from core.certification.paper_certifier import (
     PaperCertificationReport,
     PaperCertifier,
     certify_paper_trading,
+)
+from core.certification.replay_certifier import (
+    ReplayCertificationReport,
+    ReplayCertifier,
+    certify_replay_determinism,
 )
 from core.certification.strategy_certifier import (
     StrategyCertificationReport,
     StrategyCertifier,
     certify_strategy,
 )
-import importlib
-from typing import Any
-
 
 # Gate symbols loaded lazily to avoid RuntimeWarning when running
 # python -m core.certification.gate (eager import conflicts with runpy)

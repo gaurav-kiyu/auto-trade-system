@@ -4,7 +4,6 @@ import os
 import time
 from typing import Any
 
-
 __all__ = [
     "JsonFormatter",
     "cleanup_old_prefixed_logs",

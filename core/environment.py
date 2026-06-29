@@ -5,7 +5,6 @@ import os
 import sys
 from enum import Enum
 
-
 __all__ = [
     "Environment",
     "current_environment",

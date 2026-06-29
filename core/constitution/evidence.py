@@ -25,7 +25,7 @@ __all__ = [
 ]
 
 
-def collect_auto_evidence(validator: "ConstitutionValidator") -> None:
+def collect_auto_evidence(validator: ConstitutionValidator) -> None:
     """Auto-register evidence by scanning the codebase.
 
     Scans for test files, key modules, documentation, and scripts
@@ -913,7 +913,7 @@ def collect_auto_evidence(validator: "ConstitutionValidator") -> None:
     _collect_additional_evidence(validator)
 
 
-def _collect_additional_evidence(validator: "ConstitutionValidator") -> None:
+def _collect_additional_evidence(validator: ConstitutionValidator) -> None:
     """Collect remaining evidence blocks beyond the core scan."""
     root: Path = validator.PROJECT_ROOT
     add_ev = validator.add_evidence

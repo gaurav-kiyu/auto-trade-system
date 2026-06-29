@@ -7,7 +7,6 @@ from typing import Any
 
 import pandas as pd
 
-
 __all__ = [
     "calc_adx",
     "calc_dynamic_slippage",

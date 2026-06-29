@@ -8,7 +8,6 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-
 from core.concept_drift_detector import (
     DriftResult,
     compute_ks,
@@ -17,7 +16,6 @@ from core.concept_drift_detector import (
     detect_drift,
     format_drift_report,
 )
-
 
 # ── PSI computation tests ────────────────────────────────────────────────────
 
@@ -239,7 +237,7 @@ class TestFormatDriftReport:
         report = format_drift_report(results)
         lines = report.split("\n")
         # Find the feature lines
-        feature_lines = [l for l in lines if l.strip().startswith("[")]
+        feature_lines = [li for li in lines if li.strip().startswith("[")]
         # First should be ALERT
         assert "[!!]" in feature_lines[0]
         # Then WARN

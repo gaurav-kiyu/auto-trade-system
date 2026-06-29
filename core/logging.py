@@ -15,13 +15,15 @@ from __future__ import annotations
 import logging
 import sys
 
-# Import canonical StructuredLogger from common utilities
 from core.common.utilities.logging import (
-    StructuredLogger as _CanonicalStructuredLogger,
     LogContextManager,
     with_context,
 )
 
+# Import canonical StructuredLogger from common utilities
+from core.common.utilities.logging import (
+    StructuredLogger as _CanonicalStructuredLogger,
+)
 
 # Singleton logging configuration
 _configured = False

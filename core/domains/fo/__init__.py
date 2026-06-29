@@ -16,11 +16,11 @@ Usage:
     )
 """
 from core.domains.fo.models import (
+    NFO_CONTRACT_SPECS,
     ContractSpec,
     ExpiryType,
     FutureContract,
     FuturePosition,
-    NFO_CONTRACT_SPECS,
     OptionContract,
     OptionPosition,
     PositionType,

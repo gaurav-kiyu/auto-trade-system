@@ -66,7 +66,7 @@ class TestRecommendationDataClasses:
             Recommendation(direction="SELL", priority="NORMAL", confidence=0.7, score=70.0, source="CROSS_ASSET"),
             Recommendation(direction="HOLD", priority="NORMAL", confidence=0.5, score=50.0, source="LIQUIDITY"),
         ]
-        report = RecommendationReport(
+        RecommendationReport(
             recommendations=recs,
             total_recommendations=len(recs),
             high_priority_count=1,

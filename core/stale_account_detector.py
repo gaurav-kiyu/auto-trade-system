@@ -26,11 +26,10 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-
 from enum import Enum
-from typing import Any, Callable
-
+from typing import Any
 
 from core.logging import LoggingService
 from core.safety_state import trip_hard_halt as _trip_halt
@@ -174,7 +173,7 @@ class StaleAccountDetector:
             _vfile = Path(__file__).resolve().parent.parent / "VERSION"
             if _vfile.exists():
                 version = _vfile.read_text(encoding="utf-8").strip()
-        except (OSError, IOError) as e:
+        except OSError as e:
             log.debug("[STALE_ACCOUNT_DETECTOR] non-critical error: %s", e)
         self._logger = LoggingService(
             log_dir="logs",

@@ -7,11 +7,11 @@ Philosophy: Suggestions over actions. Stability over optimisation.
 from __future__ import annotations
 
 from core.auto_tuner.models import (
+    _BLOCKED_KEYS,
+    _TUNABLE_PARAMS,
     AppliedChange,
     Recommendation,
     TuneResult,
-    _BLOCKED_KEYS,
-    _TUNABLE_PARAMS,
 )
 from core.auto_tuner.tuner import (
     _check_direction_skew,

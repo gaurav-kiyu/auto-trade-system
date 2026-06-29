@@ -6,7 +6,6 @@ import json
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.self_healing.orchestrator import (
     FailurePattern,
     HealingAction,
@@ -16,7 +15,6 @@ from core.self_healing.orchestrator import (
     SelfHealingOrchestrator,
     get_orchestrator,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

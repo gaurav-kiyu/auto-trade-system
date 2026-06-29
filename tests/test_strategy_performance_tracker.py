@@ -18,7 +18,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from core.strategy.performance_tracker import (
     StrategyMetrics,
     StrategyPerformanceTracker,
@@ -255,8 +254,9 @@ class TestGetMetrics:
 
     def test_time_window(self, tracker: StrategyPerformanceTracker):
         # Record trades with timestamps far in the past
-        from core.datetime_ist import now_ist
         from datetime import timedelta
+
+        from core.datetime_ist import now_ist
 
         old_time = (now_ist() - timedelta(days=200)).isoformat()
         for i in range(3):

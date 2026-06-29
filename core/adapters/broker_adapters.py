@@ -13,7 +13,6 @@ from typing import Any
 
 from core.ports.broker import LegacyBrokerPort
 
-
 __all__ = [
     "AngelBrokerAdapter",
     "BrokerAdapter",

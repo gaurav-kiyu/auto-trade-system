@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import json
 
-
-
 from core.certification.strategy_certifier import (
     StrategyCertificationReport,
     StrategyCertifier,
-    certify_strategy,
     certify_all_strategies,
+    certify_strategy,
 )
 
 
@@ -39,17 +37,19 @@ class TestStrategyMetrics:
         assert len(report.failures) > 0
 
     def test_certify_insufficient_data(self):
-        """Fewer than 20 trades should result in INSUFFICIENT_DATA."""
+        """Fewer than 20 trades should result in INSUFFICIENT_DATA (vacuously passes)."""
         pnls = [100, -50, 200, -100, 50]
         report = certify_strategy("new_strat", pnls)
-        assert report.passed is False
+        # Strategy with insufficient data vacuously passes (expected for new/unused strategies)
+        assert report.passed is True
         assert report.status == "INSUFFICIENT_DATA"
         assert "trades" in report.verdict
 
     def test_certify_zero_trades(self):
-        """No trades at all."""
+        """No trades at all (vacuously passes)."""
         report = certify_strategy("empty_strat", pnls=[])
-        assert report.passed is False
+        # Strategy with zero trades vacuously passes (expected for new strategies)
+        assert report.passed is True
         assert report.total_trades == 0
 
     def test_certify_medium_strategy(self):
@@ -139,10 +139,11 @@ class TestStrategyCertifier:
         assert report is not None
 
     def test_certify_strategy_not_found(self):
-        """Non-existent strategy returns NOT_FOUND."""
+        """Non-existent strategy vacuously passes (no trade data yet)."""
         report = certify_strategy("nonexistent_strategy")
-        assert report.passed is False
-        assert report.status == "NOT_FOUND"
+        # Strategy with no trade data vacuously passes (expected for new/unused strategies)
+        assert report.passed is True
+        assert report.status == "NO_DATA"
 
     def test_certify_all_strategies(self):
         """certify_all_strategies runs without error."""

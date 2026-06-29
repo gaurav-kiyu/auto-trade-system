@@ -22,8 +22,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core.certification.report_generators import (
-    CertificationReport,
     CertCriteria,
+    CertificationReport,
     generate_all_reports,
     generate_architecture_certification,
     generate_greeks_certification,
