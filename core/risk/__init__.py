@@ -20,6 +20,8 @@ been removed. Use RiskService directly for any new risk-related code.
 # Greeks Engine
 # Re-exports from options_greeks_engine (needed by risk_service.py)
 from core.options_greeks_engine import (
+    OptionsGreeksEngine,
+    OptionType,
     PositionGreeksInput,
 )
 from core.risk.greeks_engine import (
@@ -80,6 +82,8 @@ __all__ = [
     "GreeksStressTester",
     "PortfolioGreeks",
     "PositionGreeks",
+    "OptionsGreeksEngine",
+    "OptionType",
     "PositionGreeksInput",
     "get_greeks_engine",
     "reset_greeks_engine",

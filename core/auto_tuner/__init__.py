@@ -13,7 +13,14 @@ from core.auto_tuner.models import (
     Recommendation,
     TuneResult,
 )
-from core.auto_tuner.tuner import (
+from core.auto_tuner.tuner import (  # noqa: F401 — imported by tests/auto_tuner
+    _check_direction_skew,
+    _check_drawdown,
+    _check_regime_sizes,
+    _check_score_threshold,
+    _compute_safe_change,
+    _in_cooldown,
+    _parse_bin_range,
     apply_recommendations,
     backup_config,
     eod_auto_tune_hook,
