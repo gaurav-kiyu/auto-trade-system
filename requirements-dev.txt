@@ -4,6 +4,7 @@
 
 # Test runner
 pytest>=8.0
+pytest-xdist>=3.6  # parallel test execution: pytest tests/ -n auto
 
 # Schema validation (used by test_config_schema.py)
 jsonschema>=4.20

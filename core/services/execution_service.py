@@ -1,10 +1,9 @@
-import hashlib
 import logging
 import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 __all__ = [
@@ -25,6 +24,7 @@ from core.execution.durable_state import (
 )
 from core.execution.idempotency.manager import IdempotencyManager
 from core.execution.order_submission.manager import OrderSubmissionManager
+from core.services.idempotency_engine import IdempotencyEngine
 from core.execution.reconciliation.service import (
     ReconciliationService,
     TradingFreezeReason,
@@ -103,6 +103,13 @@ class ExecutionService(ExecutionPort):
         self.broker_port = broker_port
 
         self.idempotency = IdempotencyManager(
+            cache_size=cache_size,
+            expiry_hours=expiry_hours,
+            persistence_path=persistence_path,
+        )
+
+        # GOD OBJECT DECOMPOSITION: Delegate idempotency operations to IdempotencyEngine
+        self._idempotency_engine = IdempotencyEngine(
             cache_size=cache_size,
             expiry_hours=expiry_hours,
             persistence_path=persistence_path,
@@ -459,7 +466,7 @@ class ExecutionService(ExecutionPort):
 
         # Generate idempotency key if not provided
         if not order_request.idempotency_key:
-            order_request.idempotency_key = self._generate_idempotency_key(
+            order_request.idempotency_key = self._idempotency_engine.generate_key(
                 order_request, execution_context
             )
 
@@ -551,7 +558,7 @@ class ExecutionService(ExecutionPort):
                 self.idempotency.confirm_execution(idempotency_key, order_result)
                 # Persist idempotency result for duplicate detection
                 try:
-                    self._store_idempotency_key(idempotency_key, order_result)
+                    self._idempotency_engine.store_result(idempotency_key, order_result)
                 except (KeyError, ValueError, OSError):
                     self._logger.exception("Failed to store idempotency result in cache")
                 self._durable_store.update_state(
@@ -884,23 +891,15 @@ class ExecutionService(ExecutionPort):
         """
         Check if an order with the given idempotency key has already been processed.
 
+        Delegates to ``IdempotencyEngine`` (god object decomposition).
+
         Args:
             idempotency_key: Unique key to check for duplication
 
         Returns:
             True if order is duplicate, False otherwise
         """
-        # Delegate to IdempotencyManager for duplicate checks
-        try:
-            return bool(self.idempotency.is_duplicate(idempotency_key))
-        except (KeyError, ValueError, TypeError):
-            # Fallback to local cache
-            with self._lock:
-                self._cleanup_idempotency_cache()
-                is_duplicate = idempotency_key in getattr(self, '_idempotency_cache', {})
-                if is_duplicate:
-                    self._logger.debug(f"Duplicate order detected (fallback): {idempotency_key}")
-                return is_duplicate
+        return self._idempotency_engine.is_duplicate(idempotency_key)
 
     def record_execution_audit(
         self,
@@ -959,7 +958,7 @@ class ExecutionService(ExecutionPort):
         try:
             with self._lock:
                 # Cleanup expired idempotency entries
-                self._cleanup_idempotency_cache()
+                self._idempotency_engine._cleanup()
 
                 # Check broker health
                 broker_healthy = True  # Assume healthy if no health_check method
@@ -1001,6 +1000,8 @@ class ExecutionService(ExecutionPort):
         """
         Generate a unique idempotency key for an order request.
 
+        Delegates to ``IdempotencyEngine`` (god object decomposition).
+
         Args:
             order_request: The order request
             execution_context: The execution context
@@ -1008,84 +1009,38 @@ class ExecutionService(ExecutionPort):
         Returns:
             Unique idempotency key string
         """
-        # Create a string representation of the order and context
-        key_data = {
-            "symbol": order_request.symbol,
-            "direction": order_request.direction,
-            "strike_price": order_request.strike_price,
-            "lot_size": order_request.lot_size,
-            "order_type": order_request.order_type.value if isinstance(order_request.order_type, OrderType) else str(order_request.order_type),
-            "price": order_request.price,
-            "stop_loss": order_request.stop_loss,
-            "target": order_request.target,
-            "strategy_id": order_request.strategy_id,
-            "signal_id": execution_context.signal_id,
-            "timestamp": execution_context.signal_timestamp.isoformat() if execution_context.signal_timestamp else None
-        }
-
-        # Remove None values
-        key_data = {k: v for k, v in key_data.items() if v is not None}
-
-        # Create deterministic hash
-        key_string = "&".join(f"{k}={v}" for k, v in sorted(key_data.items()))
-        return hashlib.sha256(key_string.encode()).hexdigest()[:32]
+        return self._idempotency_engine.generate_key(order_request, execution_context)
 
     def _store_idempotency_key(self, key: str, order_result: OrderResult) -> None:
         """
-        Store an idempotency key and its associated order result in the LRU cache.
+        Store an idempotency key and its associated order result in the cache.
+
+        Delegates to ``IdempotencyEngine`` (god object decomposition).
 
         Args:
             key: The idempotency key to store
             order_result: The order result to associate with the key
         """
-        # Prefer IdempotencyManager for storage, but keep a local fallback cache for backwards compatibility.
-        try:
-            self.idempotency.store_result(key, order_result)
-        except (KeyError, OSError, ValueError):
-            self._logger.exception(f"Failed to persist idempotency key {key}")
-
-        with self._lock:
-            self._idempotency_cache[key] = (now_ist(), order_result)
-            self._idempotency_cache.move_to_end(key, last=False)
-            while len(self._idempotency_cache) > self.config.idempotency_cache_size:
-                self._idempotency_cache.popitem(last=True)
+        self._idempotency_engine.store_result(key, order_result)
 
     def _get_idempotency_result(self, key: str) -> OrderResult | None:
         """
-        Get the cached order result for the given idempotency key, if it exists and is not expired.
+        Get the cached order result for the given idempotency key.
+
+        Delegates to ``IdempotencyEngine`` (god object decomposition).
 
         Returns:
             The cached OrderResult if found, None otherwise.
         """
-        # Delegate to IdempotencyManager
-        try:
-            return self.idempotency.get_result(key)
-        except (KeyError, ValueError, TypeError):
-            with self._lock:
-                self._cleanup_idempotency_cache()
-                if key in self._idempotency_cache:
-                    return self._idempotency_cache[key][1]
-                return None
+        return self._idempotency_engine.get_result(key)
 
     def _cleanup_idempotency_cache(self) -> None:
         """
         Remove expired entries from the idempotency cache.
+
+        Delegates to ``IdempotencyEngine`` (god object decomposition).
         """
-        # IdempotencyManager handles cleanup; keep local cleanup for fallback cache
-        try:
-            self.idempotency._cleanup()
-            return
-        except (AttributeError, KeyError, ValueError):
-            with self._lock:
-                expiry_time = now_ist() - timedelta(hours=self.config.idempotency_expiry_hours)
-                expired_keys = [
-                    key for key, (timestamp, _) in self._idempotency_cache.items()
-                    if timestamp < expiry_time
-                ]
-                for key in expired_keys:
-                    del self._idempotency_cache[key]
-                if expired_keys:
-                    self._logger.debug(f"Cleaned up {len(expired_keys)} expired idempotency keys (fallback)")
+        self._idempotency_engine._cleanup()
 
     def _execute_with_retries(
         self,
@@ -1578,8 +1533,8 @@ class ExecutionService(ExecutionPort):
                 reason=reason,
                 details=details,
             )
-        except (ImportError, AttributeError, OSError, ValueError) as exc:
-            self._logger.debug(f"Incident alerting unavailable for order {order_id}: {exc}")
+        except (ImportError, AttributeError, OSError, ValueError, Exception) as exc:
+            self._logger.debug("Incident alerting unavailable for order %s: %s", order_id, exc)
 
     def _poll_for_fill_status(
         self,
