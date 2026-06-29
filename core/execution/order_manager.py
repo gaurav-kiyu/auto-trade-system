@@ -367,5 +367,4 @@ def __getattr__(name: str) -> OrderManager:
 __all__ = [
     "OrderState",
     "OrderManager",
-    "order_manager",
 ]

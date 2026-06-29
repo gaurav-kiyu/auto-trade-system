@@ -66,19 +66,19 @@ class DataValidationRule:
 
         # Check required fields for dict-like data
         if isinstance(data, dict) and self.required_fields:
-            missing_fields = [field for field in self.required_fields if field not in data]
+            missing_fields = [f for f in self.required_fields if f not in data]
             if missing_fields:
                 return False, f"Missing required fields: {missing_fields}"
 
         # Apply field-specific validators
         if isinstance(data, dict) and self.validators:
-            for field, validator in self.validators.items():
-                if field in data:
+            for fname, validator in self.validators.items():
+                if fname in data:
                     try:
-                        if not validator(data[field]):
-                            return False, f"Field '{field}' failed validation"
+                        if not validator(data[fname]):
+                            return False, f"Field '{fname}' failed validation"
                     except (TypeError, ValueError, AttributeError) as e:
-                        return False, f"Field '{field}' validation error: {e}"
+                        return False, f"Field '{fname}' validation error: {e}"
 
         return True, ""
 
