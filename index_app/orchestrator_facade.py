@@ -120,7 +120,7 @@ def build_clean_trading_orchestrator():
         from core.ports.notification import NotificationPort
         from core.ports.persistence import PersistencePort
         from core.ports.risk import RiskPort
-        from core.services.use_cases.trading_orchestrator import OrchestratorConfig, TradingOrchestrator
+        from core.services.use_cases.trading_orchestrator import TradingOrchestrator
 
         container = get_container()
 

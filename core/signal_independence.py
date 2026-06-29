@@ -31,7 +31,7 @@ class SignalIndependenceValidator:
 
     def reset(self):
         """Clear pillars for new signal evaluation"""
-        self._pillars = {}
+        self._pillars.clear()
 
     def set_price_momentum_signal(
         self,
@@ -142,9 +142,6 @@ class SignalIndependenceValidator:
         if bearish_count >= 2:
             return "BEARISH"
         return None
-
-    def reset(self):
-        self._pillars.clear()
 
     def _get_direction_from_rsi_macd(self, rsi: float, macd: str) -> str:
         rsi_dir = "BULLISH" if rsi > 55 else "BEARISH" if rsi < 45 else "NEUTRAL"

@@ -896,7 +896,7 @@ def _cli() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         try:
             sys.stdout.reconfigure(encoding="utf-8")
-        except (OSError, AttributeError) as _ex:
+        except (OSError, AttributeError):
             log.debug("[AUTO_TUNER] non-critical oserror; non-critical attributeerror")
 
     parser = argparse.ArgumentParser(

@@ -214,7 +214,7 @@ class SessionManagerMixin:
                 }), t_hash),
             )
             conn.commit()
-        except (DatabaseError, sqlite3.Error, OSError) as _sess_exc:
+        except (DatabaseError, sqlite3.Error, OSError):
             _log.exception("[AUTH] Session refresh DB write failed")
         finally:
             conn.close()

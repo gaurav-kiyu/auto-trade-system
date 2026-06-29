@@ -49,7 +49,7 @@ def _drop_partial_candle(df: pd.DataFrame | None) -> pd.DataFrame | None:
     try:
         if float(df["Volume"].iloc[-1]) == 0 and float(df["Volume"].iloc[-2]) > 0:
             return df.iloc[:-1]
-    except (KeyError, ValueError, TypeError, IndexError) as _candle_err:
+    except (KeyError, ValueError, TypeError, IndexError):
         pass  # partial candle detection failed - return full df
     return df
 
@@ -113,14 +113,11 @@ def compute_index_score(
     _atr_min   = float(signal_cfg.get("ATR_MIN_THRESHOLD", 0.5))
     _pcr_bull  = float(signal_cfg.get("PCR_BULLISH", 1.2))
     _pcr_bear  = float(signal_cfg.get("PCR_BEARISH", 0.8))
-    _rsi_ob    = float(signal_cfg.get("INDEX_RSI_OVERBOUGHT", 75))
-    _rsi_os    = float(signal_cfg.get("INDEX_RSI_OVERSOLD", 25))
     _rsi_hh_c  = float(signal_cfg.get("INDEX_RSI_HEALTHY_HIGH_CALL", 70))
     _rsi_hl_c  = float(signal_cfg.get("INDEX_RSI_HEALTHY_LOW_CALL", 40))
     _rsi_hh_p  = float(signal_cfg.get("INDEX_RSI_HEALTHY_HIGH_PUT", 60))
     _rsi_hl_p  = float(signal_cfg.get("INDEX_RSI_HEALTHY_LOW_PUT", 30))
     _rsi_bonus = int(signal_cfg.get("INDEX_RSI_BONUS", 8))
-    _rsi_pen   = int(signal_cfg.get("INDEX_RSI_PENALTY", 8))
 
     s = 0
     # ── Timeframe alignment (20) ──────────────────────────────────────
@@ -403,7 +400,7 @@ def evaluate_index_signal_partial(
                 elif _is_put and price < _orb_low * 0.999:
                     _orb_pts = _orb_bonus
                     score = min(100, score + _orb_pts)
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError) as _orb_err:
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError):
         pass  # ORB bonus failed - continue without it
     _score_components["orb_bonus"] = _orb_pts
 

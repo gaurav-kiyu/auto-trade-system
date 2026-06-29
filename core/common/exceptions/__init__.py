@@ -130,7 +130,6 @@ ReconciliationFreezeError = ReconciliationError
 
 SignalProcessingError = SignalError
 
-GovernanceError = TradingException
 ConstitutionViolationError = GovernanceError
 
 ReplayCertificationError = CertificationError

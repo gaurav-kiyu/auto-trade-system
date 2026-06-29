@@ -447,8 +447,6 @@ import threading as _threading
 from core.correlation_guard import check_portfolio_correlation, update_closes
 from core.reentry_evaluator import build_reentry_trackers
 
-_trip_hard_halt = trip_hard_halt
-
 _bos_lock = _threading.RLock()
 _state_lock = _threading.RLock()
 _pos_lock = _threading.RLock()
@@ -488,9 +486,6 @@ class _LegacyBrokerShim:
 
 _broker = _LegacyBrokerShim()
 
-
-def _send_impl(msg, critical=False, **kw):
-    return None  # wired at init
 
 def send(message: str, critical: bool = False, **kwargs) -> None:
     """Legacy send() shim. Wired to NotificationService after init."""
@@ -1371,7 +1366,7 @@ def main() -> None:
     # Verifies that AI governance checks were acknowledged before deployment
     try:
         from core.constitution_ai_gate import get_gate
-        _ai_gate = get_gate(identity="index_trader")
+        get_gate(identity="index_trader")
     except (ImportError, ValueError, TypeError, AttributeError) as _ge:
         log.warning("[AI_GATE] AI governance gate unavailable: %s", _ge)
 

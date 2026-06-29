@@ -180,6 +180,6 @@ def test_trading_mode_from_cfg_auto() -> None:
 
 
 def test_trading_mode_from_cfg_cli_paper_override() -> None:
-    with MagicMock() as _mock:
+    with MagicMock():
         mode = trading_mode_from_cfg({"EXECUTION_MODE": "AUTO"}, cli_paper=True)
     assert mode in (TradingMode.PAPER, TradingMode.MANUAL)
