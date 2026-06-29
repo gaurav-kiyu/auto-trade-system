@@ -384,7 +384,6 @@ def get_secure_config() -> SecureConfig:
     Get the global secure config instance.
     Initializes it if not already done.
     """
-    global _SECURE_CONFIG
     with _CONFIG_LOCK:
         if _SECURE_CONFIG is None:
             return initialize_secure_config()

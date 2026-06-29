@@ -75,7 +75,7 @@ def fetch_intraday_data(yf_sym: str) -> tuple:
 
 def fetch_intraday_data_cached(yf_sym: str) -> tuple:
     """Fetch intraday data with cross-cycle caching to avoid yfinance rate limits."""
-    global _yf_data_cache, _yf_data_cache_ts
+    global _yf_data_cache_ts
     now = time.time()
     with _yf_data_cache_lock:
         if yf_sym in _yf_data_cache and now - _yf_data_cache_ts < _YF_CACHE_TTL:
@@ -96,7 +96,7 @@ def fetch_last_close_summary(index_map: dict[str, dict[str, str]]) -> dict[str, 
     Returns:
         Dict of index name → {"close": float, "change": float, "pct": float, "date": str}.
     """
-    global _last_close_cache, _last_close_cache_ts
+    global _last_close_cache_ts
     result: dict[str, dict[str, Any]] = {}
     now = time.time()
 

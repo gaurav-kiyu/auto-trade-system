@@ -556,7 +556,7 @@ def _notify_config_failure(detail: str):
 
 def _load_config(force: bool = False):
     """Load configuration via ConfigLoader and apply to module-level globals."""
-    global _config_loaded, _CFG, _cfg_manager
+    global _config_loaded, _cfg_manager
     if _config_loaded and not force:
         return
 
@@ -1013,7 +1013,7 @@ _display_snapshot: dict = {"struct": {"headline": "ok"}}
 
 def _fetch_nse_holidays_dynamic():
     """Fetch NSE trading holidays. Delegates to index_app.domains.market.holidays (DEBT-008)."""
-    global _nse_session, NSE_HOLIDAYS, _HOLIDAY_FETCH_META, _NSE_HOLIDAY_YEARS
+    global NSE_HOLIDAYS, _HOLIDAY_FETCH_META, _NSE_HOLIDAY_YEARS
     NSE_HOLIDAYS, _NSE_HOLIDAY_YEARS, _HOLIDAY_FETCH_META = fetch_nse_holidays(
         nse_session=_nse_session,
         existing_holidays=NSE_HOLIDAYS,
@@ -1198,7 +1198,7 @@ def setup_di_container() -> None:
     global _mandate_service, _position_service, _signal_service
     global _stale_detector, _strategy_orchestrator, _clean_trading_orchestrator
     global _rate_limiting_service, _circuit_breaker_service
-    global _ws_feed_manager, _equity_trader
+    global _equity_trader
     global RISK_ENGINE, DATA_ENGINE, STRATEGY_ENGINE
     global EXECUTION_ENGINE, STATE_MANAGER
 

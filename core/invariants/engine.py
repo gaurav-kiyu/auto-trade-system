@@ -71,7 +71,6 @@ _disabled_checks: set[str] = set()
 
 def toggle_check(name: str) -> bool:
     """Enable or disable an invariant check by name. Returns the new state (True=enabled)."""
-    global _disabled_checks
     with _lock:
         if name in _disabled_checks:
             _disabled_checks.discard(name)
@@ -115,7 +114,6 @@ def register_invariant(
 
 def check_all() -> list[InvariantCheck]:
     """Run all registered invariant checks and return results."""
-    global _violations
     results = []
     with _lock:
         for inv in _INVARIANTS:
