@@ -1,7 +1,7 @@
 # Final Enterprise Certification Report — OPB v2.53.0
 
 **Certification Date:** June 29, 2026  
-**Last Updated:** June 29, 2026 (Session 4 — Security & Dependency Hardening)  
+**Last Updated:** June 29, 2026 (Session 5 — All F-Level Warnings Resolved)  
 **Certification Authority:** Principal Software Architect / Enterprise Certification Authority  
 **Review Type:** Full Institutional Production Readiness Certification  
 **Version Reviewed:** v2.53.0  
@@ -162,13 +162,13 @@ Domain / Core Layer   (core/ports/, core/services/, core/execution/*)
 | Line Length (E501) | 14,652 | LOW (ruff configured to ignore) |
 | Undefined names (F821) | **0** ✅ | **ALL RESOLVED** — 292 eliminated via `_desk_body.py` refactoring; 6 fixed individually |
 | Unused imports/vars/redefs (F401/F841/F811) | **0** ✅ | **ALL RESOLVED** — 41 warnings fixed across 13 files |
-| Unused global (F824) | **8** | LOW — Valid singleton pattern (lazy-init globals) |
+| Unused global (F824) | **0** ✅ | **ALL RESOLVED** — 8 unnecessary `global` declarations removed across 4 files |
 | Undefined in __all__ (F822) | **0** ✅ | **RESOLVED** |
 | Import shadowing (F402) | **0** ✅ | **RESOLVED** |
 | Trailing whitespace (W291/W293) | 318 | LOW |
-| **Total actionable (F-level)** | **8** | **All F821/F401/F841/F811/F822/F402 resolved** |
+| **Total actionable (F-level)** | **0** ✅ | **All F-level warnings resolved — zero remaining** |
 
-**Note:** `pyproject.toml` explicitly ignores E501 via ruff. The remaining 8 F824 warnings are accepted as a known valid pattern (module-level global + `global` keyword in functions for lazy-init singletons).
+**Note:** `pyproject.toml` explicitly ignores E501 via ruff. All 8 previously-accepted F824 warnings have been resolved by removing unnecessary `global` declarations where the variable was only read or mutated (not reassigned).
 
 ### 4.2 Security & Dependency Audit
 
@@ -547,8 +547,9 @@ This session closed **10+ issues** across multiple rounds:
 | 4 | Fixed regression (OptionsGreeksEngine + auto_tuner re-exports) | 11 collection errors |
 | 5 | F822 + F402 fixes; FINAL_CERTIFICATION_REPORT.md update | 3 |
 | 6 | **12 CVEs patched** across 6 packages; requirements-lock.txt curated (149→75 packages) | 12 vulnerabilities |
+| 7 | **8 F824 unused-global warnings resolved** across 4 files | 8 warnings |
 
-**Overall improvement:** Constitution score from 8.6 → 8.97/10; all F-level flake8 errors resolved except 8 accepted F824 (singleton pattern); 12 CVEs patched (0 remaining); hygiene check: PRISTINE
+**Overall improvement:** Constitution score from 8.6 → 8.97/10; **All F-level flake8 errors: ZERO** — including 8 previously-accepted F824; 12 CVEs patched (0 remaining); hygiene check: PRISTINE
 
 ### Certification Statement
 
