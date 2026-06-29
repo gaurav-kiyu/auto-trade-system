@@ -26,7 +26,7 @@ reportlab>=4.0.0
 
 # ── v2.44 Item 12 — News Sentinel (RSS feed parsing) ─────────────────────────
 # Optional; only needed when news_sentinel_enabled = true
-feedparser>=6.0.0
+feedparser>=6.0.12
 
 # ── v2.44 Item 20 — A/B Strategy Tester (Mann-Whitney U significance test) ───
 # Optional; falls back to approx t-test if not installed
