@@ -30,7 +30,7 @@ feedparser>=6.0.0
 
 # ── v2.44 Item 20 — A/B Strategy Tester (Mann-Whitney U significance test) ───
 # Optional; falls back to approx t-test if not installed
-scipy>=1.11.0
+scipy>=1.15.3
 
 # ── v2.45 Item 19 — Prometheus metrics export ────────────────────────────────
 # Optional; only needed when metrics_enabled = true
