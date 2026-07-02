@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -27,8 +28,6 @@ from core.signal_utils import (
 
 def _ohlcv(n: int = 20, start_price: float = 100.0) -> pd.DataFrame:
     """Generate a simple synthetic OHLCV DataFrame for testing."""
-    import numpy as np
-
     rng = np.random.default_rng(42)
     prices = start_price * (1 + rng.normal(0, 0.005, n).cumsum())
     closes = prices
@@ -406,8 +405,7 @@ class TestValidateOhlcv:
     def test_insufficient_rows_after_clean_returns_none(self):
         df = _ohlcv(2)
         result, dropped = validate_ohlcv(df)
-        # May be None or valid depending on cleanup
-        assert result is None or dropped == 0
+        assert result is None  # Only 2 rows input, function requires >=3
 
 
 # ── explain_signal ──────────────────────────────────────────────────────────
