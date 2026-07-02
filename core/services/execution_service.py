@@ -24,6 +24,7 @@ from core.execution.durable_state import (
 )
 from core.execution.idempotency.manager import IdempotencyManager
 from core.execution.order_submission.manager import OrderSubmissionManager
+from core.services.paper_trader import PaperTrader
 from core.services.idempotency_engine import IdempotencyEngine
 from core.execution.reconciliation.service import (
     ReconciliationService,
@@ -162,11 +163,15 @@ class ExecutionService(ExecutionPort):
         self._idempotency_cache = OrderedDict()
         self._lock = threading.RLock()
 
-        self._paper_price_cache: dict[str, float] = {}
-
-        self._logger = logging.getLogger("execution_service")
-
+        # Create shutdown event BEFORE PaperTrader so it can share the same event
         self._shutdown_event = threading.Event()
+
+        self._paper_trader = PaperTrader(
+            fill_delay_ms=self.config.paper_fill_delay_ms,
+            slippage_pct=self.config.paper_fill_slippage_pct,
+            shutdown_event=self._shutdown_event,
+        )
+        # self._paper_price_cache removed — price caching lives in PaperTrader
 
         self._reconciliation_service = ReconciliationService(
             db_path=reconciliation_db_path,
@@ -918,6 +923,9 @@ class ExecutionService(ExecutionPort):
             with self._lock:
                 self._executions[audit_trail.execution_id] = audit_trail
 
+                # Trim cache periodically to prevent unbounded growth
+                self._trim_executions_cache()
+
                 # Also persist to trade persistence if available
                 if self.trade_persistence:
                     # Convert audit trail to format suitable for persistence
@@ -948,6 +956,23 @@ class ExecutionService(ExecutionPort):
         with self._lock:
             return self._executions.get(execution_id)
 
+    def _trim_executions_cache(self) -> None:
+        """Trim the in-memory _executions dict to prevent unbounded growth.
+
+        Called periodically during health_check. Removes the oldest entries
+        when the cache exceeds the configured size limit.
+        """
+        max_size = getattr(self.config, 'idempotency_cache_size', 1000)
+        if len(self._executions) > max_size:
+            remove_count = max(int(max_size * 0.2), 50)
+            keys = list(self._executions.keys())[:remove_count]
+            for k in keys:
+                self._executions.pop(k, None)
+            self._logger.debug(
+                "Trimmed %d old execution entries (cache: %d)",
+                remove_count, len(self._executions),
+            )
+
     def health_check(self) -> dict[str, Any]:
         """
         Perform a health check on the execution service.
@@ -959,6 +984,23 @@ class ExecutionService(ExecutionPort):
             with self._lock:
                 # Cleanup expired idempotency entries
                 self._idempotency_engine._cleanup()
+
+                # Trim in-memory caches to prevent unbounded growth
+                self._trim_executions_cache()
+
+                # Trim idempotency cache if it exceeds limit
+                max_cache = getattr(self.config, 'idempotency_cache_size', 1000)
+                if len(self._idempotency_cache) > max_cache:
+                    remove = max(int(max_cache * 0.2), 50)
+                    for _ in range(remove):
+                        try:
+                            self._idempotency_cache.popitem(last=False)
+                        except (KeyError, IndexError):
+                            break
+                    self._logger.debug(
+                        "Trimmed idempotency cache to %d entries",
+                        len(self._idempotency_cache),
+                    )
 
                 # Check broker health
                 broker_healthy = True  # Assume healthy if no health_check method
@@ -1289,133 +1331,26 @@ class ExecutionService(ExecutionPort):
         """
         Execute a paper/simulated order.
 
+        Delegates to ``PaperTrader`` (god object decomposition).
+
         Args:
             order_request: The order to execute
-            execution_context: Execution context
+            execution_context: Execution context (unused in paper mode)
 
         Returns:
             OrderResult from the paper execution
         """
-        try:
-            # Simulate network delay - interruptible on shutdown
-            if self._shutdown_event.wait(self.config.paper_fill_delay_ms / 1000.0):
-                return OrderResult(
-                    order_id="shutdown",
-                    status=OrderStatus.REJECTED,
-                    reject_reason="Shutdown requested during paper fill delay",
-                    timestamp=now_ist()
-                )
-
-            # Generate a fake order ID
-            order_id = f"paper_{int(time.time()*1000)}_{hash(order_request.symbol) % 10000}"
-
-            # Determine fill price based on order type and market conditions
-            if order_request.order_type == OrderType.MARKET:
-                # For market orders, use current price with slippage
-                base_price = self._get_current_price_for_symbol(order_request.symbol)
-                slippage = base_price * (self.config.paper_fill_slippage_pct / 100.0)
-
-                if order_request.direction.upper() == "BUY":
-                    fill_price = base_price + slippage  # Pay more when buying
-                else:
-                    fill_price = base_price - slippage  # Receive less when selling
-
-            elif order_request.order_type == OrderType.LIMIT:
-                # For limit orders, use the limit price if it would execute
-                base_price = self._get_current_price_for_symbol(order_request.symbol)
-                if order_request.direction.upper() == "BUY" and order_request.price >= base_price:
-                    fill_price = order_request.price
-                elif order_request.direction.upper() == "SELL" and order_request.price <= base_price:
-                    fill_price = order_request.price
-                else:
-                    # Limit order would not execute immediately
-                    return OrderResult(
-                        order_id=order_id,
-                        status=OrderStatus.PENDING,
-                        reject_reason="Limit order not executed - price not reached",
-                        timestamp=now_ist()
-                    )
-            else:
-                # For other order types (SL, SL-M), use the trigger price or current price
-                fill_price = order_request.price or self._get_current_price_for_symbol(order_request.symbol)
-
-            # Apply some randomness to make it feel realistic
-            import random
-            price_variation = random.uniform(-0.5, 0.5)  # ±0.5 points variation
-            fill_price += price_variation
-
-            # Ensure price is positive
-            fill_price = max(0.01, fill_price)
-
-            # Calculate commission (simplified)
-            commission = abs(fill_price) * order_request.lot_size * 0.0005  # 0.05% commission
-
-            return OrderResult(
-                order_id=order_id,
-                status=OrderStatus.FILLED,
-                filled_quantity=order_request.lot_size,
-                average_price=fill_price,
-                commission=commission,
-                timestamp=now_ist()
-            )
-
-        except (ValueError, OSError, AttributeError, ConnectionError) as e:
-            self._logger.error(f"Error in paper order execution: {e}", exc_info=True)
-            return OrderResult(
-                order_id="paper_error",
-                status=OrderStatus.REJECTED,
-                reject_reason=str(e),
-                timestamp=now_ist()
-            )
+        return self._paper_trader.execute(order_request, execution_context)
 
     def _get_current_price_for_symbol(self, symbol: str) -> float:
-        """
-        Get current price for a symbol (used for paper trading simulation).
+        """Get current price for a symbol (used for paper trading simulation).
 
-        Args:
-            symbol: Trading symbol
+        Delegates to ``PaperTrader`` (god object decomposition).
 
         Returns:
             Current price for the symbol
         """
-        # Check cache first
-        if symbol in self._paper_price_cache:
-            return self._paper_price_cache[symbol]
-
-        # In a real implementation, this would come from market data
-        # For now, return a reasonable default based on symbol
-        default_prices = {
-            "NIFTY": 19500.0,
-            "BANKNIFTY": 44000.0,
-            "FINNIFTY": 18500.0,
-            "RELIANCE": 2400.0,
-            "TCS": 3200.0,
-            "HDFCBANK": 1400.0,
-            "INFY": 1450.0,
-            "ICICIBANK": 850.0,
-            "KOTAKBANK": 1650.0,
-            "LT": 2800.0,
-            "SBIN": 580.0,
-            "BHARTIARTL": 820.0,
-            "ASIANPAINT": 2900.0,
-            "MARUTI": 8800.0,
-            "HINDUNILVR": 2200.0,
-            "AXISBANK": 900.0
-        }
-
-        price = default_prices.get(symbol, 1000.0)  # Default to 1000 if unknown
-
-        # Cache the price for a short time
-        self._paper_price_cache[symbol] = price
-
-        # Clear old cache entries periodically (simple approach)
-        if len(self._paper_price_cache) > 50:
-            # Remove oldest 10 entries
-            keys_to_remove = list(self._paper_price_cache.keys())[:10]
-            for key in keys_to_remove:
-                del self._paper_price_cache[key]
-
-        return price
+        return self._paper_trader.get_current_price(symbol)
 
     def _persist_trade_from_order(
         self,

@@ -338,3 +338,126 @@ class TestEdgeCases:
             if result is not None:
                 assert isinstance(result, AdaptiveSignal)
                 assert result.position_spec is not None or hasattr(result, 'position_spec')
+
+# =============================================================================
+# Conviction Filter Tests (v2.54)
+# =============================================================================
+
+class TestConvictionFilter:
+    """Tests for _apply_conviction_filter - the v2.54 quality gate."""
+
+    def test_disabled_by_default(self):
+        """When high_conviction_mode is not set, all gates pass."""
+        from core.adaptive_signal import _apply_conviction_filter
+        ok, reason = _apply_conviction_filter(
+            score=50, ml_prob=0.3, vol_ratio=0.8,
+            soft_blocks=["tf_mismatch"], config={},
+        )
+        assert ok is True
+        assert reason == ""
+
+    def test_disabled_explicitly(self):
+        """When high_conviction_mode is False, all gates pass."""
+        from core.adaptive_signal import _apply_conviction_filter
+        ok, reason = _apply_conviction_filter(
+            score=50, ml_prob=0.3, vol_ratio=0.8,
+            soft_blocks=["tf_mismatch"],
+            config={"high_conviction_mode": False},
+        )
+        assert ok is True
+        assert reason == ""
+
+    def test_all_gates_pass(self):
+        """When all conditions are met, the filter passes."""
+        from core.adaptive_signal import _apply_conviction_filter
+        ok, reason = _apply_conviction_filter(
+            score=80, ml_prob=0.75, vol_ratio=2.0,
+            soft_blocks=[],
+            config={"high_conviction_mode": True},
+        )
+        assert ok is True
+        assert reason == ""
+
+    def test_gate1_ml_prob_below_threshold(self):
+        """Gate 1 blocks when ML probability is below threshold."""
+        from core.adaptive_signal import _apply_conviction_filter
+        ok, reason = _apply_conviction_filter(
+            score=80, ml_prob=0.40, vol_ratio=2.0,
+            soft_blocks=[],
+            config={"high_conviction_mode": True},
+        )
+        assert ok is False
+        assert "conviction_ml_prob" in reason
+
+    def test_gate2_vol_ratio_below_threshold(self):
+        """Gate 2 blocks when volume ratio is below minimum."""
+        from core.adaptive_signal import _apply_conviction_filter
+        ok, reason = _apply_conviction_filter(
+            score=80, ml_prob=0.75, vol_ratio=1.0,
+            soft_blocks=[],
+            config={"high_conviction_mode": True},
+        )
+        assert ok is False
+        assert "conviction_vol_ratio" in reason
+
+    def test_gate3_score_below_threshold(self):
+        """Gate 3 blocks when adjusted score is below minimum."""
+        from core.adaptive_signal import _apply_conviction_filter
+        ok, reason = _apply_conviction_filter(
+            score=60, ml_prob=0.75, vol_ratio=2.0,
+            soft_blocks=[],
+            config={"high_conviction_mode": True},
+        )
+        assert ok is False
+        assert "conviction_score" in reason
+
+    def test_gate4_soft_tf_mismatch_blocked(self):
+        """Gate 4 blocks signals with tf_mismatch soft block."""
+        from core.adaptive_signal import _apply_conviction_filter
+        ok, reason = _apply_conviction_filter(
+            score=80, ml_prob=0.75, vol_ratio=2.0,
+            soft_blocks=["tf_mismatch"],
+            config={"high_conviction_mode": True},
+        )
+        assert ok is False
+        assert "conviction_blocked_soft_tf_mismatch" in reason
+
+    def test_gate4_soft_choppy_blocked(self):
+        """Gate 4 blocks signals with choppy_regime soft block."""
+        from core.adaptive_signal import _apply_conviction_filter
+        ok, reason = _apply_conviction_filter(
+            score=80, ml_prob=0.75, vol_ratio=2.0,
+            soft_blocks=["choppy_regime"],
+            config={"high_conviction_mode": True},
+        )
+        assert ok is False
+        assert "conviction_blocked_soft_choppy_regime" in reason
+
+    def test_gate4_tf_divergence_fallback_blocked(self):
+        """Gate 4 blocks signals with tf_divergence_fallback soft block."""
+        from core.adaptive_signal import _apply_conviction_filter
+        ok, reason = _apply_conviction_filter(
+            score=80, ml_prob=0.75, vol_ratio=2.0,
+            soft_blocks=["tf_divergence_fallback"],
+            config={"high_conviction_mode": True},
+        )
+        assert ok is False
+        assert "conviction_blocked_soft_tf_divergence_fallback" in reason
+
+    def test_custom_thresholds_from_config(self):
+        """Custom config thresholds override defaults."""
+        from core.adaptive_signal import _apply_conviction_filter
+        # ml_prob=0.70 passes Gate 1 (threshold 0.60), vol_ratio=1.5 passes Gate 2 (threshold 1.4)
+        # score=65 < 68 -> Gate 3 blocks
+        ok, reason = _apply_conviction_filter(
+            score=65, ml_prob=0.70, vol_ratio=1.5,
+            soft_blocks=[],
+            config={
+                "high_conviction_mode": True,
+                "HIGH_CONVICTION_ML_THRESHOLD": 0.60,
+                "HIGH_CONVICTION_VOL_RATIO_MIN": 1.4,
+                "HIGH_CONVICTION_SCORE_MIN": 68,
+            },
+        )
+        assert ok is False
+        assert "conviction_score_65_below_68" in reason

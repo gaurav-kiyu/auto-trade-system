@@ -154,8 +154,9 @@ When `EXECUTION_MODE=PAPER` or `--paper` CLI flag is set:
 | `core/config_bootstrap.py` | Config merge + OPBUYING_* env override (Phase 7B) |
 | `core/performance_metrics.py` | Trade analytics — win rate, Sharpe, drawdown, insights |
 | `core/trade_journal.py` | Execution quality journal (slippage, delay, fill tracking) |
-| `core/services/risk_service.py` | Position sizing, VIX scaling, drawdown sizing |
+| `core/services/risk_service.py` | Position sizing, VIX scaling, drawdown sizing, CapitalManager (inline) |
 | `core/adapters/broker_adapters.py` | Broker abstraction + PaperBrokerAdapter |
+| `core/services/paper_trader.py` | Paper order execution & fill simulation (extracted from ExecutionService) |
 | `core/liquidity_guard.py` | Pre-entry bid-ask spread + OI + volume filter (v2.44 Item 1) |
 | `core/reentry_evaluator.py` | Per-index cooldown + score gate after stop-loss (v2.44 Item 2) |
 | `core/intraday_performance_monitor.py` | Adaptive position size / score on session win rate (v2.44 Item 9) |
@@ -392,6 +393,23 @@ Bot logs a warning at startup if the DB is younger than 90 days.
 | 14  | `index_app/index_trader.py` | Added missing `PositionSizingInput` import — fixes `NameError` in `get_position_size()` | ✅ |
 | 15  | `infra/adapters/market_data/nse/adapter.py` | Enhanced `_make_request_with_retry()` logging with `_session_type` and exception type | ✅ |
 | 16  | `tests/integration/test_trading_loop_flow.py` | Added 6 edge case integration tests (expiry gate, news block, max-age exit, auction, correlation guard, reentry evaluator) | ✅ |
+| 17 | `core/services/execution_service.py` + `core/services/paper_trader.py` | **NEW** `PaperTrader` class extracted (~120 lines) | ✅ |
+| 18 | `tests/test_paper_trader.py` | **NEW** — 28 unit tests | ✅ |
+| 19 | `core/services/risk_service.py` | `CapitalManager` inlined; `core.capital_manager` deleted in v2.54 Phase 3 | ✅ |
+| 20 | `core/legacy/decision_engine.py` | Deprecation warning → DELETED in v2.54 Phase 3 | ✅ |
+| 21 | `docs/README.md` + stale certification files | 10 stale reports deleted | ✅ |
+
+### v2.54 Phase 3 — Legacy Module Deletions
+
+| Module | Modern Replacement | Status |
+|--------|-------------------|--------|
+| `core/orchestrator.py` | `core.services.use_cases.trading_orchestrator.TradingOrchestrator` | ✅ DELETED |
+| `core/strategy_engine.py` | `core.strategy.orchestrator.StrategyOrchestrator` | ✅ DELETED |
+| `core/capital_manager.py` | `core.services.risk_service.CapitalManager` | ✅ DELETED |
+| `core/legacy/signal_engine.py` | → `core.signal_utils` (extracted to `core.signal_utils` in v2.54) | ✅ DELETED |
+| `core/legacy/decision_engine.py` | → `core.tier_engine` (DELETED in v2.54) | ✅ DELETED |
+| `core/legacy/telegram_engine.py` | `infra.adapters.notifications.telegram_adapter` | ✅ DELETED |
+| `core/legacy/__init__.py` | (DEPRECATED — **DELETED in v2.54**) All imports migrated to `core.signal_utils` |
 
 ### NSE 403 (Akamai) — Known External Limitation
 NSE India uses **Akamai App & API Protector** which blocks all automated scraping

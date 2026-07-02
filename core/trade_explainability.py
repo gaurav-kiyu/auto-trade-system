@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -241,18 +242,17 @@ class TradeExplainability:
         """Load trade data from the trade log database.
 
         Falls back to empty dict if loading fails.
+        Uses ``db_utils.get_connection`` for WAL mode and busy_timeout.
         """
         try:
-            import sqlite3
-            from pathlib import Path
+            from core.db_utils import get_connection
 
             db_path = Path("trades.db")
             if not db_path.exists():
                 _log.warning("Trade DB not found at %s", db_path)
                 return {"trade_id": trade_id}
 
-            conn = sqlite3.connect(str(db_path))
-            conn.row_factory = sqlite3.Row
+            conn = get_connection(str(db_path))
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT * FROM trades WHERE trade_id = ?",
@@ -265,22 +265,20 @@ class TradeExplainability:
                 return dict(row)
             _log.warning("Trade %d not found in DB", trade_id)
             return {"trade_id": trade_id}
-        except Exception as e:
+        except (ValueError, TypeError, OSError, sqlite3.Error) as e:
             _log.warning("Failed to load trade %d: %s", trade_id, e)
             return {"trade_id": trade_id}
 
     def _load_recent_trades(self, count: int = 10) -> list[dict[str, Any]]:
-        """Load recent trades from the trade log."""
+        """Load recent trades from the trade log with WAL mode."""
         try:
-            import sqlite3
-            from pathlib import Path
+            from core.db_utils import get_connection
 
             db_path = Path("trades.db")
             if not db_path.exists():
                 return []
 
-            conn = sqlite3.connect(str(db_path))
-            conn.row_factory = sqlite3.Row
+            conn = get_connection(str(db_path))
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT * FROM trades ORDER BY trade_id DESC LIMIT ?",
@@ -289,7 +287,7 @@ class TradeExplainability:
             rows = [dict(r) for r in cursor.fetchall()]
             conn.close()
             return rows
-        except Exception as e:
+        except (ValueError, TypeError, OSError, sqlite3.Error) as e:
             _log.warning("Failed to load recent trades: %s", e)
             return []
 

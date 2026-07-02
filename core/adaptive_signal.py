@@ -35,7 +35,7 @@ from typing import Any
 
 import pandas as pd
 
-from core.legacy import signal_engine as SE
+from core.signal_utils import breakout_strength_ok
 
 _log = logging.getLogger(__name__)
 
@@ -52,10 +52,22 @@ from core.services.risk_service import PositionSizer, PositionSpec  # consolidat
 from core.tier_engine import TIER_RULES, classify_tier
 
 # ── Soft-rejection penalty constants ─────────────────────────────────────────
-_SOFT_PENALTY_TF_MISMATCH: int   = 20
-_SOFT_PENALTY_CHOPPY: int        = 15
-_CONF_MULT_TF_MISMATCH: float    = 0.60
-_CONF_MULT_CHOPPY: float         = 0.70
+# v2.54: Tightened to reduce false positives. Tf_mismatch penalty increased 20→25,
+# choppy increased 15→18, confidence multipliers reduced to penalise weak signals harder.
+_SOFT_PENALTY_TF_MISMATCH: int   = 25
+_SOFT_PENALTY_CHOPPY: int        = 18
+_CONF_MULT_TF_MISMATCH: float    = 0.50
+_CONF_MULT_CHOPPY: float         = 0.60
+
+# ── Conviction filter threshold (v2.54) ──────────────────────────────────────
+# When high_conviction_mode is enabled, additional gates raise the entry bar:
+#   - Minimum ML win probability (default 0.50)
+#   - Minimum volume ratio (default 1.3x)
+#   - Minimum adjusted score (default 70)
+#   - Block soft-converted tf_mismatch/choppy signals entirely
+_HIGH_CONVICTION_ML_MIN: float   = 0.50
+_HIGH_CONVICTION_VOL_MIN: float  = 1.3
+_HIGH_CONVICTION_SCORE_MIN: int  = 70
 
 
 # ── Result dataclass ──────────────────────────────────────────────────────────
@@ -250,6 +262,55 @@ def compute_timeframe_agreement(
     )
 
 
+def _apply_conviction_filter(
+    score: int,
+    ml_prob: float,
+    vol_ratio: float,
+    soft_blocks: list[str],
+    config: dict[str, Any],
+) -> tuple[bool, str]:
+    """
+    Optional high-conviction quality gate (v2.54).
+
+    When ``high_conviction_mode`` is enabled in config, this filter applies
+    additional entry requirements that raise the quality bar:
+
+    1. ML win probability >= ``HIGH_CONVICTION_ML_THRESHOLD`` (default 0.50)
+    2. Volume ratio >= ``HIGH_CONVICTION_VOL_RATIO_MIN`` (default 1.3)
+    3. Adjusted score >= ``HIGH_CONVICTION_SCORE_MIN`` (default 70)
+    4. No soft-converted tf_mismatch or choppy blocks
+
+    Returns:
+        (True, "") if all gates pass
+        (False, reason_tag) if any gate fails
+    """
+    if not config.get("high_conviction_mode", False):
+        return True, ""
+
+    ml_min = float(config.get("HIGH_CONVICTION_ML_THRESHOLD", _HIGH_CONVICTION_ML_MIN))
+    vol_min = float(config.get("HIGH_CONVICTION_VOL_RATIO_MIN", _HIGH_CONVICTION_VOL_MIN))
+    score_min = int(config.get("HIGH_CONVICTION_SCORE_MIN", _HIGH_CONVICTION_SCORE_MIN))
+
+    # Gate 1: Minimum ML win probability
+    if ml_prob < ml_min:
+        return False, f"conviction_ml_prob_{ml_prob:.2f}_below_{ml_min:.2f}"
+
+    # Gate 2: Minimum volume ratio
+    if vol_ratio < vol_min:
+        return False, f"conviction_vol_ratio_{vol_ratio:.2f}_below_{vol_min:.2f}"
+
+    # Gate 3: Minimum adjusted score
+    if score < score_min:
+        return False, f"conviction_score_{score}_below_{score_min}"
+
+    # Gate 4: No soft-converted tf_mismatch or choppy blocks
+    for sb in soft_blocks:
+        if sb in ("tf_mismatch", "choppy_regime", "tf_divergence_fallback"):
+            return False, f"conviction_blocked_soft_{sb}"
+
+    return True, ""
+
+
 def _build_risk_dict(tier: str) -> dict[str, Any]:
     rules = TIER_RULES.get(tier)
     if rules is None:
@@ -396,7 +457,7 @@ def _compute_features_and_score(
     score      = min(100, int(score) + macd_delta)
     score_components["macd_bonus"] = macd_delta
 
-    breakout_ok      = SE.breakout_strength_ok(df1)
+    breakout_ok      = breakout_strength_ok(df1)
     _breakout_bonus  = int(sc.get("BREAKOUT_BONUS", 8))
     bk_pts           = _breakout_bonus if breakout_ok else -4
     score            = min(100, score + bk_pts) if breakout_ok else max(0, score + bk_pts)
@@ -663,6 +724,7 @@ def evaluate_adaptive_signal(
     # penalises low-probability ones.  Graceful no-op if model not yet trained.
     _ml_adj_pts: int = 0
     _ml_pred_id: str = ""
+    _ml_prob: float = 0.5  # Default ML win probability (updated if model available)
     if dict(params.signal_cfg).get("ml_classifier_enabled", True):
         try:
             import pathlib as _pl
@@ -698,6 +760,7 @@ def evaluate_adaptive_signal(
                 _feat_input["pcr"] = float(pcr)
                 _feat_dict = _extract_feat(_feat_input)
                 _prob = _predict_prob(_clf, _feat_dict)
+                _ml_prob = float(_prob)  # Capture for conviction filter
                 _ml_adj, _ml_tag = _prob_adj(_prob, _scfg)
                 if _ml_adj != 0:
                     _pre_ml = adjusted_score
@@ -846,6 +909,28 @@ def evaluate_adaptive_signal(
     score_comps["implied_move_adj"] = _im_pts
     score_comps["gex_adj"]       = _gex_pts
     score_comps["regime_trans_adj"] = _rt_pts
+
+    # ── Conviction filter (v2.54) ────────────────────────────────────────────
+    # When high_conviction_mode is enabled, this additional gate filters out
+    # marginal signals that fail ML probability, volume, score, or soft-block checks.
+    # This is the key enhancement for higher win rate — it lets through only the
+    # highest-quality setups while rejecting borderline entries.
+    # Uses _ml_prob captured from the ML classifier section above (default 0.5).
+    _conviction_ok, _conviction_reason = _apply_conviction_filter(
+        score=adjusted_score,
+        ml_prob=_ml_prob,
+        vol_ratio=float(data.get("vol_ratio", 0.0)),
+        soft_blocks=soft_blocks,
+        config=sc,
+    )
+    if not _conviction_ok:
+        log_msg = f"[CONVICTION] {_conviction_reason}"
+        _log.info("Signal blocked by conviction filter: %s", _conviction_reason)
+        # Record the reason and soft-block, but still return the signal for reporting.
+        # The actual block happens at the tier/entry gate.
+        soft_blocks = list(soft_blocks)
+        soft_blocks.append(f"conviction_blocked_{_conviction_reason}")
+        reasons.append(log_msg)
 
     # ── Position sizing ───────────────────────────────────────────────────
     position_spec = PositionSizer.calculate(

@@ -208,3 +208,65 @@ class TestInvalidateCache:
             mock_ticker.return_value.history.return_value = mock_ohlcv_df
             fetch_intraday_data_cached("^NSEI")
             assert mock_dl.call_count >= 3  # fresh fetch after invalidation
+
+# =============================================================================
+# Exponential Backoff Tests (v2.54)
+# =============================================================================
+
+class TestYfBackoff:
+    """Tests for the exponential backoff mechanism in yf_data_provider."""
+
+    def test_no_backoff_on_first_call(self):
+        """A fresh symbol has zero failures, so delay is 0."""
+        from core.yf_data_provider import _get_backoff_delay, _record_success, _record_failure
+        # Ensure clean state
+        _record_success("TEST_SYM")
+        delay = _get_backoff_delay("TEST_SYM")
+        assert delay == 0.0
+
+    def test_backoff_increases_with_failures(self):
+        """Each failure increases the backoff delay exponentially."""
+        from core.yf_data_provider import _get_backoff_delay, _record_failure, _record_success
+        _record_success("TEST_BACKOFF")  # reset
+        delay0 = _get_backoff_delay("TEST_BACKOFF")
+        assert delay0 == 0.0
+        _record_failure("TEST_BACKOFF")
+        delay1 = _get_backoff_delay("TEST_BACKOFF")
+        assert delay1 >= 3.0  # 5s base * 0.75 jitter min
+        _record_failure("TEST_BACKOFF")
+        delay2 = _get_backoff_delay("TEST_BACKOFF")
+        assert delay2 >= delay1 * 0.75  # should be larger
+
+    def test_success_resets_backoff(self):
+        """After a success, the failure count is reset to 0."""
+        from core.yf_data_provider import _get_backoff_delay, _record_failure, _record_success
+        _record_success("TEST_RESET")
+        _record_failure("TEST_RESET")
+        _record_failure("TEST_RESET")
+        delay_before = _get_backoff_delay("TEST_RESET")
+        assert delay_before > 0
+        _record_success("TEST_RESET")
+        delay_after = _get_backoff_delay("TEST_RESET")
+        assert delay_after == 0.0
+
+    def test_max_backoff_capped(self):
+        """Backoff does not exceed _YF_MAX_BACKOFF (300s) with jitter."""
+        from core.yf_data_provider import _get_backoff_delay, _record_failure, _record_success
+        _record_success("TEST_MAX")
+        for _ in range(20):
+            _record_failure("TEST_MAX")
+        delay = _get_backoff_delay("TEST_MAX")
+        # Base delay = min(5*2^19, 300) = 300. With 1.25x jitter max = 375.
+        assert delay <= 380  # 300s max * 1.25 jitter + tolerance
+
+    def test_backoff_applied_before_yfinance_call(self):
+        """When fetch_intraday_data is called with a failing symbol, failure counter increments."""
+        from unittest.mock import patch
+        from core.yf_data_provider import fetch_intraday_data, _get_backoff_delay, _record_success
+        _record_success("^NSEI_TEST")
+        with patch("core.yf_data_provider.yf.download", side_effect=Exception("API error")):
+            result = fetch_intraday_data("^NSEI_TEST")
+        assert result == (None, None, None)
+        # One failure recorded
+        delay = _get_backoff_delay("^NSEI_TEST")
+        assert delay > 0

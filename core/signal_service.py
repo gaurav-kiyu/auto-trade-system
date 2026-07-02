@@ -140,14 +140,9 @@ class SignalService:
             Signal dict compatible with ``index_trader.py`` signal consumers.
         """
         # ── Route: V2 adaptive_signal path ────────────────────────────────
-        if self._cfg.get("SIGNAL_ENGINE_V2", False):
-            return self._evaluate_v2_signal(name=name, frames=frames, vix=vix) or {}
-
-        # ── Route: Legacy signal_engine path (DEBT-011) ──────────────────
-        from index_app.domains.signal.legacy import LegacySignalEngine
-
-        engine = LegacySignalEngine(cfg=self._cfg)
-        return engine.build_signal(name=name, frames=frames, vix=vix)
+        # NOTE: SIGNAL_ENGINE_V2 was permanently set to True in v2.54.
+        # The legacy LegacySignalEngine path (DEBT-011) has been removed.
+        return self._evaluate_v2_signal(name=name, frames=frames, vix=vix) or {}
 
     # ------------------------------------------------------------------
     # V2 ADAPTIVE SIGNAL PATH

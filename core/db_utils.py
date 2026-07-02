@@ -319,6 +319,207 @@ def _set_busy_timeout(conn: sqlite3.Connection, ms: int) -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Connection Pool — manages a pool of reusable SQLite connections
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class ConnectionPool:
+    """Thread-safe pool of reusable SQLite connections.
+
+    Manages a pool of connections to the same database, useful for
+    multi-threaded access patterns where multiple workers need
+    concurrent read access. Connections are configured with WAL mode
+    and busy_timeout by default.
+
+    Example:
+        pool = ConnectionPool("trades.db", min_size=2, max_size=8)
+        with pool.acquire() as conn:
+            rows = conn.execute("SELECT * FROM trades").fetchall()
+        pool.close()
+    """
+
+    def __init__(
+        self,
+        db_path: str | Path,
+        *,
+        min_size: int = 2,
+        max_size: int = 8,
+        wal: bool = True,
+        busy_timeout_ms: int = DEFAULT_BUSY_TIMEOUT_MS,
+        timeout: float = 3.0,
+        row_factory: bool = True,
+    ) -> None:
+        self._db_path = str(db_path)
+        self._min_size = max(1, min_size)
+        self._max_size = max(self._min_size, max_size)
+        self._wal = wal
+        self._busy_timeout_ms = busy_timeout_ms
+        self._timeout = timeout
+        self._row_factory = row_factory
+
+        self._pool: list[sqlite3.Connection] = []
+        self._in_use: set[sqlite3.Connection] = set()
+        self._lock = threading.RLock()
+        self._closed = False
+
+        # Pre-allocate minimum connections
+        for _ in range(self._min_size):
+            conn = self._create_connection()
+            self._pool.append(conn)
+
+        _log.info(
+            "[POOL] Created pool for %s (min=%d, max=%d)",
+            self._db_path, self._min_size, self._max_size,
+        )
+
+    def acquire(self, timeout: float | None = None) -> sqlite3.Connection:
+        """Acquire a connection from the pool.
+
+        Args:
+            timeout: Maximum time to wait for a connection. None = block indefinitely.
+
+        Returns:
+            A sqlite3.Connection from the pool.
+
+        Raises:
+            TimeoutError: If no connection becomes available within timeout.
+            RuntimeError: If the pool is closed.
+        """
+        if self._closed:
+            raise RuntimeError(f"Connection pool for {self._db_path} is closed")
+
+        deadline = (time.monotonic() + timeout) if timeout is not None else None
+
+        with self._lock:
+            # Try to get an idle connection
+            while self._pool:
+                conn = self._pool.pop()
+                if self._is_connection_valid(conn):
+                    self._in_use.add(conn)
+                    return conn
+                # Connection is stale — discard and create a new one
+                try:
+                    conn.close()
+                except (sqlite3.Error, OSError):
+                    pass
+
+            # If pool is not full, create a new connection
+            if len(self._in_use) < self._max_size:
+                conn = self._create_connection()
+                self._in_use.add(conn)
+                return conn
+
+        # Pool is full — wait for a connection to be released
+        while deadline is None or time.monotonic() < deadline:
+            with self._lock:
+                if self._pool:
+                    conn = self._pool.pop()
+                    if self._is_connection_valid(conn):
+                        self._in_use.add(conn)
+                        return conn
+                    try:
+                        conn.close()
+                    except (sqlite3.Error, OSError):
+                        pass
+
+                # Check if we can grow the pool
+                if len(self._in_use) < self._max_size:
+                    conn = self._create_connection()
+                    self._in_use.add(conn)
+                    return conn
+
+            # Brief sleep before retry
+            time.sleep(0.01)
+
+        raise TimeoutError(
+            f"Pool exhausted: {len(self._in_use)}/{self._max_size} connections "
+            f"in use for {self._db_path}"
+        )
+
+    def release(self, conn: sqlite3.Connection) -> None:
+        """Return a connection to the pool."""
+        with self._lock:
+            self._in_use.discard(conn)
+            if self._closed:
+                # Pool is closed — close the connection to prevent leaks
+                try:
+                    conn.close()
+                except (sqlite3.Error, OSError):
+                    pass
+                return
+            if self._is_connection_valid(conn):
+                # Rollback any pending transaction before returning
+                try:
+                    conn.rollback()
+                except (sqlite3.Error, OSError):
+                    pass
+                self._pool.append(conn)
+
+    def close(self) -> None:
+        """Close the pool and all connections."""
+        with self._lock:
+            self._closed = True
+            all_conns = list(self._pool) + list(self._in_use)
+            self._pool.clear()
+            self._in_use.clear()
+        for conn in all_conns:
+            try:
+                conn.close()
+            except (sqlite3.Error, OSError):
+                pass
+        _log.info("[POOL] Closed pool for %s", self._db_path)
+
+    @property
+    def stats(self) -> dict[str, Any]:
+        """Return pool statistics."""
+        with self._lock:
+            return {
+                "db_path": self._db_path,
+                "min_size": self._min_size,
+                "max_size": self._max_size,
+                "idle": len(self._pool),
+                "in_use": len(self._in_use),
+                "total": len(self._pool) + len(self._in_use),
+                "closed": self._closed,
+            }
+
+    def health_check(self) -> dict[str, Any]:
+        """Check pool health."""
+        with self._lock:
+            idle_healthy = sum(
+                1 for c in self._pool if self._is_connection_valid(c)
+            )
+            in_use_count = len(self._in_use)
+        return {
+            "status": "healthy" if not self._closed else "closed",
+            "backend": "SQLite",
+            "db_path": self._db_path,
+            "idle_healthy": idle_healthy,
+            "in_use": in_use_count,
+        }
+
+    def _create_connection(self) -> sqlite3.Connection:
+        """Create a new connection with standard settings."""
+        return get_connection(
+            self._db_path,
+            timeout=self._timeout,
+            wal=self._wal,
+            busy_timeout_ms=self._busy_timeout_ms,
+            row_factory=self._row_factory,
+            check_same_thread=False,
+        )
+
+    @staticmethod
+    def _is_connection_valid(conn: sqlite3.Connection) -> bool:
+        """Check if a connection is still alive."""
+        try:
+            conn.execute("SELECT 1").fetchone()
+            return True
+        except (sqlite3.Error, OSError):
+            return False
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # DatabasePort factory (Sprint 8 — Database Abstraction Layer)
 # ═══════════════════════════════════════════════════════════════════════════
 

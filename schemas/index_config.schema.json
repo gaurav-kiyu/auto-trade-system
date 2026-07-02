@@ -510,6 +510,9 @@
       "additionalProperties": true,
       "type": "object"
     },
+    "HIGH_CONVICTION_ML_THRESHOLD": {
+      "type": "number"
+    },
     "INCIDENT_ALERTING_ENABLED": {
       "type": "boolean"
     },

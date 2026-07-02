@@ -112,9 +112,7 @@ from .fundamental_analyzer import (
 )
 from .hybrid_execution import apply_execution_mode, normalize_execution_mode
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", message=".*orchestrator.*DEPRECATED")
-    from .orchestrator import Orchestrator, OrchestratorCycle, OrchestratorSignal
+from .orchestrator import Orchestrator, OrchestratorCycle, OrchestratorSignal
 from .presentation_engine import PresentationEngine
 from .reconciliation_engine import ReconciliationEngine, ReconciliationItem, ReconciliationReport
 from .replay_engine import ReplayEngine
@@ -125,9 +123,7 @@ from .soft_reload_common import ignored_keys_warning
 from .startup_checklist import StartupCheckItem, StartupCheckResult, run_startup_checklist
 from .state_manager import SessionRecoveryReport, StateManager
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
-    from .strategy_engine import StrategyEngine
+from .strategy_engine import StrategyEngine, StrategySnapshot
 # ── Domain models (accessible as core.domains) ──────────────────────────
 from . import domains as domains_module
 
@@ -234,6 +230,7 @@ __all__ = [
     "StateManager",
     "update_learning_after_exit",
     "StrategyEngine",
+    "StrategySnapshot",
     "WalkForwardEngine",
     "WalkForwardReport",
     "WalkForwardWindow",

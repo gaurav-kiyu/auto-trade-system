@@ -49,6 +49,8 @@ CORE_NO_INFRA_MODULES = {
     "core.persistence",
     "core.services.notification_service",
     "core.services.persistence_service",
+    # alert_router is DEPRECATED (removal v3.1) - bridges to TelegramNotificationAdapter
+    "core.alert_router",
 }
 
 # Strategy modules must NOT import broker adapters directly

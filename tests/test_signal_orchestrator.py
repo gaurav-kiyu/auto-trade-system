@@ -11,8 +11,9 @@ Covers:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
+import pandas as pd
 import pytest
 from core.services.signal_orchestrator import (
     SignalIntent,
@@ -76,56 +77,87 @@ class TestProcessMarketData:
     def orch(self):
         return SignalOrchestrator({"AI_THRESHOLD": 60})
 
+    @staticmethod
+    def _make_mock_df():
+        """Create a minimal mock DataFrame that passes evaluate_index_signal_partial checks."""
+        import numpy as np
+        idx = pd.date_range("2026-06-30 09:15", periods=60, freq="1min")
+        df = pd.DataFrame({
+            "Open": np.random.uniform(23500, 23600, 60),
+            "High": np.random.uniform(23600, 23700, 60),
+            "Low": np.random.uniform(23400, 23500, 60),
+            "Close": np.random.uniform(23500, 23600, 60),
+            "Volume": np.random.randint(10000, 50000, 60),
+        }, index=idx)
+        return df
+
     def test_signal_hold_returns_none(self, orch: SignalOrchestrator):
-        """When build_full_signal returns HOLD, process returns None."""
-        with patch("core.legacy.signal_engine.build_full_signal") as mock_signal:
-            mock_signal.return_value = {"signal": "HOLD"}
+        """When evaluate_index_signal_partial returns None, process returns None."""
+        df = self._make_mock_df()
+        with patch(
+            "core.pure_index_signal.evaluate_index_signal_partial",
+            return_value=(None, "tf_mismatch"),
+        ):
             result = orch.process_market_data(
-                "NIFTY", {"df1m": MagicMock(), "df5m": MagicMock(), "df15m": MagicMock()},
+                "NIFTY",
+                {"df1m": df, "df5m": df, "df15m": df},
                 {"asset_type": "index", "iv": 15.0, "vix": 12.0},
             )
             assert result is None
 
     def test_signal_none_returns_none(self, orch: SignalOrchestrator):
-        """When build_full_signal returns None, process returns None."""
-        with patch("core.legacy.signal_engine.build_full_signal") as mock_signal:
-            mock_signal.return_value = None
+        """When evaluate_index_signal_partial raises, process returns None gracefully."""
+        df = self._make_mock_df()
+        with patch(
+            "core.pure_index_signal.evaluate_index_signal_partial",
+            side_effect=Exception("Simulated partial failure"),
+        ):
             result = orch.process_market_data(
-                "NIFTY", {}, {"asset_type": "index"},
+                "NIFTY",
+                {"df1m": df, "df5m": df, "df15m": df},
+                {"asset_type": "index", "iv": 15.0, "vix": 12.0},
             )
             assert result is None
 
     def test_ml_veto_blocks_signal(self, orch: SignalOrchestrator):
         """When ML probability < 0.3, signal is vetoed."""
-        with patch("core.legacy.signal_engine.build_full_signal") as mock_signal:
-            mock_signal.return_value = {
-                "signal": "BUY", "direction": "CALL", "score": 75,
-                "confidence": 0.8, "price": 23500.0, "strength": "STRONG",
-                "regime": "TREND", "iv": 15.0, "vix": 12.0, "pcr": 1.2,
-            }
+        df = self._make_mock_df()
+        mock_partial = {
+            "score": 75, "direction": "CALL", "price": 23500.0,
+            "mkt_regime": "TREND",
+        }
+        with patch(
+            "core.pure_index_signal.evaluate_index_signal_partial",
+            return_value=(mock_partial, ""),
+        ):
             with patch("core.services.signal_orchestrator.ml_engine") as mock_ml:
-                mock_ml.predict.return_value.win_probability = 0.2  # Below 0.3 threshold
+                mock_ml.predict.return_value.win_probability = 0.2
                 mock_ml.predict.return_value.confidence_score = 0.5
                 result = orch.process_market_data(
-                    "NIFTY", {"df1m": None, "df5m": None, "df15m": None},
-                    {"asset_type": "index"},
+                    "NIFTY",
+                    {"df1m": df, "df5m": df, "df15m": df},
+                    {"asset_type": "index", "iv": 15.0, "vix": 12.0},
                 )
                 assert result is None
 
     def test_successful_signal_returns_intent(self, orch: SignalOrchestrator):
         """When signal is valid and ML probability is sufficient, returns SignalIntent."""
-        with patch("core.legacy.signal_engine.build_full_signal") as mock_signal:
-            mock_signal.return_value = {
-                "signal": "BUY", "direction": "CALL", "score": 75,
-                "confidence": 0.8, "price": 23500.0, "strength": "STRONG",
-                "regime": "TREND", "iv": 15.0, "vix": 12.0, "pcr": 1.2,
-            }
+        df = self._make_mock_df()
+        mock_partial = {
+            "score": 75, "direction": "CALL", "price": 23500.0,
+            "mkt_regime": "TREND",
+        }
+        with patch(
+            "core.pure_index_signal.evaluate_index_signal_partial",
+            return_value=(mock_partial, ""),
+        ):
             with patch("core.services.signal_orchestrator.ml_engine") as mock_ml:
                 mock_ml.predict.return_value.win_probability = 0.85
                 mock_ml.predict.return_value.confidence_score = 0.75
                 result = orch.process_market_data(
-                    "NIFTY", {},
-                    {"asset_type": "index"},
+                    "NIFTY",
+                    {"df1m": df, "df5m": df, "df15m": df},
+                    {"asset_type": "index", "iv": 15.0, "vix": 12.0},
                 )
                 assert isinstance(result, SignalIntent)
                 assert result.symbol == "NIFTY"
@@ -135,22 +167,37 @@ class TestProcessMarketData:
                 assert result.regime == "TREND"
 
     def test_passes_additional_info(self, orch: SignalOrchestrator):
-        """Additional info (oi_data, iv, vix, sector, category) is passed through."""
-        with patch("core.legacy.signal_engine.build_full_signal") as mock_signal:
-            mock_signal.return_value = {
-                "signal": "BUY", "direction": "PUT", "score": 60,
-                "confidence": 0.7, "price": 100.0, "strength": "MODERATE",
-                "regime": "RANGE", "iv": 20.0, "vix": 15.0, "pcr": 0.8,
-            }
+        """Additional info (oi_data, iv, vix) is passed through."""
+        df = self._make_mock_df()
+        oi_data = {"pcr": 0.8, "smart_money": "BEARISH", "support": 23400.0, "resistance": 23700.0}
+        mock_partial = {
+            "score": 70, "direction": "PUT", "price": 23500.0,
+            "mkt_regime": "RANGE",
+        }
+        with patch(
+            "core.pure_index_signal.evaluate_index_signal_partial",
+            return_value=(mock_partial, ""),
+        ):
             with patch("core.services.signal_orchestrator.ml_engine") as mock_ml:
                 mock_ml.predict.return_value.win_probability = 0.9
                 mock_ml.predict.return_value.confidence_score = 0.8
                 result = orch.process_market_data(
-                    "BANKNIFTY", {},
-                    {"asset_type": "index", "oi_data": MagicMock(), "iv": 20.0, "vix": 15.0, "sector": "BANKING", "category": "INDEX"},
+                    "BANKNIFTY",
+                    {"df1m": df, "df5m": df, "df15m": df},
+                    {
+                        "asset_type": "index",
+                        "oi_data": oi_data,
+                        "iv": 20.0,
+                        "vix": 15.0,
+                        "sector": "BANKING",
+                        "category": "INDEX",
+                    },
                 )
                 assert isinstance(result, SignalIntent)
                 assert result.symbol == "BANKNIFTY"
+                assert result.direction == "PUT"
+                assert result.score == 70
+                assert result.confidence == 0.8
                 assert result.regime == "RANGE"
 
 

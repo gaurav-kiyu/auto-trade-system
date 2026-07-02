@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def test_reentrant_capital_manager() -> None:
     """CapitalManager RLock allows reentrant calls from the same thread."""
-    from core.capital_manager import CapitalManager
+    from core.services.risk_service import CapitalManager
 
     cm = CapitalManager(initial_capital=100_000.0, max_daily_loss=-10_000.0)
     result = cm.decide_trade_allowed()
@@ -149,7 +149,7 @@ def test_reentrant_state_manager() -> None:
 
 def test_concurrent_capital_manager() -> None:
     """Multiple threads accessing CapitalManager simultaneously."""
-    from core.capital_manager import CapitalManager
+    from core.services.risk_service import CapitalManager
 
     cm = CapitalManager(initial_capital=100_000.0, max_daily_loss=-10_000.0)
     errors: list[Exception | None] = []
@@ -249,7 +249,7 @@ def test_lock_is_rlock_not_lock() -> None:
     import threading as _th
     rlock_type = type(_th.RLock())
 
-    from core.capital_manager import CapitalManager
+    from core.services.risk_service import CapitalManager
     cm = CapitalManager(initial_capital=100_000.0, max_daily_loss=-10_000.0)
     assert isinstance(cm._lock, rlock_type)
 

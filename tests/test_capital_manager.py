@@ -15,7 +15,10 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-from core.capital_manager import CapitalManager
+from core.services.risk_service import CapitalManager
+
+
+_PATCH_TARGET = "core.services.risk_service.trip_hard_halt"
 
 
 @pytest.fixture
@@ -230,7 +233,7 @@ class TestDecideTradeAllowed:
         cm.record_trade(-30000.0, is_winner=False)  # dd = 25%, but daily_pnl = -5000 <= -2000
         # Reset daily PnL to isolate drawdown check
         cm._state.daily_pnl = 0.0  # bypass daily loss gate to test drawdown specifically
-        with patch("core.capital_manager.trip_hard_halt") as mock_halt:
+        with patch(_PATCH_TARGET) as mock_halt:
             allowed, reason = cm.decide_trade_allowed()
             assert allowed is False
             assert "drawdown" in reason.lower()
@@ -239,7 +242,7 @@ class TestDecideTradeAllowed:
     def test_blocks_consecutive_losses(self, cm: CapitalManager):
         for _ in range(5):
             cm.record_trade(-100.0, is_winner=False)
-        with patch("core.capital_manager.trip_hard_halt") as mock_halt:
+        with patch(_PATCH_TARGET) as mock_halt:
             allowed, reason = cm.decide_trade_allowed()
             assert allowed is False
             assert "consecutive" in reason.lower() or "circuit breaker" in reason.lower()

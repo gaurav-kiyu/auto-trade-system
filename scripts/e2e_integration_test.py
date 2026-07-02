@@ -119,9 +119,9 @@ def run_phase2():
 # PHASE 3: Signal Pipeline
 # ═══════════════════════════════════════════════════════════════════
 def run_phase3():
-    def test_signal_engine():
-        from core.legacy import signal_engine
-        assert signal_engine is not None
+    def test_signal_utils():
+        from core.signal_utils import breakout_strength_ok
+        assert breakout_strength_ok is not None
     test("P3-SIGNAL", "Signal engine import", test_signal_engine)
 
     def test_pure_signal():

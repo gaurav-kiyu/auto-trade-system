@@ -24,7 +24,36 @@ from core.backtest_engine import (
     ReplayEngine,
     ReplaySignal,
 )
-from core.strategy_engine import StrategyEngine
+
+
+# ── Mock strategy base class (duck-typed replacement for StrategyEngine) ──
+
+
+class _MockStrategyBase:
+    """Minimal duck-typed strategy class for backtest tests.
+
+    Replaces the deprecated ``StrategyEngine`` import.
+    """
+
+    def generate_signal(self, name: str, frames: dict, vix: float = 0.0) -> dict | None:
+        return None
+
+    def snapshot(self, name: str, sig: dict | None) -> object:
+        """Return a snapshot-like object with expected attributes."""
+        from types import SimpleNamespace
+        score = float(sig.get("score", 0.0)) if sig else 0.0
+        threshold = float(sig.get("threshold", 60.0)) if sig else 60.0
+        direction = str(sig.get("direction", "CALL")) if sig else "CALL"
+        strength = str(sig.get("strength", "NONE")) if sig else "NONE"
+        regime = str(sig.get("regime", "NEUTRAL")) if sig else "NEUTRAL"
+        return SimpleNamespace(
+            score=score,
+            threshold=threshold,
+            direction=direction,
+            strength=strength,
+            regime=regime,
+        )
+
 
 # ── ReplayConfig ────────────────────────────────────────────────────
 
@@ -202,12 +231,7 @@ class TestReplayEngine:
         df = pd.DataFrame({
             "Open": 100.0, "High": 101.0, "Low": 99.0, "Close": 100.5, "Volume": 1000,
         }, index=dates)
-        # Create a mock strategy engine for replay
-        class MockStrategy(StrategyEngine):
-            def generate_signal(self, name: str, frames: dict, vix: float = 0):
-                return None  # No signals for test
-
-        se = MockStrategy()
+        se = _MockStrategyBase()
         re = ReplayEngine(se)
         frames = re._build_frames(df, upto=20)
         assert "1m" in frames
@@ -219,10 +243,8 @@ class TestReplayEngine:
             "Open": 100.0, "High": 101.0, "Low": 99.0, "Close": 100.5, "Volume": 1000,
         }, index=dates)
         config = ReplayConfig(frame_intervals=("1min", "5min", "15min"))
-        class MockStrategy(StrategyEngine):
-            def generate_signal(self, name, frames, vix=0):
-                return None
-        re = ReplayEngine(MockStrategy(), config)
+        se = _MockStrategyBase()
+        re = ReplayEngine(se, config)
         frames = re._build_frames(df, upto=40)
         assert "1m" in frames
         assert "5m" in frames
@@ -233,10 +255,8 @@ class TestReplayEngine:
         df = pd.DataFrame({
             "Open": 100.0, "High": 101.0, "Low": 99.0, "Close": 100.5, "Volume": 1000,
         }, index=dates)
-        class MockStrategy(StrategyEngine):
-            def generate_signal(self, name, frames, vix=0):
-                return None
-        re = ReplayEngine(MockStrategy())
+        se = _MockStrategyBase()
+        re = ReplayEngine(se)
         signals = re.run("NIFTY", df)
         assert signals == []
 
@@ -250,11 +270,9 @@ class TestBacktestEngine:
         df = pd.DataFrame({
             "Open": 100.0, "High": 101.0, "Low": 99.0, "Close": 100.5, "Volume": 1000,
         }, index=dates)
-        class MockStrategy(StrategyEngine):
-            def generate_signal(self, name, frames, vix=0):
-                return None
+        se = _MockStrategyBase()
         engine = BacktestEngine(
-            MockStrategy(),
+            se,
             replay_config=ReplayConfig(warmup_bars=5),
             backtest_config=BacktestConfig(initial_capital=10000.0),
         )
@@ -279,7 +297,7 @@ class TestBacktestEngine:
             "Volume": [10000] * 60,
         }, index=dates)
 
-        class AlwaysSignal(StrategyEngine):
+        class AlwaysSignal(_MockStrategyBase):
             def generate_signal(self, name, frames, vix=0):
                 return {
                     "score": 85,
@@ -297,7 +315,6 @@ class TestBacktestEngine:
             backtest_config=BacktestConfig(initial_capital=10000.0, slippage_pct=0.0),
         )
         report = engine.run("NIFTY", df)
-        # Should have at least one trade
         assert report.total_trades >= 0
 
 

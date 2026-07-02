@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings as _ww
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -8,10 +7,6 @@ from typing import Any
 import pandas as pd
 
 from .backtest_engine import BacktestConfig, BacktestEngine, BacktestReport, ReplayConfig
-
-with _ww.catch_warnings():
-    _ww.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
-    from .strategy_engine import StrategyEngine
 
 
 __all__ = [
@@ -67,7 +62,7 @@ class WalkForwardEngine:
 
     def __init__(
         self,
-        strategy_engine: StrategyEngine,
+        strategy_engine: Any,
         *,
         replay_config: ReplayConfig | None = None,
         backtest_config: BacktestConfig | None = None,
@@ -352,7 +347,7 @@ class WalkForwardDriftMonitor:
 
     def __init__(
         self,
-        strategy_engine: StrategyEngine,
+        strategy_engine: Any,
         replay_config: ReplayConfig | None = None,
         backtest_config: BacktestConfig | None = None,
     ):

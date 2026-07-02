@@ -26,7 +26,15 @@ from typing import Any
 import pandas as pd
 
 from core.feature_engine import FeatureEngine
-from core.legacy import signal_engine as SE
+from core.signal_utils import (
+    breakout_strength_ok,
+    calc_atr_stop_loss,
+    calc_fibonacci_targets,
+    classify_signal,
+    classify_strength,
+    score_to_label,
+    score_to_stars,
+)
 from core.market_calc import detect_regime_and_adx as mc_detect_regime_and_adx
 from core.utils_numeric import safe_num
 
@@ -318,7 +326,7 @@ def evaluate_index_signal_partial(
     _score_components["macd_bonus"] = _macd_delta
 
     # Breakout quality bonus/penalty
-    breakout_ok = SE.breakout_strength_ok(df1)
+    breakout_ok = breakout_strength_ok(df1)
     _breakout_bonus = int(sc.get("BREAKOUT_BONUS", 8))
     _bk_pts = 0
     if breakout_ok:
@@ -405,8 +413,8 @@ def evaluate_index_signal_partial(
     _score_components["orb_bonus"] = _orb_pts
 
     atr_sl_mult = float(sc.get("ATR_SL_MULTIPLIER", 1.2))
-    stop_loss = SE.calc_atr_stop_loss(price, safe_num(atr, price * 0.01), direction, atr_sl_mult)
-    tps = SE.calc_fibonacci_targets(
+    stop_loss = calc_atr_stop_loss(price, safe_num(atr, price * 0.01), direction, atr_sl_mult)
+    tps = calc_fibonacci_targets(
         price,
         safe_num(atr, price * 0.01),
         direction,
@@ -649,15 +657,15 @@ def finalize_index_signal_with_threshold(
     score = int(partial["score"])
     direction = str(partial["direction"])
     thr = int(max(0, min(100, threshold)))
-    stars = SE.score_to_stars(score, thr)
-    label = SE.score_to_label(score, direction, thr)
-    strength = SE.classify_strength(
+    stars = score_to_stars(score, thr)
+    label = score_to_label(score, direction, thr)
+    strength = classify_strength(
         score,
         thr,
         strong_min=int(sc.get("STRONG_THRESHOLD", 85)),
         moderate_min=int(sc.get("MODERATE_THRESHOLD", 70)),
     )
-    sig = SE.classify_signal(direction, score, thr)
+    sig = classify_signal(direction, score, thr)
     action = "BUY" if sig == "BUY" else "HOLD"
     return {
         **dict(partial),

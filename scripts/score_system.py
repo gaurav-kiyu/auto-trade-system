@@ -407,7 +407,7 @@ def main(argv: list[str] | None = None) -> int:
     # Skip when sys.stdout is a StringIO (e.g., during test stdout capture)
     if sys.platform == "win32":
         import io
-        if hasattr(sys.stdout, 'buffer') and not isinstance(sys.stdout, io.TextIOWrapper):
+        if hasattr(sys.stdout, 'buffer'):
             sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--category", "-c", help="Score only a single category")
@@ -476,13 +476,13 @@ def main(argv: list[str] | None = None) -> int:
     for group, items in sorted(by_group.items()):
         print(f"  [{group}]")
         for r in items:
-            flag = "✓" if r["regression_count"] == 0 else "✗"
-            audit_mark = " 🔍" if r["needs_9_audit"] else ""
+            flag = "OK" if r["regression_count"] == 0 else "FAIL"
+            audit_mark = " [AUDIT_REQ]" if r["needs_9_audit"] else ""
             print(f"    {flag} {r['category_id']} {r['name']:<30s} "
                   f"{r['score']:5.2f}/{r['max_score']:.1f}{audit_mark}")
             if args.evidence and r["evidence_count"] > 0:
                 for ev in auto_evidence.get(r["category_id"], []):
-                    v = "✓" if ev.get("verified") else " "
+                    v = "Y" if ev.get("verified") else "N"
                     print(f"         [{v}] {ev['description']}")
             if r["regression_count"] > 0:
                 print(f"         regressions: {r['regression_count']}")
@@ -494,16 +494,16 @@ def main(argv: list[str] | None = None) -> int:
     no_evidence = [r for r in results if r["evidence_count"] == 0]
 
     if below_8:
-        print(f"  ⚠ {len(below_8)} category(ies) below 8.0: "
+        print(f"  WARNING: {len(below_8)} category(ies) below 8.0: "
               f"{', '.join(r['category_id'] for r in below_8)}")
     if no_evidence:
-        print(f"  ⚠ {len(no_evidence)} category(ies) with no evidence: "
+        print(f"  WARNING: {len(no_evidence)} category(ies) with no evidence: "
               f"{', '.join(r['category_id'] for r in no_evidence)}")
     if failures_below_min:
-        print(f"  ✗ {len(failures_below_min)} category(ies) below --check-min "
+        print(f"  FAIL: {len(failures_below_min)} category(ies) below --check-min "
               f"({args.check_min})")
     else:
-        print(f"  ✓ All scores meet minimum threshold ({args.check_min})")
+        print(f"  OK: All scores meet minimum threshold ({args.check_min})")
 
     print("=" * 70)
 

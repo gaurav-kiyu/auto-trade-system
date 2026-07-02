@@ -9,8 +9,6 @@ hexagonal (ports & adapters) architecture - it depends on ``core`` but
 from __future__ import annotations
 
 # Re-export adapters so consumers can do ``from infrastructure import NseEquityAdapter``
-from infrastructure.adapters import (  # noqa: F401
-    CdsCurrencyAdapter,
-    McxCommodityAdapter,
-    NseEquityAdapter,
-)
+from .adapters.market_data.commodity.mcx_commodity_adapter import McxCommodityAdapter
+from .adapters.market_data.currency.cds_currency_adapter import CdsCurrencyAdapter
+from .adapters.market_data.equity.nse_equity_adapter import NseEquityAdapter

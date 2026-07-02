@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-import warnings as _bw
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
-
-with _bw.catch_warnings():
-    _bw.filterwarnings("ignore", message=".*DEPRECATED.*", category=DeprecationWarning)
-    from .strategy_engine import StrategyEngine
 
 
 __all__ = [
@@ -132,7 +127,7 @@ class CsvReplaySource:
 
 
 class ReplayEngine:
-    def __init__(self, strategy_engine: StrategyEngine, replay_config: ReplayConfig | None = None) -> None:
+    def __init__(self, strategy_engine: Any, replay_config: ReplayConfig | None = None) -> None:
         self._strategy_engine = strategy_engine
         self._cfg = replay_config or ReplayConfig()
 
@@ -182,7 +177,7 @@ class ReplayEngine:
 class BacktestEngine:
     def __init__(
         self,
-        strategy_engine: StrategyEngine,
+        strategy_engine: Any,
         replay_config: ReplayConfig | None = None,
         backtest_config: BacktestConfig | None = None,
     ) -> None:

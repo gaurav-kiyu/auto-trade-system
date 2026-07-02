@@ -750,15 +750,15 @@ class BrokerHealthService(BrokerHealthPort):
         if failover_triggered:
             next_broker = self.failover_manager.get_active_broker()
             self._logger.warning(f"Failover triggered for broker {broker_name} due to consecutive errors")
-            # Send CRITICAL alert for failover - this goes to Telegram if configured
             alert_msg = f"🔄 BROKER FAILOVER: Switched from {broker_name} to {next_broker} due to consecutive failures"
             self._logger.critical(alert_msg)
-            # Also try to send via notification service if available
+            # Dispatch via incident alerting for Telegram dispatch
             try:
-                if hasattr(self, '_notification_service') and self._notification_service:
-                    self._notification_service.send_alert(alert_msg, priority="CRITICAL")
-            except (AttributeError, OSError):
-                self._logger.debug("[BHS] Notification send failed (non-blocking)")
+                from core.incident_alerting import get_incident_alerting
+                alerting = get_incident_alerting()
+                alerting.alert_broker_disconnect(details={"broker": broker_name, "failover_to": next_broker})
+            except (ImportError, AttributeError, OSError, ValueError):
+                self._logger.debug("[BHS] Incident alerting unavailable (non-blocking)")
 
     def _monitoring_loop(self) -> None:
         """Main monitoring loop that runs in a separate thread."""

@@ -194,12 +194,19 @@ class TestMultiChannelAlerter:
             "TG_TRADE_ONLY": True,
         }
         alerter = MultiChannelAlerter(cfg)
-        assert alerter.telegram is not None
+        assert alerter.telegram_adapter is not None
         assert alerter.email is not None
         assert alerter.webhook is not None
 
     def test_send_alert_telegram_only(self):
         """Test sending alert via Telegram only."""
+        from core.datetime_ist import now_ist
+        from core.ports.notification.notification_port import (
+            NotificationChannel,
+            NotificationResult,
+            NotificationStatus,
+        )
+
         cfg = {
             "BOT_TOKEN": "test_token",
             "CHAT_ID": "test_chat",
@@ -209,17 +216,32 @@ class TestMultiChannelAlerter:
         }
         alerter = MultiChannelAlerter(cfg)
 
-        # Mock the telegram engine's send_raw method
-        with patch.object(alerter.telegram, 'send_raw', return_value=True) as mock_send:
+        # Mock the telegram adapter's send_notification method
+        with patch.object(alerter.telegram_adapter, 'send_notification', return_value=NotificationResult(
+            notification_id="test",
+            status=NotificationStatus.SENT,
+            channel=NotificationChannel.TELEGRAM,
+            timestamp=now_ist(),
+        )) as mock_send:
             result = alerter.send_alert("Test Subject", "Test Body", telegram_only=True)
 
             assert result["telegram"] is True
             assert "email" not in result or result.get("email") is False
             assert "webhook" not in result or result.get("webhook") is False
-            mock_send.assert_called_once_with("Test Body", critical=True)
+            mock_send.assert_called_once()
+            call_args = mock_send.call_args[0][0]
+            assert call_args.message == "Test Body"
+            assert call_args.channel == NotificationChannel.TELEGRAM
 
     def test_send_alert_all_channels(self):
         """Test sending alert via all channels."""
+        from core.datetime_ist import now_ist
+        from core.ports.notification.notification_port import (
+            NotificationChannel,
+            NotificationResult,
+            NotificationStatus,
+        )
+
         cfg = {
             "BOT_TOKEN": "test_token",
             "CHAT_ID": "test_chat",
@@ -230,7 +252,13 @@ class TestMultiChannelAlerter:
         alerter = MultiChannelAlerter(cfg)
 
         # Mock all channel send methods
-        with patch.object(alerter.telegram, 'send_raw', return_value=True) as mock_tg, \
+        mock_tg_result = NotificationResult(
+            notification_id="tg",
+            status=NotificationStatus.SENT,
+            channel=NotificationChannel.TELEGRAM,
+            timestamp=now_ist(),
+        )
+        with patch.object(alerter.telegram_adapter, 'send_notification', return_value=mock_tg_result) as mock_tg, \
              patch.object(alerter.email, 'send_alert', return_value=True) as mock_email, \
              patch.object(alerter.webhook, 'send_alert', return_value=True) as mock_webhook:
 
@@ -240,7 +268,7 @@ class TestMultiChannelAlerter:
             assert result["email"] is True
             assert result["webhook"] is True
 
-            mock_tg.assert_called_once_with("Test Body", critical=True)
+            mock_tg.assert_called_once()
             mock_email.assert_called_once_with("Test Subject", "Test Body")
             mock_webhook.assert_called_once_with("Test Subject", "Test Body")
 

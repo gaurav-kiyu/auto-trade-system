@@ -77,11 +77,12 @@ TARGET PRODUCT VISION
 =====================
 
 Comparable to:
-
+- SAHI
 - Zerodha
 - Dhan
 - mStock
 - IIFL
+- GROW
 - Upstox
 - Angel One
 - TradingView

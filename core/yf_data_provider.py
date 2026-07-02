@@ -19,6 +19,7 @@ Intended to be imported by index_trader.py and other consumers.
 from __future__ import annotations
 
 import logging
+import random
 import threading
 import time
 from typing import Any
@@ -39,14 +40,55 @@ _last_close_cache: dict[str, dict[str, Any]] = {}
 _last_close_cache_lock = threading.RLock()
 _last_close_cache_ts: float = 0.0
 
+# ── Rate limiting ────────────────────────────────────────────────────────
+# Exponential backoff: tracks consecutive failures per symbol to back off
+# before retrying, reducing unnecessary calls to yfinance during API hiccups.
+_yf_failure_count: dict[str, int] = {}
+_yf_failure_lock = threading.RLock()
+_YF_MAX_BACKOFF: float = 300.0  # max 5 min between retries
+_YF_BASE_BACKOFF: float = 5.0   # start with 5s
+_YF_BACKOFF_MULTIPLIER: float = 2.0
+
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
 
+def _get_backoff_delay(yf_sym: str) -> float:
+    """Calculate exponential backoff delay for a symbol based on failure count.
+
+    Returns 0.0 if no backoff is needed (no recent failures).
+    """
+    with _yf_failure_lock:
+        failures = _yf_failure_count.get(yf_sym, 0)
+        if failures == 0:
+            return 0.0
+        delay = min(
+            _YF_BASE_BACKOFF * (_YF_BACKOFF_MULTIPLIER ** (failures - 1)),
+            _YF_MAX_BACKOFF,
+        )
+        # Add jitter (±25%) to avoid thundering herd when multiple symbols fail simultaneously
+        jitter = random.uniform(0.75, 1.25)
+        return delay * jitter
+
+
+def _record_failure(yf_sym: str) -> None:
+    """Increment failure count for exponential backoff."""
+    with _yf_failure_lock:
+        _yf_failure_count[yf_sym] = _yf_failure_count.get(yf_sym, 0) + 1
+
+
+def _record_success(yf_sym: str) -> None:
+    """Reset failure count on success (clear backoff)."""
+    with _yf_failure_lock:
+        _yf_failure_count.pop(yf_sym, None)
+
+
 def fetch_intraday_data(yf_sym: str) -> tuple:
     """Fetch intraday OHLCV data (1m, 5m, 15m) for an index via yfinance.
+
+    Implements exponential backoff on failure to reduce yfinance rate limit hits.
 
     Args:
         yf_sym: Yahoo Finance symbol (e.g. "^NSEI", "^NSEBANK").
@@ -56,10 +98,19 @@ def fetch_intraday_data(yf_sym: str) -> tuple:
     """
     if not yf_sym:
         return None, None, None
+
+    # Check backoff before attempting fetch
+    delay = _get_backoff_delay(yf_sym)
+    if delay > 0:
+        _log.info("yfinance backoff: waiting %.1fs for %s (%d failures)",
+                  delay, yf_sym, _yf_failure_count.get(yf_sym, 0))
+        time.sleep(delay)
+
     try:
         df1m = yf.download(yf_sym, period="2d", interval="1m", progress=False)
         df5m = yf.download(yf_sym, period="5d", interval="5m", progress=False)
         df15m = yf.download(yf_sym, period="15d", interval="15m", progress=False)
+        _record_success(yf_sym)
         return (
             df1m if not df1m.empty else None,
             df5m if not df5m.empty else None,
@@ -67,9 +118,11 @@ def fetch_intraday_data(yf_sym: str) -> tuple:
         )
     except (ValueError, TypeError, KeyError, AttributeError, IndexError, ConnectionError, TimeoutError, OSError) as exc:
         _log.warning("yfinance intraday fetch failed for %s: %s", yf_sym, exc)
+        _record_failure(yf_sym)
         return None, None, None
     except Exception as exc:
         _log.warning("yfinance intraday fetch failed for %s (unexpected: %s): %s", yf_sym, type(exc).__name__, exc)
+        _record_failure(yf_sym)
         return None, None, None
 
 
@@ -143,44 +196,62 @@ def fetch_last_close_summary(index_map: dict[str, dict[str, str]]) -> dict[str, 
 def fetch_vix() -> float:
     """Fetch India VIX directly via yfinance.
 
+    Implements exponential backoff on failure.
+
     Returns:
         Latest VIX close value, or 0.0 on failure.
     """
     try:
+        delay = _get_backoff_delay("^INDIAVIX")
+        if delay > 0:
+            _log.info("yfinance VIX backoff: waiting %.1fs", delay)
+            time.sleep(delay)
         vix_df = yf.download("^INDIAVIX", period="5d", interval="1d", progress=False)
         if vix_df is not None and not vix_df.empty:
             close_val = vix_df["Close"].iloc[-1]
             # Handle MultiIndex columns (yfinance >= 0.2.30)
             if hasattr(close_val, 'iloc'):
                 close_val = close_val.iloc[0]
+            _record_success("^INDIAVIX")
             return float(close_val)
     except (ValueError, TypeError, KeyError, AttributeError, IndexError, ConnectionError, TimeoutError, OSError) as exc:
         _log.warning("VIX fetch failed: %s", exc)
+        _record_failure("^INDIAVIX")
         return 0.0
     except Exception as exc:
         _log.warning("VIX fetch failed (unexpected: %s): %s", type(exc).__name__, exc)
+        _record_failure("^INDIAVIX")
     return 0.0
 
 
 def get_vix_from_intraday() -> float:
     """Fetch India VIX from intraday data (1m bar).
 
+    Implements exponential backoff on failure.
+
     Returns:
         Latest VIX close value, or 0.0 on failure.
     """
     try:
+        delay = _get_backoff_delay("^INDIAVIX")
+        if delay > 0:
+            _log.info("yfinance VIX intraday backoff: waiting %.1fs", delay)
+            time.sleep(delay)
         vix_data = yf.download("^INDIAVIX", period="1d", interval="1m", progress=False)
         if not vix_data.empty:
             close_val = vix_data["Close"].iloc[-1]
             # Handle MultiIndex columns (yfinance >= 0.2.30)
             if hasattr(close_val, 'iloc'):
                 close_val = close_val.iloc[0]
+            _record_success("^INDIAVIX")
             return float(close_val)
     except (ValueError, TypeError, KeyError, AttributeError, IndexError, ConnectionError, TimeoutError, OSError) as exc:
         _log.warning("VIX intraday fetch failed: %s", exc)
+        _record_failure("^INDIAVIX")
         return 0.0
     except Exception as exc:
         _log.warning("VIX intraday fetch failed (unexpected: %s): %s", type(exc).__name__, exc)
+        _record_failure("^INDIAVIX")
     return 0.0
 
 

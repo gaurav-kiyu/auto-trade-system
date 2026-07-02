@@ -1029,20 +1029,8 @@ def _check_hard_stops_via_risk() -> tuple[bool, str]:
 _nse_session: Any = requests.Session()
 _nse_session.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application/json, text/plain, */*"})
 NSE_HOLIDAYS: set = set()
-# Hardcoded fallback for 2026 NSE trading holidays in case API fetch fails
-_NSE_HOLIDAYS_FALLBACK: set = {
-    "2026-01-26",  # Republic Day
-    "2026-03-27",  # Good Friday
-    "2026-04-14",  # Dr. Ambedkar Jayanti
-    "2026-05-01",  # Maharashtra Day
-    "2026-08-17",  # Parsi New Year
-    "2026-10-02",  # Mahatma Gandhi Jayanti
-    "2026-10-09",  # Dussehra
-    "2026-10-28",  # Diwali - Laxmi Pujan
-    "2026-10-29",  # Diwali - Balipratipada (observed)
-    "2026-11-16",  # Guru Nanak Jayanti
-    "2026-12-25",  # Christmas
-}
+# Holiday fallback dates live in index_app.domains.market.holidays (single source of truth).
+# The dynamic fetch populates NSE_HOLIDAYS; if it fails, holidays.py provides a fallback.
 _NSE_HOLIDAY_YEARS: set = set()
 _HOLIDAY_FETCH_META: dict = {"count": 0, "fallback": False, "note": ""}
 

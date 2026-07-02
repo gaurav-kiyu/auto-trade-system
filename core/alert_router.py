@@ -1,6 +1,18 @@
 """
-Multi-Channel Alert Router
-Handles sending alerts via multiple channels: Telegram, Email, Webhook.
+[DEPRECATED] Multi-Channel Alert Router
+
+**DEPRECATED** — Will be removed in v3.1.
+This module is only kept for backward compatibility with existing tests.
+
+Migration path:
+  - Telegram alerts → ``infrastructure/adapters/notifications/telegram_adapter.py``
+    (TelegramNotificationAdapter implements the NotificationPort interface)
+  - Email/Webhook alerts → Use dedicated alerting services or
+    a future consolidated ``core/services/notification_service.py``
+
+New code should use the NotificationPort interface directly.
+
+.. deprecated:: 2.54.0
 """
 
 from __future__ import annotations
@@ -10,14 +22,29 @@ import logging
 import smtplib
 import threading
 import time
+import warnings
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any
 
 import requests
 
-# Import the existing TelegramEngine
-from core.legacy.telegram_engine import TelegramEngine
+warnings.warn(
+    "core.alert_router is DEPRECATED (removal target v3.1). "
+    "Use infrastructure/adapters/notifications/telegram_adapter.py "
+    "(TelegramNotificationAdapter) instead.",
+    FutureWarning,
+    stacklevel=2,
+)
+
+# Import the modern TelegramNotificationAdapter (v2.54: migrated from TelegramEngine)
+from core.ports.notification.notification_port import (
+    Notification,
+    NotificationChannel,
+    NotificationPriority,
+    NotificationStatus,
+)
+from infrastructure.adapters.notifications.telegram_adapter import TelegramNotificationAdapter
 
 _log = logging.getLogger(__name__)
 
@@ -124,11 +151,12 @@ class MultiChannelAlerter:
 
     def __init__(self, cfg: dict[str, Any]):
         self.cfg = cfg
-        self.telegram = TelegramEngine(
+        self._default_chat_id = cfg.get("CHAT_ID", "")
+        self.telegram_adapter = TelegramNotificationAdapter(
             bot_token=cfg.get("BOT_TOKEN", ""),
-            default_chat_id=cfg.get("CHAT_ID", ""),
-            channel_map={},  # Use default channel mapping from TelegramEngine
-            enabled=cfg.get("TG_TRADE_ONLY", True),  # Assuming we want trade alerts enabled
+            default_chat_id=self._default_chat_id,
+            channel_map={},
+            enabled=bool(cfg.get("TG_TRADE_ONLY", True)),
         )
         self.email = EmailAlerter(cfg)
         self.webhook = WebhookAlerter(cfg)
@@ -142,11 +170,15 @@ class MultiChannelAlerter:
 
         # Always send via Telegram if enabled (unless telegram_only is False we still send via Telegram)
         try:
-            # We assume the body is already formatted for Telegram by the caller
-            # For simplicity, we'll send the same body to Telegram
-            # In a real system, you might want different formatting per channel
-            tg_success = self.telegram.send_raw(body, critical=True)
-            results["telegram"] = tg_success
+            notification = Notification(
+                message=body,
+                channel=NotificationChannel.TELEGRAM,
+                priority=NotificationPriority.CRITICAL,
+                recipient=self._default_chat_id,
+                subject=subject,
+            )
+            result = self.telegram_adapter.send_notification(notification)
+            results["telegram"] = result.status == NotificationStatus.SENT
         except (ConnectionError, TimeoutError, OSError, ValueError, TypeError) as e:
             _log.error(f"Failed to send Telegram alert: {e}")
             results["telegram"] = False

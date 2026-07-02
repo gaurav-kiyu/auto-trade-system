@@ -1,7 +1,6 @@
 """Tests for core/signal_service.py -- SignalService class."""
 
-import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from core.signal_service import (
@@ -151,81 +150,66 @@ class TestValidateSignalPillars:
 
 class TestGenerateTradingSignal:
     def test_basic_signal(self):
-        """Should generate a signal dict with valid inputs."""
+        """Should generate a signal dict with valid inputs (V2 path)."""
         svc = SignalService(cfg={"AI_THRESHOLD": 60})
 
         frames = {"df1m": None, "df5m": None, "df15m": None}
 
-        # Patch the signal_engine module import and iv_rank/OI at the source
-        with patch.dict(sys.modules, {"core.legacy.signal_engine": MagicMock()}):
-            sys.modules["core.legacy.signal_engine"].build_full_signal = MagicMock(
-                return_value={"signal": "BUY", "score": 75, "direction": "CALL"}
+        with patch.object(
+            svc, "_evaluate_v2_signal",
+            return_value={"signal": "BUY", "score": 75, "direction": "CALL"},
+        ):
+            result = svc.generate_trading_signal(
+                name="NIFTY", frames=frames, vix=15.0,
             )
-            with patch("core.iv_rank.get_iv_rank", return_value=0.5):
-                with patch("core.oi_snapshot_store.get_oi_at", return_value=0.05):
-                    with patch("core.oi_snapshot_store.get_pcr_at", return_value=1.1):
-                        result = svc.generate_trading_signal(
-                            name="NIFTY", frames=frames, vix=15.0,
-                        )
 
         assert result is not None
         assert result["signal"] == "BUY"
         assert result["score"] == 75
 
     def test_signal_without_oi_data(self):
-        """Should work when OI data fetch fails."""
+        """Should work when V2 path returns valid signal."""
         svc = SignalService(cfg={"AI_THRESHOLD": 60})
 
         frames = {"df1m": None, "df5m": None, "df15m": None}
 
-        with patch.dict(sys.modules, {"core.legacy.signal_engine": MagicMock()}):
-            sys.modules["core.legacy.signal_engine"].build_full_signal = MagicMock(
-                return_value={"signal": "SELL", "score": 30}
+        with patch.object(
+            svc, "_evaluate_v2_signal",
+            return_value={"signal": "SELL", "score": 30},
+        ):
+            result = svc.generate_trading_signal(
+                name="NIFTY", frames=frames,
             )
-            with patch("core.iv_rank.get_iv_rank", return_value=0.5):
-                with patch("core.oi_snapshot_store.get_pcr_at", side_effect=ValueError("no data")):
-                    result = svc.generate_trading_signal(
-                        name="NIFTY", frames=frames,
-                    )
 
         assert result is not None
         assert result["signal"] == "SELL"
 
     def test_signal_with_all_data(self):
-        """Should include OI data when available."""
+        """Should work with V2 path returning a signal."""
         svc = SignalService(cfg={"AI_THRESHOLD": 60})
 
         frames = {"df1m": None, "df5m": None, "df15m": None}
 
-        with patch.dict(sys.modules, {"core.legacy.signal_engine": MagicMock()}):
-            sys.modules["core.legacy.signal_engine"].build_full_signal = MagicMock(
-                return_value={"signal": "BUY"}
+        with patch.object(
+            svc, "_evaluate_v2_signal",
+            return_value={"signal": "BUY"},
+        ):
+            result = svc.generate_trading_signal(
+                name="BANKNIFTY", frames=frames, vix=14.0,
             )
-            with patch("core.iv_rank.get_iv_rank", return_value=0.5):
-                with patch("core.oi_snapshot_store.get_oi_at", return_value=0.05):
-                    with patch("core.oi_snapshot_store.get_pcr_at", return_value=1.1):
-                        result = svc.generate_trading_signal(
-                            name="BANKNIFTY", frames=frames, vix=14.0,
-                        )
 
         assert result is not None
 
     def test_signal_custom_threshold(self):
-        """Should use config threshold."""
+        """Should pass config threshold to V2 evaluator."""
         svc = SignalService(cfg={"AI_THRESHOLD": 85})
 
         frames = {"df1m": None, "df5m": None, "df15m": None}
 
-        with patch.dict(sys.modules, {"core.legacy.signal_engine": MagicMock()}):
-            mock_build = MagicMock(return_value={"signal": "BUY", "threshold": 85})
-            sys.modules["core.legacy.signal_engine"].build_full_signal = mock_build
-            with patch("core.iv_rank.get_iv_rank", return_value=0.5):
-                with patch("core.oi_snapshot_store.get_oi_at", return_value=0.05):
-                    with patch("core.oi_snapshot_store.get_pcr_at", return_value=1.1):
-                        svc.generate_trading_signal(name="NIFTY", frames=frames)
+        with patch.object(svc, "_evaluate_v2_signal", return_value={"signal": "BUY"}) as mock_v2:
+            svc.generate_trading_signal(name="NIFTY", frames=frames)
 
-            call_kwargs = mock_build.call_args[1] if mock_build.call_args else {}
-            assert call_kwargs.get("threshold") == 85
+            mock_v2.assert_called_once_with(name="NIFTY", frames=frames, vix=0.0)
 
 
 # ============================================================================

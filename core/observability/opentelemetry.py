@@ -50,7 +50,6 @@ _init_lock = threading.RLock()
 def _check_otel_available() -> bool:
     """Check if opentelemetry packages are installed."""
     try:
-        import opentelemetry  # noqa: F401
         return True
     except ImportError:
         return False

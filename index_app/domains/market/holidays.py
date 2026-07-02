@@ -12,6 +12,7 @@ import requests
 from core.datetime_ist import now_ist
 
 __all__ = [
+    "_NSE_HOLIDAYS_FALLBACK",
     "fetch_nse_holidays",
 ]
 

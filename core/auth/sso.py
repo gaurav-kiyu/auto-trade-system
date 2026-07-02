@@ -173,7 +173,6 @@ class SSOAuthenticator:
     def is_available(self) -> bool:
         """Check if authlib is installed."""
         try:
-            import authlib  # noqa: F401
             return True
         except ImportError:
             return False

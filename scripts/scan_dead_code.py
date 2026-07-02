@@ -603,10 +603,14 @@ def _remove_unused_imports(findings: list[DeadCodeFinding]) -> list[dict[str, An
             idx = ln - 1  # 0-indexed
             if 0 <= idx < len(new_lines):
                 line_text = new_lines[idx]
-                # Safety check: only remove single-line import statements
+                # Safety check: skip non-import lines
                 stripped = line_text.strip()
                 if not (stripped.startswith("import ") or stripped.startswith("from ")):
                     log.warning("[REMOVE] Line %d in %s is not an import - skipping", ln, file_path_str)
+                    continue
+                # Safety check: skip multi-line imports (contain '(' which means continuation lines exist)
+                if "(" in stripped:
+                    log.warning("[REMOVE] Line %d in %s is part of a multi-line import - skipping to avoid damage", ln, file_path_str)
                     continue
                 new_lines[idx] = ""  # Blank the line (maintains line numbering)
                 removed.append({
