@@ -1,18 +1,12 @@
-# Release v0.0.0-test
+# Release v0.0.0
 
-**Date:** 2026-06-29
-**Previous Release:** v0.0.0
-**Commits Since Last Release:** 1
+**Date:** 2026-07-02
+**Previous Release:** v0.0.0-test
+**Commits Since Last Release:** 0
 
 ---
 
 ## Changes
-
-### Commits
-
-```
-7df160a test commit message
-```
 
 ---
 
