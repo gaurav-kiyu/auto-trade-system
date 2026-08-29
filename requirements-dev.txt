@@ -5,7 +5,7 @@
 # Test runner
 pytest>=8.0
 pytest-timeout>=2.3.0  # per-test timeout guard used by CI (--timeout=N)
-pytest-xdist>=3.6  # parallel test execution: pytest tests/ -n auto
+pytest-xdist>=3.8.0  # parallel test execution: pytest tests/ -n auto
 
 # FastAPI/Starlette TestClient backend (starlette.testclient requires httpx)
 httpx>=0.28.0
