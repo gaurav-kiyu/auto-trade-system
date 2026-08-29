@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant Portal — RealEstate India</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+               background: #080b10; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        .page-header { margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+        .page-header .back-link { color: #64748b; text-decoration: none; font-size: 0.85rem; }
+        .page-header .back-link:hover { color: #60a5fa; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1rem; }
+        .stat-card .stat-value { font-size: 1.5rem; font-weight: 700; }
+        .stat-card .stat-label { font-size: 0.75rem; color: #64748b; margin-top: 0.2rem; }
+        .card-section { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1rem; }
+        .card-section h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem; }
+        .payment-item, .request-item { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid rgba(148,163,184,0.05); }
+        .payment-item:last-child, .request-item:last-child { border-bottom: none; }
+        .amount { font-weight: 600; color: #4ade80; }
+        .amount-pending { color: #fbbf24; }
+        .amount-overdue { color: #f87171; }
+        .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.65rem; font-weight: 500; }
+        .badge-success { background: rgba(34,197,94,0.1); color: #4ade80; }
+        .badge-warning { background: rgba(245,158,11,0.1); color: #fbbf24; }
+        .badge-danger { background: rgba(239,68,68,0.1); color: #f87171; }
+        .badge-info { background: rgba(59,130,246,0.1); color: #60a5fa; }
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .tab-btn { background: #1a1f2e; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 0.5rem 1rem; color: #64748b; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+        .tab-btn.active { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.25); color: #60a5fa; }
+        .tab-btn:hover { border-color: rgba(59,130,246,0.15); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-group { margin-bottom: 0.75rem; }
+        .form-group label { display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.3rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; background: #1a1f2e; border: 1px solid rgba(148,163,184,0.1); border-radius: 0.5rem; padding: 0.5rem; color: #e2e8f0; font-size: 0.85rem; outline: none; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: rgba(59,130,246,0.4); }
+        .btn-primary { background: #3b82f6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; font-size: 0.85rem; transition: all 0.2s; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: #22c55e; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; font-size: 0.85rem; }
+        .btn-success:hover { background: #16a34a; }
+        .no-data { text-align: center; padding: 2rem; color: #64748b; font-size: 0.85rem; }
+        .header-top { display: flex; gap: 0.5rem; align-items: center; }
+        .header-top input { background: #1a1f2e; border: 1px solid rgba(148,163,184,0.1); border-radius: 0.5rem; padding: 0.4rem 0.8rem; color: #e2e8f0; font-size: 0.8rem; outline: none; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div>
+            <a href="/realestate" class="back-link">← Back to Home</a>
+            <h1><i class="fas fa-building" style="color:#10b981;margin-right:0.5rem;"></i> Tenant Portal</h1>
+        </div>
+        <div class="header-top">
+            <select id="tenantSelect" onchange="loadAll()" style="background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.4rem 0.8rem;color:#e2e8f0;font-size:0.8rem;outline:none;">
+                <option value="tenant-demo">Demo Tenant</option>
+                <option value="tenant-01">Tenant #1</option>
+                <option value="tenant-02">Tenant #2</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" style="color:#4ade80;" id="paidCount">0</div><div class="stat-label">Payments Made</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#fbbf24;" id="totalPaid">₹0</div><div class="stat-label">Total Paid</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#f87171;" id="openRequests">0</div><div class="stat-label">Open Requests</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#60a5fa;" id="resolvedRequests">0</div><div class="stat-label">Resolved</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#a78bfa;" id="nextDue">-</div><div class="stat-label">Next Due</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('payments', this)"><i class="fas fa-credit-card"></i> Payments</button>
+        <button class="tab-btn" onclick="switchTab('maintenance', this)"><i class="fas fa-tools"></i> Maintenance</button>
+        <button class="tab-btn" onclick="switchTab('agreements', this)"><i class="fas fa-file-signature"></i> Agreements</button>
+        <button class="tab-btn" onclick="switchTab('report', this)"><i class="fas fa-plus-circle"></i> New Request</button>
+    </div>
+
+    <!-- Payments Tab -->
+    <div id="tabPayments">
+        <div class="card-section">
+            <h3><i class="fas fa-history" style="color:#3b82f6;margin-right:0.4rem;"></i> Payment History</h3>
+            <div id="paymentList"><div class="no-data">No payments recorded yet</div></div>
+        </div>
+        <div class="card-section">
+            <h3><i class="fas fa-credit-card" style="color:#10b981;margin-right:0.4rem;"></i> Record New Payment</h3>
+            <div class="grid-2">
+                <div class="form-group"><label>Amount (₹)</label><input type="number" id="payAmount" placeholder="e.g. 25000"></div>
+                <div class="form-group"><label>Month Period</label><input type="text" id="payMonth" placeholder="e.g. Aug 2026"></div>
+                <div class="form-group"><label>Payment Mode</label>
+                    <select id="payMode"><option value="UPI">UPI</option><option value="NEFT">NEFT</option><option value="card">Card</option><option value="cash">Cash</option><option value="cheque">Cheque</option></select>
+                </div>
+                <div class="form-group"><label>Transaction Ref</label><input type="text" id="payRef" placeholder="Optional"></div>
+            </div>
+            <button class="btn-success" onclick="recordPayment()"><i class="fas fa-check"></i> Record Payment</button>
+            <p id="payStatus" style="margin-top:0.5rem;font-size:0.8rem;color:#64748b;"></p>
+        </div>
+    </div>
+
+    <!-- Maintenance Tab -->
+    <div id="tabMaintenance" style="display:none;">
+        <div class="card-section">
+            <h3><i class="fas fa-list" style="color:#f97316;margin-right:0.4rem;"></i> Maintenance Requests</h3>
+            <div id="maintenanceList"><div class="no-data">No maintenance requests</div></div>
+        </div>
+    </div>
+
+    <!-- Agreements Tab -->
+    <div id="tabAgreements" style="display:none;">
+        <div class="card-section">
+            <h3><i class="fas fa-file-contract" style="color:#a78bfa;margin-right:0.4rem;"></i> Active Agreements</h3>
+            <div id="agreementList"><div class="no-data">No active agreements found</div></div>
+        </div>
+    </div>
+
+    <!-- New Request Tab -->
+    <div id="tabReport" style="display:none;">
+        <div class="card-section">
+            <h3><i class="fas fa-tools" style="color:#f97316;margin-right:0.4rem;"></i> Submit Maintenance Request</h3>
+            <div class="grid-2">
+                <div class="form-group"><label>Category</label>
+                    <select id="maintCategory">
+                        <option value="plumbing">Plumbing</option>
+                        <option value="electrical">Electrical</option>
+                        <option value="structural">Structural</option>
+                        <option value="pest">Pest Control</option>
+                        <option value="cleaning">Cleaning</option>
+                        <option value="appliance">Appliance Repair</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Priority</label>
+                    <select id="maintPriority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                        <option value="emergency">🚨 Emergency</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Description</label>
+                    <textarea id="maintDesc" rows="3" placeholder="Describe the issue..."></textarea>
+                </div>
+                <div class="form-group"><label>Preferred Date</label><input type="text" id="maintDate" placeholder="YYYY-MM-DD"></div>
+                <div class="form-group"><label>Preferred Time</label>
+                    <select id="maintTime"><option value="morning">Morning (9-12)</option><option value="afternoon">Afternoon (12-4)</option><option value="evening">Evening (4-7)</option></select>
+                </div>
+            </div>
+            <button class="btn-primary" onclick="submitMaintenance()"><i class="fas fa-paper-plane"></i> Submit Request</button>
+            <p id="maintStatus" style="margin-top:0.5rem;font-size:0.8rem;color:#64748b;"></p>
+        </div>
+    </div>
+
+    <script>
+        let currentTenant = 'tenant-demo';
+
+        function getTenantId() { return document.getElementById('tenantSelect').value; }
+
+        function loadAll() {
+            currentTenant = getTenantId();
+            loadPayments();
+            loadMaintenance();
+        }
+
+        async function loadPayments() {
+            try {
+                const res = await fetch('/api/realestate/tenant/payments?tenant_id=' + currentTenant);
+                const data = await res.json();
+                const payments = data.payments || [];
+                document.getElementById('paidCount').textContent = payments.length;
+                const total = payments.reduce((s, p) => s + p.amount, 0);
+                document.getElementById('totalPaid').textContent = '₹' + (total/100000).toFixed(2) + 'L';
+                document.getElementById('nextDue').textContent = payments.length > 0 ? payments[0].month_period || '-' : '-';
+
+                const container = document.getElementById('paymentList');
+                if (payments.length === 0) {
+                    container.innerHTML = '<div class="no-data">No payments recorded yet</div>';
+                } else {
+                    container.innerHTML = payments.map(p => `
+                        <div class="payment-item">
+                            <div>
+                                <div style="font-size:0.85rem;">${p.month_period || 'Payment'}</div>
+                                <div style="font-size:0.7rem;color:#64748b;">${p.payment_mode} · ${p.transaction_ref ? 'Ref: ' + p.transaction_ref : ''}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div class="amount">₹${(p.amount/100000).toFixed(2)}L</div>
+                                <span class="badge badge-success">${p.status}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {
+                document.getElementById('paymentList').innerHTML = '<div class="no-data">Could not load payments</div>';
+            }
+        }
+
+        async function recordPayment() {
+            const amount = document.getElementById('payAmount').value;
+            const month = document.getElementById('payMonth').value;
+            const mode = document.getElementById('payMode').value;
+            const ref = document.getElementById('payRef').value;
+            const status = document.getElementById('payStatus');
+            if (!amount || !month) {
+                status.textContent = '⚠️ Please enter amount and month period.'; status.style.color = '#f87171'; return;
+            }
+            try {
+                const params = new URLSearchParams({
+                    tenant_id: currentTenant, property_id: 'prop-demo', amount,
+                    month_period: month, payment_mode: mode, transaction_ref: ref || 'TXN-' + Date.now(),
+                    due_date: new Date().toISOString().split('T')[0],
+                });
+                const res = await fetch('/api/realestate/tenant/payments?' + params, { method: 'POST' });
+                const data = await res.json();
+                if (data.payment) {
+                    status.innerHTML = '✅ Payment recorded! ₹' + (amount/100000).toFixed(2) + 'L';
+                    status.style.color = '#4ade80';
+                    document.getElementById('payAmount').value = '';
+                    document.getElementById('payMonth').value = '';
+                    document.getElementById('payRef').value = '';
+                    loadPayments();
+                }
+            } catch(e) {
+                status.textContent = '⚠️ Could not record payment.';
+                status.style.color = '#f87171';
+            }
+        }
+
+        async function loadMaintenance() {
+            try {
+                const res = await fetch('/api/realestate/tenant/maintenance?tenant_id=' + currentTenant);
+                const data = await res.json();
+                const requests = data.requests || [];
+                document.getElementById('openRequests').textContent = requests.filter(r => r.status !== 'resolved').length;
+                document.getElementById('resolvedRequests').textContent = requests.filter(r => r.status === 'resolved').length;
+
+                const container = document.getElementById('maintenanceList');
+                if (requests.length === 0) {
+                    container.innerHTML = '<div class="no-data">No maintenance requests submitted</div>';
+                } else {
+                    container.innerHTML = requests.map(r => `
+                        <div class="request-item">
+                            <div style="flex:1;">
+                                <div style="font-size:0.85rem;">${r.category.charAt(0).toUpperCase() + r.category.slice(1)} — ${r.description.slice(0, 60)}${r.description.length > 60 ? '...' : ''}</div>
+                                <div style="font-size:0.7rem;color:#64748b;margin-top:0.15rem;">
+                                    Priority: <span class="badge ${r.priority === 'emergency' ? 'badge-danger' : r.priority === 'high' ? 'badge-warning' : 'badge-info'}">${r.priority}</span>
+                                    · ${r.time_ago}
+                                </div>
+                            </div>
+                            <span class="badge ${r.status === 'resolved' ? 'badge-success' : r.status === 'in_progress' ? 'badge-info' : r.status === 'acknowledged' ? 'badge-warning' : 'badge-danger'}">${r.status}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {
+                document.getElementById('maintenanceList').innerHTML = '<div class="no-data">Could not load requests</div>';
+            }
+        }
+
+        async function submitMaintenance() {
+            const category = document.getElementById('maintCategory').value;
+            const priority = document.getElementById('maintPriority').value;
+            const description = document.getElementById('maintDesc').value;
+            const date = document.getElementById('maintDate').value;
+            const time = document.getElementById('maintTime').value;
+            const status = document.getElementById('maintStatus');
+
+            if (!description) {
+                status.textContent = '⚠️ Please describe the issue.'; status.style.color = '#f87171'; return;
+            }
+            try {
+                const params = new URLSearchParams({
+                    tenant_id: currentTenant, property_id: 'prop-demo',
+                    category, description, priority,
+                    preferred_date: date, preferred_time_slot: time,
+                });
+                const res = await fetch('/api/realestate/tenant/maintenance?' + params, { method: 'POST' });
+                const data = await res.json();
+                if (data.request) {
+                    status.innerHTML = '✅ Maintenance request submitted!';
+                    status.style.color = '#4ade80';
+                    document.getElementById('maintDesc').value = '';
+                    document.getElementById('maintDate').value = '';
+                    loadMaintenance();
+                    switchTab('maintenance', document.querySelector('.tab-btn'));
+                }
+            } catch(e) {
+                status.textContent = '⚠️ Could not submit request.';
+                status.style.color = '#f87171';
+            }
+        }
+
+        function switchTab(tab, btn) {
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tabPayments').style.display = tab === 'payments' ? 'block' : 'none';
+            document.getElementById('tabMaintenance').style.display = tab === 'maintenance' ? 'block' : 'none';
+            document.getElementById('tabAgreements').style.display = tab === 'agreements' ? 'block' : 'none';
+            document.getElementById('tabReport').style.display = tab === 'report' ? 'block' : 'none';
+        }
+
+        loadAll();
+    </script>
+</body>
+</html>

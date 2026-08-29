@@ -1,0 +1,437 @@
+"""ML Performance Tracker (Phase B) - tracks prediction quality over time.
+
+Records each ML prediction alongside the actual trade outcome, then computes:
+  - Brier score (mean squared calibration error)
+  - Calibration curve (predicted vs actual win rate per prob bin)
+  - Feature SHAP trend (average |SHAP| per feature over the last N trades)
+
+All functions are non-blocking; every path catches exceptions and returns a
+safe fallback.  The SQLite DB is created on first write; the module is a no-op
+if the DB does not yet exist when reading.
+
+Schema versioning is handled by ``core.db_migration`` - see migration registry
+at module load time.
+
+Public API
+----------
+    record_prediction(trade_id, prob, *, actual, shap_json, db_path)
+        → bool
+
+    update_outcome(trade_id, actual_outcome, *, db_path)
+        → bool
+
+    compute_brier_score(*, db_path, days) → float | None
+
+    compute_calibration(*, n_bins, db_path) → list[dict]
+
+    get_feature_importance_trend(*, n_last, db_path) → dict[str, float]
+
+    format_tracker_summary(*, db_path) → str
+
+Config keys (all optional - safe defaults built in)
+---------------------------------------------------
+  ml_tracker_db_path : str  default "db/ml_tracker.db"
+  ml_tracker_enabled : bool default true
+
+Schema History
+--------------
+  v1 (baseline): Initial ml_predictions table
+"""
+from __future__ import annotations
+
+import json
+import logging
+import sqlite3
+import threading
+import time
+from pathlib import Path
+from typing import Any
+
+from core.db_utils import get_connection
+from core.exceptions import DatabaseError
+
+__all__ = [
+    "compute_brier_score",
+    "compute_calibration",
+    "format_tracker_summary",
+    "get_feature_importance_trend",
+    "record_prediction",
+    "update_outcome",
+]
+
+_log = logging.getLogger(__name__)
+
+_DEFAULT_DB = "db/ml_tracker.db"
+
+# ── Schema versioning via db_migration ─────────────────────────────────────────
+
+_ML_TRACKER_MIGRATIONS_REGISTERED = False
+_ML_TRACKER_MIGRATIONS_LOCK = threading.RLock()
+
+
+def _register_ml_tracker_migrations() -> None:
+    """Register ML tracker schema migrations with core.db_migration.
+
+    Called once at module load time to ensure the ml_predictions table
+    is covered by the formal schema versioning system.
+    """
+    global _ML_TRACKER_MIGRATIONS_REGISTERED
+    if _ML_TRACKER_MIGRATIONS_REGISTERED:
+        return
+    with _ML_TRACKER_MIGRATIONS_LOCK:
+        if _ML_TRACKER_MIGRATIONS_REGISTERED:
+            return
+
+    try:
+        from core.db_migration import register_schema
+
+        @register_schema(4, "ML Performance Tracker baseline - ml_predictions table")
+        def _ml_migration_v4(conn: sqlite3.Connection) -> None:
+            """Create the ml_predictions table if it doesn't exist."""
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS ml_predictions (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ts              REAL    NOT NULL,
+                    trade_id        TEXT    NOT NULL,
+                    predicted_prob  REAL    NOT NULL,
+                    actual_outcome  INTEGER,          -- 1=winner 0=loser NULL=pending
+                    shap_json       TEXT    DEFAULT '{}'
+                )
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS ix_mlpred_ts ON ml_predictions (ts)")
+            conn.execute("CREATE INDEX IF NOT EXISTS ix_mlpred_trade_id ON ml_predictions (trade_id)")
+        _ML_TRACKER_MIGRATIONS_REGISTERED = True
+        _log.debug("[MLT] ML tracker schema migration v2 registered")
+    except ImportError:
+        _log.debug("[MLT] db_migration not available - using direct DDL")
+    except (AttributeError, TypeError) as exc:
+        _log.debug("[MLT] Migration registration skipped: %s", exc)
+
+
+# Register at module load time so migrations are available when index_trader.py
+# runs ensure_schema_version() on all tracked databases.
+_register_ml_tracker_migrations()
+
+
+# ── Fallback DDL (used when db_migration is unavailable) ───────────────────────
+
+_FALLBACK_DDL = """
+CREATE TABLE IF NOT EXISTS ml_predictions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts              REAL    NOT NULL,
+    trade_id        TEXT    NOT NULL,
+    predicted_prob  REAL    NOT NULL,
+    actual_outcome  INTEGER,          -- 1=winner 0=loser NULL=pending
+    shap_json       TEXT    DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS ix_mlpred_ts       ON ml_predictions (ts);
+CREATE INDEX IF NOT EXISTS ix_mlpred_trade_id ON ml_predictions (trade_id);
+"""
+
+
+def _get_conn(db_path: str) -> sqlite3.Connection:
+    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    conn = get_connection(db_path, timeout=10)
+
+    # Use formal schema migration if available, otherwise fall back to DDL
+    try:
+        from core.db_migration import ensure_schema_version
+
+        ensure_schema_version(db_path)
+    except ImportError:
+        # Fallback: direct DDL (for environments without db_migration)
+        for stmt in _FALLBACK_DDL.strip().split(";"):
+            s = stmt.strip()
+            if s:
+                try:
+                    conn.execute(s)
+                except (sqlite3.Error, OSError):
+                    _log.debug("[MLT] Fallback DDL statement failed: %s", s[:80])
+        conn.commit()
+
+    return conn
+
+
+# ── Write API ─────────────────────────────────────────────────────────────────
+
+def record_prediction(
+    trade_id: str,
+    prob: float,
+    *,
+    actual: int | None = None,
+    shap_json: str = "{}",
+    db_path: str = _DEFAULT_DB,
+) -> bool:
+    """Persist a single ML prediction (and optional actual outcome).
+
+    Args:
+        trade_id   : Unique trade identifier (from trades.db id or ts string).
+        prob       : Predicted win probability [0, 1].
+        actual     : 1 = winner, 0 = loser, None = result not yet known.
+        shap_json  : JSON string from ``ml_classifier.shap_to_json()``.
+        db_path    : Path to ml_tracker.db.
+
+    Returns:
+        True if row written, False on error.
+
+    """
+    try:
+        conn = _get_conn(db_path)
+        try:
+            conn.execute(
+                """
+                INSERT INTO ml_predictions
+                    (ts, trade_id, predicted_prob, actual_outcome, shap_json)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (time.time(), str(trade_id), float(prob),
+                 int(actual) if actual is not None else None,
+                 str(shap_json or "{}")),
+            )
+            conn.commit()
+            return True
+        finally:
+            conn.close()
+    except (DatabaseError, sqlite3.Error, OSError, ValueError) as exc:
+        _log.debug("[MLT] record_prediction failed: %s", exc)
+        return False
+
+
+def update_outcome(
+    trade_id: str,
+    actual_outcome: int,
+    *,
+    db_path: str = _DEFAULT_DB,
+) -> bool:
+    """Fill in the actual_outcome for a previously recorded trade_id.
+
+    Idempotent: updates the most recent row for trade_id if multiple exist.
+
+    Returns:
+        True if at least one row was updated, False otherwise.
+
+    """
+    p = Path(db_path)
+    if not p.is_file():
+        return False
+    try:
+        conn = get_connection(p, timeout=10, row_factory=False)
+        try:
+            cur = conn.execute(
+                """
+                UPDATE ml_predictions
+                SET actual_outcome = ?
+                WHERE trade_id = ?
+                  AND actual_outcome IS NULL
+                """,
+                (int(actual_outcome), str(trade_id)),
+            )
+            conn.commit()
+            return cur.rowcount > 0
+        finally:
+            conn.close()
+    except (DatabaseError, sqlite3.Error, OSError, ValueError) as exc:
+        _log.debug("[MLT] update_outcome failed: %s", exc)
+        return False
+
+
+# ── Analytics ─────────────────────────────────────────────────────────────────
+
+def compute_brier_score(
+    *,
+    db_path: str = _DEFAULT_DB,
+    days: int = 0,
+) -> float | None:
+    """Compute the Brier score over completed predictions.
+
+    Brier score = mean((prob − actual)²).  Lower is better; 0.25 = coin-flip.
+
+    Args:
+        db_path : Path to ml_tracker.db.
+        days    : Look-back window (0 = all time).
+
+    Returns:
+        Float in [0, 1], or None if no completed predictions exist.
+
+    """
+    p = Path(db_path)
+    if not p.is_file():
+        return None
+    try:
+        conn = get_connection(p, timeout=5, row_factory=False)
+        try:
+            params: list[Any] = []
+            where = "actual_outcome IS NOT NULL"
+            if days and days > 0:
+                cutoff = time.time() - days * 86400
+                where += " AND ts >= ?"
+                params.append(cutoff)
+            rows = conn.execute(
+                f"SELECT predicted_prob, actual_outcome FROM ml_predictions WHERE {where}",  # nosec B608
+                params,
+            ).fetchall()
+        finally:
+            conn.close()
+        if not rows:
+            return None
+        total = sum((float(r[0]) - float(r[1])) ** 2 for r in rows)
+        return round(total / len(rows), 6)
+    except (DatabaseError, sqlite3.Error, OSError) as exc:
+        _log.debug("[MLT] compute_brier_score failed: %s", exc)
+        return None
+
+
+def compute_calibration(
+    *,
+    n_bins: int = 10,
+    db_path: str = _DEFAULT_DB,
+) -> list[dict]:
+    """Compute a calibration curve: predicted probability vs actual win rate.
+
+    Returns a list of dicts, one per bin:
+        {
+          "bin_low": float,     # lower edge of prob bin
+          "bin_mid": float,     # midpoint
+          "predicted_mean": float,  # average predicted prob in bin
+          "actual_rate": float,     # fraction that were actual winners
+          "count": int,
+        }
+
+    Bins with no samples are omitted.
+    Returns [] if no completed predictions exist.
+    """
+    p = Path(db_path)
+    if not p.is_file():
+        return []
+    try:
+        conn = get_connection(p, timeout=5, row_factory=False)
+        try:
+            rows = conn.execute(
+                "SELECT predicted_prob, actual_outcome FROM ml_predictions "
+                "WHERE actual_outcome IS NOT NULL",
+            ).fetchall()
+        finally:
+            conn.close()
+        if not rows:
+            return []
+
+        bins: list[dict] = []
+        bin_width = 1.0 / n_bins
+        for b in range(n_bins):
+            lo = b * bin_width
+            hi = lo + bin_width
+            in_bin = [(float(r[0]), int(r[1])) for r in rows if lo <= float(r[0]) < hi]
+            if not in_bin:
+                continue
+            probs, actuals = zip(*in_bin)
+            bins.append({
+                "bin_low":       round(lo, 4),
+                "bin_mid":       round(lo + bin_width / 2, 4),
+                "predicted_mean": round(sum(probs) / len(probs), 4),
+                "actual_rate":   round(sum(actuals) / len(actuals), 4),
+                "count":         len(in_bin),
+            })
+        return bins
+    except (DatabaseError, sqlite3.Error, OSError) as exc:
+        _log.debug("[MLT] compute_calibration failed: %s", exc)
+        return []
+
+
+def get_feature_importance_trend(
+    *,
+    n_last: int = 100,
+    db_path: str = _DEFAULT_DB,
+) -> dict[str, float]:
+    """Return the mean absolute SHAP value per feature over the last N predictions.
+
+    This serves as a recency-weighted feature importance signal - features that
+    the model has been using heavily for recent decisions rank higher.
+
+    Returns:
+        {feature_name: mean_abs_shap}  sorted by value descending.
+        Empty dict if no SHAP data exists.
+
+    """
+    p = Path(db_path)
+    if not p.is_file():
+        return {}
+    try:
+        conn = get_connection(p, timeout=5, row_factory=False)
+        try:
+            rows = conn.execute(
+                "SELECT shap_json FROM ml_predictions "
+                "WHERE shap_json IS NOT NULL AND shap_json != '{}' "
+                "ORDER BY ts DESC LIMIT ?",
+                (n_last,),
+            ).fetchall()
+        finally:
+            conn.close()
+
+        if not rows:
+            return {}
+
+        acc: dict[str, list[float]] = {}
+        for (shap_str,) in rows:
+            try:
+                vals: dict = json.loads(shap_str)
+                for feat, v in vals.items():
+                    acc.setdefault(feat, []).append(abs(float(v)))
+            except (json.JSONDecodeError, TypeError, ValueError):
+                continue
+
+        if not acc:
+            return {}
+
+        result = {feat: round(sum(vs) / len(vs), 6) for feat, vs in acc.items()}
+        return dict(sorted(result.items(), key=lambda kv: kv[1], reverse=True))
+    except (DatabaseError, sqlite3.Error, OSError, json.JSONDecodeError) as exc:
+        _log.debug("[MLT] get_feature_importance_trend failed: %s", exc)
+        return {}
+
+
+# ── Summary formatter ─────────────────────────────────────────────────────────
+
+def format_tracker_summary(*, db_path: str = _DEFAULT_DB) -> str:
+    """Return a human-readable multi-line summary of ML prediction quality.
+
+    Suitable for console output, Telegram messages, and PDF reports.
+    """
+    p = Path(db_path)
+    if not p.is_file():
+        return "ML Tracker: no data (db not found)"
+
+    try:
+        conn = get_connection(p, timeout=5)
+        try:
+            total_row = conn.execute(
+                "SELECT COUNT(*) as n, "
+                "SUM(CASE WHEN actual_outcome IS NOT NULL THEN 1 ELSE 0 END) as completed "
+                "FROM ml_predictions",
+            ).fetchone()
+            n_total     = int(total_row["n"] or 0)
+            n_completed = int(total_row["completed"] or 0)
+        finally:
+            conn.close()
+
+        brier = compute_brier_score(db_path=db_path)
+        cal   = compute_calibration(db_path=db_path)
+        trend = get_feature_importance_trend(db_path=db_path)
+
+        lines = [
+            f"ML Performance Tracker - {n_total} predictions ({n_completed} completed)",
+        ]
+        if brier is not None:
+            quality = "excellent" if brier < 0.15 else "good" if brier < 0.20 else "fair" if brier < 0.25 else "poor"
+            lines.append(f"  Brier Score:  {brier:.4f}  ({quality}; 0.25 = coin-flip baseline)")
+        if cal:
+            lines.append(f"  Calibration:  {len(cal)} bins with data")
+            worst_gap = max(abs(b["predicted_mean"] - b["actual_rate"]) for b in cal)
+            lines.append(f"  Worst cal gap: {worst_gap:.3f} (lower = better calibrated)")
+        if trend:
+            top3 = list(trend.items())[:3]
+            parts = ", ".join(f"{f}={v:.4f}" for f, v in top3)
+            lines.append(f"  Top features (mean |SHAP|): {parts}")
+        return "\n".join(lines)
+    except (DatabaseError, sqlite3.Error, OSError, ValueError) as exc:
+        _log.debug("[MLT] format_tracker_summary failed: %s", exc)
+        return f"ML Tracker: summary unavailable ({exc})"

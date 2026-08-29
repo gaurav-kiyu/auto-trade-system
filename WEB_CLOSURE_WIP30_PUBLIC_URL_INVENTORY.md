@@ -1,0 +1,140 @@
+# OPB WEB CLOSURE WIP30 — Public URL / Loopback Inventory
+
+This pass inventories remaining explicit public-origin/loopback/request.base_url references.
+References in tests, documentation, local development configuration, and infrastructure code are not automatically rewritten.
+
+Total matches requiring classification: 133
+
+- `WEB_CLOSURE_WIP28_STATUS.md:7` — `SSO callback URLs were still derived from `request.base_url`, bypassing the configurable canonical public URL. Behind a reverse proxy this can produce an internal/localhost callback even when notification links use the configured public origin.`
+- `CHANGELOG.md:11` — `- **Real root cause of the dashboard never coming up, even after the timing fix above**: `json/config.json` is by design a thin override file — `index_app/domains/config/loader.py` only auto-injects 3 unrelated keys (`trades_db`, `trades_db_path`, `DB_PATH`) from `index_config.defaults.json`, deliberately NOT the full ~1,058-key defaults set (`_DEFAULTS_INJECT_ALLOWLIST`, "keep this list small and reviewable"). With the repo's `config.json` reduced to a 4-key stub, `web_dashboard_enabled` was simply absent at runtime, so `core/web_dashboard.py::maybe_start_dashboard()` returned `None` immediately — no error, no log line, no server, ever, regardless of how long anything waited. This also explained the "CONFIG ERROR: Missing required key" spam seen on every startup (`EXECUTION_MODE`, `BASE_CAPITAL`, `MAX_DAILY_LOSS`, `MAX_DRAWDOWN`, `SL_PCT`, `TARGET_PCT`, `RISK_MODE`, `AI_THRESHOLD`, `TIER_STRONG_MIN`, `TIER_MODERATE_MIN`, `TIER_WEAK_MIN`, `QUALITY_MIN_SCORE`, `VIX_HALT_THRESHOLD`, `VIX_BLOCK_THRESHOLD`, `MAX_OPEN`, `MAX_TRADES_DAY`) — the bot was failing safe (forcing MANUAL mode) rather than crashing, so it wasn't dangerous, just noisy and silently missing a whole feature. Fixed by adding all of the above keys to `json/config.json` with the exact values already defined as their safe defaults in `json/index_config.defaults.json` — no behavior change from documented defaults, just making the operator-facing config file actually contain what it was already supposed to effectively be. Verified end-to-end: fresh `start.bat` run now shows zero config errors and `GET http://localhost:8765/` returns `200` with real page content.`
+- `USER_GUIDE.md:380` — `- Open browser to: `http://localhost:8765``
+- `USER_GUIDE.md:496` — `curl http://localhost:9090/metrics`
+- `launcher.py:697` — `webbrowser.open(f"http://localhost:{port}/")`
+- `launcher.py:709` — `f"http://localhost:{port}/ manually once it's ready, or check "`
+- `core/ai_engine.py:209` — `base = ai_cfg.api_base_url or "http://localhost:11434"`
+- `json/index_config.defaults.json:1301` — `"otlp_endpoint": "http://localhost:4317",`
+- `json/index_config.defaults.json:1309` — `"zipkin_endpoint": "http://localhost:9411/api/v2/spans",`
+- `json/config.template.json:1511` — `"otlp_endpoint": "http://localhost:4317",`
+- `json/config.template.json:1767` — `"zipkin_endpoint": "http://localhost:9411/api/v2/spans"`
+- `json/config.json:715` — `"PUBLIC_BASE_URL": "https://gaurav-cockpit.servegame.com",`
+- `json/config.json:1541` — `"otlp_endpoint": "http://localhost:4317",`
+- `json/config.json:1773` — `"zipkin_endpoint": "http://localhost:9411/api/v2/spans",`
+- `docs/COMPLETE_USER_GUIDE_AND_MANUAL.md:84` — `# then browse to http://localhost:8765/`
+- `docs/HOW_TO_USE_SYSTEM.md:48` — `| 🔐 **Admin Dynamic Config** | **`http://localhost:8765/admin/config`** | **`open_admin.bat`** | Admin | Live strategy tuning, lot sizes, signal score cutoffs & broker settings. |`
+- `docs/HOW_TO_USE_SYSTEM.md:49` — `| 👥 **Admin User Control** | **`http://localhost:8765/admin/users`** | `open_admin.bat` | Admin | User management & role-based access control (Admin, Operator, Trader). |`
+- `docs/HOW_TO_USE_SYSTEM.md:50` — `| 🚨 **Admin Kill-Switch** | **`http://localhost:8765/admin/kill-switch`** | `open_admin.bat` | Admin | Emergency halt, order cancellation & system worker isolation. |`
+- `docs/HOW_TO_USE_SYSTEM.md:51` — `| 📈 **End-User Trading UI** | **`http://localhost:8765/`** | **`open_app.bat`** | End-User / Trader | Live market tick stream, signal feed & active positions. |`
+- `docs/HOW_TO_USE_SYSTEM.md:52` — `| 🧠 **AI SHAP Explainer** | **`http://localhost:8765/intelligence`** | `open_app.bat` | End-User / Trader | AI feature attribution (SHAP values) explaining every trade signal. |`
+- `docs/HOW_TO_USE_SYSTEM.md:543` — `Open your browser: `http://localhost:8765``
+- `docs/HOW_TO_USE_SYSTEM.md:721` — `http://localhost:9090/metrics`
+- `docs/api_reference.md:13` — `and **`/redoc`** on the running instance (default `http://localhost:8765`,`
+- `docs/GETTING_STARTED_NO_CODE.md:63` — `| **`open_app.bat`** | The main trading dashboard — signals, positions, P&L (`http://localhost:8765/`) |`
+- `docs/GETTING_STARTED_NO_CODE.md:64` — `| **`open_admin.bat`** | The admin configuration screen directly (`http://localhost:8765/admin/config`) |`
+- `scripts/generate_master_pptx.py:484` — `"Enterprise Dashboard: http://localhost:8765 (enable in config.json)",`
+- `scripts/generate_all_master_consolidated_documents.py:69` — `Accessible at `http://localhost:8000/admin/users`:`
+- `scripts/generate_all_master_consolidated_documents.py:79` — `| `open_app.bat` | `http://localhost:8000` | All Users / Operators | Main Enterprise Trading & Analytics Dashboard |`
+- `scripts/generate_all_master_consolidated_documents.py:80` — `| `open_admin.bat` | `http://localhost:8000/admin/config` | Super Admin / Admin | Live Configuration Editor & Notification Controls |`
+- `scripts/generate_all_master_consolidated_documents.py:81` — `| Super Admin Users | `http://localhost:8000/admin/users` | Super Admin | User Signal Permissions, Category Subscriptions & Quotas |`
+- `scripts/generate_all_master_consolidated_documents.py:82` — `| Signal Accuracy Hub | `http://localhost:8000/admin/signals` | Super Admin | Historical Signal Performance & Category Win Rates |`
+- `scripts/generate_all_master_consolidated_documents.py:83` — `| My Signals Feed | `http://localhost:8000/my-signals` | End-Users | Personal Delivered Signals Feed & Filters |`
+- `scripts/generate_all_master_consolidated_documents.py:84` — `| Sector Rotation Radar | `http://localhost:8000/sector-radar` | All Users | 12 NSE Sectors Relative Strength Quadrants |`
+- `scripts/generate_all_master_consolidated_documents.py:85` — `| Trade Copier | `http://localhost:8000/trade-copier` | Super Admin / Fund Mgr | Multi-Broker Parallel Trade Replication |`
+- `scripts/generate_all_master_consolidated_documents.py:86` — `| Margin Radar | `http://localhost:8000/margin-radar` | Super Admin / Risk Mgr | Consolidated Multi-Broker Margin & 75% Warning |`
+- `scripts/generate_all_master_consolidated_documents.py:87` — `| Strategy Sandbox | `http://localhost:8000/strategy-sandbox` | Quant Analysts / Users | Interactive Parameter Tuning Backtest Studio |`
+- `scripts/generate_all_master_consolidated_documents.py:88` — `| FII / DII Radar | `http://localhost:8000/fii-dii-radar` | Super Admin / Traders | Participant-Wise Net Positioning & Trap Alerts |`
+- `scripts/generate_all_master_consolidated_documents.py:89` — `| 0DTE Harvester | `http://localhost:8000/expiry-harvester` | Options Traders | Automated Expiry Straddle Delta Harvester |`
+- `scripts/generate_all_master_consolidated_documents.py:90` — `| Pricing Plans | `http://localhost:8000/pricing-plans` | Clients / End-Users | 100% Free UPI QR Subscription & Auto-Unlock |`
+- `scripts/generate_all_master_consolidated_documents.py:91` — `| Kill Switch | `http://localhost:8000/admin/kill-switch` | Super Admin / Risk Mgr | Instant Global Trading Emergency Halt |`
+- `scripts/generate_all_master_consolidated_documents.py:155` — `Visit [`http://localhost:8000/pricing-plans`](http://localhost:8000/pricing-plans) to select your plan. Scan the zero-fee UPI QR code with any UPI app (Google Pay, PhonePe, Paytm, BHIM) to immediately activate your account and quota.`
+- `scripts/test_deployment.py:25` — `DEFAULT_URL = "http://localhost:8765"`
+- `scripts/generate_pptx.py:386` — `("Web Dashboard", "Enable web_dashboard_enabled: true in config.json\nAccess: http://localhost:8765 (FastAPI + RBAC)", RED),`
+- `scripts/docker_healthcheck.py:49` — `"http://127.0.0.1:8765/api/system/health/docker", timeout=5`
+- `k8s/README.md:33` — `# Visit http://localhost:9090/metrics`
+- `.tmp/opb_manual_cfg_6_478ydc.json:1511` — `"otlp_endpoint": "http://localhost:4317",`
+- `.tmp/opb_manual_cfg_6_478ydc.json:1767` — `"zipkin_endpoint": "http://localhost:9411/api/v2/spans",`
+- `.tmp/opb_manual_cfg_jsaa8xre.json:1511` — `"otlp_endpoint": "http://localhost:4317",`
+- `.tmp/opb_manual_cfg_jsaa8xre.json:1767` — `"zipkin_endpoint": "http://localhost:9411/api/v2/spans",`
+- `.tmp/opb_manual_cfg_d5nh58h4.json:1511` — `"otlp_endpoint": "http://localhost:4317",`
+- `.tmp/opb_manual_cfg_d5nh58h4.json:1767` — `"zipkin_endpoint": "http://localhost:9411/api/v2/spans",`
+- `tests/test_public_base_url_admin_config.py:20` — `cfg = {"PUBLIC_BASE_URL_ADMIN_OVERRIDE": "http://localhost:8000", "ENVIRONMENT": "production"}`
+- `tests/test_opentelemetry.py:271` — `"zipkin_endpoint": "http://localhost:9411/api/v2/spans",`
+- `tests/test_phase14_url_and_notification_audit.py:37` — `base_url = get_public_base_url({"PUBLIC_BASE_URL": "http://localhost:8000"})`
+- `tests/test_phase14_url_and_notification_audit.py:44` — `self.assertEqual(base_url, "https://gaurav-cockpit.servegame.com")`
+- `tests/test_phase14_url_and_notification_audit.py:61` — `cfg = {"PUBLIC_BASE_URL": "https://gaurav-cockpit.servegame.com/"}`
+- `tests/test_phase14_url_and_notification_audit.py:63` — `self.assertEqual(url, "https://gaurav-cockpit.servegame.com/my-signals")`
+- `tests/test_phase14_url_and_notification_audit.py:70` — `self.assertIn("https://gaurav-cockpit.servegame.com/trade-execution?", url_with_params)`
+- `tests/test_phase14_url_and_notification_audit.py:107` — `self.assertIn("https://gaurav-cockpit.servegame.com/my-signals", html)`
+- `tests/test_phase14_url_and_notification_audit.py:117` — `self.assertIn("https://gaurav-cockpit.servegame.com/my-signals", res_exec["alert_text"])`
+- `tests/test_phase14_url_and_notification_audit.py:125` — `self.assertIn("https://gaurav-cockpit.servegame.com/my-signals", res_dash["alert_text"])`
+- `tests/test_notification_url_production_contract.py:11` — `monkeypatch.setenv("PUBLIC_BASE_URL", "http://localhost:8000")`
+- `tests/test_notification_url_production_contract.py:13` — `assert build_action_url("/my-signals", base_url="http://127.0.0.1:8000") == (`
+- `tests/test_notification_url_production_contract.py:20` — `cfg = {"PUBLIC_BASE_URL": "http://localhost:8000"}`
+- `tests/test_notification_url_production_contract.py:28` — `assert get_public_base_url({"PUBLIC_BASE_URL": "https://gaurav-cockpit.servegame.com"}) == (`
+- `tests/test_notification_url_production_contract.py:29` — `"https://gaurav-cockpit.servegame.com"`
+- `tests/load/locustfile.py:14` — `--host http://localhost:8765 --run-time 60s`
+- `archive/unrelated_modules/k6/realestate-load-test.js:6` — `//   k6 run --env BASE_URL=http://localhost:8765 k6/realestate-load-test.js`
+- `archive/unrelated_modules/k6/realestate-load-test.js:15` — `const BASE_URL = __ENV.BASE_URL || "http://localhost:8765";`
+- `archive/unrelated_modules/scripts/seed_realestate_data.py:156` — `api_base: str = "http://localhost:8766",`
+- `archive/unrelated_modules/scripts/seed_realestate_data.py:241` — `parser.add_argument("--api", type=str, default="http://localhost:8766", help="API base URL")`
+- `archive/unrelated_modules/scripts/launch_realestate.py:151` — `host_url = f"http://localhost:{port}"`
+- `archive/unrelated_modules/scripts/realestate_synthetic_monitor.py:213` — `default=os.environ.get("RE_URL", "http://localhost:8765"),`
+- `archive/unrelated_modules/scripts/realestate_synthetic_monitor.py:214` — `help="Base URL of the platform (default: http://localhost:8765)",`
+- `archive/unrelated_modules/e2e/realestate-flows.spec.js:10` — `const BASE_URL = process.env.BASE_URL || 'http://localhost:8765';`
+- `docs/deployment/DEPLOYMENT_GUIDE.md:298` — `- Endpoint: `http://localhost:9090/metrics``
+- `docs/deployment/environment_provisioning.md:345` — `- [ ] Dashboard accessible at `http://localhost:8765` (if enabled)`
+- `docs/runbooks/dr_drill_procedure.md:44` — `r = requests.get('http://localhost:8765/api/system/health', timeout=2)`
+- `docs/runbooks/dr_drill_procedure.md:116` — `r = requests.get('http://localhost:8765/api/system/health', timeout=2)`
+- `docs/audits/remediation/FINAL-PRODUCTION-READINESS-SECURITY-GATE.md:107` — `- **Live Endpoint**: `https://gaurav-cockpit.servegame.com``
+- `docs/audits/remediation/PHASE-14-URL-CONFIGURATION-AUDIT.md:23` — `- `json/config.json` -> `"PUBLIC_BASE_URL": "https://gaurav-cockpit.servegame.com"``
+- `docs/audits/remediation/PHASE-14-URL-CONFIGURATION-AUDIT.md:25` — `- Production / Server Runtime (`OPB_ENV=production` or AWS EC2 deployment) -> `https://gaurav-cockpit.servegame.com``
+- `docs/audits/remediation/PHASE-14-URL-CONFIGURATION-AUDIT.md:26` — `- Development Runtime -> `http://localhost:8000``
+- `docs/audits/remediation/PHASE-14-URL-CONFIGURATION-AUDIT.md:34` — `| `get_public_base_url` | `(cfg=None) -> str` | Resolves canonical base URL | `"https://gaurav-cockpit.servegame.com"` |`
+- `docs/audits/remediation/PHASE-14-URL-CONFIGURATION-AUDIT.md:35` — `| `build_action_url` | `(path, params=None, cfg=None, base_url=None) -> str` | Constructs deep action links | `"https://gaurav-cockpit.servegame.com/my-signals"` |`
+- `docs/audits/remediation/PHASE-14-URL-CONFIGURATION-AUDIT.md:46` — `"PUBLIC_BASE_URL": "https://gaurav-cockpit.servegame.com",`
+- `docs/audits/remediation/FINAL-PRODUCTION-EVIDENCE-CLOSURE-DR-CHALLENGE.md:41` — `- **Target Instance**: `13.127.21.79` (`https://gaurav-cockpit.servegame.com`)`
+- `docs/audits/remediation/FINAL-PRODUCTION-REALITY-GATE.md:6` — `**AWS Host IP**: `13.127.21.79` (`https://gaurav-cockpit.servegame.com`)`
+- `docs/audits/remediation/FINAL-PRODUCTION-REALITY-GATE.md:60` — `- **Live URL**: `https://gaurav-cockpit.servegame.com``
+- `docs/audits/remediation/PHASE-12-INTELLIGENCE-ENGINE-FORENSIC-CLOSURE.md:121` — `- **Live URL**: `https://gaurav-cockpit.servegame.com/intelligence``
+- `docs/audits/remediation/FINAL-PRODUCTION-CERTIFICATION.md:7` — `**AWS Host IP**: `13.127.21.79` (`https://gaurav-cockpit.servegame.com`)`
+- `docs/audits/remediation/FINAL-PRODUCTION-CERTIFICATION.md:84` — `- **Sample Scope**: $N=20$ live requests to `https://gaurav-cockpit.servegame.com/api/system/health` across the public Internet.`
+- `docs/audits/remediation/FINAL-S3-OFFSITE-BACKUP-DR-CLOSURE.md:7` — `**AWS Host IP**: `13.127.21.79` (`https://gaurav-cockpit.servegame.com`)`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-URL-INVENTORY.md:5` — `**Canonical Production URL**: `https://gaurav-cockpit.servegame.com``
+- `docs/audits/remediation/PHASE-14-EXTERNAL-URL-INVENTORY.md:14` — `Prior to remediation, a critical production defect was identified in `core/notifications/rich_signal_formatter.py` where outgoing email HTML and notification action links were hardcoded to `http://localhost:8000/my-signals`.`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-URL-INVENTORY.md:16` — `All external URL generation paths have now been refactored to use the centralized **Canonical URL Resolver** (`core.notifications.url_resolver`), guaranteeing that production notifications point strictly to `https://gaurav-cockpit.servegame.com` while maintaining environment-aware development fallbacks.`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-URL-INVENTORY.md:24` — `| `http://localhost:8000/my-signals` | `core/notifications/rich_signal_formatter.py:203` | Notification Link | 🚨 **CRITICAL DEFECT** | 🟢 **RESOLVED** (`build_action_url("/my-signals")`) |`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-URL-INVENTORY.md:36` — `| `http://127.0.0.1:8000/...` | `scratch/mobile_audit_data.json` | Test Scratch File | 🟢 Internal Artifact | 🟢 **VERIFIED** (Local headless test logs) |`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-URL-INVENTORY.md:45` — `- `PUBLIC_BASE_URL`: `http://localhost:8000` (or `http://127.0.0.1:8000`)`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-URL-INVENTORY.md:50` — `- Canonical Domain: `https://gaurav-cockpit.servegame.com``
+- `docs/audits/remediation/PHASE-14-EXTERNAL-NOTIFICATION-AUDIT.md:5` — `**Canonical Base URL**: `https://gaurav-cockpit.servegame.com``
+- `docs/audits/remediation/PHASE-14-EXTERNAL-NOTIFICATION-AUDIT.md:24` — `| **⚡ 1-Click Paper Trade** | Telegram & Email | Inline Callback / Web Link | `paper:{symbol}` / `https://gaurav-cockpit.servegame.com/trade-execution?action=paper&symbol=...` | ✅ Simulated fill only; Zero live broker risk |`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-NOTIFICATION-AUDIT.md:25` — `| **🚀 1-Click Execute** | Telegram & Email | Inline Callback / Web Link | `exec:{symbol}` / `https://gaurav-cockpit.servegame.com/trade-execution?action=exec&symbol=...` | 🛡️ **MANDATORY SAFETY GATE**: Live orders blocked via chat; requires authenticated web review |`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-NOTIFICATION-AUDIT.md:27` — `| **🏛️ Cockpit Dashboard** | Telegram & Email | URL Direct Link | `https://gaurav-cockpit.servegame.com/my-signals` | 🔒 Session Authentication Required |`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-NOTIFICATION-AUDIT.md:34` — `- **Root Cause**: `core/notifications/rich_signal_formatter.py` defined `cockpit_url = "http://localhost:8000/my-signals"`.`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-NOTIFICATION-AUDIT.md:36` — `- **Remediation**: Replaced with `build_action_url("/my-signals", base_url=base_url)` via `core.notifications.url_resolver`. Outgoing emails now resolve to `https://gaurav-cockpit.servegame.com/my-signals`.`
+- `docs/audits/remediation/PHASE-14-EXTERNAL-NOTIFICATION-AUDIT.md:47` — `- Outgoing HTML Email payload rendered with `https://gaurav-cockpit.servegame.com`.`
+- `docs/audits/remediation/PHASE-14-DEFECT-REGISTER.md:15` — `| **DEF-14-001** | 🚨 Critical | `core/notifications/rich_signal_formatter.py` | Outgoing HTML emails contained hardcoded `http://localhost:8000/my-signals` | Hardcoded localhost string on line 203 | Integrated `core.notifications.url_resolver.build_action_url` with canonical public URL | 🟢 **RESOLVED** |`
+- `docs/audits/remediation/PHASE-14-DEFECT-REGISTER.md:16` — `| **DEF-14-002** | ⚠️ High | `core/all_nse_scanner.py` & `admin.py` | Telegram inline button "🏛️ Dashboard" used non-standard `dash:{symbol}` callback instead of direct URL button | Misconfigured inline keyboard button type | Converted to native Telegram URL button pointing to `https://gaurav-cockpit.servegame.com/my-signals` | 🟢 **RESOLVED** |`
+- `docs/audits/remediation/PHASE-14-DEFECT-REGISTER.md:17` — `| **DEF-14-003** | ⚠️ Medium | `json/config.json` | Missing centralized `PUBLIC_BASE_URL` configuration key | Decentralized configuration | Added `"PUBLIC_BASE_URL": "https://gaurav-cockpit.servegame.com"` to `json/config.json` | 🟢 **RESOLVED** |`
+- `docs/audits/remediation/PHASE-14-MASTER-VERDICT.md:7` — `- **Target URL**: `https://gaurav-cockpit.servegame.com``
+- `docs/audits/remediation/PHASE-14-MASTER-VERDICT.md:57` — `- **Production Server Live Health**: `HTTP 200 OK` at `https://gaurav-cockpit.servegame.com/api/system/health``
+- `docs/audits/remediation/FINAL-S3-OFFSITE-BACKUP-DR-CERTIFICATION.md:7` — `**AWS Host IP**: `13.127.21.79` (`https://gaurav-cockpit.servegame.com`)`
+- `docs/audits/remediation/FINAL-DISASTER-RECOVERY-CERTIFICATION.md:7` — `**AWS Host IP**: `13.127.21.79` (`https://gaurav-cockpit.servegame.com`)`
+- `docs/audits/remediation/PHASE-12-INTELLIGENCE-ENGINE-FULL-FORENSIC-CLOSURE.md:27` — `When the operator visited `https://gaurav-cockpit.servegame.com/intelligence` and clicked the **Architecture** tab (and other tabs), the UI displayed:`
+- `docs/audits/remediation/PHASE-12-INTELLIGENCE-ENGINE-FULL-FORENSIC-CLOSURE.md:39` — `request: "GET /api/intelligence/bi/report HTTP/1.1", upstream: "http://127.0.0.1:8000/api/intelligence/bi/report"`
+- `docs/audits/remediation/PHASE-12-INTELLIGENCE-ENGINE-FULL-FORENSIC-CLOSURE.md:142` — `- **Live URL**: `https://gaurav-cockpit.servegame.com/intelligence``
+- `docs/audits/remediation/PHASE-14-SIGNAL-ACTION-LINK-AUDIT.md:16` — `- **Web Deep Link**: `https://gaurav-cockpit.servegame.com/trade-execution?action=paper&symbol=...` routes operator to authenticated paper trading execution interface.`
+- `docs/audits/remediation/PHASE-14-SIGNAL-ACTION-LINK-AUDIT.md:21` — `- **Handling**: Intercepted by the mandatory **Discretionary Safety Gate**. Chat callback returns a warning: `⚠️ Discretionary Execution Safety Gate: Live execution requires authenticated web confirmation. Review & place order at: https://gaurav-cockpit.servegame.com/my-signals`.`
+- `docs/audits/remediation/PHASE-14-SIGNAL-ACTION-LINK-AUDIT.md:31` — `- **Flow**: Telegram URL button opens `https://gaurav-cockpit.servegame.com/my-signals`.`
+- `docs/audits/remediation/PHASE-13-MASTER-MOBILE-CERTIFICATION.md:11` — `URL:               https://gaurav-cockpit.servegame.com`
+- `docs/audits/remediation/PHASE-14-MASTER-NOTIFICATION-CERTIFICATION.md:5` — `**Canonical Production URL**: `https://gaurav-cockpit.servegame.com``
+- `docs/audits/remediation/PHASE-14-MASTER-NOTIFICATION-CERTIFICATION.md:13` — `- [x] **Zero Hardcoded Localhost in Notifications**: Verified that all outgoing emails and Telegram messages dynamically resolve the canonical public URL (`https://gaurav-cockpit.servegame.com`).`
+- `core/notifications/url_resolver.py:19` — `DEFAULT_PRODUCTION_URL = "https://gaurav-cockpit.servegame.com"`
+- `core/notifications/url_resolver.py:20` — `DEFAULT_DEV_URL = "http://localhost:8000"`
+- `core/notifications/url_resolver.py:131` — `- Production -> https://gaurav-cockpit.servegame.com`
+- `core/notifications/url_resolver.py:132` — `- Development -> http://localhost:8000`
+- `core/auth/routes.py:1089` — `# this deployment. Do not derive it from request.base_url because that`
+- `core/observability/opentelemetry.py:79` — `- otlp_endpoint (str): OTLP gRPC endpoint (default "http://localhost:4317").`
+- `core/observability/opentelemetry.py:300` — `otlp_endpoint = cfg.get("otlp_endpoint", "http://localhost:4317")`
+- `core/observability/opentelemetry.py:381` — `- zipkin_endpoint (str): Zipkin HTTP endpoint (default "http://localhost:9411/api/v2/spans").`
+- `core/observability/opentelemetry.py:390` — `zipkin_endpoint = cfg.get("zipkin_endpoint", "http://localhost:9411/api/v2/spans")`
+- `core/enterprise_dashboard/models.py:168` — `def __init__(self, base_url: str = "http://127.0.0.1:8000", timeout: float = 2.0) -> None:`

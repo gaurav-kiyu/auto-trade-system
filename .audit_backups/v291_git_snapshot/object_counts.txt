@@ -1,0 +1,8 @@
+﻿count: 0
+size: 0
+in-pack: 14080
+packs: 2
+size-pack: 35226
+prune-packable: 0
+garbage: 0
+size-garbage: 0

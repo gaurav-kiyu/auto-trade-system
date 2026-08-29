@@ -1,0 +1,19 @@
+{
+  "status": "PENDING_FULL_TEST_RESULT",
+  "dependencies": {
+    "hypothesis": "verified_by_user",
+    "duckdb": "verified_by_user",
+    "yfinance": "verified_by_user"
+  },
+  "gates": {
+    "full_pytest": "pending",
+    "audit_completeness": "static_contract_present",
+    "operational_logging": "static_contract_present",
+    "reject_reason": "static_contract_present",
+    "rollback_reason": "static_contract_present",
+    "privileged_url_configuration": "static_contract_present",
+    "canonical_sso_url": "targeted_tests_previously_passed",
+    "localhost_url_literal": "targeted_tests_previously_passed",
+    "aws_e2e": "pending"
+  }
+}

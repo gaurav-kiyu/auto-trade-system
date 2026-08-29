@@ -1,0 +1,172 @@
+# CI Pipeline Improvements — OPB v2.57.1
+#
+# This file documents the recommended CI pipeline improvements.
+# Integrate these steps into bitbucket-pipelines.yml and/or .github/workflows/ci.yml
+
+# ── Required CI Steps ─────────────────────────────────────────────────────────
+#
+# 1. Static Analysis (ruff)
+#    python -m ruff check core/ scripts/ --statistics
+#
+# 2. Type Checking (mypy)
+#    python -m mypy core/ --ignore-missing-imports
+#
+# 3. Security Scan (bandit)
+#    python -m bandit -r core/ -q
+#
+# 4. Compile Validation
+#    python scripts/compile_validate.py
+#
+# 5. Test Suite with Coverage
+#    python -m pytest tests/ --cov=core --cov-report=json:coverage_json.json -q
+#
+# 6. Coverage Gate
+#    python scripts/run_coverage_heatmap.py --ci --input coverage_json.json
+#
+# 7. Code Quality Report
+#    python scripts/run_code_quality_report.py --ci
+#
+# 8. Benchmark Suite
+#    python scripts/run_benchmarks.py --ci
+#
+# 9. Architecture Compliance
+#    python scripts/check_architecture_compliance.py
+#
+# 10. Constitution Scorecard
+#     python scripts/score_system.py --check-min 7.0
+#
+# 11. Pre-Implementation Check (if files changed)
+#     python scripts/pre_implementation_check.py --files <changed_files>
+
+# ── CI Exit Code Summary ──────────────────────────────────────────────────────
+#
+# Exit 0: All checks passed
+# Exit 1: Tests failed or coverage below threshold
+# Exit 2: Critical code quality issues (complexity > 30)
+# Exit 3: Security vulnerabilities found
+# Exit 4: Performance regression detected
+# Exit 5: Architecture compliance failure
+# Exit 6: Constitution score below minimum
+
+# ── Recommended bitbucket-pipelines.yml Integration ───────────────────────────
+
+"""
+pipelines:
+  default:
+    - parallel:
+        - step:
+            name: Static Analysis
+            caches:
+              - pip
+            script:
+              - pip install -r requirements-dev.txt
+              - python -m ruff check core/ scripts/ --statistics
+              - python -m mypy core/ --ignore-missing-imports
+              - python -m bandit -r core/ -q
+              - python scripts/compile_validate.py
+              - python scripts/check_architecture_compliance.py
+
+        - step:
+            name: Test Suite
+            caches:
+              - pip
+            script:
+              - pip install -r requirements-dev.txt
+              - python -m pytest tests/ --cov=core --cov-report=json:coverage_json.json -q
+              - python scripts/run_coverage_heatmap.py --ci --input coverage_json.json
+              - python scripts/run_code_quality_report.py --ci
+              - python scripts/score_system.py --check-min 7.0
+
+        - step:
+            name: Benchmarks
+            caches:
+              - pip
+            script:
+              - pip install -r requirements-dev.txt
+              - pip install psutil
+              - python scripts/run_benchmarks.py --ci
+"""
+
+# ── Recommended GitHub Actions Integration ────────────────────────────────────
+
+"""
+name: CI Pipeline
+on: [push, pull_request]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check core/ scripts/ --statistics
+      - run: mypy core/ --ignore-missing-imports
+      - run: bandit -r core/ -q
+      - run: python scripts/compile_validate.py
+      - run: python scripts/check_architecture_compliance.py
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest tests/ --cov=core --cov-report=json:coverage_json.json -q
+      - run: python scripts/run_coverage_heatmap.py --ci --input coverage_json.json
+      - run: python scripts/run_code_quality_report.py --ci
+      - run: python scripts/score_system.py --check-min 7.0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: reports/
+
+  benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements-dev.txt
+      - run: pip install psutil
+      - run: python scripts/run_benchmarks.py --ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-reports
+          path: .benchmarks/
+"""
+
+# ── Makefile Integration ──────────────────────────────────────────────────────
+
+"""
+.PHONY: ci ci-full static-analysis test coverage benchmark quality
+
+ci: static-analysis test coverage quality
+ci-full: ci benchmark
+
+static-analysis:
+	python -m ruff check core/ scripts/ --statistics
+	python -m mypy core/ --ignore-missing-imports
+	python -m bandit -r core/ -q
+	python scripts/compile_validate.py
+
+test:
+	python -m pytest tests/ -q
+
+coverage:
+	python -m pytest tests/ --cov=core --cov-report=json:coverage_json.json -q
+	python scripts/run_coverage_heatmap.py --ci
+
+benchmark:
+	python scripts/run_benchmarks.py --ci
+
+quality:
+	python scripts/run_code_quality_report.py --ci
+	python scripts/score_system.py --check-min 7.0
+	python scripts/check_architecture_compliance.py
+"""

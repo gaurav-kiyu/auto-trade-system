@@ -1,0 +1,199 @@
+# Real Estate Platform — Kubernetes Deployment
+# ─────────────────────────────────────────────────────────────────────────────
+# Deploys the FastAPI application with health checks, resource limits,
+# rolling update strategy, and environment configuration.
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: realestate-api
+  namespace: realestate
+  labels:
+    app: realestate
+    tier: api
+    managed-by: kustomize
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: realestate
+      tier: api
+  template:
+    metadata:
+      labels:
+        app: realestate
+        tier: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8765"
+        prometheus.io/path: "/metrics"
+        sidecar.istio.io/inject: "true"
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: api
+          image: ghcr.io/opb-project/realestate:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8765
+              name: http
+            - containerPort: 9090
+              name: metrics
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: realestate-db
+                  key: url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: realestate-redis
+                  key: url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: realestate-auth
+                  key: jwt-secret
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: realestate-auth
+                  key: google-client-id
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: realestate-auth
+                  key: google-client-secret
+            - name: SMTP_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: realestate-config
+                  key: smtp-host
+            - name: SMTP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: realestate-config
+                  key: smtp-port
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: realestate-email
+                  key: smtp-user
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: realestate-email
+                  key: smtp-password
+            - name: SMTP_FROM
+              valueFrom:
+                configMapKeyRef:
+                  name: realestate-config
+                  key: smtp-from
+            - name: ADMIN_EMAILS
+              valueFrom:
+                configMapKeyRef:
+                  name: realestate-config
+                  key: admin-emails
+          envFrom:
+            - configMapRef:
+                name: realestate-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /api/realestate/health
+              port: 8765
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/realestate/health
+              port: 8765
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+          startupProbe:
+            httpGet:
+              path: /api/realestate/health
+              port: 8765
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            failureThreshold: 30
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: realestate-uploads
+        - name: tmp
+          emptyDir: {}
+---
+# ── Background Worker Deployment ────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: realestate-worker
+  namespace: realestate
+  labels:
+    app: realestate
+    tier: worker
+    managed-by: kustomize
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: realestate
+      tier: worker
+  template:
+    metadata:
+      labels:
+        app: realestate
+        tier: worker
+    spec:
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: worker
+          image: ghcr.io/opb-project/realestate:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "realestate.scheduler"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: realestate-db
+                  key: url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: realestate-redis
+                  key: url
+          envFrom:
+            - configMapRef:
+                name: realestate-config
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

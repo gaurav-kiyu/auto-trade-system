@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — Kill Switch</title>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem; color: var(--text-primary, #ffffff); letter-spacing: -0.02em; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; font-weight: 500; }
+        .card { background: var(--bg-card, #131e33); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--card-shadow); }
+        .card-critical { background: linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(127,29,29,0.12) 100%); border: 1px solid var(--danger-color, #ef4444); }
+        .card-warning { background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(113,63,18,0.12) 100%); border: 1px solid var(--warning-color, #f59e0b); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--bg-card, #0f1319); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.25rem; text-align: center; box-shadow: var(--card-shadow); }
+        .stat-value { font-size: 1.75rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; font-feature-settings: 'tnum' 1, 'zero' 1; color: var(--text-primary, #f8fafc); }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted, #94a3b8); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.35rem; }
+        .badge { display: inline-flex; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .badge-ok { background: rgba(34,197,94,0.15); color: var(--success-color, #22c55e); border: 1px solid var(--success-color, #22c55e); }
+        .badge-critical { background: rgba(239,68,68,0.15); color: var(--danger-color, #ef4444); border: 1px solid var(--danger-color, #ef4444); }
+        .badge-halt { background: rgba(239,68,68,0.18); color: var(--danger-color, #ef4444); border: 1px solid var(--danger-color, #ef4444); font-weight: 800; }
+        .badge-active { background: rgba(34,197,94,0.18); color: var(--success-color, #22c55e); border: 1px solid var(--success-color, #22c55e); font-weight: 800; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-size: 0.95rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s ease; }
+        .btn-kill { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; }
+        .btn-kill:hover { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 15px rgba(239,68,68,0.35); }
+        .btn-kill:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-resume { background: linear-gradient(135deg, #16a34a, #15803d); color: white; }
+        .btn-resume:hover { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 4px 15px rgba(34,197,94,0.35); }
+        .btn-ghost { background: transparent; color: var(--text-secondary, #94a3b8); border: 1px solid var(--border-color, #1e293b); }
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { padding: 0.75rem 1.25rem; border-radius: 0.5rem; color: white; font-size: 0.8rem; opacity: 0; transform: translateY(1rem); transition: all 0.3s ease; }
+        .toast.visible { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #065f46; border-left: 3px solid #22c55e; }
+        .toast.error { background: #7f1d1d; border-left: 3px solid #ef4444; }
+        .reason-input { width: 100%; padding: 0.65rem 0.85rem; background: var(--input-bg, #0b1120); border: 1px solid var(--input-border, #1e293b); border-radius: 0.5rem; color: var(--text-primary, #e2e8f0); font-size: 0.85rem; outline: none; transition: border-color 0.2s; }
+        .reason-input:focus { border-color: var(--accent-color, #3b82f6); }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+    </style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+
+    <h1><i class="fas fa-exclamation-triangle" style="color:#ef4444;margin-right:0.5rem;"></i> Emergency Kill Switch</h1>
+<p class="subtitle">Immediately halt or resume all trading activity — <span style="color:#f87171;">use with extreme caution</span></p>
+<div class="grid-2" id="statusCards">
+<div class="stat-card"><div class="stat-value" id="haltStatus">-</div><div class="stat-label">System Status</div></div>
+<div class="stat-card"><div class="stat-value" id="openPositions">-</div><div class="stat-label">Open Positions</div></div>
+<div class="stat-card"><div class="stat-value" id="capitalStatus">-</div><div class="stat-label">Capital</div></div>
+<div class="stat-card"><div class="stat-value" id="dailyPnL">-</div><div class="stat-label">Day P&amp;L</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+<div class="card card-critical">
+<h3 style="font-size:1.1rem;font-weight:700;color:#f87171;margin-bottom:0.5rem;"><i class="fas fa-stop-circle"></i> Halt Trading</h3>
+<p style="font-size:0.85rem;color:#94a3b8;margin-bottom:1rem;">Immediately blocks all new entries and exits. Open positions remain open until manually resolved. Triggers system-wide risk halt.</p>
+<textarea class="reason-input" id="killReason" placeholder="Reason for halting (this is logged)" rows="2" style="margin-bottom:1rem;border-color:rgba(239,68,68,0.3);"></textarea>
+<button class="btn btn-kill" id="haltBtn" style="width:100%;" type="button"><i class="fas fa-power-off"></i> ACTIVATE KILL SWITCH</button>
+</div>
+<div class="card card-warning">
+<h3 style="font-size:1.1rem;font-weight:700;color:#fbbf24;margin-bottom:0.5rem;"><i class="fas fa-play-circle"></i> Resume Trading</h3>
+<p style="font-size:0.85rem;color:#94a3b8;margin-bottom:1rem;">Resume normal trading operations. Only use after the issue has been investigated and resolved.</p>
+<textarea class="reason-input" id="resumeReason" placeholder="Reason for resuming" rows="2" style="margin-bottom:1rem;"></textarea>
+<button class="btn btn-resume" id="resumeBtn" style="width:100%;" type="button"><i class="fas fa-check-circle"></i> RESUME TRADING</button>
+</div>
+</div>
+<div class="card">
+<h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Kill Switch Audit Log</h3>
+<div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table style="width:100%;border-collapse:collapse;">
+<thead><tr><th style="text-align:left;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;color:#64748b;padding:0.6rem 0.75rem;border-bottom:1px solid rgba(148,163,184,0.08);">Time</th><th style="text-align:left;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;color:#64748b;padding:0.6rem 0.75rem;border-bottom:1px solid rgba(148,163,184,0.08);">Action</th><th style="text-align:left;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;color:#64748b;padding:0.6rem 0.75rem;border-bottom:1px solid rgba(148,163,184,0.08);">User</th><th style="text-align:left;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;color:#64748b;padding:0.6rem 0.75rem;border-bottom:1px solid rgba(148,163,184,0.08);">Reason</th></tr></thead>
+<tbody id="auditTableBody"><tr><td colspan="4" style="text-align:center;color:#64748b;padding:1rem;">Loading...</td></tr></tbody>
+</table>
+</div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+<script nonce="{{ nonce }}">
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : '';
+        }
+
+        function showToast(msg, type='info') {
+            const c=document.getElementById('toastContainer');
+            const t=document.createElement('div');
+            t.className=`toast ${type} visible`;
+            t.textContent=msg;
+            c.appendChild(t);
+            setTimeout(()=>{t.classList.remove('visible');setTimeout(()=>t.remove(),300);},3500);
+        }
+
+        async function apiFetch(url, opts={}) {
+            const csrfToken = getCookie('opb_csrf');
+            const headers={'Content-Type':'application/json',...opts.headers};
+            if (csrfToken && opts.method && opts.method !== 'GET') {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+            const res=await fetch(url,{headers,credentials:'include',...opts});
+            if (res.status===401) { window.location.href='/login'; return null; }
+            return res.json();
+        }
+
+        function formatMoney(v) {
+            if (v == null) return '-';
+            const n = typeof v === 'number' ? v : parseFloat(v);
+            return '₹' + (isNaN(n) ? '-' : n.toLocaleString('en-IN', {minimumFractionDigits:2}));
+        }
+
+        async function loadStatus() {
+            const data = await apiFetch('/api/system/kill-status');
+            if (!data) return;
+            const halted = data.halted || data.is_halted || data.risk_halted;
+            document.getElementById('haltStatus').innerHTML = halted ? '<span class="badge badge-halt" style="font-size:1rem;">HALTED</span>' : '<span class="badge badge-active" style="font-size:1rem;">ACTIVE</span>';
+            document.getElementById('openPositions').textContent = data.open_positions ?? data.open_trades ?? '-';
+            document.getElementById('capitalStatus').textContent = formatMoney(data.capital);
+            document.getElementById('dailyPnL').innerHTML = data.day_pnl != null ? '<span style="color:'+(data.day_pnl>=0?'var(--success-color, #22c55e)':'var(--danger-color, #ef4444)')+';font-weight:800;">'+formatMoney(data.day_pnl)+'</span>' : '-';
+            document.getElementById('haltBtn').disabled = halted;
+            document.getElementById('resumeBtn').disabled = !halted;
+        }
+
+        async function loadAuditLog() {
+            const data = await apiFetch('/api/auth/audit?limit=20&event_type=kill_switch');
+            const log = Array.isArray(data) ? data : (data?.log || []);
+            const tb = document.getElementById('auditTableBody');
+            if (log.length === 0) {
+                tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#64748b;padding:1rem;">No kill switch events recorded</td></tr>';
+                return;
+            }
+            tb.innerHTML = log.map(e => `<tr><td style="font-size:0.7rem;padding:0.6rem 0.75rem;">${e.timestamp || '-'}</td><td style="padding:0.6rem 0.75rem;">${e.details?.action || e.action || e.event || '-'}</td><td style="padding:0.6rem 0.75rem;">${e.username || '-'}</td><td style="font-size:0.75rem;color:#94a3b8;padding:0.6rem 0.75rem;">${e.details?.reason || e.reason || '-'}</td></tr>`).join('');
+        }
+
+        document.getElementById('haltBtn').addEventListener('click', async () => {
+            if (!confirm('⚠️ ARE YOU SURE? This will halt ALL trading activity immediately.')) return;
+            const reason = document.getElementById('killReason').value.trim() || 'Manual kill switch activation';
+            const res = await apiFetch('/api/system/kill', {method:'POST', body:JSON.stringify({reason})});
+            if (res && res.success) {
+                showToast('🚨 Kill switch activated: ' + reason, 'error');
+                document.getElementById('haltBtn').disabled = true;
+                document.getElementById('resumeBtn').disabled = false;
+                loadStatus();
+                loadAuditLog();
+            } else {
+                showToast(res?.error || 'Failed to activate kill switch', 'error');
+            }
+        });
+
+        document.getElementById('resumeBtn').addEventListener('click', async () => {
+            if (!confirm('Resume trading? Make sure the issue is resolved.')) return;
+            const reason = document.getElementById('resumeReason').value.trim() || 'Manual resume';
+            const res = await apiFetch('/api/system/resume', {method:'POST', body:JSON.stringify({reason})});
+            if (res && res.success) {
+                showToast('✅ Trading resumed: ' + reason, 'success');
+                document.getElementById('haltBtn').disabled = false;
+                document.getElementById('resumeBtn').disabled = true;
+                loadStatus();
+                loadAuditLog();
+            } else {
+                showToast(res?.error || 'Failed to resume trading', 'error');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStatus();
+            loadAuditLog();
+            setInterval(loadStatus, 10000);
+        });
+    </script>    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

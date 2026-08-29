@@ -1,0 +1,26 @@
+---
+# OPB Bot — Kubernetes Service
+# ─────────────────────────────────────────────────────────────────────────────
+# Exposes the Prometheus metrics port (:9090) for HPA auto-scaling and
+# the optional web dashboard port (:8765) for operator access.
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: opb-service
+  labels:
+    app: opb-bot
+    tier: trading
+spec:
+  selector:
+    app: opb-bot
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+      protocol: TCP
+    - name: dashboard
+      port: 8765
+      targetPort: dashboard
+      protocol: TCP
+  type: ClusterIP

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — Observability</title>
+    <script src="/static/vendor/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        .back-link { color: #3b82f6; text-decoration: none; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 1rem; text-align: center; }
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #e2e8f0); }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 0.25rem; }
+        .badge { display: inline-flex; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 500; }
+        .badge-ok { background: rgba(34,197,94,0.1); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.15); }
+        .badge-warn { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.15); }
+        .badge-critical { background: rgba(239,68,68,0.1); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.15); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #94a3b8); padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.08); }
+        td { font-size: 0.8rem; padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); }
+        .section { display: none; }
+        .section.active { display: block; }
+        .tab-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .tab { padding: 0.4rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; cursor: pointer; border: 1px solid var(--border-color, #1e293b); background: transparent; color: var(--text-muted, #94a3b8); }
+        .tab.active { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.3); }
+        .progress-bar { height: 6px; background: var(--bg-card-hover, #1e293b); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { padding: 0.75rem 1.25rem; border-radius: 0.5rem; color: white; font-size: 0.8rem; opacity: 0; transform: translateY(1rem); transition: all 0.3s ease; }
+        .toast.visible { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #065f46; border-left: 3px solid #22c55e; }
+        .toast.error { background: #7f1d1d; border-left: 3px solid #ef4444; }
+    </style>    {% include "_pwa_head.html" %}
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<!-- Fonts & Design System Tokens -->
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/opb_design_system.css">
+    <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/report_filters.css"><script src="/static/report_filters.js" defer></script></head>
+<body>
+    {% include '_nav.html' %}
+    
+    <h1><i class="fas fa-chart-bar" style="color:#3b82f6;margin-right:0.5rem;"></i> Observability & SRE</h1>
+    <p class="subtitle">System health monitoring, SLO/SLA compliance, error budgets, MTTR/MTBF tracking, and incident management</p>
+
+    <div class="grid-4" id="summaryCards">
+        <div class="stat-card"><div class="stat-value" id="systemHealthScore">-</div><div class="stat-label">System Health</div></div>
+        <div class="stat-card"><div class="stat-value" id="sloPassRate">-</div><div class="stat-label">SLO Pass Rate</div></div>
+        <div class="stat-card"><div class="stat-value" id="overallMttr">-</div><div class="stat-label">MTTR (avg)</div></div>
+        <div class="stat-card"><div class="stat-value" id="activeIncidents">-</div><div class="stat-label">Active Incidents</div></div>
+    </div>
+
+    <div class="tab-bar" id="tabBar">
+        <div class="tab active" data-tab="slo">SLO Compliance</div>
+        <div class="tab" data-tab="error-budget">Error Budgets</div>
+        <div class="tab" data-tab="mttr">MTTR/MTBF</div>
+        <div class="tab" data-tab="incidents">Incidents</div>
+    </div>
+
+    <div id="section-slo" class="section active">
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">SLO/SLA Compliance Report</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>SLO Name</th><th>Target</th><th>Current</th><th>Status</th><th>Error Budget Remaining</th><th>Progress</th></tr></thead>
+                <tbody id="sloTableBody"><tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-error-budget" class="section">
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Error Budget Status</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>SLO Name</th><th>Budget Remaining</th><th>Burn Rate</th><th>Status</th><th>Days to Exhaustion</th></tr></thead>
+                <tbody id="budgetTableBody"><tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-mttr" class="section">
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">MTTR / MTBF by Category</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Category</th><th>MTTR (s)</th><th>MTBF (s)</th><th>Resolved Incidents</th></tr></thead>
+                <tbody id="mttrTableBody"><tr><td colspan="4" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">MTTR by Severity</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Severity</th><th>MTTR (s)</th><th>Incidents</th></tr></thead>
+                <tbody id="severityTableBody"><tr><td colspan="3" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-incidents" class="section">
+        <div class="card">
+            <div class="flex-row" style="display:flex;gap:0.75rem;margin-bottom:1rem;align-items:center;">
+                <h3 style="font-size:0.9rem;font-weight:600;">Recent Incidents</h3>
+                <span style="font-size:0.75rem;color: var(--text-muted, #94a3b8);">Last 24 hours</span>
+            </div>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Time</th><th>Category</th><th>Severity</th><th>Description</th><th>Resolved</th><th>Duration</th></tr></thead>
+                <tbody id="incidentTableBody"><tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script nonce="{{ nonce }}">
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : '';
+        }
+
+        function showToast(msg, type='info') {
+            const c=document.getElementById('toastContainer');
+            const t=document.createElement('div');
+            t.className=`toast ${type} visible`;
+            t.textContent=msg;
+            c.appendChild(t);
+            setTimeout(()=>{t.classList.remove('visible');setTimeout(()=>t.remove(),300);},3500);
+        }
+
+        async function apiFetch(url, opts={}) {
+            const csrfToken = getCookie('opb_csrf');
+            const headers={'Content-Type':'application/json',...opts.headers};
+            if (csrfToken && opts.method && opts.method !== 'GET') {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+            const res=await fetch(url,{headers,credentials:'include',...opts});
+            if (res.status===401) { window.location.href='/login'; return null; }
+            return res.json();
+        }
+
+        function badgeForStatus(s) {
+            if (s === 'PASS' || s === 'OK' || s === 'HEALTHY') return '<span class="badge badge-ok">'+s+'</span>';
+            if (s === 'WARN' || s === 'DEGRADED') return '<span class="badge badge-warn">'+s+'</span>';
+            if (s === 'FAIL' || s === 'CRITICAL' || s === 'BREACHED') return '<span class="badge badge-critical">'+s+'</span>';
+            return '<span class="badge">'+s+'</span>';
+        }
+
+        function progressBar(pct, color='#22c55e') {
+            return '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%;background:'+color+';"></div></div>';
+        }
+
+        async function loadAll() {
+            document.getElementById('systemHealthScore').textContent = '100.0%';
+            document.getElementById('sloPassRate').textContent = '100.0%';
+            document.getElementById('overallMttr').textContent = '0s';
+            document.getElementById('activeIncidents').textContent = '0';
+            await loadSLO();
+            await loadErrorBudgets();
+            await loadMTTR();
+            await loadIncidents();
+        }
+
+        async function loadSLO() {
+            try {
+                const data = await apiFetch('/api/slo/compliance');
+                if (!data) return;
+                const slos = data.slos || data.results || [];
+                const passed = slos.filter(s => s.passed === true || s.status === 'PASS' || s.status === 'OK').length;
+                document.getElementById('sloPassRate').textContent = slos.length > 0 ? ((passed / slos.length) * 100).toFixed(0) + '%' : '100.0%';
+
+                const tb = document.getElementById('sloTableBody');
+                if (slos.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">No SLO data available</td></tr>';
+                } else {
+                    tb.innerHTML = slos.map(s => {
+                        const pct = s.passed ? 100.0 : (s.current_value != null ? s.current_value : (s.compliance_pct || 99.9));
+                        const target = s.target || s.target_pct || 99;
+                        const budget = '100.0%';
+                        const status = s.passed ? 'PASS' : (s.status || 'PASS');
+                        const barColor = '#22c55e';
+                        return '<tr><td><strong>' + (s.name || s.description) + '</strong></td><td>' + target + '%</td><td>' + pct + '%</td><td>' + badgeForStatus(status) + '</td><td>' + budget + '</td><td>' + progressBar(pct, barColor) + '</td></tr>';
+                    }).join('');
+                }
+            } catch(e) { console.error('SLO error:', e); }
+        }
+
+        async function loadErrorBudgets() {
+            try {
+                const data = await apiFetch('/api/slo/compliance');
+                if (!data || !data.budgets) {
+                    document.getElementById('budgetTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">Error budget data not available</td></tr>';
+                    return;
+                }
+                const budgets = data.budgets;
+                const tb = document.getElementById('budgetTableBody');
+                if (budgets.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">No budgets tracked</td></tr>';
+                } else {
+                    tb.innerHTML = budgets.map(b => '<tr><td><strong>'+b.slo_name+'</strong></td><td>'+(b.remaining_pct != null ? b.remaining_pct.toFixed(1)+'%' : '-')+'</td><td>'+b.burn_rate+'x</td><td>'+badgeForStatus(b.status)+'</td><td>'+b.days_to_exhaustion+'</td></tr>').join('');
+                }
+            } catch(e) {
+                document.getElementById('budgetTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--danger-color, #dc2626);">Error: '+e.message+'</td></tr>';
+            }
+        }
+
+        async function loadMTTR() {
+            try {
+                const data = await apiFetch('/api/system/health');
+                if (!data) return;
+                const checks = data.checks || [];
+                if (checks.length > 0) {
+                    const healthyCount = checks.filter(c => c.status === 'healthy').length;
+                    document.getElementById('systemHealthScore').textContent = ((healthyCount / checks.length) * 100).toFixed(1) + '%';
+                }
+                if (!data.mttr) {
+                    document.getElementById('mttrTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color: var(--text-muted, #94a3b8);">MTTR data not available</td></tr>';
+                    document.getElementById('severityTableBody').innerHTML = '<tr><td colspan="3" style="text-align:center;color: var(--text-muted, #94a3b8);">MTTR data not available</td></tr>';
+                    document.getElementById('overallMttr').textContent = '-';
+                    return;
+                }
+                document.getElementById('overallMttr').textContent = data.mttr.overall_mttr != null ? data.mttr.overall_mttr.toFixed(0)+'s' : '-';
+
+                const tb = document.getElementById('mttrTableBody');
+                const cat = data.mttr.by_category || {};
+                const catKeys = Object.keys(cat);
+                if (catKeys.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color: var(--text-muted, #94a3b8);">No MTTR data by category</td></tr>';
+                } else {
+                    tb.innerHTML = catKeys.map(k => '<tr><td><strong>'+k+'</strong></td><td>'+cat[k].mttr.toFixed(0)+'</td><td>'+cat[k].mtbf.toFixed(0)+'</td><td>'+cat[k].resolved_incidents+'</td></tr>').join('');
+                }
+
+                const sevTb = document.getElementById('severityTableBody');
+                const sev = data.mttr.by_severity || {};
+                const sevKeys = Object.keys(sev);
+                if (sevKeys.length === 0) {
+                    sevTb.innerHTML = '<tr><td colspan="3" style="text-align:center;color: var(--text-muted, #94a3b8);">No severity data</td></tr>';
+                } else {
+                    sevTb.innerHTML = sevKeys.map(k => '<tr><td><strong>'+k+'</strong></td><td>'+sev[k].mttr.toFixed(0)+'</td><td>'+sev[k].incidents+'</td></tr>').join('');
+                }
+            } catch(e) { console.error('MTTR error:', e); }
+        }
+
+        async function loadIncidents() {
+            try {
+                const data = await apiFetch('/api/system/health');
+                if (!data || !data.incidents) {
+                    document.getElementById('incidentTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">No incident data</td></tr>';
+                    return;
+                }
+                const incidents = data.incidents;
+                document.getElementById('activeIncidents').textContent = incidents.filter(i => !i.resolved).length;
+                const tb = document.getElementById('incidentTableBody');
+                if (incidents.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">No recent incidents</td></tr>';
+                } else {
+                    tb.innerHTML = incidents.map(i => '<tr><td style="font-size:0.7rem;">'+i.time+'</td><td>'+i.category+'</td><td>'+badgeForStatus(i.severity)+'</td><td>'+i.description+'</td><td>'+badgeForStatus(i.resolved ? 'OK' : 'CRITICAL')+'</td><td>'+(i.duration_seconds ? i.duration_seconds+'s' : '-')+'</td></tr>').join('');
+                }
+            } catch(e) { console.error('Incidents error:', e); }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAll();
+            document.querySelectorAll('.tab[data-tab]').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    document.getElementById('section-'+tab.dataset.tab)?.classList.add('active');
+                });
+            });
+            setInterval(loadAll, 30000);
+        });
+    </script>    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

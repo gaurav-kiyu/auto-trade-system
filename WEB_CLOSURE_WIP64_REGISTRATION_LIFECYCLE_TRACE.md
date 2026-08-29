@@ -1,0 +1,2634 @@
+# OPB WEB CLOSURE WIP64 — Registration Lifecycle Trace
+
+Relevant Python signals: 7198
+Candidate route decorators: 426
+
+## Candidate registration/notification routes
+- `/require-auth` — `tests/test_auth_comprehensive.py:125`
+- `/require-auth-optional` — `tests/test_auth_comprehensive.py:129`
+- `/require-admin` — `tests/test_auth_comprehensive.py:135`
+- `/require-operator` — `tests/test_auth_comprehensive.py:139`
+- `/require-admin-or-operator` — `tests/test_auth_comprehensive.py:143`
+- `/require-viewer` — `tests/test_auth_comprehensive.py:147`
+- `/require-permission` — `tests/test_auth_comprehensive.py:151`
+- `/optional-with-fallback` — `tests/test_auth_comprehensive.py:155`
+- `/login` — `tests/test_auth_comprehensive.py:167`
+- `/signals/{signal_id}/mark-order-placed` — `tests/test_admin_signal_rbac_contract.py:17`
+- `/chat` — `archive/unrelated_modules/realestate/ai_chatbot.py:372`
+- `/projects` — `archive/unrelated_modules/realestate/builder_portal.py:368`
+- `/projects` — `archive/unrelated_modules/realestate/builder_portal.py:392`
+- `/projects/{project_id}` — `archive/unrelated_modules/realestate/builder_portal.py:397`
+- `/projects/{project_id}/units` — `archive/unrelated_modules/realestate/builder_portal.py:404`
+- `/projects/{project_id}/units/bulk` — `archive/unrelated_modules/realestate/builder_portal.py:409`
+- `/projects/{project_id}/units` — `archive/unrelated_modules/realestate/builder_portal.py:420`
+- `/projects/{project_id}/units/{unit_id}/book` — `archive/unrelated_modules/realestate/builder_portal.py:425`
+- `/projects/{project_id}/status` — `archive/unrelated_modules/realestate/builder_portal.py:436`
+- `/compliance/{developer_id}` — `archive/unrelated_modules/realestate/builder_portal.py:442`
+- `/stats` — `archive/unrelated_modules/realestate/builder_portal.py:446`
+- `/metrics` — `archive/unrelated_modules/realestate/admin_panel.py:350`
+- `/moderation` — `archive/unrelated_modules/realestate/admin_panel.py:363`
+- `/moderation/{property_id}/approve` — `archive/unrelated_modules/realestate/admin_panel.py:372`
+- `/moderation/{property_id}/reject` — `archive/unrelated_modules/realestate/admin_panel.py:379`
+- `/reports` — `archive/unrelated_modules/realestate/admin_panel.py:387`
+- `/reports` — `archive/unrelated_modules/realestate/admin_panel.py:398`
+- `/reports/{report_id}/resolve` — `archive/unrelated_modules/realestate/admin_panel.py:404`
+- `/kyc/submit` — `archive/unrelated_modules/realestate/admin_panel.py:416`
+- `/kyc/{user_id}/verify` — `archive/unrelated_modules/realestate/admin_panel.py:423`
+- `/kyc/queue` — `archive/unrelated_modules/realestate/admin_panel.py:430`
+- `/stats` — `archive/unrelated_modules/realestate/admin_panel.py:435`
+- `/tasks` — `archive/unrelated_modules/realestate/scheduler.py:420`
+- `/tasks/{task_id}/run` — `archive/unrelated_modules/realestate/scheduler.py:425`
+- `/run-all` — `archive/unrelated_modules/realestate/scheduler.py:441`
+- `/tasks/{task_id}/results` — `archive/unrelated_modules/realestate/scheduler.py:462`
+- `/tasks/{task_id}/toggle` — `archive/unrelated_modules/realestate/scheduler.py:479`
+- `/stats` — `archive/unrelated_modules/realestate/scheduler.py:486`
+- `/metrics` — `archive/unrelated_modules/realestate/prometheus_monitoring.py:398`
+- `/api/realestate/health` — `archive/unrelated_modules/realestate/prometheus_monitoring.py:406`
+- `/api/realestate/metrics/stats` — `archive/unrelated_modules/realestate/prometheus_monitoring.py:413`
+- `/me` — `archive/unrelated_modules/realestate/auth_service.py:351`
+- `/google` — `archive/unrelated_modules/realestate/auth_service.py:389`
+- `/guest` — `archive/unrelated_modules/realestate/auth_service.py:400`
+- `/logout` — `archive/unrelated_modules/realestate/auth_service.py:406`
+- `/me` — `archive/unrelated_modules/realestate/auth_service.py:412`
+- `/users` — `archive/unrelated_modules/realestate/auth_service.py:419`
+- `/stats` — `archive/unrelated_modules/realestate/auth_service.py:424`
+- `/realestate/login` — `archive/unrelated_modules/realestate/auth_service.py:439`
+- `/unread-count` — `archive/unrelated_modules/realestate/notifications.py:390`
+- `/{notification_id}/read` — `archive/unrelated_modules/realestate/notifications.py:395`
+- `/mark-all-read` — `archive/unrelated_modules/realestate/notifications.py:401`
+- `/{notification_id}` — `archive/unrelated_modules/realestate/notifications.py:407`
+- `/saved-searches` — `archive/unrelated_modules/realestate/notifications.py:413`
+- `/saved-searches` — `archive/unrelated_modules/realestate/notifications.py:430`
+- `/stats` — `archive/unrelated_modules/realestate/notifications.py:435`
+- `/verify` — `archive/unrelated_modules/realestate/rera_compliance.py:340`
+- `/register` — `archive/unrelated_modules/realestate/rera_compliance.py:349`
+- `/validate-format` — `archive/unrelated_modules/realestate/rera_compliance.py:363`
+- `/check` — `archive/unrelated_modules/realestate/rera_compliance.py:371`
+- `/stats` — `archive/unrelated_modules/realestate/rera_compliance.py:384`
+- `/registrations` — `archive/unrelated_modules/realestate/rera_compliance.py:389`
+- `/realestate/rera` — `archive/unrelated_modules/realestate/rera_compliance.py:406`
+- `/register` — `archive/unrelated_modules/realestate/webhooks.py:348`
+- `/{endpoint_id}` — `archive/unrelated_modules/realestate/webhooks.py:359`
+- `/endpoints` — `archive/unrelated_modules/realestate/webhooks.py:366`
+- `/test/{event_type}` — `archive/unrelated_modules/realestate/webhooks.py:371`
+- `/deliveries` — `archive/unrelated_modules/realestate/webhooks.py:390`
+- `/deliveries/failed` — `archive/unrelated_modules/realestate/webhooks.py:396`
+- `/stats` — `archive/unrelated_modules/realestate/webhooks.py:402`
+- `/payments` — `archive/unrelated_modules/realestate/tenant_portal.py:340`
+- `/payments` — `archive/unrelated_modules/realestate/tenant_portal.py:360`
+- `/maintenance` — `archive/unrelated_modules/realestate/tenant_portal.py:370`
+- `/maintenance` — `archive/unrelated_modules/realestate/tenant_portal.py:389`
+- `/maintenance/{request_id}/status` — `archive/unrelated_modules/realestate/tenant_portal.py:395`
+- `/maintenance/stats` — `archive/unrelated_modules/realestate/tenant_portal.py:407`
+- `/stats` — `archive/unrelated_modules/realestate/tenant_portal.py:412`
+- `/overview` — `archive/unrelated_modules/realestate/analytics_dashboard.py:294`
+- `/leads-funnel` — `archive/unrelated_modules/realestate/analytics_dashboard.py:304`
+- `/city-breakdown` — `archive/unrelated_modules/realestate/analytics_dashboard.py:312`
+- `/property-types` — `archive/unrelated_modules/realestate/analytics_dashboard.py:320`
+- `/top-properties` — `archive/unrelated_modules/realestate/analytics_dashboard.py:328`
+- `/summary` — `archive/unrelated_modules/realestate/analytics_dashboard.py:336`
+- `/realestate/analytics` — `archive/unrelated_modules/realestate/analytics_dashboard.py:357`
+- `/autocomplete` — `archive/unrelated_modules/tests/test_realestate_cache.py:278`
+- `/autocomplete` — `archive/unrelated_modules/tests/test_realestate_cache.py:334`
+- `/api/realestate/properties/search` — `archive/unrelated_modules/tests/test_realestate_analytics.py:458`
+- `/test` — `archive/unrelated_modules/tests/test_realestate_analytics.py:483`
+- `/protected` — `core/auth/dependencies.py:37`
+- `/admin-only` — `core/auth/dependencies.py:41`
+- `/protected` — `core/auth/dependencies.py:200`
+- `/login/sso` — `core/auth/sso.py:21`
+- `/sso/callback` — `core/auth/sso.py:26`
+- `/register` — `core/auth/routes.py:137`
+- `/login` — `core/auth/routes.py:220`
+- `/login` — `core/auth/routes.py:225`
+- `/logout` — `core/auth/routes.py:282`
+- `/logout` — `core/auth/routes.py:283`
+- `/session` — `core/auth/routes.py:311`
+- `/profile` — `core/auth/routes.py:325`
+- `/profile` — `core/auth/routes.py:349`
+- `/change-password` — `core/auth/routes.py:389`
+- `/users` — `core/auth/routes.py:415`
+- `/users` — `core/auth/routes.py:422`
+- `/users/{username}/role` — `core/auth/routes.py:483`
+- `/users/{username}/reset-password` — `core/auth/routes.py:519`
+- `/users/{username}/disable` — `core/auth/routes.py:536`
+- `/users/{username}/enable` — `core/auth/routes.py:548`
+- `/users/{username}` — `core/auth/routes.py:559`
+- `/user-permissions` — `core/auth/routes.py:583`
+- `/users/{username}/permissions` — `core/auth/routes.py:624`
+- `/users/{username}/permissions` — `core/auth/routes.py:661`
+- `/users/{username}/toggle-signals` — `core/auth/routes.py:741`
+- `/signals/analytics` — `core/auth/routes.py:760`
+- `/signals/my-history` — `core/auth/routes.py:773`
+- `/signals/{signal_id}/mark-order-placed` — `core/auth/routes.py:794`
+- `/users/{username}/sessions` — `core/auth/routes.py:820`
+- `/users/{username}/revoke-sessions` — `core/auth/routes.py:831`
+- `/audit` — `core/auth/routes.py:846`
+- `/stats` — `core/auth/routes.py:875`
+- `/mfa/setup` — `core/auth/routes.py:884`
+- `/mfa/verify` — `core/auth/routes.py:921`
+- `/mfa/disable` — `core/auth/routes.py:956`
+- `/mfa/status` — `core/auth/routes.py:982`
+- `/mfa/verify-session` — `core/auth/routes.py:1005`
+- `/mfa/recovery-codes` — `core/auth/routes.py:1044`
+- `/sso/login` — `core/auth/routes.py:1062`
+- `/sso/callback` — `core/auth/routes.py:1111`
+- `/sso/providers` — `core/auth/routes.py:1158`
+- `/forgot-password` — `core/auth/routes.py:1174`
+- `/verify-reset-token` — `core/auth/routes.py:1193`
+- `/reset-password` — `core/auth/routes.py:1209`
+- `/emergency-reset-password` — `core/auth/routes.py:1222`
+- `/mode` — `core/control_plane/server.py:365`
+- `/mode/{target}` — `core/control_plane/server.py:377`
+- `/wal` — `core/control_plane/server.py:398`
+- `/cert` — `core/control_plane/server.py:423`
+- `/invariants` — `core/control_plane/server.py:447`
+- `/invariants/{name}/toggle` — `core/control_plane/server.py:462`
+- `/control/halt` — `core/control_plane/server.py:486`
+- `/control/resume` — `core/control_plane/server.py:502`
+- `/control/status` — `core/control_plane/server.py:518`
+- `/strategies` — `core/control_plane/server.py:528`
+- `/strategies/{name}/toggle` — `core/control_plane/server.py:541`
+- `/assets` — `core/control_plane/server.py:561`
+- `/assets/{name}/toggle` — `core/control_plane/server.py:574`
+- `/features` — `core/control_plane/server.py:594`
+- `/features/{name}` — `core/control_plane/server.py:607`
+- `/models` — `core/control_plane/server.py:627`
+- `/models/{model_id}/select` — `core/control_plane/server.py:646`
+- `/broker` — `core/control_plane/server.py:669`
+- `/audit` — `core/control_plane/server.py:679`
+- `/roles` — `core/control_plane/server.py:691`
+- `/roles/{operator}` — `core/control_plane/server.py:704`
+- `/config/reload` — `core/control_plane/server.py:724`
+- `/` — `core/control_plane/server.py:743`
+- `/control/auth/login` — `core/control_plane/server.py:769`
+- `/control/state` — `core/control_plane/server.py:790`
+- `/control/audit` — `core/control_plane/server.py:796`
+- `/control/kill` — `core/control_plane/server.py:805`
+- `/control/strategy/{name}/{action}` — `core/control_plane/server.py:814`
+- `/control/asset_class/{asset_class}/{action}` — `core/control_plane/server.py:823`
+- `/control/capital/{amount}` — `core/control_plane/server.py:832`
+- `/control/risk_limit/{name}/{value}` — `core/control_plane/server.py:841`
+- `/control/ai_model/{name}/{action}` — `core/control_plane/server.py:850`
+- `/control/feature_flag/{name}/{value}` — `core/control_plane/server.py:859`
+- `/dashboard-sw.js` — `core/enterprise_dashboard/main.py:427`
+- `/dashboard` — `core/enterprise_dashboard/main.py:439`
+- `/testing-suite` — `core/enterprise_dashboard/main.py:444`
+- `/admin` — `core/enterprise_dashboard/main.py:451`
+- `/admin/` — `core/enterprise_dashboard/main.py:452`
+- `/logout` — `core/enterprise_dashboard/main.py:457`
+- `/logout` — `core/enterprise_dashboard/main.py:458`
+- `/api/governance/status` — `core/enterprise_dashboard/routes/governance.py:38`
+- `/api/governance/report` — `core/enterprise_dashboard/routes/governance.py:85`
+- `/api/governance/pending` — `core/enterprise_dashboard/routes/governance.py:98`
+- `/api/governance/history` — `core/enterprise_dashboard/routes/governance.py:110`
+- `/api/governance/log` — `core/enterprise_dashboard/routes/governance.py:130`
+- `/api/governance/rules` — `core/enterprise_dashboard/routes/governance.py:145`
+- `/api/governance/request` — `core/enterprise_dashboard/routes/governance.py:157`
+- `/api/governance/approve` — `core/enterprise_dashboard/routes/governance.py:189`
+- `/api/governance/reject` — `core/enterprise_dashboard/routes/governance.py:218`
+- `/api/governance/quality` — `core/enterprise_dashboard/routes/governance.py:249`
+- `/api/capacity/report` — `core/enterprise_dashboard/routes/capacity.py:33`
+- `/api/capacity/forecast` — `core/enterprise_dashboard/routes/capacity.py:45`
+- `/api/capacity/triggers` — `core/enterprise_dashboard/routes/capacity.py:62`
+- `/api/capacity/throughput` — `core/enterprise_dashboard/routes/capacity.py:78`
+- `/api/capacity/changelog` — `core/enterprise_dashboard/routes/capacity.py:90`
+- `/api/platform/provisioning/blueprints` — `core/enterprise_dashboard/routes/provisioning.py:43`
+- `/api/platform/provisioning/blueprints/{name}` — `core/enterprise_dashboard/routes/provisioning.py:61`
+- `/api/platform/provisioning/request` — `core/enterprise_dashboard/routes/provisioning.py:80`
+- `/api/platform/provisioning/requests` — `core/enterprise_dashboard/routes/provisioning.py:100`
+- `/api/platform/provisioning/requests/{request_id}/approve` — `core/enterprise_dashboard/routes/provisioning.py:119`
+- `/api/platform/provisioning/requests/{request_id}/provisioned` — `core/enterprise_dashboard/routes/provisioning.py:139`
+- `/api/platform/provisioning/requests/{request_id}/reject` — `core/enterprise_dashboard/routes/provisioning.py:158`
+- `/api/platform/provisioning/stats` — `core/enterprise_dashboard/routes/provisioning.py:177`
+- `/api/platform/provisioning/report` — `core/enterprise_dashboard/routes/provisioning.py:187`
+- `/api/v1/admin/test-dispatch-signal` — `core/enterprise_dashboard/routes/admin.py:23`
+- `/api/v1/admin/test-email` — `core/enterprise_dashboard/routes/admin.py:205`
+- `/api/config` — `core/enterprise_dashboard/routes/admin.py:283`
+- `/api/config/defaults` — `core/enterprise_dashboard/routes/admin.py:302`
+- `/api/config/validate` — `core/enterprise_dashboard/routes/admin.py:306`
+- `/api/config/preview` — `core/enterprise_dashboard/routes/admin.py:314`
+- `/api/config/apply` — `core/enterprise_dashboard/routes/admin.py:322`
+- `/api/config/history` — `core/enterprise_dashboard/routes/admin.py:330`
+- `/api/config/audit-log` — `core/enterprise_dashboard/routes/admin.py:334`
+- `/api/config/drift` — `core/enterprise_dashboard/routes/admin.py:340`
+- `/api/config/rollback/{version}` — `core/enterprise_dashboard/routes/admin.py:389`
+- `/api/system/kill` — `core/enterprise_dashboard/routes/admin.py:398`
+- `/api/system/resume` — `core/enterprise_dashboard/routes/admin.py:414`
+- `/api/system/pause` — `core/enterprise_dashboard/routes/admin.py:434`
+- `/api/system/resume-entry` — `core/enterprise_dashboard/routes/admin.py:441`
+- `/api/changes/pending` — `core/enterprise_dashboard/routes/admin.py:450`
+- `/api/changes/propose` — `core/enterprise_dashboard/routes/admin.py:468`
+- `/api/changes/approve/{change_id}` — `core/enterprise_dashboard/routes/admin.py:497`
+- `/api/changes/reject/{change_id}` — `core/enterprise_dashboard/routes/admin.py:516`
+- `/api/changes/history` — `core/enterprise_dashboard/routes/admin.py:537`
+- `/api/system/self-test` — `core/enterprise_dashboard/routes/admin.py:560`
+- `/admin/portfolio-analyzer` — `core/enterprise_dashboard/routes/admin.py:633`
+- `/api/v1/admin/broker/info/{broker_code}` — `core/enterprise_dashboard/routes/admin.py:642`
+- `/api/v1/admin/broker/fetch-holdings` — `core/enterprise_dashboard/routes/admin.py:648`
+- `/api/v1/admin/analyze-portfolio` — `core/enterprise_dashboard/routes/admin.py:666`
+- `/api/v1/admin/market-regime` — `core/enterprise_dashboard/routes/admin.py:678`
+- `/api/v1/admin/broker-health` — `core/enterprise_dashboard/routes/admin.py:687`
+- `/api/v1/admin/auto-hedge` — `core/enterprise_dashboard/routes/admin.py:694`
+- `/api/v1/admin/execute-hedge` — `core/enterprise_dashboard/routes/admin.py:703`
+- `/api/v1/admin/tax-loss-harvest` — `core/enterprise_dashboard/routes/admin.py:723`
+- `/api/v1/admin/generate-report` — `core/enterprise_dashboard/routes/admin.py:743`
+- `/api/v1/admin/system-status` — `core/enterprise_dashboard/routes/admin.py:752`
+- `/api/intelligence/summary` — `core/enterprise_dashboard/routes/intelligence.py:124`
+- `/api/intelligence/presentation/templates` — `core/enterprise_dashboard/routes/intelligence.py:459`
+- `/api/intelligence/presentation/generate-all` — `core/enterprise_dashboard/routes/intelligence.py:479`
+- `/api/intelligence/synthetic-monitor/run` — `core/enterprise_dashboard/routes/intelligence.py:513`
+- `/api/intelligence/synthetic-monitor/health` — `core/enterprise_dashboard/routes/intelligence.py:530`
+- `/api/intelligence/sbom/generate` — `core/enterprise_dashboard/routes/intelligence.py:550`
+- `/api/intelligence/sbom/stats` — `core/enterprise_dashboard/routes/intelligence.py:567`
+- `/api/intelligence/chaos/run` — `core/enterprise_dashboard/routes/intelligence.py:583`
+- `/api/intelligence/chaos/stats` — `core/enterprise_dashboard/routes/intelligence.py:600`
+- `/api/intelligence/ai-gate/analyze-prompt` — `core/enterprise_dashboard/routes/intelligence.py:618`
+- `/api/intelligence/ai-gate/analyze-response` — `core/enterprise_dashboard/routes/intelligence.py:648`
+- `/api/intelligence/ai-gate/report` — `core/enterprise_dashboard/routes/intelligence.py:680`
+- `/api/intelligence/ai-gate/stats` — `core/enterprise_dashboard/routes/intelligence.py:697`
+- `/api/intelligence/threat-model/analyze` — `core/enterprise_dashboard/routes/intelligence.py:714`
+- `/api/intelligence/threat-model/module/{module_path:path}` — `core/enterprise_dashboard/routes/intelligence.py:731`
+- `/api/intelligence/threat-model/stats` — `core/enterprise_dashboard/routes/intelligence.py:749`
+- `/api/intelligence/postmortem/generate` — `core/enterprise_dashboard/routes/intelligence.py:766`
+- `/api/intelligence/postmortem/list` — `core/enterprise_dashboard/routes/intelligence.py:798`
+- `/api/intelligence/postmortem/report` — `core/enterprise_dashboard/routes/intelligence.py:815`
+- `/api/intelligence/postmortem/stats` — `core/enterprise_dashboard/routes/intelligence.py:832`
+- `/api/intelligence/decisions/record` — `core/enterprise_dashboard/routes/intelligence.py:849`
+- `/api/intelligence/decisions/search` — `core/enterprise_dashboard/routes/intelligence.py:891`
+- `/api/intelligence/decisions/{decision_id}` — `core/enterprise_dashboard/routes/intelligence.py:909`
+- `/api/intelligence/decisions/report` — `core/enterprise_dashboard/routes/intelligence.py:927`
+- `/api/intelligence/decisions/stats` — `core/enterprise_dashboard/routes/intelligence.py:944`
+- `/api/intelligence/digital-twin/snapshot` — `core/enterprise_dashboard/routes/intelligence.py:961`
+- `/api/intelligence/digital-twin/state` — `core/enterprise_dashboard/routes/intelligence.py:988`
+- `/api/intelligence/digital-twin/stats` — `core/enterprise_dashboard/routes/intelligence.py:1007`
+- `/api/intelligence/runtime-security/check` — `core/enterprise_dashboard/routes/intelligence.py:1020`
+- `/api/intelligence/runtime-security/stats` — `core/enterprise_dashboard/routes/intelligence.py:1037`
+- `/api/intelligence/api-versioning/report` — `core/enterprise_dashboard/routes/intelligence.py:1050`
+- `/api/intelligence/api-versioning/stats` — `core/enterprise_dashboard/routes/intelligence.py:1067`
+- `/api/intelligence/executive/briefing` — `core/enterprise_dashboard/routes/intelligence.py:1080`
+- `/api/intelligence/executive/latest` — `core/enterprise_dashboard/routes/intelligence.py:1097`
+- `/api/intelligence/accessibility/assess` — `core/enterprise_dashboard/routes/intelligence.py:1118`
+- `/api/intelligence/accessibility/stats` — `core/enterprise_dashboard/routes/intelligence.py:1135`
+- `/api/intelligence/ml/retrain` — `core/enterprise_dashboard/routes/intelligence.py:1147`
+- `/api/payoff-calculator/compute` — `core/enterprise_dashboard/routes/payoff_calculator.py:69`
+- `/api/intelligence/bi/report` — `core/enterprise_dashboard/routes/intelligence_bi.py:22`
+- `/api/intelligence/bi/health` — `core/enterprise_dashboard/routes/intelligence_bi.py:34`
+- `/api/intelligence/bi/quality` — `core/enterprise_dashboard/routes/intelligence_bi.py:46`
+- `/api/intelligence/bi/incidents` — `core/enterprise_dashboard/routes/intelligence_bi.py:59`
+- `/api/intelligence/bi/deployments` — `core/enterprise_dashboard/routes/intelligence_bi.py:71`
+- `/api/intelligence/bi/stats` — `core/enterprise_dashboard/routes/intelligence_bi.py:90`
+- `/api/intelligence/security/scan` — `core/enterprise_dashboard/routes/intelligence_bi.py:103`
+- `/api/intelligence/security/scan` — `core/enterprise_dashboard/routes/intelligence_bi.py:104`
+- `/api/intelligence/security/stats` — `core/enterprise_dashboard/routes/intelligence_bi.py:122`
+- `/api/intelligence/security/last-report` — `core/enterprise_dashboard/routes/intelligence_bi.py:132`
+- `/api/intelligence/performance/analyze` — `core/enterprise_dashboard/routes/intelligence_bi.py:139`
+- `/api/intelligence/performance/analyze` — `core/enterprise_dashboard/routes/intelligence_bi.py:140`
+- `/api/intelligence/performance/stats` — `core/enterprise_dashboard/routes/intelligence_bi.py:158`
+- `/api/intelligence/performance/last-report` — `core/enterprise_dashboard/routes/intelligence_bi.py:168`
+- `/api/intelligence/architecture/analyze` — `core/enterprise_dashboard/routes/intelligence_bi.py:175`
+- `/api/intelligence/architecture/analyze` — `core/enterprise_dashboard/routes/intelligence_bi.py:176`
+- `/api/intelligence/architecture/stats` — `core/enterprise_dashboard/routes/intelligence_bi.py:201`
+- `/api/intelligence/architecture/last-report` — `core/enterprise_dashboard/routes/intelligence_bi.py:211`
+- `/api/intelligence/recommendations/generate` — `core/enterprise_dashboard/routes/intelligence_bi.py:218`
+- `/api/intelligence/recommendations/demo` — `core/enterprise_dashboard/routes/intelligence_bi.py:232`
+- `/api/intelligence/presentation/generate` — `core/enterprise_dashboard/routes/intelligence_bi.py:260`
+- `/api/risk/snapshot` — `core/enterprise_dashboard/routes/risk.py:32`
+- `/api/slo/compliance` — `core/enterprise_dashboard/routes/risk.py:46`
+- `/api/risk/alerts` — `core/enterprise_dashboard/routes/risk.py:60`
+- `/api/risk/limits` — `core/enterprise_dashboard/routes/risk.py:78`
+- `/api/risk/concentration` — `core/enterprise_dashboard/routes/risk.py:107`
+- `/api/portfolio/asset-allocation` — `core/enterprise_dashboard/routes/risk.py:143`
+- `/api/system/trades/export` — `core/enterprise_dashboard/routes/risk.py:189`
+- `/` — `core/enterprise_dashboard/routes/pages.py:104`
+- `/profile` — `core/enterprise_dashboard/routes/pages.py:116`
+- `/login` — `core/enterprise_dashboard/routes/pages.py:128`
+- `/register` — `core/enterprise_dashboard/routes/pages.py:137`
+- `/admin/users` — `core/enterprise_dashboard/routes/pages.py:146`
+- `/admin/config` — `core/enterprise_dashboard/routes/pages.py:158`
+- `/admin/signals` — `core/enterprise_dashboard/routes/pages.py:170`
+- `/my-signals` — `core/enterprise_dashboard/routes/pages.py:195`
+- `/sector-radar` — `core/enterprise_dashboard/routes/pages.py:207`
+- `/trade-copier` — `core/enterprise_dashboard/routes/pages.py:217`
+- `/margin-radar` — `core/enterprise_dashboard/routes/pages.py:229`
+- `/strategy-sandbox` — `core/enterprise_dashboard/routes/pages.py:239`
+- `/fii-dii-radar` — `core/enterprise_dashboard/routes/pages.py:249`
+- `/expiry-harvester` — `core/enterprise_dashboard/routes/pages.py:259`
+- `/pricing-plans` — `core/enterprise_dashboard/routes/pages.py:269`
+- `/admin/kill-switch` — `core/enterprise_dashboard/routes/pages.py:281`
+- `/forgot-password` — `core/enterprise_dashboard/routes/pages.py:293`
+- `/reset-password` — `core/enterprise_dashboard/routes/pages.py:302`
+- `/change-password` — `core/enterprise_dashboard/routes/pages.py:312`
+- `/performance` — `core/enterprise_dashboard/routes/pages.py:321`
+- `/options-chain` — `core/enterprise_dashboard/routes/pages.py:333`
+- `/whats-new` — `core/enterprise_dashboard/routes/pages.py:345`
+- `/payoff-calculator` — `core/enterprise_dashboard/routes/pages.py:359`
+- `/trade-journal` — `core/enterprise_dashboard/routes/pages.py:371`
+- `/live-pnl` — `core/enterprise_dashboard/routes/pages.py:383`
+- `/system-health` — `core/enterprise_dashboard/routes/pages.py:395`
+- `/event-store` — `core/enterprise_dashboard/routes/pages.py:407`
+- `/ab-tester` — `core/enterprise_dashboard/routes/pages.py:419`
+- `/governance` — `core/enterprise_dashboard/routes/pages.py:431`
+- `/capacity` — `core/enterprise_dashboard/routes/pages.py:443`
+- `/metrics-trend` — `core/enterprise_dashboard/routes/pages.py:455`
+- `/data-quality` — `core/enterprise_dashboard/routes/pages.py:467`
+- `/observability` — `core/enterprise_dashboard/routes/pages.py:479`
+- `/intelligence` — `core/enterprise_dashboard/routes/pages.py:491`
+- `/business-intelligence` — `core/enterprise_dashboard/routes/pages.py:492`
+- `/security` — `core/enterprise_dashboard/routes/pages.py:504`
+- `/intelligence/presentation` — `core/enterprise_dashboard/routes/pages.py:520`
+- `/api/system/market-telemetry` — `core/enterprise_dashboard/routes/system.py:28`
+- `/api/system/state` — `core/enterprise_dashboard/routes/system.py:103`
+- `/api/system/trades` — `core/enterprise_dashboard/routes/system.py:107`
+- `/api/system/health` — `core/enterprise_dashboard/routes/system.py:115`
+- `/api/system/signals` — `core/enterprise_dashboard/routes/system.py:119`
+- `/api/system/performance` — `core/enterprise_dashboard/routes/system.py:123`
+- `/api/chain/{index_name}` — `core/enterprise_dashboard/routes/system.py:256`
+- `/api/system/ws-status` — `core/enterprise_dashboard/routes/system.py:578`
+- `/api/system/health/docker` — `core/enterprise_dashboard/routes/system.py:623`
+- `/api/system/uptime` — `core/enterprise_dashboard/routes/system.py:657`
+- `/api/system/diagnostics` — `core/enterprise_dashboard/routes/system.py:668`
+- `/api/system/oi` — `core/enterprise_dashboard/routes/system.py:685`
+- `/api/system/invariants` — `core/enterprise_dashboard/routes/system.py:722`
+- `/api/trade-journal` — `core/enterprise_dashboard/routes/system.py:742`
+- `/api/system/kill-status` — `core/enterprise_dashboard/routes/system.py:797`
+- `/api/system/ab-test` — `core/enterprise_dashboard/routes/system.py:809`
+- `/api/system/events` — `core/enterprise_dashboard/routes/system.py:860`
+- `/api/system/events/verify` — `core/enterprise_dashboard/routes/system.py:938`
+- `/api/metrics/trend` — `core/enterprise_dashboard/routes/metrics_trend.py:158`
+- `/api/metrics/trend/stats` — `core/enterprise_dashboard/routes/metrics_trend.py:188`
+- `/api/metrics/trend/snapshots` — `core/enterprise_dashboard/routes/metrics_trend.py:200`
+- `/api/metrics/trend/validate/{metric_id}` — `core/enterprise_dashboard/routes/metrics_trend.py:220`
+- `/api/metrics/trend/release-audits` — `core/enterprise_dashboard/routes/metrics_trend.py:234`
+- `/api/fundamentals/weights` — `core/enterprise_dashboard/routes/fundamentals.py:30`
+- `/api/fundamentals/weights` — `core/enterprise_dashboard/routes/fundamentals.py:52`
+- `/api/fundamentals/analyze/{symbol}` — `core/enterprise_dashboard/routes/fundamentals.py:77`
+- `/api/fundamentals/screen` — `core/enterprise_dashboard/routes/fundamentals.py:147`
+- `/api/system/notifications/stream` — `core/enterprise_dashboard/routes/monitoring.py:36`
+- `/api/system/notifications` — `core/enterprise_dashboard/routes/monitoring.py:48`
+- `/api/v1/trade/paper-trade` — `core/enterprise_dashboard/routes/monitoring.py:70`
+- `/api/system/notifications/{notif_id}/acknowledge` — `core/enterprise_dashboard/routes/monitoring.py:104`
+- `/api/system/notifications/acknowledge-all` — `core/enterprise_dashboard/routes/monitoring.py:110`
+- `/api/system/notifications/push` — `core/enterprise_dashboard/routes/monitoring.py:118`
+- `/api/broker/info` — `core/enterprise_dashboard/routes/monitoring.py:133`
+- `/api/ml/status` — `core/enterprise_dashboard/routes/monitoring.py:164`
+- `/api/system/data-providers` — `core/enterprise_dashboard/routes/monitoring.py:183`
+- `/api/system/data-providers/health` — `core/enterprise_dashboard/routes/monitoring.py:213`
+- `/api/pnl-attribution` — `core/enterprise_dashboard/routes/monitoring.py:256`
+- `/api/performance/comparison` — `core/enterprise_dashboard/routes/monitoring.py:332`
+- `/api/market/sector-radar` — `core/enterprise_dashboard/routes/monitoring.py:398`
+- `/api/options/gex-analysis` — `core/enterprise_dashboard/routes/monitoring.py:407`
+- `/api/v1/journal/ai-debrief` — `core/enterprise_dashboard/routes/monitoring.py:434`
+- `/api/telegram/webhook` — `core/enterprise_dashboard/routes/monitoring.py:440`
+- `/api/v1/push/vapid-public-key` — `core/enterprise_dashboard/routes/monitoring.py:457`
+- `/api/v1/push/subscribe` — `core/enterprise_dashboard/routes/monitoring.py:469`
+- `/api/copier/accounts` — `core/enterprise_dashboard/routes/monitoring.py:482`
+- `/api/copier/execute` — `core/enterprise_dashboard/routes/monitoring.py:493`
+- `/api/market/order-flow` — `core/enterprise_dashboard/routes/monitoring.py:505`
+- `/api/portfolio/margin-radar` — `core/enterprise_dashboard/routes/monitoring.py:514`
+- `/api/backtest/run-sandbox` — `core/enterprise_dashboard/routes/monitoring.py:520`
+- `/api/market/fii-dii-positioning` — `core/enterprise_dashboard/routes/monitoring.py:551`
+- `/api/strategy/0dte-status` — `core/enterprise_dashboard/routes/monitoring.py:557`
+- `/api/execution/iceberg-slice` — `core/enterprise_dashboard/routes/monitoring.py:563`
+- `/api/copilot/query` — `core/enterprise_dashboard/routes/monitoring.py:575`
+- `/api/billing/plans` — `core/enterprise_dashboard/routes/monitoring.py:583`
+- `/api/billing/generate-qr` — `core/enterprise_dashboard/routes/monitoring.py:589`
+- `/api/billing/confirm-upi-payment` — `core/enterprise_dashboard/routes/monitoring.py:595`
+- `/api/backup/trigger-snapshot` — `core/enterprise_dashboard/routes/monitoring.py:627`
+- `/api/backup/list-snapshots` — `core/enterprise_dashboard/routes/monitoring.py:638`
+- `/api/backup/restore-snapshot` — `core/enterprise_dashboard/routes/monitoring.py:644`
+- `/api/intelligence/impact/{module_path:path}` — `core/enterprise_dashboard/routes/intelligence_analysis.py:23`
+- `/api/intelligence/impact/stats` — `core/enterprise_dashboard/routes/intelligence_analysis.py:41`
+- `/api/intelligence/impact/dependents/{module_path:path}` — `core/enterprise_dashboard/routes/intelligence_analysis.py:52`
+- `/api/intelligence/root-cause/investigate` — `core/enterprise_dashboard/routes/intelligence_analysis.py:72`
+- `/api/intelligence/root-cause/history` — `core/enterprise_dashboard/routes/intelligence_analysis.py:90`
+- `/api/intelligence/root-cause/patterns` — `core/enterprise_dashboard/routes/intelligence_analysis.py:103`
+- `/api/intelligence/knowledge-graph/search` — `core/enterprise_dashboard/routes/intelligence_analysis.py:126`
+- `/api/intelligence/knowledge-graph/report` — `core/enterprise_dashboard/routes/intelligence_analysis.py:138`
+- `/api/intelligence/knowledge-graph/hotspots` — `core/enterprise_dashboard/routes/intelligence_analysis.py:150`
+- `/api/intelligence/knowledge-graph/smells` — `core/enterprise_dashboard/routes/intelligence_analysis.py:162`
+- `/api/intelligence/risk-score` — `core/enterprise_dashboard/routes/intelligence_analysis.py:176`
+- `/api/intelligence/risk-score/module/{module_path:path}` — `core/enterprise_dashboard/routes/intelligence_analysis.py:194`
+- `/api/intelligence/dependencies/report` — `core/enterprise_dashboard/routes/intelligence_analysis.py:208`
+- `/api/intelligence/dependencies/module/{module_path:path}` — `core/enterprise_dashboard/routes/intelligence_analysis.py:220`
+- `/api/intelligence/incidents/list` — `core/enterprise_dashboard/routes/intelligence_incidents.py:22`
+- `/api/intelligence/incidents/open` — `core/enterprise_dashboard/routes/intelligence_incidents.py:35`
+- `/api/intelligence/incidents/create` — `core/enterprise_dashboard/routes/intelligence_incidents.py:48`
+- `/api/intelligence/incidents/get/{incident_id}` — `core/enterprise_dashboard/routes/intelligence_incidents.py:71`
+- `/api/intelligence/incidents/acknowledge/{incident_id}` — `core/enterprise_dashboard/routes/intelligence_incidents.py:83`
+- `/api/intelligence/incidents/resolve/{incident_id}` — `core/enterprise_dashboard/routes/intelligence_incidents.py:96`
+- `/api/intelligence/incidents/close/{incident_id}` — `core/enterprise_dashboard/routes/intelligence_incidents.py:109`
+- `/api/intelligence/incidents/detect` — `core/enterprise_dashboard/routes/intelligence_incidents.py:122`
+- `/api/intelligence/health` — `core/enterprise_dashboard/routes/intelligence_incidents.py:136`
+- `/api/intelligence/architecture-standards` — `core/enterprise_dashboard/routes/intelligence_incidents.py:188`
+- `/api/constitution/v4-health` — `core/enterprise_dashboard/routes/intelligence_incidents.py:240`
+- `/signals/inject` — `core/enterprise_dashboard/routes/webhooks.py:71`
+- `/chain/{index_name}` — `core/enterprise_dashboard/routes/webhooks.py:109`
+- `/api/intelligence/test-generator/analyze` — `core/enterprise_dashboard/routes/intelligence_pipeline.py:22`
+- `/api/intelligence/test-generator/stats` — `core/enterprise_dashboard/routes/intelligence_pipeline.py:38`
+- `/api/intelligence/docs/generate` — `core/enterprise_dashboard/routes/intelligence_pipeline.py:51`
+- `/api/intelligence/docs/stats` — `core/enterprise_dashboard/routes/intelligence_pipeline.py:63`
+- `/api/intelligence/pipeline/stats` — `core/enterprise_dashboard/routes/intelligence_pipeline.py:76`
+- `/api/intelligence/pipeline/run` — `core/enterprise_dashboard/routes/intelligence_pipeline.py:87`
+- `/api/intelligence/pipeline/history` — `core/enterprise_dashboard/routes/intelligence_pipeline.py:99`
+
+## Concrete lifecycle signals
+- `launcher.py:737` — `atexit.register(_release_lock)`
+- `core/ml_classifier.py:342` — `_register_in_registry(p, model_bytes)`
+- `core/ml_classifier.py:349` — `def _register_in_registry(path: Path, model_bytes: bytes) -> None:`
+- `core/ml_classifier.py:350` — `"""Register model in AI governance registry (best-effort)."""`
+- `core/ml_classifier.py:362` — `registry.register(`
+- `core/ml_classifier.py:371` — `_log.info("[ML-GOV] Registered model %s v%s in registry", name, next_ver)`
+- `core/ml_classifier.py:373` — `_log.debug("[ML-GOV] Registry registration skipped: %s", exc)`
+- `core/ml_classifier.py:493` — `# or a 2-D array depending on version. We want the positive-class values.`
+- `core/adaptive_behavior_governance.py:78` — `self._pending_approvals: dict[str, dict[str, Any]] = {}`
+- `core/adaptive_behavior_governance.py:169` — `self._pending_approvals[approval_id] = {`
+- `core/adaptive_behavior_governance.py:189` — `self._pending_approvals[approval_id] = {`
+- `core/adaptive_behavior_governance.py:204` — `"""Approve a pending parameter change."""`
+- `core/adaptive_behavior_governance.py:206` — `if approval_id not in self._pending_approvals:`
+- `core/adaptive_behavior_governance.py:209` — `approval = self._pending_approvals.pop(approval_id)`
+- `core/adaptive_behavior_governance.py:220` — `"""Reject a pending parameter change."""`
+- `core/adaptive_behavior_governance.py:222` — `if approval_id not in self._pending_approvals:`
+- `core/adaptive_behavior_governance.py:225` — `approval = self._pending_approvals.pop(approval_id)`
+- `core/adaptive_behavior_governance.py:258` — `def get_pending_approvals(self) -> list[dict[str, Any]]:`
+- `core/adaptive_behavior_governance.py:259` — `"""Get list of pending parameter change approvals."""`
+- `core/adaptive_behavior_governance.py:261` — `return list(self._pending_approvals.values())`
+- `core/adaptive_behavior_governance.py:270` — `"pending_approvals": len(self._pending_approvals),`
+- `core/schema_registry.py:190` — `"""List all registered data stores."""`
+- `core/schema_registry.py:193` — `def register_schema(self, store: str, version: int, columns: list[dict[str, Any]]) -> None:`
+- `core/schema_registry.py:194` — `"""Register a new schema definition."""`
+- `core/schema_registry.py:198` — `_log.info("Registered schema %s v%d with %d columns", store, version, len(columns))`
+- `core/health_checker.py:337` — `except (OSError, PermissionError) as exc:`
+- `core/version_compatibility.py:15` — `# Register a component's compatibility`
+- `core/version_compatibility.py:16` — `vcm.register("risk_service", "2.0.0", min_compat="2.0.0", max_compat="2.99.99")`
+- `core/version_compatibility.py:114` — `"  Registered Components:",`
+- `core/version_compatibility.py:196` — `def register(self, name: str, version: str,`
+- `core/version_compatibility.py:200` — `"""Register a component's version and compatibility range."""`
+- `core/version_compatibility.py:253` — `"""Check compatibility across all registered components."""`
+- `core/version_compatibility.py:318` — `"""List all registered component names."""`
+- `core/version_compatibility.py:336` — `ap.add_argument("--register", nargs=4, metavar=("name", "version", "min", "max"),`
+- `core/version_compatibility.py:337` — `help="Register a component")`
+- `core/version_compatibility.py:344` — `if args.register:`
+- `core/version_compatibility.py:345` — `name, version, min_v, max_v = args.register`
+- `core/version_compatibility.py:346` — `vcm.register(name, version, min_v, max_v)`
+- `core/version_compatibility.py:347` — `print(f"Registered {name} v{version} (compat: {min_v} - {max_v})")`
+- `core/threat_modeler.py:76` — `"description": "Gaining unauthorized access or permissions",`
+- `core/threat_modeler.py:86` — `("Elevation of Privilege", "Authorization boundaries — check role escalation paths", 0.85),`
+- `core/threat_modeler.py:118` — `("Information Disclosure", "Trade/P&L data leaked through notification channel", 0.7),`
+- `core/threat_modeler.py:503` — `if "telegram" in path_lower or "notification" in path_lower:`
+- `core/threat_modeler.py:516` — `"Elevation of Privilege": ["admin", "role", "permission", "sudo", "root", "privilege", "exec"],`
+- `core/db_migration.py:17` — `"register_schema",`
+- `core/db_migration.py:37` — `def register_schema(version: int, description: str) -> Callable:`
+- `core/db_migration.py:38` — `"""Decorator that registers a migration function at the given schema version.`
+- `core/db_migration.py:40` — `Registration is **idempotent**: if a migration with the same version is already`
+- `core/db_migration.py:41` — `registered, it is replaced in place. This keeps ``_SCHEMA_REGISTRY`` free of`
+- `core/db_migration.py:62` — `def register_rollback(version: int, description: str = "") -> Callable:`
+- `core/db_migration.py:63` — `"""Decorator that registers a rollback function for the given schema version.`
+- `core/db_migration.py:75` — `@register_rollback(2, "Drop SME stocks and positions tables")`
+- `core/db_migration.py:88` — `"""Ensure migrations are registered in ascending version order (check at startup)."""`
+- `core/db_migration.py:94` — `"Migrations must be registered in ascending version order.",`
+- `core/db_migration.py:118` — `pending = [m for m in sorted_migrations if current < m.version <= target_version]`
+- `core/db_migration.py:120` — `if pending:`
+- `core/db_migration.py:121` — `log.info("Schema migration: %d -> %s (%d step(s))", current, target_version, len(pending))`
+- `core/db_migration.py:123` — `for migration in pending:`
+- `core/db_migration.py:161` — `@register_schema(1, "Track schema versions via PRAGMA user_version; no structural changes")`
+- `core/db_migration.py:168` — `@register_rollback(1, "Reset user_version to 0")`
+- `core/db_migration.py:173` — `@register_rollback(2, "Drop SME stocks and positions tables")`
+- `core/db_migration.py:184` — `@register_schema(2, "Create SME stocks and positions tables")`
+- `core/db_migration.py:250` — `@register_rollback(3, "Drop fundamental_cache table")`
+- `core/db_migration.py:257` — `@register_schema(3, "Create fundamental_cache table for equity fundamental snapshots")`
+- `core/db_migration.py:314` — `pending_versions = sorted(`
+- `core/db_migration.py:319` — `if not pending_versions:`
+- `core/db_migration.py:325` — `current, target_version, len(pending_versions),`
+- `core/db_migration.py:328` — `for version in pending_versions:`
+- `core/change_management.py:44` — `change_max_pending          : int    default 25`
+- `core/change_management.py:178` — `self._max_pending = int(self._cfg.get("change_max_pending", 25))`
+- `core/change_management.py:240` — `# Check pending limit`
+- `core/change_management.py:241` — `pending = sum(1 for p in self._proposals.values()`
+- `core/change_management.py:243` — `if pending >= self._max_pending:`
+- `core/change_management.py:245` — `f"Max pending changes ({self._max_pending}) reached. "`
+- `core/change_management.py:249` — `# Check for existing pending change to same target`
+- `core/change_management.py:254` — `f"Existing pending/approved change for {target_key} "`
+- `core/change_management.py:347` — `"""Approve a pending change proposal.`
+- `core/change_management.py:376` — `"""Reject a pending change proposal.`
+- `core/change_management.py:492` — `def list_pending(self) -> list[ChangeProposal]:`
+- `core/change_management.py:493` — `"""List all pending (PROPOSED or REVIEWING) proposals."""`
+- `core/change_management.py:531` — `"pending": by_status.get("PROPOSED", 0) + by_status.get("REVIEWING", 0),`
+- `core/change_management.py:534` — `"max_pending": self._max_pending,`
+- `core/change_management.py:684` — `ap.add_argument("--list", action="store_true", help="List pending changes")`
+- `core/change_management.py:717` — `pending = mgr.list_pending()`
+- `core/change_management.py:719` — `print(json.dumps([p.to_dict() for p in pending], indent=2))`
+- `core/change_management.py:721` — `print(f"Pending changes ({len(pending)}):")`
+- `core/change_management.py:722` — `for p in pending:`
+- `core/change_management.py:734` — `print(f"  Pending: {stats['pending']}")`
+- `core/change_management.py:739` — `# Default: show pending`
+- `core/change_management.py:740` — `pending = mgr.list_pending()`
+- `core/change_management.py:741` — `print(f"Pending changes ({len(pending)}):")`
+- `core/change_management.py:742` — `for p in pending:`
+- `core/presentation_generator.py:365` — `["RBAC", "Role-based access control"],`
+- `core/presentation_generator.py:494` — `comp_headers = ["Component", "Module", "Role"]`
+- `core/presentation_generator.py:535` — `["Notifications", "Telegram Bot API"],`
+- `core/presentation_generator.py:650` — `["Telegram Alerts", "Push notifications for signals/errors"],`
+- `core/presentation_generator.py:737` — `"Role-based access control (RBAC)",`
+- `core/presentation_generator.py:907` — `"""Return list of registered template names."""`
+- `core/chaos_engine.py:144` — `"""Register a check result."""`
+- `core/chaos_engine.py:433` — `# Register built-in scenarios`
+- `core/chaos_engine.py:434` — `self._register_builtin()`
+- `core/chaos_engine.py:436` — `def _register_builtin(self) -> None:`
+- `core/chaos_engine.py:446` — `self.register_scenario(name, cls)`
+- `core/chaos_engine.py:448` — `def register_scenario(self, name: str, scenario_cls: type[ChaosScenario]) -> None:`
+- `core/chaos_engine.py:449` — `"""Register a chaos scenario by name."""`
+- `core/chaos_engine.py:454` — `"""Get list of registered scenario names."""`
+- `core/chaos_engine.py:485` — `"""Run ALL registered chaos scenarios and return aggregated report."""`
+- `core/ai_token_cost_tracker.py:297` — `def register_custom_pricing(`
+- `core/ai_token_cost_tracker.py:304` — `"""Register custom pricing for a new or existing model."""`
+- `core/ai_token_cost_tracker.py:695` — `description="AI Token Cost Tracker — Monitor AI spending",`
+- `core/runbook_executor.py:456` — `"""Return a formatted report of the runbook suitable for CLI or notification."""`
+- `core/living_documentation.py:253` — `for mod in ["infra_broker_kite", "infra_notifications_telegram",`
+- `core/living_documentation.py:278` — `lines.append("    class infra_broker_kite,infra_notifications_telegram,infra_persistence_sqlite,infra_config_secure infra")`
+- `core/living_documentation.py:324` — `("role", "TEXT"),`
+- `core/living_documentation.py:416` — `("ExecutionService", "SignalEngine", "Fill notification"),`
+- `core/living_documentation.py:463` — `("SelfHealing", "Operator", "Notification (if high-risk)"),`
+- `core/living_documentation.py:736` — `notify[Notifications]`
+- `core/simulation_engine.py:324` — `pending: dict[str, Any] | None  = None`
+- `core/simulation_engine.py:337` — `# ── Execute pending order ────────────────────────────────`
+- `core/simulation_engine.py:338` — `if pending is not None and pending["enter_on_idx"] == idx:`
+- `core/simulation_engine.py:339` — `position, capital = self._execute_entry(pending, row, idx, ts, cfg, capital)`
+- `core/simulation_engine.py:340` — `pending = None`
+- `core/simulation_engine.py:448` — `pending = {`
+- `core/simulation_engine.py:481` — `continue  # pending will be picked up on the next iteration`
+- `core/simulation_engine.py:525` — `pending = {`
+- `core/simulation_engine.py:554` — `self, pending: dict, row: pd.Series, idx: int,`
+- `core/simulation_engine.py:557` — `direction  = str(pending["direction"])`
+- `core/simulation_engine.py:558` — `raw_price  = float(pending["ref_price"])`
+- `core/simulation_engine.py:559` — `atr        = float(pending["atr"])`
+- `core/simulation_engine.py:560` — `sl_m       = float(pending["sl_mult"])`
+- `core/simulation_engine.py:561` — `tp_m       = float(pending["tp_mult"])`
+- `core/simulation_engine.py:562` — `regime     = str(pending["regime"])`
+- `core/simulation_engine.py:563` — `partial    = pending["partial"]`
+- `core/simulation_engine.py:564` — `score      = int(pending["score"])`
+- `core/simulation_engine.py:595` — `lots        = int(pending.get("position_lots") or cfg.lots_per_trade)`
+- `core/simulation_engine.py:596` — `max_bars    = int(pending.get("max_bars_override") or cfg.max_bars_in_trade)`
+- `core/simulation_engine.py:597` — `trail_act   = float(pending.get("trail_activate_override") or cfg.trail_activate_pct)`
+- `core/simulation_engine.py:598` — `trail_peak  = float(pending.get("trail_peak_override") or cfg.trail_from_peak_pct)`
+- `core/simulation_engine.py:599` — `tier_label  = str(pending.get("tier") or classify_tier(score))`
+- `core/simulation_engine.py:600` — `confidence  = float(pending.get("confidence") or 1.0)`
+- `core/simulation_engine.py:601` — `soft_blocks = list(pending.get("soft_blocks") or [])`
+- `core/simulation_engine.py:621` — `"threshold":         int(pending["threshold"]),`
+- `core/feature_flags.py:14` — `fm.register_flag("new_dashboard", default=False, description="New dashboard UI")`
+- `core/feature_flags.py:15` — `fm.register_flag("ml_v2", default=True, owners=["ml-team"], description="ML v2 model")`
+- `core/feature_flags.py:99` — `# ── Registration ──────────────────────────────────────────────────────`
+- `core/feature_flags.py:101` — `def register_flag(`
+- `core/feature_flags.py:109` — `"""Register a new feature flag.`
+- `core/feature_flags.py:119` — `The registered FeatureFlag.`
+- `core/feature_flags.py:135` — `_log.info("[FEATURE_FLAGS] Registered flag '%s' (default=%s)", key, default)`
+- `core/feature_flags.py:138` — `def unregister_flag(self, key: str) -> bool:`
+- `core/feature_flags.py:156` — `"""List all registered flags, optionally filtered by tag."""`
+- `core/feature_flags.py:404` — `ap.add_argument("--register", type=str, metavar="KEY", help="Register a new flag (default=false)")`
+- `core/feature_flags.py:414` — `if args.register:`
+- `core/feature_flags.py:415` — `flag = fm.register_flag(key=args.register, default=False)`
+- `core/feature_flags.py:421` — `print(f"Registered flag: {flag.key}")`
+- `core/reconciliation_controller.py:28` — `- Pending order reconciliation`
+- `core/reconciliation_controller.py:77` — `"""Periodic reconciliation: ACK watchdog + pending order check.`
+- `core/reconciliation_controller.py:97` — `if hasattr(self._execution_service, "reconcile_pending_orders"):`
+- `core/reconciliation_controller.py:98` — `recon_result = self._execution_service.reconcile_pending_orders()`
+- `core/reconciliation_controller.py:101` — `"[RECONCILE] Pending order reconciliation found %d issues",`
+- `core/python_runtime.py:16` — `"register_graceful_shutdown_signals",`
+- `core/python_runtime.py:17` — `"register_shutdown_callback",`
+- `core/python_runtime.py:35` — `def register_graceful_shutdown_signals(shutdown_event: threading.Event) -> None:`
+- `core/python_runtime.py:41` — `Also relies on the atexit-registered execute_shutdown() (see`
+- `core/python_runtime.py:52` — `def register_shutdown_callback(cb: Callable[[], None]) -> None:`
+- `core/python_runtime.py:53` — `"""Register a callback to be invoked during graceful shutdown.`
+- `core/python_runtime.py:64` — `"""Execute all registered shutdown callbacks exactly once (thread-safe)."""`
+- `core/python_runtime.py:71` — `log.info("Graceful shutdown: flushing %d registered callbacks...", len(_shutdown_callbacks))`
+- `core/python_runtime.py:81` — `"""One-call setup: register signals + atexit handler.`
+- `core/python_runtime.py:88` — `register_graceful_shutdown_signals(shutdown_event)`
+- `core/python_runtime.py:89` — `atexit.register(execute_shutdown)`
+- `core/safety_state.py:297` — `2. Execute all registered shutdown callbacks (drain queues, flush state,`
+- `core/safety_state.py:298` — `cancel pending orders, close DB connections)`
+- `core/safety_state.py:307` — `# Execute registered shutdown callbacks from python_runtime`
+- `core/morning_checklist.py:304` — `pending = store.get_non_terminal_executions()`
+- `core/morning_checklist.py:305` — `if pending:`
+- `core/morning_checklist.py:306` — `return False, f"Found {len(pending)} pending orders"`
+- `core/change_governance.py:200` — `pending_review: list[dict[str, Any]] = field(default_factory=list)`
+- `core/change_governance.py:212` — `"pending_review": self.pending_review[:10],`
+- `core/change_governance.py:225` — `f"  Pending Review: {len(self.pending_review)}",`
+- `core/change_governance.py:237` — `if self.pending_review:`
+- `core/change_governance.py:238` — `lines.append("\n  Pending Review:")`
+- `core/change_governance.py:239` — `for cr in self.pending_review[:5]:`
+- `core/change_governance.py:440` — `def get_pending_review(self) -> list[ChangeRequest]:`
+- `core/change_governance.py:505` — `# Pending review`
+- `core/change_governance.py:506` — `report.pending_review = [`
+- `core/change_governance.py:550` — `"pending_review": len(self.get_pending_review()),`
+- `core/change_governance.py:593` — `pending = by_status.get("SUBMITTED", 0) + by_status.get("IN_REVIEW", 0)`
+- `core/change_governance.py:594` — `if pending > 5:`
+- `core/change_governance.py:595` — `recs.append(f"{pending} changes pending review — review queue is growing")`
+- `core/execution_wiring.py:80` — `self.health_monitor.register("durable_store", self.durable_store)`
+- `core/execution_wiring.py:82` — `self.health_monitor.register("broker_port", self._broker_port)`
+- `core/execution_wiring.py:125` — `pending = self.durable_store.get_non_terminal_executions()`
+- `core/execution_wiring.py:126` — `if len(pending) > 10:`
+- `core/execution_wiring.py:127` — `return False, f"Too many pending executions: {len(pending)}"`
+- `core/root_cause_analyzer.py:180` — `"Permission revoked on broker side",`
+- `core/capacity_planning.py:318` — `"""Get all registered scaling triggers."""`
+- `core/capacity_planning.py:536` — `except (OSError, PermissionError) as exc:`
+- `core/capacity_planning.py:767` — `routes CRITICAL/HIGH alerts to notification channels and logs`
+- `core/feature_quality_sla.py:202` — `"""Register feature quality SLOs with the SLO governance engine."""`
+- `core/feature_quality_sla.py:207` — `slo.register_slo(SLODefinition(`
+- `core/feature_quality_sla.py:216` — `slo.register_slo(SLODefinition(`
+- `core/feature_quality_sla.py:225` — `_log.debug("[FQ-SLA] Registered feature quality SLOs")`
+- `core/feature_quality_sla.py:493` — `def register_feature_sla(`
+- `core/feature_quality_sla.py:500` — `"""Register a new feature for SLA tracking.`
+- `core/feature_quality_sla.py:518` — `message="Registered — awaiting first data",`
+- `core/feature_quality_sla.py:521` — `"[FQ-SLA] Registered feature '%s' (max_age=%ds, critical=%s)",`
+- `core/scalein_manager.py:21` — `ScaleInState - dataclass representing a pending second leg`
+- `core/scalein_manager.py:97` — `"""Create a pending scale-in state after Leg 1 fills.`
+- `core/ai_security_gate.py:42` — `("role_escape", r"(?i)(you are now|act as|pretend to be|now you are|from now on)\s+(a\s+)?(free|unrestricted|unbounded|ungoverned|jailbreak)", 0.95),`
+- `core/ai_security_gate.py:48` — `("data_exfil", r"(?i)(send|upload|transmit|exfiltrate|copy)\s+(this\s+)?(data|file|content|information)\s+(to|via|using)\s+(http|https|ftp|email|api)", 0.85),`
+- `core/plugin_registry.py:4` — `broker plugins, data source plugins, and notification plugins. Supports lifecycle`
+- `core/plugin_registry.py:16` — `# Register a plugin class`
+- `core/plugin_registry.py:17` — `registry.register_plugin("my_strategy_v2", MyStrategyPlugin, version="2.0.0")`
+- `core/plugin_registry.py:41` — `PLUGIN_TYPES = ("strategy", "broker", "data_source", "notification", "signal", "indicator", "other")`
+- `core/plugin_registry.py:49` — `"""Metadata for a registered plugin."""`
+- `core/plugin_registry.py:77` — `"""A registered plugin entry (class + metadata + state)."""`
+- `core/plugin_registry.py:101` — `"""Manages plugin registration, loading, and lifecycle.`
+- `core/plugin_registry.py:110` — `# ── Registration ──────────────────────────────────────────────────────`
+- `core/plugin_registry.py:112` — `def register_plugin(`
+- `core/plugin_registry.py:125` — `"""Register a plugin by name and optional class.`
+- `core/plugin_registry.py:169` — `_log.info("[PLUGIN] Registered plugin '%s' v%s (type=%s)", name, version, plugin_type)`
+- `core/plugin_registry.py:172` — `def unregister_plugin(self, name: str) -> bool:`
+- `core/plugin_registry.py:173` — `"""Unregister a plugin.`
+- `core/plugin_registry.py:190` — `"""List registered plugins with optional filters."""`
+- `core/plugin_registry.py:220` — `If the plugin was registered with a class, uses that.`
+- `core/plugin_registry.py:441` — `ap.add_argument("--register", type=str, metavar="NAME:TYPE", help="Register a plugin (e.g., 'my_plugin:strategy')")`
+- `core/plugin_registry.py:459` — `status = "ENABLED" if p.enabled else ("LOADED" if p.loaded else "REGISTERED")`
+- `core/plugin_registry.py:463` — `if args.register:`
+- `core/plugin_registry.py:464` — `parts = args.register.split(":")`
+- `core/plugin_registry.py:467` — `entry = reg.register_plugin(name=name, plugin_type=plugin_type)`
+- `core/plugin_registry.py:472` — `print(f"Registered: {name} (type={plugin_type})")`
+- `core/circuit_breaker_detector.py:245` — `"""Call registered callback on circuit breaker trigger."""`
+- `core/enterprise_knowledge_graph.py:43` — `"SCREEN", "PERMISSION", "USER_ROLE",`
+- `core/incident_command_system.py:5` — `tracks the incident lifecycle, and integrates with the notification system.`
+- `core/incident_command_system.py:15` — `- Notification integration via alert callback`
+- `core/incident_command_system.py:30` — `- Notification callbacks for critical/high incidents`
+- `core/incident_command_system.py:175` — `"""Orchestrates incident detection, management, and notification.`
+- `core/ai_engine.py:167` — `"messages": [{"role": "user", "content": prompt}],`
+- `core/ai_engine.py:194` — `{"role": "system", "content": ai_cfg.prompt_template or _DEFAULT_SYSTEM_PROMPT},`
+- `core/ai_engine.py:195` — `{"role": "user", "content": prompt},`
+- `core/distributed_tracing.py:149` — `# Register this span as the active (current) span for the calling thread`
+- `core/distributed_tracing.py:155` — `# Unregister from the current-span stack first so a parent span that`
+- `core/accessibility_gate.py:78` — `"positive_pattern": r"(role=\"[^\"]*\"|aria-label=\"[^\"]*\")",`
+- `core/api_versioning.py:11` — `- EnterpriseDashboard for route registration`
+- `core/api_versioning.py:18` — `mgr.register_version("v1", deprecated=False)`
+- `core/api_versioning.py:19` — `mgr.register_version("v2", deprecated=False)`
+- `core/api_versioning.py:139` — `lines.append("  Registered Versions:")`
+- `core/api_versioning.py:161` — `- Register versions with lifecycle status`
+- `core/api_versioning.py:205` — `def register_version(`
+- `core/api_versioning.py:212` — `"""Register a new API version.`
+- `core/api_versioning.py:221` — `APIVersionInfo for the registered version.`
+- `core/api_versioning.py:234` — `_log.info("[API_VER] Registered version %s as %s", version, clean_status)`
+- `core/api_versioning.py:363` — `"registered_versions": len(self._versions),`
+- `core/api_versioning.py:425` — `ap.add_argument("--register", type=str, help="Register a new version (e.g., v4:BETA)")`
+- `core/api_versioning.py:433` — `if args.register:`
+- `core/api_versioning.py:434` — `parts = args.register.split(":")`
+- `core/api_versioning.py:437` — `info = mgr.register_version(version, status=status)`
+- `core/api_versioning.py:438` — `print(f"Registered: {info.version} ({info.status})")`
+- `core/api_versioning.py:462` — `print(f"Versions: {stats['registered_versions']}")`
+- `core/component_health_monitor.py:46` — `def register(self, name: str, component: Any) -> None:`
+- `core/component_health_monitor.py:47` — `"""Register a component for health monitoring."""`
+- `core/component_health_monitor.py:49` — `log.info(f"Registered component for health monitoring: {name}")`
+- `core/component_health_monitor.py:52` — `"""Check health of all registered components."""`
+- `core/component_health_monitor.py:98` — `details={"pending_executions": len(executions)},`
+- `core/decision_memory.py:828` — `"""Get decisions related to (depending on) a given decision."""`
+- `core/release_intelligence.py:92` — `approval_recommendation: str = "PENDING"  # APPROVED, CONDITIONAL, BLOCKED`
+- `core/api_gateway.py:87` — `def register_handler(self, action: ControlAction, handler: Callable[[ControlRequest], ControlResponse]) -> None:`
+- `core/api_gateway.py:88` — `"""Register handler for specific control action"""`
+- `core/api_gateway.py:91` — `_log.info(f"Registered handler for {action.value}")`
+- `core/quality_gates.py:512` — `if "role=" not in content and ("button" in content or "nav" in content):`
+- `core/quality_gates.py:514` — `findings.append(f"{file_path}: Consider adding ARIA roles")`
+- `core/vulnerability_scanner.py:36` — `CATEGORIES = ("DEPENDENCY", "CONFIGURATION", "CODE_PATTERN", "SECRET", "PERMISSION")`
+- `core/candle_backtest.py:279` — `pending: dict[str, Any] | None = None`
+- `core/candle_backtest.py:293` — `# ── Pending order: execute one bar after signal ──────────────`
+- `core/candle_backtest.py:294` — `if pending is not None and int(pending["enter_on_idx"]) == idx:`
+- `core/candle_backtest.py:295` — `position, capital = self._execute_pending(pending, row, idx, ts, cfg, capital)`
+- `core/candle_backtest.py:296` — `pending = None`
+- `core/candle_backtest.py:393` — `pending = {`
+- `core/candle_backtest.py:444` — `def _execute_pending(`
+- `core/candle_backtest.py:446` — `pending: dict[str, Any],`
+- `core/candle_backtest.py:453` — `direction = str(pending["direction"])`
+- `core/candle_backtest.py:454` — `raw_price = float(pending["ref_price"])`
+- `core/candle_backtest.py:464` — `atr    = float(pending.get("atr", entry_idx * 0.005))`
+- `core/candle_backtest.py:465` — `sl_m   = float(pending.get("sl_mult", cfg.sl_atr_mult))`
+- `core/candle_backtest.py:466` — `tp_m   = float(pending.get("tp_mult", cfg.tp_atr_mult))`
+- `core/candle_backtest.py:467` — `regime = str(pending.get("regime", "NEUTRAL"))`
+- `core/candle_backtest.py:504` — `"meta":          dict(pending["meta"]),`
+- `core/candle_backtest.py:505` — `"score":         int(pending["score"]),`
+- `core/candle_backtest.py:506` — `"threshold":     int(pending["threshold"]),`
+- `core/audit_mode.py:262` — `description="SHA-256 deterministic execution IDs with 5-minute time slots prevent duplicate order submission. Crash recovery queries broker for pending execution status.",`
+- `core/digital_twin.py:90` — `orders_pending: int = 0`
+- `core/digital_twin.py:99` — `"orders_pending": self.orders_pending,`
+- `core/digital_twin.py:154` — `signals_pending: int = 0`
+- `core/digital_twin.py:171` — `"signals_pending": self.signals_pending,`
+- `core/digital_twin.py:225` — `f"  │  Latency: {c.broker.latency_ms:.0f}ms  |  Pending Orders: {c.broker.orders_pending}",`
+- `core/digital_twin.py:275` — `signals_pending: int = 0,`
+- `core/digital_twin.py:296` — `signals_pending: Number of signals waiting for evaluation.`
+- `core/digital_twin.py:362` — `signals_pending=signals_pending,`
+- `core/admin_control_plane.py:51` — `role_manager: Any = None,`
+- `core/admin_control_plane.py:69` — `role_manager=role_manager,`
+- `core/health_reporter.py:130` — `"""Check pending invariant violations."""`
+- `core/health_reporter.py:146` — `if report.get("pending_count", 0) > 5:`
+- `core/health_reporter.py:170` — `issues.append("Governance approval backlog - review pending requests")`
+- `core/metrics_exporter.py:79` — `"data_providers_total": Gauge("opb_data_providers_total", "Total registered market data adapters"),`
+- `core/all_nse_scanner.py:120` — `"""Dynamically reload notification credentials from json/config.json and .env."""`
+- `core/all_nse_scanner.py:440` — `from core.notifications.rich_signal_formatter import RichSignalFormatter`
+- `core/all_nse_scanner.py:441` — `from core.notifications.url_resolver import get_public_base_url`
+- `core/all_nse_scanner.py:521` — `# Check granular permissions & quota per user via UserPermissionManager`
+- `core/all_nse_scanner.py:522` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `core/all_nse_scanner.py:523` — `perm_mgr = UserPermissionManager.get_instance()`
+- `core/all_nse_scanner.py:676` — `server.sendmail(self._email_user, list(authorized_emails), msg.as_string())`
+- `core/executive_advisor.py:136` — `pending_action_items: int = 0`
+- `core/executive_advisor.py:148` — `"pending_action_items": self.pending_action_items,`
+- `core/executive_advisor.py:484` — `# Pending action items`
+- `core/executive_advisor.py:485` — `if briefing.system_health.pending_action_items > 0:`
+- `core/executive_advisor.py:487` — `name="Pending Actions",`
+- `core/executive_advisor.py:488` — `value=str(briefing.system_health.pending_action_items),`
+- `core/executive_advisor.py:490` — `status="WARNING" if briefing.system_health.pending_action_items > 5 else "NORMAL",`
+- `core/executive_advisor.py:552` — `if briefing.system_health.pending_action_items > 10:`
+- `core/executive_advisor.py:553` — `recommendations.append("MEDIUM: Excessive pending action items — prioritize and complete open items")`
+- `core/startup_checklist.py:19` — `capital_adj_pending=S.capital_adj_pending,`
+- `core/startup_checklist.py:85` — `capital_adj_pending: float,`
+- `core/startup_checklist.py:102` — `capital_adj_pending:      Non-zero means unresolved zombie PnL from a`
+- `core/startup_checklist.py:120` — `zombie_ok = capital_adj_pending == 0.0`
+- `core/startup_checklist.py:126` — `else f"capital_adj_pending={capital_adj_pending:.2f} - "`
+- `core/startup_checklist.py:181` — `detail="initial startup - first fetch pending (expected at session open)",`
+- `core/manual_signal.py:38` — `"PENDING",`
+- `core/manual_signal.py:49` — `PENDING   = "PENDING"`
+- `core/manual_signal.py:56` — `_ALL_STATUSES = {PENDING, APPROVED, REJECTED, EXECUTED, EXPIRED, CANCELLED}`
+- `core/manual_signal.py:79` — `status:      str            = PENDING`
+- `core/manual_signal.py:89` — `def is_pending(self) -> bool:`
+- `core/manual_signal.py:90` — `return self.status == PENDING`
+- `core/manual_signal.py:94` — `return self.status in (PENDING, APPROVED)`
+- `core/manual_signal.py:133` — `status=d.get("status", PENDING),`
+- `core/manual_signal.py:172` — `status        TEXT DEFAULT 'PENDING',`
+- `core/manual_signal.py:261` — `PENDING, sig.auto_approve_after_secs),`
+- `core/manual_signal.py:276` — `"""Approve a pending signal. Returns True if state changed."""`
+- `core/manual_signal.py:280` — `if sig is None or sig.status != PENDING:`
+- `core/manual_signal.py:294` — `"""Reject a pending signal. Returns True if state changed."""`
+- `core/manual_signal.py:298` — `if sig is None or sig.status != PENDING:`
+- `core/manual_signal.py:328` — `"""Expire PENDING signals older than timeout_mins. Returns count expired."""`
+- `core/manual_signal.py:333` — `(EXPIRED, PENDING, cutoff),`
+- `core/manual_signal.py:351` — `(PENDING, cutoff),`
+- `core/manual_signal.py:365` — `def get_pending(self) -> list[ManualSignal]:`
+- `core/manual_signal.py:366` — `"""Return all PENDING signals, oldest first."""`
+- `core/manual_signal.py:370` — `(PENDING,),`
+- `core/manual_signal.py:428` — `def load_pending(self) -> int:`
+- `core/manual_signal.py:429` — `"""Called at startup to log how many pending signals exist from prior session."""`
+- `core/manual_signal.py:430` — `pending = self.get_pending()`
+- `core/manual_signal.py:431` — `if pending:`
+- `core/manual_signal.py:432` — `_log.warning("[MANUAL_Q] %d signal(s) pending from prior session", len(pending))`
+- `core/manual_signal.py:433` — `return len(pending)`
+- `core/notification_filters.py:1` — `"""Telegram notification filtering + periodic scheduling.`
+- `core/notification_filters.py:8` — ```_comment_notification_filters_enabled`` / ``_comment_tg_heartbeat_enabled``):`
+- `core/notification_filters.py:12` — `consulted when the fresh ``notification_filters_enabled`` master switch`
+- `core/notification_filters.py:20` — `suppressed) and never raises, so a bug in notification filtering can never`
+- `core/notification_filters.py:38` — `"should_send_notification",`
+- `core/notification_filters.py:42` — `# in a notification filter must never be able to block the underlying trade`
+- `core/notification_filters.py:107` — `def should_send_notification(message: str, critical: bool, cfg: dict[str, Any]) -> bool:`
+- `core/notification_filters.py:110` — `Precedence (only evaluated when ``notification_filters_enabled`` is`
+- `core/notification_filters.py:121` — `if not bool(cfg.get("notification_filters_enabled", False)):`
+- `core/notification_filters.py:142` — `log.debug("Notification filter error, failing open (message sent): %s", exc)`
+- `core/notification_filters.py:194` — ```send_fn`` (index_trader.py's ``send()`` -> NotificationService.send())`
+- `core/__init__.py:129` — `register_schema,`
+- `core/__init__.py:305` — `"register_schema",`
+- `core/trade_journal.py:558` — `"""Flush any pending writes and release resources. Safe to call multiple times."""`
+- `core/trade_journal.py:560` — `# Drain pending async writes before closing`
+- `core/runtime_security.py:6` — `- File permission audits`
+- `core/runtime_security.py:82` — `permissions: str = ""`
+- `core/runtime_security.py:92` — `"permissions": self.permissions,`
+- `core/runtime_security.py:101` — `category: str = ""  # FILE_INTEGRITY, PROCESS, PERMISSION, CONFIG_TAMPER, IMPORT_MONITOR`
+- `core/runtime_security.py:182` — `- File permissions on sensitive files`
+- `core/runtime_security.py:202` — `Verifies file integrity, checks processes, audits permissions,`
+- `core/runtime_security.py:227` — `category="PERMISSION",`
+- `core/runtime_security.py:231` — `recommendation="Restrict file permissions to read-only for non-owners",`
+- `core/runtime_security.py:316` — `check.permissions = oct(os.stat(abs_path).st_mode)[-4:]`
+- `core/runtime_security.py:318` — `# Check permissions — files should not be world-writable`
+- `core/runtime_security.py:319` — `perms = int(check.permissions[-3:])`
+- `core/runtime_security.py:321` — `check.issues.append(f"World-writable permissions ({check.permissions})")`
+- `core/runtime_security.py:333` — `except (OSError, PermissionError) as exc:`
+- `core/runtime_security.py:376` — `except (OSError, PermissionError) as exc:`
+- `core/runtime_security.py:382` — `recommendation="Check file permissions — unauthorized restriction may indicate tampering",`
+- `core/runtime_security.py:498` — `recs.append("Fix world-writable permissions on critical files")`
+- `core/config_drift_reloader.py:45` — `# restart - pure scoring/notification tuning values with no execution-safety`
+- `core/constitution_evidence_data.py:2` — `the register_constitution_evidence.py script and the ConstitutionValidator`
+- `core/constitution_evidence_data.py:104` — `add("SEC-02", "Enterprise dashboard RBAC with role-based access (admin/user/viewer)", "code_review", 0.5)`
+- `core/constitution_evidence_data.py:106` — `add("SEC-02", "Dashboard auth routes: /login, /register, /change-password", "code_review", 0.3)`
+- `core/constitution_evidence_data.py:259` — `add("GOV-01", "Doc drift register (docs/doc_drift_register.md) tracks doc-to-code gaps", "documentation", 0.3)`
+- `core/constitution_evidence_data.py:269` — `add("GOV-03", "Technical debt register (docs/technical_debt.md) - 17 items tracked by severity", "documentation", 0.4)`
+- `core/constitution_evidence_data.py:272` — `add("GOV-03", "Dead code register (docs/dead_code_register.md) - auto-generated findings register", "documentation", 0.3)`
+- `core/constitution_evidence_data.py:273` — `add("GOV-03", "Duplicate code register (docs/duplicate_code_register.md) - auto-generated findings", "documentation", 0.3)`
+- `core/constitution_evidence_data.py:274` — `add("GOV-03", "Config drift register (docs/config_drift_register.md) - config sync tracking", "documentation", 0.2)`
+- `core/event_bus.py:110` — `"""Decorator to register a synchronous event handler.`
+- `core/event_bus.py:124` — `"""Register a synchronous event handler.`
+- `core/event_bus.py:131` — `True if registered.`
+- `core/event_bus.py:146` — `"""Register an async event handler.`
+- `core/event_bus.py:153` — `True if registered.`
+- `core/event_bus.py:168` — `"""Unregister a handler from a pattern.`
+- `core/event_bus.py:171` — `pattern: The pattern the handler was registered on.`
+- `core/event_bus.py:172` — `handler: The handler function to unregister.`
+- `core/error_budget.py:363` — `def register_slo(`
+- `core/error_budget.py:370` — `"""Register a new SLO for error budget tracking.`
+- `core/error_budget.py:458` — `def register_error_budget(`
+- `core/error_budget.py:463` — `"""Convenience: register a new error budget."""`
+- `core/error_budget.py:464` — `return get_error_budget_manager().register_slo(slo_name, target=target, window_hours=window_hours)`
+- `core/error_budget.py:474` — `ap.add_argument("--register", nargs=2, metavar=("name", "target"),`
+- `core/error_budget.py:475` — `help="Register SLO: --register uptime 99.9")`
+- `core/error_budget.py:484` — `if args.register:`
+- `core/error_budget.py:485` — `name, target = args.register`
+- `core/error_budget.py:486` — `mgr.register_slo(name, target=float(target))`
+- `core/error_budget.py:487` — `print(f"Registered: {name} ({target}%)")`
+- `core/error_budget.py:511` — `print("No error budgets registered. Use --register to add one.")`
+- `core/error_budget.py:534` — `"register_error_budget",`
+- `core/cost_governance.py:72` — `Tracks spending across categories, enforces budgets,`
+- `core/cost_governance.py:118` — `"""Get pending budget alerts."""`
+- `core/multi_tenant.py:215` — `def register_tenant(self, tenant: Tenant) -> bool:`
+- `core/multi_tenant.py:216` — `"""Register a new tenant."""`
+- `core/multi_tenant.py:222` — `_log.warning("[TENANT] Tenant %s already registered", tenant.tenant_id)`
+- `core/multi_tenant.py:225` — `_log.info("[TENANT] Registered: %s (%s)", tenant.tenant_id, tenant.name)`
+- `core/multi_tenant.py:267` — `"""List all registered tenants."""`
+- `core/multi_tenant.py:305` — `ap.add_argument("--register", nargs=2, metavar=("id", "name"), help="Register a tenant")`
+- `core/multi_tenant.py:313` — `if args.register:`
+- `core/multi_tenant.py:314` — `tid, name = args.register`
+- `core/multi_tenant.py:316` — `ok = mtm.register_tenant(tenant)`
+- `core/multi_tenant.py:317` — `print(f"{'Registered' if ok else 'Failed'} tenant: {tid}")`
+- `core/continuous_intelligence.py:8` — `5. Send alerts via the notification service when issues are found`
+- `core/continuous_intelligence.py:22` — `- Integrates with NotificationService for alerting`
+- `core/continuous_intelligence.py:399` — `"""Send an alert via the configured callback or notification service."""`
+- `core/continuous_intelligence.py:407` — `# Fallback: log the alert (NotificationService requires Notification object,`
+- `core/alert_router.py:7` — `- Telegram alerts → ``infrastructure/adapters/notifications/telegram_adapter.py```
+- `core/alert_router.py:8` — `(TelegramNotificationAdapter implements the NotificationPort interface)`
+- `core/alert_router.py:10` — `a future consolidated ``core/services/notification_service.py```
+- `core/alert_router.py:12` — `New code should use the NotificationPort interface directly.`
+- `core/alert_router.py:33` — `"Use infrastructure/adapters/notifications/telegram_adapter.py "`
+- `core/alert_router.py:34` — `"(TelegramNotificationAdapter) instead.",`
+- `core/alert_router.py:39` — `# Import the modern TelegramNotificationAdapter (v2.54: migrated from TelegramEngine)`
+- `core/alert_router.py:40` — `from infrastructure.adapters.notifications.telegram_adapter import TelegramNotificationAdapter`
+- `core/alert_router.py:42` — `from core.ports.notification.notification_port import (`
+- `core/alert_router.py:43` — `Notification,`
+- `core/alert_router.py:44` — `NotificationChannel,`
+- `core/alert_router.py:45` — `NotificationPriority,`
+- `core/alert_router.py:46` — `NotificationStatus,`
+- `core/alert_router.py:53` — `"""Handles sending email alerts via SMTP."""`
+- `core/alert_router.py:66` — `"""Send an email alert.`
+- `core/alert_router.py:85` — `server.sendmail(self.username, self.recipients, text)`
+- `core/alert_router.py:90` — `_log.error(f"Failed to send email alert: {e}")`
+- `core/alert_router.py:150` — `"""Sends alerts via multiple channels: Telegram, Email, Webhook."""`
+- `core/alert_router.py:155` — `self.telegram_adapter = TelegramNotificationAdapter(`
+- `core/alert_router.py:173` — `notification = Notification(`
+- `core/alert_router.py:175` — `channel=NotificationChannel.TELEGRAM,`
+- `core/alert_router.py:176` — `priority=NotificationPriority.CRITICAL,`
+- `core/alert_router.py:180` — `result = self.telegram_adapter.send_notification(notification)`
+- `core/alert_router.py:181` — `results["telegram"] = result.status == NotificationStatus.SENT`
+- `core/alert_router.py:187` — `# Send via Email`
+- `core/alert_router.py:192` — `_log.error(f"Failed to send Email alert: {e}")`
+- `core/position_service.py:57` — `Preserves the critical notification that would otherwise be lost.`
+- `core/position_service.py:100` — `notification_service: Any = None,`
+- `core/position_service.py:126` — `self._notification_service = notification_service`
+- `core/position_service.py:279` — `if _recon_result.get("still_pending", 0) > 0:`
+- `core/position_service.py:281` — `"msg": f"PRE_TRADE_RECON_BLOCK: {_recon_result['still_pending']} orders still unacknowledged by broker",`
+- `core/position_service.py:383` — `self._send_notification(msg)`
+- `core/position_service.py:455` — `# VIX soft-warning notification (config key VIX_HALT_THRESHOLD).`
+- `core/position_service.py:464` — `self._send_notification(f"VIX_SOFT_WARNING: {name} entry at VIX={_vix_now:.1f} (>= soft threshold)")`
+- `core/position_service.py:582` — `self._send_notification(f"{tbe.reason.upper()}_BLOCK: {name} - {tbe.message}", critical=True)`
+- `core/position_service.py:829` — `self._send_notification(f"EXIT {name}: {reason} @ {exit_price:.2f} P&L={pnl:.0f}")`
+- `core/position_service.py:899` — `"""Build the manual-mode Telegram/notification text for a signal.`
+- `core/position_service.py:952` — `def _send_notification(self, message: str, **kwargs) -> None:`
+- `core/position_service.py:953` — `"""Send notification - uses stored notification service if available."""`
+- `core/position_service.py:954` — `if self._notification_service is not None:`
+- `core/position_service.py:956` — `if hasattr(self._notification_service, "send"):`
+- `core/position_service.py:957` — `self._notification_service.send(message, **kwargs)`
+- `core/position_service.py:958` — `elif callable(self._notification_service):`
+- `core/position_service.py:959` — `self._notification_service(message, **kwargs)`
+- `core/position_service.py:1186` — `notification_service: Any = None,`
+- `core/position_service.py:1217` — `notification_service=notification_service,`
+- `core/startup.py:5` — `1. AI Governance Gate         — non-blocking identity registration`
+- `core/startup.py:255` — `detail="wired" if wired else "patterns registered",`
+- `core/startup.py:293` — `# registered in the DI container and ready for dashboard queries.`
+- `core/startup.py:356` — `f"roles={health['ai_specialist_roles']['count']}, "`
+- `core/constitution_self_healing_bridge.py:4` — `1. Registers constitution-specific failure patterns in the SelfHealingOrchestrator`
+- `core/constitution_self_healing_bridge.py:72` — `def register_constitution_patterns() -> int:`
+- `core/constitution_self_healing_bridge.py:73` — `"""Register all constitution failure patterns in the SelfHealingOrchestrator.`
+- `core/constitution_self_healing_bridge.py:76` — `Number of patterns registered.`
+- `core/constitution_self_healing_bridge.py:82` — `orchestrator.register_pattern(pattern)`
+- `core/constitution_self_healing_bridge.py:85` — `_log.warning("[CONST-SELF-HEAL] Failed to register pattern %s: %s", pattern.name, exc)`
+- `core/constitution_self_healing_bridge.py:86` — `_log.info("[CONST-SELF-HEAL] Registered %d constitution failure patterns", count)`
+- `core/constitution_self_healing_bridge.py:201` — `Registers all constitution failure patterns and runs an initial check.`
+- `core/constitution_self_healing_bridge.py:207` — `count = register_constitution_patterns()`
+- `core/constitution_self_healing_bridge.py:209` — `_log.warning("[CONST-SELF-HEAL] No patterns registered — self-healing not wired")`
+- `core/constitution_self_healing_bridge.py:221` — `"register_constitution_patterns",`
+- `core/self_service_provisioning.py:122` — `status: str = "PENDING"          # PENDING → APPROVED → PROVISIONED | REJECTED | FAILED`
+- `core/self_service_provisioning.py:146` — `status=data.get("status", "PENDING"),`
+- `core/self_service_provisioning.py:205` — `Creates a PENDING request that flows through the approval workflow.`
+- `core/self_service_provisioning.py:232` — `"""Approve a pending provisioning request (status PENDING → APPROVED)."""`
+- `core/self_service_provisioning.py:235` — `if not req or req.status != "PENDING":`
+- `core/self_service_provisioning.py:264` — `"""Reject a pending request (PENDING → REJECTED)."""`
+- `core/self_service_provisioning.py:267` — `if not req or req.status != "PENDING":`
+- `core/self_service_provisioning.py:303` — `"pending": sum(1 for r in reqs if r.status == "PENDING"),`
+- `core/self_service_provisioning.py:424` — `f"{stats['pending']} pending, {stats['provisioned']} provisioned")`
+- `core/system_mode.py:133` — `# depending on the reason`
+- `core/ics_self_healing_bridge.py:210` — `# ── Also set the orchestrator's notification handler ────────`
+- `core/equity_trader.py:632` — `send_fn: Notification function`
+- `core/config_validator.py:107` — `# -- TG_ALERT_MIN_SCORE -- Intentional Notification Filter Gate -`
+- `core/config_validator.py:114` — `f"notification filter active -- alerts dispatched only for scores >= {tg_min}.",`
+- `core/success_metrics_trend.py:16` — `- dead_code_findings   (docs/dead_code_register.md   — "DC-" rows)`
+- `core/success_metrics_trend.py:17` — `- duplicate_code       (docs/duplicate_code_register.md — "DUP-" rows)`
+- `core/success_metrics_trend.py:18` — `- config_drift         (docs/config_drift_register.md)`
+- `core/success_metrics_trend.py:19` — `- doc_drift            (docs/doc_drift_register.md)`
+- `core/success_metrics_trend.py:40` — `python -m core.success_metrics_trend --check-registers`
+- `core/success_metrics_trend.py:62` — `# Canonical register file -> expected ID prefix. This is the single source of`
+- `core/success_metrics_trend.py:63` — `# truth shared by collect_indicators() and check_register_consistency() so the`
+- `core/success_metrics_trend.py:65` — `REGISTER_ID_PATTERNS: dict[str, str] = {`
+- `core/success_metrics_trend.py:66` — `"docs/dead_code_register.md": "DC-",`
+- `core/success_metrics_trend.py:67` — `"docs/duplicate_code_register.md": "DUP-",`
+- `core/success_metrics_trend.py:68` — `"docs/config_drift_register.md": "CDR-",`
+- `core/success_metrics_trend.py:69` — `"docs/doc_drift_register.md": "DDR-",`
+- `core/success_metrics_trend.py:72` — `# Register table rows carry an ID cell of the form PREFIX-### (e.g. CDR-001).`
+- `core/success_metrics_trend.py:73` — `_REGISTER_ID_CELL_RE = re.compile(r"^[A-Z]{2,4}-\d{3,}$")`
+- `core/success_metrics_trend.py:124` — `def _register_row_count(register_path: str) -> float:`
+- `core/success_metrics_trend.py:125` — `"""Count rows in a register file using its canonical ID prefix."""`
+- `core/success_metrics_trend.py:126` — `prefix = REGISTER_ID_PATTERNS.get(register_path)`
+- `core/success_metrics_trend.py:128` — `_log.warning("[TREND] Unknown register path for counting: %s", register_path)`
+- `core/success_metrics_trend.py:130` — `return _count_pattern(register_path, prefix)`
+- `core/success_metrics_trend.py:133` — `def parse_register_ids(register_path: str) -> list[str]:`
+- `core/success_metrics_trend.py:134` — `"""Parse the leading ID cell of each markdown table row in a register file.`
+- `core/success_metrics_trend.py:136` — `A register row is a line beginning with ``|`` whose first cell matches the`
+- `core/success_metrics_trend.py:137` — `register ID shape (e.g. ``CDR-001``). Missing or unreadable files yield an`
+- `core/success_metrics_trend.py:141` — `register_path: Path to a register markdown file, relative to the repo root.`
+- `core/success_metrics_trend.py:146` — `p = Path(__file__).resolve().parent.parent / register_path`
+- `core/success_metrics_trend.py:162` — `if _REGISTER_ID_CELL_RE.match(first):`
+- `core/success_metrics_trend.py:167` — `def check_register_consistency() -> dict[str, Any]:`
+- `core/success_metrics_trend.py:168` — `"""Verify the register files still use the ID prefixes the tracker counts.`
+- `core/success_metrics_trend.py:170` — `Guards against silent drift: if a register starts using a different ID`
+- `core/success_metrics_trend.py:172` — `without updating the register, the trend indicators would silently count`
+- `core/success_metrics_trend.py:176` — `Returns a dict with an overall ``ok`` flag and per-register detail.`
+- `core/success_metrics_trend.py:180` — `for register_path, expected_prefix in REGISTER_ID_PATTERNS.items():`
+- `core/success_metrics_trend.py:181` — `p = Path(__file__).resolve().parent.parent / register_path`
+- `core/success_metrics_trend.py:183` — `row_ids = parse_register_ids(register_path)`
+- `core/success_metrics_trend.py:184` — `tracker_count = _register_row_count(register_path)`
+- `core/success_metrics_trend.py:188` — `# A missing register is the worst kind of silent drift — the tracker`
+- `core/success_metrics_trend.py:192` — `results[register_path] = {`
+- `core/success_metrics_trend.py:205` — `"registers": results,`
+- `core/success_metrics_trend.py:263` — `"dead_code_findings": _register_row_count("docs/dead_code_register.md"),`
+- `core/success_metrics_trend.py:264` — `"duplicate_code": _register_row_count("docs/duplicate_code_register.md"),`
+- `core/success_metrics_trend.py:265` — `"config_drift": _register_row_count("docs/config_drift_register.md"),`
+- `core/success_metrics_trend.py:266` — `"doc_drift": _register_row_count("docs/doc_drift_register.md"),`
+- `core/success_metrics_trend.py:327` — `# Guard against register-pattern drift: warn (don't fail) when the`
+- `core/success_metrics_trend.py:328` — `# registers no longer match the prefixes the tracker counts, so the`
+- `core/success_metrics_trend.py:331` — `consistency = check_register_consistency()`
+- `core/success_metrics_trend.py:334` — `rp for rp, r in consistency["registers"].items()`
+- `core/success_metrics_trend.py:338` — `"[TREND] Register-pattern drift detected in %d file(s): %s. "`
+- `core/success_metrics_trend.py:340` — `"`python -m core.success_metrics_trend --check-registers`.",`
+- `core/success_metrics_trend.py:344` — `_log.warning("[TREND] Register consistency check failed", exc_info=True)`
+- `core/success_metrics_trend.py:537` — `ap.add_argument("--check-registers", action="store_true",`
+- `core/success_metrics_trend.py:538` — `help="Verify register ID patterns match what the tracker counts")`
+- `core/success_metrics_trend.py:544` — `if args.check_registers:`
+- `core/success_metrics_trend.py:545` — `consistency = check_register_consistency()`
+- `core/success_metrics_trend.py:549` — `print("Register pattern consistency check")`
+- `core/success_metrics_trend.py:550` — `for rp, r in consistency["registers"].items():`
+- `core/success_metrics_trend.py:555` — `print("Result:", "ALL REGISTERS ALIGNED" if consistency["ok"]`
+- `core/success_metrics_trend.py:556` — `else "DRIFT DETECTED — registers no longer match tracker patterns")`
+- `core/success_metrics_trend.py:609` — `"REGISTER_ID_PATTERNS",`
+- `core/success_metrics_trend.py:613` — `"check_register_consistency",`
+- `core/success_metrics_trend.py:616` — `"parse_register_ids",`
+- `core/slo_governance.py:254` — `def register_slo(self, slo: SLODefinition) -> None:`
+- `core/slo_governance.py:255` — `"""Register a custom SLO definition."""`
+- `core/slo_governance.py:271` — `"""Evaluate every registered SLO against current telemetry."""`
+- `core/logging.py:25` — ```RotatingFileHandler.doRollover()`` raises PermissionError on every emit`
+- `core/logging.py:31` — `This subclass swallows the rollover failure, keeps appending to the current`
+- `core/logging.py:53` — `# File is locked; keep appending to the current file instead of`
+- `core/logging.py:236` — `except (OSError, PermissionError) as e:`
+- `core/startup_reconciliation.py:119` — `pending = self._durable_store.get_non_terminal_executions()`
+- `core/startup_reconciliation.py:120` — `if not pending:`
+- `core/startup_reconciliation.py:126` — `for record in pending:`
+- `core/architecture_analyzer.py:47` — `"core.services.notification_service",`
+- `core/architecture_analyzer.py:50` — `# Uses the public TelegramNotificationAdapter (+ its send_raw() passthrough),`
+- `core/architecture_analyzer.py:52` — `# core.services.notification_service above. Note: the "from ..." formatted`
+- `core/architecture_analyzer.py:103` — `"core.services.notification_service:from infrastructure.adapters",`
+- `core/ml_performance_tracker.py:68` — `_ML_TRACKER_MIGRATIONS_REGISTERED = False`
+- `core/ml_performance_tracker.py:72` — `def _register_ml_tracker_migrations() -> None:`
+- `core/ml_performance_tracker.py:73` — `"""Register ML tracker schema migrations with core.db_migration.`
+- `core/ml_performance_tracker.py:78` — `global _ML_TRACKER_MIGRATIONS_REGISTERED`
+- `core/ml_performance_tracker.py:79` — `if _ML_TRACKER_MIGRATIONS_REGISTERED:`
+- `core/ml_performance_tracker.py:82` — `if _ML_TRACKER_MIGRATIONS_REGISTERED:`
+- `core/ml_performance_tracker.py:86` — `from core.db_migration import register_schema`
+- `core/ml_performance_tracker.py:88` — `@register_schema(4, "ML Performance Tracker baseline - ml_predictions table")`
+- `core/ml_performance_tracker.py:97` — `actual_outcome  INTEGER,          -- 1=winner 0=loser NULL=pending`
+- `core/ml_performance_tracker.py:103` — `_ML_TRACKER_MIGRATIONS_REGISTERED = True`
+- `core/ml_performance_tracker.py:104` — `_log.debug("[MLT] ML tracker schema migration v2 registered")`
+- `core/ml_performance_tracker.py:108` — `_log.debug("[MLT] Migration registration skipped: %s", exc)`
+- `core/ml_performance_tracker.py:111` — `# Register at module load time so migrations are available when index_trader.py`
+- `core/ml_performance_tracker.py:113` — `_register_ml_tracker_migrations()`
+- `core/ml_performance_tracker.py:124` — `actual_outcome  INTEGER,          -- 1=winner 0=loser NULL=pending`
+- `core/service_catalog.py:3` — `Tracks all registered services/modules with metadata:`
+- `core/service_catalog.py:14` — `catalog.register_service(ServiceEntry(`
+- `core/service_catalog.py:46` — `"""A single service registered in the developer portal / service catalog."""`
+- `core/service_catalog.py:62` — `registered_at: float = field(default_factory=time.time)`
+- `core/service_catalog.py:85` — `"registered_at": self.registered_at,`
+- `core/service_catalog.py:229` — `# ── Registration ──────────────────────────────────────────────────────`
+- `core/service_catalog.py:231` — `def register_service(self, entry: ServiceEntry) -> None:`
+- `core/service_catalog.py:232` — `"""Register or update a service in the catalog."""`
+- `core/service_catalog.py:237` — `entry.registered_at = existing.registered_at`
+- `core/service_catalog.py:240` — `_log.info("[SVC_CAT] Registered service: %s (%s)", entry.name, entry.domain)`
+- `core/service_catalog.py:242` — `def unregister_service(self, name: str) -> bool:`
+- `core/service_catalog.py:248` — `_log.info("[SVC_CAT] Unregistered service: %s", name)`
+- `core/service_catalog.py:283` — `def register_golden_path(self, path: GoldenPath) -> None:`
+- `core/service_catalog.py:284` — `"""Register a golden path template."""`
+- `core/service_catalog.py:290` — `"""Get all registered golden paths."""`
+- `core/service_catalog.py:324` — `def register_environment(self, env: Environment) -> None:`
+- `core/service_catalog.py:325` — `"""Register or update an environment."""`
+- `core/service_catalog.py:331` — `"""Get all registered environments."""`
+- `core/service_catalog.py:463` — `registered_at=float(sdata.get("registered_at", 0)),`
+- `core/service_catalog.py:531` — `ap.add_argument("--register", nargs=2, metavar=("name", "domain"), help="Register a service")`
+- `core/service_catalog.py:538` — `if args.register:`
+- `core/service_catalog.py:539` — `name, domain = args.register`
+- `core/service_catalog.py:541` — `catalog.register_service(entry)`
+- `core/service_catalog.py:542` — `print(f"Registered: {name} ({domain})")`
+- `core/regulatory_reporting.py:6` — `- Trade register (all executed trades with timestamps)`
+- `core/regulatory_reporting.py:17` — `report = reporter.generate_trade_register(db_path="db/trades.db")`
+- `core/regulatory_reporting.py:51` — `class TradeRegisterEntry:`
+- `core/regulatory_reporting.py:52` — `"""A single trade record for regulatory register."""`
+- `core/regulatory_reporting.py:86` — `report_type: str            # TRADE_REGISTER | RISK_LIMITS | BROKER_RECON | SYSTEM_HEALTH`
+- `core/regulatory_reporting.py:129` — `trade_register: ComplianceReport | None = None`
+- `core/regulatory_reporting.py:138` — `for report in [self.trade_register, self.risk_limits_report,`
+- `core/regulatory_reporting.py:157` — `def generate_trade_register(self, db_path: str = _DEFAULT_DB,`
+- `core/regulatory_reporting.py:159` — `"""Generate trade register — all executed trades in the period."""`
+- `core/regulatory_reporting.py:162` — `report_type="TRADE_REGISTER",`
+- `core/regulatory_reporting.py:193` — `entry = TradeRegisterEntry(`
+- `core/regulatory_reporting.py:384` — `package.trade_register = self.generate_trade_register(db_path=db_path)`
+- `core/regulatory_reporting.py:400` — `ap.add_argument("--type", choices=["trade_register", "risk_limits", "broker_recon", "system_health", "package"],`
+- `core/regulatory_reporting.py:416` — `elif args.type == "trade_register":`
+- `core/regulatory_reporting.py:417` — `report = reporter.generate_trade_register(db_path=args.db, days=args.days or None)`
+- `core/regulatory_reporting.py:421` — `print(f"Trade Register: {len(report.entries)} trades, {report.summary}")`
+- `core/regulatory_reporting.py:450` — `"TradeRegisterEntry",`
+- `core/expiry_day_controller.py:151` — `ExpiryControlResult with permission and details`
+- `core/data_engine.py:62` — `def register(self, name: str, fn: Callable[..., Any]) -> None:`
+- `core/retention_engine.py:45` — `except PermissionError:`
+- `core/retention_engine.py:49` — `except PermissionError:`
+- `core/live_readiness_checker.py:351` — `"""Return True if the readiness notification has not been sent today."""`
+- `core/live_readiness_checker.py:369` — `except (OSError, PermissionError) as e:`
+- `core/security_auditor.py:9` — `- File permission audits`
+- `core/strategy_registry.py:4` — `- Registration with metadata (author, version, description)`
+- `core/strategy_registry.py:14` — `registry.register_strategy(`
+- `core/strategy_registry.py:55` — `"""A registered strategy with its full metadata and lifecycle state."""`
+- `core/strategy_registry.py:66` — `registered_at: str = field(`
+- `core/strategy_registry.py:88` — `"registered_at": self.registered_at,`
+- `core/strategy_registry.py:213` — `- Strategy registration and metadata`
+- `core/strategy_registry.py:228` — `def register_strategy(`
+- `core/strategy_registry.py:240` — `"""Register a new strategy.`
+- `core/strategy_registry.py:274` — `state_change_notes="Initial registration",`
+- `core/strategy_registry.py:280` — `# Register features used by this strategy`
+- `core/strategy_registry.py:291` — `"[STRAT_REG] Registered '%s' v%s as %s",`
+- `core/strategy_registry.py:409` — `def register_feature(`
+- `core/strategy_registry.py:416` — `"""Register a feature in the feature store."""`
+- `core/strategy_registry.py:560` — `recs.append("Strategies registered but no trades recorded — check signal flow")`
+- `core/strategy_registry.py:633` — `python -m core.strategy_registry --register my_strat "My Strategy" --assets NIFTY BANKNIFTY`
+- `core/strategy_registry.py:643` — `parser.add_argument("--register", nargs=2, metavar=("ID", "NAME"))`
+- `core/strategy_registry.py:650` — `if args.register:`
+- `core/strategy_registry.py:651` — `sid, name = args.register`
+- `core/strategy_registry.py:652` — `record = registry.register_strategy(`
+- `core/strategy_registry.py:661` — `print(f"Registered: {sid} — {name} [{args.state}]")`
+- `core/loop_watchdog.py:18` — `notification channel is created.`
+- `core/telegram_commander.py:300` — `pending_q  = state.get("pending_signals", 0)`
+- `core/telegram_commander.py:324` — `if pending_q > 0:`
+- `core/telegram_commander.py:325` — `lines.append(f"⏳ Pending signals: {pending_q}  (/pending to review)")`
+- `core/telegram_commander.py:356` — `def build_pending_signals_message(signals: list, cfg: dict[str, Any] | None = None) -> str:`
+- `core/telegram_commander.py:357` — `"""Format pending signals queue for /pending command."""`
+- `core/telegram_commander.py:359` — `return "✅ No pending signals in queue."`
+- `core/telegram_commander.py:360` — `lines = [f"{'─'*28}", f"⏳ *Pending Signals* ({len(signals)})", f"{'─'*28}"]`
+- `core/telegram_commander.py:536` — `elif cmd == "/pending":`
+- `core/telegram_commander.py:537` — `self._cmd_pending()`
+- `core/telegram_commander.py:610` — `pending_count = len(self._queue.get_pending())`
+- `core/telegram_commander.py:619` — `f"Queue: {pending_count} pending\n"`
+- `core/telegram_commander.py:657` — `msg = f"❌ Cannot approve `{signal_id}` - not found or not PENDING."`
+- `core/telegram_commander.py:674` — `msg = f"⚠️ Cannot reject `{signal_id}` - not found or not PENDING."`
+- `core/telegram_commander.py:678` — `"""Approve all pending signals."""`
+- `core/telegram_commander.py:690` — `pending = self._queue.get_pending()`
+- `core/telegram_commander.py:691` — `if not pending:`
+- `core/telegram_commander.py:692` — `self._reply("✅ No pending signals.", critical=False)`
+- `core/telegram_commander.py:695` — `for sig in pending:`
+- `core/telegram_commander.py:715` — `def _cmd_pending(self) -> None:`
+- `core/telegram_commander.py:719` — `signals = self._queue.get_pending()`
+- `core/telegram_commander.py:720` — `msg = build_pending_signals_message(signals, self._cfg)`
+- `core/telegram_commander.py:727` — `state["pending_signals"] = len(self._queue.get_pending())`
+- `core/telegram_commander.py:816` — `status_e = {"PENDING": "⏳", "APPROVED": "✅", "REJECTED": "❌",`
+- `core/telegram_commander.py:883` — `"  /pending",`
+- `core/telegram_commander.py:953` — `"build_pending_signals_message",`
+- `core/constitution_ai_gate.py:112` — `- 18 AI Specialist Roles with role-specific checks`
+- `core/constitution_ai_gate.py:114` — `- Role-specific forbidden actions registry`
+- `core/constitution_ai_gate.py:123` — `"I accept my assigned AI Specialist Role and its responsibilities."`
+- `core/constitution_ai_gate.py:126` — `# ── v4.0: 18 AI Specialist Roles with forbidden keywords per role ─────`
+- `core/constitution_ai_gate.py:127` — `AI_SPECIALIST_ROLES: dict[str, dict[str, Any]] = {`
+- `core/constitution_ai_gate.py:215` — `"forbidden_actions": ["skip golden path", "bypass service registration", "ignore platform standards"],`
+- `core/constitution_ai_gate.py:267` — `self._active_role: str | None = None`
+- `core/constitution_ai_gate.py:277` — `# ── v4.0: Role Management ──────────────────────────────────────────────`
+- `core/constitution_ai_gate.py:279` — `def set_role(self, role_key: str) -> bool:`
+- `core/constitution_ai_gate.py:280` — `"""Set the current AI specialist role.`
+- `core/constitution_ai_gate.py:283` — `role_key: Role key (e.g., "DEVELOPER", "SRE", "SECURITY").`
+- `core/constitution_ai_gate.py:286` — `True if role was set, False if unknown.`
+- `core/constitution_ai_gate.py:288` — `if role_key.upper() in self.AI_SPECIALIST_ROLES:`
+- `core/constitution_ai_gate.py:289` — `self._active_role = role_key.upper()`
+- `core/constitution_ai_gate.py:290` — `self._audit("role_set", "INFO", AIGateResult(`
+- `core/constitution_ai_gate.py:292` — `reason=f"Role set to {self.AI_SPECIALIST_ROLES[role_key.upper()]['name']}",`
+- `core/constitution_ai_gate.py:298` — `def get_role_info(self, role_key: str | None = None) -> dict[str, Any] | None:`
+- `core/constitution_ai_gate.py:299` — `"""Get information about an AI specialist role.`
+- `core/constitution_ai_gate.py:302` — `role_key: Role key (defaults to current active role).`
+- `core/constitution_ai_gate.py:305` — `Dict with role info or None if not found.`
+- `core/constitution_ai_gate.py:307` — `key = (role_key or self._active_role or "").upper()`
+- `core/constitution_ai_gate.py:308` — `role = self.AI_SPECIALIST_ROLES.get(key)`
+- `core/constitution_ai_gate.py:309` — `if role:`
+- `core/constitution_ai_gate.py:312` — `"name": role["name"],`
+- `core/constitution_ai_gate.py:313` — `"responsibilities": role["responsibilities"],`
+- `core/constitution_ai_gate.py:314` — `"forbidden_actions": role["forbidden_actions"],`
+- `core/constitution_ai_gate.py:315` — `"required_readings": role["required_readings"],`
+- `core/constitution_ai_gate.py:330` — `role_specific_readings_completed: list[str] | None = None,`
+- `core/constitution_ai_gate.py:344` — `role_specific_readings_completed: List of role-specific readings completed`
+- `core/constitution_ai_gate.py:370` — `# ── Step 3: Role-specific checks ─────────────────────────────────`
+- `core/constitution_ai_gate.py:371` — `if self._active_role:`
+- `core/constitution_ai_gate.py:372` — `role_info = self.AI_SPECIALIST_ROLES.get(self._active_role)`
+- `core/constitution_ai_gate.py:373` — `if role_info:`
+- `core/constitution_ai_gate.py:374` — `# Check role-specific readings`
+- `core/constitution_ai_gate.py:375` — `if role_specific_readings_completed:`
+- `core/constitution_ai_gate.py:376` — `for required in role_info["required_readings"]:`
+- `core/constitution_ai_gate.py:379` — `for r in role_specific_readings_completed`
+- `core/constitution_ai_gate.py:383` — `f"Role '{role_info['name']}': missing required reading '{required}'",`
+- `core/constitution_ai_gate.py:468` — `"active_role": self._active_role,`
+- `core/constitution_ai_gate.py:478` — `"""Check if an action is forbidden by the Constitution, including role-specific checks.`
+- `core/constitution_ai_gate.py:512` — `# Role-specific forbidden actions`
+- `core/constitution_ai_gate.py:513` — `if self._active_role:`
+- `core/constitution_ai_gate.py:514` — `role_info = self.AI_SPECIALIST_ROLES.get(self._active_role)`
+- `core/constitution_ai_gate.py:515` — `if role_info:`
+- `core/constitution_ai_gate.py:516` — `for forbidden in role_info["forbidden_actions"]:`
+- `core/constitution_ai_gate.py:520` — `reason=f"Role '{role_info['name']}' forbidden action: '{forbidden}'",`
+- `core/constitution_ai_gate.py:521` — `detail="This action violates role-specific governance rules",`
+- `core/constitution_ai_gate.py:522` — `failures=[f"Role-specific forbidden: {forbidden}"],`
+- `core/ics_telegram_bridge.py:1` — `"""ICS-Telegram Alert Bridge — wires Incident Commander alerts to Telegram notifications.`
+- `core/ics_telegram_bridge.py:4` — `notification infrastructure so critical/high incidents automatically`
+- `core/ics_telegram_bridge.py:22` — `- Uses TelegramNotificationAdapter's public send_raw() for direct text delivery`
+- `core/ics_telegram_bridge.py:47` — `"""Bridges Incident Commander alerts to Telegram notifications.`
+- `core/ics_telegram_bridge.py:49` — `Uses TelegramNotificationAdapter's public send_raw() passthrough`
+- `core/ics_telegram_bridge.py:68` — `self._client: Any = None  # TelegramNotificationAdapter instance (lazy init)`
+- `core/ics_telegram_bridge.py:88` — `# TelegramNotificationAdapter (+ its send_raw() passthrough)`
+- `core/ics_telegram_bridge.py:90` — `from infrastructure.adapters.notifications.telegram_adapter import (`
+- `core/ics_telegram_bridge.py:91` — `TelegramNotificationAdapter,`
+- `core/ics_telegram_bridge.py:94` — `self._client = TelegramNotificationAdapter(`
+- `core/ics_telegram_bridge.py:124` — `prefix = "🚨 CRITICAL" if is_critical else "ℹ️ NOTIFICATION"`
+- `core/incident_alerting.py:14` — `Integrates with existing notification service.`
+- `core/incident_alerting.py:72` — `Sends alerts via callback (typically Telegram notification).`
+- `core/incident_alerting.py:77` — `- NORMAL:   logged only (no notification) unless escalated`
+- `core/incident_alerting.py:81` — `from noisy notification channels while still tracking them in the queue.`
+- `core/incident_alerting.py:195` — `the queue but not delivered, reducing notification noise.`
+- `core/incident_alerting.py:201` — `True if the incident should be delivered to the notification channel.`
+- `core/incident_alerting.py:224` — `# Check delivery threshold — skip low-severity notifications`
+- `core/incident_alerting.py:269` — `"""Clear all pending incidents."""`
+- `core/enterprise_portfolio_intelligence.py:18` — `pi.register_epic("EPIC-001", "Risk Management Overhaul", ["risk_service", "execution_service"])`
+- `core/enterprise_portfolio_intelligence.py:19` — `pi.register_feature("EPIC-001", "FTR-001", "Circuit Breaker Enhancement")`
+- `core/enterprise_portfolio_intelligence.py:312` — `def register_epic(`
+- `core/enterprise_portfolio_intelligence.py:322` — `"""Register a new epic."""`
+- `core/enterprise_portfolio_intelligence.py:335` — `_log.info("[PI] Registered epic '%s': %s", epic_id, title)`
+- `core/enterprise_portfolio_intelligence.py:354` — `def register_feature(`
+- `core/enterprise_portfolio_intelligence.py:365` — `"""Register a new feature under an epic."""`
+- `core/enterprise_portfolio_intelligence.py:384` — `"[PI] Registered feature '%s' under epic '%s': %s",`
+- `core/enterprise_portfolio_intelligence.py:417` — `def register_bug(`
+- `core/enterprise_portfolio_intelligence.py:426` — `"""Register a new bug."""`
+- `core/enterprise_portfolio_intelligence.py:453` — `def register_goal(`
+- `core/enterprise_portfolio_intelligence.py:462` — `"""Register a business goal / KPI / OKR."""`
+- `core/enterprise_portfolio_intelligence.py:725` — `--register-epic EPIC-004 "New Epic" --modules core/foo`
+- `core/enterprise_portfolio_intelligence.py:735` — `# Registration`
+- `core/enterprise_portfolio_intelligence.py:736` — `parser.add_argument("--register-epic", nargs=2, metavar=("ID", "TITLE"))`
+- `core/enterprise_portfolio_intelligence.py:742` — `if args.register_epic:`
+- `core/enterprise_portfolio_intelligence.py:743` — `epic_id, title = args.register_epic`
+- `core/enterprise_portfolio_intelligence.py:744` — `epic = pi.register_epic(`
+- `core/enterprise_portfolio_intelligence.py:752` — `print(f"Registered epic: {epic_id} - {title}")`
+- `core/finops.py:12` — `- Budget alerts with notification callback`
+- `core/finops.py:40` — `finops_alert_callback         : Callable or None       (notification callback)`
+- `core/autonomous_optimizer.py:153` — `pending_approval: list[OptimizerFinding] = field(default_factory=list)`
+- `core/autonomous_optimizer.py:167` — `"pending_approval": [f.to_dict() for f in self.pending_approval],`
+- `core/autonomous_optimizer.py:198` — `if self.pending_approval:`
+- `core/autonomous_optimizer.py:199` — `lines.append(f"  ⏳ Pending Approval: {len(self.pending_approval)}")`
+- `core/autonomous_optimizer.py:443` — `pending_approval: list[OptimizerFinding] = []`
+- `core/autonomous_optimizer.py:452` — `pending_approval.append(finding)`
+- `core/autonomous_optimizer.py:454` — `pending_approval = [f for f in findings if f.risk_level != "SAFE"]`
+- `core/autonomous_optimizer.py:457` — `report.pending_approval = pending_approval`
+- `core/autonomous_optimizer.py:661` — `if report.pending_approval:`
+- `core/autonomous_optimizer.py:662` — `domains = list({f.domain for f in report.pending_approval})`
+- `core/autonomous_optimizer.py:663` — `recs.append(f"Review {len(report.pending_approval)} optimizations pending approval: {', '.join(domains)}")`
+- `core/signal_approval_workflow.py:13` — `MANUAL_PRIORITY   - manual→PENDING queue; STRONG auto; MODERATE→PENDING`
+- `core/signal_approval_workflow.py:14` — `FULL_MANUAL       - ALL signals → PENDING queue regardless of tier`
+- `core/signal_approval_workflow.py:63` — `QUEUE        = "QUEUE"         # add to ManualSignalQueue (PENDING)`
+- `core/signal_approval_workflow.py:128` — `self._pending_signals: dict[str, dict[str, Any]] = {}  # signal_id -> metadata`
+- `core/signal_approval_workflow.py:287` — `self._check_pending_signals()`
+- `core/signal_approval_workflow.py:296` — `def track_pending_signal(self, decision: SignalDecision, score: int, reason: str) -> None:`
+- `core/signal_approval_workflow.py:297` — `"""Register a queued or deferred signal for escalation tracking."""`
+- `core/signal_approval_workflow.py:303` — `self._pending_signals[decision.queue_signal_id] = {`
+- `core/signal_approval_workflow.py:312` — `def _check_pending_signals(self) -> None:`
+- `core/signal_approval_workflow.py:313` — `"""Check all pending signals and escalate/auto-approve as needed."""`
+- `core/signal_approval_workflow.py:319` — `for sig_id, meta in list(self._pending_signals.items()):`
+- `core/signal_approval_workflow.py:333` — `# Escalate if pending too long`
+- `core/signal_approval_workflow.py:340` — `meta = self._pending_signals.get(sig_id, {})`
+- `core/signal_approval_workflow.py:347` — `meta = self._pending_signals.get(sig_id, {})`
+- `core/signal_approval_workflow.py:355` — `"""Deliver escalation notification via callback."""`
+- `core/signal_approval_workflow.py:362` — `def resolve_pending_signal(self, signal_id: str) -> None:`
+- `core/signal_approval_workflow.py:365` — `self._pending_signals.pop(signal_id, None)`
+- `core/signal_approval_workflow.py:372` — `def get_pending_signals(self) -> dict[str, dict[str, Any]]:`
+- `core/signal_approval_workflow.py:373` — `"""Get snapshot of pending signals for monitoring."""`
+- `core/signal_approval_workflow.py:377` — `for k, v in self._pending_signals.items()`
+- `core/db_utils.py:456` — `# Rollback any pending transaction before returning`
+- `core/constitution_alert_bridge.py:1` — `"""Constitution Alert Bridge — wires Constitution v4.0 health checks to notification service.`
+- `core/constitution_alert_bridge.py:3` — `Automatically sends notifications when constitution health scores drop below`
+- `core/constitution_alert_bridge.py:4` — `configurable thresholds. Integrates with the existing NotificationService`
+- `core/constitution_alert_bridge.py:75` — `"""Bridges constitution health checks to notification service alerts.`
+- `core/constitution_alert_bridge.py:89` — `self._notification_service = None`
+- `core/constitution_alert_bridge.py:91` — `def _get_notification_service(self):`
+- `core/constitution_alert_bridge.py:92` — `"""Lazy-initialize the notification service."""`
+- `core/constitution_alert_bridge.py:93` — `if self._notification_service is None:`
+- `core/constitution_alert_bridge.py:95` — `from core.services.notification_service import NotificationService`
+- `core/constitution_alert_bridge.py:96` — `self._notification_service = NotificationService()`
+- `core/constitution_alert_bridge.py:97` — `self._notification_service.start()`
+- `core/constitution_alert_bridge.py:99` — `_log.warning("[CAB] NotificationService not available — alerts will be logged only")`
+- `core/constitution_alert_bridge.py:100` — `self._notification_service = False  # Sentinel: don't retry`
+- `core/constitution_alert_bridge.py:101` — `return self._notification_service if self._notification_service is not False else None`
+- `core/constitution_alert_bridge.py:104` — `"""Send an alert via the notification service, with logging fallback."""`
+- `core/constitution_alert_bridge.py:105` — `ns = self._get_notification_service()`
+- `core/constitution_alert_bridge.py:108` — `from core.ports.notification.notification_port import (`
+- `core/constitution_alert_bridge.py:109` — `Notification,`
+- `core/constitution_alert_bridge.py:110` — `NotificationChannel,`
+- `core/constitution_alert_bridge.py:111` — `NotificationPriority,`
+- `core/constitution_alert_bridge.py:113` — `notif = Notification(`
+- `core/constitution_alert_bridge.py:115` — `channel=NotificationChannel.TELEGRAM if self._cfg.telegram_enabled else NotificationChannel.IN_APP,`
+- `core/constitution_alert_bridge.py:116` — `priority=NotificationPriority.CRITICAL if is_critical else NotificationPriority.HIGH,`
+- `core/constitution_alert_bridge.py:120` — `ns.send_notification(notif)`
+- `core/constitution_alert_bridge.py:123` — `_log.warning("[CAB] Notification send failed: %s", exc)`
+- `index_app/index_trader_interface.py:7` — `logic lives in DI-managed services registered in `index_app.index_trader._setup_di_container()`.`
+- `index_app/orchestrator_facade.py:61` — `from core.ports.notification import NotificationPort`
+- `index_app/orchestrator_facade.py:73` — `notification_port = container.resolve(NotificationPort)`
+- `index_app/orchestrator_facade.py:86` — `notification_port=notification_port,`
+- `index_app/index_trader.py:372` — `"check_pending_reconciliation",`
+- `index_app/index_trader.py:506` — `"""Legacy send() shim. Wired to NotificationService after init."""`
+- `index_app/index_trader.py:755` — `atexit.register(_shutdown_ws_feed)`
+- `index_app/index_trader.py:786` — `"capital_adj_pending": self._service.get_pending_adjustment(),`
+- `index_app/index_trader.py:898` — `notification_service=send,`
+- `index_app/index_trader.py:911` — `def check_pending_reconciliation():`
+- `index_app/index_trader.py:913` — `from index_app.domains.trading.reconciliation import check_pending_reconciliation as _extracted`
+- `index_app/index_trader.py:1388` — `from core.python_runtime import register_shutdown_callback`
+- `index_app/index_trader.py:1391` — `# Register shutdown callbacks for graceful shutdown`
+- `index_app/index_trader.py:1393` — `register_shutdown_callback(`
+- `index_app/index_trader.py:1397` — `register_shutdown_callback(`
+- `index_app/index_trader.py:1401` — `register_shutdown_callback(_shutdown_ws_feed)`
+- `index_app/index_trader.py:1454` — `# Log Multi-Asset Strategy Dispatcher registered engines`
+- `index_app/index_trader.py:1460` — `engines = status.get("registered_engines", {})`
+- `scripts/fix_stale_doc_refs.py:32` — `"core/rbac.py": "core/auth/permissions.py",`
+- `scripts/run_hygiene_scan.py:10` — `- World-readable permissions on sensitive files`
+- `scripts/run_hygiene_scan.py:98` — `# Sensitive file patterns (files that should have restricted permissions)`
+- `scripts/run_hygiene_scan.py:127` — `def _check_file_permissions(filepath: Path) -> dict[str, Any] | None:`
+- `scripts/run_hygiene_scan.py:128` — `"""Check if a sensitive file has world-readable permissions (Unix only)."""`
+- `scripts/run_hygiene_scan.py:134` — `"issue": "World-readable permissions",`
+- `scripts/run_hygiene_scan.py:135` — `"permissions": oct(mode & 0o777),`
+- `scripts/run_hygiene_scan.py:203` — `# Check for sensitive files with world-readable permissions`
+- `scripts/run_hygiene_scan.py:207` — `issue = _check_file_permissions(filepath)`
+- `scripts/release_governance.py:66` — `# register-pattern consistency gate; read by main() when writing the audit`
+- `scripts/release_governance.py:68` — `_LAST_REGISTER_GATE_VERDICT: dict = {}`
+- `scripts/release_governance.py:84` — `Side effect: records the register-consistency gate verdict into the module`
+- `scripts/release_governance.py:85` — `global ``_LAST_REGISTER_GATE_VERDICT`` (read by main() when writing the`
+- `scripts/release_governance.py:169` — `# 11. Register-pattern consistency gate (trend tracker data integrity)`
+- `scripts/release_governance.py:170` — `global _LAST_REGISTER_GATE_VERDICT`
+- `scripts/release_governance.py:171` — `_LAST_REGISTER_GATE_VERDICT = _run_register_consistency_gate(failures) or {}`
+- `scripts/release_governance.py:306` — `appending a release-labeled snapshot to ``json/success_metrics_trend.json```
+- `scripts/release_governance.py:350` — `def _run_register_consistency_gate(failures: list[str]) -> dict:`
+- `scripts/release_governance.py:351` — `"""Run the register-pattern consistency gate.  Failure blocks release.`
+- `scripts/release_governance.py:353` — `Verifies the governance registers (dead-code / duplicate / config-drift /`
+- `scripts/release_governance.py:360` — `"drifted_registers": [...]}```
+- `scripts/release_governance.py:364` — `[sys.executable, "-m", "core.success_metrics_trend", "--check-registers"],`
+- `scripts/release_governance.py:369` — `"Register consistency gate: register ID patterns have drifted "`
+- `scripts/release_governance.py:371` — `"core.success_metrics_trend --check-registers` for details)"`
+- `scripts/release_governance.py:373` — `# The CLI prints the drift breakdown to stdout (per-register status`
+- `scripts/release_governance.py:376` — `log.warning("  [X] Register consistency output:\n%s", detail)`
+- `scripts/release_governance.py:377` — `return {"passed": False, "status": "drift", "drifted_registers": []}`
+- `scripts/release_governance.py:378` — `log.info("  [OK] Register consistency: all registers aligned")`
+- `scripts/release_governance.py:379` — `return {"passed": True, "status": "aligned", "drifted_registers": []}`
+- `scripts/release_governance.py:386` — `# mistaken for "registers verified aligned" in the audit record.`
+- `scripts/release_governance.py:387` — `return {"passed": None, "status": "skipped", "drifted_registers": []}`
+- `scripts/release_governance.py:389` — `failures.append(f"Register consistency check timed out: {exc}")`
+- `scripts/release_governance.py:390` — `return {"passed": False, "status": "unavailable", "drifted_registers": []}`
+- `scripts/release_governance.py:592` — `register_gate_passed: bool | None = None,`
+- `scripts/release_governance.py:593` — `register_gate_status: str = "unknown") -> bool:`
+- `scripts/release_governance.py:601` — `register_gate_passed: Whether the register-pattern consistency gate`
+- `scripts/release_governance.py:604` — `register_gate_status: Gate status: aligned / drift / skipped / unavailable.`
+- `scripts/release_governance.py:619` — `"register_gate_passed": register_gate_passed,`
+- `scripts/release_governance.py:620` — `"register_gate_status": register_gate_status,`
+- `scripts/release_governance.py:817` — `gate_verdict = _LAST_REGISTER_GATE_VERDICT or {}`
+- `scripts/release_governance.py:820` — `register_gate_passed=gate_verdict.get("passed"),`
+- `scripts/release_governance.py:821` — `register_gate_status=gate_verdict.get("status", "unknown"))`
+- `scripts/release_governance.py:860` — `print(f"  Register gate: {gate_verdict.get('status', 'unknown')}")`
+- `scripts/e2e_integration_test.py:15` — `Phase 10: Notifications & audit`
+- `scripts/e2e_integration_test.py:82` — `"core.services.notification_service", "core.telegram_queue",`
+- `scripts/e2e_integration_test.py:264` — `# PHASE 10: Notifications & Audit`
+- `scripts/e2e_integration_test.py:268` — `from core.services.notification_service import NotificationService`
+- `scripts/e2e_integration_test.py:269` — `svc = NotificationService()`
+- `scripts/e2e_integration_test.py:271` — `test("P10-NOTIF", "NotificationService creation", test_notif)`
+- `scripts/institutional_challenge.py:545` — `rbac_path = ROOT / "core" / "auth" / "role_manager.py"`
+- `scripts/institutional_challenge.py:547` — `failures.append("RBAC role manager missing - no authorization enforcement")`
+- `scripts/check_architecture_compliance.py:50` — `"core.services.notification_service",`
+- `scripts/check_architecture_compliance.py:52` — `# alert_router is DEPRECATED (removal v3.1) - bridges to TelegramNotificationAdapter`
+- `scripts/check_architecture_compliance.py:122` — `# service modules use notification and database adapters`
+- `scripts/check_architecture_compliance.py:123` — `"core.services.notification_service:from infrastructure.adapters",`
+- `scripts/run_regression.py:55` — `except (OSError, PermissionError):`
+- `scripts/run_regression.py:522` — `except (OSError, PermissionError):`
+- `scripts/run_regression.py:562` — `except (OSError, PermissionError):`
+- `scripts/check_db_integrity.py:131` — `except (OSError, PermissionError) as e:`
+- `scripts/backup_databases.py:163` — `except (OSError, PermissionError, shutil.Error) as exc:`
+- `scripts/backup_databases.py:283` — `except (OSError, PermissionError, shutil.Error) as exc:`
+- `scripts/generate_constitution_report.py:309` — `f"Evidence: {report['total_evidence']} items registered",`
+- `scripts/hygiene_check.py:413` — `except (OSError, PermissionError, shutil.Error) as e:`
+- `scripts/run_v5_v6_empirical_calibration_audit.py:178` — `print(f"{'Decision Group':<28} | {'Count':<10} | {'Win Rate':<14} | {'Net Expectancy E[V]':<20} | {'Role in System'}")`
+- `scripts/gen_ppt.py:315` — `"RBAC (Role-Based Access Control)",`
+- `scripts/gen_ppt.py:375` — `"Full admin UI with role-based access",`
+- `scripts/gen_ppt.py:447` — `"RBAC: Admin, Analyst, Operator, Viewer roles",`
+- `scripts/generate_all_master_consolidated_documents.py:46` — `4. **Super Admin User & Signal Permission Control Center (`/admin/users`)**: 1-click Master Signal Switches, Granular Category Subscriptions, Conviction Tier Cutoffs, Multi-Timeframe Quota Controls (Daily, Weekly, Monthly), and Dedicated User Channel Routing.`
+- `scripts/generate_all_master_consolidated_documents.py:47` — `5. **Dual-Channel High-Throughput Notification Dispatcher**: Instant multi-user Telegram Bot (`@gaurav_optionbuying_signal_bot`) and multi-recipient Gmail SMTP broadcasting.`
+- `scripts/generate_all_master_consolidated_documents.py:80` — `| `open_admin.bat` | `http://localhost:8000/admin/config` | Super Admin / Admin | Live Configuration Editor & Notification Controls |`
+- `scripts/generate_all_master_consolidated_documents.py:81` — `| Super Admin Users | `http://localhost:8000/admin/users` | Super Admin | User Signal Permissions, Category Subscriptions & Quotas |`
+- `scripts/generate_all_master_consolidated_documents.py:103` — `## 🌟 WELCOME TO THE OPB QUANT PLATFORM`
+- `scripts/generate_all_master_consolidated_documents.py:109` — `Whenever a high-probability trade setup passes all 16 quantitative strategies and institutional filters, an instant signal is delivered to your registered Telegram and Email with 1-click action buttons (`[⚡ Paper Trade]`, `[🚀 Execute]`, `[📊 View Chart]`).`
+- `scripts/score_system.py:145` — `add("SEC-02", "Auth module with role-based access control", "code_review", 0.4)`
+- `scripts/score_system.py:150` — `add("SEC-02", "RBAC enforcement test: admin/operator/user roles", "test_pass", 0.5)`
+- `scripts/score_system.py:275` — `add("GOV-03", "Technical debt register", "documentation", 0.4)`
+- `scripts/migrate_to_postgresql.py:222` — `status        VARCHAR(16) DEFAULT 'PENDING',`
+- `scripts/db_backup.py:202` — `except (OSError, PermissionError, shutil.Error) as exc:`
+- `scripts/run_csv_backtest.py:177` — `_orig_execute = bt_mod.CandleBacktestEngine._execute_pending`
+- `scripts/run_csv_backtest.py:178` — `def _patched_execute(self, pending, row, idx, ts, cfg, capital):`
+- `scripts/run_csv_backtest.py:179` — `p2 = dict(pending)`
+- `scripts/run_csv_backtest.py:183` — `bt_mod.CandleBacktestEngine._execute_pending = _patched_execute`
+- `scripts/test_deployment.py:197` — `check("Notification Stats", "/api/realestate/notifications/stats",`
+- `scripts/test_deployment.py:198` — `expected_keys=["total_notifications"], critical=False)`
+- `scripts/test_deployment.py:205` — `check("RERA Registrations", "/api/realestate/rera/registrations",`
+- `scripts/test_deployment.py:206` — `expected_keys=["registrations"], critical=False)`
+- `scripts/run_consolidated_full_system_verification.py:8` — `4. Super Admin RBAC, Quotas & Category Permissions (/admin/users)`
+- `scripts/run_consolidated_full_system_verification.py:74` — `_log.info("🧪 [4/20] Super Admin RBAC, Quotas & Category Permissions...")`
+- `scripts/run_consolidated_full_system_verification.py:75` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `scripts/run_consolidated_full_system_verification.py:76` — `mgr = UserPermissionManager.get_instance()`
+- `scripts/run_consolidated_full_system_verification.py:77` — `perms = mgr.list_all_permissions()`
+- `scripts/run_consolidated_full_system_verification.py:81` — `_log.info("✅ [4/20 PASSED] Super Admin RBAC & category permissions verified for %d users.", len(perms))`
+- `scripts/run_consolidated_full_system_verification.py:84` — `_log.info("🧪 [5/20] Configuration Editor & Multi-User Notifications...")`
+- `scripts/run_consolidated_full_system_verification.py:88` — `_log.info("✅ [5/20 PASSED] Notifications configured (TG Bot: %s..., Chat ID: %s...)",`
+- `scripts/register_constitution_evidence.py:3` — `Register comprehensive evidence for all 31 constitution categories.`
+- `scripts/register_constitution_evidence.py:6` — `core/constitution_evidence_data.py and registers them into the`
+- `scripts/register_constitution_evidence.py:10` — `python scripts/register_constitution_evidence.py`
+- `scripts/register_constitution_evidence.py:26` — `def register_all_evidence(evidence: Evidence) -> dict[str, int]:`
+- `scripts/register_constitution_evidence.py:27` — `"""Register all evidence items into the constitution validator.`
+- `scripts/register_constitution_evidence.py:30` — `Dict mapping category_id -> number of evidence items registered.`
+- `scripts/register_constitution_evidence.py:52` — `"""Print a summary of registered evidence."""`
+- `scripts/register_constitution_evidence.py:54` — `print("  CONSTITUTION EVIDENCE REGISTRATION REPORT")`
+- `scripts/register_constitution_evidence.py:78` — `print(f"Registering evidence for {len(evidence)} categories...")`
+- `scripts/register_constitution_evidence.py:79` — `counts = register_all_evidence(evidence)`
+- `scripts/constitution_scorecard.py:158` — `"core/auth/permissions.py", weight=1.0),`
+- `scripts/constitution_scorecard.py:160` — `"core/auth/role_manager.py", weight=1.0),`
+- `scripts/batch_portfolio_scan.py:27` — `# (For demo purposes, we will register a MockAdapter if the real ones aren't available)`
+- `scripts/batch_portfolio_scan.py:57` — `"""Register broker adapters with the gateway."""`
+- `scripts/batch_portfolio_scan.py:58` — `# You would typically register your real adapters here:`
+- `scripts/batch_portfolio_scan.py:60` — `# broker_gateway.register_adapter("zerodha", ZerodhaAdapter)`
+- `scripts/batch_portfolio_scan.py:62` — `# Registering a mock adapter so the script runs out of the box`
+- `scripts/batch_portfolio_scan.py:63` — `broker_gateway.register_adapter("zerodha", DemoMockAdapter)`
+- `scripts/batch_portfolio_scan.py:64` — `broker_gateway.register_adapter("angelone", DemoMockAdapter)`
+- `scripts/batch_portfolio_scan.py:65` — `broker_gateway.register_adapter("upstox", DemoMockAdapter)`
+- `scripts/batch_portfolio_scan.py:92` — `tenant_manager.register_tenant(demo_tenant)`
+- `scripts/boost_constitution_evidence.py:115` — `("PRN-02", "Auth permissions test — validates data access control privacy", "test_pass", 0.4, "tests/test_permissions.py"),`
+- `scripts/boost_constitution_evidence.py:171` — `# ── Register all evidence ────────────────────────────────────────────────`
+- `scripts/run_backup_rotation.py:165` — `except (OSError, PermissionError) as e:`
+- `scripts/production_score_challenge.py:236` — `"ACKNOWLEDGED": ["PARTIAL_FILL", "FILLED", "CANCEL_PENDING", "FAILED"],`
+- `scripts/production_score_challenge.py:237` — `"PARTIAL_FILL": ["PARTIAL_FILL", "FILLED", "CANCEL_PENDING", "FAILED"],`
+- `scripts/production_score_challenge.py:238` — `"CANCEL_PENDING": ["CANCELLED", "FILLED", "FAILED"],`
+- `scripts/production_score_challenge.py:248` — `has_cancelled = "CANCELLED" in valid_transitions.get("CANCEL_PENDING", [])`
+- `scripts/run_mutation_tests.py:32` — `self.status: str = "PENDING"`
+- `scripts/verify_constitution_system.py:6` — `2. AIGovernanceGate — AI roles, layer validation`
+- `scripts/verify_constitution_system.py:8` — `4. Self-Healing Bridge — pattern registration, healing cycles`
+- `scripts/verify_constitution_system.py:171` — `def check_ai_roles() -> tuple[bool, str]:`
+- `scripts/verify_constitution_system.py:173` — `roles = ConstitutionValidator.AI_SPECIALIST_ROLES`
+- `scripts/verify_constitution_system.py:174` — `return len(roles) >= 18, f"{len(roles)} roles"`
+- `scripts/verify_constitution_system.py:185` — `from core.constitution_self_healing_bridge import register_constitution_patterns`
+- `scripts/verify_constitution_system.py:186` — `count = register_constitution_patterns()`
+- `scripts/verify_constitution_system.py:187` — `return count >= 5, f"{count} patterns registered"`
+- `scripts/verify_constitution_system.py:193` — `return status["patterns_registered"] >= 1, f"{status['patterns_registered']} patterns, running={status['monitor_running']}"`
+- `scripts/verify_constitution_system.py:241` — `report.checks.append(_check("AIGovernanceGate: 18+ AI specialist roles", check_ai_roles))`
+- `scripts/verify_constitution_system.py:244` — `report.checks.append(_check("SelfHealingOrchestrator: patterns registered", check_self_healing_orchestrator))`
+- `scripts/generate_architecture_pdf.py:127` — `"database stores, web dashboard, Telegram notifications."),`
+- `scripts/gap_audit.py:29` — `results.append(("WS8 Admin CP", all([grep_file("_require_permission","core/control_plane/server.py"), grep_file("_audit_log","core/control_plane/server.py")])))`
+- `scripts/gap_audit.py:33` — `results.append(("WS12 Security (partial)", all([exists("core/auth/permissions.py"), exists("core/auth/role_manager.py")])))`
+- `scripts/gen_gap_analysis.py:30` — `report.append("  [DONE] Duplicate Code Register maintained in docs/duplicate_code_register.md")`
+- `scripts/gen_gap_analysis.py:32` — `report.append("  [DONE] Config Drift Register maintained in docs/config_drift_register.md")`
+- `scripts/gen_gap_analysis.py:33` — `report.append("  [DONE] Doc Drift Register maintained in docs/doc_drift_register.md")`
+- `scripts/gen_gap_analysis.py:155` — `report.append("  [DONE] Doc drift register maintained (docs/doc_drift_register.md)")`
+- `scripts/generate_pptx.py:208` — `("Notifications", "Telegram Bot API with Priority Queue (CRITICAL/HIGH/NORMAL/LOW)"),`
+- `scripts/scan_dead_code.py:11` — `Updates the Dead Code Register and Duplicate Code Register docs.`
+- `scripts/scan_dead_code.py:20` — `python scripts/scan_dead_code.py --update-registers      # Update register docs`
+- `scripts/scan_dead_code.py:445` — `# ── Register Updates (append-only) ───────────────────────────────────────────`
+- `scripts/scan_dead_code.py:515` — `"""Generate the Scan Results section content for the dead code register."""`
+- `scripts/scan_dead_code.py:530` — `"""Generate the Scan Results section content for the duplicate code register."""`
+- `scripts/scan_dead_code.py:544` — `def update_dead_code_register(findings: list[DeadCodeFinding]) -> bool:`
+- `scripts/scan_dead_code.py:545` — `"""Update the Scan Results section of the dead code register doc.`
+- `scripts/scan_dead_code.py:562` — `ROOT / "docs" / "dead_code_register.md",`
+- `scripts/scan_dead_code.py:568` — `def update_duplicate_code_register(findings: list[DuplicateFinding]) -> bool:`
+- `scripts/scan_dead_code.py:569` — `"""Update the Scan Results section of the duplicate code register doc.`
+- `scripts/scan_dead_code.py:586` — `ROOT / "docs" / "duplicate_code_register.md",`
+- `scripts/scan_dead_code.py:676` — `ap.add_argument("--update-registers", action="store_true",`
+- `scripts/scan_dead_code.py:677` — `help="Update dead_code_register.md and duplicate_code_register.md")`
+- `scripts/scan_dead_code.py:715` — `# Re-scan imports after removal to keep registers accurate`
+- `scripts/scan_dead_code.py:719` — `# Update registers if requested`
+- `scripts/scan_dead_code.py:720` — `if args.update_registers:`
+- `scripts/scan_dead_code.py:721` — `dc_ok = update_dead_code_register(dead_code_findings)`
+- `scripts/scan_dead_code.py:722` — `dup_ok = update_duplicate_code_register(duplicate_findings)`
+- `scripts/scan_dead_code.py:724` — `log.error("Failed to update one or more registers")`
+- `scripts/scan_dead_code.py:739` — `"registers_updated": args.update_registers,`
+- `scripts/scan_dead_code.py:774` — `if args.update_registers:`
+- `scripts/scan_dead_code.py:775` — `print("    Registers updated with findings")`
+- `scripts/clean_artifacts.py:130` — `except (OSError, PermissionError) as e:`
+- `scripts/generate_review_artifacts.py:44` — `("Dead-code register noise", "44,324 ORPHANED_SYMBOL entries, all MEDIUM; mostly test functions/constants (register regenerated 2026-08-08). No orphaned modules found, so no safe bulk pruning exists."),`
+- `scripts/generate_review_artifacts.py:45` — `("Static-analysis findings", "Bandit: 0 HIGH / 0 MEDIUM / 298 LOW over 177,378 LOC (2026-08-08). All 14 MEDIUM resolved with proper fixes: identifier allow-lists on dynamic SQL, http/https scheme checks + opener-based URL calls, loopback default bind. Remaining 298 are LOW-severity heuristics (B101 asserts, B603 subprocess, B311 random) - see register."),`
+- `scripts/generate_review_artifacts.py:59` — `("P3", "Register hygiene", "Run scan_dead_code.py --update-registers after every scan so the register reflects current code (stale rows were regenerated 2026-08-08)."),`
+- `scripts/generate_review_artifacts.py:285` — `("Notifications", "Telegram bot with auth allowlists, rate limits, audit, priority queue."),`
+- `scripts/run_constitution_checks.py:258` — `("ai_specialist_roles", "AI Specialist Roles"),`
+- `scripts/paper_session_review.py:230` — `from infrastructure.adapters.notifications.telegram_adapter import _TelegramClient`
+- `scratch/test_all_app_routes.py:3` — `Tests EVERY single registered route and template link across the entire OPB Super-App`
+- `scratch/test_all_app_routes.py:39` — `"/register",`
+- `scratch/test_all_app_routes.py:99` — `# Extract all registered GET routes from FastAPI app`
+- `scratch/test_all_app_routes.py:100` — `print(f"\n[3/3] Scanning & Auditing All {len(app.routes)} Registered FastAPI Endpoints...")`
+- `scratch/generate_final_deliverables.py:68` — `| Single-recipient notification limitation | Rewrote notification dispatchers in `core/all_nse_scanner.py` and `core/notifier.py` to parse comma-separated multi-user Chat IDs and Emails. | ✅ CLOSED & VERIFIED |`
+- `scratch/generate_final_deliverables.py:69` — `| Uncontrolled user signal access | Implemented `UserPermissionManager` and Super Admin Control Panel (`/admin/users`) with category filters, tier cutoffs, and quotas. | ✅ CLOSED & VERIFIED |`
+- `scratch/generate_final_deliverables.py:70` — `| Configuration UI mapping disconnect | Upgraded `/admin/config` with dedicated Notifications Tab, helper hints, and hot-reload synchronization. | ✅ CLOSED & VERIFIED |`
+- `scratch/generate_final_deliverables.py:78` — `2. **WebSocket Push Notifications**:`
+- `scratch/generate_final_deliverables.py:79` — `- Add native Web Push notifications via Service Workers for mobile app / PWA users.`
+- `scratch/generate_final_deliverables.py:132` — `story.append(Paragraph("• Web push notifications for mobile PWA clients.", body_style))`
+- `scratch/generate_final_deliverables.py:271` — `add_header(s4, "SUPER ADMIN CONTROL & PRE-GUARD GATING", "Granular User Permissions, Multi-Timeframe Quotas & Dispatch Security")`
+- `scratch/test_page_routes_only.py:30` — `"/register",`
+- `tests/test_fundamental_analyzer_benchmark.py:27` — `# Generous upper bounds — yfinance can be slow depending on network.`
+- `tests/test_intelligence_pipeline.py:11` — `register_pipeline_routes,`
+- `tests/test_intelligence_pipeline.py:15` — `def test_register_pipeline_routes_exists():`
+- `tests/test_intelligence_pipeline.py:16` — `assert callable(register_pipeline_routes)`
+- `tests/test_intelligence_pipeline.py:19` — `def test_register_pipeline_routes_runs():`
+- `tests/test_intelligence_pipeline.py:24` — `register_pipeline_routes(app, dashboard, lambda: None, lambda: None)  # type: ignore[arg-type]`
+- `tests/test_logging.py:151` — `# Should not crash on PermissionError for invalid dirs`
+- `tests/test_forensic_audit_fixes.py:17` — `register_shutdown_callback,`
+- `tests/test_forensic_audit_fixes.py:197` — `register_shutdown_callback(lambda: calls.append("first"))`
+- `tests/test_forensic_audit_fixes.py:198` — `register_shutdown_callback(lambda: calls.append("second"))`
+- `tests/test_forensic_audit_fixes.py:206` — `register_shutdown_callback(lambda: calls.append("x"))`
+- `tests/test_forensic_audit_fixes.py:222` — `register_shutdown_callback(lambda: (_ for _ in ()).throw(RuntimeError("oops")))`
+- `tests/test_forensic_audit_fixes.py:223` — `register_shutdown_callback(lambda: calls.append("ok"))`
+- `tests/test_execution_durable_state.py:37` — `"""Sample DurableExecutionRecord in PENDING state."""`
+- `tests/test_execution_durable_state.py:45` — `state=ExecutionState.PENDING,`
+- `tests/test_execution_durable_state.py:56` — `assert ExecutionState.PENDING.value == "PENDING"`
+- `tests/test_execution_durable_state.py:119` — `assert loaded.state == ExecutionState.PENDING`
+- `tests/test_execution_durable_state.py:155` — `pending = DurableExecutionRecord(`
+- `tests/test_execution_durable_state.py:157` — `direction="BUY", quantity=50, strike_price=150.0, state=ExecutionState.PENDING,`
+- `tests/test_execution_durable_state.py:163` — `store.save_execution(pending)`
+- `tests/test_execution_durable_state.py:192` — `direction="BUY", quantity=50, strike_price=150.0, state=ExecutionState.PENDING,`
+- `tests/test_execution_durable_state.py:273` — `assert deleted >= 0  # May or may not be deleted depending on exact timing`
+- `tests/test_execution_durable_state.py:277` — `intent_id="pending-1", client_order_id="OPB-pending", symbol="NIFTY",`
+- `tests/test_execution_durable_state.py:278` — `direction="BUY", quantity=50, strike_price=150.0, state=ExecutionState.PENDING,`
+- `tests/test_execution_durable_state.py:281` — `remaining = store.get_execution("pending-1")`
+- `tests/test_execution_durable_state.py:305` — `direction="SELL", quantity=25, strike_price=200.0, state=ExecutionState.PENDING,`
+- `tests/test_execution_durable_state.py:309` — `assert stats["PENDING"] == 1`
+- `tests/test_cqrs.py:27` — `def test_register_handler(self, cmd_bus):`
+- `tests/test_cqrs.py:36` — `cmd_bus.register_handler(TestCmd, handler)`
+- `tests/test_cqrs.py:120` — `def test_unregister_handler(self, cmd_bus):`
+- `tests/test_cqrs.py:127` — `cmd_bus.register_handler(TestCmd, handler)`
+- `tests/test_cqrs.py:128` — `cmd_bus.unregister_handler(TestCmd)`
+- `tests/test_cqrs.py:135` — `assert stats["registered_handlers"] == 0`
+- `tests/test_cqrs.py:142` — `def test_register_handler(self, qry_bus):`
+- `tests/test_cqrs.py:150` — `qry_bus.register_handler(GetDataQuery, handler)`
+- `tests/test_cqrs.py:232` — `assert stats["registered_handlers"] == 0`
+- `tests/test_python_runtime.py:7` — `from core.python_runtime import ensure_supported_python, register_graceful_shutdown_signals`
+- `tests/test_python_runtime.py:10` — `def test_register_graceful_shutdown_signals_registers():`
+- `tests/test_python_runtime.py:12` — `register_graceful_shutdown_signals(ev)`
+- `tests/test_chaos.py:93` — `def test_register_service(self):`
+- `tests/test_chaos.py:95` — `svc = engine.register_service("test_service")`
+- `tests/test_chaos.py:101` — `engine.register_service("broker")`
+- `tests/test_chaos.py:113` — `engine.register_service("broker")`
+- `tests/test_chaos.py:114` — `engine.register_service("db")`
+- `tests/test_chaos.py:129` — `engine.register_service("broker")`
+- `tests/test_chaos.py:130` — `engine.register_service("db")`
+- `tests/test_chaos.py:142` — `svc = engine.register_service("app")`
+- `tests/test_chaos.py:155` — `svc1 = engine.register_service("broker")`
+- `tests/test_chaos.py:156` — `svc2 = engine.register_service("db")`
+- `tests/test_chaos.py:157` — `svc3 = engine.register_service("cache")`
+- `tests/test_email_adapter.py:2` — `Tests for the Email Notification Adapter (v2.53).`
+- `tests/test_email_adapter.py:10` — `from core.ports.notification.notification_port import (`
+- `tests/test_email_adapter.py:11` — `Notification,`
+- `tests/test_email_adapter.py:12` — `NotificationChannel,`
+- `tests/test_email_adapter.py:13` — `NotificationPriority,`
+- `tests/test_email_adapter.py:14` — `NotificationStatus,`
+- `tests/test_email_adapter.py:16` — `from infrastructure.adapters.notifications.email_adapter import (`
+- `tests/test_email_adapter.py:17` — `EmailNotificationAdapter,`
+- `tests/test_email_adapter.py:25` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:32` — `adapter = EmailNotificationAdapter(enabled=False)`
+- `tests/test_email_adapter.py:36` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:60` — `adapter = EmailNotificationAdapter(enabled=False)`
+- `tests/test_email_adapter.py:61` — `notification = Notification(`
+- `tests/test_email_adapter.py:62` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:64` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:66` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:67` — `assert result.status == NotificationStatus.FAILED`
+- `tests/test_email_adapter.py:71` — `adapter = EmailNotificationAdapter(enabled=False)`
+- `tests/test_email_adapter.py:72` — `assert adapter.is_channel_available(NotificationChannel.EMAIL) is False`
+- `tests/test_email_adapter.py:79` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:80` — `notification = Notification(`
+- `tests/test_email_adapter.py:81` — `channel=NotificationChannel.TELEGRAM,`
+- `tests/test_email_adapter.py:83` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:85` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:86` — `assert result.status == NotificationStatus.FAILED`
+- `tests/test_email_adapter.py:90` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:95` — `assert adapter.is_channel_available(NotificationChannel.EMAIL) is False`
+- `tests/test_email_adapter.py:98` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:103` — `assert adapter.is_channel_available(NotificationChannel.EMAIL) is True`
+- `tests/test_email_adapter.py:106` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:107` — `assert adapter.is_channel_available(NotificationChannel.TELEGRAM) is False`
+- `tests/test_email_adapter.py:108` — `assert adapter.is_channel_available(NotificationChannel.SMS) is False`
+- `tests/test_email_adapter.py:115` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:116` — `notification = Notification(`
+- `tests/test_email_adapter.py:117` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:119` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:121` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:122` — `assert result.status == NotificationStatus.FAILED`
+- `tests/test_email_adapter.py:126` — `"""Default recipient should be used when notification has no recipient."""`
+- `tests/test_email_adapter.py:127` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:132` — `notification = Notification(`
+- `tests/test_email_adapter.py:133` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:135` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:140` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:141` — `assert result.status == NotificationStatus.FAILED`
+- `tests/test_email_adapter.py:145` — `"""Explicit recipient on notification overrides default."""`
+- `tests/test_email_adapter.py:146` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:151` — `notification = Notification(`
+- `tests/test_email_adapter.py:152` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:155` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:160` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:161` — `assert result.status == NotificationStatus.SENT`
+- `tests/test_email_adapter.py:162` — `# Verify sendmail was called with the explicit recipient`
+- `tests/test_email_adapter.py:173` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:184` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:194` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:207` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:212` — `status = adapter.get_rate_limit_status(NotificationChannel.TELEGRAM)`
+- `tests/test_email_adapter.py:216` — `status = adapter.get_rate_limit_status(NotificationChannel.EMAIL)`
+- `tests/test_email_adapter.py:229` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:230` — `notification = Notification(`
+- `tests/test_email_adapter.py:231` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:233` — `priority=NotificationPriority.HIGH,`
+- `tests/test_email_adapter.py:235` — `html = adapter._to_html("Price < 100 & > 50", notification)`
+- `tests/test_email_adapter.py:247` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:248` — `notification = Notification(`
+- `tests/test_email_adapter.py:249` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:251` — `priority=NotificationPriority.CRITICAL,`
+- `tests/test_email_adapter.py:253` — `html = adapter._to_html("Test", notification)`
+- `tests/test_email_adapter.py:257` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:258` — `notification = Notification(`
+- `tests/test_email_adapter.py:259` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:261` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:263` — `html = adapter._to_html("Test", notification)`
+- `tests/test_email_adapter.py:267` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:268` — `notification = Notification(`
+- `tests/test_email_adapter.py:269` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:271` — `priority=NotificationPriority.LOW,`
+- `tests/test_email_adapter.py:273` — `html = adapter._to_html("Test", notification)`
+- `tests/test_email_adapter.py:274` — `assert "automated notification" in html`
+- `tests/test_email_adapter.py:277` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:278` — `notification = Notification(`
+- `tests/test_email_adapter.py:279` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:281` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:283` — `html = adapter._to_html("Line 1\nLine 2\nLine 3", notification)`
+- `tests/test_email_adapter.py:291` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:292` — `notification = Notification(`
+- `tests/test_email_adapter.py:293` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:295` — `priority=NotificationPriority.CRITICAL,`
+- `tests/test_email_adapter.py:297` — `subject = adapter._infer_subject(notification)`
+- `tests/test_email_adapter.py:301` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:303` — `notification = Notification(`
+- `tests/test_email_adapter.py:304` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:306` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:308` — `subject = adapter._infer_subject(notification)`
+- `tests/test_email_adapter.py:313` — `"""When notification has a subject, the adapter should use it."""`
+- `tests/test_email_adapter.py:314` — `EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:315` — `notification = Notification(`
+- `tests/test_email_adapter.py:316` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:319` — `priority=NotificationPriority.HIGH,`
+- `tests/test_email_adapter.py:321` — `# When subject is explicitly set, it's used directly in send_notification`
+- `tests/test_email_adapter.py:323` — `assert notification.subject == "Custom Subject Line"`
+- `tests/test_email_adapter.py:330` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:344` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:359` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:373` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:388` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:400` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:413` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:436` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:444` — `mock_server.sendmail.assert_called_once_with(`
+- `tests/test_email_adapter.py:449` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:451` — `mock_server.sendmail.side_effect = [`
+- `tests/test_email_adapter.py:462` — `assert mock_server.sendmail.call_count == 2`
+- `tests/test_email_adapter.py:469` — `def test_send_notification_success_with_mocked_smtp(self):`
+- `tests/test_email_adapter.py:470` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:475` — `notification = Notification(`
+- `tests/test_email_adapter.py:476` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:478` — `priority=NotificationPriority.HIGH,`
+- `tests/test_email_adapter.py:483` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:485` — `assert result.status == NotificationStatus.SENT`
+- `tests/test_email_adapter.py:486` — `assert result.channel == NotificationChannel.EMAIL`
+- `tests/test_email_adapter.py:487` — `assert "email_" in result.notification_id`
+- `tests/test_email_adapter.py:490` — `def test_send_notification_auth_failure(self):`
+- `tests/test_email_adapter.py:491` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:496` — `notification = Notification(`
+- `tests/test_email_adapter.py:497` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:499` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:504` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:506` — `assert result.status == NotificationStatus.FAILED`
+- `tests/test_email_adapter.py:509` — `def test_send_notification_rate_limited(self):`
+- `tests/test_email_adapter.py:510` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:514` — `notification = Notification(`
+- `tests/test_email_adapter.py:515` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:517` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:521` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:523` — `assert result.status == NotificationStatus.RATE_LIMITED`
+- `tests/test_email_adapter.py:526` — `def test_send_notifications_batch(self):`
+- `tests/test_email_adapter.py:527` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:532` — `notifications = [`
+- `tests/test_email_adapter.py:533` — `Notification(`
+- `tests/test_email_adapter.py:534` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:536` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:541` — `with patch.object(adapter, 'send_notification', return_value=MagicMock(`
+- `tests/test_email_adapter.py:542` — `status=NotificationStatus.SENT,`
+- `tests/test_email_adapter.py:543` — `notification_id="test",`
+- `tests/test_email_adapter.py:544` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:546` — `results = adapter.send_notifications(notifications)`
+- `tests/test_time_provider.py:220` — `# May or may not be reachable depending on network`
+- `tests/test_strategy_approval_workflow.py:9` — `- get_pending_approvals, get_request_history, get_approval_log`
+- `tests/test_strategy_approval_workflow.py:62` — `assert w.get_pending_approvals() == []`
+- `tests/test_strategy_approval_workflow.py:170` — `def test_approve_pending_request(self, workflow):`
+- `tests/test_strategy_approval_workflow.py:271` — `def test_reject_pending_request(self, workflow):`
+- `tests/test_strategy_approval_workflow.py:327` — `def test_expired_removed_from_pending(self, workflow):`
+- `tests/test_strategy_approval_workflow.py:334` — `pending = workflow.get_pending_approvals()`
+- `tests/test_strategy_approval_workflow.py:335` — `assert len(pending) == 0`
+- `tests/test_strategy_approval_workflow.py:350` — `class TestGetPendingApprovals:`
+- `tests/test_strategy_approval_workflow.py:351` — `def test_returns_only_pending(self, workflow):`
+- `tests/test_strategy_approval_workflow.py:360` — `pending = workflow.get_pending_approvals()`
+- `tests/test_strategy_approval_workflow.py:361` — `assert len(pending) == 1`
+- `tests/test_strategy_approval_workflow.py:362` — `assert pending[0]["strategy_name"] == "strat_b"`
+- `tests/test_strategy_approval_workflow.py:405` — `assert "pending_count" in report`
+- `tests/test_strategy_approval_workflow.py:408` — `assert "pending_approvals" in report`
+- `tests/test_strategy_approval_workflow.py:420` — `assert report["pending_count"] >= 1`
+- `tests/test_icicidirect_broker_adapter.py:194` — `"average_price": "263.15", "quantity": "10", "pending_quantity": "0",`
+- `tests/test_icicidirect_broker_adapter.py:216` — `def test_get_filled_quantity_derived_from_quantity_minus_pending(self, adapter: ICICIDirectBrokerAdapter):`
+- `tests/test_icicidirect_broker_adapter.py:224` — `"average_price": "263.15", "quantity": "10", "pending_quantity": "4"},`
+- `tests/test_plugin_registry.py:16` — `class TestRegistration:`
+- `tests/test_plugin_registry.py:17` — `def test_register_plugin(self):`
+- `tests/test_plugin_registry.py:19` — `entry = reg.register_plugin("my_strategy", plugin_type="strategy", version="1.0.0")`
+- `tests/test_plugin_registry.py:24` — `def test_register_plugin_invalid_type(self):`
+- `tests/test_plugin_registry.py:26` — `entry = reg.register_plugin("custom", plugin_type="invalid_type")`
+- `tests/test_plugin_registry.py:31` — `reg.register_plugin("my_plugin")`
+- `tests/test_plugin_registry.py:40` — `def test_unregister_plugin(self):`
+- `tests/test_plugin_registry.py:42` — `reg.register_plugin("temp")`
+- `tests/test_plugin_registry.py:43` — `assert reg.unregister_plugin("temp") is True`
+- `tests/test_plugin_registry.py:48` — `reg.register_plugin("a", plugin_type="strategy")`
+- `tests/test_plugin_registry.py:49` — `reg.register_plugin("b", plugin_type="broker")`
+- `tests/test_plugin_registry.py:54` — `reg.register_plugin("strat_a", plugin_type="strategy")`
+- `tests/test_plugin_registry.py:55` — `reg.register_plugin("strat_b", plugin_type="strategy")`
+- `tests/test_plugin_registry.py:56` — `reg.register_plugin("broker_c", plugin_type="broker")`
+- `tests/test_plugin_registry.py:62` — `reg.register_plugin("s1", plugin_type="strategy")`
+- `tests/test_plugin_registry.py:63` — `reg.register_plugin("b1", plugin_type="broker")`
+- `tests/test_plugin_registry.py:81` — `reg.register_plugin("dummy", plugin_class=DummyPlugin)`
+- `tests/test_plugin_registry.py:97` — `reg.register_plugin("p", plugin_class=P)`
+- `tests/test_plugin_registry.py:108` — `reg.register_plugin("p", plugin_class=P)`
+- `tests/test_plugin_registry.py:116` — `reg.register_plugin("p")`
+- `tests/test_plugin_registry.py:128` — `reg.register_plugin("p", plugin_class=P)`
+- `tests/test_plugin_registry.py:141` — `reg.register_plugin("p", plugin_class=P)`
+- `tests/test_plugin_registry.py:158` — `reg.register_plugin("p1", plugin_class=P1)`
+- `tests/test_plugin_registry.py:159` — `reg.register_plugin("p2", plugin_class=P2)`
+- `tests/test_plugin_registry.py:176` — `reg.register_plugin("calc", plugin_class=Calc)`
+- `tests/test_plugin_registry.py:188` — `reg.register_plugin("p", plugin_class=P)`
+- `tests/test_plugin_registry.py:202` — `reg.register_plugin("a", plugin_type="strategy")`
+- `tests/test_plugin_registry.py:203` — `reg.register_plugin("b", plugin_type="broker")`
+- `tests/test_public_base_url_admin_config.py:1` — `from core.notifications.url_resolver import (`
+- `tests/test_public_base_url_admin_config.py:32` — `from core.notifications.url_resolver import build_action_url`
+- `tests/test_wip37_external_url_centralization.py:8` — `text = (ROOT / "core/notifications/url_resolver.py").read_text(encoding="utf-8")`
+- `tests/test_wip37_external_url_centralization.py:14` — `text = (ROOT / "core/notifications/url_resolver.py").read_text(encoding="utf-8")`
+- `tests/test_notification_service.py:1` — `"""Tests for core/services/notification_service.py."""`
+- `tests/test_notification_service.py:7` — `import core.services.notification_service as _mod`
+- `tests/test_notification_service.py:8` — `from core.notification_filters import reset_dedupe_cache`
+- `tests/test_notification_service.py:11` — `class TestServicesNotification_service:`
+- `tests/test_notification_service.py:12` — `"""Test suite for core/services/notification_service.py."""`
+- `tests/test_notification_service.py:19` — `def _make_running_service(cfg: dict) -> _mod.NotificationService:`
+- `tests/test_notification_service.py:20` — `"""A NotificationService with status forced RUNNING and no adapters,`
+- `tests/test_notification_service.py:23` — `svc = _mod.NotificationService(cfg=cfg)`
+- `tests/test_notification_service.py:29` — `class TestNotificationFilterWiring:`
+- `tests/test_notification_service.py:30` — `"""core/notification_filters.py wiring into NotificationService.send() --`
+- `tests/test_notification_service.py:31` — `disabled by default (notification_filters_enabled=False), so a fresh`
+- `tests/test_notification_service.py:43` — `"""Regression guard: cfg={} -> notification_filters_enabled defaults`
+- `tests/test_notification_service.py:44` — `False -> send() must reach send_notification(), never short-circuit`
+- `tests/test_notification_service.py:47` — `with patch.object(svc, "send_notification", return_value=None) as mock_sn:`
+- `tests/test_notification_service.py:50` — `assert result is None  # send_notification(blocking=False) itself returns None`
+- `tests/test_notification_service.py:55` — `advisory. send_notification must never even be reached."""`
+- `tests/test_notification_service.py:56` — `svc = _make_running_service(cfg={"notification_filters_enabled": True})`
+- `tests/test_notification_service.py:57` — `with patch.object(svc, "send_notification") as mock_sn:`
+- `tests/test_notification_service.py:64` — `svc = _make_running_service(cfg={"notification_filters_enabled": True})`
+- `tests/test_notification_service.py:65` — `with patch.object(svc, "send_notification", return_value=None) as mock_sn:`
+- `tests/test_notification_service.py:71` — `"notification_filters_enabled": True,`
+- `tests/test_notification_service.py:77` — `with patch.object(svc, "send_notification", return_value=None) as mock_sn:`
+- `tests/test_notification_service.py:82` — `"""NotificationService() with no cfg arg at all (every pre-existing`
+- `tests/test_notification_service.py:84` — `svc = _mod.NotificationService()`
+- `tests/test_notification_service.py:87` — `with patch.object(svc, "send_notification", return_value=None) as mock_sn:`
+- `tests/test_event_system.py:268` — `"""Appending multiple events should increment sequence_number."""`
+- `tests/test_mstock_broker_adapter.py:193` — `{"order_id": "1131241001200", "status": "PENDING", "average_price": 0, "filled_quantity": 0},`
+- `tests/test_mstock_broker_adapter.py:207` — `assert adapter.get_order_status("1131241001200") == "PENDING"`
+- `tests/test_bi_dashboard.py:325` — `# May or may not have coverage recommendations depending on data`
+- `tests/test_error_budget.py:106` — `def test_register_slo(self):`
+- `tests/test_error_budget.py:107` — `"""Registering an SLO should return a budget."""`
+- `tests/test_error_budget.py:109` — `budget = mgr.register_slo("uptime", target=99.9)`
+- `tests/test_error_budget.py:114` — `"""Getting a registered budget should work."""`
+- `tests/test_error_budget.py:116` — `mgr.register_slo("uptime", target=99.9)`
+- `tests/test_error_budget.py:122` — `"""Getting an unregistered budget should return None."""`
+- `tests/test_error_budget.py:129` — `mgr.register_slo("uptime", target=99.9)`
+- `tests/test_error_budget.py:139` — `"""get_all_statuses should return all registered budgets."""`
+- `tests/test_error_budget.py:141` — `mgr.register_slo("uptime", target=99.9)`
+- `tests/test_error_budget.py:142` — `mgr.register_slo("replay", target=99.99)`
+- `tests/test_error_budget.py:151` — `mgr.register_slo("uptime", target=99.9)`
+- `tests/test_error_budget.py:159` — `mgr.register_slo("uptime", target=99.9)`
+- `tests/test_error_budget.py:166` — `def test_double_register(self):`
+- `tests/test_error_budget.py:167` — `"""Registering the same SLO twice should return the same instance."""`
+- `tests/test_error_budget.py:169` — `b1 = mgr.register_slo("uptime", target=99.9)`
+- `tests/test_error_budget.py:170` — `b2 = mgr.register_slo("uptime", target=99.99)`
+- `tests/test_error_budget.py:172` — `assert b1.target == 99.9  # First registration wins`
+- `tests/test_wip38_external_link_boundary.py:8` — `text = (ROOT / "core/notifications/url_resolver.py").read_text(encoding="utf-8")`
+- `tests/test_execution_reconciliation.py:325` — `def test_pending_orders_persist_across_restart(self, temp_db):`
+- `tests/test_execution_reconciliation.py:326` — `"""Test that pending orders are recovered on restart."""`
+- `tests/test_execution_reconciliation.py:339` — `pending = service2.get_pending_orders()`
+- `tests/test_execution_reconciliation.py:341` — `assert len(pending) == 1`
+- `tests/test_execution_reconciliation.py:342` — `assert pending[0]["order_id"] == "order_1"`
+- `tests/test_execution_reconciliation.py:356` — `except PermissionError:`
+- `tests/test_execution_reconciliation.py:360` — `except PermissionError:`
+- `tests/test_execution_reconciliation.py:366` — `result = service.get_pending_orders()`
+- `tests/test_execution_reconciliation.py:369` — `def test_crash_restart_recover_pending_orders(self, temp_db):`
+- `tests/test_execution_reconciliation.py:379` — `pending = service2.get_pending_orders()`
+- `tests/test_execution_reconciliation.py:380` — `assert any(o["order_id"] == "pre_crash_1" for o in pending)`
+- `tests/test_feature_quality_sla.py:13` — `- Registration of new features`
+- `tests/test_feature_quality_sla.py:276` — `assert mock_instance.register_slo.called`
+- `tests/test_feature_quality_sla.py:279` — `# ── Feature Registration ─────────────────────────────────────────────────────`
+- `tests/test_feature_quality_sla.py:281` — `class TestFeatureRegistration:`
+- `tests/test_feature_quality_sla.py:282` — `def test_register_new_feature(self, sla: FeatureQualitySLA):`
+- `tests/test_feature_quality_sla.py:283` — `"""New features can be registered dynamically."""`
+- `tests/test_feature_quality_sla.py:285` — `sla.register_feature_sla("new_feature", max_age_sec=600, critical=False)`
+- `tests/test_feature_quality_sla.py:289` — `def test_register_critical_feature(self, sla: FeatureQualitySLA):`
+- `tests/test_feature_quality_sla.py:291` — `sla.register_feature_sla("critical_feature", max_age_sec=60, critical=True)`
+- `tests/test_feature_quality_sla.py:294` — `def test_register_creates_status(self, sla: FeatureQualitySLA):`
+- `tests/test_feature_quality_sla.py:295` — `"""Registering a feature creates an initial status entry."""`
+- `tests/test_feature_quality_sla.py:296` — `sla.register_feature_sla("custom_feat")`
+- `tests/test_startup_reconciliation.py:116` — `def test_reconciler_orders_no_pending() -> None:`
+- `tests/test_signal_dispatch_order_placed_reply.py:73` — `"core.auth.user_signal_permissions.UserPermissionManager.get_instance",`
+- `tests/test_signal_dispatch_order_placed_reply.py:102` — `"core.auth.user_signal_permissions.UserPermissionManager.get_instance",`
+- `tests/test_signal_dispatch_order_placed_reply.py:135` — `"core.auth.user_signal_permissions.UserPermissionManager.get_instance",`
+- `tests/test_intelligence_analysis.py:11` — `register_analysis_routes,`
+- `tests/test_intelligence_analysis.py:15` — `def test_register_analysis_routes_exists():`
+- `tests/test_intelligence_analysis.py:16` — `assert callable(register_analysis_routes)`
+- `tests/test_intelligence_analysis.py:19` — `def test_register_analysis_routes_runs():`
+- `tests/test_intelligence_analysis.py:24` — `register_analysis_routes(app, dashboard, lambda: None, lambda: None)  # type: ignore[arg-type]`
+- `tests/test_sso.py:385` — `def test_get_or_create_user_no_auth_handler(self):`
+- `tests/test_sso.py:386` — `"""get_or_create_user should return None without auth handler."""`
+- `tests/test_sso.py:389` — `result = sso.get_or_create_user(sso_user)`
+- `tests/test_web_page_permission_menu_contract.py:32` — `def test_pricing_and_whats_new_pages_match_menu_permissions():`
+- `tests/test_web_page_permission_menu_contract.py:41` — `def test_admin_signals_page_accepts_only_its_menu_permissions():`
+- `tests/test_liquidity_guard.py:69` — `# spread_pct = 0; mid=100; this may pass depending on impl - just check no exception`
+- `tests/test_mediator.py:37` — `required_roles: list[str] | None = None`
+- `tests/test_mediator.py:125` — `m.register_handler(PlaceOrder, PlaceOrderHandler())`
+- `tests/test_mediator.py:126` — `m.register_handler(CancelOrder, CancelOrderHandler())`
+- `tests/test_mediator.py:127` — `m.register_handler(GetTradeHistory, GetTradeHistoryHandler())`
+- `tests/test_mediator.py:128` — `m.register_handler(GetSystemHealth, GetSystemHealthHandler())`
+- `tests/test_mediator.py:235` — `async def test_send_unregistered_command(self, mediator: Mediator) -> None:`
+- `tests/test_mediator.py:236` — `"""Test sending an unregistered command returns an error."""`
+- `tests/test_mediator.py:238` — `class UnregisteredCommand(Command[str]):`
+- `tests/test_mediator.py:241` — `result = await mediator.send(UnregisteredCommand())`
+- `tests/test_mediator.py:243` — `assert "No handler registered" in (result.error or "")`
+- `tests/test_mediator.py:269` — `m.register_handler(LimitedHistoryQuery, LimitedHistoryHandler())`
+- `tests/test_mediator.py:275` — `async def test_query_unregistered(self, mediator: Mediator) -> None:`
+- `tests/test_mediator.py:276` — `"""Test sending an unregistered query returns an error."""`
+- `tests/test_mediator.py:283` — `assert "No handler registered" in (result.error or "")`
+- `tests/test_mediator.py:286` — `async def test_handler_registration(self) -> None:`
+- `tests/test_mediator.py:287` — `"""Test registering handlers."""`
+- `tests/test_mediator.py:301` — `m.register_handler(TestCmd, TestHandler())`
+- `tests/test_mediator.py:310` — `mediator.register_event_handler(OrderPlacedEvent, handler1)`
+- `tests/test_mediator.py:329` — `mediator.register_event_handler(OrderPlacedEvent, h1)`
+- `tests/test_mediator.py:330` — `mediator.register_event_handler(OrderPlacedEvent, h2)`
+- `tests/test_mediator.py:374` — `m.register_handler(NameCmd, NameHandler())`
+- `tests/test_mediator.py:387` — `assert stats["registered_commands"] >= 2`
+- `tests/test_mediator.py:396` — `await mediator.send(BadCmd())  # Unregistered = error`
+- `tests/test_mediator.py:417` — `m.register_handler(FailingCmd, FailingHandler())`
+- `tests/test_mediator.py:451` — `m.register_handler(LogCmd, LogHandler())`
+- `tests/test_mediator.py:476` — `m.register_handler(TimedCmd, TimedHandler())`
+- `tests/test_mediator.py:500` — `m.register_handler(ValidatedCmd, ValidatedHandler())`
+- `tests/test_mediator.py:529` — `m.register_handler(RetryCmd, handler)`
+- `tests/test_mediator.py:537` — `"""Test auth middleware allows permitted role."""`
+- `tests/test_mediator.py:540` — `required_roles: list[str] | None = ["admin", "operator"]`
+- `tests/test_mediator.py:554` — `m.register_handler(AuthCmd, AuthHandler())`
+- `tests/test_mediator.py:555` — `result = await m.send(AuthCmd(), user_role="admin")`
+- `tests/test_mediator.py:589` — `m.register_handler(TrackCmd, TrackHandler())`
+- `tests/test_mediator.py:617` — `m.register_handler(FullCmd, FullHandler())`
+- `tests/test_mediator.py:658` — `m.register_handler(OrderCmd, OrderHandler())`
+- `tests/test_mediator.py:671` — `async def test_auth_middleware_denies_wrong_role(self) -> None:`
+- `tests/test_mediator.py:672` — `"""Auth middleware blocks user not in required_roles."""`
+- `tests/test_mediator.py:674` — `required_roles: list[str] | None = ["admin"]`
+- `tests/test_mediator.py:685` — `m.register_handler(RestrictedCmd, RestrictedHandler())`
+- `tests/test_mediator.py:686` — `result = await m.send(RestrictedCmd(), user_role="viewer")`
+- `tests/test_mediator.py:692` — `async def test_auth_middleware_no_required_roles(self) -> None:`
+- `tests/test_mediator.py:693` — `"""Command without required_roles uses role_permissions map."""`
+- `tests/test_mediator.py:706` — `# Override auth middleware with one that only allows "admin" role`
+- `tests/test_mediator.py:708` — `AuthMiddleware(role_permissions={"admin": ["UnrestrictedCmd"], "viewer": ["ReadOnly"]})`
+- `tests/test_mediator.py:710` — `m.register_handler(UnrestrictedCmd, UnrestrictedHandler())`
+- `tests/test_mediator.py:711` — `# viewer role doesn't have UnrestrictedCmd in its permissions`
+- `tests/test_mediator.py:712` — `result = await m.send(UnrestrictedCmd(), user_role="viewer")`
+- `tests/test_mediator.py:732` — `AuthMiddleware(role_permissions={"viewer": ["My"]})`
+- `tests/test_mediator.py:734` — `m.register_handler(MySpecialCmd, MySpecialHandler())`
+- `tests/test_mediator.py:735` — `result = await m.send(MySpecialCmd(), user_role="viewer")`
+- `tests/test_mediator.py:761` — `m.register_handler(RegularCmd, RegularHandler())`
+- `tests/test_mediator.py:785` — `m.register_handler(ValidatableCmd, ValidatableHandler())`
+- `tests/test_mediator.py:819` — `m.register_handler(TransientCmd, handler)`
+- `tests/test_mediator.py:839` — `m.register_handler(AlwaysFailingCmd, AlwaysFailingHandler())`
+- `tests/test_mediator.py:859` — `m.register_handler(NonTransientCmd, NonTransientHandler())`
+- `tests/test_mediator.py:895` — `m.register_handler(FailCmd, FailHandler())`
+- `tests/test_mediator.py:900` — `# ── Handler Registration Errors ───────────────────────────────────────`
+- `tests/test_mediator.py:903` — `class TestHandlerRegistrationErrors:`
+- `tests/test_mediator.py:904` — `"""Tests for handler registration error paths."""`
+- `tests/test_mediator.py:906` — `def test_register_handler_unknown_type_raises(self) -> None:`
+- `tests/test_mediator.py:907` — `"""register_handler raises ValueError for unknown handler type."""`
+- `tests/test_mediator.py:910` — `m.register_handler(str, "not_a_handler")  # type: ignore[arg-type]`
+- `tests/test_mediator.py:917` — `"""Test publish with no registered handlers."""`
+- `tests/test_mediator.py:952` — `m.register_handler(DirectCmd, DirectHandler())`
+- `tests/test_mediator.py:975` — `m.register_event_handler(FragileEvent, FragileHandler())`
+- `tests/test_mediator.py:992` — `assert stats["registered_commands"] == 0`
+- `tests/test_mediator.py:993` — `assert stats["registered_queries"] == 0`
+- `tests/test_mediator.py:994` — `assert stats["registered_event_handlers"] == 0`
+- `tests/test_expiry_day_controller.py:118` — `# Should be in caution or blocked depending on exact times`
+- `tests/test_enterprise_dashboard_integration.py:11` — `- /api/system/notifications endpoint`
+- `tests/test_enterprise_dashboard_integration.py:468` — `class TestApiNotifications:`
+- `tests/test_enterprise_dashboard_integration.py:469` — `"""Test the /api/system/notifications endpoint."""`
+- `tests/test_enterprise_dashboard_integration.py:471` — `def test_list_notifications_empty(self, client):`
+- `tests/test_enterprise_dashboard_integration.py:472` — `resp = client.get("/api/system/notifications", headers={"accept": "application/json"})`
+- `tests/test_enterprise_dashboard_integration.py:475` — `assert "notifications" in data`
+- `tests/test_enterprise_dashboard_integration.py:477` — `assert isinstance(data["notifications"], list)`
+- `tests/test_enterprise_dashboard_integration.py:480` — `def test_list_notifications_after_push(self, dashboard, client):`
+- `tests/test_enterprise_dashboard_integration.py:481` — `dashboard._notifications.push("API test", severity="WARNING", category="test")`
+- `tests/test_enterprise_dashboard_integration.py:482` — `resp = client.get("/api/system/notifications", headers={"accept": "application/json"})`
+- `tests/test_enterprise_dashboard_integration.py:486` — `assert any(n["message"] == "API test" for n in data["notifications"])`
+- `tests/test_enterprise_dashboard_integration.py:489` — `dashboard._notifications.push("Integration test", severity="WARNING", category="test")`
+- `tests/test_enterprise_dashboard_integration.py:490` — `resp = client.get("/api/system/notifications", headers={"accept": "application/json"})`
+- `tests/test_enterprise_dashboard_integration.py:493` — `assert any(n["message"] == "Integration test" for n in data["notifications"])`
+- `tests/test_enterprise_dashboard_integration.py:495` — `def test_notification_fields(self, dashboard, client):`
+- `tests/test_enterprise_dashboard_integration.py:496` — `dashboard._notifications.push("Field test", severity="INFO", category="test")`
+- `tests/test_enterprise_dashboard_integration.py:497` — `resp = client.get("/api/system/notifications", headers={"accept": "application/json"})`
+- `tests/test_enterprise_dashboard_integration.py:499` — `if data["notifications"]:`
+- `tests/test_enterprise_dashboard_integration.py:500` — `n = data["notifications"][-1]`
+- `tests/test_enterprise_dashboard_integration.py:504` — `def test_notification_n_param(self, dashboard, client):`
+- `tests/test_enterprise_dashboard_integration.py:505` — `dashboard._notifications.push("One", severity="INFO", category="test")`
+- `tests/test_enterprise_dashboard_integration.py:506` — `dashboard._notifications.push("Two", severity="WARNING", category="test")`
+- `tests/test_enterprise_dashboard_integration.py:507` — `resp = client.get("/api/system/notifications?n=1", headers={"accept": "application/json"})`
+- `tests/test_enterprise_dashboard_integration.py:510` — `assert len(data["notifications"]) <= 1`
+- `tests/test_execution_service_comprehensive.py:8` — `- run_ack_watchdog (empty, SUBMITTED, broker filled/rejected/pending, errors)`
+- `tests/test_execution_service_comprehensive.py:9` — `- reconcile_pending_orders (clean, issues, freeze)`
+- `tests/test_execution_service_comprehensive.py:11` — `- WAL journal integration (PENDING, COMMIT, FAIL, no journal)`
+- `tests/test_execution_service_comprehensive.py:283` — `assert result["still_pending"] == 0`
+- `tests/test_execution_service_comprehensive.py:306` — `def test_watchdog_still_pending(self, service: ExecutionService, mock_broker: MagicMock):`
+- `tests/test_execution_service_comprehensive.py:307` — `"""Broker says OPEN → still_pending."""`
+- `tests/test_execution_service_comprehensive.py:317` — `assert result["still_pending"] == 1`
+- `tests/test_execution_service_comprehensive.py:336` — `#  reconcile_pending_orders`
+- `tests/test_execution_service_comprehensive.py:340` — `class TestReconcilePendingOrders:`
+- `tests/test_execution_service_comprehensive.py:342` — `result = service.reconcile_pending_orders()`
+- `tests/test_execution_service_comprehensive.py:348` — `result = service.reconcile_pending_orders()`
+- `tests/test_execution_service_comprehensive.py:359` — `result = service.reconcile_pending_orders()`
+- `tests/test_execution_service_comprehensive.py:372` — `result = service.reconcile_pending_orders()`
+- `tests/test_execution_service_comprehensive.py:444` — `def test_wal_pending_on_execute(self, service: ExecutionService, order_request: OrderRequest):`
+- `tests/test_execution_service_comprehensive.py:448` — `# PENDING intent written`
+- `tests/test_execution_service_comprehensive.py:610` — `"""LIMIT order at unfavorable price → PENDING."""`
+- `tests/test_execution_service_comprehensive.py:618` — `assert result.status == OrderStatus.PENDING`
+- `tests/test_wip62_admin_users_action_visibility.py:25` — `assert "permissionsTableBody').addEventListener('click'" in text`
+- `tests/test_wip62_admin_users_action_visibility.py:32` — `for field in ("colFilterUser","colFilterRole","colFilterSignalStatus","colFilterTier",`
+- `tests/test_wip62_admin_users_action_visibility.py:36` — `assert "renderPermissionRows" in text`
+- `tests/test_web_rbac_parity.py:4` — `silently fall back to broad admin-role checks after a granular permission is`
+- `tests/test_web_rbac_parity.py:19` — `def test_all_web_permission_dependencies_use_declared_permissions() -> None:`
+- `tests/test_web_rbac_parity.py:20` — `from core.auth.permissions import Permission`
+- `tests/test_web_rbac_parity.py:22` — `allowed = {p.value for p in Permission}`
+- `tests/test_web_rbac_parity.py:32` — `if not (isinstance(node.func, ast.Attribute) and node.func.attr == "require_permission"):`
+- `tests/test_web_rbac_parity.py:36` — `permission = node.args[0].value`
+- `tests/test_web_rbac_parity.py:37` — `assert permission in allowed, f"Unknown permission {permission!r} in {path}"`
+- `tests/test_web_rbac_parity.py:40` — `def test_admin_role_still_has_all_operational_admin_permissions() -> None:`
+- `tests/test_web_rbac_parity.py:41` — `from core.auth.permissions import Permission, Role, role_has_permission`
+- `tests/test_web_rbac_parity.py:44` — `Permission.VIEW_STATE,`
+- `tests/test_web_rbac_parity.py:45` — `Permission.HALT_TRADING,`
+- `tests/test_web_rbac_parity.py:46` — `Permission.MODIFY_RISK_LIMITS,`
+- `tests/test_web_rbac_parity.py:47` — `Permission.TOGGLE_STRATEGIES,`
+- `tests/test_web_rbac_parity.py:48` — `Permission.DEPLOY_MODELS,`
+- `tests/test_web_rbac_parity.py:49` — `Permission.MODIFY_CODE,`
+- `tests/test_web_rbac_parity.py:50` — `Permission.VIEW_LOGS,`
+- `tests/test_web_rbac_parity.py:51` — `Permission.ADD_BROKERS,`
+- `tests/test_web_rbac_parity.py:52` — `Permission.MODIFY_CONFIG,`
+- `tests/test_web_rbac_parity.py:53` — `Permission.MANAGE_USERS,`
+- `tests/test_web_rbac_parity.py:55` — `assert all(role_has_permission(Role.ADMIN, p) for p in required)`
+- `tests/test_web_rbac_parity.py:56` — `assert not role_has_permission(Role.ADMIN, Permission.MANAGE_PERMISSIONS)`
+- `tests/test_paper_trader_enhanced.py:352` — `# Either FILLED or PARTIALLY_FILLED depending on OI calculation`
+- `tests/test_enterprise_dashboard.py:555` — `def test_permissions_policy(self, state_file: str, trades_db: str, tmp_path):`
+- `tests/test_enterprise_dashboard.py:556` — `"""Permissions-Policy header restricts camera/microphone/geolocation."""`
+- `tests/test_enterprise_dashboard.py:566` — `pp = resp.headers.get("permissions-policy")`
+- `tests/test_enterprise_dashboard.py:858` — `raise OSError("Permission denied")`
+- `tests/test_enterprise_dashboard.py:899` — `class TestConfigApplySyncsUserPermissions:`
+- `tests/test_enterprise_dashboard.py:901` — `permission sync called get_user_permission()/upsert_user_permission(),`
+- `tests/test_enterprise_dashboard.py:902` — `neither of which ever existed on UserPermissionManager (only the plural`
+- `tests/test_enterprise_dashboard.py:903` — `get_user_permissions() and update_user_permissions() do) - this silently`
+- `tests/test_enterprise_dashboard.py:906` — `def test_email_to_and_chat_id_sync_to_admin_permissions(self, tmp_path, monkeypatch):`
+- `tests/test_enterprise_dashboard.py:907` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `tests/test_enterprise_dashboard.py:910` — `isolated_mgr = UserPermissionManager(store_path=tmp_path / "user_signal_permissions.json")`
+- `tests/test_enterprise_dashboard.py:911` — `monkeypatch.setattr(UserPermissionManager, "get_instance", classmethod(lambda cls: isolated_mgr))`
+- `tests/test_enterprise_dashboard.py:927` — `admin_perm = isolated_mgr.get_user_permissions("admin")`
+- `tests/test_enterprise_dashboard.py:933` — `"""Even if the permission sync itself fails, the config write must`
+- `tests/test_enterprise_dashboard.py:935` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `tests/test_enterprise_dashboard.py:939` — `raise RuntimeError("permission store unavailable")`
+- `tests/test_enterprise_dashboard.py:941` — `monkeypatch.setattr(UserPermissionManager, "get_instance", classmethod(_broken_get_instance))`
+- `tests/test_enterprise_dashboard.py:1266` — `raise OSError("Permission denied")`
+- `tests/test_enterprise_dashboard.py:2010` — `def test_html_register_page(self, mock_templates, no_csrf, state_file, trades_db, tmp_path):`
+- `tests/test_enterprise_dashboard.py:2011` — `"""GET /register renders register page."""`
+- `tests/test_enterprise_dashboard.py:2016` — `r = c.get("/register")`
+- `tests/test_enterprise_dashboard.py:2151` — `but the registered 500 handler body IS executed within the middleware`
+- `tests/test_enterprise_dashboard.py:2171` — `# Register a route that raises RuntimeError`
+- `tests/test_enterprise_dashboard.py:2234` — `res = d._auth.create_user("secpageviewer", "Xk7$mQz9Lp2!", role="viewer")`
+- `tests/test_wip63_user_lifecycle_surface.py:1` — `"""WIP63 user registration/permission lifecycle checks."""`
+- `tests/test_wip63_user_lifecycle_surface.py:18` — `def test_registration_and_user_management_surface_exists():`
+- `tests/test_wip63_user_lifecycle_surface.py:20` — `assert "register" in t`
+- `tests/test_wip63_user_lifecycle_surface.py:24` — `def test_role_permission_surface_exists():`
+- `tests/test_wip63_user_lifecycle_surface.py:26` — `assert "permission" in t`
+- `tests/test_wip63_user_lifecycle_surface.py:27` — `assert "role" in t`
+- `tests/test_wip63_user_lifecycle_surface.py:30` — `def test_email_or_notification_surface_exists():`
+- `tests/test_wip63_user_lifecycle_surface.py:32` — `assert ("email" in t) or ("notification" in t)`
+- `tests/test_wip63_user_lifecycle_surface.py:35` — `def test_pending_or_approval_concept_exists():`
+- `tests/test_wip63_user_lifecycle_surface.py:37` — `assert any(x in t for x in ("pending","approval","approve"))`
+- `tests/test_signal_tracker.py:69` — `# depending on the seed data's exact contents.`
+- `tests/test_signal_tracker.py:129` — `def test_still_pending_today_stays_active(self, tmp_path):`
+- `tests/test_data_lineage.py:38` — `except PermissionError:`
+- `tests/test_role_manager.py:1` — `"""Tests for core/auth/role_manager.py - RBAC RoleManager.`
+- `tests/test_role_manager.py:4` — `- RoleManager init with default Role.OBSERVER`
+- `tests/test_role_manager.py:5` — `- assign() with Role objects and strings`
+- `tests/test_role_manager.py:7` — `- get_role() for assigned and unknown identities`
+- `tests/test_role_manager.py:8` — `- check() - passes and raises PermissionDenied`
+- `tests/test_role_manager.py:9` — `- has_permission() boolean checks`
+- `tests/test_role_manager.py:11` — `- load_from_config() with valid/invalid roles`
+- `tests/test_role_manager.py:21` — `from core.auth.permissions import Permission, PermissionDenied, Role`
+- `tests/test_role_manager.py:22` — `from core.auth.role_manager import RoleManager`
+- `tests/test_role_manager.py:28` — `def rbac() -> RoleManager:`
+- `tests/test_role_manager.py:29` — `"""RoleManager with default OBSERVER role."""`
+- `tests/test_role_manager.py:30` — `return RoleManager()`
+- `tests/test_role_manager.py:34` — `def rbac_with_assignments(rbac: RoleManager) -> RoleManager:`
+- `tests/test_role_manager.py:35` — `"""RoleManager with pre-assigned roles."""`
+- `tests/test_role_manager.py:36` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:37` — `rbac.assign("bob", Role.OPERATOR)`
+- `tests/test_role_manager.py:46` — `def test_default_role_is_observer(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:47` — `assert rbac._default_role == Role.OBSERVER`
+- `tests/test_role_manager.py:49` — `def test_custom_default_role(self):`
+- `tests/test_role_manager.py:50` — `rbac = RoleManager(default_role=Role.VIEWER)`
+- `tests/test_role_manager.py:51` — `assert rbac._default_role == Role.VIEWER`
+- `tests/test_role_manager.py:53` — `def test_custom_default_role_string(self):`
+- `tests/test_role_manager.py:54` — `rbac = RoleManager(default_role="admin")`
+- `tests/test_role_manager.py:55` — `assert rbac._default_role == Role.ADMIN`
+- `tests/test_role_manager.py:57` — `def test_empty_roles_dict(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:58` — `assert rbac._roles == {}`
+- `tests/test_role_manager.py:60` — `def test_has_lock(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:68` — `def test_assign_with_role_enum(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:69` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:70` — `assert rbac.get_role("alice") == Role.ADMIN`
+- `tests/test_role_manager.py:72` — `def test_assign_with_string(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:74` — `assert rbac.get_role("bob") == Role.OPERATOR`
+- `tests/test_role_manager.py:76` — `def test_assign_case_insensitive_string(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:78` — `assert rbac.get_role("carol") == Role.ADMIN`
+- `tests/test_role_manager.py:80` — `def test_assign_overwrites_existing(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:81` — `rbac.assign("alice", Role.VIEWER)`
+- `tests/test_role_manager.py:82` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:83` — `assert rbac.get_role("alice") == Role.ADMIN`
+- `tests/test_role_manager.py:85` — `def test_assign_multiple_identities(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:86` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:87` — `rbac.assign("bob", Role.OPERATOR)`
+- `tests/test_role_manager.py:88` — `rbac.assign("charlie", Role.VIEWER)`
+- `tests/test_role_manager.py:89` — `assert rbac.get_role("alice") == Role.ADMIN`
+- `tests/test_role_manager.py:90` — `assert rbac.get_role("bob") == Role.OPERATOR`
+- `tests/test_role_manager.py:91` — `assert rbac.get_role("charlie") == Role.VIEWER`
+- `tests/test_role_manager.py:93` — `def test_assign_invalid_role_string_raises(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:102` — `def test_revoke_returns_to_default(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:103` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:105` — `assert rbac.get_role("alice") == Role.OBSERVER  # default`
+- `tests/test_role_manager.py:107` — `def test_revoke_nonexistent_does_nothing(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:110` — `def test_revoke_then_reassign(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:111` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:113` — `rbac.assign("alice", Role.OPERATOR)`
+- `tests/test_role_manager.py:114` — `assert rbac.get_role("alice") == Role.OPERATOR`
+- `tests/test_role_manager.py:116` — `def test_revoke_does_not_affect_others(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:118` — `assert rbac_with_assignments.get_role("bob") == Role.OPERATOR`
+- `tests/test_role_manager.py:121` — `# ── get_role() Tests ──────────────────────────────────────────────────────────`
+- `tests/test_role_manager.py:124` — `class TestGetRole:`
+- `tests/test_role_manager.py:125` — `def test_known_identity(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:126` — `assert rbac_with_assignments.get_role("alice") == Role.ADMIN`
+- `tests/test_role_manager.py:128` — `def test_unknown_identity_returns_default(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:129` — `assert rbac.get_role("unknown") == Role.OBSERVER`
+- `tests/test_role_manager.py:132` — `rbac = RoleManager(default_role=Role.VIEWER)`
+- `tests/test_role_manager.py:133` — `assert rbac.get_role("unknown") == Role.VIEWER`
+- `tests/test_role_manager.py:135` — `def test_case_sensitive_identity(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:137` — `assert rbac_with_assignments.get_role("Alice") == Role.OBSERVER  # not 'alice'`
+- `tests/test_role_manager.py:144` — `def test_admin_has_all_permissions(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:145` — `for perm in Permission:`
+- `tests/test_role_manager.py:148` — `def test_operator_permitted(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:149` — `rbac_with_assignments.check("bob", Permission.VIEW_STATE)  # Should not raise`
+- `tests/test_role_manager.py:150` — `rbac_with_assignments.check("bob", Permission.HALT_TRADING)  # Should not raise`
+- `tests/test_role_manager.py:152` — `def test_operator_denied_for_risk(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:153` — `with pytest.raises(PermissionDenied):`
+- `tests/test_role_manager.py:154` — `rbac_with_assignments.check("bob", Permission.MODIFY_RISK_LIMITS)`
+- `tests/test_role_manager.py:156` — `def test_viewer_denied_for_halt(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:157` — `with pytest.raises(PermissionDenied):`
+- `tests/test_role_manager.py:158` — `rbac_with_assignments.check("charlie", Permission.HALT_TRADING)`
+- `tests/test_role_manager.py:160` — `def test_unknown_identity_denied(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:161` — `with pytest.raises(PermissionDenied):`
+- `tests/test_role_manager.py:162` — `rbac.check("unknown", Permission.HALT_TRADING)`
+- `tests/test_role_manager.py:164` — `def test_string_permission(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:167` — `def test_parent_exception_type(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:168` — `with pytest.raises(PermissionDenied):`
+- `tests/test_role_manager.py:169` — `rbac_with_assignments.check("charlie", Permission.HALT_TRADING)`
+- `tests/test_role_manager.py:171` — `def test_error_message_contains_identity(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:172` — `with pytest.raises(PermissionDenied, match="unknown"):`
+- `tests/test_role_manager.py:173` — `rbac.check("unknown", Permission.HALT_TRADING)`
+- `tests/test_role_manager.py:176` — `# ── has_permission() Tests ────────────────────────────────────────────────────`
+- `tests/test_role_manager.py:179` — `class TestHasPermission:`
+- `tests/test_role_manager.py:180` — `def test_admin_has_all(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:181` — `for perm in Permission:`
+- `tests/test_role_manager.py:182` — `assert rbac_with_assignments.has_permission("alice", perm)`
+- `tests/test_role_manager.py:184` — `def test_observer_has_view_only(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:185` — `assert rbac.has_permission("unknown", Permission.VIEW_STATE) is True`
+- `tests/test_role_manager.py:186` — `assert rbac.has_permission("unknown", Permission.VIEW_LOGS) is True`
+- `tests/test_role_manager.py:187` — `assert rbac.has_permission("unknown", Permission.HALT_TRADING) is False`
+- `tests/test_role_manager.py:189` — `def test_viewer_denied_for_code(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:190` — `assert rbac_with_assignments.has_permission("charlie", Permission.MODIFY_CODE) is False`
+- `tests/test_role_manager.py:192` — `def test_unknown_role_default(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:193` — `assert rbac.has_permission("nobody", Permission.VIEW_STATE) is True`
+- `tests/test_role_manager.py:194` — `assert rbac.has_permission("nobody", Permission.HALT_TRADING) is False`
+- `tests/test_role_manager.py:196` — `def test_string_permission(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:197` — `assert rbac_with_assignments.has_permission("alice", "halt_trading") is True`
+- `tests/test_role_manager.py:204` — `def test_empty_when_no_assignments(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:207` — `def test_returns_sorted(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:213` — `def test_includes_all_assignments(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:219` — `def test_excludes_revoked(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:223` — `def test_does_not_include_default_role(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:232` — `def test_load_valid_roles(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:234` — `"admin_roles": {`
+- `tests/test_role_manager.py:240` — `assert rbac.get_role("alice") == Role.ADMIN`
+- `tests/test_role_manager.py:241` — `assert rbac.get_role("bob") == Role.OPERATOR`
+- `tests/test_role_manager.py:243` — `def test_load_with_default_role(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:245` — `"admin_roles": {},`
+- `tests/test_role_manager.py:246` — `"admin_default_role": "viewer",`
+- `tests/test_role_manager.py:249` — `assert rbac._default_role == Role.VIEWER`
+- `tests/test_role_manager.py:251` — `def test_invalid_role_skipped(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:253` — `"admin_roles": {`
+- `tests/test_role_manager.py:259` — `# alice should not be assigned (invalid role)`
+- `tests/test_role_manager.py:260` — `assert rbac.get_role("alice") == Role.OBSERVER  # default`
+- `tests/test_role_manager.py:261` — `assert rbac.get_role("bob") == Role.OPERATOR`
+- `tests/test_role_manager.py:263` — `def test_invalid_default_role_keeps_current(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:265` — `"admin_default_role": "superadmin",  # invalid`
+- `tests/test_role_manager.py:268` — `assert rbac._default_role == Role.OBSERVER  # unchanged`
+- `tests/test_role_manager.py:270` — `def test_empty_config(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:272` — `assert rbac._default_role == Role.OBSERVER`
+- `tests/test_role_manager.py:274` — `def test_missing_admin_roles_key(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:275` — `"""If 'admin_roles' key is missing, nothing should load."""`
+- `tests/test_role_manager.py:279` — `def test_overrides_existing_assignments(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:281` — `"admin_roles": {"alice": "viewer"},  # downgrade`
+- `tests/test_role_manager.py:284` — `assert rbac_with_assignments.get_role("alice") == Role.VIEWER`
+- `tests/test_role_manager.py:290` — `class TestRoleManagerThreadSafety:`
+- `tests/test_role_manager.py:291` — `def test_concurrent_assign(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:310` — `def test_concurrent_check_and_assign(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:311` — `"""Concurrent permission checks and assignments should not crash."""`
+- `tests/test_role_manager.py:312` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:319` — `rbac.check("alice", Permission.VIEW_STATE)`
+- `tests/test_role_manager.py:320` — `rbac.has_permission("alice", Permission.HALT_TRADING)`
+- `tests/test_role_manager.py:328` — `rbac.assign("alice", Role.ADMIN if i % 2 == 0 else Role.OPERATOR)`
+- `tests/test_role_manager.py:342` — `def test_concurrent_revoke_and_assign(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:344` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:355` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:368` — `assert rbac.get_role("alice") in (Role.ADMIN, Role.ADMIN, Role.OBSERVER)`
+- `tests/test_scan_dead_code.py:135` — `"""Test the append-only register update helper (fast - tempfile)."""`
+- `tests/test_scan_dead_code.py:200` — `def test_main_update_registers(self) -> None:`
+- `tests/test_scan_dead_code.py:201` — `"""--update-registers should not crash."""`
+- `tests/test_scan_dead_code.py:202` — `exit_code = main(["--update-registers"])`
+- `tests/test_wip59_admin_users_controls.py:36` — `def test_admin_users_has_permission_surface():`
+- `tests/test_wip59_admin_users_controls.py:41` — `if "/admin/users" in t and any(x in low for x in ("permission","role","authorization","privilege")):`
+- `tests/test_execution_replay_engine.py:35` — `assert s.status == "PENDING"`
+- `tests/test_execution_replay_engine.py:70` — `assert session.status == "PENDING"`
+- `tests/test_slo_governance.py:106` — `def test_register_slo(self):`
+- `tests/test_slo_governance.py:109` — `slo.register_slo(custom)`
+- `tests/test_execution_broker_state_handler.py:7` — `- BrokerStateHandler (resolve_status, should_retry, handle_timeout, handle_exception, pending count, clear)`
+- `tests/test_execution_broker_state_handler.py:40` — `assert BrokerStateCategory.KNOWN_PENDING.value == "KNOWN_PENDING"`
+- `tests/test_execution_broker_state_handler.py:110` — `# ── KNOWN_PENDING states ───────────────────────────────────────────────`
+- `tests/test_execution_broker_state_handler.py:114` — `assert sr.category == BrokerStateCategory.KNOWN_PENDING`
+- `tests/test_execution_broker_state_handler.py:117` — `def test_resolve_pending_within_timeout(self, handler):`
+- `tests/test_execution_broker_state_handler.py:118` — `sr = handler.resolve_status("PENDING", last_update=now_ist())`
+- `tests/test_execution_broker_state_handler.py:119` — `assert sr.category == BrokerStateCategory.KNOWN_PENDING`
+- `tests/test_execution_broker_state_handler.py:123` — `assert sr.category == BrokerStateCategory.KNOWN_PENDING`
+- `tests/test_execution_broker_state_handler.py:125` — `def test_resolve_trigger_pending_within_timeout(self, handler):`
+- `tests/test_execution_broker_state_handler.py:126` — `sr = handler.resolve_status("TRIGGER PENDING", last_update=now_ist())`
+- `tests/test_execution_broker_state_handler.py:127` — `assert sr.category == BrokerStateCategory.KNOWN_PENDING`
+- `tests/test_execution_broker_state_handler.py:137` — `assert sr.category == BrokerStateCategory.KNOWN_PENDING`
+- `tests/test_execution_broker_state_handler.py:142` — `assert sr.category == BrokerStateCategory.KNOWN_PENDING`
+- `tests/test_execution_broker_state_handler.py:194` — `# OPEN without last_update returns KNOWN_PENDING with can_retry=False`
+- `tests/test_execution_broker_state_handler.py:245` — `sr = handler.handle_exception("order-1", PermissionError("auth failed"), 0)`
+- `tests/test_execution_broker_state_handler.py:263` — `class TestPendingOrdersCount:`
+- `tests/test_execution_broker_state_handler.py:264` — `"""Pending orders with unknown status count."""`
+- `tests/test_execution_broker_state_handler.py:266` — `def test_pending_count_initial(self, handler):`
+- `tests/test_execution_broker_state_handler.py:267` — `assert handler.get_pending_orders_count() == 0`
+- `tests/test_execution_broker_state_handler.py:269` — `def test_pending_count_after_unknown(self, handler):`
+- `tests/test_execution_broker_state_handler.py:272` — `assert handler.get_pending_orders_count() == 2`
+- `tests/test_execution_broker_state_handler.py:280` — `assert handler.get_pending_orders_count() == 1`
+- `tests/test_execution_broker_state_handler.py:282` — `assert handler.get_pending_orders_count() == 0`
+- `tests/test_market_calendar.py:93` — `# 15:20 is boundary; may be POST or OPEN depending on implementation`
+- `tests/test_ai_governance.py:21` — `"""Create a governance board with a registered DRAFT model."""`
+- `tests/test_ai_governance.py:22` — `governance.register_model(`
+- `tests/test_ai_governance.py:35` — `# Model Registration`
+- `tests/test_ai_governance.py:39` — `class TestModelRegistration:`
+- `tests/test_ai_governance.py:40` — `def test_register_model(self, governance):`
+- `tests/test_ai_governance.py:41` — `governance.register_model(`
+- `tests/test_ai_governance.py:51` — `def test_register_model_with_metadata(self, governance):`
+- `tests/test_ai_governance.py:52` — `governance.register_model(`
+- `tests/test_ai_governance.py:69` — `def test_register_duplicate_model_id(self, governance_with_model):`
+- `tests/test_ai_governance.py:70` — `"""Registering with same ID should update (upsert)."""`
+- `tests/test_ai_governance.py:71` — `governance_with_model.register_model(`
+- `tests/test_ai_governance.py:83` — `def test_register_multiple_versions(self, governance):`
+- `tests/test_ai_governance.py:84` — `governance.register_model("m1", "1.0", "classifier")`
+- `tests/test_ai_governance.py:85` — `governance.register_model("m2", "2.0", "classifier")`
+- `tests/test_ai_governance.py:156` — `# Register v1, approve, promote`
+- `tests/test_ai_governance.py:164` — `# Register v2, approve, promote`
+- `tests/test_ai_governance.py:165` — `governance_with_model.register_model("model-v2", "2.0", "signal_classifier")`
+- `tests/test_ai_governance.py:233` — `assert len(log) >= 1  # register action`
+- `tests/test_ai_governance.py:234` — `assert log[0]["action"] == "register"`
+- `tests/test_ai_governance.py:268` — `governance_with_model.register_model(f"m{i}", "1.0", "test")`
+- `tests/test_ai_governance.py:273` — `"""Multiple registrations should not corrupt audit log."""`
+- `tests/test_ai_governance.py:277` — `def register():`
+- `tests/test_ai_governance.py:280` — `governance.register_model(f"t{i}", "1.0", "test")`
+- `tests/test_ai_governance.py:284` — `threads = [threading.Thread(target=register) for _ in range(5)]`
+- `tests/test_ai_governance.py:340` — `governance.register_model("m1", "1.0", "model_a")`
+- `tests/test_ai_governance.py:341` — `governance.register_model("m2", "1.0", "model_b")`
+- `tests/test_ai_governance.py:350` — `governance.register_model("lifecycle", "1.0.0", "test_model")`
+- `tests/test_market_data_provider.py:130` — `# succeed depending on test environment dependencies)`
+- `tests/test_market_data_provider.py:153` — `# yfinance may or may not succeed depending on test environment,`
+- `tests/test_market_data_provider.py:225` — `def test_populate_then_register_mixed(self):`
+- `tests/test_market_data_provider.py:226` — `"""Manually registered adapters coexist with config-populated ones."""`
+- `tests/test_market_data_provider.py:232` — `# Register another adapter manually using a mock`
+- `tests/test_market_data_provider.py:244` — `service.register("test_adapter", mock_adapter, asset_classes=["equity"], priority=99)`
+- `tests/test_success_metrics_trend.py:8` — `- Register regeneration integration (real generator output <-> tracker counts)`
+- `tests/test_success_metrics_trend.py:212` — `# ── Register-pattern consistency ─────────────────────────────────────────────`
+- `tests/test_success_metrics_trend.py:215` — `def test_parse_register_ids_live_registers():`
+- `tests/test_success_metrics_trend.py:216` — `"""The live register files must exist and any parsed IDs must use the expected prefixes."""`
+- `tests/test_success_metrics_trend.py:218` — `REGISTER_ID_PATTERNS,`
+- `tests/test_success_metrics_trend.py:219` — `parse_register_ids,`
+- `tests/test_success_metrics_trend.py:221` — `for register_path, expected_prefix in REGISTER_ID_PATTERNS.items():`
+- `tests/test_success_metrics_trend.py:224` — `assert (Path(__file__).resolve().parent.parent / register_path).is_file(), (`
+- `tests/test_success_metrics_trend.py:225` — `f"{register_path} register file missing"`
+- `tests/test_success_metrics_trend.py:227` — `ids = parse_register_ids(register_path)`
+- `tests/test_success_metrics_trend.py:228` — `# An empty register is healthy (no tracked drift); a non-empty one`
+- `tests/test_success_metrics_trend.py:232` — `f"{register_path}: {i} does not start with {expected_prefix}"`
+- `tests/test_success_metrics_trend.py:236` — `def test_check_register_consistency_live_registers_ok():`
+- `tests/test_success_metrics_trend.py:237` — `"""The live registers must pass the consistency check end-to-end."""`
+- `tests/test_success_metrics_trend.py:238` — `from core.success_metrics_trend import check_register_consistency`
+- `tests/test_success_metrics_trend.py:239` — `result = check_register_consistency()`
+- `tests/test_success_metrics_trend.py:241` — `for rp, detail in result["registers"].items():`
+- `tests/test_success_metrics_trend.py:248` — `def test_check_register_consistency_detects_foreign_ids(tmp_path, monkeypatch):`
+- `tests/test_success_metrics_trend.py:249` — `"""A foreign (non-prefixed) row ID must flip the register to drift."""`
+- `tests/test_success_metrics_trend.py:250` — `from core.success_metrics_trend import check_register_consistency`
+- `tests/test_success_metrics_trend.py:251` — `reg = tmp_path / "config_drift_register.md"`
+- `tests/test_success_metrics_trend.py:260` — `"core.success_metrics_trend.REGISTER_ID_PATTERNS",`
+- `tests/test_success_metrics_trend.py:263` — `result = check_register_consistency()`
+- `tests/test_success_metrics_trend.py:265` — `detail = next(iter(result["registers"].values()))`
+- `tests/test_success_metrics_trend.py:270` — `def test_check_register_consistency_detects_count_mismatch(tmp_path, monkeypatch):`
+- `tests/test_success_metrics_trend.py:272` — `from core.success_metrics_trend import check_register_consistency`
+- `tests/test_success_metrics_trend.py:273` — `reg = tmp_path / "doc_drift_register.md"`
+- `tests/test_success_metrics_trend.py:283` — `"core.success_metrics_trend.REGISTER_ID_PATTERNS",`
+- `tests/test_success_metrics_trend.py:286` — `result = check_register_consistency()`
+- `tests/test_success_metrics_trend.py:288` — `detail = next(iter(result["registers"].values()))`
+- `tests/test_success_metrics_trend.py:293` — `def test_check_register_consistency_missing_file_flagged(tmp_path, monkeypatch):`
+- `tests/test_success_metrics_trend.py:294` — `"""A missing register must be flagged as drift, not silently pass (0==0)."""`
+- `tests/test_success_metrics_trend.py:295` — `from core.success_metrics_trend import check_register_consistency`
+- `tests/test_success_metrics_trend.py:296` — `missing = tmp_path / "does_not_exist_register.md"`
+- `tests/test_success_metrics_trend.py:298` — `"core.success_metrics_trend.REGISTER_ID_PATTERNS",`
+- `tests/test_success_metrics_trend.py:301` — `result = check_register_consistency()`
+- `tests/test_success_metrics_trend.py:303` — `detail = next(iter(result["registers"].values()))`
+- `tests/test_success_metrics_trend.py:308` — `def test_cli_check_registers_exit_zero_when_aligned(tmp_path, monkeypatch):`
+- `tests/test_success_metrics_trend.py:309` — `"""--check-registers must exit 0 when the registers are aligned."""`
+- `tests/test_success_metrics_trend.py:311` — `reg = tmp_path / "aligned_register.md"`
+- `tests/test_success_metrics_trend.py:318` — `monkeypatch.setattr(smt, "REGISTER_ID_PATTERNS", {str(reg): "CDR-"})`
+- `tests/test_success_metrics_trend.py:319` — `monkeypatch.setattr(sys, "argv", ["prog", "--check-registers"])`
+- `tests/test_success_metrics_trend.py:325` — `def test_cli_check_registers_exit_nonzero_on_drift(tmp_path, monkeypatch):`
+- `tests/test_success_metrics_trend.py:326` — `"""--check-registers must exit non-zero on drift so it can gate releases."""`
+- `tests/test_success_metrics_trend.py:328` — `reg = tmp_path / "drifted_register.md"`
+- `tests/test_success_metrics_trend.py:336` — `monkeypatch.setattr(smt, "REGISTER_ID_PATTERNS", {str(reg): "CDR-"})`
+- `tests/test_success_metrics_trend.py:337` — `monkeypatch.setattr(sys, "argv", ["prog", "--check-registers"])`
+- `tests/test_success_metrics_trend.py:343` — `def test_capture_warns_on_register_drift(tmp_path, monkeypatch, caplog):`
+- `tests/test_success_metrics_trend.py:344` — `"""capture() must log a warning when register patterns drift."""`
+- `tests/test_success_metrics_trend.py:349` — `"core.success_metrics_trend.check_register_consistency",`
+- `tests/test_success_metrics_trend.py:352` — `"registers": {`
+- `tests/test_success_metrics_trend.py:353` — `"docs/config_drift_register.md": {"ok": False},`
+- `tests/test_success_metrics_trend.py:361` — `"Register-pattern drift" in r.message`
+- `tests/test_success_metrics_trend.py:366` — `# ── Register regeneration integration ────────────────────────────────────────`
+- `tests/test_success_metrics_trend.py:369` — `def _regen_registers(tmp_path, monkeypatch, dead_count: int = 5, dup_count: int = 3):`
+- `tests/test_success_metrics_trend.py:370` — `"""Regenerate the dead/duplicate code registers with the REAL generator.`
+- `tests/test_success_metrics_trend.py:372` — `Runs scripts.scan_dead_code.update_dead_code_register() and`
+- `tests/test_success_metrics_trend.py:373` — `update_duplicate_code_register() (the actual production generators) with`
+- `tests/test_success_metrics_trend.py:375` — `the real docs/ is never touched). Returns the generated register paths.`
+- `tests/test_success_metrics_trend.py:408` — `assert sdc.update_dead_code_register(dead) is True`
+- `tests/test_success_metrics_trend.py:409` — `assert sdc.update_duplicate_code_register(dup) is True`
+- `tests/test_success_metrics_trend.py:410` — `return docs_dir / "dead_code_register.md", docs_dir / "duplicate_code_register.md"`
+- `tests/test_success_metrics_trend.py:413` — `def test_regenerated_registers_match_tracker_counts(tmp_path, monkeypatch):`
+- `tests/test_success_metrics_trend.py:416` — `check_register_consistency,`
+- `tests/test_success_metrics_trend.py:417` — `parse_register_ids,`
+- `tests/test_success_metrics_trend.py:419` — `dc_path, dup_path = _regen_registers(tmp_path, monkeypatch, dead_count=5, dup_count=3)`
+- `tests/test_success_metrics_trend.py:422` — `"core.success_metrics_trend.REGISTER_ID_PATTERNS",`
+- `tests/test_success_metrics_trend.py:425` — `result = check_register_consistency()`
+- `tests/test_success_metrics_trend.py:428` — `dc = result["registers"][str(dc_path)]`
+- `tests/test_success_metrics_trend.py:429` — `dup = result["registers"][str(dup_path)]`
+- `tests/test_success_metrics_trend.py:438` — `assert parse_register_ids(str(dc_path)) == [f"DC-{i:03d}" for i in range(1, 6)]`
+- `tests/test_success_metrics_trend.py:439` — `assert parse_register_ids(str(dup_path)) == [f"DUP-{i:03d}" for i in range(1, 4)]`
+- `tests/test_success_metrics_trend.py:445` — `check_register_consistency,`
+- `tests/test_success_metrics_trend.py:446` — `parse_register_ids,`
+- `tests/test_success_metrics_trend.py:449` — `dc_path, dup_path = _regen_registers(tmp_path, monkeypatch, dead_count=5, dup_count=2)`
+- `tests/test_success_metrics_trend.py:451` — `"core.success_metrics_trend.REGISTER_ID_PATTERNS",`
+- `tests/test_success_metrics_trend.py:454` — `result = check_register_consistency()`
+- `tests/test_success_metrics_trend.py:455` — `assert int(result["registers"][str(dc_path)]["tracker_count"]) == 5`
+- `tests/test_success_metrics_trend.py:460` — `dc_path, dup_path = _regen_registers(tmp_path, monkeypatch, dead_count=2, dup_count=0)`
+- `tests/test_success_metrics_trend.py:462` — `result2 = check_register_consistency()`
+- `tests/test_success_metrics_trend.py:464` — `assert int(result2["registers"][str(dc_path)]["tracker_count"]) == 2`
+- `tests/test_success_metrics_trend.py:465` — `assert result2["registers"][str(dc_path)]["parsed_count"] == 2`
+- `tests/test_success_metrics_trend.py:466` — `# Empty-but-present duplicate register: no rows, still consistent (0 == 0)`
+- `tests/test_success_metrics_trend.py:468` — `dup_detail = result2["registers"][str(dup_path)]`
+- `tests/test_success_metrics_trend.py:471` — `assert parse_register_ids(str(dup_path)) == []`
+- `tests/test_auth_register.py:1` — `"""Tests for the /api/auth/register endpoint with rate limiting."""`
+- `tests/test_auth_register.py:11` — `from core.auth.routes import _register_rate_limiter, create_auth_router`
+- `tests/test_auth_register.py:34` — `"""Create a FastAPI app with register route."""`
+- `tests/test_auth_register.py:46` — `_register_rate_limiter.reset("register:testclient")`
+- `tests/test_auth_register.py:47` — `_register_rate_limiter.reset("register:127.0.0.1")`
+- `tests/test_auth_register.py:51` — `class TestRegisterEndpoint:`
+- `tests/test_auth_register.py:52` — `"""Tests for POST /api/auth/register."""`
+- `tests/test_auth_register.py:54` — `def test_register_success(self, client):`
+- `tests/test_auth_register.py:55` — `"""Test successful registration creates a viewer user."""`
+- `tests/test_auth_register.py:57` — `"/api/auth/register",`
+- `tests/test_auth_register.py:64` — `def test_register_duplicate_username(self, client):`
+- `tests/test_auth_register.py:65` — `"""Test registering with an existing username fails."""`
+- `tests/test_auth_register.py:67` — `"/api/auth/register",`
+- `tests/test_auth_register.py:71` — `"/api/auth/register",`
+- `tests/test_auth_register.py:77` — `def test_register_short_password(self, client):`
+- `tests/test_auth_register.py:78` — `"""Test registration with a short password fails."""`
+- `tests/test_auth_register.py:80` — `"/api/auth/register",`
+- `tests/test_auth_register.py:86` — `def test_register_missing_fields(self, client):`
+- `tests/test_auth_register.py:87` — `"""Test registration with missing username/password fails."""`
+- `tests/test_auth_register.py:89` — `"/api/auth/register",`
+- `tests/test_auth_register.py:94` — `def test_register_no_username(self, client):`
+- `tests/test_auth_register.py:95` — `"""Test registration without username fails."""`
+- `tests/test_auth_register.py:97` — `"/api/auth/register",`
+- `tests/test_auth_register.py:102` — `def test_register_creates_viewer_role(self, client, auth_handler):`
+- `tests/test_auth_register.py:103` — `"""Test registered users get viewer role."""`
+- `tests/test_auth_register.py:105` — `"/api/auth/register",`
+- `tests/test_auth_register.py:111` — `assert viewer["role"] == "viewer"`
+- `tests/test_auth_register.py:113` — `def test_register_with_display_name(self, client, auth_handler):`
+- `tests/test_auth_register.py:114` — `"""Test registration with optional display name."""`
+- `tests/test_auth_register.py:116` — `"/api/auth/register",`
+- `tests/test_auth_register.py:128` — `def test_register_rate_limiting(self, client):`
+- `tests/test_auth_register.py:129` — `"""Test rate limiting blocks excessive registrations."""`
+- `tests/test_auth_register.py:130` — `# Successfully register 5 times from same IP`
+- `tests/test_auth_register.py:133` — `"/api/auth/register",`
+- `tests/test_auth_register.py:137` — `assert resp.status_code == 200, f"Registration {i} failed: {resp.text}"`
+- `tests/test_auth_register.py:141` — `"/api/auth/register",`
+- `tests/test_auth_register.py:147` — `def test_register_response_format(self, client):`
+- `tests/test_auth_register.py:148` — `"""Test registration response has expected fields."""`
+- `tests/test_auth_register.py:150` — `"/api/auth/register",`
+- `tests/test_auth_register.py:157` — `def test_register_creates_audit_log(self, client, auth_handler):`
+- `tests/test_auth_register.py:158` — `"""Test registration is recorded in audit log."""`
+- `tests/test_auth_register.py:160` — `"/api/auth/register",`
+- `tests/test_auth_register.py:167` — `def test_register_different_ip_not_affected(self, client):`
+- `tests/test_auth_register.py:168` — `"""Test rate limit is per-IP, different IPs can still register."""`
+- `tests/test_auth_register.py:172` — `"/api/auth/register",`
+- `tests/test_auth_register.py:178` — `"/api/auth/register",`
+- `tests/test_auth_register.py:185` — `"/api/auth/register",`
+- `tests/test_auth_register.py:191` — `def test_register_very_long_username(self, client):`
+- `tests/test_auth_register.py:192` — `"""Test registration with very long username."""`
+- `tests/test_auth_register.py:195` — `"/api/auth/register",`
+- `tests/test_strategy_performance_tracker.py:62` — `except PermissionError:`
+- `tests/test_strategy_performance_tracker.py:81` — `except PermissionError:`
+- `tests/test_failure_injection.py:16` — `# Or register specific failures`
+- `tests/test_failure_injection.py:18` — `fi.register_failure("partial_fill", probability=0.5)`
+- `tests/test_failure_injection.py:60` — `Can be used as context manager or registered for probabilistic injection.`
+- `tests/test_failure_injection.py:89` — `def register_scenario(self, scenario: FailureScenario) -> None:`
+- `tests/test_failure_injection.py:90` — `"""Register a failure scenario."""`
+- `tests/test_failure_injection.py:94` — `def register_callback(self, failure_type: FailureType, callback: Callable) -> None:`
+- `tests/test_failure_injection.py:95` — `"""Register callback for a specific failure type."""`
+- `tests/test_failure_injection.py:123` — `# Call registered callback if present`
+- `tests/test_failure_injection.py:172` — `self.register_scenario(FailureScenario(`
+- `tests/test_failure_injection.py:269` — `fi.register_scenario(FailureScenario(`
+- `tests/test_fundamental_analyzer.py:321` — `except (OSError, PermissionError):`
+- `tests/test_fundamental_analyzer.py:425` — `except (OSError, PermissionError):`
+- `tests/test_fundamental_analyzer.py:583` — `except (OSError, PermissionError):`
+- `tests/test_domains_execution_model.py:46` — `assert OrderStatus.PENDING.value == "pending"`
+- `tests/test_domains_execution_model.py:53` — `non_terminal = {OrderStatus.PENDING, OrderStatus.PARTIALLY_FILLED, OrderStatus.SUBMITTED}`
+- `tests/test_self_healing_approval.py:69` — `def test_request_approval_high_risk_pending(self) -> None:`
+- `tests/test_self_healing_approval.py:70` — `"""Test that high-risk actions require approval (are pending)."""`
+- `tests/test_self_healing_approval.py:78` — `assert ticket.status == "PENDING"`
+- `tests/test_self_healing_approval.py:81` — `def test_request_approval_critical_risk_pending(self) -> None:`
+- `tests/test_self_healing_approval.py:90` — `assert ticket.status == "PENDING"`
+- `tests/test_self_healing_approval.py:103` — `"""Test approving a pending ticket."""`
+- `tests/test_self_healing_approval.py:111` — `assert ticket.status == "PENDING"`
+- `tests/test_self_healing_approval.py:122` — `"""Test rejecting a pending ticket."""`
+- `tests/test_self_healing_approval.py:153` — `def test_get_pending_tickets(self) -> None:`
+- `tests/test_self_healing_approval.py:154` — `"""Test getting pending tickets."""`
+- `tests/test_self_healing_approval.py:158` — `pending = workflow.get_pending()`
+- `tests/test_self_healing_approval.py:159` — `assert len(pending) >= 1`
+- `tests/test_self_healing_approval.py:160` — `assert all(t["status"] == "PENDING" for t in pending)`
+- `tests/test_self_healing_approval.py:167` — `assert "pending" in stats`
+- `tests/test_self_healing_approval.py:210` — `assert ticket.status == "PENDING"`
+- `tests/test_self_healing_approval.py:222` — `"""Test setting a notification function."""`
+- `tests/test_self_healing_approval.py:229` — `"""Test registering an escalation callback."""`
+- `tests/test_self_healing_approval.py:232` — `workflow.register_escalation_callback(mock_cb)`
+- `tests/test_self_healing_approval.py:261` — `assert d["status"] == "PENDING"`
+- `tests/test_self_healing_approval.py:286` — `assert ticket.status == "PENDING"`
+- `tests/test_multi_asset_dispatcher.py:70` — `assert d.get_status()["registered_engines"] == {}`
+- `tests/test_multi_asset_dispatcher.py:73` — `def test_register_engine(self):`
+- `tests/test_multi_asset_dispatcher.py:75` — `d.register_engine(AssetClass.EQUITY, lambda symbol, signal, **kw: RoutingResult(`
+- `tests/test_multi_asset_dispatcher.py:79` — `assert "EQUITY" in status["registered_engines"]`
+- `tests/test_multi_asset_dispatcher.py:80` — `assert status["registered_engines"]["EQUITY"]["name"] == "eq_test"`
+- `tests/test_multi_asset_dispatcher.py:88` — `def test_route_to_registered_engine(self):`
+- `tests/test_multi_asset_dispatcher.py:95` — `d.register_engine(AssetClass.EQUITY, handler, engine_name="eq_test")`
+- `tests/test_multi_asset_dispatcher.py:108` — `assert "No engine registered" in result.message`
+- `tests/test_multi_asset_dispatcher.py:114` — `d.register_engine(AssetClass.EQUITY, failing_handler, engine_name="fail_engine")`
+- `tests/test_multi_asset_dispatcher.py:126` — `d.register_engine(AssetClass.FUTURES, futures_handler, engine_name="futures_trader")`
+- `tests/test_multi_asset_dispatcher.py:135` — `d.register_engine(AssetClass.EQUITY, handler, engine_name="test")`
+- `tests/test_multi_asset_dispatcher.py:152` — `d.register_engine(AssetClass.EQUITY, handler, engine_name="test")`
+- `tests/test_multi_asset_dispatcher.py:164` — `d.register_engine(AssetClass.EQUITY, handler, engine_name="test")`
+- `tests/test_multi_asset_dispatcher.py:177` — `d.register_engine(AssetClass.INDEX_OPTIONS, handler, engine_name="index_trader")`
+- `tests/test_multi_asset_dispatcher.py:191` — `d.register_engine(AssetClass.INDEX_OPTIONS, handler, engine_name="index_trader")`
+- `tests/test_multi_asset_dispatcher.py:205` — `d.register_engine(AssetClass.INDEX_OPTIONS, handler, engine_name="index_trader")`
+- `tests/test_multi_asset_dispatcher.py:229` — `d.register_engine(AssetClass.EQUITY, handler, engine_name="test")`
+- `tests/test_multi_asset_dispatcher.py:245` — `d.register_engine(AssetClass.INDEX_OPTIONS, handler, engine_name="index_trader")`
+- `tests/test_multi_asset_dispatcher.py:266` — `d.register_engine(AssetClass.INDEX_OPTIONS, handler, engine_name="index_trader")`
+- `tests/test_multi_asset_dispatcher.py:277` — `assert "registered_engines" in status`
+- `tests/test_multi_asset_dispatcher.py:278` — `assert "INDEX_OPTIONS" in status["registered_engines"]`
+- `tests/test_multi_asset_dispatcher.py:316` — `def test_fallback_to_queued_when_dispatcher_unregistered(self):`
+- `tests/test_multi_asset_dispatcher.py:456` — `assert "No engine registered" in result.message`
+- `tests/test_multi_asset_dispatcher.py:466` — `d.register_engine(AssetClass.EQUITY, handler, engine_name="test")`
+- `tests/test_multi_asset_dispatcher.py:481` — `d.register_engine(AssetClass.FUTURES, futures_handler, engine_name="futures_trader")`
+- `tests/test_multi_asset_dispatcher.py:527` — `def test_registers_index_options(self):`
+- `tests/test_multi_asset_dispatcher.py:528` — `"""Always registers INDEX_OPTIONS engine."""`
+- `tests/test_multi_asset_dispatcher.py:532` — `assert "INDEX_OPTIONS" in status["registered_engines"]`
+- `tests/test_multi_asset_dispatcher.py:533` — `assert status["registered_engines"]["INDEX_OPTIONS"]["name"] == "index_trader"`
+- `tests/test_multi_asset_dispatcher.py:535` — `def test_with_equity_config_registers_equity(self):`
+- `tests/test_multi_asset_dispatcher.py:536` — `"""With EQUITY_MAP in config, EquityTrader gets registered."""`
+- `tests/test_multi_asset_dispatcher.py:544` — `registered = list(status["registered_engines"].keys())`
+- `tests/test_multi_asset_dispatcher.py:545` — `assert "INDEX_OPTIONS" in registered`
+- `tests/test_multi_asset_dispatcher.py:546` — `assert "EQUITY" in registered`
+- `tests/test_wal_journal.py:9` — `- get_intent(), get_pending(), get_unsettled()`
+- `tests/test_wal_journal.py:30` — `assert IntentStatus.PENDING == "PENDING"`
+- `tests/test_wal_journal.py:51` — `assert intent.status == IntentStatus.PENDING`
+- `tests/test_wal_journal.py:204` — `"""get_intent, get_pending, get_unsettled, etc."""`
+- `tests/test_wal_journal.py:217` — `"status": "PENDING",`
+- `tests/test_wal_journal.py:247` — `def test_get_pending_empty(self, mock_get_conn):`
+- `tests/test_wal_journal.py:254` — `assert len(journal.get_pending()) == 0`
+- `tests/test_wal_journal.py:270` — `mock_row1 = ("PENDING", 5)`
+- `tests/test_wal_journal.py:278` — `assert counts == {"PENDING": 5, "COMMITTED": 3}`
+- `tests/test_wal_journal.py:363` — `mock_row1 = ("PENDING", 2)`
+- `tests/test_broker_ack_validator.py:124` — `for status in ["COMPLETE", "FILLED", "REJECTED", "CANCELLED", "OPEN", "PENDING", "SUBMITTED"]:`
+- `tests/test_broker_ack_validator.py:135` — `for status in ["OPEN", "PENDING", "SUBMITTED"]:`
+- `tests/test_broker_ack_validator.py:290` — `order_result = OrderResult(order_id="ORD-001", status=OrderStatus.PENDING)`
+- `tests/test_broker_ack_validator.py:291` — `# PENDING is a valid status`
+- `tests/test_broker_ack_validator.py:312` — `expected = {"COMPLETE", "FILLED", "REJECTED", "CANCELLED", "OPEN", "PENDING", "TRIGGER PENDING", "PARTIALLY FILLED", "UNKNOWN", "SUBMITTED"}`
+- `tests/test_paper_session_review.py:212` — `import infrastructure.adapters.notifications.telegram_adapter as tg_mod`
+- `tests/test_paper_session_review.py:224` — `import infrastructure.adapters.notifications.telegram_adapter as tg_mod`
+- `tests/test_paper_session_review.py:238` — `import infrastructure.adapters.notifications.telegram_adapter as tg_mod`
+- `tests/test_paper_session_review.py:249` — `"""Drift guard: the real module must register --no-alert and the env`
+- `tests/test_bias_detector.py:378` — `# May or may not trigger depending on sample sizes, but at least check it runs`
+- `tests/test_data_governance.py:173` — `mock_engine.apply.side_effect = OSError("Permission denied")`
+- `tests/test_wip43_url_configuration_boundary.py:8` — `text = (ROOT / "core/notifications/url_resolver.py").read_text(encoding="utf-8")`
+- `tests/test_data_providers_health_api.py:137` — `"""Zero adapters registered → idle."""`
+- `tests/test_dashboard_api.py:205` — `res = auth.create_user("admin", "AdminPassword123!", role="admin")`
+- `tests/test_dashboard_api.py:259` — `res = auth.create_user("trader1", "Xk7$mQz9Lp2!", role="viewer")`
+- `tests/test_dashboard_api.py:276` — `pending = dashboard._manual_signal_queue.get_pending()`
+- `tests/test_dashboard_api.py:277` — `assert any(s.signal_id == data["signal_id"] for s in pending)`
+- `tests/test_dashboard_api.py:278` — `matched = next(s for s in pending if s.signal_id == data["signal_id"])`
+- `tests/test_dashboard_api.py:314` — `"""System state endpoint does NOT require admin role."""`
+- `tests/test_dashboard_api.py:323` — `"""Broker info endpoint does NOT require admin role."""`
+- `tests/test_audit_journal.py:6` — `- AuditJournal file creation, rotation, and appending`
+- `tests/test_audit_journal.py:414` — `raise PermissionError("Permission denied")`
+- `tests/test_thread_safety_integration.py:273` — `from infrastructure.adapters.notifications.email_adapter import (`
+- `tests/test_thread_safety_integration.py:274` — `EmailNotificationAdapter,`
+- `tests/test_thread_safety_integration.py:276` — `em = EmailNotificationAdapter(enabled=False)`
+- `tests/test_config_drift_api.py:65` — `result = db._auth.create_user("drift_tester", "DriftT3st@!", role="admin")`
+- `tests/test_config_drift_api.py:187` — `result = db._auth.create_user("drift_tester", "DriftT3st@!", role="admin")`
+- `tests/test_config_drift_api.py:227` — `result = db._auth.create_user("drift_tester", "DriftT3st@!", role="admin")`
+- `tests/test_idempotency_certifier.py:9` — `- is_pending(), is_duplicate()`
+- `tests/test_idempotency_certifier.py:10` — `- get_pending(), get_by_execution_id(), count_by_status()`
+- `tests/test_idempotency_certifier.py:41` — `assert cert.status == CertStatus.PENDING`
+- `tests/test_idempotency_certifier.py:145` — `# First call returns None (no existing), second returns PENDING`
+- `tests/test_idempotency_certifier.py:146` — `mock_conn.execute.return_value.fetchone.side_effect = [None, ("PENDING",)]`
+- `tests/test_idempotency_certifier.py:207` — `"""is_pending, is_duplicate, get_pending, etc."""`
+- `tests/test_idempotency_certifier.py:210` — `def test_is_pending_true(self, mock_get_conn):`
+- `tests/test_idempotency_certifier.py:212` — `mock_conn.execute.return_value.fetchone.return_value = ("PENDING",)`
+- `tests/test_idempotency_certifier.py:215` — `assert certifier.is_pending("exec_xyz") is True`
+- `tests/test_idempotency_certifier.py:218` — `def test_is_pending_false_for_committed(self, mock_get_conn):`
+- `tests/test_idempotency_certifier.py:223` — `assert certifier.is_pending("exec_xyz") is False`
+- `tests/test_idempotency_certifier.py:226` — `def test_is_pending_false_when_missing(self, mock_get_conn):`
+- `tests/test_idempotency_certifier.py:231` — `assert certifier.is_pending("exec_xyz") is False`
+- `tests/test_idempotency_certifier.py:236` — `mock_conn.execute.return_value.fetchone.return_value = ("PENDING",)`
+- `tests/test_idempotency_certifier.py:250` — `def test_get_pending_empty(self, mock_get_conn):`
+- `tests/test_idempotency_certifier.py:255` — `assert certifier.get_pending() == []`
+- `tests/test_idempotency_certifier.py:268` — `mock_conn.execute.return_value.fetchall.return_value = [("PENDING", 3), ("COMMITTED", 5)]`
+- `tests/test_regulatory_reporting.py:12` — `TradeRegisterEntry,`
+- `tests/test_regulatory_reporting.py:16` — `class TestTradeRegisterEntry:`
+- `tests/test_regulatory_reporting.py:17` — `"""TradeRegisterEntry dataclass tests."""`
+- `tests/test_regulatory_reporting.py:20` — `entry = TradeRegisterEntry(`
+- `tests/test_regulatory_reporting.py:31` — `entry = TradeRegisterEntry(`
+- `tests/test_regulatory_reporting.py:47` — `report = ComplianceReport(report_type="TRADE_REGISTER")`
+- `tests/test_regulatory_reporting.py:48` — `assert report.report_type == "TRADE_REGISTER"`
+- `tests/test_regulatory_reporting.py:53` — `report_type="TRADE_REGISTER",`
+- `tests/test_regulatory_reporting.py:59` — `assert d["report_type"] == "TRADE_REGISTER"`
+- `tests/test_regulatory_reporting.py:90` — `def test_generate_trade_register_no_db(self):`
+- `tests/test_regulatory_reporting.py:92` — `report = reporter.generate_trade_register(db_path="nonexistent.db")`
+- `tests/test_regulatory_reporting.py:134` — `assert package.trade_register is not None`
+- `tests/test_regulatory_reporting.py:155` — `assert pkg.trade_register is None`
+- `tests/test_sme_trading_service.py:39` — `except (OSError, PermissionError):`
+- `tests/test_incident_e2e_flow.py:58` — `"infrastructure.adapters.notifications.telegram_adapter._TelegramClient.send_raw"`
+- `tests/test_incident_e2e_flow.py:135` — `assert "CRITICAL" in text or "NOTIFICATION" in text`
+- `tests/test_incident_e2e_flow.py:170` — `# 2. INCIDENT LIFECYCLE → TELEGRAM NOTIFICATIONS`
+- `tests/test_incident_e2e_flow.py:174` — `class TestLifecycleNotifications:`
+- `tests/test_incident_e2e_flow.py:177` — `def test_resolve_sends_telegram_notification(`
+- `tests/test_incident_e2e_flow.py:180` — `"""Verify resolving an open incident sends a notification."""`
+- `tests/test_incident_e2e_flow.py:199` — `assert mock_telegram_client.called, "resolve should send notification"`
+- `tests/test_incident_e2e_flow.py:203` — `assert "RESOLVED" in text or "NOTIFICATION" in text`
+- `tests/test_incident_e2e_flow.py:272` — `"""Verify resolve notifications pass critical=False."""`
+- `tests/test_incident_e2e_flow.py:484` — `# Reset mock to isolate the resolve notification from the create alert`
+- `tests/test_incident_e2e_flow.py:487` — `# Resolve to trigger resolve notification`
+- `tests/test_execution_wiring.py:138` — `def test_check_trading_blocked_too_many_pending(`
+- `tests/test_execution_wiring.py:142` — `# 15 pending executions > threshold of 10`
+- `tests/test_execution_wiring.py:148` — `assert "pending" in reason`
+- `tests/test_metrics_trend_routes.py:4` — `- register_metrics_trend_routes is importable and callable`
+- `tests/test_metrics_trend_routes.py:71` — `# ── Registration ──────────────────────────────────────────────────────────────`
+- `tests/test_metrics_trend_routes.py:74` — `def test_register_metrics_trend_routes_exists():`
+- `tests/test_metrics_trend_routes.py:75` — `from core.enterprise_dashboard.routes.metrics_trend import register_metrics_trend_routes`
+- `tests/test_metrics_trend_routes.py:76` — `assert callable(register_metrics_trend_routes)`
+- `tests/test_metrics_trend_routes.py:79` — `def test_register_metrics_trend_routes_runs():`
+- `tests/test_metrics_trend_routes.py:84` — `from core.enterprise_dashboard.routes.metrics_trend import register_metrics_trend_routes`
+- `tests/test_metrics_trend_routes.py:85` — `register_metrics_trend_routes(app, dashboard, admin_only, operator_or_admin)`
+- `tests/test_metrics_trend_routes.py:198` — `# Stub the register check too so this test stays hermetic (no real reads`
+- `tests/test_metrics_trend_routes.py:199` — `# of the 43k-row register during unit tests).`
+- `tests/test_metrics_trend_routes.py:200` — `_stub_register_consistency(monkeypatch)`
+- `tests/test_metrics_trend_routes.py:209` — `# ── Register consistency exposure ─────────────────────────────────────────────`
+- `tests/test_metrics_trend_routes.py:212` — `def _stub_register_consistency(monkeypatch, ok: bool = True, drifted=()) -> None:`
+- `tests/test_metrics_trend_routes.py:213` — `"""Patch the register consistency check with a realistic result."""`
+- `tests/test_metrics_trend_routes.py:214` — `registers = {`
+- `tests/test_metrics_trend_routes.py:215` — `"docs/dead_code_register.md": {"ok": True, "expected_prefix": "DC-"},`
+- `tests/test_metrics_trend_routes.py:216` — `"docs/duplicate_code_register.md": {"ok": True, "expected_prefix": "DUP-"},`
+- `tests/test_metrics_trend_routes.py:217` — `"docs/config_drift_register.md": {"ok": True, "expected_prefix": "CDR-"},`
+- `tests/test_metrics_trend_routes.py:218` — `"docs/doc_drift_register.md": {"ok": True, "expected_prefix": "DDR-"},`
+- `tests/test_metrics_trend_routes.py:221` — `registers[rp] = {"ok": False, "expected_prefix": "XX-"}`
+- `tests/test_metrics_trend_routes.py:223` — `"core.enterprise_dashboard.routes.metrics_trend._register_consistency",`
+- `tests/test_metrics_trend_routes.py:224` — `lambda: {"ok": ok, "registers": registers,`
+- `tests/test_metrics_trend_routes.py:229` — `def test_trend_full_report_includes_register_consistency(client: TestClient,`
+- `tests/test_metrics_trend_routes.py:233` — `_stub_register_consistency(monkeypatch)`
+- `tests/test_metrics_trend_routes.py:236` — `rc = resp.json()["register_consistency"]`
+- `tests/test_metrics_trend_routes.py:239` — `assert set(rc["registers"]) == {`
+- `tests/test_metrics_trend_routes.py:240` — `"docs/dead_code_register.md", "docs/duplicate_code_register.md",`
+- `tests/test_metrics_trend_routes.py:241` — `"docs/config_drift_register.md", "docs/doc_drift_register.md",`
+- `tests/test_metrics_trend_routes.py:243` — `assert rc["drifted_registers"] == []`
+- `tests/test_metrics_trend_routes.py:249` — `_stub_register_consistency(monkeypatch, ok=False,`
+- `tests/test_metrics_trend_routes.py:250` — `drifted=("docs/config_drift_register.md",))`
+- `tests/test_metrics_trend_routes.py:253` — `# Trend data is still served; only the register health is flagged.`
+- `tests/test_metrics_trend_routes.py:256` — `rc = data["register_consistency"]`
+- `tests/test_metrics_trend_routes.py:259` — `assert rc["drifted_registers"] == ["docs/config_drift_register.md"]`
+- `tests/test_metrics_trend_routes.py:262` — `def test_trend_stats_includes_register_consistency(client: TestClient,`
+- `tests/test_metrics_trend_routes.py:266` — `_stub_register_consistency(monkeypatch)`
+- `tests/test_metrics_trend_routes.py:270` — `assert resp.json()["register_consistency"]["status"] == "aligned"`
+- `tests/test_metrics_trend_routes.py:273` — `def test_trend_register_consistency_unavailable_degrades(client: TestClient,`
+- `tests/test_metrics_trend_routes.py:278` — `"core.enterprise_dashboard.routes.metrics_trend._register_consistency",`
+- `tests/test_metrics_trend_routes.py:283` — `rc = resp.json()["register_consistency"]`
+- `tests/test_metrics_trend_routes.py:292` — `_stub_register_consistency(monkeypatch, ok=False,`
+- `tests/test_metrics_trend_routes.py:293` — `drifted=("docs/doc_drift_register.md",))`
+- `tests/test_metrics_trend_routes.py:297` — `rc = resp.json()["register_consistency"]`
+- `tests/test_metrics_trend_routes.py:299` — `assert rc["drifted_registers"] == ["docs/doc_drift_register.md"]`
+- `tests/test_metrics_trend_routes.py:300` — `# Stats payload is compact: no full per-register detail.`
+- `tests/test_metrics_trend_routes.py:301` — `assert "registers" not in rc`
+- `tests/test_metrics_trend_routes.py:306` — `"""The API must not serialize the bulky per-register row_ids lists."""`
+- `tests/test_metrics_trend_routes.py:309` — `"core.enterprise_dashboard.routes.metrics_trend._register_consistency",`
+- `tests/test_metrics_trend_routes.py:313` — `"registers": {`
+- `tests/test_metrics_trend_routes.py:314` — `"docs/dead_code_register.md": {`
+- `tests/test_metrics_trend_routes.py:326` — `detail = resp.json()["register_consistency"]["registers"][`
+- `tests/test_metrics_trend_routes.py:327` — `"docs/dead_code_register.md"]`
+- `tests/test_metrics_trend_routes.py:333` — `def test_trend_register_consistency_independent_of_trend(client: TestClient,`
+- `tests/test_metrics_trend_routes.py:335` — `"""A broken trend module must not hide a healthy register consistency check."""`
+- `tests/test_metrics_trend_routes.py:340` — `_stub_register_consistency(monkeypatch)`
+- `tests/test_metrics_trend_routes.py:345` — `assert data["register_consistency"]["status"] == "aligned"`
+- `tests/test_metrics_trend_routes.py:366` — `def test_release_audits_surfaces_register_gate(client: TestClient, monkeypatch,`
+- `tests/test_metrics_trend_routes.py:368` — `"""Release audit records surface the register gate verdict in the API."""`
+- `tests/test_metrics_trend_routes.py:370` — `register_gate_passed=True, register_gate_status="aligned",`
+- `tests/test_metrics_trend_routes.py:384` — `assert audit["register_gate_passed"] is True`
+- `tests/test_metrics_trend_routes.py:385` — `assert audit["register_gate_status"] == "aligned"`
+- `tests/test_metrics_trend_routes.py:402` — `assert audit["register_gate_passed"] is None`
+- `tests/test_metrics_trend_routes.py:403` — `assert audit["register_gate_status"] == "unknown"`
+- `tests/test_metrics_trend_routes.py:410` — `register_gate_passed=False, register_gate_status="drift",`
+- `tests/test_metrics_trend_routes.py:419` — `assert audit["register_gate_passed"] is False`
+- `tests/test_metrics_trend_routes.py:420` — `assert audit["register_gate_status"] == "drift"`
+- `tests/test_metrics_trend_routes.py:453` — `register_gate_passed=True,`
+- `tests/test_metrics_trend_routes.py:454` — `register_gate_status="aligned")`
+- `tests/test_signal_actions.py:41` — `def test_sends_critical_notification(self) -> None:`
+- `tests/test_signal_actions.py:66` — `mock_log.assert_called_once_with("Failed to send config failure notification")`
+- `tests/test_wip39_external_url_remediation.py:8` — `text = (ROOT / "core/notifications/url_resolver.py").read_text(encoding="utf-8")`
+- `tests/test_wip39_external_url_remediation.py:14` — `text = (ROOT / "core/notifications/url_resolver.py").read_text(encoding="utf-8")`
+- `tests/test_intelligence_incidents.py:11` — `register_incident_routes,`
+- `tests/test_intelligence_incidents.py:15` — `def test_register_incident_routes_exists():`
+- `tests/test_intelligence_incidents.py:16` — `assert callable(register_incident_routes)`
+- `tests/test_intelligence_incidents.py:19` — `def test_register_incident_routes_runs():`
+- `tests/test_intelligence_incidents.py:24` — `register_incident_routes(app, dashboard, lambda: None, lambda: None)  # type: ignore[arg-type]`
+- `tests/test_constitution.py:590` — `# ── v4.0: AI Specialist Role Validation ───────────────────────────────────────`
+- `tests/test_constitution.py:593` — `class TestAISpecialistRoleValidation:`
+- `tests/test_constitution.py:594` — `def test_valid_role_acknowledged(self) -> None:`
+- `tests/test_constitution.py:596` — `result = v.validate_ai_specialist_role(`
+- `tests/test_constitution.py:602` — `def test_role_not_acknowledged(self) -> None:`
+- `tests/test_constitution.py:604` — `result = v.validate_ai_specialist_role("ROL-01", acknowledged=False)`
+- `tests/test_constitution.py:607` — `def test_unknown_role(self) -> None:`
+- `tests/test_constitution.py:609` — `result = v.validate_ai_specialist_role("ROL-99")`
+- `tests/test_constitution.py:612` — `def test_get_role_id_by_name(self) -> None:`
+- `tests/test_constitution.py:614` — `rid = v.get_ai_role_id_by_name("Planner")`
+- `tests/test_constitution.py:617` — `def test_get_role_id_by_name_not_found(self) -> None:`
+- `tests/test_constitution.py:619` — `rid = v.get_ai_role_id_by_name("Nonexistent")`
+- `tests/test_constitution.py:687` — `assert "ai_specialist_roles" in health`
+- `tests/test_constitution.py:697` — `assert health["ai_specialist_roles"]["count"] == 18`
+- `tests/test_version_compatibility.py:165` — `def test_register_component(self):`
+- `tests/test_version_compatibility.py:167` — `vcm.register("test_component", "1.0.0", "1.0.0", "1.99.99")`
+- `tests/test_version_compatibility.py:172` — `def test_register_overrides_default(self):`
+- `tests/test_version_compatibility.py:174` — `vcm.register("risk_service", "3.0.0", "3.0.0", "3.99.99")`
+- `tests/test_version_compatibility.py:230` — `def test_register_with_dependencies(self):`
+- `tests/test_version_compatibility.py:232` — `vcm.register("new_svc", "1.0.0", "1.0.0", "1.99.99",`
+- `tests/test_approval_workflow.py:23` — `assert ApprovalStatus.PENDING is not None`
+- `tests/test_approval_workflow.py:35` — `def test_strategy_get_pending_approvals_returns_list():`
+- `tests/test_approval_workflow.py:36` — `"""get_pending_approvals must return a list."""`
+- `tests/test_approval_workflow.py:38` — `pending = workflow.get_pending_approvals()`
+- `tests/test_approval_workflow.py:39` — `assert isinstance(pending, list)`
+- `tests/test_public_url_setup_ui_contract.py:5` — `from core.notifications.url_resolver import (`
+- `tests/test_wip53_route_reconciliation.py:19` — `p=ROOT/"core/notifications/url_resolver.py"`
+- `tests/test_execution_broker_gateway.py:92` — `g.register_adapter("healthy", FakeHealthyAdapter)`
+- `tests/test_execution_broker_gateway.py:93` — `g.register_adapter("failing", FakeFailingAdapter)`
+- `tests/test_execution_broker_gateway.py:96` — `def test_register_adapter(self, gateway):`
+- `tests/test_execution_broker_gateway.py:111` — `def test_connect_unregistered_broker(self, gateway):`
+- `tests/test_execution_broker_gateway.py:166` — `gateway.register_adapter("healthy2", FakeHealthyAdapter)`
+- `tests/test_execution_broker_gateway.py:187` — `gateway.register_adapter("healthy2", FakeHealthyAdapter)`
+- `tests/test_execution_broker_gateway.py:229` — `g.register_adapter("test_singleton_adapter2", FakeHealthyAdapter)`
+- `tests/test_multi_tenant.py:148` — `def test_register_tenant(self):`
+- `tests/test_multi_tenant.py:151` — `ok = mtm.register_tenant(tenant)`
+- `tests/test_multi_tenant.py:155` — `def test_register_duplicate_tenant(self):`
+- `tests/test_multi_tenant.py:158` — `mtm.register_tenant(tenant)`
+- `tests/test_multi_tenant.py:159` — `ok = mtm.register_tenant(tenant)`
+- `tests/test_multi_tenant.py:162` — `def test_register_max_tenants(self):`
+- `tests/test_multi_tenant.py:164` — `mtm.register_tenant(Tenant(tenant_id="t1", name="A"))`
+- `tests/test_multi_tenant.py:165` — `ok = mtm.register_tenant(Tenant(tenant_id="t2", name="B"))`
+- `tests/test_multi_tenant.py:170` — `mtm.register_tenant(Tenant(tenant_id="t1", name="Test"))`
+- `tests/test_multi_tenant.py:184` — `mtm.register_tenant(Tenant(tenant_id="t1", name="Test"))`
+- `tests/test_multi_tenant.py:201` — `def test_get_context_with_registered(self):`
+- `tests/test_multi_tenant.py:203` — `mtm.register_tenant(Tenant(tenant_id="t1", name="Test"))`
+- `tests/test_multi_tenant.py:210` — `mtm.register_tenant(Tenant(tenant_id="t1", name="Test"))`
+- `tests/test_multi_tenant.py:217` — `mtm.register_tenant(Tenant(tenant_id="t1", name="Test"))`
+- `tests/test_multi_tenant.py:228` — `mtm.register_tenant(Tenant(tenant_id="t1", name="A", is_active=True))`
+- `tests/test_multi_tenant.py:229` — `mtm.register_tenant(Tenant(tenant_id="t2", name="B", is_active=False))`
+- `tests/test_multi_tenant.py:252` — `mtm.register_tenant(t)`
+- `tests/test_notification_port.py:1` — `"""Tests for core/ports/notification/notification_port.py."""`
+- `tests/test_notification_port.py:5` — `import core.ports.notification.notification_port as _mod`
+- `tests/test_notification_port.py:8` — `class TestPortsNotificationNotification_port:`
+- `tests/test_notification_port.py:9` — `"""Test suite for core/ports/notification/notification_port.py."""`
+- `tests/test_invariants.py:17` — `register_halt_callback,`
+- `tests/test_invariants.py:18` — `register_invariant,`
+- `tests/test_invariants.py:47` — `def test_register_and_run_passing(self):`
+- `tests/test_invariants.py:48` — `"""Register a passing check and verify it runs cleanly."""`
+- `tests/test_invariants.py:49` — `register_invariant(`
+- `tests/test_invariants.py:61` — `def test_register_and_run_failing(self):`
+- `tests/test_invariants.py:62` — `"""Register a failing check and verify it produces a violation."""`
+- `tests/test_invariants.py:63` — `register_invariant(`
+- `tests/test_invariants.py:78` — `register_invariant(name, "Violation test", InvariantSeverity.WARN, _failing_check)`
+- `tests/test_invariants.py:86` — `register_invariant(`
+- `tests/test_invariants.py:99` — `"""Verify HALT severity invokes the registered halt callback."""`
+- `tests/test_invariants.py:107` — `register_halt_callback(halt_cb)`
+- `tests/test_invariants.py:108` — `register_invariant(`
+- `tests/test_invariants.py:121` — `register_invariant(name, "Toggle test", InvariantSeverity.WARN, _failing_check)`
+- `tests/test_invariants.py:129` — `register_invariant(name, "Toggle enable", InvariantSeverity.WARN, _failing_check)`
+- `tests/test_invariants.py:141` — `register_invariant(name, "Resolve test", InvariantSeverity.WARN, _failing_check)`
+- `tests/test_invariants.py:165` — `register_invariant(name, "Unresolved test", InvariantSeverity.WARN, _failing_check)`
+- `tests/test_invariants.py:173` — `def test_register_updates_existing(self):`
+- `tests/test_invariants.py:174` — `"""Verify registering a check with an existing name updates it."""`
+- `tests/test_invariants.py:176` — `register_invariant(name, "Original", InvariantSeverity.WARN, _passing_check)`
+- `tests/test_invariants.py:182` — `register_invariant(name, "Updated", InvariantSeverity.HALT, _failing_check)`
+- `tests/test_invariants.py:192` — `def test_register_all_runs_without_error(self):`
+- `tests/test_invariants.py:193` — `"""Verify register_all() does not raise."""`
+- `tests/test_invariants.py:194` — `from core.invariants.checks import register_all`
+- `tests/test_invariants.py:195` — `register_all()`
+- `tests/test_invariants.py:197` — `def test_standard_checks_are_registered(self):`
+- `tests/test_invariants.py:198` — `"""Verify standard checks are present after registration."""`
+- `tests/test_invariants.py:199` — `from core.invariants.checks import register_all`
+- `tests/test_invariants.py:200` — `register_all()`

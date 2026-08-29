@@ -1,0 +1,241 @@
+# OPB WEB CLOSURE WIP60 — Admin Users Implementation Map
+
+Candidate files: 13
+Relevant implementation signals: 220
+
+## Candidate files
+- `scripts/generate_all_master_consolidated_documents.py`
+- `scripts/run_consolidated_full_system_verification.py`
+- `scratch/test_all_app_routes.py`
+- `scratch/generate_final_deliverables.py`
+- `scratch/test_page_routes_only.py`
+- `tests/test_enterprise_dashboard.py`
+- `tests/test_wip59_admin_users_controls.py`
+- `tests/test_wip58_desktop_submenu_hover.py`
+- `tests/test_dashboard_comprehensive.py`
+- `tests/test_all_ui_screens_and_navigation.py`
+- `templates/enterprise/_nav.html`
+- `core/auth/registration_notifications.py`
+- `core/enterprise_dashboard/routes/pages.py`
+
+## Relevant implementation signals
+- `scripts/generate_all_master_consolidated_documents.py:46` — `4. **Super Admin User & Signal Permission Control Center (`/admin/users`)**: 1-click Master Signal Switches, Granular Category Subscriptions, Conviction Tier Cutoffs, Multi-Timeframe Quota Controls (Daily, Weekly, Monthly), and Dedicated User Channel Routing.`
+- `scripts/generate_all_master_consolidated_documents.py:52` — `10. **1-Click Interactive Telegram Action Buttons**: Telegram inline buttons (`[⚡ Paper Trade]`, `[🚀 Execute]`, `[📊 View Chart]`) with instant webhook execution.`
+- `scripts/generate_all_master_consolidated_documents.py:53` — `11. **Automated AI Post-Market Cognitive Trade Journal Debrief**: Daily automated debrief analyzing winners, loss leaks, and actionable parameter adjustments.`
+- `scripts/generate_all_master_consolidated_documents.py:80` — `| `open_admin.bat` | `http://localhost:8000/admin/config` | Super Admin / Admin | Live Configuration Editor & Notification Controls |`
+- `scripts/generate_all_master_consolidated_documents.py:81` — `| Super Admin Users | `http://localhost:8000/admin/users` | Super Admin | User Signal Permissions, Category Subscriptions & Quotas |`
+- `scripts/generate_all_master_consolidated_documents.py:83` — `| My Signals Feed | `http://localhost:8000/my-signals` | End-Users | Personal Delivered Signals Feed & Filters |`
+- `scripts/generate_all_master_consolidated_documents.py:109` — `Whenever a high-probability trade setup passes all 16 quantitative strategies and institutional filters, an instant signal is delivered to your registered Telegram and Email with 1-click action buttons (`[⚡ Paper Trade]`, `[🚀 Execute]`, `[📊 View Chart]`).`
+- `scripts/generate_all_master_consolidated_documents.py:134` — `| Strategy Score | Conviction Tier | Recommended Action | Risk Sizing |`
+- `scripts/generate_all_master_consolidated_documents.py:219` — `doc.save(str(output_path))`
+- `scripts/run_consolidated_full_system_verification.py:8` — `4. Super Admin RBAC, Quotas & Category Permissions (/admin/users)`
+- `scripts/run_consolidated_full_system_verification.py:9` — `5. Configuration Editor & Dual Multi-User Alerting (/admin/config)`
+- `scripts/run_consolidated_full_system_verification.py:14` — `10. 1-Click Interactive Telegram Action Buttons`
+- `scripts/run_consolidated_full_system_verification.py:74` — `_log.info("🧪 [4/20] Super Admin RBAC, Quotas & Category Permissions...")`
+- `scripts/run_consolidated_full_system_verification.py:75` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `scripts/run_consolidated_full_system_verification.py:76` — `mgr = UserPermissionManager.get_instance()`
+- `scripts/run_consolidated_full_system_verification.py:77` — `perms = mgr.list_all_permissions()`
+- `scripts/run_consolidated_full_system_verification.py:81` — `_log.info("✅ [4/20 PASSED] Super Admin RBAC & category permissions verified for %d users.", len(perms))`
+- `scripts/run_consolidated_full_system_verification.py:83` — `# Section 5: Configuration Editor & Multi-User Alerting`
+- `scripts/run_consolidated_full_system_verification.py:84` — `_log.info("🧪 [5/20] Configuration Editor & Multi-User Notifications...")`
+- `scripts/run_consolidated_full_system_verification.py:128` — `# Section 10: 1-Click Interactive Telegram Action Buttons`
+- `scripts/run_consolidated_full_system_verification.py:129` — `_log.info("🧪 [10/20] 1-Click Interactive Telegram Action Buttons...")`
+- `scripts/run_consolidated_full_system_verification.py:130` — `from core.telegram.callback_handler import TelegramActionHandler`
+- `scripts/run_consolidated_full_system_verification.py:131` — `tg_act = TelegramActionHandler.process_callback_action("paper:SIG-2026-TCS", "1148730533")`
+- `scripts/run_consolidated_full_system_verification.py:133` — `_log.info("✅ [10/20 PASSED] 1-Click Telegram Callback Action executed successfully.")`
+- `scratch/generate_final_deliverables.py:55` — `- Real-time pre-guard authorization checks before alert delivery.`
+- `scratch/generate_final_deliverables.py:69` — `| Uncontrolled user signal access | Implemented `UserPermissionManager` and Super Admin Control Panel (`/admin/users`) with category filters, tier cutoffs, and quotas. | ✅ CLOSED & VERIFIED |`
+- `scratch/generate_final_deliverables.py:115` — `["Uncontrolled Signal Access", "Super Admin RBAC, Quotas & Category Filter Gate", "VERIFIED (100%)"],`
+- `scratch/generate_final_deliverables.py:271` — `add_header(s4, "SUPER ADMIN CONTROL & PRE-GUARD GATING", "Granular User Permissions, Multi-Timeframe Quotas & Dispatch Security")`
+- `scratch/generate_final_deliverables.py:328` — `prs.save(pptx_path)`
+- `tests/test_enterprise_dashboard.py:279` — `except (ValueError, TypeError, KeyError, RuntimeError, IndexError):`
+- `tests/test_enterprise_dashboard.py:475` — `def test_csp_form_action_self(self, state_file: str, trades_db: str, tmp_path):`
+- `tests/test_enterprise_dashboard.py:476` — `"""form-action restricts to 'self'."""`
+- `tests/test_enterprise_dashboard.py:487` — `assert "form-action 'self'" in csp`
+- `tests/test_enterprise_dashboard.py:555` — `def test_permissions_policy(self, state_file: str, trades_db: str, tmp_path):`
+- `tests/test_enterprise_dashboard.py:556` — `"""Permissions-Policy header restricts camera/microphone/geolocation."""`
+- `tests/test_enterprise_dashboard.py:566` — `pp = resp.headers.get("permissions-policy")`
+- `tests/test_enterprise_dashboard.py:782` — `def test_apply_updates_in_memory_config(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:823` — `saved = json.loads(Path(config_path).read_text(encoding="utf-8"))`
+- `tests/test_enterprise_dashboard.py:824` — `assert saved["KEY"] == "newval"`
+- `tests/test_enterprise_dashboard.py:858` — `raise OSError("Permission denied")`
+- `tests/test_enterprise_dashboard.py:899` — `class TestConfigApplySyncsUserPermissions:`
+- `tests/test_enterprise_dashboard.py:901` — `permission sync called get_user_permission()/upsert_user_permission(),`
+- `tests/test_enterprise_dashboard.py:902` — `neither of which ever existed on UserPermissionManager (only the plural`
+- `tests/test_enterprise_dashboard.py:903` — `get_user_permissions() and update_user_permissions() do) - this silently`
+- `tests/test_enterprise_dashboard.py:906` — `def test_email_to_and_chat_id_sync_to_admin_permissions(self, tmp_path, monkeypatch):`
+- `tests/test_enterprise_dashboard.py:907` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `tests/test_enterprise_dashboard.py:910` — `isolated_mgr = UserPermissionManager(store_path=tmp_path / "user_signal_permissions.json")`
+- `tests/test_enterprise_dashboard.py:911` — `monkeypatch.setattr(UserPermissionManager, "get_instance", classmethod(lambda cls: isolated_mgr))`
+- `tests/test_enterprise_dashboard.py:927` — `admin_perm = isolated_mgr.get_user_permissions("admin")`
+- `tests/test_enterprise_dashboard.py:933` — `"""Even if the permission sync itself fails, the config write must`
+- `tests/test_enterprise_dashboard.py:935` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `tests/test_enterprise_dashboard.py:939` — `raise RuntimeError("permission store unavailable")`
+- `tests/test_enterprise_dashboard.py:941` — `monkeypatch.setattr(UserPermissionManager, "get_instance", classmethod(_broken_get_instance))`
+- `tests/test_enterprise_dashboard.py:1104` — `assert entries[0]["action"] == "config_rollback"`
+- `tests/test_enterprise_dashboard.py:1182` — `def test_rollback_updates_cfg(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1266` — `raise OSError("Permission denied")`
+- `tests/test_enterprise_dashboard.py:1536` — `def test_state_updates(self, state_file: str, client: TestClient):`
+- `tests/test_enterprise_dashboard.py:2179` — `except (ValueError, TypeError, KeyError, RuntimeError, IndexError):`
+- `tests/test_enterprise_dashboard.py:2234` — `res = d._auth.create_user("secpageviewer", "Xk7$mQz9Lp2!", role="viewer")`
+- `tests/test_wip59_admin_users_controls.py:26` — `def test_admin_users_has_action_or_detail_surface():`
+- `tests/test_wip59_admin_users_controls.py:31` — `if "/admin/users" in t and any(x in low for x in ("eye","action","details","filter","search")):`
+- `tests/test_wip59_admin_users_controls.py:36` — `def test_admin_users_has_permission_surface():`
+- `tests/test_wip59_admin_users_controls.py:41` — `if "/admin/users" in t and any(x in low for x in ("permission","role","authorization","privilege")):`
+- `tests/test_wip58_desktop_submenu_hover.py:19` — `assert "User Authorization & Controls" in text`
+- `tests/test_wip58_desktop_submenu_hover.py:20` — `assert "User Authorization & Access" in text`
+- `tests/test_dashboard_comprehensive.py:309` — `def test_config_property_after_cfg_updated(self, tmp_path):`
+- `tests/test_dashboard_comprehensive.py:402` — `def test_permissions_policy(self, client):`
+- `tests/test_dashboard_comprehensive.py:404` — `pp = resp.headers.get("permissions-policy")`
+- `tests/test_dashboard_comprehensive.py:420` — `assert "form-action 'self'" in csp`
+- `tests/test_dashboard_comprehensive.py:818` — `def test_apply_config_updates_memory(self, tmp_path):`
+- `tests/test_dashboard_comprehensive.py:830` — `db._apply_config_change({"K": "updated"}, "admin")`
+- `tests/test_dashboard_comprehensive.py:831` — `assert db._cfg["K"] == "updated"`
+- `tests/test_dashboard_comprehensive.py:859` — `raise OSError("Permission denied")`
+- `tests/test_dashboard_comprehensive.py:1199` — `assert "detail" in resp.json()`
+- `tests/test_dashboard_comprehensive.py:1250` — `"role": "viewer",`
+- `tests/test_dashboard_comprehensive.py:1271` — `def test_update_user_role(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1283` — `resp = c.put("/api/auth/users/operator1/role", json={"role": "admin"})`
+- `tests/test_dashboard_comprehensive.py:1287` — `def test_update_user_role_not_found(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1298` — `resp = c.put("/api/auth/users/nonexistent/role", json={"role": "admin"})`
+- `tests/test_dashboard_comprehensive.py:1351` — `def test_delete_user(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1359` — `db._auth.create_user("todelete", "Del@12345!", "viewer", "", "admin")`
+- `tests/test_dashboard_comprehensive.py:1363` — `resp = c.delete("/api/auth/users/todelete")`
+- `tests/test_dashboard_comprehensive.py:1366` — `def test_delete_admin_fails(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1377` — `resp = c.delete("/api/auth/users/admin")`
+- `tests/test_dashboard_comprehensive.py:1379` — `assert "detail" in resp.json()`
+- `tests/test_dashboard_comprehensive.py:1445` — `def test_audit_log_filtered(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1492` — `def test_state_updates(self, state_file, client):`
+- `tests/test_dashboard_comprehensive.py:2006` — `except (ValueError, TypeError, KeyError, IndexError, RuntimeError):`
+- `tests/test_dashboard_comprehensive.py:2029` — `raise HTTPException(status_code=403, detail="Forbidden")`
+- `tests/test_dashboard_comprehensive.py:2121` — `except (ValueError, TypeError, KeyError, RuntimeError, IndexError):`
+- `tests/test_all_ui_screens_and_navigation.py:2` — `Buttons, Form Actions, and Interactive APIs.`
+- `tests/test_all_ui_screens_and_navigation.py:35` — `res = auth.create_user("admin", "AdminPassword123!", role="admin")`
+- `tests/test_all_ui_screens_and_navigation.py:72` — `("/admin/config", "Admin Config Editor"),`
+- `tests/test_all_ui_screens_and_navigation.py:91` — `# 2. Interactive Buttons, Admin Config Updates, and API Actions`
+- `tests/test_all_ui_screens_and_navigation.py:94` — `def test_admin_config_validate_and_apply_button_actions(dashboard_client, monkeypatch):`
+- `tests/test_all_ui_screens_and_navigation.py:120` — `# 3. POST /api/config/validate (Validate button action) - the real`
+- `tests/test_all_ui_screens_and_navigation.py:122` — `# (see saveConfig()'s `body: JSON.stringify(changedKeys)`), not a`
+- `tests/test_all_ui_screens_and_navigation.py:129` — `# 4. POST /api/config/apply (Apply / Save button action)`
+- `templates/enterprise/_nav.html:115` — `backdrop-filter: blur(16px);`
+- `templates/enterprise/_nav.html:196` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:204` — `backdrop-filter: none !important;`
+- `templates/enterprise/_nav.html:205` — `-webkit-backdrop-filter: none !important;`
+- `templates/enterprise/_nav.html:211` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:240` — `backdrop-filter: blur(4px) !important;`
+- `templates/enterprise/_nav.html:241` — `-webkit-backdrop-filter: blur(4px) !important;`
+- `templates/enterprise/_nav.html:251` — `.drawer-search-box {`
+- `templates/enterprise/_nav.html:256` — `.drawer-search-input {`
+- `templates/enterprise/_nav.html:296` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:322` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:334` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:367` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:501` — `{% if can_manage_permissions %}<a href="/admin/users" class="opb-ws-item {% if current_page == 'admin_users' %}active{% endif %}"><span>👥 User Authorization & Controls</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:558` — `<!-- 1. User Profile & Role Identity -->`
+- `templates/enterprise/_nav.html:567` — `<span style="display:inline-block;font-size:0.62rem;color:var(--accent-color,#38bdf8);background:rgba(56,189,248,0.1);padding:0.08rem 0.35rem;border-radius:0.25rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;">{{ user.role if user else 'ADMIN' }}</span>`
+- `templates/enterprise/_nav.html:592` — `<!-- 3. Search Filter -->`
+- `templates/enterprise/_nav.html:593` — `<div class="drawer-search-box">`
+- `templates/enterprise/_nav.html:594` — `<input type="text" class="drawer-search-input" id="drawerSearchInput" placeholder="🔍 Search pages & tools...">`
+- `templates/enterprise/_nav.html:622` — `{% if can_manage_permissions %}<a href="/admin/users" class="drawer-nav-item {% if current_page == 'admin_users' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">👥</span> <span>User Authorization & Access</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:677` — `function filterDrawerMenu(query) {`
+- `templates/enterprise/_nav.html:685` — `document.getElementById('drawerSearchInput')?.addEventListener('input', event => filterDrawerMenu(event.target.value));`
+- `core/auth/registration_notifications.py:19` — `from core.notifications.url_resolver import build_action_url`
+- `core/auth/registration_notifications.py:79` — `role: str,`
+- `core/auth/registration_notifications.py:87` — `base = build_action_url("/login")`
+- `core/auth/registration_notifications.py:93` — `html_role = html.escape(role, quote=True)`
+- `core/auth/registration_notifications.py:103` — `<p>Your OPB account <b>{html_username}</b> has been created with the <b>{html_role}</b> role.</p>`
+- `core/auth/registration_notifications.py:104` — `<p><b>Your account is pending administrator authorization.</b> Until the required permissions are granted, restricted signal and administration features will remain unavailable.</p>`
+- `core/auth/registration_notifications.py:113` — `f"Account: {username}\nRole: {role}\n\n"`
+- `core/auth/registration_notifications.py:114` — `"Your account is pending administrator authorization. An administrator must assign the permissions, menus, signal categories, conviction level and quotas before restricted features become available.\n\n"`
+- `core/auth/registration_notifications.py:117` — `user_sent = _send([email], "Welcome to OPB Super-Platform — Authorization Pending", user_html, user_plain)`
+- `core/auth/registration_notifications.py:124` — `<p>A new user has registered and requires permission review.</p>`
+- `core/auth/registration_notifications.py:129` — `<tr><td><b>Role</b></td><td>{html_role}</td></tr>`
+- `core/auth/registration_notifications.py:132` — `<p>Please review the account in <b>User Authorization & Controls</b> and explicitly assign the required privileges before the user begins using restricted features.</p>`
+- `core/auth/registration_notifications.py:133` — `<p><a href='{build_action_url('/admin/users')}' style='display:inline-block;padding:10px 16px;background:#2563eb;color:white;text-decoration:none;border-radius:6px'>Open User Controls</a></p>`
+- `core/auth/registration_notifications.py:138` — `f"Username: {username}\nDisplay Name: {safe_name}\nEmail: {email or '-'}\nRole: {role}\nCreated By: {created_by}\n\n"`
+- `core/auth/registration_notifications.py:139` — `f"Review: {build_action_url('/admin/users')}\n"`
+- `core/enterprise_dashboard/routes/pages.py:38` — `from core.auth.permissions import Permission, Role, get_role_permissions, is_super_admin_identity`
+- `core/enterprise_dashboard/routes/pages.py:39` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `core/enterprise_dashboard/routes/pages.py:42` — `role = str(user_dict.get("role", "viewer")).lower()`
+- `core/enterprise_dashboard/routes/pages.py:43` — `effective = UserPermissionManager.get_instance().get_effective_permissions(username, base_role=role)`
+- `core/enterprise_dashboard/routes/pages.py:45` — `effective = {p.value for p in get_role_permissions(role)}`
+- `core/enterprise_dashboard/routes/pages.py:48` — `"is_admin": role in (Role.ADMIN.value, Role.SUPER_ADMIN.value),`
+- `core/enterprise_dashboard/routes/pages.py:49` — `"is_super_admin": is_super_admin_identity(username, role),`
+- `core/enterprise_dashboard/routes/pages.py:50` — `"can_view_state": Permission.VIEW_STATE.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:51` — `"can_halt_trading": Permission.HALT_TRADING.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:52` — `"can_modify_risk": Permission.MODIFY_RISK_LIMITS.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:53` — `"can_toggle_strategies": Permission.TOGGLE_STRATEGIES.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:54` — `"can_deploy_models": Permission.DEPLOY_MODELS.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:55` — `"can_modify_code": Permission.MODIFY_CODE.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:56` — `"can_view_logs": Permission.VIEW_LOGS.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:57` — `"can_manage_brokers": Permission.ADD_BROKERS.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:58` — `"can_modify_config": Permission.MODIFY_CONFIG.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:59` — `"can_manage_users": Permission.MANAGE_USERS.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:60` — `"can_manage_permissions": Permission.MANAGE_PERMISSIONS.value in effective,`
+- `core/enterprise_dashboard/routes/pages.py:64` — `def _require_permission_page(request: Request, dashboard, permission: str, *, admin_only: bool = False):`
+- `core/enterprise_dashboard/routes/pages.py:69` — `role = str(user.role or "viewer").lower()`
+- `core/enterprise_dashboard/routes/pages.py:70` — `from core.auth.permissions import is_super_admin_identity`
+- `core/enterprise_dashboard/routes/pages.py:71` — `if is_super_admin_identity(user.username, role):`
+- `core/enterprise_dashboard/routes/pages.py:73` — `elif admin_only and role not in ("admin", "super_admin"):`
+- `core/enterprise_dashboard/routes/pages.py:76` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `core/enterprise_dashboard/routes/pages.py:77` — `allowed = UserPermissionManager.get_instance().user_has_permission(user.username, permission, base_role=role)`
+- `core/enterprise_dashboard/routes/pages.py:83` — `context={"code": 403, "message": f"Permission required: {permission}", "nonce": nonce},`
+- `core/enterprise_dashboard/routes/pages.py:98` — `used to check operator/admin auth for privileged pages.`
+- `core/enterprise_dashboard/routes/pages.py:104` — `@app.get("/", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:116` — `@app.get("/profile", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:128` — `@app.get("/login", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:137` — `@app.get("/register", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:146` — `@app.get("/admin/users", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:149` — `user, err = _require_permission_page(request, dashboard, "manage_permissions", admin_only=True)`
+- `core/enterprise_dashboard/routes/pages.py:158` — `@app.get("/admin/config", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:161` — `user, err = _require_permission_page(request, dashboard, "modify_config", admin_only=True)`
+- `core/enterprise_dashboard/routes/pages.py:170` — `@app.get("/admin/signals", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:176` — `role = str(user.role or "viewer").lower()`
+- `core/enterprise_dashboard/routes/pages.py:177` — `from core.auth.permissions import is_super_admin_identity`
+- `core/enterprise_dashboard/routes/pages.py:178` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `core/enterprise_dashboard/routes/pages.py:179` — `allowed = is_super_admin_identity(user.username, role) or any(`
+- `core/enterprise_dashboard/routes/pages.py:180` — `UserPermissionManager.get_instance().user_has_permission(user.username, perm, base_role=role)`
+- `core/enterprise_dashboard/routes/pages.py:186` — `context={"code": 403, "message": "Permission required: modify_config or view_logs", "nonce": nonce},`
+- `core/enterprise_dashboard/routes/pages.py:195` — `@app.get("/my-signals", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:207` — `@app.get("/sector-radar", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:217` — `@app.get("/trade-copier", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:229` — `@app.get("/margin-radar", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:239` — `@app.get("/strategy-sandbox", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:249` — `@app.get("/fii-dii-radar", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:259` — `@app.get("/expiry-harvester", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:269` — `@app.get("/pricing-plans", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:272` — `user, err = _require_permission_page(request, dashboard, "modify_config", admin_only=True)`
+- `core/enterprise_dashboard/routes/pages.py:281` — `@app.get("/admin/kill-switch", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:284` — `user, err = _require_permission_page(request, dashboard, "halt_trading", admin_only=True)`
+- `core/enterprise_dashboard/routes/pages.py:293` — `@app.get("/forgot-password", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:302` — `@app.get("/reset-password", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:312` — `@app.get("/change-password", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:321` — `@app.get("/performance", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:333` — `@app.get("/options-chain", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:345` — `@app.get("/whats-new", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:348` — `user, err = _require_permission_page(request, dashboard, "view_logs")`
+- `core/enterprise_dashboard/routes/pages.py:359` — `@app.get("/payoff-calculator", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:371` — `@app.get("/trade-journal", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:383` — `@app.get("/live-pnl", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:395` — `@app.get("/system-health", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:398` — `user, err = _require_permission_page(request, dashboard, "view_state")`
+- `core/enterprise_dashboard/routes/pages.py:407` — `@app.get("/event-store", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:410` — `user, err = _require_permission_page(request, dashboard, "view_logs")`
+- `core/enterprise_dashboard/routes/pages.py:419` — `@app.get("/ab-tester", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:422` — `user, err = _require_permission_page(request, dashboard, "deploy_models")`
+- `core/enterprise_dashboard/routes/pages.py:431` — `@app.get("/governance", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:434` — `user, err = _require_permission_page(request, dashboard, "toggle_strategies")`
+- `core/enterprise_dashboard/routes/pages.py:443` — `@app.get("/capacity", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:446` — `user, err = _require_permission_page(request, dashboard, "view_state")`
+- `core/enterprise_dashboard/routes/pages.py:455` — `@app.get("/metrics-trend", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:467` — `@app.get("/data-quality", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:470` — `user, err = _require_permission_page(request, dashboard, "view_state")`
+- `core/enterprise_dashboard/routes/pages.py:479` — `@app.get("/observability", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:482` — `user, err = _require_permission_page(request, dashboard, "view_logs")`
+- `core/enterprise_dashboard/routes/pages.py:491` — `@app.get("/intelligence", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:492` — `@app.get("/business-intelligence", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:495` — `user, err = _require_permission_page(request, dashboard, "view_state")`
+- `core/enterprise_dashboard/routes/pages.py:504` — `@app.get("/security", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:511` — `user, err = _require_permission_page(request, dashboard, "view_logs", admin_only=True)`
+- `core/enterprise_dashboard/routes/pages.py:520` — `@app.get("/intelligence/presentation", response_class=HTMLResponse)`
+- `core/enterprise_dashboard/routes/pages.py:523` — `user, err = _require_permission_page(request, dashboard, "view_state")`

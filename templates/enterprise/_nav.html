@@ -1,0 +1,688 @@
+<!-- ══════════════════════════════════════════════════════════════════════════
+     OPB 2026 Dual-Mode Navigation Architecture
+     Desktop: Information-Rich Command Center (>= 1024px)
+     Mobile & Tablet: Focused Decision Cockpit (< 1024px)
+     ══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- Pure CSS Drawer State Controller (CSP Immune, 100% Native Mobile Performance) -->
+<input type="checkbox" id="opbMobileDrawerCheckbox" class="opb-drawer-checkbox" autocomplete="off" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" />
+
+<style>
+    /* ══════════════════════════════════════════════════════════════════════════
+       1. DESKTOP NAVIGATION STYLING (>= 1024px)
+       ══════════════════════════════════════════════════════════════════════════ */
+    @media (min-width: 1024px) {
+        .opb-mobile-appbar,
+        .opb-mobile-drawer-backdrop,
+        .opb-mobile-drawer,
+        .opb-mobile-bottom-dock,
+        .opb-drawer-checkbox,
+        #opbMobileDrawer,
+        #opbMobileDrawerBackdrop {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            position: fixed !important;
+            top: -99999px !important;
+            left: -99999px !important;
+            width: 0 !important;
+            height: 0 !important;
+            transform: translateX(-99999px) !important;
+        }
+
+        .opb-desktop-nav {
+            display: flex !important;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .opb-nav-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card, #0f172a);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.75rem;
+            padding: 0.65rem 1rem;
+            box-shadow: var(--card-shadow, 0 4px 20px rgba(0,0,0,0.25));
+        }
+
+        .opb-nav-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--bg-card, #0f172a);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.75rem;
+            padding: 0.35rem 0.5rem;
+            overflow: visible !important;
+            position: relative;
+            z-index: 1000;
+            flex-wrap: wrap;
+        }
+
+        .opb-nav-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: 0.5rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-secondary, #cbd5e1);
+            text-decoration: none;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .opb-nav-item:hover, .opb-nav-item.active {
+            background: var(--accent-color, #38bdf8);
+            color: #000000 !important;
+            font-weight: 800;
+        }
+
+        .opb-ws-group {
+            position: relative;
+            z-index: 10001;
+            display: inline-block;
+            padding-bottom: 0.45rem;
+            margin-bottom: -0.45rem;
+        }
+        .opb-ws-dropdown {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            position: absolute;
+            top: calc(100% - 0.45rem);
+            left: 0;
+            margin-top: 0;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-3px);
+            transition: opacity 0.12s ease, transform 0.12s ease, visibility 0s linear 0.30s;
+            background: var(--bg-card, #0f172a);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.75rem;
+            padding: 0.5rem;
+            min-width: 280px;
+            width: max-content;
+            z-index: 9999;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+            backdrop-filter: blur(16px);
+        }
+        /* Keep the desktop dropdown connected to its trigger: the previous 6px
+           gap made the menu disappear before a pointer could reach it. */
+        .opb-ws-dropdown::before {
+            content: "";
+            position: absolute;
+            top: -14px;
+            left: 0;
+            right: 0;
+            height: 14px;
+            background: transparent;
+        }
+.opb-ws-group:hover .opb-ws-dropdown,
+        .opb-ws-group:focus-within .opb-ws-dropdown,
+        .opb-ws-group.menu-pinned .opb-ws-dropdown {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+            transition-delay: 0s;
+        }
+        .opb-ws-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary, #cbd5e1);
+            text-decoration: none;
+        }
+        .opb-ws-item:hover, .opb-ws-item.active {
+            background: var(--bg-card-hover, rgba(56, 189, 248, 0.15));
+            color: var(--accent-color, #38bdf8);
+        }
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       2. MOBILE NAVIGATION STYLING (< 1024px)
+       ══════════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 1023px) {
+        .opb-desktop-nav {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
+        body {
+            padding: 0.5rem 0.65rem 4.5rem 0.65rem !important;
+        }
+
+        .opb-mobile-appbar {
+            display: flex !important;
+            align-items: center;
+            justify-content: space-between;
+            height: 50px;
+            padding: 0 0.85rem;
+            background: var(--bg-card, #0f172a);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 0.75rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            position: sticky;
+            top: 0.5rem;
+            z-index: 999;
+        }
+
+        .mobile-hamburger-btn {
+            background: var(--bg-secondary, #1e293b);
+            border: 1px solid var(--border-color, #334155);
+            color: var(--text-primary, #ffffff);
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        /* ── Slide-Over Mobile Navigation Drawer ── */
+        .opb-mobile-drawer-backdrop {
+            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100000;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: opacity 0.2s ease;
+        }
+
+        .opb-mobile-drawer {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: min(320px, 85vw);
+            max-width: 85vw;
+            background: var(--bg-card, #0f172a);
+            border-right: 1px solid var(--border-color, #334155);
+            z-index: 100001;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.7);
+            transform: translateX(-100%);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            visibility: hidden;
+        }
+
+        /* Drawer Active States */
+        body.drawer-open .opb-mobile-drawer-backdrop,
+        html.drawer-open .opb-mobile-drawer-backdrop,
+        .opb-drawer-checkbox:checked ~ .opb-mobile-drawer-backdrop {
+            display: block !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            backdrop-filter: blur(4px) !important;
+            -webkit-backdrop-filter: blur(4px) !important;
+        }
+
+        body.drawer-open .opb-mobile-drawer,
+        html.drawer-open .opb-mobile-drawer,
+        .opb-drawer-checkbox:checked ~ .opb-mobile-drawer {
+            transform: translateX(0) !important;
+            visibility: visible !important;
+        }
+
+        .drawer-search-box {
+            padding: 0.5rem 1rem;
+            background: var(--bg-card, #0f172a);
+            border-bottom: 1px solid var(--border-color, #1e293b);
+        }
+        .drawer-search-input {
+            width: 100%;
+            background: var(--input-bg, #0b1120);
+            border: 1px solid var(--border-color, #334155);
+            color: var(--text-primary, #ffffff);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .drawer-nav-list {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0.75rem 0.5rem 5.5rem 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .drawer-section-title {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: var(--text-muted, #64748b);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.5rem 0.5rem 0.2rem 0.5rem;
+        }
+        .drawer-nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.55rem 0.75rem;
+            border-radius: 0.5rem;
+            color: var(--text-secondary, #cbd5e1);
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 700;
+            min-height: 44px;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        .drawer-nav-item:hover, .drawer-nav-item.active {
+            background: var(--bg-card-hover, rgba(56, 189, 248, 0.1));
+            color: var(--accent-color, #38bdf8);
+        }
+
+        .drawer-footer {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--border-color, #1e293b);
+            background: var(--bg-secondary, #131e33);
+        }
+        .drawer-logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.6rem 1rem;
+            border-radius: 0.5rem;
+            background: var(--market-sell-bg, rgba(220, 38, 38, 0.15));
+            color: var(--danger-color, #ef4444);
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-decoration: none;
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            min-height: 44px;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        .opb-theme-pill {
+            background: var(--bg-card, #131e33);
+            border: 1px solid var(--border-color, #1e293b);
+            color: var(--text-primary, #ffffff);
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.15s ease;
+        }
+        .opb-theme-pill:active {
+            transform: scale(0.94);
+            background: var(--accent-color, #38bdf8);
+            color: #000000;
+        }
+
+        .opb-mobile-bottom-dock {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 58px;
+            background: var(--bg-card, #0f172a);
+            border-top: 1px solid var(--border-color, #1e293b);
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            z-index: 9999;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35);
+        }
+        .mobile-dock-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-decoration: none;
+            color: var(--text-secondary, #94a3b8);
+            font-size: 0.65rem;
+            font-weight: 700;
+            gap: 0.15rem;
+            touch-action: manipulation;
+        }
+        .mobile-dock-tab.active,
+        .mobile-dock-tab:active {
+            color: var(--accent-color, #38bdf8);
+        }
+        .mobile-dock-tab .dock-icon {
+            font-size: 1.15rem;
+            line-height: 1;
+        }
+    }
+
+    .opb-latency-pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .opb-latency-pulse.pulse-live {
+        background: var(--market-buy, #10b981) !important;
+        box-shadow: 0 0 8px var(--market-buy, #10b981) !important;
+    }
+</style>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     1. DEDICATED DESKTOP NAVIGATION (>= 1024px)
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="opb-desktop-nav">
+        <div class="opb-nav-top" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:nowrap;background:var(--bg-card,#0f172a);border:1px solid var(--border-color,#334155);border-radius:0.75rem;padding:0.65rem 1rem;box-shadow:var(--card-shadow,0 4px 20px rgba(0,0,0,0.25));min-height:56px;box-sizing:border-box;">
+        <!-- Left: Dedicated Global Brand Identity Region -->
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-shrink:0;min-width:max-content;">
+            <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:0.65rem;white-space:nowrap;" title="Go to Home Cockpit">
+                <div style="background:var(--bg-card);border:1px solid var(--border-color);width:38px;height:38px;min-width:38px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.15);flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-color,#38bdf8);"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                </div>
+                <div style="display:flex;flex-direction:column;min-width:max-content;">
+                    <div style="font-size:1.15rem;font-weight:800;letter-spacing:0.08em;color:var(--text-primary,#ffffff);white-space:nowrap;display:flex;align-items:center;line-height:1.2;">
+                        GAURAV<span style="font-size:0.65rem;vertical-align:super;color:var(--accent-color,#38bdf8);">™</span>
+                    </div>
+                    <div style="font-size:0.62rem;color:var(--text-muted,#94a3b8);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;line-height:1.2;">
+                        SUPER-PLATFORM • QUANTITATIVE COCKPIT
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Right: Telemetry, Theme Selector, Emergency Kill Switch, User Identity -->
+        <div style="display:flex;align-items:center;gap:0.65rem;flex-shrink:0;min-width:max-content;margin-left:auto;white-space:nowrap;">
+            <!-- Telemetry Pulse & Latency -->
+            <span style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#334155);padding:0.3rem 0.65rem;border-radius:0.4rem;font-size:0.75rem;display:inline-flex;align-items:center;gap:0.4rem;flex-shrink:0;white-space:nowrap;min-width:max-content;">
+                <span class="opb-latency-pulse pulse-live" id="desktop-telemetry-pulse" style="width:8px;height:8px;border-radius:50%;background:var(--market-buy,#10b981);display:inline-block;flex-shrink:0;"></span>
+                <span class="opb-num" id="desktop-live-latency" style="color:var(--text-primary,#ffffff);font-family:var(--font-mono);font-weight:700;white-space:nowrap;display:inline-block;">12ms</span>
+            </span>
+
+            <!-- 9-Theme Selector Dropdown -->
+            <select id="desktopThemeSelect" data-theme-select="true" class="opb-theme-selector" style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#334155);color:var(--text-primary,#ffffff);padding:0.35rem 0.65rem;border-radius:0.4rem;font-size:0.75rem;font-weight:700;outline:none;cursor:pointer;flex-shrink:0 !important;width:auto !important;max-width:145px !important;min-width:125px !important;white-space:nowrap !important;display:inline-block !important;">
+                <option value="dark-cyber">🌌 Dark Cyber</option>
+                <option value="nordic-frost">❄️ Nordic Frost</option>
+                <option value="ivory-gold">🏛️ Ivory Gold</option>
+                <option value="tokyo-night">🗼 Tokyo Night</option>
+                <option value="catppuccin-mocha">🐱 Catppuccin</option>
+                <option value="obsidian-gold">👑 Obsidian Gold</option>
+                <option value="midnight-slate">☀️ Sapphire Day</option>
+                <option value="emerald-matrix">❇️ Emerald</option>
+                <option value="dracula-purple">🌸 Plum Cloud</option>
+            </select>
+
+            <!-- Emergency Kill Switch (P1) -->
+            {% if can_halt_trading %}<a href="/admin/kill-switch" class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:0.35rem;font-weight:800;padding:0.35rem 0.75rem;font-size:0.75rem;text-decoration:none;border-radius:0.4rem;box-shadow:0 2px 8px rgba(220,38,38,0.35);flex-shrink:0;white-space:nowrap;min-width:max-content;">
+                🚨 KILL SWITCH
+            </a>
+
+{% endif %}
+            <!-- User Profile & Logout -->
+            <div style="display:inline-flex;align-items:center;gap:0.5rem;margin-left:0.25rem;flex-shrink:0;white-space:nowrap;">
+                <a href="/profile" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;color:var(--text-primary,#ffffff);font-size:0.8rem;font-weight:700;white-space:nowrap;flex-shrink:0;">
+                    👤 {{ user.username if user else 'admin' }}
+                </a>
+                <a href="/logout" class="btn btn-ghost btn-sm" style="padding:0.3rem 0.55rem;font-size:0.75rem;white-space:nowrap;flex-shrink:0;" title="Sign Out">
+                    Sign Out
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop Navigation Row -->
+    <div class="opb-nav-bar">
+        <a href="/" class="opb-nav-item {% if current_page in ('dashboard', 'home') %}active{% endif %}">🏠 Command Center</a>
+        <a href="/my-signals" class="opb-nav-item {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}">⚡ Signals Radar</a>
+        
+        <div class="opb-ws-group">
+            <a href="/options-chain" class="opb-nav-item {% if current_page in ('options_chain', 'sector_radar', 'fii_dii_radar', 'expiry_harvester', 'margin_radar') %}active{% endif %}">
+                📊 Markets & Radar ▾
+            </a>
+            <div class="opb-ws-dropdown">
+                <a href="/options-chain" class="opb-ws-item {% if current_page == 'options_chain' %}active{% endif %}"><span>⚡ Options Chain Heatmap</span></a>
+                <a href="/sector-radar" class="opb-ws-item {% if current_page == 'sector_radar' %}active{% endif %}"><span>📡 Sector Money Flow</span></a>
+                <a href="/fii-dii-radar" class="opb-ws-item {% if current_page == 'fii_dii_radar' %}active{% endif %}"><span>🏦 Institutional FII/DII</span></a>
+                <a href="/expiry-harvester" class="opb-ws-item {% if current_page == 'expiry_harvester' %}active{% endif %}"><span>🌾 Expiry Day Harvester</span></a>
+                <a href="/margin-radar" class="opb-ws-item {% if current_page == 'margin_radar' %}active{% endif %}"><span>🛡️ Broker Margin Matrix</span></a>
+            </div>
+        </div>
+
+        <div class="opb-ws-group">
+            <a href="/live-pnl" class="opb-nav-item {% if current_page in ('live_pnl', 'trade_journal', 'trade_copier', 'payoff_calculator', 'performance') %}active{% endif %}">
+                📈 Execution & PnL ▾
+            </a>
+            <div class="opb-ws-dropdown">
+                <a href="/live-pnl" class="opb-ws-item {% if current_page == 'live_pnl' %}active{% endif %}"><span>📈 Live P&L Cockpit</span></a>
+                <a href="/trade-journal" class="opb-ws-item {% if current_page == 'trade_journal' %}active{% endif %}"><span>📔 Trade Journal & Audit</span></a>
+                {% if can_manage_brokers %}<a href="/trade-copier" class="opb-ws-item {% if current_page == 'trade_copier' %}active{% endif %}"><span>⚡ Multi-Account Copier</span></a>{% endif %}
+                <a href="/payoff-calculator" class="opb-ws-item {% if current_page == 'payoff_calculator' %}active{% endif %}"><span>🧮 Multi-Leg Payoff Engine</span></a>
+                <a href="/performance" class="opb-ws-item {% if current_page == 'performance' %}active{% endif %}"><span>📊 Strategy Performance</span></a>
+                {% if can_view_state %}<a href="/reports" class="opb-ws-item {% if current_page == 'reports' %}active{% endif %}"><span>📚 Report Center</span></a>{% endif %}
+            </div>
+        </div>
+
+        <div class="opb-ws-group">
+            <a href="/strategy-sandbox" class="opb-nav-item {% if current_page in ('strategy_sandbox', 'intelligence', 'ab_tester', 'metrics_trend') %}active{% endif %}">
+                🧪 Strategy & AI ▾
+            </a>
+            <div class="opb-ws-dropdown">
+                <a href="/strategy-sandbox" class="opb-ws-item {% if current_page == 'strategy_sandbox' %}active{% endif %}"><span>🧪 Strategy Sandbox Lab</span></a>
+                <a href="/intelligence" class="opb-ws-item {% if current_page == 'intelligence' %}active{% endif %}"><span>🧠 Intelligence Engine</span></a>
+                <a href="/ab-tester" class="opb-ws-item {% if current_page == 'ab_tester' %}active{% endif %}"><span>🔬 A/B Testing Framework</span></a>
+                <a href="/metrics-trend" class="opb-ws-item {% if current_page == 'metrics_trend' %}active{% endif %}"><span>📈 Success Metrics & Trends</span></a>
+            </div>
+        </div>
+
+        {% if is_admin and (can_modify_config or can_modify_risk or can_toggle_strategies or can_deploy_models or can_view_logs or can_manage_brokers) %}
+        <div class="opb-ws-group" tabindex="0">
+            <a href="/admin/config" class="opb-nav-item {% if current_page in ('admin_config', 'admin_signals', 'admin_portfolio_analyzer', 'governance', 'security', 'observability', 'system_health', 'data_quality', 'capacity', 'event_store', 'pricing_plans', 'whats_new', 'presentation', 'kill_switch') %}active{% endif %}">
+                ⚙️ Admin & Governance ▾
+            </a>
+            <div class="opb-ws-dropdown" style="min-width: 320px; max-height: 80vh; overflow-y: auto;">
+                {% if can_manage_permissions %}<a href="/admin/users" class="opb-ws-item {% if current_page == 'admin_users' %}active{% endif %}"><span>👥 User Authorization & Controls</span></a>{% endif %}
+                {% if can_modify_config %}<a href="/admin/config" class="opb-ws-item {% if current_page == 'admin_config' %}active{% endif %}"><span>⚙️ Core System Configuration</span></a>{% endif %}
+                {% if can_modify_config or can_view_logs %}<a href="/admin/signals" class="opb-ws-item {% if current_page == 'admin_signals' %}active{% endif %}"><span>🎯 Signal Accuracy & Dispatch Matrix</span></a>{% endif %}
+                {% if can_manage_brokers or can_view_state %}<a href="/admin/portfolio-analyzer" class="opb-ws-item {% if current_page == 'admin_portfolio_analyzer' %}active{% endif %}"><span>💼 Multi-Broker Portfolio</span></a>{% endif %}
+                {% if can_toggle_strategies %}<a href="/governance" class="opb-ws-item {% if current_page == 'governance' %}active{% endif %}"><span>⚖️ Governance Policy Gate</span></a>{% endif %}
+                {% if can_view_logs %}<a href="/security" class="opb-ws-item {% if current_page == 'security' %}active{% endif %}"><span>🔒 Security Architecture</span></a>{% endif %}
+                {% if can_view_logs %}<a href="/observability" class="opb-ws-item {% if current_page == 'observability' %}active{% endif %}"><span>📉 Observability & Tracing</span></a>{% endif %}
+                {% if can_view_state %}<a href="/system-health" class="opb-ws-item {% if current_page == 'system_health' %}active{% endif %}"><span>🏥 System Health & Telemetry</span></a>{% endif %}
+                {% if can_view_state %}<a href="/data-quality" class="opb-ws-item {% if current_page == 'data_quality' %}active{% endif %}"><span>📊 Data Quality & Integrity Guard</span></a>{% endif %}
+                {% if can_view_state %}<a href="/capacity" class="opb-ws-item {% if current_page == 'capacity' %}active{% endif %}"><span>⚡ Capacity & Scalability</span></a>{% endif %}
+                {% if can_view_logs %}<a href="/event-store" class="opb-ws-item {% if current_page == 'event_store' %}active{% endif %}"><span>📜 Event Store & Audit Log</span></a>{% endif %}
+                {% if can_modify_config %}<a href="/pricing-plans" class="opb-ws-item {% if current_page == 'pricing_plans' %}active{% endif %}"><span>💎 Subscription & Pricing Plans</span></a>{% endif %}
+                {% if can_view_logs %}<a href="/whats-new" class="opb-ws-item {% if current_page == 'whats_new' %}active{% endif %}"><span>🚀 What's New & Changelog</span></a>{% endif %}
+                {% if can_view_state %}<a href="/intelligence/presentation" class="opb-ws-item {% if current_page == 'presentation' %}active{% endif %}"><span>📊 Institutional Presentation</span></a>{% endif %}
+                {% if can_modify_risk %}<a href="/admin/kill-switch" class="opb-ws-item {% if current_page == 'kill_switch' %}active{% endif %}" style="color: var(--danger-color, #ef4444);"><span>🚨 Emergency Kill Switch</span></a>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     2. DEDICATED MOBILE APP BAR (< 1024px)
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="opb-mobile-appbar">
+    <div style="display:flex;align-items:center;gap:0.65rem;overflow:hidden;">
+        <label for="opbMobileDrawerCheckbox" class="mobile-hamburger-btn" data-drawer="true" id="mobileTopMenuBtn" aria-label="Open Navigation Menu">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-primary);"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </label>
+        <a href="/" class="mobile-brand-title" style="text-decoration:none;display:flex;align-items:baseline;gap:0.3rem;white-space:nowrap;overflow:hidden;">
+            <span style="font-size:1.05rem;font-weight:900;letter-spacing:0.04em;color:var(--text-primary,#ffffff);">GAURAV<span style="font-size:0.62rem;color:var(--accent-color,#38bdf8);vertical-align:super;">™</span></span>
+            <span style="font-size:0.65rem;color:var(--accent-color,#38bdf8);font-weight:800;letter-spacing:0.08em;text-transform:uppercase;">COCKPIT</span>
+        </a>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:0.45rem;flex-shrink:0;">
+        <span class="mobile-status-pill" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--market-buy,#10b981);font-weight:800;padding:0.25rem 0.5rem;border-radius:0.45rem;font-size:0.7rem;display:flex;align-items:center;gap:0.3rem;white-space:nowrap;">
+            <span style="width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block;"></span> LIVE
+        </span>
+        <a href="/admin/kill-switch" class="mobile-kill-btn" title="Emergency Kill Switch" style="display:inline-flex;align-items:center;gap:0.25rem;background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);color:#ffffff!important;border:1px solid #b91c1c;padding:0.25rem 0.6rem;border-radius:0.45rem;font-size:0.72rem;font-weight:800;letter-spacing:0.03em;text-decoration:none;white-space:nowrap;box-shadow:0 2px 6px rgba(220,38,38,0.4);">
+            🚨 KILL
+        </a>
+    </div>
+</div>
+
+<!-- ── Backdrop (Click to close drawer) ── -->
+<label for="opbMobileDrawerCheckbox" class="opb-mobile-drawer-backdrop" id="opbMobileDrawerBackdrop"></label>
+
+<!-- ── Slide-Over Navigation Drawer (< 1024px) ── -->
+<div class="opb-mobile-drawer" id="opbMobileDrawer">
+    <div class="drawer-header">
+        <span>📋 NAVIGATION MENU</span>
+        <label for="opbMobileDrawerCheckbox" class="drawer-close-btn" aria-label="Close Menu">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-primary);"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </label>
+    </div>
+
+    <!-- 1. User Profile & Role Identity -->
+    <div class="drawer-user-card" style="display:flex;flex-direction:column;gap:0.65rem;padding:0.75rem 1rem;background:var(--bg-secondary,#131e33);border-bottom:1px solid var(--border-color,#1e293b);">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+            <div style="display:flex;align-items:center;gap:0.6rem;min-width:0;">
+                <div style="width:34px;height:34px;border-radius:50%;background:rgba(56,189,248,0.15);border:1px solid var(--accent-color,#38bdf8);display:flex;align-items:center;justify-content:center;color:var(--accent-color);font-weight:800;font-size:0.9rem;flex-shrink:0;">
+                    👤
+                </div>
+                <div style="min-width:0;">
+                    <div style="font-size:0.85rem;font-weight:800;color:var(--text-primary,#ffffff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ user.username if user else 'admin' }}</div>
+                    <span style="display:inline-block;font-size:0.62rem;color:var(--accent-color,#38bdf8);background:rgba(56,189,248,0.1);padding:0.08rem 0.35rem;border-radius:0.25rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;">{{ user.role if user else 'ADMIN' }}</span>
+                </div>
+            </div>
+            <a href="/logout" class="btn btn-danger btn-sm" style="padding:0.25rem 0.55rem;font-size:0.72rem;font-weight:700;text-decoration:none;border-radius:0.375rem;white-space:nowrap;">
+                Sign Out
+            </a>
+        </div>
+    </div>
+
+    <!-- 2. Dedicated Multi-Theme Selector Region -->
+    <div class="drawer-theme-card" style="padding:0.65rem 1rem;background:var(--bg-card,#0f172a);border-bottom:1px solid var(--border-color,#1e293b);display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+        <span style="font-size:0.72rem;font-weight:800;color:var(--text-secondary,#cbd5e1);text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;">🎨 Theme</span>
+        <select id="drawerThemeSelect" data-theme-select="true" class="opb-theme-selector" style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#1e293b);color:var(--text-primary,#ffffff);padding:0.3rem 0.6rem;border-radius:0.375rem;font-size:0.75rem;font-weight:700;outline:none;width:auto;flex:1;max-width:180px;">
+            <option value="dark-cyber">🌌 Dark Cyber</option>
+            <option value="nordic-frost">❄️ Nordic Frost</option>
+            <option value="ivory-gold">🏛️ Ivory Gold</option>
+            <option value="tokyo-night">🗼 Tokyo Night</option>
+            <option value="catppuccin-mocha">🐱 Catppuccin</option>
+            <option value="obsidian-gold">👑 Obsidian Gold</option>
+            <option value="midnight-slate">☀️ Sapphire Day</option>
+            <option value="emerald-matrix">❇️ Emerald</option>
+            <option value="dracula-purple">🌸 Plum Cloud</option>
+        </select>
+    </div>
+
+    <!-- 3. Search Filter -->
+    <div class="drawer-search-box">
+        <input type="text" class="drawer-search-input" id="drawerSearchInput" placeholder="🔍 Search pages & tools...">
+    </div>
+
+    <!-- 4. Categorized Navigation List -->
+    <div class="drawer-nav-list" id="drawerNavList">
+        <div class="drawer-section-title">🏠 Primary Cockpit</div>
+        <a href="/" class="drawer-nav-item {% if current_page in ('dashboard', 'home') %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">🏠</span> <span>Home Cockpit</span></a>
+        <a href="/my-signals" class="drawer-nav-item {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">⚡</span> <span>Signals Radar</span></a>
+        <a href="/strategy-sandbox" class="drawer-nav-item {% if current_page == 'strategy_sandbox' %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">🧪</span> <span>Strategy Sandbox Lab</span></a>
+        <a href="/intelligence" class="drawer-nav-item {% if current_page == 'intelligence' %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">🧠</span> <span>Intelligence Engine</span></a>
+
+        <div class="drawer-section-title">📊 Markets & Radar</div>
+        <a href="/options-chain" class="drawer-nav-item {% if current_page == 'options_chain' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚡</span> <span>Options Chain Matrix</span></a>
+        <a href="/margin-radar" class="drawer-nav-item {% if current_page == 'margin_radar' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🛡️</span> <span>Broker Margin Radar</span></a>
+        <a href="/sector-radar" class="drawer-nav-item {% if current_page == 'sector_radar' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📡</span> <span>Sector Radar Flow</span></a>
+        <a href="/fii-dii-radar" class="drawer-nav-item {% if current_page == 'fii_dii_radar' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🏦</span> <span>Institutional FII/DII</span></a>
+        <a href="/expiry-harvester" class="drawer-nav-item {% if current_page == 'expiry_harvester' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🌾</span> <span>Expiry Harvester</span></a>
+
+        <div class="drawer-section-title">📈 Execution & Analytics</div>
+        <a href="/live-pnl" class="drawer-nav-item {% if current_page == 'live_pnl' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📈</span> <span>Live P&L Cockpit</span></a>
+        <a href="/trade-journal" class="drawer-nav-item {% if current_page == 'trade_journal' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📔</span> <span>Trade Journal</span></a>
+        {% if can_manage_brokers %}<a href="/trade-copier" class="drawer-nav-item {% if current_page == 'trade_copier' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚡</span> <span>Trade Copier</span></a>{% endif %}
+        <a href="/payoff-calculator" class="drawer-nav-item {% if current_page == 'payoff_calculator' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🧮</span> <span>Payoff Calculator</span></a>
+        <a href="/performance" class="drawer-nav-item {% if current_page == 'performance' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📊</span> <span>Strategy Performance</span></a>
+        {% if can_view_state %}<a href="/reports" class="drawer-nav-item {% if current_page == 'reports' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📚</span> <span>Report Center</span></a>{% endif %}
+        <a href="/metrics-trend" class="drawer-nav-item {% if current_page == 'metrics_trend' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📈</span> <span>Success Metrics & Trends</span></a>
+
+        {% if is_admin %}
+        <div class="drawer-section-title">⚙️ Super Admin & System Governance</div>
+        {% if can_manage_permissions %}<a href="/admin/users" class="drawer-nav-item {% if current_page == 'admin_users' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">👥</span> <span>User Authorization & Access</span></a>{% endif %}
+        {% if can_modify_config %}<a href="/admin/config" class="drawer-nav-item {% if current_page == 'admin_config' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚙️</span> <span>System Configuration</span></a>{% endif %}
+        {% if can_modify_config or can_view_logs %}<a href="/admin/signals" class="drawer-nav-item {% if current_page == 'admin_signals' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🎯</span> <span>Signal Accuracy Matrix</span></a>{% endif %}
+        {% if can_manage_brokers or can_view_state %}<a href="/admin/portfolio-analyzer" class="drawer-nav-item {% if current_page == 'admin_portfolio_analyzer' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">💼</span> <span>Multi-Broker Portfolio</span></a>{% endif %}
+        {% if can_toggle_strategies %}<a href="/governance" class="drawer-nav-item {% if current_page == 'governance' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚖️</span> <span>Governance Policy Gate</span></a>{% endif %}
+        {% if can_view_logs %}<a href="/security" class="drawer-nav-item {% if current_page == 'security' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🔒</span> <span>Security Shield & Auth</span></a>{% endif %}
+        {% if can_view_logs %}<a href="/observability" class="drawer-nav-item {% if current_page == 'observability' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📉</span> <span>Observability & Tracing</span></a>{% endif %}
+        {% if can_view_state %}<a href="/system-health" class="drawer-nav-item {% if current_page == 'system_health' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🏥</span> <span>System Health & Telemetry</span></a>{% endif %}
+        {% if can_view_state %}<a href="/data-quality" class="drawer-nav-item {% if current_page == 'data_quality' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📊</span> <span>Data Quality Guard</span></a>{% endif %}
+        {% if can_view_state %}<a href="/capacity" class="drawer-nav-item {% if current_page == 'capacity' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚡</span> <span>Capacity & Scalability</span></a>{% endif %}
+        {% if can_view_logs %}<a href="/event-store" class="drawer-nav-item {% if current_page == 'event_store' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📜</span> <span>Event Store & Audit Log</span></a>{% endif %}
+        {% if can_deploy_models %}<a href="/ab-tester" class="drawer-nav-item {% if current_page == 'ab_tester' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🔬</span> <span>A/B Testing Framework</span></a>{% endif %}
+        {% if can_modify_config %}<a href="/pricing-plans" class="drawer-nav-item {% if current_page == 'pricing_plans' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">💎</span> <span>Subscription & Pricing</span></a>{% endif %}
+        {% if can_view_logs %}<a href="/whats-new" class="drawer-nav-item {% if current_page == 'whats_new' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🚀</span> <span>Release Notes & What's New</span></a>{% endif %}
+        {% if can_view_state %}<a href="/intelligence/presentation" class="drawer-nav-item {% if current_page == 'presentation' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📊</span> <span>Institutional Presentation</span></a>{% endif %}
+        {% if can_halt_trading %}<a href="/admin/kill-switch" class="drawer-nav-item {% if current_page == 'kill_switch' %}active{% endif %}" style="color:var(--danger-color, #ef4444);"><span style="font-size:1rem;margin-right:0.4rem;">🚨</span> <span>Emergency Kill Switch</span></a>{% endif %}
+        {% endif %}
+
+        <div class="drawer-section-title">👤 Account & Session</div>
+        <a href="/profile" class="drawer-nav-item {% if current_page == 'profile' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">👤</span> <span>Profile Settings</span></a>
+    </div>
+
+    <!-- 5. Footer -->
+    <div class="drawer-footer">
+        <a href="/logout" class="drawer-logout-btn">
+            🚪 Sign Out of Session
+        </a>
+    </div>
+</div>
+
+<!-- ── Dedicated Mobile Bottom Navigation Dock (< 1024px) ── -->
+<nav class="opb-mobile-bottom-dock" aria-label="Mobile Quick Routing">
+    <a href="/" class="mobile-dock-tab {% if current_page in ('dashboard', 'home') %}active{% endif %}" title="Command Center">
+        <span class="dock-icon">🏠</span>
+        <span class="dock-label">Home</span>
+    </a>
+    <a href="/my-signals" class="mobile-dock-tab {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}" title="Signals Radar">
+        <span class="dock-icon">⚡</span>
+        <span class="dock-label">Signals</span>
+    </a>
+    <a href="/live-pnl" class="mobile-dock-tab {% if current_page == 'live_pnl' %}active{% endif %}" title="Live P&L Cockpit">
+        <span class="dock-icon">📈</span>
+        <span class="dock-label">P&L</span>
+    </a>
+    <a href="/options-chain" class="mobile-dock-tab {% if current_page == 'options_chain' %}active{% endif %}" title="Options Matrix">
+        <span class="dock-icon">📊</span>
+        <span class="dock-label">Markets</span>
+    </a>
+    <label for="opbMobileDrawerCheckbox" class="mobile-dock-tab" data-drawer="true" id="mobileBottomMenuBtn" title="Full Navigation Menu" style="cursor:pointer;">
+        <span class="dock-icon">☰</span>
+        <span class="dock-label">Menu</span>
+    </label>
+</nav>
+
+<script nonce="{{ nonce }}">
+    function filterDrawerMenu(query) {
+        query = String(query || '').toLowerCase();
+        const items = document.querySelectorAll('#drawerNavList .drawer-nav-item');
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(query) ? 'flex' : 'none';
+        });
+    }
+    document.getElementById('drawerSearchInput')?.addEventListener('input', event => filterDrawerMenu(event.target.value));
+</script>

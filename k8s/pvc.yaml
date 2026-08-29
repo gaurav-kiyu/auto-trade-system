@@ -1,0 +1,20 @@
+---
+# OPB Bot — PersistentVolumeClaim
+# ─────────────────────────────────────────────────────────────────────────────
+# Holds SQLite databases, ML models, reports, and logs across pod restarts.
+# Size should be adjusted based on expected data volume.
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opb-data-pvc
+  labels:
+    app: opb-bot
+    tier: trading
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard

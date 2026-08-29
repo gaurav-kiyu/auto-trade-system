@@ -1,0 +1,294 @@
+"""Prometheus Metrics Exporter (v2.45 Item 19).
+
+Exposes bot performance metrics in Prometheus text format on a configurable
+HTTP port.  Uses prometheus_client if installed; silently no-ops if not.
+
+Metrics exported
+----------------
+  opb_trades_total          - counter: total trades since start
+  opb_wins_total            - counter: winning trades since start
+  opb_pnl_today             - gauge:   today's net P&L
+  opb_active_positions      - gauge:   current open positions
+  opb_signal_score_last     - gauge:   last signal score
+  opb_daily_loss_pct        - gauge:   today's loss as % of capital
+  opb_token_refresh_count   - gauge:   cumulative token refresh count
+  opb_token_valid           - gauge:   broker token validity (1=valid)
+  opb_warmup_active         - gauge:   warm-up mode active (1=active)
+  opb_warmup_entries        - gauge:   entries in current warm-up period
+  opb_ws_connected          - gauge:   WebSocket connected (1=connected)
+  opb_ws_reconnect_count    - gauge:   cumulative WebSocket reconnects
+
+Public API
+----------
+    start_metrics_server(cfg)                   - start HTTP server in thread
+    update_metrics(metrics_dict)                - update gauge/counter values
+    get_metrics_text()                          → str  (Prometheus text format)
+
+Config keys
+-----------
+    metrics_enabled : bool  default false
+    metrics_port    : int   default 9090
+    metrics_host    : str   default "0.0.0.0"  # nosec B104
+"""
+from __future__ import annotations
+
+import logging
+import threading
+from typing import Any
+
+_log = logging.getLogger(__name__)
+
+_REGISTRY_LOCK = threading.RLock()
+_gauges:   dict[str, Any] = {}
+_counters: dict[str, Any] = {}
+_prom_ok   = False
+_server_started = False
+
+
+def _init_prometheus() -> bool:
+    global _prom_ok, _gauges, _counters
+    if _prom_ok:
+        return True
+    try:
+        from prometheus_client import Counter, Gauge
+        with _REGISTRY_LOCK:
+            if not _prom_ok:
+                _gauges = {
+                    "pnl_today":          Gauge("opb_pnl_today",          "Today net P&L"),
+                    "active_positions":   Gauge("opb_active_positions",   "Open positions"),
+                    "signal_score":       Gauge("opb_signal_score_last",  "Last signal score"),
+                    "daily_loss_pct":     Gauge("opb_daily_loss_pct",     "Daily loss pct"),
+                    "token_refresh_count":Gauge("opb_token_refresh_count","Cumulative token refreshes"),
+                    "token_valid":        Gauge("opb_token_valid",        "Broker token validity (1=valid)"),
+                    "warmup_active":      Gauge("opb_warmup_active",      "Warm-up mode active (1=active)"),
+                    "warmup_entries":     Gauge("opb_warmup_entries",     "Entries in warm-up"),
+                    "ws_connected":       Gauge("opb_ws_connected",       "WebSocket connected (1=connected)"),
+                    "ws_reconnect_count": Gauge("opb_ws_reconnect_count", "Cumulative WebSocket reconnects"),
+                    # Constitution v4.0 health metrics
+                    "constitution_overall_score": Gauge("opb_constitution_overall_score", "Constitution v4.0 overall health score"),
+                    "constitution_total_categories": Gauge("opb_constitution_total_categories", "Constitution v4.0 total categories"),
+                    "constitution_evidence_count": Gauge("opb_constitution_evidence_items", "Constitution v4.0 total evidence items"),
+                    "constitution_open_regressions": Gauge("opb_constitution_open_regressions", "Constitution v4.0 open regressions"),
+                    "constitution_engineering_principles_pct": Gauge("opb_constitution_engineering_principles_pct", "Constitution engineering principles passing %"),
+                    "constitution_architecture_standards_pct": Gauge("opb_constitution_architecture_standards_pct", "Constitution architecture standards passing %"),
+                    "constitution_security_governance_pct": Gauge("opb_constitution_security_governance_pct", "Constitution security/governance passing %"),
+                    "constitution_platform_engineering_pct": Gauge("opb_constitution_platform_engineering_pct", "Constitution platform engineering passing %"),
+                    "constitution_sre_reliability_pct": Gauge("opb_constitution_sre_reliability_pct", "Constitution SRE/reliability passing %"),
+                    "reconciliation_lag": Gauge("opb_reconciliation_lag_seconds", "Reconciliation lag in seconds"),
+                    "broker_uptime":      Gauge("opb_broker_uptime_seconds",      "Broker uptime in seconds", ["broker_name"]),
+                    "data_providers_total": Gauge("opb_data_providers_total", "Total registered market data adapters"),
+                    "data_providers_connected": Gauge("opb_data_providers_connected", "Connected market data adapters"),
+                    "data_providers_disconnected_pct": Gauge("opb_data_providers_disconnected_pct", "Percentage of disconnected market data adapters (0-100)"),
+                    "data_providers_worst_state": Gauge("opb_data_providers_worst_state", "Worst provider state: 0=healthy, 1=degraded, 2=critical"),
+                    # PostgreSQL database adapter metrics
+                    "pg_connected":         Gauge("opb_pg_connected",       "PostgreSQL connection active (1=connected)"),
+                    "pg_queries_total":     Gauge("opb_pg_queries_total",  "Total PostgreSQL queries executed", ["host", "dbname"]),
+                    "pg_errors_total":      Gauge("opb_pg_errors_total",   "Total PostgreSQL errors", ["host", "dbname"]),
+                    "pg_latency_ms":        Gauge("opb_pg_latency_ms",     "PostgreSQL query latency in ms", ["host", "dbname"]),
+                }
+                _counters = {
+                    "trades_total": Counter("opb_trades_total", "Total trades"),
+                    "wins_total":   Counter("opb_wins_total",   "Winning trades"),
+                }
+                _prom_ok = True
+        return True
+    except (ImportError, ValueError, TypeError, AttributeError) as e:
+        _log.debug("[METRICS] prometheus_client not available: %s", e)
+        return False
+
+
+def start_metrics_server(cfg: dict[str, Any] | None = None) -> bool:
+    """Start the Prometheus HTTP metrics server in a daemon thread.
+
+    Args:
+        cfg: config dict.
+
+    Returns:
+        True if started, False if disabled or import failure.
+
+    """
+    global _server_started
+    c = cfg or {}
+    if not c.get("metrics_enabled", False):
+        return False
+    if _server_started:
+        return True
+    if not _init_prometheus():
+        return False
+
+    port = int(c.get("metrics_port", 9090))
+    try:
+        from prometheus_client import start_http_server
+        t = threading.Thread(
+            target=start_http_server, args=(port,), daemon=True, name="metrics_server",
+        )
+        t.start()
+        _server_started = True
+        _log.info("[METRICS] Prometheus metrics server started on :%d", port)
+        return True
+    except (OSError, ValueError, TypeError, ImportError) as e:
+        _log.warning("[METRICS] start failed: %s", e)
+        return False
+
+
+def update_hardening_metrics(
+    token_refresh_count: int = 0,
+    token_valid: bool = False,
+    warmup_active: bool = False,
+    warmup_entries: int = 0,
+    ws_connected: bool = False,
+    ws_reconnect_count: int = 0,
+) -> None:
+    """Update hardening-related Prometheus metrics in one call."""
+    if not _prom_ok and not _init_prometheus():
+        return
+    try:
+        _gauges["token_refresh_count"].set(float(token_refresh_count))
+        _gauges["token_valid"].set(1.0 if token_valid else 0.0)
+        _gauges["warmup_active"].set(1.0 if warmup_active else 0.0)
+        _gauges["warmup_entries"].set(float(warmup_entries))
+        _gauges["ws_connected"].set(1.0 if ws_connected else 0.0)
+        _gauges["ws_reconnect_count"].set(float(ws_reconnect_count))
+    except (ValueError, TypeError, KeyError, AttributeError) as e:
+        _log.debug("[METRICS] update_hardening_metrics failed: %s", e)
+
+
+def update_metrics(metrics: dict[str, float]) -> None:
+    """Update Prometheus metrics from a dict.
+
+    Args:
+        metrics: dict with keys matching gauge/counter names.
+                 e.g. {"pnl_today": 5000.0, "trades_total_inc": 1}
+
+    """
+    if not _prom_ok and not _init_prometheus():
+        return
+
+    try:
+        if "pnl_today" in metrics:
+            _gauges["pnl_today"].set(float(metrics["pnl_today"]))
+        if "active_positions" in metrics:
+            _gauges["active_positions"].set(float(metrics["active_positions"]))
+        if "signal_score" in metrics:
+            _gauges["signal_score"].set(float(metrics["signal_score"]))
+        if "daily_loss_pct" in metrics:
+            _gauges["daily_loss_pct"].set(float(metrics["daily_loss_pct"]))
+        if "trades_total_inc" in metrics:
+            _counters["trades_total"].inc(float(metrics["trades_total_inc"]))
+        if "wins_total_inc" in metrics:
+            _counters["wins_total"].inc(float(metrics["wins_total_inc"]))
+        # Constitution v4.0 health metrics
+        if "constitution_overall_score" in metrics:
+            _gauges["constitution_overall_score"].set(float(metrics["constitution_overall_score"]))
+        if "constitution_total_categories" in metrics:
+            _gauges["constitution_total_categories"].set(float(metrics["constitution_total_categories"]))
+        if "constitution_evidence_count" in metrics:
+            _gauges["constitution_evidence_count"].set(float(metrics["constitution_evidence_count"]))
+        if "constitution_open_regressions" in metrics:
+            _gauges["constitution_open_regressions"].set(float(metrics["constitution_open_regressions"]))
+        if "constitution_engineering_principles_pct" in metrics:
+            _gauges["constitution_engineering_principles_pct"].set(float(metrics["constitution_engineering_principles_pct"]))
+        if "constitution_architecture_standards_pct" in metrics:
+            _gauges["constitution_architecture_standards_pct"].set(float(metrics["constitution_architecture_standards_pct"]))
+        if "constitution_security_governance_pct" in metrics:
+            _gauges["constitution_security_governance_pct"].set(float(metrics["constitution_security_governance_pct"]))
+        if "constitution_platform_engineering_pct" in metrics:
+            _gauges["constitution_platform_engineering_pct"].set(float(metrics["constitution_platform_engineering_pct"]))
+        if "constitution_sre_reliability_pct" in metrics:
+            _gauges["constitution_sre_reliability_pct"].set(float(metrics["constitution_sre_reliability_pct"]))
+        # Broker uptime
+        if "reconciliation_lag" in metrics:
+            _gauges["reconciliation_lag"].set(float(metrics["reconciliation_lag"]))
+        if "data_providers_total" in metrics:
+            _gauges["data_providers_total"].set(float(metrics["data_providers_total"]))
+        if "data_providers_connected" in metrics:
+            _gauges["data_providers_connected"].set(float(metrics["data_providers_connected"]))
+        if "data_providers_disconnected_pct" in metrics:
+            _gauges["data_providers_disconnected_pct"].set(float(metrics["data_providers_disconnected_pct"]))
+        if "data_providers_worst_state" in metrics:
+            _gauges["data_providers_worst_state"].set(float(metrics["data_providers_worst_state"]))
+        # PostgreSQL adapter metrics
+        if "pg_connected" in metrics:
+            _gauges["pg_connected"].set(float(metrics["pg_connected"]))
+        if "pg_queries_total" in metrics:
+            value = metrics["pg_queries_total"]
+            if isinstance(value, (int, float)):
+                _gauges["pg_queries_total"].labels(host="default", dbname="default").set(float(value))
+            elif isinstance(value, dict):
+                for (host, dbname), val in (value.items() if hasattr(value, "items") else {}).items():
+                    _gauges["pg_queries_total"].labels(host=host, dbname=dbname).set(float(val))
+        if "pg_errors_total" in metrics:
+            value = metrics["pg_errors_total"]
+            if isinstance(value, (int, float)):
+                _gauges["pg_errors_total"].labels(host="default", dbname="default").set(float(value))
+            elif isinstance(value, dict):
+                for (host, dbname), val in (value.items() if hasattr(value, "items") else {}).items():
+                    _gauges["pg_errors_total"].labels(host=host, dbname=dbname).set(float(val))
+        if "pg_latency_ms" in metrics:
+            value = metrics["pg_latency_ms"]
+            if isinstance(value, (int, float)):
+                _gauges["pg_latency_ms"].labels(host="default", dbname="default").set(float(value))
+            elif isinstance(value, dict):
+                for (host, dbname), val in (value.items() if hasattr(value, "items") else {}).items():
+                    _gauges["pg_latency_ms"].labels(host=host, dbname=dbname).set(float(val))
+        if "broker_uptime" in metrics:
+            value = metrics["broker_uptime"]
+            if isinstance(value, (int, float)):
+                _gauges["broker_uptime"].labels(broker_name="default").set(float(value))
+            elif isinstance(value, dict):
+                for broker, uptime in value.items():
+                    _gauges["broker_uptime"].labels(broker_name=broker).set(float(uptime))
+    except (ValueError, TypeError, KeyError, AttributeError) as e:
+        _log.debug("[METRICS] update failed: %s", e)
+
+
+def get_metrics_text() -> str:
+    """Return current metrics in Prometheus text exposition format.
+    Falls back to a plain-text summary if prometheus_client is unavailable.
+    """
+    try:
+        from prometheus_client import generate_latest
+        return generate_latest().decode("utf-8")  # type: ignore[no-any-return]
+    except (ImportError, TypeError, ValueError, AttributeError):
+        lines = []
+        for name, g in _gauges.items():
+            try:
+                lines.append(f"opb_{name} {g._value.get()}")
+            except (AttributeError, TypeError, ValueError):
+                lines.append(f"opb_{name} 0")
+        return "\n".join(lines) or "# no metrics"
+
+
+# ── MetricsAdapter (Ports/Adapters pattern) ──────────────────────────────────
+
+
+class MetricsAdapter:
+    """Adapter implementing the MetricsPort contract using prometheus_client.
+
+    Wraps the module-level gauge/counter functions in a class that complies
+    with the ``core.ports.metrics.MetricsPort`` abstract interface.
+
+    Falls back to no-op silently if prometheus_client is not installed.
+    """
+
+    def increment_counter(self, name: str, value: int = 1, tags: dict | None = None) -> None:
+        update_metrics({f"{name}_inc": float(value)})
+
+    def set_gauge(self, name: str, value: float, tags: dict | None = None) -> None:
+        update_metrics({name: value})
+
+    def record_timer(self, name: str, value: float, tags: dict | None = None) -> None:
+        update_metrics({f"{name}_timer": value})
+
+    def record_histogram(self, name: str, value: float, tags: dict | None = None) -> None:
+        update_metrics({f"{name}_hist": value})
+
+
+__all__ = [
+    "MetricsAdapter",
+    "get_metrics_text",
+    "start_metrics_server",
+    "update_hardening_metrics",
+    "update_metrics",
+]
+

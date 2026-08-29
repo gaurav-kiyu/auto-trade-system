@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — Event Store</title>
+<script src="/static/vendor/tailwind.min.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 1rem; text-align: center; }
+        .stat-value { font-size: 1.25rem; font-weight: 700; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 0.25rem; }
+        .badge { display: inline-flex; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 500; }
+        .badge-ok { background: rgba(34,197,94,0.1); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.15); }
+        .badge-critical { background: rgba(239,68,68,0.1); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.15); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #94a3b8); padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.08); }
+        td { font-size: 0.75rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); font-family: monospace; }
+        .input-field { padding: 0.4rem 0.7rem; background: #0f1319; border: 1px solid var(--border-color, #1e293b); border-radius: 0.35rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; outline: none; }
+        .input-field:focus { border-color: #3b82f6; }
+        select.input-field { cursor: pointer; }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.6rem; border-radius: 0.35rem; font-size: 0.7rem; cursor: pointer; border: none; background: transparent; color: var(--text-muted, #94a3b8); border: 1px solid var(--border-color, #1e293b); }
+
+        .hash-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+    </style>    {% include "_pwa_head.html" %}
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+    <h1><i class="fas fa-database" style="color:#14b8a6;margin-right:0.5rem;"></i> Event Store</h1>
+<p class="subtitle">Immutable, hash-chained event store — tamper-evident audit trail with deterministic replay</p>
+<div class="grid-2" id="statusCards">
+<div class="stat-card"><div class="stat-value" id="totalEvents">-</div><div class="stat-label">Total Events</div></div>
+<div class="stat-card"><div class="stat-value" id="chainStatus">-</div><div class="stat-label">Chain Integrity</div></div>
+</div>
+<div class="card">
+<div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
+<select class="input-field" id="eventFilter" style="min-width:160px;">
+<option value="">All Events</option>
+<option value="SIGNAL_GENERATED">Signal Generated</option>
+<option value="RISK_APPROVED">Risk Approved</option>
+<option value="ORDER_SUBMITTED">Order Submitted</option>
+<option value="ORDER_FILLED">Order Filled</option>
+<option value="POSITION_CHANGED">Position Changed</option>
+<option value="RISK_BREACHED">Risk Breached</option>
+<option value="KILL_SWITCH_TRIGGERED">Kill Switch</option>
+</select>
+<input class="input-field" id="searchInput" placeholder="Search by aggregate_id..." style="min-width:200px;" type="text"/>
+<button class="btn" id="cspfix-1" type="button"><i class="fas fa-search"></i> Search</button>
+<button class="btn" id="cspfix-2" type="button"><i class="fas fa-shield-alt"></i> Verify Chain</button>
+</div>
+<div style="max-height:500px;overflow-y:auto;">
+<div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table><thead><tr><th>ID</th><th>Type</th><th>Aggregate ID</th><th>Timestamp</th><th>Event Hash</th><th>Prev Hash</th></tr></thead><tbody id="eventsBody"><tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);font-family:sans-serif;">Loading...</td></tr></tbody></table>
+</div>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+        function getCookie(n){const m=document.cookie.match(new RegExp('(^| )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):'';}
+        async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}
+        function truncate(hash){return hash ? hash.substring(0,16)+'...' : '-';}
+
+        async function loadEvents() {
+            const eventType = document.getElementById('eventFilter').value;
+            const search = document.getElementById('searchInput').value.trim();
+            let url = '/api/system/events?limit=100';
+            if (eventType) url += '&event_type='+encodeURIComponent(eventType);
+            if (search) url += '&aggregate_id='+encodeURIComponent(search);
+            const data = await apiFetch(url);
+            if (!data) return;
+            const events = Array.isArray(data) ? data : (data.events || []);
+            document.getElementById('totalEvents').textContent = data.total || events.length || '-';
+            if (!events.length) { document.getElementById('eventsBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);font-family:sans-serif;">No events found</td></tr>'; return; }
+            document.getElementById('eventsBody').innerHTML = events.map(e => '<tr><td>'+(e.event_id||e.id||'-')+'</td><td>'+(e.event_type||e.type||'-')+'</td><td class="hash-cell" title="'+(e.aggregate_id||'')+'">'+(e.aggregate_id||'-')+'</td><td style="font-size:0.7rem;">'+((e.timestamp||'').substring(0,19).replace('T',' ')||'-')+'</td><td class="hash-cell" title="'+(e.event_hash||'')+'">'+truncate(e.event_hash)+'</td><td class="hash-cell" title="'+(e.previous_event_hash||'')+'">'+truncate(e.previous_event_hash)+'</td></tr>').join('');
+        }
+
+        async function verifyChain() {
+            const data = await apiFetch('/api/system/events/verify');
+            if (!data) return;
+            const valid = data.is_valid === true || data.valid === true || data.integrity === 'INTACT';
+            document.getElementById('chainStatus').innerHTML = valid ? '<span class="badge badge-ok" style="font-size:1rem;">INTACT</span>' : '<span class="badge badge-critical" style="font-size:1rem;">TAMPERED</span>';
+            if (!valid) {
+                alert('⚠️ Chain integrity violation detected! Events may have been tampered with: ' + (data.message || data.error || ''));
+            } else {
+                alert('✅ Event Chain Verified: Integrity is INTACT (Checked ' + (data.events_checked || 0) + ' events).');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{loadEvents();document.querySelectorAll('.tab[data-tab]').forEach(t=>t.addEventListener('click',function(){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('section-'+this.dataset.tab).classList.add('active');}));});
+    </script>    {% include "_pwa_sw_reg.html" %}
+    <script nonce="{{ nonce }}">
+        // Wired via addEventListener, not inline attributes - CSP's script-src
+        // has no 'unsafe-inline', which silently blocks inline event-handler
+        // attributes even though a nonce'd block itself can still run (2026-08-22 fix).
+        document.getElementById('cspfix-1')?.addEventListener('click', function(event) { loadEvents() });
+        document.getElementById('cspfix-2')?.addEventListener('click', function(event) { verifyChain() });
+    </script>
+</body>
+</html>

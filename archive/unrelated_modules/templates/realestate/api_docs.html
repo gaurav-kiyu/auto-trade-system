@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation — RealEstate India</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+               background: #080b10; color: #e2e8f0; min-height: 100vh; display: flex; }
+        .sidebar { width: 280px; background: #0a0e15; border-right: 1px solid rgba(148,163,184,0.08); 
+                   padding: 1.5rem 0; overflow-y: auto; height: 100vh; position: sticky; top: 0; }
+        .sidebar h2 { font-size: 0.8rem; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; 
+                      padding: 0 1.25rem; margin-bottom: 0.75rem; }
+        .sidebar a { display: block; padding: 0.4rem 1.25rem; color: #94a3b8; text-decoration: none; 
+                     font-size: 0.8rem; transition: all 0.15s; border-left: 2px solid transparent; }
+        .sidebar a:hover, .sidebar a.active { color: #e2e8f0; background: rgba(59,130,246,0.05); 
+                                              border-left-color: #3b82f6; }
+        .sidebar .group-label { font-size: 0.65rem; color: #475569; padding: 0.75rem 1.25rem 0.25rem; 
+                                text-transform: uppercase; letter-spacing: 0.05em; }
+        .content { flex: 1; padding: 2rem 3rem; max-width: 900px; }
+        .endpoint { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; 
+                    padding: 1.5rem; margin-bottom: 1.5rem; }
+        .endpoint h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.75rem; }
+        .method { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 0.3rem; font-size: 0.7rem; 
+                  font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; min-width: 50px; text-align: center; }
+        .get { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        .post { background: rgba(34,197,94,0.15); color: #4ade80; }
+        .put { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .delete { background: rgba(239,68,68,0.15); color: #f87171; }
+        .url { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; color: #64748b; }
+        .description { font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.75rem; }
+        .params-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.75rem; }
+        .params-table th { text-align: left; color: #475569; font-weight: 600; padding: 0.4rem 0.5rem; border-bottom: 1px solid rgba(148,163,184,0.06); }
+        .params-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid rgba(148,163,184,0.04); color: #94a3b8; }
+        .params-table .param-name { color: #e2e8f0; font-family: 'SF Mono', monospace; font-size: 0.75rem; }
+        .params-table .param-type { color: #60a5fa; font-size: 0.7rem; }
+        .params-table .param-req { color: #f87171; font-size: 0.7rem; }
+        .example { background: #0a0e15; border-radius: 0.5rem; padding: 1rem; margin-top: 0.75rem; 
+                   font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.75rem; color: #a78bfa; 
+                   overflow-x: auto; line-height: 1.6; }
+        .example .comment { color: #64748b; }
+        h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 2rem; }
+        .category { margin-bottom: 2.5rem; }
+        .category h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.5rem; 
+                       border-bottom: 1px solid rgba(148,163,184,0.08); }
+        @media (max-width: 768px) { .sidebar { display: none; } .content { padding: 1.5rem; } }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <h2><i class="fas fa-book" style="color:#3b82f6;margin-right:0.4rem;"></i> API Reference</h2>
+        <div class="group-label">Properties</div>
+        <a href="#properties" class="active">Properties CRUD</a>
+        <a href="#search">Search & Filters</a>
+        <a href="#recommendations">Recommendations</a>
+        <a href="#map-data">Map Data</a>
+        <div class="group-label">CRM & Enquiries</div>
+        <a href="#leads">Leads</a>
+        <a href="#enquiries">Enquiries</a>
+        <div class="group-label">Rentals & Tenant</div>
+        <a href="#agreements">Rent Agreements</a>
+        <a href="#tenant-payments">Rent Payments</a>
+        <a href="#tenant-maintenance">Maintenance</a>
+        <div class="group-label">Marketplace</div>
+        <a href="#auctions">Auctions</a>
+        <a href="#builder">Builder Portal</a>
+        <div class="group-label">AI & ML</div>
+        <a href="#predict">Price Prediction</a>
+        <a href="#chatbot">Chatbot</a>
+        <div class="group-label">Platform</div>
+        <a href="#notifications">Notifications</a>
+        <a href="#saved">Saved Properties</a>
+        <a href="#payments">Payments</a>
+        <a href="#admin">Admin Panel</a>
+        <a href="#languages">Multi-Language</a>
+        <a href="#neighborhood">Neighborhood</a>
+    </div>
+
+    <div class="content">
+        <h1><i class="fas fa-code" style="color:#3b82f6;margin-right:0.5rem;"></i> RealEstate India API</h1>
+        <div class="subtitle">Complete REST API reference — 45+ endpoints for property management, CRM, auctions, and platform operations.</div>
+
+        <!-- Properties CRUD -->
+        <div class="category">
+            <h2 id="properties">🏠 Properties</h2>
+            
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/properties</span></h3>
+                <div class="description">Create a new property listing. All fields are query parameters.</div>
+                <table class="params-table">
+                    <tr><th>Parameter</th><th>Type</th><th>Req</th><th>Description</th></tr>
+                    <tr><td class="param-name">title</td><td class="param-type">string</td><td class="param-req">✓</td><td>Property title (max 100 chars)</td></tr>
+                    <tr><td class="param-name">price</td><td class="param-type">float</td><td class="param-req">✓</td><td>Price in INR (min ₹1,000)</td></tr>
+                    <tr><td class="param-name">city</td><td class="param-type">string</td><td class="param-req">✓</td><td>City name</td></tr>
+                    <tr><td class="param-name">property_type</td><td class="param-type">enum</td><td>—</td><td>apartment, house, villa, penthouse, studio</td></tr>
+                    <tr><td class="param-name">bedrooms</td><td class="param-type">int</td><td>—</td><td>Number of bedrooms</td></tr>
+                    <tr><td class="param-name">locality</td><td class="param-type">string</td><td>—</td><td>Locality/area name</td></tr>
+                </table>
+                <div class="example">
+                    <span class="comment"># Create a 2BHK in Bandra</span><br>
+                    curl -X POST "/api/realestate/properties?title=Modern%202BHK%20in%20Bandra&price=25000000&city=Mumbai&property_type=apartment&bedrooms=2"
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/properties</span></h3>
+                <div class="description">Search properties with multi-criteria filtering, pagination, and sorting.</div>
+                <table class="params-table">
+                    <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                    <tr><td class="param-name">city</td><td class="param-type">string</td><td>—</td><td>City filter</td></tr>
+                    <tr><td class="param-name">min_price</td><td class="param-type">float</td><td>0</td><td>Minimum price</td></tr>
+                    <tr><td class="param-name">max_price</td><td class="param-type">float</td><td>1B</td><td>Maximum price</td></tr>
+                    <tr><td class="param-name">property_type</td><td class="param-type">enum</td><td>—</td><td>apartment, villa, house, etc.</td></tr>
+                    <tr><td class="param-name">furnishing</td><td class="param-type">string</td><td>—</td><td>furnished, semi_furnished, unfurnished</td></tr>
+                    <tr><td class="param-name">page</td><td class="param-type">int</td><td>1</td><td>Page number</td></tr>
+                    <tr><td class="param-name">page_size</td><td class="param-type">int</td><td>20</td><td>Items per page (max 100)</td></tr>
+                </table>
+                <div class="example">
+                    <span class="comment"># Search 3BHK in Bangalore under 2 crore</span><br>
+                    curl "/api/realestate/properties?city=Bangalore&min_bedrooms=3&max_price=20000000"
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/properties/{property_id}</span></h3>
+                <div class="description">Get detailed information about a specific property.</div>
+                <div class="example">
+                    <span class="comment"># Get property details</span><br>
+                    curl "/api/realestate/properties/RE-20260726-ABCD12"
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <h3><span class="method delete">DELETE</span> <span class="url">/api/realestate/properties/{property_id}</span></h3>
+                <div class="description">Delete a property listing.</div>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="category">
+            <h2 id="search">🔍 Search & Filters</h2>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/properties</span></h3>
+                <div class="description">The main search endpoint supports <strong>14 filter criteria</strong> including: query, city, locality, property_type, listing_type, min/max price, min/max bedrooms, furnishing status, amenities, verified_only, with_virtual_tour, and sort options (price, area, views, listed_at). Results include facet counts for cities and property types.</div>
+                <div class="example">
+                    <span class="comment"># Advanced search with sorting and facets</span><br>
+                    curl "/api/realestate/properties?city=Pune&property_type=villa&sort_by=price&sort_order=asc&page_size=10"
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="category">
+            <h2 id="recommendations">🎯 Recommendations</h2>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/recommendations</span></h3>
+                <div class="description">Get AI-powered property recommendations. Optionally pass a property_id to get similar properties in the same city/price range.</div>
+                <div class="example">
+                    <span class="comment"># Get 6 similar properties</span><br>
+                    curl "/api/realestate/recommendations?property_id=RE-001&limit=6"
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Data -->
+        <div class="category">
+            <h2 id="map-data">🗺️ Map Data</h2>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/map-data</span></h3>
+                <div class="description">Get property coordinates for map visualization. Returns properties with valid latitude/longitude, optionally filtered by city.</div>
+                <div class="example">
+                    <span class="comment"># Get all Mumbai properties for map</span><br>
+                    curl "/api/realestate/map-data?city=Mumbai"
+                </div>
+            </div>
+        </div>
+
+        <!-- Leads -->
+        <div class="category">
+            <h2 id="leads">👥 Lead Management (CRM)</h2>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/leads</span></h3>
+                <div class="description">Create a new sales lead from buyer information.</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/leads</span></h3>
+                <div class="description">List all leads, optionally filtered by status.</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method put">PUT</span> <span class="url">/api/realestate/leads/{lead_id}/status</span></h3>
+                <div class="description">Update lead status through pipeline stages: new → contacted → interested → visit_scheduled → visit_completed → negotiating → closed/lost.</div>
+            </div>
+        </div>
+
+        <!-- Enquiries -->
+        <div class="category">
+            <h2 id="enquiries">📩 Enquiries</h2>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/enquiries</span></h3>
+                <div class="description">Submit a property enquiry from a buyer/tenant/broker.</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/enquiries</span></h3>
+                <div class="description">Get enquiries, optionally filtered by property.</div>
+            </div>
+        </div>
+
+        <!-- Rent Agreements -->
+        <div class="category">
+            <h2 id="agreements">📝 Rent Agreements</h2>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/agreements/rent</span></h3>
+                <div class="description">Create a rent agreement with e-stamping and e-sign support. Includes notice period, lock-in, and security deposit (max 12× rent).</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/agreements/rent/{agreement_id}</span></h3>
+                <div class="description">Get agreement details with e-stamp and e-sign status.</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/agreements/rent/{agreement_id}/e-stamp</span></h3>
+                <div class="description">Initiate e-stamping via SHCIL. Generates e-stamp paper number.</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/agreements/rent/{agreement_id}/e-sign</span></h3>
+                <div class="description">Initiate Aadhaar e-sign for landlord, tenant, or both parties.</div>
+                <div class="example">
+                    <span class="comment"># Sign on behalf of both landlord and tenant</span><br>
+                    curl -X POST "/api/realestate/agreements/rent/AG-001/e-sign?party=both"
+                </div>
+            </div>
+        </div>
+
+        <!-- Payments -->
+        <div class="category">
+            <h2 id="payments">💳 Rent Payments</h2>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/tenant/payments</span></h3>
+                <div class="description">Record a rent payment made via UPI, NEFT, card, cash, or cheque.</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/tenant/payments</span></h3>
+                <div class="description">Get payment history and outstanding balance for a tenant.</div>
+            </div>
+        </div>
+
+        <!-- Maintenance -->
+        <div class="category">
+            <h2 id="tenant-maintenance">🔧 Maintenance</h2>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/tenant/maintenance</span></h3>
+                <div class="description">Submit a maintenance request (plumbing, electrical, emergency, etc.).</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/tenant/maintenance</span></h3>
+                <div class="description">List maintenance requests with status tracking.</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method put">PUT</span> <span class="url">/api/realestate/tenant/maintenance/{req_id}/status</span></h3>
+                <div class="description">Update request status: submitted → acknowledged → in_progress → resolved.</div>
+            </div>
+        </div>
+
+        <!-- Auctions -->
+        <div class="category">
+            <h2 id="auctions">🏛️ Auctions</h2>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/auctions</span></h3>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/auctions</span></h3>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/auctions/{id}/bid</span></h3>
+                <div class="description">Place a bid with automatic anti-sniping (2-min extension) and buy-it-now detection.</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/auctions/{id}/buy-it-now</span></h3>
+            </div>
+        </div>
+
+        <!-- Chatbot -->
+        <div class="category">
+            <h2 id="chatbot">🤖 AI Chatbot</h2>
+            <div class="endpoint">
+                <h3><span class="method post">POST</span> <span class="url">/api/realestate/chat</span></h3>
+                <div class="description">Ask questions about properties, legal FAQs (RERA, documents, loans), rent agreements, and neighborhoods. Uses intent classification + keyword matching + SequenceMatcher on 11 FAQ entries.</div>
+                <div class="example">
+                    <span class="comment"># Ask about RERA</span><br>
+                    curl -X POST "/api/realestate/chat?message=What%20is%20RERA%3F"
+                </div>
+            </div>
+        </div>
+
+        <!-- Platform -->
+        <div class="category">
+            <h2 id="platform">⚙️ Platform</h2>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/health</span></h3>
+                <div class="description">Health check endpoint — returns status and timestamp.</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/languages</span></h3>
+                <div class="description">List supported languages (10 Indian languages: Hindi, Marathi, Tamil, Telugu, Bengali, Gujarati, Kannada, Malayalam, Punjabi).</div>
+            </div>
+            <div class="endpoint">
+                <h3><span class="method get">GET</span> <span class="url">/api/realestate/neighborhood/cities</span></h3>
+                <div class="description">List all 10 supported cities with locality data, average prices, and quality ratings (schools, hospitals, connectivity, safety, AQI).</div>
+            </div>
+        </div>
+
+        <div style="text-align:center;padding:2rem;color:#475569;font-size:0.8rem;">
+            <p>RealEstate India API — 45+ endpoints across 12 routers</p>
+            <p style="margin-top:0.3rem;">Full Swagger/OpenAPI docs available at <code style="color:#60a5fa;">/docs</code></p>
+        </div>
+    </div>
+</body>
+</html>

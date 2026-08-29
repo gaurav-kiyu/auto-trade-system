@@ -1,0 +1,187 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OPB Index Options Buying Bot v2.59.0 — Docker Compose
+#
+# Usage:
+#   docker compose up -d          # start in paper mode (safe default)
+#   docker compose logs -f opb    # tail logs
+#   docker compose down           # stop
+#
+#   # Start with test infrastructure (Redis + MongoDB) for integration tests:
+#   docker compose --profile test up -d
+#   pytest tests/test_database_redis_adapter.py
+#   pytest tests/test_database_mongodb_adapter.py
+#
+# Sensitive values (broker keys, Telegram token) are read from a .env file
+# or from host environment variables — NEVER hard-coded here.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  opb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: opb-bot:2.59.0
+    container_name: opb_bot
+    restart: unless-stopped
+
+    # Explicit resource ceiling prevents runaway workloads from exhausting the host.
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+    pids_limit: 512
+
+    # Paper mode is the default.  Override OPBUYING_EXECUTION_MODE=LIVE to go live.
+    environment:
+      # ── Core ──────────────────────────────────────────────────────────────
+      OPBUYING_EXECUTION_MODE:        ${OPBUYING_EXECUTION_MODE:-PAPER}
+      OPBUYING_BASE_CAPITAL:          ${OPBUYING_BASE_CAPITAL:-5000}
+
+      # ── Telegram ──────────────────────────────────────────────────────────
+      OPBUYING_BOT_TOKEN:             ${OPBUYING_BOT_TOKEN:-}
+      OPBUYING_CHAT_ID:               ${OPBUYING_CHAT_ID:-}
+
+      # ── Broker (Kite) ──────────────────────────────────────────────────────
+      OPBUYING_KITE_API_KEY:          ${OPBUYING_KITE_API_KEY:-}
+      OPBUYING_KITE_ACCESS_TOKEN:     ${OPBUYING_KITE_ACCESS_TOKEN:-}
+
+      # ── Broker (Angel) ─────────────────────────────────────────────────────
+      OPBUYING_ANGEL_API_KEY:         ${OPBUYING_ANGEL_API_KEY:-}
+      OPBUYING_ANGEL_CLIENT_ID:       ${OPBUYING_ANGEL_CLIENT_ID:-}
+      OPBUYING_ANGEL_PASSWORD:        ${OPBUYING_ANGEL_PASSWORD:-}
+      OPBUYING_ANGEL_TOTP_KEY:        ${OPBUYING_ANGEL_TOTP_KEY:-}
+
+      # ── Config file override ───────────────────────────────────────────────
+      OPBUYING_INDEX_CONFIG:          ${OPBUYING_INDEX_CONFIG:-/app/json/config.json}
+
+      # ── Paths (set in Dockerfile; listed here for documentation) ──────────
+      OPBUYING_TRADES_DB:             /data/db/trades.db
+      OPBUYING_OI_SNAPSHOT_DB_PATH:   /data/db/oi_snapshots.db
+      OPBUYING_ML_TRACKER_DB_PATH:    /data/db/ml_tracker.db
+      OPBUYING_ML_MODEL_PATH:         /data/models/signal_classifier.pkl
+      OPBUYING_REPORT_OUTPUT_DIR:     /data/reports
+      OPBUYING_TIMESERIES_DB_PATH:    /data/db/timeseries.duckdb
+
+      TZ:                             Asia/Kolkata
+      PYTHONUNBUFFERED:               "1"
+
+    volumes:
+      # Persistent data — survives container rebuilds
+      - opb_db:/data/db
+      - opb_models:/data/models
+      - opb_reports:/data/reports
+      - opb_logs:/data/logs
+      # Optional: mount a custom config.json without rebuilding the image
+      # - ./json/config.local.json:/app/json/config.local.json:ro
+
+    ports:
+      # Web dashboard (disabled by default in config; expose when enabled)
+      - "${OPB_DASHBOARD_PORT:-8765}:8765"
+
+    # Security: no new privileges escalation (protects against SUID-based attacks)
+    security_opt:
+      - "no-new-privileges:true"
+
+    # Drop all Linux capabilities — the bot runs as non-root and needs none
+    cap_drop:
+      - ALL
+
+    # Root filesystem is read-only (volumes still writable)
+    read_only: true
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, sqlite3, sys; db=os.environ.get('OPBUYING_TRADES_DB','/data/db/trades.db'); sys.exit(0 if (not os.path.exists(db) or sqlite3.connect(db).execute('SELECT 1').fetchone() == (1,)) else 1)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+
+  # ── Test Infrastructure ─────────────────────────────────────────────────────
+  # Start with: docker compose --profile test up -d
+
+  redis-test:
+    profiles: ["test"]
+    image: redis:7.4-alpine
+    container_name: opb_redis_test
+    restart: unless-stopped
+    ports:
+      - "${REDIS_TEST_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mongodb-test:
+    profiles: ["test"]
+    image: mongo:7
+    container_name: opb_mongo_test
+    restart: unless-stopped
+    ports:
+      - "${MONGO_TEST_PORT:-27017}:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # PostgreSQL test instance (for full contract tests)
+  postgres-test:
+    profiles: ["test"]
+    image: postgres:16.3-alpine
+    container_name: opb_pg_test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+    ports:
+      - "${PG_TEST_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # MySQL test instance (for full contract tests)
+  mysql-test:
+    profiles: ["test"]
+    image: mysql:8.4
+    container_name: opb_mysql_test
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+      MYSQL_DATABASE: test
+    ports:
+      - "${MYSQL_TEST_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+volumes:
+  opb_db:
+  opb_models:
+  opb_reports:
+  opb_logs:

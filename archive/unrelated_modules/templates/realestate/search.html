@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Properties — RealEstate India</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/static/leaflet-map.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+               background: #080b10; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        .page-header { margin-bottom: 2rem; }
+        .page-header h1 { font-size: 1.8rem; font-weight: 700; }
+        .page-header .back-link { color: #64748b; text-decoration: none; font-size: 0.85rem; }
+        .page-header .back-link:hover { color: #60a5fa; }
+        .layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; }
+        .filters-panel { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1.25rem; align-self: start; }
+        .filters-panel h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem; }
+        .filter-group { margin-bottom: 1rem; }
+        .filter-group label { display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.03em; }
+        .filter-group select, .filter-group input { width: 100%; background: #1a1f2e; border: 1px solid rgba(148,163,184,0.1); 
+                                                     border-radius: 0.5rem; padding: 0.5rem; color: #e2e8f0; font-size: 0.85rem; outline: none; }
+        .filter-group select:focus, .filter-group input:focus { border-color: rgba(59,130,246,0.4); }
+        .filter-group .price-inputs { display: flex; gap: 0.5rem; }
+        .filter-group .price-inputs input { width: 50%; }
+        .apply-btn { width: 100%; background: #3b82f6; color: white; border: none; padding: 0.6rem; border-radius: 0.5rem; 
+                     cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.2s; }
+        .apply-btn:hover { background: #2563eb; }
+        .reset-btn { width: 100%; background: transparent; color: #64748b; border: 1px solid rgba(148,163,184,0.15); 
+                     padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.8rem; margin-top: 0.5rem; }
+        .reset-btn:hover { border-color: rgba(148,163,184,0.3); }
+        .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .results-header .count { color: #64748b; font-size: 0.9rem; }
+        .results-header select { background: #1a1f2e; border: 1px solid rgba(148,163,184,0.1); border-radius: 0.5rem; 
+                                 padding: 0.4rem 0.8rem; color: #e2e8f0; font-size: 0.8rem; outline: none; }
+        .prop-list { display: flex; flex-direction: column; gap: 0.75rem; }
+        .prop-row { display: flex; gap: 1rem; background: #0f1319; border: 1px solid rgba(148,163,184,0.08); 
+                    border-radius: 0.75rem; padding: 1rem; cursor: pointer; transition: all 0.2s; }
+        .prop-row:hover { border-color: rgba(59,130,246,0.2); background: rgba(59,130,246,0.02); }
+        .prop-row .thumb { width: 120px; height: 100px; background: linear-gradient(135deg, #1e293b, #0f172a); 
+                           border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; 
+                           color: #475569; font-size: 2rem; flex-shrink: 0; }
+        .prop-row .info { flex: 1; }
+        .prop-row .info h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.2rem; }
+        .prop-row .info .location { font-size: 0.8rem; color: #64748b; margin-bottom: 0.3rem; }
+        .prop-row .info .details { display: flex; gap: 1rem; font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.3rem; }
+        .prop-row .info .price { font-size: 1.1rem; font-weight: 700; color: #4ade80; }
+        .badge-verified { background: rgba(34,197,94,0.1); color: #4ade80; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.65rem; }
+        .pagination { display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; }
+        .pagination button { background: #1a1f2e; border: 1px solid rgba(148,163,184,0.1); border-radius: 0.4rem; 
+                             padding: 0.4rem 0.8rem; color: #94a3b8; cursor: pointer; font-size: 0.8rem; }
+        .pagination button:hover { border-color: rgba(59,130,246,0.3); color: #60a5fa; }
+        .pagination button.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.3); color: #60a5fa; }
+        .pagination button:disabled { opacity: 0.4; cursor: default; }
+        .no-results { text-align: center; padding: 3rem; color: #64748b; }
+        .loading { text-align: center; padding: 2rem; color: #64748b; }
+        @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <a href="/realestate" class="back-link">← Back to Home</a>
+        <h1><i class="fas fa-search" style="color:#3b82f6;margin-right:0.5rem;"></i> Search Properties</h1>
+    </div>
+
+    <div class="layout">
+        <div class="filters-panel">
+            <h3><i class="fas fa-filter" style="color:#3b82f6;margin-right:0.4rem;"></i> Filters</h3>
+            <div class="filter-group">
+                <label>City</label>
+                <select id="filterCity" data-testid="filter-city" onchange="doSearch()">
+                    <option value="">All Cities</option>
+                    <option value="Mumbai">Mumbai</option>
+                    <option value="Bangalore">Bangalore</option>
+                    <option value="Delhi">Delhi</option>
+                    <option value="Pune">Pune</option>
+                    <option value="Hyderabad">Hyderabad</option>
+                    <option value="Chennai">Chennai</option>
+                    <option value="Kolkata">Kolkata</option>
+                    <option value="Ahmedabad">Ahmedabad</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Property Type</label>
+                <select id="filterType" data-testid="filter-type" onchange="doSearch()">
+                    <option value="">All Types</option>
+                    <option value="apartment">Apartment</option>
+                    <option value="house">House</option>
+                    <option value="villa">Villa</option>
+                    <option value="plot">Plot</option>
+                    <option value="penthouse">Penthouse</option>
+                    <option value="studio">Studio</option>
+                    <option value="commercial_office">Commercial Office</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Listing Type</label>
+                <select id="filterListing" onchange="doSearch()">
+                    <option value="">All</option>
+                    <option value="sell">For Sale</option>
+                    <option value="rent">For Rent</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Bedrooms</label>
+                <select id="filterBedrooms" onchange="doSearch()">
+                    <option value="0">Any</option>
+                    <option value="1">1 BHK</option>
+                    <option value="2">2 BHK</option>
+                    <option value="3">3 BHK</option>
+                    <option value="4">4 BHK</option>
+                    <option value="5">5+ BHK</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Price Range (₹)</label>
+                <div class="price-inputs">
+                    <input type="number" id="filterMinPrice" placeholder="Min" onchange="doSearch()">
+                    <input type="number" id="filterMaxPrice" placeholder="Max" onchange="doSearch()">
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>Furnishing</label>
+                <select id="filterFurnishing" onchange="doSearch()">
+                    <option value="">Any</option>
+                    <option value="furnished">Furnished</option>
+                    <option value="semi_furnished">Semi-Furnished</option>
+                    <option value="unfurnished">Unfurnished</option>
+                </select>
+            </div>
+            <button class="apply-btn" data-testid="filter-apply" onclick="doSearch()"><i class="fas fa-search"></i> Apply Filters</button>
+            <button class="reset-btn" onclick="resetFilters()">Reset All</button>
+        </div>
+
+        <!-- Results -->
+        <div>
+            <div class="results-header">
+                <span class="count" id="resultsCount" data-testid="results-count">Loading...</span>
+                <select id="sortBy" onchange="doSearch()">
+                    <option value="listed_at">Newest First</option>
+                    <option value="price">Price: Low to High</option>
+                    <option value="-price">Price: High to Low</option>
+                    <option value="area">Area</option>
+                    <option value="views">Most Viewed</option>
+                </select>
+            </div>
+
+            <!-- Map toggle -->
+            <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+                <button id="mapToggleBtn" onclick="toggleMap()" 
+                        style="background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.4rem 1rem;color:#94a3b8;cursor:pointer;font-size:0.8rem;">
+                    <i class="fas fa-map-marked-alt" style="color:#10b981;"></i> Show Map
+                </button>
+                <button id="heatmapToggleBtn" onclick="toggleSearchHeatmap()" style="display:none;background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.4rem 1rem;color:#94a3b8;cursor:pointer;font-size:0.8rem;">
+                    <i class="fas fa-fire" style="color:#f97316;"></i> Heatmap
+                </button>
+            </div>
+
+            <!-- Map container -->
+            <div id="propertyMapContainer" style="display:none;height:350px;border-radius:0.75rem;overflow:hidden;margin-bottom:1rem;">
+                <div id="searchMap" style="height:100%;width:100%;"></div>
+            </div>
+
+            <div id="resultsContainer" class="prop-list">
+                <div class="loading"><i class="fas fa-spinner fa-spin"></i> Searching...</div>
+            </div>
+            <div class="pagination" id="pagination" data-testid="pagination"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        const params = new URLSearchParams(window.location.search);
+        let searchMapInitialized = false;
+        let searchMapData = [];
+
+        if (params.get('city')) document.getElementById('filterCity').value = params.get('city');
+
+        async function doSearch(page) {
+            currentPage = page || 1;
+            const city = document.getElementById('filterCity').value;
+            const type = document.getElementById('filterType').value;
+            const listing = document.getElementById('filterListing').value;
+            const bedrooms = document.getElementById('filterBedrooms').value;
+            const minPrice = document.getElementById('filterMinPrice').value;
+            const maxPrice = document.getElementById('filterMaxPrice').value;
+            const furnishing = document.getElementById('filterFurnishing').value;
+            const sortBy = document.getElementById('sortBy').value;
+            const query = params.get('query') || '';
+
+            const q = new URLSearchParams({
+                query, city, property_type: type, listing_type: listing,
+                min_bedrooms: bedrooms, min_price: minPrice || '0',
+                max_price: maxPrice || '1000000000', furnishing,
+                sort_by: sortBy.replace('-', ''), sort_order: sortBy.startsWith('-') ? 'asc' : 'desc',
+                page: currentPage, page_size: 50,
+            });
+
+            try {
+                const res = await fetch('/api/realestate/properties?' + q);
+                const data = await res.json();
+
+                // Store for map use
+                searchMapData = data.properties || [];
+
+                const container = document.getElementById('resultsContainer');
+                document.getElementById('resultsCount').textContent = 'Showing ' + data.properties.length + ' of ' + data.total + ' properties';
+
+                if (data.properties.length === 0) {
+                    container.innerHTML = '<div class="no-results"><i class="fas fa-search" style="font-size:2rem;margin-bottom:1rem;display:block;"></i>No properties found. Try adjusting filters.</div>';
+                } else {
+                    container.innerHTML = data.properties.map(function(p) {
+                        return '<div class="prop-row" data-testid="property-card" onclick="window.location.href=\'/realestate/property/' + p.property_id + '\'">' +
+                            '<div class="thumb"><i class="fas fa-home"></i></div>' +
+                            '<div class="info">' +
+                            '<h3>' + p.title + (p.is_verified ? ' <span class="badge-verified">✓ RERA</span>' : '') + '</h3>' +
+                            '<div class="location"><i class="fas fa-map-marker-alt" style="color:#f87171;margin-right:0.3rem;"></i>' + (p.locality || '') + ', ' + p.city + '</div>' +
+                            '<div class="details"><span>' + p.bedrooms + ' BHK</span><span>' + p.bathrooms + ' Bath</span><span>' + p.carpet_area_sqft + ' sqft</span><span>' + p.furnishing + '</span></div>' +
+                            '<div class="price">₹' + (p.price/100000).toFixed(2) + ' L</div>' +
+                            '</div></div>';
+                    }).join('');
+                }
+
+                // Pagination
+                const pg = document.getElementById('pagination');
+                if (data.total_pages > 1) {
+                    pg.innerHTML = '';
+                    if (currentPage > 1) pg.innerHTML += '<button onclick="doSearch(' + (currentPage-1) + ')">← Prev</button>';
+                    for (var i = Math.max(1, currentPage-2); i <= Math.min(data.total_pages, currentPage+2); i++) {
+                        pg.innerHTML += '<button onclick="doSearch(' + i + ')" class="' + (i===currentPage?'active':'') + '">' + i + '</button>';
+                    }
+                    if (currentPage < data.total_pages) pg.innerHTML += '<button onclick="doSearch(' + (currentPage+1) + ')">Next →</button>';
+                } else {
+                    pg.innerHTML = '';
+                }
+
+                // Update map if visible
+                updateMapFromResults();
+            } catch(e) {
+                document.getElementById('resultsContainer').innerHTML = '<div class="no-results">Error loading results.</div>';
+            }
+        }
+
+        function resetFilters() {
+            document.querySelectorAll('.filters-panel select').forEach(function(s) { s.value = ''; });
+            document.querySelectorAll('.filters-panel input').forEach(function(i) { i.value = ''; });
+            document.getElementById('sortBy').value = 'listed_at';
+            doSearch(1);
+        }
+
+        function updateMapFromResults() {
+            const container = document.getElementById('propertyMapContainer');
+            if (container.style.display === 'none') return;
+
+            clearMarkers();
+            var mapProps = [];
+            for (var i = 0; i < searchMapData.length; i++) {
+                var p = searchMapData[i];
+                if (p.latitude && p.longitude) {
+                    mapProps.push({
+                        property_id: p.property_id,
+                        title: p.title,
+                        price: p.price,
+                        lat: p.latitude,
+                        lng: p.longitude,
+                        city: p.city,
+                        locality: p.locality,
+                    });
+                }
+            }
+            if (mapProps.length > 0) {
+                addPropertyMarkers(mapProps);
+            }
+        }
+
+        function toggleMap() {
+            const container = document.getElementById('propertyMapContainer');
+            const btn = document.getElementById('mapToggleBtn');
+            const heatBtn = document.getElementById('heatmapToggleBtn');
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                btn.innerHTML = '<i class="fas fa-map-marked-alt" style="color:#10b981;"></i> Hide Map';
+                heatBtn.style.display = 'inline-block';
+                if (!searchMapInitialized) {
+                    initPropertyMap('searchMap', { center: [20.5937, 78.9629], zoom: 5 });
+                    searchMapInitialized = true;
+                }
+                updateMapFromResults();
+            } else {
+                container.style.display = 'none';
+                btn.innerHTML = '<i class="fas fa-map-marked-alt" style="color:#10b981;"></i> Show Map';
+                heatBtn.style.display = 'none';
+                clearMarkers();
+            }
+        }
+
+        function toggleSearchHeatmap() {
+            var mapProps = [];
+            for (var i = 0; i < searchMapData.length; i++) {
+                var p = searchMapData[i];
+                if (p.latitude && p.longitude) {
+                    mapProps.push({ lat: p.latitude, lng: p.longitude, price: p.price });
+                }
+            }
+            toggleHeatmap(mapProps);
+        }
+
+        doSearch(1);
+    </script>
+</body>
+</html>

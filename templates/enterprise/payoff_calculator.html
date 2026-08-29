@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — Option Strategy Payoff Calculator</title>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<script nonce="{{ nonce }}" src="/static/vendor/chart.umd.min.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 1.5rem 2rem 3rem 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--card-shadow); }
+        .field-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.75rem; }
+        .field { display: flex; flex-direction: column; gap: 0.25rem; }
+        .field label { font-size: 0.7rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+        .field input, .field select { background: #131a29; border: 1px solid rgba(148,163,184,0.2); border-radius: 0.35rem; color: var(--text-primary, #e2e8f0); font-size: 0.82rem; padding: 0.45rem 0.6rem; outline: none; }
+        .leg-row { display: grid; grid-template-columns: 1.1fr 0.8fr 0.8fr 0.8fr 1fr auto; gap: 0.6rem; align-items: end; margin-bottom: 0.6rem; }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 0.4rem; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s ease; }
+        .btn-primary { background: #3b82f6; color: #fff; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-ghost { background: transparent; color: var(--text-muted, #94a3b8); border: 1px solid rgba(148,163,184,0.2); }
+        .btn-ghost:hover { background: rgba(148,163,184,0.1); color: var(--text-primary, #ffffff); }
+        .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.3); padding: 0.35rem 0.6rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--bg-card, #0a0e17); border: 1px solid var(--border-color, #1e293b); border-radius: 0.5rem; padding: 1.1rem; }
+        .stat-value { font-size: 1.4rem; font-weight: 800; color: #38bdf8; margin-top: 0.25rem; font-family: monospace; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+        .empty-note { color: var(--text-muted, #94a3b8); font-size: 0.8rem; text-align: center; padding: 2rem 0; }
+        .chart-wrap { position: relative; height: 360px; }
+    </style>
+    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+
+    <div style="margin-bottom:1.5rem;">
+<h1><i class="fas fa-chart-line" style="margin-right:0.5rem;color:#38bdf8;"></i> Option Strategy Payoff Calculator</h1>
+<p class="subtitle">Build a multi-leg options strategy and see its P&amp;L payoff curve at expiry, max profit/loss, and break-even points — decision support only, this never places or sizes a real order.</p>
+</div>
+<div class="card">
+<div class="field-row">
+<div class="field">
+<label for="spotPrice">Spot Price</label>
+<input id="spotPrice" placeholder="e.g. 24500" step="0.05" style="width:160px;" type="number"/>
+</div>
+<div class="field">
+<label for="priceRangePct">Price Range (±%)</label>
+<input id="priceRangePct" max="100" min="1" step="1" style="width:110px;" type="number" value="20"/>
+</div>
+</div>
+<div id="legsContainer"></div>
+<div style="display:flex;gap:0.6rem;margin-top:0.5rem;">
+<button class="btn btn-ghost" id="addLegBtn" type="button"><i class="fas fa-plus"></i> Add Leg</button>
+<button class="btn btn-primary" id="calculateBtn" type="button"><i class="fas fa-calculator"></i> Calculate Payoff</button>
+</div>
+<div id="formError" style="color: var(--danger-color, #dc2626);font-size:0.8rem;margin-top:0.6rem;display:none;"></div>
+</div>
+<div id="resultsSection" style="display:none;">
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-label">Max Profit</div>
+<div class="stat-value" id="statMaxProfit" style="color: var(--success-color, #16a34a);">-</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">Max Loss</div>
+<div class="stat-value" id="statMaxLoss" style="color: var(--danger-color, #dc2626);">-</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">Net Premium</div>
+<div class="stat-value" id="statNetPremium">-</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">Break-Even(s)</div>
+<div class="stat-value" id="statBreakEvens" style="font-size:1rem;">-</div>
+</div>
+</div>
+<div class="card">
+<div class="chart-wrap"><canvas id="payoffChart"></canvas></div>
+</div>
+</div>
+<div class="empty-note" id="emptyNote">Add at least one leg and click Calculate to see the payoff curve.</div>
+<script nonce="{{ nonce }}">
+        let legCount = 0;
+        let payoffChart = null;
+
+        function addLegRow(preset) {
+            preset = preset || {};
+            legCount += 1;
+            const id = legCount;
+            const row = document.createElement('div');
+            row.className = 'leg-row';
+            row.dataset.legId = id;
+            row.innerHTML = `
+                <div class="field"><label>Strike</label><input type="number" step="0.05" class="leg-strike" value="${preset.strike || ''}"></div>
+                <div class="field"><label>Type</label>
+                    <select class="leg-type">
+                        <option value="CE" ${preset.option_type === 'CE' ? 'selected' : ''}>CE (Call)</option>
+                        <option value="PE" ${preset.option_type === 'PE' ? 'selected' : ''}>PE (Put)</option>
+                    </select>
+                </div>
+                <div class="field"><label>Action</label>
+                    <select class="leg-action">
+                        <option value="BUY" ${preset.action === 'BUY' ? 'selected' : ''}>BUY</option>
+                        <option value="SELL" ${preset.action === 'SELL' ? 'selected' : ''}>SELL</option>
+                    </select>
+                </div>
+                <div class="field"><label>Qty (lots×size)</label><input type="number" step="1" class="leg-qty" value="${preset.quantity || 1}"></div>
+                <div class="field"><label>Premium</label><input type="number" step="0.05" class="leg-premium" value="${preset.premium || ''}"></div>
+                <button id="cspfix-1" class="btn btn-danger" type="button"><i class="fas fa-trash"></i></button>
+            `;
+            document.getElementById('legsContainer').appendChild(row);
+        }
+
+        function collectLegs() {
+            const rows = document.querySelectorAll('#legsContainer .leg-row');
+            const legs = [];
+            for (const row of rows) {
+                legs.push({
+                    strike: parseFloat(row.querySelector('.leg-strike').value),
+                    option_type: row.querySelector('.leg-type').value,
+                    action: row.querySelector('.leg-action').value,
+                    quantity: parseInt(row.querySelector('.leg-qty').value, 10),
+                    premium: parseFloat(row.querySelector('.leg-premium').value),
+                });
+            }
+            return legs;
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('formError');
+            el.textContent = msg;
+            el.style.display = msg ? 'block' : 'none';
+        }
+
+        async function calculatePayoff() {
+            showError('');
+            const spotPrice = parseFloat(document.getElementById('spotPrice').value);
+            const priceRangePct = parseFloat(document.getElementById('priceRangePct').value) / 100.0;
+            if (!spotPrice || spotPrice <= 0) {
+                showError('Enter a valid spot price.');
+                return;
+            }
+            const legs = collectLegs();
+            if (legs.length === 0) {
+                showError('Add at least one leg.');
+                return;
+            }
+            for (const leg of legs) {
+                if (!leg.strike || !leg.quantity || isNaN(leg.premium)) {
+                    showError('Every leg needs a strike, quantity, and premium.');
+                    return;
+                }
+            }
+
+            let data;
+            try {
+                const res = await fetch('/api/payoff-calculator/compute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ spot_price: spotPrice, price_range_pct: priceRangePct, legs: legs }),
+                });
+                data = await res.json();
+            } catch (err) {
+                showError('Request failed: ' + err);
+                return;
+            }
+            if (data.status !== 'ok') {
+                showError(data.detail || 'Calculation failed.');
+                return;
+            }
+
+            document.getElementById('emptyNote').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('statMaxProfit').textContent = '₹' + data.max_profit.toLocaleString('en-IN');
+            document.getElementById('statMaxLoss').textContent = '₹' + data.max_loss.toLocaleString('en-IN');
+            document.getElementById('statNetPremium').textContent = (data.net_premium >= 0 ? 'Debit ₹' : 'Credit ₹') + Math.abs(data.net_premium).toLocaleString('en-IN');
+            document.getElementById('statBreakEvens').textContent = data.break_evens.length ? data.break_evens.map(v => v.toLocaleString('en-IN')).join(', ') : 'None';
+
+            renderChart(data.payoff_curve);
+        }
+
+        function renderChart(payoffCurve) {
+            const labels = payoffCurve.map(p => p[0]);
+            const values = payoffCurve.map(p => p[1]);
+            const ctx = document.getElementById('payoffChart').getContext('2d');
+            if (payoffChart) { payoffChart.destroy(); }
+            payoffChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'P&L at Expiry',
+                        data: values,
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56,189,248,0.08)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true,
+                        segment: {
+                            borderColor: ctx => (ctx.p0.parsed.y < 0 || ctx.p1.parsed.y < 0) ? '#f87171' : '#4ade80',
+                        },
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8', maxTicksLimit: 10 }, grid: { color: 'rgba(148,163,184,0.08)' } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.08)' } },
+                    },
+                },
+            });
+        }
+
+        document.getElementById('addLegBtn').addEventListener('click', () => addLegRow());
+        document.getElementById('calculateBtn').addEventListener('click', calculatePayoff);
+        addLegRow();
+        addLegRow();
+    </script>
+    {% include "_pwa_sw_reg.html" %}
+    <script nonce="{{ nonce }}">
+        // Wired via addEventListener, not inline attributes - CSP's script-src
+        // has no 'unsafe-inline', which silently blocks inline event-handler
+        // attributes even though a nonce'd block itself can still run (2026-08-22 fix).
+        document.getElementById('cspfix-1')?.addEventListener('click', function(event) { this.closest('.leg-row').remove() });
+    </script>
+</body>
+</html>

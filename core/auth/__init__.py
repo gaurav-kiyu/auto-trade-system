@@ -1,0 +1,62 @@
+"""AD-KIYU Authentication & Authorisation package.
+
+Provides:
+  - AuthHandler - password hashing, JWT tokens, brute-force protection, account lockout
+  - RoleManager - role assignment and permission checking
+  - SessionStore - operator session tracking with TTL
+  - Permission matrix (defined in permissions.py)
+  - CSRFProtection - double-submit cookie CSRF protection
+  - AuthDependencies - FastAPI dependency injection for auth + RBAC
+  - Auth Router - FastAPI router with login, logout, user management
+"""
+
+from __future__ import annotations
+
+from core.auth.csrf import CSRFProtection, csrf_protection
+from core.auth.dependencies import AuthDependencies
+from core.auth.handler import AuthHandler, AuthToken, AuthUser, hash_password, verify_password
+from core.auth.mfa import (
+    MFASessionState,
+    generate_mfa_secret,
+    generate_recovery_codes,
+    get_mfa_provisioning_uri,
+    get_mfa_session_state,
+    hash_recovery_code,
+    verify_mfa_token,
+    verify_recovery_code,
+)
+from core.auth.permissions import Permission, PermissionDenied, Role, role_has_permission
+from core.auth.role_manager import RoleManager
+from core.auth.routes import create_auth_router
+from core.auth.session_store import SessionStore
+from core.auth.sso import OAUTH_PROVIDERS, SSOAuthenticator, SSOConfig, SSOUser
+
+__all__ = [
+    "OAUTH_PROVIDERS",
+    "AuthDependencies",
+    "AuthHandler",
+    "AuthToken",
+    "AuthUser",
+    "CSRFProtection",
+    "MFASessionState",
+    "Permission",
+    "PermissionDenied",
+    "Role",
+    "RoleManager",
+    "SSOAuthenticator",
+    "SSOConfig",
+    "SSOUser",
+    "SessionStore",
+    "create_auth_router",
+    "csrf_protection",
+    "generate_mfa_secret",
+    "generate_recovery_codes",
+    "get_mfa_provisioning_uri",
+    "get_mfa_session_state",
+    "hash_password",
+    "hash_recovery_code",
+    "role_has_permission",
+    "verify_mfa_token",
+    "verify_password",
+    "verify_recovery_code",
+]

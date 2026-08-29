@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Detail — RealEstate India</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="/static/re-icon-192.svg">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+               background: #080b10; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        .back-link { color: #64748b; text-decoration: none; font-size: 0.85rem; display: inline-block; margin-bottom: 1rem; }
+        .back-link:hover { color: #60a5fa; }
+        .detail-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+        .main-image { background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 0.75rem; 
+                      height: 350px; display: flex; align-items: center; justify-content: center; 
+                      color: #475569; font-size: 5rem; margin-bottom: 1rem; position: relative; overflow: hidden; cursor: pointer; }
+        .main-image:hover .image-expand { opacity: 1; }
+        .image-expand { position: absolute; top: 1rem; right: 1rem; background: rgba(0,0,0,0.6); color: white; 
+                        width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; 
+                        justify-content: center; font-size: 0.9rem; cursor: pointer; opacity: 0; 
+                        transition: opacity 0.2s; border: none; z-index: 5; }
+        .image-expand:hover { background: rgba(59,130,246,0.7); }
+        /* Lightbox */
+        .lightbox { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; 
+                    background: rgba(0,0,0,0.92); align-items: center; justify-content: center; }
+        .lightbox.active { display: flex; }
+        .lightbox img { max-width: 90vw; max-height: 85vh; border-radius: 0.5rem; object-fit: contain; }
+        .lightbox-close { position: absolute; top: 1.5rem; right: 1.5rem; color: white; font-size: 2rem; 
+                          cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center; 
+                          justify-content: center; background: rgba(255,255,255,0.1); border-radius: 50%; }
+        .lightbox-close:hover { background: rgba(239,68,68,0.4); }
+        .lightbox-prev, .lightbox-next { position: absolute; top: 50%; transform: translateY(-50%); 
+                                          color: white; font-size: 2.5rem; cursor: pointer; width: 50px; height: 50px; 
+                                          display: flex; align-items: center; justify-content: center; 
+                                          background: rgba(255,255,255,0.08); border-radius: 50%; }
+        .lightbox-prev { left: 1.5rem; }
+        .lightbox-next { right: 1.5rem; }
+        .lightbox-prev:hover, .lightbox-next:hover { background: rgba(59,130,246,0.4); }
+        .lightbox-counter { position: absolute; bottom: 1.5rem; color: rgba(255,255,255,0.6); font-size: 0.85rem; }
+        .main-image .overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem; 
+                               background: linear-gradient(transparent, rgba(0,0,0,0.7)); }
+        .main-image .price-tag { font-size: 1.8rem; font-weight: 700; color: #4ade80; }
+        .main-image .status-tags { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
+        .gallery-thumbs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .gallery-thumbs div { width: 80px; height: 60px; background: #1a1f2e; border-radius: 0.4rem; 
+                              cursor: pointer; display: flex; align-items: center; justify-content: center; 
+                              color: #475569; font-size: 1.5rem; border: 1px solid transparent; }
+        .gallery-thumbs div:hover { border-color: rgba(59,130,246,0.3); }
+        .section { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; 
+                   padding: 1.25rem; margin-bottom: 1rem; }
+        .section h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .detail-item { display: flex; justify-content: space-between; font-size: 0.85rem; 
+                       padding: 0.4rem 0; border-bottom: 1px solid rgba(148,163,184,0.05); }
+        .detail-item .label { color: #64748b; }
+        .detail-item .value { color: #e2e8f0; font-weight: 500; }
+        .amenities-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .amenity-tag { background: rgba(59,130,246,0.08); color: #60a5fa; padding: 0.3rem 0.7rem; 
+                       border-radius: 1rem; font-size: 0.75rem; border: 1px solid rgba(59,130,246,0.1); }
+        .sidebar-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; 
+                        padding: 1.25rem; margin-bottom: 1rem; }
+        .sidebar-card .owner-info { text-align: center; padding: 0.5rem 0; }
+        .sidebar-card .owner-avatar { width: 60px; height: 60px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); 
+                                      border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                                      margin: 0 auto 0.5rem; font-size: 1.5rem; color: white; }
+        .contact-btn { width: 100%; background: #22c55e; color: white; border: none; padding: 0.7rem; 
+                       border-radius: 0.5rem; font-weight: 600; cursor: pointer; font-size: 0.9rem; margin-bottom: 0.5rem; transition: all 0.2s; }
+        .contact-btn:hover { background: #16a34a; transform: translateY(-1px); }
+        .visit-btn { width: 100%; background: #3b82f6; color: white; border: none; padding: 0.7rem; 
+                     border-radius: 0.5rem; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+        .visit-btn:hover { background: #2563eb; }
+        .agent-card { background: #1a1f2e; border-radius: 0.5rem; padding: 1rem; margin-top: 1rem; }
+        .agent-card .agent-name { font-weight: 600; font-size: 0.9rem; }
+        .agent-card .agent-detail { font-size: 0.75rem; color: #64748b; }
+        .rera-badge { background: rgba(34,197,94,0.1); color: #4ade80; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; display: inline-block; }
+        .featured-badge { background: rgba(245,158,11,0.15); color: #fbbf24; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; display: inline-block; }
+        .loading { text-align: center; padding: 3rem; color: #64748b; }
+        @media (max-width: 768px) { .detail-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <a href="/realestate/search" class="back-link">← Back to Search Results</a>
+    <div id="loadingState" class="loading"><i class="fas fa-spinner fa-spin"></i> Loading property details...</div>
+    
+    <div id="propertyContent" style="display:none;">
+        <div class="detail-layout">
+            <!-- Main Content -->
+            <div>
+                <div class="main-image" id="mainImage">
+                    <i class="fas fa-home"></i>
+                    <div class="overlay">
+                        <div class="price-tag" id="propPrice">-</div>
+                        <div class="status-tags">
+                            <span class="rera-badge" id="reraBadge" style="display:none;">✓ RERA Verified</span>
+                            <span class="featured-badge" id="featuredBadge" style="display:none;">★ Featured</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gallery-thumbs" id="galleryThumbs"></div>
+                <button class="image-expand" onclick="openLightbox(0)" title="View gallery">⛶</button>
+
+                <div class="section">
+                    <h3 id="propTitle">-</h3>
+                    <p style="color:#64748b;font-size:0.85rem;" id="propLocation"><i class="fas fa-map-marker-alt" style="color:#f87171;margin-right:0.3rem;"></i> -</p>
+                    <p style="font-size:0.85rem;margin-top:0.5rem;" id="propDescription">-</p>
+                </div>
+
+                <div class="section">
+                    <h3>Property Details</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="label">Bedrooms</span><span class="value" id="detBedrooms">-</span></div>
+                        <div class="detail-item"><span class="label">Bathrooms</span><span class="value" id="detBathrooms">-</span></div>
+                        <div class="detail-item"><span class="label">Balconies</span><span class="value" id="detBalconies">-</span></div>
+                        <div class="detail-item"><span class="label">Carpet Area</span><span class="value" id="detArea">-</span></div>
+                        <div class="detail-item"><span class="label">Super Area</span><span class="value" id="detSuperArea">-</span></div>
+                        <div class="detail-item"><span class="label">Furnishing</span><span class="value" id="detFurnishing">-</span></div>
+                        <div class="detail-item"><span class="label">Facing</span><span class="value" id="detFacing">-</span></div>
+                        <div class="detail-item"><span class="label">Floor</span><span class="value" id="detFloor">-</span></div>
+                        <div class="detail-item"><span class="label">Price per sq.ft</span><span class="value" id="detPricePerSqft">-</span></div>
+                        <div class="detail-item"><span class="label">Transaction Type</span><span class="value" id="detTransaction">-</span></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3><i class="fas fa-check-circle" style="color:#22c55e;margin-right:0.4rem;"></i> Amenities</h3>
+                    <div class="amenities-grid" id="amenitiesContainer">
+                        <span style="color:#64748b;font-size:0.85rem;">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3><i class="fas fa-map-marked-alt" style="color:#3b82f6;margin-right:0.4rem;"></i> Neighborhood & Location</h3>
+                    <div id="neighborhoodContent">
+                        <p style="color:#64748b;font-size:0.85rem;">Loading neighborhood insights...</p>
+                    </div>
+                </div>
+
+                <!-- Price History Chart -->
+                <div class="section">
+                    <h3><i class="fas fa-chart-line" style="color:#10b981;margin-right:0.4rem;"></i> Price Trend <span style="font-size:0.7rem;color:#64748b;font-weight:400;">(estimated)</span></h3>
+                    <div style="height:200px;">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                    <div style="display:flex;gap:0.75rem;margin-top:0.75rem;font-size:0.75rem;color:#64748b;" id="priceMetrics">
+                        <span>Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div>
+                <div class="sidebar-card">
+                    <div class="owner-info">
+                        <div class="owner-avatar"><i class="fas fa-user"></i></div>
+                        <div style="font-weight:600;font-size:0.95rem;" id="ownerName">Owner</div>
+                        <div style="color:#64748b;font-size:0.8rem;" id="ownerDetail">Listed 0 days ago</div>
+                    </div>
+                    <button class="contact-btn" onclick="showEnquiryForm()"><i class="fas fa-phone-alt"></i> Contact Owner</button>
+                    <button class="visit-btn" onclick="showEnquiryForm()"><i class="fas fa-calendar-check"></i> Schedule Visit</button>
+                    
+                    <div class="agent-card" id="brokerCard" style="display:none;">
+                        <div class="agent-name"><i class="fas fa-handshake" style="color:#fbbf24;margin-right:0.3rem;"></i> <span id="brokerName">-</span></div>
+                        <div class="agent-detail" id="brokerDetail">-</div>
+                    </div>
+                </div>
+
+                <!-- Enquiry Form -->
+                <div class="sidebar-card" id="enquiryForm" style="display:none;">
+                    <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:0.75rem;">📩 Send Enquiry</h3>
+                    <div class="filter-group" style="margin-bottom:0.5rem;">
+                        <label>Your Name</label>
+                        <input type="text" id="enqName" style="width:100%;background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.5rem;color:#e2e8f0;outline:none;">
+                    </div>
+                    <div class="filter-group" style="margin-bottom:0.5rem;">
+                        <label>Phone</label>
+                        <input type="text" id="enqPhone" style="width:100%;background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.5rem;color:#e2e8f0;outline:none;">
+                    </div>
+                    <div class="filter-group" style="margin-bottom:0.5rem;">
+                        <label>Message</label>
+                        <textarea id="enqMessage" style="width:100%;background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.5rem;color:#e2e8f0;outline:none;resize:vertical;min-height:60px;">I'm interested in this property. Please share more details.</textarea>
+                    </div>
+                    <button onclick="submitEnquiry()" style="width:100%;background:#3b82f6;color:white;border:none;padding:0.6rem;border-radius:0.5rem;font-weight:600;cursor:pointer;">
+                        <i class="fas fa-paper-plane"></i> Send Enquiry
+                    </button>
+                    <p id="enqStatus" style="margin-top:0.5rem;font-size:0.8rem;color:#64748b;text-align:center;"></p>
+                </div>
+
+                <!-- Similar Properties -->
+                <div class="sidebar-card">
+                    <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:0.75rem;">🔍 Similar Properties</h3>
+                    <div id="similarProps" style="font-size:0.8rem;color:#64748b;">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <span class="lightbox-close" onclick="closeLightbox()">✕</span>
+        <span class="lightbox-prev" onclick="changeImage(-1)">‹</span>
+        <span class="lightbox-next" onclick="changeImage(1)">›</span>
+        <img id="lightboxImg" src="" alt="Property image">
+        <div class="lightbox-counter" id="lightboxCounter"></div>
+    </div>
+
+    <script>
+        const propertyId = "{{ property_id }}";
+        var galleryImages = [];
+        var currentImageIndex = 0;
+
+        function openLightbox(index) {
+            if (galleryImages.length === 0) return;
+            currentImageIndex = index;
+            document.getElementById('lightbox').classList.add('active');
+            document.getElementById('lightboxImg').src = galleryImages[index];
+            document.getElementById('lightboxCounter').textContent = (index + 1) + ' / ' + galleryImages.length;
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function changeImage(direction) {
+            currentImageIndex = (currentImageIndex + direction + galleryImages.length) % galleryImages.length;
+            document.getElementById('lightboxImg').src = galleryImages[currentImageIndex];
+            document.getElementById('lightboxCounter').textContent = (currentImageIndex + 1) + ' / ' + galleryImages.length;
+        }
+
+        // Keyboard navigation for lightbox
+        document.addEventListener('keydown', function(e) {
+            if (document.getElementById('lightbox').classList.contains('active')) {
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowLeft') changeImage(-1);
+                if (e.key === 'ArrowRight') changeImage(1);
+            }
+        });
+
+        function showEnquiryForm() {
+            document.getElementById('enquiryForm').style.display = 'block';
+        }
+
+        async function loadProperty() {
+            try {
+                const res = await fetch('/api/realestate/properties/' + propertyId);
+                if (!res.ok) throw new Error('Not found');
+                const p = await res.json();
+
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('propertyContent').style.display = 'block';
+
+                document.getElementById('propTitle').textContent = p.title;
+                document.getElementById('propPrice').textContent = '₹' + (p.price/100000).toFixed(2) + ' L';
+                document.getElementById('propLocation').innerHTML = '<i class="fas fa-map-marker-alt" style="color:#f87171;margin-right:0.3rem;"></i> ' + (p.locality + ', ' + p.city);
+                document.getElementById('propDescription').textContent = p.description || 'No description provided.';
+
+                if (p.is_verified) document.getElementById('reraBadge').style.display = 'inline-block';
+                if (p.is_featured) document.getElementById('featuredBadge').style.display = 'inline-block';
+
+                document.getElementById('detBedrooms').textContent = p.bedrooms + ' BHK';
+                document.getElementById('detBathrooms').textContent = p.bathrooms;
+                document.getElementById('detBalconies').textContent = p.balconies || '0';
+                document.getElementById('detArea').textContent = p.carpet_area_sqft + ' sq.ft';
+                document.getElementById('detSuperArea').textContent = (p.super_area_sqft || '-') + ' sq.ft';
+                document.getElementById('detFurnishing').textContent = p.furnishing || '-';
+                document.getElementById('detFacing').textContent = p.facing_direction || '-';
+                document.getElementById('detFloor').textContent = '-';
+                document.getElementById('detPricePerSqft').textContent = '₹' + (p.price_per_sqft || (p.price / (p.carpet_area_sqft || 1)).toFixed(0));
+                document.getElementById('detTransaction').textContent = p.transaction_type || p.listing_type;
+
+                // Amenities
+                const amContainer = document.getElementById('amenitiesContainer');
+                if (p.amenities && p.amenities.length > 0) {
+                    amContainer.innerHTML = p.amenities.map(a => `<span class="amenity-tag">${a}</span>`).join('');
+                } else {
+                    amContainer.innerHTML = '<span style="color:#64748b;font-size:0.85rem;">Standard amenities included</span>';
+                }
+
+                // Owner
+                document.getElementById('ownerName').textContent = p.owner_id ? 'Owner ' + p.owner_id.slice(0,8) : 'Property Owner';
+                document.getElementById('ownerDetail').textContent = p.listed_at ? 'Listed ' + Math.floor((Date.now()/1000 - p.listed_at)/86400) + ' days ago' : 'New listing';
+
+                // Broker
+                if (p.broker_id) {
+                    document.getElementById('brokerCard').style.display = 'block';
+                    document.getElementById('brokerName').textContent = p.broker_name || 'Broker ' + p.broker_id.slice(0,8);
+                    document.getElementById('brokerDetail').textContent = 'Professional broker | RERA registered';
+                }
+
+                // Gallery thumbs with lightbox interaction
+                galleryImages = (p.images && p.images.length > 0) ? p.images : [];
+                const thumbs = document.getElementById('galleryThumbs');
+                if (galleryImages.length > 0) {
+                    thumbs.innerHTML = galleryImages.slice(0,6).map((url, idx) => 
+                        `<div onclick="openLightbox(${idx})" style="background:linear-gradient(135deg,#1e293b,#0f172a);position:relative;">
+                            <i class="fas fa-image"></i>
+                            ${idx === 0 ? '<span style="position:absolute;bottom:2px;right:4px;font-size:0.5rem;color:#60a5fa;">1/'+galleryImages.length+'</span>' : ''}
+                        </div>`
+                    ).join('');
+                    // Add 'View all' button if > 6 images
+                    if (galleryImages.length > 6) {
+                        thumbs.innerHTML += '<div onclick="openLightbox(0)" style="background:#1a1f2e;border:1px solid rgba(148,163,184,0.15);font-size:0.7rem;display:flex;align-items:center;justify-content:center;">+' + (galleryImages.length - 6) + '</div>';
+                    }
+                } else {
+                    thumbs.innerHTML = '';
+                }
+
+                // Load price chart
+                loadPriceChart(p);
+
+                // Load similar
+                loadSimilar();
+                loadNeighborhood(p.city, p.locality);
+
+            } catch(e) {
+                document.getElementById('loadingState').innerHTML = 'Property not found. <a href="/realestate/search" style="color:#3b82f6;">Back to search</a>';
+            }
+        }
+
+        async function loadSimilar() {
+            try {
+                const res = await fetch(`/api/realestate/recommendations?property_id=${propertyId}&limit=3`);
+                const data = await res.json();
+                const container = document.getElementById('similarProps');
+                if (!data.recommendations || data.recommendations.length === 0) {
+                    container.innerHTML = '<span style="color:#64748b;">No similar properties available.</span>';
+                    return;
+                }
+                container.innerHTML = data.recommendations.map(p => `
+                    <div style="margin-bottom:0.75rem;padding:0.5rem;background:#1a1f2e;border-radius:0.4rem;cursor:pointer;" onclick="window.location.href='/realestate/property/${p.property_id}'">
+                        <div style="font-weight:500;font-size:0.85rem;">${p.title}</div>
+                        <div style="color:#4ade80;font-weight:600;font-size:0.85rem;">₹${(p.price/100000).toFixed(2)} L</div>
+                        <div style="color:#64748b;font-size:0.7rem;">${p.bedrooms} BHK · ${p.carpet_area_sqft} sqft</div>
+                    </div>
+                `).join('');
+            } catch(e) {
+                document.getElementById('similarProps').innerHTML = '<span style="color:#64748b;">Could not load similar properties.</span>';
+            }
+        }
+
+        async function loadPriceChart(p) {
+            // Generate simulated price history for the past 12 months
+            const months = ['Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'];
+            const basePrice = p.price;
+            const variance = basePrice * 0.15;
+            const prices = [];
+            for (let i = 0; i < 12; i++) {
+                const trend = i < 6 ? -0.8 : 1.2; // Slight upward trend in recent months
+                prices.push(Math.round(basePrice * (0.88 + (i/12) * 0.12) + (Math.random() - 0.5) * variance * 0.3));
+            }
+            const currentPrice = prices[prices.length - 1];
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            const change12m = ((currentPrice - prices[0]) / prices[0] * 100).toFixed(1);
+
+            document.getElementById('priceMetrics').innerHTML = `
+                <span>12mo Range: <strong style="color:#94a3b8;">₹${(minPrice/100000).toFixed(2)}L - ₹${(maxPrice/100000).toFixed(2)}L</strong></span>
+                <span>Change: <strong style="color:${change12m >= 0 ? '#4ade80' : '#f87171'}">${change12m >= 0 ? '+' : ''}${change12m}%</strong></span>
+            `;
+
+            try {
+                new Chart(document.getElementById('priceChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: months,
+                        datasets: [{
+                            label: 'Estimated Price (₹)',
+                            data: prices,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16,185,129,0.08)',
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: prices.map(function(v, i) { return i === prices.length - 1 ? '#10b981' : '#1a1f2e'; }),
+                            pointRadius: prices.map(function(v, i) { return i === prices.length - 1 ? 5 : 3; }),
+                            borderWidth: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) { return '₹' + (ctx.parsed.y / 100000).toFixed(2) + ' L'; }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#475569', font: { size: 10 } }, grid: { display: false } },
+                            y: {
+                                ticks: { color: '#475569', font: { size: 10 }, callback: function(v) { return '₹' + (v/100000).toFixed(1) + 'L'; } },
+                                grid: { color: 'rgba(148,163,184,0.05)' }
+                            }
+                        }
+                    }
+                });
+            } catch(e) {}
+        }
+
+        async function loadNeighborhood(city, locality) {
+            if (!city || !locality) return;
+            try {
+                const res = await fetch(`/api/realestate/neighborhood/${city}/insight?locality=${encodeURIComponent(locality)}`);
+                const data = await res.json();
+                const nc = document.getElementById('neighborhoodContent');
+                const i = data.insight;
+                nc.innerHTML = `
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                        <div class="detail-item"><span class="label">Avg Price/sq.ft</span><span class="value">₹${i.avg_price_per_sqft}</span></div>
+                        <div class="detail-item"><span class="label">Price Trend (6m)</span><span class="value" style="color:${i.price_trend_6m >=0 ? '#4ade80' : '#f87171'}">${i.price_trend_6m}%</span></div>
+                        <div class="detail-item"><span class="label">Rental Yield</span><span class="value">${i.rental_yield_pct}%</span></div>
+                        <div class="detail-item"><span class="label">Demand Index</span><span class="value">${i.demand_index}/100</span></div>
+                        <div class="detail-item"><span class="label">Schools</span><span class="value">${i.schools_rating}/10</span></div>
+                        <div class="detail-item"><span class="label">Hospitals</span><span class="value">${i.hospitals_rating}/10</span></div>
+                        <div class="detail-item"><span class="label">Connectivity</span><span class="value">${i.connectivity_rating}/10</span></div>
+                        <div class="detail-item"><span class="label">Safety</span><span class="value">${i.safety_rating}/10</span></div>
+                    </div>
+                `;
+            } catch(e) {
+                // Silent fail
+            }
+        }
+
+        async function submitEnquiry() {
+            const name = document.getElementById('enqName').value;
+            const phone = document.getElementById('enqPhone').value;
+            const message = document.getElementById('enqMessage').value;
+            const status = document.getElementById('enqStatus');
+
+            if (!name || !phone) {
+                status.textContent = '⚠️ Please enter your name and phone number.';
+                status.style.color = '#f87171';
+                return;
+            }
+
+            const params = new URLSearchParams({
+                property_id: propertyId, name, phone,
+                email: name.toLowerCase().replace(/\s+/g,'.') + '@email.com',
+                message, enquirer_type: 'buyer',
+            });
+
+            try {
+                const res = await fetch('/api/realestate/enquiries?' + params, {method:'POST'});
+                const data = await res.json();
+                if (data.enquiry_id) {
+                    status.innerHTML = '✅ Enquiry sent! The owner will contact you soon.';
+                    status.style.color = '#4ade80';
+                    document.getElementById('enqName').value = '';
+                    document.getElementById('enqPhone').value = '';
+                } else {
+                    status.textContent = '⚠️ Failed to send. Please try again.';
+                    status.style.color = '#f87171';
+                }
+            } catch(e) {
+                status.textContent = '⚠️ Could not send enquiry. API may not be running.';
+                status.style.color = '#f87171';
+            }
+        }
+
+        loadProperty();
+    </script>
+</body>
+</html>

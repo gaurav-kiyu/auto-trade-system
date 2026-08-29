@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — Config Editor</title>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: var(--font-ui, 'Inter', -apple-system, sans-serif); 
+            background: var(--bg-primary, #080b10); 
+            color: var(--text-primary, #e2e8f0); 
+            min-height: 100vh; 
+            padding: 1.75rem 2rem;
+            line-height: 1.5;
+        }
+        
+        /* ── Header Title & Controls ────────────────────────────────────────── */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text-primary, #ffffff);
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+        .page-title i {
+            color: var(--accent-color, #38bdf8);
+            font-size: 1.35rem;
+        }
+        .page-subtitle {
+            color: var(--text-muted, #94a3b8);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-top: 0.2rem;
+        }
+        
+        .action-bar {
+            display: flex;
+            gap: 0.65rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* ── Modern Buttons ─────────────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.15rem;
+            border-radius: 0.6rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            text-decoration: none;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--accent-gradient, linear-gradient(135deg, #0284c7 0%, #2563eb 100%));
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1.5px);
+            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.5);
+            filter: brightness(1.08);
+        }
+        .btn-ghost {
+            background: var(--bg-card, #131e33);
+            color: var(--text-primary, #f8fafc);
+            border: 1px solid var(--border-color, #334155);
+            box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
+        }
+        .btn-ghost:hover {
+            background: var(--bg-card-hover, #182744);
+            border-color: var(--accent-color, #38bdf8);
+            color: var(--accent-color, #38bdf8);
+            transform: translateY(-1.5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .btn-test-email {
+            background: rgba(56, 189, 248, 0.12) !important;
+            color: var(--accent-color, #0284c7) !important;
+            border: 1px solid rgba(56, 189, 248, 0.4) !important;
+        }
+        .btn-test-email:hover {
+            background: var(--accent-gradient) !important;
+            color: #ffffff !important;
+            border-color: transparent !important;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4) !important;
+        }
+
+        /* ── Segmented Tab Bar ──────────────────────────────────────────────── */
+        .tab-bar-container {
+            background: var(--bg-secondary, #0f172a);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 0.75rem;
+            padding: 0.35rem;
+            margin-bottom: 1.75rem;
+            display: inline-flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-sm);
+        }
+        .tab {
+            padding: 0.45rem 1.15rem;
+            border-radius: 0.5rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-secondary, #94a3b8);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+        .tab:hover {
+            color: var(--text-primary, #ffffff);
+            background: var(--bg-card-hover, rgba(56, 189, 248, 0.08));
+        }
+        .tab.active {
+            background: var(--accent-gradient, linear-gradient(135deg, #0284c7 0%, #2563eb 100%));
+            color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(2, 132, 199, 0.35);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* ── Main Container & Card Grid ─────────────────────────────────────── */
+        .card {
+            background: var(--bg-card, #131e33);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.75rem;
+            box-shadow: var(--card-shadow, 0 4px 20px rgba(0,0,0,0.15));
+        }
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.15rem;
+        }
+
+                /* ── Cockpit Parameter Tile Architecture ────────────────────────────── */
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 0.85rem;
+        }
+
+        .config-item {
+            background: var(--bg-secondary, #0f172a);
+            border: 1px solid var(--border-color, rgba(148,163,184,0.2));
+            border-radius: 0.6rem;
+            padding: 0.85rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: var(--shadow-sm);
+        }
+        .config-item:hover {
+            border-color: var(--accent-color, #38bdf8);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .config-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+        .config-key {
+            font-size: 0.78rem;
+            color: var(--text-primary, #f8fafc);
+            font-weight: 800;
+            font-family: var(--font-mono, monospace);
+            letter-spacing: 0.02em;
+            word-break: break-all;
+        }
+        .config-type-badge {
+            font-size: 0.62rem;
+            padding: 0.12rem 0.4rem;
+            border-radius: 0.3rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            flex-shrink: 0;
+        }
+
+        .config-value {
+            margin: 0.15rem 0;
+        }
+        .config-value input, .config-value select {
+            width: 100%;
+            padding: 0.45rem 0.75rem;
+            background: var(--input-bg, #0b1120);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 0.45rem;
+            color: var(--text-primary, #e2e8f0);
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: var(--font-mono, monospace);
+            outline: none;
+            transition: all 0.15s ease;
+        }
+        .config-value input:focus, .config-value select:focus {
+            border-color: var(--accent-color, #38bdf8);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+            background: var(--bg-card);
+        }
+
+        .config-desc-box {
+            font-size: 0.75rem;
+            color: var(--text-secondary, #94a3b8);
+            line-height: 1.45;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+        }
+        .config-desc-box i {
+            color: var(--accent-color, #38bdf8);
+            margin-right: 0.3rem;
+        }
+
+        /* ── Toast Container & Modal ────────────────────────────────────────── */
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { padding: 0.75rem 1.25rem; border-radius: 0.5rem; color: white; font-size: 0.82rem; font-weight: 600; opacity: 0; transform: translateY(1rem); transition: all 0.3s ease; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .toast.visible { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #065f46; border-left: 4px solid #22c55e; }
+        .toast.error { background: #7f1d1d; border-left: 4px solid #ef4444; }
+        .toast.warning { background: #713f12; border-left: 4px solid #f59e0b; }
+        
+        .section { display: none; }
+        .section.active { display: block; }
+        .preview-box { background: var(--bg-secondary, #0f1319); border: 1px solid var(--border-color, #1e293b); border-radius: 0.6rem; padding: 1.25rem; max-height: 350px; overflow-y: auto; font-family: var(--font-mono, monospace); font-size: 0.8rem; color: var(--text-secondary, #cbd5e1); white-space: pre-wrap; display: none; margin-bottom: 1.5rem; }
+
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .config-grid { grid-template-columns: 1fr; }
+            .action-bar { width: 100%; justify-content: flex-start; }
+        }
+
+    </style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+    <!-- Super Admin Header Quick Switcher -->
+<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;background:var(--bg-card, #0f172a);border:1px solid var(--border-color, #1e293b);padding:0.4rem 0.6rem;border-radius:0.65rem;flex-wrap:wrap;">
+<span style="font-size:0.75rem;font-weight:800;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.05em;margin-right:0.4rem;padding-left:0.3rem;">⚡ Admin Suite:</span>
+<a class="btn btn-sm btn-primary" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>
+<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>
+<a class="btn btn-sm btn-ghost" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>
+</div>
+<div class="page-header">
+<div>
+<div class="page-title"><i class="fas fa-sliders-h"></i> Configuration Cockpit</div>
+<div class="page-subtitle">Super Admin — Real-time parameter tuning, quantitative risk gates, and multi-channel dispatch controls</div>
+</div>
+<div class="action-bar">
+<button class="btn btn-primary" id="saveConfigBtn" type="button"><i class="fas fa-check-circle"></i> Save Changes</button>
+<button class="btn btn-ghost" id="previewBtn" type="button"><i class="fas fa-eye"></i> Preview Diff</button>
+<button class="btn btn-ghost" id="reloadBtn" type="button"><i class="fas fa-sync-alt"></i> Reload</button>
+<button class="btn btn-ghost" id="historyBtn" type="button"><i class="fas fa-history"></i> Backup History</button>
+<button class="btn btn-ghost" id="testEmailBtn" title="Send a non-trading test email" type="button"><i class="fas fa-envelope-open-text"></i> Test Email</button>
+<button class="btn btn-test-email" data-action="execute-signal-dispatch" id="openSignalTestModalBtn" type="button"><i class="fas fa-satellite-dish"></i> 🚀 Test Live Signal Dispatch</button>
+</div>
+</div>
+<div class="tab-bar-container" id="tabBar">
+<div class="tab active" data-tab="execution"><i class="fas fa-bolt"></i> Execution</div>
+<div class="tab" data-tab="risk"><i class="fas fa-shield-alt"></i> Risk Engine</div>
+<div class="tab" data-tab="broker"><i class="fas fa-network-wired"></i> Broker Adapter</div>
+<div class="tab" data-tab="signals"><i class="fas fa-wave-square"></i> Signals &amp; Quant</div>
+<div class="tab" data-tab="ml"><i class="fas fa-brain"></i> Machine Learning</div>
+<div class="tab" data-tab="notifications"><i class="fas fa-bell"></i> Notifications (TG &amp; Email)</div>
+<div class="tab" data-tab="system"><i class="fas fa-server"></i> System Core</div>
+</div>
+<div class="preview-box" id="previewBox"></div>
+<div id="sections">
+<div class="section active" id="section-execution"><div class="card"><div class="config-grid" id="config-execution"><div style="color: var(--text-muted, #94a3b8);grid-column:1/-1;text-align:center;">Loading...</div></div></div></div>
+<div class="section" id="section-risk"><div class="card"><div class="config-grid" id="config-risk"><div style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</div></div></div></div>
+<div class="section" id="section-broker"><div class="card"><div class="config-grid" id="config-broker"><div style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</div></div></div></div>
+<div class="section" id="section-signals">
+<div class="card" style="margin-bottom:1.5rem;">
+<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+<i class="fas fa-layer-group" style="color:#38bdf8;font-size:1.25rem;"></i>
+<div>
+<div style="font-weight:700;font-size:1rem;color: var(--text-primary, #f8fafc);">🎯 Category-Aware Strong Conviction Score Gates</div>
+<div style="font-size:0.75rem;color: var(--text-muted, #94a3b8);">Set independent score limits for Index Options vs. Stock Options vs. Cash Delivery</div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;">
+<div style="background:var(--bg-secondary);border: 1px solid var(--border-color);border-radius:0.75rem;padding:1rem;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+<span style="font-weight:600;color:#38bdf8;font-size:0.85rem;"><i class="fas fa-bullseye"></i> Index Options</span>
+<span class="badge" style="background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);">CE / PE Options</span>
+</div>
+<div style="font-size:0.75rem;color: var(--text-muted, #94a3b8);margin-bottom:0.75rem;">NIFTY, SENSEX, BANKNIFTY, FINNIFTY</div>
+<div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Key: <code>CATEGORY_SCORE_THRESHOLDS.INDEX_OPTIONS</code> (Default: 80) — falls back to <code>INDEX_MIN_SCORE</code> if unset</div>
+</div>
+<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:0.75rem;padding:1rem;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+<span style="font-weight:600;color:#f59e0b;font-size:0.85rem;"><i class="fas fa-bolt"></i> Stock Options (F&amp;O)</span>
+<span class="badge" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);">~185 F&amp;O Stocks</span>
+</div>
+<div style="font-size:0.75rem;color: var(--text-muted, #94a3b8);margin-bottom:0.75rem;">Reliance, TCS, HDFC Bank, Tata Motors</div>
+<div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Key: <code>CATEGORY_SCORE_THRESHOLDS.STOCK_OPTIONS</code> (Default: 85) — independent of the Index/Cash Equities gates, falls back to <code>MIN_SCORE_THRESHOLD</code> if unset</div>
+</div>
+<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:0.75rem;padding:1rem;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+<span style="font-weight:600;color: var(--success-color, #16a34a);font-size:0.85rem;"><i class="fas fa-chart-line"></i> Cash Equities (CNC)</span>
+<span class="badge" style="background:rgba(34,197,94,0.15);color: var(--success-color, #16a34a);border:1px solid rgba(34,197,94,0.3);">CNC BUY Only</span>
+</div>
+<div style="font-size:0.75rem;color: var(--text-muted, #94a3b8);margin-bottom:0.75rem;">2,300+ Cash Delivery Stocks (Swing)</div>
+<div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Key: <code>CATEGORY_SCORE_THRESHOLDS.EQUITY_SWING_DELIVERY</code> (Default: 90) — independent of the Index/F&amp;O gates, falls back to <code>MIN_SCORE_THRESHOLD</code> if unset</div>
+</div>
+</div>
+</div>
+<div class="card"><div class="config-grid" id="config-signals"><div style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</div></div></div>
+</div>
+<div class="section" id="section-ml"><div class="card"><div class="config-grid" id="config-ml"><div style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</div></div></div></div>
+<div class="section" id="section-notifications"><div class="card"><div class="config-grid" id="config-notifications"><div style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</div></div></div></div>
+<div class="section" id="section-public-url">
+<div class="card" style="padding:1rem;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem;flex-wrap:wrap;">
+    <div>
+      <div style="font-weight:700;font-size:1rem;">Public URL &amp; External Link Routing</div>
+      <div style="color:var(--text-muted,#94a3b8);font-size:.78rem;margin-top:.2rem;">
+        Privileged configuration. Deployment URL is infrastructure-owned and read-only; the Admin Override is application-owned.
+      </div>
+    </div>
+    <span id="publicUrlPermissionBadge" class="config-type-badge">modify_config required</span>
+  </div>
+  <div class="config-grid" style="margin-top:.5rem;">
+    <div class="config-item">
+      <div class="config-header">
+        <span class="config-key">Deployment URL</span>
+        <span class="config-type-badge">ENVIRONMENT / READ ONLY</span>
+      </div>
+      <div class="config-value">
+        <input id="deploymentPublicUrl" class="cfg-input" type="url" readonly aria-readonly="true">
+      </div>
+      <div class="config-desc-box"><i class="fas fa-server"></i>
+        Infrastructure/deployment value supplied by the environment (or deployment config). It is intentionally not writable from the application UI; changing it belongs to the deployment/infrastructure layer and normally requires deployment/restart.
+      </div>
+    </div>
+    <div class="config-item">
+      <div class="config-header">
+        <span class="config-key">Admin URL Override</span>
+        <span class="config-type-badge">APPLICATION / EDITABLE</span>
+      </div>
+      <div class="config-value">
+        <input id="adminPublicUrlOverride" class="cfg-input" type="url" placeholder="https://example.com">
+      </div>
+      <div class="config-desc-box"><i class="fas fa-link"></i>
+        Application-level public origin. Only privileged users with <code>modify_config</code> can change it. Changes use the normal preview/validate/apply flow, are backed up and audit logged, and invalidate the public-URL cache.
+      </div>
+    </div>
+    <div class="config-item">
+      <div class="config-header">
+        <span class="config-key">Effective URL</span>
+        <span class="config-type-badge">RUNTIME</span>
+      </div>
+      <div class="config-value">
+        <input id="effectivePublicUrl" class="cfg-input" type="url" readonly aria-readonly="true">
+      </div>
+      <div class="config-desc-box"><i class="fas fa-route"></i>
+        This is the URL currently used by externally visible action links, notification links, email/Telegram links and SSO callbacks.
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="section" id="section-system"><div class="card"><div class="config-grid" id="config-system"><div style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</div></div></div></div>
+</div>
+<div id="historyModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;">
+<div style="background:#1a1f2e;border: 1px solid var(--border-color, #1e293b);border-radius:1rem;padding:1.5rem;max-width:640px;width:90%;max-height:80vh;overflow-y:auto;">
+<h3 style="font-size:1rem;font-weight:600;margin-bottom:1rem;">Who Changed What — Config Audit Log</h3>
+<div id="auditLogList" style="font-size:0.8rem;color: var(--text-muted, #94a3b8);display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.25rem;">Loading...</div>
+<h3 style="font-size:1rem;font-weight:600;margin-bottom:1rem;">Config Backup History (Restore Points)</h3>
+<div id="historyList" style="font-size:0.8rem;color: var(--text-muted, #94a3b8);display:flex;flex-direction:column;gap:0.5rem;">Loading...</div>
+<div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.5rem;">
+<button class="btn btn-ghost btn-sm" id="closeHistoryBtn" type="button">Close</button>
+</div>
+</div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+<script nonce="{{ nonce }}">
+        let configData = {};
+        let changedKeys = {};
+        let isDirty = false;
+
+        // Hints below are grounded in the actual code that reads each key
+        // (not the schema/template files alone) as of 2026-08-21. Several
+        // keys turned out to be validated/displayed but never actually
+        // consumed anywhere in the live trading path, or read under a
+        // different-cased key than this UI lists - those are called out
+        // explicitly ("not currently wired") rather than describing an
+        // effect that doesn't exist. Re-verify against the code before
+        // trusting a hint here as still accurate if the underlying module
+        // changes.
+        const fieldHints = {
+            // ── Execution ──────────────────────────────────────────────
+            'EXECUTION_MODE': 'Chooses the bot\'s operating mode: LIVE (real broker orders), PAPER (simulated fills), or SIGNAL_ONLY/MANUAL (signals only, no auto-execution). Defaults to SIGNAL_ONLY — the recommended mode while you build a live-signal track record before trusting any auto-execution. Read at startup to select the broker adapter; switching away from PAPER/SIGNAL_ONLY is high-risk and also triggers the master live-trading lockout + live-readiness gate checks below.',
+            'MANUAL_SIGNALS_ONLY': 'Second, independent lock to the same effect as EXECUTION_MODE=SIGNAL_ONLY (default false, since EXECUTION_MODE already covers it by default) — position_service.py treats a trade as manual/signal-only if EITHER this flag OR EXECUTION_MODE says so. Set this true for a belt-and-suspenders guarantee that no auto-execution happens regardless of what EXECUTION_MODE gets changed to later.',
+            'SCAN_INTERVAL': 'How many seconds the main trading loop sleeps between market scans (5s floor enforced). Lower = faster reaction to fresh signals but more API/broker load; higher = less load but slower reaction.',
+            'COOLDOWN': 'Wired for real (2026-08-21) behind the new master switch general_cooldown_enabled (default OFF, see that key) — a general per-index minimum time between ANY two entries (default 300s), distinct from reentry_cooldown_mins (stop-loss re-entry only) and TG_COOLDOWN_SECS (Telegram alert dedupe).',
+            'general_cooldown_enabled': 'NEW (2026-08-21), default OFF. Master switch that makes COOLDOWN a real, enforced per-index entry throttle. Kept OFF by default since it is a brand-new restriction with no live track record — turning it on can reject rapid re-entries (e.g. after a quick MANUAL exit) that would have gone through before.',
+            'SIGNAL_MAX_AGE': 'Maximum seconds a generated signal may sit before being rejected as stale (default 90s). Lower = only very fresh signals act (may skip valid setups if a scan runs slow); higher = older signals can still trigger entries on outdated conditions.',
+            'MAX_POSITION_AGE': 'Maximum minutes an open position stays open before it is force-closed purely on time (9999 = disabled). Lower = exits sooner regardless of P&L (can cut winners short); higher = positions run longer, relying on SL/target/trail to eventually close.',
+            'BREAKOUT_TIMEOUT': 'Wired for real (2026-08-21) behind the new master switch breakout_timeout_enabled (default OFF, see that key) — how long (default 1800s) a confirmed breakout stays valid before PositionService rejects it as stale, replacing the much stricter SIGNAL_MAX_AGE (default 90s) for this specific check once enabled.',
+            'breakout_timeout_enabled': 'NEW (2026-08-21), default OFF. Master switch that makes BREAKOUT_TIMEOUT govern breakout-confirmation staleness instead of the general SIGNAL_MAX_AGE. Kept OFF by default because BREAKOUT_TIMEOUT\'s default (1800s) is ~20x looser than SIGNAL_MAX_AGE\'s (90s) — turning this on lets noticeably older confirmed breakouts still trigger entries.',
+            'MAX_TRADES_DAY': 'Caps how many new positions may open in one day; actively enforced (RiskService denies new entries once the daily count is reached). Lower = more conservative; higher = more trades allowed but more daily risk exposure.',
+            'EXPIRY_MAX_TRADES': 'Wired for real (2026-08-21) behind the new master switch expiry_max_trades_enabled (default OFF, see that key) — caps trades entered on the underlying index\'s actual expiry day (default 2), reusing RiskService\'s existing daily trade counter.',
+            'expiry_max_trades_enabled': 'NEW (2026-08-21), default OFF. Master switch that makes EXPIRY_MAX_TRADES a real, enforced entry block on expiry day. Kept OFF by default since it is a brand-new safety cap with no live track record — turning it on can start rejecting expiry-day entries that would have gone through before.',
+            'EXPIRY_CUTOFF_HOUR': 'Wired for real (2026-08-21) — the hour (default 13) after which ExpiryDayController blocks new entries on expiry day. Minutes are NOT configurable via EXPIRY_CUTOFF_MIN on purpose: this repo\'s own CLAUDE.md documents the intended default as 13:30, but the real hardcoded behavior being replaced was 13:00 - honoring EXPIRY_CUTOFF_MIN\'s default of 30 here would have silently widened the expiry-day entry window by 30 minutes. Kept at the minute=0 boundary (today\'s real behavior) until a human explicitly decides 13:00 vs 13:30 is correct.',
+            'EXPIRY_CUTOFF_MIN': 'Deliberately NOT wired (2026-08-21) — see EXPIRY_CUTOFF_HOUR\'s hint. Honoring this key\'s default (30) would silently move the real expiry-day cutoff from 13:00 to 13:30, widening the window for new entries on the riskiest trading day. Needs an explicit human decision, not a default-preserving fix.',
+            'MAX_OPEN': 'Caps simultaneous open positions across all indices; actively enforced (RiskService denies new entries once reached). Lower = more conservative single/few-position trading; higher = more simultaneous exposure. A startup warning fires if this exceeds MAX_TRADES_DAY.',
+            'PARTIAL_EXIT_ENABLED': 'Wired for real (2026-08-21) as a global override in core/execution_policy.py on top of TierRules\' own per-tier partial-exit behavior (already live today for MODERATE/WEAK tiers regardless of this key). Default true preserves that existing per-tier behavior exactly; set to false to force FULL exits across every tier. (The separate index_trader.py module constant of the same name is dead — never read anywhere — and is NOT what this key now controls.)',
+            'TAKE_PROFIT_AND_STOP': 'Wired for real (2026-08-21) — default true matches today\'s real behavior exactly (both SL and a fixed TARGET_HIT are checked every cycle). Set to false to run SL/trail-only: the fixed TARGET_HIT exit is skipped and winners are only closed by the trailing stop — the SL leg itself is never the one this key disables, since that would remove real risk protection.',
+            'FORCE_PRE_TRADE_RECON': 'Wired for real (2026-08-21) behind the new master switch force_pre_trade_recon_enabled (default OFF, see that key) — reuses ExecutionService\'s existing run_ack_watchdog() to block a new entry if prior orders are still unacknowledged by the broker.',
+            'force_pre_trade_recon_enabled': 'NEW (2026-08-21), default OFF. Master switch that makes FORCE_PRE_TRADE_RECON add a real broker round-trip (run_ack_watchdog()) before every single entry. Kept OFF by default since FORCE_PRE_TRADE_RECON itself already defaults true with no prior track record in this exact calling context — turning it on adds latency and a new potential rejection path to every trade.',
+            'RECONCILE_INTERVAL': 'Minimum seconds between broker-position reconciliation checks (default 90s) — actively used to throttle the qty-mismatch hard-halt check. Lower = detects mismatches faster (more frequent checks); higher = slower detection of a mismatch that could trigger a halt.',
+            'CONFIG_DRIFT_AUTO_RELOAD': 'Wired for real (2026-08-21) behind the new master switch config_drift_auto_reload_enabled (default OFF, see that key) — core/config_drift_reloader.py periodically re-reads config.json and hot-applies only a small, explicit allowlist of non-risk-sensitive keys (score/notification tuning); risk-sensitive keys (SL_PCT, MAX_DRAWDOWN, etc.) are never hot-applied even if changed on disk.',
+            'config_drift_auto_reload_enabled': 'NEW (2026-08-21), default OFF. Master switch for the live config-drift hot-reload described under CONFIG_DRIFT_AUTO_RELOAD. Kept OFF by default since hot-mutating a running trading process\'s config, even for a conservative allowlist, is a new category of runtime behavior with no track record.',
+            'ORDER_PLACE_RETRIES': 'Wired for real (2026-08-21) into ExecutionServiceConfig.max_retries (default 3, matching the prior hardcoded value — no behavior change). Currently has no observable effect either way: the BrokerStateHandler it configures has no live consumer yet in the real order-placement path.',
+            'ORDER_FILL_TIMEOUT_SEC': 'Wired for real (2026-08-21) into ExecutionServiceConfig.order_fill_timeout_sec (default 10s) — the fallback verify_order_fill() uses when no explicit timeout is passed. Currently has no observable effect either way: verify_order_fill() has no live caller in the real order-placement path yet — only tests call it, always with their own explicit timeout. (The old admin-UI key "ORDER_FILL_TIMEOUT" without _SEC was never a real config key at all and has been removed from this screen.)',
+            'EXIT_ORDER_RETRIES': 'Wired for real (2026-08-21) — how many times PositionService retries a failed exit order (default 3, matching the value this was hardcoded to) before giving up and dropping the position from tracking. Lower = gives up sooner on a stubborn exit (position tracking drops while the real broker position may still be open - reconciliation should catch it); higher = keeps retrying longer.',
+            // ── Risk ───────────────────────────────────────────────────
+            'MAX_DAILY_LOSS': 'Rupee loss amount that halts new trading for the day (default -600). Actively enforced: RiskLimitsManager blocks entries once today\'s P&L hits this level, and position size shrinks as losses approach 60% of it. Lower magnitude = stops sooner (safer); higher magnitude = more daily loss can build before halting.',
+            'MAX_DRAWDOWN': 'Wired for real (2026-08-21) — the equity-drawdown fraction (default 0.2 = 20%) that zeroes out position sizing inside CapitalManager once breached. Previously hardcoded to 20% regardless of this key; the default was lowered from 0.3 to 0.2 to match that existing real enforcement exactly, so nothing changes unless you edit it. See also DRAWDOWN_SIZE_SCALE.',
+            'RISK_MODE': 'Wired for real (2026-08-21) into RiskService.calculate_position_size() — the actual live sizing path used by every real entry (via MandateService.get_position_size()). Default changed from FIXED to PERCENT to match today\'s real, already-live sizing behavior exactly (risking RISK_PER_TRADE fraction of capital) — set to FIXED to switch to a flat rupee risk amount (RISK_FIXED_AMOUNT) per trade instead, regardless of capital size.',
+            'RISK_FIXED_AMOUNT': 'Wired for real (2026-08-21) — the flat rupee amount risked per trade when RISK_MODE=FIXED (see that key). Only takes effect if you explicitly switch RISK_MODE to FIXED.',
+            'RISK_PER_TRADE': 'Wired for real (2026-08-21) into RiskService\'s default_risk_per_trade — the actual live sizing path (see RISK_MODE). Default changed from 0.03 to 0.02 to match today\'s real, already-live sizing fraction exactly (this key was previously validated but silently ignored by the live sizer, which always used a hardcoded 0.02) — raising it increases real position size per trade.',
+            'MAX_LOT_CAPITAL_PCT': 'Still deliberately NOT applied to sizing (2026-08-21) — the live sizing path\'s entry_price is the underlying index price, not the option premium (no live option-premium feed exists yet, see strike_selector_enabled), so a notional cap computed against it would check the wrong number entirely and could wrongly crush every real trade to 0 lots. Kept as a config field so it round-trips through this screen without error, but intentionally not wired into any calculation until a real premium feed exists.',
+            'SL_PCT': 'Stop-loss multiplier on the underlying index\'s % move since entry, NOT the option premium (default 0.88 → stop fires at a 12% adverse move, i.e. 1-0.88). Raise toward 1.0 = tighter stop (smaller losses, more whipsaw stop-outs); lower = more room before stopping out, bigger potential losses.',
+            'TARGET_PCT': 'Profit-target multiplier on the same underlying move (default 1.3 → books profit at a 30% favorable move). Raise = needs a bigger move before booking profit (fewer, larger wins, more give-back risk on reversal); lower = locks in profit sooner but caps upside captured.',
+            'TRAIL_PCT': 'Trailing-stop retracement level once trailing has activated (default 0.95 → a 5% pullback from the peak triggers exit). Raise toward 1.0 = tighter trail (locks in profit faster); lower = more breathing room but can give back more open profit.',
+            'TRAIL_ACTIVATE': 'Favorable-move threshold at which trailing protection switches on (default 1.08 → an 8% favorable move). Raise = trailing kicks in later, needing a bigger head start; lower = trailing protection turns on sooner, on smaller gains.',
+            'PORTFOLIO_MAX_SL_RISK_PCT': 'Wired for real (2026-08-21) behind portfolio_max_sl_risk_pct_enabled (default OFF, see that key) — the max fraction of capital (default 0.75) that combined open-position stop-loss risk plus a new entry may reach before the new entry is blocked outright (not resized).',
+            'MAX_SINGLE_TRADE_LOSS_PCT': 'Wired for real (2026-08-21) behind max_single_trade_loss_pct_enabled (default OFF, see that key) — caps a single trade\'s lot count so its own SL-loss can\'t exceed this fraction of capital (default 0.08).',
+            'portfolio_max_sl_risk_pct_enabled': 'NEW (2026-08-21), default OFF. Master switch that makes PORTFOLIO_MAX_SL_RISK_PCT a real, enforced entry block (via RiskService.check_portfolio_sl_risk()) instead of an unread value. Kept OFF by default since it is a brand-new safety cap with no live track record yet — turning it on can start rejecting entries that would have gone through before.',
+            'max_single_trade_loss_pct_enabled': 'NEW (2026-08-21), default OFF. Master switch that makes MAX_SINGLE_TRADE_LOSS_PCT a real, enforced per-trade qty cap (via RiskService.get_single_trade_loss_cap_lots()) instead of an unread value. Kept OFF by default since it is a brand-new safety cap with no live track record yet — turning it on can reduce (including to 0) the lot count of some entries that would have gone through unchanged before.',
+            'MAX_CONSECUTIVE_LOSSES': 'Stops new trading after this many losing trades in a row (default 3) — actively enforced by RiskLimitsManager/CapitalManager. Lower = the circuit breaker trips sooner after a bad run (more conservative); higher = tolerates a longer losing streak before halting. (This screen previously edited a different, unread key named CONSEC_LOSS_LIMIT — fixed to point at the real one.)',
+            'VIX_HALT_THRESHOLD': 'Wired for real (2026-08-21) — once India VIX reaches this level (default 30.0), every new entry now sends a non-blocking VIX_SOFT_WARNING notification (via RiskService.is_vix_soft_warning()) ahead of the hard VIX_BLOCK_THRESHOLD circuit breaker below, which still does the actual blocking.',
+            'VIX_BLOCK_THRESHOLD': 'The real, live volatility circuit breaker (default 40.0). Once India VIX reaches this level, new entries are actively blocked and the market is classified as an "EVENT" regime. Lower = more conservative (stops entering sooner as VIX rises); higher = keeps entering in more volatile markets.',
+            'DRAWDOWN_SIZE_SCALE': 'Wired for real (2026-08-21) — toggles whether CapitalManager\'s drawdown-based size reduction actually applies (default true, matching the prior always-on behavior). Setting to false keeps reporting drawdown_pct but stops it from shrinking position size.',
+            'VIX_SIZE_SCALE': 'Wired for real (2026-08-21) — toggles whether the VIX-based size multiplier (RiskService.get_vix_size_multiplier(), thresholds VIX_LOW/HIGH_THRESHOLD) is actually applied to entry qty (default true). Setting to false leaves qty unadjusted by VIX.',
+            // ── Broker ─────────────────────────────────────────────────
+            'BROKER_NAME': 'Display-only label shown on the dashboard/logs — no effect on trading behavior.',
+            'BROKER_DRIVER': 'Selects the broker adapter used to place real orders (PAPER/KITE/ANGEL/CUSTOM/GENERIC). Only matters if BROKER_API_ENABLED is also true and EXECUTION_MODE is AUTO — and even then, the master live-trading lockout still forces paper mode unless it has been deliberately disabled after a proven paper track record.',
+            'BROKER_BACKEND': 'Fallback name for BROKER_DRIVER, only used if BROKER_DRIVER is missing entirely from config. Since BROKER_DRIVER always has a value here, changing this has no practical effect on the index bot.',
+            'BROKER_API_ENABLED': 'Master switch to let the bot send real orders instead of simulating them. IMPORTANT: even when true, the separate live-trading lockout (on by default) still forces every order into paper mode until explicitly disabled — toggling this alone does NOT enable real-money trading.',
+            'SECONDARY_BROKER_DRIVER': 'NEW (2026-08-21), default empty (disabled). core/execution/smart_router.py\'s multi-broker failover is now wired for real into ExecutionService\'s order-placement path (tested — see TestSmartRouterWiring), and reachable at all only once this key names a second, real broker driver. NOTE: the automatic construction of that second broker adapter + SmartRouter at startup is not yet connected here — this key is a placeholder for that follow-up. Not relevant until you have two real, credentialed broker accounts to route between.',
+            'live_trading_lockout_enabled': 'The real, final choke point for going live (default true = locked). Enforced in create_broker_adapter() — the single code path every broker construction (index options, ETF/REIT/IPO, stocks) goes through. While true, a real broker driver is ALWAYS forced to paper-fill simulation, regardless of EXECUTION_MODE/BROKER_API_ENABLED/MANUAL_SIGNALS_ONLY. Even after you set this false, live_readiness_min_trading_days worth of paper track record must still pass automatically (see that key) before a real order can go out — this is the recommended way to graduate from signal-only to live trading only once you have the confidence you\'re building toward, not a switch to flip casually.',
+            'live_readiness_min_trading_days': 'How many days of a passing paper track record are required (over live_readiness_days_window) before live_trading_lockout_enabled=false is actually honored — checked automatically by core.live_readiness_checker every time a real broker driver is requested. Default 20 (~1 month of NSE trading days); raise it if you want a longer validation period (e.g. your own 2-3 month plan) before the bot can place a real order even with the lockout manually disabled.',
+            'BROKER_LATENCY_ENFORCE_ORDER': 'Not currently wired — no code reads this key. Changing it has no effect on order-latency enforcement.',
+            'BROKER_WAIT_POLL_SEC': 'How often (seconds, default 2.0) the bot polls the broker while waiting on an order/status check. Actively used — lower means faster status detection but more API calls; higher means fewer calls but slower detection of fills/errors. (This screen previously edited a different, unread key named BROKER_STATUS_POLL_SEC — fixed to point at the real one.)',
+            'RECONCILE_HALT_ON_QTY_MISMATCH': 'When broker trading is enabled, decides whether the bot halts all trading immediately if the broker-reported position quantity doesn\'t match the bot\'s internal record. Turning it off removes that safety check — leave on unless you understand the risk of a missed-fill mismatch going undetected.',
+            // ── Signals ────────────────────────────────────────────────
+            'INDEX_MIN_SCORE': 'Fallback conviction score for the separate multi-asset scanner\'s INDEX_OPTIONS category (default 100), used only if CATEGORY_SCORE_THRESHOLDS has no INDEX_OPTIONS entry. NOT the main index-options execution gate (that\'s AI_THRESHOLD/tier system) — only affects that scanner\'s index alerts.',
+            'MIN_SCORE_THRESHOLD': 'Fallback conviction score (default 100) for any category not in CATEGORY_SCORE_THRESHOLDS and not index-like, used by the separate multi-asset scanner. Distinct from the index-options tier system — raising it makes stock-scanner alerts rarer/higher quality.',
+            'MIN_SIGNAL_TIER': 'Which conviction tiers the multi-asset scanner will publish (e.g. STRONG_ONLY vs allowing MODERATE too). Only gates that separate scanner, not the main index-options trading loop.',
+            'CATEGORY_SCORE_THRESHOLDS': 'The real per-category score gates for the multi-asset scanner — edit this JSON map directly for independent control (e.g. {"INDEX_OPTIONS":100, "STOCK_OPTIONS":100, "EQUITY_SWING_DELIVERY":100}). A category listed here always wins over INDEX_MIN_SCORE/MIN_SCORE_THRESHOLD. Only affects that scanner, not the index-options execution engine.',
+            'AI_THRESHOLD': 'The REAL entry gate for the main index-options trading loop: minimum score (default 60) for a signal to become an actual trade instead of HOLD. This is the single most impactful "how many trades fire" knob on this tab — lower = more, weaker signals convert to trades; higher = fewer, stronger ones do.',
+            'IV_SPIKE_THRESHOLD': 'Hard reject gate on implied volatility (default 60.0) — a signal is discarded outright if IV is judged spiked. Raise = allows signals through in higher-IV/volatile conditions (more trades, more risk); lower = blocks more during choppy/volatile IV (fewer trades, safer).',
+            'VOL_RATIO_MIN': 'Volume-confirmation floor (default 1.3) for the volume-based score bonus — below it, no volume points are added (not a hard reject, but can drag a borderline signal below AI_THRESHOLD). Raise = demands stronger volume confirmation (fewer trades); lower = easier volume points (mildly more trades).',
+            'STRONG_THRESHOLD': 'NOT an execution-tier control — only drives the UI-facing "strength" display label (whether a signal is shown as "STRONG" in dashboards/Telegram). The real execution-tier equivalent is TIER_STRONG_MIN, an intentionally separate system. Changing this only affects display labels, not what the bot trades.',
+            'MODERATE_THRESHOLD': 'NOT an execution-tier control — the UI-only counterpart to STRONG_THRESHOLD, deciding only the "MODERATE" display label. The real execution-tier equivalent is TIER_MODERATE_MIN. Changing this doesn\'t change which signals the bot acts on.',
+            'ADAPTIVE_THRESHOLD_ENABLED': 'Now wired for real (2026-08-21) — index_trader.py reads this at startup instead of hardcoding it on. Controls whether adaptive_threshold_adjustment() nudges the AI score threshold based on recent win-rate/confidence stats. Default true matches the old hardcoded behavior, so nothing changes unless you turn it off.',
+            'REGIME_AWARE_THRESHOLDS_ENABLED': 'Wired for real (2026-08-21) behind the new master switch signal_refiner_enabled (default OFF) — see that key. When the master switch is on, this sub-flag governs whether tier thresholds shift by regime (TRENDING/SIDEWAYS/RANGE) via signal_refiner.py.',
+            'FALSE_SIGNAL_FILTER_ENABLED': 'Wired for real (2026-08-21) behind the new master switch signal_refiner_enabled (default OFF) — see that key. When the master switch is on, this sub-flag governs the high-score-but-high-IV false-signal hard block via signal_refiner.py.',
+            'signal_refiner_enabled': 'NEW (2026-08-21), default OFF. Master switch for core/signal_refiner.py in the live signal pipeline — governs REGIME_AWARE_THRESHOLDS_ENABLED, FALSE_SIGNAL_FILTER_ENABLED, VOLATILITY_CONFIRMATION_ENABLED and its RSI/MACD/ADX/VIX confirmation checks together. Kept OFF by default because its own sub-defaults are intentionally strict (e.g. VOLATILITY_RSI_CONFIRM_THRESHOLD=45 blocks all but extreme RSI readings) — review those sub-settings before enabling, since turning this on can sharply reduce signal volume.',
+            'TIME_OF_DAY_FILTER_ENABLED': 'Wired for real (2026-08-21) behind the new master switch time_of_day_hard_block_enabled (default OFF) — see that key. index_trader.py still separately enforces NSE_BLOCK_NEW_ENTRIES_FROM_HOUR; this is an additional, independent restriction, not a replacement.',
+            'time_of_day_hard_block_enabled': 'NEW (2026-08-21), default OFF. Master switch that makes TIME_OF_DAY_FILTER_ENABLED/TIME_OF_DAY_BLOCK_START_HOUR/TIME_OF_DAY_BLOCK_END_HOUR/TIME_OF_DAY_ALLOW_TRENDING_ONLY real entry blocks via core/time_of_day_filter.py. Kept OFF by default because TIME_OF_DAY_FILTER_ENABLED already defaults true with a real block window (08:00-09:00 IST in this config) — turning this on adds that restriction on top of the existing NSE_BLOCK_NEW_ENTRIES_FROM_HOUR cutoff, changing real trading hours.',
+            'strike_selector_enabled': 'Master switch (default OFF) for core/strike_selector.py — when on, a real ATM/OTM/DELTA strike is computed and stored as sig["strike"] instead of the raw underlying index price. SL/target/trail exit logic still tracks the underlying\'s % move either way (no live option-premium feed drives exit pricing yet) — this only affects the strike value stored/ordered and is a prerequisite for live_option_quotes_enabled below.',
+            'liquidity_guard_enabled': 'Master switch (default true) for core/liquidity_guard.py\'s bid-ask/OI/volume entry filter. Fails open (passes every signal unchanged) whenever bid/ask/OI/volume data is absent from the signal — which is every signal today unless you also enable live_option_quotes_enabled below, since nothing else populates that data.',
+            'live_option_quotes_enabled': 'NEW (2026-08-21), default OFF. Fetches a REAL bid/ask/OI/volume quote for the actual option contract (via core/live_option_quotes.py + your connected Kite broker adapter) once strike_selector_enabled has picked a real strike — this is what finally gives liquidity_entry_gate_enabled real data to filter on. Requires strike_selector_enabled=true to have any effect, and requires a real Kite connection (fails open/no-op on a paper/simulated broker). IMPORTANT: the NFO option-symbol format this builds follows Zerodha\'s documented convention but has not been validated against a live Kite account in this codebase — treat the first few real fetches as a validation pass against your own account\'s option chain before trusting this for real decisions.',
+            'BREAKOUT_BONUS': 'Live scoring bonus (default 8 points) added when a breakout is confirmed; a flat -4 penalty applies if not, regardless of this setting. Raise = rewards genuine breakouts more, pushing more breakout signals into trades; lower = shrinks that reward.',
+            'MACD_BONUS': 'Live scoring bonus/penalty (default 5 points) based on MACD alignment with the trade direction. Raise = MACD-aligned signals more easily clear AI_THRESHOLD (more trades), MACD-opposed ones penalized harder; lower = MACD becomes a weaker factor.',
+            'VWAP_RECLAIM_BONUS': 'Live scoring bonus (default 7 points) for a recent VWAP reclaim (price recently crossed to the correct side of VWAP, not just already there). Raise = more weight to fresh reclaims; lower = reduces that edge case\'s influence.',
+            // ── ML ──────────────────────────────────────────────────────
+            // 2026-08-21: this tab previously listed uppercase key names
+            // that didn't match what the code reads (lowercase) — fixed to
+            // edit the real keys, so these toggles now genuinely work.
+            'ml_classifier_enabled': 'Turns the ML (LightGBM) win-probability model on or off — when on, it nudges the signal score based on 14 features (score, confidence, IV rank, VIX, PCR, session, regime, etc.). Turning it off skips the ML adjustment entirely, leaving signal scores purely rule-based.',
+            'ml_model_path': 'File path to the trained ML model the bot loads for scoring signals (default models/signal_classifier.pkl). Pointing this at a different/missing file changes which model\'s predictions drive the ML score adjustment — existing 9- or 14-feature models degrade gracefully to a neutral 0.5 probability on a feature-count mismatch rather than erroring.',
+            'ML_CONFIDENCE_THRESHOLD': 'No code reads a setting by this exact name — not wired to any behavior today.',
+            'ML_FEATURES': 'The ML model\'s 14 input features are hardcoded in code, not config-driven — this field has no effect on the model.',
+            'AUTO_TUNE_ENABLED': 'Turns on the automated end-of-day parameter tuner, which otherwise only prints suggestions without changing anything. If enabled (with its dry-run flag also off), the tuner can actually rewrite tunable settings based on recent performance — governance rules require this to stay off in live trading.',
+            'AUTO_TUNE_MIN_TRADES': 'Minimum recorded trades the auto-tuner needs before suggesting/applying any change (default 20). Lower = acts on a smaller, less reliable sample; higher = waits longer for more evidence.',
+            'drift_detector_enabled': 'Turns on the background detector that watches for the ML model\'s prediction patterns drifting away from its training data (PSI/KS statistics on top features). When drift crosses an alert threshold, it can trigger a real model retrain — turning this off means model staleness is never automatically detected or corrected.',
+            'shap_enabled': 'Turns on SHAP explainability, which computes which specific factors (score, IV rank, VIX, etc.) drove each individual ML prediction, for post-trade review. Off by default, and requires the optional "shap" Python package installed — enabling it without that package has no effect.',
+            // ── Notifications ──────────────────────────────────────────
+            'TG_ALERT_MIN_SCORE': 'Meant to gate Telegram alerts by score (default 60); the startup validator checks it against AI_THRESHOLD. The live scanner actually gates alerts via INDEX_MIN_SCORE/MIN_SCORE_THRESHOLD/CATEGORY_SCORE_THRESHOLDS instead, so this mainly affects a startup consistency warning, not which alerts go out.',
+            'BOT_TOKEN': 'The Telegram Bot API token identifying the account that sends every message (signals, entries/exits, heartbeats). If blank or wrong, all Telegram notifications silently fail while trading itself is unaffected.',
+            'CHAT_ID': 'Telegram chat/group ID(s) that receive alerts — supports multiple, comma-separated values (merged with each user\'s own subscribed chat IDs). If empty, falls back to a hardcoded default chat ID.',
+            'EMAIL_ENABLED': 'Master on/off switch for the email channel, separate from Telegram. When off, no email sends even if EMAIL_USER/PASS/TO are filled in — useful for silencing email without deleting stored credentials.',
+            'EMAIL_USER': 'Sender email address used to log in to the SMTP server. If wrong/missing, only email delivery fails silently — other channels and trading are unaffected.',
+            'EMAIL_PASS': 'SMTP password (or app-specific password) for EMAIL_USER — treat as a secret. If blank/wrong, only email alerts fail.',
+            'EMAIL_TO': 'Recipient email address(es) for alerts — supports multiple, comma-separated values, merged with each user\'s own subscribed email.',
+            'EMAIL_SMTP': 'SMTP server hostname (default smtp.gmail.com). Only change for a non-Gmail provider — a wrong host breaks email only.',
+            'EMAIL_PORT': 'SMTP connection port (default 587, STARTTLS). A mismatched port for your provider breaks email sending only.',
+            'TG_QUIET_MODE': 'Now wired into the real Telegram send path (core/notification_filters.py, consulted from NotificationService.send()) — but ONLY once notification_filters_enabled=true. With the master switch off (default), this key has no effect and every message sends exactly as before. Once opted in, TG_QUIET_MODE=true (the shipped default) suppresses all non-critical messages, letting through only critical alerts.',
+            'TG_TRADE_ONLY': 'Now wired the same way as TG_QUIET_MODE, gated behind notification_filters_enabled (default false, no effect until opted in). Once the master switch is on and TG_QUIET_MODE=false, TG_TRADE_ONLY=true (shipped default) suppresses any non-critical message that doesn\'t look like a real trade event (entry/exit/manual-signal text) — see TG_TRADE_ALERTS_STRICT for how strictly that\'s judged.',
+            'TG_TRADE_ALERTS_STRICT': 'Now wired — controls how strictly TG_TRADE_ONLY classifies a message as a real trade event once notification_filters_enabled=true. strict=true (shipped default) only counts explicit markers (ENTRY/EXIT/SL HIT/TARGET HIT/P&L=/[MANUAL SIGNAL]); strict=false also counts broader words (SIGNAL/TRADE/POSITION/BUY/SELL/BLOCK). No effect while the master switch is off or TG_TRADE_ONLY=false.',
+            'TG_COOLDOWN_SECS': 'Minimum seconds between duplicate alerts for the same symbol (default 300s) — actively enforced by the multi-asset scanner\'s alert dispatcher. Lower = more frequent repeat alerts on the same symbol; higher = longer quiet period before the same symbol can alert again. (This screen previously edited a different, unread key named TG_SIGNAL_COOLDOWN — fixed to point at the real one; the config default for this key was also missing and has been added.)',
+            'tg_rate_limit_per_min': 'Caps how many Telegram messages the queue will send per minute (default 25) — actively enforced by the priority-queue dispatcher. Lower = throttles bursts harder (messages queue up and send more slowly); higher = allows faster bursts of alerts. (This screen previously edited a different, unread key named TG_MAX_PER_MIN — fixed to point at the real one.)',
+            'TG_CACHE_TTL_SEC': 'Now wired — once notification_filters_enabled=true, an identical message text sent again within this many seconds (default 55) is deduped/suppressed as a repeat rather than resent. Critical alerts always bypass this dedup cache. No effect while the master switch is off.',
+            'notification_filters_enabled': 'Master switch (default false) for TG_QUIET_MODE / TG_TRADE_ONLY / TG_TRADE_ALERTS_STRICT / TG_CACHE_TTL_SEC in core/notification_filters.py. Those four keys already ship with a "real" default (true/true/true/55) that would silently reduce today\'s Telegram traffic the instant it were honored — this switch keeps notification behavior byte-for-byte unchanged until you deliberately opt in. Flip to true only after reviewing what those four keys will do to your alert volume.',
+            'TG_HEARTBEAT_INTERVAL': 'Now wired — once TG_HEARTBEAT_ENABLED=true, a heartbeat ping ("bot is alive and scanning") is sent on this cadence (seconds, default 3600 = hourly), checked once per scan-loop cycle by core/notification_filters.py::maybe_send_heartbeat. No effect while TG_HEARTBEAT_ENABLED is off.',
+            'TG_HEARTBEAT_ENABLED': 'Gate (default false) for actually sending the scheduled Telegram heartbeat on the TG_HEARTBEAT_INTERVAL cadence. Kept separate from notification_filters_enabled, which only ever suppresses existing messages — this is the one switch that starts sending brand-new unsolicited Telegram traffic, so it defaults off.',
+            'TG_PERIODIC_SUMMARY_TELEGRAM': 'Now wired — once true, a compact performance summary (trade count, win rate, expectancy, net P&L — via core/performance_metrics.py::periodic_summary(), no new metrics invented) is sent on the TG_PERIODIC_SUMMARY_INTERVAL_SEC cadence, checked once per scan-loop cycle. Already defaulted false, so wiring this in was low-risk: nothing changes until you turn it on.',
+            'TG_PERIODIC_SUMMARY_INTERVAL_SEC': 'How often (seconds, default 3600 = hourly) to send the periodic performance summary once TG_PERIODIC_SUMMARY_TELEGRAM=true. Inert while that flag is false. Deliberately distinct from the unrelated SUMMARY_INTERVAL key, which belongs to a separate stock-config domain (core/config_v2.py) not read by the live index-options loop.',
+            // ── System ─────────────────────────────────────────────────
+            'PUBLIC_BASE_URL_ADMIN_OVERRIDE': 'Canonical public HTTPS origin controlled by Super Admin/Admin users with modify_config permission. This value overrides deployment fallback URLs and is reflected in notification links, email action buttons, Telegram links, SSO redirects, and other externally visible cockpit URLs. Every change is backed up and recorded in the configuration audit log. Use a public http(s) origin; localhost/127.0.0.1 is blocked in production.',
+            'BASE_CAPITAL': 'Starting/reference trading capital in rupees (default 100,000) — the bot\'s account-size baseline for the capital manager, portfolio service, and daily/weekly loss caps computed as a % of it. HIGH-RISK: raising it makes the bot size positions as if it has more money, directly increasing real risk exposure — keep it matched to your actual trading capital.',
+            'DAILY_TARGET': 'Desired daily profit (rupees, default 400) shown on the Telegram status message and used only for a startup sanity check against MAX_DAILY_LOSS. Purely informational — the bot does not automatically stop trading once this is reached.',
+            'GUI_REFRESH_MS': 'How often (ms, default 2000) the desktop GUI redraws/polls status. Only affects UI responsiveness/CPU use — no effect on the actual scan interval or trading decisions.',
+            'web_dashboard_enabled': 'Turns the web dashboard on/off at startup — actively checked before the dashboard server is started. Enabling without a real web_dashboard_auth_token set triggers a security warning about an unprotected dashboard. (This screen previously edited a different, unread uppercase key — fixed to point at the real one.)',
+            'admin_control_plane_enabled': 'Turns on a separate Admin Control Plane API exposing feature-flag/admin endpoints — actively checked at startup. Off by default for safety; only enable with a real admin_control_plane_auth_token set, or the admin API is left unprotected. (This screen previously edited a different, unread uppercase key — fixed to point at the real one.)',
+            'metrics_port': 'The port (default 9090) the Prometheus metrics exporter listens on for /metrics scraping — actively used by core/metrics_exporter.py. Changing it moves where your monitoring stack needs to scrape from. (This screen previously edited a different, unread uppercase key named METRICS_PORT — fixed to point at the real one.)',
+            'AUDIT_LOG_ENABLED': 'Turns the JSONL governance audit trail on/off — actively wired into the audit engine that logs config changes, trades, and admin actions. Disabling it removes the tamper-evident audit trail relied on for compliance/troubleshooting.',
+            'RETENTION_ENABLED': 'Wired for real (2026-08-21) — now a global emergency kill-switch read by DataGovernor (core/data_governance.py): default true preserves today\'s behavior (the per-category data_retention_*_enabled flags still decide per-category cleanup). Setting it to false forces ALL categories off regardless of their own flags.',
+            'STRUCTURED_EVENTS_ENABLED': 'Wired for real (2026-08-21) — first integration point for core/log_helpers.py\'s log_structured_event(): gates a structured JSON log line on every hard-halt trip (trip_hard_halt(), core/safety_state.py). Default false = no-op, matching prior behavior. This is one call site, not exhaustive structured-event coverage.',
+            'ENVIRONMENT': 'Declares which deployment tier the bot believes it\'s running in (dev/qa/paper/shadow/staging/production) — used to apply guard rails, e.g. blocking startup in PRODUCTION with dev-like settings still present. Setting it incorrectly can either falsely trigger production safety gates on a test box, or skip real production protections — keep it matched to the box\'s actual role.',
+            'WATCHDOG_TIMEOUT': 'Wired for real (2026-08-21) — seconds without a scan-loop heartbeat before core/loop_watchdog.py\'s LoopWatchdog reports a stall (CRITICAL log + notification). Only takes effect when loop_watchdog_enabled is true. This is a detect-and-alert-only implementation — it never kills or restarts the loop itself.',
+            'EXCEPTION_ALERT_THRESHOLD': 'Wired for real (2026-08-21) — number of same-type exceptions in the main trading cycle (index_app/domains/trading/service.py) before one alert per exception type fires (default 10, resets daily). Previously had zero code readers.',
+            'loop_watchdog_enabled': 'New key (2026-08-21), default false — opt-in gate for core/loop_watchdog.py\'s scan-loop stall detector. Detect-and-alert only (CRITICAL log + notification via WATCHDOG_TIMEOUT); never kills or restarts the loop. Off by default because it is brand-new monitoring infrastructure with no track record.',
+            'timeseries_lake_enabled': 'New key (2026-08-21), default false — opt-in gate that records each scan cycle\'s latest per-index price/volume tick into core/persistence/timeseries_db.py\'s DuckDB-backed TimeSeriesDataLake (raw tick history, distinct from OI snapshots or trade journals). Fail-open: any error in this recorder is swallowed and never affects the trading loop. Off by default because it is brand-new analytics infrastructure with no track record.',
+            'signal_outcome_tracking_enabled': 'NEW (2026-08-21), default OFF. Grades ACTIVE signals in the signal-history tracker against real subsequent price action (SL/Target/Target-2 hit, or EXPIRED if a prior day\'s signal never resolved either way) — closes the gap where "My Signals"/admin analytics win-rate stayed stuck at 0 forever because nothing ever updated a signal past ACTIVE. This is the ONLY track record that can build up while running purely SIGNAL_ONLY (no real fills land anywhere in that mode) — it measures whether the SIGNALS were right, which is a genuinely different thing from core.live_readiness_checker\'s live_readiness_min_trading_days gate (that one specifically counts real paper/live fills and is not affected by this key either way).',
+            // ── Dynamic Upgrades ─────────────────────────────────────────
+            'GEX_RISK_FREE_RATE': 'Annual risk-free interest rate (default 0.065 = 6.5%) used in Black-Scholes Gamma Exposure & Gamma Flip level calculations.',
+            'GEX_STRIKE_RANGE': 'Number of OTM/ITM strikes above and below spot (default 15) to evaluate in the Options Chain Gamma exposure profile.',
+            'VAPID_PUBLIC_KEY': 'Self-hosted VAPID public key for native browser Push Notifications across mobile/desktop PWA installs.',
+            'PUSH_NOTIFICATIONS_ENABLED': 'Master toggle for native web push notification delivery on signals and trade events.',
+            'DB_BACKUP_RETENTION_DAYS': 'Number of days (default 7) to keep daily SQLite WAL checkpoint database snapshot archives.',
+            'DB_MAINTENANCE_ENABLED': 'Automates PRAGMA wal_checkpoint(TRUNCATE) and VACUUM across all 7 SQLite databases during scheduled cleanup.',
+            'SMART_ROUTER_STRATEGY': 'Routing algorithm for SmartRouter multi-broker orders: lowest_fee, round_robin, or weighted.',
+            'SMART_ROUTER_TIMEOUT_SEC': 'Seconds before marking a broker connection as degraded or failed in SmartRouter.',
+            'ML_BRIER_TARGET': 'Target maximum Brier score (default 0.20) for win-probability calibration verification.',
+            'ML_WALKFORWARD_WINDOWS': 'Number of walk-forward validation windows (default 5) used during model evaluation and calibration.',
+        };
+
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : '';
+        }
+
+        function showToast(msg, type='info') {
+            const c=document.getElementById('toastContainer');
+            const t=document.createElement('div');
+            t.className=`toast ${type} visible`;
+            t.textContent=msg;
+            c.appendChild(t);
+            setTimeout(()=>{t.classList.remove('visible');setTimeout(()=>t.remove(),300);},3500);
+        }
+
+        async function apiFetch(url, opts={}) {
+            const csrfToken = getCookie('opb_csrf');
+            const headers={'Content-Type':'application/json',...opts.headers};
+            if (csrfToken && opts.method && opts.method !== 'GET') {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+            const res=await fetch(url,{headers,credentials:'include',...opts});
+            if (res.status===401) { window.location.href='/login'; return null; }
+            return res.json();
+        }
+
+        function changeKey(key, value) {
+            const orig = configData[key];
+            let newVal = value;
+            if (typeof orig === 'number') newVal = Number(value);
+            else if (typeof orig === 'boolean') newVal = value === true || value === 'true';
+            changedKeys[key] = newVal;
+            isDirty = true;
+        }
+
+        const keyCategories = {
+            execution: ['EXECUTION_MODE','MANUAL_SIGNALS_ONLY','SCAN_INTERVAL','COOLDOWN','general_cooldown_enabled','SIGNAL_MAX_AGE','MAX_POSITION_AGE','BREAKOUT_TIMEOUT','breakout_timeout_enabled','MAX_TRADES_DAY','EXPIRY_MAX_TRADES','expiry_max_trades_enabled','EXPIRY_CUTOFF_HOUR','EXPIRY_CUTOFF_MIN','MAX_OPEN','PARTIAL_EXIT_ENABLED','TAKE_PROFIT_AND_STOP','FORCE_PRE_TRADE_RECON','force_pre_trade_recon_enabled','RECONCILE_INTERVAL','CONFIG_DRIFT_AUTO_RELOAD','config_drift_auto_reload_enabled','ORDER_PLACE_RETRIES','ORDER_FILL_TIMEOUT_SEC','EXIT_ORDER_RETRIES','DB_MAINTENANCE_ENABLED','DB_BACKUP_RETENTION_DAYS'],
+            risk: ['MAX_DAILY_LOSS','MAX_DRAWDOWN','RISK_MODE','RISK_FIXED_AMOUNT','RISK_PER_TRADE','MAX_LOT_CAPITAL_PCT','SL_PCT','TARGET_PCT','TRAIL_PCT','TRAIL_ACTIVATE','PORTFOLIO_MAX_SL_RISK_PCT','portfolio_max_sl_risk_pct_enabled','MAX_SINGLE_TRADE_LOSS_PCT','max_single_trade_loss_pct_enabled','MAX_CONSECUTIVE_LOSSES','VIX_HALT_THRESHOLD','VIX_BLOCK_THRESHOLD','DRAWDOWN_SIZE_SCALE','VIX_SIZE_SCALE'],
+            broker: ['BROKER_NAME','BROKER_DRIVER','SECONDARY_BROKER_DRIVER','BROKER_BACKEND','BROKER_API_ENABLED','live_trading_lockout_enabled','live_readiness_min_trading_days','BROKER_LATENCY_ENFORCE_ORDER','BROKER_WAIT_POLL_SEC','RECONCILE_HALT_ON_QTY_MISMATCH','SMART_ROUTER_STRATEGY','SMART_ROUTER_TIMEOUT_SEC'],
+            signals: ['INDEX_MIN_SCORE','MIN_SCORE_THRESHOLD','MIN_SIGNAL_TIER','CATEGORY_SCORE_THRESHOLDS','AI_THRESHOLD','IV_SPIKE_THRESHOLD','VOL_RATIO_MIN','STRONG_THRESHOLD','MODERATE_THRESHOLD','ADAPTIVE_THRESHOLD_ENABLED','REGIME_AWARE_THRESHOLDS_ENABLED','FALSE_SIGNAL_FILTER_ENABLED','signal_refiner_enabled','TIME_OF_DAY_FILTER_ENABLED','time_of_day_hard_block_enabled','BREAKOUT_BONUS','MACD_BONUS','VWAP_RECLAIM_BONUS','strike_selector_enabled','liquidity_guard_enabled','live_option_quotes_enabled','GEX_RISK_FREE_RATE','GEX_STRIKE_RANGE','gex_enabled','gex_dte','gex_lot_size'],
+            ml: ['ml_classifier_enabled','ml_model_path','ML_CONFIDENCE_THRESHOLD','ML_BRIER_TARGET','ML_WALKFORWARD_WINDOWS','ML_FEATURES','AUTO_TUNE_ENABLED','AUTO_TUNE_MIN_TRADES','drift_detector_enabled','shap_enabled'],
+            notifications: ['INDEX_MIN_SCORE','MIN_SCORE_THRESHOLD','MIN_SIGNAL_TIER','TG_ALERT_MIN_SCORE','BOT_TOKEN','CHAT_ID','EMAIL_ENABLED','EMAIL_USER','EMAIL_PASS','EMAIL_TO','EMAIL_SMTP','EMAIL_PORT','TG_QUIET_MODE','TG_TRADE_ONLY','TG_TRADE_ALERTS_STRICT','notification_filters_enabled','TG_COOLDOWN_SECS','tg_rate_limit_per_min','TG_CACHE_TTL_SEC','TG_HEARTBEAT_INTERVAL','TG_HEARTBEAT_ENABLED','TG_PERIODIC_SUMMARY_TELEGRAM','TG_PERIODIC_SUMMARY_INTERVAL_SEC','VAPID_PUBLIC_KEY','PUSH_NOTIFICATIONS_ENABLED'],
+            system: ['PUBLIC_BASE_URL_ADMIN_OVERRIDE','BASE_CAPITAL','DAILY_TARGET','GUI_REFRESH_MS','web_dashboard_enabled','web_dashboard_port','web_dashboard_host','admin_control_plane_enabled','metrics_port','AUDIT_LOG_ENABLED','RETENTION_ENABLED','STRUCTURED_EVENTS_ENABLED','ENVIRONMENT','WATCHDOG_TIMEOUT','loop_watchdog_enabled','EXCEPTION_ALERT_THRESHOLD','timeseries_lake_enabled','signal_outcome_tracking_enabled'],
+        };
+
+        async function loadConfig() {
+            const data = await apiFetch('/api/config');
+            if (data && data.config) {
+                configData = {...data.config};
+                changedKeys = {};
+                isDirty = false;
+                Object.keys(keyCategories).forEach(cat => renderCategory(cat));
+                const publicUrl = data.public_url || {};
+                const deploymentEl = document.getElementById('deploymentPublicUrl');
+                const overrideEl = document.getElementById('adminPublicUrlOverride');
+                const effectiveEl = document.getElementById('effectivePublicUrl');
+                if (deploymentEl) deploymentEl.value = publicUrl.deployment_url || '';
+                if (overrideEl) {
+                    const overrideValue = publicUrl.admin_override ?? configData.PUBLIC_BASE_URL_ADMIN_OVERRIDE ?? '';
+                    overrideEl.value = overrideValue;
+                    overrideEl.dataset.orig = overrideValue;
+                    overrideEl.oninput = () => {
+                        const value = overrideEl.value.trim();
+                        const orig = overrideEl.dataset.orig || '';
+                        if (value === orig) delete changedKeys.PUBLIC_BASE_URL_ADMIN_OVERRIDE;
+                        else changedKeys.PUBLIC_BASE_URL_ADMIN_OVERRIDE = value;
+                        isDirty = Object.keys(changedKeys).length > 0;
+                    };
+                }
+                if (effectiveEl) effectiveEl.value = publicUrl.effective_url || '';
+                showToast('Configuration loaded', 'info');
+            }
+        }
+
+        function renderCategory(cat) {
+            const container = document.getElementById(`config-${cat}`);
+            if (!container) return;
+            const keys = keyCategories[cat] || [];
+            const matched = keys.filter(k => k in configData);
+            const extra = Object.keys(configData).filter(k => !Object.values(keyCategories).flat().includes(k));
+            const allKeys = [...matched, ...(cat === 'system' ? extra.filter(k => !['BROKER_CONFIG','INDEX_MAP','_NOTE_META','CONFIG_VERSION'].includes(k) && !k.startsWith('_')) : [])];
+            if (allKeys.length === 0) { container.innerHTML = '<div style="color: var(--text-muted, #94a3b8);text-align:center;grid-column:1/-1;">No matching keys</div>'; return; }
+                        container.innerHTML = allKeys.map(key => {
+                let val = configData[key];
+                const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '');
+                const inputType = typeof val === 'number' ? 'number' : typeof val === 'boolean' ? 'select' : 'text';
+                let inputHtml = '';
+                if (inputType === 'select') {
+                    inputHtml = `<select class="cfg-input" data-key="${key}" data-orig="${val}" data-type="bool"><option value="true" ${val===true?'selected':''}>true</option><option value="false" ${val===false?'selected':''}>false</option></select>`;
+                } else {
+                    inputHtml = `<input type="${inputType}" class="cfg-input" value="${displayVal}" data-key="${key}" data-orig="${displayVal}" data-type="${typeof val}" step="${typeof val === 'number' ? '0.01' : ''}">`;
+                }
+                const hint = fieldHints[key] ? `<div class="config-desc-box"><i class="fas fa-info-circle"></i> ${fieldHints[key]}</div>` : '';
+                return `<div class="config-item"><div class="config-header"><span class="config-key">${key}</span><span class="config-type-badge">${typeof val}</span></div><div class="config-value">${inputHtml}</div>${hint}</div>`;
+            }).join('');
+        }
+
+        async function previewChanges() {
+            if (Object.keys(changedKeys).length === 0) { showToast('No changes to preview', 'warning'); return; }
+            const res = await apiFetch('/api/config/preview', {
+                method: 'POST',
+                body: JSON.stringify(changedKeys),
+            });
+            if (!res) return;
+            const box = document.getElementById('previewBox');
+            let html = '=== Config Change Preview ===\n';
+            for (const [k, v] of Object.entries(res.changed_keys || {})) {
+                html += `\n${k}:\n  - ${v.old ?? '<new>'}\n  + ${v.new}\n`;
+            }
+            html += `\nTotal changes: ${res.total_changes || 0}`;
+            box.textContent = html;
+            box.style.display = 'block';
+            showToast(`Preview: ${res.total_changes || 0} changes`, 'info');
+        }
+
+        async function saveConfig() {
+            if (Object.keys(changedKeys).length === 0) { showToast('No changes to save', 'warning'); return; }
+            const validation = await apiFetch('/api/config/validate', {
+                method: 'POST',
+                body: JSON.stringify(changedKeys),
+            });
+            if (validation && validation.errors && validation.errors.length > 0) {
+                showToast('Validation failed: ' + validation.errors.join(', '), 'error');
+                return;
+            }
+            if (validation && validation.warnings && validation.warnings.length > 0) {
+                showToast('Warnings: ' + validation.warnings.map(w=>w.message).join(', '), 'warning');
+            }
+            const res = await apiFetch('/api/config/apply', {
+                method: 'POST',
+                body: JSON.stringify(changedKeys),
+            });
+            if (res && res.success) {
+                showToast(`Applied ${res.applied_count} changes successfully`, 'success');
+                changedKeys = {};
+                isDirty = false;
+                document.getElementById('previewBox').style.display = 'none';
+                await loadConfig();
+            } else {
+                showToast(res?.error || 'Failed to save config', 'error');
+            }
+        }
+
+        async function showHistory() {
+            const [history, auditLog] = await Promise.all([
+                apiFetch('/api/config/history'),
+                apiFetch('/api/config/audit-log?limit=50'),
+            ]);
+            const list = document.getElementById('historyList');
+            if (!history || history.length === 0) {
+                list.innerHTML = '<div style="color: var(--text-muted, #94a3b8);">No backup history available</div>';
+            } else {
+                list.innerHTML = history.map(h => {
+                    const age = h.age > 86400 ? `${Math.floor(h.age/86400)}d ago` : h.age > 3600 ? `${Math.floor(h.age/3600)}h ago` : `${Math.floor(h.age/60)}m ago`;
+                    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;background:#0f1319;border-radius:0.35rem;"><span style="font-family:monospace;">${h.file}</span><span style="color: var(--text-muted, #94a3b8);">${age}</span><button data-action="rollback-config" data-file="${h.file}" class="btn btn-ghost btn-sm" style="padding:0.15rem 0.5rem;font-size:0.7rem;" type="button"><i class="fas fa-undo"></i> Restore</button></div>`;
+                }).join('');
+            }
+            const auditList = document.getElementById('auditLogList');
+            if (!auditLog || auditLog.length === 0) {
+                auditList.innerHTML = '<div style="color: var(--text-muted, #94a3b8);">No config changes recorded yet</div>';
+            } else {
+                auditList.innerHTML = auditLog.map(a => {
+                    const when = new Date(a.timestamp * 1000).toLocaleString();
+                    const actionLabel = a.action === 'config_rollback' ? 'ROLLED BACK' : 'CHANGED';
+                    const keys = (a.keys || []).join(', ');
+                    return `<div style="padding:0.5rem;background:#0f1319;border-radius:0.35rem;">
+                        <div style="display:flex;justify-content:space-between;"><span style="font-weight:600;color: var(--text-primary, #e2e8f0);">${a.username}</span><span style="color: var(--text-muted, #94a3b8);font-size:0.7rem;">${when}</span></div>
+                        <div style="color: var(--text-muted, #94a3b8);margin-top:0.15rem;">${actionLabel}: <span style="font-family:monospace;">${keys}</span></div>
+                    </div>`;
+                }).join('');
+            }
+            document.getElementById('historyModal').style.display = 'flex';
+        }
+
+        async function rollbackConfig(file) {
+            if (!confirm(`Restore config from ${file}? This overwrites the current config.json with that backup.`)) return;
+            const res = await apiFetch(`/api/config/rollback/${encodeURIComponent(file)}`, { method: 'POST' });
+            if (res && res.success) {
+                showToast(`Restored ${res.keys_restored} keys from ${res.restored_from}`, 'success');
+                document.getElementById('historyModal').style.display = 'none';
+                await loadConfig();
+            } else {
+                showToast(res?.error || 'Rollback failed', 'error');
+            }
+        }
+
+        document.getElementById('closeHistoryBtn').addEventListener('click', () => {
+            document.getElementById('historyModal').style.display = 'none';
+        });
+
+        // Delegated listener for dynamically-rendered history rows (rollbackConfig) -
+        // these buttons are built via a JS template literal at render time, so a
+        // static addEventListener at load time can't reach them; CSP (no
+        // 'unsafe-inline') blocks their old inline onclick regardless of when the
+        // markup was inserted, so delegation on data-action/data-file is required.
+        document.getElementById('historyList').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action="rollback-config"]');
+            if (btn) rollbackConfig(btn.dataset.file);
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('saveConfigBtn').addEventListener('click', saveConfig);
+            document.getElementById('previewBtn').addEventListener('click', previewChanges);
+            document.getElementById('reloadBtn').addEventListener('click', loadConfig);
+            document.getElementById('historyBtn').addEventListener('click', showHistory);
+
+            document.querySelectorAll('.tab[data-tab]').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    document.getElementById('section-' + tab.dataset.tab).classList.add('active');
+                });
+            });
+
+            function handleInputChange(e) {
+                if (e.target.classList.contains('cfg-input')) {
+                    const key = e.target.dataset.key;
+                    let val = e.target.value;
+                    if (e.target.dataset.type === 'bool' || e.target.dataset.type === 'boolean') {
+                        val = val === 'true';
+                    } else if (e.target.dataset.type === 'number') {
+                        val = Number(val);
+                    }
+                    changeKey(key, val);
+                }
+            }
+
+            document.addEventListener('change', handleInputChange);
+            document.addEventListener('input', handleInputChange);
+        });
+
+        window.addEventListener('beforeunload', (e) => {
+            if (isDirty) { e.preventDefault(); e.returnValue = 'You have unsaved config changes.'; }
+        });
+
+        loadConfig();
+    
+async function triggerTestEmail() {
+    const btn = document.getElementById('testEmailBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending Test Email...';
+    }
+    try {
+        const res = await fetch('/api/v1/admin/test-email', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            alert('✅ ' + data.message);
+        } else {
+            alert('❌ Failed to send test email: ' + (data.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('❌ Network error sending test email: ' + err);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-envelope-open-text"></i> Test Email Dispatch';
+        }
+    }
+}
+
+document.getElementById('testEmailBtn')?.addEventListener('click', triggerTestEmail);
+
+</script>    {% include "_pwa_sw_reg.html" %}
+
+    <!-- Live Signal Test Station Modal -->
+<div id="signalTestModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);z-index:99999;align-items:center;justify-content:center;padding:1rem;">
+<div style="background:var(--bg-card, #131e33);border:1px solid var(--border-color, #334155);border-radius:1rem;max-width:620px;width:100%;box-shadow:var(--card-shadow, 0 20px 50px rgba(0,0,0,0.6));padding:1.75rem;max-height:90vh;overflow-y:auto;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;border-bottom:1px solid var(--border-color);padding-bottom:0.75rem;">
+<div style="display:flex;align-items:center;gap:0.6rem;">
+<i class="fas fa-satellite-dish" style="color:var(--accent-color, #38bdf8);font-size:1.3rem;"></i>
+<div>
+<div style="font-size:1.15rem;font-weight:800;color:var(--text-primary);">🚀 Live Signal Dispatch Station</div>
+<div style="font-size:0.75rem;color:var(--text-muted);">Broadcast authentic production trade signals across Telegram, Email &amp; In-App DB</div>
+</div>
+</div>
+<button data-action="close-signal-test-modal" style="background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;padding:0.25rem;" type="button"><i class="fas fa-times"></i></button>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:0.85rem;">
+<div>
+<label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:0.3rem;">Contract Symbol</label>
+<input id="testSigSymbol" style="width:100%;padding:0.5rem 0.75rem;background:var(--input-bg);border:1px solid var(--border-color);border-radius:0.45rem;color:var(--text-primary);font-family:var(--font-mono);font-size:0.82rem;font-weight:700;" type="text" value="NIFTY24AUG24500CE"/>
+</div>
+<div>
+<label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:0.3rem;">Market Category</label>
+<select id="testSigCategory" style="width:100%;padding:0.5rem 0.75rem;background:var(--input-bg);border:1px solid var(--border-color);border-radius:0.45rem;color:var(--text-primary);font-size:0.82rem;font-weight:600;">
+<option selected="" value="INDEX_OPTIONS">📈 Index Options (NIFTY/BANKNIFTY)</option>
+<option value="STOCK_OPTIONS">⚡ Stock Options (F&amp;O)</option>
+<option value="EQUITY_SWING_DELIVERY">🏢 Cash Equities (CNC)</option>
+<option value="COMMODITIES">🥇 Commodities (MCX)</option>
+</select>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.85rem;margin-bottom:0.85rem;">
+<div>
+<label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:0.3rem;">Entry Price (₹)</label>
+<input id="testSigPrice" step="0.05" style="width:100%;padding:0.5rem 0.75rem;background:var(--input-bg);border:1px solid var(--border-color);border-radius:0.45rem;color:var(--text-primary);font-family:var(--font-mono);font-size:0.82rem;font-weight:700;" type="number" value="142.50"/>
+</div>
+<div>
+<label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:0.3rem;">Direction</label>
+<select id="testSigDirection" style="width:100%;padding:0.5rem 0.75rem;background:var(--input-bg);border:1px solid var(--border-color);border-radius:0.45rem;color:var(--text-primary);font-size:0.82rem;font-weight:600;">
+<option selected="" value="CALL">CALL / BUY</option>
+<option value="PUT">PUT / SELL</option>
+</select>
+</div>
+<div>
+<label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:0.3rem;">Conviction Score</label>
+<input id="testSigScore" style="width:100%;padding:0.5rem 0.75rem;background:var(--input-bg);border:1px solid var(--border-color);border-radius:0.45rem;color:var(--text-primary);font-family:var(--font-mono);font-size:0.82rem;font-weight:700;" type="number" value="92"/>
+</div>
+</div>
+<div style="margin-bottom:0.85rem;">
+<label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:0.3rem;">Telegram Chat ID(s) <span style="font-size:0.7rem;color:var(--text-muted);">(comma-separated)</span></label>
+<input id="testSigChatIds" placeholder="e.g. 1148730533, -100123456789" style="width:100%;padding:0.5rem 0.75rem;background:var(--input-bg);border:1px solid var(--border-color);border-radius:0.45rem;color:var(--text-primary);font-family:var(--font-mono);font-size:0.82rem;font-weight:600;" type="text" value="1148730533"/>
+</div>
+<div style="margin-bottom:1.15rem;">
+<label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:0.3rem;">Recipient Email(s) <span style="font-size:0.7rem;color:var(--text-muted);">(comma-separated)</span></label>
+<input id="testSigEmails" placeholder="e.g. user1@gmail.com, user2@gmail.com" style="width:100%;padding:0.5rem 0.75rem;background:var(--input-bg);border:1px solid var(--border-color);border-radius:0.45rem;color:var(--text-primary);font-family:var(--font-mono);font-size:0.82rem;font-weight:600;" type="text" value="raj.rishi87@gmail.com, gusainniit@gmail.com, saurabh13121999@gmail.com, ai.auto.gaurav@gmail.com"/>
+</div>
+<div id="testSigResultBox" style="display:none;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:0.5rem;padding:0.85rem;margin-bottom:1.15rem;font-size:0.78rem;font-family:var(--font-mono);line-height:1.5;"></div>
+<div style="display:flex;justify-content:flex-end;gap:0.75rem;">
+<button class="btn btn-ghost" data-action="close-signal-test-modal" type="button">Cancel</button>
+<button class="btn btn-primary" data-action="broadcast-test-signal" id="btnExecuteTestSignal" style="background:var(--accent-gradient);" type="button"><i class="fas fa-paper-plane"></i> ⚡ Broadcast Live Signal</button>
+</div>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+
+    function openSignalTestModal() {
+        const modal = document.getElementById('signalTestModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            // Pre-fill from current config if available
+            if (typeof currentConfig !== 'undefined') {
+                if (currentConfig.CHAT_ID) document.getElementById('testSigChatIds').value = currentConfig.CHAT_ID;
+                if (currentConfig.EMAIL_TO) document.getElementById('testSigEmails').value = currentConfig.EMAIL_TO;
+            }
+        }
+    }
+
+    function closeSignalTestModal() {
+        const modal = document.getElementById('signalTestModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async function executeTestSignalDispatch() {
+        const btn = document.getElementById('btnExecuteTestSignal');
+        const resBox = document.getElementById('testSigResultBox');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Broadcasting...';
+        resBox.style.display = 'block';
+        resBox.innerHTML = '<div style="color:var(--accent-color);"><i class="fas fa-spinner fa-spin"></i> Dispatching live market signal across Telegram and SMTP...</div>';
+
+        const payload = {
+            symbol: document.getElementById('testSigSymbol').value.trim(),
+            category: document.getElementById('testSigCategory').value,
+            price: parseFloat(document.getElementById('testSigPrice').value) || 142.50,
+            direction: document.getElementById('testSigDirection').value,
+            score: parseInt(document.getElementById('testSigScore').value) || 92,
+            telegram_chat_ids: document.getElementById('testSigChatIds').value.trim(),
+            email_recipients: document.getElementById('testSigEmails').value.trim()
+        };
+
+        try {
+            const csrfToken = (typeof getCookie === 'function') ? (getCookie('opb_csrf') || getCookie('csrftoken') || '') : '';
+            const res = await fetch('/api/v1/admin/test-dispatch-signal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+                const errDetail = data.detail || data.error || ('HTTP ' + res.status + ' ' + res.statusText);
+                resBox.innerHTML = `<div style="color:#ef4444;"><i class="fas fa-times-circle"></i> <b>Server Error (${res.status}):</b> ${errDetail}</div>`;
+                return;
+            }
+
+            let outputHtml = `<div style="font-weight:700;color:var(--accent-color);margin-bottom:0.4rem;">📊 DISPATCH RESULTS (${data.timestamp || 'NOW'})</div>`;
+            outputHtml += `<div>🆔 <b>Signal ID:</b> <code style="color:#38bdf8;">${data.signal_id || 'N/A'}</code></div>`;
+            
+            // Email Status
+            if (data.email && data.email.success) {
+                outputHtml += `<div style="color:#10b981;margin-top:0.35rem;"><i class="fas fa-check-circle"></i> <b>Email Delivery:</b> ${data.email.detail}</div>`;
+            } else {
+                outputHtml += `<div style="color:#ef4444;margin-top:0.35rem;"><i class="fas fa-times-circle"></i> <b>Email Delivery Failed:</b> ${data.email?.detail || 'SMTP failed'}</div>`;
+            }
+
+            // Telegram Status
+            if (data.telegram && data.telegram.results) {
+                data.telegram.results.forEach(tg => {
+                    if (tg.success) {
+                        outputHtml += `<div style="color:#10b981;margin-top:0.35rem;"><i class="fas fa-check-circle"></i> <b>Telegram (Chat ${tg.chat_id}):</b> Delivered OK (Msg ID: ${tg.detail})</div>`;
+                    } else {
+                        outputHtml += `<div style="color:#f59e0b;margin-top:0.35rem;"><i class="fas fa-exclamation-triangle"></i> <b>Telegram (Chat ${tg.chat_id}):</b> ${tg.detail}</div>`;
+                    }
+                });
+            }
+
+            resBox.innerHTML = outputHtml;
+            if (typeof showToast === 'function') {
+                if (data.email?.success) {
+                    showToast('Signal successfully broadcasted!', 'success');
+                } else {
+                    showToast('Signal broadcast encountered partial errors', 'warning');
+                }
+            }
+        } catch (err) {
+            resBox.innerHTML = `<div style="color:#ef4444;"><i class="fas fa-times-circle"></i> Error executing dispatch: ${err.message}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> ⚡ Broadcast Live Signal';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('openSignalTestModalBtn')?.addEventListener('click', openSignalTestModal);
+        document.getElementById('btnExecuteTestSignal')?.addEventListener('click', executeTestSignalDispatch);
+        document.querySelectorAll('[data-action="close-signal-test-modal"]').forEach(function(el) {
+            el.addEventListener('click', closeSignalTestModal);
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OPB — Report Center</title>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/opb_design_system.css">
+<style>
+body{font-family:var(--font-ui,'Inter',sans-serif);background:var(--bg-primary,#080b10);color:var(--text-primary,#e2e8f0);padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.card{background:var(--bg-card,#101722);border:1px solid var(--border-color,#263244);border-radius:12px;padding:18px}.btn{display:inline-flex;gap:8px;padding:8px 12px;border-radius:7px;border:1px solid #334155;background:#111827;color:#e2e8f0;text-decoration:none;font-weight:700;font-size:.8rem;margin:4px 4px 0 0}.btn:hover{background:#1e293b}.note{color:#94a3b8;font-size:.85rem;line-height:1.5}.badge{font-size:.7rem;color:#38bdf8}
+</style>
+<link rel="stylesheet" href="/static/report_filters.css"><script src="/static/report_filters.js" defer></script></head>
+<body>
+{% include '_nav.html' %}
+<h1>📊 Report Center</h1>
+<p class="note">Every supported report can be exported as PDF or Excel. Signal Intelligence additionally performs evidence-based historical analysis and proposes configuration changes; it never changes live trading parameters automatically.</p>
+<div id="reports" class="grid"><div class="card">Loading report catalog…</div></div>
+<script nonce="{{ nonce }}">
+(async()=>{const root=document.getElementById('reports'); try{const r=await fetch('/api/reports/catalog',{credentials:'include'}); if(!r.ok) throw new Error('HTTP '+r.status); const d=await r.json(); root.innerHTML=d.reports.map(x=>`<div class="card"><h2>${x.name}</h2><div class="badge">${x.id}</div><p class="note">Download the latest server-generated snapshot.</p><a class="btn" href="/api/reports/export/${x.id}/pdf">📄 PDF</a><a class="btn" href="/api/reports/export/${x.id}/xlsx">📊 Excel</a>${x.id==='signal-intelligence'?'<a class="btn" href="/admin/signals">🎯 Open Signal Intelligence</a>':''}</div>`).join('');}catch(e){root.innerHTML='<div class="card">Unable to load reports. Check authentication and server logs.</div>';}})();
+</script>
+</body></html>

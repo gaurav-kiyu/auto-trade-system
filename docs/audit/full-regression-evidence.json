@@ -1,0 +1,21 @@
+{
+  "templates_total": 42,
+  "templates_passed": 42,
+  "templates_failed": [],
+  "branding_invariant_passed": true,
+  "branding_issues": [],
+  "tables_audited": 65,
+  "tables_anti_squeeze_passed": 65,
+  "tables_issues": [],
+  "password_fields_audited": 17,
+  "password_fields_passed": 17,
+  "password_issues": [],
+  "csp_violations": 0,
+  "csp_details": [],
+  "routes_tested": 34,
+  "routes_passed": 34,
+  "routes_failed": [],
+  "themes_audited": 9,
+  "theme_contrast_passed": 9,
+  "theme_issues": []
+}

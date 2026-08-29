@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-gray-900" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Presentation Generator — OPB Enterprise</title>
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}">
+        tailwind.config = { theme: { extend: { colors: { primary: { '50': '#eff6ff', '100': '#dbeafe', '200': '#bfdbfe', '300': '#93c5fd', '400': '#60a5fa', '500': '#3b82f6', '600': '#2563eb', '700': '#1d4ed8', '800': '#1e40af', '900': '#1e3a8a' } } } } }
+    </script>
+<style nonce="{{ nonce }}">
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 0.8s linear infinite; }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+    {% include "_pwa_head.html" %}
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+</head>
+<body class="h-full bg-gray-900 text-gray-100">
+    {% include '_nav.html' %}
+    <div class="min-h-full has-mobile-nav">
+<main class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+<div class="px-4 py-6 sm:px-0">
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+<div>
+<h1 class="text-2xl font-bold text-white">Presentation Generator</h1>
+<p class="text-sm text-gray-400 mt-1">Generate professional PPTX presentations from repository data</p>
+</div>
+<div class="flex items-center space-x-2">
+<button class="bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs px-3 py-1.5 rounded transition-all active:scale-95" id="refresh-templates" type="button">Reload</button>
+</div>
+</div>
+<!-- Generator Form -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+<!-- Settings Panel -->
+<div class="lg:col-span-1">
+<div class="bg-gray-800 rounded-lg p-5 card-hover space-y-4">
+<h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Settings</h3>
+<!-- Template Select -->
+<div>
+<label class="block text-xs text-gray-400 mb-1">Template</label>
+<select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="template-select">
+<option value="executive">Executive (10 slides)</option>
+<option value="developer">Developer (12 slides)</option>
+<option value="client">Client (11 slides)</option>
+</select>
+</div>
+<!-- Auto Fetch Toggle -->
+<div class="flex items-center justify-between">
+<span class="text-sm text-gray-300">Auto-fetch data</span>
+<button aria-pressed="true" class="relative w-10 h-5 rounded-full bg-blue-600 transition-colors focus:outline-none" id="auto-fetch-toggle" type="button">
+<span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 translate-x-5"></span>
+</button>
+</div>
+<p class="text-xs text-gray-500">Automatically pulls version, file counts, and coverage data from the repository.</p>
+<!-- Action Buttons -->
+<div class="space-y-2 pt-2">
+<button class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2" id="generate-btn" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span id="generate-text">Generate</span>
+</button>
+<button class="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2" id="generate-all-btn" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 11H5m14 0l-3-3m3 3l-3 3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Generate All Templates</span>
+</button>
+</div>
+</div>
+<!-- Templates Info -->
+<div class="bg-gray-800 rounded-lg p-5 card-hover mt-4">
+<h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Available Templates</h3>
+<div class="space-y-3" id="templates-info">
+<div class="text-sm text-gray-400">Loading...</div>
+</div>
+</div>
+</div>
+<!-- Custom Data Panel -->
+<div class="lg:col-span-2">
+<div class="bg-gray-800 rounded-lg p-5 card-hover">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Custom Data Overrides</h3>
+<span class="text-xs text-gray-500">Optional — leave blank for auto-fetch defaults</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div>
+<label class="block text-xs text-gray-400 mb-1">Version</label>
+<input class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-version" placeholder="2.56.0" type="text"/>
+</div>
+<div>
+<label class="block text-xs text-gray-400 mb-1">Score</label>
+<input class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-score" placeholder="9.6/10" type="text"/>
+</div>
+<div>
+<label class="block text-xs text-gray-400 mb-1">Verdict</label>
+<input class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-verdict" placeholder="Production Certified" type="text"/>
+</div>
+<div>
+<label class="block text-xs text-gray-400 mb-1">Verdict Subtitle</label>
+<input class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-verdict-sub" placeholder="with Minor Recommendations" type="text"/>
+</div>
+<div class="md:col-span-2">
+<label class="block text-xs text-gray-400 mb-1">Custom Strengths (one per line)</label>
+<textarea class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-strengths" placeholder="Capital preservation
+15+ risk gates
+2600+ tests" rows="3"></textarea>
+</div>
+<div class="md:col-span-2">
+<label class="block text-xs text-gray-400 mb-1">Custom KPIs (key:value, one per line)</label>
+<textarea class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-kpis" placeholder="Total Tests: 2600+
+Win Rate: 54.5%
+Sharpe: 6.99" rows="3"></textarea>
+</div>
+</div>
+</div>
+<!-- Results -->
+<div class="hidden bg-gray-800 rounded-lg p-5 card-hover mt-4 slide-in" id="results-panel">
+<h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Generated</h3>
+<div class="space-y-2" id="results-list"></div>
+</div>
+<!-- Auto-Fetched Data Preview -->
+<div class="bg-gray-800/50 rounded-lg p-4 mt-4 border border-gray-700" id="auto-fetch-preview">
+<h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Auto-Fetched Data</h3>
+<div class="text-xs text-gray-500 space-y-1" id="auto-fetch-content">
+<p>Loading repository data...</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+    {% include "_pwa_sw_reg.html" %}
+
+    <script nonce="{{ nonce }}">
+        (function() {
+            'use strict';
+
+            const $ = id => document.getElementById(id);
+
+            // ── State ────────────────────────────────────────────────────────
+            let templatesInfo = {};
+
+            // ── Auto-Fetch Toggle ─────────────────────────────────────────---
+            const toggle = $('auto-fetch-toggle');
+            let autoFetch = true;
+            toggle.addEventListener('click', () => {
+                autoFetch = !autoFetch;
+                toggle.setAttribute('aria-pressed', autoFetch);
+                toggle.querySelector('span').style.transform = autoFetch ? 'translateX(1.25rem)' : 'translateX(0.125rem)';
+                toggle.className = autoFetch ? 'relative w-10 h-5 rounded-full bg-blue-600 transition-colors focus:outline-none' : 'relative w-10 h-5 rounded-full bg-gray-600 transition-colors focus:outline-none';
+                if (autoFetch) loadAutoFetchPreview();
+                else {
+                    $('auto-fetch-content').innerHTML = '<p class="text-gray-500">Auto-fetch disabled</p>';
+                }
+            });
+
+            // ── CSRF helper ─────────────────────────────────────────────────
+            function getCookie(name) {
+                const match = document.cookie.match(
+                    new RegExp('(^| )' + name + '=([^;]+)')
+                );
+                return match ? decodeURIComponent(match[2]) : '';
+            }
+
+            // ── Template Info ────────────────────────────────────────────────
+            async function loadTemplateInfo() {
+                try {
+                    const r = await fetch('/api/intelligence/presentation/templates');
+                    if (r.ok) {
+                        const data = await r.json();
+                        templatesInfo = data.templates || [];
+                        const counts = data.template_counts || {};
+                        const info = $('templates-info');
+                        info.innerHTML = (data.templates || []).map(t => {
+                            const c = counts[t] || '?';
+                            return `<div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-300 capitalize">${t}</span>
+                                <span class="text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded">${c} slides</span>
+                            </div>`;
+                        }).join('');
+                    }
+                } catch(e) { /* fallback */ }
+            }
+
+            // ── Auto-Fetch Preview ───────────────────────────────────────────
+            async function loadAutoFetchPreview() {
+                $('auto-fetch-content').innerHTML = '<p class="text-blue-400">Fetching...</p>';
+                try {
+                    const r = await fetch('/api/intelligence/summary');
+                    if (r.ok) {
+                        const data = await r.json();
+                        const pg = data.presentation_generator || {};
+                        const html = [
+                            `<p>Version: <span class="text-gray-300">${data.bi_dashboard?.version || '2.56.0'}</span></p>`,
+                            `<p>Templates: <span class="text-gray-300">${(pg.templates || ['executive']).join(', ')}</span></p>`,
+                            `<p>Output: <span class="text-gray-300">${pg.output_dir || 'reports/presentations/'}</span></p>`,
+                            `<p>Default: <span class="text-gray-300">${pg.default_template || 'executive'}</span></p>`,
+                            `<p>Enabled: <span class="${pg.enabled ? 'text-green-400' : 'text-red-400'}">${pg.enabled ? 'Yes' : 'No'}</span></p>`,
+                            `<p class="text-gray-600 mt-1">Overview from /api/intelligence/summary</p>`,
+                        ].join('');
+                        $('auto-fetch-content').innerHTML = html;
+                    } else {
+                        // Fallback: direct fetch
+                        const vR = await fetch('/api/system/state');
+                        if (vR.ok) {
+                            const vData = await vR.json();
+                            $('auto-fetch-content').innerHTML = `
+                                <p>Version: <span class="text-gray-300">2.56.0</span></p>
+                                <p>System: <span class="text-gray-300">${vData.paused ? 'PAUSED' : 'RUNNING'}</span></p>
+                                <p>Capital: <span class="text-gray-300">₹${(vData.capital || 0).toLocaleString()}</span></p>
+                                <p class="text-gray-600 mt-1">Auto-detected from system state</p>
+                            `;
+                        }
+                    }
+                } catch(e) {
+                    $('auto-fetch-content').innerHTML = '<p class="text-gray-500">Auto-fetch unavailable</p>';
+                }
+            }
+
+            // ── Build Data from Form ─────────────────────────────────────────
+            function buildData() {
+                const data = {};
+                if (!autoFetch) {
+                    // When auto-fetch is off, user must provide version
+                    const ver = $('data-version').value.trim();
+                    if (ver) data.version = ver;
+                } else {
+                    // When auto-fetch is on, user overrides take precedence
+                    const ver = $('data-version').value.trim();
+                    if (ver) data.version = ver;
+                }
+                const score = $('data-score').value.trim();
+                if (score) data.score = score;
+                const verdict = $('data-verdict').value.trim();
+                if (verdict) data.verdict = verdict;
+                const vSub = $('data-verdict-sub').value.trim();
+                if (vSub) data.verdict_sub = vSub;
+                const strengths = $('data-strengths').value.trim();
+                if (strengths) data.strengths = strengths.split('\n').filter(s => s.trim());
+                const kpisText = $('data-kpis').value.trim();
+                if (kpisText) {
+                    const kpis = {};
+                    kpisText.split('\n').forEach(line => {
+                        const parts = line.split(':');
+                        if (parts.length >= 2) kpis[parts[0].trim()] = parts.slice(1).join(':').trim();
+                    });
+                    if (Object.keys(kpis).length > 0) data.kpis = kpis;
+                }
+                return data;
+            }
+
+            // ── Generate ─────────────────────────────────────────────────────
+            async function generate() {
+                const template = $('template-select').value;
+                const data = buildData();
+                const btn = $('generate-btn');
+                const text = $('generate-text');
+
+                btn.disabled = true;
+                text.innerHTML = '<span class="spinner inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> Generating...';
+                btn.className = 'w-full bg-blue-500 text-white text-sm font-medium px-4 py-2.5 rounded opacity-75 cursor-not-allowed flex items-center justify-center space-x-2';
+
+                try {
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+
+                    const csrfToken = getCookie('opb_csrf');
+
+                    if (csrfToken) {
+                        headers['X-CSRF-Token'] = csrfToken;
+                    }
+
+                    const r = await fetch('/api/intelligence/presentation/generate', {
+                        method: 'POST',
+                        headers,
+                        credentials: 'include',
+                        body: JSON.stringify({ template, data }),
+                    });
+                    const result = await r.json();
+                    $('results-panel').classList.remove('hidden');
+                    const list = $('results-list');
+                    if (result.status === 'ok' && result.path) {
+                        const filename = result.path.split(/[/\\\\]/).pop();
+                        list.innerHTML = `
+                            <div class="flex items-center justify-between bg-gray-700/50 rounded px-3 py-2">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <span class="text-sm text-green-400">${result.template || template}</span>
+                                    <span class="text-xs text-gray-500">${filename}</span>
+                                </div>
+                                <span class="text-xs text-gray-500">Done</span>
+                            </div>
+                        `;
+                    } else {
+                        list.innerHTML = `<div class="flex items-center space-x-2 text-yellow-400 text-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+                            <span>${result.detail || result.message || 'Generation returned no path'}</span>
+                        </div>`;
+                    }
+                } catch(e) {
+                    $('results-panel').classList.remove('hidden');
+                    $('results-list').innerHTML =
+                        `<div class="flex items-center space-x-2 text-red-400 text-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>Error: ${e.message}</span>
+                        </div>`;
+                } finally {
+                    btn.disabled = false;
+                    text.textContent = 'Generate';
+                    btn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2';
+                }
+            }
+
+            // ── Generate All ─────────────────────────────────────────────────
+            async function generateAll() {
+                const data = buildData();
+                const btn = $('generate-all-btn');
+                btn.disabled = true;
+                btn.querySelector('span').textContent = 'Generating...';
+                btn.className = 'w-full bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded opacity-75 cursor-not-allowed';
+
+                try {
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+
+                    const csrfToken = getCookie('opb_csrf');
+
+                    if (csrfToken) {
+                        headers['X-CSRF-Token'] = csrfToken;
+                    }
+
+                    const r = await fetch('/api/intelligence/presentation/generate-all', {
+                        method: 'POST',
+                        headers,
+                        credentials: 'include',
+                        body: JSON.stringify({ data }),
+                    });
+                    const result = await r.json();
+                    $('results-panel').classList.remove('hidden');
+                    const list = $('results-list');
+                    if (result.status === 'ok') {
+                        list.innerHTML = Object.entries(result.results || {}).map(([tpl, path]) => {
+                            const filename = path ? path.split(/[/\\\\]/).pop() : 'failed';
+                            const ok = !!path;
+                            return `<div class="flex items-center justify-between bg-gray-700/50 rounded px-3 py-2">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 ${ok ? 'text-green-400' : 'text-red-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${ok ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M6 18L18 6M6 6l12 12'}"></path></svg>
+                                    <span class="text-sm capitalize ${ok ? 'text-green-400' : 'text-red-400'}">${tpl}</span>
+                                    <span class="text-xs text-gray-500">${filename}</span>
+                                </div>
+                                <span class="text-xs text-gray-500">${ok ? 'Done' : 'Failed'}</span>
+                            </div>`;
+                        }).join('');
+                    }
+                } catch(e) {
+                    $('results-panel').classList.remove('hidden');
+                    $('results-list').innerHTML = `<div class="flex items-center space-x-2 text-red-400 text-sm"><span>Error: ${e.message}</span></div>`;
+                } finally {
+                    btn.disabled = false;
+                    btn.querySelector('span').textContent = 'Generate All Templates';
+                    btn.className = 'w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2';
+                }
+            }
+
+            // ── Init ─────────────────────────────────────────────────────────
+            document.addEventListener('DOMContentLoaded', () => {
+                const lastUpdated = $('last-updated');
+                if (lastUpdated) {
+                    lastUpdated.textContent = 'Loaded: ' + new Date().toLocaleTimeString();
+                }
+                loadTemplateInfo();
+                if (autoFetch) loadAutoFetchPreview();
+                $('generate-btn').addEventListener('click', generate);
+                $('generate-all-btn').addEventListener('click', generateAll);
+                $('refresh-templates').addEventListener('click', () => {
+                    loadTemplateInfo();
+                    if (autoFetch) loadAutoFetchPreview();
+                    const lastUpdated = $('last-updated');
+                    if (lastUpdated) {
+                        lastUpdated.textContent = 'Updated: ' + new Date().toLocaleTimeString();
+                    }
+                });
+                setInterval(() => { if (autoFetch) loadAutoFetchPreview(); }, 60000);
+            });
+        })();
+    </script>
+</body>
+</html>

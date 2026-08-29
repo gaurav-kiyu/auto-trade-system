@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — Live P&L Attribution</title>
+    <script src="/static/vendor/tailwind.min.js" nonce="{{ nonce }}"></script>
+    <script src="/static/theme_engine.js" nonce="{{ nonce }}"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 1.2rem 1rem; text-align: center; transition: transform 0.2s, border-color 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); border-color: rgba(59,130,246,0.3); }
+        .stat-value { font-size: 1.4rem; font-weight: 700; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.35rem; }
+        .stat-positive { color: var(--success-color, #16a34a); font-weight: 600; }
+        .stat-negative { color: var(--danger-color, #dc2626); font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted, #94a3b8); padding: 0.75rem 1rem; border-bottom: 1px solid rgba(148,163,184,0.08); }
+        td { font-size: 0.825rem; padding: 0.75rem 1rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); vertical-align: middle; }
+        tr:hover td { background: rgba(255,255,255,0.015); }
+        .section { display: none; }
+        .section.active { display: block; }
+        .tab-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .tab { padding: 0.45rem 1.1rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border-color, #1e293b); background: transparent; color: var(--text-muted, #94a3b8); transition: all 0.2s; }
+        .tab:hover { color: var(--text-primary, #e2e8f0); border-color: rgba(148,163,184,0.3); }
+        .tab.active { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.4); font-weight: 600; }
+        .badge { display: inline-flex; align-items: center; padding: 0.15rem 0.5rem; border-radius: 0.375rem; font-size: 0.7rem; font-weight: 600; }
+        .badge-buy { background: rgba(34,197,94,0.15); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.25); }
+        .badge-sell { background: rgba(239,68,68,0.15); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.25); }
+    </style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/opb_design_system.css">
+    
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+    <h1><i class="fas fa-dollar-sign" style="color:#f59e0b;margin-right:0.5rem;"></i> Live P&L Attribution</h1>
+    <p class="subtitle">Real-time portfolio P&L breakdown by direction, regime, session, score tier, and asset</p>
+
+    <div class="grid-4" id="summaryCards">
+        <div class="stat-card"><div class="stat-value" id="totalPnl">-</div><div class="stat-label">Total P&L</div></div>
+        <div class="stat-card"><div class="stat-value" id="unrealizedPnl">-</div><div class="stat-label">Unrealized P&L</div></div>
+        <div class="stat-card"><div class="stat-value" id="realizedPnl">-</div><div class="stat-label">Realized P&L</div></div>
+        <div class="stat-card"><div class="stat-value" id="openPositions">-</div><div class="stat-label">Open Positions</div></div>
+    </div>
+
+    <div class="tab-bar">
+        <div class="tab active" data-tab="direction">By Direction</div>
+        <div class="tab" data-tab="regime">By Regime</div>
+        <div class="tab" data-tab="session">By Session</div>
+        <div class="tab" data-tab="score">By Score Tier</div>
+        <div class="tab" data-tab="asset">By Asset</div>
+    </div>
+
+    <div id="section-direction" class="section active">
+        <div class="card">
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table><thead><tr><th>Direction</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th><th>Avg PnL</th></tr></thead><tbody id="directionBody"><tr><td colspan="7" style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</td></tr></tbody></table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-regime" class="section">
+        <div class="card">
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table><thead><tr><th>Regime</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th><th>Avg PnL</th></tr></thead><tbody id="regimeBody"><tr><td colspan="7" style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</td></tr></tbody></table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-session" class="section">
+        <div class="card">
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table><thead><tr><th>Session</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th><th>Avg PnL</th></tr></thead><tbody id="sessionBody"><tr><td colspan="7" style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</td></tr></tbody></table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-score" class="section">
+        <div class="card">
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table><thead><tr><th>Score Tier</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th><th>Avg PnL</th></tr></thead><tbody id="scoreBody"><tr><td colspan="7" style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</td></tr></tbody></table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-asset" class="section">
+        <div class="card">
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table><thead><tr><th>Asset / Symbol</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th><th>Avg PnL</th></tr></thead><tbody id="assetBody"><tr><td colspan="7" style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</td></tr></tbody></table>
+</div>
+        </div>
+    </div>
+
+    <script nonce="{{ nonce }}">
+        function getCookie(n){const m=document.cookie.match(new RegExp('(^| )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):'';}
+        async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}
+
+        function fmtPnl(v) {
+            if (v == null || isNaN(v)) return '-';
+            const num = Number(v);
+            const sign = num < 0 ? '-₹' : '₹';
+            const cls = num >= 0 ? 'stat-positive' : 'stat-negative';
+            const formatted = Math.abs(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return `<span class="${cls}">${sign}${formatted}</span>`;
+        }
+
+        function fmtRate(v) {
+            if (v == null || isNaN(v)) return '-';
+            const rate = (Number(v) * 100).toFixed(1);
+            const cls = Number(v) >= 0.6 ? '#4ade80' : (Number(v) >= 0.4 ? '#fbbf24' : '#f87171');
+            return `<span style="color:${cls};font-weight:600;">${rate}%</span>`;
+        }
+
+        function renderRows(dict, isDir = false) {
+            if (!dict || !Object.keys(dict).length) {
+                return '<tr><td colspan="7" style="color: var(--text-muted, #94a3b8);text-align:center;">No attribution data available</td></tr>';
+            }
+            return Object.entries(dict).map(([k, v]) => {
+                let label = k;
+                if (isDir) {
+                    label = k === 'BUY' ? '<span class="badge badge-buy">BUY</span>' : '<span class="badge badge-sell">SELL</span>';
+                } else {
+                    label = `<span style="font-weight:600;color: var(--text-primary, #f8fafc);">${k}</span>`;
+                }
+                const trades = v.trades || 0;
+                const wins = v.wins || 0;
+                const losses = v.losses || (trades - wins);
+                const winRate = v.win_rate != null ? v.win_rate : (trades ? wins / trades : 0);
+                const totPnl = v.total_pnl != null ? v.total_pnl : (v.pnl || 0);
+                const avgPnl = v.avg_pnl != null ? v.avg_pnl : (trades ? totPnl / trades : 0);
+
+                return `<tr>
+                    <td>${label}</td>
+                    <td>${trades}</td>
+                    <td style="color: var(--success-color, #16a34a);font-weight:500;">${wins}</td>
+                    <td style="color: var(--danger-color, #dc2626);font-weight:500;">${losses}</td>
+                    <td>${fmtRate(winRate)}</td>
+                    <td>${fmtPnl(totPnl)}</td>
+                    <td>${fmtPnl(avgPnl)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function load() {
+            const data = await apiFetch('/api/pnl-attribution');
+            if (!data || data.error) {
+                document.getElementById('totalPnl').innerHTML = '₹0.00';
+                document.getElementById('unrealizedPnl').innerHTML = '₹0.00';
+                document.getElementById('realizedPnl').innerHTML = '₹0.00';
+                document.getElementById('openPositions').textContent = '0';
+                ['directionBody','regimeBody','sessionBody','scoreBody','assetBody'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML = '<tr><td colspan="7" style="color: var(--text-muted, #94a3b8);text-align:center;">PnL attribution data not available</td></tr>';
+                });
+                return;
+            }
+
+            document.getElementById('totalPnl').innerHTML = fmtPnl(data.total_pnl);
+            document.getElementById('unrealizedPnl').innerHTML = fmtPnl(data.unrealized_pnl ?? 0);
+            document.getElementById('realizedPnl').innerHTML = fmtPnl(data.realized_pnl ?? data.total_pnl);
+            document.getElementById('openPositions').textContent = data.open_positions ?? 0;
+
+            document.getElementById('directionBody').innerHTML = renderRows(data.by_direction, true);
+            document.getElementById('regimeBody').innerHTML = renderRows(data.by_regime);
+            document.getElementById('sessionBody').innerHTML = renderRows(data.by_session);
+            document.getElementById('scoreBody').innerHTML = renderRows(data.by_score);
+            document.getElementById('assetBody').innerHTML = renderRows(data.by_asset);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            load();
+            document.querySelectorAll('.tab[data-tab]').forEach(t => t.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                const target = document.getElementById('section-' + this.dataset.tab);
+                if (target) target.classList.add('active');
+            }));
+            setInterval(load, 15000);
+        });
+    </script>    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

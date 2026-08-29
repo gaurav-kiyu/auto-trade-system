@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — Data Quality</title>
+    <script src="/static/vendor/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        .back-link { color: #3b82f6; text-decoration: none; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 1rem; text-align: center; }
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #e2e8f0); }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 0.25rem; }
+        .badge { display: inline-flex; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 500; }
+        .badge-green { background: rgba(34,197,94,0.1); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.15); }
+        .badge-yellow { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.15); }
+        .badge-red { background: rgba(239,68,68,0.1); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.15); }
+        .badge-ok { background: rgba(34,197,94,0.1); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.15); }
+        .badge-warn { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.15); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #94a3b8); padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.08); }
+        td { font-size: 0.8rem; padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); }
+        .section { display: none; }
+        .section.active { display: block; }
+        .tab-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .tab { padding: 0.4rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; cursor: pointer; border: 1px solid var(--border-color, #1e293b); background: transparent; color: var(--text-muted, #94a3b8); }
+        .tab.active { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.3); }
+        .progress-bar { height: 6px; background: var(--bg-card-hover, #1e293b); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { padding: 0.75rem 1.25rem; border-radius: 0.5rem; color: white; font-size: 0.8rem; opacity: 0; transform: translateY(1rem); transition: all 0.3s ease; }
+        .toast.visible { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #065f46; border-left: 3px solid #22c55e; }
+        .toast.error { background: #7f1d1d; border-left: 3px solid #ef4444; }
+    </style>    {% include "_pwa_head.html" %}
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<!-- Fonts & Design System Tokens -->
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/opb_design_system.css">
+    <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/report_filters.css"><script src="/static/report_filters.js" defer></script></head>
+<body>
+    {% include '_nav.html' %}
+    
+    <h1><i class="fas fa-database" style="color:#3b82f6;margin-right:0.5rem;"></i> Data Quality</h1>
+    <p class="subtitle">Source-level quality scoring, feature SLA monitoring, trend analysis, and data lineage tracking</p>
+
+    <div class="grid-4" id="summaryCards">
+        <div class="stat-card"><div class="stat-value" id="overallScore">-</div><div class="stat-label">Overall Quality Score</div></div>
+        <div class="stat-card"><div class="stat-value" id="sourceCount">-</div><div class="stat-label">Data Sources</div></div>
+        <div class="stat-card"><div class="stat-value" id="healthySources">-</div><div class="stat-label">Healthy Sources</div></div>
+        <div class="stat-card"><div class="stat-value" id="featureSla">-</div><div class="stat-label">Feature SLA Pass %</div></div>
+    </div>
+
+    <div class="tab-bar" id="tabBar">
+        <div class="tab active" data-tab="sources">Source Scores</div>
+        <div class="tab" data-tab="features">Feature SLA</div>
+        <div class="tab" data-tab="lineage">Data Lineage</div>
+        <div class="tab" data-tab="findings">Findings Detail</div>
+    </div>
+
+    <div id="section-sources" class="section active">
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Data Source Quality Scores</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Source</th><th>Score</th><th>Health</th><th>Findings</th><th>Finding Rate</th><th>Trend</th></tr></thead>
+                <tbody id="sourcesTableBody"><tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Category Breakdown</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Category</th><th>Score</th><th>Health</th><th>Progress</th></tr></thead>
+                <tbody id="categoryTableBody"><tr><td colspan="4" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-features" class="section">
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Feature Quality SLA Status</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Feature</th><th>SLA Pass</th><th>Last Update</th><th>Max Age (s)</th><th>Age Now (s)</th><th>Score</th></tr></thead>
+                <tbody id="featureTableBody"><tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-lineage" class="section">
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Data Lineage: Market Data → 16 Strategies → Signal Execution</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem;background:#0f1319;border-radius:0.5rem;overflow-x:auto;">
+                    <span class="badge badge-ok">Market Data</span>
+                    <span style="color: var(--text-muted, #94a3b8);">→</span>
+                    <span class="badge badge-ok">16 Features</span>
+                    <span style="color: var(--text-muted, #94a3b8);">→</span>
+                    <span class="badge badge-ok" style="background:rgba(6,182,212,0.2);color:#06b6d4;border-color:rgba(6,182,212,0.4);">16 Strategies</span>
+                    <span style="color: var(--text-muted, #94a3b8);">→</span>
+                    <span class="badge badge-ok">ML Model</span>
+                    <span style="color: var(--text-muted, #94a3b8);">→</span>
+                    <span class="badge badge-ok">Signal</span>
+                    <span style="color: var(--text-muted, #94a3b8);">→</span>
+                    <span class="badge badge-ok">Risk</span>
+                    <span style="color: var(--text-muted, #94a3b8);">→</span>
+                    <span class="badge badge-ok">Execution</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem;">
+                    <div style="padding:0.75rem;background:#0f1319;border-radius:0.5rem;border:1px solid rgba(148,163,184,0.08);">
+                        <div style="font-size:0.75rem;color:#3b82f6;margin-bottom:0.25rem;">Market Data</div>
+                        <div style="font-size:0.8rem;">yfinance, NSE, Broker Feed</div>
+                        <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);margin-top:0.25rem;">LTP, OHLCV, OI, PCR, VIX</div>
+                    </div>
+                    <div style="padding:0.75rem;background:#0f1319;border-radius:0.5rem;border:1px solid rgba(148,163,184,0.08);">
+                        <div style="font-size:0.75rem;color:#3b82f6;margin-bottom:0.25rem;">Feature Engineering</div>
+                        <div style="font-size:0.8rem;">16 ML Features + Indicators</div>
+                        <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);margin-top:0.25rem;">RSI, MACD, ADX, IV, PCR, Regime, Session, VIX</div>
+                    </div>
+                    <div style="padding:0.75rem;background:#0f1319;border-radius:0.5rem;border:1px solid rgba(6,182,212,0.25);">
+                        <div style="font-size:0.75rem;color:#06b6d4;margin-bottom:0.25rem;">Strategy Engine</div>
+                        <div style="font-size:0.8rem;">16 Integrated Quant Strategies</div>
+                        <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);margin-top:0.25rem;">Trend, Mean Reversion, Greeks, Vol Arb, AutoML</div>
+                    </div>
+                    <div style="padding:0.75rem;background:#0f1319;border-radius:0.5rem;border:1px solid rgba(148,163,184,0.08);">
+                        <div style="font-size:0.75rem;color:#3b82f6;margin-bottom:0.25rem;">ML Inference</div>
+                        <div style="font-size:0.8rem;">LightGBM classifier</div>
+                        <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);margin-top:0.25rem;">Win probability, SHAP explainability</div>
+                    </div>
+                    <div style="padding:0.75rem;background:#0f1319;border-radius:0.5rem;border:1px solid rgba(148,163,184,0.08);">
+                        <div style="font-size:0.75rem;color:#3b82f6;margin-bottom:0.25rem;">Signal Generation</div>
+                        <div style="font-size:0.8rem;">16-Strategy Consensus + Regime</div>
+                        <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);margin-top:0.25rem;">Direction, score, confidence</div>
+                    </div>
+                    <div style="padding:0.75rem;background:#0f1319;border-radius:0.5rem;border:1px solid rgba(148,163,184,0.08);">
+                        <div style="font-size:0.75rem;color:#3b82f6;margin-bottom:0.25rem;">Risk Gate</div>
+                        <div style="font-size:0.8rem;">RiskService validation</div>
+                        <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);margin-top:0.25rem;">Position limits, drawdown, VIX, correlation</div>
+                    </div>
+                    <div style="padding:0.75rem;background:#0f1319;border-radius:0.5rem;border:1px solid rgba(148,163,184,0.08);">
+                        <div style="font-size:0.75rem;color:#3b82f6;margin-bottom:0.25rem;">Execution</div>
+                        <div style="font-size:0.8rem;">Smart Order Routing + Fill</div>
+                        <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);margin-top:0.25rem;">Exactly-once, idempotency</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="section-findings" class="section">
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Data Quality Findings Detail</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Source</th><th>Category</th><th>Severity</th><th>Finding</th><th>Count</th></tr></thead>
+                <tbody id="findingsTableBody"><tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script nonce="{{ nonce }}">
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : '';
+        }
+
+        function showToast(msg, type='info') {
+            const c=document.getElementById('toastContainer');
+            const t=document.createElement('div');
+            t.className=`toast ${type} visible`;
+            t.textContent=msg;
+            c.appendChild(t);
+            setTimeout(()=>{t.classList.remove('visible');setTimeout(()=>t.remove(),300);},3500);
+        }
+
+        async function apiFetch(url, opts={}) {
+            const csrfToken = getCookie('opb_csrf');
+            const headers={'Content-Type':'application/json',...opts.headers};
+            if (csrfToken && opts.method && opts.method !== 'GET') {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+            const res=await fetch(url,{headers,credentials:'include',...opts});
+            if (res.status===401) { window.location.href='/login'; return null; }
+            return res.json();
+        }
+
+        function badgeForHealth(h) {
+            if (h === 'GREEN' || h === 'OK') return '<span class="badge badge-green">'+h+'</span>';
+            if (h === 'YELLOW' || h === 'WARN') return '<span class="badge badge-yellow">'+h+'</span>';
+            if (h === 'RED' || h === 'CRITICAL') return '<span class="badge badge-red">'+h+'</span>';
+            return '<span class="badge">'+h+'</span>';
+        }
+
+        function progressBar(pct, color='#22c55e') {
+            return '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%;background:'+color+';"></div></div>';
+        }
+
+        async function loadAll() {
+            await loadSources();
+            await loadFeatures();
+            await loadFindings();
+        }
+
+        async function loadSources() {
+            try {
+                const data = await apiFetch('/api/governance/quality');
+                if (!data) return;
+                document.getElementById('overallScore').textContent = data.overall_score != null ? (data.overall_score*100).toFixed(1)+'%' : '-';
+                const sources = data.sources || {};
+                const sourceKeys = Object.keys(sources);
+                document.getElementById('sourceCount').textContent = sourceKeys.length;
+                document.getElementById('healthySources').textContent = sourceKeys.filter(k => sources[k].health === 'GREEN' || sources[k].health === 'OK').length;
+
+                const tbody = document.getElementById('sourcesTableBody');
+                if (sourceKeys.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">No quality data available</td></tr>';
+                } else {
+                    tbody.innerHTML = sourceKeys.map(src => {
+                        const s = sources[src];
+                        const pct = (s.score * 100).toFixed(1);
+                        const color = s.health === 'GREEN' || s.health === 'OK' ? '#22c55e' : s.health === 'YELLOW' || s.health === 'WARN' ? '#f59e0b' : '#ef4444';
+                        return '<tr><td><strong>'+src+'</strong></td>' +
+                            '<td>'+pct+'%'+progressBar(pct, color)+'</td>' +
+                            '<td>'+badgeForHealth(s.health)+'</td>' +
+                            '<td>'+s.findings+'</td>' +
+                            '<td>'+(s.finding_rate*100).toFixed(1)+'%</td>' +
+                            '<td>'+(s.trend || '-')+'</td></tr>';
+                    }).join('');
+                }
+
+                const cats = data.categories || {};
+                const catKeys = Object.keys(cats);
+                const catBody = document.getElementById('categoryTableBody');
+                if (catKeys.length === 0) {
+                    catBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color: var(--text-muted, #94a3b8);">No category data</td></tr>';
+                } else {
+                    catBody.innerHTML = catKeys.map(c => {
+                        const s = cats[c];
+                        const pct = (s.score*100).toFixed(1);
+                        const color = s.health === 'GREEN' || s.health === 'OK' ? '#22c55e' : '#f59e0b';
+                        return '<tr><td><strong>'+c+'</strong></td><td>'+pct+'%</td><td>'+badgeForHealth(s.health)+'</td><td>'+progressBar(pct, color)+'</td></tr>';
+                    }).join('');
+                }
+            } catch(e) { console.error('Sources error:', e); }
+        }
+
+        async function loadFeatures() {
+            try {
+                const data = await apiFetch('/api/governance/quality');
+                if (!data || !data.features) {
+                    document.getElementById('featureTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">Feature SLA data not available</td></tr>';
+                    return;
+                }
+                const features = data.features;
+                const passed = features.filter(f => f.sla_passed).length;
+                const total = features.length;
+                document.getElementById('featureSla').textContent = total > 0 ? (passed/total*100).toFixed(0)+'%' : '-';
+
+                const tb = document.getElementById('featureTableBody');
+                tb.innerHTML = features.map(f => '<tr><td><strong>'+f.feature+'</strong></td>' +
+                    '<td>'+badgeForHealth(f.sla_passed ? 'OK' : 'RED')+'</td>' +
+                    '<td>'+f.last_update+'</td>' +
+                    '<td>'+f.max_age_seconds+'</td>' +
+                    '<td>'+f.age_seconds+'</td>' +
+                    '<td>'+(f.score*100).toFixed(1)+'%</td></tr>').join('');
+            } catch(e) {
+                document.getElementById('featureTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--danger-color, #dc2626);">Error: '+e.message+'</td></tr>';
+            }
+        }
+
+        async function loadFindings() {
+            try {
+                const data = await apiFetch('/api/governance/quality');
+                if (!data || !data.findings) {
+                    document.getElementById('findingsTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">No detailed findings</td></tr>';
+                    return;
+                }
+                const findings = data.findings;
+                const tb = document.getElementById('findingsTableBody');
+                if (findings.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">No findings — all data sources are healthy</td></tr>';
+                } else {
+                    tb.innerHTML = findings.map(f => '<tr><td>'+f.source+'</td><td>'+f.category+'</td><td>'+badgeForHealth(f.severity)+'</td><td>'+f.finding+'</td><td>'+f.count+'</td></tr>').join('');
+                }
+            } catch(e) {
+                document.getElementById('findingsTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--danger-color, #dc2626);">Error: '+e.message+'</td></tr>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAll();
+            document.querySelectorAll('.tab[data-tab]').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    document.getElementById('section-'+tab.dataset.tab)?.classList.add('active');
+                });
+            });
+            setInterval(loadAll, 30000);
+        });
+    </script>    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

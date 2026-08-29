@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RERA Compliance — RealEstate India</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="stylesheet" href="/static/responsive.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+               background: #080b10; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        .back-link { color: #64748b; text-decoration: none; font-size: 0.85rem; display: inline-block; margin-bottom: 1rem; }
+        .back-link:hover { color: #60a5fa; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.3rem; }
+        .subtitle { color: #64748b; font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .kpi-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1rem; }
+        .kpi-card .kpi-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; }
+        .kpi-card .kpi-value { font-size: 1.6rem; font-weight: 700; }
+        .verify-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .verify-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+        .verify-input-row { display: flex; gap: 0.5rem; }
+        .verify-input-row input { flex: 1; background: #1a1f2e; border: 1px solid rgba(148,163,184,0.1); border-radius: 0.5rem; padding: 0.75rem; color: #e2e8f0; font-size: 0.9rem; outline: none; }
+        .verify-input-row input:focus { border-color: rgba(59,130,246,0.4); }
+        .verify-input-row button { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; cursor: pointer; font-weight: 600; }
+        .verify-input-row button:hover { background: #2563eb; }
+        .result-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1rem; display: none; }
+        .result-card.active { display: block; }
+        .result-card .status-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 1rem; font-size: 0.8rem; font-weight: 500; }
+        .badge-compliant { background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+        .badge-warning { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+        .badge-noncompliant { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+        .badge-suspended { background: rgba(245,158,11,0.1); color: #fbbf24; }
+        .badge-active { background: rgba(34,197,94,0.1); color: #4ade80; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.75rem; }
+        .info-item { display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid rgba(148,163,184,0.04); font-size: 0.85rem; }
+        .info-item .label { color: #64748b; }
+        .rec-list { margin-top: 0.75rem; }
+        .rec-item { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.4rem 0; font-size: 0.85rem; color: #94a3b8; }
+        .rec-item .rec-icon { flex-shrink: 0; }
+        .rec-item.rec-warning .rec-icon { color: #fbbf24; }
+        .rec-item.rec-error .rec-icon { color: #f87171; }
+        .rec-item.rec-success .rec-icon { color: #4ade80; }
+        .reg-table { width: 100%; border-collapse: collapse; }
+        .reg-table th, .reg-table td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid rgba(148,163,184,0.06); font-size: 0.85rem; }
+        .reg-table th { color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; }
+        .loading { text-align: center; padding: 2rem; color: #64748b; }
+        .help-text { font-size: 0.75rem; color: #475569; margin-top: 0.5rem; }
+        @media (max-width: 768px) { body { padding: 1rem; } .verify-input-row { flex-direction: column; } .info-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <a href="/realestate" class="back-link">← Dashboard Home</a>
+    <h1><i class="fas fa-shield-alt" style="color:#22c55e;margin-right:0.5rem;"></i> RERA Compliance Dashboard</h1>
+    <div class="subtitle">Verify builder registrations, property compliance, and regulatory status across Indian states</div>
+
+    <!-- Quick Stats -->
+    <div class="kpi-grid" id="kpiGrid">
+        <div style="grid-column:1/-1;text-align:center;color:#64748b;" class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+    </div>
+
+    <!-- Verification Panel -->
+    <div class="verify-card">
+        <h3><i class="fas fa-search" style="color:#3b82f6;margin-right:0.4rem;"></i> Verify RERA Number</h3>
+        <div class="verify-input-row">
+            <input type="text" id="reraInput" placeholder="Enter RERA number (e.g., RERA-MH-2024-00123)" 
+                   onkeydown="if(event.key==='Enter')verifyRERA()" class="touch-input">
+            <button onclick="verifyRERA()" class="touch-btn"><i class="fas fa-check"></i> Verify</button>
+        </div>
+        <div class="help-text">Format: RERA-{STATE}-{YEAR}-{NUMBER} — e.g., RERA-MH-2024-00123, RERA-KA-2023-00789</div>
+    </div>
+
+    <!-- Verification Result -->
+    <div class="result-card" id="resultCard">
+        <div id="resultContent"></div>
+    </div>
+
+    <!-- Compliance Check -->
+    <div class="verify-card">
+        <h3><i class="fas fa-building" style="color:#f97316;margin-right:0.4rem;"></i> Check Property Compliance</h3>
+        <div class="verify-input-row">
+            <input type="text" id="propReraInput" placeholder="Enter property RERA number" class="touch-input">
+            <button onclick="checkCompliance()" class="touch-btn"><i class="fas fa-clipboard-check"></i> Check</button>
+        </div>
+    </div>
+
+    <div class="result-card" id="complianceResultCard">
+        <div id="complianceResultContent"></div>
+    </div>
+
+    <!-- Registered Builders -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+        <h3 style="font-size:1rem;font-weight:600;"><i class="fas fa-database" style="color:#60a5fa;margin-right:0.4rem;"></i> Registered Builders</h3>
+        <select id="stateFilter" onchange="loadRegistrations()" 
+                style="background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.4rem 0.8rem;color:#94a3b8;font-size:0.8rem;outline:none;">
+            <option value="">All States</option>
+            <option value="MH">Maharashtra</option>
+            <option value="KA">Karnataka</option>
+            <option value="DL">Delhi</option>
+            <option value="HR">Haryana</option>
+            <option value="UP">Uttar Pradesh</option>
+            <option value="TN">Tamil Nadu</option>
+            <option value="GJ">Gujarat</option>
+        </select>
+    </div>
+    <div style="overflow-x:auto;background:#0f1319;border-radius:0.75rem;border:1px solid rgba(148,163,184,0.08);">
+        <table class="reg-table" id="regTable">
+            <thead>
+                <tr><th>RERA Number</th><th>Builder</th><th>Project</th><th>Location</th><th>Status</th><th>State</th></tr>
+            </thead>
+            <tbody id="regBody">
+                <tr><td colspan="6" style="text-align:center;color:#64748b;padding:1rem;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/realestate/rera/stats');
+                const data = await res.json();
+                const stats = data.stats || {};
+                document.getElementById('kpiGrid').innerHTML = [
+                    { label: 'Total Registrations', value: stats.total_registrations, color: '#60a5fa' },
+                    { label: 'Active', value: stats.active, color: '#4ade80' },
+                    { label: 'Suspended', value: stats.suspended, color: '#fbbf24' },
+                    { label: 'Revoked', value: stats.revoked, color: '#f87171' },
+                    { label: 'Compliance Rate', value: (stats.compliance_rate || 0) + '%', color: '#a78bfa' },
+                    { label: 'States Covered', value: stats.states_covered, color: '#06b6d4' },
+                ].map(function(k) {
+                    return '<div class="kpi-card"><div class="kpi-label">' + k.label + '</div>' +
+                        '<div class="kpi-value" style="color:' + k.color + ';">' + k.value + '</div></div>';
+                }).join('');
+            } catch(e) {
+                document.getElementById('kpiGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#64748b;">Failed to load stats</div>';
+            }
+        }
+
+        async function verifyRERA() {
+            const input = document.getElementById('reraInput').value.trim();
+            if (!input) { showResult('Please enter a RERA number'); return; }
+            try {
+                const res = await fetch('/api/realestate/rera/verify?rera_number=' + encodeURIComponent(input));
+                if (!res.ok) {
+                    const err = await res.json();
+                    showResult('<span style="color:#f87171;">' + err.detail + '</span>');
+                    return;
+                }
+                const data = await res.json();
+                const reg = data.registration || {};
+                const isActive = reg.status === 'active';
+                const statusBadge = isActive ? 'badge-active' : (reg.status === 'suspended' ? 'badge-suspended' : 'badge-noncompliant');
+                showResult(
+                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">' +
+                    '<strong style="font-size:1rem;">' + reg.rera_number + '</strong>' +
+                    '<span class="status-badge ' + statusBadge + '">' + (isActive ? '✓ Active' : reg.status) + '</span>' +
+                    '</div>' +
+                    '<div class="info-grid">' +
+                    '<div class="info-item"><span class="label">Builder</span><span>' + (reg.builder_name || 'Not Registered') + '</span></div>' +
+                    '<div class="info-item"><span class="label">Project</span><span>' + (reg.project_name || '-') + '</span></div>' +
+                    '<div class="info-item"><span class="label">State</span><span>' + (reg.state_name || reg.state || '-') + '</span></div>' +
+                    '<div class="info-item"><span class="label">Year</span><span>' + (reg.registration_year || '-') + '</span></div>' +
+                    '<div class="info-item"><span class="label">Valid Until</span><span>' + (reg.validity_until || '-') + '</span></div>' +
+                    '<div class="info-item"><span class="label">Verified</span><span>' + (reg.is_verified ? '✅ Yes' : '⚠️ Not in registry') + '</span></div>' +
+                    '</div>'
+                );
+            } catch(e) {
+                showResult('<span style="color:#f87171;">Error verifying RERA number</span>');
+            }
+        }
+
+        async function checkCompliance() {
+            const rera = document.getElementById('propReraInput').value.trim();
+            if (!rera) { showComplianceResult('Please enter a RERA number'); return; }
+            // Verify the RERA number and show compliance status
+            try {
+                const res = await fetch('/api/realestate/rera/verify?rera_number=' + encodeURIComponent(rera));
+                if (!res.ok) { showComplianceResult('<span style="color:#f87171;">Invalid RERA number format</span>'); return; }
+                const data = await res.json();
+                const reg = data.registration || {};
+                const score = reg.is_verified ? (reg.status === 'active' ? 85 : 30) : 0;
+                const status = score >= 70 ? 'compliant' : (score >= 30 ? 'warning' : 'non_compliant');
+                const badgeClass = status === 'compliant' ? 'badge-compliant' : (status === 'warning' ? 'badge-warning' : 'badge-noncompliant');
+                showComplianceResult(
+                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">' +
+                    '<strong style="font-size:1rem;">Compliance Report</strong>' +
+                    '<span class="status-badge ' + badgeClass + '">' + status.toUpperCase() + ' (' + score + '/100)</span>' +
+                    '</div>' +
+                    '<div class="info-grid">' +
+                    '<div class="info-item"><span class="label">RERA Number</span><span>' + reg.rera_number + '</span></div>' +
+                    '<div class="info-item"><span class="label">Format Valid</span><span>✅ Yes</span></div>' +
+                    '<div class="info-item"><span class="label">Registered</span><span>' + (reg.is_verified ? '✅ Yes' : '⚠️ No') + '</span></div>' +
+                    '<div class="info-item"><span class="label">Status</span><span>' + (reg.status || 'unknown') + '</span></div>' +
+                    '</div>' +
+                    (score < 70 ? '<div class="rec-list"><div class="rec-item rec-warning"><span class="rec-icon">⚠️</span><span>Compliance score is below threshold. Verify documentation before proceeding.</span></div></div>' : '')
+                );
+            } catch(e) {
+                showComplianceResult('<span style="color:#f87171;">Error: ' + e.message + '</span>');
+            }
+        }
+
+        async function loadRegistrations() {
+            const state = document.getElementById('stateFilter').value;
+            try {
+                const res = await fetch('/api/realestate/rera/registrations' + (state ? '?state=' + state : ''));
+                const data = await res.json();
+                const regs = data.registrations || [];
+                const tbody = document.getElementById('regBody');
+                if (regs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:1rem;">No registrations found</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = regs.map(function(r) {
+                    const badge = r.status === 'active' ? 'badge-active' : (r.status === 'suspended' ? 'badge-suspended' : 'badge-noncompliant');
+                    return '<tr>' +
+                        '<td><code style="color:#60a5fa;font-size:0.75rem;">' + r.rera_number + '</code></td>' +
+                        '<td>' + (r.builder_name || '-') + '</td>' +
+                        '<td>' + (r.project_name || '-') + '</td>' +
+                        '<td>' + (r.project_address || r.state_name || '-') + '</td>' +
+                        '<td><span class="status-badge ' + badge + '" style="font-size:0.65rem;">' + r.status + '</span></td>' +
+                        '<td>' + (r.state_name || r.state || '-') + '</td></tr>';
+                }).join('');
+            } catch(e) {
+                document.getElementById('regBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#f87171;">Failed to load registrations</td></tr>';
+            }
+        }
+
+        function showResult(html) {
+            const card = document.getElementById('resultCard');
+            card.classList.add('active');
+            document.getElementById('resultContent').innerHTML = html;
+        }
+
+        function showComplianceResult(html) {
+            const card = document.getElementById('complianceResultCard');
+            card.classList.add('active');
+            document.getElementById('complianceResultContent').innerHTML = html;
+        }
+
+        loadStats();
+        loadRegistrations();
+    </script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — Options Chain</title>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<script nonce="{{ nonce }}" src="/static/vendor/chart.umd.min.js"></script>
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; border-radius: 0.5rem; font-size: 0.75rem; cursor: pointer; border: none; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-ghost { background: transparent; color: var(--text-muted, #94a3b8); border: 1px solid var(--border-color, #1e293b); }
+        .input-field { padding: 0.4rem 0.7rem; background: var(--bg-secondary, #0f1319); border: 1px solid var(--border-color, #1e293b); border-radius: 0.35rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; outline: none; }
+        .input-field:focus { border-color: #3b82f6; }
+        select.input-field { cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th { text-align: center; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #94a3b8); padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(148,163,184,0.08); }
+        td { text-align: center; padding: 0.4rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); }
+        .ce { color: var(--success-color, #16a34a); }
+        .pe { color: var(--danger-color, #dc2626); }
+        .atm { background: rgba(59,130,246,0.12); }
+        .badge { padding: 0.2rem 0.6rem; border-radius: 0.375rem; font-size: 0.7rem; font-weight: 600; }
+        .badge-green { background: rgba(74,222,128,0.15); color: var(--success-color, #16a34a); border: 1px solid rgba(74,222,128,0.3); }
+        .badge-amber { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    </style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+    <h1><i class="fas fa-list" style="color:#3b82f6;margin-right:0.5rem;"></i> Options Chain &amp; Gamma Exposure</h1>
+<p class="subtitle">NSE &amp; BSE index &amp; equity options chain viewer — OI, volume, IV, Greeks &amp; Dealer Gamma Exposure (GEX)</p>
+<!-- GEX Institutional Metrics Panel -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+<div class="card p-4">
+<div class="text-xs text-slate-400 font-medium">UNDERLYING SPOT</div>
+<div class="text-xl font-bold text-white mt-1" id="spotVal">--</div>
+<div class="text-xs text-slate-500 mt-1" id="updateTime">Waiting for data...</div>
+</div>
+<div class="card p-4">
+<div class="text-xs text-slate-400 font-medium">GAMMA FLIP LEVEL</div>
+<div class="text-xl font-bold text-amber-400 mt-1" id="flipVal">--</div>
+<div class="text-xs text-slate-500 mt-1">Regime transition threshold</div>
+</div>
+<div class="card p-4">
+<div class="text-xs text-slate-400 font-medium">NET DEALER GEX</div>
+<div class="text-xl font-bold text-blue-400 mt-1" id="netGexVal">--</div>
+<div class="text-xs text-slate-500 mt-1">Aggregate market gamma</div>
+</div>
+<div class="card p-4">
+<div class="text-xs text-slate-400 font-medium">MARKET REGIME</div>
+<div class="mt-2" id="regimeBadge"><span class="badge badge-amber">ANALYZING</span></div>
+<div class="text-xs text-slate-500 mt-1" id="regimeDesc">Volatility dynamics</div>
+</div>
+</div>
+<!-- Interactive GEX Chart -->
+<div class="card mb-6">
+<div class="flex items-center justify-between mb-4">
+<div class="font-semibold text-sm text-slate-200"><i class="fas fa-chart-bar text-blue-400 mr-2"></i> Strike-by-Strike Dealer Gamma Exposure (GEX)</div>
+<div class="text-xs text-slate-400">Green = Long Gamma Support | Red = Short Gamma Acceleration</div>
+</div>
+<div style="height: 240px; position: relative;">
+<canvas id="gexChart"></canvas>
+</div>
+</div>
+<div class="card">
+<div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
+<select class="input-field" id="indexSelect" style="min-width:180px;">
+<optgroup label="Benchmark Indices">
+<option selected="" value="NIFTY">NIFTY 50</option>
+<option value="BANKNIFTY">BANK NIFTY</option>
+<option value="FINNIFTY">FIN NIFTY</option>
+<option value="SENSEX">BSE SENSEX</option>
+<option value="MIDCPNIFTY">MIDCP NIFTY</option>
+<option value="BANKEX">BSE BANKEX</option>
+</optgroup>
+<optgroup label="High-Volume F&amp;O Equities">
+<option value="RELIANCE">RELIANCE</option>
+<option value="HDFCBANK">HDFC BANK</option>
+<option value="ICICIBANK">ICICI BANK</option>
+<option value="INFY">INFOSYS</option>
+<option value="TCS">TCS</option>
+<option value="SBIN">STATE BANK OF INDIA</option>
+<option value="TATAMOTORS">TATA MOTORS</option>
+<option value="BHARTIARTL">BHARTI AIRTEL</option>
+<option value="ITC">ITC</option>
+<option value="LT">L&amp;T</option>
+<option value="BAJFINANCE">BAJAJ FINANCE</option>
+</optgroup>
+</select>
+<button class="btn btn-primary btn-sm" id="loadBtn" type="button"><i class="fas fa-sync"></i> Load Chain</button>
+<span id="ltpDisplay" style="color: var(--text-primary, #e2e8f0);font-weight:700;font-size:1.05rem;"></span>
+<span id="timestampDisplay" style="color: var(--text-muted, #94a3b8);font-size:0.75rem;"></span>
+</div>
+<div style="overflow-x:auto;">
+<table id="chainTable">
+<thead>
+<tr style="border-bottom: 2px solid rgba(148,163,184,0.15);">
+<th style="color:#60a5fa;font-weight:700;">STRIKE</th>
+<th colspan="8" style="color: var(--success-color, #16a34a);background:rgba(74,222,128,0.06);font-weight:700;letter-spacing:0.08em;">CALLS (CE)</th>
+<th></th>
+<th colspan="8" style="color: var(--danger-color, #dc2626);background:rgba(248,113,113,0.06);font-weight:700;letter-spacing:0.08em;">PUTS (PE)</th>
+</tr>
+<tr>
+<th>Strike</th>
+<th>CE OI</th><th>CE Vol</th><th>CE IV</th><th>CE LTP</th><th>CE Delta</th><th>CE Gamma</th><th>CE Theta</th><th>CE Vega</th>
+<th></th>
+<th>PE Delta</th><th>PE Gamma</th><th>PE Theta</th><th>PE Vega</th><th>PE LTP</th><th>PE IV</th><th>PE Vol</th><th>PE OI</th>
+</tr>
+</thead>
+<tbody id="chainBody"><tr><td colspan="19" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2rem;">Select an index and click Load Chain</td></tr></tbody>
+</table>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+        let gexChartInstance = null;
+
+        function getCookie(n){const m=document.cookie.match(new RegExp('(^| )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):'';}
+        async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}
+
+        function fmt(v){if(v==null)return '-';const n=typeof v==='number'?v:parseFloat(v);return isNaN(n)?'-':n.toLocaleString('en-IN',{maximumFractionDigits:2});}
+        function fmtOI(v){if(v==null)return '-';const n=typeof v==='number'?v:parseFloat(v);if(isNaN(n))return '-';if(n>=1e7)return (n/1e7).toFixed(1)+'Cr';if(n>=1e5)return (n/1e5).toFixed(1)+'L';return fmt(n);}
+
+        function renderGexChart(strikes, spot) {
+            const ctx = document.getElementById('gexChart');
+            if (!ctx || typeof Chart === 'undefined') return;
+            try {
+                const labels = strikes.map(s => String(s.strike_price || s.strike));
+                const callGex = strikes.map(s => {
+                    const oi = s.call_oi || s.CE_oi || (s.call ? s.call.oi : 0) || 0;
+                    const gamma = s.call_gamma || s.CE_gamma || 0.0012;
+                    return Math.round((oi * gamma * (spot || 24000) * 0.01) / 1000) / 10;
+                });
+                const putGex = strikes.map(s => {
+                    const oi = s.put_oi || s.PE_oi || (s.put ? s.put.oi : 0) || 0;
+                    const gamma = s.put_gamma || s.PE_gamma || 0.0012;
+                    return -Math.round((oi * gamma * (spot || 24000) * 0.01) / 1000) / 10;
+                });
+
+                if (gexChartInstance) { gexChartInstance.destroy(); }
+                gexChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Call Gamma (+ Support)', data: callGex, backgroundColor: 'rgba(34, 197, 94, 0.75)', borderColor: '#22c55e', borderWidth: 1, borderRadius: 3 },
+                            { label: 'Put Gamma (- Volatility)', data: putGex, backgroundColor: 'rgba(239, 68, 68, 0.75)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 3 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true, grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                            y: { stacked: true, grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                        },
+                        plugins: {
+                            legend: { labels: { color: '#cbd5e1', font: { size: 11 } } },
+                            tooltip: { backgroundColor: '#1e293b', titleColor: '#e2e8f0', bodyColor: '#cbd5e1' }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.warn('GEX Chart rendering deferred:', err);
+            }
+        }
+
+        async function loadChain() {
+            const index = document.getElementById('indexSelect').value;
+            const data = await apiFetch(`/api/chain/${index}?demo=true`);
+            if (!data) return;
+            const spot = data.underlying_price || data.spot || 0;
+            document.getElementById('ltpDisplay').textContent = spot ? '₹' + fmt(spot) : '';
+            document.getElementById('spotVal').textContent = spot ? '₹' + fmt(spot) : '--';
+            document.getElementById('timestampDisplay').textContent = data.timestamp ? 'Updated: ' + data.timestamp.substring(0,19).replace('T',' ') : '';
+            document.getElementById('updateTime').textContent = data.timestamp ? (data.timestamp.length >= 19 ? data.timestamp.substring(11,19) : data.timestamp) : 'Live';
+
+            if (data.gex) {
+                document.getElementById('flipVal').textContent = data.gex.gamma_flip ? '₹' + fmt(data.gex.gamma_flip) : '₹' + fmt(spot);
+                document.getElementById('netGexVal').textContent = data.gex.net_gex != null ? fmt(data.gex.net_gex) + ' Cr' : '0.00 Cr';
+                const isLong = data.gex.regime === 'LONG_GAMMA' || (data.gex.net_gex >= 0);
+                document.getElementById('regimeBadge').innerHTML = isLong
+                    ? '<span class="badge badge-green"><i class="fas fa-shield-alt mr-1"></i> LONG GAMMA (DAMPENED)</span>'
+                    : '<span class="badge badge-amber"><i class="fas fa-bolt mr-1"></i> SHORT GAMMA (VOLATILE)</span>';
+                document.getElementById('regimeDesc').textContent = isLong ? 'Dealers buy dips / sell rallies' : 'Dealers amplify trend momentum';
+            }
+
+            const rows = data.option_chain || data.records || data.strikes || [];
+            if (!rows.length) {
+                document.getElementById('chainBody').innerHTML = '<tr><td colspan="19" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2rem;">No chain data available for ' + index + '</td></tr>';
+                return;
+            }
+
+            try {
+                renderGexChart(rows, spot);
+            } catch (e) {
+                console.warn('GEX chart failed to render:', e);
+            }
+
+            const threshold = (index === 'BANKNIFTY' || index === 'SENSEX' || index === 'BANKEX') ? 50 : (index === 'MIDCPNIFTY' ? 15 : 25);
+            document.getElementById('chainBody').innerHTML = rows.map(r => {
+                const strike = parseFloat(r.strike_price || r.strike);
+                const isAtm = r.is_atm || (spot && strike && Math.abs(strike - spot) <= threshold);
+                const atmCls = isAtm ? 'atm' : '';
+                return '<tr class="' + atmCls + '"><td style="font-weight:700;color:' + (isAtm ? '#60a5fa' : 'var(--text-primary, #f8fafc)') + ';">' + fmt(strike) + '</td>' +
+                    '<td class="ce">' + fmtOI(r.call_oi || r.CE_oi) + '</td><td class="ce">' + fmt(r.call_vol || r.call_volume || r.CE_volume) + '</td><td class="ce">' + fmt(r.call_iv || r.CE_iv) + '</td><td class="ce" style="font-weight:700;">' + fmt(r.call_ltp || r.CE_ltp) + '</td><td class="ce">' + fmt(r.call_delta || r.CE_delta) + '</td><td class="ce">' + fmt(r.call_gamma || r.CE_gamma) + '</td><td class="ce">' + fmt(r.call_theta || r.CE_theta) + '</td><td class="ce">' + fmt(r.call_vega || r.CE_vega) + '</td>' +
+                    '<td style="color:#334155;font-weight:700;">|</td>' +
+                    '<td class="pe">' + fmt(r.put_delta || r.PE_delta) + '</td><td class="pe">' + fmt(r.put_gamma || r.PE_gamma) + '</td><td class="pe">' + fmt(r.put_theta || r.PE_theta) + '</td><td class="pe">' + fmt(r.put_vega || r.PE_vega) + '</td><td class="pe" style="font-weight:700;">' + fmt(r.put_ltp || r.PE_ltp) + '</td><td class="pe">' + fmt(r.put_iv || r.PE_iv) + '</td><td class="pe">' + fmt(r.put_vol || r.put_volume || r.PE_volume) + '</td><td class="pe">' + fmtOI(r.put_oi || r.PE_oi) + '</td></tr>';
+            }).join('');
+        }
+
+        document.getElementById('loadBtn').addEventListener('click', loadChain);
+        document.getElementById('indexSelect').addEventListener('change', loadChain);
+        document.addEventListener('DOMContentLoaded', () => { loadChain(); });
+    </script>    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

@@ -1,0 +1,927 @@
+from __future__ import annotations
+
+import importlib
+import importlib.util
+import logging
+import random
+import sys
+import threading
+import time
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from core.ports.broker import LegacyBrokerPort
+
+_log = logging.getLogger(__name__)
+
+__all__ = [
+    "AngelBrokerAdapter",
+    "BrokerAdapter",
+    "BrokerRuntimeContext",
+    "PaperBrokerAdapter",
+    "PaperFill",
+    "broker_connection_secrets",
+    "build_broker_runtime_context",
+    "create_broker_adapter",
+    "create_broker_adapter_with_runtime_context",
+    "load_broker_factory_from_spec",
+]
+
+def _flatten_effective_broker_config(cfg: dict[str, Any]) -> dict[str, Any]:
+    """BROKER_CONFIG merged with top-level KITE/ANGEL keys (legacy single-bucket view)."""
+    data = dict(cfg.get("BROKER_CONFIG") or {})
+    if not str(data.get("api_key") or "").strip():
+        data["api_key"] = str(cfg.get("KITE_API_KEY") or cfg.get("ANGEL_API_KEY") or "").strip()
+    if not str(data.get("access_token") or "").strip():
+        data["access_token"] = str(cfg.get("KITE_ACCESS_TOKEN") or "").strip()
+    if not str(data.get("user_id") or "").strip():
+        data["user_id"] = str(cfg.get("KITE_USER_ID") or "").strip()
+    if not str(data.get("password") or "").strip():
+        data["password"] = str(cfg.get("KITE_PASSWORD") or cfg.get("ANGEL_PASSWORD") or "").strip()
+    if not str(data.get("totp_key") or "").strip():
+        data["totp_key"] = str(cfg.get("KITE_TOTP_KEY") or cfg.get("ANGEL_TOTP_KEY") or "").strip()
+    if not str(data.get("refresh_token") or "").strip():
+        data["refresh_token"] = str(cfg.get("ANGEL_REFRESH_TOKEN") or "").strip()
+    if not str(data.get("client_id") or "").strip():
+        data["client_id"] = str(cfg.get("ANGEL_CLIENT_ID") or "").strip()
+    return data
+
+
+def broker_connection_secrets(cfg: dict[str, Any], driver: str) -> dict[str, Any]:
+    """Merge ``BROKER_CONFIG`` with driver-specific top-level keys (``KITE_*`` / ``ANGEL_*``).
+
+    Used by core Kite/Angel adapters and by app validate_config so credentials can live
+    in ``BROKER_CONFIG`` JSON or legacy flat keys without drift.
+    """
+    d = str(driver or "").upper()
+    bc = dict(cfg.get("BROKER_CONFIG") or {})
+    if d == "KITE":
+        if not str(bc.get("api_key") or "").strip():
+            bc["api_key"] = str(cfg.get("KITE_API_KEY") or "").strip()
+        if not str(bc.get("access_token") or "").strip():
+            bc["access_token"] = str(cfg.get("KITE_ACCESS_TOKEN") or "").strip()
+        return bc
+    if d == "ANGEL":
+        if not str(bc.get("api_key") or "").strip():
+            bc["api_key"] = str(cfg.get("ANGEL_API_KEY") or "").strip()
+        if not str(bc.get("client_id") or "").strip():
+            bc["client_id"] = str(cfg.get("ANGEL_CLIENT_ID") or "").strip()
+        if not str(bc.get("password") or "").strip():
+            bc["password"] = str(cfg.get("ANGEL_PASSWORD") or "").strip()
+        if not str(bc.get("totp_key") or "").strip():
+            bc["totp_key"] = str(cfg.get("ANGEL_TOTP_KEY") or "").strip()
+        if not str(bc.get("refresh_token") or "").strip():
+            bc["refresh_token"] = str(cfg.get("ANGEL_REFRESH_TOKEN") or "").strip()
+        return bc
+    if d == "MSTOCK":
+        if not str(bc.get("api_key") or "").strip():
+            bc["api_key"] = str(cfg.get("MSTOCK_API_KEY") or "").strip()
+        if not str(bc.get("access_token") or "").strip():
+            bc["access_token"] = str(cfg.get("MSTOCK_ACCESS_TOKEN") or "").strip()
+        return bc
+    if d == "IIFL":
+        if not str(bc.get("root_url") or "").strip():
+            bc["root_url"] = str(cfg.get("IIFL_ROOT_URL") or "").strip()
+        if not str(bc.get("api_key") or "").strip():
+            bc["api_key"] = str(cfg.get("IIFL_APP_KEY") or "").strip()
+        if not str(bc.get("secret") or "").strip():
+            bc["secret"] = str(cfg.get("IIFL_SECRET_KEY") or "").strip()
+        return bc
+    if d == "GROWW":
+        if not str(bc.get("access_token") or "").strip():
+            bc["access_token"] = str(cfg.get("GROWW_ACCESS_TOKEN") or "").strip()
+        return bc
+    if d == "UPSTOX":
+        if not str(bc.get("access_token") or "").strip():
+            bc["access_token"] = str(cfg.get("UPSTOX_ACCESS_TOKEN") or "").strip()
+        return bc
+    if d == "DHAN":
+        if not str(bc.get("user_id") or "").strip():
+            bc["user_id"] = str(cfg.get("DHAN_CLIENT_ID") or "").strip()
+        if not str(bc.get("access_token") or "").strip():
+            bc["access_token"] = str(cfg.get("DHAN_ACCESS_TOKEN") or "").strip()
+        return bc
+    if d in ("ICICIDIRECT", "ICICI_DIRECT", "BREEZE"):
+        if not str(bc.get("api_key") or "").strip():
+            bc["api_key"] = str(cfg.get("ICICIDIRECT_APP_KEY") or "").strip()
+        if not str(bc.get("secret") or "").strip():
+            bc["secret"] = str(cfg.get("ICICIDIRECT_SECRET_KEY") or "").strip()
+        if not str(bc.get("access_token") or "").strip():
+            bc["access_token"] = str(cfg.get("ICICIDIRECT_SESSION_TOKEN") or "").strip()
+        return bc
+    return _flatten_effective_broker_config(cfg)
+
+
+# ...existing code...
+class BrokerAdapter:
+    """COMPATIBILITY LAYER: This class is now a wrapper around the new BrokerPort architecture.
+    It exists solely to prevent breaking the legacy index_trader.py.
+    """
+
+    def __init__(self, port: Any) -> None:
+        self._port = port
+
+    def place_order(self, name: str | Any, direction: str | None = None, qty: int | None = None, strike: int | None = None) -> str | None:
+        # Support both legacy (name, direction, qty, strike) and OrderRequest call patterns.
+        # ExecutionService._attempt_order_execution() passes an OrderRequest object.
+        if hasattr(name, "symbol"):  # It's an OrderRequest from execution_port.py
+            req: Any = name
+            name = str(req.symbol)
+            direction = "CALL" if str(req.direction).upper() == "BUY" else "PUT"
+            qty = int(req.lot_size)
+            strike = int(req.strike_price)
+        if isinstance(self._port, PaperBrokerAdapter):
+            return self._port.place_order(name, direction or "", qty or 0, strike or 0)
+
+        from core.adapters.base_adapter import OrderRequest
+        request = OrderRequest(
+            symbol=f"{name}_{strike}_{'CE' if direction == 'CALL' else 'PE'}",
+            qty=qty or 0,
+            price=0.0,
+            order_type="MARKET",
+            direction="BUY" if direction == "CALL" else "SELL",
+            product="MIS",
+            variety="REGULAR",
+        )
+        response = self._port.place_order(request)
+        return response.order_id if response.status != "REJECTED" else None
+
+    def exit_order(self, name: str, direction: str, qty: int, strike: int) -> str | None:
+        if isinstance(self._port, PaperBrokerAdapter):
+            return self._port.exit_order(name, direction, qty, strike)
+
+        from core.adapters.base_adapter import OrderRequest
+        request = OrderRequest(
+            symbol=f"{name}_{strike}_{'CE' if direction == 'CALL' else 'PE'}",
+            qty=qty,
+            price=0.0,
+            order_type="MARKET",
+            direction="SELL" if direction == "CALL" else "BUY",
+            product="MIS",
+            variety="REGULAR",
+        )
+        response = self._port.place_order(request)
+        return response.order_id if response.status != "REJECTED" else None
+
+    def cancel_order(self, order_id: str) -> bool:
+        response = self._port.cancel_order(order_id)
+        if hasattr(response, "status"):
+            return response.status == "CANCELLED"  # type: ignore[no-any-return]
+        return bool(response)
+
+    def modify_order(self, order_id: str, qty: int | None = None, price: float | None = None, trigger_price: float | None = None, order_type: str | None = None) -> bool:
+        """Modify order via port.
+
+        Args:
+            order_id: Broker order ID to modify
+            qty: New quantity (None = no change)
+            price: New limit price (None = no change)
+            trigger_price: New trigger price for SL orders (None = no change)
+            order_type: New order type string (None = no change)
+
+        Returns:
+            True if modification was accepted by broker
+
+        """
+        try:
+            _port = getattr(self, "_port", None)
+            if _port is None or not hasattr(_port, "modify_order"):
+                return False
+            try:
+                # Try BrokerPort convention (quantity) - KitePort, etc.
+                response = _port.modify_order(
+                    order_id,
+                    quantity=qty,
+                    price=price,
+                    trigger_price=trigger_price,
+                    order_type=order_type,
+                )
+            except TypeError:
+                # Legacy adapters (PaperBrokerAdapter, AngelBrokerAdapter) use qty
+                response = _port.modify_order(
+                    order_id,
+                    qty=qty,
+                    price=price,
+                    trigger_price=trigger_price,
+                    order_type=order_type,
+                )
+            if hasattr(response, "status"):
+                status_str = str(response.status).upper()
+                return status_str in ("MODIFIED", "ACCEPTED", "SUCCESS")
+            return bool(response)
+        except (AttributeError, TypeError):
+            return False
+
+    def get_fill_price(self, order_id: str) -> float | None:
+        # Delegate to the wrapped port whenever it implements this itself
+        # (PaperBrokerAdapter and AngelBrokerAdapter both do) so
+        # ExecutionService sees the real fill price instead of this legacy
+        # stub. Was previously only special-cased for PaperBrokerAdapter,
+        # which meant a live Angel order would silently report average_price
+        # 0.0 through this wrapper too, causing exits to record zero P&L
+        # regardless of actual price movement - same bug, real money.
+        if self._port is not self and hasattr(self._port, "get_fill_price"):
+            return self._port.get_fill_price(order_id)
+        # No fill-price capability on the wrapped port (e.g. KiteBrokerAdapter
+        # today - see infrastructure/adapters/brokers/kite/adapter.py).
+        return 0.0
+
+    def get_filled_quantity(self, order_id: str) -> int | None:
+        if self._port is not self and hasattr(self._port, "get_filled_quantity"):
+            return self._port.get_filled_quantity(order_id)
+        return 0
+
+    def get_quote(self, symbol: str, exchange: str = "NSE") -> Any:
+        """Passthrough to the wrapped port's get_quote(), when it has one
+        (e.g. KiteBrokerAdapter - see core/live_option_quotes.py). Without
+        this, callers holding only this wrapper (as ExecutionService.broker_port
+        always is) could never reach a real quote feed even once wired to a
+        live Kite connection - PaperBrokerAdapter has no get_quote at all,
+        so this raises for it exactly like calling a nonexistent method would,
+        which callers must already handle (see live_option_quotes.py's
+        hasattr()/TypeError guards)."""
+        if self._port is self or not hasattr(self._port, "get_quote"):
+            raise AttributeError(f"{self._port.__class__.__name__} has no get_quote()")
+        try:
+            return self._port.get_quote(symbol, exchange=exchange)
+        except TypeError:
+            # Port's get_quote() doesn't accept an exchange kwarg.
+            return self._port.get_quote(symbol)
+
+    def get_order_status(self, order_id: str) -> str:
+        response = self._port.get_order_status(order_id)
+        return response.status  # type: ignore[no-any-return]
+
+    def wait_for_fill(self, order_id: str, timeout: int = 10) -> bool:
+        # Legacy polling logic moved to the port or a service
+        return True
+
+    def health_check(self) -> dict:
+        return {"status": "healthy", "adapter": self._port.__class__.__name__}
+# ...existing code...
+
+
+@dataclass(frozen=True)
+class BrokerRuntimeContext:
+    cfg: dict[str, Any]
+    index_map: dict[str, Any]
+    now_fn: Callable[[], Any]
+    log_fn: Callable[[str], None]
+    send_fn: Callable[[str], None]
+    shutdown_is_set_fn: Callable[[], bool]
+    hard_halt_is_set_fn: Callable[[], bool]
+    sleep_fn: Callable[[float], None]
+    broker_wait_poll_sec: float
+    expiry_str_fn: Callable[[str], str]
+    circuit_breaker: Any = None  # CircuitBreakerService instance (optional)
+
+
+def build_broker_runtime_context(
+    *,
+    cfg: dict[str, Any],
+    index_map: dict[str, Any],
+    now_fn: Callable[[], Any],
+    log_fn: Callable[[str], None],
+    send_fn: Callable[[str], None],
+    shutdown_is_set_fn: Callable[[], bool],
+    hard_halt_is_set_fn: Callable[[], bool],
+    sleep_fn: Callable[[float], None],
+    broker_wait_poll_sec: float,
+    expiry_str_fn: Callable[[str], str],
+    circuit_breaker: Any = None,
+) -> BrokerRuntimeContext:
+    """Build the context object passed to :func:`create_broker_adapter` (shared by index and stock bots)."""
+    return BrokerRuntimeContext(
+        cfg=dict(cfg),
+        index_map=index_map,
+        now_fn=now_fn,
+        log_fn=log_fn,
+        send_fn=send_fn,
+        shutdown_is_set_fn=shutdown_is_set_fn,
+        hard_halt_is_set_fn=hard_halt_is_set_fn,
+        sleep_fn=sleep_fn,
+        broker_wait_poll_sec=broker_wait_poll_sec,
+        expiry_str_fn=expiry_str_fn,
+        circuit_breaker=circuit_breaker,
+    )
+
+
+@dataclass
+class PaperFill:
+    """Single paper-trade fill record - stored per order_id for analytics."""
+
+    order_id: str
+    name: str
+    direction: str
+    strike: int
+    qty: int
+    mid_price: float
+    fill_price: float
+    slippage_amt: float
+    oi: int
+    volume: int
+    liquidity_skipped: bool
+    is_entry: bool
+
+
+class PaperBrokerAdapter(BrokerAdapter):
+    """Simulates paper trading with realistic mid-price fills, configurable slippage,
+    and optional OI/volume liquidity filter.
+
+    All constructor args default to None for backward compatibility:
+        PaperBrokerAdapter()  ← unchanged behaviour (no fill price, no OI check)
+
+    Enhanced mode (wire callbacks via constructor or configure_paper_simulation()):
+        price_getter(name, direction, strike) -> float | None   - option mid-price
+        oi_getter(name, direction, strike) -> (oi, volume) | None
+
+    Config keys (read from cfg dict - all optional):
+        paper_slippage_pct   : float  default 0.5  (% of mid applied as slippage)
+        min_oi_threshold     : int    default 500  (minimum open interest)
+        min_volume_threshold : int    default 100  (minimum traded volume)
+
+    Thread-safe: uses RLock for shared state mutations.
+    """
+
+    _counter: int = 0  # class-level counter - guarantees unique IDs within a process
+    _class_lock: threading.RLock = threading.RLock()
+
+    def __init__(
+        self,
+        *,
+        price_getter: Callable[[str, str, int], float | None] | None = None,
+        oi_getter: Callable[[str, str, int], tuple[int, int] | None] | None = None,
+        cfg: dict[str, Any] | None = None,
+        seed: int | None = None,
+    ) -> None:
+        self._lock = threading.RLock()
+        self._price_getter = price_getter
+        self._oi_getter = oi_getter
+        self._cfg: dict[str, Any] = dict(cfg) if cfg else {}
+        self._fills: dict[str, PaperFill] = {}
+        if seed is not None:
+            self._rng = random.Random(seed)
+        else:
+            self._rng = random.Random()
+
+    def configure_paper_simulation(
+        self,
+        *,
+        price_getter: Callable[[str, str, int], float | None] | None = None,
+        oi_getter: Callable[[str, str, int], tuple[int, int] | None] | None = None,
+        cfg: dict[str, Any] | None = None,
+    ) -> None:
+        """Wire live-data callbacks post-construction (e.g. from _make_broker()).
+
+        Thread-safe: all mutations are protected by RLock.
+        """
+        with self._lock:
+            if price_getter is not None:
+                self._price_getter = price_getter
+            if oi_getter is not None:
+                self._oi_getter = oi_getter
+            if cfg is not None:
+                self._cfg = dict(cfg)
+
+    # ── Config helpers ────────────────────────────────────────────────────────
+
+    def _slippage_pct(self) -> float:
+        return float(self._cfg.get("paper_slippage_pct", 0.5))
+
+    def _min_oi(self) -> int:
+        return int(self._cfg.get("min_oi_threshold", 500))
+
+    def _min_vol(self) -> int:
+        return int(self._cfg.get("min_volume_threshold", 100))
+
+    # ── Internal simulation helpers ───────────────────────────────────────────
+
+    def _check_liquidity(self, name: str, direction: str, strike: int) -> tuple[bool, int, int]:
+        """Returns (ok, oi, volume). ok=True means liquid enough (or no oi_getter)."""
+        if self._oi_getter is None:
+            return True, 0, 0
+        try:
+            result = self._oi_getter(name, direction, strike)
+            if result is None:
+                return True, 0, 0
+            oi, volume = int(result[0]), int(result[1])
+            ok = oi >= self._min_oi() and volume >= self._min_vol()
+            return ok, oi, volume  # type: ignore[return-value]
+        except (TypeError, ValueError, RuntimeError, OSError):
+            return True, 0, 0
+
+    def _fill_price(self, name: str, direction: str, strike: int, is_entry: bool) -> tuple[float, float]:
+        """Returns (fill_price, mid_price). Applies slippage to mid."""
+        if self._price_getter is None:
+            return 0.0, 0.0
+        try:
+            mid = self._price_getter(name, direction, strike)
+            if mid is None or mid <= 0:
+                return 0.0, 0.0
+            pct = self._slippage_pct() / 100.0
+            fill = mid * (1.0 + pct) if is_entry else mid * (1.0 - pct)
+            return round(fill, 2), round(mid, 2)  # type: ignore[return-value]
+        except (TypeError, ValueError, ConnectionError, OSError) as _pf_err:
+            _log.warning("[PAPER] Fill price error: %s", _pf_err)
+            return 0.0, 0.0
+
+    def _record_fill(
+        self, order_id: str, name: str, direction: str,
+        strike: int, qty: int, is_entry: bool,
+    ) -> PaperFill:
+        ok, oi, volume = self._check_liquidity(name, direction, strike)
+        fill_price, mid_price = self._fill_price(name, direction, strike, is_entry)
+        slippage_amt = round(fill_price - mid_price, 2) if mid_price > 0 else 0.0
+        rec = PaperFill(
+            order_id=order_id,
+            name=name,
+            direction=direction,
+            strike=int(strike),
+            qty=int(qty),
+            mid_price=mid_price,
+            fill_price=fill_price,
+            slippage_amt=slippage_amt,
+            oi=oi,
+            volume=volume,
+            liquidity_skipped=not ok,
+            is_entry=is_entry,
+        )
+        self._fills[order_id] = rec
+        return rec  # type: ignore[return-value]
+
+    # ── BrokerAdapter interface ───────────────────────────────────────────────
+
+    def place_order(self, name: str, direction: str, qty: int, strike: int) -> str:  # type: ignore[override]
+        with PaperBrokerAdapter._class_lock:
+            PaperBrokerAdapter._counter += 1
+            c = PaperBrokerAdapter._counter
+        oid = f"PAPER_{int(time.time() * 1000)}_{c}"
+        self._record_fill(oid, name, direction, int(strike), int(qty), is_entry=True)
+        return oid
+
+    def exit_order(self, name: str, direction: str, qty: int, strike: int) -> str:  # type: ignore[override]
+        with PaperBrokerAdapter._class_lock:
+            PaperBrokerAdapter._counter += 1
+            c = PaperBrokerAdapter._counter
+        oid = f"PAPER_EXIT_{int(time.time() * 1000)}_{c}"
+        self._record_fill(oid, name, direction, int(strike), int(qty), is_entry=False)
+        return oid
+
+    def cancel_order(self, order_id: str) -> bool:  # type: ignore[override]
+        """Cancel a paper order (always succeeds)."""
+        return True
+
+    def modify_order(self, order_id: str, qty: int | None = None, price: float | None = None, trigger_price: float | None = None, order_type: str | None = None) -> bool:
+        """Modify an existing paper order (always succeeds)."""
+        return True
+
+    def get_order_status(self, _: str) -> str:
+        return "COMPLETE"
+
+    def get_fill_price(self, order_id: str) -> float | None:
+        rec = self._fills.get(order_id)
+        return rec.fill_price if (rec and rec.fill_price > 0) else None
+
+    def get_filled_quantity(self, order_id: str) -> int | None:
+        rec = self._fills.get(order_id)
+        if rec is None:
+            return None
+        return 0 if rec.liquidity_skipped else rec.qty
+
+    def wait_for_fill(self, _: str, timeout: int = 10) -> bool:  # type: ignore[override]
+        return True
+
+    # ── Health check ───────────────────────────────────────────────────────────
+
+    def health_check(self) -> dict:
+        """Paper broker health check - always healthy."""
+        return {"status": "healthy", "adapter": "PaperBrokerAdapter", "mode": "PAPER"}
+
+    # ── Analytics helpers ─────────────────────────────────────────────────────
+
+    def get_paper_fill(self, order_id: str) -> PaperFill | None:
+        """Return the PaperFill record for a specific order."""
+        return self._fills.get(order_id)
+
+    def paper_fill_stats(self) -> dict[str, Any]:
+        """Summary stats for EOD reporting."""
+        fills = list(self._fills.values())
+        if not fills:
+            return {"fills": 0, "avg_slippage_pct": 0.0, "liquidity_skipped": 0}
+        slippages = [
+            f.slippage_amt / f.mid_price * 100
+            for f in fills if f.mid_price > 0
+        ]
+        skipped = sum(1 for f in fills if f.liquidity_skipped)
+        return {
+            "fills": len(fills),
+            "avg_slippage_pct": round(sum(slippages) / len(slippages), 4) if slippages else 0.0,
+            "liquidity_skipped": skipped,
+        }
+
+
+class _PollingBrokerAdapter(BrokerAdapter):
+    def __init__(self, context: BrokerRuntimeContext) -> None:
+        self._context = context
+
+    def wait_for_fill(self, order_id: str, timeout: int = 10) -> bool:  # type: ignore[override]
+        start = time.monotonic()
+        hard_limit = max(timeout * 3, 30)
+        while time.monotonic() - start < hard_limit:
+            if self._context.shutdown_is_set_fn() or self._context.hard_halt_is_set_fn():
+                return False
+            status = self.get_order_status(order_id)
+            if status in ("COMPLETE", "FILLED", "TRIGGER PENDING"):
+                return True
+            if status in ("CANCELLED", "REJECTED"):
+                return False
+            if time.monotonic() - start > timeout:
+                self._context.log_fn(f"[BROKER] wait_for_fill timeout {timeout}s for {order_id} status={status}")
+                return False
+            self._context.sleep_fn(self._context.broker_wait_poll_sec)
+        self._context.log_fn(f"[BROKER] wait_for_fill hard limit {hard_limit}s exceeded for {order_id}")
+        return False
+
+
+# KiteBrokerAdapter: Now imported from infrastructure/adapters/brokers/kite/adapter.py (BrokerPort-based)
+# The inline KiteBrokerAdapter was removed in v2.54 - use the port-based implementation.
+
+class AngelBrokerAdapter(_PollingBrokerAdapter):
+    def __init__(self, context: BrokerRuntimeContext) -> None:
+        super().__init__(context)
+        self._client = None
+        self._connected = False
+        self._lock = threading.RLock()
+        self._connect()
+
+    def _cb_protected(self, key: str, func: Callable, *args: Any, **kwargs: Any) -> Any:
+        """Execute a function protected by the circuit breaker if configured."""
+        cb = self._context.circuit_breaker
+        if cb is not None:
+            try:
+                return cb.call_with_key(f"broker.{key}", func, *args, **kwargs)
+            except (OSError, ConnectionError, TimeoutError, RuntimeError) as exc:
+                # CircuitBreakerOpenException may be any Exception subclass;
+                # check the message for known circuit-breaker patterns.
+                msg = str(exc)
+                if "Circuit breaker is OPEN" in msg or "CIRCUIT_OPEN" in msg:
+                    self._context.log_fn(f"[CB] {key} BLOCKED - circuit open")
+                    return None
+                raise
+        return func(*args, **kwargs)
+
+    def _connect(self) -> None:
+        try:
+            from SmartApi import SmartConnect  # type: ignore[import-untyped]
+
+            sec = broker_connection_secrets(self._context.cfg, "ANGEL")
+            client = SmartConnect(api_key=str(sec.get("api_key") or ""))
+            session = client.generateSession(
+                str(sec.get("client_id") or ""),
+                str(sec.get("password") or ""),
+                str(sec.get("totp_key") or ""),
+            )
+            if isinstance(session, dict) and session.get("status") is False:
+                raise RuntimeError(str(session.get("message") or "session failed"))
+            refresh = str(sec.get("refresh_token") or "")
+            if refresh:
+                try:
+                    client.generateToken(refresh)
+                except (OSError, ConnectionError, ValueError):
+                    pass
+            with self._lock:
+                self._client = client
+                self._connected = True
+            label = str(self._context.cfg.get("BROKER_NAME") or "").strip() or "Angel"
+            self._context.log_fn(f"[SMARTAPI] Connected ({label})")
+        except (ImportError, OSError, ConnectionError, RuntimeError) as exc:
+            self._context.log_fn(f"[SMARTAPI] Connect failed: {exc}")
+
+    def _symbol(self, name: str, direction: str, strike: int) -> str:
+        suffix = "CE" if direction == "CALL" else "PE"
+        expiry_str = self._context.expiry_str_fn(name)
+        nse_sym = self._context.index_map.get(name, {}).get("nse")
+        if not nse_sym:
+            raise ValueError(f"Unknown index '{name}' in index_map - cannot build option symbol")
+        return f"{nse_sym}{expiry_str}{strike}{suffix}"
+
+    def _order(self, name: str, direction: str, qty: int, strike: int, txn_type: str) -> str | None:
+        with self._lock:
+            client = self._client
+            connected = self._connected
+        if not connected or not client:
+            return None
+        try:
+            payload = {
+                "variety": "NORMAL",
+                "tradingsymbol": self._symbol(name, direction, strike),
+                "symboltoken": "0",
+                "transactiontype": txn_type,
+                "exchange": "NFO",
+                "ordertype": "MARKET",
+                "producttype": "INTRADAY",
+                "duration": "DAY",
+                "price": "0",
+                "squareoff": "0",
+                "stoploss": "0",
+                "quantity": str(int(qty)),
+            }
+            result = self._cb_protected("place_order", client.placeOrder, payload)
+            if not result:
+                return None
+            # SmartApi returns {"status": True, "data": {"orderid": "XXXXXX"}, ...}
+            # Extract the real order ID so status/fill lookups match orderBook rows.
+            if isinstance(result, dict):
+                oid = str(result.get("data", {}).get("orderid") or result.get("orderid") or "").strip()
+                return oid or str(result)
+            return str(result)
+        except (KeyError, TypeError, ValueError, OSError, ConnectionError) as exc:
+            self._context.log_fn(f"[SMARTAPI ORDER] {exc}")
+            return None
+
+    def place_order(self, name: str, direction: str, qty: int, strike: int) -> str | None:  # type: ignore[override]
+        return self._order(name, direction, qty, strike, "BUY")
+
+    def exit_order(self, name: str, direction: str, qty: int, strike: int) -> str | None:  # type: ignore[override]
+        return self._order(name, direction, qty, strike, "SELL")
+
+    def _order_book_rows(self) -> list[dict[str, Any]]:
+        with self._lock:
+            client = self._client
+            connected = self._connected
+        if not connected or not client:
+            return []
+        try:
+            book = self._cb_protected("get_order_book", lambda: client.orderBook() or {})
+            return book.get("data") if isinstance(book, dict) else book
+        except (KeyError, TypeError, ValueError, OSError, ConnectionError) as exc:
+            self._context.log_fn(f"[SMARTAPI BOOK] {exc}")
+            return []
+
+    def get_order_status(self, order_id: str) -> str:  # type: ignore[override]
+        for row in self._order_book_rows() or []:
+            if str(row.get("orderid", "")) == str(order_id):
+                status = str(row.get("orderstatus", "UNKNOWN")).upper()
+                return "COMPLETE" if "COMPLETE" in status else ("REJECTED" if "REJECTED" in status else status)
+        return "UNKNOWN"
+
+    def get_fill_price(self, order_id: str) -> float | None:  # type: ignore[override]
+        for row in self._order_book_rows() or []:
+            if str(row.get("orderid", "")) == str(order_id):
+                try:
+                    return float(row.get("averageprice") or 0) or None
+                except (TypeError, ValueError, KeyError):
+                    return None
+        return None
+
+    def get_filled_quantity(self, order_id: str) -> int | None:  # type: ignore[override]
+        for row in self._order_book_rows() or []:
+            if str(row.get("orderid", "")) == str(order_id):
+                try:
+                    return int(float(row.get("filledshares") or row.get("filled_qty") or 0))
+                except (TypeError, ValueError, KeyError):
+                    return None
+        return None
+
+    def validate_token(self) -> bool:
+        """Check if the current Angel session token is still valid."""
+        with self._lock:
+            return self._connected and self._client is not None
+
+    def check_auth(self) -> dict:
+        """Return auth status dict for health checks."""
+        with self._lock:
+            return {
+                "valid": self._connected,
+                "broker": "angel",
+            }
+
+    def get_positions(self) -> list[dict[str, Any]]:
+        with self._lock:
+            client = self._client
+            connected = self._connected
+        if not connected or not client:
+            return []
+        try:
+            data = client.position() or {}
+            return data.get("data") if isinstance(data, dict) else data
+        except (KeyError, TypeError, ValueError, OSError, ConnectionError) as exc:
+            self._context.log_fn(f"[SMARTAPI POS] {exc}")
+            return []
+
+
+def load_broker_factory_from_spec(spec: str) -> Callable[[BrokerRuntimeContext], BrokerAdapter] | None:
+    """Load ``module.path:callable`` that takes ``BrokerRuntimeContext`` and returns a ``BrokerAdapter``."""
+    raw = (spec or "").strip()
+    if not raw or ":" not in raw:
+        return None
+    mod_name, _, attr = raw.partition(":")
+    mod_name, attr = mod_name.strip(), attr.strip()
+    if not mod_name or not attr:
+        return None
+    mod = sys.modules.get(mod_name)
+    if mod is None:
+        mod = sys.modules.get(mod_name.rsplit(".", 1)[-1])
+    try:
+        if mod is None:
+            mod = importlib.import_module(mod_name)
+    except (ImportError, ModuleNotFoundError):
+        mod = None
+    if mod is None:
+        short_name = mod_name.rsplit(".", 1)[-1]
+        try:
+            mod = importlib.import_module(short_name)
+        except (ImportError, ModuleNotFoundError):
+            mod = None
+    if mod is None:
+        rel_module = Path(*mod_name.split("."))
+        search_roots = [Path.cwd(), *[Path(p) for p in sys.path if p]]
+        for root in search_roots:
+            file_candidate = root / f"{rel_module}.py"
+            init_candidate = root / rel_module / "__init__.py"
+            target = file_candidate if file_candidate.is_file() else init_candidate if init_candidate.is_file() else None
+            if target is None:
+                continue
+            try:
+                loader_spec = importlib.util.spec_from_file_location(mod_name, target)
+                if loader_spec is None or loader_spec.loader is None:
+                    continue
+                loaded = importlib.util.module_from_spec(loader_spec)
+                sys.modules.setdefault(mod_name, loaded)
+                loader_spec.loader.exec_module(loaded)
+                mod = loaded
+                break
+            except (ImportError, ModuleNotFoundError, FileNotFoundError):
+                sys.modules.pop(mod_name, None)
+                continue
+    if mod is None:
+        return None
+    fn = getattr(mod, attr, None)
+    if not callable(fn):
+        return None
+    return fn  # type: ignore[no-any-return]
+
+
+# ...existing code...
+def create_broker_adapter(
+    *,
+    driver: str,
+    broker_api_enabled: bool,
+    paper_mode: bool,
+    manual_signals_only: bool,
+    execution_mode: str = "MANUAL",
+    context: BrokerRuntimeContext,
+) -> BrokerAdapter:
+    # ── Master live-trading lockout (defense in depth, checked first) ─────
+    # Independent of every other flag below: while enabled (the default),
+    # this forces paper execution no matter what BROKER_DRIVER/PAPER_MODE/
+    # BROKER_API_ENABLED say. Real capital must never be reachable just
+    # because a config value was flipped by mistake — disabling this
+    # requires a deliberate, explicit change, not an accidental one.
+    if bool(context.cfg.get("live_trading_lockout_enabled", True)):
+        driver_requested = str(driver or context.cfg.get("BROKER_DRIVER", "PAPER")).upper()
+        if driver_requested not in ("PAPER", "SIM", "TEST", ""):
+            context.log_fn(
+                f"[BROKER_CFG] live_trading_lockout_enabled=True - "
+                f"BROKER_DRIVER={driver_requested} ignored, forcing PAPER adapter. "
+                "Set live_trading_lockout_enabled=false only after a validated "
+                "paper-trading track record (see core.live_readiness_checker)."
+            )
+        return PaperBrokerAdapter()
+
+    # ── Automatic readiness gate (second, independent layer) ───────────────
+    # Even with the lockout above manually disabled, a real driver is only
+    # honored if the paper-trading scorecard actually passes. Previously
+    # core.live_readiness_checker only produced an advisory report (surfaced
+    # in the morning checklist) with nothing enforcing it — this closes
+    # that gap at the one real broker-construction choke point.
+    driver_upper = str(driver or context.cfg.get("BROKER_DRIVER", "PAPER")).upper()
+    if driver_upper not in ("PAPER", "SIM", "TEST", "") and not manual_signals_only and broker_api_enabled and not paper_mode:
+        try:
+            from core.live_readiness_checker import check_live_readiness
+            _db_path = context.cfg.get("trades_db_path", "db/trades.db")
+            _report = check_live_readiness(_db_path, context.cfg)
+            if not _report.overall_ready:
+                context.log_fn(
+                    f"[BROKER_CFG] Live readiness check FAILED - forcing PAPER adapter. {_report.summary}"
+                )
+                context.send_fn(
+                    f"[LIVE BLOCKED] Readiness check failed, staying in PAPER mode: {_report.summary}",
+                    critical=True,
+                )
+                return PaperBrokerAdapter()
+        except Exception as _readiness_exc:  # deliberately broad: fail closed on any error
+            # Fail closed: if the readiness check itself can't run, for ANY
+            # reason, do not silently allow live trading — stay in paper
+            # mode. A narrower except list here would risk an unexpected
+            # error type falling through to real order placement.
+            context.log_fn(
+                f"[BROKER_CFG] Live readiness check errored ({_readiness_exc}) - forcing PAPER adapter (fail-closed)."
+            )
+            return PaperBrokerAdapter()
+
+    if manual_signals_only or execution_mode == "SIGNAL_ONLY":
+        return PaperBrokerAdapter()
+    if not (broker_api_enabled and not paper_mode):
+        return PaperBrokerAdapter()
+
+    cfg = context.cfg
+    custom_spec = str(cfg.get("BROKER_CUSTOM_FACTORY") or "").strip()
+    factory = load_broker_factory_from_spec(custom_spec) if custom_spec else None
+    if custom_spec and factory is None:
+        context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY={custom_spec!r} not found - using paper adapter")
+        return PaperBrokerAdapter()
+    if factory is not None:
+        try:
+            port = factory(context)
+            if not isinstance(port, LegacyBrokerPort):
+                context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY returned {type(port)!r}, not BrokerPort - using paper")
+                return PaperBrokerAdapter()
+            return BrokerAdapter(port)
+        except (ImportError, TypeError, AttributeError, OSError, ConnectionError) as exc:
+            context.log_fn(f"[BROKER] BROKER_CUSTOM_FACTORY failed: {exc} - using paper adapter")
+            return PaperBrokerAdapter()
+
+    normalized = str(driver or "GENERIC").upper()
+    if normalized == "KITE":
+        # NOTE: previously constructed KiteBrokerAdapter(context) directly,
+        # which crashes (AttributeError) because KiteBrokerAdapter expects a
+        # _KiteContext with api_key/access_token/log_fn/enable_rate_limit/
+        # max_retries, not the full BrokerRuntimeContext. This path was
+        # never exercised in practice (blocked by PAPER_MODE/BROKER_API_ENABLED
+        # defaults, and now by live_trading_lockout_enabled above) - fixed
+        # to use the factory that actually extracts credentials from context.cfg.
+        from infrastructure.adapters.brokers.kite.adapter import create_kite_adapter_from_context
+        return BrokerAdapter(create_kite_adapter_from_context(context))
+    if normalized == "ANGEL":
+        # Use inline AngelBrokerAdapter (the infrastructure stub was broken/removed)
+        return BrokerAdapter(AngelBrokerAdapter(context))
+    if normalized == "MSTOCK":
+        from infrastructure.adapters.brokers.mstock.adapter import create_mstock_adapter_from_context
+        return BrokerAdapter(create_mstock_adapter_from_context(context))
+    if normalized == "IIFL":
+        from infrastructure.adapters.brokers.iifl.adapter import create_iifl_adapter_from_context
+        return BrokerAdapter(create_iifl_adapter_from_context(context))
+    if normalized == "GROWW":
+        from infrastructure.adapters.brokers.groww.adapter import create_groww_adapter_from_context
+        return BrokerAdapter(create_groww_adapter_from_context(context))
+    if normalized == "UPSTOX":
+        from infrastructure.adapters.brokers.upstox.adapter import create_upstox_adapter_from_context
+        return BrokerAdapter(create_upstox_adapter_from_context(context))
+    if normalized == "DHAN":
+        from infrastructure.adapters.brokers.dhan.adapter import create_dhan_adapter_from_context
+        return BrokerAdapter(create_dhan_adapter_from_context(context))
+    if normalized in ("ICICIDIRECT", "ICICI_DIRECT", "BREEZE"):
+        from infrastructure.adapters.brokers.icicidirect.adapter import create_icicidirect_adapter_from_context
+        return BrokerAdapter(create_icicidirect_adapter_from_context(context))
+    if normalized not in ("GENERIC", "PAPER", "SIM", "CUSTOM"):
+        context.log_fn(
+            f"[BROKER] Unknown BROKER_DRIVER={normalized!r} (set BROKER_CUSTOM_FACTORY for a third-party broker) - paper adapter",
+        )
+    return BrokerAdapter(PaperBrokerAdapter())
+# ...existing code...
+
+
+def create_broker_adapter_with_runtime_context(
+    *,
+    cfg: dict[str, Any],
+    index_map: dict[str, Any],
+    driver: str,
+    broker_api_enabled: bool,
+    paper_mode: bool,
+    manual_signals_only: bool,
+    execution_mode: str = "MANUAL",
+    now_fn: Callable[[], Any],
+    log_fn: Callable[[str], None],
+    send_fn: Callable[[str], None],
+    shutdown_is_set_fn: Callable[[], bool],
+    hard_halt_is_set_fn: Callable[[], bool],
+    sleep_fn: Callable[[float], None],
+    broker_wait_poll_sec: float,
+    expiry_str_fn: Callable[[str], str],
+    circuit_breaker: Any = None,
+) -> BrokerAdapter:
+    """Combine :func:`build_broker_runtime_context` and :func:`create_broker_adapter` (shared by index + stock)."""
+    context = build_broker_runtime_context(
+        cfg=cfg,
+        index_map=index_map,
+        now_fn=now_fn,
+        log_fn=log_fn,
+        send_fn=send_fn,
+        shutdown_is_set_fn=shutdown_is_set_fn,
+        hard_halt_is_set_fn=hard_halt_is_set_fn,
+        sleep_fn=sleep_fn,
+        broker_wait_poll_sec=broker_wait_poll_sec,
+        expiry_str_fn=expiry_str_fn,
+        circuit_breaker=circuit_breaker,
+    )
+    return create_broker_adapter(
+        driver=driver,
+        broker_api_enabled=broker_api_enabled,
+        paper_mode=paper_mode,
+        manual_signals_only=manual_signals_only,
+        execution_mode=execution_mode,
+        context=context,
+    )

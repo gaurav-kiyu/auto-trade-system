@@ -1,0 +1,1073 @@
+# OPB WEB CLOSURE WIP49 — Web Functional Closure Inventory
+
+Source files scanned: 1721
+UI-facing signal points: 646
+UI fetch/XHR signal points: 62
+UI navigation/action signal points: 583
+Hard-coded localhost/origin hits: 498
+
+## Hard-coded localhost/origin hits
+- `launcher.py:687` — `with socket.create_connection(("127.0.0.1", port), timeout=0.5):`
+- `launcher.py:697` — `webbrowser.open(f"http://localhost:{port}/")`
+- `launcher.py:709` — `f"http://localhost:{port}/ manually once it's ready, or check "`
+- `core/db_provider.py:17` — `"pg_host": "localhost",`
+- `core/db_provider.py:117` — `"host": self._cfg.get("pg_host", "localhost"),`
+- `core/ai_engine.py:209` — `base = ai_cfg.api_base_url or "http://localhost:11434"`
+- `core/web_dashboard.py:22` — `_DEFAULT_HOST = "0.0.0.0"  # bind loopback by default; override via web_dashboard_host config`
+- `core/web_dashboard.py:102` — `# Warn if dashboard bound to 0.0.0.0 without TLS`
+- `core/web_dashboard.py:103` — `if host == "0.0.0.0" and not ssl_certfile:  # nosec B104`
+- `core/web_dashboard.py:105` — `"[DASH] Dashboard bound to 0.0.0.0 without TLS - "`
+- `core/web_dashboard.py:203` — `parser.add_argument("--host", default="0.0.0.0", help="Host to bind")`
+- `core/metrics_exporter.py:31` — `metrics_host    : str   default "0.0.0.0"  # nosec B104`
+- `index_app/index_trader.py:25` — `#             --nogui uses sys.exit(0). METRICS_PORT>0 on METRICS_BIND (default 127.0.0.1): /metrics, /health, /.`
+- `index_app/index_trader.py:339` — `#             --nogui uses sys.exit(0). METRICS_PORT>0 on METRICS_BIND (default 127.0.0.1): /metrics, /health, /.`
+- `index_app/index_trader.py:1192` — `_dash_host = _CFG.get("web_dashboard_host", "127.0.0.1")`
+- `scripts/generate_master_pptx.py:484` — `"Enterprise Dashboard: http://localhost:8765 (enable in config.json)",`
+- `scripts/generate_all_master_consolidated_documents.py:69` — `Accessible at `http://localhost:8000/admin/users`:`
+- `scripts/generate_all_master_consolidated_documents.py:79` — `| `open_app.bat` | `http://localhost:8000` | All Users / Operators | Main Enterprise Trading & Analytics Dashboard |`
+- `scripts/generate_all_master_consolidated_documents.py:80` — `| `open_admin.bat` | `http://localhost:8000/admin/config` | Super Admin / Admin | Live Configuration Editor & Notification Controls |`
+- `scripts/generate_all_master_consolidated_documents.py:81` — `| Super Admin Users | `http://localhost:8000/admin/users` | Super Admin | User Signal Permissions, Category Subscriptions & Quotas |`
+- `scripts/generate_all_master_consolidated_documents.py:82` — `| Signal Accuracy Hub | `http://localhost:8000/admin/signals` | Super Admin | Historical Signal Performance & Category Win Rates |`
+- `scripts/generate_all_master_consolidated_documents.py:83` — `| My Signals Feed | `http://localhost:8000/my-signals` | End-Users | Personal Delivered Signals Feed & Filters |`
+- `scripts/generate_all_master_consolidated_documents.py:84` — `| Sector Rotation Radar | `http://localhost:8000/sector-radar` | All Users | 12 NSE Sectors Relative Strength Quadrants |`
+- `scripts/generate_all_master_consolidated_documents.py:85` — `| Trade Copier | `http://localhost:8000/trade-copier` | Super Admin / Fund Mgr | Multi-Broker Parallel Trade Replication |`
+- `scripts/generate_all_master_consolidated_documents.py:86` — `| Margin Radar | `http://localhost:8000/margin-radar` | Super Admin / Risk Mgr | Consolidated Multi-Broker Margin & 75% Warning |`
+- `scripts/generate_all_master_consolidated_documents.py:87` — `| Strategy Sandbox | `http://localhost:8000/strategy-sandbox` | Quant Analysts / Users | Interactive Parameter Tuning Backtest Studio |`
+- `scripts/generate_all_master_consolidated_documents.py:88` — `| FII / DII Radar | `http://localhost:8000/fii-dii-radar` | Super Admin / Traders | Participant-Wise Net Positioning & Trap Alerts |`
+- `scripts/generate_all_master_consolidated_documents.py:89` — `| 0DTE Harvester | `http://localhost:8000/expiry-harvester` | Options Traders | Automated Expiry Straddle Delta Harvester |`
+- `scripts/generate_all_master_consolidated_documents.py:90` — `| Pricing Plans | `http://localhost:8000/pricing-plans` | Clients / End-Users | 100% Free UPI QR Subscription & Auto-Unlock |`
+- `scripts/generate_all_master_consolidated_documents.py:91` — `| Kill Switch | `http://localhost:8000/admin/kill-switch` | Super Admin / Risk Mgr | Instant Global Trading Emergency Halt |`
+- `scripts/generate_all_master_consolidated_documents.py:155` — `Visit [`http://localhost:8000/pricing-plans`](http://localhost:8000/pricing-plans) to select your plan. Scan the zero-fee UPI QR code with any UPI app (Google Pay, PhonePe, Paytm, BHIM) to immediately activate your account and quota.`
+- `scripts/migrate_to_postgresql.py:23` — `python scripts/migrate_to_postgresql.py --connection "postgresql://user:pass@localhost:5432/opb"`
+- `scripts/test_deployment.py:8` — `python scripts/test_deployment.py                          # Test localhost:8765`
+- `scripts/test_deployment.py:25` — `DEFAULT_URL = "http://localhost:8765"`
+- `scripts/generate_pptx.py:386` — `("Web Dashboard", "Enable web_dashboard_enabled: true in config.json\nAccess: http://localhost:8765 (FastAPI + RBAC)", RED),`
+- `scripts/docker_healthcheck.py:49` — `"http://127.0.0.1:8765/api/system/health/docker", timeout=5`
+- `scripts/generate_review_artifacts.py:47` — `("Dashboard binding", "web_dashboard binds 0.0.0.0 by default (opt-in feature; warns without TLS). Should default to 127.0.0.1."),`
+- `scripts/generate_review_artifacts.py:57` — `("P2", "DONE - Dashboard default bind", "web_dashboard + enterprise_dashboard + launch_realestate bind 127.0.0.1 by default (0.0.0.0 only when explicitly configured)."),`
+- `scratch/test_all_app_routes.py:30` — `user = auth_handler.authenticate("admin", "Admin@123456", "127.0.0.1")`
+- `scratch/test_all_app_routes.py:32` — `token = auth_handler.create_session(user, "127.0.0.1", "TestClient")`
+- `scratch/test_page_routes_only.py:22` — `user = auth_handler.authenticate("admin", "Admin@123456", "127.0.0.1")`
+- `scratch/test_page_routes_only.py:24` — `token = auth_handler.create_session(user, "127.0.0.1", "TestClient")`
+- `tests/test_dashboard_integration.py:38` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_integration.py:58` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_integration.py:90` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_integration.py:115` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_integration.py:137` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_integration.py:390` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_integration.py:526` — `serve(mock_app, host="127.0.0.1", port=8765, ssl_certfile="/fake/cert.pem", ssl_keyfile="/fake/key.pem")`
+- `tests/test_time_provider.py:125` — `sync = NTPClockSync({"ntp_servers": ["127.0.0.1"], "ntp_timeout": 1})`
+- `tests/test_time_provider.py:126` — `sync.check_sync("127.0.0.1")`
+- `tests/test_public_base_url_admin_config.py:20` — `cfg = {"PUBLIC_BASE_URL_ADMIN_OVERRIDE": "http://localhost:8000", "ENVIRONMENT": "production"}`
+- `tests/test_postgres_adapter_pool.py:33` — `pool = PostgresConnectionPool(host="localhost", min_conn=1, max_conn=5)`
+- `tests/test_postgres_adapter_pool.py:67` — `pool = PostgresConnectionPool(host="localhost", min_conn=1, max_conn=5)`
+- `tests/test_postgres_adapter_pool.py:80` — `pool = PostgresConnectionPool(host="localhost", min_conn=1, max_conn=5)`
+- `tests/test_enterprise_dashboard_integration.py:166` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_integration.py:193` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_integration.py:207` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_enterprise_dashboard_integration.py:401` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_integration.py:448` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_redis_adapter.py:56` — `params = _parse_redis_dsn("localhost")`
+- `tests/test_redis_adapter.py:57` — `assert params["host"] == "localhost"`
+- `tests/test_redis_adapter.py:79` — `adapter = RedisDatabaseAdapter(dsn="localhost:6379")`
+- `tests/test_redis_adapter.py:80` — `assert adapter._conn_params["host"] == "localhost"`
+- `tests/test_redis_adapter.py:94` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:122` — `return RedisDatabaseAdapter(host="localhost", port=6379, db=0)`
+- `tests/test_redis_adapter.py:156` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:161` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:170` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:182` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:194` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:208` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:216` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:226` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:234` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:242` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:250` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:264` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:271` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:278` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:285` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:300` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:307` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:314` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:321` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:331` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:341` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:346` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:380` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:385` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:391` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_redis_adapter.py:396` — `adapter = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_enterprise_dashboard.py:123` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:166` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:177` — `user = d._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_enterprise_dashboard.py:194` — `_MEMCFG = {"web_dashboard_host": "127.0.0.1"}`
+- `tests/test_enterprise_dashboard.py:289` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:306` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:322` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:338` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:352` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:374` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:389` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:405` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:422` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:438` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:452` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:466` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:480` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:494` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:508` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:521` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:534` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:547` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:560` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:580` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:588` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:597` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:605` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:617` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:628` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:640` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:652` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:666` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:674` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:683` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:691` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:705` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:716` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:726` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:743` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:760` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:773` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:788` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:802` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:818` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:833` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:864` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:891` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:916` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:946` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:972` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:990` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1002` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1018` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1035` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1058` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1074` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1096` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1111` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1122` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1145` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1158` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1174` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1191` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1208` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1225` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1240` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1249` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1269` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1281` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1296` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1307` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1318` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1329` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1340` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1351` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1362` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1371` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1385` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1397` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1411` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1425` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1435` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1446` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1462` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1475` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1489` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1504` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_enterprise_dashboard.py:1516` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1649` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1672` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1757` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1803` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard.py:1847` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_config_helpers.py:87` — `base = {"db": {"host": "localhost", "port": 5432}}`
+- `tests/test_config_helpers.py:90` — `assert result["db"]["host"] == "localhost"`
+- `tests/test_auth_register.py:47` — `_register_rate_limiter.reset("register:127.0.0.1")`
+- `tests/test_opentelemetry.py:259` — `"jaeger_agent_host": "localhost",`
+- `tests/test_opentelemetry.py:271` — `"zipkin_endpoint": "http://localhost:9411/api/v2/spans",`
+- `tests/test_web_route_contract.py:46` — `def test_enterprise_templates_contain_no_localhost_action_links():`
+- `tests/test_web_route_contract.py:50` — `if "localhost:8000" in text:`
+- `tests/test_web_route_contract.py:52` — `assert not offenders, "Development localhost URLs leaked into enterprise templates: " + ", ".join(offenders)`
+- `tests/test_data_providers_health_api.py:37` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_data_providers_health_api.py:222` — `"web_dashboard_host": "0.0.0.0",`
+- `tests/test_dashboard_api.py:35` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_api.py:60` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_dashboard_api.py:300` — `"web_dashboard_host": "0.0.0.0",`
+- `tests/test_config_drift_api.py:52` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_config_drift_api.py:69` — `token = db._auth.create_session(user, ip_address="127.0.0.1")`
+- `tests/test_config_drift_api.py:80` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_config_drift_api.py:109` — `"web_dashboard_host": "0.0.0.0",`
+- `tests/test_config_drift_api.py:177` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_config_drift_api.py:191` — `token = db._auth.create_session(user, ip_address="127.0.0.1")`
+- `tests/test_config_drift_api.py:220` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_config_drift_api.py:231` — `token = db._auth.create_session(user, ip_address="127.0.0.1")`
+- `tests/test_web_dashboard.py:82` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:92` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:104` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:123` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:140` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_web_dashboard.py:161` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:176` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:200` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:215` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:229` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:248` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:264` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:281` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:298` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:322` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_web_dashboard.py:340` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:357` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_web_dashboard.py:378` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_web_dashboard.py:398` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:418` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:439` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:458` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:481` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:500` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:518` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:539` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_web_dashboard.py:559` — `{"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},`
+- `tests/test_pg_migration.py:316` — `monkeypatch.setenv("OPB_PG_URL", "postgresql://user:pass@localhost/mydb")`
+- `tests/test_pg_migration.py:318` — `assert m._pg_url == "postgresql://user:pass@localhost/mydb"`
+- `tests/test_pg_migration.py:636` — `m = PostgreSQLMigrator(pg_url="postgresql://localhost/test")`
+- `tests/test_pg_migration.py:652` — `m = PostgreSQLMigrator(pg_url="postgresql://localhost/test")`
+- `tests/test_pg_migration.py:656` — `"postgresql://localhost/test"`
+- `tests/test_metrics_trend_routes.py:51` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_metrics_trend_routes.py:486` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_metrics_trend_routes.py:493` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_database_postgres_adapter.py:157` — `host="127.0.0.1", port=1, dbname="test",`
+- `tests/test_database_postgres_adapter.py:431` — `params = parse_pg_dsn("localhost")`
+- `tests/test_database_postgres_adapter.py:432` — `assert params["host"] == "localhost"`
+- `tests/test_database_postgres_adapter.py:436` — `params = parse_pg_dsn("localhost:5432:mydb:user:pass")`
+- `tests/test_database_postgres_adapter.py:437` — `assert params["host"] == "localhost"`
+- `tests/test_public_url_single_source_contract.py:31` — `for token in ("localhost", "127.0.0.1", "0.0.0.0", "::1"):`
+- `tests/test_ai_engine.py:535` — `"""_call_ollama uses localhost:11434 when no base URL set."""`
+- `tests/test_ai_engine.py:541` — `assert "localhost:11434" in call_args`
+- `tests/test_enterprise_dashboard_notifications.py:109` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_notifications.py:585` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dsn_utils.py:82` — `def test_localhost(self) -> None:`
+- `tests/test_dsn_utils.py:83` — `params = parse_pg_dsn("localhost")`
+- `tests/test_dsn_utils.py:84` — `assert params["host"] == "localhost"`
+- `tests/test_enterprise_dashboard_pages.py:93` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_pages.py:167` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_pages.py:185` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_pages.py:261` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_pages.py:314` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_pages.py:373` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_pages.py:418` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_pages.py:462` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_pages.py:469` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_enterprise_dashboard_pages.py:510` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_enterprise_dashboard_pages.py:517` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_phase14_url_and_notification_audit.py:5` — `2. Zero localhost/127.0.0.1 in production notifications.`
+- `tests/test_phase14_url_and_notification_audit.py:37` — `base_url = get_public_base_url({"PUBLIC_BASE_URL": "http://localhost:8000"})`
+- `tests/test_phase14_url_and_notification_audit.py:85` — `"""Test rich email and Telegram formatting for zero localhost defects."""`
+- `tests/test_phase14_url_and_notification_audit.py:88` — `"""Generated HTML email contains canonical production public URL and ZERO localhost references."""`
+- `tests/test_phase14_url_and_notification_audit.py:108` — `self.assertNotIn("localhost", html)`
+- `tests/test_phase14_url_and_notification_audit.py:109` — `self.assertNotIn("127.0.0.1", html)`
+- `tests/test_exceptions.py:162` — `exc = DatabaseError("Connection failed", details={"host": "localhost"})`
+- `tests/test_exceptions.py:164` — `assert exc.details["host"] == "localhost"`
+- `tests/test_db_provider.py:178` — `"pg_host": "localhost",`
+- `tests/test_auth_comprehensive.py:110` — `return handler.create_session(user_obj, "127.0.0.1", "pytest")`
+- `tests/test_auth_comprehensive.py:404` — `user = handler.authenticate("testuser", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_comprehensive.py:411` — `user = handler.authenticate("testuser", "WrongP@ss1!", "127.0.0.1")`
+- `tests/test_auth_comprehensive.py:415` — `user = handler.authenticate("nobody", "SomeP@ss1!", "127.0.0.1")`
+- `tests/test_auth_comprehensive.py:420` — `user = handler.authenticate("testuser", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_comprehensive.py:425` — `handler.authenticate("testuser", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_comprehensive.py:432` — `user = handler.authenticate("TESTUSER", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_comprehensive.py:437` — `user = handler.authenticate("  testuser  ", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_comprehensive.py:559` — `assert handler.authenticate("testuser", "NewP@ss1!", "127.0.0.1") is not None`
+- `tests/test_auth_comprehensive.py:560` — `assert handler.authenticate("testuser", "Test@1234!", "127.0.0.1") is None`
+- `tests/test_auth_comprehensive.py:593` — `assert handler.authenticate("testuser", "Test@1234!", "127.0.0.1") is None`
+- `tests/test_auth_comprehensive.py:595` — `auth_user = handler.authenticate("testuser", "Reset@1234!", "127.0.0.1")`
+- `tests/test_auth_comprehensive.py:615` — `token = handler.create_session(user, "127.0.0.1", "pytest")`
+- `tests/test_auth_comprehensive.py:688` — `return handler.create_session(user, "127.0.0.1", "pytest")`
+- `tests/test_auth_comprehensive.py:791` — `def test_localhost_exempt_from_rate_limiting(self, handler: Any):`
+- `tests/test_auth_comprehensive.py:792` — `"""127.0.0.1 is whitelisted from brute-force rate limiting.`
+- `tests/test_auth_comprehensive.py:798` — `handler.authenticate(uname, "WrongP@ss!", "127.0.0.1")`
+- `tests/test_auth_comprehensive.py:799` — `# Rate limiter should be bypassed for localhost - login should succeed`
+- `tests/test_auth_comprehensive.py:801` — `user = handler.authenticate(uname, pwd, "127.0.0.1")`
+- `tests/test_connection_pool.py:49` — `host="localhost",`
+- `tests/test_connection_pool.py:101` — `host="localhost", min_conn=2, max_conn=10,`
+- `tests/test_connection_pool.py:135` — `pool = PostgresConnectionPool(host="localhost")`
+- `tests/test_connection_pool.py:154` — `pool = PostgresConnectionPool(host="localhost")`
+- `tests/test_connection_pool.py:159` — `pool = PostgresConnectionPool(host="localhost")`
+- `tests/test_connection_pool.py:193` — `pool = PostgresConnectionPool(host="localhost")`
+- `tests/test_connection_pool.py:231` — `pool = PostgresConnectionPool(host="localhost")`
+- `tests/test_connection_pool.py:247` — `pool = PostgresConnectionPool(host="localhost")`
+- `tests/test_connection_pool.py:262` — `pool = PostgresConnectionPool(host="localhost")`
+- `tests/test_connection_pool.py:283` — `with PostgresConnectionPool(host="localhost") as p:`
+- `tests/test_connection_pool.py:288` — `p = PostgresConnectionPool(host="localhost")`
+- `tests/test_connection_pool.py:294` — `with PostgresConnectionPool(host="localhost") as p:`
+- `tests/test_dashboard_comprehensive.py:163` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:216` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:230` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:250` — `def test_creation_secure_cookie_when_not_localhost(self, tmp_path):`
+- `tests/test_dashboard_comprehensive.py:254` — `config={"web_dashboard_host": "0.0.0.0", "auth_db_path": str(tmp_path / "auth.db")},`
+- `tests/test_dashboard_comprehensive.py:258` — `def test_creation_secure_cookie_false_when_localhost(self, tmp_path):`
+- `tests/test_dashboard_comprehensive.py:262` — `config={"web_dashboard_host": "127.0.0.1", "auth_db_path": str(tmp_path / "auth.db")},`
+- `tests/test_dashboard_comprehensive.py:439` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:458` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:497` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:513` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:530` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:585` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:624` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_dashboard_comprehensive.py:637` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_dashboard_comprehensive.py:647` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_dashboard_comprehensive.py:657` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_dashboard_comprehensive.py:667` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_dashboard_comprehensive.py:677` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_dashboard_comprehensive.py:688` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_dashboard_comprehensive.py:716` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:776` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:793` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:808` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:825` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:840` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:865` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:890` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:910` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:930` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:944` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:961` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:979` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:995` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:1010` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:1028` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:1042` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:1062` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:1148` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1165` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1186` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1207` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1223` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1240` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1263` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1277` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1293` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1307` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1321` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1335` — `admin = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1339` — `op2 = db._auth.authenticate("op2", "Op2@12345!", ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1357` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1372` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1389` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1405` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1420` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1436` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1451` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1467` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1571` — `user = db._auth.authenticate("admin", "Admin@123!test", ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1587` — `user = db._auth.authenticate("admin", "Admin@123!test", ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1603` — `user = db._auth.authenticate("admin", "Admin@123!test", ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:2049` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:2081` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:2100` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:2111` — `db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_dashboard_comprehensive.py:2162` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:2177` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:2191` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:2208` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:2223` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:2252` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_dashboard_comprehensive.py:2270` — `d1 = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})`
+- `tests/test_dashboard_comprehensive.py:2272` — `d2 = EnterpriseDashboard(config={"web_dashboard_host": "0.0.0.0"})`
+- `tests/test_notification_url_production_contract.py:11` — `monkeypatch.setenv("PUBLIC_BASE_URL", "http://localhost:8000")`
+- `tests/test_notification_url_production_contract.py:13` — `assert build_action_url("/my-signals", base_url="http://127.0.0.1:8000") == (`
+- `tests/test_notification_url_production_contract.py:20` — `cfg = {"PUBLIC_BASE_URL": "http://localhost:8000"}`
+- `tests/test_database_redis_adapter.py:136` — `host="127.0.0.1", port=1, db=0, socket_connect_timeout=2,`
+- `tests/test_database_redis_adapter.py:332` — `params = _parse_redis_dsn("localhost")`
+- `tests/test_database_redis_adapter.py:333` — `assert params["host"] == "localhost"`
+- `tests/test_database_redis_adapter.py:337` — `params = _parse_redis_dsn("localhost:6379:0:secret")`
+- `tests/test_database_redis_adapter.py:338` — `assert params["host"] == "localhost"`
+- `tests/test_end_to_end.py:49` — `adapter: DatabasePort = PostgreSQLDatabaseAdapter(host="localhost")`
+- `tests/test_end_to_end.py:57` — `adapter: DatabasePort = MySQLDatabaseAdapter(host="localhost")`
+- `tests/test_end_to_end.py:65` — `adapter: DatabasePort = RedisDatabaseAdapter(host="localhost")`
+- `tests/test_end_to_end.py:73` — `adapter: DatabasePort = MongoDBDatabaseAdapter(dsn="mongodb://localhost:27017")`
+- `tests/test_end_to_end.py:137` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_config_drift_integration.py:28` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_config_drift_integration.py:100` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_config_drift_integration.py:116` — `token = db._auth.create_session(user, ip_address="127.0.0.1")`
+- `tests/test_config_drift_integration.py:286` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_config_drift_integration.py:307` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_all_ui_screens_and_navigation.py:23` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_database_mongodb_adapter.py:115` — `host="127.0.0.1", port=1, database="test",`
+- `tests/test_database_mongodb_adapter.py:272` — `params = _parse_mongo_dsn("mongodb://localhost:27017")`
+- `tests/test_database_mongodb_adapter.py:273` — `assert "localhost" in params.get("host", "")`
+- `tests/test_database_mongodb_adapter.py:277` — `params = _parse_mongo_dsn("localhost")`
+- `tests/test_database_mongodb_adapter.py:278` — `assert params.get("host") == "localhost"`
+- `tests/test_payoff_calculator_routes.py:50` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_payoff_calculator_routes.py:210` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_payoff_calculator_routes.py:217` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_auth_dependencies.py:106` — `token = deps._auth.create_session(test_user, "127.0.0.1")`
+- `tests/test_whats_new.py:136` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_whats_new.py:165` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_whats_new.py:172` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_web_closure_contract.py:57` — `def test_enterprise_templates_have_no_localhost_urls():`
+- `tests/test_web_closure_contract.py:60` — `if "localhost:8000" in f.read_text(errors="ignore"):`
+- `tests/test_web_closure_contract.py:62` — `assert not bad, f"Hard-coded localhost URL found: {bad}"`
+- `tests/test_auth_system.py:257` — `user = auth_handler.authenticate("testuser", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_system.py:263` — `user = auth_handler.authenticate("testuser", "WrongP@ss1!", "127.0.0.1")`
+- `tests/test_auth_system.py:267` — `user = auth_handler.authenticate("nobody", "SomeP@ss1!", "127.0.0.1")`
+- `tests/test_auth_system.py:272` — `user = auth_handler.authenticate("testuser", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_system.py:277` — `auth_handler.authenticate("testuser", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_system.py:306` — `token = auth_handler.create_session(user, "127.0.0.1", "test-agent")`
+- `tests/test_auth_system.py:364` — `user = auth_handler.authenticate("testuser", "NewP@ss1!", "127.0.0.1")`
+- `tests/test_auth_system.py:382` — `assert auth_handler.authenticate("testuser", "Test@1234!", "127.0.0.1") is None`
+- `tests/test_auth_system.py:384` — `auth_user = auth_handler.authenticate("testuser", "Reset@1234!", "127.0.0.1")`
+- `tests/test_auth_system.py:1122` — `result = auth_handler.authenticate(injection, "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_system.py:1254` — `"web_dashboard_host": "127.0.0.1",`
+- `tests/test_database_mysql_adapter.py:148` — `host="127.0.0.1", port=1, database="test",`
+- `tests/test_database_mysql_adapter.py:407` — `params = _parse_mysql_dsn("localhost")`
+- `tests/test_database_mysql_adapter.py:408` — `assert params["host"] == "localhost"`
+- `tests/test_database_mysql_adapter.py:411` — `params = _parse_mysql_dsn("localhost:3306:mydb:user:pass")`
+- `tests/test_database_mysql_adapter.py:412` — `assert params["host"] == "localhost"`
+- `tests/test_wip40_surgical_url_contract.py:28` — `for token in ("localhost", "127.0.0.1", "0.0.0.0", "::1"):`
+- `tests/test_auth_handler.py:223` — `user = auth_with_user.authenticate("testuser", "TestPass123!", "127.0.0.1")`
+- `tests/test_auth_handler.py:229` — `user = auth_with_user.authenticate("testuser", "WrongPass1!", "127.0.0.1")`
+- `tests/test_auth_handler.py:233` — `user = auth_with_user.authenticate("nonexistent", "TestPass123!", "127.0.0.1")`
+- `tests/test_auth_handler.py:238` — `user = auth_with_user.authenticate("testuser", "TestPass123!", "127.0.0.1")`
+- `tests/test_auth_handler.py:246` — `auth_with_user.authenticate("testuser", "TestPass123!", "127.0.0.1")`
+- `tests/test_auth_handler.py:327` — `user = auth_with_user.authenticate("testuser", "NewValid1!", "127.0.0.1")`
+- `tests/test_auth_handler.py:394` — `token = auth_with_user.create_session(user, "127.0.0.1", "test-agent")`
+- `tests/test_auth_handler.py:412` — `t = auth_with_user.create_session(user, "127.0.0.1")`
+- `tests/test_auth_handler.py:423` — `token = auth_with_user.create_session(user, "127.0.0.1")`
+- `tests/test_auth_handler.py:431` — `token = auth_with_user.create_session(user, "127.0.0.1")`
+- `tests/test_auth_handler.py:481` — `auth_with_user.create_session(user, "127.0.0.1")`
+- `tests/test_auth_handler.py:484` — `assert sessions[0]["ip_address"] == "127.0.0.1"`
+- `tests/test_auth_handler.py:503` — `def test_localhost_not_rate_limited(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:504` — `"""Localhost should never be rate limited."""`
+- `tests/test_auth_handler.py:506` — `auth._record_attempt("127.0.0.1", False)`
+- `tests/test_auth_handler.py:507` — `assert auth._is_rate_limited("127.0.0.1") is False`
+- `tests/load/locustfile.py:14` — `--host http://localhost:8765 --run-time 60s`
+- `tests/load/locustfile.py:17` — `locust -f tests/load/locustfile.py --web-host 0.0.0.0`
+- `templates/enterprise/admin_config.html:545` — `'PUBLIC_BASE_URL_ADMIN_OVERRIDE': 'Canonical public HTTPS origin controlled by Super Admin/Admin users with modify_config permission. This value overrides deployment fallback URLs and is reflected in notification links, email action buttons, Telegram links, SSO redirects, and other externally visible cockpit URLs. Every change is backed up and recorded in the configuration audit log. Use a public http(s) origin; localhost/127.0.0.1 is blocked in production.',`
+- `archive/unrelated_modules/k6/realestate-load-test.js:6` — `//   k6 run --env BASE_URL=http://localhost:8765 k6/realestate-load-test.js`
+- `archive/unrelated_modules/k6/realestate-load-test.js:15` — `const BASE_URL = __ENV.BASE_URL || "http://localhost:8765";`
+- `archive/unrelated_modules/scripts/seed_realestate_data.py:156` — `api_base: str = "http://localhost:8766",`
+- `archive/unrelated_modules/scripts/seed_realestate_data.py:241` — `parser.add_argument("--api", type=str, default="http://localhost:8766", help="API base URL")`
+- `archive/unrelated_modules/scripts/launch_realestate.py:51` — `parser.add_argument("--host", type=str, default="127.0.0.1", help="Server host (default: 127.0.0.1; use 0.0.0.0 only to expose on the network)")`
+- `archive/unrelated_modules/scripts/launch_realestate.py:151` — `host_url = f"http://localhost:{port}"`
+- `archive/unrelated_modules/scripts/realestate_synthetic_monitor.py:213` — `default=os.environ.get("RE_URL", "http://localhost:8765"),`
+- `archive/unrelated_modules/scripts/realestate_synthetic_monitor.py:214` — `help="Base URL of the platform (default: http://localhost:8765)",`
+- `archive/unrelated_modules/e2e/realestate-flows.spec.js:10` — `const BASE_URL = process.env.BASE_URL || 'http://localhost:8765';`
+- `infrastructure/security/input_validator.py:172` — `r'localhost|'  # localhost`
+- `core/notifications/url_resolver.py:20` — `DEFAULT_DEV_URL = "http://localhost:8000"`
+- `core/notifications/url_resolver.py:30` — `return host in {"localhost", "127.0.0.1", "0.0.0.0", "::1"} or host.endswith(".localhost")`
+- `core/notifications/url_resolver.py:78` — `if mode in ("AUTO", "LIVE", "SIGNAL_ONLY") and active_cfg.get("web_dashboard_host") == "0.0.0.0":`
+- `core/notifications/url_resolver.py:132` — `- Development -> http://localhost:8000`
+- `core/auth/routes.py:1090` — `# can be the internal reverse-proxy/upstream host (or localhost), which`
+- `core/observability/opentelemetry.py:79` — `- otlp_endpoint (str): OTLP gRPC endpoint (default "http://localhost:4317").`
+- `core/observability/opentelemetry.py:300` — `otlp_endpoint = cfg.get("otlp_endpoint", "http://localhost:4317")`
+- `core/observability/opentelemetry.py:338` — `- jaeger_agent_host (str): Jaeger agent host (default "localhost").`
+- `core/observability/opentelemetry.py:355` — `jaeger_kwargs["agent_host_name"] = cfg.get("jaeger_agent_host", "localhost")`
+- `core/observability/opentelemetry.py:381` — `- zipkin_endpoint (str): Zipkin HTTP endpoint (default "http://localhost:9411/api/v2/spans").`
+- `core/observability/opentelemetry.py:390` — `zipkin_endpoint = cfg.get("zipkin_endpoint", "http://localhost:9411/api/v2/spans")`
+- `core/control_plane/server.py:75` — `_DEFAULT_HOST = "127.0.0.1"`
+- `core/enterprise_dashboard/utils.py:25` — `_DEFAULT_HOST = "0.0.0.0"  # nosec B104`
+- `core/enterprise_dashboard/models.py:168` — `def __init__(self, base_url: str = "http://127.0.0.1:8000", timeout: float = 2.0) -> None:`
+- `core/enterprise_dashboard/main.py:112` — `self._cookie_secure = str(self._cfg.get("web_dashboard_host", "127.0.0.1")) != "127.0.0.1"  # nosec B104`
+- `core/enterprise_dashboard/main.py:540` — `ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "127.0.0.1").split(",")[0].strip()`
+- `core/enterprise_dashboard/main.py:802` — `errors.append({"key": key, "message": "PUBLIC_BASE_URL cannot point to localhost/loopback in production"})`
+- `core/enterprise_dashboard/main.py:1349` — `configured host/port (default 0.0.0.0:8765).`
+- `core/enterprise_dashboard/main.py:1384` — `host = str(cfg.get("web_dashboard_host", "127.0.0.1"))`
+- `core/telemetry/exporters.py:66` — `def serve(self, host: str = "0.0.0.0", port: int = 9090) -> None:  # nosec B104`
+- `core/telemetry/exporters.py:96` — `host: str = "0.0.0.0",  # nosec B104`
+- `core/execution/redis_pubsub.py:14` — `def __init__(self, host: str = '127.0.0.1', port: int = 6379, db: int = 0):`
+- `core/execution/redis_pubsub.py:39` — `_log.warning("Redis server not found on 127.0.0.1:6379. Running in Fallback (Disabled) Mode.")`
+- `core/adapters/database/mysql_adapter.py:12` — `host="localhost",`
+- `core/adapters/database/mysql_adapter.py:23` — `with MySQLDatabaseAdapter(host="localhost", user="root", password=os.getenv("DB_PASSWORD", ""), database="trading") as db:`
+- `core/adapters/database/redis_adapter.py:17` — `db = RedisDatabaseAdapter(host="localhost", port=6379, db=0)`
+- `core/adapters/database/redis_adapter.py:24` — `with RedisDatabaseAdapter("redis://localhost:6379/0") as db:`
+- `core/adapters/database/connection_pool.py:12` — `host="localhost",`
+- `core/adapters/database/connection_pool.py:122` — `host: str = "localhost",`
+- `core/adapters/database/mongodb_adapter.py:18` — `db = MongoDBDatabaseAdapter(host="localhost", port=27017, database="trading")`
+- `core/adapters/database/mongodb_adapter.py:100` — `self._conn_params: dict[str, Any] = {"host": "localhost", "port": 27017}`
+- `core/adapters/database/dsn_utils.py:10` — `params = parse_pg_dsn("postgresql://user:pass@localhost:5432/mydb")`
+- `core/adapters/database/dsn_utils.py:11` — `# Returns: {"host": "localhost", "port": 5432, "dbname": "mydb", ...}`
+- `core/adapters/database/postgres_adapter.py:13` — `host="localhost", port=5432, dbname="trading", user="app", password=os.getenv("DB_PASSWORD", ""),`
+- `core/adapters/database/postgres_adapter.py:21` — `pool = PostgresConnectionPool(host="localhost", min_conn=2, max_conn=10)`
+- `core/adapters/database/postgres_adapter.py:28` — `with PostgreSQLDatabaseAdapter("postgresql://user:pass@localhost/trading") as db:`
+- `core/adapters/database/sqlalchemy_adapter.py:25` — `"postgresql://user:pass@localhost:5432/trading"`
+- `core/adapters/database/sqlalchemy_adapter.py:30` — `db = SQLAlchemyDatabaseAdapter("mysql+pymysql://user:pass@localhost/trading")`
+- `core/auth/handler/handler.py:506` — `if not ip_address or ip_address in ("127.0.0.1", "::1", "localhost"):`
+
+## UI API / XHR signals
+- `static/theme_engine.js:1034` — `const res = await fetch('/api/v1/risk/kill-switch', { method: 'POST' });`
+- `static/sw.js:69` — `event.respondWith(fetch(event.request).catch(() => {`
+- `static/sw.js:79` — `fetch(request).then((response) => {`
+- `static/sw.js:88` — `const response = await fetch(request);`
+- `static/sw.js:102` — `const response = await fetch(request);`
+- `static/sw.js:142` — `const response = await fetch(req);`
+- `static/dashboard-sw.js:15` — `fetch(event.request).catch(() => {`
+- `templates/enterprise/fii_dii_radar.html:76` — `const res = await fetch('/api/market/fii-dii-positioning', {credentials: 'include'});`
+- `templates/enterprise/dashboard.html:586` — `const res = await fetch('/api/v1/trade/paper-trade', {`
+- `templates/enterprise/dashboard.html:628` — `const res = await fetch('/api/auth/signals/my-history?year=all&month=all&category=all', {credentials: 'include'});`
+- `templates/enterprise/dashboard.html:676` — `const res = await fetch('/api/system/state', {credentials: 'include'});`
+- `templates/enterprise/intelligence.html:509` — `const r=await fetch(url,{headers:h,credentials:'include',...o});`
+- `templates/enterprise/login.html:524` — `const res = await fetch('/api/auth/login', {`
+- `templates/enterprise/margin_radar.html:106` — `const res = await fetch('/api/portfolio/margin-radar', {credentials: 'include'});`
+- `templates/enterprise/data_quality.html:199` — `const res=await fetch(url,{headers,credentials:'include',...opts});`
+- `templates/enterprise/admin_config.html:594` — `const res=await fetch(url,{headers,credentials:'include',...opts});`
+- `templates/enterprise/admin_config.html:818` — `const res = await fetch('/api/v1/admin/test-email', { method: 'POST' });`
+- `templates/enterprise/admin_config.html:939` — `const res = await fetch('/api/v1/admin/test-dispatch-signal', {`
+- `templates/enterprise/sector_radar.html:109` — `const res = await fetch('/api/market/sector-radar', {credentials: 'include'});`
+- `templates/enterprise/ab_tester.html:66` — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/event_store.html:76` — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/admin_portfolio_analyzer.html:458` — `const r=await fetch(url,{headers:h,credentials:'include',...o});`
+- `templates/enterprise/user_signals.html:176` — `const res = await fetch('/api/v1/trade/paper-trade', {`
+- `templates/enterprise/user_signals.html:248` — `const res = await fetch(`/api/auth/signals/my-history?year=${y}&month=${m}&category=${cat}`, {credentials: 'include'});`
+- `templates/enterprise/payoff_calculator.html:170` — `const res = await fetch('/api/payoff-calculator/compute', {`
+- `templates/enterprise/trade_copier.html:123` — `const res = await fetch('/api/copier/accounts', {credentials: 'include'});`
+- `templates/enterprise/trade_copier.html:166` — `const res = await fetch('/api/copier/execute', {`
+- `templates/enterprise/admin_signals.html:187` — `const res = await fetch(url, {credentials: 'include'});`
+- `templates/enterprise/admin_signals.html:211` — `const res = await fetch(`/api/auth/signals/${signalId}/mark-order-placed`, {`
+- `templates/enterprise/admin_signals.html:504` — `const res = await fetch('/api/v1/admin/test-dispatch-signal', {`
+- `templates/enterprise/security.html:178` — `const res=await fetch(url,{headers,credentials:'include',...opts});`
+- `templates/enterprise/admin_users.html:413` — `const res=await fetch(url,{headers,credentials:'include',...opts});`
+- `templates/enterprise/capacity.html:123` — `const res=await fetch(url,{headers,credentials:'include',...opts});`
+- `templates/enterprise/strategy_sandbox.html:539` — `const res = await fetch(`/api/backtest/run-sandbox?rsi_lower=${rsiL}&rsi_upper=${rsiU}&adx_cutoff=${adx}&ema_fast=${emaF}&ema_slow=${emaS}&vwap_mult=${vwap}`, {credentials: 'include'});`
+- `templates/enterprise/observability.html:152` — `const res=await fetch(url,{headers,credentials:'include',...opts});`
+- `templates/enterprise/presentation.html:166` — `const r = await fetch('/api/intelligence/presentation/templates');`
+- `templates/enterprise/presentation.html:187` — `const r = await fetch('/api/intelligence/summary');`
+- `templates/enterprise/presentation.html:202` — `const vR = await fetch('/api/system/state');`
+- `templates/enterprise/presentation.html:262` — `const r = await fetch('/api/intelligence/presentation/generate', {`
+- `templates/enterprise/presentation.html:311` — `const r = await fetch('/api/intelligence/presentation/generate-all', {`
+- `templates/enterprise/kill_switch.html:109` — `const res=await fetch(url,{headers,credentials:'include',...opts});`
+- `templates/enterprise/reset_password.html:214` — `const res = await fetch('/api/auth/verify-reset-token', {`
+- `templates/enterprise/reset_password.html:265` — `const res = await fetch('/api/auth/reset-password', {`
+- `templates/enterprise/pricing_plans.html:65` — `const res = await fetch('/api/billing/plans', {credentials: 'include'});`
+- `templates/enterprise/pricing_plans.html:91` — `const res = await fetch(`/api/billing/generate-qr?plan_id=${planId}&username={{ user.username or 'guest' }}`, {credentials: 'include'});`
+- `templates/enterprise/pricing_plans.html:107` — `const res = await fetch('/api/billing/confirm-upi-payment', {`
+- `templates/enterprise/change_password.html:143` — `const res = await fetch('/api/auth/change-password', {`
+- `templates/enterprise/forgot_password.html:287` — `const res = await fetch('/api/auth/forgot-password', {`
+- `templates/enterprise/forgot_password.html:338` — `const res = await fetch('/api/auth/emergency-reset-password', {`
+- `templates/enterprise/governance.html:186` — `const res=await fetch(url,{headers,credentials:'include',...opts});`
+- `templates/enterprise/trade_journal.html:61` — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/register.html:323` — `const res = await fetch('/api/auth/register', {`
+- `templates/enterprise/options_chain.html:133` — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/metrics_trend.html:286` — `const res = await fetch('/api/metrics/trend');`
+- `templates/enterprise/metrics_trend.html:391` — `const res = await fetch('/api/metrics/trend/release-audits');`
+- `templates/enterprise/system_health.html:89` — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/expiry_harvester.html:97` — `const res = await fetch('/api/strategy/0dte-status', {credentials: 'include'});`
+- `templates/enterprise/profile.html:609` — `const res = await fetch('/api/auth/profile', {`
+- `templates/enterprise/profile.html:679` — `const res = await fetch('/api/auth/profile', {`
+- `templates/enterprise/profile.html:719` — `const res = await fetch('/api/auth/change-password', {`
+- `templates/enterprise/performance.html:101` — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/live_pnl.html:108` — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+
+## UI navigation/action signals (sampled by source order)
+- `static/theme_engine.js:807` [BUTTON] — `<button class="opb-toast-close" title="Dismiss" aria-label="Dismiss">`
+- `static/theme_engine.js:867` [BUTTON] — `<button class="opb-toast-close" id="opb-modal-close-btn" aria-label="Close">`
+- `static/theme_engine.js:876` [BUTTON] — `${cancelText ? `<button class="opb-modal-btn opb-modal-btn-secondary" id="opb-modal-cancel-btn">${escapeHtml(cancelText)}</button>` : ''}`
+- `static/theme_engine.js:877` [BUTTON] — `<button class="opb-modal-btn ${type === 'error' ? 'opb-modal-btn-danger' : 'opb-modal-btn-primary'}" id="opb-modal-confirm-btn">`
+- `static/theme_engine.js:1013` [HREF] — `window.location.href = '/';`
+- `static/theme_engine.js:1016` [HREF] — `window.location.href = '/intelligence';`
+- `static/theme_engine.js:1019` [HREF] — `window.location.href = '/governance';`
+- `static/theme_engine.js:1022` [HREF] — `window.location.href = '/admin/config';`
+- `static/theme_engine.js:1038` [HREF] — `window.location.href = '/admin/kill-switch';`
+- `static/theme_engine.js:1041` [HREF] — `window.location.href = '/admin/kill-switch';`
+- `templates/enterprise/fii_dii_radar.html:9` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/fii_dii_radar.html:25` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/fii_dii_radar.html:26` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/fii_dii_radar.html:27` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/fii_dii_radar.html:28` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/fii_dii_radar.html:29` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/fii_dii_radar.html:41` [BUTTON] — `<button id="cspfix-1" class="btn btn-ghost" style="background:transparent;color: var(--text-muted, #94a3b8);border: 1px solid var(--border-color, #1e293b);padding:0.4rem 0.8rem;border-radius:0.4rem;cursor:pointer;" type="button"><i class="fas fa-sync-alt"></i> Refresh Positioning</button>`
+- `templates/enterprise/dashboard.html:10` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/dashboard.html:11` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css?v=4.0">`
+- `templates/enterprise/dashboard.html:237` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/dashboard.html:264` [FORM_ACTION] — `<button id="dashboardRefreshBtnTop" data-action="refresh-dashboard" class="opb-tab" style="padding:0.35rem 0.75rem;font-size:0.75rem;" title="Force Refresh Dashboard Telemetry" type="button">`
+- `templates/enterprise/dashboard.html:264` [BUTTON] — `<button id="dashboardRefreshBtnTop" data-action="refresh-dashboard" class="opb-tab" style="padding:0.35rem 0.75rem;font-size:0.75rem;" title="Force Refresh Dashboard Telemetry" type="button">`
+- `templates/enterprise/dashboard.html:267` [HREF] — `<a href="/strategy-sandbox" class="opb-tab" style="padding:0.35rem 0.75rem;font-size:0.75rem;color:var(--accent-color);border-color:var(--accent-color);" title="Launch Sandbox Studio">`
+- `templates/enterprise/dashboard.html:280` [FORM_ACTION] — `<button id="dashboardRefreshBtnSubbar" data-action="refresh-dashboard" class="btn btn-ghost btn-sm" title="Refresh Telemetry" style="padding:0.3rem 0.6rem;font-size:0.75rem;" type="button">`
+- `templates/enterprise/dashboard.html:280` [BUTTON] — `<button id="dashboardRefreshBtnSubbar" data-action="refresh-dashboard" class="btn btn-ghost btn-sm" title="Refresh Telemetry" style="padding:0.3rem 0.6rem;font-size:0.75rem;" type="button">`
+- `templates/enterprise/dashboard.html:283` [HREF] — `<a href="/strategy-sandbox" class="btn btn-primary btn-sm" title="Strategy Lab" style="padding:0.3rem 0.6rem;font-size:0.75rem;">`
+- `templates/enterprise/dashboard.html:370` [BUTTON] — `<button class="opb-tab active" data-tab="trades" type="button"><i class="fas fa-receipt"></i> Recent Executed Trades</button>`
+- `templates/enterprise/dashboard.html:371` [BUTTON] — `<button class="opb-tab" data-tab="signals" type="button"><i class="fas fa-satellite-dish"></i> Live Conviction Signals</button>`
+- `templates/enterprise/dashboard.html:372` [BUTTON] — `<button class="opb-tab" data-tab="health" type="button"><i class="fas fa-heartbeat"></i> System Health</button>`
+- `templates/enterprise/dashboard.html:373` [BUTTON] — `<button class="opb-tab" data-tab="constitution" type="button"><i class="fas fa-gavel" style="color:#a78bfa;"></i> Constitution v4.0</button>`
+- `templates/enterprise/dashboard.html:545` [HREF] — `<a href="/my-signals" class="opb-quick-tile"><i class="fas fa-bell" style="color:#38bdf8;"></i> Signals</a>`
+- `templates/enterprise/dashboard.html:546` [HREF] — `<a href="/live-pnl" class="opb-quick-tile"><i class="fas fa-dollar-sign" style="color: var(--success-color, #16a34a);"></i> Live P&L</a>`
+- `templates/enterprise/dashboard.html:547` [HREF] — `<a href="/options-chain" class="opb-quick-tile"><i class="fas fa-list" style="color:#ec4899;"></i> Chains</a>`
+- `templates/enterprise/dashboard.html:548` [HREF] — `<a href="/trade-journal" class="opb-quick-tile"><i class="fas fa-book" style="color:#10b981;"></i> Journal</a>`
+- `templates/enterprise/dashboard.html:549` [HREF] — `<a href="/sector-radar" class="opb-quick-tile"><i class="fas fa-compass" style="color:#f59e0b;"></i> Sector</a>`
+- `templates/enterprise/dashboard.html:550` [HREF] — `<a href="/strategy-sandbox" class="opb-quick-tile"><i class="fas fa-flask" style="color:#c084fc;"></i> Sandbox</a>`
+- `templates/enterprise/dashboard.html:552` [HREF] — `<a href="/margin-radar" class="opb-quick-tile"><i class="fas fa-shield-alt" style="color:#f59e0b;"></i> Margins</a>`
+- `templates/enterprise/dashboard.html:553` [HREF] — `<a href="/governance" class="opb-quick-tile"><i class="fas fa-gavel" style="color:#8b5cf6;"></i> Governance</a>`
+- `templates/enterprise/dashboard.html:554` [HREF] — `<a href="/admin/config" class="opb-quick-tile"><i class="fas fa-cogs" style="color:#34d399;"></i> Config</a>`
+- `templates/enterprise/dashboard.html:555` [HREF] — `<a href="/admin/kill-switch" class="opb-quick-tile" style="color: var(--danger-color, #dc2626);"><i class="fas fa-power-off" style="color: var(--danger-color, #dc2626);"></i> Kill Switch</a>`
+- `templates/enterprise/dashboard.html:657` [FORM_ACTION] — `<button data-action="trigger-paper-trade" data-symbol="${s.symbol}" data-direction="${s.direction}" data-score="${s.score}" class="opb-badge badge-buy" style="cursor:pointer;border:none;" title="Queue Paper Trade" type="button">`
+- `templates/enterprise/dashboard.html:657` [BUTTON] — `<button data-action="trigger-paper-trade" data-symbol="${s.symbol}" data-direction="${s.direction}" data-score="${s.score}" class="opb-badge badge-buy" style="cursor:pointer;border:none;" title="Queue Paper Trade" type="button">`
+- `templates/enterprise/dashboard.html:667` [FORM_ACTION] — `const btn = e.target.closest('[data-action="trigger-paper-trade"]');`
+- `templates/enterprise/dashboard.html:786` [FORM_ACTION] — `document.querySelectorAll('[data-action="refresh-dashboard"]').forEach((btn) => {`
+- `templates/enterprise/intelligence.html:9` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/intelligence.html:61` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/intelligence.html:62` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/intelligence.html:63` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/intelligence.html:64` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/intelligence.html:65` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/intelligence.html:202` [BUTTON] — `<button id="cspfix-2" class="btn" type="button"><i class="fas fa-sync"></i> Refresh</button>`
+- `templates/enterprise/intelligence.html:218` [BUTTON] — `<button id="cspfix-3" class="btn" type="button"><i class="fas fa-shield-alt"></i> Run Scan</button>`
+- `templates/enterprise/intelligence.html:231` [BUTTON] — `<button id="cspfix-4" class="btn" type="button"><i class="fas fa-tachometer-alt"></i> Run Analysis</button>`
+- `templates/enterprise/intelligence.html:244` [BUTTON] — `<button id="cspfix-5" class="btn" type="button"><i class="fas fa-sitemap"></i> Run Analysis</button>`
+- `templates/enterprise/intelligence.html:255` [BUTTON] — `<button id="cspfix-6" class="btn" type="button"><i class="fas fa-sync"></i> Refresh</button>`
+- `templates/enterprise/intelligence.html:320` [BUTTON] — `<button id="cspfix-7" class="btn" type="button"><i class="fas fa-sync"></i> Refresh</button>`
+- `templates/enterprise/intelligence.html:335` [BUTTON] — `<button id="cspfix-8" class="btn" type="button"><i class="fas fa-sync"></i> Refresh</button>`
+- `templates/enterprise/intelligence.html:349` [BUTTON] — `<button id="cspfix-9" class="btn" type="button"><i class="fas fa-search"></i> Run Detection</button>`
+- `templates/enterprise/intelligence.html:350` [BUTTON] — `<button id="cspfix-10" class="btn btn-primary" type="button"><i class="fas fa-sync"></i> Refresh</button>`
+- `templates/enterprise/intelligence.html:409` [BUTTON] — `<button id="cspfix-11" class="btn" type="button"><i class="fas fa-sync"></i> Refresh</button>`
+- `templates/enterprise/intelligence.html:438` [BUTTON] — `<button id="cspfix-12" class="btn" type="button"><i class="fas fa-sync"></i> Refresh</button>`
+- `templates/enterprise/intelligence.html:473` [BUTTON] — `<button class="btn btn-primary" id="btnRetrainMl" type="button"><i class="fas fa-sync"></i> Retrain & Calibrate</button>`
+- `templates/enterprise/intelligence.html:510` [HREF] — `if(r.status===401){window.location.href='/login';return null}`
+- `templates/enterprise/intelligence.html:533` [HREF] — `async function logout(){await apiFetch('/api/auth/logout',{method:'POST'});window.location.href='/login';}`
+- `templates/enterprise/intelligence.html:1018` [FORM_ACTION] — `'<td style="font-family:monospace;font-size:0.7rem;color:#60a5fa;cursor:pointer;" data-action="show-incident-details" data-incident-id="'+inc.incident_id+'">'+inc.incident_id+'</td>' +`
+- `templates/enterprise/intelligence.html:1026` [FORM_ACTION] — `(inc.status === 'DETECTED' ? '<button class="btn" data-action="acknowledge-incident" data-incident-id="'+inc.incident_id+'" title="Acknowledge" type="button"><i class="fas fa-eye"></i></button> ' : '') +`
+- `templates/enterprise/intelligence.html:1026` [BUTTON] — `(inc.status === 'DETECTED' ? '<button class="btn" data-action="acknowledge-incident" data-incident-id="'+inc.incident_id+'" title="Acknowledge" type="button"><i class="fas fa-eye"></i></button> ' : '') +`
+- `templates/enterprise/intelligence.html:1027` [FORM_ACTION] — `(inc.status !== 'RESOLVED' && inc.status !== 'CLOSED' ? '<button class="btn" data-action="resolve-incident" data-incident-id="'+inc.incident_id+'" title="Resolve" type="button"><i class="fas fa-check"></i></button> ' : '') +`
+- `templates/enterprise/intelligence.html:1027` [BUTTON] — `(inc.status !== 'RESOLVED' && inc.status !== 'CLOSED' ? '<button class="btn" data-action="resolve-incident" data-incident-id="'+inc.incident_id+'" title="Resolve" type="button"><i class="fas fa-check"></i></button> ' : '') +`
+- `templates/enterprise/intelligence.html:1028` [FORM_ACTION] — `(inc.status === 'RESOLVED' ? '<button class="btn" data-action="close-incident" data-incident-id="'+inc.incident_id+'" title="Close" type="button"><i class="fas fa-times"></i></button>' : '') +`
+- `templates/enterprise/intelligence.html:1028` [BUTTON] — `(inc.status === 'RESOLVED' ? '<button class="btn" data-action="close-incident" data-incident-id="'+inc.incident_id+'" title="Close" type="button"><i class="fas fa-times"></i></button>' : '') +`
+- `templates/enterprise/login.html:7` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/login.html:349` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/login.html:350` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/login.html:351` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/login.html:352` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/login.html:353` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/login.html:401` [FORM_ACTION] — `<form id="loginForm" action="/api/auth/login" method="POST">`
+- `templates/enterprise/login.html:418` [HREF] — `<a href="/forgot-password" style="color:var(--accent-color, #38bdf8);text-decoration:none;font-size:0.75rem;font-weight:700;">Forgot password?</a>`
+- `templates/enterprise/login.html:424` [BUTTON] — `<button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/login.html:428` [BUTTON] — `<button type="submit" class="btn-submit" id="submitBtn">`
+- `templates/enterprise/login.html:435` [HREF] — `Don't have an account? <a href="/register">Create an account</a>`
+- `templates/enterprise/margin_radar.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/margin_radar.html:32` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/margin_radar.html:33` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/margin_radar.html:34` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/margin_radar.html:35` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/margin_radar.html:36` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/margin_radar.html:48` [BUTTON] — `<button class="btn btn-ghost" id="cspfix-1" style="background:transparent;color: var(--text-muted, #94a3b8);border: 1px solid var(--border-color, #1e293b);padding:0.4rem 0.8rem;border-radius:0.4rem;cursor:pointer;" type="button"><i class="fas fa-sync-alt"></i> Refresh Margins</button>`
+- `templates/enterprise/data_quality.html:8` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/data_quality.html:42` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/data_quality.html:44` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/data_quality.html:45` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/data_quality.html:46` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/data_quality.html:47` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/data_quality.html:48` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/data_quality.html:200` [HREF] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/admin_config.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_config.html:267` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/admin_config.html:268` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/admin_config.html:269` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/admin_config.html:270` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_config.html:271` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_config.html:280` [HREF] — `<a class="btn btn-sm btn-primary" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>`
+- `templates/enterprise/admin_config.html:281` [HREF] — `<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>`
+- `templates/enterprise/admin_config.html:282` [HREF] — `<a class="btn btn-sm btn-ghost" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>`
+- `templates/enterprise/admin_config.html:290` [BUTTON] — `<button class="btn btn-primary" id="saveConfigBtn" type="button"><i class="fas fa-check-circle"></i> Save Changes</button>`
+- `templates/enterprise/admin_config.html:291` [BUTTON] — `<button class="btn btn-ghost" id="previewBtn" type="button"><i class="fas fa-eye"></i> Preview Diff</button>`
+- `templates/enterprise/admin_config.html:292` [BUTTON] — `<button class="btn btn-ghost" id="reloadBtn" type="button"><i class="fas fa-sync-alt"></i> Reload</button>`
+- `templates/enterprise/admin_config.html:293` [BUTTON] — `<button class="btn btn-ghost" id="historyBtn" type="button"><i class="fas fa-history"></i> Backup History</button>`
+- `templates/enterprise/admin_config.html:294` [BUTTON] — `<button class="btn btn-ghost" id="testEmailBtn" title="Send a non-trading test email" type="button"><i class="fas fa-envelope-open-text"></i> Test Email</button>`
+- `templates/enterprise/admin_config.html:295` [FORM_ACTION] — `<button class="btn btn-test-email" data-action="execute-signal-dispatch" id="openSignalTestModalBtn" type="button"><i class="fas fa-satellite-dish"></i> 🚀 Test Live Signal Dispatch</button>`
+- `templates/enterprise/admin_config.html:295` [BUTTON] — `<button class="btn btn-test-email" data-action="execute-signal-dispatch" id="openSignalTestModalBtn" type="button"><i class="fas fa-satellite-dish"></i> 🚀 Test Live Signal Dispatch</button>`
+- `templates/enterprise/admin_config.html:412` [BUTTON] — `<button class="btn btn-ghost btn-sm" id="closeHistoryBtn" type="button">Close</button>`
+- `templates/enterprise/admin_config.html:595` [HREF] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/admin_config.html:727` [FORM_ACTION] — `return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;background:#0f1319;border-radius:0.35rem;"><span style="font-family:monospace;">${h.file}</span><span style="color: var(--text-muted, #94a3b8);">${age}</span><button data-action="rollback-config" data-file="${h.file}" class="btn btn-ghost btn-sm" style="padding:0.15rem 0.5rem;font-size:0.7rem;" type="button"><i class="fas fa-undo"></i> Restore</button></div>`;`
+- `templates/enterprise/admin_config.html:727` [BUTTON] — `return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;background:#0f1319;border-radius:0.35rem;"><span style="font-family:monospace;">${h.file}</span><span style="color: var(--text-muted, #94a3b8);">${age}</span><button data-action="rollback-config" data-file="${h.file}" class="btn btn-ghost btn-sm" style="padding:0.15rem 0.5rem;font-size:0.7rem;" type="button"><i class="fas fa-undo"></i> Restore</button></div>`;`
+- `templates/enterprise/admin_config.html:769` [FORM_ACTION] — `const btn = e.target.closest('[data-action="rollback-config"]');`
+- `templates/enterprise/admin_config.html:850` [FORM_ACTION] — `<button data-action="close-signal-test-modal" style="background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;padding:0.25rem;" type="button"><i class="fas fa-times"></i></button>`
+- `templates/enterprise/admin_config.html:850` [BUTTON] — `<button data-action="close-signal-test-modal" style="background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;padding:0.25rem;" type="button"><i class="fas fa-times"></i></button>`
+- `templates/enterprise/admin_config.html:894` [FORM_ACTION] — `<button class="btn btn-ghost" data-action="close-signal-test-modal" type="button">Cancel</button>`
+- `templates/enterprise/admin_config.html:894` [BUTTON] — `<button class="btn btn-ghost" data-action="close-signal-test-modal" type="button">Cancel</button>`
+- `templates/enterprise/admin_config.html:895` [FORM_ACTION] — `<button class="btn btn-primary" data-action="broadcast-test-signal" id="btnExecuteTestSignal" style="background:var(--accent-gradient);" type="button"><i class="fas fa-paper-plane"></i> ⚡ Broadcast Live Signal</button>`
+- `templates/enterprise/admin_config.html:895` [BUTTON] — `<button class="btn btn-primary" data-action="broadcast-test-signal" id="btnExecuteTestSignal" style="background:var(--accent-gradient);" type="button"><i class="fas fa-paper-plane"></i> ⚡ Broadcast Live Signal</button>`
+- `templates/enterprise/admin_config.html:995` [FORM_ACTION] — `document.querySelectorAll('[data-action="close-signal-test-modal"]').forEach(function(el) {`
+- `templates/enterprise/sector_radar.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/sector_radar.html:33` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/sector_radar.html:34` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/sector_radar.html:35` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/sector_radar.html:36` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/sector_radar.html:37` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/sector_radar.html:49` [BUTTON] — `<button class="btn btn-ghost" id="cspfix-1" style="background:transparent;color: var(--text-muted, #94a3b8);border: 1px solid var(--border-color, #1e293b);padding:0.4rem 0.8rem;border-radius:0.4rem;cursor:pointer;" type="button"><i class="fas fa-sync-alt"></i> Refresh Radar</button>`
+- `templates/enterprise/ab_tester.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/ab_tester.html:35` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/ab_tester.html:36` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/ab_tester.html:37` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/ab_tester.html:38` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/ab_tester.html:39` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/ab_tester.html:61` [BUTTON] — `<button class="btn btn-danger" id="resetBtn" type="button"><i class="fas fa-redo"></i> Reset Experiment</button>`
+- `templates/enterprise/ab_tester.html:66` [HREF] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/event_store.html:9` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/event_store.html:34` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/event_store.html:36` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/event_store.html:37` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/event_store.html:38` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/event_store.html:39` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/event_store.html:40` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/event_store.html:65` [BUTTON] — `<button class="btn" id="cspfix-1" type="button"><i class="fas fa-search"></i> Search</button>`
+- `templates/enterprise/event_store.html:66` [BUTTON] — `<button class="btn" id="cspfix-2" type="button"><i class="fas fa-shield-alt"></i> Verify Chain</button>`
+- `templates/enterprise/event_store.html:76` [HREF] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/admin_portfolio_analyzer.html:8` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:119` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:120` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:121` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:122` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:123` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:132` [HREF] — `<a class="btn btn-sm btn-ghost" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>`
+- `templates/enterprise/admin_portfolio_analyzer.html:133` [HREF] — `<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>`
+- `templates/enterprise/admin_portfolio_analyzer.html:134` [HREF] — `<a class="btn btn-sm btn-primary" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>`
+- `templates/enterprise/admin_portfolio_analyzer.html:150` [BUTTON] — `<button class="btn-accent" id="cspfix-1" style="padding: 0.6rem 1.2rem; cursor: pointer;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:233` [BUTTON] — `<button class="btn-accent" id="cspfix-11" style="background: #3b82f6; cursor: pointer;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:236` [BUTTON] — `<button class="btn-accent" id="cspfix-12" style="background: #8b5cf6; cursor: pointer;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:298` [BUTTON] — `<button id="cspfix-13" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer;" type="button">×</button>`
+- `templates/enterprise/admin_portfolio_analyzer.html:312` [HREF] — `<a aria-disabled="true" class="btn-accent" href="/admin/portfolio-analyzer" id="broker-oauth-link" rel="noopener noreferrer" style="padding:0.65rem 1.25rem; text-decoration:none; display:inline-flex; align-items:center; gap:0.5rem; font-size:0.85rem; background: #3b82f6; pointer-events:none; opacity:0.6;" target="_blank">`
+- `templates/enterprise/admin_portfolio_analyzer.html:325` [BUTTON] — `<div class="opb-password-wrapper"><input id="broker-access-token" placeholder="Auto-managed via session or enter token" style="width: 100%; padding: 0.5rem 2.5rem 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; box-sizing: border-box;" type="password"/><button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button`
+- `templates/enterprise/admin_portfolio_analyzer.html:326` [BUTTON] — `<button data-toggle="password" style="position:absolute;right:0.75rem;background:none;border:none;color:var(--text-muted,#94a3b8);cursor:pointer;padding:0.25rem;display:flex;align-items:center;justify-content:center;z-index:5;" tabindex="-1" title="Show/Hide Token" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:332` [BUTTON] — `<button class="btn-accent" id="btn-fetch-holdings" style="width:100%; padding:0.85rem; font-size:0.95rem; font-weight:600; cursor:pointer;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:344` [BUTTON] — `<button id="cspfix-14" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer;" type="button">×</button>`
+- `templates/enterprise/admin_portfolio_analyzer.html:376` [BUTTON] — `<button id="cspfix-15" style="padding: 0.45rem 0.85rem; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 0.375rem; cursor: pointer; font-size: 0.8rem;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:381` [BUTTON] — `<button id="cspfix-16" style="padding:0.6rem 1.2rem; background:none; border:1px solid var(--border-color); color:var(--text-secondary); border-radius:0.5rem; cursor:pointer;" type="button">Cancel</button>`
+- `templates/enterprise/admin_portfolio_analyzer.html:382` [BUTTON] — `<button class="btn-accent" id="cspfix-17" style="padding:0.65rem 1.75rem; font-size: 0.95rem; font-weight: 600; cursor:pointer;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:395` [BUTTON] — `<button id="cspfix-18" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>`
+- `templates/enterprise/admin_portfolio_analyzer.html:409` [BUTTON] — `<button id="cspfix-19" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>`
+- `templates/enterprise/admin_portfolio_analyzer.html:413` [BUTTON] — `<button id="cspfix-20" style="padding:0.6rem 1.2rem; background:none; border:1px solid var(--border-color); color:var(--text-secondary); border-radius:0.5rem; cursor:pointer;" type="button">Cancel</button>`
+- `templates/enterprise/admin_portfolio_analyzer.html:414` [BUTTON] — `<button class="btn-accent" id="hedge-confirm-btn" style="padding:0.6rem 1.5rem; cursor:pointer; background:#8b5cf6;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:427` [BUTTON] — `<button id="cspfix-21" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>`
+- `templates/enterprise/admin_portfolio_analyzer.html:441` [BUTTON] — `<button id="cspfix-22" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>`
+- `templates/enterprise/admin_portfolio_analyzer.html:459` [HREF] — `if(r.status===401){window.location.href='/login';return null}`
+- `templates/enterprise/admin_portfolio_analyzer.html:472` [HREF] — `oauthLink.href = '/admin/portfolio-analyzer';`
+- `templates/enterprise/admin_portfolio_analyzer.html:568` [FORM_ACTION] — `<button data-action="remove-position" data-idx="${idx}" style="background: none; border: none; color: var(--danger-color, #dc2626); cursor: pointer;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:568` [BUTTON] — `<button data-action="remove-position" data-idx="${idx}" style="background: none; border: none; color: var(--danger-color, #dc2626); cursor: pointer;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:587` [FORM_ACTION] — `const btn = e.target.closest('[data-action="remove-position"]');`
+- `templates/enterprise/admin_portfolio_analyzer.html:671` [FORM_ACTION] — `<button data-action="execute-hedge" data-symbol="${item.symbol}" data-hedge-action="BUY_PUT" style="margin-top:0.4rem; background:#8b5cf6; border:none; color:#fff; padding:0.3rem 0.6rem; border-radius:0.375rem; cursor:pointer; font-size:0.7rem; font-weight:600; width:100%;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:671` [BUTTON] — `<button data-action="execute-hedge" data-symbol="${item.symbol}" data-hedge-action="BUY_PUT" style="margin-top:0.4rem; background:#8b5cf6; border:none; color:#fff; padding:0.3rem 0.6rem; border-radius:0.375rem; cursor:pointer; font-size:0.7rem; font-weight:600; width:100%;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:689` [FORM_ACTION] — `<button data-action="show-proof-modal" data-idx="${index}" style="background:rgba(6,182,212,0.15); border:1px solid rgba(6,182,212,0.4); color:#06b6d4; padding:0.3rem 0.6rem; border-radius:0.375rem; cursor:pointer; font-size:0.75rem; font-weight:600; width:100%;" type="button">`
+- `templates/enterprise/admin_portfolio_analyzer.html:689` [BUTTON] — `<button data-action="show-proof-modal" data-idx="${index}" style="background:rgba(6,182,212,0.15); border:1px solid rgba(6,182,212,0.4); color:#06b6d4; padding:0.3rem 0.6rem; border-radius:0.375rem; cursor:pointer; font-size:0.75rem; font-weight:600; width:100%;" type="button">`
+- `templates/enterprise/_pwa_mobile_nav.html:53` [HREF] — `<a href="/" class="nav-item{% if current_page == 'dashboard' %} active{% endif %}">`
+- `templates/enterprise/_pwa_mobile_nav.html:57` [HREF] — `<a href="/performance" class="nav-item{% if current_page == 'performance' %} active{% endif %}">`
+- `templates/enterprise/_pwa_mobile_nav.html:61` [HREF] — `<a href="/trade-journal" class="nav-item{% if current_page == 'trade_journal' %} active{% endif %}">`
+- `templates/enterprise/_pwa_mobile_nav.html:65` [HREF] — `<a href="/metrics-trend" class="nav-item{% if current_page == 'metrics_trend' %} active{% endif %}">`
+- `templates/enterprise/_pwa_mobile_nav.html:69` [HREF] — `<a href="/live-pnl" class="nav-item{% if current_page == 'live_pnl' %} active{% endif %}">`
+- `templates/enterprise/user_signals.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/user_signals.html:64` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/user_signals.html:65` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/user_signals.html:66` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/user_signals.html:67` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/user_signals.html:68` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/user_signals.html:80` [BUTTON] — `<button class="btn btn-ghost" id="refreshBtn" type="button"><i class="fas fa-sync-alt"></i> Refresh Feed</button>`
+- `templates/enterprise/user_signals.html:144` [BUTTON] — `<button id="cspfix-2" style="background:transparent;border:none;color: var(--text-muted, #94a3b8);font-size:1.2rem;cursor:pointer;" type="button">✕</button>`
+- `templates/enterprise/user_signals.html:150` [BUTTON] — `<button class="btn btn-ghost" id="cspfix-3" type="button">Close</button>`
+- `templates/enterprise/user_signals.html:151` [BUTTON] — `<button class="btn" id="mExecBtn" style="background:linear-gradient(90deg,#0284c7,#2563eb);color:#fff;" type="button">⚡ Execute Paper Trade</button>`
+- `templates/enterprise/user_signals.html:249` [HREF] — `if (res.status === 401) { window.location.href = '/login'; return; }`
+- `templates/enterprise/user_signals.html:349` [FORM_ACTION] — `<button data-action="open-signal-plan-modal" data-idx="${idx}" class="btn btn-ghost" style="padding:3px 7px;font-size:0.7rem;" title="View Plan & Exit Steps" type="button">`
+- `templates/enterprise/user_signals.html:349` [BUTTON] — `<button data-action="open-signal-plan-modal" data-idx="${idx}" class="btn btn-ghost" style="padding:3px 7px;font-size:0.7rem;" title="View Plan & Exit Steps" type="button">`
+- `templates/enterprise/user_signals.html:352` [FORM_ACTION] — `<button data-action="trigger-paper-trade" data-symbol="${s.symbol}" class="btn" style="padding:3px 7px;font-size:0.7rem;background:linear-gradient(90deg,#0284c7,#2563eb);color:#fff;" title="1-Click Paper Trade" type="button">`
+- `templates/enterprise/user_signals.html:352` [BUTTON] — `<button data-action="trigger-paper-trade" data-symbol="${s.symbol}" class="btn" style="padding:3px 7px;font-size:0.7rem;background:linear-gradient(90deg,#0284c7,#2563eb);color:#fff;" title="1-Click Paper Trade" type="button">`
+- `templates/enterprise/user_signals.html:355` [HREF] — `<a href="https://in.tradingview.com/chart/?symbol=NSE:${s.symbol}" target="_blank" class="btn btn-ghost" style="padding:3px 7px;font-size:0.7rem;text-decoration:none;" title="Open Chart">`
+- `templates/enterprise/payoff_calculator.html:11` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/payoff_calculator.html:38` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/payoff_calculator.html:39` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/payoff_calculator.html:40` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/payoff_calculator.html:41` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/payoff_calculator.html:42` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/payoff_calculator.html:66` [BUTTON] — `<button class="btn btn-ghost" id="addLegBtn" type="button"><i class="fas fa-plus"></i> Add Leg</button>`
+- `templates/enterprise/payoff_calculator.html:67` [BUTTON] — `<button class="btn btn-primary" id="calculateBtn" type="button"><i class="fas fa-calculator"></i> Calculate Payoff</button>`
+- `templates/enterprise/payoff_calculator.html:122` [BUTTON] — `<button id="cspfix-1" class="btn btn-danger" type="button"><i class="fas fa-trash"></i></button>`
+- `templates/enterprise/trade_copier.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/trade_copier.html:28` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/trade_copier.html:29` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/trade_copier.html:30` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/trade_copier.html:31` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/trade_copier.html:32` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/trade_copier.html:44` [BUTTON] — `<button class="btn btn-ghost" id="cspfix-1" type="button"><i class="fas fa-sync-alt"></i> Refresh Accounts</button>`
+- `templates/enterprise/trade_copier.html:73` [BUTTON] — `<button class="btn btn-primary" id="cspfix-2" type="button"><i class="fas fa-paper-plane"></i> Dispatch Master Trade</button>`
+- `templates/enterprise/admin_signals.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_signals.html:43` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/admin_signals.html:44` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/admin_signals.html:45` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/admin_signals.html:46` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_signals.html:47` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_signals.html:56` [HREF] — `<a class="btn btn-sm btn-ghost" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>`
+- `templates/enterprise/admin_signals.html:57` [HREF] — `<a class="btn btn-sm btn-primary" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>`
+- `templates/enterprise/admin_signals.html:58` [HREF] — `<a class="btn btn-sm btn-ghost" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>`
+- `templates/enterprise/admin_signals.html:65` [BUTTON] — `<div style="display:flex;gap:0.6rem;flex-wrap:wrap;"><button class="btn btn-ghost" id="openSignalTestModalBtn" style="color:#38bdf8;border-color:rgba(56,189,248,0.4);" type="button"><i class="fas fa-satellite-dish"></i> 🚀 Test Live Signal Dispatch</button><button class="btn btn-ghost" id="refreshBtn" type="button"><i class="fas fa-sync-alt"></i> Refresh Signals</button></div>`
+- `templates/enterprise/admin_signals.html:74` [BUTTON] — `<button class="timeframe-btn active" data-tf="all" type="button">All Time</button>`
+- `templates/enterprise/admin_signals.html:75` [BUTTON] — `<button class="timeframe-btn" data-tf="today" type="button">Today (Daily)</button>`
+- `templates/enterprise/admin_signals.html:76` [BUTTON] — `<button class="timeframe-btn" data-tf="week" type="button">This Week</button>`
+- `templates/enterprise/admin_signals.html:77` [BUTTON] — `<button class="timeframe-btn" data-tf="month" type="button">This Month</button>`
+- `templates/enterprise/admin_signals.html:78` [BUTTON] — `<button class="timeframe-btn" data-tf="year" type="button">Yearly</button>`
+- `templates/enterprise/admin_signals.html:188` [HREF] — `if (res.status === 401) { window.location.href = '/login'; return null; }`
+- `templates/enterprise/admin_signals.html:319` [FORM_ACTION] — `return `<tr data-signal-row="1" data-instrument="${String(s.symbol || '').replace(/"/g, '&quot;').toUpperCase()} ${String(humanTitle || '').replace(/"/g, '&quot;').toUpperCase()}" data-time="${String(s.timestamp || '').replace(/"/g, '&quot;').toUpperCase()}" data-category="${String(s.category || '').replace(/"/g, '&quot;').toUpperCase()}" data-action="${String(s.direction || '').replace(/"/g, '&quot;').toUpperCase()}" data-score="${Number(s.score || 0)}" data-status="${String(s.status || '').rep`
+- `templates/enterprise/admin_signals.html:409` [FORM_ACTION] — `<button data-action="close-signal-test-modal" style="background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;padding:0.25rem;" type="button"><i class="fas fa-times"></i></button>`
+- `templates/enterprise/admin_signals.html:409` [BUTTON] — `<button data-action="close-signal-test-modal" style="background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;padding:0.25rem;" type="button"><i class="fas fa-times"></i></button>`
+- `templates/enterprise/admin_signals.html:453` [FORM_ACTION] — `<button class="btn btn-ghost" data-action="close-signal-test-modal" type="button">Cancel</button>`
+- `templates/enterprise/admin_signals.html:453` [BUTTON] — `<button class="btn btn-ghost" data-action="close-signal-test-modal" type="button">Cancel</button>`
+- `templates/enterprise/admin_signals.html:454` [FORM_ACTION] — `<button class="btn btn-primary" data-action="execute-signal-dispatch" id="executeSignalDispatchBtn" type="button">`
+- `templates/enterprise/admin_signals.html:454` [BUTTON] — `<button class="btn btn-primary" data-action="execute-signal-dispatch" id="executeSignalDispatchBtn" type="button">`
+- `templates/enterprise/admin_signals.html:563` [FORM_ACTION] — `document.querySelectorAll('[data-action="close-signal-test-modal"]').forEach(function(el) {`
+- `templates/enterprise/security.html:8` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/security.html:41` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/security.html:43` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/security.html:44` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/security.html:45` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/security.html:46` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/security.html:47` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/security.html:179` [HREF] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/admin_users.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_users.html:103` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/admin_users.html:104` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/admin_users.html:105` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/admin_users.html:106` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_users.html:107` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_users.html:116` [HREF] — `<a class="btn btn-sm btn-ghost" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>`
+- `templates/enterprise/admin_users.html:117` [HREF] — `<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>`
+- `templates/enterprise/admin_users.html:118` [HREF] — `<a class="btn btn-sm btn-ghost" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>`
+- `templates/enterprise/admin_users.html:126` [BUTTON] — `<button class="btn btn-ghost btn-sm" id="refreshBtn" type="button"><i class="fas fa-sync-alt"></i> Refresh</button>`
+- `templates/enterprise/admin_users.html:127` [BUTTON] — `<button class="btn btn-primary btn-sm" id="createUserBtn" type="button"><i class="fas fa-user-plus"></i> Create New User</button>`
+- `templates/enterprise/admin_users.html:152` [BUTTON] — `<button class="btn btn-ghost btn-sm" id="clearUserFilters" type="button"><i class="fas fa-eraser"></i> Clear Filters</button>`
+- `templates/enterprise/admin_users.html:190` [BUTTON] — `<button class="btn btn-ghost btn-sm" id="closeViewUserBtn" type="button"><i class="fas fa-times"></i></button>`
+- `templates/enterprise/admin_users.html:200` [BUTTON] — `<button class="btn btn-ghost btn-sm" id="closePermModalBtn" type="button"><i class="fas fa-times"></i></button>`
+- `templates/enterprise/admin_users.html:230` [BUTTON] — `<button class="link-button" id="selectAllCats" style="color:#60a5fa;text-decoration:none;" type="button">Select All</button> |`
+- `templates/enterprise/admin_users.html:231` [BUTTON] — `<button class="link-button" id="clearAllCats" style="color: var(--danger-color, #dc2626);text-decoration:none;" type="button">Clear All</button>`
+- `templates/enterprise/admin_users.html:305` [BUTTON] — `<button class="btn btn-ghost btn-sm" id="cancelPermBtn" type="button">Cancel</button>`
+- `templates/enterprise/admin_users.html:306` [BUTTON] — `<button class="btn btn-primary btn-sm" type="submit"><i class="fas fa-save"></i> Save Permissions</button>`
+- `templates/enterprise/admin_users.html:327` [BUTTON] — `<button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/admin_users.html:331` [BUTTON] — `<button class="btn btn-sm btn-ghost" id="closeCreateBtn" type="button">Cancel</button>`
+- `templates/enterprise/admin_users.html:332` [BUTTON] — `<button class="btn btn-primary btn-sm" type="submit">Create User</button>`
+- `templates/enterprise/admin_users.html:344` [BUTTON] — `<button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/admin_users.html:348` [BUTTON] — `<button class="btn btn-sm btn-ghost" id="closeResetBtn" type="button">Cancel</button>`
+- `templates/enterprise/admin_users.html:349` [BUTTON] — `<button class="btn btn-primary btn-sm" id="executeResetBtn" type="button">Reset Password</button>`
+- `templates/enterprise/admin_users.html:414` [HREF] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/admin_users.html:532` [FORM_ACTION] — `? `<button type="button" class="badge badge-ok cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-check-circle"></i> ALLOWED</button>``
+- `templates/enterprise/admin_users.html:532` [BUTTON] — `? `<button type="button" class="badge badge-ok cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-check-circle"></i> ALLOWED</button>``
+- `templates/enterprise/admin_users.html:533` [FORM_ACTION] — `: `<button type="button" class="badge badge-critical cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-ban"></i> BLOCKED</button>`;`
+- `templates/enterprise/admin_users.html:533` [BUTTON] — `: `<button type="button" class="badge badge-critical cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-ban"></i> BLOCKED</button>`;`
+- `templates/enterprise/admin_users.html:548` [FORM_ACTION] — `<button type="button" class="btn btn-ghost btn-sm" title="View User" aria-label="View user ${safeUsername}" data-action="view-user" data-username="${safeUsername}"><i class="fas fa-eye" style="color:#38bdf8;"></i> View</button>`
+- `templates/enterprise/admin_users.html:548` [BUTTON] — `<button type="button" class="btn btn-ghost btn-sm" title="View User" aria-label="View user ${safeUsername}" data-action="view-user" data-username="${safeUsername}"><i class="fas fa-eye" style="color:#38bdf8;"></i> View</button>`
+- `templates/enterprise/admin_users.html:549` [FORM_ACTION] — `<button type="button" class="btn btn-ghost btn-sm" title="Edit Permissions & Quotas" data-action="open-edit-modal" data-username="${safeUsername}"><i class="fas fa-sliders-h" style="color:#60a5fa;"></i> Edit</button>`
+- `templates/enterprise/admin_users.html:549` [BUTTON] — `<button type="button" class="btn btn-ghost btn-sm" title="Edit Permissions & Quotas" data-action="open-edit-modal" data-username="${safeUsername}"><i class="fas fa-sliders-h" style="color:#60a5fa;"></i> Edit</button>`
+- `templates/enterprise/admin_users.html:550` [FORM_ACTION] — `<button type="button" class="btn btn-ghost btn-sm" title="Reset Password" data-action="reset-user-pw" data-username="${safeUsername}"><i class="fas fa-key" style="color:#f59e0b;"></i></button>`
+- `templates/enterprise/admin_users.html:550` [BUTTON] — `<button type="button" class="btn btn-ghost btn-sm" title="Reset Password" data-action="reset-user-pw" data-username="${safeUsername}"><i class="fas fa-key" style="color:#f59e0b;"></i></button>`
+- `templates/enterprise/admin_users.html:552` [FORM_ACTION] — `? `<button type="button" class="btn btn-ghost btn-sm" title="Enable User" data-action="enable-user" data-username="${safeUsername}"><i class="fas fa-user-check" style="color:#22c55e;"></i></button>``
+- `templates/enterprise/admin_users.html:552` [BUTTON] — `? `<button type="button" class="btn btn-ghost btn-sm" title="Enable User" data-action="enable-user" data-username="${safeUsername}"><i class="fas fa-user-check" style="color:#22c55e;"></i></button>``
+- `templates/enterprise/admin_users.html:553` [FORM_ACTION] — `: `<button type="button" class="btn btn-ghost btn-sm" title="Disable User" data-action="disable-user" data-username="${safeUsername}"><i class="fas fa-user-slash" style="color:#f97316;"></i></button>`}`
+- `templates/enterprise/admin_users.html:553` [BUTTON] — `: `<button type="button" class="btn btn-ghost btn-sm" title="Disable User" data-action="disable-user" data-username="${safeUsername}"><i class="fas fa-user-slash" style="color:#f97316;"></i></button>`}`
+- `templates/enterprise/admin_users.html:554` [FORM_ACTION] — `<button type="button" class="btn btn-ghost btn-sm" title="Delete User" data-action="delete-user" data-username="${safeUsername}"><i class="fas fa-trash" style="color: var(--danger-color, #dc2626);"></i></button>`
+- `templates/enterprise/admin_users.html:554` [BUTTON] — `<button type="button" class="btn btn-ghost btn-sm" title="Delete User" data-action="delete-user" data-username="${safeUsername}"><i class="fas fa-trash" style="color: var(--danger-color, #dc2626);"></i></button>`
+- `templates/enterprise/capacity.html:8` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/capacity.html:36` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/capacity.html:38` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/capacity.html:39` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/capacity.html:40` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/capacity.html:41` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/capacity.html:42` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/capacity.html:124` [HREF] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/strategy_sandbox.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/strategy_sandbox.html:73` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/strategy_sandbox.html:74` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/strategy_sandbox.html:75` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/strategy_sandbox.html:76` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/strategy_sandbox.html:77` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/strategy_sandbox.html:90` [HREF] — `<a class="btn" href="#strategies-breakdown" style="background: var(--bg-card-hover, #1e293b);color:#38bdf8;border: 1px solid var(--border-color, #334155);">`
+- `templates/enterprise/strategy_sandbox.html:93` [BUTTON] — `<button class="btn btn-primary" id="cspfix-1" type="button"><i class="fas fa-play"></i> Run Live Backtest</button>`
+- `templates/enterprise/strategy_sandbox.html:186` [BUTTON] — `<button class="filter-tab-btn active" id="cspfix-2" type="button">All Strategies (16)</button>`
+- `templates/enterprise/strategy_sandbox.html:187` [BUTTON] — `<button class="filter-tab-btn" id="cspfix-3" type="button">Momentum &amp; Trend (4)</button>`
+- `templates/enterprise/strategy_sandbox.html:188` [BUTTON] — `<button class="filter-tab-btn" id="cspfix-4" type="button">Volume &amp; Order Flow (3)</button>`
+- `templates/enterprise/strategy_sandbox.html:189` [BUTTON] — `<button class="filter-tab-btn" id="cspfix-5" type="button">Options &amp; Gamma (3)</button>`
+- `templates/enterprise/strategy_sandbox.html:190` [BUTTON] — `<button class="filter-tab-btn" id="cspfix-6" type="button">Institutional &amp; Macro (3)</button>`
+- `templates/enterprise/strategy_sandbox.html:191` [BUTTON] — `<button class="filter-tab-btn" id="cspfix-7" type="button">AI &amp; Risk Pre-Guard (3)</button>`
+- `templates/enterprise/observability.html:8` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/observability.html:40` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/observability.html:42` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/observability.html:43` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/observability.html:44` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/observability.html:45` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/observability.html:46` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/observability.html:153` [HREF] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/presentation.html:8` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/presentation.html:23` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/presentation.html:37` [BUTTON] — `<button class="bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs px-3 py-1.5 rounded transition-all active:scale-95" id="refresh-templates" type="button">Reload</button>`
+- `templates/enterprise/presentation.html:58` [BUTTON] — `<button aria-pressed="true" class="relative w-10 h-5 rounded-full bg-blue-600 transition-colors focus:outline-none" id="auto-fetch-toggle" type="button">`
+- `templates/enterprise/presentation.html:65` [BUTTON] — `<button class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2" id="generate-btn" type="button">`
+- `templates/enterprise/presentation.html:69` [BUTTON] — `<button class="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2" id="generate-all-btn" type="button">`
+- `templates/enterprise/kill_switch.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/kill_switch.html:45` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/kill_switch.html:46` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/kill_switch.html:47` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/kill_switch.html:48` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/kill_switch.html:49` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/kill_switch.html:69` [BUTTON] — `<button class="btn btn-kill" id="haltBtn" style="width:100%;" type="button"><i class="fas fa-power-off"></i> ACTIVATE KILL SWITCH</button>`
+- `templates/enterprise/kill_switch.html:75` [BUTTON] — `<button class="btn btn-resume" id="resumeBtn" style="width:100%;" type="button"><i class="fas fa-check-circle"></i> RESUME TRADING</button>`
+- `templates/enterprise/kill_switch.html:110` [HREF] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/reset_password.html:7` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/reset_password.html:130` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/reset_password.html:131` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/reset_password.html:132` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/reset_password.html:133` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/reset_password.html:134` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/reset_password.html:160` [BUTTON] — `<div class="opb-password-wrapper"><input type="password" id="newPassword" class="input-control" placeholder="Minimum 8 characters" required minlength="8"><button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-`
+- `templates/enterprise/reset_password.html:161` [BUTTON] — `<button id="cspfix-1" type="button" class="password-toggle-btn" title="Show/Hide Password" tabindex="-1">`
+- `templates/enterprise/reset_password.html:171` [BUTTON] — `<div class="opb-password-wrapper"><input type="password" id="confirmPassword" class="input-control" placeholder="Re-enter new password" required minlength="8"><button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8`
+- `templates/enterprise/reset_password.html:172` [BUTTON] — `<button id="cspfix-2" type="button" class="password-toggle-btn" title="Show/Hide Password" tabindex="-1">`
+- `templates/enterprise/reset_password.html:178` [BUTTON] — `<button type="submit" class="btn-submit" id="btnSubmit">`
+- `templates/enterprise/reset_password.html:185` [HREF] — `Back to <a href="/login">Sign In</a>`
+- `templates/enterprise/reset_password.html:276` [HREF] — `setTimeout(() => { window.location.href = '/login'; }, 2000);`
+- `templates/enterprise/error.html:7` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/error.html:141` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/error.html:142` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/error.html:143` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/error.html:144` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/error.html:145` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/error.html:169` [HREF] — `<a href="/" class="btn btn-primary"><i class="fas fa-home"></i> Cockpit</a>`
+- `templates/enterprise/error.html:170` [HREF] — `<a href="/login" class="btn btn-ghost"><i class="fas fa-sign-in-alt"></i> Login</a>`
+- `templates/enterprise/pricing_plans.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/pricing_plans.html:29` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/pricing_plans.html:30` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/pricing_plans.html:31` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/pricing_plans.html:32` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/pricing_plans.html:33` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/pricing_plans.html:51` [BUTTON] — `<button id="cspfix-1" style="position:absolute;top:15px;right:15px;background:transparent;border:none;color: var(--text-muted, #94a3b8);font-size:1.2rem;cursor:pointer;" type="button">×</button>`
+- `templates/enterprise/pricing_plans.html:58` [BUTTON] — `<button class="btn-pay" id="cspfix-2" style="background:#22c55e;" type="button">✅ I Have Paid — Activate Instantly</button>`
+- `templates/enterprise/pricing_plans.html:80` [FORM_ACTION] — `<button class="btn-pay" data-action="open-qr-modal" data-plan-id="${p.plan_id}" type="button">⚡ Get Started</button>`
+- `templates/enterprise/pricing_plans.html:80` [BUTTON] — `<button class="btn-pay" data-action="open-qr-modal" data-plan-id="${p.plan_id}" type="button">⚡ Get Started</button>`
+- `templates/enterprise/pricing_plans.html:85` [FORM_ACTION] — `const btn = e.target.closest('[data-action="open-qr-modal"]');`
+- `templates/enterprise/pricing_plans.html:120` [HREF] — `window.location.href = '/my-signals';`
+- `templates/enterprise/change_password.html:9` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/change_password.html:30` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/change_password.html:31` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/change_password.html:32` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/change_password.html:33` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/change_password.html:34` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/change_password.html:51` [BUTTON] — `<button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/change_password.html:58` [BUTTON] — `<button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/change_password.html:66` [BUTTON] — `<button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/change_password.html:70` [BUTTON] — `<button type="submit" class="btn btn-primary" id="changeBtn">`
+- `templates/enterprise/change_password.html:74` [HREF] — `<a href="/" class="btn btn-ghost">Cancel</a>`
+- `templates/enterprise/forgot_password.html:8` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/forgot_password.html:135` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/forgot_password.html:136` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/forgot_password.html:137` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/forgot_password.html:138` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/forgot_password.html:139` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/forgot_password.html:168` [BUTTON] — `<button class="tab-btn active" id="tabResetLink" type="button">`
+- `templates/enterprise/forgot_password.html:171` [BUTTON] — `<button class="tab-btn" id="tabEmergency" type="button">`
+- `templates/enterprise/forgot_password.html:186` [BUTTON] — `<button class="btn-submit" id="btnSubmitToken" type="submit">`
+- `templates/enterprise/forgot_password.html:204` [BUTTON] — `<input class="input-control" id="recoveryKey" placeholder="Enter master authorization key" required="" style="padding-right:2.5rem;" type="password"/><button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8`
+- `templates/enterprise/forgot_password.html:205` [BUTTON] — `<button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" viewbox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/forgot_password.html:216` [BUTTON] — `<input class="input-control" id="newPasswordEmg" minlength="8" placeholder="Min 8 chars, 1 uppercase, 1 digit, 1 symbol" required="" style="padding-right:2.5rem;" type="password"/><button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 `
+- `templates/enterprise/forgot_password.html:217` [BUTTON] — `<button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" viewbox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/forgot_password.html:224` [BUTTON] — `<input class="input-control" id="confirmPasswordEmg" placeholder="Re-enter password" required="" style="padding-right:2.5rem;" type="password"/><button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-`
+- `templates/enterprise/forgot_password.html:225` [BUTTON] — `<button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" viewbox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/forgot_password.html:228` [BUTTON] — `<button class="btn-submit" id="btnSubmitEmg" type="submit">`
+- `templates/enterprise/forgot_password.html:234` [HREF] — `Remembered your credentials? <a href="/login">Back to Sign In</a>`
+- `templates/enterprise/forgot_password.html:294` [HREF] — `successBox.innerHTML = `<strong>Reset Link Generated!</strong><br>Click below to proceed to the password reset page:<br><a href="${data.reset_url}" style="color: var(--success-color, #16a34a);font-weight:700;text-decoration:underline;display:inline-block;margin-top:0.5rem;">👉 Click Here to Set New Password</a>`;`
+- `templates/enterprise/forgot_password.html:348` [HREF] — `setTimeout(() => window.location.href = '/login', 1500);`
+- `templates/enterprise/governance.html:8` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/governance.html:56` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/governance.html:58` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/governance.html:59` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/governance.html:60` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/governance.html:61` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/governance.html:62` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/governance.html:147` [BUTTON] — `<div><button type="submit" class="btn btn-primary" id="submitRequestBtn"><i class="fas fa-paper-plane"></i> Submit Request</button></div>`
+- `templates/enterprise/governance.html:187` [HREF] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/governance.html:232` [FORM_ACTION] — `<button class="btn btn-primary btn-sm" data-action="approve-transition" data-strategy="${r.strategy_name}" data-to-state="${r.to_state}" type="button"><i class="fas fa-check"></i></button>`
+- `templates/enterprise/governance.html:232` [BUTTON] — `<button class="btn btn-primary btn-sm" data-action="approve-transition" data-strategy="${r.strategy_name}" data-to-state="${r.to_state}" type="button"><i class="fas fa-check"></i></button>`
+- `templates/enterprise/governance.html:233` [FORM_ACTION] — `<button class="btn btn-ghost btn-sm" data-action="reject-transition" data-strategy="${r.strategy_name}" data-to-state="${r.to_state}" type="button"><i class="fas fa-times"></i></button>`
+- `templates/enterprise/governance.html:233` [BUTTON] — `<button class="btn btn-ghost btn-sm" data-action="reject-transition" data-strategy="${r.strategy_name}" data-to-state="${r.to_state}" type="button"><i class="fas fa-times"></i></button>`
+- `templates/enterprise/trade_journal.html:9` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/trade_journal.html:32` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/trade_journal.html:33` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/trade_journal.html:34` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/trade_journal.html:35` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/trade_journal.html:36` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/trade_journal.html:61` [HREF] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/register.html:7` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/register.html:151` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/register.html:152` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/register.html:153` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/register.html:154` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/register.html:155` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/register.html:216` [BUTTON] — `<input type="password" id="password" class="input-field" placeholder="Minimum 8 characters" required autocomplete="new-password" minlength="8"><button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-1`
+- `templates/enterprise/register.html:217` [BUTTON] — `<button id="cspfix-1" type="button" class="password-toggle-btn" title="Show/Hide Password" tabindex="-1">`
+- `templates/enterprise/register.html:226` [BUTTON] — `<input type="password" id="confirmPassword" class="input-field" placeholder="Re-enter password" required autocomplete="new-password"><button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></pa`
+- `templates/enterprise/register.html:227` [BUTTON] — `<button id="cspfix-2" type="button" class="password-toggle-btn" title="Show/Hide Password" tabindex="-1">`
+- `templates/enterprise/register.html:236` [BUTTON] — `<button type="submit" class="btn btn-primary" id="registerBtn" style="margin-top:0.25rem;">`
+- `templates/enterprise/register.html:242` [HREF] — `Already have an account? <a href="/login">Sign in</a>`
+- `templates/enterprise/register.html:340` [HREF] — `setTimeout(() => { window.location.href = '/login'; }, 1500);`
+- `templates/enterprise/options_chain.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/options_chain.html:35` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/options_chain.html:36` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/options_chain.html:37` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/options_chain.html:38` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/options_chain.html:39` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/options_chain.html:105` [BUTTON] — `<button class="btn btn-primary btn-sm" id="loadBtn" type="button"><i class="fas fa-sync"></i> Load Chain</button>`
+- `templates/enterprise/options_chain.html:133` [HREF] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/metrics_trend.html:8` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/metrics_trend.html:9` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/metrics_trend.html:177` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/metrics_trend.html:194` [BUTTON] — `<button class="btn-refresh" id="refresh-btn" type="button"><i class="fas fa-sync-alt"></i> Refresh</button>`
+- `templates/enterprise/system_health.html:9` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/system_health.html:35` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/system_health.html:37` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/system_health.html:38` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/system_health.html:39` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/system_health.html:40` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/system_health.html:41` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/system_health.html:64` [BUTTON] — `<button class="btn" id="cspfix-1" type="button"><i class="fas fa-sync"></i> Refresh</button>`
+- `templates/enterprise/system_health.html:89` [HREF] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/whats_new.html:9` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/whats_new.html:29` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/whats_new.html:30` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/whats_new.html:31` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/whats_new.html:32` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/whats_new.html:33` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/expiry_harvester.html:10` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/expiry_harvester.html:28` [HREF] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/expiry_harvester.html:29` [HREF] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/expiry_harvester.html:30` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/expiry_harvester.html:31` [HREF] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/expiry_harvester.html:32` [HREF] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/expiry_harvester.html:44` [BUTTON] — `<button class="btn btn-ghost" id="cspfix-1" style="background:transparent;color: var(--text-muted, #94a3b8);border: 1px solid var(--border-color, #1e293b);padding:0.4rem 0.8rem;border-radius:0.4rem;cursor:pointer;" type="button"><i class="fas fa-sync-alt"></i> Refresh Straddle</button>`
+- `templates/enterprise/_pwa_head.html:4` [HREF] — `<link rel="manifest" href="/static/dashboard-manifest.json">`
+- `templates/enterprise/_pwa_head.html:9` [HREF] — `<link rel="apple-touch-icon" href="/static/opb-icon-192.svg">`
+- `templates/enterprise/_pwa_head.html:10` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/_pwa_head.html:11` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/_pwa_head.html:12` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/_pwa_head.html:13` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css?v=4.0">`
+- `templates/enterprise/profile.html:7` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/profile.html:8` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/profile.html:363` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/profile.html:440` [BUTTON] — `<button type="submit" class="profile-btn-primary" id="saveProfileBtn">`
+- `templates/enterprise/profile.html:460` [BUTTON] — `<button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/profile.html:469` [BUTTON] — `<button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/profile.html:476` [BUTTON] — `<button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`
+- `templates/enterprise/profile.html:482` [BUTTON] — `<button type="submit" class="profile-btn-warning" id="changePasswordBtn">`
+- `templates/enterprise/profile.html:545` [HREF] — `<a href="/my-signals" class="quick-nav-link">`
+- `templates/enterprise/profile.html:549` [HREF] — `<a href="/live-pnl" class="quick-nav-link">`
+- `templates/enterprise/profile.html:553` [HREF] — `<a href="/options-chain" class="quick-nav-link">`
+- `templates/enterprise/profile.html:614` [HREF] — `window.location.href = '/login';`
+- `templates/enterprise/performance.html:9` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/performance.html:35` [HREF] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/performance.html:36` [HREF] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/performance.html:37` [HREF] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/performance.html:38` [HREF] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/performance.html:39` [HREF] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/performance.html:101` [HREF] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/_nav.html:397` [HREF] — `<a href="/" style="text-decoration:none;display:flex;align-items:center;gap:0.65rem;white-space:nowrap;" title="Go to Home Cockpit">`
+- `templates/enterprise/_nav.html:434` [HREF] — `{% if can_halt_trading %}<a href="/admin/kill-switch" class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:0.35rem;font-weight:800;padding:0.35rem 0.75rem;font-size:0.75rem;text-decoration:none;border-radius:0.4rem;box-shadow:0 2px 8px rgba(220,38,38,0.35);flex-shrink:0;white-space:nowrap;min-width:max-content;">`
+- `templates/enterprise/_nav.html:441` [HREF] — `<a href="/profile" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;color:var(--text-primary,#ffffff);font-size:0.8rem;font-weight:700;white-space:nowrap;flex-shrink:0;">`

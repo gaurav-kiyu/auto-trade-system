@@ -1,0 +1,2542 @@
+# OPB WEB CLOSURE WIP74 — Setup Configuration Privileged Change Workflow
+
+Configuration/security candidate files: 316
+Relevant signals: 9853
+
+## Required workflow
+
+1. Privileged user attempts a setup/configuration change.
+2. Server-side permission is checked.
+3. High-risk settings enter PENDING_APPROVAL.
+4. Change is persisted with old/new values and actor.
+5. Super Admin is notified immediately.
+6. Super Admin can APPROVE, REJECT, or ROLLBACK.
+7. Approved changes become effective.
+8. Rejected changes do not become effective.
+9. Rollback restores the previous effective value.
+10. Every transition is audited.
+
+## High-risk configuration examples
+- Deployment URL
+- Admin URL override
+- Public/Base URL
+- Authentication/security configuration
+- RBAC/permission configuration
+- Email/system infrastructure
+
+## Source evidence
+- `core/adaptive_behavior_governance.py:4` — `without explicit approval. This is a critical safety layer.`
+- `core/adaptive_behavior_governance.py:10` — `4. Any behavioral change requires human approval in LIVE mode`
+- `core/adaptive_behavior_governance.py:11` — `5. All auto-tuning actions are logged with full audit trail`
+- `core/adaptive_behavior_governance.py:33` — `ENABLED = "ENABLED"        # Full adaptive behavior (LIVE only with explicit approval)`
+- `core/adaptive_behavior_governance.py:37` — `class GovernanceConfig:`
+- `core/adaptive_behavior_governance.py:38` — `"""Configuration for adaptive behavior governance."""`
+- `core/adaptive_behavior_governance.py:41` — `require_approval_for_live: bool = True`
+- `core/adaptive_behavior_governance.py:43` — `audit_log_path: str = "logs/adaptive_governance.log"`
+- `core/adaptive_behavior_governance.py:47` — `"EXECUTION_MODE", "PAPER_MODE", "BROKER_CONFIG",`
+- `core/adaptive_behavior_governance.py:67` — `Ensures no automatic behavior changes in live trading without explicit approval.`
+- `core/adaptive_behavior_governance.py:72` — `config: dict[str, Any],`
+- `core/adaptive_behavior_governance.py:73` — `governance_config: GovernanceConfig | None = None,`
+- `core/adaptive_behavior_governance.py:75` — `self._config = config`
+- `core/adaptive_behavior_governance.py:76` — `self._governance = governance_config or self._create_from_config(config)`
+- `core/adaptive_behavior_governance.py:78` — `self._pending_approvals: dict[str, dict[str, Any]] = {}`
+- `core/adaptive_behavior_governance.py:80` — `self._init_audit_log()`
+- `core/adaptive_behavior_governance.py:82` — `def _create_from_config(self, config: dict[str, Any]) -> GovernanceConfig:`
+- `core/adaptive_behavior_governance.py:83` — `"""Create governance config from main config."""`
+- `core/adaptive_behavior_governance.py:84` — `mode_str = config.get("AUTO_TUNE_MODE", "DISABLED").upper()`
+- `core/adaptive_behavior_governance.py:90` — `return GovernanceConfig(`
+- `core/adaptive_behavior_governance.py:92` — `require_approval_for_live=config.get("AUTO_TUNE_REQUIRE_APPROVAL", True),`
+- `core/adaptive_behavior_governance.py:93` — `max_daily_suggestions=config.get("AUTO_TUNE_MAX_SUGGESTIONS", 10),`
+- `core/adaptive_behavior_governance.py:94` — `allowed_param_changes=set(config.get("AUTO_TUNE_ALLOWED_PARAMS", [])),`
+- `core/adaptive_behavior_governance.py:97` — `def _init_audit_log(self) -> None:`
+- `core/adaptive_behavior_governance.py:98` — `"""Initialize audit logging."""`
+- `core/adaptive_behavior_governance.py:99` — `log_path = Path(self._governance.audit_log_path)`
+- `core/adaptive_behavior_governance.py:125` — `"""Request a parameter change with governance approval.`
+- `core/adaptive_behavior_governance.py:168` — `approval_id = f"{param}:{now_ist().isoformat()}"`
+- `core/adaptive_behavior_governance.py:169` — `self._pending_approvals[approval_id] = {`
+- `core/adaptive_behavior_governance.py:180` — `details={"param": param, "suggested": suggested_value, "approval_id": approval_id},`
+- `core/adaptive_behavior_governance.py:184` — `return False, f"📋 Suggestion recorded: {param}={suggested_value}. Use approve_param('{approval_id}') to apply."`
+- `core/adaptive_behavior_governance.py:187` — `if self._governance.require_approval_for_live:`
+- `core/adaptive_behavior_governance.py:188` — `approval_id = f"{param}:{now_ist().isoformat()}"`
+- `core/adaptive_behavior_governance.py:189` — `self._pending_approvals[approval_id] = {`
+- `core/adaptive_behavior_governance.py:197` — `return False, f"⚠️ LIVE mode: Approval required. Use approve_param('{approval_id}') to apply."`
+- `core/adaptive_behavior_governance.py:203` — `def approve_param(self, approval_id: str) -> tuple[bool, str]:`
+- `core/adaptive_behavior_governance.py:206` — `if approval_id not in self._pending_approvals:`
+- `core/adaptive_behavior_governance.py:207` — `return False, "Unknown approval ID"`
+- `core/adaptive_behavior_governance.py:209` — `approval = self._pending_approvals.pop(approval_id)`
+- `core/adaptive_behavior_governance.py:211` — `source=approval["source"],`
+- `core/adaptive_behavior_governance.py:213` — `details=approval,`
+- `core/adaptive_behavior_governance.py:217` — `return True, f"✅ Approved: {approval['param']}={approval['suggested']}"`
+- `core/adaptive_behavior_governance.py:219` — `def reject_param(self, approval_id: str) -> tuple[bool, str]:`
+- `core/adaptive_behavior_governance.py:222` — `if approval_id not in self._pending_approvals:`
+- `core/adaptive_behavior_governance.py:223` — `return False, "Unknown approval ID"`
+- `core/adaptive_behavior_governance.py:225` — `approval = self._pending_approvals.pop(approval_id)`
+- `core/adaptive_behavior_governance.py:227` — `source=approval["source"],`
+- `core/adaptive_behavior_governance.py:229` — `details=approval,`
+- `core/adaptive_behavior_governance.py:233` — `return True, f"❌ Rejected: {approval['param']}={approval['suggested']}"`
+- `core/adaptive_behavior_governance.py:258` — `def get_pending_approvals(self) -> list[dict[str, Any]]:`
+- `core/adaptive_behavior_governance.py:259` — `"""Get list of pending parameter change approvals."""`
+- `core/adaptive_behavior_governance.py:261` — `return list(self._pending_approvals.values())`
+- `core/adaptive_behavior_governance.py:270` — `"pending_approvals": len(self._pending_approvals),`
+- `core/adaptive_behavior_governance.py:282` — `"""Record an action to the audit log."""`
+- `core/adaptive_behavior_governance.py:301` — `def create_governor(config: dict[str, Any]) -> AdaptiveBehaviorGovernor:`
+- `core/adaptive_behavior_governance.py:302` — `"""Create adaptive behavior governor from config."""`
+- `core/adaptive_behavior_governance.py:303` — `return AdaptiveBehaviorGovernor(config)`
+- `core/adaptive_behavior_governance.py:310` — `"GovernanceConfig",`
+- `core/health_checker.py:7` — `• Config sanity (SL_PCT < TARGET_PCT, etc.)`
+- `core/health_checker.py:22` — `Config keys (index_config.defaults.json)`
+- `core/health_checker.py:40` — `"check_config_sanity",`
+- `core/health_checker.py:108` — `"""Check each database file size against configured thresholds."""`
+- `core/health_checker.py:275` — `def check_config_sanity(cfg: dict[str, Any]) -> list[HealthCheckResult]:`
+- `core/health_checker.py:276` — `"""Sanity-check critical config relationships."""`
+- `core/health_checker.py:283` — `"CONFIG", "SL_PCT < TARGET_PCT", "FAIL",`
+- `core/health_checker.py:289` — `"CONFIG", "SL_PCT < TARGET_PCT", "OK",`
+- `core/health_checker.py:301` — `"CONFIG", "Daily loss % of capital", st,`
+- `core/health_checker.py:309` — `"CONFIG", "AI_THRESHOLD", "WARN", threshold,`
+- `core/health_checker.py:314` — `"CONFIG", "AI_THRESHOLD", "OK", threshold, "OK",`
+- `core/health_checker.py:337` — `except (OSError, PermissionError) as exc:`
+- `core/health_checker.py:414` — `cfg     : Config dict.`
+- `core/health_checker.py:430` — `lambda: check_config_sanity(c),`
+- `core/health_checker.py:517` — `cfg: Config dict.`
+- `core/threat_modeler.py:15` — `- SecurityAuditor for vulnerability correlation`
+- `core/threat_modeler.py:76` — `"description": "Gaining unauthorized access or permissions",`
+- `core/threat_modeler.py:100` — `("Repudiation", "Execution audit trail — non-repudiation of order placement", 0.8),`
+- `core/threat_modeler.py:112` — `"config": [`
+- `core/threat_modeler.py:113` — `("Tampering", "Configuration file integrity — unauthorized modification", 0.8),`
+- `core/threat_modeler.py:114` — `("Information Disclosure", "Secrets/keys stored in readable config files", 0.85),`
+- `core/threat_modeler.py:118` — `("Information Disclosure", "Trade/P&L data leaked through notification channel", 0.7),`
+- `core/threat_modeler.py:501` — `if "config" in path_lower:`
+- `core/threat_modeler.py:502` — `return "config"`
+- `core/threat_modeler.py:503` — `if "telegram" in path_lower or "notification" in path_lower:`
+- `core/threat_modeler.py:513` — `"Repudiation": ["log", "audit", "journal", "record", "trail", "event"],`
+- `core/threat_modeler.py:514` — `"Information Disclosure": ["secret", "password", "key", "token", "credential", "pii", "config"],`
+- `core/threat_modeler.py:516` — `"Elevation of Privilege": ["admin", "role", "permission", "sudo", "root", "privilege", "exec"],`
+- `core/threat_modeler.py:525` — `"Repudiation": "Implement non-repudiation — capture detailed audit logs with timestamps and user/process identity",`
+- `core/change_management.py:1` — `"""Change Management & Approval Workflow (Phase 28).`
+- `core/change_management.py:4` — `rolling back configuration changes across ALL domains:`
+- `core/change_management.py:5` — `- Config (trading parameters, risk limits)`
+- `core/change_management.py:9` — `- Infrastructure (broker config, rate limits)`
+- `core/change_management.py:11` — `This consolidates the fragmented approval logic previously scattered across:`
+- `core/change_management.py:13` — `- core/config_audit_log.py (audit trail only)`
+- `core/change_management.py:14` — `- core/config_bootstrap.py (diff detection only)`
+- `core/change_management.py:25` — `change_type="CONFIG",`
+- `core/change_management.py:37` — `# Rollback if needed`
+- `core/change_management.py:38` — `mgr.rollback(prop.id_, rolled_back_by="Admin")`
+- `core/change_management.py:40` — `Config keys (all optional)`
+- `core/change_management.py:46` — `change_audit_log_path       : str    default "logs/change_audit.jsonl"`
+- `core/change_management.py:67` — `CONFIG = "CONFIG"`
+- `core/change_management.py:114` — `audit_id: str | None = None`
+- `core/change_management.py:143` — `class ChangeAuditEntry:`
+- `core/change_management.py:144` — `"""An audit trail entry for a change lifecycle event."""`
+- `core/change_management.py:167` — `Handles the full lifecycle: propose → review → approve/reject → apply → rollback.`
+- `core/change_management.py:176` — `self._audit_log: list[ChangeAuditEntry] = []`
+- `core/change_management.py:177` — `self._max_audit = 10000`
+- `core/change_management.py:180` — `self._audit_log_path = str(self._cfg.get("change_audit_log_path", "logs/change_audit.jsonl"))`
+- `core/change_management.py:183` — `# Init audit log directory`
+- `core/change_management.py:184` — `Path(self._audit_log_path).parent.mkdir(parents=True, exist_ok=True)`
+- `core/change_management.py:213` — `change_type: CONFIG, STRATEGY_PARAM, ADAPTIVE_BEHAVIOR, FEATURE_FLAG, INFRASTRUCTURE`
+- `core/change_management.py:274` — `self._record_audit(proposal.id_, "PROPOSED", proposed_by, reason)`
+- `core/change_management.py:294` — `If dry_run_fn is provided and the change_require_dry_run config is true,`
+- `core/change_management.py:368` — `self._record_audit(change_id, "APPROVED", approved_by,`
+- `core/change_management.py:392` — `self._record_audit(change_id, "REJECTED", rejected_by, reason)`
+- `core/change_management.py:427` — `self._record_audit(change_id, "FAILED", applied_by,`
+- `core/change_management.py:434` — `self._record_audit(change_id, "FAILED", applied_by, str(exc))`
+- `core/change_management.py:441` — `self._record_audit(change_id, "APPLIED", applied_by,`
+- `core/change_management.py:448` — `def rollback(self, change_id: str, rolled_back_by: str,`
+- `core/change_management.py:449` — `rollback_fn: Callable | None = None) -> bool:`
+- `core/change_management.py:450` — `"""Rollback an applied change to its previous value.`
+- `core/change_management.py:463` — `_log.warning("[CM] Rollback failed: %s is in %s state (need APPLIED)",`
+- `core/change_management.py:467` — `if rollback_fn is not None:`
+- `core/change_management.py:469` — `result = rollback_fn(proposal)`
+- `core/change_management.py:471` — `_log.warning("[CM] Rollback function failed for %s", change_id)`
+- `core/change_management.py:474` — `_log.error("[CM] Rollback error for %s: %s", change_id, exc)`
+- `core/change_management.py:480` — `self._record_audit(change_id, "ROLLED_BACK", rolled_back_by,`
+- `core/change_management.py:536` — `"audit_entries": len(self._audit_log),`
+- `core/change_management.py:539` — `def get_audit_log(self, n: int = 50) -> list[dict[str, Any]]:`
+- `core/change_management.py:540` — `"""Get the most recent audit log entries."""`
+- `core/change_management.py:543` — `entry.to_dict() for entry in self._audit_log[-n:]`
+- `core/change_management.py:583` — `def _record_audit(self, change_id: str, action: str, actor: str, details: str = "") -> None:`
+- `core/change_management.py:584` — `"""Record an audit log entry."""`
+- `core/change_management.py:585` — `entry = ChangeAuditEntry(`
+- `core/change_management.py:592` — `self._audit_log.append(entry)`
+- `core/change_management.py:593` — `if len(self._audit_log) > self._max_audit:`
+- `core/change_management.py:594` — `self._audit_log.pop(0)`
+- `core/change_management.py:596` — `# Also write to persistent audit log`
+- `core/change_management.py:599` — `with open(self._audit_log_path, "a", encoding="utf-8") as f:`
+- `core/change_management.py:602` — `_log.warning("[CM] Audit log write failed: %s", exc)`
+- `core/change_management.py:614` — `self._record_audit(cid, "EXPIRED", "system",`
+- `core/change_management.py:678` — `help="Propose a change: --propose CONFIG SL_PCT 0.30 0.25")`
+- `core/change_management.py:751` — `"ChangeAuditEntry",`
+- `core/presentation_generator.py:18` — `Config keys (all under PRESENTATION_GENERATOR in config.json):`
+- `core/presentation_generator.py:119` — `class PresentationConfig:`
+- `core/presentation_generator.py:120` — `"""Configuration for the PresentationGenerator.`
+- `core/presentation_generator.py:131` — `def presentation_config_from_cfg(cfg: dict[str, Any]) -> PresentationConfig:`
+- `core/presentation_generator.py:132` — `"""Build PresentationConfig from the system config dict."""`
+- `core/presentation_generator.py:134` — `return PresentationConfig(`
+- `core/presentation_generator.py:367` — `["Audit Trail", "JSONL event log, thread-safe"],`
+- `core/presentation_generator.py:478` — `"Event Sourcing for critical audit trails",`
+- `core/presentation_generator.py:535` — `["Notifications", "Telegram Bot API"],`
+- `core/presentation_generator.py:549` — `["core/security_auditor.py", "97%"],`
+- `core/presentation_generator.py:582` — `["security_auditor.py", "~250", "Autonomous security audit"],`
+- `core/presentation_generator.py:647` — `["Health Checks", "DB/ML/config/disk (EOD Sunday)"],`
+- `core/presentation_generator.py:649` — `["Audit Trail", "JSONL event log (all actions)"],`
+- `core/presentation_generator.py:650` — `["Telegram Alerts", "Push notifications for signals/errors"],`
+- `core/presentation_generator.py:709` — `"Comprehensive audit trail for every action",`
+- `core/presentation_generator.py:739` — `"Thread-safe audit trail (JSONL)",`
+- `core/presentation_generator.py:804` — `"Config-driven: 860+ keys with 4-layer merge",`
+- `core/presentation_generator.py:805` — `"All actions audited with correlation IDs",`
+- `core/presentation_generator.py:890` — `gen = PresentationGenerator(PresentationConfig(output_dir="reports/"))`
+- `core/presentation_generator.py:900` — `def __init__(self, cfg: PresentationConfig, *, log_fn: Any = None) -> None:`
+- `core/presentation_generator.py:929` — `self._log("[PRESENTATION] Generator disabled by config")`
+- `core/presentation_generator.py:1134` — `cfg: Optional config dict (reads PRESENTATION_GENERATOR_* keys).`
+- `core/presentation_generator.py:1136` — `output_dir: Override output directory (takes precedence over config).`
+- `core/presentation_generator.py:1145` — `pc = presentation_config_from_cfg(merged_cfg)`
+- `core/presentation_generator.py:1160` — `"PresentationConfig",`
+- `core/presentation_generator.py:1163` — `"presentation_config_from_cfg",`
+- `core/config_engine.py:1` — `"""Config Engine (deprecated).`
+- `core/config_engine.py:3` — `WARNING: This module is deprecated. Use core.config_validator for config`
+- `core/config_engine.py:6` — `core.config_validator.validate_config() provides:`
+- `core/config_engine.py:28` — `"core.config_engine is DEPRECATED. Use core.config_validator.validate_config() instead.",`
+- `core/config_engine.py:35` — `class ConfigIssue:`
+- `core/config_engine.py:42` — `class ConfigValidationResult:`
+- `core/config_engine.py:43` — `errors: list[ConfigIssue]`
+- `core/config_engine.py:44` — `warnings: list[ConfigIssue]`
+- `core/config_engine.py:51` — `class ConfigValidator:`
+- `core/config_engine.py:54` — `def __init__(self, config: dict[str, Any]) -> None:`
+- `core/config_engine.py:55` — `self._cfg = dict(config or {})`
+- `core/config_engine.py:56` — `self._errors: list[ConfigIssue] = []`
+- `core/config_engine.py:57` — `self._warnings: list[ConfigIssue] = []`
+- `core/config_engine.py:60` — `self._errors.append(ConfigIssue("error", key, message))`
+- `core/config_engine.py:63` — `self._warnings.append(ConfigIssue("warning", key, message))`
+- `core/config_engine.py:79` — `def validate(self) -> ConfigValidationResult:`
+- `core/config_engine.py:99` — `self._number_between("AUDIT_RETENTION_DAYS", 1.0, 3650.0)`
+- `core/config_engine.py:118` — `if bool(self._cfg.get("AUDIT_LOG_ENABLED")) and not str(self._cfg.get("AUDIT_LOG_FILE") or "").strip():`
+- `core/config_engine.py:119` — `self._error("AUDIT_LOG_FILE", "must be set when audit logging is enabled")`
+- `core/config_engine.py:121` — `return ConfigValidationResult(errors=list(self._errors), warnings=list(self._warnings))`
+- `core/config_engine.py:125` — `"ConfigIssue",`
+- `core/config_engine.py:126` — `"ConfigValidationResult",`
+- `core/config_engine.py:127` — `"ConfigValidator",`
+- `core/kite_ticker_feed.py:23` — `Config keys (extending ws_* base)`
+- `core/kite_ticker_feed.py:132` — `_log.info("[KITE_WS] disabled by config (kite_ticker_enabled=false)")`
+- `core/kite_ticker_feed.py:160` — `# Using importlib to avoid direct SDK import in core/ (audit requirement)`
+- `core/kite_ticker_feed.py:229` — `# Subscribe to configured tokens`
+- `core/kite_ticker_feed.py:308` — `"""Resolve Kite broker credentials from config."""`
+- `core/kite_ticker_feed.py:328` — `"""Expose config for _broker_secrets lookup."""`
+- `core/runbook_executor.py:22` — `Config keys (all optional — safe defaults built in)`
+- `core/runbook_executor.py:99` — `"config_corruption":     "config_corruption",`
+- `core/runbook_executor.py:456` — `"""Return a formatted report of the runbook suitable for CLI or notification."""`
+- `core/environment.py:1` — `"""Environment separation - validates deployment environment, prevents misconfiguration."""`
+- `core/environment.py:11` — `"guard_dev_config_in_production",`
+- `core/environment.py:40` — `Note: This does not read the ENVIRONMENT config key. For full resolution`
+- `core/environment.py:41` — `that checks both env var and config with proper precedence, use`
+- `core/environment.py:50` — `def guard_dev_config_in_production(cfg: dict) -> None:`
+- `core/environment.py:51` — `"""Warn if env=PRODUCTION but config looks dev-like (low capital, defaults token)."""`
+- `core/environment.py:95` — `Precedence: OPBUYING_ENVIRONMENT env var > ENVIRONMENT config key.`
+- `core/environment.py:101` — `# env var takes precedence over config key`
+- `core/environment.py:108` — `"config ENVIRONMENT=%r. Using env var value: %s",`
+- `core/environment.py:124` — `guard_dev_config_in_production(cfg)`
+- `core/living_documentation.py:22` — `seq_diagram = doc.generate_sequence_diagram("risk_approval_flow")`
+- `core/living_documentation.py:253` — `for mod in ["infra_broker_kite", "infra_notifications_telegram",`
+- `core/living_documentation.py:254` — `"infra_persistence_sqlite", "infra_config_secure"]:`
+- `core/living_documentation.py:278` — `lines.append("    class infra_broker_kite,infra_notifications_telegram,infra_persistence_sqlite,infra_config_secure infra")`
+- `core/living_documentation.py:356` — `"audit_log": [`
+- `core/living_documentation.py:384` — `lines.append("    users ||--o{ audit_log : \"audits\"")`
+- `core/living_documentation.py:396` — `signal_flow, trade_execution, risk_approval, incident_response.`
+- `core/living_documentation.py:411` — `("RiskService", "SignalEngine", "Risk approval/rejection"),`
+- `core/living_documentation.py:416` — `("ExecutionService", "SignalEngine", "Fill notification"),`
+- `core/living_documentation.py:436` — `"risk_approval": {`
+- `core/living_documentation.py:437` — `"title": "Risk Approval Flow",`
+- `core/living_documentation.py:463` — `("SelfHealing", "Operator", "Notification (if high-risk)"),`
+- `core/living_documentation.py:597` — `"core/portfolio/service.py", "core/config_bootstrap.py",`
+- `core/living_documentation.py:598` — `"core/auditor/auditor.py", "core/constitution_ai_gate.py",`
+- `core/living_documentation.py:616` — `("core/change_management.py", "core/config_bootstrap.py"),`
+- `core/living_documentation.py:619` — `("core/auditor/auditor.py", "core/constitution_ai_gate.py"),`
+- `core/living_documentation.py:665` — `auditor[Auto Auditor]`
+- `core/living_documentation.py:685` — `auditor --> docs`
+- `core/living_documentation.py:692` — `style auditor fill:#e8f5e9,stroke:#2e7d32`
+- `core/living_documentation.py:728` — `auditor[Auto Auditor]`
+- `core/living_documentation.py:736` — `notify[Notifications]`
+- `core/living_documentation.py:737` — `config[Config]`
+- `core/living_documentation.py:746` — `trader --> configure`
+- `core/living_documentation.py:747` — `dashboard --> configure`
+- `core/living_documentation.py:749` — `auditor --> risk`
+- `core/tier_engine.py:11` — `These are multipliers/overrides on top of the base SimConfig values.`
+- `core/tier_engine.py:38` — ```TIER_STRONG_MIN``/``TIER_MODERATE_MIN``/``TIER_WEAK_MIN`` config values`
+- `core/tier_engine.py:39` — `so a Super Admin config change actually takes effect - see`
+- `core/tier_engine.py:40` — ```config_from_dict()`` below.`
+- `core/tier_engine.py:51` — `def tier_bounds_from_config(cfg: Any) -> tuple[int, int, int]:`
+- `core/tier_engine.py:52` — `"""Resolve (strong_min, moderate_min, weak_min) from a config mapping.`
+- `core/tier_engine.py:71` — `# Position sizing (fraction of configured max_lots)`
+- `core/tier_engine.py:83` — `# Max bars in trade (as fraction of SimConfig.max_bars_in_trade)`
+- `core/tier_engine.py:91` — `# Canonical tier rule set - do NOT change without updating config.json mirrors`
+- `core/tier_engine.py:183` — `"tier_bounds_from_config",`
+- `core/safety_state.py:54` — `# clear_hard_halt() audit trail: records who cleared it and when.`
+- `core/safety_state.py:124` — `cfg: Optional config dict. Only used to gate the STRUCTURED_EVENTS_ENABLED`
+- `core/safety_state.py:231` — `return False  # no limit configured`
+- `core/safety_state.py:253` — `Audit trail: records who cleared it and when.`
+- `core/token_refresh_service.py:8` — `Config keys (all under BROKER_CONFIG or top-level):`
+- `core/token_refresh_service.py:85` — `# importlib avoids direct SDK import in core/ (audit requirement)`
+- `core/token_refresh_service.py:120` — `# importlib avoids direct SDK import in core/ (audit requirement)`
+- `core/synthetic_monitor.py:8` — `- Config integrity (can config be loaded without errors?)`
+- `core/synthetic_monitor.py:215` — `"core.security_auditor",`
+- `core/synthetic_monitor.py:288` — `def _probe_config(self) -> ProbeResult:`
+- `core/synthetic_monitor.py:289` — `"""Verify config files are loadable."""`
+- `core/synthetic_monitor.py:294` — `config_files = [`
+- `core/synthetic_monitor.py:295` — `"json/config.json",`
+- `core/synthetic_monitor.py:296` — `"json/stock_config.json",`
+- `core/synthetic_monitor.py:297` — `"json/dashboard_config.json",`
+- `core/synthetic_monitor.py:298` — `"json/index_config.defaults.json",`
+- `core/synthetic_monitor.py:301` — `for cf in config_files:`
+- `core/synthetic_monitor.py:311` — `name="config_integrity",`
+- `core/synthetic_monitor.py:314` — `detail="All checked config files valid",`
+- `core/synthetic_monitor.py:317` — `name="config_integrity",`
+- `core/synthetic_monitor.py:320` — `detail=f"{len(failed)} config files have issues",`
+- `core/synthetic_monitor.py:325` — `name="config_integrity",`
+- `core/synthetic_monitor.py:578` — `self._probe_config(),`
+- `core/root_cause_analyzer.py:7` — `- Configuration changes`
+- `core/root_cause_analyzer.py:17` — `- Suggested rollback if necessary`
+- `core/root_cause_analyzer.py:108` — `"Configuration change accidently relaxed limits",`
+- `core/root_cause_analyzer.py:115` — `"Verify current risk configuration",`
+- `core/root_cause_analyzer.py:117` — `"Review recent configuration changes",`
+- `core/root_cause_analyzer.py:127` — `"Configuration change reduced failure tolerance",`
+- `core/root_cause_analyzer.py:134` — `"Verify circuit breaker configuration thresholds",`
+- `core/root_cause_analyzer.py:160` — `"Log rotation not running or misconfigured",`
+- `core/root_cause_analyzer.py:180` — `"Permission revoked on broker side",`
+- `core/root_cause_analyzer.py:186` — `"Validate credentials in broker adapter configuration",`
+- `core/root_cause_analyzer.py:236` — `category: str  # STACK_TRACE, GIT_COMMIT, CONFIG_CHANGE, DEPLOYMENT, DEPENDENCY, HISTORY, INFRASTRUCTURE, DB_SCHEMA`
+- `core/root_cause_analyzer.py:266` — `suggested_rollback: bool = False`
+- `core/root_cause_analyzer.py:267` — `rollback_target: str = ""`
+- `core/root_cause_analyzer.py:283` — `"suggested_rollback": self.suggested_rollback,`
+- `core/root_cause_analyzer.py:284` — `"rollback_target": self.rollback_target,`
+- `core/root_cause_analyzer.py:312` — `if self.suggested_rollback:`
+- `core/root_cause_analyzer.py:313` — `lines.append(f"  ⚠ Suggested Rollback: {self.rollback_target}")`
+- `core/root_cause_analyzer.py:331` — `- Configuration change audit log`
+- `core/root_cause_analyzer.py:391` — `# 4. Collect config change evidence`
+- `core/root_cause_analyzer.py:392` — `config_evidence = self._collect_config_change_evidence()`
+- `core/root_cause_analyzer.py:393` — `result.evidence.extend(config_evidence)`
+- `core/root_cause_analyzer.py:429` — `# 11. Determine if rollback is needed`
+- `core/root_cause_analyzer.py:430` — `result.suggested_rollback, result.rollback_target = self._assess_rollback(`
+- `core/root_cause_analyzer.py:606` — `def _collect_config_change_evidence(self) -> list[EvidenceItem]:`
+- `core/root_cause_analyzer.py:607` — `"""Collect evidence from configuration change audit log."""`
+- `core/root_cause_analyzer.py:610` — `audit_path = Path("json/config_audit.jsonl")`
+- `core/root_cause_analyzer.py:611` — `if audit_path.is_file():`
+- `core/root_cause_analyzer.py:612` — `lines = audit_path.read_text(encoding="utf-8").splitlines()`
+- `core/root_cause_analyzer.py:627` — `category="CONFIG_CHANGE",`
+- `core/root_cause_analyzer.py:628` — `description=f"{len(recent_changes)} config change(s) in last 24 hours",`
+- `core/root_cause_analyzer.py:629` — `source="json/config_audit.jsonl",`
+- `core/root_cause_analyzer.py:635` — `_log.debug("[RCA] Config evidence collection failed: %s", exc)`
+- `core/root_cause_analyzer.py:796` — `if ev.category == "CONFIG_CHANGE" and ev.relevance > 0.5:`
+- `core/root_cause_analyzer.py:797` — `fix_parts.append("Review recent configuration changes - a config change may have triggered this.")`
+- `core/root_cause_analyzer.py:812` — `def _assess_rollback(`
+- `core/root_cause_analyzer.py:815` — `"""Determine if a rollback is needed and what to roll back to."""`
+- `core/root_cause_analyzer.py:816` — `# Check if there's a recent config change that could be rolled back`
+- `core/root_cause_analyzer.py:818` — `if ev.category == "CONFIG_CHANGE" and ev.relevance > 0.7:`
+- `core/root_cause_analyzer.py:821` — `return True, "Roll back to last known-good configuration"`
+- `core/root_cause_analyzer.py:823` — `# Critical errors may need rollback`
+- `core/root_cause_analyzer.py:843` — `"CONFIG_CHANGE": 1.5,`
+- `core/capacity_planning.py:18` — `Config keys (all optional — safe defaults built in)`
+- `core/capacity_planning.py:239` — `description="Trade rate exceeds 100 trades/hour — verify config",`
+- `core/capacity_planning.py:280` — `config history tracking for capacity changes, and resource scoring.`
+- `core/capacity_planning.py:292` — `# Config / capacity change tracking`
+- `core/capacity_planning.py:296` — `"""Load scaling triggers from config, falling back to defaults."""`
+- `core/capacity_planning.py:471` — `Tracked changes: config updates, resource limit changes, scaling events.`
+- `core/capacity_planning.py:490` — `change_type: Type of change (CONFIG, RESOURCE_LIMIT, SCALING).`
+- `core/capacity_planning.py:536` — `except (OSError, PermissionError) as exc:`
+- `core/capacity_planning.py:767` — `routes CRITICAL/HIGH alerts to notification channels and logs`
+- `core/capacity_planning.py:774` — `cfg: Optional config dict.`
+- `core/capacity_planning.py:777` — `A configured CapacityPlanner with alerting wired.`
+- `core/ai_security_gate.py:7` — `- Audit trail for all AI security events`
+- `core/ai_security_gate.py:10` — `- SecurityAuditor for overall security posture`
+- `core/ai_security_gate.py:43` — `("system_prompt_leak", r"(?i)(reveal|show|print|output|display|leak|dump)\s+(your\s+)?(system|internal|hidden|secret)\s+(prompt|instructions|configuration)", 0.9),`
+- `core/ai_security_gate.py:114` — `class AIAuditRecord:`
+- `core/ai_security_gate.py:115` — `"""Audit record for an AI interaction."""`
+- `core/ai_security_gate.py:165` — `high_risk_prompts: list[AIAuditRecord] = field(default_factory=list)`
+- `core/ai_security_gate.py:166` — `recent_audits: list[AIAuditRecord] = field(default_factory=list)`
+- `core/ai_security_gate.py:177` — `"recent_audits": [r.to_dict() for r in self.recent_audits[-50:]],`
+- `core/ai_security_gate.py:214` — `- Audit trail persistence`
+- `core/ai_security_gate.py:221` — `self._audit_log: list[AIAuditRecord] = []`
+- `core/ai_security_gate.py:222` — `self._max_audit = 1000`
+- `core/ai_security_gate.py:225` — `self._persist_path = Path("json/ai_security_audit.json")`
+- `core/ai_security_gate.py:226` — `self._load_audit()`
+- `core/ai_security_gate.py:234` — `) -> AIAuditRecord:`
+- `core/ai_security_gate.py:242` — `AIAuditRecord with injection risk findings.`
+- `core/ai_security_gate.py:245` — `record = AIAuditRecord(`
+- `core/ai_security_gate.py:288` — `# Audit`
+- `core/ai_security_gate.py:293` — `self._audit_log.append(record)`
+- `core/ai_security_gate.py:294` — `if len(self._audit_log) > self._max_audit:`
+- `core/ai_security_gate.py:295` — `self._audit_log = self._audit_log[-self._max_audit:]`
+- `core/ai_security_gate.py:369` — `# Update the last audit record if it matches`
+- `core/ai_security_gate.py:371` — `if self._audit_log and self._audit_log[-1].prompt == prompt:`
+- `core/ai_security_gate.py:372` — `self._audit_log[-1].hallucination_score = score`
+- `core/ai_security_gate.py:389` — `high_risk = [r for r in self._audit_log if r.risk_level in ("HIGH", "CRITICAL")]`
+- `core/ai_security_gate.py:391` — `report.recent_audits = list(self._audit_log[-100:])`
+- `core/ai_security_gate.py:395` — `report.overall_risk_score = len(high_risk) / max(1, len(self._audit_log))`
+- `core/ai_security_gate.py:409` — `"audit_log_size": len(self._audit_log),`
+- `core/ai_security_gate.py:410` — `"high_risk_count": sum(1 for r in self._audit_log if r.risk_level in ("HIGH", "CRITICAL")),`
+- `core/ai_security_gate.py:411` — `"last_audit": self._audit_log[-1].to_dict() if self._audit_log else None,`
+- `core/ai_security_gate.py:414` — `def clear_audit(self) -> None:`
+- `core/ai_security_gate.py:415` — `"""Clear all audit records."""`
+- `core/ai_security_gate.py:417` — `self._audit_log.clear()`
+- `core/ai_security_gate.py:558` — `"""Generate security recommendations based on audit data."""`
+- `core/ai_security_gate.py:576` — `recs.append("Review AI audit log regularly for emerging attack patterns")`
+- `core/ai_security_gate.py:582` — `"""Persist audit log to disk."""`
+- `core/ai_security_gate.py:585` — `data = [r.to_dict() for r in self._audit_log[-500:]]`
+- `core/ai_security_gate.py:590` — `def _load_audit(self) -> None:`
+- `core/ai_security_gate.py:591` — `"""Load audit history from disk, reconstructing nested dataclasses."""`
+- `core/ai_security_gate.py:598` — `if k in AIAuditRecord.__dataclass_fields__}`
+- `core/ai_security_gate.py:613` — `record = AIAuditRecord(**fields)`
+- `core/ai_security_gate.py:614` — `self._audit_log.append(record)`
+- `core/ai_security_gate.py:617` — `self._total_prompts = len(self._audit_log)`
+- `core/ai_security_gate.py:618` — `self._total_blocked = sum(1 for r in self._audit_log if r.blocked)`
+- `core/ai_security_gate.py:703` — `"AIAuditRecord",`
+- `core/enterprise_knowledge_graph.py:8` — `- Configuration domains`
+- `core/enterprise_knowledge_graph.py:41` — `"CONFIG", "INCIDENT", "DECISION", "BUSINESS_PROCESS",`
+- `core/enterprise_knowledge_graph.py:43` — `"SCREEN", "PERMISSION", "USER_ROLE",`
+- `core/enterprise_knowledge_graph.py:49` — `"DEPLOYS_TO", "CONFIGURES", "OWNS", "MONITORS",`
+- `core/enterprise_knowledge_graph.py:162` — `- Configuration (from config files)`
+- `core/enterprise_knowledge_graph.py:210` — `# 5. Configuration data`
+- `core/enterprise_knowledge_graph.py:211` — `self._build_config_nodes()`
+- `core/enterprise_knowledge_graph.py:557` — `def _build_config_nodes(self) -> None:`
+- `core/enterprise_knowledge_graph.py:558` — `"""Add nodes from configuration files."""`
+- `core/enterprise_knowledge_graph.py:559` — `config_files = [`
+- `core/enterprise_knowledge_graph.py:560` — `"json/config.json",`
+- `core/enterprise_knowledge_graph.py:561` — `"json/stock_config.json",`
+- `core/enterprise_knowledge_graph.py:562` — `"json/index_config.defaults.json",`
+- `core/enterprise_knowledge_graph.py:563` — `"json/dashboard_config.json",`
+- `core/enterprise_knowledge_graph.py:564` — `"json/config.template.json",`
+- `core/enterprise_knowledge_graph.py:567` — `for config_file in config_files:`
+- `core/enterprise_knowledge_graph.py:568` — `path = self._project_root / config_file`
+- `core/enterprise_knowledge_graph.py:572` — `config = json.loads(content)`
+- `core/enterprise_knowledge_graph.py:573` — `keys = list(config.keys()) if isinstance(config, dict) else []`
+- `core/enterprise_knowledge_graph.py:576` — `node_id=f"config:{config_file}",`
+- `core/enterprise_knowledge_graph.py:577` — `name=config_file,`
+- `core/enterprise_knowledge_graph.py:578` — `node_type="CONFIG",`
+- `core/enterprise_knowledge_graph.py:580` — `"path": config_file,`
+- `core/enterprise_knowledge_graph.py:584` — `source="config",`
+- `core/enterprise_knowledge_graph.py:588` — `# Link config to modules that reference it`
+- `core/enterprise_knowledge_graph.py:601` — `source_id=f"config:{config_file}",`
+- `core/enterprise_knowledge_graph.py:603` — `relation_type="CONFIGURES",`
+- `core/enterprise_knowledge_graph.py:608` — `"[ENTERPRISE_KG] Config load error for %s: %s",`
+- `core/enterprise_knowledge_graph.py:609` — `config_file, exc,`
+- `core/enterprise_knowledge_graph.py:651` — `"tier_classification", "approval",`
+- `core/enterprise_knowledge_graph.py:669` — `"name": "Compliance & Audit Process",`
+- `core/enterprise_knowledge_graph.py:671` — `"constitution_checks", "audit_logging",`
+- `core/enterprise_knowledge_graph.py:713` — `"docker_setup": {"name": "Docker Deployment", "type": "DEPLOYMENT"},`
+- `core/incident_command_system.py:5` — `tracks the incident lifecycle, and integrates with the notification system.`
+- `core/incident_command_system.py:15` — `- Notification integration via alert callback`
+- `core/incident_command_system.py:24` — `commander.resolve_incident("INC-001", "Fixed via config reload")`
+- `core/incident_command_system.py:30` — `- Notification callbacks for critical/high incidents`
+- `core/incident_command_system.py:156` — `class IncidentConfig:`
+- `core/incident_command_system.py:157` — `"""Configuration for the Incident Command System."""`
+- `core/incident_command_system.py:175` — `"""Orchestrates incident detection, management, and notification.`
+- `core/incident_command_system.py:180` — `def __init__(self, config: dict[str, Any] | None = None) -> None:`
+- `core/incident_command_system.py:181` — `self._cfg = IncidentConfig(**{k: v for k, v in (config or {}).items() if k in IncidentConfig.__dataclass_fields__})`
+- `core/incident_command_system.py:515` — `"""Send an alert via the configured callback."""`
+- `core/incident_command_system.py:541` — `def get_incident_commander(config: dict[str, Any] | None = None) -> IncidentCommander:`
+- `core/incident_command_system.py:547` — `_commander = IncidentCommander(config)`
+- `core/incident_command_system.py:561` — `"IncidentConfig",`
+- `core/config_helpers.py:1` — `"""Small shared config utilities for index + stock entry scripts (secrets, TG patterns)."""`
+- `core/config_helpers.py:9` — `"build_audit_config_snapshot",`
+- `core/config_helpers.py:17` — `"""Decode values prefixed with ``b64:`` in config JSON for light obfuscation."""`
+- `core/config_helpers.py:29` — `"""Show first ~20%% of a secret, mask the rest (config print / logs)."""`
+- `core/config_helpers.py:37` — `"""Recursively merge overlay into base (config overlays, GUI_* nested dicts)."""`
+- `core/config_helpers.py:50` — `"""Resolve TG_TRADE_CRITICAL_PATTERNS from config list or fall back to app defaults."""`
+- `core/config_helpers.py:58` — `_AUDIT_REDACT_SUBOBJECTS: frozenset[str] = frozenset({"BROKER_CONFIG"})`
+- `core/config_helpers.py:61` — `_AUDIT_REDACT_SCALARS: frozenset[str] = frozenset({"BOT_TOKEN", "CHAT_ID"})`
+- `core/config_helpers.py:64` — `def build_audit_config_snapshot(cfg: dict[str, Any]) -> dict[str, Any]:`
+- `core/config_helpers.py:65` — `"""Return a copy of *cfg* that is safe to pass to AuditEngine.record().`
+- `core/config_helpers.py:69` — `- Keys in ``_AUDIT_REDACT_SUBOBJECTS`` (e.g. BROKER_CONFIG) are replaced`
+- `core/config_helpers.py:71` — `- Keys in ``_AUDIT_REDACT_SCALARS`` (BOT_TOKEN, CHAT_ID) are partially`
+- `core/config_helpers.py:77` — `snapshot = build_audit_config_snapshot(cfg)`
+- `core/config_helpers.py:78` — `audit.record("effective_config", severity="AUDIT", **snapshot)`
+- `core/config_helpers.py:86` — `if k in _AUDIT_REDACT_SUBOBJECTS:`
+- `core/config_helpers.py:88` — `elif k in _AUDIT_REDACT_SCALARS:`
+- `core/quality_gates.py:776` — `gov_keywords = ["risk", "security", "compliance", "governance", "audit"]`
+- `core/quality_gates.py:824` — `# Check for config changes`
+- `core/quality_gates.py:825` — `has_config_changes = any(`
+- `core/quality_gates.py:826` — `"config" in f.lower() or ".json" in f or ".yaml" in f or ".yml" in f`
+- `core/quality_gates.py:829` — `if has_config_changes:`
+- `core/quality_gates.py:831` — `findings.append("Configuration changed — verify in target environment")`
+- `core/quality_gates.py:840` — `findings.append("Database migration detected — verify rollback plan")`
+- `core/quality_gates.py:841` — `result.warnings.append("DB migration — ensure rollback is tested")`
+- `core/quality_gates.py:859` — `findings.append("Docker configuration changed — rebuild and test")`
+- `core/quality_gates.py:867` — `details=f"Config: {has_config_changes}, DB: {has_db_changes}, Docker: {has_docker_changes}",`
+- `core/vulnerability_scanner.py:3` — `Scans project dependencies, configuration files, and code patterns for`
+- `core/vulnerability_scanner.py:4` — `known vulnerabilities, misconfigurations, and security weaknesses.`
+- `core/vulnerability_scanner.py:36` — `CATEGORIES = ("DEPENDENCY", "CONFIGURATION", "CODE_PATTERN", "SECRET", "PERMISSION")`
+- `core/vulnerability_scanner.py:49` — `category: str = "CONFIGURATION"`
+- `core/vulnerability_scanner.py:136` — `"""Scans project for vulnerabilities across dependencies, configs, and code.`
+- `core/vulnerability_scanner.py:161` — `# Scan configuration files`
+- `core/vulnerability_scanner.py:162` — `findings.extend(self._scan_config_files())`
+- `core/vulnerability_scanner.py:183` — `def scan_configs_only(self) -> ScanReport:`
+- `core/vulnerability_scanner.py:184` — `"""Run only configuration file scanning."""`
+- `core/vulnerability_scanner.py:186` — `findings = self._scan_config_files()`
+- `core/vulnerability_scanner.py:285` — `# ── Configuration Scanning ────────────────────────────────────────────`
+- `core/vulnerability_scanner.py:287` — `def _scan_config_files(self) -> list[Finding]:`
+- `core/vulnerability_scanner.py:288` — `"""Scan configuration files for weaknesses."""`
+- `core/vulnerability_scanner.py:290` — `config_files = ["json/config.json", "json/stock_config.json", "json/dashboard_config.json"]`
+- `core/vulnerability_scanner.py:292` — `for cf in config_files:`
+- `core/vulnerability_scanner.py:313` — `category="CONFIGURATION",`
+- `core/vulnerability_scanner.py:321` — `title="Debug mode enabled in config",`
+- `core/vulnerability_scanner.py:324` — `category="CONFIGURATION",`
+- `core/vulnerability_scanner.py:330` — `_log.debug("[VULN_SCAN] Config scan error for %s: %s", cf, exc)`
+- `core/adaptive_signal.py:5` — `tiered system trade partial setups at reduced position size rather than skip entirely.`
+- `core/adaptive_signal.py:48` — `from core.tier_engine import TIER_RULES, classify_tier, tier_bounds_from_config`
+- `core/adaptive_signal.py:153` — `Returns None on DB error, disabled config, or too few trades.`
+- `core/adaptive_signal.py:155` — `Config keys used:`
+- `core/adaptive_signal.py:237` — `cfg: config dict (timeframe_divergence_block_enabled etc.)`
+- `core/adaptive_signal.py:269` — `config: dict[str, Any],`
+- `core/adaptive_signal.py:273` — `When ``high_conviction_mode`` is enabled in config, this filter applies`
+- `core/adaptive_signal.py:286` — `if not config.get("high_conviction_mode", False):`
+- `core/adaptive_signal.py:289` — `ml_min = float(config.get("HIGH_CONVICTION_ML_THRESHOLD", _HIGH_CONVICTION_ML_MIN))`
+- `core/adaptive_signal.py:290` — `vol_min = float(config.get("HIGH_CONVICTION_VOL_RATIO_MIN", _HIGH_CONVICTION_VOL_MIN))`
+- `core/adaptive_signal.py:291` — `score_min = int(config.get("HIGH_CONVICTION_SCORE_MIN", _HIGH_CONVICTION_SCORE_MIN))`
+- `core/adaptive_signal.py:698` — `config=sc,`
+- `core/adaptive_signal.py:707` — `config=sc,`
+- `core/adaptive_signal.py:715` — `config=sc,`
+- `core/adaptive_signal.py:733` — `ml_config = dict(params.signal_cfg)`
+- `core/adaptive_signal.py:737` — `config=ml_config,`
+- `core/adaptive_signal.py:744` — `_strong_min, _moderate_min, _weak_min = tier_bounds_from_config(sc)`
+- `core/adaptive_signal.py:764` — `# FILTER_ENABLED). Its own sub-config is intentionally strict by design`
+- `core/adaptive_signal.py:821` — `v245_config = dict(params.signal_cfg)`
+- `core/adaptive_signal.py:826` — `adjusted_score, _fii_pts = apply_fii_dii_adjustment(direction, adjusted_score, v245_config)`
+- `core/adaptive_signal.py:831` — `adjusted_score, _im_pts = apply_implied_move_adjustment(data, adjusted_score, v245_config)`
+- `core/adaptive_signal.py:836` — `adjusted_score, _gex_pts = apply_gex_adjustment(data, direction, adjusted_score, v245_config)`
+- `core/adaptive_signal.py:841` — `adjusted_score, _rt_pts = apply_regime_transition_adjustment(regime, data, vix, adjusted_score, v245_config)`
+- `core/adaptive_signal.py:864` — `# highest-quality setups while rejecting borderline entries.`
+- `core/adaptive_signal.py:871` — `config=sc,`
+- `core/opbuying_observability.py:4` — `points can depend on one path when wiring metrics, audit, and soft-reload.`
+- `core/opbuying_observability.py:9` — `from core.config_audit_log import append_soft_reload_audit_diff, format_config_audit_log_line`
+- `core/opbuying_observability.py:19` — `"append_soft_reload_audit_diff",`
+- `core/opbuying_observability.py:22` — `"format_config_audit_log_line",`
+- `core/audit_mode.py:1` — `"""Independent Audit Mode (Phase 16).`
+- `core/audit_mode.py:3` — `The Auditor's job is to BREAK the system before production.`
+- `core/audit_mode.py:16` — `from core.audit_mode import Auditor, AuditScope`
+- `core/audit_mode.py:18` — `auditor = Auditor()`
+- `core/audit_mode.py:19` — `report = auditor.run_full_audit()`
+- `core/audit_mode.py:22` — `# Audit specific scope`
+- `core/audit_mode.py:23` — `risk_report = auditor.audit_risk_controls()`
+- `core/audit_mode.py:40` — `class AuditSeverity(Enum):`
+- `core/audit_mode.py:47` — `class AuditScope(Enum):`
+- `core/audit_mode.py:57` — `class AuditVerdict(Enum):`
+- `core/audit_mode.py:65` — `class AuditFinding:`
+- `core/audit_mode.py:66` — `"""A single audit finding."""`
+- `core/audit_mode.py:68` — `scope: AuditScope`
+- `core/audit_mode.py:69` — `severity: AuditSeverity`
+- `core/audit_mode.py:78` — `class AuditReport:`
+- `core/audit_mode.py:79` — `"""Complete audit report."""`
+- `core/audit_mode.py:81` — `scope: AuditScope`
+- `core/audit_mode.py:87` — `findings: list[AuditFinding] = field(default_factory=list)`
+- `core/audit_mode.py:94` — `f"INDEPENDENT AUDIT REPORT - Scope: {self.scope.value}",`
+- `core/audit_mode.py:104` — `icon = "✅" if f.passed else ("⚠️" if f.severity == AuditSeverity.WARNING else "❌")`
+- `core/audit_mode.py:137` — `class Auditor:`
+- `core/audit_mode.py:138` — `"""Independent Auditor - challenges system integrity across all dimensions.`
+- `core/audit_mode.py:140` — `The Auditor's mindset:`
+- `core/audit_mode.py:148` — `self._findings: list[AuditFinding] = []`
+- `core/audit_mode.py:150` — `def run_full_audit(self) -> AuditReport:`
+- `core/audit_mode.py:151` — `"""Run all audit scopes and return combined report."""`
+- `core/audit_mode.py:155` — `self.audit_architecture(),`
+- `core/audit_mode.py:156` — `self.audit_risk_controls(),`
+- `core/audit_mode.py:157` — `self.audit_strategy(),`
+- `core/audit_mode.py:158` — `self.audit_execution(),`
+- `core/audit_mode.py:159` — `self.audit_scoring(),`
+- `core/audit_mode.py:160` — `self.audit_security(),`
+- `core/audit_mode.py:184` — `return AuditReport(`
+- `core/audit_mode.py:185` — `scope=AuditScope.ALL,`
+- `core/audit_mode.py:197` — `def audit_architecture(self) -> AuditReport:`
+- `core/audit_mode.py:199` — `findings: list[AuditFinding] = []`
+- `core/audit_mode.py:213` — `return self._build_report(AuditScope.ARCHITECTURE, findings)`
+- `core/audit_mode.py:215` — `def audit_risk_controls(self) -> AuditReport:`
+- `core/audit_mode.py:217` — `findings: list[AuditFinding] = []`
+- `core/audit_mode.py:231` — `return self._build_report(AuditScope.RISK, findings)`
+- `core/audit_mode.py:233` — `def audit_strategy(self) -> AuditReport:`
+- `core/audit_mode.py:235` — `findings: list[AuditFinding] = []`
+- `core/audit_mode.py:241` — `findings.append(AuditFinding(`
+- `core/audit_mode.py:242` — `scope=AuditScope.STRATEGY,`
+- `core/audit_mode.py:243` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:251` — `return self._build_report(AuditScope.STRATEGY, findings)`
+- `core/audit_mode.py:253` — `def audit_execution(self) -> AuditReport:`
+- `core/audit_mode.py:255` — `findings: list[AuditFinding] = []`
+- `core/audit_mode.py:258` — `findings.append(AuditFinding(`
+- `core/audit_mode.py:259` — `scope=AuditScope.EXECUTION,`
+- `core/audit_mode.py:260` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:269` — `findings.append(AuditFinding(`
+- `core/audit_mode.py:270` — `scope=AuditScope.EXECUTION,`
+- `core/audit_mode.py:271` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:280` — `findings.append(AuditFinding(`
+- `core/audit_mode.py:281` — `scope=AuditScope.EXECUTION,`
+- `core/audit_mode.py:282` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:290` — `return self._build_report(AuditScope.EXECUTION, findings)`
+- `core/audit_mode.py:292` — `def audit_scoring(self) -> AuditReport:`
+- `core/audit_mode.py:294` — `findings: list[AuditFinding] = []`
+- `core/audit_mode.py:297` — `findings.append(AuditFinding(`
+- `core/audit_mode.py:298` — `scope=AuditScope.SCORING,`
+- `core/audit_mode.py:299` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:318` — `findings.append(AuditFinding(`
+- `core/audit_mode.py:319` — `scope=AuditScope.SCORING,`
+- `core/audit_mode.py:320` — `severity=AuditSeverity.WARNING,`
+- `core/audit_mode.py:328` — `findings.append(AuditFinding(`
+- `core/audit_mode.py:329` — `scope=AuditScope.SCORING,`
+- `core/audit_mode.py:330` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:338` — `return self._build_report(AuditScope.SCORING, findings)`
+- `core/audit_mode.py:340` — `def audit_security(self) -> AuditReport:`
+- `core/audit_mode.py:342` — `findings: list[AuditFinding] = []`
+- `core/audit_mode.py:345` — `findings.append(AuditFinding(`
+- `core/audit_mode.py:346` — `scope=AuditScope.SECURITY,`
+- `core/audit_mode.py:347` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:356` — `findings.append(AuditFinding(`
+- `core/audit_mode.py:357` — `scope=AuditScope.SECURITY,`
+- `core/audit_mode.py:358` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:367` — `findings.append(AuditFinding(`
+- `core/audit_mode.py:368` — `scope=AuditScope.SECURITY,`
+- `core/audit_mode.py:369` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:377` — `return self._build_report(AuditScope.SECURITY, findings)`
+- `core/audit_mode.py:381` — `def _check_no_broker_direct_imports(self) -> AuditFinding:`
+- `core/audit_mode.py:415` — `return AuditFinding(`
+- `core/audit_mode.py:416` — `scope=AuditScope.ARCHITECTURE,`
+- `core/audit_mode.py:417` — `severity=AuditSeverity.WARNING,`
+- `core/audit_mode.py:424` — `return AuditFinding(`
+- `core/audit_mode.py:425` — `scope=AuditScope.ARCHITECTURE,`
+- `core/audit_mode.py:426` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:434` — `return AuditFinding(`
+- `core/audit_mode.py:435` — `scope=AuditScope.ARCHITECTURE,`
+- `core/audit_mode.py:436` — `severity=AuditSeverity.WARNING,`
+- `core/audit_mode.py:444` — `def _check_strategy_isolation(self) -> AuditFinding:`
+- `core/audit_mode.py:446` — `return AuditFinding(`
+- `core/audit_mode.py:447` — `scope=AuditScope.ARCHITECTURE,`
+- `core/audit_mode.py:448` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:456` — `def _check_risk_isolation(self) -> AuditFinding:`
+- `core/audit_mode.py:458` — `return AuditFinding(`
+- `core/audit_mode.py:459` — `scope=AuditScope.ARCHITECTURE,`
+- `core/audit_mode.py:460` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:468` — `def _check_dependency_direction(self) -> AuditFinding:`
+- `core/audit_mode.py:470` — `return AuditFinding(`
+- `core/audit_mode.py:471` — `scope=AuditScope.ARCHITECTURE,`
+- `core/audit_mode.py:472` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:480` — `def _check_hard_halt_non_bypassable(self) -> AuditFinding:`
+- `core/audit_mode.py:482` — `return AuditFinding(`
+- `core/audit_mode.py:483` — `scope=AuditScope.RISK,`
+- `core/audit_mode.py:484` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:492` — `def _check_daily_loss_enforced(self) -> AuditFinding:`
+- `core/audit_mode.py:494` — `return AuditFinding(`
+- `core/audit_mode.py:495` — `scope=AuditScope.RISK,`
+- `core/audit_mode.py:496` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:500` — `recommendation="Verify max_daily_loss is set in config for production",`
+- `core/audit_mode.py:504` — `def _check_position_limits(self) -> AuditFinding:`
+- `core/audit_mode.py:506` — `return AuditFinding(`
+- `core/audit_mode.py:507` — `scope=AuditScope.RISK,`
+- `core/audit_mode.py:508` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:516` — `def _check_greeks_limits(self) -> AuditFinding:`
+- `core/audit_mode.py:518` — `return AuditFinding(`
+- `core/audit_mode.py:519` — `scope=AuditScope.RISK,`
+- `core/audit_mode.py:520` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:528` — `def _check_strategy_data(self) -> AuditFinding:`
+- `core/audit_mode.py:539` — `return AuditFinding(`
+- `core/audit_mode.py:540` — `scope=AuditScope.STRATEGY,`
+- `core/audit_mode.py:541` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:548` — `return AuditFinding(`
+- `core/audit_mode.py:549` — `scope=AuditScope.STRATEGY,`
+- `core/audit_mode.py:550` — `severity=AuditSeverity.WARNING,`
+- `core/audit_mode.py:558` — `_log.debug("[AUDIT_MODE] non-critical error: %s", e)`
+- `core/audit_mode.py:559` — `return AuditFinding(`
+- `core/audit_mode.py:560` — `scope=AuditScope.STRATEGY,`
+- `core/audit_mode.py:561` — `severity=AuditSeverity.INFO,`
+- `core/audit_mode.py:569` — `def _build_report(self, scope: AuditScope, findings: list[AuditFinding]) -> AuditReport:`
+- `core/audit_mode.py:572` — `warnings = sum(1 for f in findings if f.severity == AuditSeverity.WARNING and not f.passed)`
+- `core/audit_mode.py:573` — `failures = sum(1 for f in findings if f.severity in (AuditSeverity.CRITICAL, AuditSeverity.BLOCKER) and not f.passed)`
+- `core/audit_mode.py:574` — `criticals = sum(1 for f in findings if f.severity == AuditSeverity.BLOCKER and not f.passed)`
+- `core/audit_mode.py:586` — `return AuditReport(`
+- `core/audit_mode.py:601` — `_AUDITOR: Auditor | None = None`
+- `core/audit_mode.py:602` — `_AUDITOR_LOCK: threading.RLock = threading.RLock()`
+- `core/audit_mode.py:605` — `def get_auditor() -> Auditor:`
+- `core/audit_mode.py:606` — `"""Get or create the singleton Auditor instance."""`
+- `core/audit_mode.py:607` — `global _AUDITOR`
+- `core/audit_mode.py:608` — `with _AUDITOR_LOCK:`
+- `core/audit_mode.py:609` — `if _AUDITOR is None:`
+- `core/audit_mode.py:610` — `_AUDITOR = Auditor()`
+- `core/audit_mode.py:611` — `return _AUDITOR`
+- `core/audit_mode.py:614` — `def run_audit(scope: str = "all") -> AuditReport:`
+- `core/audit_mode.py:615` — `"""Run an audit and return the report."""`
+- `core/audit_mode.py:616` — `auditor = get_auditor()`
+- `core/audit_mode.py:618` — `"architecture": AuditScope.ARCHITECTURE,`
+- `core/audit_mode.py:619` — `"risk": AuditScope.RISK,`
+- `core/audit_mode.py:620` — `"strategy": AuditScope.STRATEGY,`
+- `core/audit_mode.py:621` — `"execution": AuditScope.EXECUTION,`
+- `core/audit_mode.py:622` — `"scoring": AuditScope.SCORING,`
+- `core/audit_mode.py:623` — `"security": AuditScope.SECURITY,`
+- `core/audit_mode.py:624` — `"all": AuditScope.ALL,`
+- `core/audit_mode.py:626` — `s = scope_map.get(scope.lower(), AuditScope.ALL)`
+- `core/audit_mode.py:627` — `if s == AuditScope.ALL:`
+- `core/audit_mode.py:628` — `return auditor.run_full_audit()`
+- `core/audit_mode.py:629` — `auditable = {`
+- `core/audit_mode.py:630` — `AuditScope.ARCHITECTURE: auditor.audit_architecture,`
+- `core/audit_mode.py:631` — `AuditScope.RISK: auditor.audit_risk_controls,`
+- `core/audit_mode.py:632` — `AuditScope.STRATEGY: auditor.audit_strategy,`
+- `core/audit_mode.py:633` — `AuditScope.EXECUTION: auditor.audit_execution,`
+- `core/audit_mode.py:634` — `AuditScope.SCORING: auditor.audit_scoring,`
+- `core/audit_mode.py:635` — `AuditScope.SECURITY: auditor.audit_security,`
+- `core/audit_mode.py:637` — `return auditable[s]()`
+- `core/audit_mode.py:645` — `prog="python -m core.audit_mode",`
+- `core/audit_mode.py:646` — `description="Independent Audit Mode - challenge system integrity",`
+- `core/audit_mode.py:653` — `report = run_audit(args.scope)`
+- `core/audit_mode.py:662` — `"AuditFinding",`
+- `core/audit_mode.py:663` — `"AuditReport",`
+- `core/audit_mode.py:664` — `"AuditScope",`
+- `core/audit_mode.py:665` — `"AuditSeverity",`
+- `core/audit_mode.py:666` — `"AuditVerdict",`
+- `core/audit_mode.py:667` — `"Auditor",`
+- `core/audit_mode.py:668` — `"get_auditor",`
+- `core/audit_mode.py:669` — `"run_audit",`
+- `core/admin_control_plane.py:52` — `audit_logger: Any = None,`
+- `core/admin_control_plane.py:58` — `config_reload: Any = None,`
+- `core/admin_control_plane.py:70` — `audit_logger=audit_logger,`
+- `core/admin_control_plane.py:76` — `config_reload=config_reload,`
+- `core/config_audit_log.py:1` — `"""Append-only config audit lines after soft reload (stock + index parity).`
+- `core/config_audit_log.py:4` — `"append_soft_reload_audit_diff",`
+- `core/config_audit_log.py:5` — `"format_config_audit_log_line",`
+- `core/config_audit_log.py:18` — `"append_soft_reload_audit_diff",`
+- `core/config_audit_log.py:19` — `"format_config_audit_log_line",`
+- `core/config_audit_log.py:23` — `def format_config_audit_log_line(timestamp_iso: str, key: str, old: object, new: object) -> str:`
+- `core/config_audit_log.py:27` — `def append_soft_reload_audit_diff(`
+- `core/config_audit_log.py:28` — `audit_log_path: str | pathlib.Path,`
+- `core/config_audit_log.py:33` — `path = pathlib.Path(audit_log_path)`
+- `core/config_audit_log.py:35` — `f.writelines(format_config_audit_log_line(`
+- `core/health_reporter.py:30` — `"""Performs a comprehensive weekly audit of the trading system.`
+- `core/health_reporter.py:41` — `def run_weekly_audit(self) -> HealthScore:`
+- `core/health_reporter.py:87` — `self.logger.error(f"Weekly audit failed: {e}")`
+- `core/health_reporter.py:88` — `return HealthScore(0.0, "FAIL", "UNKNOWN", "UNKNOWN", recommendation="Urgent: System health audit failed.")`
+- `core/health_reporter.py:140` — `"""Check strategy approval workflow status."""`
+- `core/health_reporter.py:142` — `from core.strategy.approval_workflow import get_approval_workflow`
+- `core/health_reporter.py:144` — `wf = get_approval_workflow()`
+- `core/health_reporter.py:170` — `issues.append("Governance approval backlog - review pending requests")`
+- `core/health_reporter.py:172` — `return "System healthy. Proceed with current config."`
+- `core/all_nse_scanner.py:72` — `cfg_path = _ROOT / "json" / "config.json"`
+- `core/all_nse_scanner.py:95` — `self._reload_config_credentials()`
+- `core/all_nse_scanner.py:119` — `def _reload_config_credentials(self) -> None:`
+- `core/all_nse_scanner.py:120` — `"""Dynamically reload notification credentials from json/config.json and .env."""`
+- `core/all_nse_scanner.py:128` — `cfg_path = _ROOT / "json" / "config.json"`
+- `core/all_nse_scanner.py:133` — `_log.debug("Failed to reload config.json: %s", ex)`
+- `core/all_nse_scanner.py:370` — `def _log_signal_audit_record(`
+- `core/all_nse_scanner.py:378` — `"""Persist 11 Core Audit Invariant Fields for both Accepted and Counterfactual opportunities."""`
+- `core/all_nse_scanner.py:386` — `audit_file = logs_dir / "forward_audit_signals.jsonl"`
+- `core/all_nse_scanner.py:420` — `with open(audit_file, "a", encoding="utf-8") as f:`
+- `core/all_nse_scanner.py:423` — `_log.debug("[AUDIT] Failed to persist signal audit record: %s", e)`
+- `core/all_nse_scanner.py:440` — `from core.notifications.rich_signal_formatter import RichSignalFormatter`
+- `core/all_nse_scanner.py:441` — `from core.notifications.url_resolver import get_public_base_url`
+- `core/all_nse_scanner.py:442` — `base_url = get_public_base_url(self._cfg)`
+- `core/all_nse_scanner.py:464` — `base_url=base_url,`
+- `core/all_nse_scanner.py:498` — `self._reload_config_credentials()`
+- `core/all_nse_scanner.py:504` — `self._log_signal_audit_record(`
+- `core/all_nse_scanner.py:513` — `# Persist Accepted Signal Audit Record`
+- `core/all_nse_scanner.py:514` — `self._log_signal_audit_record(`
+- `core/all_nse_scanner.py:521` — `# Check granular permissions & quota per user via UserPermissionManager`
+- `core/all_nse_scanner.py:522` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `core/all_nse_scanner.py:523` — `perm_mgr = UserPermissionManager.get_instance()`
+- `core/all_nse_scanner.py:542` — `# ALSO include all configured system-level broadcast recipients from EMAIL_TO & CHAT_ID`
+- `core/all_nse_scanner.py:556` — `_log.info("[GATE] Signal for %s (%s, Tier: %s) suppressed - no authorized recipients configured",`
+- `core/all_nse_scanner.py:613` — `{"text": "🏛️ Cockpit Dashboard", "url": f"{base_url}/my-signals"},`
+- `core/all_nse_scanner.py:695` — `print(f"SCAN COMPLETE — Found {len(signals)} Actionable Setups:")`
+- `core/execution_hardening_integration.py:8` — `init_execution_hardening(config, broker_port, send_alert_fn)`
+- `core/execution_hardening_integration.py:20` — `config: dict,`
+- `core/execution_hardening_integration.py:42` — `config=config,`
+- `core/execution_hardening_integration.py:53` — `guards = get_execution_guards(config)`
+- `core/execution_hardening_integration.py:66` — `# 3. Audit Journal`
+- `core/execution_hardening_integration.py:68` — `from core.audit_journal import get_audit_journal`
+- `core/execution_hardening_integration.py:70` — `audit = get_audit_journal(config)`
+- `core/execution_hardening_integration.py:71` — `services["audit_journal"] = audit`
+- `core/execution_hardening_integration.py:72` — `log.info("Execution hardening: AuditJournal initialized")`
+- `core/execution_hardening_integration.py:74` — `log.error(f"Failed to init AuditJournal: {e}")`
+- `core/execution_hardening_integration.py:80` — `incident_alerts = get_incident_alerting(send_alert_fn, config)`
+- `core/execution_hardening_integration.py:96` — `reconcile_svc = start_continuous_reconciliation(broker_port, config)`
+- `core/execution_hardening_integration.py:108` — `if config.get("market_data_secondary_enabled"):`
+- `core/execution_hardening_integration.py:116` — `config=config,`
+- `core/execution_hardening_integration.py:127` — `exposure = get_exposure_limiter(config)`
+- `core/execution_hardening_integration.py:137` — `secret_checker = get_secret_checker(config)`
+- `core/execution_hardening_integration.py:140` — `if config.get("SECRET_HYGIENE_SCAN_ON_STARTUP"):`
+- `core/execution_hardening_integration.py:141` — `result = secret_checker.check_config(config)`
+- `core/startup_checklist.py:7` — `- Writing to AuditEngine as severity="AUDIT" at session start`
+- `core/startup_checklist.py:27` — `config_version=_CFG.get("CONFIG_VERSION"),`
+- `core/startup_checklist.py:28` — `expected_config_version=1,`
+- `core/startup_checklist.py:30` — `audit.record("startup_checklist", severity="AUDIT",`
+- `core/startup_checklist.py:72` — `"""Structured representation for AuditEngine.record(**kwargs)."""`
+- `core/startup_checklist.py:93` — `config_version: int | None = None,`
+- `core/startup_checklist.py:94` — `expected_config_version: int | None = None,`
+- `core/startup_checklist.py:106` — `vix_block_threshold:      Config value VIX_BLOCK_THRESHOLD (default 27).`
+- `core/startup_checklist.py:109` — `data_feed_max_age_sec:    Config value SAFETY_MAX_STALE_DATA_SEC.`
+- `core/startup_checklist.py:113` — `config_version:           CONFIG_VERSION read from config.json.`
+- `core/startup_checklist.py:114` — `expected_config_version:  The version the code expects; None skips check.`
+- `core/startup_checklist.py:203` — `else f"Unknown EXECUTION_MODE={execution_mode!r} - check config.json"`
+- `core/startup_checklist.py:207` — `# 7. Config version (optional - skipped when expected_config_version is None)`
+- `core/startup_checklist.py:208` — `if expected_config_version is not None:`
+- `core/startup_checklist.py:209` — `ver_ok = (config_version == expected_config_version)`
+- `core/startup_checklist.py:211` — `name="config_version",`
+- `core/startup_checklist.py:214` — `f"CONFIG_VERSION={config_version}: OK"`
+- `core/startup_checklist.py:216` — `else f"Config version mismatch: file={config_version}, "`
+- `core/startup_checklist.py:217` — `f"code expects={expected_config_version} - "`
+- `core/notification_filters.py:1` — `"""Telegram notification filtering + periodic scheduling.`
+- `core/notification_filters.py:3` — `Wires six previously-dead config keys into real behavior:`
+- `core/notification_filters.py:7` — `Design principle (see json/index_config.defaults.json's`
+- `core/notification_filters.py:8` — ```_comment_notification_filters_enabled`` / ``_comment_tg_heartbeat_enabled``):`
+- `core/notification_filters.py:12` — `consulted when the fresh ``notification_filters_enabled`` master switch`
+- `core/notification_filters.py:20` — `suppressed) and never raises, so a bug in notification filtering can never`
+- `core/notification_filters.py:38` — `"should_send_notification",`
+- `core/notification_filters.py:42` — `# in a notification filter must never be able to block the underlying trade`
+- `core/notification_filters.py:107` — `def should_send_notification(message: str, critical: bool, cfg: dict[str, Any]) -> bool:`
+- `core/notification_filters.py:110` — `Precedence (only evaluated when ``notification_filters_enabled`` is`
+- `core/notification_filters.py:121` — `if not bool(cfg.get("notification_filters_enabled", False)):`
+- `core/notification_filters.py:142` — `log.debug("Notification filter error, failing open (message sent): %s", exc)`
+- `core/notification_filters.py:194` — ```send_fn`` (index_trader.py's ``send()`` -> NotificationService.send())`
+- `core/audit_journal.py:1` — `"""Audit Event Journal - Immutable Event Logging for Post-Mortems`
+- `core/audit_journal.py:28` — `log = logging.getLogger("audit_journal")`
+- `core/audit_journal.py:31` — `class AuditEventType(Enum):`
+- `core/audit_journal.py:32` — `"""Categories of auditable events."""`
+- `core/audit_journal.py:55` — `CONFIG_CHANGE = "CONFIG_CHANGE"`
+- `core/audit_journal.py:58` — `class AuditSeverity(Enum):`
+- `core/audit_journal.py:69` — `class AuditEvent:`
+- `core/audit_journal.py:70` — `"""Immutable audit event record."""`
+- `core/audit_journal.py:87` — `class AuditJournal:`
+- `core/audit_journal.py:88` — `"""Thread-safe audit journal that writes events to a JSONL file.`
+- `core/audit_journal.py:95` — `filename_prefix: str = "audit",`
+- `core/audit_journal.py:123` — `if self._current_file is None or self._current_file.stem != f"audit_{today}":`
+- `core/audit_journal.py:135` — `self._current_file = self._log_dir / f"audit_{today}.jsonl"`
+- `core/audit_journal.py:144` — `log.info(f"Audit journal rotating to: {self._current_file}")`
+- `core/audit_journal.py:148` — `event_type: AuditEventType,`
+- `core/audit_journal.py:149` — `severity: AuditSeverity,`
+- `core/audit_journal.py:157` — `"""Log an audit event.`
+- `core/audit_journal.py:161` — `event = AuditEvent(`
+- `core/audit_journal.py:183` — `if severity == AuditSeverity.CRITICAL:`
+- `core/audit_journal.py:184` — `log.critical(f"[AUDIT] {event_type.value}: {message}")`
+- `core/audit_journal.py:185` — `elif severity == AuditSeverity.ERROR:`
+- `core/audit_journal.py:186` — `log.error(f"[AUDIT] {event_type.value}: {message}")`
+- `core/audit_journal.py:187` — `elif severity == AuditSeverity.WARNING:`
+- `core/audit_journal.py:188` — `log.warning(f"[AUDIT] {event_type.value}: {message}")`
+- `core/audit_journal.py:193` — `log.error(f"Failed to write audit event: {e} (type: {type(e).__name__})")`
+- `core/audit_journal.py:199` — `event_type=AuditEventType.SIGNAL_GENERATED,`
+- `core/audit_journal.py:200` — `severity=AuditSeverity.INFO,`
+- `core/audit_journal.py:217` — `event_type=AuditEventType.RISK_DECISION,`
+- `core/audit_journal.py:218` — `severity=AuditSeverity.WARNING if not allowed else AuditSeverity.INFO,`
+- `core/audit_journal.py:233` — `event_type=AuditEventType.ORDER_SUBMITTED,`
+- `core/audit_journal.py:234` — `severity=AuditSeverity.INFO,`
+- `core/audit_journal.py:252` — `event_type=AuditEventType.ORDER_FILLED,`
+- `core/audit_journal.py:253` — `severity=AuditSeverity.INFO,`
+- `core/audit_journal.py:267` — `event_type=AuditEventType.RECONCILIATION_MISMATCH,`
+- `core/audit_journal.py:268` — `severity=AuditSeverity.ERROR,`
+- `core/audit_journal.py:276` — `event_type=AuditEventType.HARD_HALT,`
+- `core/audit_journal.py:277` — `severity=AuditSeverity.CRITICAL,`
+- `core/audit_journal.py:290` — `event_type=AuditEventType.SYSTEM_MODE_CHANGE,`
+- `core/audit_journal.py:291` — `severity=AuditSeverity.WARNING,`
+- `core/audit_journal.py:299` — `event_type=AuditEventType.STALE_QUOTE,`
+- `core/audit_journal.py:300` — `severity=AuditSeverity.WARNING,`
+- `core/audit_journal.py:309` — `event_type=AuditEventType.INVALID_PRICE,`
+- `core/audit_journal.py:310` — `severity=AuditSeverity.ERROR,`
+- `core/audit_journal.py:317` — `"""Remove audit files older than retain_days."""`
+- `core/audit_journal.py:322` — `for f in self._log_dir.glob("audit_*.jsonl"):`
+- `core/audit_journal.py:328` — `log.warning(f"Failed to remove old audit file {f}: {e} (type: {type(e).__name__})")`
+- `core/audit_journal.py:334` — `_audit_journal: AuditJournal | None = None`
+- `core/audit_journal.py:337` — `def get_audit_journal(config: dict | None = None) -> AuditJournal:`
+- `core/audit_journal.py:338` — `"""Get or create singleton audit journal."""`
+- `core/audit_journal.py:339` — `global _audit_journal`
+- `core/audit_journal.py:340` — `if _audit_journal is None:`
+- `core/audit_journal.py:341` — `cfg = config or {}`
+- `core/audit_journal.py:342` — `_audit_journal = AuditJournal(`
+- `core/audit_journal.py:343` — `log_dir=cfg.get("audit_log_dir", "logs"),`
+- `core/audit_journal.py:344` — `filename_prefix=cfg.get("audit_filename_prefix", "audit"),`
+- `core/audit_journal.py:345` — `max_file_size_mb=cfg.get("audit_max_file_size_mb", 50),`
+- `core/audit_journal.py:346` — `retain_days=cfg.get("audit_retain_days", 30),`
+- `core/audit_journal.py:348` — `return _audit_journal`
+- `core/audit_journal.py:351` — `def audit_log(`
+- `core/audit_journal.py:352` — `event_type: AuditEventType,`
+- `core/audit_journal.py:353` — `severity: AuditSeverity,`
+- `core/audit_journal.py:357` — `"""Quick access to log an audit event."""`
+- `core/audit_journal.py:358` — `journal = get_audit_journal()`
+- `core/audit_journal.py:363` — `"AuditEvent",`
+- `core/audit_journal.py:364` — `"AuditEventType",`
+- `core/audit_journal.py:365` — `"AuditJournal",`
+- `core/audit_journal.py:366` — `"AuditSeverity",`
+- `core/audit_journal.py:367` — `"audit_log",`
+- `core/audit_journal.py:368` — `"get_audit_journal",`
+- `core/__init__.py:33` — `AIEngineConfig,`
+- `core/__init__.py:34` — `ai_engine_config_from_cfg,`
+- `core/__init__.py:38` — `from .audit_engine import AuditEngine, AuditRecord`
+- `core/__init__.py:41` — `LearnerConfig,`
+- `core/__init__.py:43` — `learner_config_from_cfg,`
+- `core/__init__.py:47` — `from .config_bootstrap import (`
+- `core/__init__.py:48` — `CONFIG_B64_SECRET_KEYS_INDEX,`
+- `core/__init__.py:49` — `CONFIG_B64_SECRET_KEYS_STOCK,`
+- `core/__init__.py:50` — `coerce_config_values_to_defaults_types,`
+- `core/__init__.py:51` — `merge_bot_config,`
+- `core/__init__.py:56` — `from .config_engine import ConfigIssue, ConfigValidationResult, ConfigValidator`
+- `core/__init__.py:94` — `from .config_helpers import (`
+- `core/__init__.py:95` — `build_audit_config_snapshot,`
+- `core/__init__.py:114` — `configure_nse_cash_session,`
+- `core/__init__.py:158` — `from .environment import Environment, guard_dev_config_in_production, guard_mode_env_compatibility, validate_environment`
+- `core/__init__.py:214` — `from .risk.legacy_adapter import RiskConfig, RiskDecision`
+- `core/__init__.py:215` — `from .safety_engine import SafetyConfig, SafetyContext, SafetyDecision, SafetyEngine`
+- `core/__init__.py:240` — `"BacktestConfig": ("core.backtest_engine", "BacktestConfig"),`
+- `core/__init__.py:245` — `"ReplayConfig": ("core.backtest_engine", "ReplayConfig"),`
+- `core/__init__.py:258` — `"AIEngineConfig",`
+- `core/__init__.py:259` — `"ai_engine_config_from_cfg",`
+- `core/__init__.py:263` — `"LearnerConfig",`
+- `core/__init__.py:265` — `"learner_config_from_cfg",`
+- `core/__init__.py:269` — `"AuditEngine",`
+- `core/__init__.py:270` — `"AuditRecord",`
+- `core/__init__.py:282` — `"ConfigIssue",`
+- `core/__init__.py:283` — `"ConfigValidationResult",`
+- `core/__init__.py:284` — `"ConfigValidator",`
+- `core/__init__.py:291` — `"CONFIG_B64_SECRET_KEYS_INDEX",`
+- `core/__init__.py:292` — `"CONFIG_B64_SECRET_KEYS_STOCK",`
+- `core/__init__.py:293` — `"coerce_config_values_to_defaults_types",`
+- `core/__init__.py:299` — `"guard_dev_config_in_production",`
+- `core/__init__.py:302` — `"merge_bot_config",`
+- `core/__init__.py:322` — `"RiskConfig",`
+- `core/__init__.py:324` — `"SafetyConfig",`
+- `core/__init__.py:336` — `"build_audit_config_snapshot",`
+- `core/__init__.py:349` — `"configure_nse_cash_session",`
+- `core/__init__.py:377` — `"BacktestConfig",`
+- `core/__init__.py:382` — `"ReplayConfig",`
+- `core/runtime_security.py:6` — `- File permission audits`
+- `core/runtime_security.py:8` — `- Configuration file tampering detection`
+- `core/runtime_security.py:11` — `- SecurityAuditor for vulnerability correlation`
+- `core/runtime_security.py:43` — `"core/config_bootstrap.py",`
+- `core/runtime_security.py:60` — `MONITORED_CONFIG_FILES: list[str] = [`
+- `core/runtime_security.py:61` — `"json/stock_config.json",`
+- `core/runtime_security.py:62` — `"json/index_config.defaults.json",`
+- `core/runtime_security.py:63` — `"json/stock_config.defaults.json",`
+- `core/runtime_security.py:82` — `permissions: str = ""`
+- `core/runtime_security.py:92` — `"permissions": self.permissions,`
+- `core/runtime_security.py:101` — `category: str = ""  # FILE_INTEGRITY, PROCESS, PERMISSION, CONFIG_TAMPER, IMPORT_MONITOR`
+- `core/runtime_security.py:129` — `config_tamper_detected: int = 0`
+- `core/runtime_security.py:143` — `"config_tamper_detected": self.config_tamper_detected,`
+- `core/runtime_security.py:157` — `f"  Config Tampering: {self.config_tamper_detected}",`
+- `core/runtime_security.py:182` — `- File permissions on sensitive files`
+- `core/runtime_security.py:183` — `- Configuration file tampering`
+- `core/runtime_security.py:202` — `Verifies file integrity, checks processes, audits permissions,`
+- `core/runtime_security.py:203` — `and detects configuration tampering.`
+- `core/runtime_security.py:227` — `category="PERMISSION",`
+- `core/runtime_security.py:231` — `recommendation="Restrict file permissions to read-only for non-owners",`
+- `core/runtime_security.py:239` — `# 2. Configuration tampering detection`
+- `core/runtime_security.py:240` — `config_findings = self._check_config_files()`
+- `core/runtime_security.py:241` — `findings.extend(config_findings)`
+- `core/runtime_security.py:242` — `report.config_tamper_detected = len(config_findings)`
+- `core/runtime_security.py:291` — `"config_tamper_detected": last.config_tamper_detected if last else 0,`
+- `core/runtime_security.py:316` — `check.permissions = oct(os.stat(abs_path).st_mode)[-4:]`
+- `core/runtime_security.py:318` — `# Check permissions — files should not be world-writable`
+- `core/runtime_security.py:319` — `perms = int(check.permissions[-3:])`
+- `core/runtime_security.py:321` — `check.issues.append(f"World-writable permissions ({check.permissions})")`
+- `core/runtime_security.py:333` — `except (OSError, PermissionError) as exc:`
+- `core/runtime_security.py:338` — `def _check_config_files(self) -> list[RuntimeFinding]:`
+- `core/runtime_security.py:339` — `"""Check configuration files for signs of tampering."""`
+- `core/runtime_security.py:342` — `for config_file in MONITORED_CONFIG_FILES:`
+- `core/runtime_security.py:343` — `path = ROOT / config_file`
+- `core/runtime_security.py:351` — `if config_file.endswith(".json"):`
+- `core/runtime_security.py:356` — `category="CONFIG_TAMPER",`
+- `core/runtime_security.py:358` — `description=f"Config file corrupted (invalid JSON): {config_file}",`
+- `core/runtime_security.py:359` — `affected_component=config_file,`
+- `core/runtime_security.py:360` — `recommendation="Restore config from backup — possible tampering detected",`
+- `core/runtime_security.py:368` — `category="CONFIG_TAMPER",`
+- `core/runtime_security.py:370` — `description=f"Config file is empty: {config_file}",`
+- `core/runtime_security.py:371` — `affected_component=config_file,`
+- `core/runtime_security.py:372` — `recommendation="Config file may have been truncated — verify contents",`
+- `core/runtime_security.py:376` — `except (OSError, PermissionError) as exc:`
+- `core/runtime_security.py:378` — `category="CONFIG_TAMPER",`
+- `core/runtime_security.py:380` — `description=f"Cannot read config file: {config_file} — {exc}",`
+- `core/runtime_security.py:381` — `affected_component=config_file,`
+- `core/runtime_security.py:382` — `recommendation="Check file permissions — unauthorized restriction may indicate tampering",`
+- `core/runtime_security.py:491` — `if report.config_tamper_detected > 0:`
+- `core/runtime_security.py:492` — `recs.append("Config tampering detected — restore from backup and investigate root cause")`
+- `core/runtime_security.py:498` — `recs.append("Fix world-writable permissions on critical files")`
+- `core/config_drift_reloader.py:1` — `"""Config Drift Auto-Reload (config key CONFIG_DRIFT_AUTO_RELOAD, opt-in via`
+- `core/config_drift_reloader.py:2` — `config_drift_auto_reload_enabled, default OFF).`
+- `core/config_drift_reloader.py:4` — `Periodically re-reads the config.json override layer from disk and, when it`
+- `core/config_drift_reloader.py:7` — `config dict - built on core/soft_reload_common.py's existing, tested`
+- `core/config_drift_reloader.py:32` — `# Config keys that must NEVER be hot-reloaded while the bot is running -`
+- `core/config_drift_reloader.py:34` — `# config-key subset of scripts/pre_implementation_check.py's`
+- `core/config_drift_reloader.py:45` — `# restart - pure scoring/notification tuning values with no execution-safety`
+- `core/config_drift_reloader.py:55` — `class ConfigDriftReloader:`
+- `core/config_drift_reloader.py:56` — `"""Tracks the on-disk config.json layer and hot-applies safe drift into`
+- `core/config_drift_reloader.py:57` — `a live, shared config dict on each check() call."""`
+- `core/config_drift_reloader.py:59` — `def __init__(self, cfg: dict[str, Any], config_path: str | Path | None = None) -> None:`
+- `core/config_drift_reloader.py:61` — `self._config_path = Path(`
+- `core/config_drift_reloader.py:62` — `config_path or os.environ.get("OPBUYING_INDEX_CONFIG", "json/config.json"),`
+- `core/config_drift_reloader.py:67` — `"""Re-read config.json if its mtime changed since the last check;`
+- `core/config_drift_reloader.py:71` — `if not self._config_path.is_file():`
+- `core/config_drift_reloader.py:73` — `mtime = self._config_path.stat().st_mtime`
+- `core/config_drift_reloader.py:77` — `disk_cfg = json.loads(self._config_path.read_text(encoding="utf-8"))`
+- `core/config_drift_reloader.py:85` — `_log.info("[CONFIG_DRIFT] Hot-applied: %s", ", ".join(reloaded))`
+- `core/config_drift_reloader.py:88` — `"[CONFIG_DRIFT] Risk-sensitive key(s) changed on disk but NOT "`
+- `core/config_drift_reloader.py:93` — `_log.warning("[CONFIG_DRIFT] %s", warn_msg)`
+- `core/config_drift_reloader.py:96` — `_log.debug("Config drift check failed (fail-open): %s", e)`
+- `core/config_drift_reloader.py:100` — `_drift_reloader: ConfigDriftReloader | None = None`
+- `core/config_drift_reloader.py:104` — `def get_config_drift_reloader(`
+- `core/config_drift_reloader.py:105` — `cfg: dict[str, Any], config_path: str | Path | None = None,`
+- `core/config_drift_reloader.py:106` — `) -> ConfigDriftReloader:`
+- `core/config_drift_reloader.py:111` — `_drift_reloader = ConfigDriftReloader(cfg, config_path)`
+- `core/config_drift_reloader.py:115` — `def reset_config_drift_reloader() -> None:`
+- `core/config_drift_reloader.py:125` — `"ConfigDriftReloader",`
+- `core/config_drift_reloader.py:126` — `"get_config_drift_reloader",`
+- `core/config_drift_reloader.py:127` — `"reset_config_drift_reloader",`
+- `core/constitution_evidence_data.py:65` — `if _exists("tests/test_config_bootstrap.py"):`
+- `core/constitution_evidence_data.py:66` — `add("ARCH-01", "Config bootstrap test validates layer-merge architecture boundary rules", "test_pass", 0.4)`
+- `core/constitution_evidence_data.py:110` — `add("SEC-03", "OPBUYING_* env prefix for secrets - never hardcoded in config files", "code_review", 0.4)`
+- `core/constitution_evidence_data.py:111` — `add("SEC-03", "SECRET_HYGIENE scan on startup warns about embedded secrets in config", "code_review", 0.3)`
+- `core/constitution_evidence_data.py:114` — `# SEC-04: Audit trail (9.5)`
+- `core/constitution_evidence_data.py:115` — `add("SEC-04", "Config audit trail (test_config_audit.py) validates JSONL audit logging", "test_pass", 0.5)`
+- `core/constitution_evidence_data.py:116` — `add("SEC-04", "Config audit log (test_config_audit_log.py) validates CRITICAL/HIGH/NORMAL routing", "test_pass", 0.4)`
+- `core/constitution_evidence_data.py:117` — `add("SEC-04", "Audit engine (core/audit_engine.py) writes structured audit records", "code_review", 0.3)`
+- `core/constitution_evidence_data.py:118` — `add("SEC-04", "Constitution audit log tracks all validation events with timestamps", "code_review", 0.3)`
+- `core/constitution_evidence_data.py:132` — `add("RSK-02", "MAX_DAILY_LOSS and MAX_DRAWDOWN config thresholds enforced in risk_service.py", "code_review", 0.6)`
+- `core/constitution_evidence_data.py:138` — `add("RSK-03", "Position sizer module (core/position_sizer.py) with config-driven sizing", "code_review", 0.4)`
+- `core/constitution_evidence_data.py:162` — `add("EXE-02", "Retry policy manager (core/execution/retry_policy/manager.py) with configurable backoff", "code_review", 0.4)`
+- `core/constitution_evidence_data.py:225` — `add("OBS-01", "Logging config test (test_logging_config.py) validates structured log output", "test_pass", 0.4)`
+- `core/constitution_evidence_data.py:231` — `add("OBS-02", "Prometheus metrics exporter (core/metrics_exporter.py) on configurable HTTP port (:9090/metrics)", "code_review", 0.4)`
+- `core/constitution_evidence_data.py:237` — `add("OBS-03", "Automated health checker (core/health_checker.py) - DB/ML/perf/config/disk checks", "code_review", 0.4)`
+- `core/constitution_evidence_data.py:254` — `add("GOV-01", "Script & Artifact Sync checker (scripts/sync_artifacts.py) - docs, configs, env.example sync", "test_pass", 0.5)`
+- `core/constitution_evidence_data.py:274` — `add("GOV-03", "Config drift register (docs/config_drift_register.md) - config sync tracking", "documentation", 0.2)`
+- `core/startup_validation.py:1` — `"""Startup Validation - Ensures system is properly configured before trading begins`
+- `core/startup_validation.py:6` — `- Merged config is valid (type, range, consistency + JSON Schema)`
+- `core/startup_validation.py:13` — `No optional validation. If configuration is invalid, the system must NOT start.`
+- `core/startup_validation.py:76` — `("core.audit_journal", "AuditJournal"),`
+- `core/startup_validation.py:97` — `def validate_app_config(cfg: dict[str, Any], flavour: str = "index") -> tuple[bool, list[str]]:`
+- `core/startup_validation.py:98` — `"""Validate merged config for type/range/consistency errors + JSON Schema.`
+- `core/startup_validation.py:100` — `DEBT-005: This is NOT optional. Every config error is blocking.`
+- `core/startup_validation.py:103` — `cfg:     Merged config dict (defaults + config.json + env overrides).`
+- `core/startup_validation.py:112` — `# 1. Type/range/consistency validation via config_validator`
+- `core/startup_validation.py:114` — `from core.config_validator import validate_config`
+- `core/startup_validation.py:115` — `cfg_errors, cfg_warnings = validate_config(cfg)`
+- `core/startup_validation.py:118` — `log.warning("  [Config] WARN: %s", w)`
+- `core/startup_validation.py:120` — `log.warning("config_validator module not available: %s", e)`
+- `core/startup_validation.py:122` — `# 2. JSON Schema validation via config_schema_validate`
+- `core/startup_validation.py:124` — `from core.config_schema_validate import append_json_schema_errors`
+- `core/startup_validation.py:127` — `log.warning("config_schema_validate module not available: %s", e)`
+- `core/startup_validation.py:144` — `broker_api = cfg.get("BROKER_CONFIG", {}).get("api_key", "")`
+- `core/startup_validation.py:146` — `errors.append("PRODUCTION: BROKER_CONFIG.api_key must be set")`
+- `core/startup_validation.py:179` — `cfg:       Merged config dict. If None, config validation is skipped.`
+- `core/startup_validation.py:210` — `# 3. Config validation (DEBT-005: fail-fast on config errors)`
+- `core/startup_validation.py:212` — `cfg_passed, cfg_errors = validate_app_config(cfg, flavour=flavour)`
+- `core/startup_validation.py:214` — `log.info("  [Config] PASS: merged config is valid")`
+- `core/startup_validation.py:217` — `log.error("  [Config] FAIL: %s", e)`
+- `core/startup_validation.py:225` — `# 5. Emit resolved config summary`
+- `core/startup_validation.py:228` — `from core.config_validator import log_resolved_config`
+- `core/startup_validation.py:229` — `log_resolved_config(cfg)`
+- `core/startup_validation.py:248` — `f"Fix configuration and restart. See logs above for details.",`
+- `core/startup_validation.py:260` — `"validate_app_config",`
+- `core/multi_tenant.py:6` — `- Tenant-scoped data access (each tenant sees only their trades/config)`
+- `core/multi_tenant.py:7` — `- Tenant configuration isolation`
+- `core/multi_tenant.py:9` — `- Audit trail with tenant attribution`
+- `core/multi_tenant.py:23` — `Config keys (all optional)`
+- `core/multi_tenant.py:64` — `config_overrides: dict[str, Any] = field(default_factory=dict)`
+- `core/multi_tenant.py:85` — `Provides tenant-isolated access to trades, config, and execution.`
+- `core/multi_tenant.py:89` — `def __init__(self, tenant: Tenant, base_config: dict[str, Any] | None = None) -> None:`
+- `core/multi_tenant.py:91` — `self._base_config = base_config or {}`
+- `core/multi_tenant.py:102` — `def get_effective_config(self) -> dict[str, Any]:`
+- `core/multi_tenant.py:103` — `"""Get tenant-specific effective config (base + tenant overrides)."""`
+- `core/multi_tenant.py:104` — `merged = dict(self._base_config)`
+- `core/multi_tenant.py:105` — `merged.update(self._tenant.config_overrides)`
+- `core/multi_tenant.py:191` — `# Load tenants from config if present`
+- `core/multi_tenant.py:192` — `self._load_from_config()`
+- `core/multi_tenant.py:198` — `def _load_from_config(self) -> None:`
+- `core/multi_tenant.py:199` — `"""Load tenant definitions from config."""`
+- `core/multi_tenant.py:211` — `config_overrides=t_cfg.get("config_overrides", {}),`
+- `core/continuous_intelligence.py:3` — `Runs on a configurable schedule to:`
+- `core/continuous_intelligence.py:5` — `2. Run the scorecard compliance audit (87 requirements)`
+- `core/continuous_intelligence.py:8` — `5. Send alerts via the notification service when issues are found`
+- `core/continuous_intelligence.py:15` — `pipeline.start_scheduler()        # Background thread with configurable interval`
+- `core/continuous_intelligence.py:20` — `- Configurable check interval (default: 3600s = 1 hour)`
+- `core/continuous_intelligence.py:22` — `- Integrates with NotificationService for alerting`
+- `core/continuous_intelligence.py:122` — `class PipelineConfig:`
+- `core/continuous_intelligence.py:123` — `"""Configuration for the Continuous Intelligence Pipeline."""`
+- `core/continuous_intelligence.py:143` — `Runs health checks and scorecard audits on a configurable schedule,`
+- `core/continuous_intelligence.py:147` — `def __init__(self, config: dict[str, Any] | None = None) -> None:`
+- `core/continuous_intelligence.py:148` — `self._cfg = PipelineConfig(**{k: v for k, v in (config or {}).items() if k in PipelineConfig.__dataclass_fields__})`
+- `core/continuous_intelligence.py:227` — `2. Scorecard compliance audit`
+- `core/continuous_intelligence.py:246` — `# Step 2: Run scorecard audit`
+- `core/continuous_intelligence.py:367` — `solution="Review failed module checks and constitution audit trail",`
+- `core/continuous_intelligence.py:399` — `"""Send an alert via the configured callback or notification service."""`
+- `core/continuous_intelligence.py:407` — `# Fallback: log the alert (NotificationService requires Notification object,`
+- `core/continuous_intelligence.py:416` — `Runs check cycles on a configurable interval until stopped.`
+- `core/continuous_intelligence.py:446` — `"""Main scheduler loop — runs check cycles at configured interval."""`
+- `core/continuous_intelligence.py:467` — `def get_intelligence_pipeline(config: dict[str, Any] | None = None) -> ContinuousIntelligenceEngine:`
+- `core/continuous_intelligence.py:471` — `config: Optional config dict (only used on first creation).`
+- `core/continuous_intelligence.py:480` — `_pipeline = ContinuousIntelligenceEngine(config)`
+- `core/continuous_intelligence.py:590` — `"PipelineConfig",`
+- `core/config_bootstrap.py:1` — `"""Shared merged-config loading for index and stock entry scripts.`
+- `core/config_bootstrap.py:2` — `Updated to use SecureConfig for enhanced security.`
+- `core/config_bootstrap.py:8` — `"CONFIG_B64_SECRET_KEYS_INDEX",`
+- `core/config_bootstrap.py:9` — `"CONFIG_B64_SECRET_KEYS_STOCK",`
+- `core/config_bootstrap.py:10` — `"CONFIG_DEFAULTS_PATH_INDEX",`
+- `core/config_bootstrap.py:11` — `"CRITICAL_CONFIG_KEYS",`
+- `core/config_bootstrap.py:12` — `"HIGH_RISK_CONFIG_KEYS",`
+- `core/config_bootstrap.py:13` — `"ConfigChange",`
+- `core/config_bootstrap.py:16` — `"coerce_config_values_to_defaults_types",`
+- `core/config_bootstrap.py:18` — `"diff_configs",`
+- `core/config_bootstrap.py:19` — `"get_config_bool",`
+- `core/config_bootstrap.py:20` — `"get_config_dict",`
+- `core/config_bootstrap.py:21` — `"get_config_float",`
+- `core/config_bootstrap.py:22` — `"get_config_int",`
+- `core/config_bootstrap.py:23` — `"get_config_list",`
+- `core/config_bootstrap.py:24` — `"get_config_secret",`
+- `core/config_bootstrap.py:25` — `"get_config_value",`
+- `core/config_bootstrap.py:26` — `"get_effective_config",`
+- `core/config_bootstrap.py:27` — `"get_secure_config",`
+- `core/config_bootstrap.py:28` — `"initialize_secure_config",`
+- `core/config_bootstrap.py:29` — `"merge_bot_config",`
+- `core/config_bootstrap.py:30` — `"read_recent_config_changes",`
+- `core/config_bootstrap.py:31` — `"write_config_changes_jsonl",`
+- `core/config_bootstrap.py:45` — `# Import our new secure config system`
+- `core/config_bootstrap.py:46` — `from infrastructure.config.secure_config import SecureConfig`
+- `core/config_bootstrap.py:48` — `from core.config_helpers import deep_merge_dict`
+- `core/config_bootstrap.py:55` — `# ── Config change audit (Item 6 - v2.44) ────────────────────────`
+- `core/config_bootstrap.py:57` — `CRITICAL_CONFIG_KEYS: frozenset[str] = frozenset({`
+- `core/config_bootstrap.py:63` — `HIGH_RISK_CONFIG_KEYS: frozenset[str] = frozenset({`
+- `core/config_bootstrap.py:73` — `"""Classify the risk level of a configuration change based on the key.`
+- `core/config_bootstrap.py:76` — `key: Configuration key to classify`
+- `core/config_bootstrap.py:83` — `if key_upper in CRITICAL_CONFIG_KEYS:`
+- `core/config_bootstrap.py:85` — `if key_upper in HIGH_RISK_CONFIG_KEYS:`
+- `core/config_bootstrap.py:90` — `def diff_configs(old_config: Mapping[str, Any], new_config: Mapping[str, Any], changed_by: str = "startup") -> list[ConfigChange]:`
+- `core/config_bootstrap.py:91` — `"""Compute differences between two configuration dictionaries.`
+- `core/config_bootstrap.py:94` — `old_config: Original configuration`
+- `core/config_bootstrap.py:95` — `new_config: New configuration`
+- `core/config_bootstrap.py:99` — `List of ConfigChange objects representing the differences`
+- `core/config_bootstrap.py:104` — `# Get all keys from both configs`
+- `core/config_bootstrap.py:105` — `all_keys = set(old_config.keys()) | set(new_config.keys())`
+- `core/config_bootstrap.py:108` — `old_value = old_config.get(key, None)`
+- `core/config_bootstrap.py:109` — `new_value = new_config.get(key, None)`
+- `core/config_bootstrap.py:123` — `changes.append(ConfigChange(`
+- `core/config_bootstrap.py:135` — `def write_config_changes_jsonl(changes: list[ConfigChange], log_path: str | Path) -> None:`
+- `core/config_bootstrap.py:136` — `"""Write configuration changes to a JSONL file.`
+- `core/config_bootstrap.py:139` — `changes: List of ConfigChange objects to write`
+- `core/config_bootstrap.py:148` — `# Convert ConfigChange to dict for JSON serialization`
+- `core/config_bootstrap.py:160` — `def read_recent_config_changes(log_path: str | Path, limit: int | None = None) -> list[dict]:`
+- `core/config_bootstrap.py:161` — `"""Read recent configuration changes from a JSONL file.`
+- `core/config_bootstrap.py:168` — `List of dictionaries representing config changes`
+- `core/config_bootstrap.py:194` — `def get_effective_config(`
+- `core/config_bootstrap.py:195` — `defaults_path: str = "json/index_config.defaults.json",`
+- `core/config_bootstrap.py:196` — `config_dir: str = "json",`
+- `core/config_bootstrap.py:198` — `"""The authoritative configuration pipeline.`
+- `core/config_bootstrap.py:199` — `Defaults -> config.json -> config.local.json -> Env Vars -> Secrets.`
+- `core/config_bootstrap.py:201` — `# 1. Initialize SecureConfig (handles the merge and secrets)`
+- `core/config_bootstrap.py:202` — `secure_cfg = SecureConfig(`
+- `core/config_bootstrap.py:204` — `config_dir=config_dir,`
+- `core/config_bootstrap.py:208` — `effective_dict = secure_cfg._merged_config`
+- `core/config_bootstrap.py:211` — `# This is needed because SecureConfig only handles secrets via CredentialStorage,`
+- `core/config_bootstrap.py:212` — `# but general config keys (e.g. OPBUYING_BASE_CAPITAL) must be applied separately.`
+- `core/config_bootstrap.py:220` — `from core.config_engine import ConfigValidator`
+- `core/config_bootstrap.py:221` — `validator = ConfigValidator(effective_dict)`
+- `core/config_bootstrap.py:227` — `_log.error(f"CONFIG ERROR: {msg}")`
+- `core/config_bootstrap.py:229` — `f"Config validation FAILED - {len(result.errors)} error(s). "`
+- `core/config_bootstrap.py:230` — `f"Fix config or set OPBUYING_SKIP_CONFIG_VALIDATION=1 to bypass.\n"`
+- `core/config_bootstrap.py:234` — `# Freeze config to prevent runtime mutation by any module`
+- `core/config_bootstrap.py:235` — `return _freeze_config(effective_dict)`
+- `core/config_bootstrap.py:238` — `def _check_config_drift(secure_cfg: SecureConfig) -> None:`
+- `core/config_bootstrap.py:239` — `"""Detect config drift: keys in defaults.json not in merged config (new features),`
+- `core/config_bootstrap.py:240` — `and keys in merged config not in defaults (deprecated/removed keys).`
+- `core/config_bootstrap.py:244` — `merged = secure_cfg._merged_config`
+- `core/config_bootstrap.py:252` — `# Keys in defaults but NOT in merged config (new features with safe defaults)`
+- `core/config_bootstrap.py:256` — `"CONFIG DRIFT: Key '%s' (from defaults) not found in merged config. "`
+- `core/config_bootstrap.py:258` — `"Add to config.json to control explicitly.",`
+- `core/config_bootstrap.py:262` — `# Keys in merged config but NOT in defaults (deprecated/removed)`
+- `core/config_bootstrap.py:268` — `"CONFIG DRIFT: Key '%s' in merged config not found in defaults. "`
+- `core/config_bootstrap.py:273` — `_log.warning("Config drift check skipped: %s", _ex)`
+- `core/config_bootstrap.py:276` — `def _freeze_config(cfg: dict[str, Any]) -> Mapping[str, Any]:`
+- `core/config_bootstrap.py:277` — `"""Recursively freeze a config dict to prevent runtime mutation."""`
+- `core/config_bootstrap.py:281` — `frozen[k] = types.MappingProxyType(_freeze_config(v))`
+- `core/config_bootstrap.py:290` — `class ConfigChange:`
+- `core/config_bootstrap.py:299` — `# Global secure config instance`
+- `core/config_bootstrap.py:300` — `_SECURE_CONFIG: SecureConfig | None = None`
+- `core/config_bootstrap.py:301` — `_CONFIG_LOCK: threading.RLock = threading.RLock()`
+- `core/config_bootstrap.py:304` — `def initialize_secure_config(`
+- `core/config_bootstrap.py:306` — `config_dir: str | Path | None = None,`
+- `core/config_bootstrap.py:307` — `) -> SecureConfig:`
+- `core/config_bootstrap.py:308` — `"""Initialize the secure configuration system.`
+- `core/config_bootstrap.py:311` — `files, not non-existent "configs/templates/" or "config/" directories.`
+- `core/config_bootstrap.py:312` — `If the defaults file cannot be found, an empty config is returned with a`
+- `core/config_bootstrap.py:315` — `On every initialization, performs a config drift check against defaults`
+- `core/config_bootstrap.py:316` — `to detect stale or missing keys (Audit Finding #12).`
+- `core/config_bootstrap.py:320` — `config_dir: Path to configuration directory`
+- `core/config_bootstrap.py:323` — `Initialized SecureConfig instance`
+- `core/config_bootstrap.py:326` — `global _SECURE_CONFIG`
+- `core/config_bootstrap.py:330` — `# CRITICAL FIX: Point to actual project root, not non-existent configs/templates/`
+- `core/config_bootstrap.py:334` — `json_dir / "index_config.defaults.json",`
+- `core/config_bootstrap.py:335` — `json_dir / "stock_config.defaults.json",`
+- `core/config_bootstrap.py:336` — `project_root / "configs" / "templates" / "index_config.defaults.json",`
+- `core/config_bootstrap.py:345` — `"initialize_secure_config: defaults file not found at any candidate path. "`
+- `core/config_bootstrap.py:346` — `"Checked: %s. Using empty config.",`
+- `core/config_bootstrap.py:349` — `# Return a config that won't crash but prints safe defaults`
+- `core/config_bootstrap.py:350` — `# Use module-level SecureConfig (imported at top) to avoid local shadowing`
+- `core/config_bootstrap.py:351` — `dummy = SecureConfig(defaults_path=json_dir / "index_config.defaults.json", config_dir=str(json_dir))`
+- `core/config_bootstrap.py:352` — `# Override merged config to empty so caller gets {} instead of crashing`
+- `core/config_bootstrap.py:353` — `dummy._merged_config = {}`
+- `core/config_bootstrap.py:354` — `_SECURE_CONFIG = dummy`
+- `core/config_bootstrap.py:355` — `return _SECURE_CONFIG`
+- `core/config_bootstrap.py:357` — `if config_dir is None:`
+- `core/config_bootstrap.py:358` — `config_dir = Path(__file__).parent.parent / "json"  # json/ dir (config.json lives there)`
+- `core/config_bootstrap.py:360` — `_SECURE_CONFIG = SecureConfig(`
+- `core/config_bootstrap.py:362` — `config_dir=config_dir,`
+- `core/config_bootstrap.py:367` — `# ── Config Drift Detection (Audit Finding #12) ────────────────`
+- `core/config_bootstrap.py:368` — `# Compare merged config against defaults to detect stale/missing keys`
+- `core/config_bootstrap.py:370` — `_check_config_drift(_SECURE_CONFIG)`
+- `core/config_bootstrap.py:372` — `_log.warning("Config drift check failed: %s", _drift_err)`
+- `core/config_bootstrap.py:375` — `return _SECURE_CONFIG`
+- `core/config_bootstrap.py:378` — `def get_secure_config() -> SecureConfig:`
+- `core/config_bootstrap.py:379` — `"""Get the global secure config instance.`
+- `core/config_bootstrap.py:382` — `with _CONFIG_LOCK:`
+- `core/config_bootstrap.py:383` — `if _SECURE_CONFIG is None:`
+- `core/config_bootstrap.py:384` — `return initialize_secure_config()`
+- `core/config_bootstrap.py:385` — `return _SECURE_CONFIG`
+- `core/config_bootstrap.py:388` — `def get_config_value(key: str, default: Any = None) -> Any:`
+- `core/config_bootstrap.py:389` — `"""Get a configuration value by key.`
+- `core/config_bootstrap.py:392` — `key: Configuration key`
+- `core/config_bootstrap.py:396` — `Configuration value`
+- `core/config_bootstrap.py:399` — `config = get_secure_config()`
+- `core/config_bootstrap.py:400` — `return config.get(key, default)`
+- `core/config_bootstrap.py:403` — `def get_config_secret(key: str, default: Any = None) -> Any:`
+- `core/config_bootstrap.py:404` — `"""Get a secret configuration value by key. This method is intended for accessing`
+- `core/config_bootstrap.py:405` — `sensitive values and includes additional security auditing.`
+- `core/config_bootstrap.py:408` — `key: Configuration key for the secret`
+- `core/config_bootstrap.py:415` — `Access to secrets through this method is logged for audit purposes.`
+- `core/config_bootstrap.py:418` — `config = get_secure_config()`
+- `core/config_bootstrap.py:419` — `return config.get_secret(key, default)`
+- `core/config_bootstrap.py:422` — `def get_config_bool(key: str, default: bool = False) -> bool:`
+- `core/config_bootstrap.py:423` — `"""Get a boolean configuration value."""`
+- `core/config_bootstrap.py:424` — `config = get_secure_config()`
+- `core/config_bootstrap.py:425` — `return config.get_bool(key, default)`
+- `core/config_bootstrap.py:428` — `def get_config_int(key: str, default: int = 0) -> int:`
+- `core/config_bootstrap.py:429` — `"""Get an integer configuration value."""`
+- `core/config_bootstrap.py:430` — `config = get_secure_config()`
+- `core/config_bootstrap.py:431` — `return config.get_int(key, default)`
+- `core/config_bootstrap.py:434` — `def get_config_float(key: str, default: float = 0.0) -> float:`
+- `core/config_bootstrap.py:435` — `"""Get a float configuration value."""`
+- `core/config_bootstrap.py:436` — `config = get_secure_config()`
+- `core/config_bootstrap.py:437` — `return config.get_float(key, default)`
+- `core/config_bootstrap.py:440` — `def get_config_list(key: str, default: list | None = None) -> list:`
+- `core/config_bootstrap.py:441` — `"""Get a list configuration value."""`
+- `core/config_bootstrap.py:444` — `config = get_secure_config()`
+- `core/config_bootstrap.py:445` — `return config.get_list(key, default)`
+- `core/config_bootstrap.py:448` — `def get_config_dict(key: str, default: dict | None = None) -> dict:`
+- `core/config_bootstrap.py:449` — `"""Get a dictionary configuration value."""`
+- `core/config_bootstrap.py:452` — `config = get_secure_config()`
+- `core/config_bootstrap.py:453` — `return config.get_dict(key, default)`
+- `core/config_bootstrap.py:456` — `# Backward compatibility constants - these map to the secure config system`
+- `core/config_bootstrap.py:458` — `CONFIG_B64_SECRET_KEYS_STOCK: frozenset[str] = frozenset({`
+- `core/config_bootstrap.py:467` — `# since the secure config system handles secrets differently`
+- `core/config_bootstrap.py:468` — `CONFIG_B64_SECRET_KEYS_INDEX: frozenset[str] = frozenset()`
+- `core/config_bootstrap.py:476` — `"""Apply environment variable overrides to a config dict.`
+- `core/config_bootstrap.py:479` — `The target key is matched case-insensitively against the config dict.`
+- `core/config_bootstrap.py:523` — `def merge_bot_config(`
+- `core/config_bootstrap.py:533` — `"""Legacy function kept for compatibility - delegates to secure config.`
+- `core/config_bootstrap.py:535` — `DEPRECATED: New callers should use get_effective_config() which routes through`
+- `core/config_bootstrap.py:536` — `SecureConfig and freezes the result. This function is maintained for backward`
+- `core/config_bootstrap.py:537` — `compatibility with existing callers in _reload_config_handler (now updated to`
+- `core/config_bootstrap.py:538` — `use get_effective_config).`
+- `core/config_bootstrap.py:541` — `# but internally use the secure config system`
+- `core/config_bootstrap.py:566` — `result = coerce_config_values_to_defaults_types(result, defaults)`
+- `core/config_bootstrap.py:572` — `# Freeze config to prevent runtime mutation (same as get_effective_config)`
+- `core/config_bootstrap.py:573` — `return _freeze_config(result)`
+- `core/config_bootstrap.py:579` — `# This is now handled automatically by SecureConfig`
+- `core/config_bootstrap.py:585` — `def coerce_config_values_to_defaults_types(user_config: dict[str, Any], defaults: Mapping[str, Any], debug: bool = False) -> dict[str, Any]:`
+- `core/config_bootstrap.py:587` — `In the secure config system, type coercion is handled automatically.`
+- `core/config_bootstrap.py:590` — `for key, value in user_config.items():`
+- `core/config_bootstrap.py:595` — `user_config[key] = value.lower() in ("true", "1", "yes", "on")`
+- `core/config_bootstrap.py:598` — `user_config[key] = int(value)`
+- `core/config_bootstrap.py:601` — `_log.debug("[CONFIG_BOOTSTRAP] non-critical error: %s", e)`
+- `core/config_bootstrap.py:604` — `user_config[key] = float(value)`
+- `core/config_bootstrap.py:607` — `_log.debug("[CONFIG_BOOTSTRAP] non-critical error: %s", e)`
+- `core/config_bootstrap.py:609` — `return user_config`
+- `core/config_bootstrap.py:613` — `CONFIG_DEFAULTS_PATH_INDEX: str | None = None  # Will be set by initialize_secure_config`
+- `core/alert_router.py:7` — `- Telegram alerts → ``infrastructure/adapters/notifications/telegram_adapter.py```
+- `core/alert_router.py:8` — `(TelegramNotificationAdapter implements the NotificationPort interface)`
+- `core/alert_router.py:10` — `a future consolidated ``core/services/notification_service.py```
+- `core/alert_router.py:12` — `New code should use the NotificationPort interface directly.`
+- `core/alert_router.py:33` — `"Use infrastructure/adapters/notifications/telegram_adapter.py "`
+- `core/alert_router.py:34` — `"(TelegramNotificationAdapter) instead.",`
+- `core/alert_router.py:39` — `# Import the modern TelegramNotificationAdapter (v2.54: migrated from TelegramEngine)`
+- `core/alert_router.py:40` — `from infrastructure.adapters.notifications.telegram_adapter import TelegramNotificationAdapter`
+- `core/alert_router.py:42` — `from core.ports.notification.notification_port import (`
+- `core/alert_router.py:43` — `Notification,`
+- `core/alert_router.py:44` — `NotificationChannel,`
+- `core/alert_router.py:45` — `NotificationPriority,`
+- `core/alert_router.py:46` — `NotificationStatus,`
+- `core/alert_router.py:70` — `_log.warning("Email alerts not configured or disabled")`
+- `core/alert_router.py:99` — `self.url = cfg.get("webhook_url", "")  # Should be configured in config.json`
+- `core/alert_router.py:121` — `_log.warning("Webhook alerts not configured or disabled")`
+- `core/alert_router.py:155` — `self.telegram_adapter = TelegramNotificationAdapter(`
+- `core/alert_router.py:165` — `"""Send an alert via all configured channels.`
+- `core/alert_router.py:173` — `notification = Notification(`
+- `core/alert_router.py:175` — `channel=NotificationChannel.TELEGRAM,`
+- `core/alert_router.py:176` — `priority=NotificationPriority.CRITICAL,`
+- `core/alert_router.py:180` — `result = self.telegram_adapter.send_notification(notification)`
+- `core/alert_router.py:181` — `results["telegram"] = result.status == NotificationStatus.SENT`
+- `core/position_service.py:21` — `audit_engine=_audit_engine,`
+- `core/position_service.py:57` — `Preserves the critical notification that would otherwise be lost.`
+- `core/position_service.py:85` — `audit_engine: Any = None,`
+- `core/position_service.py:100` — `notification_service: Any = None,`
+- `core/position_service.py:111` — `self._audit_engine = audit_engine`
+- `core/position_service.py:126` — `self._notification_service = notification_service`
+- `core/position_service.py:127` — `# config key COOLDOWN, opt-in via general_cooldown_enabled (default`
+- `core/position_service.py:160` — `if self._audit_engine is not None:`
+- `core/position_service.py:162` — `self._audit_engine.record(`
+- `core/position_service.py:203` — `# General per-index entry cooldown (config key COOLDOWN, opt-in via`
+- `core/position_service.py:235` — `# Expiry-day trade count cap (config key EXPIRY_MAX_TRADES, opt-in`
+- `core/position_service.py:268` — `# Force pre-trade reconciliation (config key FORCE_PRE_TRADE_RECON,`
+- `core/position_service.py:287` — `# Time-of-day liquidity filter (config key TIME_OF_DAY_FILTER_ENABLED,`
+- `core/position_service.py:318` — `if self._audit_engine is not None:`
+- `core/position_service.py:320` — `self._audit_engine.record(`
+- `core/position_service.py:346` — `# config key BREAKOUT_TIMEOUT, opt-in via breakout_timeout_enabled`
+- `core/position_service.py:383` — `self._send_notification(msg)`
+- `core/position_service.py:442` — `# VIX-based sizing (config key VIX_SIZE_SCALE, default True — this`
+- `core/position_service.py:455` — `# VIX soft-warning notification (config key VIX_HALT_THRESHOLD).`
+- `core/position_service.py:464` — `self._send_notification(f"VIX_SOFT_WARNING: {name} entry at VIX={_vix_now:.1f} (>= soft threshold)")`
+- `core/position_service.py:468` — `# Per-trade SL-risk cap (config key MAX_SINGLE_TRADE_LOSS_PCT,`
+- `core/position_service.py:488` — `# Portfolio-wide aggregate SL-risk cap (config key`
+- `core/position_service.py:524` — `from core.config_validator import get_instrument_param`
+- `core/position_service.py:541` — `# Live option quote feed (config key live_option_quotes_enabled,`
+- `core/position_service.py:582` — `self._send_notification(f"{tbe.reason.upper()}_BLOCK: {name} - {tbe.message}", critical=True)`
+- `core/position_service.py:639` — `# config key TAKE_PROFIT_AND_STOP (default true, matching`
+- `core/position_service.py:819` — `# config key EXIT_ORDER_RETRIES (default 3, matching the value this`
+- `core/position_service.py:829` — `self._send_notification(f"EXIT {name}: {reason} @ {exit_price:.2f} P&L={pnl:.0f}")`
+- `core/position_service.py:899` — `"""Build the manual-mode Telegram/notification text for a signal.`
+- `core/position_service.py:909` — `TARGET_PCT config keys), so the numbers shown match what the bot`
+- `core/position_service.py:952` — `def _send_notification(self, message: str, **kwargs) -> None:`
+- `core/position_service.py:953` — `"""Send notification - uses stored notification service if available."""`
+- `core/position_service.py:954` — `if self._notification_service is not None:`
+- `core/position_service.py:956` — `if hasattr(self._notification_service, "send"):`
+- `core/position_service.py:957` — `self._notification_service.send(message, **kwargs)`
+- `core/position_service.py:958` — `elif callable(self._notification_service):`
+- `core/position_service.py:959` — `self._notification_service(message, **kwargs)`
+- `core/position_service.py:1060` — `configured thresholds. Reuses the existing liquidity_guard_enabled`
+- `core/position_service.py:1061` — `config key (core/liquidity_guard.py already fails open on it) rather`
+- `core/position_service.py:1146` — `# config key EXIT_ORDER_RETRIES (default 3) - see exit_position()'s`
+- `core/position_service.py:1171` — `audit_engine: Any = None,`
+- `core/position_service.py:1186` — `notification_service: Any = None,`
+- `core/position_service.py:1202` — `audit_engine=audit_engine,`
+- `core/position_service.py:1217` — `notification_service=notification_service,`
+- `core/constitution_self_healing_bridge.py:6` — `3. Logs all healing actions to the constitution audit log`
+- `core/constitution_self_healing_bridge.py:31` — `recovery_actions=[RecoveryAction.RELOAD_CONFIG, RecoveryAction.NOTIFY_OPERATOR],`
+- `core/constitution_self_healing_bridge.py:37` — `recovery_actions=[RecoveryAction.RELOAD_CONFIG, RecoveryAction.RECYCLE_SESSION, RecoveryAction.NOTIFY_OPERATOR],`
+- `core/constitution_self_healing_bridge.py:43` — `recovery_actions=[RecoveryAction.RELOAD_CONFIG, RecoveryAction.NOTIFY_OPERATOR],`
+- `core/constitution_self_healing_bridge.py:55` — `recovery_actions=[RecoveryAction.RELOAD_CONFIG, RecoveryAction.RECYCLE_SESSION],`
+- `core/constitution_self_healing_bridge.py:181` — `# Log to constitution audit log`
+- `core/constitution_self_healing_bridge.py:199` — `"""Setup complete constitution self-healing integration.`
+- `core/self_service_provisioning.py:6` — `with their IaC artifacts (Dockerfile / docker-compose / supervisord configs)`
+- `core/self_service_provisioning.py:7` — `- Provisioning requests: request, approve, track, and audit environment provisioning`
+- `core/self_service_provisioning.py:9` — `- Audit trail: every provisioning action is recorded with actor + timestamp`
+- `core/self_service_provisioning.py:13` — `left to the operator's configured pipeline (Makefile / docker compose / release`
+- `core/self_service_provisioning.py:74` — `"description": "Local development environment (config.local.json + launcher)",`
+- `core/self_service_provisioning.py:75` — `"artifacts": ["json/config.template.json", "json/launcher_settings.json"],`
+- `core/self_service_provisioning.py:116` — `"""A single self-service provisioning request (workflow + audit record)."""`
+- `core/self_service_provisioning.py:205` — `Creates a PENDING request that flows through the approval workflow.`
+- `core/sovereignty_guard.py:31` — `"""Returns True only if AI reasoning is explicitly enabled in config."""`
+- `core/sovereignty_guard.py:34` — `def audit_sovereignty(self) -> None:`
+- `core/ics_self_healing_bridge.py:12` — `Incident             Auto-resolve   Audit log`
+- `core/ics_self_healing_bridge.py:52` — `"config_corruption": "configuration",`
+- `core/ics_self_healing_bridge.py:69` — `"reload_config": "configuration",`
+- `core/ics_self_healing_bridge.py:210` — `# ── Also set the orchestrator's notification handler ────────`
+- `core/ics_self_healing_bridge.py:470` — `"config": "configuration",`
+- `core/data_governance.py:72` — `name="audit",`
+- `core/data_governance.py:74` — `glob_pattern="audit_*.jsonl*",`
+- `core/data_governance.py:76` — `max_files=self._cfg.get("data_retention_audit_max_files", 90),`
+- `core/data_governance.py:77` — `max_age_days=self._cfg.get("data_retention_audit_days", 90),`
+- `core/data_governance.py:79` — `enabled=retention_enabled and self._cfg.get("data_retention_audit_enabled", True),`
+- `core/data_governance.py:128` — `-1 = category disabled in config`
+- `core/data_governance.py:197` — `"""Background thread that runs data governance cleanup on a configurable schedule."""`
+- `core/equity_trader.py:3` — `Supports trading NSE/BSE cash market instruments using config-driven asset maps:`
+- `core/equity_trader.py:18` — `Config keys:`
+- `core/equity_trader.py:45` — `# Default config values`
+- `core/equity_trader.py:56` — `# Map names for asset class config sections`
+- `core/equity_trader.py:80` — `cfg: Config dict.`
+- `core/equity_trader.py:108` — `Manages positions across multiple asset classes with config-driven`
+- `core/equity_trader.py:185` — `"""Return all configured trading symbols across all asset classes."""`
+- `core/equity_trader.py:190` — `"""Return configured equity symbols (backward compat)."""`
+- `core/equity_trader.py:217` — `return False, "No equity symbols configured"`
+- `core/equity_trader.py:631` — `cfg: Configuration dict (expects EQUITY_MAP, ETF_MAP, etc.)`
+- `core/equity_trader.py:632` — `send_fn: Notification function`
+- `core/config_validator.py:1` — `"""Config Validator -- startup schema validation and consistency checks.`
+- `core/config_validator.py:7` — `validate_config(cfg) -> (errors, warnings)  -- standalone full validation for scripts.`
+- `core/config_validator.py:8` — `log_resolved_config(cfg, logger)             -- emit resolved critical values to log.`
+- `core/config_validator.py:9` — `generate_config_checksum(cfg) -> str         -- 16-char SHA-256 of critical keys.`
+- `core/config_validator.py:19` — `log = logging.getLogger("config_validator")`
+- `core/config_validator.py:107` — `# -- TG_ALERT_MIN_SCORE -- Intentional Notification Filter Gate -`
+- `core/config_validator.py:114` — `f"notification filter active -- alerts dispatched only for scores >= {tg_min}.",`
+- `core/config_validator.py:152` — `# (core.tier_engine.classify_tier, called with these config values from`
+- `core/config_validator.py:172` — `def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:`
+- `core/config_validator.py:173` — `"""Validate config for type/range/consistency errors.`
+- `core/config_validator.py:224` — `# Duplicate credential keys: BROKER_CONFIG wins over legacy KITE_*/ANGEL_* silently`
+- `core/config_validator.py:225` — `_bc = cfg.get("BROKER_CONFIG") or {}`
+- `core/config_validator.py:231` — `f"Both BROKER_CONFIG.api_key and legacy top-level keys {_legacy} are set. "`
+- `core/config_validator.py:232` — `f"BROKER_CONFIG takes precedence -- the legacy keys are ignored. "`
+- `core/config_validator.py:239` — `f"Both BROKER_CONFIG.api_key and legacy top-level keys {_legacy} are set. "`
+- `core/config_validator.py:240` — `f"BROKER_CONFIG takes precedence -- the legacy keys are ignored. "`
+- `core/config_validator.py:369` — `f"configured targets don't satisfy minimum RR.",`
+- `core/config_validator.py:417` — `def log_resolved_config(cfg: dict[str, Any], logger: logging.Logger = None) -> None:`
+- `core/config_validator.py:425` — `L.info("-- Resolved Config ----------------------------------------")`
+- `core/config_validator.py:443` — `checksum = generate_config_checksum(cfg)`
+- `core/config_validator.py:444` — `L.info("  Config CRC   : %s  (alert if this changes between restarts)", checksum)`
+- `core/config_validator.py:448` — `def generate_config_checksum(cfg: dict[str, Any]) -> str:`
+- `core/config_validator.py:449` — `"""Return a 16-character SHA-256 fingerprint of execution-critical config values.`
+- `core/config_validator.py:451` — `Log this at every startup. If it changes between restarts, a config change`
+- `core/config_validator.py:452` — `occurred -- emit a warning so the change is auditable.`
+- `core/config_validator.py:478` — `"""Validate v2.46 structured config blocks (instruments, indicator, market, financial).`
+- `core/config_validator.py:563` — `"""One-shot: validate + log resolved config.`
+- `core/config_validator.py:566` — `cfg:               Loaded config dict`
+- `core/config_validator.py:577` — `errors, warnings = validate_config(cfg)`
+- `core/config_validator.py:580` — `L.warning("CONFIG WARN  : %s", w)`
+- `core/config_validator.py:584` — `L.error("CONFIG ERROR : %s", e)`
+- `core/config_validator.py:587` — `f"Config validation failed with {len(errors)} error(s). Fix config.json and restart.",`
+- `core/config_validator.py:591` — `log_resolved_config(cfg, L)`
+- `core/config_validator.py:606` — `L.info("Config validation passed (%d warning(s))", len(warnings))`
+- `core/config_validator.py:612` — `"generate_config_checksum",`
+- `core/config_validator.py:619` — `"log_resolved_config",`
+- `core/config_validator.py:621` — `"validate_config",`
+- `core/logging.py:25` — ```RotatingFileHandler.doRollover()`` raises PermissionError on every emit`
+- `core/logging.py:28` — `output and risking setup aborts in callers that treat logging errors as`
+- `core/logging.py:42` — `# match the stdlib base method. Kept in the config, not inline, so`
+- `core/logging.py:72` — `# Singleton logging configuration`
+- `core/logging.py:73` — `_configured = False`
+- `core/logging.py:76` — `def _configure_root_logger() -> None:`
+- `core/logging.py:77` — `"""Configure root logger once."""`
+- `core/logging.py:78` — `global _configured`
+- `core/logging.py:79` — `if _configured:`
+- `core/logging.py:93` — `_configured = True`
+- `core/logging.py:97` — `"""Get a configured logger instance (backward compat).`
+- `core/logging.py:105` — `Configured logger instance`
+- `core/logging.py:108` — `_configure_root_logger()`
+- `core/logging.py:236` — `except (OSError, PermissionError) as e:`
+- `core/architecture_analyzer.py:43` — `"core.config_bootstrap",`
+- `core/architecture_analyzer.py:47` — `"core.services.notification_service",`
+- `core/architecture_analyzer.py:50` — `# Uses the public TelegramNotificationAdapter (+ its send_raw() passthrough),`
+- `core/architecture_analyzer.py:52` — `# core.services.notification_service above. Note: the "from ..." formatted`
+- `core/architecture_analyzer.py:89` — `"core.audit_engine",`
+- `core/architecture_analyzer.py:90` — `"core.config_bootstrap",`
+- `core/architecture_analyzer.py:92` — `"core.security_auditor",`
+- `core/architecture_analyzer.py:99` — `"core.config_bootstrap:from infrastructure.config.secure_config",`
+- `core/architecture_analyzer.py:103` — `"core.services.notification_service:from infrastructure.adapters",`
+- `core/architecture_analyzer.py:107` — `"core.security_auditor:from core.security_auditor import sys",`
+- `core/soft_reload_common.py:41` — `"""Human summary segment plus structured diff row for logs / audit."""`
+- `core/soft_reload_common.py:53` — `*validator_fn*, if provided, is called with a copy of the merged config before committing.`
+- `core/soft_reload_common.py:81` — `"""Return a human-readable warning when config keys were changed but silently skipped.`
+- `core/soft_reload_common.py:99` — `f"Soft-reload: {len(ignored)} key(s) changed in config but NOT applied "`
+- `core/regulatory_reporting.py:4` — `audit trails, and exchange submissions. Covers:`
+- `core/regulatory_reporting.py:24` — `Config keys (all optional)`
+- `core/live_readiness_checker.py:28` — `Config keys (index_config.defaults.json)`
+- `core/live_readiness_checker.py:160` — `cfg     : Config dict.`
+- `core/live_readiness_checker.py:351` — `"""Return True if the readiness notification has not been sent today."""`
+- `core/live_readiness_checker.py:369` — `except (OSError, PermissionError) as e:`
+- `core/security_auditor.py:1` — `"""Security Auditor — Ongoing security assessment engine (Pillar 3 / Vision Module).`
+- `core/security_auditor.py:8` — `- TLS/SSL configuration checks`
+- `core/security_auditor.py:9` — `- File permission audits`
+- `core/security_auditor.py:17` — `from core.security_auditor import get_security_auditor`
+- `core/security_auditor.py:18` — `auditor = get_security_auditor()`
+- `core/security_auditor.py:19` — `report = auditor.run_full_scan()`
+- `core/security_auditor.py:191` — `"  SECURITY AUDIT REPORT",`
+- `core/security_auditor.py:218` — `# ── Security Auditor ───────────────────────────────────────────────────────`
+- `core/security_auditor.py:221` — `class SecurityAuditor:`
+- `core/security_auditor.py:238` — `self._persist_path = Path("json/security_audit_history.json")`
+- `core/security_auditor.py:445` — `recs.append("Run `pip-audit` regularly for up-to-date vulnerability scanning")`
+- `core/security_auditor.py:462` — `"""Get auditor statistics."""`
+- `core/security_auditor.py:479` — `_security_auditor: SecurityAuditor | None = None`
+- `core/security_auditor.py:480` — `_security_auditor_lock = threading.RLock()`
+- `core/security_auditor.py:483` — `def get_security_auditor() -> SecurityAuditor:`
+- `core/security_auditor.py:484` — `"""Get the singleton SecurityAuditor instance."""`
+- `core/security_auditor.py:485` — `global _security_auditor`
+- `core/security_auditor.py:486` — `with _security_auditor_lock:`
+- `core/security_auditor.py:487` — `if _security_auditor is None:`
+- `core/security_auditor.py:488` — `_security_auditor = SecurityAuditor()`
+- `core/security_auditor.py:489` — `return _security_auditor`
+- `core/security_auditor.py:492` — `def reset_security_auditor() -> None:`
+- `core/security_auditor.py:494` — `global _security_auditor`
+- `core/security_auditor.py:495` — `with _security_auditor_lock:`
+- `core/security_auditor.py:496` — `_security_auditor = None`
+- `core/security_auditor.py:505` — `"SecurityAuditor",`
+- `core/security_auditor.py:507` — `"get_security_auditor",`
+- `core/security_auditor.py:508` — `"reset_security_auditor",`
+- `core/loop_watchdog.py:18` — `notification channel is created.`
+- `core/loop_watchdog.py:20` — `Config keys`
+- `core/loop_watchdog.py:70` — `def update_config(self, cfg: dict[str, Any]) -> None:`
+- `core/loop_watchdog.py:71` — `"""Allow hot-reload of config."""`
+- `core/loop_watchdog.py:91` — `"""Return True if the configured timeout has been exceeded.`
+- `core/loop_watchdog.py:133` — `instance; later calls refresh cfg (update_config) if cfg is given, and`
+- `core/loop_watchdog.py:134` — `refresh notify_fn if one is passed, so a config reload takes effect.`
+- `core/loop_watchdog.py:142` — `_watchdog_instance.update_config(cfg)`
+- `core/env_sync.py:2` — `Environment and Config Synchronization Utility`
+- `core/env_sync.py:4` — `Ensures that changes made via Admin UI (or config.json) are automatically`
+- `core/env_sync.py:17` — `# Key mapping from config.json keys to corresponding .env variable names`
+- `core/env_sync.py:18` — `CONFIG_TO_ENV_MAP: dict[str, list[str]] = {`
+- `core/env_sync.py:56` — `if cfg_key in CONFIG_TO_ENV_MAP:`
+- `core/env_sync.py:57` — `for env_var in CONFIG_TO_ENV_MAP[cfg_key]:`
+- `core/telegram_commander.py:5` — `ManualSignalQueue and SignalApprovalWorkflow.`
+- `core/telegram_commander.py:19` — `Config keys`
+- `core/telegram_commander.py:41` — `from core.telegram.audit.manager import TelegramAuditManager`
+- `core/telegram_commander.py:417` — `self._audit = TelegramAuditManager()`
+- `core/telegram_commander.py:490` — `self._audit.record_unauthorized_attempt(user_id, username, text)`
+- `core/telegram_commander.py:497` — `self._audit.record_unauthorized_attempt(user_id, username, text)`
+- `core/telegram_commander.py:511` — `# Audit successful command`
+- `core/telegram_commander.py:512` — `self._audit.record_command(user_id, username, cmd, parts[1:], "SUCCESS")`
+- `core/telegram_commander.py:515` — `self._audit.record_command(user_id, username, cmd, parts[1:], f"ERROR: {exc}")`
+- `core/telegram_commander.py:529` — `# ── Approval commands ──────────────────────────────────────────────`
+- `core/telegram_commander.py:565` — `self._reply(f"⚠️ Bot control commands ({cmd}) require direct config change. "`
+- `core/telegram_commander.py:566` — `"Set config key and restart.", critical=False)`
+- `core/telegram_commander.py:569` — `elif cmd in ("/retrain_ml", "/backup", "/set_config"):`
+- `core/telegram_commander.py:629` — `f"🚨 HARD HALT ACTIVE - approvals blocked.\n"`
+- `core/telegram_commander.py:681` — `f"🚨 HARD HALT ACTIVE - bulk approvals blocked.\n"`
+- `core/telegram_commander.py:850` — `"Set `telegram_allow_live_position_cmds: true` in config to enable.\n"`
+- `core/telegram_commander.py:879` — `"✅ *Approval Commands*",`
+- `core/telegram_commander.py:935` — `"""Build and start a TelegramCommander if enabled in config."""`
+- `core/telegram_commander.py:937` — `_log.debug("[TG_CMD] Disabled by config")`
+- `core/ics_telegram_bridge.py:1` — `"""ICS-Telegram Alert Bridge — wires Incident Commander alerts to Telegram notifications.`
+- `core/ics_telegram_bridge.py:4` — `notification infrastructure so critical/high incidents automatically`
+- `core/ics_telegram_bridge.py:10` — `# Auto-wire (reads env vars and configures the bridge)`
+- `core/ics_telegram_bridge.py:22` — `- Uses TelegramNotificationAdapter's public send_raw() for direct text delivery`
+- `core/ics_telegram_bridge.py:23` — `- Falls back silently if Telegram credentials are not configured`
+- `core/ics_telegram_bridge.py:47` — `"""Bridges Incident Commander alerts to Telegram notifications.`
+- `core/ics_telegram_bridge.py:49` — `Uses TelegramNotificationAdapter's public send_raw() passthrough`
+- `core/ics_telegram_bridge.py:50` — `to deliver real-time incident alerts to the configured Telegram channel.`
+- `core/ics_telegram_bridge.py:68` — `self._client: Any = None  # TelegramNotificationAdapter instance (lazy init)`
+- `core/ics_telegram_bridge.py:88` — `# TelegramNotificationAdapter (+ its send_raw() passthrough)`
+- `core/ics_telegram_bridge.py:90` — `from infrastructure.adapters.notifications.telegram_adapter import (`
+- `core/ics_telegram_bridge.py:91` — `TelegramNotificationAdapter,`
+- `core/ics_telegram_bridge.py:94` — `self._client = TelegramNotificationAdapter(`
+- `core/ics_telegram_bridge.py:124` — `prefix = "🚨 CRITICAL" if is_critical else "ℹ️ NOTIFICATION"`
+- `core/ics_telegram_bridge.py:257` — `"(credentials not configured)"`
+- `core/incident_alerting.py:14` — `Integrates with existing notification service.`
+- `core/incident_alerting.py:72` — `Sends alerts via callback (typically Telegram notification).`
+- `core/incident_alerting.py:77` — `- NORMAL:   logged only (no notification) unless escalated`
+- `core/incident_alerting.py:81` — `from noisy notification channels while still tracking them in the queue.`
+- `core/incident_alerting.py:87` — `config: dict | None = None,`
+- `core/incident_alerting.py:89` — `self._config = config or {}`
+- `core/incident_alerting.py:97` — `# Configuration`
+- `core/incident_alerting.py:98` — `self._enabled = self._config.get("INCIDENT_ALERTING_ENABLED", True)`
+- `core/incident_alerting.py:99` — `self._dequeue_interval = self._config.get("INCIDENT_DEQUEUE_INTERVAL_SEC", 5)`
+- `core/incident_alerting.py:100` — `self._max_queue_size = self._config.get("INCIDENT_MAX_QUEUE_SIZE", 100)`
+- `core/incident_alerting.py:103` — `self._cooldown_seconds = self._config.get("INCIDENT_COOLDOWN_SECONDS", 60)`
+- `core/incident_alerting.py:108` — `threshold_name = self._config.get("INCIDENT_DELIVERY_THRESHOLD", "HIGH").upper()`
+- `core/incident_alerting.py:116` — `log.info("Incident alerting disabled by config")`
+- `core/incident_alerting.py:195` — `the queue but not delivered, reducing notification noise.`
+- `core/incident_alerting.py:201` — `True if the incident should be delivered to the notification channel.`
+- `core/incident_alerting.py:224` — `# Check delivery threshold — skip low-severity notifications`
+- `core/incident_alerting.py:382` — `config: dict | None = None,`
+- `core/incident_alerting.py:387` — `_incident_alerting = IncidentAlerting(send_alert_fn, config)`
+- `core/finops.py:12` — `- Budget alerts with notification callback`
+- `core/finops.py:24` — `Config keys (all optional — safe defaults built in)`
+- `core/finops.py:40` — `finops_alert_callback         : Callable or None       (notification callback)`
+- `core/finops.py:299` — `# Estimate lots (assume lot_size from config or default 50)`
+- `core/finops.py:379` — `"""Check cost report against configured budget thresholds."""`
+- `core/finops.py:407` — `"""Deliver budget alert via configured callback."""`
+- `core/secrets_vault.py:3` — `Provides encryption-at-rest for sensitive configuration values, API keys,`
+- `core/secrets_vault.py:4` — `tokens, and credentials. Supports key rotation, access audit logging, and`
+- `core/secrets_vault.py:111` — `class AuditEntry:`
+- `core/secrets_vault.py:112` — `"""Audit log entry for vault access."""`
+- `core/secrets_vault.py:136` — `"""Centralized secrets vault with encryption, rotation, and audit.`
+- `core/secrets_vault.py:149` — `self._audit_path = Path("data/secrets.audit.jsonl")`
+- `core/secrets_vault.py:151` — `self._audit_log: list[AuditEntry] = []`
+- `core/secrets_vault.py:152` — `self._max_audit = 1000`
+- `core/secrets_vault.py:163` — `# Generate a file-based key if none configured`
+- `core/secrets_vault.py:220` — `self._audit("set", key, True)`
+- `core/secrets_vault.py:239` — `self._audit("get", key, False, "not_found")`
+- `core/secrets_vault.py:245` — `self._audit("get", key, False, "decryption_failed")`
+- `core/secrets_vault.py:248` — `self._audit("get", key, True)`
+- `core/secrets_vault.py:267` — `self._audit("delete", key, True)`
+- `core/secrets_vault.py:269` — `self._audit("delete", key, False, "not_found")`
+- `core/secrets_vault.py:285` — `self._audit("rotate", key, False, "not_found")`
+- `core/secrets_vault.py:299` — `self._audit("rotate", key, True)`
+- `core/secrets_vault.py:322` — `def get_audit_log(self, limit: int = 50, action: str = "") -> list[AuditEntry]:`
+- `core/secrets_vault.py:323` — `"""Get the audit log, optionally filtered by action."""`
+- `core/secrets_vault.py:325` — `entries = list(self._audit_log)`
+- `core/secrets_vault.py:348` — `"audit_entries": len(self._audit_log),`
+- `core/secrets_vault.py:356` — `def _audit(self, action: str, key: str, success: bool, detail: str = "") -> None:`
+- `core/secrets_vault.py:357` — `"""Record an audit entry."""`
+- `core/secrets_vault.py:358` — `entry = AuditEntry(`
+- `core/secrets_vault.py:366` — `self._audit_log.append(entry)`
+- `core/secrets_vault.py:367` — `if len(self._audit_log) > self._max_audit:`
+- `core/secrets_vault.py:368` — `self._audit_log = self._audit_log[-self._max_audit:]`
+- `core/secrets_vault.py:369` — `self._persist_audit()`
+- `core/secrets_vault.py:401` — `def _persist_audit(self) -> None:`
+- `core/secrets_vault.py:402` — `"""Persist audit log to JSONL."""`
+- `core/secrets_vault.py:404` — `self._audit_path.parent.mkdir(parents=True, exist_ok=True)`
+- `core/secrets_vault.py:405` — `with open(self._audit_path, "w", encoding="utf-8") as f:`
+- `core/secrets_vault.py:406` — `for entry in self._audit_log[-self._max_audit:]:`
+- `core/secrets_vault.py:409` — `_log.debug("[VAULT] Audit persist error: %s", exc)`
+- `core/secrets_vault.py:415` — `self._audit_log.clear()`
+- `core/secrets_vault.py:418` — `if self._audit_path.exists():`
+- `core/secrets_vault.py:419` — `self._audit_path.unlink()`
+- `core/secrets_vault.py:436` — `ap.add_argument("--audit", action="store_true", help="Show audit log")`
+- `core/secrets_vault.py:491` — `if args.audit:`
+- `core/secrets_vault.py:492` — `entries = vault.get_audit_log()`
+- `core/secrets_vault.py:550` — `"AuditEntry",`
+- `core/autonomous_optimizer.py:9` — `- Configuration parameters`
+- `core/autonomous_optimizer.py:53` — `"CONFIG",           # Suboptimal configuration parameters`
+- `core/autonomous_optimizer.py:66` — `"SAFE": 0.0,        # Can auto-apply with no approval`
+- `core/autonomous_optimizer.py:68` — `"MEDIUM": 0.5,      # Requires operator approval`
+- `core/autonomous_optimizer.py:69` — `"HIGH": 0.8,        # Requires admin approval`
+- `core/autonomous_optimizer.py:126` — `rollback_reason: str = ""`
+- `core/autonomous_optimizer.py:140` — `"rollback_reason": self.rollback_reason,`
+- `core/autonomous_optimizer.py:153` — `pending_approval: list[OptimizerFinding] = field(default_factory=list)`
+- `core/autonomous_optimizer.py:167` — `"pending_approval": [f.to_dict() for f in self.pending_approval],`
+- `core/autonomous_optimizer.py:198` — `if self.pending_approval:`
+- `core/autonomous_optimizer.py:199` — `lines.append(f"  ⏳ Pending Approval: {len(self.pending_approval)}")`
+- `core/autonomous_optimizer.py:310` — `def _analyze_config_performance(config_path: str = "json/stock_config.json") -> list[OptimizerFinding]:`
+- `core/autonomous_optimizer.py:311` — `"""Analyze configuration for suboptimal parameters."""`
+- `core/autonomous_optimizer.py:314` — `config_file = Path(config_path)`
+- `core/autonomous_optimizer.py:315` — `if not config_file.is_file():`
+- `core/autonomous_optimizer.py:316` — `config_file = Path("json/index_config.defaults.json")`
+- `core/autonomous_optimizer.py:317` — `if config_file.is_file():`
+- `core/autonomous_optimizer.py:318` — `data = json.loads(config_file.read_text(encoding="utf-8"))`
+- `core/autonomous_optimizer.py:325` — `domain="CONFIG",`
+- `core/autonomous_optimizer.py:335` — `module_path=config_file.name,`
+- `core/autonomous_optimizer.py:383` — `- Configuration parameters (suboptimal defaults)`
+- `core/autonomous_optimizer.py:388` — `and provides rollback capability for applied optimizations.`
+- `core/autonomous_optimizer.py:428` — `(_analyze_config_performance, "CONFIG"),`
+- `core/autonomous_optimizer.py:443` — `pending_approval: list[OptimizerFinding] = []`
+- `core/autonomous_optimizer.py:452` — `pending_approval.append(finding)`
+- `core/autonomous_optimizer.py:454` — `pending_approval = [f for f in findings if f.risk_level != "SAFE"]`
+- `core/autonomous_optimizer.py:457` — `report.pending_approval = pending_approval`
+- `core/autonomous_optimizer.py:503` — `def rollback_optimization(self, applied_index: int) -> bool:`
+- `core/autonomous_optimizer.py:504` — `"""Rollback a previously applied optimization.`
+- `core/autonomous_optimizer.py:507` — `applied_index: Index in the applied history to rollback.`
+- `core/autonomous_optimizer.py:510` — `True if rollback was successful.`
+- `core/autonomous_optimizer.py:520` — `self._perform_rollback(applied)`
+- `core/autonomous_optimizer.py:522` — `applied.rollback_reason = "Manual rollback requested"`
+- `core/autonomous_optimizer.py:526` — `_log.error("[AUTO_OPT] Rollback failed: %s", exc)`
+- `core/autonomous_optimizer.py:621` — `def _perform_rollback(self, applied: OptimizationApplied) -> None:`
+- `core/autonomous_optimizer.py:623` — `_log.info("[AUTO_OPT] Rollback: %s", applied.description)`
+- `core/autonomous_optimizer.py:661` — `if report.pending_approval:`
+- `core/autonomous_optimizer.py:662` — `domains = list({f.domain for f in report.pending_approval})`
+- `core/autonomous_optimizer.py:663` — `recs.append(f"Review {len(report.pending_approval)} optimizations pending approval: {', '.join(domains)}")`
+- `core/signal_approval_workflow.py:1` — `"""Signal Approval Workflow - DEPRECATED.`
+- `core/signal_approval_workflow.py:4` — `core.strategy.orchestrator which internally integrates SignalApprovalWorkflow.`
+- `core/signal_approval_workflow.py:18` — `Only SIGNALS_ONLY and FULL_MANUAL modes are enabled in config by default.`
+- `core/signal_approval_workflow.py:24` — `SignalApprovalWorkflow - evaluates each signal and returns a SignalDecision`
+- `core/signal_approval_workflow.py:25` — `build_workflow(cfg, queue) → SignalApprovalWorkflow`
+- `core/signal_approval_workflow.py:27` — `Config keys`
+- `core/signal_approval_workflow.py:98` — `class SignalApprovalWorkflow:`
+- `core/signal_approval_workflow.py:114` — `# Tier thresholds (read from config so they stay in sync with pipeline)`
+- `core/signal_approval_workflow.py:121` — `# Auto-escalation config (new)`
+- `core/signal_approval_workflow.py:168` — `source:            SOURCE label for audit`
+- `core/signal_approval_workflow.py:207` — `"""FULL_MANUAL: every signal goes to approval queue."""`
+- `core/signal_approval_workflow.py:355` — `"""Deliver escalation notification via callback."""`
+- `core/signal_approval_workflow.py:383` — `def build_workflow(cfg: dict[str, Any], queue=None) -> SignalApprovalWorkflow:`
+- `core/signal_approval_workflow.py:384` — `"""Build a SignalApprovalWorkflow from config."""`
+- `core/signal_approval_workflow.py:386` — `return SignalApprovalWorkflow(cfg, queue)`
+- `core/signal_approval_workflow.py:389` — `return SignalApprovalWorkflow({"manual_signal_workflow_mode": SIGNALS_ONLY}, None)`
+- `core/signal_approval_workflow.py:404` — `"SignalApprovalWorkflow",`
+- `core/constitution_alert_bridge.py:1` — `"""Constitution Alert Bridge — wires Constitution v4.0 health checks to notification service.`
+- `core/constitution_alert_bridge.py:3` — `Automatically sends notifications when constitution health scores drop below`
+- `core/constitution_alert_bridge.py:4` — `configurable thresholds. Integrates with the existing NotificationService`
+- `core/constitution_alert_bridge.py:31` — `class BridgeConfig:`
+- `core/constitution_alert_bridge.py:32` — `"""Configuration for the Constitution Alert Bridge."""`
+- `core/constitution_alert_bridge.py:75` — `"""Bridges constitution health checks to notification service alerts.`
+- `core/constitution_alert_bridge.py:77` — `Monitors constitution health on a configurable schedule and sends`
+- `core/constitution_alert_bridge.py:81` — `def __init__(self, config: dict[str, Any] | None = None) -> None:`
+- `core/constitution_alert_bridge.py:82` — `self._cfg = BridgeConfig(`
+- `core/constitution_alert_bridge.py:83` — `**{k: v for k, v in (config or {}).items() if k in BridgeConfig.__dataclass_fields__}`
+- `core/constitution_alert_bridge.py:89` — `self._notification_service = None`
+- `core/constitution_alert_bridge.py:91` — `def _get_notification_service(self):`
+- `core/constitution_alert_bridge.py:92` — `"""Lazy-initialize the notification service."""`
+- `core/constitution_alert_bridge.py:93` — `if self._notification_service is None:`
+- `core/constitution_alert_bridge.py:95` — `from core.services.notification_service import NotificationService`
+- `core/constitution_alert_bridge.py:96` — `self._notification_service = NotificationService()`
+- `core/constitution_alert_bridge.py:97` — `self._notification_service.start()`
+- `core/constitution_alert_bridge.py:99` — `_log.warning("[CAB] NotificationService not available — alerts will be logged only")`
+- `core/constitution_alert_bridge.py:100` — `self._notification_service = False  # Sentinel: don't retry`
+- `core/constitution_alert_bridge.py:101` — `return self._notification_service if self._notification_service is not False else None`
+- `core/constitution_alert_bridge.py:104` — `"""Send an alert via the notification service, with logging fallback."""`
+- `core/constitution_alert_bridge.py:105` — `ns = self._get_notification_service()`
+- `core/constitution_alert_bridge.py:108` — `from core.ports.notification.notification_port import (`
+- `core/constitution_alert_bridge.py:109` — `Notification,`
+- `core/constitution_alert_bridge.py:110` — `NotificationChannel,`
+- `core/constitution_alert_bridge.py:111` — `NotificationPriority,`
+- `core/constitution_alert_bridge.py:113` — `notif = Notification(`
+- `core/constitution_alert_bridge.py:115` — `channel=NotificationChannel.TELEGRAM if self._cfg.telegram_enabled else NotificationChannel.IN_APP,`
+- `core/constitution_alert_bridge.py:116` — `priority=NotificationPriority.CRITICAL if is_critical else NotificationPriority.HIGH,`
+- `core/constitution_alert_bridge.py:120` — `ns.send_notification(notif)`
+- `core/constitution_alert_bridge.py:123` — `_log.warning("[CAB] Notification send failed: %s", exc)`
+- `core/constitution_alert_bridge.py:280` — `def get_constitution_alert_bridge(config: dict[str, Any] | None = None) -> ConstitutionAlertBridge:`
+- `core/constitution_alert_bridge.py:284` — `config: Optional config dict (only used on first creation).`
+- `core/constitution_alert_bridge.py:293` — `_bridge = ConstitutionAlertBridge(config)`
+- `core/constitution_alert_bridge.py:308` — `"BridgeConfig",`
+- `index_app/orchestrator_facade.py:57` — `from core.ports.config import ConfigPort`
+- `index_app/orchestrator_facade.py:61` — `from core.ports.notification import NotificationPort`
+- `index_app/orchestrator_facade.py:70` — `config_port = container.resolve(ConfigPort)`
+- `index_app/orchestrator_facade.py:73` — `notification_port = container.resolve(NotificationPort)`
+- `index_app/orchestrator_facade.py:86` — `notification_port=notification_port,`
+- `index_app/orchestrator_facade.py:87` — `config_port=config_port,`
+- `index_app/index_trader.py:15` — `#           python -m index_app.index_trader --print-config      ← Dump config.json`
+- `index_app/index_trader.py:16` — `#           python -m index_app.index_trader --config-reset      ← After BASE_CAPITAL change`
+- `index_app/index_trader.py:19` — `# USER GUIDE: HOW_TO_USE.txt (layman steps)  |  Deep guide: SETUP_AND_TRADING_GUIDE.md`
+- `index_app/index_trader.py:21` — `# CONFIG    : optional env OPBUYING_INDEX_CONFIG=path\to\config.json (tests/CI)`
+- `index_app/index_trader.py:33` — `# RCA-REG (2026-04-04b): Stock bot validate_config + DAILY_LOSS_WARNING/_sync`
+- `index_app/index_trader.py:40` — `#         threshold / confidence / exit-update helpers; index_trader keeps locks + config wiring.`
+- `index_app/index_trader.py:44` — `#         BROKER_DRIVER + core.broker_connection_secrets (BROKER_CONFIG ∪ KITE_* / ANGEL_*); BROKER_NAME`
+- `index_app/index_trader.py:46` — `# RCA-215 (2026-04-09): Broker driver + hybrid warnings centralized in core.common_config_validate`
+- `index_app/index_trader.py:47` — `#         (effective_broker_driver, append_broker_api_config_errors, append_execution_hybrid_warnings).`
+- `index_app/index_trader.py:52` — `#         toggles. (2) _desk_body.py indentation bugs fixed (paneconfig/wrap/config_status/target_hit).`
+- `index_app/index_trader.py:54` — `#         (top-level return in exec is a SyntaxError). (4) RCA_AND_HYBRID_MODEL.txt + config template note.`
+- `index_app/index_trader.py:62` — `#         flips; config_audit / save_state .bak failures log once instead of silent pass.`
+- `index_app/index_trader.py:103` — `#         refresh period only at GUI start; after config soft-reload GUI_REFRESH_MS could`
+- `index_app/index_trader.py:110` — `#         was not tunable; GUI_REFRESH_MS in config.json (500-30000, soft-reload safe).`
+- `index_app/index_trader.py:112` — `#         folder… opens Explorer/Finder for config.json / layout file edits.`
+- `index_app/index_trader.py:115` — `#         “Office” gray on a dark UI; configure trough/bg to match cards. (2) Telegram &`
+- `index_app/index_trader.py:123` — `#         the divider moved (root <Configure> never fired): also queue save on pane`
+- `index_app/index_trader.py:124` — `#         <Configure>. (2) Details Text was wiped every 2s even when body unchanged →`
+- `index_app/index_trader.py:256` — `#         The startup Telegram message and validate_config() print`
+- `index_app/index_trader.py:257` — `#         the full bot configuration. While BOT_TOKEN and CHAT_ID`
+- `index_app/index_trader.py:262` — `#         config details. If the log file is accidentally shared`
+- `index_app/index_trader.py:263` — `#         (e.g., copying logs folder for debugging), all config`
+- `index_app/index_trader.py:264` — `#         is exposed. `config.json` contains KITE_PASSWORD in`
+- `index_app/index_trader.py:270` — `#         in config.json can optionally be base64-encoded (not`
+- `index_app/index_trader.py:272` — `#         warns that config.json must never be committed to git.`
+- `index_app/index_trader.py:273` — `#         validate_config() prints "[REDACTED]" for all sensitive`
+- `index_app/index_trader.py:314` — `#             from environment variables, not config files.`
+- `index_app/index_trader.py:315` — `#             Legacy config.json secrets are ignored for security.`
+- `index_app/index_trader.py:317` — `# RCA-SEC-02: Implement secure configuration loading via`
+- `index_app/index_trader.py:318` — `#             infrastructure.config.secure_config.SecureConfig`
+- `index_app/index_trader.py:328` — `#           python -m index_app.index_trader --print-config      ← Dump config.json (secrets redacted)`
+- `index_app/index_trader.py:329` — `#           python -m index_app.index_trader --config-reset      ← After BASE_CAPITAL change`
+- `index_app/index_trader.py:332` — `# USER GUIDE: HOW_TO_USE.txt (layman steps)  |  Deep guide: SETUP_AND_TRADING_GUIDE.md`
+- `index_app/index_trader.py:334` — `# CONFIG    : optional env OPBUYING_INDEX_CONFIG=path\to\config.json (tests/CI)`
+- `index_app/index_trader.py:357` — `sys.stdout.reconfigure(encoding="utf-8", errors="replace")`
+- `index_app/index_trader.py:362` — `sys.stderr.reconfigure(encoding="utf-8", errors="replace")`
+- `index_app/index_trader.py:393` — `"setup_di_container",`
+- `index_app/index_trader.py:413` — `from core.ports.config import ConfigPort`
+- `index_app/index_trader.py:431` — `# Config Domain (DEBT-008)`
+- `index_app/index_trader.py:432` — `from index_app.domains.config.loader import (`
+- `index_app/index_trader.py:433` — `get_config_loader,`
+- `index_app/index_trader.py:434` — `make_fail_safe_config,`
+- `index_app/index_trader.py:436` — `from index_app.domains.config.manager import ConfigManager`
+- `index_app/index_trader.py:450` — `# We just need main() to set up the container and print config.`
+- `index_app/index_trader.py:452` — `pass  # Real main is the DI container setup`
+- `index_app/index_trader.py:506` — `"""Legacy send() shim. Wired to NotificationService after init."""`
+- `index_app/index_trader.py:509` — `# Not wired yet (early import / config-failure path): drop safely`
+- `index_app/index_trader.py:535` — `# module-level config load below respects it):`
+- `index_app/index_trader.py:544` — `# CRITICAL FIX: Helper for config load failure - force MANUAL mode and alert`
+- `index_app/index_trader.py:547` — `# CRITICAL FIX: Helper for config load failure - force MANUAL mode and alert`
+- `index_app/index_trader.py:550` — `# ── Config Domain (DEBT-008) ──────────────────────────────────────────────`
+- `index_app/index_trader.py:551` — `_config_loaded = False`
+- `index_app/index_trader.py:553` — `_cfg_manager: ConfigManager | None = None`
+- `index_app/index_trader.py:558` — `def _apply_config_globals(cfg: dict[str, Any]) -> None:`
+- `index_app/index_trader.py:559` — `"""Apply a config dict to module-level globals."""`
+- `index_app/index_trader.py:569` — `def _set_config_fail_safe():`
+- `index_app/index_trader.py:570` — `"""Force safe MANUAL mode on config load failure.`
+- `index_app/index_trader.py:574` — `config fails to load.`
+- `index_app/index_trader.py:576` — `from index_app.domains.trading.signal_actions import set_config_fail_safe as _extracted`
+- `index_app/index_trader.py:578` — `_CFG = _extracted(make_fail_safe_config_fn=make_fail_safe_config)`
+- `index_app/index_trader.py:591` — `def _notify_config_failure(detail: str):`
+- `index_app/index_trader.py:592` — `"""Send critical Telegram alert about config failure."""`
+- `index_app/index_trader.py:593` — `from index_app.domains.trading.signal_actions import notify_config_failure as _extracted`
+- `index_app/index_trader.py:597` — `def _load_config(force: bool = False):`
+- `index_app/index_trader.py:598` — `"""Load configuration via ConfigLoader and apply to module-level globals."""`
+- `index_app/index_trader.py:599` — `global _config_loaded, _cfg_manager`
+- `index_app/index_trader.py:600` — `if _config_loaded and not force:`
+- `index_app/index_trader.py:603` — `loader = get_config_loader(notifier=lambda msg: _notify_config_failure(msg))`
+- `index_app/index_trader.py:604` — `# DEBT-005: Strict schema enforcement — checked via config key or env var`
+- `index_app/index_trader.py:606` — `os.environ.get("OPBUYING_CONFIG_STRICT_SCHEMA_ENFORCEMENT", "")`
+- `index_app/index_trader.py:612` — `_set_config_fail_safe()`
+- `index_app/index_trader.py:613` — `_config_loaded = True`
+- `index_app/index_trader.py:615` — `_notify_config_failure(result.error_message)`
+- `index_app/index_trader.py:618` — `_apply_config_globals(result.cfg)`
+- `index_app/index_trader.py:619` — `_config_loaded = True`
+- `index_app/index_trader.py:621` — `# Initialise ConfigManager for DI-aware consumers`
+- `index_app/index_trader.py:623` — `_cfg_manager = ConfigManager(initial_cfg=result.cfg, name="index_trader")`
+- `index_app/index_trader.py:628` — `# ── Load config before any config-dependent assignments ──`
+- `index_app/index_trader.py:629` — `_load_config()`
+- `index_app/index_trader.py:631` — `# Also export ConfigManager reference for DI consumers`
+- `index_app/index_trader.py:632` — `_config_manager = _cfg_manager`
+- `index_app/index_trader.py:662` — `# Initialize PortfolioService with config`
+- `index_app/index_trader.py:678` — `# Execution service - initialized in _setup_container`
+- `index_app/index_trader.py:681` — `# Risk service - initialized in _setup_container, consolidated from duplicate risk engines`
+- `index_app/index_trader.py:699` — `# Stale Account Detector - initialized in setup_di_container`
+- `index_app/index_trader.py:702` — `# StrategyOrchestrator - initialized in setup_di_container`
+- `index_app/index_trader.py:705` — `# Clean-architecture TradingOrchestrator - initialized in setup_di_container`
+- `index_app/index_trader.py:708` — `# Equity Trader - initialized in setup_di_container (opt-in via --equity CLI flag)`
+- `index_app/index_trader.py:711` — `# Expiry day controller - blocks entries on expiry day after configurable cutoff`
+- `index_app/index_trader.py:712` — `# (config key EXPIRY_CUTOFF_HOUR, default 13 - matches the class's own`
+- `index_app/index_trader.py:714` — `# that makes the "configurable cutoff" the comment above already promised`
+- `index_app/index_trader.py:736` — `# Structured audit trail - JSONL event log`
+- `index_app/index_trader.py:737` — `from core.audit_engine import AuditEngine`
+- `index_app/index_trader.py:739` — `_audit_engine = AuditEngine(`
+- `index_app/index_trader.py:740` — `path=_CFG.get("AUDIT_LOG_PATH", "json/audit_trail.jsonl"),`
+- `index_app/index_trader.py:741` — `enabled=bool(_CFG.get("AUDIT_LOG_ENABLED", True)),`
+- `index_app/index_trader.py:852` — `# Duplicate broker construction removed. Broker is created once in setup_di_container()`
+- `index_app/index_trader.py:853` — `# via _make_broker() and wired into ExecutionService during DI setup.`
+- `index_app/index_trader.py:884` — `audit_engine=_audit_engine,`
+- `index_app/index_trader.py:898` — `notification_service=send,`
+- `index_app/index_trader.py:953` — `had nothing to trigger it despite being read from config correctly.`
+- `index_app/index_trader.py:1105` — `RISK_MODE = "FIXED"  # dead - unused anywhere; real RISK_MODE control is RiskServiceConfig.risk_mode (default "PERCENT", via index_app/domains/trading/container.py)`
+- `index_app/index_trader.py:1106` — `RISK_FIXED_AMOUNT = 500  # dead - unused anywhere; real RISK_FIXED_AMOUNT control is RiskServiceConfig.risk_fixed_amount`
+- `index_app/index_trader.py:1109` — `PORTFOLIO_MAX_SL_RISK_PCT = 0.75  # dead - unused anywhere; real PORTFOLIO_MAX_SL_RISK_PCT control is RiskServiceConfig.portfolio_max_sl_risk_pct`
+- `index_app/index_trader.py:1116` — `PARTIAL_EXIT_ENABLED = False  # dead - unused anywhere; real PARTIAL_EXIT_ENABLED control is core/execution_policy.py's config.get("PARTIAL_EXIT_ENABLED", True) global override on TierRules' per-tier partial exits`
+- `index_app/index_trader.py:1124` — `_AUDIT_ENGINE: Any = None`
+- `index_app/index_trader.py:1195` — `_dash_notifier = DashboardNotifier(base_url=_dash_url)`
+- `index_app/index_trader.py:1246` — `def setup_di_container() -> None:`
+- `index_app/index_trader.py:1249` — `Delegates to ``index_app.domains.trading.container.setup_di_container```
+- `index_app/index_trader.py:1252` — `from index_app.domains.trading.container import setup_di_container as _extracted`
+- `index_app/index_trader.py:1285` — `"_audit_engine": _audit_engine,`
+- `index_app/index_trader.py:1363` — `def _reload_config_handler() -> dict:`
+- `index_app/index_trader.py:1364` — `"""Hot-reload configuration. Delegates to trading.reconciliation (DEBT-008)."""`
+- `index_app/index_trader.py:1365` — `from index_app.domains.trading.reconciliation import reload_config_handler as _extracted`
+- `index_app/index_trader.py:1374` — `reload_config_handler_fn=_reload_config_handler,`
+- `index_app/index_trader.py:1382` — `_NON_TRADING_FLAGS = {"--selftest", "--print-config", "--config-reset", "--report", "--export-trades"}`
+- `index_app/index_trader.py:1415` — `setup_di_container()`
+- `index_app/index_trader.py:1417` — `config = container.resolve(ConfigPort)`
+- `index_app/index_trader.py:1421` — `validate_environment(dict(config))`
+- `index_app/index_trader.py:1443` — `cfg=dict(config),`
+- `index_app/index_trader.py:1470` — `startup_result = startup_constitution_system(cfg=dict(config))`
+- `index_app/index_trader.py:1483` — `log.info("[MAIN] Setup complete - entering trading loop")`
+- `reports/hygiene_scan_report.html:29` — `<td><code>.pre-commit-config.yaml:24</code></td>`
+- `reports/hygiene_scan_report.html:329` — `<td><code>core\services\notification_service.py:511</code></td>`
+- `reports/hygiene_scan_report.html:463` — `<td>| DC-1704 | ORPHANED_SYMBOL | core\config_bootstrap.py | 0 |...</td>`
+- `reports/hygiene_scan_report.html:781` — `<td>| DC-16606 | ORPHANED_SYMBOL | tests\test_config_domain_mana...</td>`
+- `reports/hygiene_scan_report.html:787` — `<td>| DC-16650 | ORPHANED_SYMBOL | tests\test_config_domain_sign...</td>`
+- `reports/hygiene_scan_report.html:967` — `<td>| DC-32251 | ORPHANED_SYMBOL | tests\test_secure_config.py |...</td>`
+- `reports/hygiene_scan_report.html:1409` — `<td><code>json\config.json:87</code></td>`
+- `reports/hygiene_scan_report.html:1415` — `<td><code>json\config.json:105</code></td>`
+- `reports/hygiene_scan_report.html:1421` — `<td><code>json\config.json:148</code></td>`
+- `reports/hygiene_scan_report.html:1427` — `<td><code>json\config.json:893</code></td>`
+- `reports/hygiene_scan_report.html:1433` — `<td><code>json\config.json:1596</code></td>`
+- `reports/hygiene_scan_report.html:1439` — `<td><code>json\config.json:1697</code></td>`
+- `reports/hygiene_scan_report.html:1445` — `<td><code>json\config.json.backup.1787394870:87</code></td>`
+- `reports/hygiene_scan_report.html:1451` — `<td><code>json\config.json.backup.1787394870:105</code></td>`
+- `reports/hygiene_scan_report.html:1457` — `<td><code>json\config.json.backup.1787394870:148</code></td>`
+- `reports/hygiene_scan_report.html:1463` — `<td><code>json\config.json.backup.1787394870:893</code></td>`
+- `reports/hygiene_scan_report.html:1469` — `<td><code>json\config.json.backup.1787394870:1596</code></td>`
+- `reports/hygiene_scan_report.html:1475` — `<td><code>json\config.json.backup.1787394870:1697</code></td>`
+- `reports/hygiene_scan_report.html:1481` — `<td><code>json\config.json.backup.1787394871:87</code></td>`
+- `reports/hygiene_scan_report.html:1487` — `<td><code>json\config.json.backup.1787394871:105</code></td>`
+- `reports/hygiene_scan_report.html:1493` — `<td><code>json\config.json.backup.1787394871:148</code></td>`
+- `reports/hygiene_scan_report.html:1499` — `<td><code>json\config.json.backup.1787394871:893</code></td>`
+- `reports/hygiene_scan_report.html:1505` — `<td><code>json\config.json.backup.1787394871:1596</code></td>`
+- `reports/hygiene_scan_report.html:1511` — `<td><code>json\config.json.backup.1787394871:1697</code></td>`
+- `reports/hygiene_scan_report.html:1517` — `<td><code>json\config.json.backup.1787395176:87</code></td>`
+- `reports/hygiene_scan_report.html:1523` — `<td><code>json\config.json.backup.1787395176:105</code></td>`
+- `reports/hygiene_scan_report.html:1529` — `<td><code>json\config.json.backup.1787395176:148</code></td>`
+- `reports/hygiene_scan_report.html:1535` — `<td><code>json\config.json.backup.1787395176:893</code></td>`
+- `reports/hygiene_scan_report.html:1541` — `<td><code>json\config.json.backup.1787395176:1596</code></td>`
+- `reports/hygiene_scan_report.html:1547` — `<td><code>json\config.json.backup.1787395176:1697</code></td>`
+- `reports/hygiene_scan_report.html:1553` — `<td><code>json\config.json.backup.1787395179:87</code></td>`
+- `reports/hygiene_scan_report.html:1559` — `<td><code>json\config.json.backup.1787395179:105</code></td>`
+- `reports/hygiene_scan_report.html:1565` — `<td><code>json\config.json.backup.1787395179:148</code></td>`
+- `reports/hygiene_scan_report.html:1571` — `<td><code>json\config.json.backup.1787395179:893</code></td>`
+- `reports/hygiene_scan_report.html:1577` — `<td><code>json\config.json.backup.1787395179:1596</code></td>`
+- `reports/hygiene_scan_report.html:1583` — `<td><code>json\config.json.backup.1787395179:1697</code></td>`
+- `reports/hygiene_scan_report.html:1589` — `<td><code>json\config.template.json:87</code></td>`
+- `reports/hygiene_scan_report.html:1595` — `<td><code>json\config.template.json:105</code></td>`
+- `reports/hygiene_scan_report.html:1601` — `<td><code>json\config.template.json:148</code></td>`
+- `reports/hygiene_scan_report.html:1607` — `<td><code>json\config.template.json:893</code></td>`
+- `reports/hygiene_scan_report.html:1613` — `<td><code>json\config.template.json:1596</code></td>`
+- `reports/hygiene_scan_report.html:1619` — `<td><code>json\config.template.json:1697</code></td>`
+- `reports/hygiene_scan_report.html:1625` — `<td><code>json\index_config.defaults.json:3</code></td>`
+- `reports/hygiene_scan_report.html:1631` — `<td><code>json\index_config.defaults.json:4</code></td>`
+- `reports/hygiene_scan_report.html:1637` — `<td><code>json\index_config.defaults.json:1047</code></td>`
+- `reports/hygiene_scan_report.html:1643` — `<td><code>json\index_config.defaults.json:1299</code></td>`
+- `reports/hygiene_scan_report.html:1649` — `<td><code>json\index_config.defaults.json:1422</code></td>`
+- `reports/hygiene_scan_report.html:1655` — `<td><code>json\index_config.defaults.json:1770</code></td>`
+- `reports/hygiene_scan_report.html:1661` — `<td><code>json\stock_config.defaults.json:2</code></td>`
+- `reports/hygiene_scan_report.html:1667` — `<td><code>json\stock_config.defaults.json:3</code></td>`
+- `reports/hygiene_scan_report.html:1673` — `<td><code>json\stock_config.template.json:2</code></td>`
+- `reports/hygiene_scan_report.html:1679` — `<td><code>json\stock_config.template.json:3</code></td>`
+- `reports/hygiene_scan_report.html:1697` — `<td><code>schemas\index_config.schema.json:224</code></td>`
+- `reports/hygiene_scan_report.html:1703` — `<td><code>schemas\index_config.schema.json:3083</code></td>`
+- `reports/hygiene_scan_report.html:1709` — `<td><code>schemas\index_config.schema.json:3265</code></td>`
+- `reports/hygiene_scan_report.html:1727` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:10</code></td>`
+- `reports/hygiene_scan_report.html:1733` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:50</code></td>`
+- `reports/hygiene_scan_report.html:1739` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:51</code></td>`
+- `reports/hygiene_scan_report.html:1745` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:60</code></td>`
+- `reports/hygiene_scan_report.html:1751` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:61</code></td>`
+- `reports/hygiene_scan_report.html:1757` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:68</code></td>`
+- `reports/hygiene_scan_report.html:1763` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:69</code></td>`
+- `reports/hygiene_scan_report.html:1769` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:70</code></td>`
+- `reports/hygiene_scan_report.html:1775` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:86</code></td>`
+- `reports/hygiene_scan_report.html:1781` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:88</code></td>`
+- `reports/hygiene_scan_report.html:1787` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:97</code></td>`
+- `reports/hygiene_scan_report.html:1793` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:149</code></td>`
+- `reports/hygiene_scan_report.html:1799` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:158</code></td>`
+- `reports/hygiene_scan_report.html:1805` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:159</code></td>`
+- `reports/hygiene_scan_report.html:1811` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:161</code></td>`
+- `reports/hygiene_scan_report.html:1817` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:190</code></td>`
+- `reports/hygiene_scan_report.html:1823` — `<td><code>scripts\run_v5_v6_empirical_calibration_audit.py:235</code></td>`
+- `reports/hygiene_scan_report.html:1949` — `<td><code>tests\test_config_hot_reload_and_multi_recipient.py:49</code></td>`
+- `reports/hygiene_scan_report.html:2357` — `<td><code>tests\test_secure_config.py:167</code></td>`
+- `reports/hygiene_scan_report.html:2399` — `<td><code>tests\test_tls_config.py:141</code></td>`
+- `static/theme_engine.js:847` — `const title = options.title || 'Notification';`
+- `static/theme_engine.js:946` — `window.dispatchEvent(new CustomEvent('opbThemeChanged', { detail: { theme: themeKey, config: theme } }));`
+- `static/theme_engine.js:968` — `function setupListeners() {`
+- `static/theme_engine.js:1001` — `document.addEventListener('DOMContentLoaded', setupListeners);`
+- `static/theme_engine.js:1003` — `setupListeners();`
+- `static/theme_engine.js:1022` — `window.location.href = '/admin/config';`
+- `scripts/fix_stale_doc_refs.py:32` — `"core/rbac.py": "core/auth/permissions.py",`
+- `scripts/fix_stale_doc_refs.py:45` — `"core/config_audit.py": "core/config_audit_log.py",`
+- `scripts/fix_stale_doc_refs.py:48` — `"core/secure_config.py": "core/config_bootstrap.py",`
+- `scripts/generate_master_pptx.py:326` — `"Event Store: Hash-chained immutable audit trail via SQLite",`
+- `scripts/generate_master_pptx.py:371` — `"Layer 1: Position Sizing — Risk-based, configurable per-trade exposure",`
+- `scripts/generate_master_pptx.py:372` — `"Layer 2: Stop Loss — Automatic SL at configurable multiplier",`
+- `scripts/generate_master_pptx.py:375` — `"Layer 5: Drawdown Control — Hard halt at configurable threshold",`
+- `scripts/generate_master_pptx.py:435` — `"Secrets: OPBUYING_* env vars — NEVER in code or config files",`
+- `scripts/generate_master_pptx.py:439` — `"All credentials redacted from logs and audit trails",`
+- `scripts/generate_master_pptx.py:446` — `"Change Management: Full lifecycle propose → approve → apply → rollback",`
+- `scripts/generate_master_pptx.py:484` — `"Enterprise Dashboard: http://localhost:8765 (enable in config.json)",`
+- `scripts/generate_master_pptx.py:492` — `"Step 2: Create config.json with EXECUTION_MODE=PAPER",`
+- `scripts/generate_master_pptx.py:515` — `"Event Sourcing: Hash-chained immutable audit trail for replay",`
+- `scripts/generate_master_pptx.py:531` — `"SETUP_AND_TRADING_GUIDE.md — Detailed configuration and trading guide",`
+- `scripts/run_hygiene_scan.py:9` — `- Placeholder values in config files`
+- `scripts/run_hygiene_scan.py:10` — `- World-readable permissions on sensitive files`
+- `scripts/run_hygiene_scan.py:34` — `# ── Configuration ─────────────────────────────────────────────────────────────`
+- `scripts/run_hygiene_scan.py:98` — `# Sensitive file patterns (files that should have restricted permissions)`
+- `scripts/run_hygiene_scan.py:101` — `".env", ".env.*", "json/config.local.json", "json/config.json",`
+- `scripts/run_hygiene_scan.py:127` — `def _check_file_permissions(filepath: Path) -> dict[str, Any] | None:`
+- `scripts/run_hygiene_scan.py:128` — `"""Check if a sensitive file has world-readable permissions (Unix only)."""`
+- `scripts/run_hygiene_scan.py:134` — `"issue": "World-readable permissions",`
+- `scripts/run_hygiene_scan.py:135` — `"permissions": oct(mode & 0o777),`
+- `scripts/run_hygiene_scan.py:203` — `# Check for sensitive files with world-readable permissions`
+- `scripts/run_hygiene_scan.py:207` — `issue = _check_file_permissions(filepath)`
+- `scripts/run_hygiene_scan.py:231` — `"""Auto-fix placeholder values in config template files only.`
+- `scripts/run_hygiene_scan.py:237` — `CONFIG_TEMPLATE_FILES = {`
+- `scripts/run_hygiene_scan.py:238` — `"json/config.template.json", "json/stock_config.template.json",`
+- `scripts/run_hygiene_scan.py:245` — `if filename not in CONFIG_TEMPLATE_FILES:`
+- `scripts/check_config_drift.py:2` — `"""Configuration Drift Detector — OPB v2.57.1`
+- `scripts/check_config_drift.py:4` — `Compares the running configuration against defaults to detect:`
+- `scripts/check_config_drift.py:5` — `- Missing keys in running config`
+- `scripts/check_config_drift.py:17` — `python scripts/check_config_drift.py`
+- `scripts/check_config_drift.py:18` — `python scripts/check_config_drift.py --json`
+- `scripts/check_config_drift.py:19` — `python scripts/check_config_drift.py --ci`
+- `scripts/check_config_drift.py:31` — `# ── Configuration ─────────────────────────────────────────────────────────────`
+- `scripts/check_config_drift.py:34` — `HTML_REPORT = REPORTS_DIR / "config_drift_report.html"`
+- `scripts/check_config_drift.py:35` — `JSON_REPORT = REPORTS_DIR / "config_drift_report.json"`
+- `scripts/check_config_drift.py:41` — `"CONFIG_PATH", "LOG_DIR", "DATA_DIR", "REPORTS_DIR",`
+- `scripts/check_config_drift.py:47` — `"""Load the default configuration from index_config.defaults.json."""`
+- `scripts/check_config_drift.py:50` — `root / "json/index_config.defaults.json",`
+- `scripts/check_config_drift.py:51` — `root / "json/stock_config.defaults.json",`
+- `scripts/check_config_drift.py:64` — `def _load_config(path: str) -> dict[str, Any]:`
+- `scripts/check_config_drift.py:65` — `"""Load a configuration file."""`
+- `scripts/check_config_drift.py:107` — `"""Compare running configs against defaults and report drift."""`
+- `scripts/check_config_drift.py:115` — `# Load all config files`
+- `scripts/check_config_drift.py:116` — `config_files = [`
+- `scripts/check_config_drift.py:117` — `str(root / "json/config.json"),`
+- `scripts/check_config_drift.py:118` — `str(root / "json/config.local.json"),`
+- `scripts/check_config_drift.py:119` — `str(root / "json/config.paper.json"),`
+- `scripts/check_config_drift.py:120` — `str(root / "json/config.dev.json"),`
+- `scripts/check_config_drift.py:125` — `config_sources: dict[str, str] = {}`
+- `scripts/check_config_drift.py:127` — `for cfg_path in config_files:`
+- `scripts/check_config_drift.py:130` — `cfg = _load_config(cfg_path)`
+- `scripts/check_config_drift.py:136` — `config_sources[key] = source_name`
+- `scripts/check_config_drift.py:144` — `"config": source_name,`
+- `scripts/check_config_drift.py:162` — `"config": source_name,`
+- `scripts/check_config_drift.py:177` — `"config": source_name,`
+- `scripts/check_config_drift.py:184` — `# Check for missing keys in active configs`
+- `scripts/check_config_drift.py:185` — `active_config = {}`
+- `scripts/check_config_drift.py:186` — `for cfg_path in config_files:`
+- `scripts/check_config_drift.py:188` — `active_config.update(_load_config(cfg_path))`
+- `scripts/check_config_drift.py:194` — `config_key = key[len("OPBUYING_"):].lower()`
+- `scripts/check_config_drift.py:196` — `env_overrides[config_key] = masked`
+- `scripts/check_config_drift.py:200` — `"defaults_source": "json/index_config.defaults.json",`
+- `scripts/check_config_drift.py:202` — `"config_files_found": [f for f in config_files if Path(f).exists()],`
+- `scripts/check_config_drift.py:236` — `<td>{f.get('config', 'N/A')}</td>`
+- `scripts/check_config_drift.py:249` — `<title>Config Drift Report — OPB v2.57.1</title>`
+- `scripts/check_config_drift.py:262` — `<h1>⚙️ Configuration Drift Report</h1>`
+- `scripts/check_config_drift.py:271` — `{'<table><tr><th>Severity</th><th>Key</th><th>Source</th><th>Message</th></tr>' + all_rows + '</table>' if findings else '<p>✅ No configuration drift detected.</p>'}`
+- `scripts/check_config_drift.py:274` — `<p style="color:#888; margin-top:30px;">Generated by OPB Config Drift Detector v2.57.1</p>`
+- `scripts/check_config_drift.py:283` — `parser = argparse.ArgumentParser(description="Configuration Drift Detector")`
+- `scripts/check_config_drift.py:292` — `print("  CONFIGURATION DRIFT DETECTOR v2.57.1")`
+- `scripts/check_config_drift.py:337` — `print("  CONFIG DRIFT CHECK COMPLETE")`
+- `scripts/release_governance.py:10` — `5. Update audit records`
+- `scripts/release_governance.py:13` — `Release state must be: reproducible, deterministic, auditable.`
+- `scripts/release_governance.py:20` — `python scripts/release_governance.py --audit                  # Update audit records`
+- `scripts/release_governance.py:42` — `logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")`
+- `scripts/release_governance.py:63` — `AUDIT_LOG_DIR = ROOT / "logs" / "audit"`
+- `scripts/release_governance.py:66` — `# register-pattern consistency gate; read by main() when writing the audit`
+- `scripts/release_governance.py:86` — `release audit record) so the audit reflects what the gate actually decided.`
+- `scripts/release_governance.py:125` — `"CONFIG_EXPLANATIONS.md",`
+- `scripts/release_governance.py:353` — `Verifies the governance registers (dead-code / duplicate / config-drift /`
+- `scripts/release_governance.py:358` — `Returns a verdict dict consumed by write_audit_record():`
+- `scripts/release_governance.py:386` — `# mistaken for "registers verified aligned" in the audit record.`
+- `scripts/release_governance.py:515` — `"- [ ] Config schemas regenerated",`
+- `scripts/release_governance.py:587` — `# ── Audit record ──────────────────────────────────────────────────────────────`
+- `scripts/release_governance.py:590` — `def write_audit_record(version: str, branch: str, changes: list[str] | None = None,`
+- `scripts/release_governance.py:594` — `"""Write release audit record.`
+- `scripts/release_governance.py:603` — `standalone --audit record).`
+- `scripts/release_governance.py:607` — `AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)`
+- `scripts/release_governance.py:608` — `audit_file = AUDIT_LOG_DIR / f"release_v{version}_{date.today().isoformat()}.json"`
+- `scripts/release_governance.py:623` — `audit_file.write_text(json.dumps(record, indent=2), encoding="utf-8")`
+- `scripts/release_governance.py:624` — `log.info("  [OK] Audit record written: %s", _safe_rel(audit_file))`
+- `scripts/release_governance.py:627` — `log.error("  [FAIL] Failed to write audit record: %s", e)`
+- `scripts/release_governance.py:719` — `ap.add_argument("--audit", action="store_true", help="Write audit record only")`
+- `scripts/release_governance.py:761` — `# ── Audit record only ────────────────────────────────────────────────`
+- `scripts/release_governance.py:762` — `if args.audit:`
+- `scripts/release_governance.py:763` — `ok = write_audit_record(version, "standalone", args.changes)`
+- `scripts/release_governance.py:815` — `# Step 6: Audit record`
+- `scripts/release_governance.py:816` — `print("\n[6/7] Writing audit record...")`
+- `scripts/release_governance.py:818` — `ok = write_audit_record(version, branch, args.changes,`
+- `scripts/release_governance.py:858` — `print(f"  Audit: logs/audit/release_v{version}_{date.today().isoformat()}.json")`
+- `scripts/e2e_integration_test.py:7` — `Phase 2: Configuration loading & validation`
+- `scripts/e2e_integration_test.py:15` — `Phase 10: Notifications & audit`
+- `scripts/e2e_integration_test.py:38` — `logging.basicConfig(level=logging.WARNING, format="%(asctime)s [%(levelname)s] %(message)s")`
+- `scripts/e2e_integration_test.py:81` — `"core.adapters.broker_adapters", "core.audit_engine",`
+- `scripts/e2e_integration_test.py:82` — `"core.services.notification_service", "core.telegram_queue",`
+- `scripts/e2e_integration_test.py:92` — `# PHASE 2: Configuration Loading`
+- `scripts/e2e_integration_test.py:95` — `def test_config():`
+- `scripts/e2e_integration_test.py:96` — `from core.config_bootstrap import get_effective_config`
+- `scripts/e2e_integration_test.py:97` — `cfg = get_effective_config()`
+- `scripts/e2e_integration_test.py:98` — `assert cfg is not None, "Config is None"`
+- `scripts/e2e_integration_test.py:99` — `assert len(cfg) > 0, "Config is empty"`
+- `scripts/e2e_integration_test.py:103` — `test("P2-CONFIG", "Config loading", test_config)`
+- `scripts/e2e_integration_test.py:107` — `data = json.loads(Path("json/index_config.defaults.json").read_text(encoding="utf-8"))`
+- `scripts/e2e_integration_test.py:109` — `test("P2-CONFIG", "Defaults file integrity", test_defaults)`
+- `scripts/e2e_integration_test.py:112` — `from core.config_bootstrap import apply_env_overrides`
+- `scripts/e2e_integration_test.py:116` — `test("P2-CONFIG", "Env override function", test_env_overrides)`
+- `scripts/e2e_integration_test.py:199` — `from core.services.risk_service import RiskService, RiskServiceConfig`
+- `scripts/e2e_integration_test.py:200` — `cfg = RiskServiceConfig(max_daily_loss=-2000, max_daily_trades=10, max_open_positions=5, max_consecutive_losses=3)`
+- `scripts/e2e_integration_test.py:201` — `svc = RiskService(config=cfg)`
+- `scripts/e2e_integration_test.py:206` — `from core.services.risk_service import RiskService, RiskServiceConfig`
+- `scripts/e2e_integration_test.py:207` — `cfg = RiskServiceConfig(max_daily_loss=-2000, max_daily_trades=10, max_open_positions=5, max_consecutive_losses=3)`
+- `scripts/e2e_integration_test.py:208` — `svc = RiskService(config=cfg)`
+- `scripts/e2e_integration_test.py:264` — `# PHASE 10: Notifications & Audit`
+- `scripts/e2e_integration_test.py:268` — `from core.services.notification_service import NotificationService`
+- `scripts/e2e_integration_test.py:269` — `svc = NotificationService()`
+- `scripts/e2e_integration_test.py:271` — `test("P10-NOTIF", "NotificationService creation", test_notif)`
+- `scripts/e2e_integration_test.py:278` — `def test_audit():`
+- `scripts/e2e_integration_test.py:281` — `from core.audit_engine import AuditEngine`
+- `scripts/e2e_integration_test.py:285` — `ae = AuditEngine(path=tmp.name, enabled=True)`
+- `scripts/e2e_integration_test.py:289` — `test("P10-NOTIF", "AuditEngine event recording", test_audit)`
+- `scripts/institutional_challenge.py:43` — `logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")`
+- `scripts/institutional_challenge.py:359` — `if "os.getenv" not in stripped and "get(" not in stripped and "config.get" not in stripped:`
+- `scripts/check_architecture_compliance.py:42` — `# core.config_bootstrap imports SecureConfig from infrastructure`
+- `scripts/check_architecture_compliance.py:43` — `"core.config_bootstrap",`
+- `scripts/check_architecture_compliance.py:50` — `"core.services.notification_service",`
+- `scripts/check_architecture_compliance.py:52` — `# alert_router is DEPRECATED (removal v3.1) - bridges to TelegramNotificationAdapter`
+- `scripts/check_architecture_compliance.py:69` — `# configuration descriptions without violating separation of concerns.`
+- `scripts/check_architecture_compliance.py:107` — `"core.audit_engine",`
+- `scripts/check_architecture_compliance.py:108` — `"core.config_bootstrap",`
+- `scripts/check_architecture_compliance.py:114` — `# config_bootstrap imports SecureConfig from infrastructure`
+- `scripts/check_architecture_compliance.py:115` — `"core.config_bootstrap:from infrastructure.config.secure_config",`
+- `scripts/check_architecture_compliance.py:122` — `# service modules use notification and database adapters`
+- `scripts/check_architecture_compliance.py:123` — `"core.services.notification_service:from infrastructure.adapters",`
+- `scripts/check_architecture_compliance.py:130` — `# -- Source directory configuration -------------------------------------------`
+- `scripts/check_architecture_compliance.py:152` — `"""Return all Python source files from the configured source directories`
+- `scripts/check_architecture_compliance.py:181` — `dotted paths (e.g., "infrastructure.config.secure_config") for`
+- `scripts/run_regression.py:55` — `except (OSError, PermissionError):`
+- `scripts/run_regression.py:68` — `AuditEngine,`
+- `scripts/run_regression.py:69` — `ConfigValidator,`
+- `scripts/run_regression.py:72` — `RiskConfig,`
+- `scripts/run_regression.py:77` — `assert AuditEngine and ConfigValidator and DataEngine and RetentionEngine and RiskConfig and SafetyEngine and StateManager`
+- `scripts/run_regression.py:81` — `def _check_config_validator_regression() -> str:`
+- `scripts/run_regression.py:82` — `from core import ConfigValidator`
+- `scripts/run_regression.py:84` — `result = ConfigValidator(`
+- `scripts/run_regression.py:91` — `"AUDIT_RETENTION_DAYS": 30,`
+- `scripts/run_regression.py:99` — `return "config validator catches provider misconfig"`
+- `scripts/run_regression.py:103` — `from core import SafetyConfig, SafetyContext, SafetyEngine`
+- `scripts/run_regression.py:105` — `decision = SafetyEngine(SafetyConfig(max_api_failures=3, max_stale_data_sec=60)).evaluate(`
+- `scripts/run_regression.py:113` — `def _check_audit_engine_regression() -> str:`
+- `scripts/run_regression.py:114` — `from core import AuditEngine`
+- `scripts/run_regression.py:116` — `path = ROOT / "reports" / f"_tmp_audit_{uuid.uuid4().hex}.jsonl"`
+- `scripts/run_regression.py:118` — `AuditEngine(path, enabled=True).record("state_saved", positions=2, trades=5)`
+- `scripts/run_regression.py:121` — `return "audit jsonl write ok"`
+- `scripts/run_regression.py:162` — `os.environ["OPBUYING_INDEX_CONFIG"] = str(ROOT / "json/config.json")`
+- `scripts/run_regression.py:429` — `from core import BacktestConfig, BacktestEngine, CsvReplaySource, ReplayConfig`
+- `scripts/run_regression.py:452` — `source = CsvReplaySource(FIXTURES_DIR / "replay_minute_bars.csv", ReplayConfig(warmup_bars=10))`
+- `scripts/run_regression.py:480` — `replay_config=ReplayConfig(warmup_bars=10),`
+- `scripts/run_regression.py:481` — `backtest_config=BacktestConfig(initial_capital=5000, max_bars_in_trade=8),`
+- `scripts/run_regression.py:522` — `except (OSError, PermissionError):`
+- `scripts/run_regression.py:562` — `except (OSError, PermissionError):`
+- `scripts/run_regression.py:705` — `("compile core audit", lambda: _compile_target(ROOT / "core" / "audit_engine.py")),`
+- `scripts/run_regression.py:706` — `("compile core config", lambda: _compile_target(ROOT / "core" / "config_engine.py")),`
+- `scripts/run_regression.py:727` — `("config validator regression", _check_config_validator_regression),`
+- `scripts/run_regression.py:729` — `("audit engine regression", _check_audit_engine_regression),`
+- `scripts/run_regression.py:750` — `("index selftest", lambda: _run_selftest(INDEX_IMPL, "OPBUYING_INDEX_CONFIG", "json/config.json", args.selftest_timeout_sec)),`
+- `scripts/check_db_integrity.py:32` — `# Configure UTF-8 for stdout on Windows terminals if supported`
+- `scripts/check_db_integrity.py:33` — `if hasattr(sys.stdout, "reconfigure"):`
+- `scripts/check_db_integrity.py:35` — `sys.stdout.reconfigure(encoding="utf-8", errors="replace")`
+- `scripts/check_db_integrity.py:41` — `# ── Configuration ─────────────────────────────────────────────────────────────`
+- `scripts/check_db_integrity.py:131` — `except (OSError, PermissionError) as e:`
+- `scripts/backup_databases.py:40` — `logging.basicConfig(`
+- `scripts/backup_databases.py:163` — `except (OSError, PermissionError, shutil.Error) as exc:`
+- `scripts/backup_databases.py:283` — `except (OSError, PermissionError, shutil.Error) as exc:`
+- `scripts/pre_implementation_check.py:8` — `3. Review audit reports`
+- `scripts/pre_implementation_check.py:39` — `logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")`
+- `scripts/pre_implementation_check.py:49` — `"core/config_bootstrap.py",`
+- `scripts/pre_implementation_check.py:78` — `# the approval is auditable and survives fresh clones / CI.`
+- `scripts/pre_implementation_check.py:264` — `# Auditable: always surface when a risk violation was`
+- `scripts/pre_implementation_check.py:285` — `f"BLOCKED: {f} - '{blocked}' requires explicit human approval"`
+- `scripts/pre_implementation_check.py:466` — `ROOT / "SETUP_AND_TRADING_GUIDE.md",`
+- `scripts/hygiene_check.py:40` — `logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")`
+- `scripts/hygiene_check.py:413` — `except (OSError, PermissionError, shutil.Error) as e:`
+- `scripts/run_v5_v6_empirical_calibration_audit.py:18` — `if hasattr(sys.stdout, "reconfigure"):`
+- `scripts/run_v5_v6_empirical_calibration_audit.py:19` — `sys.stdout.reconfigure(encoding="utf-8")`
+- `scripts/run_v5_v6_empirical_calibration_audit.py:79` — `def run_empirical_audit():`
+- `scripts/run_v5_v6_empirical_calibration_audit.py:81` — `print("INSTITUTIONAL QUANTITATIVE VALIDATION & CALIBRATION AUDIT (v5 vs v6)")`
+- `scripts/run_v5_v6_empirical_calibration_audit.py:143` — `# 2. Probability Calibration Audit with 95% Wilson Confidence Intervals`
+- `scripts/run_v5_v6_empirical_calibration_audit.py:232` — `print("  feed anomalies to NO_TRADE), zero invalid-contract executions, zero audit chain breaks.")`
+- `scripts/run_v5_v6_empirical_calibration_audit.py:252` — `run_empirical_audit()`
+- `scripts/gen_ppt.py:217` — `("📋 Backtest Configuration", [`
+- `scripts/gen_ppt.py:321` — `"Audit Logging (JSONL)",`
+- `scripts/gen_ppt.py:348` — `"Configure: Copy config.template.json → config.json",`
+- `scripts/gen_ppt.py:371` — `"Config editor, user management",`
+- `scripts/gen_ppt.py:372` — `"Kill switch, audit log viewer",`
+- `scripts/gen_ppt.py:374` — `"Admin API: /api/config/*, /api/auth/users/*",`
+- `scripts/gen_ppt.py:385` — `("🔧 Configuration", [`
+- `scripts/gen_ppt.py:386` — `"3-layer merge: defaults → config.json → config.local.json",`
+- `scripts/gen_ppt.py:388` — `"Schema generation: python scripts/generate_config_schemas.py",`
+- `scripts/gen_ppt.py:389` — `"Config audit trail (JSONL)",`
+- `scripts/gen_ppt.py:390` — `"Config drift auto-reload",`
+- `scripts/gen_ppt.py:391` — `"All configs are versioned and rollbackable",`
+- `scripts/gen_ppt.py:440` — `"Health checker: DB/ML/perf/config/disk",`
+- `scripts/gen_ppt.py:459` — `"Audit Logging (JSONL, tamper-evident)",`
+- `scripts/gen_ppt.py:550` — `("2", "Configure", "Copy config.template.json → config.json", "Or just run the bot — it auto-creates defaults. For Telegram: create config.local.json."),`
+- `scripts/gen_ppt.py:552` — `("4", "Check Health", "python -m core.health_checker", "Verifies DB, ML models, config, disk space, and performance metrics."),`
+- `scripts/gen_ppt.py:618` — `"Custom factory via config (BROKER_CUSTOM_FACTORY)",`
+- `scripts/generate_all_master_consolidated_documents.py:4` — `1. docs/OPB_SUPER_ADMIN_MASTER_COMPREHENSIVE_GUIDE.md / .pdf / .docx`
+- `scripts/generate_all_master_consolidated_documents.py:31` — `# 1. SUPER ADMIN MASTER COMPREHENSIVE GUIDE CONTENT`
+- `scripts/generate_all_master_consolidated_documents.py:34` — `SUPER_ADMIN_MD = """# OPB SUPER-PLATFORM: SUPER ADMIN & OPERATOR MASTER COMPREHENSIVE MANUAL`
+- `scripts/generate_all_master_consolidated_documents.py:46` — `4. **Super Admin User & Signal Permission Control Center (`/admin/users`)**: 1-click Master Signal Switches, Granular Category Subscriptions, Conviction Tier Cutoffs, Multi-Timeframe Quota Controls (Daily, Weekly, Monthly), and Dedicated User Channel Routing.`
+- `scripts/generate_all_master_consolidated_documents.py:47` — `5. **Dual-Channel High-Throughput Notification Dispatcher**: Instant multi-user Telegram Bot (`@gaurav_optionbuying_signal_bot`) and multi-recipient Gmail SMTP broadcasting.`
+- `scripts/generate_all_master_consolidated_documents.py:68` — `## 🛡️ SUPER ADMIN CONTROL PLANE (`/admin/users`)`
+- `scripts/generate_all_master_consolidated_documents.py:72` — `- **Quota Enforcer**: Configure daily, weekly, and monthly signal delivery quotas with automatic boundary resets.`
+- `scripts/generate_all_master_consolidated_documents.py:80` — `| `open_admin.bat` | `http://localhost:8000/admin/config` | Super Admin / Admin | Live Configuration Editor & Notification Controls |`
+- `scripts/generate_all_master_consolidated_documents.py:81` — `| Super Admin Users | `http://localhost:8000/admin/users` | Super Admin | User Signal Permissions, Category Subscriptions & Quotas |`
+- `scripts/generate_all_master_consolidated_documents.py:82` — `| Signal Accuracy Hub | `http://localhost:8000/admin/signals` | Super Admin | Historical Signal Performance & Category Win Rates |`
+- `scripts/generate_all_master_consolidated_documents.py:85` — `| Trade Copier | `http://localhost:8000/trade-copier` | Super Admin / Fund Mgr | Multi-Broker Parallel Trade Replication |`
+- `scripts/generate_all_master_consolidated_documents.py:86` — `| Margin Radar | `http://localhost:8000/margin-radar` | Super Admin / Risk Mgr | Consolidated Multi-Broker Margin & 75% Warning |`
+- `scripts/generate_all_master_consolidated_documents.py:88` — `| FII / DII Radar | `http://localhost:8000/fii-dii-radar` | Super Admin / Traders | Participant-Wise Net Positioning & Trap Alerts |`
+- `scripts/generate_all_master_consolidated_documents.py:91` — `| Kill Switch | `http://localhost:8000/admin/kill-switch` | Super Admin / Risk Mgr | Instant Global Trading Emergency Halt |`
+- `scripts/generate_all_master_consolidated_documents.py:109` — `Whenever a high-probability trade setup passes all 16 quantitative strategies and institutional filters, an instant signal is delivered to your registered Telegram and Email with 1-click action buttons (`[⚡ Paper Trade]`, `[🚀 Execute]`, `[📊 View Chart]`).`
+- `scripts/generate_all_master_consolidated_documents.py:136` — `| **80 – 100** | 🟢 **STRONG** | High conviction setup with multi-timeframe trend, volume, and momentum alignment. | Standard Risk (1.0× Sizing) |`
+- `scripts/generate_all_master_consolidated_documents.py:138` — `| **50 – 67** | ⚪ **EXPLORATORY** | Developing setup; requires discretionary confirmation. | Reduced Risk (0.5× Sizing) |`
+- `scripts/generate_all_master_consolidated_documents.py:159` — `p1 = _DOCS / "OPB_SUPER_ADMIN_MASTER_COMPREHENSIVE_GUIDE.md"`
+- `scripts/generate_all_master_consolidated_documents.py:160` — `p1.write_text(SUPER_ADMIN_MD, encoding="utf-8")`
+- `scripts/generate_all_master_consolidated_documents.py:169` — `p3.write_text(SUPER_ADMIN_MD + "\n\n---\n\n" + STAKEHOLDER_MD, encoding="utf-8")`
+- `scripts/generate_all_master_consolidated_documents.py:304` — `# Generate Super Admin Docs`
+- `scripts/generate_all_master_consolidated_documents.py:305` — `p_admin_docx = _DOCS / "OPB_SUPER_ADMIN_MASTER_COMPREHENSIVE_GUIDE.docx"`
+- `scripts/generate_all_master_consolidated_documents.py:306` — `p_admin_pdf = _DOCS / "OPB_SUPER_ADMIN_MASTER_COMPREHENSIVE_GUIDE.pdf"`
+- `scripts/generate_all_master_consolidated_documents.py:307` — `generate_word_document(SUPER_ADMIN_MD, p_admin_docx, "OPB Super-Platform: Super Admin & Operator Master Manual")`
+- `scripts/generate_all_master_consolidated_documents.py:308` — `generate_pdf_document(SUPER_ADMIN_MD, p_admin_pdf, "OPB Super-Platform: Super Admin Master Manual")`
+- `scripts/score_system.py:15` — `- Scores above 9.5 require full audits`
+- `scripts/score_system.py:36` — `logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")`
+- `scripts/score_system.py:158` — `if _exists("tests/test_config_audit.py"):`
+- `scripts/score_system.py:159` — `add("SEC-04", "Config audit trail test (26 tests)", "test_pass", 0.5)`
+- `scripts/score_system.py:160` — `if _exists("core/audit_journal.py"):`
+- `scripts/score_system.py:161` — `add("SEC-04", "Audit journal for structured audit logging", "code_review", 0.4)`
+- `scripts/score_system.py:178` — `add("RSK-03", "Position sizer module with config-driven sizing", "code_review", 0.4)`
+- `scripts/score_system.py:202` — `add("EXE-02", "Retry policy manager with configurable backoff", "code_review", 0.5)`
+- `scripts/score_system.py:244` — `if _exists("tests/test_logging_config.py"):`
+- `scripts/score_system.py:245` — `add("OBS-01", "Logging config test (12 tests)", "test_pass", 0.4)`
+- `scripts/score_system.py:253` — `add("OBS-03", "Automated health checker: DB/ML/perf/config/disk", "code_review", 0.5)`
+- `scripts/score_system.py:344` — `"SEC-04": ("Audit trail", 10.0, "Security"),`
+- `scripts/score_system.py:432` — `"AST-13": ("Strongly Typed Configuration", 10.0, "Architecture Standards"),`
+- `scripts/score_system.py:444` — `"SGS-11": ("Audit Trails", 10.0, "Security & Governance"),`
+- `scripts/score_system.py:460` — `"SRE-08": ("Rollback Automation", 10.0, "SRE/Reliability"),`
+- `scripts/score_system.py:505` — `"needs_9_audit": score >= 9.0,`
+- `scripts/score_system.py:506` — `"needs_95_audit": score >= 9.5,`
+- `scripts/score_system.py:514` — `# Windows cp1252 fix: use reconfigure() on Python 3.7+ instead of`
+- `scripts/score_system.py:515` — `# creating a new TextIOWrapper.  reconfigure() modifies the stream`
+- `scripts/score_system.py:520` — `sys.stdout.reconfigure(encoding="utf-8", errors="replace")`
+- `scripts/score_system.py:594` — `audit_mark = " [AUDIT_REQ]" if r["needs_9_audit"] else ""`
+- `scripts/score_system.py:597` — `f"{r['score']:5.2f}/{r['max_score']:.1f} ({cat_pct:.0f}%){audit_mark}")`
+- `scripts/generate_pdf_report.py:102` — `"Event Sourcing with Hash-Chained Immutable Audit Trail",`
+- `scripts/generate_pdf_report.py:156` — `"DI Container, Event Store, Config Bootstrap, "`
+- `scripts/db_backup.py:20` — `Config keys (index_config.defaults.json)`
+- `scripts/db_backup.py:55` — `markers = [".git", "json/index_config.defaults.json", "pyproject.toml"]`
+- `scripts/db_backup.py:202` — `except (OSError, PermissionError, shutil.Error) as exc:`
+- `scripts/db_backup.py:239` — `logging.basicConfig(`
+- `scripts/run_pr_audit.py:2` — `"""Unified PR Audit Report — Runs all security/quality checks, produces consolidated report.`
+- `scripts/run_pr_audit.py:20` — `python scripts/run_pr_audit.py                         # Full report`
+- `scripts/run_pr_audit.py:21` — `python scripts/run_pr_audit.py --json                  # JSON output`
+- `scripts/run_pr_audit.py:22` — `python scripts/run_pr_audit.py --md                    # Markdown PR comment`
+- `scripts/run_pr_audit.py:23` — `python scripts/run_pr_audit.py --ci                    # CI mode (exit code only)`
+- `scripts/run_pr_audit.py:24` — `python scripts/run_pr_audit.py --quick                 # Skip slow checks`
+- `scripts/run_pr_audit.py:25` — `python scripts/run_pr_audit.py --output report.json    # Write to file`
+- `scripts/run_pr_audit.py:49` — `logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")`
+- `scripts/run_pr_audit.py:50` — `log = logging.getLogger("pr_audit")`
+- `scripts/run_pr_audit.py:91` — `class AuditFinding:`
+- `scripts/run_pr_audit.py:113` — `class AuditSection:`
+- `scripts/run_pr_audit.py:118` — `findings: list[AuditFinding] = field(default_factory=list)`
+- `scripts/run_pr_audit.py:134` — `class AuditReport:`
+- `scripts/run_pr_audit.py:135` — `"""Complete PR audit report."""`
+- `scripts/run_pr_audit.py:143` — `sections: list[AuditSection] = field(default_factory=list)`
+- `scripts/run_pr_audit.py:166` — `f"## {_robot()} PR Audit Report \u2014 {status}",`
+- `scripts/run_pr_audit.py:202` — `lines.append("*Report generated by `scripts/run_pr_audit.py`*")`
+- `scripts/run_pr_audit.py:216` — `f"  PR AUDIT REPORT \u2014 {status}",`
+- `scripts/run_pr_audit.py:266` — `def check_ruff() -> AuditSection:`
+- `scripts/run_pr_audit.py:268` — `section = AuditSection(name="Ruff Lint", passed=True)`
+- `scripts/run_pr_audit.py:299` — `section.findings.append(AuditFinding(`
+- `scripts/run_pr_audit.py:305` — `section.findings.append(AuditFinding(`
+- `scripts/run_pr_audit.py:315` — `def check_architecture() -> AuditSection:`
+- `scripts/run_pr_audit.py:317` — `section = AuditSection(name="Architecture Compliance", passed=True)`
+- `scripts/run_pr_audit.py:330` — `section.findings.append(AuditFinding(`
+- `scripts/run_pr_audit.py:340` — `def check_hygiene() -> AuditSection:`
+- `scripts/run_pr_audit.py:342` — `section = AuditSection(name="Repository Hygiene", passed=True)`
+- `scripts/run_pr_audit.py:355` — `section.findings.append(AuditFinding(`
+- `scripts/run_pr_audit.py:365` — `def check_dead_code() -> AuditSection:`
+- `scripts/run_pr_audit.py:370` — `section = AuditSection(name="Dead Code Scan", passed=True)`
+- `scripts/run_pr_audit.py:384` — `section.findings.append(AuditFinding(`
+- `scripts/run_pr_audit.py:394` — `section.findings.append(AuditFinding(`
+- `scripts/run_pr_audit.py:404` — `def check_gitignore() -> AuditSection:`
+- `scripts/run_pr_audit.py:406` — `section = AuditSection(name=".gitignore Coverage", passed=True)`
+- `scripts/run_pr_audit.py:412` — `section.findings.append(AuditFinding(`
+- `scripts/run_pr_audit.py:426` — `section.findings.append(AuditFinding(`
+- `scripts/run_pr_audit.py:437` — `def check_stale_docs() -> AuditSection:`
+- `scripts/run_pr_audit.py:439` — `section = AuditSection(name="Stale Documentation", passed=True)`
+- `scripts/run_pr_audit.py:448` — `section.findings.append(AuditFinding(`
+- `scripts/run_pr_audit.py:462` — `def run_audit(quick: bool = False) -> AuditReport:`
+- `scripts/run_pr_audit.py:463` — `"""Run all PR audit checks and return the report.`
+- `scripts/run_pr_audit.py:469` — `AuditReport with all section results.`
+- `scripts/run_pr_audit.py:472` — `report = AuditReport()`
+- `scripts/run_pr_audit.py:502` — `f"PR Audit: {status} (score={report.score:.1f}, "`
+- `scripts/run_pr_audit.py:521` — `report = run_audit(quick=args.quick)`
+- `scripts/run_pr_audit.py:529` — `print(f"[AUDIT] Report written to {output_path}")`
+- `scripts/run_consolidated_full_system_verification.py:8` — `4. Super Admin RBAC, Quotas & Category Permissions (/admin/users)`
+- `scripts/run_consolidated_full_system_verification.py:9` — `5. Configuration Editor & Dual Multi-User Alerting (/admin/config)`
+- `scripts/run_consolidated_full_system_verification.py:34` — `# Setup logging`
+- `scripts/run_consolidated_full_system_verification.py:35` — `logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")`
+- `scripts/run_consolidated_full_system_verification.py:44` — `_log.info("🚀 STARTING EXHAUSTIVE 20-SECTION CONSOLIDATED SYSTEM AUDIT & VERIFICATION")`
+- `scripts/run_consolidated_full_system_verification.py:73` — `# Section 4: Super Admin RBAC & Quotas`
+- `scripts/run_consolidated_full_system_verification.py:74` — `_log.info("🧪 [4/20] Super Admin RBAC, Quotas & Category Permissions...")`
+- `scripts/run_consolidated_full_system_verification.py:75` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `scripts/run_consolidated_full_system_verification.py:76` — `mgr = UserPermissionManager.get_instance()`
+- `scripts/run_consolidated_full_system_verification.py:77` — `perms = mgr.list_all_permissions()`
+- `scripts/run_consolidated_full_system_verification.py:81` — `_log.info("✅ [4/20 PASSED] Super Admin RBAC & category permissions verified for %d users.", len(perms))`
+- `scripts/run_consolidated_full_system_verification.py:83` — `# Section 5: Configuration Editor & Multi-User Alerting`
+- `scripts/run_consolidated_full_system_verification.py:84` — `_log.info("🧪 [5/20] Configuration Editor & Multi-User Notifications...")`
+- `scripts/run_consolidated_full_system_verification.py:88` — `_log.info("✅ [5/20 PASSED] Notifications configured (TG Bot: %s..., Chat ID: %s...)",`
+- `scripts/run_consolidated_full_system_verification.py:227` — `"admin_config.html", "admin_users.html", "admin_portfolio_analyzer.html", "admin_signals.html",`
+- `scripts/run_consolidated_full_system_verification.py:239` — `_log.info("🏆 EXHAUSTIVE 22-SECTION CONSOLIDATED SYSTEM AUDIT: 100%% PASSED IN %.2fs", elapsed)`
+- `scripts/constitution_scorecard.py:84` — `"core/security_auditor.py", weight=1.5),`
+- `scripts/constitution_scorecard.py:114` — `"core/config/feature_flags.py", weight=1.0),`
+- `scripts/constitution_scorecard.py:123` — `Requirement("ARC-13", "Strongly Typed Configuration", "architecture_standards",`
+- `scripts/constitution_scorecard.py:124` — `"json/index_config.defaults.json", weight=1.0),`
+- `scripts/constitution_scorecard.py:130` — `"core/security_auditor.py", weight=1.0),`
+- `scripts/constitution_scorecard.py:158` — `"core/auth/permissions.py", weight=1.0),`
+- `scripts/constitution_scorecard.py:164` — `"infrastructure/config/secure_config.py", weight=1.0),`
+- `scripts/constitution_scorecard.py:177` — `Requirement("SEC-11", "Audit Trails", "security_governance",`
+- `scripts/constitution_scorecard.py:178` — `"core/audit_mode.py", weight=1.0),`
+- `scripts/constitution_scorecard.py:184` — `"core/security_auditor.py", weight=1.0),`
+- `scripts/constitution_scorecard.py:235` — `Requirement("SRE-08", "Rollback Automation", "reliability_sre",`
+- `scripts/constitution_scorecard.py:236` — `"core/ai/rollback_controller.py", weight=1.0),`
+- `scripts/batch_portfolio_scan.py:9` — `1. Iterate over all tenants configured in the MultiTenantManager.`
+- `scripts/batch_portfolio_scan.py:30` — `from core.config_loader import load_config`
+- `scripts/batch_portfolio_scan.py:56` — `def setup_adapters():`
+- `scripts/batch_portfolio_scan.py:69` — `logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")`
+- `scripts/batch_portfolio_scan.py:73` — `setup_adapters()`
+- `scripts/batch_portfolio_scan.py:75` — `cfg = load_config()`
+- `scripts/batch_portfolio_scan.py:84` — `log.warning("No tenants found in configuration. Please define 'tenants' array in config.json.")`
+- `scripts/batch_portfolio_scan.py:90` — `config_overrides={"BROKER_CODE": "zerodha", "BROKER_CREDENTIALS": {"api_key": "demo"}}`
+- `scripts/batch_portfolio_scan.py:108` — `eff_cfg = context.get_effective_config()`
+- `scripts/batch_portfolio_scan.py:110` — `# Get broker details from the tenant's isolated config overrides`
+- `scripts/boost_constitution_evidence.py:36` — `("PRN-01", "Security auditor test — validates automated security scanning", "test_pass", 0.4, "tests/test_security_auditor.py"),`
+- `scripts/boost_constitution_evidence.py:44` — `("QGT-12", "PR audit workflow — automated engineering score in CI pipeline", "code_review", 0.4, ".github/workflows/pr-audit.yml"),`
+- `scripts/boost_constitution_evidence.py:47` — `# ── AST-13: Strongly Typed Config (7.0/9.0, 5 items) ─────────────`
+- `scripts/boost_constitution_evidence.py:48` — `("AST-13", "Config schema validate — programmatic config validation against JSON schema", "code_review", 0.4, "core/config_schema_validate.py"),`
+- `scripts/boost_constitution_evidence.py:49` — `("AST-13", "Config engine — strongly typed configuration management engine", "code_review", 0.4, "core/config_engine.py"),`
+- `scripts/boost_constitution_evidence.py:68` — `("PLS-05", "Grafana dashboard configs — observability infrastructure as code", "code_review", 0.3, "deploy/grafana"),`
+- `scripts/boost_constitution_evidence.py:69` — `("PLS-05", "Prometheus config — metrics collection infrastructure as code", "code_review", 0.3, "deploy/prometheus/prometheus.yml"),`
+- `scripts/boost_constitution_evidence.py:87` — `("QGT-08", "PWA manifest.json — progressive web app accessibility configuration", "code_review", 0.3, "core/static/manifest.json"),`
+- `scripts/boost_constitution_evidence.py:115` — `("PRN-02", "Auth permissions test — validates data access control privacy", "test_pass", 0.4, "tests/test_permissions.py"),`
+- `scripts/boost_constitution_evidence.py:135` — `("SGS-05", "Requirements lock file — pinned dependency versions for audit", "code_review", 0.3, "requirements-lock.txt"),`
+- `scripts/boost_constitution_evidence.py:160` — `("AST-08", "CI workflow config — environment-based feature toggles", "code_review", 0.3, ".github/workflows/ci.yml"),`
+- `scripts/run_backup_rotation.py:8` — `- Configurable retention (default: keep 7 daily, 4 weekly, 3 monthly)`
+- `scripts/run_backup_rotation.py:32` — `# ── Configuration ─────────────────────────────────────────────────────────────`
+- `scripts/run_backup_rotation.py:165` — `except (OSError, PermissionError) as e:`
+- `scripts/hardcoded_value_checker.py:4` — `CI guard - scans the codebase for values that must live in config, not code.`
+- `scripts/hardcoded_value_checker.py:14` — `(datetime.now(timezone.utc) is allowed for audit/UTC logging)`
+- `scripts/hardcoded_value_checker.py:31` — `"scripts/generate_config_schemas.py",`
+- `scripts/hardcoded_value_checker.py:71` — `"core/audit_engine.py",`
+- `scripts/generate_architecture_pdf.py:127` — `"database stores, web dashboard, Telegram notifications."),`
+- `scripts/generate_architecture_pdf.py:182` — `"This fragmentation makes it difficult to audit risk policies holistically. A consolidated "`
+- `scripts/generate_architecture_pdf.py:195` — `"and module docstrings reference outdated version numbers or configurations."),`
+- `scripts/generate_architecture_pdf.py:208` — `"audit logging. See RISK_MIGRATION_PLAN.md for phased approach."),`
+- `scripts/generate_architecture_pdf.py:222` — `"time windows instead of fixed-config backtests."),`
+- `scripts/generate_architecture_pdf.py:296` — `"1. Execute RiskAuthority consolidation (Phase 1: Audit, Phase 2: Dead Code Removal)<br/>"`
+- `scripts/gap_audit.py:1` — `"""Adversarial gap audit script - run with: python scripts/gap_audit.py"""`
+- `scripts/gap_audit.py:28` — `results.append(("WS7 AI Governance", all([exists("core/ai/model_registry.py"), exists("core/ai/governance.py"), exists("core/ai/rollback_controller.py")])))`
+- `scripts/gap_audit.py:29` — `results.append(("WS8 Admin CP", all([grep_file("_require_permission","core/control_plane/server.py"), grep_file("_audit_log","core/control_plane/server.py")])))`
+- `scripts/gap_audit.py:33` — `results.append(("WS12 Security (partial)", all([exists("core/auth/permissions.py"), exists("core/auth/role_manager.py")])))`
+- `scripts/gap_audit.py:35` — `results.append(("WS14 Config", all([exists("json/index_config.defaults.json"), exists("schemas/index_config.schema.json")])))`
+- `scripts/gap_audit.py:43` — `print("ADVERSARIAL GAP AUDIT")`
+- `scripts/gap_audit.py:61` — `# 4. Config hot reload`
+- `scripts/gap_audit.py:62` — `hr_endpoint = grep_file("config/reload", "core/control_plane/server.py")`
+- `scripts/gap_audit.py:63` — `hr_handler = grep_file("_reload_config_handler", "index_app/index_trader.py")`
+- `scripts/gap_audit.py:64` — `print(f"  {'PASS' if (hr_endpoint and hr_handler) else 'FAIL'} | Config hot-reload (POST /config/reload)")`
+- `scripts/gen_gap_analysis.py:32` — `report.append("  [DONE] Config Drift Register maintained in docs/config_drift_register.md")`
+- `scripts/gen_gap_analysis.py:48` — `report.append("  [DONE] Dependency direction audit passes with 0 cycles")`
+- `scripts/gen_gap_analysis.py:84` — `report.append("  [DONE] Same input + config + data = same output verified")`
+- `scripts/gen_gap_analysis.py:144` — `report.append("  [DONE] Privilege escalation audit passes")`
+- `scripts/gen_gap_analysis.py:158` — `report.append("PHASE 16: INDEPENDENT AUDIT MODE")`
+- `scripts/gen_gap_analysis.py:161` — `report.append("  [DONE] Auditor subsystem in core/auditor/auditor.py")`
+- `scripts/gen_gap_analysis.py:162` — `report.append("  [DONE] 5 audit types: architecture, risk, execution, security, operations")`
+- `scripts/gen_gap_analysis.py:163` — `report.append("  [DONE] Independent Audit Report with programmatic verification")`
+- `scripts/gen_gap_analysis.py:187` — `report.append("  ✅ Architecture Audit — 10.0/10.0")`
+- `scripts/gen_gap_analysis.py:188` — `report.append("  ✅ Security Audit — 10.0/10.0")`
+- `scripts/gen_gap_analysis.py:189` — `report.append("  ✅ Risk Audit — 10.0/10.0")`
+- `scripts/gen_gap_analysis.py:190` — `report.append("  ✅ Execution Audit — 10.0/10.0")`
+- `scripts/gen_gap_analysis.py:191` — `report.append("  ✅ Replay Audit — 10.0/10.0")`
+- `scripts/gen_gap_analysis.py:192` — `report.append("  ✅ Testing Audit — 10.0/10.0")`
+- `scripts/gen_gap_analysis.py:193` — `report.append("  ✅ Chaos Audit — 10.0/10.0")`
+- `scripts/gen_gap_analysis.py:194` — `report.append("  ✅ Black Swan Audit — 10.0/10.0")`
+- `scripts/gen_gap_analysis.py:195` — `report.append("  ✅ Documentation Audit — 10.0/10.0")`
+- `scripts/gen_gap_analysis.py:196` — `report.append("  ✅ Repository Audit — 10.0/10.0")`
+- `scripts/gen_gap_analysis.py:197` — `report.append("  ✅ Independent Audit — 10.0/10.0")`
+- `scripts/generate_pptx.py:165` — `"  \u2022 Event Sourcing with Hash-Chained Immutable Audit Trail",`
+- `scripts/generate_pptx.py:208` — `("Notifications", "Telegram Bot API with Priority Queue (CRITICAL/HIGH/NORMAL/LOW)"),`
+- `scripts/generate_pptx.py:213` — `("Security", "Bandit, RBAC, MFA, SSO, Secrets Vault, CVE tracking, Supply-chain auditing"),`
+- `scripts/generate_pptx.py:233` — `("Observability", "OpenTelemetry \u2022 Health Checker \u2022 Metrics Exporter \u2022 Audit Logs \u2022 Benchmark Comparator"),`
+- `scripts/generate_pptx.py:234` — `("Infrastructure", "DI Container \u2022 Event Store \u2022 Config Bootstrap \u2022 Migration Engine \u2022 Schema Registry"),`
+- `scripts/generate_pptx.py:277` — `"\u2714 Expiry Protection: Configurable cutoff time on expiry day",`
+- `scripts/generate_pptx.py:300` — `"\u25B6 Broker Failover Manager: Automatic failover with configurable recovery window",`
+- `scripts/generate_pptx.py:302` — `"\u25B6 Broker-Free Startup: No configured broker = safe paper mode by default",`
+- `scripts/generate_pptx.py:364` — `("Health Checks", "DB/ML/Config/Disk/Broker health \u2014 automated Sunday EOD + CLI + API", GREEN),`
+- `scripts/generate_pptx.py:386` — `("Web Dashboard", "Enable web_dashboard_enabled: true in config.json\nAccess: http://localhost:8765 (FastAPI + RBAC)", RED),`
+- `scripts/generate_pptx.py:407` — `"  1. Configure config.json with broker credentials",`
+- `scripts/generate_pptx.py:419` — `"# Configuration:",`
+- `scripts/generate_pptx.py:420` — `"  Edit config.json or set OPBUILDING_* env vars",`
+- `scripts/generate_pptx.py:421` — `"  Three-layer merge: defaults \u2192 config.json \u2192 config.local.json \u2192 env"`
+- `scripts/generate_architecture_pptx.py:149` — `"1,058 configuration keys",`
+- `scripts/generate_architecture_pptx.py:175` — `["Governance", "Minimal", "Env separation, migration, retention, audit, security review"],`
+- `scripts/generate_architecture_pptx.py:209` — `"Governance Framework - Environment separation (DEV/QA/PAPER/SHADOW/STAGING/PRODUCTION), automatic DB migration, data retention policies, audit trails.",`
+- `scripts/generate_architecture_pptx.py:350` — `"Execute RiskAuthority Phase 1 (Audit) and Phase 2 (Dead Code Removal)",`
+- `scripts/run_audit_validation.py:2` — `"""Comprehensive Validation Script for Audit Changes.`
+- `scripts/run_audit_validation.py:5` — `python scripts/run_audit_validation.py`
+- `scripts/run_audit_validation.py:15` — `sys.stdout.reconfigure(line_buffering=True)  # type: ignore[union-attr]`
+- `scripts/run_audit_validation.py:37` — `print("AUDIT VALIDATION -- POST-CHANGE VERIFICATION", flush=True)`
+- `scripts/run_coverage_heatmap.py:34` — `# ── Configuration ─────────────────────────────────────────────────────────────`
+- `scripts/run_coverage_heatmap.py:82` — `"core/security_auditor.py",`
+- `scripts/clean_artifacts.py:48` — `"json/audit_trail.jsonl",`
+- `scripts/clean_artifacts.py:49` — `"config_audit.log",`
+- `scripts/clean_artifacts.py:52` — `# Config files (generated)`
+- `scripts/clean_artifacts.py:53` — `"json/config.local.json",`
+- `scripts/clean_artifacts.py:130` — `except (OSError, PermissionError) as e:`
+- `scripts/clean_artifacts.py:161` — `logging.basicConfig(`
+- `scripts/generate_review_artifacts.py:33` — `("Test maturity", "~14,700 tests; dedicated suites for smoke, live-readiness, NSE recorder, constitution, config schema, paper trader, execution hardening."),`
+- `scripts/generate_review_artifacts.py:34` — `("CI/CD completeness", "GitHub Actions with 9 jobs (lint, test matrix 3.11-3.14, coverage >=90%, security with pip-audit+bandit+semgrep, governance, certification, slow tests, build+checksum) + nightly full-suite cron."),`
+- `scripts/generate_review_artifacts.py:35` — `("Deployment options", "Dockerfile + docker-compose + supervisord, Dockerfile.realestate, k8s configmap, launcher EXE with single-instance lock."),`
+- `scripts/generate_review_artifacts.py:36` — `("Observability", "Prometheus metrics exporter, FastAPI enterprise dashboard (RBAC), health checker, audit trail (JSONL), structured logging with rotation + gzip."),`
+- `scripts/generate_review_artifacts.py:37` — `("Security posture", "Secrets moved to OPBUYING_* env vars, SecureConfig redaction, config.local.json gitignored, Telegram auth allowlists + rate limits + audit, bandit in CI."),`
+- `scripts/generate_review_artifacts.py:42` — `("Live-readiness gate unmet", "0/50 paper trades, 0 trading days, 0% win rate -> the gate correctly blocks LIVE (AUTO) start. No broker credentials configured (BROKER_API_ENABLED=false, GENERIC driver). A PAPER session runs daily to build the record."),`
+- `scripts/generate_review_artifacts.py:49` — `("Config drift artifacts", "Previous audit reports in docs/archive record config drift (EXECUTION_MODE defaults differ); current sync checks pass but older reports remain unarchived."),`
+- `scripts/generate_review_artifacts.py:54` — `("P1", "Configure broker secrets", "Set OPBUYING_BROKER_API_KEY/ACCESS_TOKEN/USER_ID/PASSWORD env vars and BROKER_DRIVER=KITE|ANGEL when ready; keep EXECUTION_MODE progression MANUAL->PAPER->SIGNAL_ONLY->AUTO."),`
+- `scripts/generate_review_artifacts.py:57` — `("P2", "DONE - Dashboard default bind", "web_dashboard + enterprise_dashboard + launch_realestate bind 127.0.0.1 by default (0.0.0.0 only when explicitly configured)."),`
+- `scripts/generate_review_artifacts.py:60` — `("P3", "Archive stale docs", "Move 2026-07-20 audit reports in docs/archive to a dated subfolder and regenerate config-drift reports against current defaults."),`
+- `scripts/generate_review_artifacts.py:80` — `("Governance + config-schema tests", "288/288 PASSED"),`
+- `scripts/generate_review_artifacts.py:119` — `"Full audit of architecture, code, configuration, security, tests and documentation; "`
+- `scripts/generate_review_artifacts.py:129` — `["Orders placed", "0 (by design - no broker configured, gate enforced)"],`
+- `scripts/generate_review_artifacts.py:283` — `("Config", "3-layer merge: index_config.defaults.json (1,058 keys) <- config.json <- OPBUYING_* env secrets."),`
+- `scripts/generate_review_artifacts.py:285` — `("Notifications", "Telegram bot with auth allowlists, rate limits, audit, priority queue."),`
+- `scripts/generate_review_artifacts.py:294` — `("Domains (DEBT-008)", "config, broker, market, trading, admin - extracted responsibilities"),`
+- `scripts/paper_session_review.py:37` — `OPBUYING_TELEGRAM_CHAT_ID env vars first, then config.local.json /`
+- `scripts/paper_session_review.py:38` — `config.json (BOT_TOKEN + TG_CHAT_ID|CHAT_ID). Placeholder values`
+- `scripts/paper_session_review.py:39` — `("YOUR_...") are treated as unconfigured and the alert is skipped`
+- `scripts/paper_session_review.py:112` — `vars, then config.local.json, then config.json (BOT_TOKEN + TG_CHAT_ID,`
+- `scripts/paper_session_review.py:113` — `falling back to CHAT_ID). Returns ("", "") when not configured.`
+- `scripts/paper_session_review.py:120` — `for cfg_name in ("json/config.local.json", "json/config.json"):`
+- `scripts/paper_session_review.py:224` — `f"Telegram not configured - set {TG_ENV_TOKEN} / {TG_ENV_CHAT_ID} "`
+- `scripts/paper_session_review.py:225` — `"(or BOT_TOKEN/TG_CHAT_ID in config.local.json)"`
+- `scripts/paper_session_review.py:230` — `from infrastructure.adapters.notifications.telegram_adapter import _TelegramClient`
+- `scratch/test_all_app_routes.py:19` — `def run_comprehensive_route_audit():`
+- `scratch/test_all_app_routes.py:21` — `print("  EXHAUSTIVE SYSTEM ROUTE & LINK AUDIT SUITE")`
+- `scratch/test_all_app_routes.py:56` — `"/admin/config",`
+- `scratch/test_all_app_routes.py:100` — `print(f"\n[3/3] Scanning & Auditing All {len(app.routes)} Registered FastAPI Endpoints...")`
+- `scratch/test_all_app_routes.py:116` — `print("  AUDIT SUMMARY RESULTS")`
+- `scratch/test_all_app_routes.py:120` — `print(f"  API Routes Audited   : {api_pass} Passed / {api_fail} Warnings")`
+- `scratch/test_all_app_routes.py:127` — `print("\n[ERROR] RESULT: AUDIT FAILED — GAPS DETECTED!")`
+- `scratch/test_all_app_routes.py:132` — `run_comprehensive_route_audit()`
+- `scratch/generate_final_deliverables.py:1` — `"""Final Deliverables Generator: Architectural Audit PDF & PPTX Presentation.`
+- `scratch/generate_final_deliverables.py:4` — `1. docs/OPB_SYSTEM_SUMMARY_ARCHITECTURAL_AUDIT.md`
+- `scratch/generate_final_deliverables.py:5` — `2. docs/OPB_SYSTEM_SUMMARY_ARCHITECTURAL_AUDIT.pdf`
+- `scratch/generate_final_deliverables.py:32` — `# 1. SYSTEM SUMMARY ARCHITECTURAL AUDIT (MARKDOWN + PDF)`
+- `scratch/generate_final_deliverables.py:35` — `AUDIT_MD = """# OPB SYSTEM ARCHITECTURAL SUMMARY & AUDIT REPORT`
+- `scratch/generate_final_deliverables.py:50` — `4. **Super Admin User & Signal Control Center (`/admin/users`)**:`
+- `scratch/generate_final_deliverables.py:68` — `| Single-recipient notification limitation | Rewrote notification dispatchers in `core/all_nse_scanner.py` and `core/notifier.py` to parse comma-separated multi-user Chat IDs and Emails. | ✅ CLOSED & VERIFIED |`
+- `scratch/generate_final_deliverables.py:69` — `| Uncontrolled user signal access | Implemented `UserPermissionManager` and Super Admin Control Panel (`/admin/users`) with category filters, tier cutoffs, and quotas. | ✅ CLOSED & VERIFIED |`
+- `scratch/generate_final_deliverables.py:70` — `| Configuration UI mapping disconnect | Upgraded `/admin/config` with dedicated Notifications Tab, helper hints, and hot-reload synchronization. | ✅ CLOSED & VERIFIED |`
+- `scratch/generate_final_deliverables.py:78` — `2. **WebSocket Push Notifications**:`
+- `scratch/generate_final_deliverables.py:79` — `- Add native Web Push notifications via Service Workers for mobile app / PWA users.`
+- `scratch/generate_final_deliverables.py:84` — `def generate_audit_pdf():`
+- `scratch/generate_final_deliverables.py:85` — `pdf_path = str(_DOCS / "OPB_SYSTEM_SUMMARY_ARCHITECTURAL_AUDIT.pdf")`
+- `scratch/generate_final_deliverables.py:94` — `story.append(Paragraph("OPB System Architecture Summary & Audit Report", title_style))`
+- `scratch/generate_final_deliverables.py:103` — `"<b>Super Admin User Control Center (/admin/users):</b> Master switches, 8 asset categories, daily/weekly/monthly quotas, and tier cutoffs.",`
+- `scratch/generate_final_deliverables.py:115` — `["Uncontrolled Signal Access", "Super Admin RBAC, Quotas & Category Filter Gate", "VERIFIED (100%)"],`
+- `scratch/generate_final_deliverables.py:132` — `story.append(Paragraph("• Web push notifications for mobile PWA clients.", body_style))`
+- `scratch/generate_final_deliverables.py:184` — `p1_sub.text = "Enterprise Architecture, 16 Quantitative Strategies & Super Admin Control Plane"`
+- `scratch/generate_final_deliverables.py:203` — `("Super Admin Control Center", "Master switches, 8 asset categories, daily/weekly/monthly quotas, and custom Telegram/Email channel routing.", RGBColor(139, 92, 246)),`
+- `scratch/generate_final_deliverables.py:237` — `("COMMODITIES", "MCX Gold, Silver, Crude Oil, Natural Gas evening momentum setups"),`
+- `scratch/generate_final_deliverables.py:269` — `# Slide 4: Super Admin Control & Pre-Guard Security`
+- `scratch/generate_final_deliverables.py:271` — `add_header(s4, "SUPER ADMIN CONTROL & PRE-GUARD GATING", "Granular User Permissions, Multi-Timeframe Quotas & Dispatch Security")`
+- `scratch/generate_final_deliverables.py:282` — `p.text = "Super Admin Control Features (/admin/users)"`
+- `scratch/generate_final_deliverables.py:332` — `p_md = _DOCS / "OPB_SYSTEM_SUMMARY_ARCHITECTURAL_AUDIT.md"`
+- `scratch/generate_final_deliverables.py:333` — `p_md.write_text(AUDIT_MD, encoding="utf-8")`
+- `scratch/generate_final_deliverables.py:336` — `generate_audit_pdf()`
+- `scratch/test_page_routes_only.py:16` — `def run_page_audit():`
+- `scratch/test_page_routes_only.py:47` — `"/admin/config",`
+- `scratch/test_page_routes_only.py:56` — `print("  EXHAUSTIVE PAGE & NAVIGATION ROUTE AUDIT")`
+- `scratch/test_page_routes_only.py:72` — `print(f"  {failed} ROUTES FAILED AUDIT!")`
+- `scratch/test_page_routes_only.py:76` — `run_page_audit()`
+- `tests/test_forensic_audit_fixes.py:1` — `"""Tests for forensic audit fixes: deadlock, config freeze, freshness, phantom recovery, shutdown."""`
+- `tests/test_forensic_audit_fixes.py:10` — `from core.config_bootstrap import _freeze_config`
+- `tests/test_forensic_audit_fixes.py:18` — `setup_graceful_shutdown,`
+- `tests/test_forensic_audit_fixes.py:43` — `# ── C5: Config freeze ─────────────────────────────────────────────────`
+- `tests/test_forensic_audit_fixes.py:45` — `def test_frozen_config_raises_typeerror_on_mutation():`
+- `tests/test_forensic_audit_fixes.py:46` — `frozen = _freeze_config({"a": 1, "b": {"c": 2}})`
+- `tests/test_forensic_audit_fixes.py:51` — `def test_frozen_config_allows_read():`
+- `tests/test_forensic_audit_fixes.py:52` — `frozen = _freeze_config({"key": "val"})`
+- `tests/test_forensic_audit_fixes.py:213` — `def test_setup_graceful_shutdown_returns_event():`
+- `tests/test_forensic_audit_fixes.py:214` — `ev = setup_graceful_shutdown()`
+- `tests/test_email_adapter.py:2` — `Tests for the Email Notification Adapter (v2.53).`
+- `tests/test_email_adapter.py:10` — `from core.ports.notification.notification_port import (`
+- `tests/test_email_adapter.py:11` — `Notification,`
+- `tests/test_email_adapter.py:12` — `NotificationChannel,`
+- `tests/test_email_adapter.py:13` — `NotificationPriority,`
+- `tests/test_email_adapter.py:14` — `NotificationStatus,`
+- `tests/test_email_adapter.py:16` — `from infrastructure.adapters.notifications.email_adapter import (`
+- `tests/test_email_adapter.py:17` — `EmailNotificationAdapter,`
+- `tests/test_email_adapter.py:22` — `"""Test adapter initialization and configuration."""`
+- `tests/test_email_adapter.py:25` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:32` — `adapter = EmailNotificationAdapter(enabled=False)`
+- `tests/test_email_adapter.py:35` — `def test_custom_config(self):`
+- `tests/test_email_adapter.py:36` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:60` — `adapter = EmailNotificationAdapter(enabled=False)`
+- `tests/test_email_adapter.py:61` — `notification = Notification(`
+- `tests/test_email_adapter.py:62` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:64` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:66` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:67` — `assert result.status == NotificationStatus.FAILED`
+- `tests/test_email_adapter.py:71` — `adapter = EmailNotificationAdapter(enabled=False)`
+- `tests/test_email_adapter.py:72` — `assert adapter.is_channel_available(NotificationChannel.EMAIL) is False`
+- `tests/test_email_adapter.py:79` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:80` — `notification = Notification(`
+- `tests/test_email_adapter.py:81` — `channel=NotificationChannel.TELEGRAM,`
+- `tests/test_email_adapter.py:83` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:85` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:86` — `assert result.status == NotificationStatus.FAILED`
+- `tests/test_email_adapter.py:90` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:95` — `assert adapter.is_channel_available(NotificationChannel.EMAIL) is False`
+- `tests/test_email_adapter.py:98` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:103` — `assert adapter.is_channel_available(NotificationChannel.EMAIL) is True`
+- `tests/test_email_adapter.py:106` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:107` — `assert adapter.is_channel_available(NotificationChannel.TELEGRAM) is False`
+- `tests/test_email_adapter.py:108` — `assert adapter.is_channel_available(NotificationChannel.SMS) is False`
+- `tests/test_email_adapter.py:115` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:116` — `notification = Notification(`
+- `tests/test_email_adapter.py:117` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:119` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:121` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:122` — `assert result.status == NotificationStatus.FAILED`
+- `tests/test_email_adapter.py:126` — `"""Default recipient should be used when notification has no recipient."""`
+- `tests/test_email_adapter.py:127` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:132` — `notification = Notification(`
+- `tests/test_email_adapter.py:133` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:135` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:140` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:141` — `assert result.status == NotificationStatus.FAILED`
+- `tests/test_email_adapter.py:145` — `"""Explicit recipient on notification overrides default."""`
+- `tests/test_email_adapter.py:146` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:151` — `notification = Notification(`
+- `tests/test_email_adapter.py:152` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:155` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:160` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:161` — `assert result.status == NotificationStatus.SENT`
+- `tests/test_email_adapter.py:173` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:184` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:194` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:207` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:212` — `status = adapter.get_rate_limit_status(NotificationChannel.TELEGRAM)`
+- `tests/test_email_adapter.py:216` — `status = adapter.get_rate_limit_status(NotificationChannel.EMAIL)`
+- `tests/test_email_adapter.py:229` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:230` — `notification = Notification(`
+- `tests/test_email_adapter.py:231` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:233` — `priority=NotificationPriority.HIGH,`
+- `tests/test_email_adapter.py:235` — `html = adapter._to_html("Price < 100 & > 50", notification)`
+- `tests/test_email_adapter.py:247` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:248` — `notification = Notification(`
+- `tests/test_email_adapter.py:249` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:251` — `priority=NotificationPriority.CRITICAL,`
+- `tests/test_email_adapter.py:253` — `html = adapter._to_html("Test", notification)`
+- `tests/test_email_adapter.py:257` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:258` — `notification = Notification(`
+- `tests/test_email_adapter.py:259` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:261` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:263` — `html = adapter._to_html("Test", notification)`
+- `tests/test_email_adapter.py:267` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:268` — `notification = Notification(`
+- `tests/test_email_adapter.py:269` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:271` — `priority=NotificationPriority.LOW,`
+- `tests/test_email_adapter.py:273` — `html = adapter._to_html("Test", notification)`
+- `tests/test_email_adapter.py:274` — `assert "automated notification" in html`
+- `tests/test_email_adapter.py:277` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:278` — `notification = Notification(`
+- `tests/test_email_adapter.py:279` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:281` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:283` — `html = adapter._to_html("Line 1\nLine 2\nLine 3", notification)`
+- `tests/test_email_adapter.py:291` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:292` — `notification = Notification(`
+- `tests/test_email_adapter.py:293` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:295` — `priority=NotificationPriority.CRITICAL,`
+- `tests/test_email_adapter.py:297` — `subject = adapter._infer_subject(notification)`
+- `tests/test_email_adapter.py:301` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:303` — `notification = Notification(`
+- `tests/test_email_adapter.py:304` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:306` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:308` — `subject = adapter._infer_subject(notification)`
+- `tests/test_email_adapter.py:313` — `"""When notification has a subject, the adapter should use it."""`
+- `tests/test_email_adapter.py:314` — `EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:315` — `notification = Notification(`
+- `tests/test_email_adapter.py:316` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:319` — `priority=NotificationPriority.HIGH,`
+- `tests/test_email_adapter.py:321` — `# When subject is explicitly set, it's used directly in send_notification`
+- `tests/test_email_adapter.py:323` — `assert notification.subject == "Custom Subject Line"`
+- `tests/test_email_adapter.py:330` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:344` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:359` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:373` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:388` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:400` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:413` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:436` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:449` — `adapter = EmailNotificationAdapter()`
+- `tests/test_email_adapter.py:469` — `def test_send_notification_success_with_mocked_smtp(self):`
+- `tests/test_email_adapter.py:470` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:475` — `notification = Notification(`
+- `tests/test_email_adapter.py:476` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:478` — `priority=NotificationPriority.HIGH,`
+- `tests/test_email_adapter.py:483` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:485` — `assert result.status == NotificationStatus.SENT`
+- `tests/test_email_adapter.py:486` — `assert result.channel == NotificationChannel.EMAIL`
+- `tests/test_email_adapter.py:487` — `assert "email_" in result.notification_id`
+- `tests/test_email_adapter.py:490` — `def test_send_notification_auth_failure(self):`
+- `tests/test_email_adapter.py:491` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:496` — `notification = Notification(`
+- `tests/test_email_adapter.py:497` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:499` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:504` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:506` — `assert result.status == NotificationStatus.FAILED`
+- `tests/test_email_adapter.py:509` — `def test_send_notification_rate_limited(self):`
+- `tests/test_email_adapter.py:510` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:514` — `notification = Notification(`
+- `tests/test_email_adapter.py:515` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:517` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:521` — `result = adapter.send_notification(notification)`
+- `tests/test_email_adapter.py:523` — `assert result.status == NotificationStatus.RATE_LIMITED`
+- `tests/test_email_adapter.py:526` — `def test_send_notifications_batch(self):`
+- `tests/test_email_adapter.py:527` — `adapter = EmailNotificationAdapter(`
+- `tests/test_email_adapter.py:532` — `notifications = [`
+- `tests/test_email_adapter.py:533` — `Notification(`
+- `tests/test_email_adapter.py:534` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:536` — `priority=NotificationPriority.NORMAL,`
+- `tests/test_email_adapter.py:541` — `with patch.object(adapter, 'send_notification', return_value=MagicMock(`
+- `tests/test_email_adapter.py:542` — `status=NotificationStatus.SENT,`
+- `tests/test_email_adapter.py:543` — `notification_id="test",`
+- `tests/test_email_adapter.py:544` — `channel=NotificationChannel.EMAIL,`
+- `tests/test_email_adapter.py:546` — `results = adapter.send_notifications(notifications)`
+- `tests/test_security_auditor.py:1` — `"""Tests for core/security_auditor.py — Security Auditor module."""`
+- `tests/test_security_auditor.py:11` — `from core.security_auditor import (`
+- `tests/test_security_auditor.py:15` — `SecurityAuditor,`
+- `tests/test_security_auditor.py:17` — `get_security_auditor,`
+
+## Mandatory reason requirement
+
+For **REJECT** and **ROLLBACK**, a privileged user must provide a meaningful reason.
+
+Rules:
+- Reason is mandatory; blank/whitespace-only values are invalid.
+- Minimum length: 10 characters.
+- The UI must clearly label the field as required.
+- The server must enforce the requirement; client-side validation alone is insufficient.
+- The reason is stored with the action, actor, timestamp, affected configuration, old value/new value, and change/request ID.
+- The reason is included in the Super Admin notification and audit trail.
+- REJECT without a valid reason must not change the configuration state.
+- ROLLBACK without a valid reason must not restore the previous value.
+- The original submitted change remains immutable in the audit history.

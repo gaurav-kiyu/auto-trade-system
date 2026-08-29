@@ -1,0 +1,2228 @@
+# OPB WEB CLOSURE WIP72 — RBAC / Permission Enforcement Map
+
+RBAC-related Python files: 226
+RBAC-related source signals: 2602
+Candidate mutation/authorization routes: 19
+
+## Candidate user/role/permission routes
+- `/users` — `core/auth/routes.py:422`
+- `/users/{username}/role` — `core/auth/routes.py:483`
+- `/users/{username}/reset-password` — `core/auth/routes.py:519`
+- `/users/{username}/disable` — `core/auth/routes.py:536`
+- `/users/{username}/enable` — `core/auth/routes.py:548`
+- `/users/{username}` — `core/auth/routes.py:559`
+- `/users/{username}/permissions` — `core/auth/routes.py:661`
+- `/users/{username}/toggle-signals` — `core/auth/routes.py:741`
+- `/users/{username}/revoke-sessions` — `core/auth/routes.py:831`
+- `/roles/{operator}` — `core/control_plane/server.py:704`
+- `/api/v1/admin/test-dispatch-signal` — `core/enterprise_dashboard/routes/admin.py:23`
+- `/api/v1/admin/test-email` — `core/enterprise_dashboard/routes/admin.py:205`
+- `/api/v1/admin/broker/fetch-holdings` — `core/enterprise_dashboard/routes/admin.py:648`
+- `/api/v1/admin/analyze-portfolio` — `core/enterprise_dashboard/routes/admin.py:666`
+- `/api/v1/admin/auto-hedge` — `core/enterprise_dashboard/routes/admin.py:694`
+- `/api/v1/admin/execute-hedge` — `core/enterprise_dashboard/routes/admin.py:703`
+- `/api/v1/admin/tax-loss-harvest` — `core/enterprise_dashboard/routes/admin.py:723`
+- `/api/v1/admin/generate-report` — `core/enterprise_dashboard/routes/admin.py:743`
+- `/api/intelligence/accessibility/assess` — `core/enterprise_dashboard/routes/intelligence.py:1118`
+
+## Enforcement/source signals
+- `core/health_checker.py:337` — `except (OSError, PermissionError) as exc:`
+- `core/threat_modeler.py:9` — `- Elevation of Privilege: Authorization threats`
+- `core/threat_modeler.py:56` — `"description": "Unauthorized modification of data or code",`
+- `core/threat_modeler.py:66` — `"description": "Exposure of sensitive data to unauthorized parties",`
+- `core/threat_modeler.py:75` — `"Elevation of Privilege": {`
+- `core/threat_modeler.py:76` — `"description": "Gaining unauthorized access or permissions",`
+- `core/threat_modeler.py:86` — `("Elevation of Privilege", "Authorization boundaries — check role escalation paths", 0.85),`
+- `core/threat_modeler.py:113` — `("Tampering", "Configuration file integrity — unauthorized modification", 0.8),`
+- `core/threat_modeler.py:124` — `("Elevation of Privilege", "eval/exec usage allowing arbitrary code execution", 0.9),`
+- `core/threat_modeler.py:136` — `stride_category: str = ""  # Spoofing, Tampering, Repudiation, Information Disclosure, DoS, Elevation of Privilege`
+- `core/threat_modeler.py:426` — `# 3. Scan for dangerous APIs (Elevation of Privilege + Tampering)`
+- `core/threat_modeler.py:429` — `stride_category="Elevation of Privilege",`
+- `core/threat_modeler.py:430` — `description="Arbitrary code execution via eval/exec — allows privilege escalation",`
+- `core/threat_modeler.py:440` — `stride_category="Elevation of Privilege",`
+- `core/threat_modeler.py:516` — `"Elevation of Privilege": ["admin", "role", "permission", "sudo", "root", "privilege", "exec"],`
+- `core/threat_modeler.py:526` — `"Information Disclosure": "Apply least privilege — encrypt sensitive data, avoid logging secrets, use vaults",`
+- `core/threat_modeler.py:528` — `"Elevation of Privilege": "Apply principle of least privilege — validate all authorization checks, avoid eval/exec",`
+- `core/presentation_generator.py:365` — `["RBAC", "Role-based access control"],`
+- `core/presentation_generator.py:494` — `comp_headers = ["Component", "Module", "Role"]`
+- `core/presentation_generator.py:724` — `["Real-time Dashboard", "FastAPI web UI with RBAC"],`
+- `core/presentation_generator.py:737` — `"Role-based access control (RBAC)",`
+- `core/presentation_generator.py:740` — `"AI Governance Gate prevents unauthorized changes",`
+- `core/market_scanner_daemon.py:6` — `- Dispatches real-time Telegram and HTML Gmail alerts immediately to all authorized users`
+- `core/kite_ticker_feed.py:268` — `"""Called when ticks arrive. Updates LTP cache + forwards to user."""`
+- `core/kite_ticker_feed.py:303` — `self._user_on_message({"type": "order_update", "data": data})`
+- `core/living_documentation.py:324` — `("role", "TEXT"),`
+- `core/admin_portfolio_analyzer.py:52` — `"auth_url": "https://api.upstox.com/v2/login/authorization/dialog",`
+- `core/root_cause_analyzer.py:180` — `"Permission revoked on broker side",`
+- `core/capacity_planning.py:536` — `except (OSError, PermissionError) as exc:`
+- `core/exceptions.py:23` — `├── AuthorizationError              #   Authorization failures`
+- `core/exceptions.py:108` — `# ── Authentication & Authorization ────────────────────────────────────────────`
+- `core/exceptions.py:114` — `class AuthorizationError(TradingException):`
+- `core/exceptions.py:115` — `"""Exception raised for authorization-related errors."""`
+- `core/exceptions.py:386` — `# Authentication & Authorization`
+- `core/exceptions.py:388` — `"AuthorizationError",`
+- `core/ai_security_gate.py:42` — `("role_escape", r"(?i)(you are now|act as|pretend to be|now you are|from now on)\s+(a\s+)?(free|unrestricted|unbounded|ungoverned|jailbreak)", 0.95),`
+- `core/enterprise_knowledge_graph.py:43` — `"SCREEN", "PERMISSION", "USER_ROLE",`
+- `core/ai_engine.py:167` — `"messages": [{"role": "user", "content": prompt}],`
+- `core/ai_engine.py:194` — `{"role": "system", "content": ai_cfg.prompt_template or _DEFAULT_SYSTEM_PROMPT},`
+- `core/ai_engine.py:195` — `{"role": "user", "content": prompt},`
+- `core/ai_engine.py:200` — `"Authorization": f"Bearer {api_key}",`
+- `core/accessibility_gate.py:78` — `"positive_pattern": r"(role=\"[^\"]*\"|aria-label=\"[^\"]*\")",`
+- `core/api_versioning.py:199` — `changelog=["Unified intelligence API", "Webhook support", "RBAC integration"],`
+- `core/web_dashboard.py:3` — `Provides the startup entry point for the EnterpriseDashboard (auth + RBAC +`
+- `core/quality_gates.py:512` — `if "role=" not in content and ("button" in content or "nav" in content):`
+- `core/quality_gates.py:514` — `findings.append(f"{file_path}: Consider adding ARIA roles")`
+- `core/vulnerability_scanner.py:36` — `CATEGORIES = ("DEPENDENCY", "CONFIGURATION", "CODE_PATTERN", "SECRET", "PERMISSION")`
+- `core/audit_mode.py:341` — `"""Challenge security - bypass attempts, privilege escalation."""`
+- `core/execution_error_classifier.py:56` — `"unauthorized",`
+- `core/admin_control_plane.py:8` — `from core.control_plane.rbac import ControlRBAC`
+- `core/admin_control_plane.py:51` — `role_manager: Any = None,`
+- `core/admin_control_plane.py:69` — `role_manager=role_manager,`
+- `core/all_nse_scanner.py:521` — `# Check granular permissions & quota per user via UserPermissionManager`
+- `core/all_nse_scanner.py:522` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `core/all_nse_scanner.py:523` — `perm_mgr = UserPermissionManager.get_instance()`
+- `core/all_nse_scanner.py:526` — `# Aggregate authorized Telegram chats and Email recipients from eligible users`
+- `core/all_nse_scanner.py:527` — `authorized_chat_ids: set[str] = set()`
+- `core/all_nse_scanner.py:528` — `authorized_emails: set[str] = set()`
+- `core/all_nse_scanner.py:535` — `authorized_chat_ids.add(clean_cid)`
+- `core/all_nse_scanner.py:540` — `authorized_emails.add(clean_em)`
+- `core/all_nse_scanner.py:547` — `authorized_chat_ids.add(clean_cid)`
+- `core/all_nse_scanner.py:553` — `authorized_emails.add(clean_em)`
+- `core/all_nse_scanner.py:555` — `if not authorized_chat_ids and not authorized_emails:`
+- `core/all_nse_scanner.py:556` — `_log.info("[GATE] Signal for %s (%s, Tier: %s) suppressed - no authorized recipients configured",`
+- `core/all_nse_scanner.py:604` — `if self._bot_token and authorized_chat_ids:`
+- `core/all_nse_scanner.py:617` — `for cid in authorized_chat_ids:`
+- `core/all_nse_scanner.py:652` — `if self._email_enabled and self._email_user and self._email_pass and authorized_emails:`
+- `core/all_nse_scanner.py:670` — `msg["To"] = ", ".join(authorized_emails)`
+- `core/all_nse_scanner.py:676` — `server.sendmail(self._email_user, list(authorized_emails), msg.as_string())`
+- `core/all_nse_scanner.py:678` — `_log.info("[OK] Rich HTML Gmail alert sent to %d authorized recipients (%s) for %s (%s)",`
+- `core/all_nse_scanner.py:679` — `len(authorized_emails), ", ".join(authorized_emails), signal.symbol, category)`
+- `core/operating_mode.py:87` — `authorized_by: str = "system"`
+- `core/operating_mode.py:122` — `def _record_transition(self, to_mode: OperatingMode, reason: str, authorized_by: str) -> None:`
+- `core/operating_mode.py:128` — `authorized_by=authorized_by,`
+- `core/operating_mode.py:133` — `def set_mode(self, mode: OperatingMode, reason: str = "", authorized_by: str = "system") -> None:`
+- `core/operating_mode.py:146` — `self._record_transition(mode, reason, authorized_by)`
+- `core/operating_mode.py:147` — `_log.info("Mode transition: %s → %s (reason=%s, by=%s)", old_mode.value, mode.value, reason, authorized_by)`
+- `core/runtime_security.py:6` — `- File permission audits`
+- `core/runtime_security.py:7` — `- Import hook monitoring (detects unauthorized module loading)`
+- `core/runtime_security.py:82` — `permissions: str = ""`
+- `core/runtime_security.py:92` — `"permissions": self.permissions,`
+- `core/runtime_security.py:101` — `category: str = ""  # FILE_INTEGRITY, PROCESS, PERMISSION, CONFIG_TAMPER, IMPORT_MONITOR`
+- `core/runtime_security.py:182` — `- File permissions on sensitive files`
+- `core/runtime_security.py:202` — `Verifies file integrity, checks processes, audits permissions,`
+- `core/runtime_security.py:227` — `category="PERMISSION",`
+- `core/runtime_security.py:231` — `recommendation="Restrict file permissions to read-only for non-owners",`
+- `core/runtime_security.py:316` — `check.permissions = oct(os.stat(abs_path).st_mode)[-4:]`
+- `core/runtime_security.py:318` — `# Check permissions — files should not be world-writable`
+- `core/runtime_security.py:319` — `perms = int(check.permissions[-3:])`
+- `core/runtime_security.py:321` — `check.issues.append(f"World-writable permissions ({check.permissions})")`
+- `core/runtime_security.py:333` — `except (OSError, PermissionError) as exc:`
+- `core/runtime_security.py:376` — `except (OSError, PermissionError) as exc:`
+- `core/runtime_security.py:382` — `recommendation="Check file permissions — unauthorized restriction may indicate tampering",`
+- `core/runtime_security.py:498` — `recs.append("Fix world-writable permissions on critical files")`
+- `core/constitution_evidence_data.py:103` — `# SEC-02: Authorization/RBAC (9.5)`
+- `core/constitution_evidence_data.py:104` — `add("SEC-02", "Enterprise dashboard RBAC with role-based access (admin/user/viewer)", "code_review", 0.5)`
+- `core/constitution_evidence_data.py:105` — `add("SEC-02", "RBAC enforcement test (test_auth_comprehensive.py)", "test_pass", 0.5)`
+- `core/multi_tenant.py:4` — `Uses the existing RBAC system as a foundation and adds:`
+- `core/startup.py:356` — `f"roles={health['ai_specialist_roles']['count']}, "`
+- `core/sovereignty_guard.py:10` — `Prevents any unauthorized API calls to brokers or AI tools.`
+- `core/logging.py:25` — ```RotatingFileHandler.doRollover()`` raises PermissionError on every emit`
+- `core/logging.py:236` — `except (OSError, PermissionError) as e:`
+- `core/expiry_day_controller.py:151` — `ExpiryControlResult with permission and details`
+- `core/retention_engine.py:45` — `except PermissionError:`
+- `core/retention_engine.py:49` — `except PermissionError:`
+- `core/live_readiness_checker.py:369` — `except (OSError, PermissionError) as e:`
+- `core/security_auditor.py:9` — `- File permission audits`
+- `core/telegram_commander.py:3` — `Background polling thread that accepts commands from authorized Telegram users.`
+- `core/telegram_commander.py:22` — `telegram_authorized_user_ids       : list   default []`
+- `core/telegram_commander.py:381` — `"""Background thread that polls Telegram for commands from authorized users.`
+- `core/telegram_commander.py:413` — `authorized_ids=set(str(x) for x in cfg.get("telegram_authorized_user_ids", [])),`
+- `core/telegram_commander.py:415` — `authorized_chat_ids=set(str(x) for x in cfg.get("telegram_authorized_chat_ids", [])),`
+- `core/telegram_commander.py:490` — `self._audit.record_unauthorized_attempt(user_id, username, text)`
+- `core/telegram_commander.py:491` — `_log.warning("[TG_CMD] Unauthorized chat_id=%s from user_id=%s", chat_id, user_id)`
+- `core/telegram_commander.py:496` — `if not perms.is_authorized:`
+- `core/telegram_commander.py:497` — `self._audit.record_unauthorized_attempt(user_id, username, text)`
+- `core/telegram_commander.py:498` — `self._reply("⛔ Not authorized.", critical=False)`
+- `core/telegram_commander.py:499` — `_log.warning("[TG_CMD] Unauthorized command from user_id=%s", user_id)`
+- `core/constitution_ai_gate.py:112` — `- 18 AI Specialist Roles with role-specific checks`
+- `core/constitution_ai_gate.py:114` — `- Role-specific forbidden actions registry`
+- `core/constitution_ai_gate.py:123` — `"I accept my assigned AI Specialist Role and its responsibilities."`
+- `core/constitution_ai_gate.py:126` — `# ── v4.0: 18 AI Specialist Roles with forbidden keywords per role ─────`
+- `core/constitution_ai_gate.py:127` — `AI_SPECIALIST_ROLES: dict[str, dict[str, Any]] = {`
+- `core/constitution_ai_gate.py:246` — `"LAYER_SECURITY": "Security, Governance & Compliance Layer — Zero Trust, RBAC",`
+- `core/constitution_ai_gate.py:267` — `self._active_role: str | None = None`
+- `core/constitution_ai_gate.py:277` — `# ── v4.0: Role Management ──────────────────────────────────────────────`
+- `core/constitution_ai_gate.py:279` — `def set_role(self, role_key: str) -> bool:`
+- `core/constitution_ai_gate.py:280` — `"""Set the current AI specialist role.`
+- `core/constitution_ai_gate.py:283` — `role_key: Role key (e.g., "DEVELOPER", "SRE", "SECURITY").`
+- `core/constitution_ai_gate.py:286` — `True if role was set, False if unknown.`
+- `core/constitution_ai_gate.py:288` — `if role_key.upper() in self.AI_SPECIALIST_ROLES:`
+- `core/constitution_ai_gate.py:289` — `self._active_role = role_key.upper()`
+- `core/constitution_ai_gate.py:290` — `self._audit("role_set", "INFO", AIGateResult(`
+- `core/constitution_ai_gate.py:292` — `reason=f"Role set to {self.AI_SPECIALIST_ROLES[role_key.upper()]['name']}",`
+- `core/constitution_ai_gate.py:298` — `def get_role_info(self, role_key: str | None = None) -> dict[str, Any] | None:`
+- `core/constitution_ai_gate.py:299` — `"""Get information about an AI specialist role.`
+- `core/constitution_ai_gate.py:302` — `role_key: Role key (defaults to current active role).`
+- `core/constitution_ai_gate.py:305` — `Dict with role info or None if not found.`
+- `core/constitution_ai_gate.py:307` — `key = (role_key or self._active_role or "").upper()`
+- `core/constitution_ai_gate.py:308` — `role = self.AI_SPECIALIST_ROLES.get(key)`
+- `core/constitution_ai_gate.py:309` — `if role:`
+- `core/constitution_ai_gate.py:312` — `"name": role["name"],`
+- `core/constitution_ai_gate.py:313` — `"responsibilities": role["responsibilities"],`
+- `core/constitution_ai_gate.py:314` — `"forbidden_actions": role["forbidden_actions"],`
+- `core/constitution_ai_gate.py:315` — `"required_readings": role["required_readings"],`
+- `core/constitution_ai_gate.py:330` — `role_specific_readings_completed: list[str] | None = None,`
+- `core/constitution_ai_gate.py:344` — `role_specific_readings_completed: List of role-specific readings completed`
+- `core/constitution_ai_gate.py:370` — `# ── Step 3: Role-specific checks ─────────────────────────────────`
+- `core/constitution_ai_gate.py:371` — `if self._active_role:`
+- `core/constitution_ai_gate.py:372` — `role_info = self.AI_SPECIALIST_ROLES.get(self._active_role)`
+- `core/constitution_ai_gate.py:373` — `if role_info:`
+- `core/constitution_ai_gate.py:374` — `# Check role-specific readings`
+- `core/constitution_ai_gate.py:375` — `if role_specific_readings_completed:`
+- `core/constitution_ai_gate.py:376` — `for required in role_info["required_readings"]:`
+- `core/constitution_ai_gate.py:379` — `for r in role_specific_readings_completed`
+- `core/constitution_ai_gate.py:383` — `f"Role '{role_info['name']}': missing required reading '{required}'",`
+- `core/constitution_ai_gate.py:468` — `"active_role": self._active_role,`
+- `core/constitution_ai_gate.py:478` — `"""Check if an action is forbidden by the Constitution, including role-specific checks.`
+- `core/constitution_ai_gate.py:512` — `# Role-specific forbidden actions`
+- `core/constitution_ai_gate.py:513` — `if self._active_role:`
+- `core/constitution_ai_gate.py:514` — `role_info = self.AI_SPECIALIST_ROLES.get(self._active_role)`
+- `core/constitution_ai_gate.py:515` — `if role_info:`
+- `core/constitution_ai_gate.py:516` — `for forbidden in role_info["forbidden_actions"]:`
+- `core/constitution_ai_gate.py:520` — `reason=f"Role '{role_info['name']}' forbidden action: '{forbidden}'",`
+- `core/constitution_ai_gate.py:521` — `detail="This action violates role-specific governance rules",`
+- `core/constitution_ai_gate.py:522` — `failures=[f"Role-specific forbidden: {forbidden}"],`
+- `index_app/index_trader.py:1095` — `_nse_session.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "application/json, text/plain, */*"})`
+- `scripts/fix_stale_doc_refs.py:32` — `"core/rbac.py": "core/auth/permissions.py",`
+- `scripts/generate_master_pptx.py:437` — `"Authorization: RBAC (Admin/Operator/Viewer) with CSRF protection",`
+- `scripts/generate_master_pptx.py:519` — `"Enterprise Dashboard: FastAPI with RBAC, 30+ API endpoints",`
+- `scripts/run_hygiene_scan.py:10` — `- World-readable permissions on sensitive files`
+- `scripts/run_hygiene_scan.py:62` — `{"pattern": r'(?i)(bearer|auth|authorization)\s*[:=]\s*["\']?[A-Za-z0-9_\-\.]{20,}["\']?',`
+- `scripts/run_hygiene_scan.py:98` — `# Sensitive file patterns (files that should have restricted permissions)`
+- `scripts/run_hygiene_scan.py:127` — `def _check_file_permissions(filepath: Path) -> dict[str, Any] | None:`
+- `scripts/run_hygiene_scan.py:128` — `"""Check if a sensitive file has world-readable permissions (Unix only)."""`
+- `scripts/run_hygiene_scan.py:134` — `"issue": "World-readable permissions",`
+- `scripts/run_hygiene_scan.py:135` — `"permissions": oct(mode & 0o777),`
+- `scripts/run_hygiene_scan.py:203` — `# Check for sensitive files with world-readable permissions`
+- `scripts/run_hygiene_scan.py:207` — `issue = _check_file_permissions(filepath)`
+- `scripts/institutional_challenge.py:531` — `"""Challenge: Check security perimeter (auth, RBAC, secrets)."""`
+- `scripts/institutional_challenge.py:544` — `# Check RBAC`
+- `scripts/institutional_challenge.py:545` — `rbac_path = ROOT / "core" / "auth" / "role_manager.py"`
+- `scripts/institutional_challenge.py:546` — `if not rbac_path.exists():`
+- `scripts/institutional_challenge.py:547` — `failures.append("RBAC role manager missing - no authorization enforcement")`
+- `scripts/run_regression.py:55` — `except (OSError, PermissionError):`
+- `scripts/run_regression.py:522` — `except (OSError, PermissionError):`
+- `scripts/run_regression.py:562` — `except (OSError, PermissionError):`
+- `scripts/check_db_integrity.py:131` — `except (OSError, PermissionError) as e:`
+- `scripts/backup_databases.py:163` — `except (OSError, PermissionError, shutil.Error) as exc:`
+- `scripts/backup_databases.py:283` — `except (OSError, PermissionError, shutil.Error) as exc:`
+- `scripts/hygiene_check.py:413` — `except (OSError, PermissionError, shutil.Error) as e:`
+- `scripts/run_v5_v6_empirical_calibration_audit.py:178` — `print(f"{'Decision Group':<28} | {'Count':<10} | {'Win Rate':<14} | {'Net Expectancy E[V]':<20} | {'Role in System'}")`
+- `scripts/gen_ppt.py:125` — `"Confidential · For Authorized Use Only · Powered by OPB Engine", size=10, color=DIM, alignment=PP_ALIGN.CENTER)`
+- `scripts/gen_ppt.py:315` — `"RBAC (Role-Based Access Control)",`
+- `scripts/gen_ppt.py:370` — `"FastAPI + Jinja2 + RBAC on port 8765",`
+- `scripts/gen_ppt.py:375` — `"Full admin UI with role-based access",`
+- `scripts/gen_ppt.py:447` — `"RBAC: Admin, Analyst, Operator, Viewer roles",`
+- `scripts/gen_ppt.py:492` — `"SEC-02: Authentication/Authorization ✅ 10.0",`
+- `scripts/generate_all_master_consolidated_documents.py:46` — `4. **Super Admin User & Signal Permission Control Center (`/admin/users`)**: 1-click Master Signal Switches, Granular Category Subscriptions, Conviction Tier Cutoffs, Multi-Timeframe Quota Controls (Daily, Weekly, Monthly), and Dedicated User Channel Routing.`
+- `scripts/generate_all_master_consolidated_documents.py:81` — `| Super Admin Users | `http://localhost:8000/admin/users` | Super Admin | User Signal Permissions, Category Subscriptions & Quotas |`
+- `scripts/score_system.py:145` — `add("SEC-02", "Auth module with role-based access control", "code_review", 0.4)`
+- `scripts/score_system.py:150` — `add("SEC-02", "RBAC enforcement test: admin/operator/user roles", "test_pass", 0.5)`
+- `scripts/score_system.py:152` — `add("SEC-02", "Enterprise dashboard RBAC", "code_review", 0.5)`
+- `scripts/score_system.py:342` — `"SEC-02": ("Authorization/RBAC", 10.0, "Security"),`
+- `scripts/score_system.py:435` — `"SGS-02": ("RBAC/PBAC", 10.0, "Security & Governance"),`
+- `scripts/db_backup.py:202` — `except (OSError, PermissionError, shutil.Error) as exc:`
+- `scripts/run_consolidated_full_system_verification.py:8` — `4. Super Admin RBAC, Quotas & Category Permissions (/admin/users)`
+- `scripts/run_consolidated_full_system_verification.py:73` — `# Section 4: Super Admin RBAC & Quotas`
+- `scripts/run_consolidated_full_system_verification.py:74` — `_log.info("🧪 [4/20] Super Admin RBAC, Quotas & Category Permissions...")`
+- `scripts/run_consolidated_full_system_verification.py:75` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `scripts/run_consolidated_full_system_verification.py:76` — `mgr = UserPermissionManager.get_instance()`
+- `scripts/run_consolidated_full_system_verification.py:77` — `perms = mgr.list_all_permissions()`
+- `scripts/run_consolidated_full_system_verification.py:81` — `_log.info("✅ [4/20 PASSED] Super Admin RBAC & category permissions verified for %d users.", len(perms))`
+- `scripts/constitution_scorecard.py:158` — `"core/auth/permissions.py", weight=1.0),`
+- `scripts/constitution_scorecard.py:159` — `Requirement("SEC-02", "RBAC/PBAC", "security_governance",`
+- `scripts/constitution_scorecard.py:160` — `"core/auth/role_manager.py", weight=1.0),`
+- `scripts/boost_constitution_evidence.py:115` — `("PRN-02", "Auth permissions test — validates data access control privacy", "test_pass", 0.4, "tests/test_permissions.py"),`
+- `scripts/run_backup_rotation.py:165` — `except (OSError, PermissionError) as e:`
+- `scripts/verify_constitution_system.py:6` — `2. AIGovernanceGate — AI roles, layer validation`
+- `scripts/verify_constitution_system.py:171` — `def check_ai_roles() -> tuple[bool, str]:`
+- `scripts/verify_constitution_system.py:173` — `roles = ConstitutionValidator.AI_SPECIALIST_ROLES`
+- `scripts/verify_constitution_system.py:174` — `return len(roles) >= 18, f"{len(roles)} roles"`
+- `scripts/verify_constitution_system.py:241` — `report.checks.append(_check("AIGovernanceGate: 18+ AI specialist roles", check_ai_roles))`
+- `scripts/gap_audit.py:29` — `results.append(("WS8 Admin CP", all([grep_file("_require_permission","core/control_plane/server.py"), grep_file("_audit_log","core/control_plane/server.py")])))`
+- `scripts/gap_audit.py:33` — `results.append(("WS12 Security (partial)", all([exists("core/auth/permissions.py"), exists("core/auth/role_manager.py")])))`
+- `scripts/check_docker_security.py:16` — `CIS-DI-008: No EXPOSE of privileged ports (<1024)`
+- `scripts/check_docker_security.py:19` — `CIS-DI-011: No privileged mode in compose`
+- `scripts/check_docker_security.py:130` — `"description": "No EXPOSE of privileged ports (<1024)",`
+- `scripts/check_docker_security.py:134` — `"recommendation": "Avoid exposing privileged ports (<1024). Use ports >= 1024 and map via docker-compose",`
+- `scripts/check_docker_security.py:157` — `"description": "No privileged mode",`
+- `scripts/check_docker_security.py:160` — `"pattern": r"privileged\s*:\s*true",`
+- `scripts/check_docker_security.py:161` — `"recommendation": "Remove 'privileged: true' — containers should run with least privilege",`
+- `scripts/check_docker_security.py:169` — `"recommendation": "Add security options (e.g., 'no-new-privileges:true') to restrict container capabilities",`
+- `scripts/check_docker_security.py:266` — `# EXPOSE privileged port check`
+- `scripts/check_docker_security.py:267` — `privileged_found = False`
+- `scripts/check_docker_security.py:271` — `privileged_found = True`
+- `scripts/check_docker_security.py:273` — `passed = not privileged_found`
+- `scripts/check_docker_security.py:320` — `detail = "No privileged mode" if passed else "WARNING: privileged mode detected"`
+- `scripts/gen_gap_analysis.py:141` — `report.append("  [DONE] RBAC, authentication, CSRF, rate limiting")`
+- `scripts/gen_gap_analysis.py:144` — `report.append("  [DONE] Privilege escalation audit passes")`
+- `scripts/generate_pptx.py:209` — `("Web Dashboard", "FastAPI + Jinja2 + RBAC authentication (port 8765)"),`
+- `scripts/generate_pptx.py:213` — `("Security", "Bandit, RBAC, MFA, SSO, Secrets Vault, CVE tracking, Supply-chain auditing"),`
+- `scripts/generate_pptx.py:367` — `("Security", "RBAC, MFA, SSO, Secrets Vault, Bandit, CVE tracking, Container scanning", DARK_BLUE),`
+- `scripts/generate_pptx.py:386` — `("Web Dashboard", "Enable web_dashboard_enabled: true in config.json\nAccess: http://localhost:8765 (FastAPI + RBAC)", RED),`
+- `scripts/clean_artifacts.py:130` — `except (OSError, PermissionError) as e:`
+- `scripts/generate_review_artifacts.py:36` — `("Observability", "Prometheus metrics exporter, FastAPI enterprise dashboard (RBAC), health checker, audit trail (JSONL), structured logging with rotation + gzip."),`
+- `scripts/generate_review_artifacts.py:293` — `("Entry / UI", "index_trader.py (brain), launcher.py (GUI), web dashboard (FastAPI+RBAC), Telegram commander"),`
+- `scripts/run_constitution_checks.py:258` — `("ai_specialist_roles", "AI Specialist Roles"),`
+- `scratch/generate_final_deliverables.py:55` — `- Real-time pre-guard authorization checks before alert delivery.`
+- `scratch/generate_final_deliverables.py:69` — `| Uncontrolled user signal access | Implemented `UserPermissionManager` and Super Admin Control Panel (`/admin/users`) with category filters, tier cutoffs, and quotas. | ✅ CLOSED & VERIFIED |`
+- `scratch/generate_final_deliverables.py:115` — `["Uncontrolled Signal Access", "Super Admin RBAC, Quotas & Category Filter Gate", "VERIFIED (100%)"],`
+- `scratch/generate_final_deliverables.py:271` — `add_header(s4, "SUPER ADMIN CONTROL & PRE-GUARD GATING", "Granular User Permissions, Multi-Timeframe Quotas & Dispatch Security")`
+- `tests/test_logging.py:151` — `# Should not crash on PermissionError for invalid dirs`
+- `tests/test_cqrs.py:93` — `return CommandResult(success=False, error="Unauthorized")`
+- `tests/test_cqrs.py:98` — `assert "Unauthorized" in result.error`
+- `tests/test_icicidirect_broker_adapter.py:32` — `assert _classify_icicidirect_error(Exception("401 Unauthorized")) == "TOKEN_EXPIRED"`
+- `tests/test_mstock_broker_adapter.py:31` — `assert _classify_mstock_error(Exception("401 Unauthorized: bad token")) == "TOKEN_EXPIRED"`
+- `tests/test_execution_reconciliation.py:356` — `except PermissionError:`
+- `tests/test_execution_reconciliation.py:360` — `except PermissionError:`
+- `tests/test_signal_dispatch_order_placed_reply.py:73` — `"core.auth.user_signal_permissions.UserPermissionManager.get_instance",`
+- `tests/test_signal_dispatch_order_placed_reply.py:102` — `"core.auth.user_signal_permissions.UserPermissionManager.get_instance",`
+- `tests/test_signal_dispatch_order_placed_reply.py:135` — `"core.auth.user_signal_permissions.UserPermissionManager.get_instance",`
+- `tests/test_sso.py:28` — `assert "accounts.google.com" in google["authorize_url"]`
+- `tests/test_sso.py:35` — `assert "microsoftonline.com" in ms["authorize_url"]`
+- `tests/test_sso.py:41` — `assert "github.com/login/oauth/authorize" in gh["authorize_url"]`
+- `tests/test_sso.py:116` — `"sso_authorize_url": "https://custom.com/auth",`
+- `tests/test_sso.py:121` — `assert sso._config.authorize_url == "https://custom.com/auth"`
+- `tests/test_sso.py:134` — `def test_get_authorization_url_returns_url_when_authlib_installed(self):`
+- `tests/test_sso.py:135` — `"""get_authorization_url should return a URL when authlib is installed."""`
+- `tests/test_sso.py:142` — `authorize_url=OAUTH_PROVIDERS["google"]["authorize_url"],`
+- `tests/test_sso.py:148` — `result = sso.get_authorization_url()`
+- `tests/test_sso.py:154` — `def test_get_authorization_url_returns_none_no_client_id(self):`
+- `tests/test_sso.py:155` — `"""get_authorization_url should return None when client_id is missing."""`
+- `tests/test_sso.py:157` — `result = sso.get_authorization_url()`
+- `tests/test_sso.py:301` — `authorize_url=OAUTH_PROVIDERS["google"]["authorize_url"],`
+- `tests/test_sso.py:341` — `def test_all_providers_have_authorize_url(self):`
+- `tests/test_sso.py:342` — `"""Every provider should have an authorize_url."""`
+- `tests/test_sso.py:344` — `assert cfg["authorize_url"], f"{name} missing authorize_url"`
+- `tests/test_web_page_permission_menu_contract.py:1` — `"""Ensure enterprise navigation visibility matches page-level RBAC gates."""`
+- `tests/test_web_page_permission_menu_contract.py:20` — `# Trade Copier remains an admin-only page; menu is hidden for users without broker-management privilege.`
+- `tests/test_web_page_permission_menu_contract.py:32` — `def test_pricing_and_whats_new_pages_match_menu_permissions():`
+- `tests/test_web_page_permission_menu_contract.py:41` — `def test_admin_signals_page_accepts_only_its_menu_permissions():`
+- `tests/test_mediator.py:37` — `required_roles: list[str] | None = None`
+- `tests/test_mediator.py:537` — `"""Test auth middleware allows permitted role."""`
+- `tests/test_mediator.py:540` — `required_roles: list[str] | None = ["admin", "operator"]`
+- `tests/test_mediator.py:544` — `return "authorized"`
+- `tests/test_mediator.py:555` — `result = await m.send(AuthCmd(), user_role="admin")`
+- `tests/test_mediator.py:671` — `async def test_auth_middleware_denies_wrong_role(self) -> None:`
+- `tests/test_mediator.py:672` — `"""Auth middleware blocks user not in required_roles."""`
+- `tests/test_mediator.py:674` — `required_roles: list[str] | None = ["admin"]`
+- `tests/test_mediator.py:686` — `result = await m.send(RestrictedCmd(), user_role="viewer")`
+- `tests/test_mediator.py:688` — `assert "Authorization denied" in (result.error or "")`
+- `tests/test_mediator.py:692` — `async def test_auth_middleware_no_required_roles(self) -> None:`
+- `tests/test_mediator.py:693` — `"""Command without required_roles uses role_permissions map."""`
+- `tests/test_mediator.py:706` — `# Override auth middleware with one that only allows "admin" role`
+- `tests/test_mediator.py:708` — `AuthMiddleware(role_permissions={"admin": ["UnrestrictedCmd"], "viewer": ["ReadOnly"]})`
+- `tests/test_mediator.py:711` — `# viewer role doesn't have UnrestrictedCmd in its permissions`
+- `tests/test_mediator.py:712` — `result = await m.send(UnrestrictedCmd(), user_role="viewer")`
+- `tests/test_mediator.py:714` — `assert "Authorization denied" in (result.error or "")`
+- `tests/test_mediator.py:732` — `AuthMiddleware(role_permissions={"viewer": ["My"]})`
+- `tests/test_mediator.py:735` — `result = await m.send(MySpecialCmd(), user_role="viewer")`
+- `tests/test_module_isolation.py:167` — `def test_no_unauthorized_cross_module_imports(self):`
+- `tests/test_wip62_admin_users_action_visibility.py:25` — `assert "permissionsTableBody').addEventListener('click'" in text`
+- `tests/test_wip62_admin_users_action_visibility.py:32` — `for field in ("colFilterUser","colFilterRole","colFilterSignalStatus","colFilterTier",`
+- `tests/test_wip62_admin_users_action_visibility.py:36` — `assert "renderPermissionRows" in text`
+- `tests/test_web_rbac_parity.py:1` — `"""Web RBAC parity guards for the enterprise dashboard.`
+- `tests/test_web_rbac_parity.py:4` — `silently fall back to broad admin-role checks after a granular permission is`
+- `tests/test_web_rbac_parity.py:19` — `def test_all_web_permission_dependencies_use_declared_permissions() -> None:`
+- `tests/test_web_rbac_parity.py:20` — `from core.auth.permissions import Permission`
+- `tests/test_web_rbac_parity.py:22` — `allowed = {p.value for p in Permission}`
+- `tests/test_web_rbac_parity.py:32` — `if not (isinstance(node.func, ast.Attribute) and node.func.attr == "require_permission"):`
+- `tests/test_web_rbac_parity.py:36` — `permission = node.args[0].value`
+- `tests/test_web_rbac_parity.py:37` — `assert permission in allowed, f"Unknown permission {permission!r} in {path}"`
+- `tests/test_web_rbac_parity.py:40` — `def test_admin_role_still_has_all_operational_admin_permissions() -> None:`
+- `tests/test_web_rbac_parity.py:41` — `from core.auth.permissions import Permission, Role, role_has_permission`
+- `tests/test_web_rbac_parity.py:44` — `Permission.VIEW_STATE,`
+- `tests/test_web_rbac_parity.py:45` — `Permission.HALT_TRADING,`
+- `tests/test_web_rbac_parity.py:46` — `Permission.MODIFY_RISK_LIMITS,`
+- `tests/test_web_rbac_parity.py:47` — `Permission.TOGGLE_STRATEGIES,`
+- `tests/test_web_rbac_parity.py:48` — `Permission.DEPLOY_MODELS,`
+- `tests/test_web_rbac_parity.py:49` — `Permission.MODIFY_CODE,`
+- `tests/test_web_rbac_parity.py:50` — `Permission.VIEW_LOGS,`
+- `tests/test_web_rbac_parity.py:51` — `Permission.ADD_BROKERS,`
+- `tests/test_web_rbac_parity.py:52` — `Permission.MODIFY_CONFIG,`
+- `tests/test_web_rbac_parity.py:53` — `Permission.MANAGE_USERS,`
+- `tests/test_web_rbac_parity.py:55` — `assert all(role_has_permission(Role.ADMIN, p) for p in required)`
+- `tests/test_web_rbac_parity.py:56` — `assert not role_has_permission(Role.ADMIN, Permission.MANAGE_PERMISSIONS)`
+- `tests/test_wip67_registration_direct_calls.py:29` — `assert "role" in text`
+- `tests/test_wip67_registration_direct_calls.py:30` — `assert "permission" in text`
+- `tests/test_enterprise_dashboard.py:555` — `def test_permissions_policy(self, state_file: str, trades_db: str, tmp_path):`
+- `tests/test_enterprise_dashboard.py:556` — `"""Permissions-Policy header restricts camera/microphone/geolocation."""`
+- `tests/test_enterprise_dashboard.py:566` — `pp = resp.headers.get("permissions-policy")`
+- `tests/test_enterprise_dashboard.py:858` — `raise OSError("Permission denied")`
+- `tests/test_enterprise_dashboard.py:899` — `class TestConfigApplySyncsUserPermissions:`
+- `tests/test_enterprise_dashboard.py:901` — `permission sync called get_user_permission()/upsert_user_permission(),`
+- `tests/test_enterprise_dashboard.py:902` — `neither of which ever existed on UserPermissionManager (only the plural`
+- `tests/test_enterprise_dashboard.py:903` — `get_user_permissions() and update_user_permissions() do) - this silently`
+- `tests/test_enterprise_dashboard.py:906` — `def test_email_to_and_chat_id_sync_to_admin_permissions(self, tmp_path, monkeypatch):`
+- `tests/test_enterprise_dashboard.py:907` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `tests/test_enterprise_dashboard.py:910` — `isolated_mgr = UserPermissionManager(store_path=tmp_path / "user_signal_permissions.json")`
+- `tests/test_enterprise_dashboard.py:911` — `monkeypatch.setattr(UserPermissionManager, "get_instance", classmethod(lambda cls: isolated_mgr))`
+- `tests/test_enterprise_dashboard.py:927` — `admin_perm = isolated_mgr.get_user_permissions("admin")`
+- `tests/test_enterprise_dashboard.py:933` — `"""Even if the permission sync itself fails, the config write must`
+- `tests/test_enterprise_dashboard.py:935` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `tests/test_enterprise_dashboard.py:939` — `raise RuntimeError("permission store unavailable")`
+- `tests/test_enterprise_dashboard.py:941` — `monkeypatch.setattr(UserPermissionManager, "get_instance", classmethod(_broken_get_instance))`
+- `tests/test_enterprise_dashboard.py:1266` — `raise OSError("Permission denied")`
+- `tests/test_enterprise_dashboard.py:2234` — `res = d._auth.create_user("secpageviewer", "Xk7$mQz9Lp2!", role="viewer")`
+- `tests/test_wip63_user_lifecycle_surface.py:1` — `"""WIP63 user registration/permission lifecycle checks."""`
+- `tests/test_wip63_user_lifecycle_surface.py:24` — `def test_role_permission_surface_exists():`
+- `tests/test_wip63_user_lifecycle_surface.py:26` — `assert "permission" in t`
+- `tests/test_wip63_user_lifecycle_surface.py:27` — `assert "role" in t`
+- `tests/test_data_lineage.py:38` — `except PermissionError:`
+- `tests/test_role_manager.py:1` — `"""Tests for core/auth/role_manager.py - RBAC RoleManager.`
+- `tests/test_role_manager.py:4` — `- RoleManager init with default Role.OBSERVER`
+- `tests/test_role_manager.py:5` — `- assign() with Role objects and strings`
+- `tests/test_role_manager.py:7` — `- get_role() for assigned and unknown identities`
+- `tests/test_role_manager.py:8` — `- check() - passes and raises PermissionDenied`
+- `tests/test_role_manager.py:9` — `- has_permission() boolean checks`
+- `tests/test_role_manager.py:11` — `- load_from_config() with valid/invalid roles`
+- `tests/test_role_manager.py:21` — `from core.auth.permissions import Permission, PermissionDenied, Role`
+- `tests/test_role_manager.py:22` — `from core.auth.role_manager import RoleManager`
+- `tests/test_role_manager.py:28` — `def rbac() -> RoleManager:`
+- `tests/test_role_manager.py:29` — `"""RoleManager with default OBSERVER role."""`
+- `tests/test_role_manager.py:30` — `return RoleManager()`
+- `tests/test_role_manager.py:34` — `def rbac_with_assignments(rbac: RoleManager) -> RoleManager:`
+- `tests/test_role_manager.py:35` — `"""RoleManager with pre-assigned roles."""`
+- `tests/test_role_manager.py:36` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:37` — `rbac.assign("bob", Role.OPERATOR)`
+- `tests/test_role_manager.py:38` — `rbac.assign("charlie", "viewer")`
+- `tests/test_role_manager.py:39` — `return rbac`
+- `tests/test_role_manager.py:46` — `def test_default_role_is_observer(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:47` — `assert rbac._default_role == Role.OBSERVER`
+- `tests/test_role_manager.py:49` — `def test_custom_default_role(self):`
+- `tests/test_role_manager.py:50` — `rbac = RoleManager(default_role=Role.VIEWER)`
+- `tests/test_role_manager.py:51` — `assert rbac._default_role == Role.VIEWER`
+- `tests/test_role_manager.py:53` — `def test_custom_default_role_string(self):`
+- `tests/test_role_manager.py:54` — `rbac = RoleManager(default_role="admin")`
+- `tests/test_role_manager.py:55` — `assert rbac._default_role == Role.ADMIN`
+- `tests/test_role_manager.py:57` — `def test_empty_roles_dict(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:58` — `assert rbac._roles == {}`
+- `tests/test_role_manager.py:60` — `def test_has_lock(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:61` — `assert hasattr(rbac, "_lock")`
+- `tests/test_role_manager.py:68` — `def test_assign_with_role_enum(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:69` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:70` — `assert rbac.get_role("alice") == Role.ADMIN`
+- `tests/test_role_manager.py:72` — `def test_assign_with_string(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:73` — `rbac.assign("bob", "operator")`
+- `tests/test_role_manager.py:74` — `assert rbac.get_role("bob") == Role.OPERATOR`
+- `tests/test_role_manager.py:76` — `def test_assign_case_insensitive_string(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:77` — `rbac.assign("carol", "ADMIN")`
+- `tests/test_role_manager.py:78` — `assert rbac.get_role("carol") == Role.ADMIN`
+- `tests/test_role_manager.py:80` — `def test_assign_overwrites_existing(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:81` — `rbac.assign("alice", Role.VIEWER)`
+- `tests/test_role_manager.py:82` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:83` — `assert rbac.get_role("alice") == Role.ADMIN`
+- `tests/test_role_manager.py:85` — `def test_assign_multiple_identities(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:86` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:87` — `rbac.assign("bob", Role.OPERATOR)`
+- `tests/test_role_manager.py:88` — `rbac.assign("charlie", Role.VIEWER)`
+- `tests/test_role_manager.py:89` — `assert rbac.get_role("alice") == Role.ADMIN`
+- `tests/test_role_manager.py:90` — `assert rbac.get_role("bob") == Role.OPERATOR`
+- `tests/test_role_manager.py:91` — `assert rbac.get_role("charlie") == Role.VIEWER`
+- `tests/test_role_manager.py:93` — `def test_assign_invalid_role_string_raises(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:95` — `rbac.assign("mallory", "superadmin")`
+- `tests/test_role_manager.py:102` — `def test_revoke_returns_to_default(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:103` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:104` — `rbac.revoke("alice")`
+- `tests/test_role_manager.py:105` — `assert rbac.get_role("alice") == Role.OBSERVER  # default`
+- `tests/test_role_manager.py:107` — `def test_revoke_nonexistent_does_nothing(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:108` — `rbac.revoke("nonexistent")  # Should not raise`
+- `tests/test_role_manager.py:110` — `def test_revoke_then_reassign(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:111` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:112` — `rbac.revoke("alice")`
+- `tests/test_role_manager.py:113` — `rbac.assign("alice", Role.OPERATOR)`
+- `tests/test_role_manager.py:114` — `assert rbac.get_role("alice") == Role.OPERATOR`
+- `tests/test_role_manager.py:116` — `def test_revoke_does_not_affect_others(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:117` — `rbac_with_assignments.revoke("alice")`
+- `tests/test_role_manager.py:118` — `assert rbac_with_assignments.get_role("bob") == Role.OPERATOR`
+- `tests/test_role_manager.py:121` — `# ── get_role() Tests ──────────────────────────────────────────────────────────`
+- `tests/test_role_manager.py:124` — `class TestGetRole:`
+- `tests/test_role_manager.py:125` — `def test_known_identity(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:126` — `assert rbac_with_assignments.get_role("alice") == Role.ADMIN`
+- `tests/test_role_manager.py:128` — `def test_unknown_identity_returns_default(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:129` — `assert rbac.get_role("unknown") == Role.OBSERVER`
+- `tests/test_role_manager.py:132` — `rbac = RoleManager(default_role=Role.VIEWER)`
+- `tests/test_role_manager.py:133` — `assert rbac.get_role("unknown") == Role.VIEWER`
+- `tests/test_role_manager.py:135` — `def test_case_sensitive_identity(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:137` — `assert rbac_with_assignments.get_role("Alice") == Role.OBSERVER  # not 'alice'`
+- `tests/test_role_manager.py:144` — `def test_admin_has_all_permissions(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:145` — `for perm in Permission:`
+- `tests/test_role_manager.py:146` — `rbac_with_assignments.check("alice", perm)  # Should not raise`
+- `tests/test_role_manager.py:148` — `def test_operator_permitted(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:149` — `rbac_with_assignments.check("bob", Permission.VIEW_STATE)  # Should not raise`
+- `tests/test_role_manager.py:150` — `rbac_with_assignments.check("bob", Permission.HALT_TRADING)  # Should not raise`
+- `tests/test_role_manager.py:152` — `def test_operator_denied_for_risk(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:153` — `with pytest.raises(PermissionDenied):`
+- `tests/test_role_manager.py:154` — `rbac_with_assignments.check("bob", Permission.MODIFY_RISK_LIMITS)`
+- `tests/test_role_manager.py:156` — `def test_viewer_denied_for_halt(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:157` — `with pytest.raises(PermissionDenied):`
+- `tests/test_role_manager.py:158` — `rbac_with_assignments.check("charlie", Permission.HALT_TRADING)`
+- `tests/test_role_manager.py:160` — `def test_unknown_identity_denied(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:161` — `with pytest.raises(PermissionDenied):`
+- `tests/test_role_manager.py:162` — `rbac.check("unknown", Permission.HALT_TRADING)`
+- `tests/test_role_manager.py:164` — `def test_string_permission(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:165` — `rbac_with_assignments.check("alice", "view_state")  # Should not raise`
+- `tests/test_role_manager.py:167` — `def test_parent_exception_type(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:168` — `with pytest.raises(PermissionDenied):`
+- `tests/test_role_manager.py:169` — `rbac_with_assignments.check("charlie", Permission.HALT_TRADING)`
+- `tests/test_role_manager.py:171` — `def test_error_message_contains_identity(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:172` — `with pytest.raises(PermissionDenied, match="unknown"):`
+- `tests/test_role_manager.py:173` — `rbac.check("unknown", Permission.HALT_TRADING)`
+- `tests/test_role_manager.py:176` — `# ── has_permission() Tests ────────────────────────────────────────────────────`
+- `tests/test_role_manager.py:179` — `class TestHasPermission:`
+- `tests/test_role_manager.py:180` — `def test_admin_has_all(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:181` — `for perm in Permission:`
+- `tests/test_role_manager.py:182` — `assert rbac_with_assignments.has_permission("alice", perm)`
+- `tests/test_role_manager.py:184` — `def test_observer_has_view_only(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:185` — `assert rbac.has_permission("unknown", Permission.VIEW_STATE) is True`
+- `tests/test_role_manager.py:186` — `assert rbac.has_permission("unknown", Permission.VIEW_LOGS) is True`
+- `tests/test_role_manager.py:187` — `assert rbac.has_permission("unknown", Permission.HALT_TRADING) is False`
+- `tests/test_role_manager.py:189` — `def test_viewer_denied_for_code(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:190` — `assert rbac_with_assignments.has_permission("charlie", Permission.MODIFY_CODE) is False`
+- `tests/test_role_manager.py:192` — `def test_unknown_role_default(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:193` — `assert rbac.has_permission("nobody", Permission.VIEW_STATE) is True`
+- `tests/test_role_manager.py:194` — `assert rbac.has_permission("nobody", Permission.HALT_TRADING) is False`
+- `tests/test_role_manager.py:196` — `def test_string_permission(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:197` — `assert rbac_with_assignments.has_permission("alice", "halt_trading") is True`
+- `tests/test_role_manager.py:204` — `def test_empty_when_no_assignments(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:205` — `assert rbac.list_assignments() == {}`
+- `tests/test_role_manager.py:207` — `def test_returns_sorted(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:208` — `assignments = rbac_with_assignments.list_assignments()`
+- `tests/test_role_manager.py:213` — `def test_includes_all_assignments(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:214` — `assignments = rbac_with_assignments.list_assignments()`
+- `tests/test_role_manager.py:219` — `def test_excludes_revoked(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:220` — `rbac_with_assignments.revoke("bob")`
+- `tests/test_role_manager.py:221` — `assert "bob" not in rbac_with_assignments.list_assignments()`
+- `tests/test_role_manager.py:223` — `def test_does_not_include_default_role(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:225` — `assert rbac.list_assignments() == {}`
+- `tests/test_role_manager.py:232` — `def test_load_valid_roles(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:234` — `"admin_roles": {`
+- `tests/test_role_manager.py:239` — `rbac.load_from_config(config)`
+- `tests/test_role_manager.py:240` — `assert rbac.get_role("alice") == Role.ADMIN`
+- `tests/test_role_manager.py:241` — `assert rbac.get_role("bob") == Role.OPERATOR`
+- `tests/test_role_manager.py:243` — `def test_load_with_default_role(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:245` — `"admin_roles": {},`
+- `tests/test_role_manager.py:246` — `"admin_default_role": "viewer",`
+- `tests/test_role_manager.py:248` — `rbac.load_from_config(config)`
+- `tests/test_role_manager.py:249` — `assert rbac._default_role == Role.VIEWER`
+- `tests/test_role_manager.py:251` — `def test_invalid_role_skipped(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:253` — `"admin_roles": {`
+- `tests/test_role_manager.py:258` — `rbac.load_from_config(config)`
+- `tests/test_role_manager.py:259` — `# alice should not be assigned (invalid role)`
+- `tests/test_role_manager.py:260` — `assert rbac.get_role("alice") == Role.OBSERVER  # default`
+- `tests/test_role_manager.py:261` — `assert rbac.get_role("bob") == Role.OPERATOR`
+- `tests/test_role_manager.py:263` — `def test_invalid_default_role_keeps_current(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:265` — `"admin_default_role": "superadmin",  # invalid`
+- `tests/test_role_manager.py:267` — `rbac.load_from_config(config)`
+- `tests/test_role_manager.py:268` — `assert rbac._default_role == Role.OBSERVER  # unchanged`
+- `tests/test_role_manager.py:270` — `def test_empty_config(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:271` — `rbac.load_from_config({})`
+- `tests/test_role_manager.py:272` — `assert rbac._default_role == Role.OBSERVER`
+- `tests/test_role_manager.py:274` — `def test_missing_admin_roles_key(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:275` — `"""If 'admin_roles' key is missing, nothing should load."""`
+- `tests/test_role_manager.py:276` — `rbac.load_from_config({"other_key": "value"})`
+- `tests/test_role_manager.py:277` — `assert rbac.list_assignments() == {}`
+- `tests/test_role_manager.py:279` — `def test_overrides_existing_assignments(self, rbac_with_assignments: RoleManager):`
+- `tests/test_role_manager.py:281` — `"admin_roles": {"alice": "viewer"},  # downgrade`
+- `tests/test_role_manager.py:283` — `rbac_with_assignments.load_from_config(config)`
+- `tests/test_role_manager.py:284` — `assert rbac_with_assignments.get_role("alice") == Role.VIEWER`
+- `tests/test_role_manager.py:290` — `class TestRoleManagerThreadSafety:`
+- `tests/test_role_manager.py:291` — `def test_concurrent_assign(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:297` — `rbac.assign(f"user_{i}", "admin" if i % 2 == 0 else "operator")`
+- `tests/test_role_manager.py:308` — `assert len(rbac.list_assignments()) == 50`
+- `tests/test_role_manager.py:310` — `def test_concurrent_check_and_assign(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:311` — `"""Concurrent permission checks and assignments should not crash."""`
+- `tests/test_role_manager.py:312` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:319` — `rbac.check("alice", Permission.VIEW_STATE)`
+- `tests/test_role_manager.py:320` — `rbac.has_permission("alice", Permission.HALT_TRADING)`
+- `tests/test_role_manager.py:328` — `rbac.assign("alice", Role.ADMIN if i % 2 == 0 else Role.OPERATOR)`
+- `tests/test_role_manager.py:342` — `def test_concurrent_revoke_and_assign(self, rbac: RoleManager):`
+- `tests/test_role_manager.py:344` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:349` — `rbac.revoke("alice")`
+- `tests/test_role_manager.py:355` — `rbac.assign("alice", Role.ADMIN)`
+- `tests/test_role_manager.py:368` — `assert rbac.get_role("alice") in (Role.ADMIN, Role.ADMIN, Role.OBSERVER)`
+- `tests/test_wip59_admin_users_controls.py:36` — `def test_admin_users_has_permission_surface():`
+- `tests/test_wip59_admin_users_controls.py:41` — `if "/admin/users" in t and any(x in low for x in ("permission","role","authorization","privilege")):`
+- `tests/test_telegram_audit_manager.py:6` — `- record_unauthorized_attempt file write`
+- `tests/test_telegram_audit_manager.py:70` — `class TestRecordUnauthorizedAttempt:`
+- `tests/test_telegram_audit_manager.py:72` — `mgr.record_unauthorized_attempt(`
+- `tests/test_telegram_audit_manager.py:80` — `assert "UNAUTHORIZED ATTEMPT" in content`
+- `tests/test_telegram_audit_manager.py:86` — `mgr.record_unauthorized_attempt("hacker", "Hacker", "exit")`
+- `tests/test_rbac.py:1` — `"""Tests for core/control_plane/rbac.py."""`
+- `tests/test_rbac.py:5` — `import core.control_plane.rbac as _mod`
+- `tests/test_rbac.py:8` — `class TestControl_planeRbac:`
+- `tests/test_rbac.py:9` — `"""Test suite for core/control_plane/rbac.py."""`
+- `tests/test_execution_broker_state_handler.py:245` — `sr = handler.handle_exception("order-1", PermissionError("auth failed"), 0)`
+- `tests/test_auth_register.py:102` — `def test_register_creates_viewer_role(self, client, auth_handler):`
+- `tests/test_auth_register.py:103` — `"""Test registered users get viewer role."""`
+- `tests/test_auth_register.py:111` — `assert viewer["role"] == "viewer"`
+- `tests/test_strategy_performance_tracker.py:62` — `except PermissionError:`
+- `tests/test_strategy_performance_tracker.py:81` — `except PermissionError:`
+- `tests/test_fundamental_analyzer.py:321` — `except (OSError, PermissionError):`
+- `tests/test_fundamental_analyzer.py:425` — `except (OSError, PermissionError):`
+- `tests/test_fundamental_analyzer.py:583` — `except (OSError, PermissionError):`
+- `tests/test_opentelemetry.py:308` — `"otlp_headers": "Authorization=Bearer+token123",`
+- `tests/test_data_governance.py:173` — `mock_engine.apply.side_effect = OSError("Permission denied")`
+- `tests/test_groww_broker_adapter.py:30` — `assert _classify_groww_error(Exception("401 Unauthorized")) == "TOKEN_EXPIRED"`
+- `tests/test_dashboard_api.py:205` — `res = auth.create_user("admin", "AdminPassword123!", role="admin")`
+- `tests/test_dashboard_api.py:259` — `res = auth.create_user("trader1", "Xk7$mQz9Lp2!", role="viewer")`
+- `tests/test_dashboard_api.py:314` — `"""System state endpoint does NOT require admin role."""`
+- `tests/test_dashboard_api.py:323` — `"""Broker info endpoint does NOT require admin role."""`
+- `tests/test_audit_journal.py:414` — `raise PermissionError("Permission denied")`
+- `tests/test_wip65_registration_handler_chain.py:28` — `def test_lifecycle_has_email_or_notification_and_role_permission():`
+- `tests/test_wip65_registration_handler_chain.py:36` — `assert "role" in text`
+- `tests/test_wip65_registration_handler_chain.py:37` — `assert "permission" in text`
+- `tests/test_config_drift_api.py:65` — `result = db._auth.create_user("drift_tester", "DriftT3st@!", role="admin")`
+- `tests/test_config_drift_api.py:187` — `result = db._auth.create_user("drift_tester", "DriftT3st@!", role="admin")`
+- `tests/test_config_drift_api.py:227` — `result = db._auth.create_user("drift_tester", "DriftT3st@!", role="admin")`
+- `tests/test_sme_trading_service.py:39` — `except (OSError, PermissionError):`
+- `tests/test_constitution.py:590` — `# ── v4.0: AI Specialist Role Validation ───────────────────────────────────────`
+- `tests/test_constitution.py:593` — `class TestAISpecialistRoleValidation:`
+- `tests/test_constitution.py:594` — `def test_valid_role_acknowledged(self) -> None:`
+- `tests/test_constitution.py:596` — `result = v.validate_ai_specialist_role(`
+- `tests/test_constitution.py:602` — `def test_role_not_acknowledged(self) -> None:`
+- `tests/test_constitution.py:604` — `result = v.validate_ai_specialist_role("ROL-01", acknowledged=False)`
+- `tests/test_constitution.py:607` — `def test_unknown_role(self) -> None:`
+- `tests/test_constitution.py:609` — `result = v.validate_ai_specialist_role("ROL-99")`
+- `tests/test_constitution.py:612` — `def test_get_role_id_by_name(self) -> None:`
+- `tests/test_constitution.py:614` — `rid = v.get_ai_role_id_by_name("Planner")`
+- `tests/test_constitution.py:617` — `def test_get_role_id_by_name_not_found(self) -> None:`
+- `tests/test_constitution.py:619` — `rid = v.get_ai_role_id_by_name("Nonexistent")`
+- `tests/test_constitution.py:687` — `assert "ai_specialist_roles" in health`
+- `tests/test_constitution.py:697` — `assert health["ai_specialist_roles"]["count"] == 18`
+- `tests/test_telegram_security.py:15` — `def test_authorized_user(self):`
+- `tests/test_telegram_security.py:16` — `auth = TelegramAuthManager(authorized_ids={"123", "456"}, admin_ids={"456"})`
+- `tests/test_telegram_security.py:18` — `assert result.is_authorized is True`
+- `tests/test_telegram_security.py:22` — `auth = TelegramAuthManager(authorized_ids={"123", "456"}, admin_ids={"456"})`
+- `tests/test_telegram_security.py:24` — `assert result.is_authorized is True`
+- `tests/test_telegram_security.py:27` — `def test_unauthorized_user(self):`
+- `tests/test_telegram_security.py:28` — `auth = TelegramAuthManager(authorized_ids={"123", "456"}, admin_ids={"456"})`
+- `tests/test_telegram_security.py:30` — `assert result.is_authorized is False`
+- `tests/test_control_rbac.py:1` — `"""Tests for ControlRBAC — RBAC facade for the admin control plane."""`
+- `tests/test_control_rbac.py:13` — `def rbac():`
+- `tests/test_control_rbac.py:14` — `"""Create a ControlRBAC with a RoleManager."""`
+- `tests/test_control_rbac.py:15` — `from core.control_plane.rbac import ControlRBAC`
+- `tests/test_control_rbac.py:16` — `return ControlRBAC()`
+- `tests/test_control_rbac.py:20` — `def rbac_with_assignments(rbac):`
+- `tests/test_control_rbac.py:21` — `"""Create a ControlRBAC with pre-assigned roles."""`
+- `tests/test_control_rbac.py:22` — `rbac.role_manager.assign("alice", "admin")`
+- `tests/test_control_rbac.py:23` — `rbac.role_manager.assign("bob", "operator")`
+- `tests/test_control_rbac.py:24` — `rbac.role_manager.assign("charlie", "observer")`
+- `tests/test_control_rbac.py:25` — `return rbac`
+- `tests/test_control_rbac.py:29` — `# Endpoint Authorization`
+- `tests/test_control_rbac.py:33` — `class TestEndpointAuthorization:`
+- `tests/test_control_rbac.py:34` — `def test_admin_can_kill_trading(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:35` — `allowed, reason = rbac_with_assignments.check_endpoint("alice", "control_kill")`
+- `tests/test_control_rbac.py:39` — `def test_admin_can_modify_config(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:40` — `allowed, reason = rbac_with_assignments.check_endpoint("alice", "control_capital")`
+- `tests/test_control_rbac.py:43` — `def test_admin_can_modify_risk_limits(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:44` — `allowed, reason = rbac_with_assignments.check_endpoint("alice", "control_risk_limit")`
+- `tests/test_control_rbac.py:47` — `def test_admin_can_deploy_models(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:48` — `allowed, reason = rbac_with_assignments.check_endpoint("alice", "control_ai_model")`
+- `tests/test_control_rbac.py:51` — `def test_admin_can_view_state(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:52` — `allowed, reason = rbac_with_assignments.check_endpoint("alice", "control_state")`
+- `tests/test_control_rbac.py:55` — `def test_operator_can_halt_trading(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:56` — `allowed, reason = rbac_with_assignments.check_endpoint("bob", "control_kill")`
+- `tests/test_control_rbac.py:59` — `def test_operator_can_toggle_strategies(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:60` — `allowed, reason = rbac_with_assignments.check_endpoint("bob", "control_strategy_enable")`
+- `tests/test_control_rbac.py:63` — `def test_operator_cannot_modify_risk_limits(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:64` — `allowed, reason = rbac_with_assignments.check_endpoint("bob", "control_risk_limit")`
+- `tests/test_control_rbac.py:68` — `def test_operator_cannot_modify_config(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:69` — `allowed, reason = rbac_with_assignments.check_endpoint("bob", "control_capital")`
+- `tests/test_control_rbac.py:72` — `def test_observer_can_view_state(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:73` — `allowed, reason = rbac_with_assignments.check_endpoint("charlie", "control_state")`
+- `tests/test_control_rbac.py:76` — `def test_observer_cannot_halt_trading(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:77` — `allowed, reason = rbac_with_assignments.check_endpoint("charlie", "control_kill")`
+- `tests/test_control_rbac.py:80` — `def test_observer_cannot_modify_config(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:81` — `allowed, reason = rbac_with_assignments.check_endpoint("charlie", "control_capital")`
+- `tests/test_control_rbac.py:84` — `def test_unknown_endpoint_denied(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:85` — `allowed, reason = rbac_with_assignments.check_endpoint("alice", "nonexistent_endpoint")`
+- `tests/test_control_rbac.py:89` — `def test_unknown_identity_default_role(self, rbac):`
+- `tests/test_control_rbac.py:90` — `"""Unknown identity should get the default role."""`
+- `tests/test_control_rbac.py:91` — `allowed, reason = rbac.check_endpoint("unknown", "control_state")`
+- `tests/test_control_rbac.py:97` — `# Permission Checks`
+- `tests/test_control_rbac.py:101` — `class TestPermissionChecks:`
+- `tests/test_control_rbac.py:102` — `def test_check_permission_allowed(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:103` — `from core.auth.permissions import Permission`
+- `tests/test_control_rbac.py:104` — `allowed, reason = rbac_with_assignments.check_permission("alice", Permission.MODIFY_CONFIG)`
+- `tests/test_control_rbac.py:107` — `def test_check_permission_denied(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:108` — `from core.auth.permissions import Permission`
+- `tests/test_control_rbac.py:109` — `allowed, reason = rbac_with_assignments.check_permission("charlie", Permission.MODIFY_CONFIG)`
+- `tests/test_control_rbac.py:112` — `def test_check_permission_string(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:113` — `allowed, reason = rbac_with_assignments.check_permission("alice", "view_state")`
+- `tests/test_control_rbac.py:116` — `def test_check_permission_denied_string(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:117` — `allowed, reason = rbac_with_assignments.check_permission("bob", "add_brokers")`
+- `tests/test_control_rbac.py:120` — `def test_require_endpoint_allowed(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:121` — `rbac_with_assignments.require_endpoint("alice", "control_kill")  # Should not raise`
+- `tests/test_control_rbac.py:123` — `def test_require_endpoint_denied(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:124` — `from core.auth.permissions import PermissionDenied`
+- `tests/test_control_rbac.py:125` — `with pytest.raises(PermissionDenied):`
+- `tests/test_control_rbac.py:126` — `rbac_with_assignments.require_endpoint("charlie", "control_kill")`
+- `tests/test_control_rbac.py:128` — `def test_require_permission_allowed(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:129` — `from core.auth.permissions import Permission`
+- `tests/test_control_rbac.py:130` — `rbac_with_assignments.require_permission("alice", Permission.MODIFY_CONFIG)`
+- `tests/test_control_rbac.py:132` — `def test_require_permission_denied(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:133` — `from core.auth.permissions import Permission, PermissionDenied`
+- `tests/test_control_rbac.py:134` — `with pytest.raises(PermissionDenied):`
+- `tests/test_control_rbac.py:135` — `rbac_with_assignments.require_permission("charlie", Permission.MODIFY_CONFIG)`
+- `tests/test_control_rbac.py:139` — `# Role Management`
+- `tests/test_control_rbac.py:143` — `class TestRoleManagement:`
+- `tests/test_control_rbac.py:144` — `def test_get_identity_role(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:145` — `from core.auth.permissions import Role`
+- `tests/test_control_rbac.py:146` — `assert rbac_with_assignments.get_identity_role("alice") == Role.ADMIN`
+- `tests/test_control_rbac.py:147` — `assert rbac_with_assignments.get_identity_role("unknown") == Role.OBSERVER`
+- `tests/test_control_rbac.py:149` — `def test_list_assignments(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:150` — `assignments = rbac_with_assignments.list_assignments()`
+- `tests/test_control_rbac.py:154` — `def test_get_permissions_for_admin(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:155` — `from core.auth.permissions import Role`
+- `tests/test_control_rbac.py:156` — `perms = rbac_with_assignments.get_permissions_for_role(Role.ADMIN)`
+- `tests/test_control_rbac.py:162` — `def test_get_permissions_for_observer(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:163` — `from core.auth.permissions import Role`
+- `tests/test_control_rbac.py:164` — `perms = rbac_with_assignments.get_permissions_for_role(Role.OBSERVER)`
+- `tests/test_control_rbac.py:169` — `def test_get_permissions_as_string(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:170` — `perms = rbac_with_assignments.get_permissions_for_role("admin")`
+- `tests/test_control_rbac.py:173` — `def test_has_permission_true(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:174` — `from core.auth.permissions import Permission`
+- `tests/test_control_rbac.py:175` — `assert rbac_with_assignments.has_permission("alice", Permission.VIEW_STATE)`
+- `tests/test_control_rbac.py:176` — `assert rbac_with_assignments.has_permission("alice", Permission.MODIFY_CONFIG)`
+- `tests/test_control_rbac.py:178` — `def test_has_permission_false(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:179` — `from core.auth.permissions import Permission`
+- `tests/test_control_rbac.py:180` — `assert not rbac_with_assignments.has_permission("charlie", Permission.MODIFY_CONFIG)`
+- `tests/test_control_rbac.py:181` — `assert not rbac_with_assignments.has_permission("bob", Permission.ADD_BROKERS)`
+- `tests/test_control_rbac.py:190` — `def test_load_from_config(self, rbac):`
+- `tests/test_control_rbac.py:191` — `rbac.load_from_config({`
+- `tests/test_control_rbac.py:192` — `"admin_roles": {"alice": "admin", "bob": "operator"},`
+- `tests/test_control_rbac.py:193` — `"admin_default_role": "observer",`
+- `tests/test_control_rbac.py:195` — `from core.auth.permissions import Role`
+- `tests/test_control_rbac.py:196` — `assert rbac.get_identity_role("alice") == Role.ADMIN`
+- `tests/test_control_rbac.py:197` — `assert rbac.get_identity_role("bob") == Role.OPERATOR`
+- `tests/test_control_rbac.py:198` — `assert rbac.get_identity_role("stranger") == Role.OBSERVER`
+- `tests/test_control_rbac.py:200` — `def test_load_from_config_empty(self, rbac):`
+- `tests/test_control_rbac.py:201` — `rbac.load_from_config({})`
+- `tests/test_control_rbac.py:202` — `from core.auth.permissions import Role`
+- `tests/test_control_rbac.py:203` — `assert rbac.get_identity_role("anyone") == Role.OBSERVER`
+- `tests/test_control_rbac.py:205` — `def test_load_from_config_overrides(self, rbac):`
+- `tests/test_control_rbac.py:206` — `rbac.role_manager.assign("alice", "observer")`
+- `tests/test_control_rbac.py:207` — `rbac.load_from_config({"admin_roles": {"alice": "admin"}})`
+- `tests/test_control_rbac.py:208` — `from core.auth.permissions import Role`
+- `tests/test_control_rbac.py:209` — `assert rbac.get_identity_role("alice") == Role.ADMIN`
+- `tests/test_control_rbac.py:213` — `# Role Manager Delegation`
+- `tests/test_control_rbac.py:217` — `class TestRoleManagerDelegation:`
+- `tests/test_control_rbac.py:218` — `def test_role_manager_property(self, rbac):`
+- `tests/test_control_rbac.py:219` — `from core.auth.role_manager import RoleManager`
+- `tests/test_control_rbac.py:220` — `assert isinstance(rbac.role_manager, RoleManager)`
+- `tests/test_control_rbac.py:222` — `def test_role_manager_direct_access(self, rbac):`
+- `tests/test_control_rbac.py:223` — `rbac.role_manager.assign("direct", "admin")`
+- `tests/test_control_rbac.py:224` — `from core.auth.permissions import Role`
+- `tests/test_control_rbac.py:225` — `assert rbac.get_identity_role("direct") == Role.ADMIN`
+- `tests/test_control_rbac.py:227` — `def test_all_endpoints_mapped(self, rbac_with_assignments):`
+- `tests/test_control_rbac.py:238` — `allowed, reason = rbac_with_assignments.check_endpoint("alice", ep)`
+- `tests/test_admin_control_plane.py:6` — `- RBAC permission checking (X-Operator-Identity)`
+- `tests/test_admin_control_plane.py:44` — `role_manager_ref=None,`
+- `tests/test_admin_control_plane.py:141` — `def test_roles_no_token(client):`
+- `tests/test_admin_control_plane.py:142` — `resp = client.get("/roles")`
+- `tests/test_admin_control_plane.py:235` — `# RBAC - no role_manager configured means no permission checks`
+- `tests/test_admin_control_plane.py:239` — `def test_no_rbac_allows_mutation(client):`
+- `tests/test_admin_control_plane.py:240` — `"""Without role_manager, mutation endpoints should still 503 (ref None) not 403."""`
+- `tests/test_admin_control_plane.py:253` — `from core.auth.role_manager import RoleManager`
+- `tests/test_admin_control_plane.py:257` — `role_mgr = RoleManager(default_role="observer")`
+- `tests/test_admin_control_plane.py:258` — `role_mgr.assign("alice", "admin")`
+- `tests/test_admin_control_plane.py:270` — `"admin_default_role": "observer",`
+- `tests/test_admin_control_plane.py:276` — `role_manager_ref=role_mgr,`
+- `tests/test_admin_control_plane.py:366` — `def test_wired_rbac_enforced(wired_client):`
+- `tests/test_admin_control_plane.py:368` — `# 'bob' has no explicit role → defaults to 'observer' which lacks halt_trading`
+- `tests/test_admin_control_plane.py:374` — `def test_wired_rbac_admin_allowed(wired_client):`
+- `tests/test_admin_control_plane.py:381` — `def test_wired_role_assignment(wired_client):`
+- `tests/test_admin_control_plane.py:382` — `resp = wired_client.post("/roles/bob",`
+- `tests/test_admin_control_plane.py:384` — `json={"role": "operator"})`
+- `tests/test_admin_control_plane.py:386` — `assert resp.json()["role"] == "operator"`
+- `tests/test_admin_control_plane.py:388` — `resp = wired_client.get("/roles", headers=_auth({"X-Operator-Identity": "alice"}))`
+- `tests/test_admin_control_plane.py:389` — `assert resp.json()["roles"].get("bob") == "operator"`
+- `tests/test_admin_control_plane.py:432` — `from core.auth.role_manager import RoleManager`
+- `tests/test_admin_control_plane.py:446` — `role_mgr = RoleManager(default_role="admin")`
+- `tests/test_admin_control_plane.py:451` — `role_manager_ref=role_mgr,`
+- `tests/test_admin_control_plane.py:506` — `from core.auth.role_manager import RoleManager`
+- `tests/test_admin_control_plane.py:507` — `rm = RoleManager(default_role="admin")`
+- `tests/test_admin_control_plane.py:513` — `role_manager_ref=rm,`
+- `tests/test_admin_control_plane.py:535` — `def test_config_reload_requires_permission(reload_client):`
+- `tests/test_ai_engine.py:623` — `with patch.object(Path, "rename", side_effect=OSError("Permission denied")):`
+- `tests/test_wip66_registration_dependencies.py:32` — `assert "role" in t and "permission" in t`
+- `tests/test_wip58_desktop_submenu_hover.py:19` — `assert "User Authorization & Controls" in text`
+- `tests/test_wip58_desktop_submenu_hover.py:20` — `assert "User Authorization & Access" in text`
+- `tests/test_strategy_versioning.py:37` — `except PermissionError:`
+- `tests/test_strategy_versioning.py:44` — `except PermissionError:`
+- `tests/test_execution_retry_policy_classifier.py:55` — `decision = BrokerErrorClassifier.classify(PermissionError("Auth token expired"))`
+- `tests/test_execution_retry_policy_classifier.py:70` — `def test_classify_unauthorized_permanent(self):`
+- `tests/test_execution_retry_policy_classifier.py:71` — `decision = BrokerErrorClassifier.classify(PermissionError("Unauthorized access"))`
+- `tests/test_control_plane.py:32` — `patch("core.auth.role_manager.RoleManager") as mock_role_mgr,`
+- `tests/test_control_plane.py:37` — `"admin_default_role": "admin",`
+- `tests/test_control_plane.py:51` — `assert call_kwargs["role_manager"] is mock_role_mgr.return_value`
+- `tests/test_control_plane.py:66` — `patch("core.auth.role_manager.RoleManager"),`
+- `tests/test_control_plane.py:81` — `patch("core.auth.role_manager.RoleManager"),`
+- `tests/test_control_plane.py:97` — `patch("core.auth.role_manager.RoleManager"),`
+- `tests/test_control_plane.py:116` — `patch("core.auth.role_manager.RoleManager"),`
+- `tests/test_auth_comprehensive.py:14` — `require_role, require_permission, optional_auth_with_fallback`
+- `tests/test_auth_comprehensive.py:17` — `7. RoleManager - assign, revoke, get_role, check, has_permission,`
+- `tests/test_auth_comprehensive.py:21` — `9. Permissions - role_has_permission for all roles,`
+- `tests/test_auth_comprehensive.py:22` — `get_role_permissions, PermissionDenied exception`
+- `tests/test_auth_comprehensive.py:72` — `role="viewer",`
+- `tests/test_auth_comprehensive.py:85` — `role="admin",`
+- `tests/test_auth_comprehensive.py:98` — `role="operator",`
+- `tests/test_auth_comprehensive.py:127` — `return {"authenticated": True, "username": user.username, "role": user.role}`
+- `tests/test_auth_comprehensive.py:136` — `async def _route_admin(user: AuthUser = Depends(deps.require_role("admin"))):`
+- `tests/test_auth_comprehensive.py:137` — `return {"role": user.role}`
+- `tests/test_auth_comprehensive.py:140` — `async def _route_operator(user: AuthUser = Depends(deps.require_role("operator"))):`
+- `tests/test_auth_comprehensive.py:141` — `return {"role": user.role}`
+- `tests/test_auth_comprehensive.py:144` — `async def _route_admin_or_op(user: AuthUser = Depends(deps.require_role("admin", "operator"))):`
+- `tests/test_auth_comprehensive.py:145` — `return {"role": user.role}`
+- `tests/test_auth_comprehensive.py:148` — `async def _route_viewer(user: AuthUser = Depends(deps.require_role("viewer"))):`
+- `tests/test_auth_comprehensive.py:149` — `return {"role": user.role}`
+- `tests/test_auth_comprehensive.py:151` — `@app.get("/require-permission")`
+- `tests/test_auth_comprehensive.py:152` — `async def _route_perm(user: AuthUser = Depends(deps.require_permission("halt_trading"))):`
+- `tests/test_auth_comprehensive.py:153` — `return {"role": user.role, "permission": "halt_trading"}`
+- `tests/test_auth_comprehensive.py:157` — `return {"username": user.username, "role": user.role}`
+- `tests/test_auth_comprehensive.py:383` — `assert user.role == "admin"`
+- `tests/test_auth_comprehensive.py:407` — `assert user.role == "viewer"`
+- `tests/test_auth_comprehensive.py:423` — `def test_login_updates_last_login_ts(self, handler: Any, test_user: dict[str, Any]):`
+- `tests/test_auth_comprehensive.py:442` — `"""Create, list, get, update role, disable, enable, delete."""`
+- `tests/test_auth_comprehensive.py:448` — `assert result["role"] == "viewer"`
+- `tests/test_auth_comprehensive.py:462` — `def test_create_user_invalid_role(self, handler: Any):`
+- `tests/test_auth_comprehensive.py:463` — `result = handler.create_user("badrole", "Test@1234!", "superadmin")`
+- `tests/test_auth_comprehensive.py:465` — `assert "Invalid role" in result["error"]`
+- `tests/test_auth_comprehensive.py:493` — `assert user.role == "viewer"`
+- `tests/test_auth_comprehensive.py:510` — `def test_update_user_role(self, handler: Any, test_user: dict[str, Any]):`
+- `tests/test_auth_comprehensive.py:511` — `result = handler.update_user_role("testuser", "admin", "testadmin")`
+- `tests/test_auth_comprehensive.py:515` — `assert user.role == "admin"`
+- `tests/test_auth_comprehensive.py:517` — `def test_update_user_role_invalid(self, handler: Any, test_user: dict[str, Any]):`
+- `tests/test_auth_comprehensive.py:518` — `result = handler.update_user_role("testuser", "superadmin", "testadmin")`
+- `tests/test_auth_comprehensive.py:520` — `assert "Invalid role" in result["error"]`
+- `tests/test_auth_comprehensive.py:522` — `def test_update_user_role_nonexistent(self, handler: Any):`
+- `tests/test_auth_comprehensive.py:523` — `result = handler.update_user_role("nobody", "admin", "testadmin")`
+- `tests/test_auth_comprehensive.py:557` — `result = handler.update_password("testuser", "Test@1234!", "NewP@ss1!")`
+- `tests/test_auth_comprehensive.py:563` — `result = handler.update_password("testuser", "Wrong@123!", "NewP@ss1!")`
+- `tests/test_auth_comprehensive.py:568` — `result = handler.update_password("testuser", "Test@1234!", "weak")`
+- `tests/test_auth_comprehensive.py:583` — `handler.update_password("testuser", "Reset@1234!", "Final@1234!")`
+- `tests/test_auth_comprehensive.py:618` — `assert token.role == "viewer"`
+- `tests/test_auth_comprehensive.py:881` — `handler.update_password("testuser", "Test@1234!", "NewP@ss1!")`
+- `tests/test_auth_comprehensive.py:892` — `def test_audit_log_on_role_change(self, handler: Any, test_user: dict[str, Any]):`
+- `tests/test_auth_comprehensive.py:893` — `handler.update_user_role("testuser", "operator", "admin")`
+- `tests/test_auth_comprehensive.py:894` — `entries = handler.get_audit_log(event_type="role_changed")`
+- `tests/test_auth_comprehensive.py:898` — `assert details.get("new_role") == "operator"`
+- `tests/test_auth_comprehensive.py:1046` — `resp = client.get("/require-auth", headers={"Authorization": f"Bearer {token}"})`
+- `tests/test_auth_comprehensive.py:1077` — `class TestAuthDependenciesRequireRole:`
+- `tests/test_auth_comprehensive.py:1078` — `"""require_role enforces role-based access."""`
+- `tests/test_auth_comprehensive.py:1125` — `def test_admin_or_operator_multirole(self, deps_client: Any):`
+- `tests/test_auth_comprehensive.py:1137` — `def test_viewer_blocked_from_multirole(self, deps_client: Any):`
+- `tests/test_auth_comprehensive.py:1147` — `class TestAuthDependenciesRequirePermission:`
+- `tests/test_auth_comprehensive.py:1148` — `"""require_permission checks specific permissions."""`
+- `tests/test_auth_comprehensive.py:1156` — `resp = client.get("/require-permission", cookies={"opb_session": token})`
+- `tests/test_auth_comprehensive.py:1158` — `assert resp.json()["permission"] == "halt_trading"`
+- `tests/test_auth_comprehensive.py:1166` — `resp = client.get("/require-permission", cookies={"opb_session": token})`
+- `tests/test_auth_comprehensive.py:1168` — `assert "Permission denied" in resp.text`
+- `tests/test_auth_comprehensive.py:1172` — `"""optional_auth_with_fallback returns fallback role when unauthenticated."""`
+- `tests/test_auth_comprehensive.py:1183` — `assert resp.json()["role"] == "admin"`
+- `tests/test_auth_comprehensive.py:1190` — `assert resp.json()["role"] == "viewer"`
+- `tests/test_auth_comprehensive.py:1531` — `# 7. RoleManager`
+- `tests/test_auth_comprehensive.py:1535` — `class TestRoleManager:`
+- `tests/test_auth_comprehensive.py:1536` — `"""Role assignment, revoke, get_role, check, has_permission, load_from_config."""`
+- `tests/test_auth_comprehensive.py:1540` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_comprehensive.py:1541` — `return RoleManager(default_role="observer")`
+- `tests/test_auth_comprehensive.py:1543` — `def test_assign_and_get_role(self, rm: Any):`
+- `tests/test_auth_comprehensive.py:1544` — `from core.auth.permissions import Role`
+- `tests/test_auth_comprehensive.py:1546` — `assert rm.get_role("alice") == Role.ADMIN`
+- `tests/test_auth_comprehensive.py:1548` — `def test_default_role_for_unknown(self, rm: Any):`
+- `tests/test_auth_comprehensive.py:1549` — `from core.auth.permissions import Role`
+- `tests/test_auth_comprehensive.py:1550` — `assert rm.get_role("unknown") == Role.OBSERVER`
+- `tests/test_auth_comprehensive.py:1552` — `def test_custom_default_role(self):`
+- `tests/test_auth_comprehensive.py:1553` — `from core.auth.permissions import Role`
+- `tests/test_auth_comprehensive.py:1554` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_comprehensive.py:1555` — `rm = RoleManager(default_role="viewer")`
+- `tests/test_auth_comprehensive.py:1556` — `assert rm.get_role("anyone") == Role.VIEWER`
+- `tests/test_auth_comprehensive.py:1561` — `assert rm.get_role("bob").value == "observer"`
+- `tests/test_auth_comprehensive.py:1563` — `def test_check_passes_for_valid_permission(self, rm: Any):`
+- `tests/test_auth_comprehensive.py:1564` — `from core.auth.permissions import Permission`
+- `tests/test_auth_comprehensive.py:1566` — `rm.check("charlie", Permission.MODIFY_CONFIG)  # should not raise`
+- `tests/test_auth_comprehensive.py:1568` — `def test_check_raises_permission_denied(self, rm: Any):`
+- `tests/test_auth_comprehensive.py:1569` — `from core.auth.permissions import Permission, PermissionDenied`
+- `tests/test_auth_comprehensive.py:1571` — `with pytest.raises(PermissionDenied):`
+- `tests/test_auth_comprehensive.py:1572` — `rm.check("dave", Permission.MODIFY_CONFIG)`
+- `tests/test_auth_comprehensive.py:1574` — `def test_has_permission_returns_true(self, rm: Any):`
+- `tests/test_auth_comprehensive.py:1576` — `assert rm.has_permission("eve", "modify_config") is True`
+- `tests/test_auth_comprehensive.py:1578` — `def test_has_permission_returns_false(self, rm: Any):`
+- `tests/test_auth_comprehensive.py:1580` — `assert rm.has_permission("frank", "halt_trading") is False`
+- `tests/test_auth_comprehensive.py:1582` — `def test_has_permission_unknown_identity(self, rm: Any):`
+- `tests/test_auth_comprehensive.py:1583` — `# Uses default_role = observer`
+- `tests/test_auth_comprehensive.py:1584` — `assert rm.has_permission("stranger", "view_state") is True`
+- `tests/test_auth_comprehensive.py:1585` — `assert rm.has_permission("stranger", "halt_trading") is False`
+- `tests/test_auth_comprehensive.py:1589` — `"admin_roles": {"grace": "admin", "heidi": "operator"},`
+- `tests/test_auth_comprehensive.py:1590` — `"admin_default_role": "viewer",`
+- `tests/test_auth_comprehensive.py:1592` — `assert rm.get_role("grace").value == "admin"`
+- `tests/test_auth_comprehensive.py:1593` — `assert rm.get_role("heidi").value == "operator"`
+- `tests/test_auth_comprehensive.py:1594` — `assert rm.get_role("stranger").value == "viewer"`
+- `tests/test_auth_comprehensive.py:1596` — `def test_load_from_config_ignores_unknown_role(self, rm: Any):`
+- `tests/test_auth_comprehensive.py:1598` — `"admin_roles": {"ivan": "superadmin"},`
+- `tests/test_auth_comprehensive.py:1601` — `assert rm.get_role("ivan").value == "observer"`
+- `tests/test_auth_comprehensive.py:1605` — `assert rm.get_role("anyone").value == "observer"`
+- `tests/test_auth_comprehensive.py:1616` — `def test_assign_with_str_role(self, rm: Any):`
+- `tests/test_auth_comprehensive.py:1617` — `from core.auth.permissions import Role`
+- `tests/test_auth_comprehensive.py:1619` — `assert isinstance(rm.get_role("leon"), Role)`
+- `tests/test_auth_comprehensive.py:1644` — `from core.auth.permissions import Role`
+- `tests/test_auth_comprehensive.py:1645` — `s = store.create("alice", Role.ADMIN, source="pytest")`
+- `tests/test_auth_comprehensive.py:1648` — `assert s.role == Role.ADMIN`
+- `tests/test_auth_comprehensive.py:1651` — `def test_create_with_str_role(self, store: Any):`
+- `tests/test_auth_comprehensive.py:1652` — `from core.auth.permissions import Role`
+- `tests/test_auth_comprehensive.py:1654` — `assert s.role == Role.ADMIN`
+- `tests/test_auth_comprehensive.py:1733` — `# 9. Permissions - role_has_permission, get_role_permissions,`
+- `tests/test_auth_comprehensive.py:1734` — `#    PermissionDenied`
+- `tests/test_auth_comprehensive.py:1738` — `class TestPermissions:`
+- `tests/test_auth_comprehensive.py:1739` — `"""Permission matrix for all roles."""`
+- `tests/test_auth_comprehensive.py:1741` — `def test_role_has_permission_admin_all(self):`
+- `tests/test_auth_comprehensive.py:1742` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_comprehensive.py:1743` — `assert role_has_permission("admin", "view_state")`
+- `tests/test_auth_comprehensive.py:1744` — `assert role_has_permission("admin", "halt_trading")`
+- `tests/test_auth_comprehensive.py:1745` — `assert role_has_permission("admin", "modify_risk_limits")`
+- `tests/test_auth_comprehensive.py:1746` — `assert role_has_permission("admin", "toggle_strategies")`
+- `tests/test_auth_comprehensive.py:1747` — `assert role_has_permission("admin", "deploy_models")`
+- `tests/test_auth_comprehensive.py:1748` — `assert role_has_permission("admin", "modify_code")`
+- `tests/test_auth_comprehensive.py:1749` — `assert role_has_permission("admin", "view_logs")`
+- `tests/test_auth_comprehensive.py:1750` — `assert role_has_permission("admin", "add_brokers")`
+- `tests/test_auth_comprehensive.py:1751` — `assert role_has_permission("admin", "modify_config")`
+- `tests/test_auth_comprehensive.py:1753` — `def test_role_has_permission_operator(self):`
+- `tests/test_auth_comprehensive.py:1754` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_comprehensive.py:1755` — `assert role_has_permission("operator", "view_state")`
+- `tests/test_auth_comprehensive.py:1756` — `assert role_has_permission("operator", "halt_trading")`
+- `tests/test_auth_comprehensive.py:1757` — `assert role_has_permission("operator", "toggle_strategies")`
+- `tests/test_auth_comprehensive.py:1758` — `assert role_has_permission("operator", "view_logs")`
+- `tests/test_auth_comprehensive.py:1759` — `assert not role_has_permission("operator", "modify_risk_limits")`
+- `tests/test_auth_comprehensive.py:1760` — `assert not role_has_permission("operator", "deploy_models")`
+- `tests/test_auth_comprehensive.py:1761` — `assert not role_has_permission("operator", "modify_code")`
+- `tests/test_auth_comprehensive.py:1762` — `assert not role_has_permission("operator", "add_brokers")`
+- `tests/test_auth_comprehensive.py:1763` — `assert not role_has_permission("operator", "modify_config")`
+- `tests/test_auth_comprehensive.py:1765` — `def test_role_has_permission_viewer(self):`
+- `tests/test_auth_comprehensive.py:1766` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_comprehensive.py:1767` — `assert role_has_permission("viewer", "view_state")`
+- `tests/test_auth_comprehensive.py:1768` — `assert role_has_permission("viewer", "view_logs")`
+- `tests/test_auth_comprehensive.py:1769` — `assert not role_has_permission("viewer", "halt_trading")`
+- `tests/test_auth_comprehensive.py:1770` — `assert not role_has_permission("viewer", "modify_risk_limits")`
+- `tests/test_auth_comprehensive.py:1771` — `assert not role_has_permission("viewer", "toggle_strategies")`
+- `tests/test_auth_comprehensive.py:1772` — `assert not role_has_permission("viewer", "deploy_models")`
+- `tests/test_auth_comprehensive.py:1773` — `assert not role_has_permission("viewer", "modify_code")`
+- `tests/test_auth_comprehensive.py:1774` — `assert not role_has_permission("viewer", "add_brokers")`
+- `tests/test_auth_comprehensive.py:1775` — `assert not role_has_permission("viewer", "modify_config")`
+- `tests/test_auth_comprehensive.py:1777` — `def test_role_has_permission_observer(self):`
+- `tests/test_auth_comprehensive.py:1778` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_comprehensive.py:1779` — `assert role_has_permission("observer", "view_state")`
+- `tests/test_auth_comprehensive.py:1780` — `assert role_has_permission("observer", "view_logs")`
+- `tests/test_auth_comprehensive.py:1781` — `assert not role_has_permission("observer", "halt_trading")`
+- `tests/test_auth_comprehensive.py:1782` — `assert not role_has_permission("observer", "modify_risk_limits")`
+- `tests/test_auth_comprehensive.py:1783` — `assert not role_has_permission("observer", "toggle_strategies")`
+- `tests/test_auth_comprehensive.py:1784` — `assert not role_has_permission("observer", "deploy_models")`
+- `tests/test_auth_comprehensive.py:1785` — `assert not role_has_permission("observer", "modify_code")`
+- `tests/test_auth_comprehensive.py:1786` — `assert not role_has_permission("observer", "add_brokers")`
+- `tests/test_auth_comprehensive.py:1787` — `assert not role_has_permission("observer", "modify_config")`
+- `tests/test_auth_comprehensive.py:1789` — `def test_role_has_permission_developer(self):`
+- `tests/test_auth_comprehensive.py:1790` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_comprehensive.py:1791` — `assert role_has_permission("developer", "view_state")`
+- `tests/test_auth_comprehensive.py:1792` — `assert role_has_permission("developer", "toggle_strategies")`
+- `tests/test_auth_comprehensive.py:1793` — `assert role_has_permission("developer", "deploy_models")`
+- `tests/test_auth_comprehensive.py:1794` — `assert role_has_permission("developer", "modify_code")`
+- `tests/test_auth_comprehensive.py:1795` — `assert role_has_permission("developer", "view_logs")`
+- `tests/test_auth_comprehensive.py:1796` — `assert role_has_permission("developer", "modify_config")`
+- `tests/test_auth_comprehensive.py:1797` — `assert not role_has_permission("developer", "halt_trading")`
+- `tests/test_auth_comprehensive.py:1798` — `assert not role_has_permission("developer", "modify_risk_limits")`
+- `tests/test_auth_comprehensive.py:1799` — `assert not role_has_permission("developer", "add_brokers")`
+- `tests/test_auth_comprehensive.py:1801` — `def test_unknown_role_returns_false(self):`
+- `tests/test_auth_comprehensive.py:1802` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_comprehensive.py:1803` — `assert not role_has_permission("superadmin", "view_state")`
+- `tests/test_auth_comprehensive.py:1804` — `assert not role_has_permission("", "view_state")`
+- `tests/test_auth_comprehensive.py:1806` — `def test_unknown_permission_returns_false(self):`
+- `tests/test_auth_comprehensive.py:1807` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_comprehensive.py:1808` — `assert not role_has_permission("admin", "fly_to_moon")`
+- `tests/test_auth_comprehensive.py:1810` — `def test_role_has_permission_with_enum_args(self):`
+- `tests/test_auth_comprehensive.py:1811` — `from core.auth.permissions import Permission, Role, role_has_permission`
+- `tests/test_auth_comprehensive.py:1812` — `assert role_has_permission(Role.ADMIN, Permission.VIEW_STATE)`
+- `tests/test_auth_comprehensive.py:1813` — `assert not role_has_permission(Role.VIEWER, Permission.HALT_TRADING)`
+- `tests/test_auth_comprehensive.py:1815` — `def test_get_role_permissions_admin(self):`
+- `tests/test_auth_comprehensive.py:1816` — `from core.auth.permissions import Permission, get_role_permissions`
+- `tests/test_auth_comprehensive.py:1817` — `perms = get_role_permissions("admin")`
+- `tests/test_auth_comprehensive.py:1818` — `assert Permission.VIEW_STATE in perms`
+- `tests/test_auth_comprehensive.py:1819` — `assert Permission.HALT_TRADING in perms`
+- `tests/test_auth_comprehensive.py:1820` — `assert Permission.MODIFY_RISK_LIMITS in perms`
+- `tests/test_auth_comprehensive.py:1821` — `assert Permission.TOGGLE_STRATEGIES in perms`
+- `tests/test_auth_comprehensive.py:1822` — `assert Permission.DEPLOY_MODELS in perms`
+- `tests/test_auth_comprehensive.py:1823` — `assert Permission.MODIFY_CODE in perms`
+- `tests/test_auth_comprehensive.py:1824` — `assert Permission.VIEW_LOGS in perms`
+- `tests/test_auth_comprehensive.py:1825` — `assert Permission.ADD_BROKERS in perms`
+- `tests/test_auth_comprehensive.py:1826` — `assert Permission.MODIFY_CONFIG in perms`
+- `tests/test_auth_comprehensive.py:1829` — `def test_get_role_permissions_operator(self):`
+- `tests/test_auth_comprehensive.py:1830` — `from core.auth.permissions import Permission, get_role_permissions`
+- `tests/test_auth_comprehensive.py:1831` — `perms = get_role_permissions("operator")`
+- `tests/test_auth_comprehensive.py:1832` — `assert Permission.VIEW_STATE in perms`
+- `tests/test_auth_comprehensive.py:1833` — `assert Permission.HALT_TRADING in perms`
+- `tests/test_auth_comprehensive.py:1834` — `assert Permission.TOGGLE_STRATEGIES in perms`
+- `tests/test_auth_comprehensive.py:1835` — `assert Permission.VIEW_LOGS in perms`
+- `tests/test_auth_comprehensive.py:1838` — `def test_get_role_permissions_viewer(self):`
+- `tests/test_auth_comprehensive.py:1839` — `from core.auth.permissions import Permission, get_role_permissions`
+- `tests/test_auth_comprehensive.py:1840` — `perms = get_role_permissions("viewer")`
+- `tests/test_auth_comprehensive.py:1841` — `assert Permission.VIEW_STATE in perms`
+- `tests/test_auth_comprehensive.py:1842` — `assert Permission.VIEW_LOGS in perms`
+- `tests/test_auth_comprehensive.py:1845` — `def test_get_role_permissions_observer(self):`
+- `tests/test_auth_comprehensive.py:1846` — `from core.auth.permissions import Permission, get_role_permissions`
+- `tests/test_auth_comprehensive.py:1847` — `perms = get_role_permissions("observer")`
+- `tests/test_auth_comprehensive.py:1848` — `assert Permission.VIEW_STATE in perms`
+- `tests/test_auth_comprehensive.py:1849` — `assert Permission.VIEW_LOGS in perms`
+- `tests/test_auth_comprehensive.py:1852` — `def test_get_role_permissions_developer(self):`
+- `tests/test_auth_comprehensive.py:1853` — `from core.auth.permissions import Permission, get_role_permissions`
+- `tests/test_auth_comprehensive.py:1854` — `perms = get_role_permissions("developer")`
+- `tests/test_auth_comprehensive.py:1855` — `assert Permission.VIEW_STATE in perms`
+- `tests/test_auth_comprehensive.py:1856` — `assert Permission.TOGGLE_STRATEGIES in perms`
+- `tests/test_auth_comprehensive.py:1857` — `assert Permission.DEPLOY_MODELS in perms`
+- `tests/test_auth_comprehensive.py:1858` — `assert Permission.MODIFY_CODE in perms`
+- `tests/test_auth_comprehensive.py:1859` — `assert Permission.VIEW_LOGS in perms`
+- `tests/test_auth_comprehensive.py:1860` — `assert Permission.MODIFY_CONFIG in perms`
+- `tests/test_auth_comprehensive.py:1863` — `def test_get_role_permissions_unknown_role(self):`
+- `tests/test_auth_comprehensive.py:1864` — `from core.auth.permissions import get_role_permissions`
+- `tests/test_auth_comprehensive.py:1865` — `perms = get_role_permissions("superadmin")`
+- `tests/test_auth_comprehensive.py:1868` — `def test_get_role_permissions_with_enum(self):`
+- `tests/test_auth_comprehensive.py:1869` — `from core.auth.permissions import Role, get_role_permissions`
+- `tests/test_auth_comprehensive.py:1870` — `perms = get_role_permissions(Role.ADMIN)`
+- `tests/test_auth_comprehensive.py:1873` — `def test_permission_denied_exception(self):`
+- `tests/test_auth_comprehensive.py:1874` — `from core.auth.permissions import PermissionDenied`
+- `tests/test_auth_comprehensive.py:1875` — `exc = PermissionDenied("Access denied")`
+- `tests/test_auth_comprehensive.py:1879` — `def test_permission_denied_raised_by_role_manager(self):`
+- `tests/test_auth_comprehensive.py:1880` — `from core.auth.permissions import PermissionDenied`
+- `tests/test_auth_comprehensive.py:1881` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_comprehensive.py:1882` — `rm = RoleManager(default_role="viewer")`
+- `tests/test_auth_comprehensive.py:1883` — `with pytest.raises(PermissionDenied):`
+- `tests/test_wip64_registration_lifecycle_trace.py:21` — `def test_permission_and_role_logic_exists():`
+- `tests/test_wip64_registration_lifecycle_trace.py:25` — `if "permission" in t and "role" in t:`
+- `tests/test_dashboard_comprehensive.py:402` — `def test_permissions_policy(self, client):`
+- `tests/test_dashboard_comprehensive.py:404` — `pp = resp.headers.get("permissions-policy")`
+- `tests/test_dashboard_comprehensive.py:859` — `raise OSError("Permission denied")`
+- `tests/test_dashboard_comprehensive.py:1250` — `"role": "viewer",`
+- `tests/test_dashboard_comprehensive.py:1271` — `def test_update_user_role(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1283` — `resp = c.put("/api/auth/users/operator1/role", json={"role": "admin"})`
+- `tests/test_dashboard_comprehensive.py:1287` — `def test_update_user_role_not_found(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1298` — `resp = c.put("/api/auth/users/nonexistent/role", json={"role": "admin"})`
+- `tests/test_config_drift_integration.py:112` — `result = db._auth.create_user(username, "IntT3st@!", role="admin")`
+- `tests/test_telegram_auth_manager.py:1` — `"""Tests for core/telegram/auth/manager.py - Telegram Authorization Manager.`
+- `tests/test_telegram_auth_manager.py:4` — `- UserPermissions dataclass`
+- `tests/test_telegram_auth_manager.py:6` — `- verify_user (authorized/unauthorized/admin)`
+- `tests/test_telegram_auth_manager.py:12` — `from core.telegram.auth.manager import TelegramAuthManager, UserPermissions`
+- `tests/test_telegram_auth_manager.py:15` — `# UserPermissions Tests`
+- `tests/test_telegram_auth_manager.py:18` — `class TestUserPermissions:`
+- `tests/test_telegram_auth_manager.py:19` — `def test_authorized_user(self):`
+- `tests/test_telegram_auth_manager.py:20` — `perm = UserPermissions(is_authorized=True, is_admin=False)`
+- `tests/test_telegram_auth_manager.py:21` — `assert perm.is_authorized is True`
+- `tests/test_telegram_auth_manager.py:25` — `perm = UserPermissions(is_authorized=True, is_admin=True)`
+- `tests/test_telegram_auth_manager.py:26` — `assert perm.is_authorized is True`
+- `tests/test_telegram_auth_manager.py:29` — `def test_unauthorized_user(self):`
+- `tests/test_telegram_auth_manager.py:30` — `perm = UserPermissions(is_authorized=False, is_admin=False)`
+- `tests/test_telegram_auth_manager.py:31` — `assert perm.is_authorized is False`
+- `tests/test_telegram_auth_manager.py:42` — `authorized_ids={"user1", "user2"},`
+- `tests/test_telegram_auth_manager.py:45` — `assert auth._authorized_ids == {"user1", "user2"}`
+- `tests/test_telegram_auth_manager.py:47` — `assert auth._authorized_chat_ids == set()`
+- `tests/test_telegram_auth_manager.py:51` — `authorized_ids={"user1"},`
+- `tests/test_telegram_auth_manager.py:53` — `authorized_chat_ids={"chat1", "chat2"},`
+- `tests/test_telegram_auth_manager.py:55` — `assert auth._authorized_chat_ids == {"chat1", "chat2"}`
+- `tests/test_telegram_auth_manager.py:57` — `def test_empty_authorized_ids(self):`
+- `tests/test_telegram_auth_manager.py:58` — `"""Empty authorized_ids means NO ONE is authorized."""`
+- `tests/test_telegram_auth_manager.py:59` — `auth = TelegramAuthManager(authorized_ids=set(), admin_ids=set())`
+- `tests/test_telegram_auth_manager.py:61` — `assert perm.is_authorized is False`
+- `tests/test_telegram_auth_manager.py:65` — `def test_authorized_user(self):`
+- `tests/test_telegram_auth_manager.py:67` — `authorized_ids={"user123"},`
+- `tests/test_telegram_auth_manager.py:71` — `assert perm.is_authorized is True`
+- `tests/test_telegram_auth_manager.py:76` — `authorized_ids={"admin1"},`
+- `tests/test_telegram_auth_manager.py:80` — `assert perm.is_authorized is True`
+- `tests/test_telegram_auth_manager.py:83` — `def test_unauthorized_user(self):`
+- `tests/test_telegram_auth_manager.py:85` — `authorized_ids={"user123"},`
+- `tests/test_telegram_auth_manager.py:89` — `assert perm.is_authorized is False`
+- `tests/test_telegram_auth_manager.py:92` — `def test_admin_not_in_authorized(self):`
+- `tests/test_telegram_auth_manager.py:93` — `"""Admin that's not in authorized_ids should still be admin."""`
+- `tests/test_telegram_auth_manager.py:95` — `authorized_ids={"user1"},`
+- `tests/test_telegram_auth_manager.py:99` — `# Not in authorized_ids, but checking is_admin`
+- `tests/test_telegram_auth_manager.py:100` — `assert perm.is_authorized is False`
+- `tests/test_telegram_auth_manager.py:103` — `def test_multiple_authorized_users(self):`
+- `tests/test_telegram_auth_manager.py:105` — `authorized_ids={"user1", "user2", "user3"},`
+- `tests/test_telegram_auth_manager.py:108` — `assert auth.verify_user("user1").is_authorized is True`
+- `tests/test_telegram_auth_manager.py:109` — `assert auth.verify_user("user2").is_authorized is True`
+- `tests/test_telegram_auth_manager.py:110` — `assert auth.verify_user("user3").is_authorized is True`
+- `tests/test_telegram_auth_manager.py:111` — `assert auth.verify_user("user4").is_authorized is False`
+- `tests/test_telegram_auth_manager.py:116` — `"""Empty authorized_chat_ids means all chats allowed."""`
+- `tests/test_telegram_auth_manager.py:118` — `authorized_ids={"user1"},`
+- `tests/test_telegram_auth_manager.py:126` — `authorized_ids={"user1"},`
+- `tests/test_telegram_auth_manager.py:128` — `authorized_chat_ids={"chat1", "chat2"},`
+- `tests/test_telegram_auth_manager.py:135` — `authorized_ids={"user1"},`
+- `tests/test_telegram_auth_manager.py:137` — `authorized_chat_ids={"chat1", "chat2"},`
+- `tests/test_telegram_auth_manager.py:143` — `authorized_ids={"user1"},`
+- `tests/test_telegram_auth_manager.py:145` — `authorized_chat_ids={"only_chat"},`
+- `tests/test_telegram_auth_manager.py:154` — `authorized_ids={"admin1"},`
+- `tests/test_telegram_auth_manager.py:162` — `authorized_ids={"user1"},`
+- `tests/test_telegram_auth_manager.py:169` — `authorized_ids={},`
+- `tests/test_wip60_admin_users_implementation.py:12` — `if "/admin/users" in t or ("user authorization" in t.lower() and "permission" in t.lower()):`
+- `tests/test_wip60_admin_users_implementation.py:23` — `for token in ("filter","action","permission","role"):`
+- `tests/test_execution_error_classifier.py:62` — `def test_unauthorized_is_non_retriable(self) -> None:`
+- `tests/test_execution_error_classifier.py:63` — `err = PermissionError("Unauthorized: invalid token")`
+- `tests/test_execution_error_classifier.py:88` — `err = Exception("HTTP 401 Unauthorized")`
+- `tests/test_operating_mode.py:43` — `mgr.set_mode(OperatingMode.FULL_AUTO, reason="Authorized")`
+- `tests/test_user_signal_permissions.py:1` — `"""Tests for User Signal Permissions & Multi-Timeframe Quota Control (v3.0)."""`
+- `tests/test_user_signal_permissions.py:4` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `tests/test_user_signal_permissions.py:9` — `store_file = tmp_path / "test_user_permissions.json"`
+- `tests/test_user_signal_permissions.py:10` — `mgr = UserPermissionManager(store_path=store_file)`
+- `tests/test_user_signal_permissions.py:14` — `def test_seed_and_list_permissions(temp_perm_manager):`
+- `tests/test_user_signal_permissions.py:16` — `perms = mgr.list_all_permissions()`
+- `tests/test_user_signal_permissions.py:20` — `assert admin_p["role"] == "admin"`
+- `tests/test_user_signal_permissions.py:25` — `def test_update_user_permissions(temp_perm_manager):`
+- `tests/test_user_signal_permissions.py:27` — `ok, msg, created = mgr.update_user_permissions(`
+- `tests/test_user_signal_permissions.py:31` — `"role": "viewer",`
+- `tests/test_user_signal_permissions.py:50` — `# Retrieve permissions`
+- `tests/test_user_signal_permissions.py:51` — `perm = mgr.get_user_permissions("trader_bob")`
+- `tests/test_user_signal_permissions.py:59` — `mgr.update_user_permissions("alice", {"signals_enabled": True}, admin_username="admin")`
+- `tests/test_user_signal_permissions.py:65` — `assert mgr.get_user_permissions("alice").signals_enabled is False`
+- `tests/test_user_signal_permissions.py:71` — `assert mgr.get_user_permissions("alice").signals_enabled is True`
+- `tests/test_user_signal_permissions.py:77` — `mgr.update_user_permissions(`
+- `tests/test_user_signal_permissions.py:88` — `mgr.update_user_permissions(`
+- `tests/test_user_signal_permissions.py:115` — `mgr.update_user_permissions(`
+- `tests/test_user_signal_permissions.py:139` — `mgr.update_user_permissions(`
+- `tests/test_user_signal_permissions.py:165` — `p = mgr.get_user_permissions("quota_trader")`
+- `tests/test_user_signal_permissions.py:172` — `"""Mirror the auth/routes.py register flow: channels are saved via update_user_permissions."""`
+- `tests/test_user_signal_permissions.py:174` — `ok, msg, created = mgr.update_user_permissions(`
+- `tests/test_user_signal_permissions.py:178` — `"role": "viewer",`
+- `tests/test_user_signal_permissions.py:187` — `perm = mgr.get_user_permissions("web_user")`
+- `tests/test_user_signal_permissions.py:198` — `def test_admin_create_user_wires_channels_and_role(temp_perm_manager):`
+- `tests/test_user_signal_permissions.py:199` — `"""Mirror the auth/routes.py admin create_user flow: role + channels persisted."""`
+- `tests/test_user_signal_permissions.py:201` — `ok, msg, created = mgr.update_user_permissions(`
+- `tests/test_user_signal_permissions.py:205` — `"role": "operator",`
+- `tests/test_user_signal_permissions.py:212` — `perm = mgr.get_user_permissions("ops_user")`
+- `tests/test_user_signal_permissions.py:214` — `assert perm.role == "operator"`
+- `tests/test_all_ui_screens_and_navigation.py:35` — `res = auth.create_user("admin", "AdminPassword123!", role="admin")`
+- `tests/test_upstox_broker_adapter.py:30` — `assert _classify_upstox_error(Exception("401 Unauthorized")) == "TOKEN_EXPIRED"`
+- `tests/test_sovereignty_guard.py:1` — `"""Tests for core.sovereignty_guard — broker/AI access control."""`
+- `tests/test_sovereignty_guard.py:73` — `"""Test broker access control."""`
+- `tests/test_sovereignty_guard.py:104` — `"""Test AI access control."""`
+- `tests/test_iifl_broker_adapter.py:31` — `assert _classify_iifl_error(Exception("401 Unauthorized session expired")) == "TOKEN_EXPIRED"`
+- `tests/test_registration_notifications_security.py:14` — `role="viewer",`
+- `tests/test_auth_dependencies.py:4` — `- AuthDependencies init with auth_handler and role_manager`
+- `tests/test_auth_dependencies.py:7` — `- require_role: allows/denies based on user role`
+- `tests/test_auth_dependencies.py:8` — `- require_permission: allows/denies based on permission`
+- `tests/test_auth_dependencies.py:9` — `- optional_auth_with_fallback: returns anonymous user with fallback role`
+- `tests/test_auth_dependencies.py:47` — `"""Promote the test user to admin role."""`
+- `tests/test_auth_dependencies.py:48` — `auth.update_user_role("testuser", "admin", "admin")`
+- `tests/test_auth_dependencies.py:51` — `assert user.role == "admin"`
+- `tests/test_auth_dependencies.py:88` — `assert deps._role_manager is not None`
+- `tests/test_auth_dependencies.py:90` — `def test_init_with_custom_role_manager(self, auth: AuthHandler):`
+- `tests/test_auth_dependencies.py:91` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_dependencies.py:92` — `rm = RoleManager()`
+- `tests/test_auth_dependencies.py:93` — `deps = AuthDependencies(auth_handler=auth, role_manager=rm)`
+- `tests/test_auth_dependencies.py:94` — `assert deps._role_manager is rm`
+- `tests/test_auth_dependencies.py:110` — `assert user.role == "operator"`
+- `tests/test_auth_dependencies.py:113` — `"""Authorization header should work as fallback."""`
+- `tests/test_auth_dependencies.py:115` — `request = MockRequest(headers={"Authorization": f"Bearer {token.token}"})`
+- `tests/test_auth_dependencies.py:200` — `#  require_role`
+- `tests/test_auth_dependencies.py:205` — `class TestRequireRole:`
+- `tests/test_auth_dependencies.py:206` — `async def test_allowed_role(self, deps: AuthDependencies, admin_user: AuthUser):`
+- `tests/test_auth_dependencies.py:209` — `# Get the authenticated user first, then pass to the role check`
+- `tests/test_auth_dependencies.py:211` — `dep = deps.require_role("admin")`
+- `tests/test_auth_dependencies.py:212` — `# FastAPI would inject authed_user via Depends; we call the inner _check_role directly`
+- `tests/test_auth_dependencies.py:214` — `assert result.role == "admin"`
+- `tests/test_auth_dependencies.py:216` — `async def test_denied_role_raises_403(self, deps: AuthDependencies, test_user: AuthUser):`
+- `tests/test_auth_dependencies.py:220` — `dep = deps.require_role("admin")  # testuser is operator, not admin`
+- `tests/test_auth_dependencies.py:226` — `async def test_any_of_multiple_roles(self, deps: AuthDependencies, test_user: AuthUser):`
+- `tests/test_auth_dependencies.py:227` — `"""require_role should allow any of the specified roles."""`
+- `tests/test_auth_dependencies.py:231` — `dep = deps.require_role("admin", "operator")`
+- `tests/test_auth_dependencies.py:239` — `dep = deps.require_role("OPERATOR")`
+- `tests/test_auth_dependencies.py:245` — `#  require_permission`
+- `tests/test_auth_dependencies.py:250` — `class TestRequirePermission:`
+- `tests/test_auth_dependencies.py:251` — `async def test_allowed_permission(self, deps: AuthDependencies, admin_user: AuthUser):`
+- `tests/test_auth_dependencies.py:255` — `dep = deps.require_permission("halt_trading")`
+- `tests/test_auth_dependencies.py:259` — `async def test_denied_permission_raises_403(self, deps: AuthDependencies, test_user: AuthUser):`
+- `tests/test_auth_dependencies.py:260` — `"""Viewer/operator does not have modify_risk_limits permission."""`
+- `tests/test_auth_dependencies.py:264` — `dep = deps.require_permission("modify_risk_limits")`
+- `tests/test_auth_dependencies.py:281` — `dep = deps.optional_auth_with_fallback(fallback_role="viewer")`
+- `tests/test_auth_dependencies.py:284` — `assert user.role == "operator"`
+- `tests/test_auth_dependencies.py:288` — `dep = deps.optional_auth_with_fallback(fallback_role="viewer")`
+- `tests/test_auth_dependencies.py:291` — `assert user.role == "viewer"`
+- `tests/test_auth_dependencies.py:293` — `async def test_custom_fallback_role(self, deps: AuthDependencies):`
+- `tests/test_auth_dependencies.py:295` — `dep = deps.optional_auth_with_fallback(fallback_role="observer")`
+- `tests/test_auth_dependencies.py:297` — `assert user.role == "observer"`
+- `tests/test_wip47_sso_url_semantic_boundary.py:7` — `def test_sso_authorization_and_callback_functions_exist():`
+- `tests/test_wip47_sso_url_semantic_boundary.py:9` — `assert "def get_authorization_url" in text`
+- `tests/test_ai_security_gate.py:46` — `def test_role_escape_detected(self):`
+- `tests/test_ai_security_gate.py:50` — `assert "role_escape" in patterns`
+- `tests/test_auth_session_store.py:19` — `from core.auth.permissions import Role`
+- `tests/test_auth_session_store.py:45` — `session = Session(session_id="s1", identity="alice", role=Role.ADMIN)`
+- `tests/test_auth_session_store.py:48` — `assert session.role == Role.ADMIN`
+- `tests/test_auth_session_store.py:58` — `role=Role.OPERATOR,`
+- `tests/test_auth_session_store.py:64` — `assert session.role == Role.OPERATOR`
+- `tests/test_auth_session_store.py:78` — `session = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:82` — `assert session.role == Role.ADMIN`
+- `tests/test_auth_session_store.py:85` — `def test_create_with_string_role(self, store):`
+- `tests/test_auth_session_store.py:86` — `"""String role should be converted to Role enum."""`
+- `tests/test_auth_session_store.py:88` — `assert session.role == Role.OPERATOR`
+- `tests/test_auth_session_store.py:90` — `def test_create_case_insensitive_role(self, store):`
+- `tests/test_auth_session_store.py:91` — `"""Role string should be case-insensitive."""`
+- `tests/test_auth_session_store.py:93` — `assert session.role == Role.ADMIN`
+- `tests/test_auth_session_store.py:97` — `session = store.create("dave", Role.OBSERVER, ip="10.0.0.1", user_agent="test")`
+- `tests/test_auth_session_store.py:103` — `s1 = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:104` — `s2 = store.create("bob", Role.OPERATOR)`
+- `tests/test_auth_session_store.py:109` — `s1 = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:110` — `s2 = store.create("alice", Role.VIEWER)`
+- `tests/test_auth_session_store.py:115` — `store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:116` — `store.create("bob", Role.OPERATOR)`
+- `tests/test_auth_session_store.py:117` — `store.create("charlie", Role.VIEWER)`
+- `tests/test_auth_session_store.py:129` — `created = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:141` — `created = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:150` — `created = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:163` — `created = short_ttl_store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:169` — `created = short_ttl_store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:177` — `created = short_ttl_store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:183` — `short_ttl_store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:184` — `short_ttl_store.create("bob", Role.OPERATOR)`
+- `tests/test_auth_session_store.py:186` — `s3 = short_ttl_store.create("charlie", Role.VIEWER)  # new session`
+- `tests/test_auth_session_store.py:193` — `store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:194` — `store.create("bob", Role.OPERATOR)`
+- `tests/test_auth_session_store.py:206` — `created = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:222` — `created = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:231` — `store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:232` — `created = store.create("bob", Role.OPERATOR)`
+- `tests/test_auth_session_store.py:246` — `s1 = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:247` — `s2 = store.create("bob", Role.OPERATOR)`
+- `tests/test_auth_session_store.py:260` — `short_ttl_store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:262` — `short_ttl_store.create("bob", Role.OPERATOR)  # new session`
+- `tests/test_auth_session_store.py:280` — `store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:285` — `created = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:286` — `store.create("bob", Role.OPERATOR)`
+- `tests/test_auth_session_store.py:306` — `session = store.create("worker", Role.OPERATOR)`
+- `tests/test_auth_session_store.py:324` — `created = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_session_store.py:357` — `short_ttl_store.create("worker", Role.OPERATOR)`
+- `tests/test_auth_system.py:10` — `- RBAC enforcement`
+- `tests/test_auth_system.py:76` — `role="viewer",`
+- `tests/test_auth_system.py:89` — `role="admin",`
+- `tests/test_auth_system.py:205` — `def test_create_user_invalid_role(self, auth_handler):`
+- `tests/test_auth_system.py:206` — `result = auth_handler.create_user("badrole", "Test@1234!", "superadmin")`
+- `tests/test_auth_system.py:213` — `assert user.role == "viewer"`
+- `tests/test_auth_system.py:260` — `assert user.role == "viewer"`
+- `tests/test_auth_system.py:275` — `def test_login_updates_last_login(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:288` — `assert user.role == "admin"`
+- `tests/test_auth_system.py:295` — `assert user.role == "operator"`
+- `tests/test_auth_system.py:309` — `assert token.role == "viewer"`
+- `tests/test_auth_system.py:362` — `result = auth_handler.update_password("testuser", "Test@1234!", "NewP@ss1!")`
+- `tests/test_auth_system.py:368` — `result = auth_handler.update_password("testuser", "Wrong@123!", "NewP@ss1!")`
+- `tests/test_auth_system.py:372` — `result = auth_handler.update_password("testuser", "Test@1234!", "weak")`
+- `tests/test_auth_system.py:441` — `# RBAC & Permissions`
+- `tests/test_auth_system.py:444` — `class TestRBAC:`
+- `tests/test_auth_system.py:445` — `def test_role_hierarchy(self):`
+- `tests/test_auth_system.py:446` — `from core.auth.permissions import (`
+- `tests/test_auth_system.py:447` — `Permission,`
+- `tests/test_auth_system.py:448` — `Role,`
+- `tests/test_auth_system.py:449` — `get_role_permissions,`
+- `tests/test_auth_system.py:451` — `admin_perms = get_role_permissions(Role.ADMIN)`
+- `tests/test_auth_system.py:452` — `assert Permission.MODIFY_RISK_LIMITS in admin_perms`
+- `tests/test_auth_system.py:453` — `assert Permission.MODIFY_CONFIG in admin_perms`
+- `tests/test_auth_system.py:454` — `assert Permission.ADD_BROKERS in admin_perms`
+- `tests/test_auth_system.py:456` — `viewer_perms = get_role_permissions(Role.OBSERVER)`
+- `tests/test_auth_system.py:457` — `assert Permission.VIEW_STATE in viewer_perms`
+- `tests/test_auth_system.py:458` — `assert Permission.MODIFY_RISK_LIMITS not in viewer_perms`
+- `tests/test_auth_system.py:460` — `def test_role_has_permission(self):`
+- `tests/test_auth_system.py:461` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_system.py:462` — `assert role_has_permission("admin", "view_state")`
+- `tests/test_auth_system.py:463` — `assert not role_has_permission("observer", "halt_trading")`
+- `tests/test_auth_system.py:464` — `assert not role_has_permission("unknown_role", "view_state")`
+- `tests/test_auth_system.py:466` — `def test_role_manager_assignments(self, auth_handler):`
+- `tests/test_auth_system.py:467` — `from core.auth.permissions import Permission, Role`
+- `tests/test_auth_system.py:468` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_system.py:470` — `rm = RoleManager(default_role="observer")`
+- `tests/test_auth_system.py:474` — `assert rm.get_role("alice") == Role.ADMIN`
+- `tests/test_auth_system.py:475` — `assert rm.get_role("bob") == Role.OPERATOR`
+- `tests/test_auth_system.py:476` — `assert rm.get_role("unknown") == Role.OBSERVER`
+- `tests/test_auth_system.py:478` — `rm.check("alice", Permission.MODIFY_CONFIG)`
+- `tests/test_auth_system.py:480` — `rm.check("bob", Permission.MODIFY_CONFIG)`
+- `tests/test_auth_system.py:482` — `def test_role_manager_load_from_config(self):`
+- `tests/test_auth_system.py:483` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_system.py:484` — `rm = RoleManager()`
+- `tests/test_auth_system.py:486` — `"admin_roles": {"alice": "admin", "bob": "operator"},`
+- `tests/test_auth_system.py:487` — `"admin_default_role": "observer",`
+- `tests/test_auth_system.py:489` — `assert rm.get_role("alice").value == "admin"`
+- `tests/test_auth_system.py:491` — `def test_role_manager_revoke(self):`
+- `tests/test_auth_system.py:492` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_system.py:493` — `rm = RoleManager()`
+- `tests/test_auth_system.py:496` — `assert rm.get_role("alice").value == "observer"`
+- `tests/test_auth_system.py:844` — `from core.auth.permissions import Role`
+- `tests/test_auth_system.py:847` — `session = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_system.py:849` — `assert session.role == Role.ADMIN`
+- `tests/test_auth_system.py:852` — `from core.auth.permissions import Role`
+- `tests/test_auth_system.py:855` — `session = store.create("bob", Role.OPERATOR)`
+- `tests/test_auth_system.py:863` — `from core.auth.permissions import Role`
+- `tests/test_auth_system.py:866` — `session = store.create("charlie", Role.OBSERVER)`
+- `tests/test_auth_system.py:1030` — `"role": "operator",`
+- `tests/test_auth_system.py:1180` — `# RBAC Integration with Permissions`
+- `tests/test_auth_system.py:1183` — `class TestRBACIntegration:`
+- `tests/test_auth_system.py:1184` — `def test_role_manager_with_auth(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:1185` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_system.py:1187` — `rm = RoleManager()`
+- `tests/test_auth_system.py:1193` — `# Update role in auth`
+- `tests/test_auth_system.py:1194` — `auth_handler.update_user_role("testuser", "admin", "system")`
+- `tests/test_auth_system.py:1197` — `assert user.role == "admin"`
+- `tests/test_auth_system.py:1199` — `def test_permission_check_admin(self):`
+- `tests/test_auth_system.py:1200` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_system.py:1201` — `assert role_has_permission("admin", "modify_config")`
+- `tests/test_auth_system.py:1202` — `assert role_has_permission("admin", "add_brokers")`
+- `tests/test_auth_system.py:1203` — `assert role_has_permission("admin", "halt_trading")`
+- `tests/test_auth_system.py:1204` — `assert role_has_permission("admin", "view_state")`
+- `tests/test_auth_system.py:1205` — `assert role_has_permission("admin", "modify_risk_limits")`
+- `tests/test_auth_system.py:1207` — `def test_permission_check_operator(self):`
+- `tests/test_auth_system.py:1208` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_system.py:1209` — `assert role_has_permission("operator", "view_state")`
+- `tests/test_auth_system.py:1210` — `assert role_has_permission("operator", "halt_trading")`
+- `tests/test_auth_system.py:1211` — `assert role_has_permission("operator", "toggle_strategies")`
+- `tests/test_auth_system.py:1212` — `assert not role_has_permission("operator", "modify_risk_limits")`
+- `tests/test_auth_system.py:1213` — `assert not role_has_permission("operator", "modify_config")`
+- `tests/test_auth_system.py:1215` — `def test_permission_check_observer(self):`
+- `tests/test_auth_system.py:1216` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_system.py:1217` — `assert role_has_permission("observer", "view_state")`
+- `tests/test_auth_system.py:1218` — `assert role_has_permission("observer", "view_logs")`
+- `tests/test_auth_system.py:1219` — `assert not role_has_permission("observer", "halt_trading")`
+- `tests/test_auth_system.py:1220` — `assert not role_has_permission("observer", "modify_config")`
+- `tests/test_auth_system.py:1222` — `def test_role_manager_defaults(self):`
+- `tests/test_auth_system.py:1223` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_system.py:1224` — `rm = RoleManager("observer")`
+- `tests/test_auth_system.py:1225` — `assert rm.get_role("unknown").value == "observer"`
+- `tests/test_auth_system.py:1227` — `def test_get_role_permissions_set(self):`
+- `tests/test_auth_system.py:1228` — `from core.auth.permissions import Role, get_role_permissions`
+- `tests/test_auth_system.py:1229` — `perms = get_role_permissions(Role.ADMIN)`
+- `tests/test_auth_system.py:1230` — `assert len(perms) >= 5  # admin has many permissions`
+- `tests/test_auth_system.py:1231` — `perms = get_role_permissions(Role.OBSERVER)`
+- `tests/test_exactly_once_certification.py:96` — `except PermissionError:`
+- `tests/test_exactly_once_certification.py:129` — `except PermissionError:`
+- `tests/test_exactly_once_certification.py:253` — `except PermissionError:`
+- `tests/test_telegram_commander.py:381` — `"telegram_authorized_user_ids": ["user1"],`
+- `tests/test_web_mutation_permission_contract.py:1` — `"""Regression guard: every mutating enterprise admin API must declare a granular permission.`
+- `tests/test_web_mutation_permission_contract.py:29` — `def _has_permission_dependency(node):`
+- `tests/test_web_mutation_permission_contract.py:34` — `if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute) and child.func.attr == "require_permission":`
+- `tests/test_web_mutation_permission_contract.py:39` — `def test_all_mutating_admin_routes_declare_granular_permission():`
+- `tests/test_web_mutation_permission_contract.py:43` — `if not _has_permission_dependency(node):`
+- `tests/test_web_mutation_permission_contract.py:45` — `assert not missing, "Mutating routes without granular permission: " + ", ".join(missing)`
+- `tests/test_durable_state.py:44` — `except PermissionError:`
+- `tests/test_durable_state.py:51` — `except PermissionError:`
+- `tests/test_dhan_broker_adapter.py:30` — `assert _classify_dhan_error(Exception("401 Unauthorized")) == "TOKEN_EXPIRED"`
+- `tests/test_dhan_broker_adapter.py:119` — `assert "Authorization" not in headers`
+- `tests/test_broker_state_handler.py:328` — `exc = PermissionError("auth token expired")`
+- `tests/test_broker_state_handler.py:352` — `def test_unauthorized_keyword(self):`
+- `tests/test_broker_state_handler.py:354` — `exc = ValueError("unauthorized access")`
+- `tests/test_command_bus.py:185` — `return CommandResult(success=False, error="Unauthorized")`
+- `tests/test_command_bus.py:191` — `assert "Unauthorized" in result.error`
+- `tests/test_replay_certification.py:158` — `except (OSError, PermissionError):`
+- `tests/test_replay_certification.py:183` — `except (OSError, PermissionError):`
+- `tests/test_replay_certification.py:328` — `except (OSError, PermissionError):`
+- `tests/test_replay_certification.py:366` — `except (OSError, PermissionError):`
+- `tests/test_password_reset_recovery.py:11` — `res = handler.create_user("trader1", "Trader@Pass1!", role="viewer", display_name="Test Trader")`
+- `tests/test_check_stale_doc_refs.py:170` — `raise PermissionError("Access denied")`
+- `tests/test_kite_ticker_feed.py:240` — `def test_on_kite_order_update_forwards_to_user():`
+- `tests/test_admin_portfolio_analyzer.py:29` — `res = auth.create_user("admin", "AdminPassword123!", role="admin")`
+- `tests/test_execution_retry_policy_manager.py:54` — `safety = policy.classify_error(PermissionError("Auth failed"))`
+- `tests/test_wip48_sso_callback_contract.py:16` — `assert "authorization" in text.lower()`
+- `tests/test_permissions.py:1` — `"""Tests for core/auth/permissions.py - RBAC Permission Matrix.`
+- `tests/test_permissions.py:4` — `- Role enum values and string conversion`
+- `tests/test_permissions.py:5` — `- Permission enum values`
+- `tests/test_permissions.py:6` — `- Permission matrix: each role has correct permissions`
+- `tests/test_permissions.py:7` — `- role_has_permission() with Role objects and strings`
+- `tests/test_permissions.py:8` — `- get_role_permissions()`
+- `tests/test_permissions.py:9` — `- PermissionDenied exception`
+- `tests/test_permissions.py:10` — `- Edge cases: unknown roles, unknown permissions, case insensitivity`
+- `tests/test_permissions.py:16` — `from core.auth.permissions import (`
+- `tests/test_permissions.py:17` — `Permission,`
+- `tests/test_permissions.py:18` — `PermissionDenied,`
+- `tests/test_permissions.py:19` — `Role,`
+- `tests/test_permissions.py:20` — `get_role_permissions,`
+- `tests/test_permissions.py:21` — `role_has_permission,`
+- `tests/test_permissions.py:24` — `# ── Role Enum Tests ──────────────────────────────────────────────────────────`
+- `tests/test_permissions.py:27` — `class TestRole:`
+- `tests/test_permissions.py:29` — `assert Role.ADMIN.value == "admin"`
+- `tests/test_permissions.py:30` — `assert Role.OPERATOR.value == "operator"`
+- `tests/test_permissions.py:31` — `assert Role.VIEWER.value == "viewer"`
+- `tests/test_permissions.py:32` — `assert Role.OBSERVER.value == "observer"`
+- `tests/test_permissions.py:33` — `assert Role.DEVELOPER.value == "developer"`
+- `tests/test_permissions.py:35` — `def test_all_roles_unique(self):`
+- `tests/test_permissions.py:36` — `values = [r.value for r in Role]`
+- `tests/test_permissions.py:40` — `for r in Role:`
+- `tests/test_permissions.py:44` — `assert Role("admin") == Role.ADMIN`
+- `tests/test_permissions.py:45` — `assert Role("operator") == Role.OPERATOR`
+- `tests/test_permissions.py:46` — `assert Role("viewer") == Role.VIEWER`
+- `tests/test_permissions.py:48` — `def test_invalid_role_raises(self):`
+- `tests/test_permissions.py:50` — `Role("superadmin")`
+- `tests/test_permissions.py:53` — `# ── Permission Enum Tests ────────────────────────────────────────────────────`
+- `tests/test_permissions.py:56` — `class TestPermission:`
+- `tests/test_permissions.py:58` — `assert Permission.VIEW_STATE.value == "view_state"`
+- `tests/test_permissions.py:59` — `assert Permission.HALT_TRADING.value == "halt_trading"`
+- `tests/test_permissions.py:60` — `assert Permission.MODIFY_RISK_LIMITS.value == "modify_risk_limits"`
+- `tests/test_permissions.py:61` — `assert Permission.TOGGLE_STRATEGIES.value == "toggle_strategies"`
+- `tests/test_permissions.py:62` — `assert Permission.DEPLOY_MODELS.value == "deploy_models"`
+- `tests/test_permissions.py:63` — `assert Permission.MODIFY_CODE.value == "modify_code"`
+- `tests/test_permissions.py:64` — `assert Permission.VIEW_LOGS.value == "view_logs"`
+- `tests/test_permissions.py:65` — `assert Permission.ADD_BROKERS.value == "add_brokers"`
+- `tests/test_permissions.py:66` — `assert Permission.MODIFY_CONFIG.value == "modify_config"`
+- `tests/test_permissions.py:68` — `def test_all_permissions_unique(self):`
+- `tests/test_permissions.py:69` — `values = [p.value for p in Permission]`
+- `tests/test_permissions.py:73` — `# ── Permission Matrix Tests ──────────────────────────────────────────────────`
+- `tests/test_permissions.py:76` — `class TestPermissionMatrix:`
+- `tests/test_permissions.py:77` — `"""Verify the permission matrix matches the documented RBAC policy."""`
+- `tests/test_permissions.py:79` — `# ADMIN has ALL permissions`
+- `tests/test_permissions.py:80` — `def test_admin_has_all_permissions(self):`
+- `tests/test_permissions.py:81` — `for perm in Permission:`
+- `tests/test_permissions.py:82` — `assert role_has_permission(Role.ADMIN, perm), f"ADMIN lacks {perm}"`
+- `tests/test_permissions.py:84` — `# OPERATOR permissions`
+- `tests/test_permissions.py:86` — `assert role_has_permission(Role.OPERATOR, Permission.VIEW_STATE)`
+- `tests/test_permissions.py:89` — `assert role_has_permission(Role.OPERATOR, Permission.HALT_TRADING)`
+- `tests/test_permissions.py:92` — `assert role_has_permission(Role.OPERATOR, Permission.TOGGLE_STRATEGIES)`
+- `tests/test_permissions.py:95` — `assert role_has_permission(Role.OPERATOR, Permission.VIEW_LOGS)`
+- `tests/test_permissions.py:98` — `assert not role_has_permission(Role.OPERATOR, Permission.MODIFY_RISK_LIMITS)`
+- `tests/test_permissions.py:101` — `assert not role_has_permission(Role.OPERATOR, Permission.DEPLOY_MODELS)`
+- `tests/test_permissions.py:104` — `assert not role_has_permission(Role.OPERATOR, Permission.MODIFY_CODE)`
+- `tests/test_permissions.py:107` — `assert not role_has_permission(Role.OPERATOR, Permission.ADD_BROKERS)`
+- `tests/test_permissions.py:110` — `assert not role_has_permission(Role.OPERATOR, Permission.MODIFY_CONFIG)`
+- `tests/test_permissions.py:112` — `# VIEWER permissions`
+- `tests/test_permissions.py:114` — `assert role_has_permission(Role.VIEWER, Permission.VIEW_STATE)`
+- `tests/test_permissions.py:117` — `assert role_has_permission(Role.VIEWER, Permission.VIEW_LOGS)`
+- `tests/test_permissions.py:120` — `assert not role_has_permission(Role.VIEWER, Permission.HALT_TRADING)`
+- `tests/test_permissions.py:123` — `assert not role_has_permission(Role.VIEWER, Permission.TOGGLE_STRATEGIES)`
+- `tests/test_permissions.py:126` — `assert not role_has_permission(Role.VIEWER, Permission.MODIFY_CODE)`
+- `tests/test_permissions.py:128` — `# OBSERVER permissions (same as VIEWER currently)`
+- `tests/test_permissions.py:130` — `assert role_has_permission(Role.OBSERVER, Permission.VIEW_STATE)`
+- `tests/test_permissions.py:133` — `assert role_has_permission(Role.OBSERVER, Permission.VIEW_LOGS)`
+- `tests/test_permissions.py:136` — `assert not role_has_permission(Role.OBSERVER, Permission.HALT_TRADING)`
+- `tests/test_permissions.py:139` — `assert not role_has_permission(Role.OBSERVER, Permission.MODIFY_RISK_LIMITS)`
+- `tests/test_permissions.py:141` — `# DEVELOPER permissions`
+- `tests/test_permissions.py:143` — `assert role_has_permission(Role.DEVELOPER, Permission.VIEW_STATE)`
+- `tests/test_permissions.py:146` — `assert role_has_permission(Role.DEVELOPER, Permission.TOGGLE_STRATEGIES)`
+- `tests/test_permissions.py:149` — `assert role_has_permission(Role.DEVELOPER, Permission.DEPLOY_MODELS)`
+- `tests/test_permissions.py:152` — `assert role_has_permission(Role.DEVELOPER, Permission.MODIFY_CODE)`
+- `tests/test_permissions.py:155` — `assert role_has_permission(Role.DEVELOPER, Permission.MODIFY_CONFIG)`
+- `tests/test_permissions.py:158` — `assert not role_has_permission(Role.DEVELOPER, Permission.HALT_TRADING)`
+- `tests/test_permissions.py:161` — `assert not role_has_permission(Role.DEVELOPER, Permission.ADD_BROKERS)`
+- `tests/test_permissions.py:164` — `assert not role_has_permission(Role.DEVELOPER, Permission.MODIFY_RISK_LIMITS)`
+- `tests/test_permissions.py:167` — `# ── role_has_permission Edge Cases ───────────────────────────────────────────`
+- `tests/test_permissions.py:170` — `class TestRoleHasPermissionEdgeCases:`
+- `tests/test_permissions.py:171` — `def test_unknown_role_returns_false(self):`
+- `tests/test_permissions.py:172` — `assert role_has_permission("superadmin", Permission.VIEW_STATE) is False`
+- `tests/test_permissions.py:174` — `def test_unknown_permission_returns_false(self):`
+- `tests/test_permissions.py:175` — `assert role_has_permission(Role.ADMIN, "super_permission") is False`
+- `tests/test_permissions.py:177` — `def test_string_role_case_insensitive(self):`
+- `tests/test_permissions.py:178` — `assert role_has_permission("ADMIN", Permission.VIEW_STATE) is True`
+- `tests/test_permissions.py:179` — `assert role_has_permission("Operator", Permission.HALT_TRADING) is True`
+- `tests/test_permissions.py:181` — `def test_string_permission_case_insensitive(self):`
+- `tests/test_permissions.py:182` — `assert role_has_permission(Role.ADMIN, "VIEW_STATE") is True`
+- `tests/test_permissions.py:183` — `assert role_has_permission(Role.ADMIN, "Halt_Trading") is True`
+- `tests/test_permissions.py:185` — `def test_empty_string_role_returns_false(self):`
+- `tests/test_permissions.py:186` — `assert role_has_permission("", Permission.VIEW_STATE) is False`
+- `tests/test_permissions.py:188` — `def test_none_role_returns_false(self):`
+- `tests/test_permissions.py:189` — `assert role_has_permission(None, Permission.VIEW_STATE) is False  # type: ignore[arg-type]`
+- `tests/test_permissions.py:191` — `def test_none_permission_returns_false(self):`
+- `tests/test_permissions.py:192` — `assert role_has_permission(Role.VIEWER, None) is False  # type: ignore[arg-type]`
+- `tests/test_permissions.py:195` — `# ── get_role_permissions Tests ───────────────────────────────────────────────`
+- `tests/test_permissions.py:198` — `class TestGetRolePermissions:`
+- `tests/test_permissions.py:199` — `def test_admin_has_9_permissions(self):`
+- `tests/test_permissions.py:200` — `perms = get_role_permissions(Role.ADMIN)`
+- `tests/test_permissions.py:201` — `assert len(perms) == 9  # All permissions`
+- `tests/test_permissions.py:203` — `def test_operator_has_4_permissions(self):`
+- `tests/test_permissions.py:204` — `perms = get_role_permissions(Role.OPERATOR)`
+- `tests/test_permissions.py:206` — `assert Permission.VIEW_STATE in perms`
+- `tests/test_permissions.py:207` — `assert Permission.HALT_TRADING in perms`
+- `tests/test_permissions.py:208` — `assert Permission.TOGGLE_STRATEGIES in perms`
+- `tests/test_permissions.py:209` — `assert Permission.VIEW_LOGS in perms`
+- `tests/test_permissions.py:211` — `def test_viewer_has_2_permissions(self):`
+- `tests/test_permissions.py:212` — `perms = get_role_permissions(Role.VIEWER)`
+- `tests/test_permissions.py:214` — `assert Permission.VIEW_STATE in perms`
+- `tests/test_permissions.py:215` — `assert Permission.VIEW_LOGS in perms`
+- `tests/test_permissions.py:217` — `def test_observer_has_2_permissions(self):`
+- `tests/test_permissions.py:218` — `perms = get_role_permissions(Role.OBSERVER)`
+- `tests/test_permissions.py:220` — `assert Permission.VIEW_STATE in perms`
+- `tests/test_permissions.py:221` — `assert Permission.VIEW_LOGS in perms`
+- `tests/test_permissions.py:223` — `def test_developer_has_6_permissions(self):`
+- `tests/test_permissions.py:224` — `perms = get_role_permissions(Role.DEVELOPER)`
+- `tests/test_permissions.py:226` — `assert Permission.VIEW_STATE in perms`
+- `tests/test_permissions.py:227` — `assert Permission.TOGGLE_STRATEGIES in perms`
+- `tests/test_permissions.py:228` — `assert Permission.DEPLOY_MODELS in perms`
+- `tests/test_permissions.py:229` — `assert Permission.MODIFY_CODE in perms`
+- `tests/test_permissions.py:230` — `assert Permission.VIEW_LOGS in perms`
+- `tests/test_permissions.py:231` — `assert Permission.MODIFY_CONFIG in perms`
+- `tests/test_permissions.py:233` — `def test_string_role(self):`
+- `tests/test_permissions.py:234` — `perms = get_role_permissions("admin")`
+- `tests/test_permissions.py:237` — `def test_unknown_role_returns_empty(self):`
+- `tests/test_permissions.py:238` — `perms = get_role_permissions("superadmin")`
+- `tests/test_permissions.py:242` — `perms1 = get_role_permissions(Role.ADMIN)`
+- `tests/test_permissions.py:243` — `perms2 = get_role_permissions(Role.ADMIN)`
+- `tests/test_permissions.py:248` — `perms = get_role_permissions(Role.ADMIN)`
+- `tests/test_permissions.py:251` — `assert len(get_role_permissions(Role.ADMIN)) == 9`
+- `tests/test_permissions.py:254` — `# ── PermissionDenied Exception Tests ─────────────────────────────────────────`
+- `tests/test_permissions.py:257` — `class TestPermissionDenied:`
+- `tests/test_permissions.py:259` — `assert issubclass(PermissionDenied, Exception)`
+- `tests/test_permissions.py:262` — `with pytest.raises(PermissionDenied, match="access denied"):`
+- `tests/test_permissions.py:263` — `raise PermissionDenied("access denied")`
+- `tests/test_admin_auth.py:44` — `def test_create_token_default_role(self, admin_auth):`
+- `tests/test_admin_auth.py:48` — `assert token.role.value == "observer"`
+- `tests/test_admin_auth.py:50` — `def test_create_token_invalid_role_falls_back(self, admin_auth):`
+- `tests/test_admin_auth.py:51` — `"""Invalid role string should raise ValueError."""`
+- `tests/test_admin_auth.py:53` — `from core.auth.permissions import Role`
+- `tests/test_admin_auth.py:54` — `token_str = admin_auth.create_token("dave", Role.ADMIN)`
+- `tests/test_admin_auth.py:66` — `assert token.role.value == "admin"`
+- `tests/test_admin_auth.py:142` — `assert token.role.value == "admin"`
+- `tests/test_admin_auth.py:229` — `from core.auth.permissions import Role`
+- `tests/test_admin_auth.py:233` — `role=Role.ADMIN,`
+- `tests/test_auth_handler.py:195` — `def test_create_user_invalid_role(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:198` — `assert "Invalid role" in result.get("error", "")`
+- `tests/test_auth_handler.py:226` — `assert user.role == "operator"`
+- `tests/test_auth_handler.py:241` — `def test_authenticate_updates_last_login(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:247` — `updated = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:260` — `assert user.role == "operator"`
+- `tests/test_auth_handler.py:304` — `def test_update_password_success(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:305` — `result = auth_with_user.update_password("testuser", "TestPass123!", "NewValid1!")`
+- `tests/test_auth_handler.py:308` — `def test_update_password_wrong_current(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:309` — `result = auth_with_user.update_password("testuser", "WrongPass1!", "NewValid1!")`
+- `tests/test_auth_handler.py:313` — `def test_update_password_weak_new(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:314` — `result = auth_with_user.update_password("testuser", "TestPass123!", "weak")`
+- `tests/test_auth_handler.py:341` — `class TestUpdateUserRole:`
+- `tests/test_auth_handler.py:342` — `def test_update_role_success(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:343` — `result = auth_with_user.update_user_role("testuser", "admin", "admin")`
+- `tests/test_auth_handler.py:347` — `assert user.role == "admin"`
+- `tests/test_auth_handler.py:349` — `def test_update_role_invalid(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:350` — `result = auth_with_user.update_user_role("testuser", "superadmin", "admin")`
+- `tests/test_auth_handler.py:353` — `def test_update_role_nonexistent(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:354` — `result = auth.update_user_role("nonexistent", "admin", "admin")`
+- `tests/test_auth_handler.py:397` — `assert token.role == "operator"`
+- `tests/test_auth_handler.py:787` — `user = AuthUser(user_id="uid1", username="alice", role="operator",`
+- `tests/test_auth_handler.py:791` — `assert d["role"] == "operator"`
+- `tests/test_auth_handler.py:795` — `user = AuthUser(user_id="uid1", username="alice", role="viewer")`
+- `tests/test_auth_handler.py:803` — `token="abc", user_id="uid1", username="alice", role="admin",`
+- `tests/test_auth_handler.py:810` — `token="abc", user_id="uid1", username="alice", role="admin",`
+- `tests/test_auth_handler.py:817` — `token="abc", user_id="uid1", username="alice", role="admin",`
+- `tests/test_kite_broker_adapter.py:324` — `sys.modules["kiteconnect.exceptions"].PermissionException = Exception`
+- `tests/test_idempotency_manager.py:39` — `except PermissionError:`
+- `tests/test_idempotency_manager.py:46` — `except PermissionError:`
+- `tests/test_zero_cost_commercial_suite.py:24` — `assert prov_res["user_permissions"]["signals_enabled"] is True`
+- `tests/test_zero_cost_commercial_suite.py:25` — `assert "INDEX_OPTIONS" in prov_res["user_permissions"]["allowed_categories"]`
+- `tests/test_admin_signal_rbac_contract.py:11` — `assert 'view_signal_analytics = auth_deps.require_any_permission("manage_users", "view_logs")' in text`
+- `tests/chaos/test_restart_mid_session.py:35` — `except PermissionError:`
+- `tests/chaos/test_restart_mid_session.py:62` — `except PermissionError:`
+- `tests/chaos/test_restart_mid_session.py:105` — `except PermissionError:`
+- `archive/unrelated_modules/realestate/ai_chatbot.py:70` — `answer="Property registration is done at the Sub-Registrar's office: 1) Agreement of Sale is drafted and stamped. 2) Stamp duty is paid (varies by state). 3) Both buyer and seller appear before the Sub-Registrar (or authorize a representative). 4) Sale Deed is registered. 5) Mutation is done at the municipal corporation. Digital registration is now available in many states.",`
+- `archive/unrelated_modules/realestate/__init__.py:4` — `from the core platform (DI container, RBAC, event bus, notification service,`
+- `archive/unrelated_modules/realestate/__init__.py:51` — `UserRole,`
+- `archive/unrelated_modules/realestate/__init__.py:65` — `"TenantProfile", "UserProfile", "UserRole",`
+- `archive/unrelated_modules/realestate/payments.py:47` — `AUTHORIZED = "authorized"`
+- `archive/unrelated_modules/realestate/auth_service.py:70` — `role: str = "buyer"  # buyer, seller, broker, developer, admin`
+- `archive/unrelated_modules/realestate/auth_service.py:82` — `"role": self.role,`
+- `archive/unrelated_modules/realestate/auth_service.py:148` — `user_id: str = "", role: str = "buyer") -> UserSession:`
+- `archive/unrelated_modules/realestate/auth_service.py:152` — `token = self._generate_jwt(uid, email, role)`
+- `archive/unrelated_modules/realestate/auth_service.py:159` — `role=role,`
+- `archive/unrelated_modules/realestate/auth_service.py:181` — `def _generate_jwt(self, user_id: str, email: str, role: str) -> str:`
+- `archive/unrelated_modules/realestate/auth_service.py:192` — `"role": role,`
+- `archive/unrelated_modules/realestate/auth_service.py:215` — `"""Authentication service — OAuth login, session management, user roles."""`
+- `archive/unrelated_modules/realestate/auth_service.py:223` — `def login_with_google(self, id_token: str, role: str = "buyer") -> UserSession | None:`
+- `archive/unrelated_modules/realestate/auth_service.py:228` — `role: Requested user role (buyer/seller/broker/developer/admin).`
+- `archive/unrelated_modules/realestate/auth_service.py:261` — `"role": role,`
+- `archive/unrelated_modules/realestate/auth_service.py:268` — `self._users[email].update({`
+- `archive/unrelated_modules/realestate/auth_service.py:281` — `role=user.get("role", role),`
+- `archive/unrelated_modules/realestate/auth_service.py:286` — `def login_as_guest(self, name: str = "Guest", role: str = "buyer") -> UserSession:`
+- `archive/unrelated_modules/realestate/auth_service.py:292` — `role=role,`
+- `archive/unrelated_modules/realestate/auth_service.py:309` — `def update_role(self, email: str, role: str) -> bool:`
+- `archive/unrelated_modules/realestate/auth_service.py:310` — `"""Update a user's role."""`
+- `archive/unrelated_modules/realestate/auth_service.py:313` — `self._users[email]["role"] = role`
+- `archive/unrelated_modules/realestate/auth_service.py:348` — `"""FastAPI dependency: extract current user from Authorization header or cookie.`
+- `archive/unrelated_modules/realestate/auth_service.py:355` — `# Check Authorization header first`
+- `archive/unrelated_modules/realestate/auth_service.py:356` — `auth_header = request.headers.get("Authorization", "")`
+- `archive/unrelated_modules/realestate/auth_service.py:374` — `"""FastAPI dependency: require admin role."""`
+- `archive/unrelated_modules/realestate/auth_service.py:392` — `role: str = Query("buyer", description="User role"),`
+- `archive/unrelated_modules/realestate/auth_service.py:395` — `session = svc.login_with_google(id_token, role)`
+- `archive/unrelated_modules/realestate/security.py:173` — `"Permissions-Policy": "camera=(), microphone=(), geolocation=(self), payment=(self)",`
+- `archive/unrelated_modules/tests/test_realestate_analytics.py:427` — `assert "Permissions-Policy" in SECURITY_HEADERS`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:28` — `role="buyer",`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:32` — `assert session.role == "buyer"`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:37` — `session = self.jwt.create_session("a@b.com", "Alice", role="broker")`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:41` — `assert validated.role == "broker"`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:85` — `assert session.role == "buyer"`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:88` — `def test_guest_login_default_role(self):`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:111` — `def test_update_role(self):`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:113` — `self.svc._users["test@update.com"] = {"email": "test@update.com", "name": "Test", "role": "buyer"}`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:114` — `assert self.svc.update_role("test@update.com", "broker")`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:115` — `assert self.svc.get_user("test@update.com")["role"] == "broker"`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:117` — `def test_update_role_nonexistent(self):`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:118` — `assert not self.svc.update_role("nonexistent", "admin")`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:121` — `self.svc._users["u1@test.com"] = {"email": "u1@test.com", "name": "User1", "role": "buyer"}`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:122` — `self.svc._users["u2@test.com"] = {"email": "u2@test.com", "name": "User2", "role": "broker"}`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:132` — `self.svc._users["get@test.com"] = {"email": "get@test.com", "name": "Getter", "role": "buyer"}`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:150` — `role="admin",`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:197` — `session = svc.login_with_google(fake_token, role="admin")`
+- `archive/unrelated_modules/tests/test_realestate_auth.py:232` — `session = svc.login_with_google(fake_token, role="admin")`
+- `archive/unrelated_modules/tests/test_realestate.py:32` — `UserRole,`
+- `archive/unrelated_modules/tests/test_realestate.py:107` — `assert u.role == UserRole.BUYER`
+- `archive/unrelated_modules/tests/test_realestate.py:111` — `u = UserProfile(user_id="U001", role=UserRole.BROKER, name="Raj")`
+- `archive/unrelated_modules/tests/test_realestate.py:113` — `assert d["role"] == "broker"`
+- `archive/unrelated_modules/tests/test_realestate.py:527` — `broker = crm.register_broker(UserDTO(user_id="B001", name="Ramesh", role="broker"))`
+- `archive/unrelated_modules/tests/test_realestate_notifications.py:51` — `self.engine.notify("user-1", NotificationCategory.LEAD_UPDATE, "L1", "Msg")`
+- `archive/unrelated_modules/tests/test_realestate_notifications.py:71` — `self.engine.notify("user-2", NotificationCategory.LEAD_UPDATE, "L1", "M")`
+- `archive/unrelated_modules/tests/test_realestate_notifications.py:79` — `self.engine.notify("user-1", NotificationCategory.LEAD_UPDATE, "Second", "M")`
+- `archive/unrelated_modules/realestate/domain/__init__.py:24` — `UserRole,`
+- `archive/unrelated_modules/realestate/domain/__init__.py:32` — `"TenantProfile", "UserProfile", "UserRole", "virtual_tour",`
+- `archive/unrelated_modules/realestate/domain/models.py:37` — `class UserRole(Enum):`
+- `archive/unrelated_modules/realestate/domain/models.py:220` — `"""Base user profile with Indian real estate role."""`
+- `archive/unrelated_modules/realestate/domain/models.py:222` — `role: UserRole = UserRole.BUYER`
+- `archive/unrelated_modules/realestate/domain/models.py:234` — `d["role"] = self.role.value`
+- `archive/unrelated_modules/realestate/domain/models.py:240` — `role: UserRole = UserRole.SELLER`
+- `archive/unrelated_modules/realestate/domain/models.py:249` — `role: UserRole = UserRole.BROKER`
+- `archive/unrelated_modules/realestate/domain/models.py:262` — `role: UserRole = UserRole.DEVELOPER`
+- `archive/unrelated_modules/realestate/domain/models.py:273` — `role: UserRole = UserRole.TENANT`
+- `archive/unrelated_modules/realestate/domain/models.py:360` — `listed_by_role: UserRole = UserRole.SELLER`
+- `archive/unrelated_modules/realestate/application/dto.py:117` — `role: str = "buyer"`
+- `infrastructure/security/audit_logger.py:822` — `return get_audit_logger().log_position_updated(position_data, correlation_id, user_id, session_id, ip_address)`
+- `infrastructure/adapters/brokers/iifl/adapter.py:227` — `headers["Authorization"] = self._token`
+- `infrastructure/adapters/brokers/iifl/adapter.py:237` — `raise RuntimeError(f"401 Unauthorized: {response.text[:200]}")`
+- `infrastructure/adapters/brokers/groww/adapter.py:125` — `"Authorization": f"Bearer {self._access_token}",`
+- `infrastructure/adapters/brokers/groww/adapter.py:179` — `raise RuntimeError(f"401 Unauthorized: {response.text[:200]}")`
+- `infrastructure/adapters/brokers/mstock/adapter.py:136` — `"Authorization": f"token {self._api_key}:{self._access_token}",`
+- `infrastructure/adapters/brokers/mstock/adapter.py:203` — `raise RuntimeError(f"401 Unauthorized: {response.text[:200]}")`
+- `infrastructure/adapters/brokers/icicidirect/adapter.py:204` — `raise RuntimeError(f"401 Unauthorized: {response.text[:200]}")`
+- `infrastructure/adapters/brokers/dhan/adapter.py:192` — `raise RuntimeError(f"401 Unauthorized: {response.text[:200]}")`
+- `infrastructure/adapters/brokers/upstox/adapter.py:27` — `OAuth2 redirect flow (authorize URL + code exchange), handled outside this`
+- `infrastructure/adapters/brokers/upstox/adapter.py:130` — `"Authorization": f"Bearer {self._access_token}",`
+- `infrastructure/adapters/brokers/upstox/adapter.py:181` — `raise RuntimeError(f"401 Unauthorized: {response.text[:200]}")`
+- `infrastructure/adapters/brokers/kite/adapter.py:104` — `if _kite_isinstance(exc, "PermissionException"):`
+- `infrastructure/adapters/brokers/kite/adapter.py:105` — `return "PERMISSION_ERROR"`
+- `infrastructure/adapters/brokers/kite/adapter.py:218` — `if category in ("TOKEN_EXPIRED", "PERMISSION_ERROR", "INPUT_ERROR"):`
+- `index_app/domains/admin/control_plane.py:43` — `from core.auth.role_manager import RoleManager`
+- `index_app/domains/admin/control_plane.py:56` — `role_mgr = RoleManager(default_role=cfg.get("admin_default_role", "observer"))`
+- `index_app/domains/admin/control_plane.py:57` — `role_mgr.load_from_config(dict(cfg))`
+- `index_app/domains/admin/control_plane.py:101` — `role_manager=role_mgr,`
+- `index_app/domains/admin/__init__.py:1` — `"""Admin Domain — control plane, audit, role management (DEBT-008)."""`
+- `core/patterns/mediator.py:210` — `concerns like logging, validation, timing, retry, and authorization.`
+- `core/patterns/mediator.py:367` — `"""Authorization middleware for commands/queries.`
+- `core/patterns/mediator.py:369` — `Checks if the user/role in context has permission to execute`
+- `core/patterns/mediator.py:370` — `the command/query. Commands can define required_roles.`
+- `core/patterns/mediator.py:373` — `def __init__(self, role_permissions: dict[str, list[str]] | None = None) -> None:`
+- `core/patterns/mediator.py:374` — `self._role_permissions = role_permissions or {}`
+- `core/patterns/mediator.py:382` — `user_role = context.get("user_role", "viewer")`
+- `core/patterns/mediator.py:385` — `# Check if this message type has role restrictions`
+- `core/patterns/mediator.py:386` — `required_roles = getattr(message, "required_roles", None)`
+- `core/patterns/mediator.py:387` — `if required_roles and user_role not in required_roles:`
+- `core/patterns/mediator.py:388` — `raise PermissionError(`
+- `core/patterns/mediator.py:389` — `f"Authorization denied for {msg_type}: "`
+- `core/patterns/mediator.py:390` — `f"requires {required_roles}, got '{user_role}'"`
+- `core/patterns/mediator.py:393` — `# Check role permissions map`
+- `core/patterns/mediator.py:394` — `allowed = self._role_permissions.get(user_role, [])`
+- `core/patterns/mediator.py:397` — `raise PermissionError(`
+- `core/patterns/mediator.py:398` — `f"Authorization denied for {msg_type}: "`
+- `core/patterns/mediator.py:399` — `f"role '{user_role}' not permitted"`
+- `core/patterns/mediator.py:557` — `(e.g., user_role="admin" for auth middleware).`
+- `core/patterns/mediator.py:624` — `(e.g., user_role="admin" for auth middleware).`
+- `core/backup/disaster_recovery.py:41` — `"json/user_signal_permissions.json",`
+- `core/notifications/url_resolver.py:135` — `# environment variables so an authorized Admin/Super Admin can change the`
+- `core/auditor/auditor.py:13` — `SECURITY        - RBAC, authentication, authorization, secrets management`
+- `core/auth/dependencies.py:1` — `"""AD-KIYU Auth Dependencies - FastAPI dependency injection for auth + RBAC.`
+- `core/auth/dependencies.py:24` — `from core.auth.permissions import is_super_admin_identity, role_has_permission`
+- `core/auth/dependencies.py:25` — `from core.auth.role_manager import RoleManager`
+- `core/auth/dependencies.py:35` — `auth = AuthDependencies(auth_handler, role_manager)`
+- `core/auth/dependencies.py:42` — `async def admin(user: AuthUser = Depends(auth.require_role("admin"))):`
+- `core/auth/dependencies.py:49` — `role_manager: RoleManager | None = None,`
+- `core/auth/dependencies.py:52` — `self._role_manager = role_manager or RoleManager()`
+- `core/auth/dependencies.py:59` — `Checks session cookie first, then Authorization header.`
+- `core/auth/dependencies.py:68` — `# Fall back to Authorization header`
+- `core/auth/dependencies.py:70` — `auth_header = request.headers.get("Authorization", "")`
+- `core/auth/dependencies.py:102` — `def require_role(self, *roles: str) -> Any:`
+- `core/auth/dependencies.py:103` — `"""Return a dependency that requires one of the specified roles."""`
+- `core/auth/dependencies.py:104` — `allowed = set(r.lower() for r in roles)`
+- `core/auth/dependencies.py:106` — `async def _check_role(user: AuthUser = Depends(self.require_auth)) -> AuthUser:`
+- `core/auth/dependencies.py:107` — `actual_role = user.role.lower()`
+- `core/auth/dependencies.py:108` — `# super_admin is the root administrative role and satisfies admin gates.`
+- `core/auth/dependencies.py:109` — `if actual_role == "super_admin" and "admin" in allowed:`
+- `core/auth/dependencies.py:111` — `if actual_role not in allowed:`
+- `core/auth/dependencies.py:114` — `detail=f"Requires one of roles: {', '.join(roles)}",`
+- `core/auth/dependencies.py:118` — `return _check_role`
+- `core/auth/dependencies.py:120` — `def require_permission(self, permission: str) -> Any:`
+- `core/auth/dependencies.py:121` — `"""Return a dependency that requires a specific permission."""`
+- `core/auth/dependencies.py:123` — `# Super Admin is the immutable root role. Other roles may have`
+- `core/auth/dependencies.py:125` — `if is_super_admin_identity(user.username, user.role):`
+- `core/auth/dependencies.py:127` — `# Role permissions are always the baseline. Per-user overrides are`
+- `core/auth/dependencies.py:128` — `# additive/removing only when a permission record actually exists.`
+- `core/auth/dependencies.py:130` — `# permission record has not been provisioned yet.`
+- `core/auth/dependencies.py:131` — `allowed = role_has_permission(user.role, permission)`
+- `core/auth/dependencies.py:133` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `core/auth/dependencies.py:134` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/dependencies.py:135` — `perm_record = mgr.get_user_permissions(user.username)`
+- `core/auth/dependencies.py:137` — `allowed = mgr.user_has_permission(user.username, permission, base_role=user.role)`
+- `core/auth/dependencies.py:139` — `_log.warning("Per-user permission lookup failed for %s: %s", user.username, exc)`
+- `core/auth/dependencies.py:143` — `detail=f"Permission denied: {permission}",`
+- `core/auth/dependencies.py:149` — `def require_any_permission(self, *permissions: str) -> Any:`
+- `core/auth/dependencies.py:150` — `"""Return a dependency that accepts any one of the supplied permissions.`
+- `core/auth/dependencies.py:152` — `This is intentionally evaluated against the same effective per-user RBAC`
+- `core/auth/dependencies.py:153` — `model as ``require_permission``.  It is useful for read-only admin pages`
+- `core/auth/dependencies.py:155` — `administrator, without granting either role the other's capabilities.`
+- `core/auth/dependencies.py:157` — `normalized = tuple(str(p).strip().lower() for p in permissions if str(p).strip())`
+- `core/auth/dependencies.py:160` — `if is_super_admin_identity(user.username, user.role):`
+- `core/auth/dependencies.py:162` — `for permission in normalized:`
+- `core/auth/dependencies.py:164` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `core/auth/dependencies.py:165` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/dependencies.py:166` — `if mgr.user_has_permission(user.username, permission, base_role=user.role):`
+- `core/auth/dependencies.py:169` — `_log.warning("Per-user permission lookup failed for %s: %s", user.username, exc)`
+- `core/auth/dependencies.py:170` — `if role_has_permission(user.role, permission):`
+- `core/auth/dependencies.py:172` — `detail = ", ".join(normalized) or "a required permission"`
+- `core/auth/dependencies.py:173` — `raise HTTPException(status_code=403, detail=f"Permission denied: requires one of: {detail}")`
+- `core/auth/dependencies.py:177` — `def optional_auth_with_fallback(self, fallback_role: str = "viewer") -> Any:`
+- `core/auth/dependencies.py:178` — `"""Auth if possible, else use fallback role."""`
+- `core/auth/dependencies.py:186` — `role=fallback_role,`
+- `core/auth/sso.py:23` — `redirect_url = sso.get_authorization_url()`
+- `core/auth/sso.py:49` — `"authorize_url": "https://accounts.google.com/o/oauth2/v2/auth",`
+- `core/auth/sso.py:55` — `"authorize_url": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",`
+- `core/auth/sso.py:61` — `"authorize_url": "https://github.com/login/oauth/authorize",`
+- `core/auth/sso.py:78` — `authorize_url: Custom authorize URL (for custom providers).`
+- `core/auth/sso.py:90` — `authorize_url: str = ""`
+- `core/auth/sso.py:156` — `- sso_authorize_url (str, optional, for custom providers)`
+- `core/auth/sso.py:168` — `authorize_url=cfg.get("sso_authorize_url", provider_cfg.get("authorize_url", "")),`
+- `core/auth/sso.py:184` — `def get_authorization_url(self, state: str | None = None) -> str | None:`
+- `core/auth/sso.py:185` — `"""Generate the OAuth2 authorization URL for the configured provider.`
+- `core/auth/sso.py:191` — `The full authorization URL, or None if authlib is not installed`
+- `core/auth/sso.py:215` — `uri, _ = session.create_authorization_url(`
+- `core/auth/sso.py:216` — `self._config.authorize_url,`
+- `core/auth/sso.py:224` — `_log.error("[SSO] Failed to create authorization URL: %s", exc)`
+- `core/auth/sso.py:231` — `code: The authorization code from the provider.`
+- `core/auth/sso.py:232` — `state: The OAuth2 state parameter (must match get_authorization_url).`
+- `core/auth/sso.py:276` — `headers = {"Authorization": f"Bearer {access_token}"}`
+- `core/auth/sso.py:370` — `role="operator",  # Default role for SSO users`
+- `core/auth/sso.py:391` — `"UPDATE users SET must_change_password = 1 WHERE username = ?",`
+- `core/auth/sso.py:432` — `if not self._config.authorize_url:`
+- `core/auth/sso.py:433` — `issues.append("Missing sso_authorize_url (check provider config)")`
+- `core/auth/registration_notifications.py:79` — `role: str,`
+- `core/auth/registration_notifications.py:93` — `html_role = html.escape(role, quote=True)`
+- `core/auth/registration_notifications.py:103` — `<p>Your OPB account <b>{html_username}</b> has been created with the <b>{html_role}</b> role.</p>`
+- `core/auth/registration_notifications.py:104` — `<p><b>Your account is pending administrator authorization.</b> Until the required permissions are granted, restricted signal and administration features will remain unavailable.</p>`
+- `core/auth/registration_notifications.py:106` — `<ol><li>An administrator reviews your account.</li><li>They assign the permitted menus, signal categories, conviction level and quotas.</li><li>You can then use the features authorized for your account.</li></ol>`
+- `core/auth/registration_notifications.py:113` — `f"Account: {username}\nRole: {role}\n\n"`
+- `core/auth/registration_notifications.py:114` — `"Your account is pending administrator authorization. An administrator must assign the permissions, menus, signal categories, conviction level and quotas before restricted features become available.\n\n"`
+- `core/auth/registration_notifications.py:117` — `user_sent = _send([email], "Welcome to OPB Super-Platform — Authorization Pending", user_html, user_plain)`
+- `core/auth/registration_notifications.py:124` — `<p>A new user has registered and requires permission review.</p>`
+- `core/auth/registration_notifications.py:129` — `<tr><td><b>Role</b></td><td>{html_role}</td></tr>`
+- `core/auth/registration_notifications.py:132` — `<p>Please review the account in <b>User Authorization & Controls</b> and explicitly assign the required privileges before the user begins using restricted features.</p>`
+- `core/auth/registration_notifications.py:138` — `f"Username: {username}\nDisplay Name: {safe_name}\nEmail: {email or '-'}\nRole: {role}\nCreated By: {created_by}\n\n"`
+- `core/auth/session_store.py:1` — `"""AD-KIYU RBAC - Session Store.`
+- `core/auth/session_store.py:14` — `from core.auth.permissions import Role`
+- `core/auth/session_store.py:23` — `role: Role`
+- `core/auth/session_store.py:37` — `def create(self, identity: str, role: Role | str, **metadata) -> Session:`
+- `core/auth/session_store.py:39` — `if isinstance(role, str):`
+- `core/auth/session_store.py:40` — `role = Role(role.lower())`
+- `core/auth/session_store.py:44` — `role=role,`
+- `core/auth/permissions.py:1` — `"""AD-KIYU RBAC - Role-Based Access Control for admin control plane.`
+- `core/auth/permissions.py:3` — `Permission matrix:`
+- `core/auth/permissions.py:22` — `class Role(str, enum.Enum):`
+- `core/auth/permissions.py:31` — `class Permission(str, enum.Enum):`
+- `core/auth/permissions.py:42` — `MANAGE_PERMISSIONS = "manage_permissions"`
+- `core/auth/permissions.py:45` — `_PERMISSION_MATRIX: dict[Role, set[Permission]] = {`
+- `core/auth/permissions.py:46` — `# Super Admin is the root control-plane role. It inherits every defined RBAC permission.`
+- `core/auth/permissions.py:47` — `Role.SUPER_ADMIN: set(Permission),`
+- `core/auth/permissions.py:48` — `Role.ADMIN: {`
+- `core/auth/permissions.py:49` — `Permission.VIEW_STATE,`
+- `core/auth/permissions.py:50` — `Permission.HALT_TRADING,`
+- `core/auth/permissions.py:51` — `Permission.MODIFY_RISK_LIMITS,`
+- `core/auth/permissions.py:52` — `Permission.TOGGLE_STRATEGIES,`
+- `core/auth/permissions.py:53` — `Permission.DEPLOY_MODELS,`
+- `core/auth/permissions.py:54` — `Permission.MODIFY_CODE,`
+- `core/auth/permissions.py:55` — `Permission.VIEW_LOGS,`
+- `core/auth/permissions.py:56` — `Permission.ADD_BROKERS,`
+- `core/auth/permissions.py:57` — `Permission.MODIFY_CONFIG,`
+- `core/auth/permissions.py:58` — `Permission.MANAGE_USERS,`
+- `core/auth/permissions.py:60` — `Role.OPERATOR: {`
+- `core/auth/permissions.py:61` — `Permission.VIEW_STATE,`
+- `core/auth/permissions.py:62` — `Permission.HALT_TRADING,`
+- `core/auth/permissions.py:63` — `Permission.TOGGLE_STRATEGIES,`
+- `core/auth/permissions.py:64` — `Permission.VIEW_LOGS,`
+- `core/auth/permissions.py:66` — `Role.VIEWER: {`
+- `core/auth/permissions.py:67` — `Permission.VIEW_STATE,`
+- `core/auth/permissions.py:68` — `Permission.VIEW_LOGS,`
+- `core/auth/permissions.py:70` — `Role.OBSERVER: {`
+- `core/auth/permissions.py:71` — `Permission.VIEW_STATE,`
+- `core/auth/permissions.py:72` — `Permission.VIEW_LOGS,`
+- `core/auth/permissions.py:74` — `Role.DEVELOPER: {`
+- `core/auth/permissions.py:75` — `Permission.VIEW_STATE,`
+- `core/auth/permissions.py:76` — `Permission.TOGGLE_STRATEGIES,`
+- `core/auth/permissions.py:77` — `Permission.DEPLOY_MODELS,`
+- `core/auth/permissions.py:78` — `Permission.MODIFY_CODE,`
+- `core/auth/permissions.py:79` — `Permission.VIEW_LOGS,`
+- `core/auth/permissions.py:80` — `Permission.MODIFY_CONFIG,`
+- `core/auth/permissions.py:85` — `def role_has_permission(role: Role | str, permission: Permission | str) -> bool:`
+- `core/auth/permissions.py:86` — `"""Check whether a role has a given permission."""`
+- `core/auth/permissions.py:87` — `if isinstance(role, str):`
+- `core/auth/permissions.py:89` — `role = Role(role.lower())`
+- `core/auth/permissions.py:92` — `if isinstance(permission, str):`
+- `core/auth/permissions.py:94` — `permission = Permission(permission.lower())`
+- `core/auth/permissions.py:97` — `return permission in _PERMISSION_MATRIX.get(role, set())`
+- `core/auth/permissions.py:100` — `def get_role_permissions(role: Role | str) -> set[Permission]:`
+- `core/auth/permissions.py:101` — `"""Get all permissions for a role."""`
+- `core/auth/permissions.py:102` — `if isinstance(role, str):`
+- `core/auth/permissions.py:104` — `role = Role(role.lower())`
+- `core/auth/permissions.py:107` — `return _PERMISSION_MATRIX.get(role, set()).copy()`
+- `core/auth/permissions.py:110` — `def is_super_admin_identity(username: str, role: Role | str) -> bool:`
+- `core/auth/permissions.py:116` — `return str(username or '').strip().lower() == 'admin' or str(role or '').lower() == Role.SUPER_ADMIN.value`
+- `core/auth/permissions.py:119` — `class PermissionDenied(Exception):`
+- `core/auth/permissions.py:120` — `"""Raised when a role lacks permission for a requested action."""`
+- `core/auth/permissions.py:124` — `"Permission",`
+- `core/auth/permissions.py:125` — `"PermissionDenied",`
+- `core/auth/permissions.py:126` — `"Role",`
+- `core/auth/permissions.py:127` — `"get_role_permissions",`
+- `core/auth/permissions.py:128` — `"role_has_permission",`
+- `core/auth/__init__.py:5` — `- RoleManager - role assignment and permission checking`
+- `core/auth/__init__.py:7` — `- Permission matrix (defined in permissions.py)`
+- `core/auth/__init__.py:9` — `- AuthDependencies - FastAPI dependency injection for auth + RBAC`
+- `core/auth/__init__.py:28` — `from core.auth.permissions import Permission, PermissionDenied, Role, role_has_permission`
+- `core/auth/__init__.py:29` — `from core.auth.role_manager import RoleManager`
+- `core/auth/__init__.py:42` — `"Permission",`
+- `core/auth/__init__.py:43` — `"PermissionDenied",`
+- `core/auth/__init__.py:44` — `"Role",`
+- `core/auth/__init__.py:45` — `"RoleManager",`
+- `core/auth/__init__.py:58` — `"role_has_permission",`
+- `core/auth/routes.py:56` — `from core.auth.user_signal_permissions import ALL_CATEGORIES, UserPermissionManager`
+- `core/auth/routes.py:57` — `from core.auth.permissions import is_super_admin_identity`
+- `core/auth/routes.py:141` — `"""Register a new user (self-registration, defaults to viewer role).`
+- `core/auth/routes.py:170` — `role = "viewer"  # Self-registration always creates viewers`
+- `core/auth/routes.py:181` — `role=role,`
+- `core/auth/routes.py:190` — `# Save email & telegram_chat_id into UserPermissionManager`
+- `core/auth/routes.py:192` — `perm_mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:201` — `perm_mgr.update_user_permissions(username, update_data, admin_username="self-register")`
+- `core/auth/routes.py:203` — `_log.warning("[AUTH] Failed to save user signal permissions on register: %s", e)`
+- `core/auth/routes.py:209` — `role=role,`
+- `core/auth/routes.py:214` — `"message": "Account created successfully with viewer role and is pending administrator authorization.",`
+- `core/auth/routes.py:290` — `auth_header = request.headers.get("Authorization", "")`
+- `core/auth/routes.py:331` — `perms = UserPermissionManager.get_instance().get_user_permissions(current_user.username)`
+- `core/auth/routes.py:338` — `"role": current_user.role,`
+- `core/auth/routes.py:345` — `"permissions": perms.to_dict() if perms else {},`
+- `core/auth/routes.py:354` — `"""Update the current user's display name, email, and telegram chat id."""`
+- `core/auth/routes.py:361` — `auth_handler.update_user_metadata(`
+- `core/auth/routes.py:367` — `# Update Signal Permissions store`
+- `core/auth/routes.py:373` — `UserPermissionManager.get_instance().update_user_permissions(current_user.username, perm_updates, admin_username=current_user.username)`
+- `core/auth/routes.py:383` — `"role": current_user.role,`
+- `core/auth/routes.py:402` — `result = auth_handler.update_password(current_user.username, current, new)`
+- `core/auth/routes.py:410` — `# Granular administrative gates. Super Admin satisfies every permission.`
+- `core/auth/routes.py:411` — `manage_users = auth_deps.require_permission("manage_users")`
+- `core/auth/routes.py:412` — `manage_permissions = auth_deps.require_permission("manage_permissions")`
+- `core/auth/routes.py:413` — `view_signal_analytics = auth_deps.require_any_permission("manage_users", "view_logs")`
+- `core/auth/routes.py:431` — `role = str(body.get("role", "viewer")).strip().lower()`
+- `core/auth/routes.py:439` — `valid_roles = {"super_admin", "admin", "operator", "viewer", "observer", "developer"}`
+- `core/auth/routes.py:440` — `if role not in valid_roles:`
+- `core/auth/routes.py:441` — `raise HTTPException(status_code=400, detail=f"Unsupported role: {role}")`
+- `core/auth/routes.py:442` — `if not is_super_admin_identity(admin.username, admin.role) and role != "viewer":`
+- `core/auth/routes.py:443` — `raise HTTPException(status_code=403, detail="Only Super Admin can create accounts with elevated roles")`
+- `core/auth/routes.py:448` — `role=role,`
+- `core/auth/routes.py:458` — `perm_mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:461` — `"role": role,`
+- `core/auth/routes.py:469` — `perm_mgr.update_user_permissions(username, create_data, admin_username=admin.username)`
+- `core/auth/routes.py:471` — `_log.warning("[AUTH] Failed to save user signal permissions on admin create user: %s", e)`
+- `core/auth/routes.py:477` — `role=role,`
+- `core/auth/routes.py:483` — `@router.put("/users/{username}/role")`
+- `core/auth/routes.py:484` — `async def update_user_role(`
+- `core/auth/routes.py:487` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:489` — `"""Update a user's role. Admin only."""`
+- `core/auth/routes.py:491` — `new_role = str(body.get("role", "")).lower()`
+- `core/auth/routes.py:496` — `# Only the root role may grant/revoke Super Admin. This prevents an`
+- `core/auth/routes.py:497` — `# ordinary Admin from escalating another account to the root role.`
+- `core/auth/routes.py:498` — `if new_role == "super_admin" and not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:499` — `raise HTTPException(status_code=403, detail="Only Super Admin can assign Super Admin role")`
+- `core/auth/routes.py:500` — `if str(target.role).lower() == "super_admin" and new_role != "super_admin" and not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:504` — `if str(target.role).lower() == "super_admin" and new_role != "super_admin":`
+- `core/auth/routes.py:505` — `roots = [u for u in auth_handler.list_users() if str(u.get("role", "")).lower() == "super_admin" and not u.get("disabled")]`
+- `core/auth/routes.py:509` — `result = auth_handler.update_user_role(username, new_role, admin.username)`
+- `core/auth/routes.py:511` — `raise HTTPException(status_code=400, detail=result.get("error", "Role update failed"))`
+- `core/auth/routes.py:513` — `UserPermissionManager.get_instance().update_user_permissions(username, {"role": new_role}, admin_username=admin.username)`
+- `core/auth/routes.py:515` — `_log.warning("[AUTH] Failed to synchronize role metadata for %s: %s", username, sync_ex)`
+- `core/auth/routes.py:570` — `admins = [u for u in auth_handler.list_users() if str(u.get("role", "")).lower() in {"admin", "super_admin"} and not u.get("disabled")]`
+- `core/auth/routes.py:572` — `if target_user and str(target_user.role).lower() in {"admin", "super_admin"} and len(admins) <= 1:`
+- `core/auth/routes.py:578` — `UserPermissionManager.get_instance().delete_user_permissions(target)`
+- `core/auth/routes.py:581` — `# ── Super Admin User Signal Permissions & Quotas ──────────────────────────`
+- `core/auth/routes.py:583` — `@router.get("/user-permissions")`
+- `core/auth/routes.py:584` — `async def list_all_user_permissions(`
+- `core/auth/routes.py:585` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:587` — `"""List all users with full signal permissions, quotas, and categories."""`
+- `core/auth/routes.py:588` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:595` — `perm = mgr.get_user_permissions(uname)`
+- `core/auth/routes.py:599` — `u_role = u.get("role", "viewer")`
+- `core/auth/routes.py:602` — `mgr.update_user_permissions(`
+- `core/auth/routes.py:606` — `"role": u_role,`
+- `core/auth/routes.py:608` — `"signals_enabled": True if u_role in {"admin", "super_admin"} else False,`
+- `core/auth/routes.py:617` — `all_perms = mgr.list_all_permissions()`
+- `core/auth/routes.py:621` — `"permissions": all_perms,`
+- `core/auth/routes.py:624` — `@router.get("/users/{username}/permissions")`
+- `core/auth/routes.py:625` — `async def get_user_permissions(`
+- `core/auth/routes.py:627` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:629` — `"""Get signal permissions and quota usage for a specific user."""`
+- `core/auth/routes.py:630` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:640` — `perm = mgr.get_user_permissions(username)`
+- `core/auth/routes.py:642` — `mgr.update_user_permissions(`
+- `core/auth/routes.py:646` — `"role": u.role,`
+- `core/auth/routes.py:648` — `"signals_enabled": True if u.role in {"admin", "super_admin"} else False,`
+- `core/auth/routes.py:656` — `perm = mgr.get_user_permissions(username)`
+- `core/auth/routes.py:659` — `return {"success": True, "categories": ALL_CATEGORIES, "permissions": perm_dict}`
+- `core/auth/routes.py:661` — `@router.post("/users/{username}/permissions")`
+- `core/auth/routes.py:662` — `async def update_user_permissions(`
+- `core/auth/routes.py:665` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:667` — `"""Super Admin update of user signal permissions, category subscriptions, quotas, and channels."""`
+- `core/auth/routes.py:673` — `target_role = str(target_user.role or "viewer").lower()`
+- `core/auth/routes.py:674` — `admin_role = admin.role.lower()`
+- `core/auth/routes.py:675` — `requested_role = str(body.get("role", target_role) or target_role).lower()`
+- `core/auth/routes.py:676` — `valid_roles = {"super_admin", "admin", "operator", "viewer", "observer", "developer"}`
+- `core/auth/routes.py:677` — `if requested_role not in valid_roles:`
+- `core/auth/routes.py:678` — `raise HTTPException(status_code=400, detail=f"Unsupported role: {requested_role}")`
+- `core/auth/routes.py:679` — `if requested_role != target_role and not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:680` — `raise HTTPException(status_code=403, detail="Only Super Admin can change user roles")`
+- `core/auth/routes.py:681` — `if target_role == "super_admin" and not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:682` — `raise HTTPException(status_code=403, detail="Only Super Admin can modify Super Admin permissions")`
+- `core/auth/routes.py:685` — `# does not possess. This makes the permission UI an actual security`
+- `core/auth/routes.py:687` — `requested_allowed = {str(v).lower() for v in (body.get("allowed_permissions") or [])}`
+- `core/auth/routes.py:688` — `requested_denied = {str(v).lower() for v in (body.get("denied_permissions") or [])}`
+- `core/auth/routes.py:689` — `if not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:690` — `from core.auth.permissions import get_role_permissions`
+- `core/auth/routes.py:691` — `own = {p.value for p in get_role_permissions(admin_role)}`
+- `core/auth/routes.py:693` — `raise HTTPException(status_code=403, detail="Admin cannot grant permissions beyond their own role")`
+- `core/auth/routes.py:694` — `if target_role == "super_admin":`
+- `core/auth/routes.py:695` — `raise HTTPException(status_code=403, detail="Only Super Admin can modify Super Admin permissions")`
+- `core/auth/routes.py:697` — `if requested_role != target_role:`
+- `core/auth/routes.py:698` — `role_result = auth_handler.update_user_role(username, requested_role, admin.username)`
+- `core/auth/routes.py:699` — `if not role_result.get("success"):`
+- `core/auth/routes.py:700` — `raise HTTPException(status_code=400, detail=role_result.get("error", "Role update failed"))`
+- `core/auth/routes.py:701` — `target_role = requested_role`
+- `core/auth/routes.py:703` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:704` — `ok, msg, updated = mgr.update_user_permissions(username, {**body, "role": target_role}, admin_username=admin.username)`
+- `core/auth/routes.py:706` — `auth_handler.update_user_metadata(`
+- `core/auth/routes.py:728` — `_log.info("[ADMIN_SYNC] Synchronized admin user permissions to system config: %s", list(cfg_updates.keys()))`
+- `core/auth/routes.py:733` — `"user_permissions_updated", admin.username, "",`
+- `core/auth/routes.py:739` — `return {"success": True, "message": msg, "permissions": updated}`
+- `core/auth/routes.py:744` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:747` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:768` — `"""Signal Intelligence / Accuracy / Category Breakdown for authorized viewers."""`
+- `core/auth/routes.py:911` — `auth_handler.update_mfa_recovery_codes(current_user.username, hashed_codes)`
+- `core/auth/routes.py:1073` — `Dict with ``authorization_url`` to redirect the user to.`
+- `core/auth/routes.py:1098` — `url = sso.get_authorization_url()`
+- `core/auth/routes.py:1109` — `return {"success": True, "authorization_url": url}`
+- `core/auth/routes.py:1120` — `code: Authorization code from provider.`
+- `core/auth/user_signal_permissions.py:1` — `"""User Signal Permissions & Multi-Timeframe Quota Manager (v3.0).`
+- `core/auth/user_signal_permissions.py:3` — `Provides granular role-based signal dispatch controls for the Super Admin:`
+- `core/auth/user_signal_permissions.py:23` — `_log = logging.getLogger("USER_PERMISSIONS")`
+- `core/auth/user_signal_permissions.py:25` — `_PERMISSIONS_STORE_PATH = _ROOT / "json" / "user_signal_permissions.json"`
+- `core/auth/user_signal_permissions.py:42` — `class UserSignalPermission:`
+- `core/auth/user_signal_permissions.py:45` — `role: str = "viewer"  # super_admin, admin, operator, viewer, observer, developer`
+- `core/auth/user_signal_permissions.py:47` — `# Optional per-user RBAC overrides. Empty lists mean role defaults.`
+- `core/auth/user_signal_permissions.py:48` — `# `allowed_permissions` may add capabilities; `denied_permissions` may remove them.`
+- `core/auth/user_signal_permissions.py:49` — `allowed_permissions: list[str] = field(default_factory=list)`
+- `core/auth/user_signal_permissions.py:50` — `denied_permissions: list[str] = field(default_factory=list)`
+- `core/auth/user_signal_permissions.py:56` — `# Granular Category Permissions`
+- `core/auth/user_signal_permissions.py:93` — `class UserPermissionManager:`
+- `core/auth/user_signal_permissions.py:94` — `"""Thread-safe Singleton Manager for User Signal Permissions & Quotas."""`
+- `core/auth/user_signal_permissions.py:96` — `_instance: UserPermissionManager | None = None`
+- `core/auth/user_signal_permissions.py:100` — `self._path = store_path or _PERMISSIONS_STORE_PATH`
+- `core/auth/user_signal_permissions.py:101` — `self._permissions: dict[str, UserSignalPermission] = {}`
+- `core/auth/user_signal_permissions.py:106` — `def get_instance(cls) -> UserPermissionManager:`
+- `core/auth/user_signal_permissions.py:109` — `cls._instance = UserPermissionManager()`
+- `core/auth/user_signal_permissions.py:113` — `"""Load permissions from JSON store or seed defaults."""`
+- `core/auth/user_signal_permissions.py:121` — `valid_fields = UserSignalPermission.__dataclass_fields__.keys()`
+- `core/auth/user_signal_permissions.py:123` — `self._permissions[uname] = UserSignalPermission(**filtered)`
+- `core/auth/user_signal_permissions.py:124` — `_log.info("Loaded %d user signal permissions from %s", len(self._permissions), self._path)`
+- `core/auth/user_signal_permissions.py:127` — `_log.warning("Failed to load permissions store: %s. Seeding defaults.", ex)`
+- `core/auth/user_signal_permissions.py:134` — `default_admin = UserSignalPermission(`
+- `core/auth/user_signal_permissions.py:137` — `role="admin",`
+- `core/auth/user_signal_permissions.py:151` — `self._permissions["admin"] = default_admin`
+- `core/auth/user_signal_permissions.py:155` — `"""Write in-memory permissions to disk."""`
+- `core/auth/user_signal_permissions.py:158` — `serializable = {uname: u.to_dict() for uname, u in self._permissions.items()}`
+- `core/auth/user_signal_permissions.py:162` — `_log.error("Failed to persist user permissions: %s", ex)`
+- `core/auth/user_signal_permissions.py:164` — `def _check_and_reset_quotas(self, perm: UserSignalPermission) -> bool:`
+- `core/auth/user_signal_permissions.py:195` — `def get_user_permissions(self, username: str) -> UserSignalPermission | None:`
+- `core/auth/user_signal_permissions.py:198` — `perm = self._permissions.get(username)`
+- `core/auth/user_signal_permissions.py:204` — `def list_all_permissions(self) -> list[dict[str, Any]]:`
+- `core/auth/user_signal_permissions.py:209` — `for perm in self._permissions.values():`
+- `core/auth/user_signal_permissions.py:217` — `def update_user_permissions(`
+- `core/auth/user_signal_permissions.py:223` — `"""Update or register permissions for a user."""`
+- `core/auth/user_signal_permissions.py:225` — `existing = self._permissions.get(username)`
+- `core/auth/user_signal_permissions.py:228` — `valid_fields = UserSignalPermission.__dataclass_fields__.keys()`
+- `core/auth/user_signal_permissions.py:231` — `filtered["updated_by"] = admin_username`
+- `core/auth/user_signal_permissions.py:233` — `new_perm = UserSignalPermission(**filtered)`
+- `core/auth/user_signal_permissions.py:234` — `self._permissions[username] = new_perm`
+- `core/auth/user_signal_permissions.py:236` — `_log.info("[ADMIN] SuperAdmin %s created permissions for user %s", admin_username, username)`
+- `core/auth/user_signal_permissions.py:237` — `return True, f"Permissions created for user {username}", new_perm.to_dict()`
+- `core/auth/user_signal_permissions.py:244` — `existing.updated_by = admin_username`
+- `core/auth/user_signal_permissions.py:247` — `_log.info("[ADMIN] SuperAdmin %s updated permissions for user %s", admin_username, username)`
+- `core/auth/user_signal_permissions.py:248` — `return True, f"Permissions updated for user {username}", existing.to_dict()`
+- `core/auth/user_signal_permissions.py:251` — `def get_effective_permissions(self, username: str, base_role: str | None = None) -> set[str]:`
+- `core/auth/user_signal_permissions.py:252` — `"""Return effective permissions after applying per-user overrides.`
+- `core/auth/user_signal_permissions.py:255` — `The role is the baseline; explicit denies win over allows.`
+- `core/auth/user_signal_permissions.py:257` — `from core.auth.permissions import get_role_permissions`
+- `core/auth/user_signal_permissions.py:258` — `perm = self.get_user_permissions(username)`
+- `core/auth/user_signal_permissions.py:261` — `# Auth DB role is authoritative; permission-record role is metadata only.`
+- `core/auth/user_signal_permissions.py:262` — `role_name = str(base_role or perm.role or "viewer").lower()`
+- `core/auth/user_signal_permissions.py:263` — `if role_name == "super_admin":`
+- `core/auth/user_signal_permissions.py:264` — `return {p.value for p in get_role_permissions("super_admin")}`
+- `core/auth/user_signal_permissions.py:265` — `effective = {p.value for p in get_role_permissions(role_name)}`
+- `core/auth/user_signal_permissions.py:266` — `valid = {p.value for p in __import__("core.auth.permissions", fromlist=["Permission"]).Permission}`
+- `core/auth/user_signal_permissions.py:267` — `effective.update(str(p).lower() for p in perm.allowed_permissions if str(p).lower() in valid)`
+- `core/auth/user_signal_permissions.py:268` — `effective.difference_update(str(p).lower() for p in perm.denied_permissions)`
+- `core/auth/user_signal_permissions.py:271` — `def user_has_permission(self, username: str, permission: str, base_role: str | None = None) -> bool:`
+- `core/auth/user_signal_permissions.py:272` — `return str(permission).lower() in self.get_effective_permissions(username, base_role=base_role)`
+- `core/auth/user_signal_permissions.py:274` — `def delete_user_permissions(self, username: str) -> bool:`
+- `core/auth/user_signal_permissions.py:275` — `"""Permanently delete user signal permissions from store."""`
+- `core/auth/user_signal_permissions.py:277` — `if username in self._permissions:`
+- `core/auth/user_signal_permissions.py:278` — `del self._permissions[username]`
+- `core/auth/user_signal_permissions.py:280` — `_log.info("[ADMIN] Deleted user permissions for %s", username)`
+- `core/auth/user_signal_permissions.py:285` — `"""Remove permission entries for users that no longer exist in auth DB."""`
+- `core/auth/user_signal_permissions.py:287` — `stale = [uname for uname in self._permissions if uname not in active_usernames and uname != "admin"]`
+- `core/auth/user_signal_permissions.py:289` — `del self._permissions[uname]`
+- `core/auth/user_signal_permissions.py:292` — `_log.info("[ADMIN] Pruned %d stale user permissions: %s", len(stale), stale)`
+- `core/auth/user_signal_permissions.py:298` — `perm = self._permissions.get(username)`
+- `core/auth/user_signal_permissions.py:303` — `perm.updated_by = admin_username`
+- `core/auth/user_signal_permissions.py:315` — `) -> list[UserSignalPermission]:`
+- `core/auth/user_signal_permissions.py:316` — `"""Pre-guard evaluation: returns all users authorized to receive this signal.`
+- `core/auth/user_signal_permissions.py:324` — `eligible: list[UserSignalPermission] = []`
+- `core/auth/user_signal_permissions.py:332` — `for perm in self._permissions.values():`
+- `core/auth/role_manager.py:1` — `"""AD-KIYU RBAC - Role Manager.`
+- `core/auth/role_manager.py:3` — `Manages role assignments per operator identity and provides`
+- `core/auth/role_manager.py:4` — `role-checking for the admin control plane endpoints.`
+- `core/auth/role_manager.py:12` — `from core.auth.permissions import Permission, PermissionDenied, Role, role_has_permission`
+- `core/auth/role_manager.py:17` — `class RoleManager:`
+- `core/auth/role_manager.py:18` — `"""Thread-safe role assignment store.`
+- `core/auth/role_manager.py:20` — `Maps operator identity → Role.`
+- `core/auth/role_manager.py:21` — `Default role for unknown identities is OBSERVER.`
+- `core/auth/role_manager.py:24` — `def __init__(self, default_role: Role | str = Role.OBSERVER) -> None:`
+- `core/auth/role_manager.py:26` — `self._roles: dict[str, Role] = {}`
+- `core/auth/role_manager.py:27` — `if isinstance(default_role, str):`
+- `core/auth/role_manager.py:28` — `default_role = Role(default_role.lower())`
+- `core/auth/role_manager.py:29` — `self._default_role = default_role`
+- `core/auth/role_manager.py:31` — `def assign(self, identity: str, role: Role | str) -> None:`
+- `core/auth/role_manager.py:32` — `"""Assign a role to an operator identity."""`
+- `core/auth/role_manager.py:33` — `if isinstance(role, str):`
+- `core/auth/role_manager.py:34` — `role = Role(role.lower())`
+- `core/auth/role_manager.py:36` — `self._roles[identity] = role`
+- `core/auth/role_manager.py:37` — `_log.info(f"[RBAC] Assigned {role.value} to {identity!r}")`
+- `core/auth/role_manager.py:40` — `"""Revoke explicit role assignment (falls back to default)."""`
+- `core/auth/role_manager.py:42` — `self._roles.pop(identity, None)`
+- `core/auth/role_manager.py:43` — `_log.info(f"[RBAC] Revoked role for {identity!r}")`
+- `core/auth/role_manager.py:45` — `def get_role(self, identity: str) -> Role:`
+- `core/auth/role_manager.py:46` — `"""Get the role for an identity."""`
+- `core/auth/role_manager.py:48` — `return self._roles.get(identity, self._default_role)`
+- `core/auth/role_manager.py:50` — `def check(self, identity: str, permission: Permission | str) -> None:`
+- `core/auth/role_manager.py:51` — `"""Check permission for identity. Raises PermissionDenied on failure."""`
+- `core/auth/role_manager.py:52` — `role = self.get_role(identity)`
+- `core/auth/role_manager.py:53` — `if not role_has_permission(role, permission):`
+- `core/auth/role_manager.py:54` — `raise PermissionDenied(`
+- `core/auth/role_manager.py:55` — `f"Role {role.value} for {identity!r} lacks permission {permission}",`
+- `core/auth/role_manager.py:58` — `def has_permission(self, identity: str, permission: Permission | str) -> bool:`
+- `core/auth/role_manager.py:59` — `"""Return True if identity's role has the permission."""`
+- `core/auth/role_manager.py:61` — `self.check(identity, permission)`
+- `core/auth/role_manager.py:63` — `except PermissionDenied:`
+- `core/auth/role_manager.py:67` — `"""Return all explicit role assignments (identity → role name)."""`
+- `core/auth/role_manager.py:69` — `return {k: v.value for k, v in sorted(self._roles.items())}`
+- `core/auth/role_manager.py:72` — `"""Load role assignments from config dict.`
+- `core/auth/role_manager.py:76` — `"admin_roles": {"alice": "admin", "bob": "operator"},`
+- `core/auth/role_manager.py:77` — `"admin_default_role": "observer",`
+- `core/auth/role_manager.py:80` — `roles_cfg = cfg.get("admin_roles") or {}`
+- `core/auth/role_manager.py:81` — `for identity, role_name in roles_cfg.items():`
+- `core/auth/role_manager.py:83` — `role = Role(role_name.lower())`
+- `core/auth/role_manager.py:84` — `self.assign(str(identity), role)`
+- `core/auth/role_manager.py:86` — `_log.warning(f"[RBAC] Unknown role {role_name!r} for {identity!r} - skipped")`
+- `core/auth/role_manager.py:87` — `default = cfg.get("admin_default_role", "observer")`
+- `core/auth/role_manager.py:89` — `self._default_role = Role(default.lower())`
+- `core/auth/role_manager.py:91` — `_log.warning(f"[RBAC] Unknown default_role {default!r} - keeping {self._default_role.value}")`
+- `core/auth/role_manager.py:95` — `"RoleManager",`
+- `core/certification/gate.py:244` — `1. RBAC authorization system (core.auth.role_manager.RoleManager)`
+- `core/certification/gate.py:277` — `# 1. RBAC check`
+- `core/certification/gate.py:278` — `if _class_available("core.auth.role_manager", "RoleManager"):`
+- `core/certification/gate.py:279` — `checks.append({"check": "RBAC authorization", "status": "PASSED"})`
+- `core/certification/gate.py:282` — `checks.append({"check": "RBAC authorization", "status": "FAILED",`
+- `core/certification/gate.py:283` — `"detail": "core.auth.role_manager.RoleManager not available"})`
+- `core/certification/report_generators.py:394` — `- RBAC`
+- `core/certification/report_generators.py:396` — `- Authorization`
+- `core/certification/report_generators.py:399` — `- Privilege escalation prevention`
+- `core/certification/report_generators.py:414` — `# Criterion 2: RBAC exists`
+- `core/certification/report_generators.py:415` — `has_rbac, rbac_evidence = _check_module_importable("core.auth.handler")`
+- `core/certification/report_generators.py:418` — `description="RBAC authorization system exists",`
+- `core/certification/report_generators.py:419` — `passed=has_rbac,`
+- `core/certification/report_generators.py:420` — `evidence=rbac_evidence,`
+- `core/certification/report_generators.py:421` — `score=1.0 if has_rbac else 0.0,`
+- `core/self_healing/orchestrator.py:599` — `except (OSError, PermissionError, RuntimeError) as exc:`
+- `core/self_healing/orchestrator.py:611` — `except (OSError, PermissionError) as _tmp_exc:`
+- `core/self_healing/orchestrator.py:613` — `except (OSError, PermissionError, RuntimeError) as exc:`
+- `core/self_healing/orchestrator.py:630` — `except (OSError, PermissionError, RuntimeError) as exc:`
+- `core/self_healing/orchestrator.py:643` — `except (OSError, PermissionError, FileNotFoundError) as _cache_exc:`
+- `core/self_healing/orchestrator.py:745` — `except (OSError, PermissionError, RuntimeError) as exc:`
+- `core/control_plane/admin_auth.py:19` — `from core.auth.permissions import Role`
+- `core/control_plane/admin_auth.py:30` — `role: Role`
+- `core/control_plane/admin_auth.py:84` — `role: Role | str,`
+- `core/control_plane/admin_auth.py:91` — `role: Role for this session`
+- `core/control_plane/admin_auth.py:98` — `if isinstance(role, str):`
+- `core/control_plane/admin_auth.py:99` — `role = Role(role.lower())`
+- `core/control_plane/admin_auth.py:101` — `session = self._session_store.create(identity, role, **metadata)`
+- `core/control_plane/admin_auth.py:106` — `"role": role.value,`
+- `core/control_plane/admin_auth.py:146` — `role=Role(payload["role"].lower()),`
+- `core/control_plane/admin_auth.py:167` — `def authenticate_request(self, authorization: str | None) -> AdminToken | None:`
+- `core/control_plane/admin_auth.py:168` — `"""Authenticate an HTTP request from the Authorization header.`
+- `core/control_plane/admin_auth.py:171` — `authorization: The Authorization header value (e.g. "Bearer <token>")`
+- `core/control_plane/admin_auth.py:177` — `if not authorization:`
+- `core/control_plane/admin_auth.py:181` — `token_str = authorization`
+- `core/control_plane/admin_auth.py:182` — `if authorization.startswith("Bearer "):`
+- `core/control_plane/admin_auth.py:183` — `token_str = authorization[7:]`
+- `core/control_plane/admin_auth.py:199` — `role=Role.ADMIN,`
+- `core/control_plane/server.py:20` — `GET/POST /roles[/assign]          - RBAC roles`
+- `core/control_plane/server.py:59` — `require_permission,`
+- `core/control_plane/server.py:64` — `_require_permission = require_permission`
+- `core/control_plane/server.py:277` — `# require_permission, legacy_audit_log`
+- `core/control_plane/server.py:285` — `rbac: Any | None = None,`
+- `core/control_plane/server.py:292` — `role_manager_ref: Any = None,`
+- `core/control_plane/server.py:304` — `and new API (with server/rbac/auth params).`
+- `core/control_plane/server.py:318` — `# Wire RBAC`
+- `core/control_plane/server.py:319` — `if rbac is not None:`
+- `core/control_plane/server.py:320` — `_rbac = rbac`
+- `core/control_plane/server.py:322` — `from core.control_plane.rbac import ControlRBAC`
+- `core/control_plane/server.py:323` — `_rbac = ControlRBAC()`
+- `core/control_plane/server.py:324` — `_rbac.load_from_config(c)`
+- `core/control_plane/server.py:345` — `def _resolve_identity(authorization: str | None) -> str:`
+- `core/control_plane/server.py:348` — `token_obj = _auth.authenticate_request(authorization)`
+- `core/control_plane/server.py:350` — `raise HTTPException(status_code=401, detail="Unauthorized: invalid or expired token")`
+- `core/control_plane/server.py:353` — `def _check_permission(identity: str, endpoint: str) -> None:`
+- `core/control_plane/server.py:354` — `allowed, reason = _rbac.check_endpoint(identity, endpoint)`
+- `core/control_plane/server.py:369` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:381` — `require_permission(role_manager_ref, identity, "modify_config")`
+- `core/control_plane/server.py:387` — `mode_manager_ref.set_mode(new_mode, reason="admin override", authorized_by=identity)`
+- `core/control_plane/server.py:402` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:427` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:451` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:466` — `require_permission(role_manager_ref, identity, "modify_config")`
+- `core/control_plane/server.py:490` — `require_permission(role_manager_ref, identity, "halt_trading")`
+- `core/control_plane/server.py:506` — `require_permission(role_manager_ref, identity, "halt_trading")`
+- `core/control_plane/server.py:522` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:532` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:545` — `require_permission(role_manager_ref, identity, "toggle_strategies")`
+- `core/control_plane/server.py:565` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:578` — `require_permission(role_manager_ref, identity, "toggle_strategies")`
+- `core/control_plane/server.py:598` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:611` — `require_permission(role_manager_ref, identity, "modify_config")`
+- `core/control_plane/server.py:631` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:650` — `require_permission(role_manager_ref, identity, "deploy_models")`
+- `core/control_plane/server.py:673` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:683` — `require_permission(role_manager_ref, identity, "view_logs")`
+- `core/control_plane/server.py:689` — `# ── RBAC admin (legacy) ──────────────────────────────────────────────────`
+- `core/control_plane/server.py:691` — `@app.get("/roles")`
+- `core/control_plane/server.py:692` — `async def list_roles(request: Request):`
+- `core/control_plane/server.py:695` — `require_permission(role_manager_ref, identity, "view_state")`
+- `core/control_plane/server.py:696` — `if role_manager_ref is None:`
+- `core/control_plane/server.py:697` — `return {"roles": "unavailable", "detail": "No RoleManager wired"}`
+- `core/control_plane/server.py:699` — `assignments = role_manager_ref.list_assignments() if hasattr(role_manager_ref, "list_assignments") else {}`
+- `core/control_plane/server.py:700` — `return {"roles": assignments}`
+- `core/control_plane/server.py:702` — `return {"roles": "error", "detail": str(e)}`
+- `core/control_plane/server.py:704` — `@app.post("/roles/{operator}")`
+- `core/control_plane/server.py:705` — `async def assign_role(operator: str, request: Request):`
+- `core/control_plane/server.py:708` — `require_permission(role_manager_ref, identity, "modify_config")`
+- `core/control_plane/server.py:709` — `if role_manager_ref is None:`
+- `core/control_plane/server.py:710` — `raise HTTPException(status_code=503, detail="No RoleManager wired")`
+- `core/control_plane/server.py:713` — `role = str(body.get("role", "observer"))`
+- `core/control_plane/server.py:714` — `role_manager_ref.assign(operator, role)`
+- `core/control_plane/server.py:715` — `legacy_audit_log(audit_logger_ref, "role_assign", f"role:{operator}", "assign",`
+- `core/control_plane/server.py:716` — `details={"operator": operator, "role": role},`
+- `core/control_plane/server.py:718` — `return {"operator": operator, "role": role}`
+- `core/control_plane/server.py:728` — `require_permission(role_manager_ref, identity, "modify_config")`
+- `core/control_plane/server.py:754` — `"role_manager": role_manager_ref is not None,`
+- `core/control_plane/server.py:772` — `role: str = "observer",`
+- `core/control_plane/server.py:773` — `authorization: str | None = Header(default=None),`
+- `core/control_plane/server.py:778` — `token_obj = _auth.authenticate_request(authorization)`
+- `core/control_plane/server.py:781` — `role = token_obj.role.value`
+- `core/control_plane/server.py:785` — `jwt = _auth.create_token(identity, role)`
+- `core/control_plane/server.py:786` — `return {"token": jwt, "identity": identity, "role": role}`
+- `core/control_plane/server.py:791` — `def get_state(authorization: str | None = Header(default=None)) -> dict:`
+- `core/control_plane/server.py:792` — `identity = _resolve_identity(authorization)`
+- `core/control_plane/server.py:793` — `_check_permission(identity, "control_state")`
+- `core/control_plane/server.py:799` — `authorization: str | None = Header(default=None),`
+- `core/control_plane/server.py:801` — `identity = _resolve_identity(authorization)`
+- `core/control_plane/server.py:802` — `_check_permission(identity, "control_audit")`
+- `core/control_plane/server.py:808` — `authorization: str | None = Header(default=None),`
+- `core/control_plane/server.py:810` — `identity = _resolve_identity(authorization)`
+- `core/control_plane/server.py:811` — `_check_permission(identity, "control_kill")`
+- `core/control_plane/server.py:817` — `authorization: str | None = Header(default=None),`
+- `core/control_plane/server.py:819` — `identity = _resolve_identity(authorization)`
+- `core/control_plane/server.py:820` — `_check_permission(identity, f"control_strategy_{action}")`
+- `core/control_plane/server.py:826` — `authorization: str | None = Header(default=None),`
+- `core/control_plane/server.py:828` — `identity = _resolve_identity(authorization)`
+- `core/control_plane/server.py:829` — `_check_permission(identity, f"control_asset_{action}")`
+- `core/control_plane/server.py:835` — `authorization: str | None = Header(default=None),`
+- `core/control_plane/server.py:837` — `identity = _resolve_identity(authorization)`
+- `core/control_plane/server.py:838` — `_check_permission(identity, "control_capital")`
+- `core/control_plane/server.py:844` — `authorization: str | None = Header(default=None),`
+- `core/control_plane/server.py:846` — `identity = _resolve_identity(authorization)`
+- `core/control_plane/server.py:847` — `_check_permission(identity, "control_risk_limit")`
+- `core/control_plane/server.py:853` — `authorization: str | None = Header(default=None),`
+- `core/control_plane/server.py:855` — `identity = _resolve_identity(authorization)`
+- `core/control_plane/server.py:856` — `_check_permission(identity, "control_ai_model")`
+- `core/control_plane/server.py:862` — `authorization: str | None = Header(default=None),`
+- `core/control_plane/server.py:864` — `identity = _resolve_identity(authorization)`
+- `core/control_plane/server.py:865` — `_check_permission(identity, "control_feature_flag")`
+- `core/control_plane/server.py:880` — `role_manager: Any = None,`
+- `core/control_plane/server.py:920` — `# Wire auth and rbac`
+- `core/control_plane/server.py:922` — `from core.control_plane.rbac import ControlRBAC`
+- `core/control_plane/server.py:926` — `_rbac = ControlRBAC()`
+- `core/control_plane/server.py:927` — `_rbac.load_from_config(c)`
+- `core/control_plane/server.py:930` — `cfg=c, server=_server, rbac=_rbac, auth=_auth,`
+- `core/control_plane/server.py:936` — `role_manager_ref=role_manager,`
+- `core/control_plane/helpers.py:3` — `Provides token checking, identity resolution, permission checking,`
+- `core/control_plane/helpers.py:12` — `from core.auth.permissions import PermissionDenied`
+- `core/control_plane/helpers.py:41` — `def require_permission(role_manager: Any, identity: str, permission: str) -> None:`
+- `core/control_plane/helpers.py:42` — `"""Check RBAC permission. Raises 403 if denied."""`
+- `core/control_plane/helpers.py:43` — `if role_manager is None:`
+- `core/control_plane/helpers.py:46` — `role_manager.check(identity, permission)`
+- `core/control_plane/helpers.py:49` — `except PermissionDenied as exc:`
+- `core/control_plane/helpers.py:97` — `"require_permission",`
+- `core/control_plane/__init__.py:4` — `for safe runtime control of the trading system with full RBAC and audit logging.`
+- `core/control_plane/__init__.py:19` — `- RBAC via core.auth.role_manager.RoleManager`
+- `core/control_plane/__init__.py:33` — `require_permission,`
+- `core/control_plane/__init__.py:51` — `"require_permission",`
+- `core/control_plane/rbac.py:1` — `"""AD-KIYU Control Plane RBAC - wraps core.auth for admin control plane endpoints.`
+- `core/control_plane/rbac.py:3` — `Provides a ControlRBAC facade that integrates RoleManager with the control plane's`
+- `core/control_plane/rbac.py:4` — `HTTP layer, ensuring every control action is authorized before execution.`
+- `core/control_plane/rbac.py:11` — `from core.auth.permissions import Permission, PermissionDenied, Role`
+- `core/control_plane/rbac.py:12` — `from core.auth.role_manager import RoleManager`
+- `core/control_plane/rbac.py:17` — `# ── Action-to-Permission mapping for control plane endpoints ───────────`
+- `core/control_plane/rbac.py:19` — `_CONTROL_PERMISSIONS: dict[str, Permission] = {`
+- `core/control_plane/rbac.py:20` — `"view_state": Permission.VIEW_STATE,`
+- `core/control_plane/rbac.py:21` — `"halt_trading": Permission.HALT_TRADING,`
+- `core/control_plane/rbac.py:22` — `"modify_risk_limits": Permission.MODIFY_RISK_LIMITS,`
+- `core/control_plane/rbac.py:23` — `"toggle_strategies": Permission.TOGGLE_STRATEGIES,`
+- `core/control_plane/rbac.py:24` — `"deploy_models": Permission.DEPLOY_MODELS,`
+- `core/control_plane/rbac.py:25` — `"view_logs": Permission.VIEW_LOGS,`
+- `core/control_plane/rbac.py:26` — `"add_brokers": Permission.ADD_BROKERS,`
+- `core/control_plane/rbac.py:27` — `"modify_config": Permission.MODIFY_CONFIG,`
+- `core/control_plane/rbac.py:30` — `# Endpoint → required permission mapping`
+- `core/control_plane/rbac.py:31` — `_ENDPOINT_PERMISSIONS: dict[str, str] = {`
+- `core/control_plane/rbac.py:46` — `class ControlRBAC:`
+- `core/control_plane/rbac.py:47` — `"""RBAC facade for the admin control plane.`
+- `core/control_plane/rbac.py:49` — `Integrates core.auth.role_manager.RoleManager with control plane endpoints`
+- `core/control_plane/rbac.py:50` — `to provide permission-checked access to all control actions.`
+- `core/control_plane/rbac.py:52` — `Each control action is mapped to a permission, and each identity has a role`
+- `core/control_plane/rbac.py:53` — `that grants a set of permissions.`
+- `core/control_plane/rbac.py:56` — `def __init__(self, role_manager: RoleManager | None = None) -> None:`
+- `core/control_plane/rbac.py:57` — `self._role_manager = role_manager or RoleManager()`
+- `core/control_plane/rbac.py:60` — `def role_manager(self) -> RoleManager:`
+- `core/control_plane/rbac.py:61` — `return self._role_manager`
+- `core/control_plane/rbac.py:64` — `"""Check whether an identity has permission to access a control endpoint.`
+- `core/control_plane/rbac.py:74` — `permission_name = _ENDPOINT_PERMISSIONS.get(endpoint_name)`
+- `core/control_plane/rbac.py:75` — `if permission_name is None:`
+- `core/control_plane/rbac.py:79` — `permission = _CONTROL_PERMISSIONS.get(permission_name)`
+- `core/control_plane/rbac.py:80` — `if permission is None:`
+- `core/control_plane/rbac.py:81` — `return False, f"Unknown permission: {permission_name}"`
+- `core/control_plane/rbac.py:84` — `self._role_manager.check(identity, permission)`
+- `core/control_plane/rbac.py:86` — `except PermissionDenied as e:`
+- `core/control_plane/rbac.py:89` — `def check_permission(self, identity: str, permission: Permission | str) -> tuple[bool, str]:`
+- `core/control_plane/rbac.py:90` — `"""Check whether an identity has a specific permission.`
+- `core/control_plane/rbac.py:94` — `permission: The required permission`
+- `core/control_plane/rbac.py:101` — `self._role_manager.check(identity, permission)`
+- `core/control_plane/rbac.py:103` — `except PermissionDenied as e:`
+- `core/control_plane/rbac.py:107` — `"""Require permission for an endpoint. Raises PermissionDenied on failure.`
+- `core/control_plane/rbac.py:111` — `raise PermissionDenied(reason)`
+- `core/control_plane/rbac.py:113` — `def require_permission(self, identity: str, permission: Permission | str) -> None:`
+- `core/control_plane/rbac.py:114` — `"""Require a specific permission. Raises PermissionDenied on failure.`

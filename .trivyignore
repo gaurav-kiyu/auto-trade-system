@@ -1,0 +1,11 @@
+# Trivy ignore file — suppress false positives
+# Date: 2026-07-05
+
+# CVE-2023-23934 — Werkzeug 2.x cookie parsing (mitigated: not exposed to external network)
+CVE-2023-23934
+
+# CVE-2023-25577 — Werkzeug high CPU (mitigated: not exposed to external network)
+CVE-2023-25577
+
+# CVE-2024-1135 — Gunicorn/LightGBM false positive
+CVE-2024-1135

@@ -1,0 +1,28 @@
+{
+  "name": "RealEstate India",
+  "short_name": "RE India",
+  "description": "India's Premier Real Estate Platform — Buy, Rent, and Invest in Properties Across 10 Major Cities",
+  "start_url": "/realestate",
+  "scope": "/realestate",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080b10",
+  "theme_color": "#3b82f6",
+  "categories": ["real estate", "property", "home", "lifestyle"],
+  "lang": "en-IN",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/static/re-icon-192.svg", "type": "image/svg+xml", "sizes": "192x192", "purpose": "any maskable" },
+    { "src": "/static/re-icon-512.svg", "type": "image/svg+xml", "sizes": "512x512", "purpose": "any maskable" }
+  ],
+  "screenshots": [],
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "shortcuts": [
+    { "name": "Search Properties", "short_name": "Search", "url": "/realestate/search", "icons": [{ "src": "/static/re-icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "Featured", "short_name": "Featured", "url": "/realestate/?featured=true", "icons": [{ "src": "/static/re-icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "Saved Properties", "short_name": "Saved", "url": "/realestate/saved", "icons": [{ "src": "/static/re-icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "Admin Panel", "short_name": "Admin", "url": "/realestate/admin", "icons": [{ "src": "/static/re-icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
+}

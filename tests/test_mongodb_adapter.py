@@ -1,0 +1,13 @@
+"""Tests for core/adapters/database/mongodb_adapter.py."""
+
+from __future__ import annotations
+
+import core.adapters.database.mongodb_adapter as _mod
+
+
+class TestAdaptersDatabaseMongodb_adapter:
+    """Test suite for core/adapters/database/mongodb_adapter.py."""
+
+    def test_import(self):
+        """Verify module imports successfully."""
+        assert _mod is not None

@@ -1,0 +1,117 @@
+[project]
+name = "opbuying-scripts"
+version = "2.59.0"
+description = "NSE Index Options Buying Bot — automated signal generation, risk management, and trade execution for NIFTY/BANKNIFTY/FINNIFTY"
+readme = "SETUP_AND_TRADING_GUIDE.md"
+requires-python = ">=3.10,<3.20"
+license = { text = "Proprietary" }
+
+dependencies = [
+    "jsonschema>=4.20",
+    "requests>=2.31.0",
+    "yfinance>=0.2.36",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "flask>=3.0.0",
+    "flask-socketio>=5.3.0",
+    "lightgbm>=4.0.0",
+    "scikit-learn>=1.3.0",
+    "reportlab>=4.0.0",
+    "xlsxwriter>=3.2.9",
+    "cryptography>=50.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["core*", "index_app*", "infrastructure*", "scripts*"]
+exclude = ["tests*", "data*", "logs*", "reports*", "backups*"]
+
+[project.optional-dependencies]
+broker = [
+    "kiteconnect>=5.0.0",
+    "pyotp>=2.9.0",
+]
+dashboard = [
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "authlib>=1.7.2",
+    "httpx>=0.28.0",
+]
+monitoring = [
+    "prometheus-client>=0.19.0",
+]
+ml = [
+    "shap>=0.44.0",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-timeout>=2.3.0",
+    "httpx>=0.28.0",
+    "ruff>=0.4",
+    "mypy>=1.8.0",
+    "types-requests>=2.31.0",
+    "PyYAML>=6.0",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["index_app", "core", "scripts", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "N", "BLE", "RUF100"]
+ignore = ["E501", "E402", "N806", "N801", "N812", "N814", "N818", "BLE001"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["N802", "N803", "N806"]
+"core/simulation_engine.py" = ["E701", "E702"]
+# N802: doRollover() must match the stdlib RotatingFileHandler method name.
+"core/logging.py" = ["N802"]
+# N802: API-compat fallback stubs must match FastAPI / ReportLab names.
+"core/auth/dependencies.py" = ["N802"]
+"core/auth/routes.py" = ["N802"]
+"core/enterprise_dashboard/main.py" = ["N802"]
+"core/presentation_generator.py" = ["N802"]
+
+
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_unimported = false
+ignore_missing_imports = true
+check_untyped_defs = false
+follow_imports = "silent"
+exclude = [
+    "build/",
+    "dist/",
+    ".venv/",
+    "venv/",
+    "__pycache__/",
+    "INDEX_OPTION_BUYING_APP_1.0.py",
+    "STOCK_OPTION_BUYING_APP_1.0.py",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "tests.*",
+    "scripts.*",
+]
+disallow_untyped_defs = false
+
+[project.scripts]
+gov-score = "scripts.score_system:main"
+gov-precheck = "scripts.pre_implementation_check:main"
+gov-release = "scripts.release_governance:main"
+gov-constitution = "core.constitution:validate_and_report"

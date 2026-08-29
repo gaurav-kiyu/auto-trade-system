@@ -1,0 +1,42 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.2
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi]
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports, --follow-imports=skip]
+        additional_dependencies:
+          - types-requests
+          - types-PyYAML
+
+  - repo: local
+    hooks:
+      - id: stale-doc-refs
+        name: Check stale documentation references
+        description: Detect backtick-wrapped core/xxx.py references to modules that no longer exist
+        entry: python scripts/check_stale_doc_refs.py
+        language: system
+        types: [markdown]
+        exclude: ^docs/archive/
+
+      - id: pre-implementation-governance
+        name: Pre-Implementation Governance Check (risk controls / blocked files)
+        description: >
+          Blocks staged Python changes that introduce risk-sensitive patterns
+          (SL_PCT, MAX_DRAWDOWN, PAPER_MODE, _trip_hard_halt, etc.) or touch
+          BLOCKED_CHANGES certification test files. Legitimate reviewed changes
+          use: python scripts/pre_implementation_check.py --allow-add <file>
+          --pattern <pattern> --reason "..." --reviewer <name>
+        entry: python scripts/pre_implementation_check.py
+        args: ["--files"]
+        language: system
+        types: [python]
+        pass_filenames: true

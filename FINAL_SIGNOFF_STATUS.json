@@ -1,0 +1,8 @@
+{
+  "local_automated_closure": "PASS",
+  "ruff": "PASS",
+  "full_pytest": "PASS",
+  "smtp_daily_quota_issue": "external_service_quota_non_blocking",
+  "aws_e2e": "PENDING",
+  "production_certification": "PENDING"
+}

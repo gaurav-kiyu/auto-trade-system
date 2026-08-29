@@ -1,0 +1,44 @@
+{
+  "release_name": "OPB_WEB_CLEAN_RELEASE_v19_SIGNAL_ENGINE_HARDENED_FINAL",
+  "baseline": "OPB_WEB_CLEAN_RELEASE_v18_SIGNAL_LIFECYCLE_HARDENED.zip",
+  "baseline_sha256": "7a39d93fb115af02db0a39d795bb96eecb9f2d53e6d872d496a2fa3ae1ba0f5",
+  "mode": "SIGNAL_ONLY",
+  "manual_trading_only": true,
+  "key_defaults": {
+    "COMPOSITE_BASE_MAX_SCORE": 150,
+    "ML_REQUIRED_FOR_ALERTS": true,
+    "ML_ALERT_MIN_PROBABILITY": 0.65,
+    "MAX_ALERTS_PER_CYCLE": 10,
+    "MAX_ALERTS_PER_WINDOW": 20,
+    "ALERT_RATE_WINDOW_SECS": 300,
+    "MAX_ALERTS_PER_DAY": 100,
+    "LEGACY_SYSTEM_BROADCAST_ENABLED": false,
+    "ENABLE_TELEGRAM_EXECUTE_BUTTON": false
+  },
+  "modified_files": {
+    "core/pure_index_signal.py": "f3c0a829c89cc25c7fa761c330694b158a6e18684e5ba19abff1fd4d4ad42cbf",
+    "core/adaptive_signal.py": "279d8b333a0a4c7322fc2a995fbdcb447096e272d2e5a1afa779d7d19b5e7162",
+    "core/all_nse_scanner.py": "f81ab223eff044684eb610b2fded79ea31b4bf1cb96c5f1aa6b0c0876298db12",
+    "core/signals/signal_tracker.py": "0ef5d933af69bfc9c5b0c5b703cf8fcddc700c27bde7605333db90fa991b323f",
+    "core/enterprise_dashboard/routes/admin.py": "0223e749a6b17303e96a49772d34faf0634287578c4ab4df04bb04b3fa68a325",
+    "json/config.json": "6f93ef3fe8c6c4adf475968a8a2aa5b80c98153670fbc16c6887be090d0a94b3",
+    "json/config.template.json": "47f15a1b5090df8964a2362dd3973d58392a32fb5d8fade3799ac5bdc72d414f",
+    "json/index_config.defaults.json": "f6187063f68d6e1c4af40ab2f4c8597461f9f8cf2057d1de9e4d0ca87735ac45",
+    "tests/test_signal_engine_hardening_final.py": "fd7dd964666af7e9fe26c46ff5841e6a9a006fc1ad9372e5f48532a6d56d745f"
+  },
+  "added_tests": [
+    "tests/test_signal_engine_hardening_final.py"
+  ],
+  "validation": {
+    "compileall": true,
+    "targeted_regression": "PASS",
+    "targeted_test_groups": 10,
+    "full_suite": "NOT_CERTIFIED",
+    "full_suite_blockers": [
+      "hypothesis",
+      "duckdb",
+      "yfinance"
+    ]
+  },
+  "deployment_note": "Do not overwrite AWS production DB/WAL/SHM files with release archive contents."
+}

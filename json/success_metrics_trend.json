@@ -1,0 +1,68 @@
+{
+  "snapshots": [
+    {
+      "captured_at": 1785841334.6445732,
+      "captured_at_iso": "2026-08-04T11:02:14.644573+00:00",
+      "release_label": "baseline-2026-08-04",
+      "indicators": {
+        "dead_code_findings": 43804.0,
+        "duplicate_code": 422.0,
+        "config_drift": 1.0,
+        "doc_drift": 1.0,
+        "open_regressions": 0.0,
+        "test_files": 670.0,
+        "evidence_items": 1932.0,
+        "commits_30d": 224.0,
+        "engineering_velocity": 233.33333333333334
+      }
+    },
+    {
+      "captured_at": 1786807947.885988,
+      "captured_at_iso": "2026-08-15T15:32:27.885988+00:00",
+      "release_label": "v2.58.0",
+      "indicators": {
+        "dead_code_findings": 44995.0,
+        "duplicate_code": 429.0,
+        "config_drift": 1.0,
+        "doc_drift": 1.0,
+        "open_regressions": 0.0,
+        "test_files": 688.0,
+        "evidence_items": 1929.0,
+        "commits_30d": 288.0,
+        "engineering_velocity": 87.73333333333333
+      }
+    },
+    {
+      "captured_at": 1786808657.656328,
+      "captured_at_iso": "2026-08-15T15:44:17.656328+00:00",
+      "release_label": "v2.58.0",
+      "indicators": {
+        "dead_code_findings": 44995.0,
+        "duplicate_code": 429.0,
+        "config_drift": 1.0,
+        "doc_drift": 1.0,
+        "open_regressions": 0.0,
+        "test_files": 688.0,
+        "evidence_items": 1929.0,
+        "commits_30d": 291.0,
+        "engineering_velocity": 87.73333333333333
+      }
+    },
+    {
+      "captured_at": 1786808714.3744104,
+      "captured_at_iso": "2026-08-15T15:45:14.374410+00:00",
+      "release_label": "v2.58.0",
+      "indicators": {
+        "dead_code_findings": 44995.0,
+        "duplicate_code": 429.0,
+        "config_drift": 1.0,
+        "doc_drift": 1.0,
+        "open_regressions": 0.0,
+        "test_files": 688.0,
+        "evidence_items": 1929.0,
+        "commits_30d": 292.0,
+        "engineering_velocity": 87.73333333333333
+      }
+    }
+  ]
+}

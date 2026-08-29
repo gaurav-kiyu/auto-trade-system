@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel — RealEstate India</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+               background: #080b10; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        .page-header { margin-bottom: 2rem; }
+        .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+        .page-header .back-link { color: #64748b; text-decoration: none; font-size: 0.85rem; }
+        .page-header .back-link:hover { color: #60a5fa; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1rem; }
+        .stat-card .stat-value { font-size: 1.5rem; font-weight: 700; }
+        .stat-card .stat-label { font-size: 0.75rem; color: #64748b; margin-top: 0.2rem; }
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .tab-btn { background: #1a1f2e; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 0.5rem 1rem; color: #64748b; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+        .tab-btn.active { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.25); color: #60a5fa; }
+        .tab-btn:hover { border-color: rgba(59,130,246,0.15); }
+        .card-section { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1rem; }
+        .card-section h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem; }
+        .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid rgba(148,163,184,0.05); }
+        .admin-item:last-child { border-bottom: none; }
+        .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.65rem; font-weight: 500; }
+        .badge-pending { background: rgba(245,158,11,0.1); color: #fbbf24; }
+        .badge-approved { background: rgba(34,197,94,0.1); color: #4ade80; }
+        .badge-rejected { background: rgba(239,68,68,0.1); color: #f87171; }
+        .badge-flagged { background: rgba(249,115,22,0.1); color: #fb923c; }
+        .badge-info { background: rgba(59,130,246,0.1); color: #60a5fa; }
+        .action-btn { background: transparent; border: 1px solid rgba(148,163,184,0.15); border-radius: 0.3rem; padding: 0.25rem 0.6rem; color: #64748b; font-size: 0.7rem; cursor: pointer; margin-left: 0.3rem; }
+        .action-btn:hover { border-color: rgba(59,130,246,0.3); color: #60a5fa; }
+        .action-btn-danger:hover { border-color: rgba(239,68,68,0.3); color: #f87171; }
+        .action-btn-success:hover { border-color: rgba(34,197,94,0.3); color: #4ade80; }
+        .no-data { text-align: center; padding: 2rem; color: #64748b; font-size: 0.85rem; }
+        .chart-container { height: 250px; margin-bottom: 1rem; }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <a href="/realestate" class="back-link">← Back to Home</a>
+        <h1><i class="fas fa-shield-alt" style="color:#fbbf24;margin-right:0.5rem;"></i> Admin Panel</h1>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" style="color:#3b82f6;" id="totalListings">0</div><div class="stat-label">Total Listings</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#fbbf24;" id="pendingMod">0</div><div class="stat-label">Pending Moderation</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#f87171;" id="reported">0</div><div class="stat-label">Reported</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#a78bfa;" id="kycPending">0</div><div class="stat-label">KYC Pending</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#4ade80;" id="totalLeads">0</div><div class="stat-label">Total Leads</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#10b981;" id="conversion">0%</div><div class="stat-label">Conversion</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('overview', this)"><i class="fas fa-chart-pie"></i> Overview</button>
+        <button class="tab-btn" onclick="switchTab('moderation', this)"><i class="fas fa-check-double"></i> Moderation</button>
+        <button class="tab-btn" onclick="switchTab('reports', this)"><i class="fas fa-flag"></i> Reports</button>
+        <button class="tab-btn" onclick="switchTab('kyc', this)"><i class="fas fa-id-card"></i> KYC</button>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="tabOverview">
+        <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="card-section">
+                <h3><i class="fas fa-chart-line" style="color:#10b981;margin-right:0.4rem;"></i> Platform Health</h3>
+                <div id="platformMetrics"></div>
+            </div>
+            <div class="card-section">
+                <h3><i class="fas fa-bolt" style="color:#fbbf24;margin-right:0.4rem;"></i> Quick Actions</h3>
+                <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                    <button onclick="addDemoToModeration()" style="background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.6rem;color:#94a3b8;cursor:pointer;font-size:0.8rem;text-align:left;">
+                        <i class="fas fa-plus-circle" style="color:#60a5fa;margin-right:0.4rem;"></i> Add Demo Properties to Moderation
+                    </button>
+                    <button onclick="generateReport()" style="background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.6rem;color:#94a3b8;cursor:pointer;font-size:0.8rem;text-align:left;">
+                        <i class="fas fa-file-pdf" style="color:#f87171;margin-right:0.4rem;"></i> Generate Platform Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Moderation Tab -->
+    <div id="tabModeration" style="display:none;">
+        <div class="card-section">
+            <h3><i class="fas fa-list" style="color:#3b82f6;margin-right:0.4rem;"></i> Moderation Queue</h3>
+            <div id="moderationList"><div class="no-data">Loading...</div></div>
+        </div>
+    </div>
+
+    <!-- Reports Tab -->
+    <div id="tabReports" style="display:none;">
+        <div class="card-section">
+            <h3><i class="fas fa-flag" style="color:#f87171;margin-right:0.4rem;"></i> Reported Listings</h3>
+            <div id="reportsList"><div class="no-data">No reported listings</div></div>
+        </div>
+    </div>
+
+    <!-- KYC Tab -->
+    <div id="tabKYC" style="display:none;">
+        <div class="card-section">
+            <h3><i class="fas fa-id-card" style="color:#a78bfa;margin-right:0.4rem;"></i> KYC Verification Queue</h3>
+            <div id="kycList"><div class="no-data">No pending KYC requests</div></div>
+        </div>
+        <div class="card-section">
+            <h3><i class="fas fa-user-check" style="color:#4ade80;margin-right:0.4rem;"></i> Submit KYC (Demo)</h3>
+            <p style="color:#64748b;font-size:0.85rem;margin-bottom:0.5rem;">Enter a user ID to submit KYC for verification testing:</p>
+            <div style="display:flex;gap:0.5rem;">
+                <input type="text" id="kycUserId" placeholder="e.g. broker-01" style="flex:1;background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.5rem;color:#e2e8f0;outline:none;">
+                <button onclick="submitKYC()" class="action-btn action-btn-success" style="padding:0.5rem 1rem;">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let adminChart = null;
+
+        function loadAll() {
+            loadMetrics();
+            loadModeration();
+            loadReports();
+            loadKYC();
+        }
+
+        async function loadMetrics() {
+            try {
+                const res = await fetch('/api/realestate/admin/metrics');
+                const m = await res.json();
+                document.getElementById('totalListings').textContent = m.total_listings || 0;
+                document.getElementById('pendingMod').textContent = m.pending_moderation || 0;
+                document.getElementById('totalLeads').textContent = m.total_leads || 0;
+                document.getElementById('conversion').textContent = (m.conversion_rate || 0) + '%';
+
+                const container = document.getElementById('platformMetrics');
+                container.innerHTML = `
+                    <div class="admin-item"><span style="color:#64748b;">Active Auctions</span><span>${m.active_auctions || 0}</span></div>
+                    <div class="admin-item"><span style="color:#64748b;">Builder Projects</span><span>${m.builder_projects || 0}</span></div>
+                    <div class="admin-item"><span style="color:#64748b;">RERA Compliance</span><span style="color:#4ade80;">${m.rera_compliance_pct || 0}%</span></div>
+                    <div class="admin-item"><span style="color:#64748b;">Enquiries Today</span><span>${m.total_enquiries_today || 0}</span></div>
+                    <div class="admin-item"><span style="color:#64748b;">Payments Volume</span><span style="color:#4ade80;">₹${((m.total_payments_volume || 0)/100000).toFixed(1)}L</span></div>
+                `;
+            } catch(e) {}
+        }
+
+        async function loadModeration() {
+            try {
+                const res = await fetch('/api/realestate/admin/moderation');
+                const data = await res.json();
+                const queue = data.queue || [];
+                const container = document.getElementById('moderationList');
+                if (queue.length === 0) {
+                    container.innerHTML = '<div class="no-data">No items in moderation queue</div>';
+                } else {
+                    container.innerHTML = queue.map(q => `
+                        <div class="admin-item">
+                            <div>
+                                <div style="font-size:0.85rem;">${q.property_id}</div>
+                                <span class="badge badge-${q.status === 'approved' ? 'approved' : q.status === 'rejected' ? 'rejected' : 'pending'}">${q.status}</span>
+                            </div>
+                            <div>
+                                ${q.status === 'pending' ? `
+                                    <button class="action-btn action-btn-success" onclick="approveListing('${q.property_id}')">✓ Approve</button>
+                                    <button class="action-btn action-btn-danger" onclick="rejectListing('${q.property_id}')">✗ Reject</button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {
+                document.getElementById('moderationList').innerHTML = '<div class="no-data">Could not load moderation queue</div>';
+            }
+        }
+
+        async function approveListing(id) {
+            try { await fetch('/api/realestate/admin/moderation/' + id + '/approve', {method:'POST'}); loadModeration(); loadMetrics(); } catch(e) {}
+        }
+
+        async function rejectListing(id) {
+            try { await fetch('/api/realestate/admin/moderation/' + id + '/reject', {method:'POST'}); loadModeration(); loadMetrics(); } catch(e) {}
+        }
+
+        async function loadReports() {
+            try {
+                const res = await fetch('/api/realestate/admin/reports');
+                const data = await res.json();
+                const reports = data.reports || [];
+                document.getElementById('reported').textContent = reports.length;
+                const container = document.getElementById('reportsList');
+                if (reports.length === 0) {
+                    container.innerHTML = '<div class="no-data">No reported listings</div>';
+                } else {
+                    container.innerHTML = reports.map(r => `
+                        <div class="admin-item">
+                            <div>
+                                <div style="font-size:0.85rem;">${r.property_id} — <span class="badge badge-${r.status === 'pending' ? 'pending' : 'approved'}">${r.reason}</span></div>
+                                <div style="font-size:0.7rem;color:#64748b;">By: ${r.reported_by}${r.description ? ' · ' + r.description.slice(0,50) : ''}</div>
+                            </div>
+                            <div>
+                                ${r.status === 'pending' ? `
+                                    <button class="action-btn action-btn-success" onclick="resolveReport('${r.report_id}','nothing')">Dismiss</button>
+                                    <button class="action-btn action-btn-danger" onclick="resolveReport('${r.report_id}','removed')">Remove</button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {}
+        }
+
+        async function resolveReport(id, action) {
+            try {
+                await fetch('/api/realestate/admin/reports/' + id + '/resolve?action=' + action, {method:'POST'});
+                loadReports();
+            } catch(e) {}
+        }
+
+        async function loadKYC() {
+            try {
+                const res = await fetch('/api/realestate/admin/kyc/queue');
+                const data = await res.json();
+                const queue = data.queue || [];
+                document.getElementById('kycPending').textContent = queue.length;
+                const container = document.getElementById('kycList');
+                if (queue.length === 0) {
+                    container.innerHTML = '<div class="no-data">No pending KYC verifications</div>';
+                } else {
+                    container.innerHTML = queue.map(u => `
+                        <div class="admin-item">
+                            <div>
+                                <div style="font-size:0.85rem;">${u.user_id}</div>
+                                <span class="badge badge-pending">${u.status}</span>
+                            </div>
+                            <button class="action-btn action-btn-success" onclick="verifyKYC('${u.user_id}')">✓ Verify</button>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {}
+        }
+
+        async function verifyKYC(uid) {
+            try { await fetch('/api/realestate/admin/kyc/' + uid + '/verify', {method:'POST'}); loadKYC(); } catch(e) {}
+        }
+
+        async function submitKYC() {
+            const uid = document.getElementById('kycUserId').value;
+            if (!uid) return;
+            try {
+                await fetch('/api/realestate/admin/kyc/submit?user_id=' + uid, {method:'POST'});
+                document.getElementById('kycUserId').value = '';
+                loadKYC();
+            } catch(e) {}
+        }
+
+        async function addDemoToModeration() {
+            try {
+                const props = await fetch('/api/realestate/properties?page_size=5').then(r => r.json());
+                for (const p of (props.properties || [])) {
+                    await fetch('/api/realestate/admin/moderation/' + p.property_id + '/approve', {method:'POST'});
+                }
+                loadModeration();
+            } catch(e) {}
+        }
+
+        function generateReport() {
+            alert('📊 Platform report generated! Check the admin stats endpoint for data.');
+        }
+
+        function switchTab(tab, btn) {
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tabOverview').style.display = tab === 'overview' ? 'block' : 'none';
+            document.getElementById('tabModeration').style.display = tab === 'moderation' ? 'block' : 'none';
+            document.getElementById('tabReports').style.display = tab === 'reports' ? 'block' : 'none';
+            document.getElementById('tabKYC').style.display = tab === 'kyc' ? 'block' : 'none';
+        }
+
+        loadAll();
+    </script>
+</body>
+</html>

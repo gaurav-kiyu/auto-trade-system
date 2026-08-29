@@ -1,0 +1,70 @@
+{
+  "name": "OPB Trading Dashboard",
+  "short_name": "OPB Trader",
+  "description": "Enterprise trading dashboard for NSE Index Options — monitor positions, signals, P&L, and risk in real-time",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#111827",
+  "theme_color": "#3b82f6",
+  "categories": ["finance", "trading", "investment", "business"],
+  "lang": "en-IN",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/static/opb-icon-192.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/opb-icon-512.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Home",
+      "description": "Main trading dashboard with system status and recent signals",
+      "url": "/"
+    },
+    {
+      "name": "Performance",
+      "short_name": "Perf",
+      "description": "Trading performance metrics, win rate, Sharpe ratio",
+      "url": "/performance"
+    },
+    {
+      "name": "Trade Journal",
+      "short_name": "Journal",
+      "description": "Complete trade history with filters and pagination",
+      "url": "/trade-journal"
+    },
+    {
+      "name": "Live P&L",
+      "short_name": "PnL",
+      "description": "Real-time profit and loss charts",
+      "url": "/live-pnl"
+    },
+    {
+      "name": "Emergency Kill",
+      "short_name": "Kill",
+      "description": "Emergency kill switch to halt all trading",
+      "url": "/admin/kill-switch"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}

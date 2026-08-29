@@ -1,0 +1,371 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   OPB Trading Dashboard — Mobile-First Responsive Styles
+   Include AFTER Tailwind CSS in all dashboard templates.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Reset & Base ───────────────────────────────────────────────────────── */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Bottom Navigation Bar (mobile) ──────────────────────────────────────── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1f2937;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  z-index: 9999;
+  padding: 0.25rem 0;
+  padding-bottom: env(safe-area-inset-bottom, 0.25rem);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-bottom-nav .nav-items {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.mobile-bottom-nav .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.55rem;
+  padding: 0.2rem 0.4rem;
+  transition: color 0.2s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+.mobile-bottom-nav .nav-item:active {
+  transform: scale(0.92);
+}
+
+.mobile-bottom-nav .nav-item i,
+.mobile-bottom-nav .nav-item svg {
+  font-size: 1.1rem;
+  margin-bottom: 0.1rem;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.mobile-bottom-nav .nav-item.active {
+  color: #60a5fa;
+}
+
+.mobile-bottom-nav .nav-item.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: #60a5fa;
+  border-radius: 0 0 2px 2px;
+}
+
+.mobile-bottom-nav .nav-item:hover {
+  color: #93c5fd;
+}
+
+/* ── Content Padding for Fixed Bottom Nav ───────────────────────────────── */
+.has-mobile-nav {
+  padding-bottom: 4rem;
+}
+
+@media (max-width: 768px) {
+  .has-mobile-nav {
+    padding-bottom: 3.8rem;
+  }
+}
+
+/* ── Show Mobile Bottom Nav on Small Screens ────────────────────────────── */
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: block;
+  }
+}
+
+/* ── Hide Desktop Top Nav on Small Screens ───────────────────────────────── */
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none !important;
+  }
+}
+
+/* ── Show Mobile Top Bar ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .mobile-header {
+    display: flex !important;
+  }
+}
+
+.mobile-header {
+  display: none;
+  background: #1f2937;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  padding: 0.65rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-header .header-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-header .header-actions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.mobile-header .header-action {
+  color: #94a3b8;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.3rem;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s;
+}
+
+.mobile-header .header-action:hover {
+  color: #e2e8f0;
+}
+
+.mobile-header .header-action:active {
+  transform: scale(0.9);
+}
+
+/* ── Touch-Friendly Controls ────────────────────────────────────────────── */
+.touch-btn {
+  min-height: 44px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.touch-btn:active {
+  transform: scale(0.96);
+}
+
+.touch-input {
+  min-height: 44px;
+  font-size: 16px !important; /* Prevent iOS zoom on focus */
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+}
+
+/* ── Card Grids for Mobile ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .responsive-grid {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .responsive-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .responsive-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .responsive-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Reduce card padding on mobile */
+  .card-compact {
+    padding: 0.75rem !important;
+  }
+  .card-compact h3 {
+    font-size: 0.8rem !important;
+  }
+  .card-compact .text-3xl {
+    font-size: 1.5rem !important;
+  }
+  .card-compact .text-2xl {
+    font-size: 1.25rem !important;
+  }
+
+  /* Compact KPI cards */
+  .kpi-card {
+    padding: 0.75rem !important;
+  }
+  .kpi-card .kpi-value {
+    font-size: 1.25rem !important;
+  }
+  .kpi-card .kpi-label {
+    font-size: 0.65rem !important;
+  }
+
+  /* Table adjustments */
+  .table-responsive table {
+    font-size: 0.7rem !important;
+  }
+  .table-responsive th,
+  .table-responsive td {
+    padding: 0.4rem 0.35rem !important;
+  }
+
+  /* Hide less important columns on mobile */
+  .hide-mobile {
+    display: none !important;
+  }
+
+  /* Full-width controls */
+  .full-width-mobile {
+    width: 100% !important;
+  }
+}
+
+/* ── Tablet Adjustments ────────────────────────────────────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .tablet-grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .tablet-grid-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .table-responsive th,
+  .table-responsive td {
+    padding: 0.5rem 0.5rem !important;
+  }
+}
+
+/* ── Pull-to-Refresh Visual Cue ─────────────────────────────────────────── */
+.pull-indicator {
+  text-align: center;
+  padding: 0.5rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  transition: opacity 0.3s;
+}
+
+/* ── Status Indicators ──────────────────────────────────────────────────── */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-dot.online {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+.status-dot.offline {
+  background: #ef4444;
+}
+
+.status-dot.warning {
+  background: #f59e0b;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── Toast Notifications for Mobile ─────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 90vw;
+}
+
+@media (max-width: 768px) {
+  .toast-container {
+    left: 1rem;
+    right: 1rem;
+    top: 0.5rem;
+    max-width: 100%;
+  }
+}
+
+.toast {
+  background: #1f2937;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  animation: slideIn 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toast.success { border-left: 3px solid #22c55e; }
+.toast.error { border-left: 3px solid #ef4444; }
+.toast.warning { border-left: 3px solid #f59e0b; }
+.toast.info { border-left: 3px solid #3b82f6; }
+
+@keyframes slideIn {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Swipeable Cards ────────────────────────────────────────────────────── */
+.swipeable {
+  transition: transform 0.3s ease;
+}
+
+/* ── Loading Skeleton ────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.375rem;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Safari Safe Area Fixes ─────────────────────────────────────────────── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .mobile-bottom-nav {
+    padding-bottom: calc(0.25rem + env(safe-area-inset-bottom));
+  }
+}
+
+@supports (padding: constant(safe-area-inset-bottom)) {
+  .mobile-bottom-nav {
+    padding-bottom: calc(0.25rem + constant(safe-area-inset-bottom));
+  }
+}

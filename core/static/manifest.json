@@ -1,0 +1,60 @@
+{
+  "name": "RealEstate India",
+  "short_name": "RE India",
+  "description": "Find, buy, rent, and invest in Indian real estate — apartments, villas, plots, and commercial properties across 10 major cities.",
+  "start_url": "/realestate",
+  "scope": "/realestate",
+  "display": "standalone",
+  "background_color": "#080b10",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["real estate", "property", "housing", "business"],
+  "icons": [
+    {
+      "src": "/static/re-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/re-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/re-screenshot-home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "RealEstate India Home Page"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Search Properties",
+      "short_name": "Search",
+      "description": "Search properties across Indian cities",
+      "url": "/realestate/search"
+    },
+    {
+      "name": "Tenant Portal",
+      "short_name": "Tenant",
+      "description": "Pay rent and manage maintenance",
+      "url": "/realestate/tenant"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "display_override": ["window-controls-overlay", "minimal-ui"],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}

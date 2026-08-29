@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Success Metrics Trend Engine | GAURAV™ SUPER-PLATFORM</title>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+<style>
+        body {
+            background-color: var(--bg-primary, #0a0e17);
+            color: var(--text-primary, #f8fafc);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .metrics-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 1.5rem 1.75rem 3.5rem;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text-primary, #f8fafc);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin: 0;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted, #94a3b8);
+            font-size: 0.82rem;
+            margin: 0.3rem 0 0 0;
+        }
+
+        .opb-card {
+            background: var(--bg-card, #0f172a);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.25rem;
+            box-shadow: var(--card-shadow, 0 4px 20px rgba(0,0,0,0.2));
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card, #0f172a);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            box-shadow: var(--card-shadow, 0 4px 20px rgba(0,0,0,0.2));
+            transition: transform 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary, #f8fafc);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-label {
+            font-size: 0.72rem;
+            color: var(--text-muted, #94a3b8);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 0.35rem;
+            font-weight: 700;
+        }
+
+        .dir-chip {
+            font-size: 0.72rem;
+            padding: 0.2rem 0.65rem;
+            border-radius: 0.35rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .chip-green { background: rgba(16, 185, 129, 0.15); color: var(--success-color, #10b981); border: 1px solid var(--success-color, #10b981); }
+        .chip-blue { background: rgba(56, 189, 248, 0.15); color: var(--accent-color, #38bdf8); border: 1px solid var(--accent-color, #38bdf8); }
+        .chip-amber { background: rgba(245, 158, 11, 0.15); color: var(--warning-color, #f59e0b); border: 1px solid var(--warning-color, #f59e0b); }
+        .chip-red { background: rgba(239, 68, 68, 0.15); color: var(--danger-color, #ef4444); border: 1px solid var(--danger-color, #ef4444); }
+        .chip-neutral { background: var(--bg-secondary, #1e293b); color: var(--text-muted, #94a3b8); border: 1px solid var(--border-color, #334155); }
+
+        .opb-table-wrap {
+            overflow-x: auto;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color, #334155);
+            background: var(--bg-card, #0f172a);
+        }
+
+        table.opb-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        table.opb-table th {
+            background: var(--bg-secondary, #1e293b);
+            padding: 0.75rem 1rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted, #94a3b8);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid var(--border-color, #334155);
+        }
+
+        table.opb-table td {
+            padding: 0.75rem 1rem;
+            font-size: 0.82rem;
+            border-bottom: 1px solid var(--border-color, #334155);
+            color: var(--text-secondary, #cbd5e1);
+            font-variant-numeric: tabular-nums;
+        }
+
+        table.opb-table tr:hover td {
+            background: var(--bg-secondary, rgba(56, 189, 248, 0.04));
+        }
+
+        .btn-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: var(--accent-color, #38bdf8);
+            color: var(--bg-primary, #0a0e17);
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 0.5rem 1.15rem;
+            border-radius: 0.45rem;
+            border: 1px solid var(--accent-color, #38bdf8);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-refresh:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 800px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .metrics-container { padding: 1rem; }
+        }
+    </style>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/report_filters.css"><script src="/static/report_filters.js" defer></script></head>
+<body>
+    {% include '_nav.html' %}
+    <!-- Unified 6-Tier Ribbon -->
+<div class="metrics-container">
+<div class="page-header">
+<div>
+<h1 class="page-title">
+<i class="fas fa-chart-area" style="color: var(--warning-color, #f59e0b);"></i> Success Metrics Trend Engine
+                </h1>
+<p class="page-subtitle">Constitution v4.0 MET-07 / MET-08 — Institutional release-to-release trend evidence &amp; quality verification</p>
+</div>
+<div style="display:flex;align-items:center;gap:0.75rem;">
+<div id="data-status" style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text-muted,#94a3b8);">
+<span class="fas fa-circle-notch fa-spin" style="color:var(--accent-color, #38bdf8);"></span> Loading telemetry...
+                </div>
+<button class="btn-refresh" id="refresh-btn" type="button"><i class="fas fa-sync-alt"></i> Refresh</button>
+</div>
+</div>
+<!-- Register Consistency Banner -->
+<div class="opb-card" id="register-status" style="border-left: 4px solid var(--accent-color, #38bdf8);">
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+<div>
+<h3 style="font-size:0.92rem;font-weight:700;color:var(--text-primary,#f8fafc);display:flex;align-items:center;gap:0.45rem;margin:0;">
+<i class="fas fa-shield-alt" style="color:var(--accent-color, #38bdf8);"></i> Register Consistency &amp; Pattern Verification
+                    </h3>
+<p id="register-detail" style="font-size:0.78rem;color:var(--text-muted,#94a3b8);margin:0.35rem 0 0 0;">Analyzing system registers and ID prefixes...</p>
+</div>
+<span class="dir-chip chip-neutral" id="register-chip">—</span>
+</div>
+</div>
+<!-- Metric Verdict Cards -->
+<div class="grid-2">
+<div class="stat-card">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+<h3 style="font-size:1rem;font-weight:700;color:var(--text-primary,#f8fafc);margin:0;">MET-07: Technical Debt</h3>
+<span class="dir-chip chip-neutral" id="met07-chip">—</span>
+</div>
+<p style="font-size:0.8rem;color:var(--text-muted,#94a3b8);margin:0.25rem 0 0 0;">Technical Debt Trending Downwards</p>
+<p id="met07-detail" style="font-size:0.85rem;color:var(--text-secondary,#cbd5e1);margin-top:0.75rem;font-weight:600;">Loading verdict...</p>
+</div>
+<div class="stat-card">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+<h3 style="font-size:1rem;font-weight:700;color:var(--text-primary,#f8fafc);margin:0;">MET-08: Developer Productivity</h3>
+<span class="dir-chip chip-neutral" id="met08-chip">—</span>
+</div>
+<p style="font-size:0.8rem;color:var(--text-muted,#94a3b8);margin:0.25rem 0 0 0;">Developer Productivity Trending Upwards</p>
+<p id="met08-detail" style="font-size:0.85rem;color:var(--text-secondary,#cbd5e1);margin-top:0.75rem;font-weight:600;">Loading verdict...</p>
+</div>
+</div>
+<!-- Snapshot History -->
+<div class="opb-card">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+<h3 style="font-size:0.95rem;font-weight:700;color:var(--text-primary,#f8fafc);display:flex;align-items:center;gap:0.4rem;margin:0;">
+<i class="fas fa-history" style="color:var(--accent-color, #38bdf8);"></i> Snapshot History
+                </h3>
+<span id="snap-count" style="font-size:0.75rem;color:var(--text-muted,#94a3b8);font-weight:600;"></span>
+</div>
+<div class="opb-table-wrap">
+<table class="opb-table">
+<thead>
+<tr>
+<th>Release</th>
+<th>Captured (UTC)</th>
+<th>Dead Code</th>
+<th>Duplicates</th>
+<th>Test Files</th>
+<th>Evidence</th>
+<th>Commits (30d)</th>
+</tr>
+</thead>
+<tbody id="snapshot-body">
+<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted,#94a3b8);">Loading snapshot records...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Release Audit Trail -->
+<div class="opb-card">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+<h3 style="font-size:0.95rem;font-weight:700;color:var(--text-primary,#f8fafc);display:flex;align-items:center;gap:0.4rem;margin:0;">
+<i class="fas fa-clipboard-check" style="color:var(--success-color, #10b981);"></i> Release Audit Trail &amp; Governance Gates
+                </h3>
+<span id="audit-count" style="font-size:0.75rem;color:var(--text-muted,#94a3b8);font-weight:600;"></span>
+</div>
+<div class="opb-table-wrap">
+<table class="opb-table">
+<thead>
+<tr>
+<th>Release</th>
+<th>Date</th>
+<th>Branch</th>
+<th>Changes</th>
+<th>Trend Snapshot</th>
+<th>Register Gate</th>
+</tr>
+</thead>
+<tbody id="audit-body">
+<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted,#94a3b8);">Loading audit records...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+        async function loadTrend() {
+            const statusEl = document.getElementById('data-status');
+            try {
+                const res = await fetch('/api/metrics/trend');
+                const data = await res.json();
+                renderVerdicts(data.verdicts || {});
+                renderSnapshots(data.snapshots || []);
+                renderRegisterConsistency(data.register_consistency);
+                const ok = data.status === 'ok';
+                const count = data.total_snapshots || 0;
+                statusEl.innerHTML = ok
+                    ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--success-color, #10b981);"></span> <span style="color:var(--success-color, #10b981);font-weight:600;">${count} snapshot${count === 1 ? '' : 's'} verified</span>`
+                    : `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warning-color, #f59e0b);"></span> <span style="color:var(--warning-color, #f59e0b);">Unavailable</span>`;
+                document.getElementById('snap-count').textContent = `${count} total snapshots`;
+            } catch (e) {
+                statusEl.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger-color, #ef4444);"></span> <span style="color:var(--danger-color, #ef4444);">Telemetry error</span>';
+            }
+        }
+
+        function chip(direction) {
+            if (direction === 'NO_DATA') return '<span class="dir-chip chip-neutral">NO DATA</span>';
+            if (direction === 'DOWN') return `<span class="dir-chip chip-green">▼ DOWN</span>`;
+            if (direction === 'UP') return `<span class="dir-chip chip-blue">▲ UP</span>`;
+            return '<span class="dir-chip chip-amber">— STABLE</span>';
+        }
+
+        function renderRegisterConsistency(rc) {
+            const chipEl = document.getElementById('register-chip');
+            const detailEl = document.getElementById('register-detail');
+            if (!rc || rc.status === 'unavailable') {
+                chipEl.className = 'dir-chip chip-neutral';
+                chipEl.textContent = '—';
+                detailEl.textContent = (rc && rc.detail) || 'Register consistency check unavailable';
+                return;
+            }
+            if (rc.status === 'aligned') {
+                chipEl.className = 'dir-chip chip-green';
+                chipEl.innerHTML = '<i class="fas fa-check-circle"></i> ALIGNED';
+                const n = Object.keys(rc.registers || {}).length;
+                detailEl.textContent = `All ${n} registers use expected ID prefixes — MET-07 trend counts are trustworthy`;
+                return;
+            }
+            chipEl.className = 'dir-chip chip-red';
+            chipEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> DRIFT';
+            const drifted = (rc.drifted_registers || []).map(rp => rp.split('/').pop()).join(', ') || 'unknown';
+            detailEl.textContent = `Pattern drift detected in: ${drifted} — MET-07 counts may be inaccurate`;
+        }
+
+        function renderVerdicts(verdicts) {
+            const order = ['MET-07', 'MET-08'];
+            for (const mid of order) {
+                const v = verdicts[mid];
+                const chipId = mid === 'MET-07' ? 'met07-chip' : 'met08-chip';
+                const detailId = mid === 'MET-07' ? 'met07-detail' : 'met08-detail';
+                if (!v) {
+                    document.getElementById(chipId).innerHTML = '<span class="dir-chip chip-neutral">—</span>';
+                    document.getElementById(detailId).textContent = 'No data available';
+                    continue;
+                }
+                document.getElementById(chipId).innerHTML = chip(v.direction);
+                const status = v.passed ? '✅ Satisfies' : (v.direction === 'NO_DATA' ? '⏳ Pending' : '⚠️ Violates');
+                document.getElementById(detailId).textContent =
+                    `${status} — ${v.direction} (${v.snapshots} snapshots)`;
+            }
+        }
+
+        function fmt(v) {
+            return (v === null || v === undefined) ? '—' : v;
+        }
+
+        function esc(v) {
+            return String(v).replace(/[&<>"']/g, c => (
+                {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]
+            ));
+        }
+
+        function renderSnapshots(snaps) {
+            const body = document.getElementById('snapshot-body');
+            if (!snaps.length) {
+                body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted,#94a3b8);">No snapshots yet — capture one per release via <code style="color:var(--accent-color, #38bdf8);">release_governance.py</code></td></tr>';
+                return;
+            }
+            body.innerHTML = snaps.map(s => {
+                const ind = s.indicators || {};
+                return `<tr>
+                    <td style="font-weight:700;color:var(--accent-color,#38bdf8);">${fmt(s.release_label || 'n/a')}</td>
+                    <td>${(s.captured_at_iso || '').replace('T', ' ').slice(0, 19)}</td>
+                    <td>${fmt(ind.dead_code_findings)}</td>
+                    <td>${fmt(ind.duplicate_code)}</td>
+                    <td>${fmt(ind.test_files)}</td>
+                    <td>${fmt(ind.evidence_items)}</td>
+                    <td>${fmt(ind.commits_30d)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function gateChip(audit) {
+            if (audit.register_gate_passed === true)
+                return '<span class="dir-chip chip-green"><i class="fas fa-check"></i> PASS</span>';
+            if (audit.register_gate_passed === false)
+                return '<span class="dir-chip chip-red"><i class="fas fa-times"></i> DRIFT</span>';
+            return '<span class="dir-chip chip-neutral">— UNKNOWN</span>';
+        }
+
+        async function loadAudits() {
+            const body = document.getElementById('audit-body');
+            const countEl = document.getElementById('audit-count');
+            try {
+                const res = await fetch('/api/metrics/trend/release-audits');
+                const data = await res.json();
+                const audits = data.audits || [];
+                countEl.textContent = `${audits.length} record${audits.length === 1 ? '' : 's'}`;
+                if (!audits.length) {
+                    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted,#94a3b8);">No release audit records yet — run <code style="color:var(--accent-color,#38bdf8);">release_governance.py</code> to create one</td></tr>';
+                    return;
+                }
+                body.innerHTML = audits.map(a => {
+                    const trend = a.trend_snapshot_captured
+                        ? '<span class="dir-chip chip-blue">captured</span>'
+                        : '<span class="dir-chip chip-neutral">none</span>';
+                    const gate = `${gateChip(a)} <span style="font-size:0.75rem;color:var(--text-muted,#94a3b8);margin-left:0.3rem;">${a.register_gate_status || 'unknown'}</span>`;
+                    return `<tr>
+                        <td style="font-weight:700;color:var(--accent-color,#38bdf8);">v${esc(a.version || '')}</td>
+                        <td>${esc(a.date || '')}</td>
+                        <td>${esc(a.branch || '')}</td>
+                        <td>${a.changes_count || 0}</td>
+                        <td>${trend}</td>
+                        <td>${gate}</td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--danger-color, #ef4444);">Failed to load audit records</td></tr>';
+            }
+        }
+
+        document.getElementById('refresh-btn').addEventListener('click', () => { loadTrend(); loadAudits(); });
+        loadTrend();
+        loadAudits();
+    </script>
+</body>
+</html>

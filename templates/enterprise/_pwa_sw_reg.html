@@ -1,0 +1,14 @@
+<!-- ══════════════════════════════════════════════════════════════════════════
+  PWA Service Worker Registration — included by all dashboard templates
+  ══════════════════════════════════════════════════════════════════════════ -->
+<script nonce="{{ nonce }}">
+(function() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/dashboard-sw.js', { scope: '/' }).then(function(reg) {
+      console.log('[PWA] ServiceWorker registered:', reg.scope);
+    }).catch(function(err) {
+      console.warn('[PWA] ServiceWorker registration failed:', err);
+    });
+  }
+})();
+</script>

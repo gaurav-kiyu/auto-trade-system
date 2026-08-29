@@ -1,0 +1,104 @@
+# Docker Compose — PostgreSQL + PgBouncer for OPB production deployment
+#
+# Provides:
+#   - PostgreSQL 16 database server with persistent volumes
+#   - PgBouncer connection pooler with custom configuration
+#   - Initial database creation script
+#
+# Usage:
+#   docker compose -f deploy/docker-compose.postgres.yml up -d
+#
+#   # Combined with main app:
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.postgres.yml up -d
+#
+# Environment variables (set in .env or shell):
+#   POSTGRES_PASSWORD     - PostgreSQL superuser password (default: changeme!)
+#   PGBOUNCER_PORT        - PgBouncer listen port (default: 6432)
+
+services:
+
+  # ── PostgreSQL Database ──────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: opb_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: opb_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme!}
+      POSTGRES_DB: opb_trades
+      TZ: Asia/Kolkata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"   # Only localhost for direct admin access
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opb_admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ── PgBouncer Connection Pool ────────────────────────────────────────────
+  #
+  # ╔══════════════════════════════════════════════════════════════════════╗
+  # ║  WARNING: The edoburu/pgbouncer image's entrypoint MAY regenerate   ║
+  # ║  pgbouncer.ini from environment variables on startup, potentially   ║
+  # ║  overwriting the mounted pgbouncer.ini file above.                  ║
+  # ║                                                                    ║
+  # ║  If the mounted config is not taking effect, REMOVE these env vars  ║
+  # ║  so the image uses the mounted file as-is:                          ║
+  # ║    - DATABASE_URL, DB_USER, DB_PASSWORD                             ║
+  # ║    - POOL_MODE, DEFAULT_POOL_SIZE, MAX_CLIENT_CONN                  ║
+  # ║    - SERVER_IDLE_TIMEOUT, QUERY_TIMEOUT                             ║
+  # ║                                                                    ║
+  # ║  Healthcheck requires real passwords in pgbouncer_auth.txt —         ║
+  # ║  placeholder 'md5' values will cause SHOW STATS to fail.            ║
+  # ╚══════════════════════════════════════════════════════════════════════╝
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: opb_pgbouncer
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Connection to upstream PostgreSQL
+      DATABASE_URL: postgres://opb_admin:${POSTGRES_PASSWORD:-changeme!}@postgres:5432/opb_trades
+      DB_USER: opb_app
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-changeme!}
+      # Pool settings
+      POOL_MODE: transaction
+      DEFAULT_POOL_SIZE: "20"
+      MAX_CLIENT_CONN: "100"
+      SERVER_IDLE_TIMEOUT: "600"
+      QUERY_TIMEOUT: "30"
+      AUTH_TYPE: md5
+      TZ: Asia/Kolkata
+    volumes:
+      # Mount custom config files (overrides image defaults)
+      - ./postgres/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./postgres/pgbouncer_auth.txt:/etc/pgbouncer/userlist.txt:ro
+    ports:
+      - "${PGBOUNCER_PORT:-6432}:6432"  # PgBouncer port for application
+    healthcheck:
+      test: ["CMD-SHELL", "psql -h 127.0.0.1 -p 6432 -U opb_admin -d pgbouncer -c \"SHOW STATS;\" 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+
+# ── Named Volumes ──────────────────────────────────────────────────────────
+volumes:
+  postgres_data:

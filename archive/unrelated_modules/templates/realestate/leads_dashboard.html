@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Dashboard — RealEstate India CRM</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+               background: #080b10; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        .page-header { margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+        .page-header .back-link { color: #64748b; text-decoration: none; font-size: 0.85rem; }
+        .page-header .back-link:hover { color: #60a5fa; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1rem; }
+        .stat-card .stat-value { font-size: 1.6rem; font-weight: 700; }
+        .stat-card .stat-label { font-size: 0.75rem; color: #64748b; margin-top: 0.2rem; }
+        .pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .pipeline-column { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1rem; min-height: 200px; }
+        .pipeline-column h3 { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; text-align: center; }
+        .pipeline-card { background: #1a1f2e; border: 1px solid rgba(148,163,184,0.06); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s; }
+        .pipeline-card:hover { border-color: rgba(59,130,246,0.2); }
+        .pipeline-card .lead-name { font-size: 0.85rem; font-weight: 600; }
+        .pipeline-card .lead-details { font-size: 0.7rem; color: #64748b; margin-top: 0.2rem; }
+        .pipeline-card .lead-price { font-size: 0.8rem; color: #4ade80; margin-top: 0.2rem; }
+        .quick-actions { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+        .quick-actions button { background: transparent; border: 1px solid rgba(148,163,184,0.1); border-radius: 0.3rem; padding: 0.15rem 0.5rem; color: #64748b; font-size: 0.65rem; cursor: pointer; }
+        .quick-actions button:hover { border-color: rgba(59,130,246,0.3); color: #60a5fa; }
+        .enquiry-list { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1rem; }
+        .enquiry-list h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; }
+        .enquiry-item { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid rgba(148,163,184,0.05); }
+        .enquiry-item:last-child { border-bottom: none; }
+        .enquiry-item .enq-info { flex: 1; }
+        .enquiry-item .enq-name { font-size: 0.85rem; font-weight: 500; }
+        .enquiry-item .enq-detail { font-size: 0.7rem; color: #64748b; }
+        .enquiry-item .enq-time { font-size: 0.65rem; color: #475569; }
+        .status-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.65rem; font-weight: 500; }
+        .status-new { background: rgba(59,130,246,0.1); color: #60a5fa; }
+        .status-contacted { background: rgba(245,158,11,0.1); color: #fbbf24; }
+        .status-qualified { background: rgba(139,92,246,0.1); color: #a78bfa; }
+        .status-negotiation { background: rgba(249,115,22,0.1); color: #fb923c; }
+        .status-converted { background: rgba(34,197,94,0.1); color: #4ade80; }
+        .status-lost { background: rgba(239,68,68,0.1); color: #f87171; }
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .tab-btn { background: #1a1f2e; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 0.5rem 1rem; color: #64748b; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+        .tab-btn.active { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.25); color: #60a5fa; }
+        .tab-btn:hover { border-color: rgba(59,130,246,0.15); }
+        .no-data { text-align: center; padding: 3rem; color: #64748b; font-size: 0.9rem; }
+        .chart-container { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1.5rem; height: 200px; }
+        @media (max-width: 768px) { .pipeline { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div>
+            <a href="/realestate" class="back-link">← Back to Home</a>
+            <h1><i class="fas fa-users" style="color:#8b5cf6;margin-right:0.5rem;"></i> Lead Dashboard</h1>
+        </div>
+        <div style="display:flex;gap:0.75rem;align-items:center;">
+            <span id="notifBell" style="cursor:pointer;position:relative;font-size:1.2rem;" onclick="toggleNotifPanel()">
+                <i class="fas fa-bell" style="color:#94a3b8;"></i>
+                <span id="notifBadge" style="display:none;position:absolute;top:-5px;right:-8px;background:#ef4444;color:white;border-radius:50%;padding:0.1rem 0.35rem;font-size:0.6rem;font-weight:700;">0</span>
+            </span>
+            <select id="brokerSelect" onchange="loadAll()" style="background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.4rem 0.8rem;color:#e2e8f0;font-size:0.8rem;outline:none;">
+                <option value="broker-demo">Demo Broker</option>
+                <option value="broker-01">Broker #1</option>
+                <option value="broker-02">Broker #2</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" style="color:#60a5fa;" id="totalLeads">0</div><div class="stat-label">Total Leads</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#fbbf24;" id="activeLeads">0</div><div class="stat-label">Active Pipeline</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#4ade80;" id="convertedLeads">0</div><div class="stat-label">Converted</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#f87171;" id="lostLeads">0</div><div class="stat-label">Lost</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#a78bfa;" id="totalEnquiries">0</div><div class="stat-label">Enquiries</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#10b981;" id="conversionRate">0%</div><div class="stat-label">Conversion Rate</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('pipeline', this)"><i class="fas fa-tasks"></i> Pipeline</button>
+        <button class="tab-btn" onclick="switchTab('enquiries', this)"><i class="fas fa-inbox"></i> Enquiries</button>
+        <button class="tab-btn" onclick="switchTab('analytics', this)"><i class="fas fa-chart-line"></i> Analytics</button>
+    </div>
+
+    <!-- Pipeline View -->
+    <div id="tabPipeline">
+        <div class="pipeline" id="pipelineContainer">
+            <div class="pipeline-column"><h3 style="color:#60a5fa;">🆕 New</h3><div id="pipeline-new"><div class="no-data">No leads yet</div></div></div>
+            <div class="pipeline-column"><h3 style="color:#fbbf24;">📞 Contacted</h3><div id="pipeline-contacted"><div class="no-data">No leads yet</div></div></div>
+            <div class="pipeline-column"><h3 style="color:#a78bfa;">🤝 Negotiation</h3><div id="pipeline-negotiation"><div class="no-data">No leads yet</div></div></div>
+            <div class="pipeline-column"><h3 style="color:#4ade80;">✅ Converted</h3><div id="pipeline-converted"><div class="no-data">No leads yet</div></div></div>
+        </div>
+    </div>
+
+    <!-- Enquiries Tab -->
+    <div id="tabEnquiries" style="display:none;">
+        <div class="enquiry-list">
+            <h3><i class="fas fa-inbox" style="color:#3b82f6;margin-right:0.4rem;"></i> Recent Enquiries</h3>
+            <div id="enquiryContainer"><div class="no-data">No enquiries yet</div></div>
+        </div>
+    </div>
+
+    <!-- Analytics Tab -->
+    <div id="tabAnalytics" style="display:none;">
+        <div class="chart-container"><canvas id="leadChart"></canvas></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <div class="stat-card"><div class="stat-value" style="color:#60a5fa;font-size:1rem;" id="avgResponseTime">-</div><div class="stat-label">Avg Response Time</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:#fbbf24;font-size:1rem;" id="topSource">-</div><div class="stat-label">Top Lead Source</div></div>
+        </div>
+    </div>
+
+    <!-- Notification Panel -->
+    <div id="notifPanel" style="display:none;position:fixed;top:60px;right:20px;width:350px;max-height:450px;background:#0f1319;border:1px solid rgba(148,163,184,0.15);border-radius:0.75rem;padding:1rem;overflow-y:auto;z-index:1000;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+            <h3 style="font-size:0.9rem;font-weight:600;">🔔 Notifications</h3>
+            <button onclick="markAllRead()" style="background:transparent;border:none;color:#3b82f6;font-size:0.7rem;cursor:pointer;">Mark all read</button>
+        </div>
+        <div id="notifList"><div class="no-data">No notifications</div></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let currentUser = 'broker-demo';
+        let leadChartInstance = null;
+
+        function getUserId() { return document.getElementById('brokerSelect').value; }
+
+        async function loadAll() {
+            currentUser = getUserId();
+            loadLeads();
+            loadEnquiries();
+            loadNotifications();
+            loadAnalytics();
+        }
+
+        // ── Leads ──
+        async function loadLeads() {
+            try {
+                const res = await fetch('/api/realestate/leads');
+                const leads = await res.json();
+                renderPipeline(leads || []);
+                updateStats(leads || []);
+            } catch(e) {
+                // Use demo data if API unavailable
+                renderPipeline([]);
+                updateStats([]);
+            }
+        }
+
+        function renderPipeline(leads) {
+            const stages = { 'new': [], 'contacted': [], 'qualified': [], 'negotiation': [], 'converted': [], 'lost': [] };
+            for (const l of leads) {
+                const s = l.status || 'new';
+                if (stages[s]) stages[s].push(l);
+                else stages['new'].push(l);
+            }
+
+            const pipelineMap = {
+                'new': 'pipeline-new', 'contacted': 'pipeline-contacted',
+                'negotiation': 'pipeline-negotiation', 'converted': 'pipeline-converted'
+            };
+            for (const [stage, id] of Object.entries(pipelineMap)) {
+                const items = stages[stage] || [];
+                const container = document.getElementById(id);
+                if (items.length === 0) {
+                    container.innerHTML = '<div class="no-data" style="padding:1rem;font-size:0.75rem;">No leads</div>';
+                } else {
+                    container.innerHTML = items.map(l => `
+                        <div class="pipeline-card">
+                            <div class="lead-name">${l.buyer_name}</div>
+                            <div class="lead-details">${l.buyer_phone || ''} ${l.buyer_email ? '· ' + l.buyer_email : ''}</div>
+                            ${l.budget ? `<div class="lead-price">₹${(l.budget/100000).toFixed(2)}L</div>` : ''}
+                            <div class="quick-actions">
+                                <button onclick="updateLeadStatus('${l.lead_id}','contacted')">📞 Contact</button>
+                                <button onclick="updateLeadStatus('${l.lead_id}','qualified')">✅ Qualify</button>
+                                <button onclick="updateLeadStatus('${l.lead_id}','negotiation')">🤝 Negotiate</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        function updateStats(leads) {
+            const total = leads.length;
+            const active = leads.filter(l => !['converted','lost'].includes(l.status || 'new')).length;
+            const converted = leads.filter(l => l.status === 'converted').length;
+            const lost = leads.filter(l => l.status === 'lost').length;
+            document.getElementById('totalLeads').textContent = total;
+            document.getElementById('activeLeads').textContent = active;
+            document.getElementById('convertedLeads').textContent = converted;
+            document.getElementById('lostLeads').textContent = lost;
+            document.getElementById('conversionRate').textContent = total > 0 ? Math.round(converted/total*100) + '%' : '0%';
+        }
+
+        async function updateLeadStatus(leadId, status) {
+            try {
+                await fetch('/api/realestate/leads/' + leadId + '/status?status=' + status, { method: 'PUT' });
+                loadLeads();
+            } catch(e) {}
+        }
+
+        // ── Enquiries ──
+        async function loadEnquiries() {
+            try {
+                const res = await fetch('/api/realestate/enquiries');
+                const data = await res.json();
+                const enqs = data || [];
+                document.getElementById('totalEnquiries').textContent = enqs.length;
+                const container = document.getElementById('enquiryContainer');
+                if (enqs.length === 0) {
+                    container.innerHTML = '<div class="no-data">No enquiries received yet</div>';
+                } else {
+                    container.innerHTML = enqs.slice(0, 15).map(e => `
+                        <div class="enquiry-item">
+                            <div class="enq-info">
+                                <div class="enq-name">${e.name} <span class="status-badge status-${e.enquirer_type === 'broker' ? 'negotiation' : 'new'}">${e.enquirer_type}</span></div>
+                                <div class="enq-detail">${e.phone} · ${e.email}</div>
+                                <div class="enq-detail" style="margin-top:0.15rem;">${e.message || 'No message'}</div>
+                            </div>
+                            <div class="enq-time">${e.created_at ? Math.floor((Date.now()/1000 - e.created_at)/3600) + 'h ago' : ''}</div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {
+                document.getElementById('enquiryContainer').innerHTML = '<div class="no-data">Could not load enquiries</div>';
+            }
+        }
+
+        // ── Notifications ──
+        async function loadNotifications() {
+            try {
+                const res = await fetch('/api/realestate/notifications?user_id=' + currentUser);
+                const data = await res.json();
+                const badge = document.getElementById('notifBadge');
+                if (data.unread_count > 0) {
+                    badge.style.display = 'inline';
+                    badge.textContent = data.unread_count;
+                } else {
+                    badge.style.display = 'none';
+                }
+                const list = document.getElementById('notifList');
+                if (!data.notifications || data.notifications.length === 0) {
+                    list.innerHTML = '<div class="no-data">No notifications yet</div>';
+                } else {
+                    list.innerHTML = data.notifications.slice(0, 10).map(n => `
+                        <div style="padding:0.5rem 0;border-bottom:1px solid rgba(148,163,184,0.05);cursor:pointer;" onclick="markNotifRead('${n.notification_id}')">
+                            <div style="font-size:0.8rem;">${n.title}</div>
+                            <div style="font-size:0.7rem;color:#64748b;margin-top:0.15rem;">${n.message}</div>
+                            <div style="font-size:0.6rem;color:#475569;margin-top:0.15rem;">${n.time_ago}</div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {}
+        }
+
+        function toggleNotifPanel() {
+            const panel = document.getElementById('notifPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function markNotifRead(id) {
+            try {
+                await fetch('/api/realestate/notifications/' + id + '/read', { method: 'POST' });
+                loadNotifications();
+            } catch(e) {}
+        }
+
+        async function markAllRead() {
+            try {
+                await fetch('/api/realestate/notifications/mark-all-read?user_id=' + currentUser, { method: 'POST' });
+                loadNotifications();
+            } catch(e) {}
+        }
+
+        // ── Analytics ──
+        async function loadAnalytics() {
+            try {
+                const res = await fetch('/api/realestate/leads');
+                const leads = await res.json();
+                const sources = {};
+                for (const l of leads || []) {
+                    const s = l.source || 'website';
+                    sources[s] = (sources[s] || 0) + 1;
+                }
+                let topSource = 'N/A';
+                let topCount = 0;
+                for (const [src, cnt] of Object.entries(sources)) {
+                    if (cnt > topCount) { topSource = src; topCount = cnt; }
+                }
+                document.getElementById('topSource').textContent = topSource;
+
+                // Chart
+                const ctx = document.getElementById('leadChart').getContext('2d');
+                if (leadChartInstance) leadChartInstance.destroy();
+                leadChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['New', 'Contacted', 'Qualified', 'Negotiation', 'Converted', 'Lost'],
+                        datasets: [{
+                            data: [
+                                (leads || []).filter(l => l.status === 'new' || !l.status).length,
+                                (leads || []).filter(l => l.status === 'contacted').length,
+                                (leads || []).filter(l => l.status === 'qualified').length,
+                                (leads || []).filter(l => l.status === 'negotiation').length,
+                                (leads || []).filter(l => l.status === 'converted').length,
+                                (leads || []).filter(l => l.status === 'lost').length,
+                            ],
+                            backgroundColor: ['#3b82f6','#fbbf24','#a78bfa','#fb923c','#4ade80','#f87171'],
+                            borderColor: '#0f1319',
+                            borderWidth: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } }
+                        }
+                    }
+                });
+            } catch(e) {}
+        }
+
+        function switchTab(tab, btn) {
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tabPipeline').style.display = tab === 'pipeline' ? 'block' : 'none';
+            document.getElementById('tabEnquiries').style.display = tab === 'enquiries' ? 'block' : 'none';
+            document.getElementById('tabAnalytics').style.display = tab === 'analytics' ? 'block' : 'none';
+        }
+
+        // Init
+        loadAll();
+        setInterval(loadNotifications, 30000); // Poll every 30s
+    </script>
+</body>
+</html>

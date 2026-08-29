@@ -1,0 +1,370 @@
+import json
+import logging
+import sqlite3
+import threading
+import uuid
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from core.adapters.base_adapter import OrderRequest, OrderResponse, OrderStatus
+from core.db_utils import create_database_port
+from core.execution.broker_gateway import broker_gateway
+from core.ports.database import DatabasePort
+from core.time_provider import time_provider
+
+log = logging.getLogger("order_manager")
+
+@dataclass
+class OrderState:
+    """Tracks the full lifecycle of a single order."""
+
+    intent_id: str           # Unique ID for the trade intent (prevents duplicates)
+    request: OrderRequest
+    status: OrderStatus
+    broker_order_id: str | None = None
+    filled_qty: int = 0
+    avg_price: float = 0.0
+    created_at: str = field(default_factory=lambda: time_provider.format_ts())
+    updated_at: str = field(default_factory=lambda: time_provider.format_ts())
+    error: str | None = None
+
+class OrderManager:
+    """Deterministic Order Lifecycle Manager with Durable Persistence.
+
+    Ensures orders follow a strict state transition:
+    NEW -> VALIDATED -> SUBMITTED -> ACKNOWLEDGED -> FILLED
+
+    Phase 0 Fix: Orders are persisted to SQLite for crash recovery.
+    Uses DatabasePort for all database access.
+    """
+
+    PERSISTENCE_PATH = "db/order_state.db"
+
+    def __init__(self, persistence_path: str | Path | None = None) -> None:
+        self._orders: dict[str, OrderState] = {}  # intent_id -> OrderState
+        self._broker_map: dict[str, str] = {}     # broker_order_id -> intent_id
+        self._intent_map: dict[str, str] = {}     # intent_id -> broker_order_id
+        self._intent_events: dict[str, threading.Event] = {}
+        self._lock = __import__("threading").Lock()
+        self._db_port: DatabasePort | None = None
+        if persistence_path:
+            self.PERSISTENCE_PATH = str(persistence_path)
+        self._init_durable_storage()
+        self._load_orders_from_disk()  # Recover in-flight orders on restart
+
+    def _get_port(self) -> DatabasePort:
+        """Lazy-init the DatabasePort connection."""
+        if self._db_port is None:
+            self._db_port = create_database_port(self.PERSISTENCE_PATH)
+            self._db_port.connect()
+        return self._db_port
+
+    def _init_durable_storage(self) -> None:
+        """Initialize SQLite persistence for orders (Phase 0 fix)."""
+        try:
+            db = self._get_port()
+
+            # Check for schema migration: if broker_order_id is PK, migrate to intent_id PK
+            try:
+                rows = db.fetchall("PRAGMA table_info(orders)")
+                table_info = list(rows) if rows else []
+            except (OSError, sqlite3.Error, ValueError, TypeError):
+                table_info = []
+
+            if table_info:
+                broker_pk = next((row for row in table_info if row[1] == "broker_order_id"), None)
+                intent_pk = next((row for row in table_info if row[1] == "intent_id"), None)
+                if broker_pk and broker_pk[5] == 1 and (not intent_pk or intent_pk[5] != 1):
+                    db.execute("""
+                        CREATE TABLE IF NOT EXISTS orders_new (
+                            intent_id TEXT PRIMARY KEY,
+                            broker_order_id TEXT UNIQUE,
+                            request_json TEXT,
+                            status TEXT,
+                            filled_qty INTEGER,
+                            avg_price REAL,
+                            created_at TEXT,
+                            updated_at TEXT,
+                            error_text TEXT
+                        )
+                    """)
+                    db.execute("""
+                        INSERT OR REPLACE INTO orders_new
+                        (intent_id, broker_order_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text)
+                        SELECT intent_id, broker_order_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text
+                        FROM orders
+                    """)
+                    db.execute("DROP TABLE orders")
+                    db.execute("ALTER TABLE orders_new RENAME TO orders")
+
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS orders (
+                    intent_id TEXT PRIMARY KEY,
+                    broker_order_id TEXT UNIQUE,
+                    request_json TEXT,
+                    status TEXT,
+                    filled_qty INTEGER,
+                    avg_price REAL,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    error_text TEXT
+                )
+            """)
+            db.execute("CREATE INDEX IF NOT EXISTS idx_intent ON orders(intent_id)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_broker_order_id ON orders(broker_order_id)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_status ON orders(status)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_updated_at ON orders(updated_at)")
+            db.commit()
+            log.info("OrderManager: Durable storage initialized")
+        except (OSError, sqlite3.Error, ValueError, TypeError) as e:
+            log.error(f"OrderManager: Failed to init durable storage: {e}")
+
+    def _persist_order(self, order: OrderState) -> None:
+        """Persist order state to SQLite."""
+        try:
+            req_json = json.dumps({
+                "symbol": order.request.symbol,
+                "qty": order.request.qty,
+                "direction": order.request.direction,
+                "price": order.request.price,
+                "order_type": order.request.order_type,
+                "product": order.request.product,
+                "variety": order.request.variety,
+                "tag": order.request.tag,
+                "idempotency_key": order.request.idempotency_key,
+            }, default=str)
+            db = self._get_port()
+            db.execute("""
+                INSERT OR REPLACE INTO orders
+                (intent_id, broker_order_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                order.intent_id,
+                order.broker_order_id,
+                req_json,
+                order.status.name,
+                order.filled_qty,
+                order.avg_price,
+                order.created_at,
+                order.updated_at,
+                order.error,
+            ))
+            db.commit()
+        except (json.JSONDecodeError, OSError) as e:
+            log.warning(f"OrderManager: Failed to persist order: {e}")
+
+    def _load_orders_from_disk(self) -> None:
+        """Load in-flight orders from disk on startup."""
+        try:
+            db = self._get_port()
+            rows = db.fetchall("""
+                SELECT broker_order_id, intent_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text
+                FROM orders
+                WHERE status NOT IN ('FILLED', 'REJECTED', 'CANCELLED', 'FAILED')
+            """)
+            for row in rows:
+                broker_order_id, intent_id, request_json, status, filled_qty, avg_price, created_at, updated_at, error_text = row
+                try:
+                    request_data = json.loads(request_json or "{}")
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    request_data = {}
+
+                request = OrderRequest(
+                    symbol=request_data.get("symbol", ""),
+                    qty=int(request_data.get("qty", 0)),
+                    price=float(request_data.get("price", 0.0)),
+                    order_type=request_data.get("order_type", "MARKET"),
+                    direction=request_data.get("direction", "BUY"),
+                    product=request_data.get("product", "MIS"),
+                    variety=request_data.get("variety", "REGULAR"),
+                    tag=request_data.get("tag", "OPB_BOT"),
+                    idempotency_key=request_data.get("idempotency_key", ""),
+                )
+                status_obj = OrderStatus.UNKNOWN
+                if isinstance(status, str) and status in OrderStatus.__members__:
+                    status_obj = OrderStatus[status]
+                order = OrderState(
+                    intent_id=intent_id or str(uuid.uuid4()),
+                    request=request,
+                    status=status_obj,
+                    broker_order_id=broker_order_id,
+                    filled_qty=int(filled_qty or 0),
+                    avg_price=float(avg_price or 0.0),
+                    created_at=created_at,
+                    updated_at=updated_at,
+                    error=error_text,
+                )
+                self._orders[order.intent_id] = order
+                if broker_order_id:
+                    self._broker_map[broker_order_id] = order.intent_id
+                if order.intent_id:
+                    self._intent_map[order.intent_id] = broker_order_id or ""
+                log.warning(f"OrderManager: Loaded in-flight order {order.intent_id} from previous session (broker_order_id={broker_order_id})")
+        except (OSError, sqlite3.Error, json.JSONDecodeError, ValueError, TypeError) as e:
+            log.warning(f"OrderManager: Failed to load orders: {e}")
+
+    def _validate_transition(self, current: OrderStatus, next_status: OrderStatus) -> bool:
+        """Enforces the deterministic state machine."""
+        transitions = {
+            OrderStatus.NEW: [OrderStatus.VALIDATED, OrderStatus.FAILED],
+            OrderStatus.VALIDATED: [OrderStatus.SUBMITTED, OrderStatus.ACKNOWLEDGED, OrderStatus.FAILED],
+            OrderStatus.SUBMITTED: [OrderStatus.ACKNOWLEDGED, OrderStatus.REJECTED, OrderStatus.FAILED],
+            OrderStatus.ACKNOWLEDGED: [OrderStatus.PARTIAL_FILL, OrderStatus.FILLED, OrderStatus.CANCEL_PENDING, OrderStatus.FAILED],
+            OrderStatus.PARTIAL_FILL: [OrderStatus.PARTIAL_FILL, OrderStatus.FILLED, OrderStatus.CANCEL_PENDING, OrderStatus.FAILED],
+            OrderStatus.CANCEL_PENDING: [OrderStatus.CANCELLED, OrderStatus.FILLED, OrderStatus.FAILED],
+        }
+        return next_status in transitions.get(current, [])
+
+    def create_order_intent(self, request: OrderRequest) -> str:
+        """Generates a unique intent ID to prevent duplicate execution."""
+        intent_id = str(uuid.uuid4())
+        # In a real system, we would persist this intent to the StateManager immediately
+        return intent_id
+
+    def execute_intent(self, intent_id: str, request: OrderRequest) -> OrderResponse:
+        """The primary entry point for order execution.
+        Implements 3-phase submit to prevent orphan orders:
+        Phase 1: PRE_SUBMIT (intent created, NOT sent to broker yet)
+        Phase 2: Wait for broker ACK with timeout
+        Phase 3: CONFIRMED (broker acknowledged) or query for order status
+
+        Implements idempotency: if intent_id already exists, it returns the existing order.
+        """
+        event: threading.Event | None = None
+        with self._lock:
+            if intent_id in self._orders:
+                log.warning(f"Duplicate intent detected: {intent_id}. Returning existing order.")
+                broker_id = self._intent_map.get(intent_id)
+                event = self._intent_events.get(intent_id)
+                if broker_id:
+                    return self.get_order_response(broker_id)
+                if not event:
+                    existing_order = self._orders[intent_id]
+                    return OrderResponse(
+                        order_id=existing_order.broker_order_id or "",
+                        status=existing_order.status,
+                        filled_qty=existing_order.filled_qty,
+                        avg_price=existing_order.avg_price,
+                        error=existing_order.error,
+                    )
+
+        if event:
+            event.wait(timeout=20)
+            with self._lock:
+                broker_id = self._intent_map.get(intent_id)
+                if broker_id:
+                    return self.get_order_response(broker_id)
+                existing_order = self._orders[intent_id]
+                return OrderResponse(
+                    order_id=existing_order.broker_order_id or "",
+                    status=existing_order.status,
+                    filled_qty=existing_order.filled_qty,
+                    avg_price=existing_order.avg_price,
+                    error=existing_order.error,
+                )
+
+        # Phase 1: PRE_SUBMIT - create intent, stay in VALIDATED until broker confirms
+        order = OrderState(intent_id=intent_id, request=request, status=OrderStatus.VALIDATED)
+        self._orders[intent_id] = order
+        self._intent_events[intent_id] = threading.Event()
+        self._intent_map[intent_id] = ""
+        self._persist_order(order)
+
+        # Phase 2: Call Broker Gateway - order is still VALIDATED, NOT SUBMITTED
+        response = broker_gateway.place_order(request)
+
+        if response.status == OrderStatus.FAILED:
+            order.status = OrderStatus.FAILED
+            order.error = response.error
+            order.updated_at = time_provider.format_ts()
+            self._persist_order(order)
+            event = self._intent_events.get(intent_id)
+            if event:
+                event.set()
+            return response
+
+        # Phase 3: CONFIRMED - broker returned a valid order_id
+        order.broker_order_id = response.order_id
+        order.status = OrderStatus.ACKNOWLEDGED
+        order.filled_qty = response.filled_qty
+        order.avg_price = response.avg_price
+        order.updated_at = time_provider.format_ts()
+
+        with self._lock:
+            if response.order_id:
+                self._broker_map[response.order_id] = intent_id
+                self._intent_map[intent_id] = response.order_id
+            self._persist_order(order)
+            event = self._intent_events.get(intent_id)
+            if event:
+                event.set()
+
+        log.info(f"Order {response.order_id}: VALIDATED -> ACKNOWLEDGED (3-phase submit)")
+        return response
+
+    def update_order_status(self, broker_order_id: str, new_status: OrderStatus,
+                            filled_qty: int = 0, avg_price: float = 0.0) -> None:
+        """Updates order state while enforcing transition rules."""
+        intent_id = self._broker_map.get(broker_order_id)
+        if not intent_id or intent_id not in self._orders:
+            log.error(f"Order {broker_order_id} not found in manager.")
+            return
+
+        order = self._orders[intent_id]
+        if not self._validate_transition(order.status, new_status):
+            log.error(f"Invalid transition: {order.status} -> {new_status} for {broker_order_id}")
+            return
+
+        with self._lock:
+            order.status = new_status
+            order.filled_qty = filled_qty
+            order.avg_price = avg_price
+            order.updated_at = time_provider.format_ts()
+            self._persist_order(order)
+
+    def get_order_response(self, broker_order_id: str) -> OrderResponse:
+        """Converts internal OrderState back to a Broker OrderResponse."""
+        intent_id = self._broker_map.get(broker_order_id)
+        if intent_id and intent_id in self._orders:
+            order = self._orders[intent_id]
+        else:
+            order = self._orders.get(broker_order_id)
+
+        if not order:
+            return OrderResponse(order_id="NOT_FOUND", status=OrderStatus.FAILED, error="Order not found")
+
+        return OrderResponse(
+            order_id=order.broker_order_id or broker_order_id,
+            status=order.status,
+            filled_qty=order.filled_qty,
+            avg_price=order.avg_price,
+            error=order.error,
+        )
+
+# ── Lazy singleton (DEBT-009 / CODE-009: avoid import-time side effects) ──
+# Previously declared as ``order_manager = OrderManager()`` at module level,
+# which created a DB connection on every import of this module.
+# Now lazily initialized on first access via __getattr__.
+_order_manager_instance: OrderManager | None = None
+
+
+def __getattr__(name: str) -> OrderManager:
+    """Lazy-init the singleton OrderManager on first attribute access.
+
+    Allows ``from core.execution.order_manager import order_manager`` to work
+    without triggering a DB connection at import time. The connection is only
+    established when ``order_manager`` is first dereferenced.
+    """
+    if name == "order_manager":
+        global _order_manager_instance
+        if _order_manager_instance is None:
+            _order_manager_instance = OrderManager()
+        return _order_manager_instance
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
+
+
+__all__ = [
+    "OrderManager",
+    "OrderState",
+]

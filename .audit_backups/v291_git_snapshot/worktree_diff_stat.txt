@@ -1,0 +1,20 @@
+﻿ core/all_nse_scanner.py                            |    39 +-
+ core/reporting/signal_intelligence.py              |    84 +-
+ core/risk/auto_hedger.py                           |    58 +-
+ core/signal_utils.py                               |    24 +-
+ core/signals/signal_tracker.py                     |   128 +-
+ .../OPB_FINAL_MT/logs/forward_audit_signals.jsonl  |     9 -
+ data/bi/quality_history.json                       |    24 +-
+ data/iv_history_cache.json                         |     7 +-
+ data/nse_equities.csv                              |    12 +-
+ docs/dead_code_register.md                         | 95252 ++++++++++---------
+ docs/duplicate_code_register.md                    |   631 +-
+ docs/review/ARCHITECTURE_OVERVIEW.pptx             |   Bin 38812 -> 38812 bytes
+ docs/review/SYSTEM_REVIEW_SUMMARY.pdf              |   Bin 8477 -> 8477 bytes
+ index_app/domains/signal/evaluator.py              |    48 +-
+ index_app/domains/trading/container.py             |    17 +-
+ tests/test_future_enhancements.py                  |    13 +
+ tests/test_signal_dispatch_order_placed_reply.py   |    81 +-
+ tests/test_signal_intelligence_reporting.py        |    75 +
+ tests/test_signal_tracker.py                       |   233 +
+ 19 files changed, 49086 insertions(+), 47649 deletions(-)

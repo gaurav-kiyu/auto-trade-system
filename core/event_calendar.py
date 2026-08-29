@@ -1,0 +1,792 @@
+"""NSE Event Calendar - High-Volatility Event Day Filter (Phase 7D).
+
+Blocks or reduces position sizing on known high-volatility event days such as
+Union Budget, RBI Monetary Policy, FOMC announcements, and custom user dates.
+
+v2.45 Item 15 adds Corporate Action Calendar support: dividend ex-dates,
+stock splits, and bonus issues for BANKNIFTY constituent stocks.
+
+Config keys (all optional - safe defaults built in)
+---------------------------------------------------
+  event_calendar_enabled : bool  default true
+  event_dates            : list  default []
+
+  Each entry in event_dates:
+    {
+      "date":          "2026-02-01",     # ISO date string YYYY-MM-DD
+      "type":          "BUDGET",         # BUDGET | RBI | FOMC | RESULT | CUSTOM
+      "name":          "Union Budget",   # Human-readable label
+      "block_entries": true,             # hard-block new entries (default false)
+      "size_mult":     0.5               # position size multiplier 0-1 (default 1.0)
+    }
+
+  event_day_block_entries : bool  default false  (global fallback - overridden per event)
+  event_day_size_mult     : float default 1.0    (global fallback - overridden per event)
+
+  # Corporate Action Calendar (v2.45)
+  corp_action_calendar_enabled : bool   default false
+  corp_action_symbols          : list   default []   (e.g. ["HDFCBANK", "ICICIBANK"])
+  corp_action_data             : list   default []   (static list of corporate actions)
+
+  Each entry in corp_action_data:
+    {
+      "symbol": "HDFCBANK",
+      "date":   "2026-05-15",
+      "type":   "DIVIDEND",          # DIVIDEND | SPLIT | BONUS
+      "factor": 1.0                  # split ratio or dividend per share
+    }
+"""
+from __future__ import annotations
+
+import datetime
+import logging
+import os
+import threading
+from typing import Any
+
+_log = logging.getLogger(__name__)
+
+
+__all__ = [
+    "CorporateAction",
+    "EventRecord",
+    "IPOEvent",
+    "MarketStatus",
+    "SEBICircular",
+    "event_entry_allowed",
+    "event_size_multiplier",
+    "event_summary",
+    "fetch_corporate_actions",
+    "fetch_ipo_events",
+    "fetch_sebi_circulars",
+    "get_event",
+    "get_market_status",
+    "get_next_market_open",
+    "get_sebi_circulars_for_date",
+    "get_time_until_market_open",
+    "get_upcoming_ipos",
+    "is_corp_action_day",
+    "is_ipo_issue_date",
+    "is_market_day",
+    "is_pre_market",
+    "sebi_circular_summary",
+    "sleep_until",
+]
+
+
+# ── Event record ──────────────────────────────────────────────────────────────
+
+class EventRecord:
+    __slots__ = ("block_entries", "date", "event_type", "name", "size_mult")
+
+    def __init__(
+        self,
+        date: datetime.date,
+        event_type: str,
+        name: str,
+        block_entries: bool,
+        size_mult: float,
+    ) -> None:
+        self.date = date
+        self.event_type = event_type
+        self.name = name
+        self.block_entries = block_entries
+        self.size_mult = size_mult
+
+    def __repr__(self) -> str:
+        return f"EventRecord({self.date} {self.event_type!r} {self.name!r} block={self.block_entries} mult={self.size_mult})"
+
+
+# ── Internal helpers ──────────────────────────────────────────────────────────
+
+def _parse_event_dates(
+    event_list: list[dict[str, Any]],
+    global_block: bool,
+    global_mult: float,
+) -> dict[datetime.date, EventRecord]:
+    records: dict[datetime.date, EventRecord] = {}
+    for item in (event_list or []):
+        try:
+            d = datetime.date.fromisoformat(str(item.get("date", "")))
+            records[d] = EventRecord(
+                date=d,
+                event_type=str(item.get("type", "CUSTOM")).upper(),
+                name=str(item.get("name", "Event")),
+                block_entries=bool(item.get("block_entries", global_block)),
+                size_mult=float(item.get("size_mult", global_mult)),
+            )
+        except (ValueError, TypeError, KeyError) as exc:
+            _log.debug("[EVENT_CAL] Skipping invalid event entry %r: %s", item, exc)
+    return records
+
+
+def _build_index(cfg: dict[str, Any]) -> dict[datetime.date, EventRecord]:
+    return _parse_event_dates(
+        event_list=list(cfg.get("event_dates") or []),
+        global_block=bool(cfg.get("event_day_block_entries", False)),
+        global_mult=float(cfg.get("event_day_size_mult", 1.0)),
+    )
+
+
+# ── Public API ────────────────────────────────────────────────────────────────
+
+def get_event(
+    date: datetime.date,
+    cfg: dict[str, Any] | None = None,
+) -> EventRecord | None:
+    """Return the EventRecord for `date` if it is a configured event day, else None.
+
+    Args:
+        date : The trading date to check (usually today).
+        cfg  : Bot config dict containing the ``event_dates`` list.
+
+    """
+    c = cfg or {}
+    if not c.get("event_calendar_enabled", True):
+        return None
+    index = _build_index(c)
+    return index.get(date)
+
+
+def event_entry_allowed(
+    date: datetime.date,
+    cfg: dict[str, Any] | None = None,
+) -> tuple[bool, str]:
+    """Return (allowed, reason).  allowed=False means hard-block new entries.
+
+    Args:
+        date : The trading date to check.
+        cfg  : Bot config dict.
+
+    Returns:
+        (True,  "")      - no event today, or event allows entries.
+        (False, reason)  - event today with block_entries=True.
+
+    """
+    ev = get_event(date, cfg)
+    if ev is None:
+        return True, ""
+    if ev.block_entries:
+        reason = f"{ev.event_type} day ({ev.name}) - entries blocked"
+        _log.info("[EVENT_CAL] %s", reason)
+        return False, reason
+    return True, ""
+
+
+def event_size_multiplier(
+    date: datetime.date,
+    cfg: dict[str, Any] | None = None,
+) -> float:
+    """Return the position size multiplier for `date`.
+
+    Returns 1.0 (no adjustment) when no event is configured.
+    Returns the event's size_mult (e.g. 0.5 for half-size) on event days.
+
+    Args:
+        date : The trading date.
+        cfg  : Bot config dict.
+
+    """
+    ev = get_event(date, cfg)
+    if ev is None:
+        return 1.0
+    mult = round(max(0.0, min(1.0, ev.size_mult)), 4)
+    if mult < 1.0:
+        _log.info(
+            "[EVENT_CAL] %s day (%s) - position size × %.2f",
+            ev.event_type, ev.name, mult,
+        )
+    return mult
+
+
+def event_summary(
+    date: datetime.date,
+    cfg: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return a snapshot dict for logging and Telegram alerts."""
+    ev = get_event(date, cfg)
+    if ev is None:
+        return {"is_event_day": False, "date": str(date)}
+    return {
+        "is_event_day":   True,
+        "date":           str(ev.date),
+        "type":           ev.event_type,
+        "name":           ev.name,
+        "block_entries":  ev.block_entries,
+        "size_mult":      ev.size_mult,
+    }
+
+
+# ── Market day / holiday calendar (Item 5 - v2.44) ───────────────────────────
+
+import time as _time
+from enum import Enum
+
+
+class MarketStatus(str, Enum):
+    OPEN        = "OPEN"         # 09:15-15:30 on a trading day
+    PRE_MARKET  = "PRE_MARKET"   # before 09:15 on a trading day
+    POST_MARKET = "POST_MARKET"  # after 15:30 on a trading day
+    NON_TRADING = "NON_TRADING"  # weekend or holiday
+
+
+# NSE market open/close times (IST)
+_NSE_OPEN  = datetime.time(9, 15)
+_NSE_CLOSE = datetime.time(15, 30)
+
+# NSE holiday API URL
+_NSE_HOLIDAY_API  = "https://www.nseindia.com/api/holiday-master?type=trading"
+# In-memory cache for live holidays
+_LIVE_HOLIDAYS: set[datetime.date] | None = None
+_LIVE_HOLIDAYS_TS: float = 0.0
+_LIVE_HOLIDAYS_TTL: float = 3600.0  # 1 hour cache (in-memory)
+_LIVE_HOLIDAYS_LOCK = threading.RLock()
+
+# Persistent file cache path (survives restarts)
+# Uses os.path.dirname(__file__) so it resolves relative to the module, not CWD
+_NSE_HOLIDAY_CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+_NSE_HOLIDAY_CACHE_FILE = os.path.abspath(os.path.join(_NSE_HOLIDAY_CACHE_DIR, "nse_holidays_cache.json"))
+_NSE_HOLIDAY_CACHE_TTL: float = 86400.0  # 24 hours before re-fetch
+
+
+def _load_persistent_holiday_cache() -> set[datetime.date]:
+    """Load NSE holidays from a persistent JSON cache file.
+
+    Returns empty set if cache file is missing, stale (>24h), or corrupt.
+    """
+    try:
+        import json
+        if not os.path.exists(_NSE_HOLIDAY_CACHE_FILE):
+            return set()
+        with open(_NSE_HOLIDAY_CACHE_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+        cached_ts = data.get("timestamp", 0.0)
+        # Consider cache stale after TTL
+        if _time.time() - cached_ts > _NSE_HOLIDAY_CACHE_TTL:
+            _log.debug("[HOLIDAY] Persistent cache expired (>24h)")
+            return set()
+        raw_dates = data.get("dates", [])
+        holidays: set[datetime.date] = set()
+        for raw in raw_dates:
+            try:
+                holidays.add(datetime.date.fromisoformat(str(raw)[:10]))
+            except (ValueError, TypeError):
+                continue
+        if holidays:
+            _log.info("[HOLIDAY] Loaded %d NSE trading holidays from persistent cache", len(holidays))
+        return holidays
+    except (ValueError, OSError, ImportError) as exc:
+        _log.debug("[HOLIDAY] Could not load persistent cache: %s", exc)
+        return set()
+
+
+def _save_persistent_holiday_cache(holidays: set[datetime.date]) -> None:
+    """Save NSE holidays to a persistent JSON cache file."""
+    try:
+        import json
+        os.makedirs(os.path.dirname(_NSE_HOLIDAY_CACHE_FILE) or ".", exist_ok=True)
+        data = {
+            "timestamp": _time.time(),
+            "dates": sorted(str(d) for d in holidays),
+        }
+        with open(_NSE_HOLIDAY_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        _log.debug("[HOLIDAY] Saved %d NSE holidays to persistent cache", len(holidays))
+    except (ValueError, OSError, ImportError) as exc:
+        _log.debug("[HOLIDAY] Could not save persistent cache: %s", exc)
+
+
+def _fetch_nse_holidays() -> set[datetime.date]:
+    """Fetch NSE trading holiday calendar from the NSE holiday-master API.
+
+    Try persistent file cache first (avoids startup delay when NSE is unreachable).
+    On successful API fetch, update the persistent cache.
+    Falls back to config-based holidays if both cache and API fail.
+    """
+    # Try persistent cache first — avoids API call on every restart
+    cached = _load_persistent_holiday_cache()
+    if cached:
+        _log.info("[HOLIDAY] Using %d cached NSE holidays (skip API call)", len(cached))
+        return cached
+
+    if not _NSE_HOLIDAY_API.lower().startswith(("http://", "https://")):
+        _log.warning("[HOLIDAY] Skipping non-http(s) holiday API URL")
+        return set()
+    try:
+        import json
+        import urllib.request
+        req = urllib.request.Request(
+            _NSE_HOLIDAY_API,
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Accept": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+            data = json.loads(resp.read().decode("utf-8"))
+
+        holidays: set[datetime.date] = set()
+        # NSE returns list of holiday objects with "tradingDate" field
+        entries = data if isinstance(data, list) else data.get("holidays", data.get("data", []))
+        for entry in entries:
+            raw_date = entry.get("tradingDate") or entry.get("date", "")
+            try:
+                holidays.add(datetime.date.fromisoformat(str(raw_date)[:10]))
+            except (ValueError, TypeError):
+                continue
+        if holidays:
+            _log.info("[HOLIDAY] Fetched %d NSE trading holidays from API", len(holidays))
+            # Persist to file cache so it survives restarts
+            _save_persistent_holiday_cache(holidays)
+        return holidays
+    except (ValueError, OSError, ConnectionError, ImportError) as exc:
+        _log.warning("[HOLIDAY] Could not fetch from NSE API: %s - using config-based holidays", exc)
+        return set()
+
+
+def _get_live_holidays() -> set[datetime.date]:
+    """Return cached live NSE holidays, refreshing from API if stale."""
+    global _LIVE_HOLIDAYS, _LIVE_HOLIDAYS_TS
+    now = _time.time()
+    with _LIVE_HOLIDAYS_LOCK:
+        if _LIVE_HOLIDAYS is None or (now - _LIVE_HOLIDAYS_TS) > _LIVE_HOLIDAYS_TTL:
+            fetched = _fetch_nse_holidays()
+            if fetched:
+                _LIVE_HOLIDAYS = fetched
+                _LIVE_HOLIDAYS_TS = now
+            elif _LIVE_HOLIDAYS is None:
+                _LIVE_HOLIDAYS = set()  # empty fallback if never fetched
+        return set(_LIVE_HOLIDAYS)
+
+
+def _nse_holidays(cfg: dict[str, Any]) -> set[datetime.date]:
+    """Extract holiday dates from event_dates where block_entries=True,
+    merged with live NSE API data.
+    """
+    # Config-based holidays from event_dates
+
+    index = _build_index(cfg)
+    holidays = {d for d, ev in index.items() if ev.block_entries}
+
+    # Merge with live NSE API holidays
+    live = _get_live_holidays()
+    holidays.update(live)
+
+    return holidays
+
+
+def is_market_day(
+    cfg: dict[str, Any] | None = None,
+    check_date: datetime.date | None = None,
+) -> bool:
+    """Returns True if check_date (default: today IST) is a trading day.
+    Checks: not Saturday, not Sunday, not in NSE holiday list (live + config).
+    """
+    c   = cfg or {}
+    try:
+        from core.datetime_ist import now_ist
+        today = check_date or now_ist().date()
+    except (ImportError, ValueError, TypeError):
+        today = check_date or datetime.date.today()  # nosec - safe fallback when import fails
+
+    if today.weekday() in (5, 6):   # Saturday=5, Sunday=6
+        return False
+
+    holidays = _nse_holidays(c)
+    # Also support simple NSE_HOLIDAYS list of "YYYY-MM-DD" strings
+    for raw in c.get("NSE_HOLIDAYS", []):
+        try:
+            holidays.add(datetime.date.fromisoformat(str(raw)))
+        except (ValueError, TypeError) as _ex:
+            logging.getLogger(__name__).debug(f"Invalid NSE_HOLIDAY entry: {raw} - {_ex}")
+    return today not in holidays
+
+
+def get_market_status(
+    cfg: dict[str, Any] | None = None,
+    check_dt: datetime.datetime | None = None,
+) -> MarketStatus:
+    """Returns MarketStatus for the given datetime (default: now IST).
+    OPEN: 09:15-15:30 on a trading day
+    PRE_MARKET: before 09:15 on a trading day
+    POST_MARKET: after 15:30 on a trading day
+    NON_TRADING: weekend or holiday
+    """
+    c = cfg or {}
+    try:
+        from core.datetime_ist import now_ist
+        now = check_dt or now_ist()
+    except (ImportError, ValueError, TypeError):
+        now = check_dt or now_ist()
+
+    today = now.date()
+    current_time = now.time()
+
+    if not is_market_day(c, today):
+        return MarketStatus.NON_TRADING
+    if current_time < _NSE_OPEN:
+        return MarketStatus.PRE_MARKET
+    if current_time <= _NSE_CLOSE:
+        return MarketStatus.OPEN
+    return MarketStatus.POST_MARKET
+
+
+def is_pre_market(cfg: dict[str, Any] | None = None) -> bool:
+    """True if today is a trading day and current time < 09:15 IST."""
+    return get_market_status(cfg) == MarketStatus.PRE_MARKET
+
+
+def get_next_market_open(
+    cfg: dict[str, Any] | None = None,
+    from_dt: datetime.datetime | None = None,
+) -> datetime.datetime:
+    """Returns next market open datetime (09:15 IST on next valid trading day).
+    Scans forward from now, skipping weekends and holidays.
+    """
+    c = cfg or {}
+    try:
+        from core.datetime_ist import now_ist
+        now = from_dt or now_ist()
+    except (ImportError, ValueError, TypeError):
+        now = from_dt or now_ist()
+
+    candidate = now.date()
+    # If today is trading day and open hasn't happened yet, return today's open
+    if is_market_day(c, candidate) and now.time() < _NSE_OPEN:
+        return datetime.datetime.combine(candidate, _NSE_OPEN)
+
+    # Otherwise advance to the next trading day
+    candidate += datetime.timedelta(days=1)
+    for _ in range(14):  # safety cap
+        if is_market_day(c, candidate):
+            return datetime.datetime.combine(candidate, _NSE_OPEN)
+        candidate += datetime.timedelta(days=1)
+
+    # Fallback: 7 days from now at 09:15
+    return datetime.datetime.combine(now.date() + datetime.timedelta(days=7), _NSE_OPEN)
+
+
+def get_time_until_market_open(
+    cfg: dict[str, Any] | None = None,
+) -> datetime.timedelta:
+    """Returns timedelta until next market open."""
+    try:
+        from core.datetime_ist import now_ist
+        now = now_ist()
+    except (ImportError, ValueError, TypeError):
+        now = now_ist()
+    next_open = get_next_market_open(cfg, now)
+    return next_open - now
+
+
+def sleep_until(target_dt: datetime.datetime, stop_event: threading.Event | None = None) -> None:
+    """Sleeps until target_dt.
+    Wakes every 60s to check for STOP_TRADING kill file or stop_event.
+    """
+    import os
+    while True:
+        try:
+            from core.datetime_ist import now_ist
+            now = now_ist()
+        except (ImportError, ValueError, TypeError):
+            now = now_ist()
+
+        remaining = (target_dt - now).total_seconds()
+        if remaining <= 0:
+            return
+
+        if os.path.exists("STOP_TRADING"):
+            _log.info("[MARKET_CAL] STOP_TRADING detected during sleep - exiting")
+            return
+
+        if stop_event is not None:
+            if stop_event.wait(min(60.0, remaining)):
+                return
+        else:
+            _time.sleep(min(60.0, remaining))
+
+
+# ── Corporate Action Calendar (v2.45 Item 15) ─────────────────────────────────
+
+from dataclasses import dataclass as _dataclass
+
+
+@_dataclass(frozen=True)
+class SEBICircular:
+    """SEBI regulatory circular or exchange notice.
+
+    Attributes:
+        date: Circular effective/applicable date.
+        category: Category of the circular (MARGIN, EXPIRY, POSITION_LIMIT, REPORTING, OTHER).
+        title: Short description of the circular.
+        details: Full description or link to the circular.
+        impact: Impact level (INFO, WARNING, CRITICAL).
+
+    """
+
+    date: datetime.date
+    category: str = "OTHER"
+    title: str = ""
+    details: str = ""
+    impact: str = "INFO"
+
+
+@_dataclass(frozen=True)
+class CorporateAction:
+    symbol:      str
+    date:        datetime.date
+    action_type: str    # "DIVIDEND", "SPLIT", "BONUS"
+    factor:      float  # split ratio or dividend per share
+
+
+def fetch_corporate_actions(
+    cfg: dict[str, Any] | None = None,
+) -> list[CorporateAction]:
+    """Load corporate actions from config's corp_action_data list.
+
+    Args:
+        cfg: config dict (may contain corp_action_data list).
+
+    Returns:
+        List of CorporateAction sorted by date ascending.
+
+    """
+    c = cfg or {}
+    if not c.get("corp_action_calendar_enabled", False):
+        return []
+
+    raw: list[dict] = c.get("corp_action_data", []) or []
+    actions: list[CorporateAction] = []
+    for entry in raw:
+        try:
+            date = datetime.date.fromisoformat(str(entry["date"]))
+            actions.append(CorporateAction(
+                symbol=str(entry.get("symbol", "")).upper(),
+                date=date,
+                action_type=str(entry.get("type", "UNKNOWN")).upper(),
+                factor=float(entry.get("factor", 1.0)),
+            ))
+        except (ValueError, TypeError, KeyError) as exc:
+            _log.debug("[CORP_ACTION] bad entry %s: %s", entry, exc)
+
+    return sorted(actions, key=lambda a: a.date)
+
+
+@_dataclass(frozen=True)
+class IPOEvent:
+    """IPO / FPO / OFS / QIP primary market event.
+
+    Attributes:
+        company_name: Name of the issuing company.
+        symbol: Proposed trading symbol.
+        ipo_type: Type (IPO, FPO, OFS, QIP).
+        issue_price_min: Lower end of price band.
+        issue_price_max: Upper end of price band.
+        lot_size: Minimum lot size for retail.
+        open_date: Subscription open date.
+        close_date: Subscription close date.
+        listing_date: Expected listing date.
+        total_issue_size: Total issue size in crores.
+        status: Current status (ANNOUNCED, OPEN, CLOSED, LISTED, WITHDRAWN, CANCELLED).
+
+    """
+
+    company_name: str = ""
+    symbol: str = ""
+    ipo_type: str = "IPO"
+    issue_price_min: float = 0.0
+    issue_price_max: float = 0.0
+    lot_size: int = 0
+    open_date: datetime.date | None = None
+    close_date: datetime.date | None = None
+    listing_date: datetime.date | None = None
+    total_issue_size: float = 0.0
+    status: str = "ANNOUNCED"
+
+
+def fetch_ipo_events(
+    cfg: dict[str, Any] | None = None,
+) -> list[IPOEvent]:
+    """Load IPO/FPO/OFS/QIP events from config's ipo_calendar_entries list.
+
+    Args:
+        cfg: config dict (may contain ipo_calendar_entries list).
+
+    Returns:
+        List of IPOEvent sorted by open_date ascending.
+
+    """
+    c = cfg or {}
+    if not c.get("ipo_calendar_enabled", False):
+        return []
+    raw: list[dict] = c.get("ipo_calendar_entries", []) or []
+    events: list[IPOEvent] = []
+    for entry in raw:
+        try:
+            open_date = datetime.date.fromisoformat(str(entry["open_date"])) if entry.get("open_date") else None
+            close_date = datetime.date.fromisoformat(str(entry["close_date"])) if entry.get("close_date") else None
+            listing_date = datetime.date.fromisoformat(str(entry["listing_date"])) if entry.get("listing_date") else None
+            events.append(IPOEvent(
+                company_name=str(entry.get("company_name", "")),
+                symbol=str(entry.get("symbol", "")).upper(),
+                ipo_type=str(entry.get("ipo_type", "IPO")).upper(),
+                issue_price_min=float(entry.get("issue_price_min", 0.0)),
+                issue_price_max=float(entry.get("issue_price_max", 0.0)),
+                lot_size=int(entry.get("lot_size", 0)),
+                open_date=open_date,
+                close_date=close_date,
+                listing_date=listing_date,
+                total_issue_size=float(entry.get("total_issue_size", 0.0)),
+                status=str(entry.get("status", "ANNOUNCED")).upper(),
+            ))
+        except (ValueError, TypeError, KeyError) as exc:
+            _log.debug("[IPO_CAL] bad entry %s: %s", entry, exc)
+
+    def _sort_key(e: IPOEvent) -> datetime.date:
+        return e.open_date or datetime.date.max
+    return sorted(events, key=_sort_key)
+
+
+def get_upcoming_ipos(
+    cfg: dict[str, Any] | None = None,
+) -> list[IPOEvent]:
+    """Get IPO events whose open_date >= today."""
+    c = cfg or {}
+    try:
+        from core.datetime_ist import now_ist
+        today = now_ist().date()
+    except (ImportError, ValueError, TypeError):
+        today = datetime.date.today()
+    return [ev for ev in fetch_ipo_events(c) if ev.open_date is None or ev.open_date >= today]
+
+
+def is_ipo_issue_date(
+    check_date: datetime.date | None = None,
+    cfg: dict[str, Any] | None = None,
+) -> tuple[bool, str]:
+    """Check if check_date falls within any IPO subscription window.
+
+    Returns:
+        (True, description) if check_date is between open_date and close_date for any IPO.
+        (False, "") otherwise.
+
+    """
+    c = cfg or {}
+    if not c.get("ipo_calendar_enabled", False):
+        return False, ""
+    if check_date is None:
+        try:
+            from core.datetime_ist import now_ist
+            check_date = now_ist().date()
+        except (ImportError, ValueError, TypeError):
+            check_date = datetime.date.today()
+    for ev in fetch_ipo_events(c):
+        if ev.open_date and ev.close_date:
+            if ev.open_date <= check_date <= ev.close_date:
+                desc = f"{ev.ipo_type} {ev.company_name} ({ev.symbol}) open {ev.open_date}-{ev.close_date}"
+                return True, desc
+    return False, ""
+
+
+def fetch_sebi_circulars(
+    cfg: dict[str, Any] | None = None,
+) -> list[SEBICircular]:
+    """Load SEBI circular dates from config's sebi_circulars list.
+
+    Args:
+        cfg: config dict (may contain sebi_circulars list).
+
+    Returns:
+        List of SEBICircular sorted by date ascending.
+
+    """
+    c = cfg or {}
+    if not c.get("sebi_circulars_enabled", False):
+        return []
+    raw: list[dict] = c.get("sebi_circulars", []) or []
+    circulars: list[SEBICircular] = []
+    for entry in raw:
+        try:
+            d = datetime.date.fromisoformat(str(entry["date"]))
+            circulars.append(SEBICircular(
+                date=d,
+                category=str(entry.get("category", "OTHER")).upper(),
+                title=str(entry.get("title", "")),
+                details=str(entry.get("details", "")),
+                impact=str(entry.get("impact", "INFO")).upper(),
+            ))
+        except (ValueError, TypeError, KeyError) as exc:
+            _log.debug("[SEBI_CIRC] bad entry %s: %s", entry, exc)
+    return sorted(circulars, key=lambda c: c.date)
+
+
+def get_sebi_circulars_for_date(
+    check_date: datetime.date | None = None,
+    cfg: dict[str, Any] | None = None,
+) -> list[SEBICircular]:
+    """Get SEBI circulars effective on check_date."""
+    c = cfg or {}
+    if check_date is None:
+        try:
+            from core.datetime_ist import now_ist
+            check_date = now_ist().date()
+        except (ImportError, ValueError, TypeError):
+            check_date = datetime.date.today()
+    return [circ for circ in fetch_sebi_circulars(c) if circ.date == check_date]
+
+
+def sebi_circular_summary(
+    cfg: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Get a summary dict of all upcoming SEBI circulars."""
+    try:
+        from core.datetime_ist import now_ist
+        today = now_ist().date()
+    except (ImportError, ValueError, TypeError):
+        today = datetime.date.today()
+    result = []
+    for circ in fetch_sebi_circulars(cfg):
+        if circ.date >= today:
+            result.append({
+                "date": str(circ.date),
+                "category": circ.category,
+                "title": circ.title,
+                "impact": circ.impact,
+            })
+    return result
+
+
+def is_corp_action_day(
+    symbol:     str,
+    check_date: datetime.date | None = None,
+    cfg:        dict[str, Any] | None = None,
+) -> tuple[bool, str]:
+    """Check if a corporate action occurs on check_date for the given symbol.
+
+    Args:
+        symbol:     stock ticker (e.g. "HDFCBANK").
+        check_date: date to check (default: today IST).
+        cfg:        config dict.
+
+    Returns:
+        (True, description)  if action found on that date.
+        (False, "")          otherwise.
+
+    """
+    c = cfg or {}
+    if not c.get("corp_action_calendar_enabled", False):
+        return False, ""
+
+    if check_date is None:
+        try:
+            from core.datetime_ist import now_ist
+            check_date = now_ist().date()
+        except (ImportError, ValueError, TypeError):
+            check_date = datetime.date.today()
+
+    sym_upper = symbol.upper()
+    for action in fetch_corporate_actions(c):
+        if action.symbol == sym_upper and action.date == check_date:
+            desc = f"{action.action_type} factor={action.factor} for {sym_upper}"
+            return True, desc
+    return False, ""

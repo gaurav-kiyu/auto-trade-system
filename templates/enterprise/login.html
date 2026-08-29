@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB Enterprise — Sign In</title>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<script src="/static/theme_engine.js?v=3.3" nonce="{{ nonce }}"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body { font-family: var(--font-ui, 'Inter', sans-serif);
+            background-color: var(--bg-primary, #080c14);
+            color: var(--text-primary, #f8fafc);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+            overflow-x: hidden;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        .ambient-glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--header-glow, rgba(56, 189, 248, 0.15)) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+            transition: background 0.3s ease;
+        }
+
+        .top-theme-dock {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.75rem;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: var(--bg-card, #131e33);
+            border: 1px solid var(--border-color, #1e293b);
+            padding: 0.45rem 0.9rem;
+            border-radius: 9999px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            transition: all 0.25s ease;
+        }
+
+        .top-theme-dock:hover {
+            border-color: var(--accent-color, #38bdf8);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .theme-dock-icon {
+            font-size: 0.9rem;
+            color: var(--accent-color, #38bdf8);
+        }
+
+        .theme-dock-select {
+            background: transparent;
+            color: var(--text-primary, #f8fafc);
+            border: none;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .theme-dock-select option {
+            background: var(--bg-card, #131e33);
+            color: var(--text-primary, #f8fafc);
+        }
+
+        .login-card {
+            position: relative;
+            z-index: 10;
+            background: var(--bg-card, #131e33);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 1.25rem;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: var(--card-shadow, 0 25px 50px -12px rgba(0, 0, 0, 0.6));
+            backdrop-filter: blur(16px);
+            transition: all 0.25s ease;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.75rem;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent-color, #38bdf8);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--success-color, #22c55e);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success-color, #22c55e);
+        }
+
+        .login-title {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--text-primary, #ffffff);
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+        }
+
+        .login-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted, #94a3b8);
+            line-height: 1.5;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            width: 100% !important;
+            margin-bottom: 1.25rem !important;
+        }
+
+        .input-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary, #cbd5e1);
+            margin-bottom: 0.5rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-muted, #64748b);
+            transition: color 0.2s;
+            pointer-events: none;
+        }
+
+        .input-control {
+            width: 100%;
+            padding: 0.85rem 2.6rem 0.85rem 2.6rem;
+            background-color: var(--input-bg, #0b1120);
+            border: 1px solid var(--input-border, #1e293b);
+            border-radius: 0.65rem;
+            color: var(--text-primary, #ffffff);
+            font-size: 0.95rem;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .input-control:focus {
+            border-color: var(--accent-color, #38bdf8);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+            background-color: var(--bg-card, #131e33);
+        }
+.btn-submit {
+            width: 100%;
+            padding: 0.95rem;
+            background: var(--accent-gradient, linear-gradient(135deg, #0284c7 0%, #2563eb 100%));
+            color: var(--text-primary, #ffffff);
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            border: none;
+            border-radius: 0.65rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            margin-top: 0.5rem;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.45);
+            filter: brightness(1.05);
+        }
+
+        .login-footer {
+            margin-top: 1.75rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-color, #1e293b);
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .login-footer a {
+            color: var(--accent-color, #38bdf8);
+            text-decoration: none;
+            font-weight: 700;
+            margin-left: 0.25rem;
+        }
+
+        .alert-popup-box {
+            display: none;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            border-radius: 0.65rem;
+            padding: 0.85rem 1rem;
+            color: var(--danger-color, #dc2626);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 1.25rem;
+            backdrop-filter: blur(8px);
+            animation: fadeInShake 0.3s ease;
+        }
+
+        .alert-popup-box .alert-content {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .alert-popup-box .alert-icon {
+            font-size: 1.1rem;
+            color: var(--danger-color, #dc2626);
+            flex-shrink: 0;
+        }
+
+        .success-popup-box {
+            display: none;
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(34, 197, 94, 0.35);
+            border-radius: 0.65rem;
+            padding: 0.85rem 1rem;
+            color: var(--success-color, #16a34a);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 1.25rem;
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .success-popup-box .alert-content {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .btn-spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: var(--text-primary, #ffffff);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInShake {
+            0% { opacity: 0; transform: translateY(-6px); }
+            30% { transform: translateX(4px); }
+            60% { transform: translateX(-4px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(-6px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .system-status-dock {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: var(--bg-card, #131e33);
+            border: 1px solid var(--border-color, #1e293b);
+            padding: 0.45rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted, #94a3b8);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            z-index: 20;
+            pointer-events: none;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+            transition: all 0.25s ease;
+        }
+    </style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/opb_design_system.css">
+    
+</head>
+
+<body>
+    <div class="ambient-glow"></div>
+
+    <!-- Floating Top-Right Theme Selector with instant onchange -->
+    <div class="top-theme-dock" title="Switch Workspace Theme">
+        <i class="fas fa-palette theme-dock-icon"></i>
+        <select id="global-theme-select" class="opb-theme-selector theme-dock-select opb-top-theme-select">
+            <option value="dark-cyber">🌌 Dark Cyber (Default)</option>
+            <option value="nordic-frost">❄️ Nordic Frost (High-Contrast Light)</option>
+            <option value="ivory-gold">🏛️ Ivory & Gold (Luxury Warm Light)</option>
+            <option value="tokyo-night">🗼 Tokyo Night (Neon Noir)</option>
+            <option value="catppuccin-mocha">🐱 Catppuccin Mocha (Pastel Dark)</option>
+            <option value="obsidian-gold">👑 Obsidian Gold (Luxury Dark)</option>
+            <option value="midnight-slate">☀️ Sapphire Day</option>
+            <option value="emerald-matrix">❇️ Emerald Matrix</option>
+            <option value="dracula-purple">🌸 Plum Cloud</option>
+        </select>
+    </div>
+
+    <!-- Institutional Login Card -->
+    <div class="login-card">
+        <div style="text-align:center;">
+            <div class="brand-badge">
+                <span class="pulse-dot"></span>
+                <span>OPB QUANT ENTERPRISE</span>
+            </div>
+            <h1 class="login-title">Gaurav OPB Cockpit</h1>
+        </div>
+
+        <!-- On-Screen Alert Popups -->
+        <div id="errorBox" class="alert-popup-box" role="alert">
+            <div class="alert-content">
+                <i class="fas fa-exclamation-circle alert-icon"></i>
+                <span id="errorMessageText">Invalid credentials. Please check your username and password.</span>
+            </div>
+        </div>
+
+        <div id="successBox" class="success-popup-box" role="status">
+            <div class="alert-content">
+                <i class="fas fa-check-circle" style="color: var(--success-color, #16a34a);font-size:1.1rem;"></i>
+                <span id="successMessageText">Sign in successful! Redirecting to cockpit...</span>
+            </div>
+        </div>
+
+        <form id="loginForm" action="/api/auth/login" method="POST">
+            <input type="hidden" name="csrf_token" value="">
+            
+            <div class="input-group">
+                <label for="username" class="input-label">
+                    <span>Username</span>
+                </label>
+                <div class="input-wrapper opb-password-wrapper">
+                    <i class="fas fa-user input-icon"></i>
+                    <input id="username" name="username" type="text" required class="input-control" style="padding-right:1rem;"
+                        placeholder="Enter username (e.g. admin)" autocomplete="username">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="password" class="input-label">
+                    <span>Password</span>
+                    <a href="/forgot-password" style="color:var(--accent-color, #38bdf8);text-decoration:none;font-size:0.75rem;font-weight:700;">Forgot password?</a>
+                </label>
+                <div class="input-wrapper opb-password-wrapper">
+                    <i class="fas fa-lock input-icon"></i>
+                    <input id="password" name="password" type="password" required class="input-control"
+                        placeholder="Enter password" autocomplete="current-password">
+                    <button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">
+                <span id="submitBtnText">Sign In to Cockpit</span>
+                <span class="btn-spinner" id="submitSpinner"></span>
+                <i class="fas fa-arrow-right" id="submitArrowIcon" style="font-size:0.85rem;"></i>
+            </button>
+
+            <div class="login-footer">
+                Don't have an account? <a href="/register">Create an account</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="system-status-dock">
+        <span class="pulse-dot"></span>
+        <span>Systems Operational • 2,553 NSE Equities Ingested</span>
+    </div>
+
+    <script nonce="{{ nonce }}">
+function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : '';
+        }
+
+        function showErrorPopup(msg) {
+            const errorBox = document.getElementById('errorBox');
+            const errorText = document.getElementById('errorMessageText');
+            const successBox = document.getElementById('successBox');
+            if (successBox) successBox.style.display = 'none';
+            if (errorText) errorText.textContent = msg || 'Invalid username or password.';
+            if (errorBox) errorBox.style.display = 'block';
+        }
+
+        function showSuccessPopup(msg) {
+            const errorBox = document.getElementById('errorBox');
+            const successBox = document.getElementById('successBox');
+            const successText = document.getElementById('successMessageText');
+            if (errorBox) errorBox.style.display = 'none';
+            if (successText) successText.textContent = msg || 'Sign in successful! Redirecting...';
+            if (successBox) successBox.style.display = 'block';
+        }
+
+        function hidePopups() {
+            const errorBox = document.getElementById('errorBox');
+            const successBox = document.getElementById('successBox');
+            if (errorBox) errorBox.style.display = 'none';
+            if (successBox) successBox.style.display = 'none';
+        }
+
+        function setSubmitLoading(loading) {
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('submitBtnText');
+            const spinner = document.getElementById('submitSpinner');
+            const arrow = document.getElementById('submitArrowIcon');
+            if (btn) btn.disabled = loading;
+            if (btnText) btnText.textContent = loading ? 'Authenticating...' : 'Sign In to Cockpit';
+            if (spinner) spinner.style.display = loading ? 'inline-block' : 'none';
+            if (arrow) arrow.style.display = loading ? 'none' : 'inline-block';
+        }
+
+        // AJAX Form Submission to prevent redirecting to raw JSON API
+        document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hidePopups();
+
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const username = usernameInput ? usernameInput.value.trim() : '';
+            const password = passwordInput ? passwordInput.value : '';
+
+            if (!username || !password) {
+                showErrorPopup('Please enter both username and password.');
+                return;
+            }
+
+            setSubmitLoading(true);
+
+            try {
+                const csrfToken = getCookie('opb_csrf');
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: headers,
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok && data.success) {
+                    showSuccessPopup('Sign in successful! Redirecting to Cockpit...');
+                    const targetUrl = data.must_change_password ? '/change-password' : (data.redirect_url || '/');
+                    setTimeout(() => {
+                        window.location.href = targetUrl;
+                    }, 600);
+                } else {
+                    const errorMsg = data.detail || data.error || (res.status === 401 ? 'Invalid credentials. Please check your username and password.' : 'Authentication failed. Please try again.');
+                    showErrorPopup(errorMsg);
+                }
+            } catch (err) {
+                showErrorPopup('Network or server connection error. Please try again.');
+            } finally {
+                setSubmitLoading(false);
+            }
+        });
+    </script>    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

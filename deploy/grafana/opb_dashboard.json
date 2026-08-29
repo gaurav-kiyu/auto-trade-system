@@ -1,0 +1,320 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "dashboard": {
+    "title": "OPB Trading Platform Metrics",
+    "description": "Real-time metrics dashboard for the NSE Index Options Buying Bot. Visualizes Prometheus metrics exported by core.metrics_exporter on port :9090/metrics.",
+    "tags": ["opb", "trading", "prometheus"],
+    "timezone": "browser",
+    "editable": true,
+    "refresh": "30s",
+    "time": { "from": "now-6h", "to": "now" },
+    "panels": [
+      {
+        "title": "Today P&L",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+        "targets": [{ "expr": "opb_pnl_today", "legendFormat": "P&L" }],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "color": "red", "value": null },
+                { "color": "green", "value": 0 }
+              ]
+            },
+            "unit": "currencyINR"
+          }
+        },
+        "description": "Today's net P&L from all trades"
+      },
+      {
+        "title": "Active Positions",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+        "targets": [{ "expr": "opb_active_positions", "legendFormat": "Positions" }],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 4 },
+                { "color": "red", "value": 8 }
+              ]
+            }
+          }
+        },
+        "description": "Currently open positions across all indices"
+      },
+      {
+        "title": "Signal Score",
+        "type": "gauge",
+        "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+        "targets": [{ "expr": "opb_signal_score_last", "legendFormat": "Score" }],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                { "color": "red", "value": null },
+                { "color": "yellow", "value": 40 },
+                { "color": "green", "value": 70 }
+              ]
+            }
+          }
+        },
+        "description": "Latest signal score (higher = more confident)"
+      },
+      {
+        "title": "Total Trades",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+        "targets": [{ "expr": "opb_trades_total", "legendFormat": "Trades" }],
+        "description": "Total trades since bot start (counter)"
+      },
+      {
+        "title": "Win Rate",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+        "targets": [{
+          "expr": "rate(opb_wins_total[1h]) / rate(opb_trades_total[1h]) * 100",
+          "legendFormat": "Win %"
+        }],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                { "color": "red", "value": null },
+                { "color": "yellow", "value": 45 },
+                { "color": "green", "value": 55 }
+              ]
+            }
+          }
+        },
+        "description": "Win rate over trailing 1h window (Prometheus rate)"
+      },
+      {
+        "title": "Daily Loss %",
+        "type": "gauge",
+        "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+        "targets": [{ "expr": "opb_daily_loss_pct", "legendFormat": "Loss %" }],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 10,
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 3 },
+                { "color": "red", "value": 5 }
+              ]
+            }
+          }
+        },
+        "description": "Today's loss as % of capital — hard halt at MAX_DAILY_LOSS"
+      },
+      {
+        "title": "Broker Token Validity",
+        "type": "stat",
+        "gridPos": { "h": 3, "w": 4, "x": 0, "y": 4 },
+        "targets": [{ "expr": "opb_token_valid", "legendFormat": "Valid" }],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "color": "red", "value": null },
+                { "color": "green", "value": 0.5 }
+              ]
+            }
+          }
+        },
+        "description": "Broker token validity (1 = valid, 0 = expired)"
+      },
+      {
+        "title": "Token Refresh Count",
+        "type": "stat",
+        "gridPos": { "h": 3, "w": 4, "x": 4, "y": 4 },
+        "targets": [{ "expr": "opb_token_refresh_count", "legendFormat": "Refreshes" }],
+        "description": "Cumulative token refresh count"
+      },
+      {
+        "title": "WebSocket Status",
+        "type": "stat",
+        "gridPos": { "h": 3, "w": 4, "x": 8, "y": 4 },
+        "targets": [{ "expr": "opb_ws_connected", "legendFormat": "Connected" }],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "color": "red", "value": null },
+                { "color": "green", "value": 0.5 }
+              ]
+            }
+          }
+        },
+        "description": "WebSocket connected (1 = connected)"
+      },
+      {
+        "title": "WS Reconnects",
+        "type": "stat",
+        "gridPos": { "h": 3, "w": 4, "x": 12, "y": 4 },
+        "targets": [{ "expr": "opb_ws_reconnect_count", "legendFormat": "Reconnects" }],
+        "description": "Cumulative WebSocket reconnection count"
+      },
+      {
+        "title": "Warm-up Mode",
+        "type": "stat",
+        "gridPos": { "h": 3, "w": 4, "x": 16, "y": 4 },
+        "targets": [{ "expr": "opb_warmup_active", "legendFormat": "Warm-up" }],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 0.5 }
+              ]
+            }
+          }
+        },
+        "description": "Warm-up mode active (1 = in warm-up)"
+      },
+      {
+        "title": "Warm-up Entries",
+        "type": "stat",
+        "gridPos": { "h": 3, "w": 4, "x": 20, "y": 4 },
+        "targets": [{ "expr": "opb_warmup_entries", "legendFormat": "Entries" }],
+        "description": "Entries recorded in current warm-up period"
+      },
+      {
+        "title": "P&L History",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 7 },
+        "targets": [
+          { "expr": "opb_pnl_today", "legendFormat": "P&L" }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "palette-classic" },
+            "unit": "currencyINR"
+          }
+        },
+        "description": "Today's P&L over time"
+      },
+      {
+        "title": "Active Positions Over Time",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 7 },
+        "targets": [
+          { "expr": "opb_active_positions", "legendFormat": "Active" }
+        ],
+        "description": "Number of concurrently open positions"
+      },
+      {
+        "title": "Data Provider Health",
+        "type": "bargauge",
+        "gridPos": { "h": 5, "w": 12, "x": 0, "y": 15 },
+        "targets": [
+          { "expr": "opb_data_providers_total", "legendFormat": "Total" },
+          { "expr": "opb_data_providers_connected", "legendFormat": "Connected" },
+          { "expr": "opb_data_providers_disconnected_pct", "legendFormat": "Disconnected %" }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 100,
+            "unit": "none",
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 25 },
+                { "color": "red", "value": 50 }
+              ]
+            }
+          }
+        },
+        "description": "Market data provider connectivity — total vs connected vs disconnected %"
+      },
+      {
+        "title": "Health Check Status",
+        "type": "stat",
+        "gridPos": { "h": 3, "w": 4, "x": 0, "y": 20 },
+        "targets": [{ "expr": "health_checks_ok", "legendFormat": "OK" }],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "color": "red", "value": null },
+                { "color": "green", "value": 0.5 }
+              ]
+            }
+          }
+        },
+        "description": "Current health check pass count"
+      },
+      {
+        "title": "Capacity Planning Status",
+        "type": "stat",
+        "gridPos": { "h": 3, "w": 4, "x": 4, "y": 20 },
+        "targets": [{ "expr": "capacity_checks_critical", "legendFormat": "Critical" }],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "red", "value": 0.5 }
+              ]
+            }
+          }
+        },
+        "description": "Capacity planning critical alerts"
+      },
+      {
+        "title": "Reconciliation Lag",
+        "type": "gauge",
+        "gridPos": { "h": 3, "w": 4, "x": 8, "y": 20 },
+        "targets": [{ "expr": "opb_reconciliation_lag_seconds", "legendFormat": "Lag" }],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "min": 0,
+            "max": 60,
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 15 },
+                { "color": "red", "value": 30 }
+              ]
+            }
+          }
+        },
+        "description": "Broker reconciliation lag in seconds"
+      }
+    ],
+    "schemaVersion": 27,
+    "version": 1,
+    "links": [],
+    "annotations": {
+      "list": [
+        {
+          "datasource": "Prometheus",
+          "enable": true,
+          "name": "Trades",
+          "showIn": 0,
+          "type": "dashboard"
+        }
+      ]
+    }
+  }
+}

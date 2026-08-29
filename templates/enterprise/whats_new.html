@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — What's New</title>
+    <script src="/static/vendor/tailwind.min.js" nonce="{{ nonce }}"></script>
+    <script src="/static/theme_engine.js" nonce="{{ nonce }}"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 1.5rem 2rem 3rem 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.75rem; margin-bottom: 1.5rem; box-shadow: var(--card-shadow); }
+        .version-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.3); color: #38bdf8; font-weight: 700; font-size: 0.85rem; padding: 0.3rem 0.8rem; border-radius: 9999px; margin-bottom: 0.4rem; }
+        .release-date { color: var(--text-muted, #94a3b8); font-size: 0.78rem; margin-bottom: 1.25rem; }
+        .changelog-body ul { list-style: none; padding-left: 0; margin-bottom: 0.5rem; }
+        .changelog-body ul ul { padding-left: 1.4rem; margin-top: 0.3rem; margin-bottom: 0.6rem; }
+        .changelog-body li { font-size: 0.85rem; line-height: 1.65; color: var(--text-secondary, #cbd5e1); margin-bottom: 0.5rem; padding-left: 1.2rem; position: relative; }
+        .changelog-body li::before { content: "▸"; position: absolute; left: 0; color: #3b82f6; }
+        .changelog-body ul ul li::before { content: "–"; color: var(--text-muted, #94a3b8); }
+        .changelog-body strong { color: #f1f5f9; font-weight: 700; }
+        .changelog-body code { background: rgba(148,163,184,0.12); border-radius: 0.25rem; padding: 0.1rem 0.35rem; font-size: 0.78rem; color: #93c5fd; }
+        .empty-note { color: var(--text-muted, #94a3b8); font-size: 0.85rem; text-align: center; padding: 2rem 0; }
+    </style>
+    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/opb_design_system.css">
+    
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+
+    <div style="margin-bottom:1.5rem;">
+        <h1><i class="fas fa-bullhorn" style="margin-right:0.5rem;color:#38bdf8;"></i> What's New</h1>
+        <p class="subtitle">The latest release notes, read directly from this project's own CHANGELOG.md — always up to date with what actually shipped.</p>
+    </div>
+
+    <div class="card">
+        {% if entry.status == "ok" %}
+            <div class="version-badge"><i class="fas fa-tag"></i> v{{ entry.version }}</div>
+            <div class="release-date">Released {{ entry.date }}</div>
+            <div class="changelog-body">{{ entry.html | safe }}</div>
+        {% else %}
+            <div class="empty-note">Release notes are unavailable right now ({{ entry.detail }}) — see CHANGELOG.md directly.</div>
+        {% endif %}
+    </div>
+
+    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

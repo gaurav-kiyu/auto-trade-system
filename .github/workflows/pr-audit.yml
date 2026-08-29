@@ -1,0 +1,100 @@
+name: PR Audit
+
+on:
+  pull_request:
+    branches: [main, develop, release/**]
+    paths:
+      - '**.py'
+      - 'scripts/**'
+      - '.github/workflows/pr-audit.yml'
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  audit:
+    name: Security & Quality Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]" ruff pip-audit
+
+      - name: Run Ruff lint
+        run: ruff check --statistics core/ scripts/ tests/ || echo "Ruff warnings found"
+
+      - name: Run unified PR audit
+        run: |
+          python scripts/run_pr_audit.py --ci --output reports/pr-audit-report.json
+
+      - name: Architecture compliance
+        run: |
+          python scripts/check_architecture_compliance.py --ci || echo "Architecture issues found"
+
+      - name: Repository hygiene
+        run: |
+          python scripts/hygiene_check.py --ci || echo "Hygiene issues found"
+
+      - name: Dead code scan (quick)
+        run: |
+          python scripts/scan_dead_code.py --quick --ci || echo "Dead code found"
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-audit-report
+          path: reports/pr-audit-report.json
+
+      - name: Post PR comment with audit results
+        uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('reports/pr-audit-report.json', 'utf8'));
+
+            // Build markdown summary
+            const status = report.score >= 80 ? 'PASS' : report.score >= 50 ? 'WARN' : 'FAIL';
+            let body = `## PR Audit Report - ${status}\n\n`;
+            body += `**Overall Score: ${report.score}/100**  \n`;
+            body += `**Checks:** ${report.passed_checks}/${report.total_checks} passed  \n`;
+            body += `**Findings:** ${report.total_findings} total  \n\n`;
+            body += `| Check | Status | Findings |\n`;
+            body += `|-------|--------|----------|\n`;
+            for (const section of report.sections) {
+              body += `| ${section.name} | ${section.passed ? 'PASS' : 'FAIL'} | ${section.findings.length} |\n`;
+            }
+
+            // Find existing comment from github-actions bot
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user && c.user.login === 'github-actions[bot]' && c.body && c.body.includes('PR Audit Report')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

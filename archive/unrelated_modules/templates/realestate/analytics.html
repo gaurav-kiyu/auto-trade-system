@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard — RealEstate India</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+               background: #080b10; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        .back-link { color: #64748b; text-decoration: none; font-size: 0.85rem; display: inline-block; margin-bottom: 1rem; }
+        .back-link:hover { color: #60a5fa; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.3rem; }
+        .subtitle { color: #64748b; font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .kpi-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1rem; transition: all 0.2s; }
+        .kpi-card:hover { border-color: rgba(59,130,246,0.2); transform: translateY(-1px); }
+        .kpi-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; margin: 0.2rem 0; }
+        .kpi-change { font-size: 0.75rem; }
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        .chart-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; padding: 1.25rem; }
+        .chart-card h3 { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; }
+        .chart-card .chart-container { height: 220px; }
+        .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; margin-top: 1rem; }
+        .lead-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem; }
+        .lead-stage { background: #0f1319; border: 1px solid rgba(148,163,184,0.06); border-radius: 0.5rem; padding: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+        .lead-stage .stage-name { font-size: 0.8rem; color: #94a3b8; }
+        .lead-stage .stage-count { font-size: 1.1rem; font-weight: 700; }
+        .city-table { width: 100%; border-collapse: collapse; background: #0f1319; border-radius: 0.75rem; overflow: hidden; }
+        .city-table th, .city-table td { padding: 0.6rem 1rem; text-align: left; border-bottom: 1px solid rgba(148,163,184,0.06); }
+        .city-table th { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; }
+        .city-table td { font-size: 0.85rem; }
+        .city-table tr:hover { background: rgba(59,130,246,0.02); }
+        .top-prop-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid rgba(148,163,184,0.04); font-size: 0.85rem; }
+        .top-prop-row:last-child { border-bottom: none; }
+        .loading { text-align: center; padding: 3rem; color: #64748b; }
+        @media (max-width: 768px) { .chart-grid { grid-template-columns: 1fr; } .lead-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">← Dashboard Home</a>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <h1><i class="fas fa-chart-pie" style="color:#3b82f6;margin-right:0.5rem;"></i> Analytics Dashboard</h1>
+            <div class="subtitle">Real-time metrics, KPIs, and trends for your real estate platform</div>
+        </div>
+        <button onclick="refreshData()" style="background:#1a1f2e;border:1px solid rgba(148,163,184,0.1);border-radius:0.5rem;padding:0.5rem 1rem;color:#94a3b8;cursor:pointer;font-size:0.8rem;">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+
+    <div class="kpi-grid" id="kpiGrid">
+        <div style="text-align:center;grid-column:1/-1;padding:2rem;color:#64748b;" class="loading"><i class="fas fa-spinner fa-spin"></i> Loading analytics...</div>
+    </div>
+
+    <div id="analyticsContent" style="display:none;">
+        <!-- Charts Row -->
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h3><i class="fas fa-building" style="color:#60a5fa;margin-right:0.3rem;"></i> Property Types</h3>
+                <div class="chart-container"><canvas id="typeChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h3><i class="fas fa-city" style="color:#10b981;margin-right:0.3rem;"></i> Properties by City</h3>
+                <div class="chart-container"><canvas id="cityChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Lead Funnel -->
+        <h3 class="section-title"><i class="fas fa-filter" style="color:#f97316;margin-right:0.4rem;"></i> Lead Funnel</h3>
+        <div class="lead-grid" id="leadGrid"></div>
+
+        <!-- City Breakdown Table -->
+        <h3 class="section-title"><i class="fas fa-table" style="color:#a78bfa;margin-right:0.4rem;"></i> City Breakdown</h3>
+        <div style="overflow-x:auto;margin-bottom:1.5rem;">
+            <table class="city-table" id="cityTable">
+                <thead>
+                    <tr><th>City</th><th>Count</th><th>Avg Price</th><th>Avg ₹/sq.ft</th><th>Total Views</th><th>Featured</th></tr>
+                </thead>
+                <tbody id="cityBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Top Properties -->
+        <h3 class="section-title"><i class="fas fa-trophy" style="color:#fbbf24;margin-right:0.4rem;"></i> Top Properties by Views</h3>
+        <div style="background:#0f1319;border:1px solid rgba(148,163,184,0.08);border-radius:0.75rem;padding:1rem;" id="topPropsContainer"></div>
+    </div>
+
+    <script>
+        let typeChartInstance = null;
+        let cityChartInstance = null;
+
+        async function loadAnalytics() {
+            try {
+                const res = await fetch('/api/realestate/analytics/summary');
+                if (!res.ok) throw new Error('Failed');
+                const data = await res.json();
+
+                document.querySelector('.loading').style.display = 'none';
+                document.getElementById('analyticsContent').style.display = 'block';
+
+                renderKPIs(data.overview);
+                renderLeadFunnel(data.lead_funnel);
+                renderCityTable(data.city_breakdown);
+                renderTopProperties(data.top_properties);
+                renderCharts(data);
+            } catch(e) {
+                document.querySelector('.loading').innerHTML = 'Unable to load analytics. <button onclick="loadAnalytics()" style="background:#3b82f6;color:white;border:none;padding:0.4rem 1rem;border-radius:0.5rem;cursor:pointer;margin-left:0.5rem;">Retry</button>';
+            }
+        }
+
+        function renderKPIs(overview) {
+            const grid = document.getElementById('kpiGrid');
+            const kpis = [
+                { label: 'Total Properties', value: overview.total_properties || 0, color: '#60a5fa', icon: 'fa-building' },
+                { label: 'Total Views', value: (overview.total_views || 0).toLocaleString('en-IN'), color: '#4ade80', icon: 'fa-eye' },
+                { label: 'Enquiries', value: (overview.total_enquiries || 0).toLocaleString('en-IN'), color: '#fbbf24', icon: 'fa-comments' },
+                { label: 'Leads', value: (overview.total_leads || 0).toLocaleString('en-IN'), color: '#f97316', icon: 'fa-users' },
+                { label: 'Active Listings', value: overview.active_listings || 0, color: '#a78bfa', icon: 'fa-check-circle' },
+                { label: 'Avg Price', value: '₹' + formatPrice(overview.avg_price || 0), color: '#4ade80', icon: 'fa-tag' },
+                { label: 'Cities', value: overview.total_cities || 0, color: '#06b6d4', icon: 'fa-city' },
+                { label: 'RERA Verified', value: overview.verified_count || 0, color: '#22c55e', icon: 'fa-shield' },
+                { label: 'Featured', value: overview.featured_count || 0, color: '#fbbf24', icon: 'fa-star' },
+                { label: 'Avg ₹/sq.ft', value: '₹' + (overview.avg_price_per_sqft || 0).toLocaleString('en-IN'), color: '#10b981', icon: 'fa-vector-square' },
+            ];
+            grid.innerHTML = kpis.map(function(k) {
+                return '<div class="kpi-card">' +
+                    '<div class="kpi-label"><i class="fas ' + k.icon + '" style="color:' + k.color + ';margin-right:0.3rem;"></i> ' + k.label + '</div>' +
+                    '<div class="kpi-value" style="color:' + k.color + ';">' + k.value + '</div>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function renderLeadFunnel(funnel) {
+            if (!funnel) return;
+            const grid = document.getElementById('leadGrid');
+            const stages = [
+                { key: 'new', label: '🆕 New', color: '#60a5fa' },
+                { key: 'contacted', label: '📞 Contacted', color: '#3b82f6' },
+                { key: 'interested', label: '👍 Interested', color: '#10b981' },
+                { key: 'visit_scheduled', label: '📅 Visit Scheduled', color: '#fbbf24' },
+                { key: 'negotiating', label: '🤝 Negotiating', color: '#f97316' },
+                { key: 'closed', label: '✅ Closed', color: '#4ade80' },
+                { key: 'lost', label: '❌ Lost', color: '#f87171' },
+            ];
+            grid.innerHTML = stages.map(function(s) {
+                return '<div class="lead-stage">' +
+                    '<span class="stage-name">' + s.label + '</span>' +
+                    '<span class="stage-count" style="color:' + s.color + ';">' + (funnel[s.key] || 0) + '</span>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function renderCityTable(cities) {
+            if (!cities || cities.length === 0) return;
+            const body = document.getElementById('cityBody');
+            body.innerHTML = cities.map(function(c) {
+                return '<tr>' +
+                    '<td><strong>' + c.city + '</strong></td>' +
+                    '<td>' + c.count + '</td>' +
+                    '<td>₹' + formatPrice(c.avg_price || 0) + '</td>' +
+                    '<td>₹' + (c.avg_price_per_sqft || 0).toLocaleString('en-IN') + '</td>' +
+                    '<td>' + (c.total_views || 0).toLocaleString('en-IN') + '</td>' +
+                    '<td>' + (c.featured_count || 0) + '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function renderTopProperties(props) {
+            const container = document.getElementById('topPropsContainer');
+            if (!props || props.length === 0) {
+                container.innerHTML = '<div style="text-align:center;color:#64748b;padding:1rem;">No property data yet.</div>';
+                return;
+            }
+            container.innerHTML = props.map(function(p, i) {
+                return '<div class="top-prop-row">' +
+                    '<span><strong>#' + (i+1) + '</strong> ' + escapeHtml(p.title || 'Untitled') + ' — ' + escapeHtml(p.city || '') + '</span>' +
+                    '<span><span style="color:#60a5fa;">' + (p.views || 0) + ' views</span> · ₹' + formatPrice(p.price || 0) + '</span>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function renderCharts(data) {
+            // Property Types (Doughnut)
+            const types = data.property_types || {};
+            const typeKeys = Object.keys(types);
+            const typeValues = typeKeys.map(function(k) { return types[k]; });
+
+            if (typeChartInstance) typeChartInstance.destroy();
+            const ctx1 = document.getElementById('typeChart').getContext('2d');
+            typeChartInstance = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: typeKeys.map(function(k) { return k.replace(/_/g, ' '); }),
+                    datasets: [{
+                        data: typeValues,
+                        backgroundColor: ['#60a5fa','#4ade80','#fbbf24','#f97316','#a78bfa','#f87171','#06b6d4','#22d3ee'],
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // Cities (Bar)
+            const cities = data.city_breakdown || [];
+            if (cityChartInstance) cityChartInstance.destroy();
+            const ctx2 = document.getElementById('cityChart').getContext('2d');
+            cityChartInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: cities.map(function(c) { return c.city; }),
+                    datasets: [{
+                        label: 'Properties',
+                        data: cities.map(function(c) { return c.count; }),
+                        backgroundColor: 'rgba(16,185,129,0.6)',
+                        borderColor: 'rgba(16,185,129,1)',
+                        borderWidth: 1,
+                        borderRadius: 3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#64748b', stepSize: 1 },
+                            grid: { color: 'rgba(148,163,184,0.06)' },
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { display: false },
+                        }
+                    }
+                }
+            });
+        }
+
+        function refreshData() {
+            document.getElementById('analyticsContent').style.display = 'none';
+            document.querySelector('.loading').style.display = 'block';
+            document.querySelector('.loading').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            loadAnalytics();
+        }
+
+        function formatPrice(val) {
+            const num = parseFloat(val) || 0;
+            if (num >= 10000000) return (num / 10000000).toFixed(2) + ' Cr';
+            if (num >= 100000) return (num / 100000).toFixed(2) + ' L';
+            return num.toLocaleString('en-IN');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
+        loadAnalytics();
+    </script>
+</body>
+</html>

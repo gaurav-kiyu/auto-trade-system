@@ -1,0 +1,4 @@
+{$OPB_DOMAIN} {
+    encode gzip
+    reverse_proxy opb:8765
+}

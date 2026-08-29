@@ -1,0 +1,30 @@
+services:
+  opb:
+    # Dashboard is reachable only through the local HTTPS reverse proxy.
+    ports:
+      - "127.0.0.1:${OPB_DASHBOARD_PORT:-8765}:8765"
+
+  caddy:
+    image: caddy:2.10-alpine
+    container_name: opb_caddy
+    restart: unless-stopped
+    depends_on:
+      opb:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      OPB_DOMAIN: ${OPB_DOMAIN:?Set OPB_DOMAIN to the public DNS name}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin Multi-Broker Portfolio Inspector &amp; 16-Strategy Analyzer</title>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        .broker-card {
+            background: var(--bg-card, #1f293d);
+            border: 1px solid var(--border-color, #374151);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .broker-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-color, #06b6d4);
+            box-shadow: 0 8px 25px rgba(6, 182, 212, 0.25);
+        }
+        .broker-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .btn-accent {
+            background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+            color: var(--text-primary, #ffffff);
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+            transition: all 0.2s ease;
+        }
+        .btn-accent:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+        }
+        .btn-accent:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(9, 13, 22, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-backdrop.active {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--bg-secondary, #111827);
+            border: 1px solid var(--border-color, #374151);
+            border-radius: 1rem;
+            width: 90%; max-width: 950px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .badge-action {
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: var(--text-primary, #ffffff);
+            display: inline-block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color, #374151);
+            font-size: 0.85rem;
+        }
+        th {
+            background: var(--bg-primary, #090d16);
+            color: var(--text-secondary, #9ca3af);
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+        }
+    </style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+</head>
+<body style="padding: 1.5rem; margin: 0;">
+    {% include '_nav.html' %}
+
+    <!-- Super Admin Header Quick Switcher -->
+<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;background:var(--bg-card, #0f172a);border:1px solid var(--border-color, #1e293b);padding:0.4rem 0.6rem;border-radius:0.65rem;flex-wrap:wrap;">
+<span style="font-size:0.75rem;font-weight:800;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.05em;margin-right:0.4rem;padding-left:0.3rem;">⚡ Admin Suite:</span>
+<a class="btn btn-sm btn-ghost" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>
+<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>
+<a class="btn btn-sm btn-primary" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>
+</div>
+
+    {% set current_page = 'admin_portfolio_analyzer' %}
+    
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+<div>
+<h1 style="margin: 0; font-size: 1.6rem; color: var(--text-primary, #f3f4f6); font-weight: 800;">
+<i class="fas fa-user-shield" style="color: var(--accent-color, #06b6d4);"></i> Admin Multi-Broker Portfolio Inspector &amp; 16-Strategy Analyzer
+            </h1>
+<p style="margin: 0.25rem 0 0 0; color: var(--text-secondary, #9ca3af); font-size: 0.85rem;">
+                Access any user profile across Indian brokers, embedded OAuth redirection, automated portfolio import, and 16-strategy proof-backed stock guidance reports.
+            </p>
+</div>
+<div style="display:flex; gap: 0.75rem;">
+<button class="btn-accent" id="cspfix-1" style="padding: 0.6rem 1.2rem; cursor: pointer;" type="button">
+<i class="fas fa-play"></i> Run Demo Scan
+            </button>
+</div>
+</div>
+<!-- Broker Selection Grid -->
+<div style="background: var(--bg-secondary, #111827); border: 1px solid var(--border-color, #374151); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+<h3 style="margin: 0 0 1rem 0; font-size: 1rem; color: var(--text-primary, #f3f4f6);">
+<i class="fas fa-building" style="color: var(--accent-color, #06b6d4);"></i> Select Indian Broker / Service Provider to Inspect User Portfolio
+        </h3>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem;">
+<div class="broker-card" id="cspfix-2">
+<div class="broker-icon" style="color: #387ed1;"><i class="fas fa-paper-plane"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">Zerodha (Kite)</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">OAuth Embed</div>
+</div>
+<div class="broker-card" id="cspfix-3">
+<div class="broker-icon" style="color: #eb1c24;"><i class="fas fa-chart-line"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">Angel One</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">SmartAPI Embed</div>
+</div>
+<div class="broker-card" id="cspfix-4">
+<div class="broker-icon" style="color: #00529b;"><i class="fas fa-university"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">IIFL Markets</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Blaze API</div>
+</div>
+<div class="broker-card" id="cspfix-5">
+<div class="broker-icon" style="color: #7b2cbf;"><i class="fas fa-bolt"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">Upstox</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">OAuth v2</div>
+</div>
+<div class="broker-card" id="cspfix-6">
+<div class="broker-icon" style="color: #00d09c;"><i class="fas fa-seedling"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">Groww</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Groww Trade</div>
+</div>
+<div class="broker-card" id="cspfix-7">
+<div class="broker-icon" style="color: #f37021;"><i class="fas fa-building"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">ICICI Direct</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Breeze API</div>
+</div>
+<div class="broker-card" id="cspfix-8">
+<div class="broker-icon" style="color: #2c7be5;"><i class="fas fa-gem"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">Dhan</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">HQ API</div>
+</div>
+<div class="broker-card" id="cspfix-9">
+<div class="broker-icon" style="color: #ff4d4f;"><i class="fas fa-fire"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">Fyers</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">API v3</div>
+</div>
+<div class="broker-card" id="cspfix-10">
+<div class="broker-icon" style="color: #002f6c;"><i class="fas fa-chart-pie"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">m.Stock (Mirae)</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Mirae Connect</div>
+</div>
+</div>
+</div>
+<!-- Analysis Results Container -->
+<div id="results-container" style="display: none;">
+<!-- Enterprise Command Center HUD -->
+<div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; flex-wrap: wrap; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+<div style="flex: 1; min-width: 250px;">
+<div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.3rem;"><i class="fas fa-network-wired"></i> Infrastructure Link</div>
+<div id="hud-redis-status" style="font-weight: bold; color: #f59e0b; font-size: 1.1rem;">
+<i class="fas fa-circle-notch fa-spin"></i> Polling Status...
+                </div>
+</div>
+<div style="flex: 1; min-width: 250px;">
+<div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.3rem;"><i class="fas fa-brain"></i> Agentic Sentiment Score</div>
+<div id="hud-sentiment-status" style="font-weight: bold; color: #3b82f6; font-size: 1.1rem;">
+                    --
+                </div>
+</div>
+<div style="flex: 1; min-width: 250px;">
+<div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.3rem;"><i class="fas fa-shield-alt"></i> Dynamic VIX &amp; Collateral</div>
+<div id="hud-vix-status" style="font-weight: bold; color: #10b981; font-size: 1.1rem;">
+                    --
+                </div>
+</div>
+</div>
+<!-- Global Action Buttons -->
+<div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+<button class="btn-accent" id="cspfix-11" style="background: #3b82f6; cursor: pointer;" type="button">
+<i class="fas fa-leaf"></i> Scan for Tax-Loss Harvesting
+            </button>
+<button class="btn-accent" id="cspfix-12" style="background: #8b5cf6; cursor: pointer;" type="button">
+<i class="fas fa-file-pdf"></i> Generate GenAI Client Report
+            </button>
+</div>
+<!-- Header Health Metrics -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+<div class="glass-card" style="padding: 1.25rem;">
+<div style="font-size: 0.75rem; color: var(--text-secondary); uppercase;">Portfolio Health Score</div>
+<div id="metric-health-score" style="font-size: 2.2rem; font-weight: 900; color: #10b981;">92.0 <span style="font-size: 1rem; color: #9ca3af;">/ 100</span></div>
+<div style="font-size: 0.7rem; color: #34d399;"><i class="fas fa-shield-alt"></i> Institutional Grade Rating</div>
+</div>
+<div class="glass-card" style="padding: 1.25rem;">
+<div style="font-size: 0.75rem; color: var(--text-secondary); uppercase;">Total Portfolio Value</div>
+<div id="metric-portfolio-val" style="font-size: 1.8rem; font-weight: 800;">₹ 12,45,000</div>
+<div style="font-size: 0.7rem; color: var(--text-muted);">4 Active Positions Scanned</div>
+</div>
+<div class="glass-card" style="padding: 1.25rem;">
+<div style="font-size: 0.75rem; color: var(--text-secondary); uppercase;">Unrealized P&amp;L</div>
+<div id="metric-portfolio-pnl" style="font-size: 1.8rem; font-weight: 800; color: #10b981;">+ ₹ 84,200 (+7.2%)</div>
+<div style="font-size: 0.7rem; color: #34d399;">16 Strategies Applied</div>
+</div>
+<div class="glass-card" style="padding: 1.25rem;">
+<div style="font-size: 0.75rem; color: var(--text-secondary); uppercase;">Diagnostic Scan Proof</div>
+<div style="font-size: 0.95rem; font-weight: 700; color: var(--accent-color); margin-top: 0.4rem;">
+<i class="fas fa-check-circle"></i> 100% Certified
+                </div>
+<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem;">SHAP + 10-Yr Backtest Proof</div>
+</div>
+</div>
+<!-- Stock Guidance Report Table -->
+<div class="glass-card" style="padding: 1.5rem;">
+<h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--text-primary);">
+<i class="fas fa-list-ol" style="color: var(--accent-color);"></i> Stock-by-Stock Guidance Report with Time Horizon &amp; Mathematical Proof
+            </h3>
+<div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Qty / Buy Price</th>
+<th>Current Price</th>
+<th>PnL</th>
+<th>Recommended Action</th>
+<th>Holding Period</th>
+<th>Target / Stop Loss</th>
+<th>Proof &amp; Reasoning</th>
+</tr>
+</thead>
+<tbody id="stock-table-body">
+<!-- Populated dynamically via JS -->
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Embedded Broker OAuth Modal -->
+<div class="modal-backdrop" id="broker-modal">
+<div class="modal-content" style="max-width: 580px;">
+<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1rem;">
+<h3 id="modal-broker-title" style="margin:0; font-size:1.2rem; color:var(--text-primary);">
+<i class="fas fa-lock" style="color:var(--accent-color);"></i> Broker Secure Connection Panel
+                </h3>
+<button id="cspfix-13" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer;" type="button">×</button>
+</div>
+<p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1.2rem; line-height: 1.4;">
+                Authenticate with your Indian broker to securely import your live holdings and execute the 16-strategy deep scan.
+            </p>
+<div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:0.75rem; padding:1.5rem; text-align:center; margin-bottom: 1rem;">
+<div id="broker-auth-icon" style="font-size:2.8rem; margin-bottom:0.75rem; color:var(--accent-color);">
+<i class="fas fa-university"></i>
+</div>
+<h4 id="broker-auth-name" style="margin:0 0 0.25rem 0; font-size: 1.15rem; color:var(--text-primary);">Broker</h4>
+<p id="broker-auth-type" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1.2rem;">
+                    Official API &amp; OAuth 2.0 Integration Gateway
+                </p>
+<div style="display: flex; gap: 0.75rem; justify-content: center; margin-bottom: 1.25rem; flex-wrap: wrap;">
+<a aria-disabled="true" class="btn-accent" href="/admin/portfolio-analyzer" id="broker-oauth-link" rel="noopener noreferrer" style="padding:0.65rem 1.25rem; text-decoration:none; display:inline-flex; align-items:center; gap:0.5rem; font-size:0.85rem; background: #3b82f6; pointer-events:none; opacity:0.6;" target="_blank">
+<i class="fas fa-external-link-alt"></i> Open Official Login Page
+                    </a>
+</div>
+<div style="border-top: 1px dashed var(--border-color); padding-top: 1rem; text-align: left;">
+<label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">
+                        Client / User ID (Optional):
+                    </label>
+<input id="broker-client-id" placeholder="e.g. GK9821 or Auto-Detect" style="width: 100%; padding: 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; margin-bottom: 0.75rem; box-sizing: border-box;" type="text"/>
+<label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">
+                        Access Token / API Key (Optional):
+                    </label>
+<div style="position:relative;display:flex;align-items:center;">
+<div class="opb-password-wrapper"><input id="broker-access-token" placeholder="Auto-managed via session or enter token" style="width: 100%; padding: 0.5rem 2.5rem 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; box-sizing: border-box;" type="password"/><button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" viewbox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div>
+</div>
+</div>
+</div>
+<button class="btn-accent" id="btn-fetch-holdings" style="width:100%; padding:0.85rem; font-size:0.95rem; font-weight:600; cursor:pointer;" type="button">
+<i class="fas fa-sync-alt"></i> Fetch &amp; Import Portfolio Holdings
+            </button>
+</div>
+</div>
+<!-- Portfolio Confirmation Modal -->
+<div class="modal-backdrop" id="confirm-modal">
+<div class="modal-content" style="max-width: 720px;">
+<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1rem;">
+<h3 style="margin:0; font-size:1.2rem; color:var(--text-primary);">
+<i class="fas fa-check-circle" style="color:#10b981;"></i> Confirm Imported Portfolio Data
+                </h3>
+<button id="cspfix-14" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer;" type="button">×</button>
+</div>
+<div id="confirm-summary-banner" style="background: rgba(6, 182, 212, 0.1); border: 1px solid var(--accent-color); border-radius: 0.5rem; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center;">
+<div>
+<span id="confirm-broker-badge" style="font-weight: 600; color: var(--accent-color);">Broker</span>: 
+                    <span id="confirm-position-count">0</span> Positions Imported
+                </div>
+<div id="confirm-total-val" style="font-weight: 700;">₹ 0</div>
+</div>
+<div style="max-height: 260px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 0.5rem; margin-bottom: 1rem;">
+<div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+<thead>
+<tr style="background: var(--bg-primary); border-bottom: 1px solid var(--border-color); color: var(--text-secondary); text-align: left;">
+<th style="padding: 0.6rem 0.75rem;">Symbol</th>
+<th style="padding: 0.6rem 0.75rem;">Qty</th>
+<th style="padding: 0.6rem 0.75rem;">Avg Price</th>
+<th style="padding: 0.6rem 0.75rem;">LTP</th>
+<th style="padding: 0.6rem 0.75rem;">Sector</th>
+<th style="padding: 0.6rem 0.75rem; text-align: center;">Action</th>
+</tr>
+</thead>
+<tbody id="confirm-positions-table">
+<!-- Injected via JS -->
+</tbody>
+</table>
+</div>
+</div>
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; align-items: center;">
+<input id="add-sym" placeholder="Add Symbol (e.g. INFY)" style="flex: 2; padding: 0.45rem 0.6rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.8rem;" type="text"/>
+<input id="add-qty" placeholder="Qty" style="flex: 1; padding: 0.45rem 0.6rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.8rem;" type="number"/>
+<input id="add-price" placeholder="Price" style="flex: 1; padding: 0.45rem 0.6rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.8rem;" type="number"/>
+<button id="cspfix-15" style="padding: 0.45rem 0.85rem; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 0.375rem; cursor: pointer; font-size: 0.8rem;" type="button">
+<i class="fas fa-plus"></i> Add
+                </button>
+</div>
+<div style="display:flex; justify-content:flex-end; gap:1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+<button id="cspfix-16" style="padding:0.6rem 1.2rem; background:none; border:1px solid var(--border-color); color:var(--text-secondary); border-radius:0.5rem; cursor:pointer;" type="button">Cancel</button>
+<button class="btn-accent" id="cspfix-17" style="padding:0.65rem 1.75rem; font-size: 0.95rem; font-weight: 600; cursor:pointer;" type="button">
+<i class="fas fa-microchip"></i> Confirm &amp; Run 16-Strategy Deep Scan
+                </button>
+</div>
+</div>
+</div>
+<!-- Proof Modal -->
+<div class="modal-backdrop" id="proof-modal">
+<div class="modal-content">
+<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1rem;">
+<h3 id="proof-modal-title" style="margin:0; font-size:1.2rem; color:var(--text-primary);">
+<i class="fas fa-microscope" style="color:var(--accent-color);"></i> Quantitative Proof &amp; Reasoning Breakdown
+                </h3>
+<button id="cspfix-18" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>
+</div>
+<div id="proof-modal-body">
+<!-- Injected via JS -->
+</div>
+</div>
+</div>
+<!-- Execute Hedge Approval Modal -->
+<div class="modal-backdrop" id="hedge-modal">
+<div class="modal-content">
+<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1rem;">
+<h3 style="margin:0; font-size:1.2rem; color:var(--text-primary);">
+<i class="fas fa-bolt" style="color:#8b5cf6;"></i> Auto-Hedge Approval Gate
+                </h3>
+<button id="cspfix-19" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>
+</div>
+<p id="hedge-modal-text" style="font-size:0.85rem; color:var(--text-secondary);"></p>
+<div style="margin-top:1.5rem; display:flex; justify-content:flex-end; gap:1rem;">
+<button id="cspfix-20" style="padding:0.6rem 1.2rem; background:none; border:1px solid var(--border-color); color:var(--text-secondary); border-radius:0.5rem; cursor:pointer;" type="button">Cancel</button>
+<button class="btn-accent" id="hedge-confirm-btn" style="padding:0.6rem 1.5rem; cursor:pointer; background:#8b5cf6;" type="button">
+                    Execute Live Order
+                </button>
+</div>
+</div>
+</div>
+<!-- Tax Loss Harvest Modal -->
+<div class="modal-backdrop" id="taxloss-modal">
+<div class="modal-content" style="max-width: 600px;">
+<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1rem;">
+<h3 style="margin:0; font-size:1.2rem; color:var(--text-primary);">
+<i class="fas fa-leaf" style="color:#3b82f6;"></i> Tax-Loss Harvesting Opportunities
+                </h3>
+<button id="cspfix-21" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>
+</div>
+<div id="taxloss-results" style="font-size:0.85rem; color:var(--text-secondary);">
+                Scanning portfolio...
+            </div>
+</div>
+</div>
+<!-- Report Modal -->
+<div class="modal-backdrop" id="report-modal">
+<div class="modal-content" style="max-width: 700px;">
+<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1rem;">
+<h3 style="margin:0; font-size:1.2rem; color:var(--text-primary);">
+<i class="fas fa-file-pdf" style="color:#8b5cf6;"></i> Generated Client Report
+                </h3>
+<button id="cspfix-22" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>
+</div>
+<div id="report-content" style="font-size:0.85rem; color:var(--text-secondary); white-space: pre-wrap; line-height: 1.5; background: var(--bg-primary); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                Generating...
+            </div>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+        let currentScanData = null;
+        let selectedBroker = { code: 'zerodha', name: 'Zerodha (Kite)', color: '#387ed1' };
+        let importedPositions = [];
+
+        function getCookie(n){const m=document.cookie.match(new RegExp('(^| )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):'';}
+        async function apiFetch(url,o={}){
+            const h={'Content-Type':'application/json',...o.headers};
+            const t=getCookie('opb_csrf');
+            if(t&&o.method&&o.method!=='GET') h['X-CSRF-Token']=t;
+            const r=await fetch(url,{headers:h,credentials:'include',...o});
+            if(r.status===401){window.location.href='/login';return null}
+            return r.json();
+        }
+
+        async function openBrokerPanel(code, name, color) {
+            selectedBroker = { code, name, color };
+            const authName = document.getElementById('broker-auth-name');
+            if (authName) authName.innerText = name;
+            const modalTitle = document.getElementById('modal-broker-title');
+            if (modalTitle) modalTitle.innerHTML = `<i class="fas fa-lock" style="color:${color};"></i> ${name} Connection Panel`;
+            
+            const oauthLink = document.getElementById('broker-oauth-link');
+            if (oauthLink) {
+                oauthLink.href = '/admin/portfolio-analyzer';
+                oauthLink.setAttribute('aria-disabled', 'true');
+                oauthLink.style.pointerEvents = 'none';
+                oauthLink.style.opacity = '0.6';
+                oauthLink.textContent = '🔗 Login URL unavailable';
+                try {
+                    const info = await apiFetch(`/api/v1/admin/broker/info/${code}`);
+                    if (info && info.auth_url) {
+                        oauthLink.href = info.auth_url;
+                        oauthLink.removeAttribute('aria-disabled');
+                        oauthLink.style.pointerEvents = 'auto';
+                        oauthLink.style.opacity = '1';
+                        oauthLink.textContent = '🔗 Open Official Login Page';
+                    }
+                } catch(e) {
+                    console.warn('Broker OAuth metadata unavailable:', e);
+                }
+            }
+
+            const brokerModal = document.getElementById('broker-modal');
+            if (brokerModal) brokerModal.classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            const el = document.getElementById(modalId);
+            if (el) el.classList.remove('active');
+        }
+
+        async function fetchBrokerHoldings() {
+            const btn = document.getElementById('btn-fetch-holdings');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Authenticating with ${selectedBroker.name} & Fetching Holdings...`;
+            }
+
+            try {
+                const clientId = document.getElementById('broker-client-id')?.value?.trim();
+                const accessToken = document.getElementById('broker-access-token')?.value?.trim();
+
+                const resp = await apiFetch('/api/v1/admin/broker/fetch-holdings', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        broker_code: selectedBroker.code,
+                        credentials: {
+                            client_id: clientId || undefined,
+                            access_token: accessToken || undefined
+                        }
+                    })
+                });
+
+                if (resp && resp.holdings) {
+                    importedPositions = resp.holdings;
+                    closeModal('broker-modal');
+                    renderConfirmationModal(resp);
+                } else {
+                    alert("Could not fetch holdings from broker gateway.");
+                }
+            } catch (err) {
+                console.error("Error fetching holdings:", err);
+                alert("Fetch failed: " + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
+        }
+
+        function renderConfirmationModal(resp) {
+            const countEl = document.getElementById('confirm-position-count');
+            const badgeEl = document.getElementById('confirm-broker-badge');
+            const totalEl = document.getElementById('confirm-total-val');
+            const tbody = document.getElementById('confirm-positions-table');
+
+            if (countEl) countEl.innerText = importedPositions.length;
+            if (badgeEl) badgeEl.innerText = selectedBroker.name;
+            
+            let totalVal = 0;
+            if (tbody) {
+                tbody.innerHTML = '';
+                importedPositions.forEach((pos, idx) => {
+                    const val = (pos.quantity || 0) * (pos.current_price || pos.buy_price || 0);
+                    totalVal += val;
+                    const pnl = ((pos.current_price - pos.buy_price) / (pos.buy_price || 1)) * 100;
+                    const pnlClass = pnl >= 0 ? 'text-green-400' : 'text-red-400';
+                    
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = '1px solid var(--border-color)';
+                    row.innerHTML = `
+                        <td style="padding: 0.5rem 0.75rem; font-weight: 600; color: var(--text-primary);">${pos.symbol}</td>
+                        <td style="padding: 0.5rem 0.75rem; color: var(--text-secondary);">${pos.quantity}</td>
+                        <td style="padding: 0.5rem 0.75rem; color: var(--text-secondary);">₹${pos.buy_price.toFixed(2)}</td>
+                        <td style="padding: 0.5rem 0.75rem; color: var(--text-primary);">₹${pos.current_price.toFixed(2)}</td>
+                        <td style="padding: 0.5rem 0.75rem; color: var(--text-muted);">${pos.sector || 'General'}</td>
+                        <td style="padding: 0.5rem 0.75rem; text-align: center;">
+                            <button data-action="remove-position" data-idx="${idx}" style="background: none; border: none; color: var(--danger-color, #dc2626); cursor: pointer;" type="button">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            if (totalEl) totalEl.innerText = `₹ ${totalVal.toLocaleString('en-IN')}`;
+
+            const confirmModal = document.getElementById('confirm-modal');
+            if (confirmModal) confirmModal.classList.add('active');
+        }
+
+        function removePosition(index) {
+            importedPositions.splice(index, 1);
+            renderConfirmationModal();
+        }
+        document.getElementById('confirm-positions-table')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action="remove-position"]');
+            if (btn) removePosition(Number(btn.dataset.idx));
+        });
+        document.getElementById('stock-table-body')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            if (btn.dataset.action === 'show-proof-modal') showProofModal(Number(btn.dataset.idx));
+            else if (btn.dataset.action === 'execute-hedge') executeHedge(btn.dataset.symbol, btn.dataset.hedgeAction);
+        });
+
+        function addManualPosition() {
+            const sym = document.getElementById('add-sym')?.value?.trim().toUpperCase();
+            const qty = parseInt(document.getElementById('add-qty')?.value || '0', 10);
+            const price = parseFloat(document.getElementById('add-price')?.value || '0');
+
+            if (!sym || qty <= 0 || price <= 0) {
+                alert("Please provide a valid symbol, positive quantity, and purchase price.");
+                return;
+            }
+
+            importedPositions.push({
+                symbol: sym,
+                quantity: qty,
+                buy_price: price,
+                current_price: price,
+                sector: 'Custom Input'
+            });
+
+            document.getElementById('add-sym').value = '';
+            document.getElementById('add-qty').value = '';
+            document.getElementById('add-price').value = '';
+            renderConfirmationModal();
+        }
+
+        async function runScanFromConfirmation() {
+            if (!importedPositions || importedPositions.length === 0) {
+                alert("No positions available to scan. Please import or add at least one holding.");
+                return;
+            }
+
+            closeModal('confirm-modal');
+            
+            const btn = document.querySelector('button[onclick*="runScanFromConfirmation"]');
+            try {
+                const data = await apiFetch('/api/v1/admin/analyze-portfolio', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        user_name: `${selectedBroker.name} Inspected User`,
+                        broker_code: selectedBroker.code,
+                        positions: importedPositions
+                    })
+                });
+
+                if (data && data.stock_guidance) {
+                    currentScanData = data;
+                    renderResults(data);
+                } else if (data && data.detail) {
+                    alert("Scan Notice: " + data.detail);
+                }
+            } catch (err) {
+                console.error("Scan execution failed:", err);
+                alert("Scan failed: " + err.message);
+            }
+        }
+
+        async function loadSamplePortfolio() {
+            selectedBroker = { code: 'zerodha', name: 'Zerodha (Kite)', color: '#387ed1' };
+            await fetchBrokerHoldings();
+        }
+
+        function renderResults(data) {
+            document.getElementById('results-container').style.display = 'block';
+            document.getElementById('results-container').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('metric-health-score').innerHTML = `${data.portfolio_health_score} <span style="font-size: 1rem; color: #9ca3af;">/ 100</span>`;
+            document.getElementById('metric-portfolio-val').innerText = `₹ ${data.total_portfolio_value.toLocaleString('en-IN')}`;
+            document.getElementById('metric-portfolio-pnl').innerText = `${data.total_unrealized_pnl >= 0 ? '+' : ''}₹ ${data.total_unrealized_pnl.toLocaleString('en-IN')} (${data.total_pnl_pct}%)`;
+            
+            const tbody = document.getElementById('stock-table-body');
+            tbody.innerHTML = '';
+
+            data.stock_guidance.forEach((item, index) => {
+                let actionBtnHTML = '';
+                if (item.action === 'REBALANCE_HEDGE') {
+                    actionBtnHTML = `
+                        <button data-action="execute-hedge" data-symbol="${item.symbol}" data-hedge-action="BUY_PUT" style="margin-top:0.4rem; background:#8b5cf6; border:none; color:#fff; padding:0.3rem 0.6rem; border-radius:0.375rem; cursor:pointer; font-size:0.7rem; font-weight:600; width:100%;" type="button">
+                            <i class="fas fa-bolt"></i> Auto-Hedge
+                        </button>
+                    `;
+                }
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${item.symbol}</strong></td>
+                    <td>${item.symbol} Qty: ${item.quantity}<br><span style="font-size:0.75rem;color:#9ca3af;">Buy: ₹${item.target_price}</span></td>
+                    <td>₹${item.target_price}</td>
+                    <td style="color: ${item.pnl_pct < 0 ? '#ef4444' : '#10b981'}; font-weight:700;">
+                        ${item.pnl_pct >= 0 ? '+' : ''}${item.pnl_pct}%
+                    </td>
+                    <td><span class="badge-action" style="background: ${item.badge_color};">${item.action_label}</span></td>
+                    <td><i class="far fa-clock"></i> ${item.holding_period}</td>
+                    <td>Target: <strong>₹${item.target_price}</strong><br><span style="font-size:0.75rem;color: var(--danger-color, #dc2626);">SL: ₹${item.stop_loss_price}</span></td>
+                    <td>
+                        <button data-action="show-proof-modal" data-idx="${index}" style="background:rgba(6,182,212,0.15); border:1px solid rgba(6,182,212,0.4); color:#06b6d4; padding:0.3rem 0.6rem; border-radius:0.375rem; cursor:pointer; font-size:0.75rem; font-weight:600; width:100%;" type="button">
+                            <i class="fas fa-microscope"></i> View Proof (${item.confidence_score}%)
+                        </button>
+                        ${actionBtnHTML}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('results-container').style.display = 'block';
+        }
+
+        function showProofModal(index) {
+            if (!currentScanData || !currentScanData.stock_guidance[index]) return;
+            const item = currentScanData.stock_guidance[index];
+            
+            document.getElementById('proof-modal-title').innerHTML = `<i class="fas fa-microscope" style="color:var(--accent-color);"></i> ${item.symbol} — Proof & Diagnostic Reasoning`;
+            
+            let html = `
+                <div style="background:var(--bg-primary); padding:1rem; border-radius:0.5rem; margin-bottom:1rem; border-left:4px solid ${item.badge_color};">
+                    <h4 style="margin:0 0 0.5rem 0; color:var(--text-primary);">${item.action_label} (Confidence: ${item.confidence_score}%)</h4>
+                    <p style="margin:0; font-size:0.85rem; color:var(--text-secondary);">${item.proof_summary}</p>
+                </div>
+                
+                <h5 style="margin:1rem 0 0.5rem 0; color:var(--text-primary);">Detailed Reasoning Points:</h5>
+                <ul style="font-size:0.85rem; color:var(--text-secondary); padding-left:1.2rem; margin:0 0 1rem 0;">
+                    ${item.detailed_reasoning.map(r => `<li style="margin-bottom:0.3rem;">${r}</li>`).join('')}
+                </ul>
+
+                <h5 style="margin:1rem 0 0.5rem 0; color:var(--text-primary);">16 Strategies Evaluated:</h5>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem; font-size:0.7rem;">
+                    ${item.strategies_evaluated.map(s => `<span style="background:var(--bg-card); border:1px solid var(--border-color); padding:0.2rem 0.5rem; border-radius:0.25rem;">${s}</span>`).join('')}
+                </div>
+            `;
+            
+            document.getElementById('proof-modal-body').innerHTML = html;
+            document.getElementById('proof-modal').classList.add('active');
+        }
+        async function executeHedge(symbol, action) {
+            // Dry run first (Approval Gate)
+            const data = await apiFetch('/api/v1/admin/execute-hedge', {
+                method: 'POST',
+                body: JSON.stringify({ instrument: symbol, action: action, is_dry_run: true })
+            });
+            if (data) {
+                document.getElementById('hedge-modal-text').innerText = data.message;
+                const btn = document.getElementById('hedge-confirm-btn');
+                btn.onclick = () => confirmExecuteHedge(symbol, action);
+                document.getElementById('hedge-modal').classList.add('active');
+            }
+        }
+
+        async function confirmExecuteHedge(symbol, action) {
+            document.getElementById('hedge-confirm-btn').innerText = 'Executing...';
+            const data = await apiFetch('/api/v1/admin/execute-hedge', {
+                method: 'POST',
+                body: JSON.stringify({ instrument: symbol, action: action, is_dry_run: false })
+            });
+            if (data) {
+                alert(data.message);
+                closeModal('hedge-modal');
+                document.getElementById('hedge-confirm-btn').innerText = 'Execute Live Order';
+            }
+        }
+
+        async function openTaxLossModal() {
+            document.getElementById('taxloss-modal').classList.add('active');
+            document.getElementById('taxloss-results').innerText = 'Scanning portfolio...';
+            
+            const data = await apiFetch('/api/v1/admin/tax-loss-harvest', {
+                method: 'POST',
+                body: JSON.stringify({ positions: currentScanData ? currentScanData.stock_guidance : [] })
+            });
+            if (data) {
+                let html = '';
+                if (!data.opportunities || data.opportunities.length === 0) {
+                    html = '<div style="padding:1rem; background:rgba(16,185,129,0.1); color:#10b981; border-radius:0.5rem;"><i class="fas fa-check"></i> No tax-loss harvesting opportunities found. Portfolio is tax-efficient.</div>';
+                } else {
+                    data.opportunities.forEach(opp => {
+                        html += `
+                            <div style="background:var(--bg-primary); padding:1rem; border-radius:0.5rem; margin-bottom:1rem; border-left:4px solid #3b82f6;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                                    <strong>${opp.symbol}</strong>
+                                    <span style="color: var(--danger-color, #dc2626); font-weight:bold;">${opp.pnl_pct}% (₹${opp.pnl_value})</span>
+                                </div>
+                                <p style="margin:0; font-size:0.8rem;">${opp.harvest_reason}</p>
+                                <div class="opb-harvest-manual-badge" role="status"
+                                     title="Automated harvest-swap execution is not available; execute the recommended replacement manually through your broker.">
+                                    <i class="fas fa-hand-paper"></i>
+                                    Manual Broker Execution Required
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('taxloss-results').innerHTML = html;
+            }
+        }
+
+        async function generateGenAIReport() {
+            if (!currentScanData) return alert("Please run a portfolio scan first.");
+            document.getElementById('report-modal').classList.add('active');
+            document.getElementById('report-content').innerText = 'Connecting to GenAI Engine (Gemini). Drafting personalized quantitative report...';
+            
+            const data = await apiFetch('/api/v1/admin/generate-report', {
+                method: 'POST',
+                body: JSON.stringify(currentScanData)
+            });
+            if (data && data.markdown) {
+                document.getElementById('report-content').innerHTML = data.markdown.replace(/\n/g, '<br>');
+            }
+        }
+
+        async function pollSystemStatus() {
+            try {
+                const data = await apiFetch('/api/v1/admin/system-status');
+                if (!data) return;
+                // Redis
+                if (data.redis_connected) {
+                    document.getElementById('hud-redis-status').innerHTML = '<span style="color:#10b981;"><i class="fas fa-bolt"></i> REDIS: Microsecond Active</span>';
+                } else {
+                    document.getElementById('hud-redis-status').innerHTML = '<span style="color:#f59e0b;"><i class="fas fa-server"></i> REST: 15m Polling Fallback</span>';
+                }
+                
+                // Sentiment
+                let sentColor = data.latest_sentiment_score > 0 ? '#10b981' : (data.latest_sentiment_score < 0 ? '#ef4444' : '#6b7280');
+                let aiIcon = data.agentic_active ? '<i class="fas fa-robot"></i> LLM Active' : '<i class="fas fa-calculator"></i> Heuristic Fallback';
+                document.getElementById('hud-sentiment-status').innerHTML = `
+                    <span style="color:${sentColor};">${data.latest_sentiment_score}</span> 
+                    <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">(${aiIcon})</span>
+                `;
+                
+                // VIX & Collateral
+                let vixColor = data.india_vix > 20 ? '#ef4444' : '#10b981';
+                document.getElementById('hud-vix-status').innerHTML = `
+                    VIX: <span style="color:${vixColor};">${data.india_vix}</span> 
+                    <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">| Cash Buffer: ${data.dynamic_cash_buffer_pct}%</span>
+                `;
+            } catch(e) {
+                console.error("HUD Polling failed", e);
+            }
+        }
+
+        // Initialize HUD polling
+        pollSystemStatus();
+        setInterval(pollSystemStatus, 15000);
+
+    </script>    {% include "_pwa_sw_reg.html" %}
+    <script nonce="{{ nonce }}">
+        // Wired via addEventListener, not inline attributes - CSP's script-src
+        // has no 'unsafe-inline', which silently blocks inline event-handler
+        // attributes even though a nonce'd block itself can still run (2026-08-22 fix).
+        document.getElementById('cspfix-1')?.addEventListener('click', function(event) { loadSamplePortfolio() });
+        document.getElementById('cspfix-2')?.addEventListener('click', function(event) { openBrokerPanel('zerodha', 'Zerodha (Kite)', '#387ed1') });
+        document.getElementById('cspfix-3')?.addEventListener('click', function(event) { openBrokerPanel('angelone', 'Angel One', '#eb1c24') });
+        document.getElementById('cspfix-4')?.addEventListener('click', function(event) { openBrokerPanel('iifl', 'IIFL Markets', '#00529b') });
+        document.getElementById('cspfix-5')?.addEventListener('click', function(event) { openBrokerPanel('upstox', 'Upstox', '#7b2cbf') });
+        document.getElementById('cspfix-6')?.addEventListener('click', function(event) { openBrokerPanel('groww', 'Groww', '#00d09c') });
+        document.getElementById('cspfix-7')?.addEventListener('click', function(event) { openBrokerPanel('icicidirect', 'ICICI Direct', '#f37021') });
+        document.getElementById('cspfix-8')?.addEventListener('click', function(event) { openBrokerPanel('dhan', 'Dhan', '#2c7be5') });
+        document.getElementById('cspfix-9')?.addEventListener('click', function(event) { openBrokerPanel('fyers', 'Fyers', '#ff4d4f') });
+        document.getElementById('cspfix-10')?.addEventListener('click', function(event) { openBrokerPanel('mstock', 'm.Stock (Mirae Asset)', '#002f6c') });
+        document.getElementById('cspfix-11')?.addEventListener('click', function(event) { openTaxLossModal() });
+        document.getElementById('cspfix-12')?.addEventListener('click', function(event) { generateGenAIReport() });
+        document.getElementById('cspfix-13')?.addEventListener('click', function(event) { closeModal('broker-modal') });
+        document.getElementById('btn-fetch-holdings')?.addEventListener('click', function(event) { fetchBrokerHoldings() });
+        document.getElementById('cspfix-14')?.addEventListener('click', function(event) { closeModal('confirm-modal') });
+        document.getElementById('cspfix-15')?.addEventListener('click', function(event) { addManualPosition() });
+        document.getElementById('cspfix-16')?.addEventListener('click', function(event) { closeModal('confirm-modal') });
+        document.getElementById('cspfix-17')?.addEventListener('click', function(event) { runScanFromConfirmation() });
+        document.getElementById('cspfix-18')?.addEventListener('click', function(event) { closeModal('proof-modal') });
+        document.getElementById('cspfix-19')?.addEventListener('click', function(event) { closeModal('hedge-modal') });
+        document.getElementById('cspfix-20')?.addEventListener('click', function(event) { closeModal('hedge-modal') });
+        document.getElementById('cspfix-21')?.addEventListener('click', function(event) { closeModal('taxloss-modal') });
+        document.getElementById('cspfix-22')?.addEventListener('click', function(event) { closeModal('report-modal') });
+
+    </script>
+</body>
+</html>

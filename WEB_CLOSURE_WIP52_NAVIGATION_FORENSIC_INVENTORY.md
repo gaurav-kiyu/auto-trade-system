@@ -1,0 +1,481 @@
+# OPB WEB CLOSURE WIP52 — Global Navigation Forensic Inventory
+
+UI navigation/action declarations scanned: 438
+Route-like UI references extracted: 113
+Distinct route-like references: 34
+
+## Distinct route-like references
+- `/admin/config` — 9 occurrence(s)
+- `/admin/portfolio-analyzer` — 8 occurrence(s)
+- `/live-pnl` — 7 occurrence(s)
+- `/admin/kill-switch` — 7 occurrence(s)
+- `/strategy-sandbox` — 6 occurrence(s)
+- `/my-signals` — 6 occurrence(s)
+- `/options-chain` — 6 occurrence(s)
+- `/admin/signals` — 6 occurrence(s)
+- `/trade-journal` — 4 occurrence(s)
+- `/governance` — 4 occurrence(s)
+- `/sector-radar` — 3 occurrence(s)
+- `/margin-radar` — 3 occurrence(s)
+- `/performance` — 3 occurrence(s)
+- `/metrics-trend` — 3 occurrence(s)
+- `/intelligence` — 3 occurrence(s)
+- `/profile` — 2 occurrence(s)
+- `/fii-dii-radar` — 2 occurrence(s)
+- `/expiry-harvester` — 2 occurrence(s)
+- `/trade-copier` — 2 occurrence(s)
+- `/payoff-calculator` — 2 occurrence(s)
+- `/ab-tester` — 2 occurrence(s)
+- `/admin/users` — 2 occurrence(s)
+- `/security` — 2 occurrence(s)
+- `/observability` — 2 occurrence(s)
+- `/system-health` — 2 occurrence(s)
+- `/data-quality` — 2 occurrence(s)
+- `/capacity` — 2 occurrence(s)
+- `/event-store` — 2 occurrence(s)
+- `/pricing-plans` — 2 occurrence(s)
+- `/whats-new` — 2 occurrence(s)
+- `/intelligence/presentation` — 2 occurrence(s)
+- `/g,` — 1 occurrence(s)
+- `/forgot-password` — 1 occurrence(s)
+- `/register` — 1 occurrence(s)
+
+## Source declarations
+- `templates/enterprise/fii_dii_radar.html:9` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/fii_dii_radar.html:25` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/fii_dii_radar.html:26` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/fii_dii_radar.html:27` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/fii_dii_radar.html:28` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/fii_dii_radar.html:29` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/dashboard.html:10` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/dashboard.html:11` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css?v=4.0">`
+- `templates/enterprise/dashboard.html:237` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/dashboard.html:267` [href] — `<a href="/strategy-sandbox" class="opb-tab" style="padding:0.35rem 0.75rem;font-size:0.75rem;color:var(--accent-color);border-color:var(--accent-color);" title="Launch Sandbox Studio">`
+- `templates/enterprise/dashboard.html:283` [href] — `<a href="/strategy-sandbox" class="btn btn-primary btn-sm" title="Strategy Lab" style="padding:0.3rem 0.6rem;font-size:0.75rem;">`
+- `templates/enterprise/dashboard.html:545` [href] — `<a href="/my-signals" class="opb-quick-tile"><i class="fas fa-bell" style="color:#38bdf8;"></i> Signals</a>`
+- `templates/enterprise/dashboard.html:546` [href] — `<a href="/live-pnl" class="opb-quick-tile"><i class="fas fa-dollar-sign" style="color: var(--success-color, #16a34a);"></i> Live P&L</a>`
+- `templates/enterprise/dashboard.html:547` [href] — `<a href="/options-chain" class="opb-quick-tile"><i class="fas fa-list" style="color:#ec4899;"></i> Chains</a>`
+- `templates/enterprise/dashboard.html:548` [href] — `<a href="/trade-journal" class="opb-quick-tile"><i class="fas fa-book" style="color:#10b981;"></i> Journal</a>`
+- `templates/enterprise/dashboard.html:549` [href] — `<a href="/sector-radar" class="opb-quick-tile"><i class="fas fa-compass" style="color:#f59e0b;"></i> Sector</a>`
+- `templates/enterprise/dashboard.html:550` [href] — `<a href="/strategy-sandbox" class="opb-quick-tile"><i class="fas fa-flask" style="color:#c084fc;"></i> Sandbox</a>`
+- `templates/enterprise/dashboard.html:552` [href] — `<a href="/margin-radar" class="opb-quick-tile"><i class="fas fa-shield-alt" style="color:#f59e0b;"></i> Margins</a>`
+- `templates/enterprise/dashboard.html:553` [href] — `<a href="/governance" class="opb-quick-tile"><i class="fas fa-gavel" style="color:#8b5cf6;"></i> Governance</a>`
+- `templates/enterprise/dashboard.html:554` [href] — `<a href="/admin/config" class="opb-quick-tile"><i class="fas fa-cogs" style="color:#34d399;"></i> Config</a>`
+- `templates/enterprise/dashboard.html:555` [href] — `<a href="/admin/kill-switch" class="opb-quick-tile" style="color: var(--danger-color, #dc2626);"><i class="fas fa-power-off" style="color: var(--danger-color, #dc2626);"></i> Kill Switch</a>`
+- `templates/enterprise/intelligence.html:9` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/intelligence.html:61` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/intelligence.html:62` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/intelligence.html:63` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/intelligence.html:64` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/intelligence.html:65` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/intelligence.html:510` [href,location] — `if(r.status===401){window.location.href='/login';return null}`
+- `templates/enterprise/intelligence.html:533` [href,location] — `async function logout(){await apiFetch('/api/auth/logout',{method:'POST'});window.location.href='/login';}`
+- `templates/enterprise/intelligence.html:590` [router] — `const recs = rawRecs.map(rec => String(rec).replace(/(\d+\.\d{2,})%/g, (m, p1) => parseFloat(p1).toFixed(1) + '%'));`
+- `templates/enterprise/intelligence.html:808` [router] — `tbody.innerHTML = data.deployments.slice(0,15).map(d => '<tr><td style="font-size:0.7rem;">'+(d.date||'').substring(0,19).replace('T',' ')+'</td><td style="font-family:monospace;font-size:0.7rem;">'+d.commit_hash+'</td><td>'+d.commit_message+'</td><td>'+d.files_changed+'</td><td style="color: var(--success-color, #16a34a);">+'+d.lines_added+'</td><td style="color: var(--danger-color, #dc2626);">-'+d.lines_deleted+'</td></tr>').join('');`
+- `templates/enterprise/intelligence.html:862` [router] — `statsHtml += '<span style="color: var(--text-muted, #94a3b8);">' + kv[0].replace(/_/g,' ').substring(0,18) + '</span>';`
+- `templates/enterprise/intelligence.html:935` [router] — `statsHtml += '<span style="color: var(--text-muted, #94a3b8);">' + kv[0].replace(/_/g,' ').substring(0,18) + '</span>';`
+- `templates/enterprise/intelligence.html:1020` [router] — `'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+(inc.description||'').replace(/"/g,'&quot;')+'">'+inc.title+'</td>' +`
+- `templates/enterprise/intelligence.html:1023` [router] — `'<td style="font-size:0.7rem;">'+(inc.created_at||'').substring(0,19).replace('T',' ')+'</td>' +`
+- `templates/enterprise/intelligence.html:1068` [router] — `'<td style="font-size:0.7rem;">'+(inc.resolved_at||inc.closed_at||'').substring(0,19).replace('T',' ')+'</td>' +`
+- `templates/enterprise/login.html:7` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/login.html:349` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/login.html:350` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/login.html:351` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/login.html:352` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/login.html:353` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/login.html:418` [href] — `<a href="/forgot-password" style="color:var(--accent-color, #38bdf8);text-decoration:none;font-size:0.75rem;font-weight:700;">Forgot password?</a>`
+- `templates/enterprise/login.html:435` [href] — `Don't have an account? <a href="/register">Create an account</a>`
+- `templates/enterprise/login.html:537` [href,location] — `window.location.href = targetUrl;`
+- `templates/enterprise/margin_radar.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/margin_radar.html:32` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/margin_radar.html:33` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/margin_radar.html:34` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/margin_radar.html:35` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/margin_radar.html:36` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/data_quality.html:8` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/data_quality.html:42` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/data_quality.html:44` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/data_quality.html:45` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/data_quality.html:46` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/data_quality.html:47` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/data_quality.html:48` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/data_quality.html:200` [href,location] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/admin_config.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_config.html:267` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/admin_config.html:268` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/admin_config.html:269` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/admin_config.html:270` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_config.html:271` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_config.html:280` [href] — `<a class="btn btn-sm btn-primary" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>`
+- `templates/enterprise/admin_config.html:281` [href] — `<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>`
+- `templates/enterprise/admin_config.html:282` [href] — `<a class="btn btn-sm btn-ghost" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>`
+- `templates/enterprise/admin_config.html:595` [href,location] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/sector_radar.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/sector_radar.html:33` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/sector_radar.html:34` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/sector_radar.html:35` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/sector_radar.html:36` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/sector_radar.html:37` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/sector_radar.html:118` [router] — `if (quadMap[s.quadrant]) quadMap[s.quadrant].push(s);`
+- `templates/enterprise/ab_tester.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/ab_tester.html:35` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/ab_tester.html:36` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/ab_tester.html:37` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/ab_tester.html:38` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/ab_tester.html:39` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/ab_tester.html:66` [href,location] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/event_store.html:9` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/event_store.html:34` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/event_store.html:36` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/event_store.html:37` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/event_store.html:38` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/event_store.html:39` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/event_store.html:40` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/event_store.html:76` [href,location] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/event_store.html:90` [router] — `document.getElementById('eventsBody').innerHTML = events.map(e => '<tr><td>'+(e.event_id||e.id||'-')+'</td><td>'+(e.event_type||e.type||'-')+'</td><td class="hash-cell" title="'+(e.aggregate_id||'')+'">'+(e.aggregate_id||'-')+'</td><td style="font-size:0.7rem;">'+((e.timestamp||'').substring(0,19).replace('T',' ')||'-')+'</td><td class="hash-cell" title="'+(e.event_hash||'')+'">'+truncate(e.event_hash)+'</td><td class="hash-cell" title="'+(e.previous_event_hash||'')+'">'+truncate(e.previous_event_hash)+'</td></tr>').join('');`
+- `templates/enterprise/admin_portfolio_analyzer.html:8` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:119` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:120` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:121` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:122` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:123` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_portfolio_analyzer.html:132` [href] — `<a class="btn btn-sm btn-ghost" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>`
+- `templates/enterprise/admin_portfolio_analyzer.html:133` [href] — `<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>`
+- `templates/enterprise/admin_portfolio_analyzer.html:134` [href] — `<a class="btn btn-sm btn-primary" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>`
+- `templates/enterprise/admin_portfolio_analyzer.html:312` [href] — `<a aria-disabled="true" class="btn-accent" href="/admin/portfolio-analyzer" id="broker-oauth-link" rel="noopener noreferrer" style="padding:0.65rem 1.25rem; text-decoration:none; display:inline-flex; align-items:center; gap:0.5rem; font-size:0.85rem; background: #3b82f6; pointer-events:none; opacity:0.6;" target="_blank">`
+- `templates/enterprise/admin_portfolio_analyzer.html:459` [href,location] — `if(r.status===401){window.location.href='/login';return null}`
+- `templates/enterprise/admin_portfolio_analyzer.html:472` [href] — `oauthLink.href = '/admin/portfolio-analyzer';`
+- `templates/enterprise/admin_portfolio_analyzer.html:480` [href] — `oauthLink.href = info.auth_url;`
+- `templates/enterprise/admin_portfolio_analyzer.html:607` [router] — `importedPositions.push({`
+- `templates/enterprise/admin_portfolio_analyzer.html:736` [onclick] — `btn.onclick = () => confirmExecuteHedge(symbol, action);`
+- `templates/enterprise/admin_portfolio_analyzer.html:798` [router] — `document.getElementById('report-content').innerHTML = data.markdown.replace(/\n/g, '<br>');`
+- `templates/enterprise/_pwa_mobile_nav.html:53` [href] — `<a href="/" class="nav-item{% if current_page == 'dashboard' %} active{% endif %}">`
+- `templates/enterprise/_pwa_mobile_nav.html:57` [href] — `<a href="/performance" class="nav-item{% if current_page == 'performance' %} active{% endif %}">`
+- `templates/enterprise/_pwa_mobile_nav.html:61` [href] — `<a href="/trade-journal" class="nav-item{% if current_page == 'trade_journal' %} active{% endif %}">`
+- `templates/enterprise/_pwa_mobile_nav.html:65` [href] — `<a href="/metrics-trend" class="nav-item{% if current_page == 'metrics_trend' %} active{% endif %}">`
+- `templates/enterprise/_pwa_mobile_nav.html:69` [href] — `<a href="/live-pnl" class="nav-item{% if current_page == 'live_pnl' %} active{% endif %}">`
+- `templates/enterprise/user_signals.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/user_signals.html:64` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/user_signals.html:65` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/user_signals.html:66` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/user_signals.html:67` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/user_signals.html:68` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/user_signals.html:249` [href,location] — `if (res.status === 401) { window.location.href = '/login'; return; }`
+- `templates/enterprise/user_signals.html:305` [router] — `<i class="far fa-clock" style="margin-right:0.3rem;color: var(--text-muted, #94a3b8);"></i>${s.timestamp ? s.timestamp.substring(0, 19).replace('T', ' ') : '-'}`
+- `templates/enterprise/user_signals.html:355` [href] — `<a href="https://in.tradingview.com/chart/?symbol=NSE:${s.symbol}" target="_blank" class="btn btn-ghost" style="padding:3px 7px;font-size:0.7rem;text-decoration:none;" title="Open Chart">`
+- `templates/enterprise/payoff_calculator.html:11` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/payoff_calculator.html:38` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/payoff_calculator.html:39` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/payoff_calculator.html:40` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/payoff_calculator.html:41` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/payoff_calculator.html:42` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/payoff_calculator.html:131` [router] — `legs.push({`
+- `templates/enterprise/trade_copier.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/trade_copier.html:28` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/trade_copier.html:29` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/trade_copier.html:30` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/trade_copier.html:31` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/trade_copier.html:32` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_signals.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_signals.html:43` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/admin_signals.html:44` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/admin_signals.html:45` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/admin_signals.html:46` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_signals.html:47` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_signals.html:56` [href] — `<a class="btn btn-sm btn-ghost" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>`
+- `templates/enterprise/admin_signals.html:57` [href] — `<a class="btn btn-sm btn-primary" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>`
+- `templates/enterprise/admin_signals.html:58` [href] — `<a class="btn btn-sm btn-ghost" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>`
+- `templates/enterprise/admin_signals.html:188` [href,location] — `if (res.status === 401) { window.location.href = '/login'; return null; }`
+- `templates/enterprise/admin_signals.html:319` [router] — `return `<tr data-signal-row="1" data-instrument="${String(s.symbol || '').replace(/"/g, '&quot;').toUpperCase()} ${String(humanTitle || '').replace(/"/g, '&quot;').toUpperCase()}" data-time="${String(s.timestamp || '').replace(/"/g, '&quot;').toUpperCase()}" data-category="${String(s.category || '').replace(/"/g, '&quot;').toUpperCase()}" data-action="${String(s.direction || '').replace(/"/g, '&quot;').toUpperCase()}" data-score="${Number(s.score || 0)}" data-status="${String(s.status || '').replace(/"/g, '&quot;').toUpperCase()}">`
+- `templates/enterprise/admin_signals.html:321` [router] — `<i class="far fa-clock" style="margin-right:0.3rem;color: var(--text-muted, #94a3b8);"></i>${s.timestamp ? s.timestamp.substring(0, 19).replace('T', ' ') : '-'}`
+- `templates/enterprise/security.html:8` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/security.html:41` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/security.html:43` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/security.html:44` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/security.html:45` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/security.html:46` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/security.html:47` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/security.html:179` [href,location] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/admin_users.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_users.html:103` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/admin_users.html:104` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/admin_users.html:105` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/admin_users.html:106` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_users.html:107` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/admin_users.html:116` [href] — `<a class="btn btn-sm btn-ghost" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>`
+- `templates/enterprise/admin_users.html:117` [href] — `<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>`
+- `templates/enterprise/admin_users.html:118` [href] — `<a class="btn btn-sm btn-ghost" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>`
+- `templates/enterprise/admin_users.html:414` [href,location] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/admin_users.html:489` [router] — `const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({`
+- `templates/enterprise/admin_users.html:685` [router] — `const esc = v => String(v ?? '-').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));`
+- `templates/enterprise/capacity.html:8` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/capacity.html:36` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/capacity.html:38` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/capacity.html:39` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/capacity.html:40` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/capacity.html:41` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/capacity.html:42` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/capacity.html:124` [href,location] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/strategy_sandbox.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/strategy_sandbox.html:73` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/strategy_sandbox.html:74` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/strategy_sandbox.html:75` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/strategy_sandbox.html:76` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/strategy_sandbox.html:77` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/strategy_sandbox.html:90` [href] — `<a class="btn" href="#strategies-breakdown" style="background: var(--bg-card-hover, #1e293b);color:#38bdf8;border: 1px solid var(--border-color, #334155);">`
+- `templates/enterprise/observability.html:8` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/observability.html:40` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/observability.html:42` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/observability.html:43` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/observability.html:44` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/observability.html:45` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/observability.html:46` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/observability.html:153` [href,location] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/presentation.html:8` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/presentation.html:23` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/kill_switch.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/kill_switch.html:45` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/kill_switch.html:46` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/kill_switch.html:47` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/kill_switch.html:48` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/kill_switch.html:49` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/kill_switch.html:110` [href,location] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/reset_password.html:7` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/reset_password.html:130` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/reset_password.html:131` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/reset_password.html:132` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/reset_password.html:133` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/reset_password.html:134` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/reset_password.html:185` [href] — `Back to <a href="/login">Sign In</a>`
+- `templates/enterprise/reset_password.html:276` [href,location] — `setTimeout(() => { window.location.href = '/login'; }, 2000);`
+- `templates/enterprise/error.html:7` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/error.html:141` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/error.html:142` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/error.html:143` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/error.html:144` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/error.html:145` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/error.html:169` [href] — `<a href="/" class="btn btn-primary"><i class="fas fa-home"></i> Cockpit</a>`
+- `templates/enterprise/error.html:170` [href] — `<a href="/login" class="btn btn-ghost"><i class="fas fa-sign-in-alt"></i> Login</a>`
+- `templates/enterprise/pricing_plans.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/pricing_plans.html:29` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/pricing_plans.html:30` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/pricing_plans.html:31` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/pricing_plans.html:32` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/pricing_plans.html:33` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/pricing_plans.html:120` [href,location] — `window.location.href = '/my-signals';`
+- `templates/enterprise/change_password.html:9` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/change_password.html:30` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/change_password.html:31` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/change_password.html:32` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/change_password.html:33` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/change_password.html:34` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/change_password.html:74` [href] — `<a href="/" class="btn btn-ghost">Cancel</a>`
+- `templates/enterprise/forgot_password.html:8` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/forgot_password.html:135` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/forgot_password.html:136` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/forgot_password.html:137` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/forgot_password.html:138` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/forgot_password.html:139` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/forgot_password.html:234` [href] — `Remembered your credentials? <a href="/login">Back to Sign In</a>`
+- `templates/enterprise/forgot_password.html:294` [href] — `successBox.innerHTML = `<strong>Reset Link Generated!</strong><br>Click below to proceed to the password reset page:<br><a href="${data.reset_url}" style="color: var(--success-color, #16a34a);font-weight:700;text-decoration:underline;display:inline-block;margin-top:0.5rem;">👉 Click Here to Set New Password</a>`;`
+- `templates/enterprise/forgot_password.html:348` [href,location] — `setTimeout(() => window.location.href = '/login', 1500);`
+- `templates/enterprise/governance.html:8` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/governance.html:56` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/governance.html:58` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/governance.html:59` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/governance.html:60` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/governance.html:61` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/governance.html:62` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/governance.html:187` [href,location] — `if (res.status===401) { window.location.href='/login'; return null; }`
+- `templates/enterprise/governance.html:264` [router] — `<td style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">${r.requested_at ? r.requested_at.substring(0, 19).replace('T', ' ') : '-'}</td>`
+- `templates/enterprise/trade_journal.html:9` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/trade_journal.html:32` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/trade_journal.html:33` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/trade_journal.html:34` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/trade_journal.html:35` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/trade_journal.html:36` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/trade_journal.html:61` [href,location] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/trade_journal.html:81` [router] — `tb.innerHTML = entries.map(e => '<tr><td style="font-size:0.75rem;white-space:nowrap;color: var(--text-muted, #94a3b8);">'+(e.timestamp||'').substring(0,19).replace('T',' ')+'</td><td><strong style="color: var(--text-primary, #f8fafc);">'+e.symbol+'</strong></td><td>'+(e.direction||'')+'</td><td>'+e.quantity+'</td><td>₹'+(e.expected_price||0).toFixed(2)+'</td><td>₹'+(e.filled_price||0).toFixed(2)+'</td><td style="color:'+(e.slippage<=0.5?'#4ade80':'#fbbf24')+'">₹'+(e.slippage||0).toFixed(2)+'</td><td>'+(e.latency_ms||0).toFixed(0)+'ms</td><td>'+qualityBadge(e.quality)+'</td></tr>').join('');`
+- `templates/enterprise/register.html:7` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/register.html:151` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/register.html:152` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/register.html:153` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/register.html:154` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/register.html:155` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/register.html:242` [href] — `Already have an account? <a href="/login">Sign in</a>`
+- `templates/enterprise/register.html:340` [href,location] — `setTimeout(() => { window.location.href = '/login'; }, 1500);`
+- `templates/enterprise/options_chain.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/options_chain.html:35` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/options_chain.html:36` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/options_chain.html:37` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/options_chain.html:38` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/options_chain.html:39` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/options_chain.html:133` [href,location] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/options_chain.html:189` [router] — `document.getElementById('timestampDisplay').textContent = data.timestamp ? 'Updated: ' + data.timestamp.substring(0,19).replace('T',' ') : '';`
+- `templates/enterprise/metrics_trend.html:8` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/metrics_trend.html:9` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/metrics_trend.html:177` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/metrics_trend.html:354` [router] — `return String(v).replace(/[&<>"']/g, c => (`
+- `templates/enterprise/metrics_trend.html:369` [router] — `<td>${(s.captured_at_iso || '').replace('T', ' ').slice(0, 19)}</td>`
+- `templates/enterprise/system_health.html:9` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/system_health.html:35` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/system_health.html:37` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/system_health.html:38` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/system_health.html:39` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/system_health.html:40` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/system_health.html:41` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/system_health.html:89` [href,location] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/system_health.html:111` [router] — `document.getElementById('notifBody').innerHTML = notifs.length ? notifs.slice(0,20).map(n=>'<tr><td style="font-size:0.7rem;">'+(n.timestamp||'').substring(0,19).replace('T',' ')+'</td><td>'+badge(n.level||n.severity||'info')+'</td><td>'+n.message+'</td></tr>').join('') : '<tr><td colspan="3" style="color: var(--text-muted, #94a3b8);text-align:center;">No notifications</td></tr>';`
+- `templates/enterprise/whats_new.html:9` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/whats_new.html:29` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/whats_new.html:30` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/whats_new.html:31` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/whats_new.html:32` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/whats_new.html:33` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/expiry_harvester.html:10` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/expiry_harvester.html:28` [href] — `<link href="https://fonts.googleapis.com" rel="preconnect"/>`
+- `templates/enterprise/expiry_harvester.html:29` [href] — `<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>`
+- `templates/enterprise/expiry_harvester.html:30` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;700;800&amp;display=swap" rel="stylesheet"/>`
+- `templates/enterprise/expiry_harvester.html:31` [href] — `<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>`
+- `templates/enterprise/expiry_harvester.html:32` [href] — `<link href="/static/opb_design_system.css" rel="stylesheet"/>`
+- `templates/enterprise/_pwa_head.html:4` [href] — `<link rel="manifest" href="/static/dashboard-manifest.json">`
+- `templates/enterprise/_pwa_head.html:9` [href] — `<link rel="apple-touch-icon" href="/static/opb-icon-192.svg">`
+- `templates/enterprise/_pwa_head.html:10` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/_pwa_head.html:11` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/_pwa_head.html:12` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/_pwa_head.html:13` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css?v=4.0">`
+- `templates/enterprise/profile.html:7` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/profile.html:8` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/profile.html:363` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/profile.html:545` [href] — `<a href="/my-signals" class="quick-nav-link">`
+- `templates/enterprise/profile.html:549` [href] — `<a href="/live-pnl" class="quick-nav-link">`
+- `templates/enterprise/profile.html:553` [href] — `<a href="/options-chain" class="quick-nav-link">`
+- `templates/enterprise/profile.html:614` [href,location] — `window.location.href = '/login';`
+- `templates/enterprise/profile.html:642` [router] — `document.getElementById('permTierText').textContent = p.min_signal_tier.replace(/_/g, ' ');`
+- `templates/enterprise/performance.html:9` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/performance.html:35` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/performance.html:36` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/performance.html:37` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/performance.html:38` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/performance.html:39` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/performance.html:101` [href,location] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `templates/enterprise/_nav.html:397` [href] — `<a href="/" style="text-decoration:none;display:flex;align-items:center;gap:0.65rem;white-space:nowrap;" title="Go to Home Cockpit">`
+- `templates/enterprise/_nav.html:434` [href] — `{% if can_halt_trading %}<a href="/admin/kill-switch" class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:0.35rem;font-weight:800;padding:0.35rem 0.75rem;font-size:0.75rem;text-decoration:none;border-radius:0.4rem;box-shadow:0 2px 8px rgba(220,38,38,0.35);flex-shrink:0;white-space:nowrap;min-width:max-content;">`
+- `templates/enterprise/_nav.html:441` [href] — `<a href="/profile" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;color:var(--text-primary,#ffffff);font-size:0.8rem;font-weight:700;white-space:nowrap;flex-shrink:0;">`
+- `templates/enterprise/_nav.html:444` [href] — `<a href="/logout" class="btn btn-ghost btn-sm" style="padding:0.3rem 0.55rem;font-size:0.75rem;white-space:nowrap;flex-shrink:0;" title="Sign Out">`
+- `templates/enterprise/_nav.html:453` [href] — `<a href="/" class="opb-nav-item {% if current_page in ('dashboard', 'home') %}active{% endif %}">🏠 Command Center</a>`
+- `templates/enterprise/_nav.html:454` [href] — `<a href="/my-signals" class="opb-nav-item {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}">⚡ Signals Radar</a>`
+- `templates/enterprise/_nav.html:457` [href] — `<a href="/options-chain" class="opb-nav-item {% if current_page in ('options_chain', 'sector_radar', 'fii_dii_radar', 'expiry_harvester', 'margin_radar') %}active{% endif %}">`
+- `templates/enterprise/_nav.html:461` [href] — `<a href="/options-chain" class="opb-ws-item {% if current_page == 'options_chain' %}active{% endif %}"><span>⚡ Options Chain Heatmap</span></a>`
+- `templates/enterprise/_nav.html:462` [href] — `<a href="/sector-radar" class="opb-ws-item {% if current_page == 'sector_radar' %}active{% endif %}"><span>📡 Sector Money Flow</span></a>`
+- `templates/enterprise/_nav.html:463` [href] — `<a href="/fii-dii-radar" class="opb-ws-item {% if current_page == 'fii_dii_radar' %}active{% endif %}"><span>🏦 Institutional FII/DII</span></a>`
+- `templates/enterprise/_nav.html:464` [href] — `<a href="/expiry-harvester" class="opb-ws-item {% if current_page == 'expiry_harvester' %}active{% endif %}"><span>🌾 Expiry Day Harvester</span></a>`
+- `templates/enterprise/_nav.html:465` [href] — `<a href="/margin-radar" class="opb-ws-item {% if current_page == 'margin_radar' %}active{% endif %}"><span>🛡️ Broker Margin Matrix</span></a>`
+- `templates/enterprise/_nav.html:470` [href] — `<a href="/live-pnl" class="opb-nav-item {% if current_page in ('live_pnl', 'trade_journal', 'trade_copier', 'payoff_calculator', 'performance') %}active{% endif %}">`
+- `templates/enterprise/_nav.html:474` [href] — `<a href="/live-pnl" class="opb-ws-item {% if current_page == 'live_pnl' %}active{% endif %}"><span>📈 Live P&L Cockpit</span></a>`
+- `templates/enterprise/_nav.html:475` [href] — `<a href="/trade-journal" class="opb-ws-item {% if current_page == 'trade_journal' %}active{% endif %}"><span>📔 Trade Journal & Audit</span></a>`
+- `templates/enterprise/_nav.html:476` [href] — `{% if can_manage_brokers %}<a href="/trade-copier" class="opb-ws-item {% if current_page == 'trade_copier' %}active{% endif %}"><span>⚡ Multi-Account Copier</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:477` [href] — `<a href="/payoff-calculator" class="opb-ws-item {% if current_page == 'payoff_calculator' %}active{% endif %}"><span>🧮 Multi-Leg Payoff Engine</span></a>`
+- `templates/enterprise/_nav.html:478` [href] — `<a href="/performance" class="opb-ws-item {% if current_page == 'performance' %}active{% endif %}"><span>📊 Strategy Performance</span></a>`
+- `templates/enterprise/_nav.html:483` [href] — `<a href="/strategy-sandbox" class="opb-nav-item {% if current_page in ('strategy_sandbox', 'intelligence', 'ab_tester', 'metrics_trend') %}active{% endif %}">`
+- `templates/enterprise/_nav.html:487` [href] — `<a href="/strategy-sandbox" class="opb-ws-item {% if current_page == 'strategy_sandbox' %}active{% endif %}"><span>🧪 Strategy Sandbox Lab</span></a>`
+- `templates/enterprise/_nav.html:488` [href] — `<a href="/intelligence" class="opb-ws-item {% if current_page == 'intelligence' %}active{% endif %}"><span>🧠 Intelligence Engine</span></a>`
+- `templates/enterprise/_nav.html:489` [href] — `<a href="/ab-tester" class="opb-ws-item {% if current_page == 'ab_tester' %}active{% endif %}"><span>🔬 A/B Testing Framework</span></a>`
+- `templates/enterprise/_nav.html:490` [href] — `<a href="/metrics-trend" class="opb-ws-item {% if current_page == 'metrics_trend' %}active{% endif %}"><span>📈 Success Metrics & Trends</span></a>`
+- `templates/enterprise/_nav.html:496` [href] — `<a href="/admin/config" class="opb-nav-item {% if current_page in ('admin_config', 'admin_signals', 'admin_portfolio_analyzer', 'governance', 'security', 'observability', 'system_health', 'data_quality', 'capacity', 'event_store', 'pricing_plans', 'whats_new', 'presentation', 'kill_switch') %}active{% endif %}">`
+- `templates/enterprise/_nav.html:500` [href] — `{% if can_manage_permissions %}<a href="/admin/users" class="opb-ws-item {% if current_page == 'admin_users' %}active{% endif %}"><span>👥 User Authorization & Controls</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:501` [href] — `{% if can_modify_config %}<a href="/admin/config" class="opb-ws-item {% if current_page == 'admin_config' %}active{% endif %}"><span>⚙️ Core System Configuration</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:502` [href] — `{% if can_modify_config or can_view_logs %}<a href="/admin/signals" class="opb-ws-item {% if current_page == 'admin_signals' %}active{% endif %}"><span>🎯 Signal Accuracy & Dispatch Matrix</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:503` [href] — `{% if can_manage_brokers or can_view_state %}<a href="/admin/portfolio-analyzer" class="opb-ws-item {% if current_page == 'admin_portfolio_analyzer' %}active{% endif %}"><span>💼 Multi-Broker Portfolio</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:504` [href] — `{% if can_toggle_strategies %}<a href="/governance" class="opb-ws-item {% if current_page == 'governance' %}active{% endif %}"><span>⚖️ Governance Policy Gate</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:505` [href] — `{% if can_view_logs %}<a href="/security" class="opb-ws-item {% if current_page == 'security' %}active{% endif %}"><span>🔒 Security Architecture</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:506` [href] — `{% if can_view_logs %}<a href="/observability" class="opb-ws-item {% if current_page == 'observability' %}active{% endif %}"><span>📉 Observability & Tracing</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:507` [href] — `{% if can_view_state %}<a href="/system-health" class="opb-ws-item {% if current_page == 'system_health' %}active{% endif %}"><span>🏥 System Health & Telemetry</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:508` [href] — `{% if can_view_state %}<a href="/data-quality" class="opb-ws-item {% if current_page == 'data_quality' %}active{% endif %}"><span>📊 Data Quality & Integrity Guard</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:509` [href] — `{% if can_view_state %}<a href="/capacity" class="opb-ws-item {% if current_page == 'capacity' %}active{% endif %}"><span>⚡ Capacity & Scalability</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:510` [href] — `{% if can_view_logs %}<a href="/event-store" class="opb-ws-item {% if current_page == 'event_store' %}active{% endif %}"><span>📜 Event Store & Audit Log</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:511` [href] — `{% if can_modify_config %}<a href="/pricing-plans" class="opb-ws-item {% if current_page == 'pricing_plans' %}active{% endif %}"><span>💎 Subscription & Pricing Plans</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:512` [href] — `{% if can_view_logs %}<a href="/whats-new" class="opb-ws-item {% if current_page == 'whats_new' %}active{% endif %}"><span>🚀 What's New & Changelog</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:513` [href] — `{% if can_view_state %}<a href="/intelligence/presentation" class="opb-ws-item {% if current_page == 'presentation' %}active{% endif %}"><span>📊 Institutional Presentation</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:514` [href] — `{% if can_modify_risk %}<a href="/admin/kill-switch" class="opb-ws-item {% if current_page == 'kill_switch' %}active{% endif %}" style="color: var(--danger-color, #ef4444);"><span>🚨 Emergency Kill Switch</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:529` [href] — `<a href="/" class="mobile-brand-title" style="text-decoration:none;display:flex;align-items:baseline;gap:0.3rem;white-space:nowrap;overflow:hidden;">`
+- `templates/enterprise/_nav.html:539` [href] — `<a href="/admin/kill-switch" class="mobile-kill-btn" title="Emergency Kill Switch" style="display:inline-flex;align-items:center;gap:0.25rem;background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);color:#ffffff!important;border:1px solid #b91c1c;padding:0.25rem 0.6rem;border-radius:0.45rem;font-size:0.72rem;font-weight:800;letter-spacing:0.03em;text-decoration:none;white-space:nowrap;box-shadow:0 2px 6px rgba(220,38,38,0.4);">`
+- `templates/enterprise/_nav.html:569` [href] — `<a href="/logout" class="btn btn-danger btn-sm" style="padding:0.25rem 0.55rem;font-size:0.72rem;font-weight:700;text-decoration:none;border-radius:0.375rem;white-space:nowrap;">`
+- `templates/enterprise/_nav.html:599` [href] — `<a href="/" class="drawer-nav-item {% if current_page in ('dashboard', 'home') %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">🏠</span> <span>Home Cockpit</span></a>`
+- `templates/enterprise/_nav.html:600` [href] — `<a href="/my-signals" class="drawer-nav-item {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">⚡</span> <span>Signals Radar</span></a>`
+- `templates/enterprise/_nav.html:601` [href] — `<a href="/strategy-sandbox" class="drawer-nav-item {% if current_page == 'strategy_sandbox' %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">🧪</span> <span>Strategy Sandbox Lab</span></a>`
+- `templates/enterprise/_nav.html:602` [href] — `<a href="/intelligence" class="drawer-nav-item {% if current_page == 'intelligence' %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">🧠</span> <span>Intelligence Engine</span></a>`
+- `templates/enterprise/_nav.html:605` [href] — `<a href="/options-chain" class="drawer-nav-item {% if current_page == 'options_chain' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚡</span> <span>Options Chain Matrix</span></a>`
+- `templates/enterprise/_nav.html:606` [href] — `<a href="/margin-radar" class="drawer-nav-item {% if current_page == 'margin_radar' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🛡️</span> <span>Broker Margin Radar</span></a>`
+- `templates/enterprise/_nav.html:607` [href] — `<a href="/sector-radar" class="drawer-nav-item {% if current_page == 'sector_radar' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📡</span> <span>Sector Radar Flow</span></a>`
+- `templates/enterprise/_nav.html:608` [href] — `<a href="/fii-dii-radar" class="drawer-nav-item {% if current_page == 'fii_dii_radar' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🏦</span> <span>Institutional FII/DII</span></a>`
+- `templates/enterprise/_nav.html:609` [href] — `<a href="/expiry-harvester" class="drawer-nav-item {% if current_page == 'expiry_harvester' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🌾</span> <span>Expiry Harvester</span></a>`
+- `templates/enterprise/_nav.html:612` [href] — `<a href="/live-pnl" class="drawer-nav-item {% if current_page == 'live_pnl' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📈</span> <span>Live P&L Cockpit</span></a>`
+- `templates/enterprise/_nav.html:613` [href] — `<a href="/trade-journal" class="drawer-nav-item {% if current_page == 'trade_journal' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📔</span> <span>Trade Journal</span></a>`
+- `templates/enterprise/_nav.html:614` [href] — `{% if can_manage_brokers %}<a href="/trade-copier" class="drawer-nav-item {% if current_page == 'trade_copier' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚡</span> <span>Trade Copier</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:615` [href] — `<a href="/payoff-calculator" class="drawer-nav-item {% if current_page == 'payoff_calculator' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🧮</span> <span>Payoff Calculator</span></a>`
+- `templates/enterprise/_nav.html:616` [href] — `<a href="/performance" class="drawer-nav-item {% if current_page == 'performance' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📊</span> <span>Strategy Performance</span></a>`
+- `templates/enterprise/_nav.html:617` [href] — `<a href="/metrics-trend" class="drawer-nav-item {% if current_page == 'metrics_trend' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📈</span> <span>Success Metrics & Trends</span></a>`
+- `templates/enterprise/_nav.html:621` [href] — `{% if can_manage_permissions %}<a href="/admin/users" class="drawer-nav-item {% if current_page == 'admin_users' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">👥</span> <span>User Authorization & Access</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:622` [href] — `{% if can_modify_config %}<a href="/admin/config" class="drawer-nav-item {% if current_page == 'admin_config' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚙️</span> <span>System Configuration</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:623` [href] — `{% if can_modify_config or can_view_logs %}<a href="/admin/signals" class="drawer-nav-item {% if current_page == 'admin_signals' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🎯</span> <span>Signal Accuracy Matrix</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:624` [href] — `{% if can_manage_brokers or can_view_state %}<a href="/admin/portfolio-analyzer" class="drawer-nav-item {% if current_page == 'admin_portfolio_analyzer' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">💼</span> <span>Multi-Broker Portfolio</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:625` [href] — `{% if can_toggle_strategies %}<a href="/governance" class="drawer-nav-item {% if current_page == 'governance' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚖️</span> <span>Governance Policy Gate</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:626` [href] — `{% if can_view_logs %}<a href="/security" class="drawer-nav-item {% if current_page == 'security' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🔒</span> <span>Security Shield & Auth</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:627` [href] — `{% if can_view_logs %}<a href="/observability" class="drawer-nav-item {% if current_page == 'observability' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📉</span> <span>Observability & Tracing</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:628` [href] — `{% if can_view_state %}<a href="/system-health" class="drawer-nav-item {% if current_page == 'system_health' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🏥</span> <span>System Health & Telemetry</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:629` [href] — `{% if can_view_state %}<a href="/data-quality" class="drawer-nav-item {% if current_page == 'data_quality' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📊</span> <span>Data Quality Guard</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:630` [href] — `{% if can_view_state %}<a href="/capacity" class="drawer-nav-item {% if current_page == 'capacity' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚡</span> <span>Capacity & Scalability</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:631` [href] — `{% if can_view_logs %}<a href="/event-store" class="drawer-nav-item {% if current_page == 'event_store' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📜</span> <span>Event Store & Audit Log</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:632` [href] — `{% if can_deploy_models %}<a href="/ab-tester" class="drawer-nav-item {% if current_page == 'ab_tester' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🔬</span> <span>A/B Testing Framework</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:633` [href] — `{% if can_modify_config %}<a href="/pricing-plans" class="drawer-nav-item {% if current_page == 'pricing_plans' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">💎</span> <span>Subscription & Pricing</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:634` [href] — `{% if can_view_logs %}<a href="/whats-new" class="drawer-nav-item {% if current_page == 'whats_new' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🚀</span> <span>Release Notes & What's New</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:635` [href] — `{% if can_view_state %}<a href="/intelligence/presentation" class="drawer-nav-item {% if current_page == 'presentation' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📊</span> <span>Institutional Presentation</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:636` [href] — `{% if can_halt_trading %}<a href="/admin/kill-switch" class="drawer-nav-item {% if current_page == 'kill_switch' %}active{% endif %}" style="color:var(--danger-color, #ef4444);"><span style="font-size:1rem;margin-right:0.4rem;">🚨</span> <span>Emergency Kill Switch</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:640` [href] — `<a href="/profile" class="drawer-nav-item {% if current_page == 'profile' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">👤</span> <span>Profile Settings</span></a>`
+- `templates/enterprise/_nav.html:645` [href] — `<a href="/logout" class="drawer-logout-btn">`
+- `templates/enterprise/_nav.html:653` [href] — `<a href="/" class="mobile-dock-tab {% if current_page in ('dashboard', 'home') %}active{% endif %}" title="Command Center">`
+- `templates/enterprise/_nav.html:657` [href] — `<a href="/my-signals" class="mobile-dock-tab {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}" title="Signals Radar">`
+- `templates/enterprise/_nav.html:661` [href] — `<a href="/live-pnl" class="mobile-dock-tab {% if current_page == 'live_pnl' %}active{% endif %}" title="Live P&L Cockpit">`
+- `templates/enterprise/_nav.html:665` [href] — `<a href="/options-chain" class="mobile-dock-tab {% if current_page == 'options_chain' %}active{% endif %}" title="Options Matrix">`
+- `templates/enterprise/live_pnl.html:9` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/live_pnl.html:38` [href] — `<link rel="preconnect" href="https://fonts.googleapis.com">`
+- `templates/enterprise/live_pnl.html:39` [href] — `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`
+- `templates/enterprise/live_pnl.html:40` [href] — `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">`
+- `templates/enterprise/live_pnl.html:41` [href] — `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">`
+- `templates/enterprise/live_pnl.html:42` [href] — `<link rel="stylesheet" href="/static/opb_design_system.css">`
+- `templates/enterprise/live_pnl.html:108` [href,location] — `async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}`
+- `static/theme_engine.js:824` [onclick] — `if (closeBtn) closeBtn.onclick = removeToast;`
+- `static/theme_engine.js:889` [onclick] — `if (closeBtn) closeBtn.onclick = closeModal;`
+- `static/theme_engine.js:892` [onclick] — `if (cancelBtn) cancelBtn.onclick = closeModal;`
+- `static/theme_engine.js:896` [onclick] — `confirmBtn.onclick = () => {`
+- `static/theme_engine.js:902` [onclick] — `backdrop.onclick = (e) => {`
+- `static/theme_engine.js:1013` [href,location] — `window.location.href = '/';`
+- `static/theme_engine.js:1016` [href,location] — `window.location.href = '/intelligence';`
+- `static/theme_engine.js:1019` [href,location] — `window.location.href = '/governance';`
+- `static/theme_engine.js:1022` [href,location] — `window.location.href = '/admin/config';`
+- `static/theme_engine.js:1038` [href,location] — `window.location.href = '/admin/kill-switch';`
+- `static/theme_engine.js:1041` [href,location] — `window.location.href = '/admin/kill-switch';`
+- `static/vendor/tailwind.min.js:1` [router] — `(()=>{var qv=Object.create;var Hi=Object.defineProperty;var $v=Object.getOwnPropertyDescriptor;var Lv=Object.getOwnPropertyNames;var Mv=Object.getPrototypeOf,Nv=Object.prototype.hasOwnProperty;var df=r=>Hi(r,"__esModule",{value:!0});var hf=r=>{if(typeof require!="undefined")return require(r);throw new Error('Dynamic require of "'+r+'" is not supported')};var P=(r,e)=>()=>(r&&(e=r(r=0)),e);var x=(r,e)=>()=>(e||r((e={exports:{}}).exports,e),e.exports),Ge=(r,e)=>{df(r);for(var t in e)Hi(r,t,{get:e[t],enumerable:!0})},Bv=(r,e,t)=>{if(e&&typeof e=="object"||typeof e=="function")for(let i of Lv(e))!`
+- `static/vendor/tailwind.min.js:2` [router] — ``+S+n("^")}let b=i(h.replace(/\d/g," "))+f.slice(0,this.column-1).replace(/[^\t]/g," ");return n(">")+i(h)+s(f)+``
+- `static/vendor/tailwind.min.js:14` [router] — ``)&&(t=t.replace(/[^\n]+$/,"")),!1}),t&&(t=t.replace(/\S/g,"")),t}rawBeforeComment(e,t){let i;return e.walkComments(n=>{if(typeof n.raws.before!="undefined")return i=n.raws.before,i.includes(``
+- `static/vendor/tailwind.min.js:15` [router] — ``)&&(i=i.replace(/[^\n]+$/,"")),!1}),typeof i=="undefined"?i=this.raw(t,null,"beforeDecl"):i&&(i=i.replace(/\S/g,"")),i}rawBeforeDecl(e,t){let i;return e.walkDecls(n=>{if(typeof n.raws.before!="undefined")return i=n.raws.before,i.includes(``
+- `static/vendor/tailwind.min.js:16` [router] — ``)&&(i=i.replace(/[^\n]+$/,"")),!1}),typeof i=="undefined"?i=this.raw(t,null,"beforeRule"):i&&(i=i.replace(/\S/g,"")),i}rawBeforeOpen(e){let t;return e.walk(i=>{if(i.type!=="decl"&&(t=i.raws.between,typeof t!="undefined"))return!1}),t}rawBeforeRule(e){let t;return e.walk(i=>{if(i.nodes&&(i.parent!==e||e.first!==i)&&typeof i.raws.before!="undefined")return t=i.raws.before,t.includes(``
+- `static/vendor/tailwind.min.js:17` [router] — ``)&&(t=t.replace(/[^\n]+$/,"")),!1}),t&&(t=t.replace(/\S/g,"")),t}rawColon(e){let t;return e.walkDecls(i=>{if(typeof i.raws.between!="undefined")return t=i.raws.between.replace(/[^\s:]/g,""),!1}),t}rawEmptyBody(e){let t;return e.walk(i=>{if(i.nodes&&i.nodes.length===0&&(t=i.raws.after,typeof t!="undefined"))return!1}),t}rawIndent(e){if(e.raws.indent)return e.raws.indent;let t;return e.walk(i=>{let n=i.parent;if(n&&n!==e&&n.parent&&n.parent===e&&typeof i.raws.before!="undefined"){let s=i.raws.before.split(``
+- `static/vendor/tailwind.min.js:18` [router] — ``);return t=s[s.length-1],t=t.replace(/\S/g,""),!1}}),t}rawSemicolon(e){let t;return e.walk(i=>{if(i.nodes&&i.nodes.length&&i.last.type==="decl"&&(t=i.raws.semicolon,typeof t!="undefined"))return!1}),t}rawValue(e,t){let i=e[t],n=e.raws[t];return n&&n.value===i?n.raw:i}root(e){this.body(e),e.raws.after&&this.builder(e.raws.after)}rule(e){this.block(e,this.rawValue(e,"selector")),e.raws.ownSemicolon&&this.builder(e.raws.ownSemicolon,e,"end")}stringify(e,t){if(!this[e.type])throw new Error("Unknown AST node type "+e.type+". Maybe you need to change PostCSS stringifier.");this[e.type](e,t)}};dc.ex`
+- `static/vendor/tailwind.min.js:19` [router] — ``?(t=1,i+=1):t+=1}return n}var un=class{constructor(e={}){this.raws={},this[Hr]=!1,this[Cx]=!0;for(let t in e)if(t==="nodes"){this.nodes=[];for(let i of e[t])typeof i.clone=="function"?this.append(i.clone()):this.append(i)}else this[t]=e[t]}addToError(e){if(e.postcssNode=this,e.stack&&this.source&&/\n\s{4}at /.test(e.stack)){let t=this.source;e.stack=e.stack.replace(/\n\s{4}at /,`$&${t.input.from}:${t.start.line}:${t.start.column}$&`)}return e}after(e){return this.parent.insertAfter(this,e),this}assign(e={}){for(let t in e)this[t]=e[t];return this}before(e){return this.parent.insertBefore(this`
+- `static/vendor/tailwind.min.js:20` [router] — ``?(t=1,i+=1):t+=1;return{column:t,line:i}}prev(){if(!this.parent)return;let e=this.parent.index(this);return this.parent.nodes[e-1]}rangeBy(e){let t={column:this.source.start.column,line:this.source.start.line},i=this.source.end?{column:this.source.end.column+1,line:this.source.end.line}:{column:t.column+1,line:t.line};if(e.word){let s=this.source.input.css.slice(Wr(this.source.input.css,this.source.start),Wr(this.source.input.css,this.source.end)).indexOf(e.word);s!==-1&&(t=this.positionInside(s),i=this.positionInside(s+e.word.length))}else e.start?t={column:e.start.column,line:e.start.line}:`
+- `static/vendor/tailwind.min.js:22` [router] — ``,"	"];return Zr.split(r,e)},split(r,e,t){let i=[],n="",s=!1,a=0,o=!1,l="",c=!1;for(let f of r)c?c=!1:f==="\\"?c=!0:o?f===l&&(o=!1):f==='"'||f==="'"?(o=!0,l=f):f==="("?a+=1:f===")"?a>0&&(a-=1):a===0&&e.includes(f)&&(s=!0),s?(n!==""&&i.push(n.trim()),n="",s=!1):n+=f;return(t||n!=="")&&i.push(n.trim()),i}};Vc.exports=Zr;Zr.default=Zr});var gn=x((M3,Wc)=>{u();"use strict";var Hc=Et(),Nx=xa(),Jr=class extends Hc{constructor(e){super(e);this.type="rule",this.nodes||(this.nodes=[])}get selectors(){return Nx.comma(this.selector)}set selectors(e){let t=this.selector?this.selector.match(/,\s*/):null,i=`
+- `static/vendor/tailwind.min.js:23` [router] — ``.charCodeAt(0),ti=" ".charCodeAt(0),wn="\f".charCodeAt(0),vn="	".charCodeAt(0),xn="\r".charCodeAt(0),Wx="[".charCodeAt(0),Gx="]".charCodeAt(0),Qx="(".charCodeAt(0),Yx=")".charCodeAt(0),Kx="{".charCodeAt(0),Xx="}".charCodeAt(0),Zx=";".charCodeAt(0),Jx="*".charCodeAt(0),e1=":".charCodeAt(0),t1="@".charCodeAt(0),kn=/[\t\n\f\r "#'()/;[\\\]{}]/g,Sn=/[\t\n\f\r !"#'():;@[\\\]{}]|\/(?=\*)/g,r1=/.[\r\n"'(/\\]/,Zc=/[\da-f]/i;Jc.exports=function(e,t={}){let i=e.css.valueOf(),n=t.ignoreErrors,s,a,o,l,c,f,d,p,h,b,v=i.length,y=0,w=[],k=[];function S(){return y}function E(R){throw e.error("Unclosed "+R,y)}f`
+- `static/vendor/tailwind.min.js:26` [router] — `In order to be iterable, non-array objects must have a [Symbol.iterator]() method.`)}function yk(r,e){if(!!r){if(typeof r=="string")return Np(r,e);var t=Object.prototype.toString.call(r).slice(8,-1);if(t==="Object"&&r.constructor&&(t=r.constructor.name),t==="Map"||t==="Set")return Array.from(r);if(t==="Arguments"||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t))return Np(r,e)}}function Np(r,e){(e==null||e>r.length)&&(e=r.length);for(var t=0,i=new Array(e);t<e;t++)i[t]=r[t];return i}function Bp(r,e){for(var t=0;t<e.length;t++){var i=e[t];i.enumerable=i.enumerable||!1,i.configurable=!0,"value`
+- `static/vendor/tailwind.min.js:27` [router] — ``),v=y.length-1,v>0?(k=a+v,S=w-y[v].length):(k=a,S=s),T=D.comment,a=k,p=k,d=w-S):c===D.slash?(w=o,T=c,p=a,d=o-s,l=w+1):(w=OA(t,o),T=D.word,p=a,d=w-s),l=w+1;break}e.push([T,a,o-s,p,d,o,l]),S&&(s=S,S=null),o=l}return e}});var kd=x((ki,xd)=>{u();"use strict";ki.__esModule=!0;ki.default=void 0;var IA=je(Da()),fo=je($a()),DA=je(Na()),md=je(Fa()),qA=je(za()),$A=je(Ha()),co=je(Ga()),LA=je(Ya()),gd=Vn(to()),MA=je(io()),po=je(so()),NA=je(oo()),BA=je(fd()),O=Vn(hd()),q=Vn(lo()),FA=Vn(Se()),ue=ii(),Vt,ho;function yd(r){if(typeof WeakMap!="function")return null;var e=new WeakMap,t=new WeakMap;return(yd=fu`
+- `static/vendor/tailwind.min.js:31` [router] — ``);w.push(`  Use \`${r.replace("[",`[${E}:`)}\` for \`${T.trim()}\``);break}G.warn([`The class \`${r}\` is ambiguous and matches multiple utilities.`,...w,`If this is content and not a class, replace it with \`${r.replace("[","&lsqb;").replace("]","&rsqb;")}\` to silence this warning.`]);continue}}o=o.map(p=>p.filter(h=>Eh(h[1])))}o=o.flat(),o=Array.from(P_(o,i)),o=k_(o,e),s&&(o=S_(o,i));for(let p of n)o=A_(p,o,e);for(let p of o)p[1].raws.tailwind={...p[1].raws.tailwind,candidate:r},p=I_(p,{context:e,candidate:r}),p!==null&&(yield p)}}function I_(r,{context:e,candidate:t}){if(!r[0].collectedFo`
+- `static/vendor/tailwind.min.js:32` [router] — ``,CHAR_NO_BREAK_SPACE:"\xA0",CHAR_PERCENT:"%",CHAR_PLUS:"+",CHAR_QUESTION_MARK:"?",CHAR_RIGHT_ANGLE_BRACKET:">",CHAR_RIGHT_CURLY_BRACE:"}",CHAR_RIGHT_SQUARE_BRACKET:"]",CHAR_SEMICOLON:";",CHAR_SINGLE_QUOTE:"'",CHAR_SPACE:" ",CHAR_TAB:"	",CHAR_UNDERSCORE:"_",CHAR_VERTICAL_LINE:"|",CHAR_ZERO_WIDTH_NOBREAK_SPACE:"\uFEFF"}});var Nm=x((s6,Mm)=>{u();"use strict";var mE=hs(),{MAX_LENGTH:qm,CHAR_BACKSLASH:dl,CHAR_BACKTICK:gE,CHAR_COMMA:yE,CHAR_DOT:bE,CHAR_LEFT_PARENTHESES:wE,CHAR_RIGHT_PARENTHESES:vE,CHAR_LEFT_CURLY_BRACE:xE,CHAR_RIGHT_CURLY_BRACE:kE,CHAR_LEFT_SQUARE_BRACKET:$m,CHAR_RIGHT_SQUARE_BRACK`
+- `static/vendor/tailwind.min.js:33` [router] — ``))if(n=n.trim(),!i.has(n))if(i.add(n),Li.get(e).has(n))for(let s of Li.get(e).get(n))t.add(s);else{let s=e(n).filter(o=>o!=="!*"),a=new Set(s);for(let o of a)t.add(o);Li.get(e).set(n,a)}}function T2(r,e){let t=e.offsets.sort(r),i={base:new Set,defaults:new Set,components:new Set,utilities:new Set,variants:new Set};for(let[n,s]of t)i[n.layer].add(s);return i}function Pl(r){return async e=>{let t={base:null,components:null,utilities:null,variants:null};if(e.walkAtRules(y=>{y.name==="tailwind"&&Object.keys(t).includes(y.params)&&(t[y.params]=y)}),Object.values(t).every(y=>y===null))return e;let `
+- `static/vendor/tailwind.min.js:34` [router] — ``))});c.push([p,d,h])}}for(let[l,[c,f]]of o){let d=[];for(let[h,b,v]of c){let y=[h,...Fg([h],e.tailwindConfig.separator)];for(let[w,k]of v){let S=xs(l),E=xs(k);if(E=E.groups.filter(R=>R.some(F=>y.includes(F))).flat(),E=E.concat(Fg(E,e.tailwindConfig.separator)),S.some(R=>E.includes(R)))throw k.error(`You cannot \`@apply\` the \`${h}\` utility here because it creates a circular dependency.`);let B=ee.root({nodes:[k.clone()]});B.walk(R=>{R.source=f}),(k.type!=="atrule"||k.type==="atrule"&&k.name!=="keyframes")&&B.walkRules(R=>{if(!xs(R).some(U=>U===h)){R.remove();return}let F=typeof e.tailwindCo`
+- `static/vendor/tailwind.min.js:36` [router] — ``),t}].filter(Boolean)}};Ql.exports.postcss=!0});var _y=x((Gq,Cy)=>{u();Cy.exports=Ay()});var Yl=x((Qq,Ey)=>{u();Ey.exports=()=>["and_chr 114","and_uc 15.5","chrome 114","chrome 113","chrome 109","edge 114","firefox 114","ios_saf 16.5","ios_saf 16.4","ios_saf 16.3","ios_saf 16.1","opera 99","safari 16.5","samsung 21"]});var Rs={};Ge(Rs,{agents:()=>nO,feature:()=>sO});function sO(){return{status:"cr",title:"CSS Feature Queries",stats:{ie:{"6":"n","7":"n","8":"n","9":"n","10":"n","11":"n","5.5":"n"},edge:{"12":"y","13":"y","14":"y","15":"y","16":"y","17":"y","18":"y","79":"y","80":"y","81":"y","`
+- `static/vendor/tailwind.min.js:40` [router] — ``)}insert(e,t,i){let n=this.set(this.clone(e),t);if(!(!n||e.parent.some(a=>a.prop===n.prop&&a.value===n.value)))return this.needCascade(e)&&(n.raws.before=this.calcBefore(i,e,t)),e.parent.insertBefore(e,n)}isAlready(e,t){let i=this.all.group(e).up(n=>n.prop===t);return i||(i=this.all.group(e).down(n=>n.prop===t)),i}add(e,t,i,n){let s=this.prefixed(e.prop,t);if(!(this.isAlready(e,s)||this.otherPrefixes(e.value,t)))return this.insert(e,t,i,n)}process(e,t){if(!this.needCascade(e)){super.process(e,t);return}let i=super.process(e,t);!i||!i.length||(this.restoreBefore(e),e.raws.before=this.calcBefor`
+- `static/vendor/tailwind.min.js:44` [router] — ``))})}displayType(e){for(let t of e.parent.nodes)if(t.prop==="display"){if(t.value.includes("flex"))return"flex";if(t.value.includes("grid"))return"grid"}return!1}gridStatus(e,t){if(!e)return!1;if(e._autoprefixerGridStatus!==void 0)return e._autoprefixerGridStatus;let i=null;if(e.nodes){let n;e.each(s=>{if(s.type==="comment"&&LO.test(s.text)){let a=/:\s*autoplace/i.test(s.text),o=/no-autoplace/i.test(s.text);typeof n!="undefined"?t.warn("Second Autoprefixer grid control comment was ignored. Autoprefixer applies control comments to the whole block, not to the next rules.",{node:s}):a?n="autopla`
+- `static/vendor/tailwind.min.js:64` [router] — ``))}gv.exports=Dr;function Dr(...r){let e;if(r.length===1&&V5(r[0])?(e=r[0],r=void 0):r.length===0||r.length===1&&!r[0]?r=void 0:r.length<=2&&(Array.isArray(r[0])||!r[0])?(e=r[1],r=r[0]):typeof r[r.length-1]=="object"&&(e=r.pop()),e||(e={}),e.browser)throw new Error("Change `browser` option to `overrideBrowserslist` in Autoprefixer");if(e.browserslist)throw new Error("Change `browserslist` option to `overrideBrowserslist` in Autoprefixer");e.overrideBrowserslist?r=e.overrideBrowserslist:e.browsers&&(typeof console!="undefined"&&console.warn&&(of.red?console.warn(of.red(mv.replace(/`[^`]+`/g,n=`
+- `static/vendor/chart.umd.min.js:13` [router] — `!function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t="undefined"!=typeof globalThis?globalThis:t||self).Chart=e()}(this,(function(){"use strict";var t=Object.freeze({__proto__:null,get Colors(){return Go},get Decimation(){return Qo},get Filler(){return ma},get Legend(){return ya},get SubTitle(){return ka},get Title(){return Ma},get Tooltip(){return Ba}});function e(){}const i=(()=>{let t=0;return()=>t++})();function s(t){return null==t}function n(t){if(Array.isArray&&Array.isArray(t))return!0;const e=Object.pr`
+- `static/vendor/chart.umd.min.js:19` [onclick,router] — `*/function _t(t){return t+.5|0}const yt=(t,e,i)=>Math.max(Math.min(t,i),e);function vt(t){return yt(_t(2.55*t),0,255)}function Mt(t){return yt(_t(255*t),0,255)}function wt(t){return yt(_t(t/2.55)/100,0,1)}function kt(t){return yt(_t(100*t),0,100)}const St={0:0,1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,A:10,B:11,C:12,D:13,E:14,F:15,a:10,b:11,c:12,d:13,e:14,f:15},Pt=[..."0123456789ABCDEF"],Dt=t=>Pt[15&t],Ct=t=>Pt[(240&t)>>4]+Pt[15&t],Ot=t=>(240&t)>>4==(15&t);function At(t){var e=(t=>Ot(t.r)&&Ot(t.g)&&Ot(t.b)&&Ot(t.a))(t)?Dt:Ct;return t?"#"+e(t.r)+e(t.g)+e(t.b)+((t,e)=>t<255?e(t):"")(t.a,e):void 0}cons`

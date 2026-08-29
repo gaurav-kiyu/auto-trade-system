@@ -1,0 +1,107 @@
+# Real Estate Platform — Auto-scaling, Config, and Persistent Storage
+# ─────────────────────────────────────────────────────────────────────────────
+
+---
+# ── Horizontal Pod Autoscaler ───────────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: realestate-api-hpa
+  namespace: realestate
+  labels:
+    app: realestate
+    tier: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: realestate-api
+  minReplicas: 2
+  maxReplicas: 10
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 120
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: re_http_active_requests
+        target:
+          type: AverageValue
+          averageValue: 50
+
+---
+# ── ConfigMap ───────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: realestate-config
+  namespace: realestate
+  labels:
+    app: realestate
+data:
+  REAL_ESTATE_ENABLED: "true"
+  JWT_EXPIRY_HOURS: "24"
+  UPLOAD_STORAGE: "local"
+  UPLOAD_MAX_SIZE_MB: "10"
+  SMTP_HOST: "smtp.sendgrid.net"
+  SMTP_PORT: "587"
+  SMTP_FROM: "noreply@realestate.example.com"
+  ADMIN_EMAILS: "admin@realestate.in,admin@realestate.example.com"
+  AWS_REGION: "ap-south-1"
+  LOG_LEVEL: "INFO"
+  RATE_LIMIT_DEFAULT: "100"
+  RATE_LIMIT_WINDOW: "60"
+
+---
+# ── Persistent Volume Claim (Uploads) ──────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: realestate-uploads
+  namespace: realestate
+  labels:
+    app: realestate
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard
+
+---
+# ── PodDisruptionBudget ─────────────────────────────────────────────────────
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: realestate-api-pdb
+  namespace: realestate
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: realestate
+      tier: api

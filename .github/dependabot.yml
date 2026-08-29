@@ -1,0 +1,57 @@
+version: 2
+updates:
+  # Python dependencies — covers requirements.txt, requirements-dev.txt
+  # and requirements-lock.txt (exact == pins, the real deployment lock).
+  # versioning-strategy: increase bumps the pinned version in the lock file
+  # (e.g. cryptography==48.0.1 -> cryptography==50.0.0) so known-vulnerability
+  # alerts like the 2026 cryptography HIGH are patched via PR, not by hand.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "automated"
+    reviewers:
+      - "gaurav-kiyu"
+    allow:
+      - dependency-type: "direct"
+    ignore:
+      - dependency-name: "numpy"
+        versions: [">=2.0.0"]  # pin numpy <2 for compatibility
+    versioning-strategy: increase
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # Security fixes batched into one PR per alert batch
+      security-updates:
+        applies-to: security-updates
+        patterns: ["*"]
+      # Routine patch/minor bumps batched into a single weekly PR
+      patch-and-minor:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+          - "minor"
+
+  # GitHub Actions — keeps workflow action versions (checkout, setup-python…)
+  # patched so the CI pipeline itself stays current.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+      - "automated"
+    commit-message:
+      prefix: "chore(ci)"

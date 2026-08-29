@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RealEstate India — Find Your Dream Property</title>
+    <script src="/static/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/re-icon-192.svg">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+               background: #080b10; color: #e2e8f0; min-height: 100vh; }
+        .hero { background: linear-gradient(135deg, #0a0f1a 0%, #1a1f3e 50%, #0f1923 100%); 
+                padding: 4rem 2rem; text-align: center; position: relative; overflow: hidden; }
+        .hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                        background: radial-gradient(ellipse at 30% 50%, rgba(59,130,246,0.08) 0%, transparent 60%);
+                        pointer-events: none; }
+        .hero-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; 
+                       background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; 
+                       -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-subtitle { color: #94a3b8; font-size: 1.1rem; margin-bottom: 2rem; }
+        .search-bar { max-width: 700px; margin: 0 auto; display: flex; gap: 0.5rem; 
+                       background: rgba(255,255,255,0.05); border: 1px solid rgba(148,163,184,0.15); 
+                       border-radius: 1rem; padding: 0.5rem; backdrop-filter: blur(10px); }
+        .search-bar input { flex: 1; background: transparent; border: none; padding: 0.75rem 1rem; 
+                            color: #e2e8f0; font-size: 1rem; outline: none; }
+        .search-bar input::placeholder { color: #475569; }
+        .search-bar button { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; 
+                             border-radius: 0.75rem; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .search-bar button:hover { background: #2563eb; transform: translateY(-1px); }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .section-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; }
+        .city-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 3rem; }
+        .city-card { background: linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%); border: 1px solid rgba(148,163,184,0.1); 
+                      border-radius: 0.75rem; padding: 1.5rem; cursor: pointer; transition: all 0.3s; 
+                      position: relative; overflow: hidden; }
+        .city-card:hover { border-color: rgba(59,130,246,0.3); transform: translateY(-2px); 
+                           box-shadow: 0 8px 25px rgba(59,130,246,0.1); }
+        .city-card .city-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.3rem; }
+        .city-card .city-detail { font-size: 0.8rem; color: #64748b; }
+        .city-card .city-avg-price { font-size: 0.9rem; color: #4ade80; margin-top: 0.5rem; font-weight: 500; }
+        .featured-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 3rem; }
+        .prop-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; 
+                      overflow: hidden; transition: all 0.3s; }
+        .prop-card:hover { border-color: rgba(59,130,246,0.25); transform: translateY(-2px); }
+        .prop-card .img-placeholder { height: 180px; background: linear-gradient(135deg, #1e293b, #0f172a); 
+                                       display: flex; align-items: center; justify-content: center; 
+                                       color: #475569; font-size: 3rem; }
+        .prop-card .prop-body { padding: 1rem; }
+        .prop-card .prop-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .prop-card .prop-location { font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem; }
+        .prop-card .prop-price { font-size: 1.2rem; font-weight: 700; color: #4ade80; }
+        .prop-card .prop-details { display: flex; gap: 1rem; font-size: 0.8rem; color: #94a3b8; margin-top: 0.5rem; }
+        .featured-badge { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); 
+                          padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.65rem; font-weight: 500; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 3rem; }
+        .feature-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.75rem; 
+                        padding: 1.5rem; text-align: center; transition: all 0.3s; }
+        .feature-card:hover { border-color: rgba(139,92,246,0.2); }
+        .feature-card .icon { font-size: 2rem; margin-bottom: 0.75rem; }
+        .feature-card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .feature-card p { font-size: 0.8rem; color: #64748b; }
+        .footer { text-align: center; padding: 2rem; color: #475569; font-size: 0.8rem; 
+                   border-top: 1px solid rgba(148,163,184,0.08); }
+        .lang-selector { position: absolute; top: 1.5rem; right: 2rem; 
+                         background: rgba(255,255,255,0.05); border: 1px solid rgba(148,163,184,0.15); 
+                         border-radius: 0.5rem; padding: 0.4rem 0.8rem; color: #94a3b8; font-size: 0.8rem; cursor: pointer; }
+        @media (max-width: 768px) { .hero-title { font-size: 1.8rem; } 
+                                     .search-bar { flex-direction: column; } 
+                                     .city-grid { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <select class="lang-selector" onchange="setLanguage(this.value)">
+            <option value="en">🇬🇧 English</option>
+            <option value="hi">🇮🇳 हिन्दी</option>
+            <option value="mr">🇮🇳 मराठी</option>
+            <option value="ta">🇮🇳 தமிழ்</option>
+            <option value="te">🇮🇳 తెలుగు</option>
+            <option value="bn">🇮🇳 বাংলা</option>
+            <option value="gu">🇮🇳 ગુજરાતી</option>
+        </select>
+        <div class="hero-title" data-testid="hero-section">🏠 Find Your Dream Home in India</div>
+        <div class="hero-subtitle">Explore 10,000+ properties across 10 major cities. Buy, Rent, or Invest with confidence.</div>
+        <div class="search-bar" data-testid="search-bar">
+            <input type="text" id="searchInput" data-testid="search-input" placeholder="Search by city, locality, or property type..." onkeydown="if(event.key==='Enter')doSearch()">
+            <button onclick="doSearch()" data-testid="search-button"><i class="fas fa-search"></i> Search</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Quick Stats -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem;margin-bottom:2rem;">
+            <div style="text-align:center;" data-testid="stat-properties"><span style="font-size:1.8rem;font-weight:700;color:#60a5fa;">10,000+</span><div style="font-size:0.75rem;color:#64748b;">Properties Listed</div></div>
+            <div style="text-align:center;"><span style="font-size:1.8rem;font-weight:700;color:#4ade80;">10</span><div style="font-size:0.75rem;color:#64748b;">Major Cities</div></div>
+            <div style="text-align:center;"><span style="font-size:1.8rem;font-weight:700;color:#fbbf24;">5,000+</span><div style="font-size:0.75rem;color:#64748b;">Verified Brokers</div></div>
+            <div style="text-align:center;"><span style="font-size:1.8rem;font-weight:700;color:#a78bfa;">98%</span><div style="font-size:0.75rem;color:#64748b;">Customer Satisfaction</div></div>
+        </div>
+
+        <!-- Features -->
+        <h2 class="section-title"><i class="fas fa-star" style="color:#fbbf24;margin-right:0.5rem;"></i> Why Choose Us</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="icon">🔍</div>
+                <h3>Advanced Search</h3>
+                <p>Multi-criteria filters, maps, heatmaps, and neighborhood insights</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📜</div>
+                <h3>Legal Support</h3>
+                <p>Rent agreements, e-stamping, Aadhaar eSign, RERA verification</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🤖</div>
+                <h3>AI Assistant</h3>
+                <p>24/7 chatbot for property queries, legal FAQs, and recommendations</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🏗️</div>
+                <h3>Builder Projects</h3>
+                <p>Direct from developers with RERA registration guarantee</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">💰</div>
+                <h3>Price Predictions</h3>
+                <p>ML-based valuation, price trends, and rental yield analysis</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🌐</div>
+                <h3>Multi-Language</h3>
+                <p>Hindi, Marathi, Tamil, Telugu, Bengali, Gujarati & more</p>
+            </div>
+        </div>
+
+        <!-- Cities -->
+        <h2 class="section-title"><i class="fas fa-city" style="color:#60a5fa;margin-right:0.5rem;"></i> Explore Cities</h2>
+        <div class="city-grid" id="cityGrid" data-testid="city-grid">
+            <div class="city-card" onclick="goToSearch('Mumbai')">
+                <div class="city-name">🇮🇳 Mumbai</div>
+                <div class="city-detail">Financial capital</div>
+                <div class="city-avg-price">Avg. ₹15,000/sq.ft</div>
+            </div>
+            <div class="city-card" onclick="goToSearch('Bangalore')">
+                <div class="city-name">🇮🇳 Bangalore</div>
+                <div class="city-detail">Silicon Valley of India</div>
+                <div class="city-avg-price">Avg. ₹9,500/sq.ft</div>
+            </div>
+            <div class="city-card" onclick="goToSearch('Delhi')">
+                <div class="city-name">🇮🇳 Delhi</div>
+                <div class="city-detail">National Capital</div>
+                <div class="city-avg-price">Avg. ₹12,000/sq.ft</div>
+            </div>
+            <div class="city-card" onclick="goToSearch('Pune')">
+                <div class="city-name">🇮🇳 Pune</div>
+                <div class="city-detail">IT & Education hub</div>
+                <div class="city-avg-price">Avg. ₹8,000/sq.ft</div>
+            </div>
+            <div class="city-card" onclick="goToSearch('Hyderabad')">
+                <div class="city-name">🇮🇳 Hyderabad</div>
+                <div class="city-detail">Growing tech hub</div>
+                <div class="city-avg-price">Avg. ₹7,500/sq.ft</div>
+            </div>
+            <div class="city-card" onclick="goToSearch('Chennai')">
+                <div class="city-name">🇮🇳 Chennai</div>
+                <div class="city-detail">Cultural capital</div>
+                <div class="city-avg-price">Avg. ₹7,000/sq.ft</div>
+            </div>
+            <div class="city-card" onclick="goToSearch('Kolkata')">
+                <div class="city-name">🇮🇳 Kolkata</div>
+                <div class="city-detail">City of Joy</div>
+                <div class="city-avg-price">Avg. ₹5,500/sq.ft</div>
+            </div>
+            <div class="city-card" onclick="goToSearch('Ahmedabad')">
+                <div class="city-name">🇮🇳 Ahmedabad</div>
+                <div class="city-detail">Commercial hub</div>
+                <div class="city-avg-price">Avg. ₹5,000/sq.ft</div>
+            </div>
+        </div>
+
+        <!-- Featured Properties -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h2 class="section-title" style="margin-bottom:0;"><i class="fas fa-fire" style="color:#f97316;margin-right:0.5rem;"></i> Featured Properties</h2>
+            <a href="/realestate/search" style="color:#60a5fa;font-size:0.85rem;text-decoration:none;">View All →</a>
+        </div>
+        <div class="featured-grid" id="featuredGrid" data-testid="featured-properties">
+            <!-- Populated by JS -->
+            <div style="grid-column:1/-1;text-align:center;color:#64748b;padding:2rem;">Loading featured properties...</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>RealEstate India Platform © 2026 — Integrated with Enterprise Dashboard</p>
+        <p style="margin-top:0.3rem;"><a href="/" style="color:#3b82f6;text-decoration:none;">← Back to Enterprise Dashboard</a></p>
+    </div>
+
+    <script>
+        function doSearch() {
+            const q = document.getElementById('searchInput').value;
+            window.location.href = '/realestate/search?query=' + encodeURIComponent(q);
+        }
+
+        function goToSearch(city) {
+            window.location.href = '/realestate/search?city=' + encodeURIComponent(city);
+        }
+
+        function setLanguage(lang) {
+            window.location.href = '/realestate?lang=' + lang;
+        }
+
+        // Load featured properties
+        async function loadFeatured() {
+            try {
+                const data = await fetch('/api/realestate/properties?page_size=6&sort_by=views&sort_order=desc').then(r => r.json());
+                const grid = document.getElementById('featuredGrid');
+                if (!data.properties || data.properties.length === 0) {
+                    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#64748b;padding:2rem;">No properties yet. <a href="#" onclick="seedData()" style="color:#3b82f6;">Add sample data?</a></div>';
+                    return;
+                }
+                grid.innerHTML = data.properties.map(p => `
+                    <div class="prop-card" onclick="window.location.href='/realestate/property/${p.property_id}'">
+                        <div class="img-placeholder"><i class="fas fa-home"></i></div>
+                        <div class="prop-body">
+                            <div class="prop-title">${p.title} ${p.is_featured ? '<span class="featured-badge">★ FEATURED</span>' : ''}</div>
+                            <div class="prop-location"><i class="fas fa-map-marker-alt" style="color:#f87171;margin-right:0.3rem;"></i>${p.locality || p.city}, ${p.city}</div>
+                            <div class="prop-price">₹${(p.price/100000).toFixed(2)} L</div>
+                            <div class="prop-details">
+                                <span><i class="fas fa-bed"></i> ${p.bedrooms} BHK</span>
+                                <span><i class="fas fa-bath"></i> ${p.bathrooms}</span>
+                                <span><i class="fas fa-vector-square"></i> ${p.carpet_area_sqft} sqft</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) {
+                document.getElementById('featuredGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#64748b;padding:2rem;">Unable to load properties. API may not be running.</div>';
+            }
+        }
+
+        async function seedData() {
+            const sampleProps = [
+                {title:'Modern 2BHK Apartment in Andheri', property_type:'apartment', price:8500000, city:'Mumbai', locality:'Andheri', bedrooms:2, bathrooms:2, carpet_area_sqft:850},
+                {title:'Spacious 3BHK Villa in Whitefield', property_type:'villa', price:12000000, city:'Bangalore', locality:'Whitefield', bedrooms:3, bathrooms:3, carpet_area_sqft:1500},
+                {title:'Luxury 4BHK Penthouse in Banjara Hills', property_type:'penthouse', price:35000000, city:'Hyderabad', locality:'Banjara Hills', bedrooms:4, bathrooms:4, carpet_area_sqft:2200},
+                {title:'Affordable 1BHK Studio in Hinjewadi', property_type:'studio', price:3500000, city:'Pune', locality:'Hinjewadi', bedrooms:1, bathrooms:1, carpet_area_sqft:450},
+                {title:'Commercial Office Space in Gachibowli', property_type:'commercial_office', price:28000000, city:'Hyderabad', locality:'Gachibowli', bedrooms:0, bathrooms:2, carpet_area_sqft:1200},
+                {title:'Independent House in Dwarka Sec-22', property_type:'house', price:9500000, city:'Delhi', locality:'Dwarka', bedrooms:3, bathrooms:2, carpet_area_sqft:1100},
+            ];
+            let count = 0;
+            for (const p of sampleProps) {
+                const params = new URLSearchParams({...p, owner_id:'demo-admin'});
+                await fetch('/api/realestate/properties?' + params, {method:'POST'});
+                count++;
+            }
+            alert(`Added ${count} sample properties! Reloading...`);
+            window.location.reload();
+        }
+
+        loadFeatured();
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/sw.js', { scope: '/realestate' })
+                    .then(function(reg) { console.log('[PWA] Service Worker registered:', reg.scope); })
+                    .catch(function(err) { console.log('[PWA] SW registration failed:', err); });
+            });
+        }
+    </script>
+</body>
+</html>

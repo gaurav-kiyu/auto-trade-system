@@ -1,0 +1,236 @@
+# OPB WEB CLOSURE WIP43 — Seven Refused URL Targets: Semantic Forensic Dossier
+
+Targets examined: 7
+
+No source mutations were made in this pass.
+Each target is classified from its actual enclosing source context.
+
+## Target 1 — `core/auth/sso.py:17`
+- Reported expression: `redirect_uri="https://example.com/api/auth/sso/callback",`
+- Actual source line: `redirect_uri="https://example.com/api/auth/sso/callback",`
+- Classification: **EXTERNAL_NAVIGATION**
+- Source context:
+  - `5: OIDC providers.`
+  - `6: `
+  - `7: All SSO operations gracefully degrade if ``authlib`` is not installed.`
+  - `8: `
+  - `9: Usage:`
+  - `10:     from core.auth.sso import SSOAuthenticator`
+  - `11: `
+  - `12:     sso = SSOAuthenticator(`
+  - `13:         auth_handler=auth_handler,`
+  - `14:         provider="google",`
+  - `15:         client_id="...",`
+  - `16:         client_secret="...",`
+  - `17:         redirect_uri="https://example.com/api/auth/sso/callback",`
+  - `18:     )`
+  - `19: `
+  - `20:     # FastAPI routes:`
+  - `21:     @router.get("/login/sso")`
+  - `22:     async def sso_login():`
+  - `23:         redirect_url = sso.get_authorization_url()`
+  - `24:         return RedirectResponse(url=redirect_url)`
+  - `25: `
+  - `26:     @router.get("/sso/callback")`
+  - `27:     async def sso_callback(code: str, state: str):`
+  - `28:         user = await sso.handle_callback(code, state)`
+  - `29:         token = auth_handler.create_session(user)`
+- Decision: **manual semantic repair required; no blind rewrite**
+
+## Target 2 — `core/auth/sso.py:167`
+- Reported expression: `redirect_uri=cfg.get("sso_redirect_uri", ""),`
+- Actual source line: `redirect_uri=cfg.get("sso_redirect_uri", ""),`
+- Classification: **EXTERNAL_NAVIGATION**
+- Enclosing scope: `def from_config(` at line 142
+- Source context:
+  - `155:             - sso_scope (str, optional)`
+  - `156:             - sso_authorize_url (str, optional, for custom providers)`
+  - `157:             - sso_token_url (str, optional, for custom providers)`
+  - `158:             - sso_userinfo_url (str, optional, for custom providers)`
+  - `159:         """`
+  - `160:         provider = cfg.get("sso_provider", "").lower()`
+  - `161:         provider_cfg = OAUTH_PROVIDERS.get(provider, {})`
+  - `162: `
+  - `163:         sso_cfg = SSOConfig(`
+  - `164:             provider=provider,`
+  - `165:             client_id=cfg.get("sso_client_id", ""),`
+  - `166:             client_secret=cfg.get("sso_client_secret", ""),`
+  - `167:             redirect_uri=cfg.get("sso_redirect_uri", ""),`
+  - `168:             authorize_url=cfg.get("sso_authorize_url", provider_cfg.get("authorize_url", "")),`
+  - `169:             token_url=cfg.get("sso_token_url", provider_cfg.get("token_url", "")),`
+  - `170:             userinfo_url=cfg.get("sso_userinfo_url", provider_cfg.get("userinfo_url", "")),`
+  - `171:             scope=cfg.get("sso_scope", provider_cfg.get("scope", "openid email profile")),`
+  - `172:             enabled=cfg.get("sso_enabled", False),`
+  - `173:         )`
+  - `174:         return cls(auth_handler=auth_handler, config=sso_cfg)`
+  - `175: `
+  - `176:     @property`
+  - `177:     def is_available(self) -> bool:`
+  - `178:         """Check if authlib is installed."""`
+  - `179:         try:`
+- Decision: **manual semantic repair required; no blind rewrite**
+
+## Target 3 — `core/auth/sso.py:199`
+- Reported expression: `_log.warning("[SSO] SSO not configured: missing client_id or redirect_uri")`
+- Actual source line: `_log.warning("[SSO] SSO not configured: missing client_id or redirect_uri")`
+- Classification: **EXTERNAL_NAVIGATION**
+- Enclosing scope: `def get_authorization_url(self, state: str | None = None) -> str | None:` at line 184
+- Source context:
+  - `187:         Args:`
+  - `188:             state: Optional OAuth2 state parameter (auto-generated if None).`
+  - `189: `
+  - `190:         Returns:`
+  - `191:             The full authorization URL, or None if authlib is not installed`
+  - `192:             or configuration is incomplete.`
+  - `193: `
+  - `194:         """`
+  - `195:         if not self.is_available:`
+  - `196:             _log.warning("[SSO] authlib not installed -- cannot generate auth URL")`
+  - `197:             return None`
+  - `198:         if not self._config.client_id or not self._config.redirect_uri:`
+  - `199:             _log.warning("[SSO] SSO not configured: missing client_id or redirect_uri")`
+  - `200:             return None`
+  - `201: `
+  - `202:         state = state or secrets.token_urlsafe(32)`
+  - `203:         with self._lock:`
+  - `204:             self._state_store[state] = time.time() + self._state_ttl`
+  - `205: `
+  - `206:         try:`
+  - `207:             from authlib.integrations.requests_client import OAuth2Session`
+  - `208: `
+  - `209:             session = OAuth2Session(`
+  - `210:                 client_id=self._config.client_id,`
+  - `211:                 client_secret=self._config.client_secret,`
+- Decision: **manual semantic repair required; no blind rewrite**
+
+## Target 4 — `core/auth/sso.py:212`
+- Reported expression: `redirect_uri=self._config.redirect_uri,`
+- Actual source line: `redirect_uri=self._config.redirect_uri,`
+- Classification: **EXTERNAL_NAVIGATION**
+- Enclosing scope: `def get_authorization_url(self, state: str | None = None) -> str | None:` at line 184
+- Source context:
+  - `200:             return None`
+  - `201: `
+  - `202:         state = state or secrets.token_urlsafe(32)`
+  - `203:         with self._lock:`
+  - `204:             self._state_store[state] = time.time() + self._state_ttl`
+  - `205: `
+  - `206:         try:`
+  - `207:             from authlib.integrations.requests_client import OAuth2Session`
+  - `208: `
+  - `209:             session = OAuth2Session(`
+  - `210:                 client_id=self._config.client_id,`
+  - `211:                 client_secret=self._config.client_secret,`
+  - `212:                 redirect_uri=self._config.redirect_uri,`
+  - `213:                 scope=self._config.scope,`
+  - `214:             )`
+  - `215:             uri, _ = session.create_authorization_url(`
+  - `216:                 self._config.authorize_url,`
+  - `217:                 state=state,`
+  - `218:             )`
+  - `219:             return uri  # type: ignore[no-any-return]`
+  - `220:         except ImportError:`
+  - `221:             _log.warning("[SSO] authlib submodules not available")`
+  - `222:             return None`
+  - `223:         except Exception as exc:`
+  - `224:             _log.error("[SSO] Failed to create authorization URL: %s", exc)`
+- Decision: **manual semantic repair required; no blind rewrite**
+
+## Target 5 — `core/auth/sso.py:258`
+- Reported expression: `redirect_uri=self._config.redirect_uri,`
+- Actual source line: `redirect_uri=self._config.redirect_uri,`
+- Classification: **EXTERNAL_NAVIGATION**
+- Enclosing scope: `async def handle_callback(self, code: str, state: str) -> SSOUser | None:` at line 227
+- Source context:
+  - `246:                 return None`
+  - `247: `
+  - `248:         if not self.is_available:`
+  - `249:             _log.warning("[SSO] authlib not installed -- cannot handle callback")`
+  - `250:             return None`
+  - `251: `
+  - `252:         try:`
+  - `253:             from authlib.integrations.httpx_client import OAuth2Client`
+  - `254: `
+  - `255:             async with OAuth2Client(`
+  - `256:                 client_id=self._config.client_id,`
+  - `257:                 client_secret=self._config.client_secret,`
+  - `258:                 redirect_uri=self._config.redirect_uri,`
+  - `259:                 scope=self._config.scope,`
+  - `260:             ) as client:`
+  - `261:                 # Exchange code for token`
+  - `262:                 token = await client.fetch_token(`
+  - `263:                     self._config.token_url,`
+  - `264:                     code=code,`
+  - `265:                 )`
+  - `266:                 if not token:`
+  - `267:                     _log.warning("[SSO] Token exchange failed")`
+  - `268:                     return None`
+  - `269: `
+  - `270:                 # Fetch user info`
+- Decision: **manual semantic repair required; no blind rewrite**
+
+## Target 6 — `core/auth/sso.py:431`
+- Reported expression: `issues.append("Missing sso_redirect_uri")`
+- Actual source line: `issues.append("Missing sso_redirect_uri")`
+- Classification: **EXTERNAL_NAVIGATION**
+- Enclosing scope: `def is_ready(self) -> tuple[bool, list[str]]:` at line 415
+- Source context:
+  - `419:             Tuple of (ready, issues) where ready is True if all requirements`
+  - `420:             are satisfied, and issues is a list of descriptive messages.`
+  - `421: `
+  - `422:         """`
+  - `423:         issues: list[str] = []`
+  - `424:         if not self._config.enabled:`
+  - `425:             issues.append("SSO not enabled in config")`
+  - `426:         if not self._config.client_id:`
+  - `427:             issues.append("Missing sso_client_id")`
+  - `428:         if not self._config.client_secret:`
+  - `429:             issues.append("Missing sso_client_secret")`
+  - `430:         if not self._config.redirect_uri:`
+  - `431:             issues.append("Missing sso_redirect_uri")`
+  - `432:         if not self._config.authorize_url:`
+  - `433:             issues.append("Missing sso_authorize_url (check provider config)")`
+  - `434:         if not self._config.token_url:`
+  - `435:             issues.append("Missing sso_token_url (check provider config)")`
+  - `436:         if not self._config.userinfo_url:`
+  - `437:             issues.append("Missing sso_userinfo_url (check provider config)")`
+  - `438:         if not self.is_available:`
+  - `439:             issues.append("authlib package not installed: pip install authlib")`
+  - `440:         return len(issues) == 0, issues`
+  - `441: `
+  - `442: `
+  - `443: __all__ = [`
+- Decision: **manual semantic repair required; no blind rewrite**
+
+## Target 7 — `core/auth/routes.py:1085`
+- Reported expression: `app_config["sso_redirect_uri"] = sso_redirect_uri`
+- Actual source line: `app_config["sso_redirect_uri"] = sso_redirect_uri`
+- Classification: **EXTERNAL_NAVIGATION**
+- Enclosing scope: `async def sso_login(` at line 1063
+- Source context:
+  - `1073:             Dict with ``authorization_url`` to redirect the user to.`
+  - `1074: `
+  - `1075:         """`
+  - `1076:         # Use singleton SSO authenticator (closure) or create from req state`
+  - `1077:         sso = _sso_authenticator`
+  - `1078:         if sso is None:`
+  - `1079:             from core.auth.sso import SSOAuthenticator`
+  - `1080:             app_config = getattr(request.app.state, "config", {}) or {}`
+  - `1081:             sso_redirect_uri = build_action_url(`
+  - `1082:                 "/api/auth/sso/callback",`
+  - `1083:                 cfg=app_config,`
+  - `1084:             )`
+  - `1085:             app_config["sso_redirect_uri"] = sso_redirect_uri`
+  - `1086:             sso = SSOAuthenticator.from_config(auth_handler, app_config)`
+  - `1087: `
+  - `1088:         # Keep the OAuth callback on the canonical public origin configured for`
+  - `1089:         # this deployment. Do not derive it from request.base_url because that`
+  - `1090:         # can be the internal reverse-proxy/upstream host (or localhost), which`
+  - `1091:         # would make the provider redirect the user to an unusable URL.`
+  - `1092:         app_config = getattr(request.app.state, "config", {}) or {}`
+  - `1093:         sso._config.redirect_uri = build_action_url(`
+  - `1094:             "/api/auth/sso/callback",`
+  - `1095:             cfg=app_config,`
+  - `1096:         )`
+  - `1097: `
+- Decision: **manual semantic repair required; no blind rewrite**

@@ -1,0 +1,159 @@
+{
+  "title": "Real Estate Platform — Production Monitoring",
+  "uid": "realestate-platform-prod",
+  "version": 1,
+  "tags": ["realestate", "production", "prometheus"],
+  "schemaVersion": 36,
+  "timezone": "asia/kolkata",
+  "editable": true,
+  "panels": [
+    {
+      "title": "API Request Rate",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"expr": "rate(re_http_requests_total[5m])", "legendFormat": "{{method}} {{endpoint}}"}],
+      "description": "Requests per second by endpoint and method"
+    },
+    {
+      "title": "Request Latency (P95)",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"expr": "histogram_quantile(0.95, rate(re_http_request_duration_seconds_bucket[5m]))", "legendFormat": "P95 latency"}],
+      "description": "95th percentile response time in seconds"
+    },
+    {
+      "title": "Active Requests",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 4, "x": 0, "y": 8},
+      "targets": [{"expr": "re_http_active_requests", "legendFormat": "Active"}],
+      "description": "Currently active HTTP requests"
+    },
+    {
+      "title": "Property Views (Total)",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 4, "x": 4, "y": 8},
+      "targets": [{"expr": "re_property_views_total", "legendFormat": "Views"}],
+      "description": "Total property page views"
+    },
+    {
+      "title": "Enquiries Today",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 4, "x": 8, "y": 8},
+      "targets": [{"expr": "rate(re_enquiries_total[24h])", "legendFormat": "Enquiries"}],
+      "description": "Enquiry rate over last 24 hours"
+    },
+    {
+      "title": "Revenue (₹)",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 4, "x": 12, "y": 8},
+      "targets": [{"expr": "re_revenue_total", "legendFormat": "Revenue"}],
+      "description": "Total platform revenue"
+    },
+    {
+      "title": "Active Users",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 4, "x": 16, "y": 8},
+      "targets": [{"expr": "re_active_users", "legendFormat": "Users"}],
+      "description": "Currently active users on the platform"
+    },
+    {
+      "title": "Fraud Alerts",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 4, "x": 20, "y": 8},
+      "targets": [{"expr": "rate(re_fraud_checks_total{result=\"blocked\"}[24h])", "legendFormat": "Blocked"}],
+      "description": "Fraud detection alerts in last 24 hours"
+    },
+    {
+      "title": "Revenue Over Time (₹)",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 13},
+      "targets": [{"expr": "rate(re_revenue_total[1d])", "legendFormat": "Daily Revenue"}],
+      "description": "Daily revenue trend"
+    },
+    {
+      "title": "Property Listings by City",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 13},
+      "targets": [{"expr": "rate(re_property_listings_total[7d])", "legendFormat": "{{city}}"}],
+      "description": "New property listings by city (last 7 days)"
+    },
+    {
+      "title": "Payment Success Rate",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 21},
+      "targets": [
+        {"expr": "rate(re_payments_total{status=\"success\"}[1d])", "legendFormat": "Success"},
+        {"expr": "rate(re_payments_total{status=\"failed\"}[1d])", "legendFormat": "Failed"}
+      ],
+      "description": "Payment success vs failure rate"
+    },
+    {
+      "title": "Lead Conversion Rate",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 21},
+      "targets": [{"expr": "rate(re_lead_conversions_total[1d])", "legendFormat": "Conversions"}],
+      "description": "Lead conversion rate over time"
+    },
+    {
+      "title": "User Registrations",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 29},
+      "targets": [{"expr": "rate(re_user_registrations_total[24h])", "legendFormat": "Signups"}],
+      "description": "New user signups per day"
+    },
+    {
+      "title": "P99 Latency",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 29},
+      "targets": [{"expr": "histogram_quantile(0.99, rate(re_http_request_duration_seconds_bucket[5m]))", "legendFormat": "P99 latency"}],
+      "description": "99th percentile response time (worst-case)"
+    },
+    {
+      "title": "Notification Delivery by Channel",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 37},
+      "targets": [{"expr": "rate(re_notifications_sent_total[1d])", "legendFormat": "{{channel}}"}],
+      "description": "Notification volume by channel (email, SMS, in-app)"
+    },
+    {
+      "title": "HTTP Status Code Distribution",
+      "type": "graph",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 37},
+      "targets": [{"expr": "rate(re_http_requests_total[5m])", "legendFormat": "{{status}}"}],
+      "description": "Response status code distribution over time"
+    }
+  ],
+  "rows": [
+    {"title": "Overview", "collapse": false, "panels": []},
+    {"title": "Business KPIs", "collapse": false, "panels": []},
+    {"title": "Performance", "collapse": false, "panels": []},
+    {"title": "Growth", "collapse": false, "panels": []}
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {"value": "Prometheus"},
+        "hide": 0,
+        "label": "Data Source"
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "type": "dashboard",
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "showIn": 0
+      }
+    ]
+  },
+  "time": {"from": "now-7d", "to": "now"},
+  "refresh": "30s",
+  "message": "Real Estate Platform Monitoring Dashboard"
+}

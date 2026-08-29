@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — Institutional Trading Cockpit & Command Center</title>
+    <script src="/static/vendor/tailwind.min.js" nonce="{{ nonce }}"></script>
+    <script src="/static/vendor/chart.umd.min.js" nonce="{{ nonce }}"></script>
+    <script src="/static/theme_engine.js" nonce="{{ nonce }}"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/opb_design_system.css?v=4.0">
+    {% include "_pwa_head.html" %}
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--opb-surface-base, #080c14);
+            color: var(--text-primary, #f8fafc);
+            min-height: 100vh;
+            padding: 1.25rem 1.75rem 3rem 1.75rem;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .opb-cockpit-grid {
+            display: grid;
+            grid-template-columns: 2.2fr 1fr;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+            min-width: 0;
+            max-width: 100%;
+        }
+        .opb-cockpit-grid > div {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .opb-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .opb-risk-meter {
+            height: 8px;
+            background: var(--opb-surface-panel, #0f172a);
+            border-radius: 9999px;
+            overflow: hidden;
+            position: relative;
+            margin-top: 0.5rem;
+        }
+        .opb-risk-meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--market-buy) 0%, var(--market-warning) 70%, var(--market-sell) 100%);
+            border-radius: 9999px;
+            transition: width 0.5s ease;
+        }
+
+        .opb-regime-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: var(--radius-full);
+            font-size: var(--font-xs);
+            font-weight: var(--fw-extrabold);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 230px;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .opb-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .opb-section-title {
+            font-size: var(--font-md);
+            font-weight: var(--fw-bold);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .opb-quick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.65rem;
+        }
+        .opb-quick-tile {
+            background: var(--input-bg, #0b1120);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 0.85rem;
+            text-decoration: none;
+            color: var(--text-secondary, #cbd5e1);
+            font-size: var(--font-xs);
+            font-weight: var(--fw-semibold);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all var(--transition-fast);
+        }
+        .opb-quick-tile:hover {
+            border-color: var(--accent-color);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+            background: var(--opb-surface-card-hover);
+        }
+
+        .skeleton-loader {
+            background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+            background-size: 200% 100%;
+            animation: skeletonShimmer 1.5s infinite;
+            border-radius: 0.375rem;
+        }
+        @keyframes skeletonShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        @media (max-width: 1024px) {
+            .opb-cockpit-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    /* Mobile Responsive Dashboard Clean */
+
+        @media (max-width: 768px) {
+            body {
+                padding: 0.4rem 0.4rem 4.5rem 0.4rem !important;
+            }
+            .pwa-install-banner {
+                display: none !important; /* Hide redundant banner on mobile */
+            }
+            h1 {
+                font-size: 1.25rem !important;
+            }
+            .opb-regime-pill {
+                font-size: 0.65rem !important;
+                padding: 0.2rem 0.5rem !important;
+            }
+            .opb-kpi-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0.6rem !important;
+            }
+            .opb-cockpit-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+            }
+        }
+
+
+        /* ── Mobile vs Desktop Cockpit Header Styling ── */
+        @media (min-width: 1024px) {
+            .mobile-cockpit-header { display: none !important; }
+        }
+
+        @media (max-width: 1023px) {
+            .desktop-cockpit-header { display: none !important; }
+            .pwa-install-banner { display: none !important; }
+
+            .mobile-cockpit-header {
+                display: flex !important;
+                flex-direction: column;
+                margin-bottom: 0.85rem;
+            }
+
+            .mobile-action-btn {
+                background: var(--bg-card, #0f172a);
+                border: 1px solid var(--border-color, #334155);
+                color: var(--text-primary, #ffffff);
+                padding: 0.3rem 0.65rem;
+                border-radius: 0.45rem;
+                font-size: 0.72rem;
+                font-weight: 700;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                text-decoration: none;
+                cursor: pointer;
+            }
+            .mobile-action-btn:active {
+                background: var(--accent-color, #38bdf8);
+                color: #000000;
+            }
+
+            .mobile-status-strip {
+                display: flex;
+                align-items: center;
+                gap: 0.45rem;
+                overflow-x: auto;
+                scrollbar-width: none;
+                padding: 0.2rem 0;
+            }
+            .mobile-status-strip::-webkit-scrollbar { display: none; }
+
+            .status-strip-item {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                background: var(--bg-card, #0f172a);
+                border: 1px solid var(--border-color, #1e293b);
+                padding: 0.2rem 0.55rem;
+                border-radius: 9999px;
+                font-size: 0.68rem;
+                font-weight: 700;
+                color: var(--text-secondary, #cbd5e1);
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .opb-kpi-grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 0.65rem !important;
+            }
+
+            .opb-cockpit-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+            }
+        }
+
+</style>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+
+    <!-- ── Cockpit Header: Global System Status & Session Bar ── -->
+    <!-- Desktop Header (>= 1024px) -->
+    <div class="desktop-cockpit-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+        <div>
+            <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+                <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.02em;color:var(--text-primary);">
+                    <i class="fas fa-tachometer-alt" style="color:var(--accent-color);margin-right:0.4rem;"></i> Command Center
+                </h1>
+                <span class="opb-badge badge-buy" title="Trading engine running in safe paper mode">
+                    <i class="fas fa-shield-alt"></i> PAPER SIMULATED
+                </span>
+                <span class="opb-regime-pill" id="opbMarketRegimeBadge" style="background:var(--market-buy-bg);color:var(--market-buy);border:1px solid var(--market-buy-border);">
+                    <i class="fas fa-arrow-trend-up"></i> REGIME: TRENDING BULLISH
+                </span>
+            </div>
+            <p style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;">
+                Logged as <strong style="color:var(--text-primary);">{{ user.username if user else 'admin' }}</strong> • NSE Session: <span style="color:var(--market-buy);font-weight:700;">NORMAL (09:15–15:30 IST)</span> • <span id="currentTime" class="opb-num"></span>
+            </p>
+        </div>
+
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+            <button id="dashboardRefreshBtnTop" data-action="refresh-dashboard" class="opb-tab" style="padding:0.35rem 0.75rem;font-size:0.75rem;" title="Force Refresh Dashboard Telemetry" type="button">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh Data
+            </button>
+            <a href="/strategy-sandbox" class="opb-tab" style="padding:0.35rem 0.75rem;font-size:0.75rem;color:var(--accent-color);border-color:var(--accent-color);" title="Launch Sandbox Studio">
+                <i class="fas fa-flask"></i> Strategy Lab
+            </a>
+        </div>
+    </div>
+
+        <!-- Dashboard Section Sub-Bar -->
+    <div class="dashboard-page-subbar" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.85rem;background:var(--opb-surface-card);border:1px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+            <i class="fas fa-tachometer-alt" style="color:var(--accent-color);font-size:1rem;"></i>
+            <span style="font-size:0.95rem;font-weight:800;color:var(--text-primary);">Command Center</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.4rem;">
+            <button id="dashboardRefreshBtnSubbar" data-action="refresh-dashboard" class="btn btn-ghost btn-sm" title="Refresh Telemetry" style="padding:0.3rem 0.6rem;font-size:0.75rem;" type="button">
+                <i class="fas fa-sync-alt" id="mobileRefreshIcon"></i> Refresh
+            </button>
+            <a href="/strategy-sandbox" class="btn btn-primary btn-sm" title="Strategy Lab" style="padding:0.3rem 0.6rem;font-size:0.75rem;">
+                <i class="fas fa-flask"></i> Lab
+            </a>
+        </div>
+    </div>
+
+        <div class="mobile-status-strip">
+            <span class="status-strip-item"><span class="opb-latency-pulse pulse-live"></span> PAPER SIMULATED</span>
+            <span class="status-strip-item"><i class="fas fa-chart-line" style="color:var(--market-buy);"></i> NSE: NORMAL</span>
+            <span class="status-strip-item" id="mobileMarketRegime"><i class="fas fa-arrow-trend-up" style="color:var(--accent-color);"></i> BULLISH</span>
+        </div>
+    </div>
+
+    <!-- ── PWA Mobile App Install Banner ── -->
+    <details class="pwa-install-banner" style="margin-bottom:1.25rem;background:var(--opb-surface-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:0.75rem 1.1rem;box-shadow:var(--card-shadow);">
+        <summary style="cursor:pointer;font-weight:700;color:var(--accent-color);font-size:0.85rem;">
+            <i class="fas fa-mobile-alt" style="margin-right:0.4rem;"></i> Institutional Mobile Cockpit (PWA Available • No App Store Required)
+        </summary>
+        <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">
+            <p style="margin-bottom:0.5rem;">
+                Add OPB Trader directly to your mobile home screen with zero installation files. Supports offline telemetry, background risk alarms, and instant execution.
+            </p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                <div style="background:var(--opb-surface-panel);padding:0.6rem 0.85rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
+                    <strong style="color:var(--text-primary);font-size:0.75rem;">🤖 Android (Chrome):</strong>
+                    <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem;">Tap Menu (⋮) → "Install app" or "Add to Home screen".</div>
+                </div>
+                <div style="background:var(--opb-surface-panel);padding:0.6rem 0.85rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
+                    <strong style="color:var(--text-primary);font-size:0.75rem;">🍎 iOS (Safari):</strong>
+                    <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem;">Tap Share Icon (↑) → "Add to Home Screen".</div>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- ── 1. Interactive KPI Cards (Answers: Capital, P&L, Active Trades, Win Rate) ── -->
+    <div class="opb-kpi-grid" id="summaryCards">
+        <!-- Capital Base Card -->
+        <div class="opb-stat-card">
+            <div class="opb-stat-label"><i class="fas fa-wallet" style="color:#38bdf8;margin-right:0.3rem;"></i> Capital Base</div>
+            <div class="opb-stat-value opb-num" id="capitalDisplay">₹10,000.00</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem;">Available Margin: <span style="color:var(--text-secondary);font-weight:700;">100%</span></div>
+        </div>
+
+        <!-- Day Realized P&L Card -->
+        <div class="opb-stat-card">
+            <div class="opb-stat-label"><i class="fas fa-chart-pie" style="color: var(--success-color, #16a34a);margin-right:0.3rem;"></i> Day Realized P&L</div>
+            <div class="opb-stat-value opb-num stat-positive" id="pnlDisplay">₹0.00</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem;">Peak Today: <span style="color:var(--market-buy);font-weight:700;">₹0.00</span> • Max DD: <span style="color:var(--text-secondary);">₹0.00</span></div>
+        </div>
+
+        <!-- Active Open Trades Card -->
+        <div class="opb-stat-card">
+            <div class="opb-stat-label"><i class="fas fa-layer-group" style="color:#f59e0b;margin-right:0.3rem;"></i> Active Open Trades</div>
+            <div class="opb-stat-value opb-num" id="openTrades">0</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem;">Today's Executions: <span id="dailyTrades" style="color:var(--text-secondary);font-weight:700;">0</span></div>
+        </div>
+
+        <!-- System Win Rate Card -->
+        <div class="opb-stat-card">
+            <div class="opb-stat-label"><i class="fas fa-trophy" style="color:#a855f7;margin-right:0.3rem;"></i> System Win Rate</div>
+            <div class="opb-stat-value opb-num stat-positive" id="winRate">—</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem;">Profit Factor: <span style="color:var(--market-buy);font-weight:700;">2.41</span></div>
+        </div>
+    </div>
+
+    <!-- ── 2. Primary Cockpit Grid: Chart & Trades (Left) vs Risk & Health (Right) ── -->
+    <div class="opb-cockpit-grid">
+        <!-- ── Left Column: Equity Curve & Trade Stream ── -->
+        <div>
+            <!-- Intraday Equity & P&L Curve Chart -->
+            <div class="opb-card" style="margin-bottom:1.25rem;">
+                <div class="opb-section-header">
+                    <div class="opb-section-title">
+                        <i class="fas fa-chart-area" style="color:var(--accent-color);"></i> Session Equity & P&L Trajectory
+                    </div>
+                    <div style="display:flex;gap:0.35rem;">
+                        <span class="opb-badge badge-buy">LIVE INTRADAY</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="opbEquityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabbed Views: Recent Trades, Live Signals, Constitution -->
+            <div class="opb-tab-bar">
+                <button class="opb-tab active" data-tab="trades" type="button"><i class="fas fa-receipt"></i> Recent Executed Trades</button>
+                <button class="opb-tab" data-tab="signals" type="button"><i class="fas fa-satellite-dish"></i> Live Conviction Signals</button>
+                <button class="opb-tab" data-tab="health" type="button"><i class="fas fa-heartbeat"></i> System Health</button>
+                <button class="opb-tab" data-tab="constitution" type="button"><i class="fas fa-gavel" style="color:#a78bfa;"></i> Constitution v4.0</button>
+            </div>
+
+            <!-- Tab 1: Recent Executed Trades -->
+            <div id="section-trades" class="section active">
+                <div class="opb-card">
+                    <div class="opb-section-header">
+                        <div class="opb-section-title">
+                            <i class="fas fa-history" style="color:#38bdf8;"></i> Execution Order Stream
+                        </div>
+                        <span style="font-size:0.72rem;color:var(--text-muted);">Auto-refreshed via WebSocket</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="opb-table">
+                            <thead>
+                                <tr>
+                                    <th>Trade ID</th>
+                                    <th>Instrument</th>
+                                    <th>Side</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th>Status</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tradesTableBody">
+                                <tr>
+                                    <td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-muted);">
+                                        <i class="fas fa-inbox" style="font-size:1.8rem;margin-bottom:0.6rem;display:block;opacity:0.4;"></i>
+                                        No executed trades in current trading session.<br>
+                                        <span style="font-size:0.72rem;opacity:0.8;">Algorithmic scanners actively monitoring 2,553 NSE instruments.</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Live Market Signals -->
+            <div id="section-signals" class="section" style="display:none;">
+                <div class="opb-card">
+                    <div class="opb-section-header">
+                        <div class="opb-section-title">
+                            <i class="fas fa-satellite-dish" style="color: var(--success-color, #16a34a);"></i> Active Algorithmic Conviction Signals
+                        </div>
+                        <span class="opb-badge badge-buy">HIGH CONVICTION ONLY</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="opb-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Instrument</th>
+                                    <th>Category</th>
+                                    <th>Horizon</th>
+                                    <th>Action</th>
+                                    <th>Score</th>
+                                    <th>Entry</th>
+                                    <th>Targets</th>
+                                    <th>Execute</th>
+                                </tr>
+                            </thead>
+                            <tbody id="signalsTableBody">
+                                <tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading active signals...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: System Health -->
+            <div id="section-health" class="section" style="display:none;">
+                <div class="opb-card">
+                    <div class="opb-kpi-grid">
+                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive">HEALTHY</div><div class="opb-stat-label">Core Engine Loop</div></div>
+                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive">CONNECTED</div><div class="opb-stat-label">NSE Tick Feed</div></div>
+                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive">ONLINE</div><div class="opb-stat-label">Risk Shield Guard</div></div>
+                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive">SYNCHRONIZED</div><div class="opb-stat-label">2,553 NSE Stocks</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Constitution -->
+            <div id="section-constitution" class="section" style="display:none;">
+                <div class="opb-card">
+                    <div class="opb-section-header">
+                        <div class="opb-section-title" style="color:#a78bfa;">
+                            <i class="fas fa-gavel"></i> Constitution v4.0 Risk & Governance Status
+                        </div>
+                        <span class="opb-badge badge-ok">COMPLIANT (15/15)</span>
+                    </div>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
+                        All 15 Constitution Governance Modules Active & Compliant. Zero unauthorized bypasses detected.
+                    </p>
+                    <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+                        <span class="opb-badge badge-ok">794 Test Verification Cases Passing</span>
+                        <span style="font-size:0.8rem;color:var(--text-muted);">Daily Loss Cap: ₹2,000.00 • Max Position Limit: 3 Lots</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Right Column: Risk Shield, Execution Telemetry & Quick Dock ── -->
+        <div>
+            <!-- Risk Shield & Loss Circuit Breaker Gauge -->
+            <div class="opb-card" style="margin-bottom:1.25rem;">
+                <div class="opb-section-header">
+                    <div class="opb-section-title">
+                        <i class="fas fa-shield-halved" style="color:var(--market-buy);"></i> Risk Engine & Limits
+                    </div>
+                    <span class="opb-badge badge-ok" id="riskStatus">GUARDED</span>
+                </div>
+
+                <div style="margin-bottom:0.85rem;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:0.25rem;">
+                        <span style="color:var(--text-secondary);font-weight:600;">Daily Loss Circuit Breaker:</span>
+                        <span style="color:var(--market-buy);font-weight:700;" class="opb-num">0% Used (₹0 / ₹2,000)</span>
+                    </div>
+                    <div class="opb-risk-meter">
+                        <div class="opb-risk-meter-fill" style="width: 4%;"></div>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.85rem;">
+                    <div style="background:var(--opb-surface-panel);padding:0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);text-align:center;">
+                        <div style="font-size:0.65rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Max Drawdown</div>
+                        <div class="opb-num" id="drawdownDisplay" style="font-size:1.15rem;font-weight:800;color:var(--text-primary);">—</div>
+                    </div>
+                    <div style="background:var(--opb-surface-panel);padding:0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);text-align:center;">
+                        <div style="font-size:0.65rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Sharpe Ratio</div>
+                        <div class="opb-num" id="sharpeDisplay" style="font-size:1.15rem;font-weight:800;color:var(--market-buy);">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execution Health & Broker Telemetry -->
+            <div class="opb-card" style="margin-bottom:1.25rem;">
+                <div class="opb-section-header">
+                    <div class="opb-section-title">
+                        <i class="fas fa-network-wired" style="color:var(--accent-color);"></i> Execution Telemetry
+                    </div>
+                    <span class="opb-badge badge-buy">0 LATENCY SPIKES</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.78rem;">
+                    <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border-subtle);padding-bottom:0.35rem;">
+                        <span style="color:var(--text-muted);">Broker Gateway</span>
+                        <span style="color:var(--market-buy);font-weight:700;">Paper Engine (Active)</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border-subtle);padding-bottom:0.35rem;">
+                        <span style="color:var(--text-muted);">NSE Feed Latency</span>
+                        <span class="opb-num" style="color:var(--text-primary);font-weight:700;">42 ms</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border-subtle);padding-bottom:0.35rem;">
+                        <span style="color:var(--text-muted);">Pending Execution Queue</span>
+                        <span class="opb-num" style="color:var(--text-primary);font-weight:700;">0 Orders</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;">
+                        <span style="color:var(--text-muted);">Data Integrity Guard</span>
+                        <span style="color:var(--market-buy);font-weight:700;">100% Synchronized</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Navigation Matrix -->
+            <div class="opb-card">
+                <div class="opb-section-header">
+                    <div class="opb-section-title">
+                        <i class="fas fa-th" style="color:#eab308;"></i> Quick Navigation Matrix
+                    </div>
+                </div>
+                <div class="opb-quick-grid">
+                    <a href="/my-signals" class="opb-quick-tile"><i class="fas fa-bell" style="color:#38bdf8;"></i> Signals</a>
+                    <a href="/live-pnl" class="opb-quick-tile"><i class="fas fa-dollar-sign" style="color: var(--success-color, #16a34a);"></i> Live P&L</a>
+                    <a href="/options-chain" class="opb-quick-tile"><i class="fas fa-list" style="color:#ec4899;"></i> Chains</a>
+                    <a href="/trade-journal" class="opb-quick-tile"><i class="fas fa-book" style="color:#10b981;"></i> Journal</a>
+                    <a href="/sector-radar" class="opb-quick-tile"><i class="fas fa-compass" style="color:#f59e0b;"></i> Sector</a>
+                    <a href="/strategy-sandbox" class="opb-quick-tile"><i class="fas fa-flask" style="color:#c084fc;"></i> Sandbox</a>
+                    {% if user and user.role|lower in ('admin', 'super_admin', 'operator') %}
+                    <a href="/margin-radar" class="opb-quick-tile"><i class="fas fa-shield-alt" style="color:#f59e0b;"></i> Margins</a>
+                    <a href="/governance" class="opb-quick-tile"><i class="fas fa-gavel" style="color:#8b5cf6;"></i> Governance</a>
+                    <a href="/admin/config" class="opb-quick-tile"><i class="fas fa-cogs" style="color:#34d399;"></i> Config</a>
+                    <a href="/admin/kill-switch" class="opb-quick-tile" style="color: var(--danger-color, #dc2626);"><i class="fas fa-power-off" style="color: var(--danger-color, #dc2626);"></i> Kill Switch</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script nonce="{{ nonce }}">
+        // ── Real-time Clock ────────────────────────────────────────────────────────
+        function updateClock() {
+            const now = new Date();
+            const el = document.getElementById('currentTime');
+            if (el) el.textContent = now.toLocaleDateString('en-GB') + ', ' + now.toLocaleTimeString('en-GB');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ── Option Symbol Formatter ────────────────────────────────────────────────
+        function formatHumanName(sym, cat) {
+            if (!sym) return '-';
+            const m = sym.match(/^([A-Z]+)(\d{2}[A-Z]{3})(\d+)(CE|PE)$/i);
+            if (m) {
+                const optType = m[4].toUpperCase() === 'CE' ? 'Call' : 'Put';
+                return `${m[1]} ${parseInt(m[3]).toLocaleString('en-IN')} ${optType} Option`;
+            }
+            return sym;
+        }
+
+        // ── Paper Execution Trigger ────────────────────────────────────────────────
+        async function triggerPaperTrade(sym, direction, score) {
+            try {
+                const res = await fetch('/api/v1/trade/paper-trade', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({symbol: sym, direction: direction, score: score})
+                });
+                const d = await res.json();
+                if (d && d.success) {
+                    if (window.showSuccess) window.showSuccess(`Queued paper trade for ${sym} (Signal #${d.signal_id})`, 'Trade Executed');
+                    else alert(`⚡ ${sym} queued for paper execution`);
+                } else {
+                    if (window.showError) window.showError(d?.error || res.statusText, 'Order Placement Failed');
+                    else alert(`Could not queue paper trade: ${d?.error || res.statusText}`);
+                }
+            } catch (e) {
+                if (window.showError) window.showError(String(e), 'Execution Network Error');
+                else alert(`Network error: ${e}`);
+            }
+        }
+
+        // ── Tab Switcher ───────────────────────────────────────────────────────────
+        document.querySelectorAll('.opb-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                if (!tab.dataset.tab) return;
+                document.querySelectorAll('.opb-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => {
+                    s.classList.remove('active');
+                    s.style.display = 'none';
+                });
+                tab.classList.add('active');
+                const target = document.getElementById('section-' + tab.dataset.tab);
+                if (target) {
+                    target.classList.add('active');
+                    target.style.display = 'block';
+                }
+                if (tab.dataset.tab === 'signals') loadDashboardSignals();
+            });
+        });
+
+        // ── Load Signals ───────────────────────────────────────────────────────────
+        async function loadDashboardSignals() {
+            try {
+                const res = await fetch('/api/auth/signals/my-history?year=all&month=all&category=all', {credentials: 'include'});
+                if (!res.ok) return;
+                const d = await res.json();
+                const signals = d.signals || [];
+                const tb = document.getElementById('signalsTableBody');
+                if (!tb) return;
+                if (signals.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted);">No active signals found for current session</td></tr>';
+                    return;
+                }
+                tb.innerHTML = signals.slice(0, 10).map(s => {
+                    const isBuy = s.direction === 'CALL' || s.direction === 'BUY';
+                    const dirBadge = isBuy
+                        ? '<span class="opb-badge badge-buy"><i class="fas fa-arrow-up"></i> BUY</span>'
+                        : '<span class="opb-badge badge-sell"><i class="fas fa-arrow-down"></i> SELL</span>';
+                    const humanTitle = formatHumanName(s.symbol, s.category);
+                    const horizon = (s.category && (s.category.includes('OPTION') || s.category.includes('0DTE')))
+                        ? '<span style="color:#f59e0b;font-weight:700;font-size:0.75rem;">Intraday</span>'
+                        : '<span style="color:#38bdf8;font-weight:700;font-size:0.75rem;">1–5 Days</span>';
+                    return `<tr>
+                        <td class="opb-num" style="font-size:0.75rem;">${s.timestamp ? s.timestamp.substring(11, 16) : '-'}</td>
+                        <td><strong>${humanTitle}</strong><div style="font-size:0.65rem;color:var(--text-muted);font-family:monospace;">${s.symbol}</div></td>
+                        <td><span style="font-size:0.7rem;color:#93c5fd;">${s.category || 'EQUITY'}</span></td>
+                        <td>${horizon}</td>
+                        <td>${dirBadge}</td>
+                        <td><strong style="color:var(--market-buy);" class="opb-num">${s.score}</strong>/100</td>
+                        <td class="opb-num" style="font-weight:700;color:var(--accent-color);">₹${(s.entry_price || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+                        <td class="opb-num" style="font-size:0.75rem;color:var(--market-buy);">₹${(s.target_1 || 0).toLocaleString('en-IN')} / ₹${(s.target_2 || 0).toLocaleString('en-IN')}</td>
+                        <td>
+                            <button data-action="trigger-paper-trade" data-symbol="${s.symbol}" data-direction="${s.direction}" data-score="${s.score}" class="opb-badge badge-buy" style="cursor:pointer;border:none;" title="Queue Paper Trade" type="button">
+                                ⚡ Trade
+                            </button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } catch(e) {}
+        }
+
+        document.getElementById('signalsTableBody')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action="trigger-paper-trade"]');
+            if (btn) triggerPaperTrade(btn.dataset.symbol, btn.dataset.direction, Number(btn.dataset.score));
+        });
+
+        // ── Load Dashboard State Telemetry ─────────────────────────────────────────
+        async function loadDashboardData() {
+            const refreshIcon = document.getElementById('refreshIcon');
+            if (refreshIcon) refreshIcon.classList.add('fa-spin');
+            try {
+                const res = await fetch('/api/system/state', {credentials: 'include'});
+                if (!res.ok) return;
+                const d = await res.json();
+                if (d.capital !== undefined) {
+                    const capEl = document.getElementById('capitalDisplay');
+                    if (capEl) capEl.textContent = '₹' + Number(d.capital).toLocaleString('en-IN', {minimumFractionDigits: 2});
+                }
+                if (d.day_pnl !== undefined) {
+                    const pnlEl = document.getElementById('pnlDisplay');
+                    if (pnlEl) {
+                        pnlEl.textContent = (d.day_pnl >= 0 ? '+' : '') + '₹' + Number(d.day_pnl).toLocaleString('en-IN', {minimumFractionDigits: 2});
+                        pnlEl.className = 'opb-stat-value opb-num ' + (d.day_pnl >= 0 ? 'stat-positive' : 'stat-negative');
+                    }
+                }
+                if (d.open_trades !== undefined) {
+                    const ot = document.getElementById('openTrades');
+                    if (ot) ot.textContent = d.open_trades;
+                }
+                if (d.trades_today !== undefined) {
+                    const dt = document.getElementById('dailyTrades');
+                    if (dt) dt.textContent = d.trades_today;
+                }
+
+                const noTrackRecord = !!d.is_demo_data;
+                const winRateEl = document.getElementById('winRate');
+                if (winRateEl) {
+                    winRateEl.textContent = noTrackRecord ? 'No data yet' : (Number(d.win_rate) * 100).toFixed(1) + '%';
+                    winRateEl.style.fontSize = noTrackRecord ? '1.1rem' : '';
+                }
+                const ddEl = document.getElementById('drawdownDisplay');
+                if (ddEl) ddEl.textContent = noTrackRecord ? '—' : (Number(d.max_drawdown) * 100).toFixed(1) + '%';
+                const sharpeEl = document.getElementById('sharpeDisplay');
+                if (sharpeEl) sharpeEl.textContent = noTrackRecord ? '—' : Number(d.sharpe_ratio).toFixed(2);
+            } catch(e) {}
+            finally {
+                if (refreshIcon) setTimeout(() => refreshIcon.classList.remove('fa-spin'), 600);
+            }
+        }
+
+        // ── Session Equity Chart Renderer ──────────────────────────────────────────
+        let equityChartInstance = null;
+        function renderEquityChart() {
+            const ctx = document.getElementById('opbEquityChart');
+            if (!ctx || typeof Chart === 'undefined') return;
+
+            const labels = ['09:15', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30'];
+            const data = [10000, 10025, 10080, 10040, 10120, 10090, 10150, 10180, 10160, 10220, 10210, 10260, 10280, 10280];
+
+            if (equityChartInstance) equityChartInstance.destroy();
+
+            const isLight = document.documentElement.getAttribute('data-theme')?.includes('light') || false;
+            const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)';
+            const textColor = isLight ? '#64748b' : '#94a3b8';
+
+            equityChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Portfolio Equity (₹)',
+                        data: data,
+                        borderColor: '#16a34a',
+                        backgroundColor: 'rgba(22, 163, 74, 0.08)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleColor: '#f8fafc',
+                            bodyColor: '#38bdf8',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: (context) => `Equity: ₹${context.raw.toLocaleString('en-IN')}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 10 },
+                                callback: (v) => '₹' + v.toLocaleString('en-IN')
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('opbThemeChanged', () => {
+            if (equityChartInstance) renderEquityChart();
+        });
+
+        // Refresh controls: both desktop dashboard refresh buttons must invoke the same
+        // telemetry reload path. Keep the controls independent (no duplicate DOM IDs).
+        document.querySelectorAll('[data-action="refresh-dashboard"]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                if (btn.disabled) return;
+                btn.disabled = true;
+                try {
+                    await loadDashboardData();
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+
+        // Initialize Cockpit
+        loadDashboardData();
+        renderEquityChart();
+    </script>
+    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

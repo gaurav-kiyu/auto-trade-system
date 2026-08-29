@@ -1,0 +1,961 @@
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UNIVERSAL THEME-AWARE BUTTONS, HOVER STATES & COMPONENT STANDARDS
+   ══════════════════════════════════════════════════════════════════════════ */
+.btn, .opb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: var(--font-sm, 0.875rem);
+    font-weight: 700;
+    font-family: inherit;
+    border-radius: var(--radius-md, 0.5rem);
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    touch-action: manipulation;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.btn:active, .opb-btn:active {
+    transform: scale(0.97);
+}
+
+/* Primary Button */
+.btn-primary, .opb-btn-primary {
+    background: var(--accent-color, #38bdf8);
+    color: #000000 !important;
+    border-color: var(--accent-color, #38bdf8);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.btn-primary:hover, .opb-btn-primary:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Secondary Button */
+.btn-secondary, .opb-btn-secondary {
+    background: var(--bg-card, #131e33);
+    color: var(--text-primary, #ffffff) !important;
+    border-color: var(--border-color, #1e293b);
+}
+.btn-secondary:hover, .opb-btn-secondary:hover {
+    background: var(--bg-card-hover, #182744);
+    border-color: var(--border-color-hover, #38bdf8);
+    color: var(--accent-color, #38bdf8) !important;
+    transform: translateY(-1px);
+}
+
+/* Ghost / Subtle Button */
+.btn-ghost, .opb-btn-ghost {
+    background: transparent;
+    color: var(--text-secondary, #cbd5e1) !important;
+    border-color: var(--border-color, #1e293b);
+}
+.btn-ghost:hover, .opb-btn-ghost:hover {
+    background: var(--bg-card-hover, rgba(255, 255, 255, 0.05));
+    border-color: var(--accent-color, #38bdf8);
+    color: var(--text-primary, #ffffff) !important;
+    transform: translateY(-1px);
+}
+
+/* Danger Button */
+.btn-danger, .opb-btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger-color, #ef4444) !important;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+.btn-danger:hover, .opb-btn-danger:hover {
+    background: var(--danger-color, #ef4444);
+    color: #ffffff !important;
+    border-color: var(--danger-color, #ef4444);
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Success Button */
+.btn-success, .opb-btn-success {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success-color, #22c55e) !important;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+.btn-success:hover, .opb-btn-success:hover {
+    background: var(--success-color, #22c55e);
+    color: #ffffff !important;
+    border-color: var(--success-color, #22c55e);
+    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Universal Hover Transitions for Links, Cards & Nav */
+a {
+    color: var(--accent-color, #38bdf8);
+    transition: color 0.15s ease, opacity 0.15s ease;
+}
+a:hover {
+    opacity: 0.85;
+}
+
+.opb-card, .card, .stat-card, .cockpit-tile {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.opb-card:hover, .card:hover, .stat-card:hover, .cockpit-tile:hover {
+    border-color: var(--border-color-hover, var(--accent-color, #38bdf8)) !important;
+}
+
+/* Table Row Hover */
+table tr:hover td, .opb-table tr:hover td {
+    background: var(--bg-card-hover, rgba(255, 255, 255, 0.03)) !important;
+}
+
+/* Nav Item Hover */
+.nav-link:hover, .opb-nav-item:hover, .drawer-nav-item:hover {
+    background: var(--bg-card-hover, rgba(255, 255, 255, 0.06)) !important;
+    color: var(--accent-color, #38bdf8) !important;
+}
+
+/**
+ * GAURAV CAPITAL — OPB Institutional FinTech Design System (v5.0 - Universal Architecture)
+ * Centralized Token Architecture, Semantic Surfaces, High-Contrast Borders, Tabular Numerals & Component Standards
+ */
+
+:root {
+    /* 1. Variable Typography Tokens (2026 Modern Standard) */
+    --font-ui:                'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-display:           'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+    --font-data:              'Inter', -apple-system, sans-serif;
+    --font-mono:              'JetBrains Mono', 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+    --font-feature-settings:  "tnum" 1, "zero" 1, "cv02" 1, "cv03" 1, "cv04" 1, "cv11" 1;
+
+    /* Typographic Scale Tokens */
+    --font-xs:                0.72rem;
+    --font-sm:                0.80rem;
+    --font-base:              0.875rem;
+    --font-md:                0.95rem;
+    --font-lg:                1.15rem;
+    --font-xl:                1.45rem;
+    --font-2xl:               1.85rem;
+    --font-3xl:               2.25rem;
+
+    --fw-normal:              400;
+    --fw-medium:              500;
+    --fw-semibold:            600;
+    --fw-bold:                700;
+    --fw-extrabold:           800;
+
+    /* 2. Centralized 4-Tier Surface Architecture */
+    --opb-surface-base:       var(--bg-primary, #080c14);
+    --opb-surface-panel:      var(--bg-secondary, #0f172a);
+    --opb-surface-card:       var(--bg-card, #131e33);
+    --opb-surface-card-hover: var(--bg-card-hover, #182744);
+    --opb-surface-input:      var(--input-bg, #0b1120);
+    --opb-surface-overlay:    rgba(15, 23, 42, 0.95);
+
+    /* 3. Semantic Market Palettes */
+    --market-buy:             var(--success-color, #16a34a);
+    --market-buy-bg:          rgba(22, 163, 74, 0.14);
+    --market-buy-border:      rgba(22, 163, 74, 0.45);
+    
+    --market-sell:            var(--danger-color, #dc2626);
+    --market-sell-bg:         rgba(220, 38, 38, 0.14);
+    --market-sell-border:     rgba(220, 38, 38, 0.45);
+
+    --market-neutral:         var(--accent-color, #38bdf8);
+    --market-neutral-bg:      rgba(56, 189, 248, 0.14);
+    --market-neutral-border:  rgba(56, 189, 248, 0.45);
+
+    --market-warning:         var(--warning-color, #d97706);
+    --market-warning-bg:      rgba(217, 119, 6, 0.14);
+    --market-warning-border:  rgba(217, 119, 6, 0.45);
+
+    --accent-primary:         var(--accent-color, #38bdf8);
+    --accent-gradient:        var(--accent-gradient, linear-gradient(135deg, #0284c7 0%, #2563eb 100%));
+
+    /* 4. High-Contrast Border & Radius Tokens */
+    --border-width:           1px;
+    --border-width-thick:     2px;
+    --border-subtle:          var(--border-color, #1e293b);
+    --border-hover:           var(--border-color-hover, var(--accent-color, #38bdf8));
+
+    --radius-xs:              0.25rem;
+    --radius-sm:              0.375rem;
+    --radius-md:              0.50rem;
+    --radius-lg:              0.75rem;
+    --radius-xl:              1.00rem;
+    --radius-2xl:             1.25rem;
+    --radius-full:            9999px;
+
+    /* 5. Elevation & Shadow Tokens */
+    --shadow-sm:              0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-md:              0 4px 12px -2px rgba(0, 0, 0, 0.15);
+    --shadow-lg:              0 10px 25px -5px rgba(0, 0, 0, 0.25);
+    --shadow-xl:              var(--card-shadow, 0 20px 40px -15px rgba(0, 0, 0, 0.5));
+    --shadow-glow:            0 0 20px var(--header-glow, rgba(56, 189, 248, 0.2));
+
+    /* 6. Strict Tabular Numerals */
+    --font-tabular:           "Inter", -apple-system, sans-serif;
+}
+
+/* Universal High-Contrast Base Styles */
+body {
+    font-family: var(--font-ui);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-feature-settings: var(--font-feature-settings);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
+}
+
+/* Tabular Numerals for Financial Data */
+.tabular-nums, .num, .stat-value, .financial-figure, [data-tabular="true"] {
+    font-variant-numeric: tabular-nums !important;
+    font-feature-settings: "tnum" 1, "zero" 1 !important;
+    font-family: var(--font-mono), monospace;
+}
+
+/* Universal Text Boundary & Overflow Guard */
+.opb-text-bound, .config-desc-box {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Component Standards */
+.opb-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-xl);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.opb-card:hover {
+    border-color: var(--border-color-hover);
+}
+
+.opb-stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--shadow-sm);
+}
+.opb-stat-card:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.opb-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: var(--font-base);
+}
+.opb-table th {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: var(--font-xs);
+    font-weight: var(--fw-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid var(--border-color);
+    text-align: left;
+}
+.opb-table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+.opb-table tr:hover td {
+    background: var(--bg-card-hover);
+}
+
+.opb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: var(--font-xs);
+    font-weight: var(--fw-bold);
+    letter-spacing: 0.03em;
+    border: 1px solid transparent;
+}
+.opb-badge-buy {
+    background: var(--market-buy-bg);
+    color: var(--market-buy);
+    border-color: var(--market-buy-border);
+}
+.opb-badge-sell {
+    background: var(--market-sell-bg);
+    color: var(--market-sell);
+    border-color: var(--market-sell-border);
+}
+.opb-badge-neutral {
+    background: var(--market-neutral-bg);
+    color: var(--market-neutral);
+    border-color: var(--market-neutral-border);
+}
+.opb-badge-warning {
+    background: var(--market-warning-bg);
+    color: var(--market-warning);
+    border-color: var(--market-warning-border);
+}
+
+.opb-tab-bar {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 0.35rem;
+    display: inline-flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+}
+.opb-tab {
+    padding: 0.45rem 1.15rem;
+    border-radius: var(--radius-md);
+    font-size: var(--font-sm);
+    font-weight: var(--fw-bold);
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.opb-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-card-hover);
+}
+.opb-tab.active {
+    background: var(--accent-gradient);
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(2, 132, 199, 0.35);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.opb-input, .opb-select {
+    width: 100%;
+    padding: 0.55rem 0.85rem;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--font-base);
+    font-weight: var(--fw-semibold);
+    outline: none;
+    transition: all 0.2s ease;
+}
+.opb-input:focus, .opb-select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+    background: var(--bg-card);
+}
+
+/* Cockpit Control Tile Abstractions */
+.cockpit-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.cockpit-tile {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    transition: all 0.15s ease;
+}
+.cockpit-tile:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-sm);
+}
+
+.cockpit-label {
+    font-size: var(--font-xs);
+    font-weight: var(--fw-bold);
+    color: var(--text-primary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.cockpit-hint {
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    line-height: 1.45;
+    margin-top: 0.2rem;
+}
+.cockpit-hint i {
+    color: var(--accent-color);
+    margin-right: 0.3rem;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Universal Mobile & Tablet Alignment Architecture (< 1024px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1023px) {
+    body {
+        padding: 0.5rem 0.65rem 4.5rem 0.65rem !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+    }
+
+    .opb-container, .container, main {
+        max-width: 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .cockpit-panel, .opb-card {
+        padding: 0.9rem 0.85rem !important;
+        border-radius: var(--radius-md) !important;
+    }
+
+    .opb-grid-2, .opb-grid-3, .opb-grid-4, .opb-grid-6 {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    .opb-kpi-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.6rem !important;
+    }
+
+    /* Horizontal scroll container for data tables */
+    .opb-table-container, table {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    /* Touch buttons */
+    .opb-btn, .opb-tab, button {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Mobile Screen Layout Stabilization & Anti-Scattering Rules (< 1024px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1023px) {
+    * {
+        box-sizing: border-box !important;
+    }
+
+    body {
+        margin: 0 !important;
+        padding: 0.5rem 0.5rem 4.75rem 0.5rem !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Prevent all containers from overflowing viewport */
+    .container, .opb-container, main, .main-content, .content, .dashboard-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    /* Single column grid reflow for cards */
+    .grid, .opb-grid, .cockpit-grid,
+    .opb-grid-2, .opb-grid-3, .opb-grid-4, .opb-grid-5, .opb-grid-6,
+    [style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    /* Keep KPI mini stat cards 2-column on mobile */
+    .opb-kpi-grid, .kpi-row, .stat-grid-2 {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    /* Card padding optimization */
+    .opb-card, .card, .stat-card, .cockpit-panel, .cockpit-tile, .panel {
+        padding: 0.85rem 0.75rem !important;
+        margin-bottom: 0.65rem !important;
+        border-radius: 0.65rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Horizontal scroll for wide financial tables */
+    table, .opb-table, .table {
+        display: block !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        white-space: nowrap !important;
+    }
+
+    /* Flexible action bars */
+    .action-bar, .header-actions, .opb-tab-bar {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.4rem !important;
+        width: 100% !important;
+    }
+
+    /* Input & form responsiveness */
+    .opb-input, .opb-select, input, select, textarea {
+        font-size: 16px !important; /* Prevents iOS zoom */
+        max-width: 100% !important;
+    }
+
+    /* Password toggle button positioning */
+    .password-wrapper, .input-wrapper, .opb-password-wrapper, .input-password-wrapper {
+        position: relative !important;
+        display: flex !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+
+    .fa-eye, .fa-eye-slash {
+        cursor: pointer !important;
+        touch-action: manipulation !important;
+        padding: 0.35rem !important;
+    }
+}
+
+
+/* ── OPB Universal Password Visibility & Secret Input Component ── */
+.opb-password-wrapper,
+.input-password-wrapper {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+.opb-password-wrapper input,
+.input-password-wrapper input {
+    width: 100% !important;
+    padding-right: 2.75rem !important;
+    box-sizing: border-box !important;
+}
+
+.opb-password-toggle,
+.password-toggle-btn {
+    position: absolute !important;
+    right: 0.65rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-muted, #94a3b8) !important;
+    cursor: pointer !important;
+    padding: 0.35rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 0.375rem !important;
+    transition: color 0.15s ease, background 0.15s ease !important;
+    z-index: 10 !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
+}
+
+.opb-password-toggle:hover,
+.password-toggle-btn:hover {
+    color: var(--accent-color, #38bdf8) !important;
+    background: var(--bg-card-hover, rgba(56, 189, 248, 0.1)) !important;
+}
+
+.opb-password-toggle:active,
+.password-toggle-btn:active {
+    transform: translateY(-50%) scale(0.92) !important;
+}
+
+.opb-password-toggle svg,
+.password-toggle-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+    stroke: currentColor !important;
+    fill: none !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    display: block !important;
+}
+
+
+/* ── OPB Universal Table Anti-Squeeze Protection (Zero Vertical Letter Wrapping) ── */
+.opb-table-container,
+.table-responsive,
+.table-container,
+.opb-table-wrap,
+.opb-card-body:has(table),
+.card-body:has(table) {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+    margin-bottom: 0.75rem !important;
+}
+
+.table-responsive table,
+.opb-table,
+.table:not(.table-compact) {
+    min-width: 580px !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+table th, table td,
+.opb-table th, .opb-table td,
+.table th, .table td {
+    white-space: nowrap !important;
+    word-break: normal !important;
+    letter-spacing: normal !important;
+    vertical-align: middle !important;
+    padding: 0.65rem 0.85rem !important;
+}
+
+/* ── OPB Universal Mobile Form & Auth Stacking (< 768px) ── */
+@media (max-width: 768px) {
+    .auth-card,
+    .login-card,
+    .register-card,
+    .card,
+    .opb-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 1.25rem 0.85rem !important;
+        box-sizing: border-box !important;
+    }
+
+    .form-group,
+    .form-row,
+    .input-row {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.45rem !important;
+        width: 100% !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .form-label,
+    label {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+        font-size: 0.82rem !important;
+        font-weight: 700 !important;
+    }
+
+    .input-control,
+    .input-field,
+    .form-input,
+    input[type="text"],
+    input[type="password"],
+    .opb-form-control,
+.form-group input:not([type="checkbox"]):not([type="radio"]),
+.form-group select,
+.opb-form-field input:not([type="checkbox"]):not([type="radio"]),
+.opb-form-field select,
+.opb-form-group input:not([type="checkbox"]):not([type="radio"]),
+.opb-form-group select {
+    width: 100% !important;
+    min-height: 44px !important;
+    box-sizing: border-box !important;
+    font-size: 0.9rem !important;
+}
+
+    .helper-text,
+    .form-help,
+    .form-text {
+        display: block !important;
+        width: 100% !important;
+        font-size: 0.72rem !important;
+        line-height: 1.4 !important;
+        margin-top: 0.35rem !important;
+    }
+}
+
+
+/* ── OPB Universal Form Stacking Architecture ── */
+.form-group,
+.input-group,
+.opb-input-group,
+.form-row,
+.input-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    margin-bottom: 1.25rem !important;
+    box-sizing: border-box !important;
+}
+
+.form-label,
+.input-label,
+label {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-bottom: 0.45rem !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    color: var(--text-secondary, #cbd5e1) !important;
+}
+
+.input-wrapper,
+.opb-password-wrapper,
+.input-password-wrapper {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.input-control,
+.input-field,
+.form-input,
+input[type="text"],
+input[type="password"],
+.opb-form-control,
+.form-group input:not([type="checkbox"]):not([type="radio"]),
+.form-group select,
+.opb-form-field input:not([type="checkbox"]):not([type="radio"]),
+.opb-form-field select,
+.opb-form-group input:not([type="checkbox"]):not([type="radio"]),
+.opb-form-group select {
+    width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
+}
+
+/* Exemption for inline checkboxes and radios */
+.form-check-label,
+.checkbox-label,
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]) {
+    display: inline-flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    width: auto !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Canonical OPB Shell & Viewport Architecture (< 1024px)
+   ══════════════════════════════════════════════════════════════════════════ */
+.opb-mobile-appbar {
+    min-height: 48px !important;
+    max-height: 52px !important;
+    box-sizing: border-box !important;
+}
+
+.mobile-hamburger-btn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    touch-action: manipulation !important;
+}
+
+.opb-mobile-bottom-dock {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 58px !important;
+    background: var(--bg-card, #0f172a) !important;
+    border-top: 1px solid var(--border-color, #1e293b) !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    z-index: 9999 !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35) !important;
+}
+
+.mobile-dock-tab {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    text-decoration: none !important;
+    color: var(--text-secondary, #94a3b8) !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    gap: 0.15rem !important;
+    touch-action: manipulation !important;
+}
+
+.mobile-dock-tab.active,
+.mobile-dock-tab:active {
+    color: var(--accent-color, #38bdf8) !important;
+}
+
+.mobile-dock-tab .dock-icon {
+    font-size: 1.15rem !important;
+    line-height: 1 !important;
+}
+
+.drawer-user-card span {
+    white-space: nowrap !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Text Integrity & Header Anti-Compression Invariant (OPB-UI-INVARIANTS-2026)
+   ══════════════════════════════════════════════════════════════════════════ */
+.opb-nav-top,
+.opb-mobile-appbar {
+    white-space: nowrap !important;
+}
+
+.opb-nav-top span,
+.opb-nav-top a,
+.opb-nav-top select,
+.opb-mobile-appbar span,
+.opb-mobile-appbar a {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+}
+
+.opb-num,
+.mobile-status-pill,
+.mobile-kill-btn,
+.drawer-user-card span {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Mobile Drawer & Viewport Integrity Invariants (OPB-RESPONSIVE-2026)
+   ══════════════════════════════════════════════════════════════════════════ */
+html, body {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+}
+
+.ambient-glow {
+    max-width: 90vw !important;
+    max-height: 90vw !important;
+    pointer-events: none !important;
+}
+
+.drawer-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 48px !important;
+    max-height: 52px !important;
+    padding: 0.65rem 1rem !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+}
+
+.drawer-header span {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    flex-shrink: 0 !important;
+    font-size: 0.85rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+}
+
+.opb-nav-top select,
+.drawer-theme-card select {
+    box-sizing: border-box !important;
+    min-height: 32px !important;
+    max-height: 36px !important;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 0.5rem 0.5rem 5.5rem 0.5rem !important;
+    }
+    .card, .opb-card {
+        padding: 0.85rem !important;
+        margin-bottom: 0.85rem !important;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.6rem !important;
+    }
+}
+
+.drawer-close-btn,
+.drawer-header .mobile-hamburger-btn,
+.drawer-header label {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    border-radius: 0.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.opb-tab-bar {
+    display: flex !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Header Theme Selector & Control Sizing Invariants
+   ══════════════════════════════════════════════════════════════════════════ */
+.opb-nav-top select,
+.opb-nav-top .opb-theme-selector,
+#desktopThemeSelect {
+    width: auto !important;
+    max-width: 145px !important;
+    min-width: 125px !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+    box-sizing: border-box !important;
+}
+
+.opb-nav-top .btn,
+.opb-nav-top a {
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+}

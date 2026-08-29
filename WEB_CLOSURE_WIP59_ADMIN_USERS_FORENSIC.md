@@ -1,0 +1,1029 @@
+# OPB WEB CLOSURE WIP59 — Admin Users / Authorization Forensic Review
+
+Candidate source files: 21
+Relevant UI/action source signals: 1751
+
+## Candidate files
+- `scripts/gen_ppt.py`
+- `scripts/generate_all_master_consolidated_documents.py`
+- `scripts/run_consolidated_full_system_verification.py`
+- `scratch/test_all_app_routes.py`
+- `scratch/generate_final_deliverables.py`
+- `scratch/test_page_routes_only.py`
+- `tests/test_enterprise_dashboard.py`
+- `tests/test_wip58_desktop_submenu_hover.py`
+- `tests/test_dashboard_comprehensive.py`
+- `tests/test_all_ui_screens_and_navigation.py`
+- `tests/test_auth_system.py`
+- `tests/test_auth_handler.py`
+- `templates/enterprise/_nav.html`
+- `archive/unrelated_modules/realestate/admin_panel.py`
+- `archive/unrelated_modules/realestate/auth_service.py`
+- `core/auth/registration_notifications.py`
+- `core/auth/__init__.py`
+- `core/auth/routes.py`
+- `core/enterprise_dashboard/main.py`
+- `core/enterprise_dashboard/routes/pages.py`
+- `core/auth/handler/handler.py`
+
+## Relevant source signals
+- `scripts/gen_ppt.py:165` — `"Paper broker with OI/volume liquidity filter",`
+- `scripts/gen_ppt.py:233` — `"Kelly fraction: 0.15 (half-Kelly)",`
+- `scripts/gen_ppt.py:270` — `"Event Calendar Filter (Budget/RBI/FOMC)",`
+- `scripts/gen_ppt.py:292` — `"Paper Fill with OI/volume filter",`
+- `scripts/gen_ppt.py:315` — `"RBAC (Role-Based Access Control)",`
+- `scripts/gen_ppt.py:371` — `"Config editor, user management",`
+- `scripts/gen_ppt.py:374` — `"Admin API: /api/config/*, /api/auth/users/*",`
+- `scripts/gen_ppt.py:375` — `"Full admin UI with role-based access",`
+- `scripts/gen_ppt.py:447` — `"RBAC: Admin, Analyst, Operator, Viewer roles",`
+- `scripts/gen_ppt.py:551` — `("3", "Run Paper Trading", "python index_app/index_trader.py --paper", "Safe mode: no real orders. Uses realistic fill simulation with OI/volume filter."),`
+- `scripts/gen_ppt.py:634` — `"GitHub Actions ready",`
+- `scripts/generate_all_master_consolidated_documents.py:5` — `2. docs/OPB_STAKEHOLDER_AND_END_USER_GUIDE.md / .pdf / .docx`
+- `scripts/generate_all_master_consolidated_documents.py:6` — `3. Synchronizes COMPLETE_USER_GUIDE_AND_MANUAL.md`
+- `scripts/generate_all_master_consolidated_documents.py:46` — `4. **Super Admin User & Signal Permission Control Center (`/admin/users`)**: 1-click Master Signal Switches, Granular Category Subscriptions, Conviction Tier Cutoffs, Multi-Timeframe Quota Controls (Daily, Weekly, Monthly), and Dedicated User Channel Routing.`
+- `scripts/generate_all_master_consolidated_documents.py:47` — `5. **Dual-Channel High-Throughput Notification Dispatcher**: Instant multi-user Telegram Bot (`@gaurav_optionbuying_signal_bot`) and multi-recipient Gmail SMTP broadcasting.`
+- `scripts/generate_all_master_consolidated_documents.py:49` — `7. **Signal Tracker & Historical Accuracy Engine (`/admin/signals` & `/my-signals`)**: SQLite persistence tracking signal generation, targets, SL, win rates (100.0%), and personal user feeds.`
+- `scripts/generate_all_master_consolidated_documents.py:52` — `10. **1-Click Interactive Telegram Action Buttons**: Telegram inline buttons (`[⚡ Paper Trade]`, `[🚀 Execute]`, `[📊 View Chart]`) with instant webhook execution.`
+- `scripts/generate_all_master_consolidated_documents.py:53` — `11. **Automated AI Post-Market Cognitive Trade Journal Debrief**: Daily automated debrief analyzing winners, loss leaks, and actionable parameter adjustments.`
+- `scripts/generate_all_master_consolidated_documents.py:62` — `20. **100% Free Direct UPI QR Billing & Auto-Provisioning Engine (`/pricing-plans`)**: Zero-fee native NPCI UPI QR code generation and instant user quota activation.`
+- `scripts/generate_all_master_consolidated_documents.py:68` — `## 🛡️ SUPER ADMIN CONTROL PLANE (`/admin/users`)`
+- `scripts/generate_all_master_consolidated_documents.py:69` — `Accessible at `http://localhost:8000/admin/users`:`
+- `scripts/generate_all_master_consolidated_documents.py:70` — `- **Master Switch**: Toggle individual users between `ALLOWED` (Green) and `BLOCKED` (Red).`
+- `scripts/generate_all_master_consolidated_documents.py:79` — `| `open_app.bat` | `http://localhost:8000` | All Users / Operators | Main Enterprise Trading & Analytics Dashboard |`
+- `scripts/generate_all_master_consolidated_documents.py:81` — `| Super Admin Users | `http://localhost:8000/admin/users` | Super Admin | User Signal Permissions, Category Subscriptions & Quotas |`
+- `scripts/generate_all_master_consolidated_documents.py:83` — `| My Signals Feed | `http://localhost:8000/my-signals` | End-Users | Personal Delivered Signals Feed & Filters |`
+- `scripts/generate_all_master_consolidated_documents.py:84` — `| Sector Rotation Radar | `http://localhost:8000/sector-radar` | All Users | 12 NSE Sectors Relative Strength Quadrants |`
+- `scripts/generate_all_master_consolidated_documents.py:87` — `| Strategy Sandbox | `http://localhost:8000/strategy-sandbox` | Quant Analysts / Users | Interactive Parameter Tuning Backtest Studio |`
+- `scripts/generate_all_master_consolidated_documents.py:90` — `| Pricing Plans | `http://localhost:8000/pricing-plans` | Clients / End-Users | 100% Free UPI QR Subscription & Auto-Unlock |`
+- `scripts/generate_all_master_consolidated_documents.py:95` — `# 2. STAKEHOLDER & END-USER GUIDE CONTENT`
+- `scripts/generate_all_master_consolidated_documents.py:98` — `STAKEHOLDER_MD = """# OPB TRADING PLATFORM: STAKEHOLDER & USER GUIDE`
+- `scripts/generate_all_master_consolidated_documents.py:99` — `**Version:** 3.0.0 | **Audience:** Investors, Clients, Stakeholders & End-Users`
+- `scripts/generate_all_master_consolidated_documents.py:109` — `Whenever a high-probability trade setup passes all 16 quantitative strategies and institutional filters, an instant signal is delivered to your registered Telegram and Email with 1-click action buttons (`[⚡ Paper Trade]`, `[🚀 Execute]`, `[📊 View Chart]`).`
+- `scripts/generate_all_master_consolidated_documents.py:134` — `| Strategy Score | Conviction Tier | Recommended Action | Risk Sizing |`
+- `scripts/generate_all_master_consolidated_documents.py:155` — `Visit [`http://localhost:8000/pricing-plans`](http://localhost:8000/pricing-plans) to select your plan. Scan the zero-fee UPI QR code with any UPI app (Google Pay, PhonePe, Paytm, BHIM) to immediately activate your account and quota.`
+- `scripts/generate_all_master_consolidated_documents.py:163` — `p2 = _DOCS / "OPB_STAKEHOLDER_AND_END_USER_GUIDE.md"`
+- `scripts/generate_all_master_consolidated_documents.py:167` — `# Synchronize COMPLETE_USER_GUIDE_AND_MANUAL.md`
+- `scripts/generate_all_master_consolidated_documents.py:168` — `p3 = _DOCS / "COMPLETE_USER_GUIDE_AND_MANUAL.md"`
+- `scripts/generate_all_master_consolidated_documents.py:311` — `p_user_docx = _DOCS / "OPB_STAKEHOLDER_AND_END_USER_GUIDE.docx"`
+- `scripts/generate_all_master_consolidated_documents.py:312` — `p_user_pdf = _DOCS / "OPB_STAKEHOLDER_AND_END_USER_GUIDE.pdf"`
+- `scripts/generate_all_master_consolidated_documents.py:313` — `generate_word_document(STAKEHOLDER_MD, p_user_docx, "OPB Trading Platform: Stakeholder & User Guide")`
+- `scripts/generate_all_master_consolidated_documents.py:314` — `generate_pdf_document(STAKEHOLDER_MD, p_user_pdf, "OPB Trading Platform: Stakeholder & User Guide")`
+- `scripts/run_consolidated_full_system_verification.py:8` — `4. Super Admin RBAC, Quotas & Category Permissions (/admin/users)`
+- `scripts/run_consolidated_full_system_verification.py:9` — `5. Configuration Editor & Dual Multi-User Alerting (/admin/config)`
+- `scripts/run_consolidated_full_system_verification.py:14` — `10. 1-Click Interactive Telegram Action Buttons`
+- `scripts/run_consolidated_full_system_verification.py:74` — `_log.info("🧪 [4/20] Super Admin RBAC, Quotas & Category Permissions...")`
+- `scripts/run_consolidated_full_system_verification.py:75` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `scripts/run_consolidated_full_system_verification.py:76` — `mgr = UserPermissionManager.get_instance()`
+- `scripts/run_consolidated_full_system_verification.py:77` — `perms = mgr.list_all_permissions()`
+- `scripts/run_consolidated_full_system_verification.py:79` — `admin_u = next((u for u in perms if u["username"] == "admin"), None)`
+- `scripts/run_consolidated_full_system_verification.py:81` — `_log.info("✅ [4/20 PASSED] Super Admin RBAC & category permissions verified for %d users.", len(perms))`
+- `scripts/run_consolidated_full_system_verification.py:83` — `# Section 5: Configuration Editor & Multi-User Alerting`
+- `scripts/run_consolidated_full_system_verification.py:84` — `_log.info("🧪 [5/20] Configuration Editor & Multi-User Notifications...")`
+- `scripts/run_consolidated_full_system_verification.py:128` — `# Section 10: 1-Click Interactive Telegram Action Buttons`
+- `scripts/run_consolidated_full_system_verification.py:129` — `_log.info("🧪 [10/20] 1-Click Interactive Telegram Action Buttons...")`
+- `scripts/run_consolidated_full_system_verification.py:130` — `from core.telegram.callback_handler import TelegramActionHandler`
+- `scripts/run_consolidated_full_system_verification.py:131` — `tg_act = TelegramActionHandler.process_callback_action("paper:SIG-2026-TCS", "1148730533")`
+- `scripts/run_consolidated_full_system_verification.py:133` — `_log.info("✅ [10/20 PASSED] 1-Click Telegram Callback Action executed successfully.")`
+- `scripts/run_consolidated_full_system_verification.py:227` — `"admin_config.html", "admin_users.html", "admin_portfolio_analyzer.html", "admin_signals.html",`
+- `scripts/run_consolidated_full_system_verification.py:228` — `"user_signals.html", "sector_radar.html", "trade_copier.html", "margin_radar.html",`
+- `scratch/test_all_app_routes.py:29` — `# 1. Authenticate Admin User & create session cookie`
+- `scratch/test_all_app_routes.py:30` — `user = auth_handler.authenticate("admin", "Admin@123456", "127.0.0.1")`
+- `scratch/test_all_app_routes.py:31` — `assert user is not None, "Failed to authenticate admin user"`
+- `scratch/test_all_app_routes.py:32` — `token = auth_handler.create_session(user, "127.0.0.1", "TestClient")`
+- `scratch/test_all_app_routes.py:55` — `"/admin/users",`
+- `scratch/generate_final_deliverables.py:50` — `4. **Super Admin User & Signal Control Center (`/admin/users`)**:`
+- `scratch/generate_final_deliverables.py:52` — `- Granular multi-select checkboxes for all 8 market categories (`INDEX_OPTIONS`, `LARGE_CAP_EQUITY`, `MID_SMALL_CAP`, `PENNY_SME`, `COMMODITIES`, `CURRENCIES`, `FUTURES`, `ETFS_REITS`).`
+- `scratch/generate_final_deliverables.py:54` — `5. **Pre-Guard Gating & Dual Multi-User Alert Dispatching**:`
+- `scratch/generate_final_deliverables.py:68` — `| Single-recipient notification limitation | Rewrote notification dispatchers in `core/all_nse_scanner.py` and `core/notifier.py` to parse comma-separated multi-user Chat IDs and Emails. | ✅ CLOSED & VERIFIED |`
+- `scratch/generate_final_deliverables.py:69` — `| Uncontrolled user signal access | Implemented `UserPermissionManager` and Super Admin Control Panel (`/admin/users`) with category filters, tier cutoffs, and quotas. | ✅ CLOSED & VERIFIED |`
+- `scratch/generate_final_deliverables.py:79` — `- Add native Web Push notifications via Service Workers for mobile app / PWA users.`
+- `scratch/generate_final_deliverables.py:81` — `- Expand the auto-trader bridge to automatically execute limit orders directly through the user's connected broker OAuth token upon signal confirmation.`
+- `scratch/generate_final_deliverables.py:103` — `"<b>Super Admin User Control Center (/admin/users):</b> Master switches, 8 asset categories, daily/weekly/monthly quotas, and tier cutoffs.",`
+- `scratch/generate_final_deliverables.py:104` — `"<b>Dual Multi-User Alerting:</b> Instant concurrent broadcasting to multiple Telegram Chat IDs and multiple Gmail SMTP recipients.",`
+- `scratch/generate_final_deliverables.py:114` — `["Single-User Alerts", "Multi-user Telegram Chat IDs & multi-email broadcast", "VERIFIED (100%)"],`
+- `scratch/generate_final_deliverables.py:115` — `["Uncontrolled Signal Access", "Super Admin RBAC, Quotas & Category Filter Gate", "VERIFIED (100%)"],`
+- `scratch/generate_final_deliverables.py:271` — `add_header(s4, "SUPER ADMIN CONTROL & PRE-GUARD GATING", "Granular User Permissions, Multi-Timeframe Quotas & Dispatch Security")`
+- `scratch/generate_final_deliverables.py:282` — `p.text = "Super Admin Control Features (/admin/users)"`
+- `scratch/generate_final_deliverables.py:317` — `"Step 3: User active & master switch verification",`
+- `scratch/test_page_routes_only.py:22` — `user = auth_handler.authenticate("admin", "Admin@123456", "127.0.0.1")`
+- `scratch/test_page_routes_only.py:23` — `assert user is not None, "Failed to authenticate admin user"`
+- `scratch/test_page_routes_only.py:24` — `token = auth_handler.create_session(user, "127.0.0.1", "TestClient")`
+- `scratch/test_page_routes_only.py:46` — `"/admin/users",`
+- `tests/test_enterprise_dashboard.py:161` — `"""Create an admin user session with known default admin password."""`
+- `tests/test_enterprise_dashboard.py:177` — `user = d._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_enterprise_dashboard.py:178` — `assert user is not None, "Admin authentication failed"`
+- `tests/test_enterprise_dashboard.py:179` — `token = d._auth.create_session(user)`
+- `tests/test_enterprise_dashboard.py:279` — `except (ValueError, TypeError, KeyError, RuntimeError, IndexError):`
+- `tests/test_enterprise_dashboard.py:475` — `def test_csp_form_action_self(self, state_file: str, trades_db: str, tmp_path):`
+- `tests/test_enterprise_dashboard.py:476` — `"""form-action restricts to 'self'."""`
+- `tests/test_enterprise_dashboard.py:487` — `assert "form-action 'self'" in csp`
+- `tests/test_enterprise_dashboard.py:555` — `def test_permissions_policy(self, state_file: str, trades_db: str, tmp_path):`
+- `tests/test_enterprise_dashboard.py:556` — `"""Permissions-Policy header restricts camera/microphone/geolocation."""`
+- `tests/test_enterprise_dashboard.py:566` — `pp = resp.headers.get("permissions-policy")`
+- `tests/test_enterprise_dashboard.py:747` — `r = db._apply_config_change({"BASE_CAPITAL": 2000, "SL_PCT": 3}, "testuser")`
+- `tests/test_enterprise_dashboard.py:764` — `r = db._apply_config_change({"NEW_KEY": "newval"}, "testuser")`
+- `tests/test_enterprise_dashboard.py:777` — `r = db._apply_config_change({"BASE_CAPITAL": 2000, "_hidden": "nope"}, "testuser")`
+- `tests/test_enterprise_dashboard.py:793` — `db._apply_config_change({"BASE_CAPITAL": 5000}, "testuser")`
+- `tests/test_enterprise_dashboard.py:837` — `r = db._apply_config_change({"KEY": "val"}, "testuser")`
+- `tests/test_enterprise_dashboard.py:858` — `raise OSError("Permission denied")`
+- `tests/test_enterprise_dashboard.py:868` — `r = db._apply_config_change({"K": "new"}, "testuser")`
+- `tests/test_enterprise_dashboard.py:895` — `r = db._apply_config_change({"K": "new"}, "testuser")`
+- `tests/test_enterprise_dashboard.py:899` — `class TestConfigApplySyncsUserPermissions:`
+- `tests/test_enterprise_dashboard.py:900` — `"""Regression: _apply_config_change()'s EMAIL_TO/CHAT_ID -> admin user`
+- `tests/test_enterprise_dashboard.py:901` — `permission sync called get_user_permission()/upsert_user_permission(),`
+- `tests/test_enterprise_dashboard.py:902` — `neither of which ever existed on UserPermissionManager (only the plural`
+- `tests/test_enterprise_dashboard.py:903` — `get_user_permissions() and update_user_permissions() do) - this silently`
+- `tests/test_enterprise_dashboard.py:906` — `def test_email_to_and_chat_id_sync_to_admin_permissions(self, tmp_path, monkeypatch):`
+- `tests/test_enterprise_dashboard.py:907` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `tests/test_enterprise_dashboard.py:910` — `isolated_mgr = UserPermissionManager(store_path=tmp_path / "user_signal_permissions.json")`
+- `tests/test_enterprise_dashboard.py:911` — `monkeypatch.setattr(UserPermissionManager, "get_instance", classmethod(lambda cls: isolated_mgr))`
+- `tests/test_enterprise_dashboard.py:923` — `{"EMAIL_TO": "a@x.com,b@x.com", "CHAT_ID": "111,222"}, "testuser",`
+- `tests/test_enterprise_dashboard.py:927` — `admin_perm = isolated_mgr.get_user_permissions("admin")`
+- `tests/test_enterprise_dashboard.py:933` — `"""Even if the permission sync itself fails, the config write must`
+- `tests/test_enterprise_dashboard.py:935` — `from core.auth.user_signal_permissions import UserPermissionManager`
+- `tests/test_enterprise_dashboard.py:939` — `raise RuntimeError("permission store unavailable")`
+- `tests/test_enterprise_dashboard.py:941` — `monkeypatch.setattr(UserPermissionManager, "get_instance", classmethod(_broken_get_instance))`
+- `tests/test_enterprise_dashboard.py:952` — `r = db._apply_config_change({"EMAIL_TO": "a@x.com"}, "testuser")`
+- `tests/test_enterprise_dashboard.py:1062` — `db._apply_config_change({"K": "new"}, "testuser")`
+- `tests/test_enterprise_dashboard.py:1066` — `assert "testuser" not in real_project_audit.read_text(encoding="utf-8")`
+- `tests/test_enterprise_dashboard.py:1083` — `assert entries[0]["username"] == "bob"`
+- `tests/test_enterprise_dashboard.py:1085` — `assert entries[1]["username"] == "alice"`
+- `tests/test_enterprise_dashboard.py:1104` — `assert entries[0]["action"] == "config_rollback"`
+- `tests/test_enterprise_dashboard.py:1105` — `assert entries[0]["username"] == "carol"`
+- `tests/test_enterprise_dashboard.py:1127` — `db._apply_config_change({f"KEY_{i}": i}, "testuser")`
+- `tests/test_enterprise_dashboard.py:1211` — `db._log_config_audit("testuser", ["KEY1", "KEY2"], ["val1", "val2"], "config_apply")`
+- `tests/test_enterprise_dashboard.py:1215` — `assert "testuser" in content`
+- `tests/test_enterprise_dashboard.py:1228` — `db._log_config_audit("user1", ["k1"], ["v1"], "config_apply")`
+- `tests/test_enterprise_dashboard.py:1229` — `db._log_config_audit("user2", ["k2"], ["v2"], "config_rollback")`
+- `tests/test_enterprise_dashboard.py:1233` — `assert "user1" in lines[0]`
+- `tests/test_enterprise_dashboard.py:1234` — `assert "user2" in lines[1]`
+- `tests/test_enterprise_dashboard.py:1266` — `raise OSError("Permission denied")`
+- `tests/test_enterprise_dashboard.py:1270` — `db._log_config_audit("testuser", ["K"], ["V"], "config_apply")`
+- `tests/test_enterprise_dashboard.py:2179` — `except (ValueError, TypeError, KeyError, RuntimeError, IndexError):`
+- `tests/test_enterprise_dashboard.py:2189` — `def test_admin_users_page(self, mock_templates, no_csrf, admin_auth):`
+- `tests/test_enterprise_dashboard.py:2190` — `"""GET /admin/users renders page for admin user."""`
+- `tests/test_enterprise_dashboard.py:2194` — `r = c.get("/admin/users")`
+- `tests/test_enterprise_dashboard.py:2198` — `"""GET /admin/config renders page for admin user."""`
+- `tests/test_enterprise_dashboard.py:2206` — `"""GET /admin/kill-switch renders page for admin user."""`
+- `tests/test_enterprise_dashboard.py:2230` — `"""Regression: /security's own APIs (/api/auth/users, /api/auth/audit) already`
+- `tests/test_enterprise_dashboard.py:2234` — `res = d._auth.create_user("secpageviewer", "Xk7$mQz9Lp2!", role="viewer")`
+- `tests/test_enterprise_dashboard.py:2236` — `viewer = d._auth.get_user_by_id(res["user_id"])`
+- `tests/test_wip58_desktop_submenu_hover.py:16` — `def test_user_controls_is_canonical_admin_submenu_only():`
+- `tests/test_wip58_desktop_submenu_hover.py:18` — `assert text.count('href="/admin/users"') == 2  # desktop + mobile representations`
+- `tests/test_wip58_desktop_submenu_hover.py:19` — `assert "User Authorization & Controls" in text`
+- `tests/test_wip58_desktop_submenu_hover.py:20` — `assert "User Authorization & Access" in text`
+- `tests/test_dashboard_comprehensive.py:402` — `def test_permissions_policy(self, client):`
+- `tests/test_dashboard_comprehensive.py:404` — `pp = resp.headers.get("permissions-policy")`
+- `tests/test_dashboard_comprehensive.py:420` — `assert "form-action 'self'" in csp`
+- `tests/test_dashboard_comprehensive.py:859` — `raise OSError("Permission denied")`
+- `tests/test_dashboard_comprehensive.py:1046` — `db._log_config_audit("testuser", ["KEY1"], ["val1"], "config_apply")`
+- `tests/test_dashboard_comprehensive.py:1050` — `assert "testuser" in content`
+- `tests/test_dashboard_comprehensive.py:1102` — `resp = c.post("/api/auth/login", json={"username": "admin", "password": "Admin@123!test"})`
+- `tests/test_dashboard_comprehensive.py:1113` — `resp = c.post("/api/auth/login", json={"username": "bad", "password": "wrong"})`
+- `tests/test_dashboard_comprehensive.py:1121` — `resp = c.post("/api/auth/login", json={"username": "", "password": ""})`
+- `tests/test_dashboard_comprehensive.py:1148` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1149` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1150` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1157` — `assert "user" in data`
+- `tests/test_dashboard_comprehensive.py:1165` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1166` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1167` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1186` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1187` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1188` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1207` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1208` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1209` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1216` — `class TestUserManagement:`
+- `tests/test_dashboard_comprehensive.py:1217` — `def test_list_users(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1223` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1224` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1225` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1228` — `resp = c.get("/api/auth/users")`
+- `tests/test_dashboard_comprehensive.py:1234` — `def test_create_user(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1240` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1241` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1242` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1246` — `"/api/auth/users",`
+- `tests/test_dashboard_comprehensive.py:1248` — `"username": "newuser",`
+- `tests/test_dashboard_comprehensive.py:1250` — `"role": "viewer",`
+- `tests/test_dashboard_comprehensive.py:1257` — `def test_create_user_missing_fields(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1263` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1264` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1265` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1268` — `resp = c.post("/api/auth/users", json={"username": "", "password": ""})`
+- `tests/test_dashboard_comprehensive.py:1271` — `def test_update_user_role(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1277` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1278` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1279` — `db._auth.create_user("operator1", "Op@12345!", "operator", "", "admin")`
+- `tests/test_dashboard_comprehensive.py:1280` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1283` — `resp = c.put("/api/auth/users/operator1/role", json={"role": "admin"})`
+- `tests/test_dashboard_comprehensive.py:1287` — `def test_update_user_role_not_found(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1293` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1294` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1295` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1298` — `resp = c.put("/api/auth/users/nonexistent/role", json={"role": "admin"})`
+- `tests/test_dashboard_comprehensive.py:1307` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1308` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1309` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1312` — `resp = c.post("/api/auth/users/admin/reset-password", json={"new_password": "New@1234!reset"})`
+- `tests/test_dashboard_comprehensive.py:1315` — `def test_disable_user(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1321` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1322` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1323` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1326` — `resp = c.post("/api/auth/users/admin/disable")`
+- `tests/test_dashboard_comprehensive.py:1329` — `def test_enable_user(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1338` — `db._auth.create_user("op2", "Op2@12345!", "admin", "", "admin")`
+- `tests/test_dashboard_comprehensive.py:1345` — `resp = c.post("/api/auth/users/admin/disable")`
+- `tests/test_dashboard_comprehensive.py:1348` — `resp = c.post("/api/auth/users/admin/enable")`
+- `tests/test_dashboard_comprehensive.py:1351` — `def test_delete_user(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1357` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1358` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1359` — `db._auth.create_user("todelete", "Del@12345!", "viewer", "", "admin")`
+- `tests/test_dashboard_comprehensive.py:1360` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1363` — `resp = c.delete("/api/auth/users/todelete")`
+- `tests/test_dashboard_comprehensive.py:1372` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1373` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1374` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1377` — `resp = c.delete("/api/auth/users/admin")`
+- `tests/test_dashboard_comprehensive.py:1389` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1390` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1391` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1394` — `resp = c.get("/api/auth/users/admin/sessions")`
+- `tests/test_dashboard_comprehensive.py:1405` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1406` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1407` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1410` — `resp = c.post("/api/auth/users/admin/revoke-sessions")`
+- `tests/test_dashboard_comprehensive.py:1414` — `def test_list_sessions_user_not_found(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1420` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1421` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1422` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1425` — `resp = c.get("/api/auth/users/nonexistent/sessions")`
+- `tests/test_dashboard_comprehensive.py:1436` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1437` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1438` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1445` — `def test_audit_log_filtered(self, base_cfg, trades_db, monkeypatch):`
+- `tests/test_dashboard_comprehensive.py:1451` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1452` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1453` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1467` — `user = db._auth.authenticate("admin", pw, ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1468` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1469` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1476` — `assert "total_users" in data`
+- `tests/test_dashboard_comprehensive.py:1571` — `user = db._auth.authenticate("admin", "Admin@123!test", ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1572` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1573` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1587` — `user = db._auth.authenticate("admin", "Admin@123!test", ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1588` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1589` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:1603` — `user = db._auth.authenticate("admin", "Admin@123!test", ip_address="127.0.0.1")`
+- `tests/test_dashboard_comprehensive.py:1604` — `assert user is not None`
+- `tests/test_dashboard_comprehensive.py:1605` — `token = db._auth.create_session(user)`
+- `tests/test_dashboard_comprehensive.py:2006` — `except (ValueError, TypeError, KeyError, IndexError, RuntimeError):`
+- `tests/test_dashboard_comprehensive.py:2016` — `resp = c.get("/admin/users", headers={"accept": "application/json"}, follow_redirects=False)`
+- `tests/test_dashboard_comprehensive.py:2021` — `resp = c.get("/admin/users", follow_redirects=False)`
+- `tests/test_dashboard_comprehensive.py:2121` — `except (ValueError, TypeError, KeyError, RuntimeError, IndexError):`
+- `tests/test_all_ui_screens_and_navigation.py:2` — `Buttons, Form Actions, and Interactive APIs.`
+- `tests/test_all_ui_screens_and_navigation.py:31` — `# Create test admin user and session`
+- `tests/test_all_ui_screens_and_navigation.py:33` — `user = auth.get_user("admin")`
+- `tests/test_all_ui_screens_and_navigation.py:34` — `if not user:`
+- `tests/test_all_ui_screens_and_navigation.py:35` — `res = auth.create_user("admin", "AdminPassword123!", role="admin")`
+- `tests/test_all_ui_screens_and_navigation.py:36` — `user = auth.get_user_by_id(res["user_id"])`
+- `tests/test_all_ui_screens_and_navigation.py:38` — `session = auth.create_session(user)`
+- `tests/test_all_ui_screens_and_navigation.py:40` — `return client, dashboard, user`
+- `tests/test_all_ui_screens_and_navigation.py:53` — `("/my-signals", "User Signals Screen"),`
+- `tests/test_all_ui_screens_and_navigation.py:74` — `("/admin/users", "Admin User Manager"),`
+- `tests/test_all_ui_screens_and_navigation.py:91` — `# 2. Interactive Buttons, Admin Config Updates, and API Actions`
+- `tests/test_all_ui_screens_and_navigation.py:94` — `def test_admin_config_validate_and_apply_button_actions(dashboard_client, monkeypatch):`
+- `tests/test_all_ui_screens_and_navigation.py:120` — `# 3. POST /api/config/validate (Validate button action) - the real`
+- `tests/test_all_ui_screens_and_navigation.py:129` — `# 4. POST /api/config/apply (Apply / Save button action)`
+- `tests/test_all_ui_screens_and_navigation.py:153` — `def test_system_health_api_and_refresh_button(dashboard_client):`
+- `tests/test_all_ui_screens_and_navigation.py:174` — `protected_routes = ["/", "/admin/config", "/admin/signals", "/admin/users", "/my-signals"]`
+- `tests/test_all_ui_screens_and_navigation.py:177` — `assert resp.status_code in (302, 303, 307), f"Route {route} did not redirect unauthenticated user"`
+- `tests/test_auth_system.py:8` — `- User CRUD`
+- `tests/test_auth_system.py:71` — `def test_user(auth_handler) -> dict[str, Any]:`
+- `tests/test_auth_system.py:72` — `"""Create a test user and return user info."""`
+- `tests/test_auth_system.py:73` — `result = auth_handler.create_user(`
+- `tests/test_auth_system.py:74` — `username="testuser",`
+- `tests/test_auth_system.py:76` — `role="viewer",`
+- `tests/test_auth_system.py:77` — `display_name="Test User",`
+- `tests/test_auth_system.py:84` — `def admin_user(auth_handler):`
+- `tests/test_auth_system.py:85` — `"""Create a test admin user."""`
+- `tests/test_auth_system.py:86` — `result = auth_handler.create_user(`
+- `tests/test_auth_system.py:87` — `username="testadmin",`
+- `tests/test_auth_system.py:89` — `role="admin",`
+- `tests/test_auth_system.py:191` — `# User Management`
+- `tests/test_auth_system.py:194` — `class TestUserManagement:`
+- `tests/test_auth_system.py:195` — `def test_create_user(self, auth_handler):`
+- `tests/test_auth_system.py:196` — `result = auth_handler.create_user("newuser", "New@User1!", "viewer")`
+- `tests/test_auth_system.py:198` — `assert result["username"] == "newuser"`
+- `tests/test_auth_system.py:200` — `def test_create_duplicate_user(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:201` — `result = auth_handler.create_user("testuser", "Other@1!", "viewer")`
+- `tests/test_auth_system.py:205` — `def test_create_user_invalid_role(self, auth_handler):`
+- `tests/test_auth_system.py:206` — `result = auth_handler.create_user("badrole", "Test@1234!", "superadmin")`
+- `tests/test_auth_system.py:209` — `def test_get_user(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:210` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:211` — `assert user is not None`
+- `tests/test_auth_system.py:212` — `assert user.username == "testuser"`
+- `tests/test_auth_system.py:213` — `assert user.role == "viewer"`
+- `tests/test_auth_system.py:215` — `def test_get_nonexistent_user(self, auth_handler):`
+- `tests/test_auth_system.py:216` — `user = auth_handler.get_user("nonexistent")`
+- `tests/test_auth_system.py:217` — `assert user is None`
+- `tests/test_auth_system.py:219` — `def test_list_users(self, auth_handler, test_user, admin_user):`
+- `tests/test_auth_system.py:220` — `users = auth_handler.list_users()`
+- `tests/test_auth_system.py:221` — `assert len(users) >= 2`
+- `tests/test_auth_system.py:222` — `usernames = [u["username"] for u in users]`
+- `tests/test_auth_system.py:223` — `assert "testuser" in usernames`
+- `tests/test_auth_system.py:224` — `assert "testadmin" in usernames`
+- `tests/test_auth_system.py:226` — `def test_disable_user(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:227` — `result = auth_handler.disable_user("testuser", "testadmin")`
+- `tests/test_auth_system.py:229` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:230` — `assert user is not None`
+- `tests/test_auth_system.py:231` — `assert user.disabled`
+- `tests/test_auth_system.py:233` — `def test_enable_user(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:234` — `auth_handler.disable_user("testuser", "testadmin")`
+- `tests/test_auth_system.py:235` — `result = auth_handler.enable_user("testuser", "testadmin")`
+- `tests/test_auth_system.py:237` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:238` — `assert user is not None`
+- `tests/test_auth_system.py:239` — `assert not user.disabled`
+- `tests/test_auth_system.py:241` — `def test_delete_user(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:242` — `result = auth_handler.delete_user("testuser", "testadmin")`
+- `tests/test_auth_system.py:244` — `assert auth_handler.get_user("testuser") is None`
+- `tests/test_auth_system.py:247` — `result = auth_handler.delete_user("admin", "testadmin")`
+- `tests/test_auth_system.py:256` — `def test_login_success(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:257` — `user = auth_handler.authenticate("testuser", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_system.py:258` — `assert user is not None`
+- `tests/test_auth_system.py:259` — `assert user.username == "testuser"`
+- `tests/test_auth_system.py:260` — `assert user.role == "viewer"`
+- `tests/test_auth_system.py:262` — `def test_login_wrong_password(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:263` — `user = auth_handler.authenticate("testuser", "WrongP@ss1!", "127.0.0.1")`
+- `tests/test_auth_system.py:264` — `assert user is None`
+- `tests/test_auth_system.py:266` — `def test_login_nonexistent_user(self, auth_handler):`
+- `tests/test_auth_system.py:267` — `user = auth_handler.authenticate("nobody", "SomeP@ss1!", "127.0.0.1")`
+- `tests/test_auth_system.py:268` — `assert user is None`
+- `tests/test_auth_system.py:270` — `def test_login_disabled_user(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:271` — `auth_handler.disable_user("testuser", "admin")`
+- `tests/test_auth_system.py:272` — `user = auth_handler.authenticate("testuser", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_system.py:273` — `assert user is None`
+- `tests/test_auth_system.py:275` — `def test_login_updates_last_login(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:277` — `auth_handler.authenticate("testuser", "Test@1234!", "127.0.0.1")`
+- `tests/test_auth_system.py:278` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:279` — `assert user is not None`
+- `tests/test_auth_system.py:280` — `assert user.last_login_ts is not None`
+- `tests/test_auth_system.py:281` — `assert user.last_login_ts >= before`
+- `tests/test_auth_system.py:283` — `def test_create_admin_user(self, auth_handler):`
+- `tests/test_auth_system.py:284` — `result = auth_handler.create_user("admin2_user", "Str0ng!PwdX", "admin")`
+- `tests/test_auth_system.py:286` — `user = auth_handler.get_user("admin2_user")`
+- `tests/test_auth_system.py:287` — `assert user is not None`
+- `tests/test_auth_system.py:288` — `assert user.role == "admin"`
+- `tests/test_auth_system.py:290` — `def test_create_operator_user(self, auth_handler):`
+- `tests/test_auth_system.py:291` — `result = auth_handler.create_user("op1", "Oper@tor1!", "operator")`
+- `tests/test_auth_system.py:293` — `user = auth_handler.get_user("op1")`
+- `tests/test_auth_system.py:294` — `assert user is not None`
+- `tests/test_auth_system.py:295` — `assert user.role == "operator"`
+- `tests/test_auth_system.py:303` — `def test_create_session(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:304` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:305` — `assert user is not None`
+- `tests/test_auth_system.py:306` — `token = auth_handler.create_session(user, "127.0.0.1", "test-agent")`
+- `tests/test_auth_system.py:308` — `assert token.username == "testuser"`
+- `tests/test_auth_system.py:309` — `assert token.role == "viewer"`
+- `tests/test_auth_system.py:312` — `def test_verify_valid_session(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:313` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:314` — `token = auth_handler.create_session(user)`
+- `tests/test_auth_system.py:317` — `assert verified.user_id == user.user_id`
+- `tests/test_auth_system.py:319` — `def test_verify_expired_session(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:322` — `user = handler.get_user("testuser")`
+- `tests/test_auth_system.py:323` — `token = handler.create_session(user)`
+- `tests/test_auth_system.py:328` — `def test_revoke_session(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:329` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:330` — `token = auth_handler.create_session(user)`
+- `tests/test_auth_system.py:337` — `def test_revoke_all_user_sessions(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:338` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:339` — `token1 = auth_handler.create_session(user)`
+- `tests/test_auth_system.py:340` — `token2 = auth_handler.create_session(user)`
+- `tests/test_auth_system.py:341` — `count = auth_handler.revoke_all_user_sessions("testuser")`
+- `tests/test_auth_system.py:346` — `def test_purge_expired(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:349` — `user = handler.get_user("testuser")`
+- `tests/test_auth_system.py:350` — `handler.create_session(user)`
+- `tests/test_auth_system.py:361` — `def test_password_change_success(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:362` — `result = auth_handler.update_password("testuser", "Test@1234!", "NewP@ss1!")`
+- `tests/test_auth_system.py:364` — `user = auth_handler.authenticate("testuser", "NewP@ss1!", "127.0.0.1")`
+- `tests/test_auth_system.py:365` — `assert user is not None`
+- `tests/test_auth_system.py:367` — `def test_password_change_wrong_current(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:368` — `result = auth_handler.update_password("testuser", "Wrong@123!", "NewP@ss1!")`
+- `tests/test_auth_system.py:371` — `def test_password_change_weak_new(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:372` — `result = auth_handler.update_password("testuser", "Test@1234!", "weak")`
+- `tests/test_auth_system.py:375` — `def test_admin_reset_password(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:376` — `result = auth_handler.admin_reset_password("testuser", "Reset@1234!", "admin")`
+- `tests/test_auth_system.py:378` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:379` — `assert user is not None`
+- `tests/test_auth_system.py:380` — `assert user.must_change_password`
+- `tests/test_auth_system.py:382` — `assert auth_handler.authenticate("testuser", "Test@1234!", "127.0.0.1") is None`
+- `tests/test_auth_system.py:384` — `auth_user = auth_handler.authenticate("testuser", "Reset@1234!", "127.0.0.1")`
+- `tests/test_auth_system.py:385` — `assert auth_user is not None`
+- `tests/test_auth_system.py:386` — `assert auth_user.must_change_password`
+- `tests/test_auth_system.py:394` — `def _make_test_user(self, handler, name: str):`
+- `tests/test_auth_system.py:395` — `"""Create a unique test user to avoid cross-test contamination."""`
+- `tests/test_auth_system.py:397` — `handler.create_user(name, pwd, "viewer")`
+- `tests/test_auth_system.py:403` — `uname, pwd = self._make_test_user(handler, "bfuser1")`
+- `tests/test_auth_system.py:406` — `user = handler.authenticate(uname, pwd, "10.0.0.1")`
+- `tests/test_auth_system.py:407` — `assert user is None, "Should be rate limited even with correct password"`
+- `tests/test_auth_system.py:412` — `uname, pwd = self._make_test_user(handler, "bfuser2")`
+- `tests/test_auth_system.py:418` — `user = handler.authenticate(uname, pwd, "10.0.0.2")`
+- `tests/test_auth_system.py:419` — `assert user is not None`
+- `tests/test_auth_system.py:423` — `uname, pwd = self._make_test_user(handler, "bfuser3")`
+- `tests/test_auth_system.py:427` — `user = handler.authenticate(uname, pwd, "10.0.0.3")`
+- `tests/test_auth_system.py:428` — `assert user is None`
+- `tests/test_auth_system.py:432` — `uname, pwd = self._make_test_user(handler, "bfuser4")`
+- `tests/test_auth_system.py:436` — `user = handler.authenticate(uname, pwd, "10.0.0.5")`
+- `tests/test_auth_system.py:437` — `assert user is not None`
+- `tests/test_auth_system.py:441` — `# RBAC & Permissions`
+- `tests/test_auth_system.py:445` — `def test_role_hierarchy(self):`
+- `tests/test_auth_system.py:446` — `from core.auth.permissions import (`
+- `tests/test_auth_system.py:447` — `Permission,`
+- `tests/test_auth_system.py:448` — `Role,`
+- `tests/test_auth_system.py:449` — `get_role_permissions,`
+- `tests/test_auth_system.py:451` — `admin_perms = get_role_permissions(Role.ADMIN)`
+- `tests/test_auth_system.py:452` — `assert Permission.MODIFY_RISK_LIMITS in admin_perms`
+- `tests/test_auth_system.py:453` — `assert Permission.MODIFY_CONFIG in admin_perms`
+- `tests/test_auth_system.py:454` — `assert Permission.ADD_BROKERS in admin_perms`
+- `tests/test_auth_system.py:456` — `viewer_perms = get_role_permissions(Role.OBSERVER)`
+- `tests/test_auth_system.py:457` — `assert Permission.VIEW_STATE in viewer_perms`
+- `tests/test_auth_system.py:458` — `assert Permission.MODIFY_RISK_LIMITS not in viewer_perms`
+- `tests/test_auth_system.py:460` — `def test_role_has_permission(self):`
+- `tests/test_auth_system.py:461` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_system.py:462` — `assert role_has_permission("admin", "view_state")`
+- `tests/test_auth_system.py:463` — `assert not role_has_permission("observer", "halt_trading")`
+- `tests/test_auth_system.py:464` — `assert not role_has_permission("unknown_role", "view_state")`
+- `tests/test_auth_system.py:466` — `def test_role_manager_assignments(self, auth_handler):`
+- `tests/test_auth_system.py:467` — `from core.auth.permissions import Permission, Role`
+- `tests/test_auth_system.py:468` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_system.py:470` — `rm = RoleManager(default_role="observer")`
+- `tests/test_auth_system.py:474` — `assert rm.get_role("alice") == Role.ADMIN`
+- `tests/test_auth_system.py:475` — `assert rm.get_role("bob") == Role.OPERATOR`
+- `tests/test_auth_system.py:476` — `assert rm.get_role("unknown") == Role.OBSERVER`
+- `tests/test_auth_system.py:478` — `rm.check("alice", Permission.MODIFY_CONFIG)`
+- `tests/test_auth_system.py:480` — `rm.check("bob", Permission.MODIFY_CONFIG)`
+- `tests/test_auth_system.py:482` — `def test_role_manager_load_from_config(self):`
+- `tests/test_auth_system.py:483` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_system.py:484` — `rm = RoleManager()`
+- `tests/test_auth_system.py:486` — `"admin_roles": {"alice": "admin", "bob": "operator"},`
+- `tests/test_auth_system.py:487` — `"admin_default_role": "observer",`
+- `tests/test_auth_system.py:489` — `assert rm.get_role("alice").value == "admin"`
+- `tests/test_auth_system.py:491` — `def test_role_manager_revoke(self):`
+- `tests/test_auth_system.py:492` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_system.py:493` — `rm = RoleManager()`
+- `tests/test_auth_system.py:496` — `assert rm.get_role("alice").value == "observer"`
+- `tests/test_auth_system.py:844` — `from core.auth.permissions import Role`
+- `tests/test_auth_system.py:847` — `session = store.create("alice", Role.ADMIN)`
+- `tests/test_auth_system.py:849` — `assert session.role == Role.ADMIN`
+- `tests/test_auth_system.py:852` — `from core.auth.permissions import Role`
+- `tests/test_auth_system.py:855` — `session = store.create("bob", Role.OPERATOR)`
+- `tests/test_auth_system.py:863` — `from core.auth.permissions import Role`
+- `tests/test_auth_system.py:866` — `session = store.create("charlie", Role.OBSERVER)`
+- `tests/test_auth_system.py:932` — `handler.create_user("apiuser", "Api@User1!", "admin")`
+- `tests/test_auth_system.py:934` — `resp = test_client.post("/api/auth/login", json={"username": "apiuser", "password": "Api@User1!"})`
+- `tests/test_auth_system.py:938` — `assert data["user"]["username"] == "apiuser"`
+- `tests/test_auth_system.py:944` — `handler.create_user("apiuser2", "Api@User1!", "viewer")`
+- `tests/test_auth_system.py:945` — `resp = test_client.post("/api/auth/login", json={"username": "apiuser2", "password": "wrong"})`
+- `tests/test_auth_system.py:955` — `handler.create_user("logoutuser", "Log@Out1!", "viewer")`
+- `tests/test_auth_system.py:956` — `login_resp = test_client.post("/api/auth/login", json={"username": "logoutuser", "password": "Log@Out1!"})`
+- `tests/test_auth_system.py:966` — `handler.create_user("sessionuser", "Sess@ion1!", "admin")`
+- `tests/test_auth_system.py:968` — `login_resp = test_client.post("/api/auth/login", json={"username": "sessionuser", "password": "Sess@ion1!"})`
+- `tests/test_auth_system.py:975` — `assert data["user"]["username"] == "sessionuser"`
+- `tests/test_auth_system.py:984` — `handler.create_user("changepwd", "Old@Pass1!", "viewer")`
+- `tests/test_auth_system.py:986` — `login_resp = test_client.post("/api/auth/login", json={"username": "changepwd", "password": "Old@Pass1!"})`
+- `tests/test_auth_system.py:996` — `def test_admin_user_list(self, client):`
+- `tests/test_auth_system.py:998` — `handler.create_user("admin_list", "Adm1n@L1!", "admin")`
+- `tests/test_auth_system.py:999` — `handler.create_user("regular_list", "Reg@List1!", "viewer")`
+- `tests/test_auth_system.py:1001` — `login_resp = test_client.post("/api/auth/login", json={"username": "admin_list", "password": "Adm1n@L1!"})`
+- `tests/test_auth_system.py:1005` — `resp = test_client.get("/api/auth/users", cookies=cookies)`
+- `tests/test_auth_system.py:1006` — `assert resp.status_code == 200, f"User list failed: {resp.status_code} {resp.text[:200]}"`
+- `tests/test_auth_system.py:1007` — `users = resp.json()`
+- `tests/test_auth_system.py:1008` — `assert any(u["username"] == "regular_list" for u in users)`
+- `tests/test_auth_system.py:1010` — `def test_non_admin_user_list_blocked(self, client):`
+- `tests/test_auth_system.py:1012` — `handler.create_user("not_admin", "Not@Adm1!", "viewer")`
+- `tests/test_auth_system.py:1014` — `login_resp = test_client.post("/api/auth/login", json={"username": "not_admin", "password": "Not@Adm1!"})`
+- `tests/test_auth_system.py:1017` — `resp = test_client.get("/api/auth/users", cookies=cookies)`
+- `tests/test_auth_system.py:1020` — `def test_admin_create_user(self, client):`
+- `tests/test_auth_system.py:1022` — `handler.create_user("creator", "Cre@tor1!", "admin")`
+- `tests/test_auth_system.py:1024` — `login_resp = test_client.post("/api/auth/login", json={"username": "creator", "password": "Cre@tor1!"})`
+- `tests/test_auth_system.py:1027` — `resp = test_client.post("/api/auth/users", cookies=cookies, json={`
+- `tests/test_auth_system.py:1028` — `"username": "newguy",`
+- `tests/test_auth_system.py:1030` — `"role": "operator",`
+- `tests/test_auth_system.py:1035` — `def test_admin_disable_user(self, client):`
+- `tests/test_auth_system.py:1037` — `handler.create_user("admin_dis2", "Adm1n@D2x!", "admin")`
+- `tests/test_auth_system.py:1038` — `handler.create_user("target_dis2", "Target@1!x", "viewer")`
+- `tests/test_auth_system.py:1040` — `login_resp = test_client.post("/api/auth/login", json={"username": "admin_dis2", "password": "Adm1n@D2x!"})`
+- `tests/test_auth_system.py:1044` — `resp = test_client.post("/api/auth/users/target_dis2/disable", cookies=cookies)`
+- `tests/test_auth_system.py:1047` — `user = handler.get_user("target_dis2")`
+- `tests/test_auth_system.py:1048` — `assert user is not None`
+- `tests/test_auth_system.py:1049` — `assert user.disabled`
+- `tests/test_auth_system.py:1053` — `handler.create_user("admin_rst2", "Adm1n@R2x!", "admin")`
+- `tests/test_auth_system.py:1054` — `handler.create_user("target_rst2", "Targt@R1!", "viewer")`
+- `tests/test_auth_system.py:1056` — `login_resp = test_client.post("/api/auth/login", json={"username": "admin_rst2", "password": "Adm1n@R2x!"})`
+- `tests/test_auth_system.py:1060` — `resp = test_client.post("/api/auth/users/target_rst2/reset-password", cookies=cookies, json={`
+- `tests/test_auth_system.py:1065` — `user = handler.get_user("target_rst2")`
+- `tests/test_auth_system.py:1066` — `assert user is not None`
+- `tests/test_auth_system.py:1067` — `assert user.must_change_password`
+- `tests/test_auth_system.py:1071` — `handler.create_user("statsadm", "Stats@A1!", "admin")`
+- `tests/test_auth_system.py:1073` — `login_resp = test_client.post("/api/auth/login", json={"username": "statsadm", "password": "Stats@A1!"})`
+- `tests/test_auth_system.py:1080` — `assert "total_users" in data`
+- `tests/test_auth_system.py:1084` — `handler.create_user("auditadm", "Audit@A1!", "admin")`
+- `tests/test_auth_system.py:1085` — `handler.create_user("audituser", "Audit@U1!", "viewer")`
+- `tests/test_auth_system.py:1087` — `login_resp = test_client.post("/api/auth/login", json={"username": "auditadm", "password": "Audit@A1!"})`
+- `tests/test_auth_system.py:1117` — `def test_sql_injection_resistance(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:1118` — `"""Attempt SQL injection via username."""`
+- `tests/test_auth_system.py:1120` — `user = auth_handler.get_user(injection)`
+- `tests/test_auth_system.py:1121` — `assert user is None`
+- `tests/test_auth_system.py:1128` — `result = auth_handler.create_user(xss, "Xss@1234!", "viewer")`
+- `tests/test_auth_system.py:1130` — `auth_handler.get_user(xss.lower() if not result["success"] else xss)`
+- `tests/test_auth_system.py:1133` — `def test_session_token_in_cookies(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:1140` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:1141` — `assert user is not None`
+- `tests/test_auth_system.py:1142` — `session = auth_handler.create_session(user)`
+- `tests/test_auth_system.py:1146` — `def test_different_sessions_different_tokens(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:1147` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:1148` — `t1 = auth_handler.create_session(user)`
+- `tests/test_auth_system.py:1149` — `t2 = auth_handler.create_session(user)`
+- `tests/test_auth_system.py:1152` — `def test_password_reset_token(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:1153` — `token = auth_handler.create_password_reset_token("testuser")`
+- `tests/test_auth_system.py:1155` — `username = auth_handler.verify_password_reset_token(token)`
+- `tests/test_auth_system.py:1156` — `assert username == "testuser"`
+- `tests/test_auth_system.py:1158` — `def test_password_reset_token_expiry(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:1160` — `token = handler.create_password_reset_token("testuser")`
+- `tests/test_auth_system.py:1171` — `def test_password_reset_token_one_time(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:1172` — `token = auth_handler.create_password_reset_token("testuser")`
+- `tests/test_auth_system.py:1174` — `assert auth_handler.verify_password_reset_token(token) == "testuser"`
+- `tests/test_auth_system.py:1180` — `# RBAC Integration with Permissions`
+- `tests/test_auth_system.py:1184` — `def test_role_manager_with_auth(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:1185` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_system.py:1187` — `rm = RoleManager()`
+- `tests/test_auth_system.py:1188` — `rm.assign("testuser", "admin")`
+- `tests/test_auth_system.py:1190` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:1191` — `assert user is not None`
+- `tests/test_auth_system.py:1193` — `# Update role in auth`
+- `tests/test_auth_system.py:1194` — `auth_handler.update_user_role("testuser", "admin", "system")`
+- `tests/test_auth_system.py:1195` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:1196` — `assert user is not None`
+- `tests/test_auth_system.py:1197` — `assert user.role == "admin"`
+- `tests/test_auth_system.py:1199` — `def test_permission_check_admin(self):`
+- `tests/test_auth_system.py:1200` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_system.py:1201` — `assert role_has_permission("admin", "modify_config")`
+- `tests/test_auth_system.py:1202` — `assert role_has_permission("admin", "add_brokers")`
+- `tests/test_auth_system.py:1203` — `assert role_has_permission("admin", "halt_trading")`
+- `tests/test_auth_system.py:1204` — `assert role_has_permission("admin", "view_state")`
+- `tests/test_auth_system.py:1205` — `assert role_has_permission("admin", "modify_risk_limits")`
+- `tests/test_auth_system.py:1207` — `def test_permission_check_operator(self):`
+- `tests/test_auth_system.py:1208` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_system.py:1209` — `assert role_has_permission("operator", "view_state")`
+- `tests/test_auth_system.py:1210` — `assert role_has_permission("operator", "halt_trading")`
+- `tests/test_auth_system.py:1211` — `assert role_has_permission("operator", "toggle_strategies")`
+- `tests/test_auth_system.py:1212` — `assert not role_has_permission("operator", "modify_risk_limits")`
+- `tests/test_auth_system.py:1213` — `assert not role_has_permission("operator", "modify_config")`
+- `tests/test_auth_system.py:1215` — `def test_permission_check_observer(self):`
+- `tests/test_auth_system.py:1216` — `from core.auth.permissions import role_has_permission`
+- `tests/test_auth_system.py:1217` — `assert role_has_permission("observer", "view_state")`
+- `tests/test_auth_system.py:1218` — `assert role_has_permission("observer", "view_logs")`
+- `tests/test_auth_system.py:1219` — `assert not role_has_permission("observer", "halt_trading")`
+- `tests/test_auth_system.py:1220` — `assert not role_has_permission("observer", "modify_config")`
+- `tests/test_auth_system.py:1222` — `def test_role_manager_defaults(self):`
+- `tests/test_auth_system.py:1223` — `from core.auth.role_manager import RoleManager`
+- `tests/test_auth_system.py:1224` — `rm = RoleManager("observer")`
+- `tests/test_auth_system.py:1225` — `assert rm.get_role("unknown").value == "observer"`
+- `tests/test_auth_system.py:1227` — `def test_get_role_permissions_set(self):`
+- `tests/test_auth_system.py:1228` — `from core.auth.permissions import Role, get_role_permissions`
+- `tests/test_auth_system.py:1229` — `perms = get_role_permissions(Role.ADMIN)`
+- `tests/test_auth_system.py:1230` — `assert len(perms) >= 5  # admin has many permissions`
+- `tests/test_auth_system.py:1231` — `perms = get_role_permissions(Role.OBSERVER)`
+- `tests/test_auth_system.py:1246` — `migrations, and creates a default "admin" user with a known default`
+- `tests/test_auth_system.py:1366` — `def test_purge_expired_sessions(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:1367` — `user = auth_handler.get_user("testuser")`
+- `tests/test_auth_system.py:1370` — `handler.create_session(user)`
+- `tests/test_auth_system.py:1375` — `def test_stats_endpoint(self, auth_handler, test_user):`
+- `tests/test_auth_system.py:1378` — `assert "total_users" in stats`
+- `tests/test_auth_system.py:1379` — `assert stats["total_users"] >= 1`
+- `tests/test_auth_handler.py:14` — `DEFAULT_ADMIN_USERNAME,`
+- `tests/test_auth_handler.py:21` — `AuthUser,`
+- `tests/test_auth_handler.py:140` — `def auth_with_user(auth: AuthHandler) -> AuthHandler:`
+- `tests/test_auth_handler.py:141` — `"""AuthHandler with a pre-created test user."""`
+- `tests/test_auth_handler.py:142` — `auth.create_user("testuser", "TestPass123!", "operator")`
+- `tests/test_auth_handler.py:156` — `users = auth.list_users()`
+- `tests/test_auth_handler.py:157` — `usernames = [u["username"] for u in users]`
+- `tests/test_auth_handler.py:158` — `assert DEFAULT_ADMIN_USERNAME in usernames`
+- `tests/test_auth_handler.py:161` — `admin = auth.get_user(DEFAULT_ADMIN_USERNAME)`
+- `tests/test_auth_handler.py:170` — `"SELECT name FROM sqlite_master WHERE type='table' "`
+- `tests/test_auth_handler.py:171` — `"AND name IN ('users', 'sessions', 'audit_log', 'account_lockouts')"`
+- `tests/test_auth_handler.py:175` — `assert "users" in tables`
+- `tests/test_auth_handler.py:181` — `# ── User Management ───────────────────────────────────────────────────────────`
+- `tests/test_auth_handler.py:184` — `class TestCreateUser:`
+- `tests/test_auth_handler.py:185` — `def test_create_user_success(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:186` — `result = auth.create_user("newuser", "ValidPass1!", "viewer")`
+- `tests/test_auth_handler.py:188` — `assert result["username"] == "newuser"`
+- `tests/test_auth_handler.py:190` — `def test_create_user_duplicate(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:191` — `result = auth_with_user.create_user("testuser", "OtherPass1!", "viewer")`
+- `tests/test_auth_handler.py:195` — `def test_create_user_invalid_role(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:196` — `result = auth.create_user("user", "ValidPass1!", "superadmin")`
+- `tests/test_auth_handler.py:198` — `assert "Invalid role" in result.get("error", "")`
+- `tests/test_auth_handler.py:200` — `def test_create_user_short_username(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:201` — `result = auth.create_user("ab", "ValidPass1!", "viewer")`
+- `tests/test_auth_handler.py:204` — `def test_create_user_weak_password(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:205` — `result = auth.create_user("user", "weak", "viewer")`
+- `tests/test_auth_handler.py:208` — `def test_create_user_strips_whitespace(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:209` — `result = auth.create_user("  Alice  ", "ValidPass1!", "viewer")`
+- `tests/test_auth_handler.py:211` — `assert result["username"] == "alice"`
+- `tests/test_auth_handler.py:213` — `def test_create_user_lowercases_username(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:214` — `auth.create_user("Alice", "ValidPass1!", "viewer")`
+- `tests/test_auth_handler.py:216` — `user = auth.get_user("Alice")`
+- `tests/test_auth_handler.py:217` — `assert user is not None`
+- `tests/test_auth_handler.py:218` — `assert user.username == "alice"`
+- `tests/test_auth_handler.py:222` — `def test_authenticate_success(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:223` — `user = auth_with_user.authenticate("testuser", "TestPass123!", "127.0.0.1")`
+- `tests/test_auth_handler.py:224` — `assert user is not None`
+- `tests/test_auth_handler.py:225` — `assert user.username == "testuser"`
+- `tests/test_auth_handler.py:226` — `assert user.role == "operator"`
+- `tests/test_auth_handler.py:228` — `def test_authenticate_wrong_password(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:229` — `user = auth_with_user.authenticate("testuser", "WrongPass1!", "127.0.0.1")`
+- `tests/test_auth_handler.py:230` — `assert user is None`
+- `tests/test_auth_handler.py:232` — `def test_authenticate_nonexistent(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:233` — `user = auth_with_user.authenticate("nonexistent", "TestPass123!", "127.0.0.1")`
+- `tests/test_auth_handler.py:234` — `assert user is None`
+- `tests/test_auth_handler.py:236` — `def test_authenticate_disabled_user(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:237` — `auth_with_user.disable_user("testuser", "admin")`
+- `tests/test_auth_handler.py:238` — `user = auth_with_user.authenticate("testuser", "TestPass123!", "127.0.0.1")`
+- `tests/test_auth_handler.py:239` — `assert user is None`
+- `tests/test_auth_handler.py:241` — `def test_authenticate_updates_last_login(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:242` — `original = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:246` — `auth_with_user.authenticate("testuser", "TestPass123!", "127.0.0.1")`
+- `tests/test_auth_handler.py:247` — `updated = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:256` — `class TestGetUser:`
+- `tests/test_auth_handler.py:257` — `def test_get_user_by_username(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:258` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:259` — `assert user is not None`
+- `tests/test_auth_handler.py:260` — `assert user.role == "operator"`
+- `tests/test_auth_handler.py:262` — `def test_get_user_case_insensitive(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:263` — `user = auth_with_user.get_user("TestUser")`
+- `tests/test_auth_handler.py:264` — `assert user is not None`
+- `tests/test_auth_handler.py:266` — `def test_get_user_nonexistent(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:267` — `user = auth.get_user("nonexistent")`
+- `tests/test_auth_handler.py:268` — `assert user is None`
+- `tests/test_auth_handler.py:271` — `class TestGetUserById:`
+- `tests/test_auth_handler.py:272` — `def test_get_user_by_id(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:273` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:274` — `assert user is not None`
+- `tests/test_auth_handler.py:275` — `by_id = auth_with_user.get_user_by_id(user.user_id)`
+- `tests/test_auth_handler.py:277` — `assert by_id.username == "testuser"`
+- `tests/test_auth_handler.py:279` — `def test_get_user_by_id_nonexistent(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:280` — `assert auth.get_user_by_id("nonexistent") is None`
+- `tests/test_auth_handler.py:283` — `class TestListUsers:`
+- `tests/test_auth_handler.py:284` — `def test_list_users(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:285` — `users = auth.list_users()`
+- `tests/test_auth_handler.py:286` — `assert len(users) >= 1  # At least default admin`
+- `tests/test_auth_handler.py:288` — `def test_list_users_includes_metadata(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:289` — `users = auth_with_user.list_users()`
+- `tests/test_auth_handler.py:290` — `usernames = [u["username"] for u in users]`
+- `tests/test_auth_handler.py:291` — `assert "testuser" in usernames`
+- `tests/test_auth_handler.py:292` — `assert "admin" in usernames`
+- `tests/test_auth_handler.py:294` — `def test_list_users_sorted(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:295` — `auth.create_user("b", "ValidPass1!", "viewer")`
+- `tests/test_auth_handler.py:296` — `auth.create_user("a", "ValidPass1!", "viewer")`
+- `tests/test_auth_handler.py:297` — `users = auth.list_users()`
+- `tests/test_auth_handler.py:298` — `# Should be ordered by created_ts, not username`
+- `tests/test_auth_handler.py:299` — `timestamps = [u["created_ts"] for u in users]`
+- `tests/test_auth_handler.py:304` — `def test_update_password_success(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:305` — `result = auth_with_user.update_password("testuser", "TestPass123!", "NewValid1!")`
+- `tests/test_auth_handler.py:308` — `def test_update_password_wrong_current(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:309` — `result = auth_with_user.update_password("testuser", "WrongPass1!", "NewValid1!")`
+- `tests/test_auth_handler.py:313` — `def test_update_password_weak_new(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:314` — `result = auth_with_user.update_password("testuser", "TestPass123!", "weak")`
+- `tests/test_auth_handler.py:323` — `def test_admin_reset_success(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:324` — `result = auth_with_user.admin_reset_password("testuser", "NewValid1!", "admin")`
+- `tests/test_auth_handler.py:326` — `# User should be able to login with new password`
+- `tests/test_auth_handler.py:327` — `user = auth_with_user.authenticate("testuser", "NewValid1!", "127.0.0.1")`
+- `tests/test_auth_handler.py:328` — `assert user is not None`
+- `tests/test_auth_handler.py:330` — `def test_admin_reset_sets_must_change(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:331` — `auth_with_user.admin_reset_password("testuser", "NewValid1!", "admin")`
+- `tests/test_auth_handler.py:332` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:333` — `assert user is not None`
+- `tests/test_auth_handler.py:334` — `assert user.must_change_password is True`
+- `tests/test_auth_handler.py:341` — `class TestUpdateUserRole:`
+- `tests/test_auth_handler.py:342` — `def test_update_role_success(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:343` — `result = auth_with_user.update_user_role("testuser", "admin", "admin")`
+- `tests/test_auth_handler.py:345` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:346` — `assert user is not None`
+- `tests/test_auth_handler.py:347` — `assert user.role == "admin"`
+- `tests/test_auth_handler.py:349` — `def test_update_role_invalid(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:350` — `result = auth_with_user.update_user_role("testuser", "superadmin", "admin")`
+- `tests/test_auth_handler.py:353` — `def test_update_role_nonexistent(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:354` — `result = auth.update_user_role("nonexistent", "admin", "admin")`
+- `tests/test_auth_handler.py:358` — `class TestDisableEnableUser:`
+- `tests/test_auth_handler.py:359` — `def test_disable_user(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:360` — `result = auth_with_user.disable_user("testuser", "admin")`
+- `tests/test_auth_handler.py:362` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:363` — `assert user is not None`
+- `tests/test_auth_handler.py:364` — `assert user.disabled is True`
+- `tests/test_auth_handler.py:366` — `def test_enable_user(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:367` — `auth_with_user.disable_user("testuser", "admin")`
+- `tests/test_auth_handler.py:368` — `result = auth_with_user.enable_user("testuser", "admin")`
+- `tests/test_auth_handler.py:370` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:371` — `assert user is not None`
+- `tests/test_auth_handler.py:372` — `assert user.disabled is False`
+- `tests/test_auth_handler.py:375` — `class TestDeleteUser:`
+- `tests/test_auth_handler.py:376` — `def test_delete_user(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:377` — `result = auth_with_user.delete_user("testuser", "admin")`
+- `tests/test_auth_handler.py:379` — `assert auth_with_user.get_user("testuser") is None`
+- `tests/test_auth_handler.py:382` — `result = auth.delete_user(DEFAULT_ADMIN_USERNAME, "admin")`
+- `tests/test_auth_handler.py:391` — `def test_create_session_returns_token(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:392` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:393` — `assert user is not None`
+- `tests/test_auth_handler.py:394` — `token = auth_with_user.create_session(user, "127.0.0.1", "test-agent")`
+- `tests/test_auth_handler.py:396` — `assert token.username == "testuser"`
+- `tests/test_auth_handler.py:397` — `assert token.role == "operator"`
+- `tests/test_auth_handler.py:400` — `def test_create_session_includes_csrf(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:401` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:402` — `assert user is not None`
+- `tests/test_auth_handler.py:403` — `token = auth_with_user.create_session(user)`
+- `tests/test_auth_handler.py:406` — `def test_create_session_enforces_max_concurrent(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:408` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:409` — `assert user is not None`
+- `tests/test_auth_handler.py:412` — `t = auth_with_user.create_session(user, "127.0.0.1")`
+- `tests/test_auth_handler.py:415` — `active = sum(1 for t in tokens if auth_with_user.verify_session(t.token) is not None)`
+- `tests/test_auth_handler.py:420` — `def test_verify_valid_session(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:421` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:422` — `assert user is not None`
+- `tests/test_auth_handler.py:423` — `token = auth_with_user.create_session(user, "127.0.0.1")`
+- `tests/test_auth_handler.py:424` — `verified = auth_with_user.verify_session(token.token)`
+- `tests/test_auth_handler.py:426` — `assert verified.username == "testuser"`
+- `tests/test_auth_handler.py:428` — `def test_verify_expired_session(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:429` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:430` — `assert user is not None`
+- `tests/test_auth_handler.py:431` — `token = auth_with_user.create_session(user, "127.0.0.1")`
+- `tests/test_auth_handler.py:434` — `verified = auth_with_user.verify_session(token.token)`
+- `tests/test_auth_handler.py:447` — `def test_revoke_existing(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:448` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:449` — `assert user is not None`
+- `tests/test_auth_handler.py:450` — `token = auth_with_user.create_session(user)`
+- `tests/test_auth_handler.py:451` — `result = auth_with_user.revoke_session(token.token)`
+- `tests/test_auth_handler.py:453` — `assert auth_with_user.verify_session(token.token) is None`
+- `tests/test_auth_handler.py:460` — `class TestRevokeAllUserSessions:`
+- `tests/test_auth_handler.py:461` — `def test_revoke_all(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:462` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:463` — `assert user is not None`
+- `tests/test_auth_handler.py:465` — `token1 = auth_with_user.create_session(user)`
+- `tests/test_auth_handler.py:466` — `token2 = auth_with_user.create_session(user)`
+- `tests/test_auth_handler.py:467` — `count = auth_with_user.revoke_all_user_sessions("testuser")`
+- `tests/test_auth_handler.py:469` — `assert auth_with_user.verify_session(token1.token) is None`
+- `tests/test_auth_handler.py:470` — `assert auth_with_user.verify_session(token2.token) is None`
+- `tests/test_auth_handler.py:473` — `count = auth.revoke_all_user_sessions("nonexistent")`
+- `tests/test_auth_handler.py:477` — `class TestGetUserSessions:`
+- `tests/test_auth_handler.py:478` — `def test_get_user_sessions(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:479` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:480` — `assert user is not None`
+- `tests/test_auth_handler.py:481` — `auth_with_user.create_session(user, "127.0.0.1")`
+- `tests/test_auth_handler.py:482` — `sessions = auth_with_user.get_user_sessions(user.user_id)`
+- `tests/test_auth_handler.py:486` — `def test_get_user_sessions_empty(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:487` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:488` — `assert user is not None`
+- `tests/test_auth_handler.py:489` — `sessions = auth_with_user.get_user_sessions(user.user_id)`
+- `tests/test_auth_handler.py:524` — `def test_lockout_after_max_attempts(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:527` — `auth_with_user.authenticate("testuser", "WrongPass1!", "10.0.0.1")`
+- `tests/test_auth_handler.py:529` — `user = auth_with_user.authenticate("testuser", "TestPass123!", "10.0.0.1")`
+- `tests/test_auth_handler.py:530` — `assert user is None  # Locked out despite correct password`
+- `tests/test_auth_handler.py:532` — `def test_lockout_clears_on_success(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:536` — `auth_with_user.authenticate("testuser", "WrongPass1!", "10.0.0.1")`
+- `tests/test_auth_handler.py:538` — `user = auth_with_user.authenticate("testuser", "TestPass123!", "10.0.0.1")`
+- `tests/test_auth_handler.py:539` — `assert user is not None`
+- `tests/test_auth_handler.py:546` — `def test_refresh_valid_session(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:547` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:548` — `assert user is not None`
+- `tests/test_auth_handler.py:549` — `token = auth_with_user.create_session(user)`
+- `tests/test_auth_handler.py:552` — `refreshed = auth_with_user.refresh_session(token.token)`
+- `tests/test_auth_handler.py:556` — `def test_refresh_expired_session(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:557` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:558` — `assert user is not None`
+- `tests/test_auth_handler.py:559` — `token = auth_with_user.create_session(user)`
+- `tests/test_auth_handler.py:561` — `refreshed = auth_with_user.refresh_session(token.token)`
+- `tests/test_auth_handler.py:573` — `def test_create_reset_token(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:574` — `token = auth_with_user.create_password_reset_token("testuser")`
+- `tests/test_auth_handler.py:582` — `def test_verify_reset_token(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:583` — `token = auth_with_user.create_password_reset_token("testuser")`
+- `tests/test_auth_handler.py:585` — `username = auth_with_user.verify_password_reset_token(token)`
+- `tests/test_auth_handler.py:586` — `assert username == "testuser"`
+- `tests/test_auth_handler.py:588` — `def test_verify_reset_token_used_once(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:589` — `token = auth_with_user.create_password_reset_token("testuser")`
+- `tests/test_auth_handler.py:592` — `username = auth_with_user.verify_password_reset_token(token)`
+- `tests/test_auth_handler.py:593` — `assert username == "testuser"`
+- `tests/test_auth_handler.py:595` — `username2 = auth_with_user.verify_password_reset_token(token)`
+- `tests/test_auth_handler.py:596` — `assert username2 is None`
+- `tests/test_auth_handler.py:598` — `def test_verify_expired_token(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:599` — `token = auth_with_user.create_password_reset_token("testuser")`
+- `tests/test_auth_handler.py:603` — `username = auth_with_user.verify_password_reset_token(token)`
+- `tests/test_auth_handler.py:604` — `assert username is None`
+- `tests/test_auth_handler.py:615` — `def test_audit_log_records_events(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:616` — `auth_with_user.authenticate("testuser", "TestPass123!", "10.0.0.1")`
+- `tests/test_auth_handler.py:617` — `logs = auth_with_user.get_audit_log(limit=10)`
+- `tests/test_auth_handler.py:621` — `def test_audit_log_filter(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:622` — `auth_with_user.authenticate("testuser", "TestPass123!", "10.0.0.1")`
+- `tests/test_auth_handler.py:623` — `auth_with_user.authenticate("testuser", "WrongPass1!", "10.0.0.2")`
+- `tests/test_auth_handler.py:624` — `failed = auth_with_user.get_audit_log(limit=10, event_type="login_failed")`
+- `tests/test_auth_handler.py:628` — `def test_audit_log_limit(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:630` — `auth_with_user.authenticate("testuser", "TestPass123!", "10.0.0.1")`
+- `tests/test_auth_handler.py:631` — `logs = auth_with_user.get_audit_log(limit=3)`
+- `tests/test_auth_handler.py:639` — `def test_purge_expired(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:640` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:641` — `assert user is not None`
+- `tests/test_auth_handler.py:642` — `auth_with_user.create_session(user)`
+- `tests/test_auth_handler.py:644` — `short_handler = AuthHandler(db_path=auth_with_user._db_path, token_ttl=1)`
+- `tests/test_auth_handler.py:645` — `short_user = short_handler.get_user("testuser")`
+- `tests/test_auth_handler.py:646` — `assert short_user is not None`
+- `tests/test_auth_handler.py:647` — `short_token = short_handler.create_session(short_user)`
+- `tests/test_auth_handler.py:654` — `def test_purge_no_expired(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:655` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:656` — `assert user is not None`
+- `tests/test_auth_handler.py:657` — `auth_with_user.create_session(user)`
+- `tests/test_auth_handler.py:658` — `count = auth_with_user.purge_expired_sessions()`
+- `tests/test_auth_handler.py:663` — `def test_get_stats(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:664` — `stats = auth_with_user.get_stats()`
+- `tests/test_auth_handler.py:666` — `assert "total_users" in stats`
+- `tests/test_auth_handler.py:669` — `assert stats["total_users"] >= 2  # admin + testuser`
+- `tests/test_auth_handler.py:671` — `def test_get_stats_after_session(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:672` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:673` — `assert user is not None`
+- `tests/test_auth_handler.py:674` — `auth_with_user.create_session(user)`
+- `tests/test_auth_handler.py:675` — `stats = auth_with_user.get_stats()`
+- `tests/test_auth_handler.py:678` — `def test_get_stats_after_failed_login(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:679` — `auth_with_user.authenticate("testuser", "WrongPass1!", "10.0.0.1")`
+- `tests/test_auth_handler.py:680` — `stats = auth_with_user.get_stats()`
+- `tests/test_auth_handler.py:688` — `def test_concurrent_authenticate(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:695` — `auth_with_user.authenticate("testuser", "TestPass123!", "10.0.0.1")`
+- `tests/test_auth_handler.py:709` — `def test_concurrent_session_create(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:711` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:712` — `assert user is not None`
+- `tests/test_auth_handler.py:718` — `auth_with_user.create_session(user, "10.0.0.1")`
+- `tests/test_auth_handler.py:731` — `def test_concurrent_verify_and_revoke(self, auth_with_user: AuthHandler):`
+- `tests/test_auth_handler.py:733` — `user = auth_with_user.get_user("testuser")`
+- `tests/test_auth_handler.py:734` — `assert user is not None`
+- `tests/test_auth_handler.py:735` — `tokens = [auth_with_user.create_session(user) for _ in range(5)]`
+- `tests/test_auth_handler.py:740` — `auth_with_user.verify_session(t.token)`
+- `tests/test_auth_handler.py:746` — `auth_with_user.revoke_session(t.token)`
+- `tests/test_auth_handler.py:762` — `def test_concurrent_user_ops(self, auth: AuthHandler):`
+- `tests/test_auth_handler.py:763` — `"""Concurrent user create/delete operations should be thread-safe."""`
+- `tests/test_auth_handler.py:766` — `def _create_user(i):`
+- `tests/test_auth_handler.py:768` — `auth.create_user(f"bulk_user_{i}", f"ValidPass{i}!", "viewer")`
+- `tests/test_auth_handler.py:772` — `threads = [threading.Thread(target=_create_user, args=(i,)) for i in range(20)]`
+- `tests/test_auth_handler.py:779` — `assert len(auth.list_users()) >= 20`
+- `tests/test_auth_handler.py:782` — `# ── AuthUser / AuthToken Data Classes ─────────────────────────────────────────`
+- `tests/test_auth_handler.py:785` — `class TestAuthUser:`
+- `tests/test_auth_handler.py:787` — `user = AuthUser(user_id="uid1", username="alice", role="operator",`
+- `tests/test_auth_handler.py:789` — `d = user.to_dict()`
+- `tests/test_auth_handler.py:790` — `assert d["username"] == "alice"`
+- `tests/test_auth_handler.py:791` — `assert d["role"] == "operator"`
+- `tests/test_auth_handler.py:795` — `user = AuthUser(user_id="uid1", username="alice", role="viewer")`
+- `tests/test_auth_handler.py:796` — `d = user.to_dict()`
+- `tests/test_auth_handler.py:803` — `token="abc", user_id="uid1", username="alice", role="admin",`
+- `tests/test_auth_handler.py:810` — `token="abc", user_id="uid1", username="alice", role="admin",`
+- `tests/test_auth_handler.py:817` — `token="abc", user_id="uid1", username="alice", role="admin",`
+- `tests/test_auth_handler.py:821` — `assert d["username"] == "alice"`
+- `templates/enterprise/_nav.html:115` — `backdrop-filter: blur(16px);`
+- `templates/enterprise/_nav.html:196` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:204` — `backdrop-filter: none !important;`
+- `templates/enterprise/_nav.html:205` — `-webkit-backdrop-filter: none !important;`
+- `templates/enterprise/_nav.html:211` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:240` — `backdrop-filter: blur(4px) !important;`
+- `templates/enterprise/_nav.html:241` — `-webkit-backdrop-filter: blur(4px) !important;`
+- `templates/enterprise/_nav.html:251` — `.drawer-search-box {`
+- `templates/enterprise/_nav.html:256` — `.drawer-search-input {`
+- `templates/enterprise/_nav.html:296` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:322` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:334` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:367` — `touch-action: manipulation;`
+- `templates/enterprise/_nav.html:413` — `<!-- Right: Telemetry, Theme Selector, Emergency Kill Switch, User Identity -->`
+- `templates/enterprise/_nav.html:421` — `<!-- 9-Theme Selector Dropdown -->`
+- `templates/enterprise/_nav.html:422` — `<select id="desktopThemeSelect" data-theme-select="true" class="opb-theme-selector" style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#334155);color:var(--text-primary,#ffffff);padding:0.35rem 0.65rem;border-radius:0.4rem;font-size:0.75rem;font-weight:700;outline:none;cursor:pointer;flex-shrink:0 !important;width:auto !important;max-width:145px !important;min-width:125px !important;white-space:nowrap !important;display:inline-block !important;">`
+- `templates/enterprise/_nav.html:432` — `</select>`
+- `templates/enterprise/_nav.html:440` — `<!-- User Profile & Logout -->`
+- `templates/enterprise/_nav.html:443` — `👤 {{ user.username if user else 'admin' }}`
+- `templates/enterprise/_nav.html:455` — `<a href="/my-signals" class="opb-nav-item {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}">⚡ Signals Radar</a>`
+- `templates/enterprise/_nav.html:501` — `{% if can_manage_permissions %}<a href="/admin/users" class="opb-ws-item {% if current_page == 'admin_users' %}active{% endif %}"><span>👥 User Authorization & Controls</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:558` — `<!-- 1. User Profile & Role Identity -->`
+- `templates/enterprise/_nav.html:559` — `<div class="drawer-user-card" style="display:flex;flex-direction:column;gap:0.65rem;padding:0.75rem 1rem;background:var(--bg-secondary,#131e33);border-bottom:1px solid var(--border-color,#1e293b);">`
+- `templates/enterprise/_nav.html:566` — `<div style="font-size:0.85rem;font-weight:800;color:var(--text-primary,#ffffff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ user.username if user else 'admin' }}</div>`
+- `templates/enterprise/_nav.html:567` — `<span style="display:inline-block;font-size:0.62rem;color:var(--accent-color,#38bdf8);background:rgba(56,189,248,0.1);padding:0.08rem 0.35rem;border-radius:0.25rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;">{{ user.role if user else 'ADMIN' }}</span>`
+- `templates/enterprise/_nav.html:576` — `<!-- 2. Dedicated Multi-Theme Selector Region -->`
+- `templates/enterprise/_nav.html:579` — `<select id="drawerThemeSelect" data-theme-select="true" class="opb-theme-selector" style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#1e293b);color:var(--text-primary,#ffffff);padding:0.3rem 0.6rem;border-radius:0.375rem;font-size:0.75rem;font-weight:700;outline:none;width:auto;flex:1;max-width:180px;">`
+- `templates/enterprise/_nav.html:589` — `</select>`
+- `templates/enterprise/_nav.html:592` — `<!-- 3. Search Filter -->`
+- `templates/enterprise/_nav.html:593` — `<div class="drawer-search-box">`
+- `templates/enterprise/_nav.html:594` — `<input type="text" class="drawer-search-input" id="drawerSearchInput" placeholder="🔍 Search pages & tools...">`
+- `templates/enterprise/_nav.html:601` — `<a href="/my-signals" class="drawer-nav-item {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">⚡</span> <span>Signals Radar</span></a>`
+- `templates/enterprise/_nav.html:622` — `{% if can_manage_permissions %}<a href="/admin/users" class="drawer-nav-item {% if current_page == 'admin_users' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">👥</span> <span>User Authorization & Access</span></a>{% endif %}`
+- `templates/enterprise/_nav.html:658` — `<a href="/my-signals" class="mobile-dock-tab {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}" title="Signals Radar">`
+- `templates/enterprise/_nav.html:677` — `function filterDrawerMenu(query) {`
+- `templates/enterprise/_nav.html:679` — `const items = document.querySelectorAll('#drawerNavList .drawer-nav-item');`
+- `templates/enterprise/_nav.html:685` — `document.getElementById('drawerSearchInput')?.addEventListener('input', event => filterDrawerMenu(event.target.value));`
+- `archive/unrelated_modules/realestate/admin_panel.py:5` — `- Platform analytics (daily active users, listings, enquiries)`
+- `archive/unrelated_modules/realestate/admin_panel.py:9` — `- User management overview`
+- `archive/unrelated_modules/realestate/admin_panel.py:55` — `active_users: int = 0`
+- `archive/unrelated_modules/realestate/admin_panel.py:71` — `"""A property that has been reported by users."""`
+- `archive/unrelated_modules/realestate/admin_panel.py:81` — `action_taken: str = ""  # warned, removed, nothing`
+- `archive/unrelated_modules/realestate/admin_panel.py:92` — `"action_taken": self.action_taken,`
+- `archive/unrelated_modules/realestate/admin_panel.py:104` — `self._kyc_records: dict[str, KYCStatus] = {}  # user_id → status`
+- `archive/unrelated_modules/realestate/admin_panel.py:131` — `"""Get moderation queue, optionally filtered by status."""`
+- `archive/unrelated_modules/realestate/admin_panel.py:171` — `self, report_id: str, action: str = "nothing",`
+- `archive/unrelated_modules/realestate/admin_panel.py:178` — `report.status = ModerationStatus.APPROVED if action == "nothing" else ModerationStatus.BANNED`
+- `archive/unrelated_modules/realestate/admin_panel.py:181` — `report.action_taken = action`
+- `archive/unrelated_modules/realestate/admin_panel.py:183` — `if action == "removed":`
+- `archive/unrelated_modules/realestate/admin_panel.py:185` — `elif action == "warned":`
+- `archive/unrelated_modules/realestate/admin_panel.py:190` — `_log.info("[RE ADMIN] Report %s resolved: %s", report_id, action)`
+- `archive/unrelated_modules/realestate/admin_panel.py:194` — `"""Get reported listings, optionally filtered."""`
+- `archive/unrelated_modules/realestate/admin_panel.py:203` — `def submit_kyc(self, user_id: str) -> bool:`
+- `archive/unrelated_modules/realestate/admin_panel.py:204` — `"""Submit KYC documents for a user."""`
+- `archive/unrelated_modules/realestate/admin_panel.py:205` — `if user_id in self._kyc_records and self._kyc_records[user_id] == KYCStatus.VERIFIED:`
+- `archive/unrelated_modules/realestate/admin_panel.py:207` — `self._kyc_records[user_id] = KYCStatus.PENDING`
+- `archive/unrelated_modules/realestate/admin_panel.py:210` — `def verify_kyc(self, user_id: str) -> bool:`
+- `archive/unrelated_modules/realestate/admin_panel.py:211` — `"""Verify a user's KYC documents."""`
+- `archive/unrelated_modules/realestate/admin_panel.py:212` — `if user_id not in self._kyc_records:`
+- `archive/unrelated_modules/realestate/admin_panel.py:214` — `self._kyc_records[user_id] = KYCStatus.VERIFIED`
+- `archive/unrelated_modules/realestate/admin_panel.py:215` — `_log.info("[RE ADMIN] KYC verified: %s", user_id)`
+- `archive/unrelated_modules/realestate/admin_panel.py:218` — `def reject_kyc(self, user_id: str) -> bool:`
+- `archive/unrelated_modules/realestate/admin_panel.py:219` — `"""Reject a user's KYC documents."""`
+- `archive/unrelated_modules/realestate/admin_panel.py:220` — `if user_id not in self._kyc_records:`
+- `archive/unrelated_modules/realestate/admin_panel.py:222` — `self._kyc_records[user_id] = KYCStatus.REJECTED`
+- `archive/unrelated_modules/realestate/admin_panel.py:225` — `def get_kyc_status(self, user_id: str) -> str:`
+- `archive/unrelated_modules/realestate/admin_panel.py:226` — `"""Get KYC status for a user."""`
+- `archive/unrelated_modules/realestate/admin_panel.py:227` — `status = self._kyc_records.get(user_id, KYCStatus.NOT_SUBMITTED)`
+- `archive/unrelated_modules/realestate/admin_panel.py:231` — `"""Get all users pending KYC verification."""`
+- `archive/unrelated_modules/realestate/admin_panel.py:233` — `{"user_id": uid, "status": s.value}`
+- `archive/unrelated_modules/realestate/admin_panel.py:407` — `action: str = Query("nothing", description="removed/warned/nothing"),`
+- `archive/unrelated_modules/realestate/admin_panel.py:411` — `if not ap.resolve_report(report_id, action, resolved_by):`
+- `archive/unrelated_modules/realestate/admin_panel.py:417` — `async def submit_kyc(user_id: str = Query(...)):`
+- `archive/unrelated_modules/realestate/admin_panel.py:419` — `if not ap.submit_kyc(user_id):`
+- `archive/unrelated_modules/realestate/admin_panel.py:423` — `@router.post("/kyc/{user_id}/verify")`
+- `archive/unrelated_modules/realestate/admin_panel.py:424` — `async def verify_kyc(user_id: str):`
+- `archive/unrelated_modules/realestate/admin_panel.py:425` — `"""Verify a user's KYC."""`
+- `archive/unrelated_modules/realestate/admin_panel.py:426` — `if not ap.verify_kyc(user_id):`
+- `archive/unrelated_modules/realestate/admin_panel.py:427` — `raise HTTPException(status_code=404, detail="User not found or KYC not submitted")`
+- `archive/unrelated_modules/realestate/auth_service.py:6` — `- User registration on first login`
+- `archive/unrelated_modules/realestate/auth_service.py:64` — `class UserSession:`
+- `archive/unrelated_modules/realestate/auth_service.py:65` — `"""An authenticated user session from OAuth login."""`
+- `archive/unrelated_modules/realestate/auth_service.py:66` — `user_id: str = ""`
+- `archive/unrelated_modules/realestate/auth_service.py:70` — `role: str = "buyer"  # buyer, seller, broker, developer, admin`
+- `archive/unrelated_modules/realestate/auth_service.py:78` — `"user_id": self.user_id,`
+- `archive/unrelated_modules/realestate/auth_service.py:82` — `"role": self.role,`
+- `archive/unrelated_modules/realestate/auth_service.py:101` — `"""Verify a Google ID token and return the user info payload.`
+- `archive/unrelated_modules/realestate/auth_service.py:145` — `self._sessions: dict[str, UserSession] = {}`
+- `archive/unrelated_modules/realestate/auth_service.py:148` — `user_id: str = "", role: str = "buyer") -> UserSession:`
+- `archive/unrelated_modules/realestate/auth_service.py:150` — `uid = user_id or f"user-{uuid.uuid4().hex[:12]}"`
+- `archive/unrelated_modules/realestate/auth_service.py:152` — `token = self._generate_jwt(uid, email, role)`
+- `archive/unrelated_modules/realestate/auth_service.py:154` — `session = UserSession(`
+- `archive/unrelated_modules/realestate/auth_service.py:155` — `user_id=uid,`
+- `archive/unrelated_modules/realestate/auth_service.py:159` — `role=role,`
+- `archive/unrelated_modules/realestate/auth_service.py:167` — `def validate_token(self, token: str) -> UserSession | None:`
+- `archive/unrelated_modules/realestate/auth_service.py:181` — `def _generate_jwt(self, user_id: str, email: str, role: str) -> str:`
+- `archive/unrelated_modules/realestate/auth_service.py:190` — `"sub": user_id,`
+- `archive/unrelated_modules/realestate/auth_service.py:192` — `"role": role,`
+- `archive/unrelated_modules/realestate/auth_service.py:215` — `"""Authentication service — OAuth login, session management, user roles."""`
+- `archive/unrelated_modules/realestate/auth_service.py:218` — `self._users: dict[str, dict[str, Any]] = {}  # email -> user profile`
+- `archive/unrelated_modules/realestate/auth_service.py:223` — `def login_with_google(self, id_token: str, role: str = "buyer") -> UserSession | None:`
+- `archive/unrelated_modules/realestate/auth_service.py:224` — `"""Authenticate a user with a Google ID token.`
+- `archive/unrelated_modules/realestate/auth_service.py:228` — `role: Requested user role (buyer/seller/broker/developer/admin).`
+- `archive/unrelated_modules/realestate/auth_service.py:231` — `UserSession if authentication succeeds, None otherwise.`
+- `archive/unrelated_modules/realestate/auth_service.py:239` — `name = payload.get("name", payload.get("given_name", "User"))`
+- `archive/unrelated_modules/realestate/auth_service.py:255` — `# Check if user exists, otherwise create profile`
+- `archive/unrelated_modules/realestate/auth_service.py:256` — `if email not in self._users:`
+- `archive/unrelated_modules/realestate/auth_service.py:257` — `self._users[email] = {`
+- `archive/unrelated_modules/realestate/auth_service.py:261` — `"role": role,`
+- `archive/unrelated_modules/realestate/auth_service.py:265` — `_log.info("[AUTH] New user registered: %s (%s) admin=%s", name, email, is_admin)`
+- `archive/unrelated_modules/realestate/auth_service.py:268` — `self._users[email].update({`
+- `archive/unrelated_modules/realestate/auth_service.py:275` — `user = self._users[email]`
+- `archive/unrelated_modules/realestate/auth_service.py:280` — `user_id=user.get("user_id", f"user-{hash(email) % 10**8}"),`
+- `archive/unrelated_modules/realestate/auth_service.py:281` — `role=user.get("role", role),`
+- `archive/unrelated_modules/realestate/auth_service.py:283` — `session.is_admin = user.get("is_admin", is_admin)`
+- `archive/unrelated_modules/realestate/auth_service.py:286` — `def login_as_guest(self, name: str = "Guest", role: str = "buyer") -> UserSession:`
+- `archive/unrelated_modules/realestate/auth_service.py:292` — `role=role,`
+- `archive/unrelated_modules/realestate/auth_service.py:300` — `def get_session(self, token: str) -> UserSession | None:`
+- `archive/unrelated_modules/realestate/auth_service.py:304` — `# ── User Management ───────────────────────────────────────────────────`
+- `archive/unrelated_modules/realestate/auth_service.py:306` — `def get_user(self, email: str) -> dict[str, Any] | None:`
+- `archive/unrelated_modules/realestate/auth_service.py:307` — `return self._users.get(email)`
+- `archive/unrelated_modules/realestate/auth_service.py:309` — `def update_role(self, email: str, role: str) -> bool:`
+- `archive/unrelated_modules/realestate/auth_service.py:310` — `"""Update a user's role."""`
+- `archive/unrelated_modules/realestate/auth_service.py:311` — `if email not in self._users:`
+- `archive/unrelated_modules/realestate/auth_service.py:313` — `self._users[email]["role"] = role`
+- `archive/unrelated_modules/realestate/auth_service.py:316` — `def list_users(self) -> list[dict[str, Any]]:`
+- `archive/unrelated_modules/realestate/auth_service.py:317` — `"""List all registered users."""`
+- `archive/unrelated_modules/realestate/auth_service.py:318` — `return list(self._users.values())`
+- `archive/unrelated_modules/realestate/auth_service.py:323` — `"total_users": len(self._users),`
+- `archive/unrelated_modules/realestate/auth_service.py:347` — `async def get_current_user(request: Request) -> UserSession | None:`
+- `archive/unrelated_modules/realestate/auth_service.py:348` — `"""FastAPI dependency: extract current user from Authorization header or cookie.`
+- `archive/unrelated_modules/realestate/auth_service.py:352` — `async def get_me(user: UserSession = Depends(get_current_user)):`
+- `archive/unrelated_modules/realestate/auth_service.py:373` — `async def require_admin(user: UserSession | None = Depends(get_current_user)) -> UserSession:`
+- `archive/unrelated_modules/realestate/auth_service.py:374` — `"""FastAPI dependency: require admin role."""`
+- `archive/unrelated_modules/realestate/auth_service.py:375` — `if not user or not user.is_admin:`
+- `archive/unrelated_modules/realestate/auth_service.py:377` — `return user`
+- `archive/unrelated_modules/realestate/auth_service.py:392` — `role: str = Query("buyer", description="User role"),`
+- `archive/unrelated_modules/realestate/auth_service.py:395` — `session = svc.login_with_google(id_token, role)`
+- `archive/unrelated_modules/realestate/auth_service.py:413` — `async def get_me(user: UserSession | None = Depends(get_current_user)):`
+- `archive/unrelated_modules/realestate/auth_service.py:414` — `"""Get the current authenticated user's session info."""`
+- `archive/unrelated_modules/realestate/auth_service.py:415` — `if not user:`
+- `archive/unrelated_modules/realestate/auth_service.py:417` — `return {"success": True, "user": user.to_dict()}`
+- `archive/unrelated_modules/realestate/auth_service.py:419` — `@router.get("/users")`

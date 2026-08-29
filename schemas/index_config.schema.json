@@ -1,0 +1,3449 @@
+{
+  "$id": "https://opbuying.local/schemas/index_config",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "ADAPTIVE_HISTORY_LOOKBACK": {
+      "type": "integer"
+    },
+    "ADAPTIVE_LEARNING_LOSS_STREAK_HALT": {
+      "type": "integer"
+    },
+    "ADAPTIVE_LEARNING_MAX_BONUS": {
+      "type": "integer"
+    },
+    "ADAPTIVE_LEARNING_MAX_DISCOUNT": {
+      "type": "integer"
+    },
+    "ADAPTIVE_SIGNAL_MAX_TOTAL_PENALTY": {
+      "type": "integer"
+    },
+    "ADAPTIVE_SIGNAL_PENALTY_ALERT_THRESHOLD": {
+      "type": "number"
+    },
+    "ADAPTIVE_SIGNAL_SOFT_BLOCK_ON_PENALTY": {
+      "type": "boolean"
+    },
+    "ADAPTIVE_THRESHOLD_ENABLED": {
+      "type": "boolean"
+    },
+    "ADAPTIVE_THRESHOLD_MAX_BONUS": {
+      "type": "integer"
+    },
+    "ADAPTIVE_THRESHOLD_MAX_DISCOUNT": {
+      "type": "integer"
+    },
+    "ADX_CHOP_THRESHOLD": {
+      "type": "number"
+    },
+    "ADX_PENALTY_POINTS": {
+      "type": "integer"
+    },
+    "ADX_PENALTY_THRESHOLD": {
+      "type": "integer"
+    },
+    "ADX_TREND_BONUS_POINTS": {
+      "type": "integer"
+    },
+    "ADX_TREND_THRESHOLD": {
+      "type": "number"
+    },
+    "AI_ENGINE_API_BASE_URL": {
+      "type": "string"
+    },
+    "AI_ENGINE_API_KEY_ENV": {
+      "type": "string"
+    },
+    "AI_ENGINE_BATCH_COOLDOWN_MS": {
+      "type": "integer"
+    },
+    "AI_ENGINE_ENABLED": {
+      "type": "boolean"
+    },
+    "AI_ENGINE_JOURNAL_ENABLED": {
+      "type": "boolean"
+    },
+    "AI_ENGINE_JOURNAL_FILE": {
+      "type": "string"
+    },
+    "AI_ENGINE_MAX_TOKENS": {
+      "type": "integer"
+    },
+    "AI_ENGINE_MODEL": {
+      "type": "string"
+    },
+    "AI_ENGINE_PROMPT_TEMPLATE": {
+      "type": "string"
+    },
+    "AI_ENGINE_PROVIDER": {
+      "type": "string"
+    },
+    "AI_ENGINE_REGIME_BIAS": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "AI_ENGINE_SIGNAL_BOOST_MAX": {
+      "type": "integer"
+    },
+    "AI_ENGINE_STRENGTH_BIAS": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "AI_ENGINE_TIMEOUT_SEC": {
+      "type": "number"
+    },
+    "AI_ENGINE_VETO_ENABLED": {
+      "type": "boolean"
+    },
+    "AI_THRESHOLD": {
+      "type": "integer"
+    },
+    "ALLOW_ZERO_PRICE": {
+      "type": "boolean"
+    },
+    "API_DEGRADE_BLOCK_ENTRIES_AT": {
+      "type": "integer"
+    },
+    "API_DEGRADE_HALT_AT": {
+      "type": "integer"
+    },
+    "API_DEGRADE_REDUCE_SIZE_AT": {
+      "type": "integer"
+    },
+    "API_DEGRADE_SIZE_MULT": {
+      "type": "number"
+    },
+    "API_FAIL_BLOCK_NEW_ENTRIES": {
+      "type": "integer"
+    },
+    "ATR_MIN_THRESHOLD": {
+      "type": "number"
+    },
+    "ATR_SL_MULTIPLIER": {
+      "type": "number"
+    },
+    "AUDIT_LOG_ENABLED": {
+      "type": "boolean"
+    },
+    "AUDIT_LOG_FILE": {
+      "type": "string"
+    },
+    "AUDIT_LOG_PATH": {
+      "type": "string"
+    },
+    "AUDIT_RETENTION_DAYS": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_AI_JOURNAL_WEIGHT": {
+      "type": "number"
+    },
+    "AUTO_LEARNER_ATOMIC_WRITE": {
+      "type": "boolean"
+    },
+    "AUTO_LEARNER_CONFIDENCE_LOSS_DEC": {
+      "type": "number"
+    },
+    "AUTO_LEARNER_CONFIDENCE_WIN_INC": {
+      "type": "number"
+    },
+    "AUTO_LEARNER_CSV_EXPORT_FILE": {
+      "type": "string"
+    },
+    "AUTO_LEARNER_DAILY_AUDIT": {
+      "type": "boolean"
+    },
+    "AUTO_LEARNER_ENABLED": {
+      "type": "boolean"
+    },
+    "AUTO_LEARNER_LOOKBACK": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_LOSS_SCORE_INC": {
+      "type": "number"
+    },
+    "AUTO_LEARNER_LOSS_STREAK_HALT": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_MAX_BONUS": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_MAX_DISCOUNT": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_PER_SYMBOL": {
+      "type": "boolean"
+    },
+    "AUTO_LEARNER_REGIME_DECAY": {
+      "type": "number"
+    },
+    "AUTO_LEARNER_STATE_FILE": {
+      "type": "string"
+    },
+    "AUTO_LEARNER_STATE_LOCK_FILE": {
+      "type": "string"
+    },
+    "AUTO_LEARNER_STREAK_BOOST_AT": {
+      "type": "integer"
+    },
+    "AUTO_LEARNER_WIN_SCORE_DECAY": {
+      "type": "number"
+    },
+    "AUTO_TUNER_COOLDOWN_DAYS": {
+      "type": "integer"
+    },
+    "AUTO_TUNER_DRY_RUN": {
+      "type": "boolean"
+    },
+    "AUTO_TUNER_ENABLED": {
+      "type": "boolean"
+    },
+    "AUTO_TUNER_MIN_TRADES": {
+      "type": "integer"
+    },
+    "AUTO_TUNER_MIN_WIN_RATE_POST_TUNE": {
+      "type": "number"
+    },
+    "AUTO_TUNER_POST_TUNE_VALIDATION_DAYS": {
+      "type": "integer"
+    },
+    "AUTO_TUNE_COOLDOWN_DAYS": {
+      "type": "integer"
+    },
+    "AUTO_TUNE_DRY_RUN": {
+      "type": "boolean"
+    },
+    "AUTO_TUNE_ENABLED": {
+      "type": "boolean"
+    },
+    "AUTO_TUNE_MAX_SUGGESTIONS": {
+      "type": "integer"
+    },
+    "AUTO_TUNE_MIN_EDGE_DELTA": {
+      "type": "number"
+    },
+    "AUTO_TUNE_MIN_SAMPLES_PER_SEGMENT": {
+      "type": "integer"
+    },
+    "AUTO_TUNE_MIN_TRADES": {
+      "type": "integer"
+    },
+    "AUTO_TUNE_MODE": {
+      "type": "string"
+    },
+    "AUTO_TUNE_REQUIRE_APPROVAL": {
+      "type": "boolean"
+    },
+    "BACKTEST_COMMISSION_PER_TRADE": {
+      "type": "number"
+    },
+    "BACKTEST_COOLDOWN_BARS": {
+      "type": "integer"
+    },
+    "BACKTEST_FALLBACK_STOP_PCT": {
+      "type": "number"
+    },
+    "BACKTEST_FALLBACK_TARGET_PCT": {
+      "type": "number"
+    },
+    "BACKTEST_FIXED_VIX": {
+      "type": "number"
+    },
+    "BACKTEST_INITIAL_CAPITAL": {
+      "type": "integer"
+    },
+    "BACKTEST_MAX_BARS_IN_TRADE": {
+      "type": "integer"
+    },
+    "BACKTEST_SIGNAL_BUFFER": {
+      "type": "integer"
+    },
+    "BACKTEST_SLIPPAGE_PCT": {
+      "type": "number"
+    },
+    "BACKTEST_TRADE_SIZE": {
+      "type": "integer"
+    },
+    "BACKTEST_USE_OPTION_MODEL": {
+      "type": "boolean"
+    },
+    "BACKTEST_VIX": {
+      "type": "number"
+    },
+    "BANKNIFTY_LOT_SIZE": {
+      "type": "integer"
+    },
+    "BASE_CAPITAL": {
+      "type": "integer"
+    },
+    "BOT_TOKEN": {
+      "type": "string"
+    },
+    "BREAKOUT_BONUS": {
+      "type": "integer"
+    },
+    "BREAKOUT_TIMEOUT": {
+      "type": "integer"
+    },
+    "BROKERAGE_PER_TRADE": {
+      "type": "integer"
+    },
+    "BROKER_API_ENABLED": {
+      "type": "boolean"
+    },
+    "BROKER_BACKEND": {
+      "type": "string"
+    },
+    "BROKER_CAPTURE_ENABLED": {
+      "type": "boolean"
+    },
+    "BROKER_CAPTURE_FILE": {
+      "type": "string"
+    },
+    "BROKER_CONFIG": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "BROKER_CUSTOM_FACTORY": {
+      "type": "string"
+    },
+    "BROKER_DRIVER": {
+      "type": "string"
+    },
+    "BROKER_FEES": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "BROKER_LATENCY_ENFORCE_ORDER": {
+      "type": "boolean"
+    },
+    "BROKER_NAME": {
+      "type": "string"
+    },
+    "BROKER_STATUS_POLL_SEC": {
+      "type": "number"
+    },
+    "BROKER_WAIT_POLL_SEC": {
+      "type": "number"
+    },
+    "CATEGORY_SCORE_THRESHOLDS": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "CHAT_ID": {
+      "type": "string"
+    },
+    "CIRCUIT_BREAKER_THRESHOLD": {
+      "type": "integer"
+    },
+    "CIRCUIT_BREAKER_WINDOW": {
+      "type": "integer"
+    },
+    "CLUSTER_WINDOW_SEC": {
+      "type": "integer"
+    },
+    "COMMODITY_DEFAULT_QTY": {
+      "type": "integer"
+    },
+    "COMMODITY_ENABLED": {
+      "type": "boolean"
+    },
+    "COMMODITY_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "COMMODITY_MAX_DAILY_TRADES": {
+      "type": "integer"
+    },
+    "COMMODITY_PRIORITY": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "COMMODITY_SL_PCT": {
+      "type": "number"
+    },
+    "COMMODITY_TARGET_PCT": {
+      "type": "number"
+    },
+    "COMPACT_INTERVAL_SEC": {
+      "type": "integer"
+    },
+    "CONFIG_DRIFT_AUTO_RELOAD": {
+      "type": "boolean"
+    },
+    "CONFIG_STRICT_SCHEMA_ENFORCEMENT": {
+      "type": "boolean"
+    },
+    "CONFIG_VERSION": {
+      "type": "string"
+    },
+    "CONSEC_LOSS_LIMIT": {
+      "type": "integer"
+    },
+    "CONTINUOUS_RECONCILIATION_ENABLED": {
+      "type": "boolean"
+    },
+    "COOLDOWN": {
+      "type": "integer"
+    },
+    "CRASH_RECOVERY_LOG": {
+      "type": "string"
+    },
+    "CROSS_VALIDATE_TOLERANCE": {
+      "type": "number"
+    },
+    "CURRENCY_DEFAULT_QTY": {
+      "type": "integer"
+    },
+    "CURRENCY_ENABLED": {
+      "type": "boolean"
+    },
+    "CURRENCY_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "CURRENCY_MAX_DAILY_TRADES": {
+      "type": "integer"
+    },
+    "CURRENCY_PRIORITY": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "CURRENCY_SL_PCT": {
+      "type": "number"
+    },
+    "CURRENCY_TARGET_PCT": {
+      "type": "number"
+    },
+    "DAILY_TARGET": {
+      "type": "integer"
+    },
+    "DASHBOARD_COMPACT": {
+      "type": "boolean"
+    },
+    "DATA_ANOMALY_DETECTION_ENABLED": {
+      "type": "boolean"
+    },
+    "DATA_ANOMALY_PRICE_CHANGE_MAX_PCT": {
+      "type": "number"
+    },
+    "DATA_ANOMALY_SPREAD_MAX_PCT": {
+      "type": "number"
+    },
+    "DATA_ANOMALY_VOLUME_SPIKE_MULT": {
+      "type": "number"
+    },
+    "DATA_CROSS_VALIDATE": {
+      "type": "boolean"
+    },
+    "DATA_PROVIDER_ENABLED": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "DATA_PROVIDER_PRIORITY": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "DB_BACKUP_RETENTION_DAYS": {
+      "type": "integer"
+    },
+    "DB_MAINTENANCE_ENABLED": {
+      "type": "boolean"
+    },
+    "DB_MAINTENANCE_INTERVAL_HOURS": {
+      "type": "integer"
+    },
+    "DB_PATH": {
+      "type": "string"
+    },
+    "DB_PROVIDER": {
+      "type": "string"
+    },
+    "DRAWDOWN_SIZE_SCALE": {
+      "type": "boolean"
+    },
+    "DYNAMIC_POSITION_SIZING_ENABLED": {
+      "type": "boolean"
+    },
+    "DYNAMIC_RISK_PER_TRADE_BASE": {
+      "type": "number"
+    },
+    "DYNAMIC_RISK_REGIME_ADJUST_RANGE": {
+      "type": "number"
+    },
+    "DYNAMIC_RISK_REGIME_ADJUST_SIDEWAYS": {
+      "type": "number"
+    },
+    "DYNAMIC_RISK_REGIME_ADJUST_TRENDING": {
+      "type": "number"
+    },
+    "DYNAMIC_SL_ATR_MULT": {
+      "type": "number"
+    },
+    "DYNAMIC_TARGET_ATR_MULT": {
+      "type": "number"
+    },
+    "EMAIL_ENABLED": {
+      "type": "boolean"
+    },
+    "EMAIL_PASS": {
+      "type": "string"
+    },
+    "EMAIL_PORT": {
+      "type": "integer"
+    },
+    "EMAIL_SMTP": {
+      "type": "string"
+    },
+    "EMAIL_TO": {
+      "type": "string"
+    },
+    "EMAIL_USER": {
+      "type": "string"
+    },
+    "ENVIRONMENT": {
+      "type": "string"
+    },
+    "EQUITY_DEFAULT_QTY": {
+      "type": "integer"
+    },
+    "EQUITY_ENABLED": {
+      "type": "boolean"
+    },
+    "EQUITY_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "EQUITY_MAX_DAILY_TRADES": {
+      "type": "integer"
+    },
+    "EQUITY_PRIORITY": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "EQUITY_SL_PCT": {
+      "type": "number"
+    },
+    "EQUITY_TARGET_PCT": {
+      "type": "number"
+    },
+    "ETF_DEFAULT_QTY": {
+      "type": "integer"
+    },
+    "ETF_ENABLED": {
+      "type": "boolean"
+    },
+    "ETF_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "ETF_PRIORITY": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "EXCEPTION_ALERT_THRESHOLD": {
+      "type": "integer"
+    },
+    "EXECUTION_MODE": {
+      "enum": [
+        "PAPER",
+        "MANUAL",
+        "AUTO",
+        "SIGNALS",
+        "SIGNAL_ONLY"
+      ],
+      "type": "string"
+    },
+    "EXECUTION_POLICY": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "EXECUTION_ROUTER_PAPER_USES_ADAPTER": {
+      "type": "boolean"
+    },
+    "EXIT_FILL_TIMEOUT_SEC": {
+      "type": "integer"
+    },
+    "EXIT_ORDER_RETRIES": {
+      "type": "integer"
+    },
+    "EXIT_RECON_MAX_AGE_SEC": {
+      "type": "integer"
+    },
+    "EXIT_RETRY_WAIT_SEC": {
+      "type": "number"
+    },
+    "EXIT_SPREAD_GUARD_MULT": {
+      "type": "number"
+    },
+    "EXPIRY_CUTOFF_HOUR": {
+      "type": "integer"
+    },
+    "EXPIRY_CUTOFF_MIN": {
+      "type": "integer"
+    },
+    "EXPIRY_EXTRA_THRESH": {
+      "type": "integer"
+    },
+    "EXPIRY_MAX_TRADES": {
+      "type": "integer"
+    },
+    "EXPIRY_WEEK_EXTRA_THRESH": {
+      "type": "integer"
+    },
+    "FALSE_SIGNAL_FILTER_ENABLED": {
+      "type": "boolean"
+    },
+    "FALSE_SIGNAL_IV_THRESHOLD_BLOCK": {
+      "type": "number"
+    },
+    "FALSE_SIGNAL_MIN_SCORE_BLOCK": {
+      "type": "integer"
+    },
+    "FIB_TP1_RATIO": {
+      "type": "number"
+    },
+    "FIB_TP2_RATIO": {
+      "type": "number"
+    },
+    "FIB_TP3_RATIO": {
+      "type": "number"
+    },
+    "FINNIFTY_LOT_SIZE": {
+      "type": "integer"
+    },
+    "FINNIFTY_MIN_IV_RANK": {
+      "type": "number"
+    },
+    "FINNIFTY_MIN_SCORE_OFFSET": {
+      "type": "integer"
+    },
+    "FINNIFTY_REGIME_REQUIRE_TRENDING": {
+      "type": "boolean"
+    },
+    "FINNIFTY_SPECIFIC_ENABLED": {
+      "type": "boolean"
+    },
+    "FORCE_EXIT_AFTER_SHUTDOWN": {
+      "type": "boolean"
+    },
+    "FORCE_PRE_TRADE_RECON": {
+      "type": "boolean"
+    },
+    "FUTURES_DEFAULT_QTY": {
+      "type": "integer"
+    },
+    "FUTURES_ENABLED": {
+      "type": "boolean"
+    },
+    "FUTURES_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "FUTURES_MAX_DAILY_TRADES": {
+      "type": "integer"
+    },
+    "FUTURES_PRIORITY": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "FUTURES_SL_PCT": {
+      "type": "number"
+    },
+    "FUTURES_TARGET_PCT": {
+      "type": "number"
+    },
+    "GEX_DEFAULT_SYMBOLS": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "GEX_RISK_FREE_RATE": {
+      "type": "number"
+    },
+    "GEX_STRIKE_RANGE": {
+      "type": "integer"
+    },
+    "GUI_CONFIRM_EXIT": {
+      "type": "boolean"
+    },
+    "GUI_REFRESH_MS": {
+      "type": "integer"
+    },
+    "GUI_THEME": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "GUI_UX": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "GUI_WINDOW": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "HIGH_CONVICTION_ML_THRESHOLD": {
+      "type": "number"
+    },
+    "INCIDENT_ALERTING_ENABLED": {
+      "type": "boolean"
+    },
+    "INCIDENT_COOLDOWN_SECONDS": {
+      "type": "integer"
+    },
+    "INCIDENT_DEQUEUE_INTERVAL_SEC": {
+      "type": "integer"
+    },
+    "INCIDENT_MAX_QUEUE_SIZE": {
+      "type": "integer"
+    },
+    "INDEX_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "INDEX_MIN_SCORE": {
+      "type": "integer"
+    },
+    "INDEX_PRIORITY": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "INDEX_RSI_BONUS": {
+      "type": "integer"
+    },
+    "INDEX_RSI_HEALTHY_HIGH_CALL": {
+      "type": "integer"
+    },
+    "INDEX_RSI_HEALTHY_HIGH_PUT": {
+      "type": "integer"
+    },
+    "INDEX_RSI_HEALTHY_LOW_CALL": {
+      "type": "integer"
+    },
+    "INDEX_RSI_HEALTHY_LOW_PUT": {
+      "type": "integer"
+    },
+    "INDEX_RSI_OVERBOUGHT": {
+      "type": "integer"
+    },
+    "INDEX_RSI_OVERSOLD": {
+      "type": "integer"
+    },
+    "INDEX_RSI_PENALTY": {
+      "type": "integer"
+    },
+    "INTRADAY_LOSS_LIMIT": {
+      "type": "integer"
+    },
+    "INVIT_ENABLED": {
+      "type": "boolean"
+    },
+    "INVIT_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "IV_SPIKE_THRESHOLD": {
+      "type": "number"
+    },
+    "JSON_LOG_FILE": {
+      "type": "string"
+    },
+    "KILL_FILE": {
+      "type": "string"
+    },
+    "LATENCY_BUDGET_MS": {
+      "type": "integer"
+    },
+    "LATE_SESSION_SIZE_MULT": {
+      "type": "number"
+    },
+    "LATE_SESSION_THRESHOLD": {
+      "type": "string"
+    },
+    "LEARNING_SCORE_ADJ_CLAMP": {
+      "type": "integer"
+    },
+    "LOCK_TRIGGER_PCT": {
+      "type": "number"
+    },
+    "LOG_PERIODIC_SUMMARY": {
+      "type": "boolean"
+    },
+    "LOOP_HEALTH_REPORT_EVERY_N": {
+      "type": "integer"
+    },
+    "LOOP_SLOW_CYCLE_MS": {
+      "type": "integer"
+    },
+    "LTP_FREEZE_THRESHOLD": {
+      "type": "integer"
+    },
+    "MACD_BONUS": {
+      "type": "integer"
+    },
+    "MANDATE_BLOCK_HIGH_IV_SCORE": {
+      "type": "integer"
+    },
+    "MANDATE_BLOCK_HIGH_IV_THRESHOLD": {
+      "type": "number"
+    },
+    "MANDATE_COST_BID_ASK": {
+      "type": "number"
+    },
+    "MANDATE_COST_BID_ASK_ESTIMATE": {
+      "type": "number"
+    },
+    "MANDATE_COST_BROKERAGE": {
+      "type": "number"
+    },
+    "MANDATE_COST_EXCHANGE_GST": {
+      "type": "number"
+    },
+    "MANDATE_COST_GST_PCT": {
+      "type": "number"
+    },
+    "MANDATE_COST_STT_PCT": {
+      "type": "number"
+    },
+    "MANDATE_COST_STT_SHORT_EXPIRY_PCT": {
+      "type": "number"
+    },
+    "MANDATE_DAILY_HARD_STOP": {
+      "type": "number"
+    },
+    "MANDATE_DATA_STALENESS_SEC": {
+      "type": "integer"
+    },
+    "MANDATE_EVENT_COOLDOWN_MINUTES": {
+      "type": "integer"
+    },
+    "MANDATE_FINNIFTY_MIN_IV_RANK": {
+      "type": "number"
+    },
+    "MANDATE_FINNIFTY_MIN_SCORE": {
+      "type": "integer"
+    },
+    "MANDATE_FINNIFTY_REGIME_REQUIRED": {
+      "type": "boolean"
+    },
+    "MANDATE_HARD_HALT_ENABLED": {
+      "type": "boolean"
+    },
+    "MANDATE_HARD_HALT_ON_LOSS_STREAK": {
+      "type": "integer"
+    },
+    "MANDATE_LIMIT_ORDER_TIMEOUT_SEC": {
+      "type": "integer"
+    },
+    "MANDATE_LOSS_STREAK_COOLDOWN_HOURS": {
+      "type": "integer"
+    },
+    "MANDATE_LOSS_STREAK_THRESHOLD": {
+      "type": "integer"
+    },
+    "MANDATE_MAX_DRAWDOWN_PROTECTION": {
+      "type": "number"
+    },
+    "MANDATE_MAX_POSITIONS_SAME_TIME": {
+      "type": "integer"
+    },
+    "MANDATE_MAX_TRADES_PER_DAY_CAUTIOUS": {
+      "type": "integer"
+    },
+    "MANDATE_MAX_TRADES_PER_DAY_EXTREME": {
+      "type": "integer"
+    },
+    "MANDATE_MAX_TRADES_PER_DAY_HIGH_STRESS": {
+      "type": "integer"
+    },
+    "MANDATE_MAX_TRADES_PER_DAY_NORMAL": {
+      "type": "integer"
+    },
+    "MANDATE_MIN_EXPECTED_VALUE": {
+      "type": "number"
+    },
+    "MANDATE_MIN_IV_RANK": {
+      "type": "number"
+    },
+    "MANDATE_MIN_SCORE_RANGE": {
+      "type": "integer"
+    },
+    "MANDATE_MIN_SCORE_SIDEWAYS": {
+      "type": "integer"
+    },
+    "MANDATE_MIN_Score_TRENDING": {
+      "type": "integer"
+    },
+    "MANDATE_MIN_WIN_RATE_THRESHOLD": {
+      "type": "number"
+    },
+    "MANDATE_NEGATIVE_WEEKS_THRESHOLD": {
+      "type": "integer"
+    },
+    "MANDATE_OPERATING_MODE": {
+      "type": "string"
+    },
+    "MANDATE_REGIME_CONFIDENCE_MIN": {
+      "type": "number"
+    },
+    "MANDATE_REGIME_SIZING_RANGE": {
+      "type": "number"
+    },
+    "MANDATE_REGIME_SIZING_SIDEWAYS": {
+      "type": "number"
+    },
+    "MANDATE_REGIME_SIZING_TRENDING": {
+      "type": "number"
+    },
+    "MANDATE_RISK_PER_TRADE": {
+      "type": "number"
+    },
+    "MANDATE_SIZING_UNCERTAINTY": {
+      "type": "number"
+    },
+    "MANDATE_SKIP_FIRST_20_MINUTES": {
+      "type": "boolean"
+    },
+    "MANDATE_SKIP_LAST_45_MINUTES": {
+      "type": "boolean"
+    },
+    "MANDATE_SLIPPAGE_ASSUME_PCT": {
+      "type": "number"
+    },
+    "MANDATE_TIME_WINDOW_AFTERNOON_END": {
+      "type": "string"
+    },
+    "MANDATE_TIME_WINDOW_AFTERNOON_START": {
+      "type": "string"
+    },
+    "MANDATE_TIME_WINDOW_MORNING_END": {
+      "type": "string"
+    },
+    "MANDATE_TIME_WINDOW_MORNING_START": {
+      "type": "string"
+    },
+    "MANDATE_VALIDATION_MIN_OBSERVATIONS": {
+      "type": "integer"
+    },
+    "MANDATE_VIX_HARD_BLOCK": {
+      "type": "number"
+    },
+    "MANDATE_VIX_MAX": {
+      "type": "number"
+    },
+    "MANDATE_VIX_MIN": {
+      "type": "number"
+    },
+    "MANDATE_WALKFORWARD_DEGRADATION_MAX": {
+      "type": "number"
+    },
+    "MANDATE_WEEKDAY_MULTIPLIER_FROZEN": {
+      "type": "boolean"
+    },
+    "MANDATE_WEEKLY_CIRCUIT_BREAKER": {
+      "type": "number"
+    },
+    "MANDATE_WIN_REDUCTION_PCT": {
+      "type": "number"
+    },
+    "MANUAL_SIGNALS_ONLY": {
+      "type": "boolean"
+    },
+    "MARGIN_SAFETY_RESERVE_PCT": {
+      "type": "number"
+    },
+    "MARGIN_WARNING_PCT": {
+      "type": "number"
+    },
+    "MAX_BREAKOUT_DISTANCE": {
+      "type": "number"
+    },
+    "MAX_CONSECUTIVE_LOSSES": {
+      "type": "integer"
+    },
+    "MAX_DAILY_LOSS": {
+      "type": "integer"
+    },
+    "MAX_DRAWDOWN": {
+      "type": "number"
+    },
+    "MAX_LOT_CAPITAL_PCT": {
+      "type": "number"
+    },
+    "MAX_OPEN": {
+      "type": "integer"
+    },
+    "MAX_POSITION_AGE": {
+      "type": "integer"
+    },
+    "MAX_QUOTE_AGE_SECONDS": {
+      "type": "number"
+    },
+    "MAX_SINGLE_TRADE_LOSS_PCT": {
+      "type": "number"
+    },
+    "MAX_TRADES_DAY": {
+      "type": "integer"
+    },
+    "MAX_TRADES_PER_DAY": {
+      "type": "integer"
+    },
+    "MA_CROSSOVER_ADX_MIN": {
+      "type": "number"
+    },
+    "MA_CROSSOVER_FAST_PERIOD": {
+      "type": "integer"
+    },
+    "MA_CROSSOVER_MA_TYPE": {
+      "type": "string"
+    },
+    "MA_CROSSOVER_SLOW_PERIOD": {
+      "type": "integer"
+    },
+    "METRICS_BIND": {
+      "type": "string"
+    },
+    "METRICS_PORT": {
+      "type": "integer"
+    },
+    "MIN_ENTRY_INTERVAL": {
+      "type": "integer"
+    },
+    "MIN_NET_RR": {
+      "type": "number"
+    },
+    "MIN_SCORE_THRESHOLD": {
+      "type": "integer"
+    },
+    "MIN_TRADE_DURATION_MINS": {
+      "type": "integer"
+    },
+    "MIN_TRADE_INTERVAL_SECONDS": {
+      "type": "integer"
+    },
+    "ML_BRIER_TARGET": {
+      "type": "number"
+    },
+    "ML_CONFIDENCE_THRESHOLD": {
+      "type": "number"
+    },
+    "ML_WALKFORWARD_WINDOWS": {
+      "type": "integer"
+    },
+    "MODERATE_THRESHOLD": {
+      "type": "integer"
+    },
+    "MONDAY_GAP_GRACE_MIN": {
+      "type": "integer"
+    },
+    "NIFTY_LOT_SIZE": {
+      "type": "integer"
+    },
+    "NSE_BLOCK_NEW_ENTRIES_FROM_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_BLOCK_NEW_ENTRIES_FROM_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CASH_SESSION_END_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CASH_SESSION_END_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CASH_SESSION_START_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CASH_SESSION_START_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CONTINUOUS_TRADE_START_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CONTINUOUS_TRADE_START_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_EARLY_SESSION_END_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_EARLY_SESSION_END_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_HOLIDAYS": {
+      "type": "array"
+    },
+    "NSE_MARKET_STATUS_CLOSED_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_MARKET_STATUS_CLOSED_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_POST_OPEN_NO_TRADE_MINUTES": {
+      "maximum": 240,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_SATURDAY_ALLOWED": {
+      "type": "boolean"
+    },
+    "NSE_SESSION_RESET_THRESHOLD": {
+      "type": "integer"
+    },
+    "OPTION_ATM_DELTA": {
+      "type": "number"
+    },
+    "OPTION_DELTA_SCALE": {
+      "type": "number"
+    },
+    "OPTION_DTE_DEFAULT": {
+      "type": "integer"
+    },
+    "ORB_BONUS": {
+      "type": "integer"
+    },
+    "ORDER_FILL_TIMEOUT_SEC": {
+      "type": "integer"
+    },
+    "ORDER_PLACE_RETRIES": {
+      "type": "integer"
+    },
+    "ORDER_RETRY_WAIT_SEC": {
+      "type": "number"
+    },
+    "ORDER_STATUS_VERIFY_RETRIES": {
+      "type": "integer"
+    },
+    "PAPER_TRACK_CAPITAL": {
+      "type": "boolean"
+    },
+    "PARTIAL_EXIT_ENABLED": {
+      "type": "boolean"
+    },
+    "PARTIAL_EXIT_MULT": {
+      "type": "number"
+    },
+    "PARTIAL_EXIT_TRAIL": {
+      "type": "number"
+    },
+    "PCR_BEARISH": {
+      "type": "number"
+    },
+    "PCR_BULLISH": {
+      "type": "number"
+    },
+    "PORTFOLIO_MAX_SL_RISK_PCT": {
+      "type": "number"
+    },
+    "PUSH_NOTIFICATIONS_ENABLED": {
+      "type": "boolean"
+    },
+    "QUALITY_MIN_SCORE": {
+      "type": "integer"
+    },
+    "REAL_TIME_ALERT_ON_DRAWDOWN_PCT": {
+      "type": "number"
+    },
+    "REAL_TIME_ALERT_ON_LOSS_STREAK": {
+      "type": "integer"
+    },
+    "REAL_TIME_ALERT_WEBHOOK_URL": {
+      "type": "string"
+    },
+    "REAL_TIME_DASHBOARD_ENABLED": {
+      "type": "boolean"
+    },
+    "REAL_TIME_DASHBOARD_PORT": {
+      "type": "integer"
+    },
+    "RECONCILE_HALT_ON_QTY_MISMATCH": {
+      "type": "boolean"
+    },
+    "RECONCILE_INTERVAL": {
+      "type": "integer"
+    },
+    "RECONCILIATION_ACTIVE_INTERVAL_SEC": {
+      "type": "integer"
+    },
+    "RECONCILIATION_IDLE_INTERVAL_SEC": {
+      "type": "integer"
+    },
+    "RECONCILIATION_INTERVAL_SEC": {
+      "type": "integer"
+    },
+    "RECONCILIATION_MAX_STALENESS_SEC": {
+      "type": "integer"
+    },
+    "REGIME_ADX_RANGE": {
+      "type": "integer"
+    },
+    "REGIME_ADX_TREND": {
+      "type": "integer"
+    },
+    "REGIME_AWARE_THRESHOLDS_ENABLED": {
+      "type": "boolean"
+    },
+    "REGIME_ENABLED": {
+      "type": "boolean"
+    },
+    "REGIME_POSITION_SIZING": {
+      "type": "boolean"
+    },
+    "REGIME_SCORE_BONUS": {
+      "type": "integer"
+    },
+    "REGIME_SCORE_PENALTY": {
+      "type": "integer"
+    },
+    "REGIME_SCORE_PENALTY_EVENT": {
+      "type": "integer"
+    },
+    "REGIME_SCORE_PENALTY_HV": {
+      "type": "integer"
+    },
+    "REGIME_SIZE_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "REGIME_THRESHOLD_RANGE_ADJUST": {
+      "type": "integer"
+    },
+    "REGIME_THRESHOLD_SIDEWAYS_ADJUST": {
+      "type": "integer"
+    },
+    "REGIME_THRESHOLD_TRENDING_ADJUST": {
+      "type": "integer"
+    },
+    "REGIME_VIX_HIGH": {
+      "type": "integer"
+    },
+    "REIT_ENABLED": {
+      "type": "boolean"
+    },
+    "REIT_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "REPLAY_BASE_INTERVAL": {
+      "type": "string"
+    },
+    "REPLAY_CLOSE_COLUMN": {
+      "type": "string"
+    },
+    "REPLAY_DATETIME_COLUMN": {
+      "type": "string"
+    },
+    "REPLAY_FRAME_INTERVALS": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "REPLAY_HIGH_COLUMN": {
+      "type": "string"
+    },
+    "REPLAY_LOW_COLUMN": {
+      "type": "string"
+    },
+    "REPLAY_OPEN_COLUMN": {
+      "type": "string"
+    },
+    "REPLAY_VOLUME_COLUMN": {
+      "type": "string"
+    },
+    "REPLAY_WARMUP_BARS": {
+      "type": "integer"
+    },
+    "RETENTION_BACKUPS_MAX_DAYS": {
+      "type": "integer"
+    },
+    "RETENTION_BACKUPS_MAX_FILES": {
+      "type": "integer"
+    },
+    "RETENTION_ENABLED": {
+      "type": "boolean"
+    },
+    "RETENTION_LOGS_MAX_DAYS": {
+      "type": "integer"
+    },
+    "RETENTION_LOGS_MAX_FILES": {
+      "type": "integer"
+    },
+    "RETENTION_REPORTS_MAX_DAYS": {
+      "type": "integer"
+    },
+    "RETENTION_REPORTS_MAX_FILES": {
+      "type": "integer"
+    },
+    "RISK_FIXED_AMOUNT": {
+      "type": "integer"
+    },
+    "RISK_MODE": {
+      "enum": [
+        "FIXED",
+        "PERCENT"
+      ],
+      "type": "string"
+    },
+    "RISK_PER_TRADE": {
+      "type": "number"
+    },
+    "RSI_OVERBOUGHT": {
+      "type": "integer"
+    },
+    "RSI_OVERSOLD": {
+      "type": "integer"
+    },
+    "SAFETY_MAX_API_FAILURES": {
+      "type": "integer"
+    },
+    "SAFETY_MAX_RECON_MISMATCHES": {
+      "type": "integer"
+    },
+    "SAFETY_MAX_STALE_DATA_SEC": {
+      "type": "integer"
+    },
+    "SCAN_INTERVAL": {
+      "type": "integer"
+    },
+    "SECONDARY_BROKER_DRIVER": {
+      "type": "string"
+    },
+    "SECRET_HYGIENE_ENABLED": {
+      "type": "boolean"
+    },
+    "SECRET_HYGIENE_SCAN_ON_STARTUP": {
+      "type": "boolean"
+    },
+    "SHUTDOWN_ON_UI_CLOSE": {
+      "type": "boolean"
+    },
+    "SIGNAL_ENGINE_V2": {
+      "type": "boolean"
+    },
+    "SIGNAL_ENTRY_SCORE_GAP": {
+      "type": "integer"
+    },
+    "SIGNAL_MAX_AGE": {
+      "type": "integer"
+    },
+    "SIGNAL_TS_MAX_AGE": {
+      "type": "integer"
+    },
+    "SLIPPAGE": {
+      "type": "number"
+    },
+    "SLIPPAGE_ALERT_PCT": {
+      "type": "number"
+    },
+    "SLIPPAGE_GUARD_THRESHOLD_PCT": {
+      "type": "number"
+    },
+    "SLIPPAGE_LOW_VOL_EXTRA": {
+      "type": "number"
+    },
+    "SLIPPAGE_VIX_FACTOR": {
+      "type": "number"
+    },
+    "SL_PCT": {
+      "type": "number"
+    },
+    "SL_WARN_PCT": {
+      "type": "number"
+    },
+    "SMART_ROUTER_STRATEGY": {
+      "type": "string"
+    },
+    "SMART_ROUTER_TIMEOUT_SEC": {
+      "type": "number"
+    },
+    "SME_ENABLED": {
+      "type": "boolean"
+    },
+    "SME_MAP": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "SOFTWARE_VERSION": {
+      "type": "string"
+    },
+    "SOVEREIGNTY_BROKER_BLOCK": {
+      "type": "boolean"
+    },
+    "SPREAD_MAX_PCT": {
+      "type": "number"
+    },
+    "STRICT_OI_ABORT_ON_SYNTHETIC": {
+      "type": "boolean"
+    },
+    "STRICT_OI_COVERAGE_THRESHOLD": {
+      "type": "number"
+    },
+    "STRICT_OI_REPORT_CONTAMINATION": {
+      "type": "boolean"
+    },
+    "STRICT_OI_VALIDATION": {
+      "type": "boolean"
+    },
+    "STRONG_THRESHOLD": {
+      "type": "integer"
+    },
+    "STRUCTURED_EVENTS_ENABLED": {
+      "type": "boolean"
+    },
+    "STRUCTURED_EVENTS_FILE": {
+      "type": "string"
+    },
+    "SUMMARY_CHECKPOINT_TIMES": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "SUMMARY_INTERVAL": {
+      "type": "integer"
+    },
+    "SYSTEM_MODE_BROKER_FAILURE_THRESHOLD": {
+      "type": "integer"
+    },
+    "SYSTEM_MODE_DEGRADED_TIMEOUT_SECONDS": {
+      "type": "integer"
+    },
+    "TAKE_PROFIT_AND_STOP": {
+      "type": "boolean"
+    },
+    "TARGET_PCT": {
+      "type": "number"
+    },
+    "TG_ALERT_COMPACT_MESSAGE": {
+      "type": "boolean"
+    },
+    "TG_ALERT_MIN_CONFIDENCE": {
+      "type": "integer"
+    },
+    "TG_ALERT_MIN_SCORE": {
+      "type": "integer"
+    },
+    "TG_ALERT_MIN_VOL_RATIO": {
+      "type": "number"
+    },
+    "TG_ALERT_OPEN_SESSION_ONLY": {
+      "type": "boolean"
+    },
+    "TG_ALERT_REQUIRE_BREAKOUT_OK": {
+      "type": "boolean"
+    },
+    "TG_ALERT_REQUIRE_POSITIVE_EXPECTANCY": {
+      "type": "boolean"
+    },
+    "TG_ALERT_REQUIRE_STRONG_CLASS": {
+      "type": "boolean"
+    },
+    "TG_ALERT_REQUIRE_TRENDING_REGIME": {
+      "type": "boolean"
+    },
+    "TG_ALERT_SCORE_MARGIN": {
+      "type": "integer"
+    },
+    "TG_CACHE_TTL_SEC": {
+      "type": "integer"
+    },
+    "TG_COOLDOWN_SECS": {
+      "type": "integer"
+    },
+    "TG_FALLBACK_FILE": {
+      "type": "string"
+    },
+    "TG_HEARTBEAT_ENABLED": {
+      "type": "boolean"
+    },
+    "TG_HEARTBEAT_INTERVAL": {
+      "type": "integer"
+    },
+    "TG_MAX_PER_MIN": {
+      "type": "integer"
+    },
+    "TG_PERIODIC_SUMMARY_INTERVAL_SEC": {
+      "type": "integer"
+    },
+    "TG_PERIODIC_SUMMARY_TELEGRAM": {
+      "type": "boolean"
+    },
+    "TG_QUIET_MODE": {
+      "type": "boolean"
+    },
+    "TG_SIGNAL_COOLDOWN": {
+      "type": "integer"
+    },
+    "TG_SIGNAL_GLOBAL_COOLDOWN_SEC": {
+      "type": "integer"
+    },
+    "TG_STARTUP_ALERT": {
+      "type": "boolean"
+    },
+    "TG_TRADE_ALERTS_STRICT": {
+      "type": "boolean"
+    },
+    "TG_TRADE_CRITICAL_PATTERNS": {
+      "type": "array"
+    },
+    "TG_TRADE_ONLY": {
+      "type": "boolean"
+    },
+    "TIER_MODERATE_MIN": {
+      "type": "integer"
+    },
+    "TIER_STRONG_MIN": {
+      "type": "integer"
+    },
+    "TIER_TRADE_WEAK": {
+      "type": "boolean"
+    },
+    "TIER_USE_ADAPTIVE": {
+      "type": "boolean"
+    },
+    "TIER_WEAK_MIN": {
+      "type": "integer"
+    },
+    "TIME_OF_DAY_ALLOW_TRENDING_ONLY": {
+      "type": "boolean"
+    },
+    "TIME_OF_DAY_BLOCK_END_HOUR": {
+      "type": "integer"
+    },
+    "TIME_OF_DAY_BLOCK_START_HOUR": {
+      "type": "integer"
+    },
+    "TIME_OF_DAY_FILTER_ENABLED": {
+      "type": "boolean"
+    },
+    "TRAIL_ACTIVATE": {
+      "type": "number"
+    },
+    "TRAIL_PCT": {
+      "type": "number"
+    },
+    "TRAIL_STEP_PCT": {
+      "type": "number"
+    },
+    "USER_TIPS_ON_START": {
+      "type": "boolean"
+    },
+    "VAPID_PUBLIC_KEY": {
+      "type": "string"
+    },
+    "VAPID_SUBJECT": {
+      "type": "string"
+    },
+    "VIX_ADAPTIVE_THRESHOLDS_ENABLED": {
+      "type": "boolean"
+    },
+    "VIX_BLOCK_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_COOLDOWN_SEC": {
+      "type": "integer"
+    },
+    "VIX_FALLING_COOLDOWN_MULT": {
+      "type": "number"
+    },
+    "VIX_HALT_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_HIGH_PENALTY": {
+      "type": "integer"
+    },
+    "VIX_HIGH_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_LOW_BONUS": {
+      "type": "integer"
+    },
+    "VIX_LOW_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_RISING_THRESHOLD_BONUS": {
+      "type": "integer"
+    },
+    "VIX_SIZE_HIGH_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_SIZE_MED_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_SIZE_SCALE": {
+      "type": "boolean"
+    },
+    "VOLATILITY_ADX_CONFIRM_MIN": {
+      "type": "number"
+    },
+    "VOLATILITY_CONFIRMATION_ENABLED": {
+      "type": "boolean"
+    },
+    "VOLATILITY_IV_BLOCK_THRESHOLD": {
+      "type": "number"
+    },
+    "VOLATILITY_MACD_CONFIRM_REQUIRED": {
+      "type": "boolean"
+    },
+    "VOLATILITY_RSI_CONFIRM_THRESHOLD": {
+      "type": "number"
+    },
+    "VOL_RATIO_MIN": {
+      "type": "number"
+    },
+    "VWAP_RECLAIM_BONUS": {
+      "type": "integer"
+    },
+    "WALKFORWARD_STEP_BARS": {
+      "type": "integer"
+    },
+    "WALKFORWARD_TEST_BARS": {
+      "type": "integer"
+    },
+    "WALKFORWARD_TRAIN_BARS": {
+      "type": "integer"
+    },
+    "WATCHDOG_POLL_SEC": {
+      "type": "integer"
+    },
+    "WATCHDOG_TIMEOUT": {
+      "type": "integer"
+    },
+    "WEEKDAY_BIAS": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "_NOTE_ADVANCED_SAFETY": {
+      "type": "string"
+    },
+    "_NOTE_AUTO_TUNE": {
+      "type": "string"
+    },
+    "_NOTE_BACKTEST": {
+      "type": "string"
+    },
+    "_NOTE_BROKER": {
+      "type": "string"
+    },
+    "_NOTE_CAPITAL": {
+      "type": "string"
+    },
+    "_NOTE_DATA": {
+      "type": "string"
+    },
+    "_NOTE_DIAGNOSTICS": {
+      "type": "string"
+    },
+    "_NOTE_EXECUTION": {
+      "type": "string"
+    },
+    "_NOTE_EXECUTION_POLICY": {
+      "type": "string"
+    },
+    "_NOTE_GUI": {
+      "type": "string"
+    },
+    "_NOTE_INDEX_MAP": {
+      "type": "string"
+    },
+    "_NOTE_INDEX_PRIORITY": {
+      "type": "string"
+    },
+    "_NOTE_LOGGING": {
+      "type": "string"
+    },
+    "_NOTE_META": {
+      "type": "string"
+    },
+    "_NOTE_OBSERVABILITY": {
+      "type": "string"
+    },
+    "_NOTE_ORDER_RETRIES": {
+      "type": "string"
+    },
+    "_NOTE_RISK": {
+      "type": "string"
+    },
+    "_NOTE_SAFETY": {
+      "type": "string"
+    },
+    "_NOTE_SECRETS": {
+      "type": "string"
+    },
+    "_NOTE_SIGNAL": {
+      "type": "string"
+    },
+    "_NOTE_SIGNAL_TUNING": {
+      "type": "string"
+    },
+    "_NOTE_SLIPPAGE": {
+      "type": "string"
+    },
+    "_NOTE_SL_TARGET": {
+      "type": "string"
+    },
+    "_NOTE_TELEGRAM": {
+      "type": "string"
+    },
+    "_NOTE_TIER_ENGINE": {
+      "type": "string"
+    },
+    "_NOTE_TIMING": {
+      "type": "string"
+    },
+    "_NOTE_VIX": {
+      "type": "string"
+    },
+    "_comment_chain_viz": {
+      "type": "string"
+    },
+    "_comment_circuit_breaker": {
+      "type": "string"
+    },
+    "_comment_commodity": {
+      "type": "string"
+    },
+    "_comment_core_risk": {
+      "type": "string"
+    },
+    "_comment_correlation_guard": {
+      "type": "string"
+    },
+    "_comment_currency": {
+      "type": "string"
+    },
+    "_comment_dashboard_expiry": {
+      "type": "string"
+    },
+    "_comment_db_encryption": {
+      "type": "string"
+    },
+    "_comment_db_provider": {
+      "type": "string"
+    },
+    "_comment_drift": {
+      "type": "string"
+    },
+    "_comment_equity_config": {
+      "type": "string"
+    },
+    "_comment_equity_map": {
+      "type": "string"
+    },
+    "_comment_etf_config": {
+      "type": "string"
+    },
+    "_comment_etf_map": {
+      "type": "string"
+    },
+    "_comment_event_calendar": {
+      "type": "string"
+    },
+    "_comment_exit_params": {
+      "type": "string"
+    },
+    "_comment_futures": {
+      "type": "string"
+    },
+    "_comment_futures_map": {
+      "type": "string"
+    },
+    "_comment_governance_env": {
+      "type": "string"
+    },
+    "_comment_greeks": {
+      "type": "string"
+    },
+    "_comment_invit_map": {
+      "type": "string"
+    },
+    "_comment_ipo_calendar": {
+      "type": "string"
+    },
+    "_comment_iv_rank": {
+      "type": "string"
+    },
+    "_comment_live_lockout": {
+      "type": "string"
+    },
+    "_comment_ml_classifier": {
+      "type": "string"
+    },
+    "_comment_ml_tracker": {
+      "type": "string"
+    },
+    "_comment_monte_carlo": {
+      "type": "string"
+    },
+    "_comment_notification_filters_enabled": {
+      "type": "string"
+    },
+    "_comment_oi_snapshot": {
+      "type": "string"
+    },
+    "_comment_paper_fill": {
+      "type": "string"
+    },
+    "_comment_rate_limiter": {
+      "type": "string"
+    },
+    "_comment_reit_map": {
+      "type": "string"
+    },
+    "_comment_reporting": {
+      "type": "string"
+    },
+    "_comment_sebi_circulars": {
+      "type": "string"
+    },
+    "_comment_session": {
+      "type": "string"
+    },
+    "_comment_shap": {
+      "type": "string"
+    },
+    "_comment_signal_autopsy": {
+      "type": "string"
+    },
+    "_comment_signal_filters": {
+      "type": "string"
+    },
+    "_comment_sme_map": {
+      "type": "string"
+    },
+    "_comment_spread": {
+      "type": "string"
+    },
+    "_comment_sso": {
+      "type": "string"
+    },
+    "_comment_strike": {
+      "type": "string"
+    },
+    "_comment_telecom": {
+      "type": "string"
+    },
+    "_comment_tg_heartbeat_enabled": {
+      "type": "string"
+    },
+    "_comment_tg_periodic_summary_interval_sec": {
+      "type": "string"
+    },
+    "_comment_tracing": {
+      "type": "string"
+    },
+    "_comment_v244_item1": {
+      "type": "string"
+    },
+    "_comment_v244_item10": {
+      "type": "string"
+    },
+    "_comment_v244_item11": {
+      "type": "string"
+    },
+    "_comment_v244_item12": {
+      "type": "string"
+    },
+    "_comment_v244_item14": {
+      "type": "string"
+    },
+    "_comment_v244_item15": {
+      "type": "string"
+    },
+    "_comment_v244_item16": {
+      "type": "string"
+    },
+    "_comment_v244_item17": {
+      "type": "string"
+    },
+    "_comment_v244_item18": {
+      "type": "string"
+    },
+    "_comment_v244_item19": {
+      "type": "string"
+    },
+    "_comment_v244_item2": {
+      "type": "string"
+    },
+    "_comment_v244_item20": {
+      "type": "string"
+    },
+    "_comment_v244_item3": {
+      "type": "string"
+    },
+    "_comment_v244_item4": {
+      "type": "string"
+    },
+    "_comment_v244_item5": {
+      "type": "string"
+    },
+    "_comment_v244_item6": {
+      "type": "string"
+    },
+    "_comment_v244_item7": {
+      "type": "string"
+    },
+    "_comment_v244_item8": {
+      "type": "string"
+    },
+    "_comment_v244_item9": {
+      "type": "string"
+    },
+    "_comment_v245_adaptive": {
+      "type": "string"
+    },
+    "_comment_v245_sprintA": {
+      "type": "string"
+    },
+    "_comment_v245_sprintB": {
+      "type": "string"
+    },
+    "_comment_v245_sprintC": {
+      "type": "string"
+    },
+    "_comment_v245_sprintD": {
+      "type": "string"
+    },
+    "_comment_v245_sprintD_modules": {
+      "type": "string"
+    },
+    "_comment_v245_sprintE": {
+      "type": "string"
+    },
+    "_comment_v246_sprint0": {
+      "type": "string"
+    },
+    "_comment_v246_sprint1": {
+      "type": "string"
+    },
+    "_comment_v247_execution_hardening": {
+      "type": "string"
+    },
+    "_comment_v251_dual_direction": {
+      "type": "string"
+    },
+    "_comment_v254_score_adjusters": {
+      "type": "string"
+    },
+    "_comment_walkforward": {
+      "type": "string"
+    },
+    "_comment_web_dashboard": {
+      "type": "string"
+    },
+    "_comment_webhook": {
+      "type": "string"
+    },
+    "ab_min_trades_for_significance": {
+      "type": "integer"
+    },
+    "ab_state_path": {
+      "type": "string"
+    },
+    "ab_testing_enabled": {
+      "type": "boolean"
+    },
+    "ab_variant_name": {
+      "type": "string"
+    },
+    "ab_variant_overrides": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "adaptive_sizing_enabled": {
+      "type": "boolean"
+    },
+    "admin_assets": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "admin_control_plane_auth_token": {
+      "type": "string"
+    },
+    "admin_control_plane_enabled": {
+      "type": "boolean"
+    },
+    "admin_control_plane_host": {
+      "type": "string"
+    },
+    "admin_control_plane_port": {
+      "type": "integer"
+    },
+    "admin_default_role": {
+      "type": "string"
+    },
+    "admin_feature_flags": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "admin_roles": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "admin_strategies": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "ai_governance_enforce_fail_closed": {
+      "type": "boolean"
+    },
+    "attribution_days": {
+      "type": "integer"
+    },
+    "audit_filename_prefix": {
+      "type": "string"
+    },
+    "audit_log_dir": {
+      "type": "string"
+    },
+    "audit_max_file_size_mb": {
+      "type": "integer"
+    },
+    "audit_retain_days": {
+      "type": "integer"
+    },
+    "auth_db_path": {
+      "type": "string"
+    },
+    "benchmark_cache_hours": {
+      "type": "integer"
+    },
+    "benchmark_enabled": {
+      "type": "boolean"
+    },
+    "benchmark_risk_free_rate": {
+      "type": "number"
+    },
+    "benchmark_symbol": {
+      "type": "string"
+    },
+    "breakout_timeout_enabled": {
+      "type": "boolean"
+    },
+    "broker_failover_enabled": {
+      "type": "boolean"
+    },
+    "capital_manager_equity_scaling_enabled": {
+      "type": "boolean"
+    },
+    "chain_viz_enabled": {
+      "type": "boolean"
+    },
+    "circuit_breaker_broker_enabled": {
+      "type": "boolean"
+    },
+    "circuit_breaker_broker_failure_threshold": {
+      "type": "integer"
+    },
+    "circuit_breaker_broker_half_open_max_requests": {
+      "type": "integer"
+    },
+    "circuit_breaker_broker_timeout_secs": {
+      "type": "integer"
+    },
+    "circuit_breaker_failure_rate_threshold": {
+      "type": "number"
+    },
+    "circuit_breaker_failure_threshold": {
+      "type": "integer"
+    },
+    "circuit_breaker_half_open_max_requests": {
+      "type": "integer"
+    },
+    "circuit_breaker_sliding_window_size": {
+      "type": "integer"
+    },
+    "circuit_breaker_success_threshold": {
+      "type": "integer"
+    },
+    "circuit_breaker_timeout_exponential_base": {
+      "type": "number"
+    },
+    "circuit_breaker_timeout_secs": {
+      "type": "integer"
+    },
+    "cleanup_scheduler_enabled": {
+      "type": "boolean"
+    },
+    "cleanup_scheduler_interval_hours": {
+      "type": "integer"
+    },
+    "confidence_band_enabled": {
+      "type": "boolean"
+    },
+    "confidence_band_high_threshold": {
+      "type": "integer"
+    },
+    "confidence_band_in_telegram": {
+      "type": "boolean"
+    },
+    "confidence_band_moderate_threshold": {
+      "type": "integer"
+    },
+    "confidence_band_score_bin_width": {
+      "type": "integer"
+    },
+    "config_audit_critical_telegram": {
+      "type": "boolean"
+    },
+    "config_audit_enabled": {
+      "type": "boolean"
+    },
+    "config_audit_high_telegram": {
+      "type": "boolean"
+    },
+    "config_audit_normal_telegram": {
+      "type": "boolean"
+    },
+    "config_drift_auto_reload_enabled": {
+      "type": "boolean"
+    },
+    "corp_action_banknifty_symbols": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "corp_action_cache_hours": {
+      "type": "integer"
+    },
+    "corp_action_calendar_enabled": {
+      "type": "boolean"
+    },
+    "corp_action_call_mult_on_exdiv": {
+      "type": "number"
+    },
+    "corp_action_data": {
+      "type": "array"
+    },
+    "corp_action_enabled": {
+      "type": "boolean"
+    },
+    "corp_action_finnifty_symbols": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "corp_action_symbols": {
+      "type": "array"
+    },
+    "correlation_guard_enabled": {
+      "type": "boolean"
+    },
+    "correlation_lookback_bars": {
+      "type": "integer"
+    },
+    "correlation_threshold": {
+      "type": "number"
+    },
+    "correlation_warn_threshold": {
+      "type": "number"
+    },
+    "counter_trend_penalty": {
+      "type": "integer"
+    },
+    "data_dir": {
+      "type": "string"
+    },
+    "data_retention_audit_days": {
+      "type": "integer"
+    },
+    "data_retention_audit_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_audit_max_files": {
+      "type": "integer"
+    },
+    "data_retention_logs_days": {
+      "type": "integer"
+    },
+    "data_retention_logs_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_logs_max_files": {
+      "type": "integer"
+    },
+    "data_retention_models_days": {
+      "type": "integer"
+    },
+    "data_retention_models_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_models_max_files": {
+      "type": "integer"
+    },
+    "data_retention_reports_days": {
+      "type": "integer"
+    },
+    "data_retention_reports_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_reports_max_files": {
+      "type": "integer"
+    },
+    "data_retention_signals_archive_dir": {
+      "type": "string"
+    },
+    "data_retention_signals_days": {
+      "type": "integer"
+    },
+    "data_retention_signals_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_telemetry_days": {
+      "type": "integer"
+    },
+    "data_retention_telemetry_enabled": {
+      "type": "boolean"
+    },
+    "data_retention_telemetry_max_files": {
+      "type": "integer"
+    },
+    "data_source_urls": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "db_encryption_enabled": {
+      "type": "boolean"
+    },
+    "db_encryption_key": {
+      "type": "string"
+    },
+    "db_encryption_key_env_var": {
+      "type": "string"
+    },
+    "db_migration_enabled": {
+      "type": "boolean"
+    },
+    "delta_per_step": {
+      "type": "number"
+    },
+    "drift_db_path": {
+      "type": "string"
+    },
+    "drift_detector_enabled": {
+      "type": "boolean"
+    },
+    "drift_ks_warn": {
+      "type": "number"
+    },
+    "drift_psi_alert": {
+      "type": "number"
+    },
+    "drift_psi_warn": {
+      "type": "number"
+    },
+    "drift_recent_days": {
+      "type": "integer"
+    },
+    "drift_ref_days": {
+      "type": "integer"
+    },
+    "dual_direction_enabled": {
+      "type": "boolean"
+    },
+    "environment_block_on_violation": {
+      "type": "boolean"
+    },
+    "event_calendar_enabled": {
+      "type": "boolean"
+    },
+    "event_dates": {
+      "type": "array"
+    },
+    "event_day_block_entries": {
+      "type": "boolean"
+    },
+    "event_day_size_mult": {
+      "type": "number"
+    },
+    "expiry_block_start": {
+      "type": "string"
+    },
+    "expiry_caution_start": {
+      "type": "string"
+    },
+    "expiry_day_mode": {
+      "type": "string"
+    },
+    "expiry_max_trades_enabled": {
+      "type": "boolean"
+    },
+    "expiry_midday_lot_mult": {
+      "type": "number"
+    },
+    "expiry_morning_end": {
+      "type": "string"
+    },
+    "expiry_morning_lot_mult": {
+      "type": "number"
+    },
+    "expiry_morning_sl_pct": {
+      "type": "number"
+    },
+    "failover_chain": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "failover_recovery_mins": {
+      "type": "integer"
+    },
+    "failover_threshold": {
+      "type": "integer"
+    },
+    "fii_cache_hours": {
+      "type": "number"
+    },
+    "fii_dii_enabled": {
+      "type": "boolean"
+    },
+    "fii_score_bonus": {
+      "type": "integer"
+    },
+    "fii_score_threshold": {
+      "type": "number"
+    },
+    "financial": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "force_pre_trade_recon_enabled": {
+      "type": "boolean"
+    },
+    "general_cooldown_enabled": {
+      "type": "boolean"
+    },
+    "gex_dte": {
+      "type": "integer"
+    },
+    "gex_enabled": {
+      "type": "boolean"
+    },
+    "gex_long_gamma_adj": {
+      "type": "integer"
+    },
+    "gex_lot_size": {
+      "type": "integer"
+    },
+    "gex_short_gamma_adj": {
+      "type": "integer"
+    },
+    "gex_vix_proxy": {
+      "type": "number"
+    },
+    "greeks_block_threshold_pct": {
+      "type": "number"
+    },
+    "greeks_delta_limit_per_pos": {
+      "type": "number"
+    },
+    "greeks_delta_limit_portfolio": {
+      "type": "number"
+    },
+    "greeks_enabled": {
+      "type": "boolean"
+    },
+    "greeks_gamma_limit_per_pos": {
+      "type": "number"
+    },
+    "greeks_gamma_limit_portfolio": {
+      "type": "number"
+    },
+    "greeks_short_option_block": {
+      "type": "boolean"
+    },
+    "greeks_stress_test_enabled": {
+      "type": "boolean"
+    },
+    "greeks_theta_daily_budget": {
+      "type": "number"
+    },
+    "greeks_vega_limit_per_pos": {
+      "type": "number"
+    },
+    "greeks_vega_limit_portfolio": {
+      "type": "number"
+    },
+    "greeks_warn_threshold_pct": {
+      "type": "number"
+    },
+    "health_check_accuracy_warn": {
+      "type": "number"
+    },
+    "health_check_brier_warn": {
+      "type": "number"
+    },
+    "health_check_day": {
+      "type": "string"
+    },
+    "health_check_db_warn_mb": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "health_check_disk_warn_mb": {
+      "type": "integer"
+    },
+    "health_check_enabled": {
+      "type": "boolean"
+    },
+    "health_check_log_dir_warn_gb": {
+      "type": "number"
+    },
+    "health_check_spread_warn_pct": {
+      "type": "number"
+    },
+    "health_check_wal_warn_mb": {
+      "type": "number"
+    },
+    "heatmap_eod_day": {
+      "type": "string"
+    },
+    "heatmap_in_eod_telegram": {
+      "type": "boolean"
+    },
+    "heatmap_min_cell_trades": {
+      "type": "integer"
+    },
+    "high_conviction_mode": {
+      "type": "boolean"
+    },
+    "holiday_sleep_enabled": {
+      "type": "boolean"
+    },
+    "idempotency_db_path": {
+      "type": "string"
+    },
+    "idempotency_slot_seconds": {
+      "type": "integer"
+    },
+    "implied_move_enabled": {
+      "type": "boolean"
+    },
+    "implied_move_min_edge_mult": {
+      "type": "number"
+    },
+    "indicator": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "instruments": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "intraday_cautious_score_boost": {
+      "type": "integer"
+    },
+    "intraday_cautious_size_mult": {
+      "type": "number"
+    },
+    "intraday_cautious_win_rate": {
+      "type": "number"
+    },
+    "intraday_defensive_score_boost": {
+      "type": "integer"
+    },
+    "intraday_defensive_size_mult": {
+      "type": "number"
+    },
+    "intraday_defensive_win_rate": {
+      "type": "number"
+    },
+    "intraday_min_trades_to_adapt": {
+      "type": "integer"
+    },
+    "intraday_monitor_enabled": {
+      "type": "boolean"
+    },
+    "intraday_performance_monitor_enabled": {
+      "type": "boolean"
+    },
+    "ipo_calendar_enabled": {
+      "type": "boolean"
+    },
+    "ipo_calendar_entries": {
+      "type": "array"
+    },
+    "iv_rank_cache_hours": {
+      "type": "number"
+    },
+    "iv_rank_enabled": {
+      "type": "boolean"
+    },
+    "iv_rank_high_mult": {
+      "type": "number"
+    },
+    "iv_rank_high_threshold": {
+      "type": "number"
+    },
+    "iv_rank_low_mult": {
+      "type": "number"
+    },
+    "iv_rank_low_threshold": {
+      "type": "number"
+    },
+    "iv_skew_adj_mult": {
+      "type": "number"
+    },
+    "iv_skew_elevated_threshold": {
+      "type": "number"
+    },
+    "iv_skew_enabled": {
+      "type": "boolean"
+    },
+    "iv_skew_extreme_score_penalty": {
+      "type": "integer"
+    },
+    "iv_skew_extreme_threshold": {
+      "type": "number"
+    },
+    "jaeger_agent_host": {
+      "type": "string"
+    },
+    "jaeger_agent_port": {
+      "type": "integer"
+    },
+    "jaeger_auth_token": {
+      "type": "string"
+    },
+    "jaeger_endpoint": {
+      "type": "string"
+    },
+    "kelly_enabled": {
+      "type": "boolean"
+    },
+    "kelly_fraction": {
+      "type": "number"
+    },
+    "kelly_max_lots_mult": {
+      "type": "number"
+    },
+    "kelly_min_trades": {
+      "type": "integer"
+    },
+    "kelly_payoff_ratio": {
+      "type": "number"
+    },
+    "kelly_win_rate": {
+      "type": "number"
+    },
+    "kelly_window_trades": {
+      "type": "integer"
+    },
+    "kite_ticker_enabled": {
+      "type": "boolean"
+    },
+    "kite_ticker_index_tokens": {
+      "items": {
+        "type": "integer"
+      },
+      "type": "array"
+    },
+    "kite_ticker_mode": {
+      "type": "string"
+    },
+    "kite_ticker_startup_connect": {
+      "type": "boolean"
+    },
+    "kite_ticker_subscribe_tokens": {
+      "type": "array"
+    },
+    "limit_order_enabled": {
+      "type": "boolean"
+    },
+    "limit_order_mode": {
+      "type": "string"
+    },
+    "limit_step_interval_secs": {
+      "type": "integer"
+    },
+    "limit_step_pct": {
+      "type": "number"
+    },
+    "limit_timeout_secs": {
+      "type": "integer"
+    },
+    "liquidity_guard_enabled": {
+      "type": "boolean"
+    },
+    "live_option_quotes_enabled": {
+      "type": "boolean"
+    },
+    "live_readiness_check_on_startup": {
+      "type": "boolean"
+    },
+    "live_readiness_days_window": {
+      "type": "integer"
+    },
+    "live_readiness_max_drawdown_pct": {
+      "type": "number"
+    },
+    "live_readiness_min_paper_trades": {
+      "type": "integer"
+    },
+    "live_readiness_min_profit_factor": {
+      "type": "number"
+    },
+    "live_readiness_min_sharpe": {
+      "type": "number"
+    },
+    "live_readiness_min_trading_days": {
+      "type": "integer"
+    },
+    "live_readiness_min_win_rate": {
+      "type": "number"
+    },
+    "live_trading_lockout_enabled": {
+      "type": "boolean"
+    },
+    "log_compress_after_days": {
+      "type": "integer"
+    },
+    "log_dir": {
+      "type": "string"
+    },
+    "log_error_file_enabled": {
+      "type": "boolean"
+    },
+    "log_format_json": {
+      "type": "boolean"
+    },
+    "log_rotation_backup_count": {
+      "type": "integer"
+    },
+    "log_rotation_max_bytes": {
+      "type": "integer"
+    },
+    "loop_watchdog_enabled": {
+      "type": "boolean"
+    },
+    "ma_crossover_score_adjustment_enabled": {
+      "type": "boolean"
+    },
+    "manual_signal_auto_approve_secs": {
+      "type": "integer"
+    },
+    "manual_signal_db_path": {
+      "type": "string"
+    },
+    "manual_signal_default_analyst": {
+      "type": "string"
+    },
+    "manual_signal_enabled": {
+      "type": "boolean"
+    },
+    "manual_signal_max_score": {
+      "type": "integer"
+    },
+    "manual_signal_min_score": {
+      "type": "integer"
+    },
+    "manual_signal_timeout_mins": {
+      "type": "integer"
+    },
+    "manual_signal_workflow_mode": {
+      "type": "string"
+    },
+    "market": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "market_data_mismatch_threshold_pct": {
+      "type": "number"
+    },
+    "market_data_secondary_enabled": {
+      "type": "boolean"
+    },
+    "market_data_secondary_provider": {
+      "type": "string"
+    },
+    "max_entry_spread_pct": {
+      "type": "number"
+    },
+    "max_exposure_per_direction_pct": {
+      "type": "number"
+    },
+    "max_exposure_per_expiry_pct": {
+      "type": "number"
+    },
+    "max_exposure_per_strategy_pct": {
+      "type": "number"
+    },
+    "max_exposure_per_symbol_pct": {
+      "type": "number"
+    },
+    "max_otm_steps": {
+      "type": "integer"
+    },
+    "max_reentries_per_day": {
+      "type": "integer"
+    },
+    "max_single_trade_loss_pct_enabled": {
+      "type": "boolean"
+    },
+    "max_size_lots": {
+      "type": "integer"
+    },
+    "max_stress_loss_pct": {
+      "type": "number"
+    },
+    "max_var_pct": {
+      "type": "number"
+    },
+    "mean_reversion_enabled": {
+      "type": "boolean"
+    },
+    "mean_reversion_score_adjustment_enabled": {
+      "type": "boolean"
+    },
+    "metrics_enabled": {
+      "type": "boolean"
+    },
+    "metrics_port": {
+      "type": "integer"
+    },
+    "min_dte_for_entry": {
+      "type": "integer"
+    },
+    "min_entry_oi": {
+      "type": "integer"
+    },
+    "min_entry_volume": {
+      "type": "integer"
+    },
+    "min_oi_threshold": {
+      "type": "integer"
+    },
+    "min_option_premium": {
+      "type": "number"
+    },
+    "min_size_lots": {
+      "type": "integer"
+    },
+    "min_volume_threshold": {
+      "type": "integer"
+    },
+    "ml_calibration_tolerance": {
+      "type": "number"
+    },
+    "ml_classifier_enabled": {
+      "type": "boolean"
+    },
+    "ml_high_prob_threshold": {
+      "type": "number"
+    },
+    "ml_journal_path": {
+      "type": "string"
+    },
+    "ml_low_prob_threshold": {
+      "type": "number"
+    },
+    "ml_min_trades_to_train": {
+      "type": "integer"
+    },
+    "ml_model_path": {
+      "type": "string"
+    },
+    "ml_retrain_interval_hours": {
+      "type": "number"
+    },
+    "ml_score_adj_cap": {
+      "type": "integer"
+    },
+    "ml_tracker_db_path": {
+      "type": "string"
+    },
+    "ml_tracker_enabled": {
+      "type": "boolean"
+    },
+    "model_registry_db_path": {
+      "type": "string"
+    },
+    "models_dir": {
+      "type": "string"
+    },
+    "monte_carlo_n_simulations": {
+      "type": "integer"
+    },
+    "monte_carlo_seed": {
+      "type": "integer"
+    },
+    "news_custom_keywords": {
+      "type": "array"
+    },
+    "news_elevated_score_mult": {
+      "type": "number"
+    },
+    "news_extreme_score_mult": {
+      "type": "number"
+    },
+    "news_high_score_mult": {
+      "type": "number"
+    },
+    "news_lookback_mins": {
+      "type": "integer"
+    },
+    "news_poll_interval_mins": {
+      "type": "integer"
+    },
+    "news_rss_timeout_secs": {
+      "type": "integer"
+    },
+    "news_sentinel_enabled": {
+      "type": "boolean"
+    },
+    "nlp_journal_enabled": {
+      "type": "boolean"
+    },
+    "notification_filters_enabled": {
+      "type": "boolean"
+    },
+    "oi_snapshot_archive_days": {
+      "type": "integer"
+    },
+    "oi_snapshot_db_path": {
+      "type": "string"
+    },
+    "oi_snapshot_enabled": {
+      "type": "boolean"
+    },
+    "oi_snapshot_min_interval": {
+      "type": "integer"
+    },
+    "optimizer_auto_apply": {
+      "type": "boolean"
+    },
+    "optimizer_enabled": {
+      "type": "boolean"
+    },
+    "optimizer_lookback_days": {
+      "type": "integer"
+    },
+    "optimizer_metric": {
+      "type": "string"
+    },
+    "optimizer_min_trades_per_window": {
+      "type": "integer"
+    },
+    "otlp_endpoint": {
+      "type": "string"
+    },
+    "otlp_headers": {
+      "type": "string"
+    },
+    "otlp_insecure": {
+      "type": "boolean"
+    },
+    "otlp_timeout": {
+      "type": "integer"
+    },
+    "otm_step_offset": {
+      "type": "integer"
+    },
+    "otm_step_offset_moderate": {
+      "type": "integer"
+    },
+    "otm_step_offset_strong": {
+      "type": "integer"
+    },
+    "otm_step_offset_weak": {
+      "type": "integer"
+    },
+    "paper_slippage_pct": {
+      "type": "number"
+    },
+    "param_optimizer_enabled": {
+      "type": "boolean"
+    },
+    "pg_connect_timeout": {
+      "type": "integer"
+    },
+    "pg_dbname": {
+      "type": "string"
+    },
+    "pg_dsn": {
+      "type": "string"
+    },
+    "pg_host": {
+      "type": "string"
+    },
+    "pg_password": {
+      "type": "string"
+    },
+    "pg_port": {
+      "type": "integer"
+    },
+    "pg_user": {
+      "type": "string"
+    },
+    "pnl_attribution_days": {
+      "type": "integer"
+    },
+    "pnl_attribution_enabled": {
+      "type": "boolean"
+    },
+    "portfolio_max_sl_risk_pct_enabled": {
+      "type": "boolean"
+    },
+    "pre_market_buffer_mins": {
+      "type": "integer"
+    },
+    "rate_limiter_algorithm": {
+      "type": "string"
+    },
+    "rate_limiter_limit": {
+      "type": "integer"
+    },
+    "rate_limiter_webhook_enabled": {
+      "type": "boolean"
+    },
+    "rate_limiter_webhook_limit": {
+      "type": "integer"
+    },
+    "rate_limiter_webhook_window_secs": {
+      "type": "integer"
+    },
+    "rate_limiter_window_secs": {
+      "type": "integer"
+    },
+    "reentry_cooldown_mins": {
+      "type": "integer"
+    },
+    "reentry_enabled": {
+      "type": "boolean"
+    },
+    "reentry_same_direction_only": {
+      "type": "boolean"
+    },
+    "reentry_score_boost": {
+      "type": "integer"
+    },
+    "regime_filter_enabled": {
+      "type": "boolean"
+    },
+    "regime_lookback_days": {
+      "type": "integer"
+    },
+    "regime_ranging_score_boost": {
+      "type": "integer"
+    },
+    "regime_transition_enabled": {
+      "type": "boolean"
+    },
+    "regime_trend_threshold": {
+      "type": "number"
+    },
+    "regime_vol_size_mult": {
+      "type": "number"
+    },
+    "regime_vol_threshold": {
+      "type": "number"
+    },
+    "report_default_days": {
+      "type": "integer"
+    },
+    "report_enabled": {
+      "type": "boolean"
+    },
+    "report_eod_auto_generate": {
+      "type": "boolean"
+    },
+    "report_mode": {
+      "type": "string"
+    },
+    "report_output_dir": {
+      "type": "string"
+    },
+    "reports_dir": {
+      "type": "string"
+    },
+    "scalein_enabled": {
+      "type": "boolean"
+    },
+    "scalein_first_pct": {
+      "type": "number"
+    },
+    "scalein_min_score": {
+      "type": "integer"
+    },
+    "scalein_pullback_pct": {
+      "type": "number"
+    },
+    "scalein_timeout_mins": {
+      "type": "integer"
+    },
+    "sebi_circulars": {
+      "type": "array"
+    },
+    "sebi_circulars_enabled": {
+      "type": "boolean"
+    },
+    "sensitivity_analyzer_enabled": {
+      "type": "boolean"
+    },
+    "sensitivity_in_pdf": {
+      "type": "boolean"
+    },
+    "sensitivity_report_days": {
+      "type": "integer"
+    },
+    "session_choppy_allowed": {
+      "type": "boolean"
+    },
+    "session_choppy_score_adj": {
+      "type": "integer"
+    },
+    "session_choppy_start_hour": {
+      "type": "integer"
+    },
+    "session_choppy_start_minute": {
+      "type": "integer"
+    },
+    "session_classifier_enabled": {
+      "type": "boolean"
+    },
+    "session_close_score_boost": {
+      "type": "integer"
+    },
+    "session_close_start": {
+      "type": "string"
+    },
+    "session_hard_block_enabled": {
+      "type": "boolean"
+    },
+    "session_midday_end": {
+      "type": "string"
+    },
+    "session_midday_score_penalty": {
+      "type": "integer"
+    },
+    "session_midday_start": {
+      "type": "string"
+    },
+    "session_open_end": {
+      "type": "string"
+    },
+    "session_open_score_boost": {
+      "type": "integer"
+    },
+    "session_opening_allowed": {
+      "type": "boolean"
+    },
+    "session_opening_score_adj": {
+      "type": "integer"
+    },
+    "session_pre_close_score_adj": {
+      "type": "integer"
+    },
+    "session_pre_close_start_hour": {
+      "type": "integer"
+    },
+    "session_pre_close_start_minute": {
+      "type": "integer"
+    },
+    "session_recovery_score_adj": {
+      "type": "integer"
+    },
+    "session_recovery_start_hour": {
+      "type": "integer"
+    },
+    "session_recovery_start_minute": {
+      "type": "integer"
+    },
+    "session_trending_score_adj": {
+      "type": "integer"
+    },
+    "shap_enabled": {
+      "type": "boolean"
+    },
+    "signal_autopsy_days": {
+      "type": "integer"
+    },
+    "signal_autopsy_enabled": {
+      "type": "boolean"
+    },
+    "signal_autopsy_top_n": {
+      "type": "integer"
+    },
+    "signal_autopsy_window": {
+      "type": "integer"
+    },
+    "signal_importer_enabled": {
+      "type": "boolean"
+    },
+    "signal_importer_poll_secs": {
+      "type": "integer"
+    },
+    "signal_importer_watch_dir": {
+      "type": "string"
+    },
+    "signal_outcome_tracking_enabled": {
+      "type": "boolean"
+    },
+    "signal_refiner_enabled": {
+      "type": "boolean"
+    },
+    "slippage_calibration_days": {
+      "type": "integer"
+    },
+    "slippage_calibration_enabled": {
+      "type": "boolean"
+    },
+    "slippage_calibration_min_samples": {
+      "type": "integer"
+    },
+    "slippage_calibration_min_trades": {
+      "type": "integer"
+    },
+    "slippage_model_calibration_enabled": {
+      "type": "boolean"
+    },
+    "slippage_model_enabled": {
+      "type": "boolean"
+    },
+    "slippage_model_lookback_days": {
+      "type": "integer"
+    },
+    "sniper_enabled": {
+      "type": "boolean"
+    },
+    "sniper_lookback_bars": {
+      "type": "integer"
+    },
+    "sniper_require_breakout": {
+      "type": "boolean"
+    },
+    "sniper_volume_mult": {
+      "type": "number"
+    },
+    "spread_exit_pnl_pct": {
+      "type": "number"
+    },
+    "spread_partial_exit_pct": {
+      "type": "number"
+    },
+    "spread_partial_lots_pct": {
+      "type": "number"
+    },
+    "spread_slippage_pct": {
+      "type": "number"
+    },
+    "spread_stop_pct": {
+      "type": "number"
+    },
+    "spread_strategy_enabled": {
+      "type": "boolean"
+    },
+    "spread_theta_exit_dte": {
+      "type": "integer"
+    },
+    "spread_theta_exit_time": {
+      "type": "string"
+    },
+    "spread_width_strikes": {
+      "type": "integer"
+    },
+    "sso_authorize_url": {
+      "type": "string"
+    },
+    "sso_client_id": {
+      "type": "string"
+    },
+    "sso_client_secret": {
+      "type": "string"
+    },
+    "sso_enabled": {
+      "type": "boolean"
+    },
+    "sso_provider": {
+      "type": "string"
+    },
+    "sso_redirect_uri": {
+      "type": "string"
+    },
+    "sso_scope": {
+      "type": "string"
+    },
+    "sso_token_url": {
+      "type": "string"
+    },
+    "sso_userinfo_url": {
+      "type": "string"
+    },
+    "strategies": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "stress_custom_scenarios": {
+      "type": "array"
+    },
+    "stress_test_enabled": {
+      "type": "boolean"
+    },
+    "strike_selection_mode": {
+      "type": "string"
+    },
+    "strike_selector_enabled": {
+      "type": "boolean"
+    },
+    "strike_target_delta": {
+      "type": "number"
+    },
+    "system": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "telegram_admin_user_ids": {
+      "type": "array"
+    },
+    "telegram_allow_live_position_cmds": {
+      "type": "boolean"
+    },
+    "telegram_authorized_user_ids": {
+      "type": "array"
+    },
+    "telegram_cmd_rate_limit_per_min": {
+      "type": "integer"
+    },
+    "telegram_commander_enabled": {
+      "type": "boolean"
+    },
+    "telegram_poll_interval_secs": {
+      "type": "integer"
+    },
+    "telegram_signal_format": {
+      "type": "string"
+    },
+    "tf_divergence_fallback": {
+      "type": "boolean"
+    },
+    "tg_low_drop_threshold": {
+      "type": "integer"
+    },
+    "tg_max_queue_depth": {
+      "type": "integer"
+    },
+    "tg_max_retries_critical": {
+      "type": "integer"
+    },
+    "tg_max_retries_normal": {
+      "type": "integer"
+    },
+    "tg_normal_drop_age_secs": {
+      "type": "integer"
+    },
+    "tg_rate_limit_per_min": {
+      "type": "integer"
+    },
+    "theta_bleed_warn_dte": {
+      "type": "integer"
+    },
+    "time_of_day_hard_block_enabled": {
+      "type": "boolean"
+    },
+    "timeframe_divergence_block_enabled": {
+      "type": "boolean"
+    },
+    "timeframe_divergence_bonus": {
+      "type": "integer"
+    },
+    "timeseries_lake_enabled": {
+      "type": "boolean"
+    },
+    "token_refresh_enabled": {
+      "type": "boolean"
+    },
+    "token_refresh_grace_period_mins": {
+      "type": "integer"
+    },
+    "token_refresh_interval_mins": {
+      "type": "integer"
+    },
+    "token_refresh_retry_count": {
+      "type": "integer"
+    },
+    "tracing_backend": {
+      "type": "string"
+    },
+    "tracing_console_exporter": {
+      "type": "boolean"
+    },
+    "tracing_enabled": {
+      "type": "boolean"
+    },
+    "tracing_sample_rate": {
+      "type": "number"
+    },
+    "trade_replayer_bar_width": {
+      "type": "integer"
+    },
+    "trade_replayer_frames_to_show": {
+      "type": "integer"
+    },
+    "trades_db": {
+      "type": "string"
+    },
+    "transition_adx_look_bars": {
+      "type": "integer"
+    },
+    "transition_score_bonus": {
+      "type": "integer"
+    },
+    "transition_vix_spike_pct": {
+      "type": "number"
+    },
+    "underlying_analysis_enabled": {
+      "type": "boolean"
+    },
+    "underlying_analyzer_enabled": {
+      "type": "boolean"
+    },
+    "underlying_bear_threshold": {
+      "type": "integer"
+    },
+    "underlying_bull_threshold": {
+      "type": "integer"
+    },
+    "underlying_index": {
+      "type": "string"
+    },
+    "underlying_symbols": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "underlying_top_n": {
+      "type": "integer"
+    },
+    "var_enabled": {
+      "type": "boolean"
+    },
+    "var_lookback_days": {
+      "type": "integer"
+    },
+    "vega_cap_vix_threshold": {
+      "type": "number"
+    },
+    "vol_sizing_enabled": {
+      "type": "boolean"
+    },
+    "vol_target_daily_pct": {
+      "type": "number"
+    },
+    "wal_journal_db_path": {
+      "type": "string"
+    },
+    "walkforward_anchored": {
+      "type": "boolean"
+    },
+    "walkforward_step_bars": {
+      "type": "integer"
+    },
+    "walkforward_test_bars": {
+      "type": "integer"
+    },
+    "walkforward_train_bars": {
+      "type": "integer"
+    },
+    "warmup_duration_mins": {
+      "type": "integer"
+    },
+    "warmup_enabled": {
+      "type": "boolean"
+    },
+    "warmup_max_trades": {
+      "type": "integer"
+    },
+    "warmup_score_boost": {
+      "type": "integer"
+    },
+    "warmup_size_mult": {
+      "type": "number"
+    },
+    "web_dashboard_auth_token": {
+      "type": "string"
+    },
+    "web_dashboard_enabled": {
+      "type": "boolean"
+    },
+    "web_dashboard_host": {
+      "type": "string"
+    },
+    "web_dashboard_port": {
+      "type": "integer"
+    },
+    "webhook_allow_live": {
+      "type": "boolean"
+    },
+    "webhook_auth_token": {
+      "type": "string"
+    },
+    "webhook_enabled": {
+      "type": "boolean"
+    },
+    "webhook_rate_limit_per_min": {
+      "type": "integer"
+    },
+    "ws_heartbeat_interval_s": {
+      "type": "number"
+    },
+    "ws_reconnect_base_delay_s": {
+      "type": "number"
+    },
+    "ws_reconnect_jitter_pct": {
+      "type": "number"
+    },
+    "ws_reconnect_max_attempts": {
+      "type": "integer"
+    },
+    "ws_reconnect_max_delay_s": {
+      "type": "number"
+    },
+    "zipkin_endpoint": {
+      "type": "string"
+    }
+  },
+  "title": "Index bot merged config (config.json over index_config.defaults.json)",
+  "type": "object"
+}

@@ -1,0 +1,21 @@
+; PgBouncer authentication file
+; Format: "username" "md5hash"
+;
+; Generate md5 hash with:
+;   PASSWORD=your_password
+;   echo -n "${PASSWORD}${USERNAME}" | md5sum | awk '{print "md5" $1}'
+;
+; Example:
+;   echo -n "super_secret_opb_app" | md5sum | awk '{print "md5" $1}'
+;   → md5a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d
+
+; ── Application Users ───────────────────────────────────────────────────
+; Replace empty passwords with md5 hashes generated using the formula above
+"opb_app"     "md5"  ; REPLACE: md5<md5(password + username)>
+"opb_admin"   "md5"  ; REPLACE: md5<md5(password + username)>
+"opb_monitor" "md5"  ; REPLACE: md5<md5(password + username)>
+
+; For development with auth_type = trust, set all to empty:
+; "opb_app"     ""
+; "opb_admin"   ""
+; "opb_monitor" ""

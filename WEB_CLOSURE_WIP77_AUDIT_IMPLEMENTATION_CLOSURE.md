@@ -1,0 +1,491 @@
+# OPB WEB CLOSURE WIP77 — Audit Implementation Closure
+
+Shared audit infrastructure definitions discovered: 855
+State-changing route/action declarations: 174
+Route neighborhoods with direct audit call signals: 40
+
+## Audit infrastructure
+- `core/adaptive_behavior_governance.py:97` — `def _init_audit_log(self) -> None:`
+- `core/domain_invariants.py:340` — `def get_violation_history(`
+- `core/threat_modeler.py:595` — `def _load_history(self) -> None:`
+- `core/change_management.py:143` — `class ChangeAuditEntry:`
+- `core/change_management.py:539` — `def get_audit_log(self, n: int = 50) -> list[dict[str, Any]]:`
+- `core/change_management.py:583` — `def _record_audit(self, change_id: str, action: str, actor: str, details: str = "") -> None:`
+- `core/chaos_engine.py:159` — `def _check_event_store_integrity(self) -> bool:`
+- `core/decision_analyzer.py:527` — `def clear_history(self) -> None:`
+- `core/decision_analyzer.py:737` — `def _load_history(self) -> None:`
+- `core/change_governance.py:92` — `class ChangeEvent:`
+- `core/change_governance.py:150` — `def add_event(self, event_type: str, actor: str, comment: str = "") -> None:`
+- `core/log_helpers.py:73` — `def log_structured_event(logger: logging.Logger, event_name: str, payload: dict[str, Any]) -> None:`
+- `core/root_cause_analyzer.py:470` — `def get_incident_history(`
+- `core/root_cause_analyzer.py:506` — `def clear_history(self) -> None:`
+- `core/root_cause_analyzer.py:901` — `def _load_history(self) -> None:`
+- `core/broker_capture.py:15` — `class BrokerEvent:`
+- `core/ai_security_gate.py:114` — `class AIAuditRecord:`
+- `core/ai_security_gate.py:158` — `class AISecurityReport:`
+- `core/ai_security_gate.py:207` — `class AISecurityGate:`
+- `core/ai_security_gate.py:414` — `def clear_audit(self) -> None:`
+- `core/ai_security_gate.py:590` — `def _load_audit(self) -> None:`
+- `core/ai_security_gate.py:686` — `def get_ai_security_gate() -> AISecurityGate:`
+- `core/ai_security_gate.py:695` — `def reset_ai_security_gate() -> None:`
+- `core/release_intelligence.py:348` — `def get_history(self, limit: int = 10) -> list[dict[str, Any]]:`
+- `core/release_intelligence.py:654` — `def _load_history(self) -> None:`
+- `core/release_intelligence.py:666` — `def _save_history(self) -> None:`
+- `core/config_helpers.py:64` — `def build_audit_config_snapshot(cfg: dict[str, Any]) -> dict[str, Any]:`
+- `core/quality_gates.py:283` — `def get_history(self, limit: int = 20) -> list[dict[str, Any]]:`
+- `core/quality_gates.py:454` — `def _score_security(self, result: QGResult, files: list[str]) -> None:`
+- `core/quality_gates.py:907` — `def _load_history(self) -> None:`
+- `core/quality_gates.py:924` — `def _save_history(self) -> None:`
+- `core/vulnerability_scanner.py:478` — `def _persist_history(self) -> None:`
+- `core/vulnerability_scanner.py:487` — `def _load_history(self) -> None:`
+- `core/iv_rank.py:91` — `def _fetch_vix_history() -> list[float]:`
+- `core/iv_rank.py:116` — `def _get_history(config: dict[str, Any], force_refresh: bool = False) -> list[float]:`
+- `core/change_risk_scorer.py:346` — `def _score_security(self, file_path: str) -> float:`
+- `core/change_risk_scorer.py:511` — `def _load_defect_history(self) -> None:`
+- `core/change_risk_scorer.py:523` — `def _save_defect_history(self) -> None:`
+- `core/audit_mode.py:40` — `class AuditSeverity(Enum):`
+- `core/audit_mode.py:47` — `class AuditScope(Enum):`
+- `core/audit_mode.py:57` — `class AuditVerdict(Enum):`
+- `core/audit_mode.py:65` — `class AuditFinding:`
+- `core/audit_mode.py:78` — `class AuditReport:`
+- `core/audit_mode.py:137` — `class Auditor:`
+- `core/audit_mode.py:150` — `def run_full_audit(self) -> AuditReport:`
+- `core/audit_mode.py:197` — `def audit_architecture(self) -> AuditReport:`
+- `core/audit_mode.py:215` — `def audit_risk_controls(self) -> AuditReport:`
+- `core/audit_mode.py:233` — `def audit_strategy(self) -> AuditReport:`
+- `core/audit_mode.py:253` — `def audit_execution(self) -> AuditReport:`
+- `core/audit_mode.py:292` — `def audit_scoring(self) -> AuditReport:`
+- `core/audit_mode.py:340` — `def audit_security(self) -> AuditReport:`
+- `core/audit_mode.py:605` — `def get_auditor() -> Auditor:`
+- `core/audit_mode.py:614` — `def run_audit(scope: str = "all") -> AuditReport:`
+- `core/digital_twin.py:386` — `def get_snapshot_history(`
+- `core/digital_twin.py:458` — `def clear_history(self) -> None:`
+- `core/audit_engine.py:17` — `class AuditRecord:`
+- `core/audit_engine.py:22` — `class AuditEngine:`
+- `core/config_audit_log.py:23` — `def format_config_audit_log_line(timestamp_iso: str, key: str, old: object, new: object) -> str:`
+- `core/config_audit_log.py:27` — `def append_soft_reload_audit_diff(`
+- `core/health_reporter.py:41` — `def run_weekly_audit(self) -> HealthScore:`
+- `core/all_nse_scanner.py:370` — `def _log_signal_audit_record(`
+- `core/operating_mode.py:211` — `def get_history(self) -> list[ModeTransition]:`
+- `core/audit_journal.py:31` — `class AuditEventType(Enum):`
+- `core/audit_journal.py:58` — `class AuditSeverity(Enum):`
+- `core/audit_journal.py:69` — `class AuditEvent:`
+- `core/audit_journal.py:87` — `class AuditJournal:`
+- `core/audit_journal.py:110` — `def _get_event_id(self) -> str:`
+- `core/audit_journal.py:146` — `def log_event(`
+- `core/audit_journal.py:337` — `def get_audit_journal(config: dict | None = None) -> AuditJournal:`
+- `core/audit_journal.py:351` — `def audit_log(`
+- `core/hallucination_detector.py:269` — `def clear_history(self) -> None:`
+- `core/hallucination_detector.py:469` — `def _load_history(self) -> None:`
+- `core/runtime_security.py:120` — `class RuntimeSecurityReport:`
+- `core/runtime_security.py:176` — `class RuntimeSecurity:`
+- `core/runtime_security.py:608` — `def get_runtime_security() -> RuntimeSecurity:`
+- `core/runtime_security.py:617` — `def reset_runtime_security() -> None:`
+- `core/exchange_calendar_engine.py:525` — `def get_event_calendar(self) -> dict[str, Any]:`
+- `core/regime_transition_detector.py:47` — `class _VixHistoryTracker:`
+- `core/regime_transition_detector.py:63` — `def get_history(self) -> list[float]:`
+- `core/regime_transition_detector.py:82` — `def _update_vix_history(vix: float) -> None:`
+- `core/regime_transition_detector.py:86` — `def reset_vix_history() -> None:`
+- `core/event_bus.py:22` — `def handle_all_trade_events(event):`
+- `core/event_bus.py:49` — `class Event:`
+- `core/event_bus.py:88` — `class EventBus:`
+- `core/event_bus.py:332` — `def get_history(self, name: str = "", limit: int = 50) -> list[Event]:`
+- `core/event_bus.py:340` — `def clear_history(self) -> None:`
+- `core/event_bus.py:389` — `def get_event_bus() -> EventBus:`
+- `core/event_bus.py:398` — `def reset_event_bus() -> None:`
+- `core/continuous_intelligence.py:165` — `def _load_history(self) -> None:`
+- `core/continuous_intelligence.py:185` — `def _save_history(self) -> None:`
+- `core/continuous_intelligence.py:195` — `def get_history(self, limit: int = 10) -> list[dict[str, Any]]:`
+- `core/event_calendar.py:79` — `class EventRecord:`
+- `core/event_calendar.py:102` — `def _parse_event_dates(`
+- `core/event_calendar.py:133` — `def get_event(`
+- `core/event_calendar.py:151` — `def event_entry_allowed(`
+- `core/event_calendar.py:176` — `def event_size_multiplier(`
+- `core/event_calendar.py:202` — `def event_summary(`
+- `core/event_calendar.py:576` — `class IPOEvent:`
+- `core/event_calendar.py:607` — `def fetch_ipo_events(`
+- `core/sovereignty_guard.py:34` — `def audit_sovereignty(self) -> None:`
+- `core/ics_self_healing_bridge.py:480` — `def _record_handler_event(`
+- `core/ics_self_healing_bridge.py:513` — `def get_history(self, limit: int = 20) -> list[dict[str, Any]]:`
+- `core/data_governance.py:155` — `def _prune_signal_history(self) -> int:`
+- `core/bias_detector.py:487` — `def get_history(self, limit: int = 10) -> list[BiasReport]:`
+- `core/bias_detector.py:520` — `def clear_history(self) -> None:`
+- `core/bias_detector.py:584` — `def _record_history(self, report: BiasReport) -> None:`
+- `core/bias_detector.py:603` — `def _load_history(self) -> None:`
+- `core/security_auditor.py:160` — `class SecurityReport:`
+- `core/security_auditor.py:221` — `class SecurityAuditor:`
+- `core/security_auditor.py:483` — `def get_security_auditor() -> SecurityAuditor:`
+- `core/security_auditor.py:492` — `def reset_security_auditor() -> None:`
+- `core/anomaly_detector.py:42` — `def _load_history(self) -> dict[str, list[float]]:`
+- `core/anomaly_detector.py:60` — `def _save_history(self) -> None:`
+- `core/anomaly_detector.py:140` — `def get_history(self, metric_name: str) -> list[float]:`
+- `core/constitution_ai_gate.py:58` — `class AIGateEvent:`
+- `core/constitution_ai_gate.py:565` — `def _audit(self, action: str, result: str, detail: AIGateResult) -> None:`
+- `core/constitution_ai_gate.py:575` — `def get_audit_log(self, limit: int = 100) -> list[dict[str, Any]]:`
+- `core/postmortem_automator.py:126` — `class TimelineEvent:`
+- `core/secrets_vault.py:111` — `class AuditEntry:`
+- `core/secrets_vault.py:322` — `def get_audit_log(self, limit: int = 50, action: str = "") -> list[AuditEntry]:`
+- `core/secrets_vault.py:356` — `def _audit(self, action: str, key: str, success: bool, detail: str = "") -> None:`
+- `core/secrets_vault.py:401` — `def _persist_audit(self) -> None:`
+- `core/autonomous_optimizer.py:493` — `def get_history(self, limit: int = 10) -> list[OptimizationReport]:`
+- `core/autonomous_optimizer.py:498` — `def get_applied_history(self, limit: int = 20) -> list[OptimizationApplied]:`
+- `core/autonomous_optimizer.py:556` — `def clear_history(self) -> None:`
+- `core/autonomous_optimizer.py:688` — `def _load_history(self) -> None:`
+- `core/enterprise_evolution.py:318` — `def _analyze_security(self, evidence: dict[str, Any]) -> list[EvolutionProposal]:`
+- `core/enterprise_evolution.py:428` — `def _persist_history(self) -> None:`
+- `core/enterprise_evolution.py:437` — `def _load_history(self) -> None:`
+- `core/bi_dashboard.py:344` — `def _save_quality_history(self) -> None:`
+- `core/bi_dashboard.py:355` — `def _save_deployment_history(self) -> None:`
+- `index_app/index_trader.py:1035` — `def _get_trade_history_snapshot():`
+- `scripts/release_governance.py:590` — `def write_audit_record(version: str, branch: str, changes: list[str] | None = None,`
+- `scripts/e2e_integration_test.py:278` — `def test_audit():`
+- `scripts/institutional_challenge.py:530` — `def challenge_security_perimeter() -> ChallengeResult:`
+- `scripts/run_regression.py:113` — `def _check_audit_engine_regression() -> str:`
+- `scripts/run_regression.py:402` — `def history(self, period: str, interval: str):`
+- `scripts/pre_implementation_check.py:204` — `def check_git_history(count: int = 10) -> bool:`
+- `scripts/run_v5_v6_empirical_calibration_audit.py:79` — `def run_empirical_audit():`
+- `scripts/run_benchmarks.py:336` — `def _load_history() -> dict[str, Any]:`
+- `scripts/run_benchmarks.py:346` — `def _save_history(results: dict[str, Any]) -> None:`
+- `scripts/run_benchmarks.py:354` — `def _compare_with_history(current: dict, history: dict) -> list[dict[str, Any]]:`
+- `scripts/run_pr_audit.py:91` — `class AuditFinding:`
+- `scripts/run_pr_audit.py:113` — `class AuditSection:`
+- `scripts/run_pr_audit.py:134` — `class AuditReport:`
+- `scripts/run_pr_audit.py:462` — `def run_audit(quick: bool = False) -> AuditReport:`
+- `scripts/production_preflight_check.py:124` — `def check_security():`
+- `scripts/run_coverage_heatmap.py:335` — `def _load_history() -> dict:`
+- `scripts/run_coverage_heatmap.py:345` — `def _save_history(heatmap: dict[str, Any]) -> None:`
+- `scripts/capacity_benchmark.py:179` — `def _bench_event_append(self) -> None:`
+- `scratch/test_all_app_routes.py:19` — `def run_comprehensive_route_audit():`
+- `scratch/generate_final_deliverables.py:84` — `def generate_audit_pdf():`
+- `scratch/test_page_routes_only.py:16` — `def run_page_audit():`
+- `tests/test_dashboard_integration.py:174` — `def test_security_headers(self, client_basic: TestClient) -> None:`
+- `tests/test_forensic_audit_fixes.py:213` — `def test_setup_graceful_shutdown_returns_event():`
+- `tests/test_wip72_rbac_enforcement.py:27` — `def test_audit_concept_exists():`
+- `tests/test_secrets_vault.py:134` — `class TestAudit:`
+- `tests/test_secrets_vault.py:135` — `def test_audit_log(self, reset_vault):`
+- `tests/test_secrets_vault.py:145` — `def test_audit_failed_get(self, reset_vault):`
+- `tests/test_secrets_vault.py:155` — `def test_audit_rotate(self, reset_vault):`
+- `tests/test_security_auditor.py:22` — `class TestSecurityAuditorInit:`
+- `tests/test_security_auditor.py:98` — `class TestSecurityReport:`
+- `tests/test_security_auditor.py:142` — `class TestSecurityAuditor:`
+- `tests/test_strategy_approval_workflow.py:365` — `class TestGetRequestHistory:`
+- `tests/test_strategy_approval_workflow.py:384` — `def test_logs_approval_events(self, workflow):`
+- `tests/test_health_checker.py:497` — `def test_stop_event_stops_loop(self):`
+- `tests/test_event_system.py:34` — `def event_store(tmp_path):`
+- `tests/test_event_system.py:45` — `def event_bus(event_store):`
+- `tests/test_event_system.py:54` — `class TestEventType:`
+- `tests/test_event_system.py:112` — `class TestEventPriority:`
+- `tests/test_event_system.py:132` — `class TestTradingEvent:`
+- `tests/test_event_system.py:247` — `class TestEventStore:`
+- `tests/test_event_system.py:256` — `def test_append_event(self, event_store):`
+- `tests/test_event_system.py:278` — `def test_get_events_for_order(self, event_store):`
+- `tests/test_event_system.py:305` — `def test_get_events_for_order_nonexistent(self, event_store):`
+- `tests/test_event_system.py:310` — `def test_get_events_by_type(self, event_store):`
+- `tests/test_event_system.py:322` — `def test_get_events_by_type_empty(self, event_store):`
+- `tests/test_event_system.py:327` — `def test_get_events_by_type_with_limit(self, event_store):`
+- `tests/test_event_system.py:334` — `def test_get_events_in_range(self, event_store):`
+- `tests/test_event_system.py:344` — `def test_get_events_in_range_empty(self, event_store):`
+- `tests/test_event_system.py:357` — `def test_get_events_for_order_error(self, event_store):`
+- `tests/test_event_system.py:363` — `def test_get_events_by_type_error(self, event_store):`
+- `tests/test_event_system.py:369` — `def test_get_events_in_range_error(self, event_store):`
+- `tests/test_event_system.py:379` — `class TestEventBus:`
+- `tests/test_event_system.py:588` — `def test_get_recent_events(self, event_bus):`
+- `tests/test_event_system.py:597` — `def test_get_recent_events_empty(self, event_bus):`
+- `tests/test_event_system.py:602` — `def test_event_history_max_size(self, event_bus):`
+- `tests/test_event_system.py:613` — `class TestEventBusSubscribeDuplicate:`
+- `tests/test_event_system.py:636` — `class TestEventStoreHashChain:`
+- `tests/test_event_system.py:652` — `def test_verify_chain_single_event(self, event_store):`
+- `tests/test_event_system.py:660` — `def test_verify_chain_multiple_events(self, event_store):`
+- `tests/test_event_system.py:676` — `def test_verify_chain_detects_tampered_event_type(self, event_store):`
+- `tests/test_event_system.py:803` — `def test_get_event_bus_returns_bus(self):`
+- `tests/test_event_system.py:808` — `def test_get_event_bus_singleton(self):`
+- `tests/test_event_system.py:814` — `def test_get_event_store_returns_store(self):`
+- `tests/test_event_system.py:824` — `def test_get_event_store_singleton(self):`
+- `tests/test_event_system.py:830` — `def test_get_event_store_from_bus(self):`
+- `tests/test_bi_dashboard.py:396` — `def test_generate_recommendations_low_security(self) -> None:`
+- `tests/test_domain_invariants.py:416` — `def test_get_violation_history(self, engine: InvariantEngine) -> None:`
+- `tests/test_domain_invariants.py:424` — `def test_get_violation_history_unresolved_only(`
+- `tests/test_domain_invariants.py:431` — `def test_get_violation_history_resolved_excluded(`
+- `tests/test_anomaly_detector.py:44` — `def test_init_loads_existing_history(self, tmp_path: Path):`
+- `tests/test_anomaly_detector.py:124` — `def test_history_truncated_to_window(self, detector: AnomalyDetector):`
+- `tests/test_anomaly_detector.py:149` — `class TestGetHistory:`
+- `tests/test_anomaly_detector.py:163` — `def test_history_order(self, detector: AnomalyDetector):`
+- `tests/test_operational_hardening.py:46` — `def test_audit_engine_writes_jsonl(tmp_path):`
+- `tests/test_execution_reconciliation.py:262` — `class TestDuplicatePrevention:`
+- `tests/test_execution_reconciliation.py:265` — `def test_idempotency_key_prevents_duplicates(self, temp_db):`
+- `tests/test_mediator.py:40` — `class GetTradeHistory(Query[list]):`
+- `tests/test_mediator.py:53` — `class OrderPlacedEvent(Event):`
+- `tests/test_mediator.py:75` — `class GetTradeHistoryHandler(QueryHandler[GetTradeHistory, list]):`
+- `tests/test_mediator.py:90` — `class OrderPlacedEventHandler(EventHandler[OrderPlacedEvent]):`
+- `tests/test_mediator.py:98` — `class SecondOrderPlacedEventHandler(EventHandler[OrderPlacedEvent]):`
+- `tests/test_mediator.py:159` — `def test_event_base(self) -> None:`
+- `tests/test_mediator.py:257` — `class LimitedHistoryQuery(Query[list]):`
+- `tests/test_mediator.py:260` — `class LimitedHistoryHandler(QueryHandler[LimitedHistoryQuery, list]):`
+- `tests/test_mediator.py:305` — `async def test_event_handling(self, mediator: Mediator) -> None:`
+- `tests/test_mediator.py:322` — `async def test_multiple_event_handlers(self, mediator: Mediator) -> None:`
+- `tests/test_mediator.py:868` — `class TestEventBusIntegration:`
+- `tests/test_mediator.py:872` — `async def test_get_event_bus_returns_none_when_not_available(self) -> None:`
+- `tests/test_mediator.py:881` — `async def test_publish_events_skipped_on_failure(self) -> None:`
+- `tests/test_mediator.py:922` — `class OrphanEvent(Event):`
+- `tests/test_mediator.py:961` — `class TestEventHandlerError:`
+- `tests/test_mediator.py:965` — `async def test_event_handler_error_does_not_crash(self) -> None:`
+- `tests/test_mediator.py:967` — `class FragileEvent(Event):`
+- `tests/test_enterprise_dashboard_integration.py:62` — `def _make_event_store_db(path: str) -> None:`
+- `tests/test_enterprise_dashboard_integration.py:142` — `def event_db(tmp_path: Path) -> str:`
+- `tests/test_enterprise_dashboard_integration.py:292` — `class TestEventStorePageRoute:`
+- `tests/test_enterprise_dashboard_integration.py:299` — `def test_event_store_redirects_when_not_logged_in(self, dashboard):`
+- `tests/test_enterprise_dashboard_integration.py:306` — `def test_event_store_authenticated(self, admin_client):`
+- `tests/test_enterprise_dashboard_integration.py:351` — `class TestApiEvents:`
+- `tests/test_enterprise_dashboard_integration.py:354` — `def test_events_shape(self, client):`
+- `tests/test_enterprise_dashboard_integration.py:362` — `def test_events_fields(self, client):`
+- `tests/test_enterprise_dashboard_integration.py:370` — `def test_events_limit(self, client):`
+- `tests/test_enterprise_dashboard_integration.py:375` — `def test_events_no_crash(self, client):`
+- `tests/test_enterprise_dashboard_integration.py:379` — `def test_event_type_filter_uses_real_enum_value(self, client):`
+- `tests/test_enterprise_dashboard_integration.py:421` — `class TestApiEventsVerify:`
+- `tests/test_execution_service.py:394` — `class TestAuditTrail:`
+- `tests/test_execution_service_comprehensive.py:712` — `class TestAuditTrailToTradeData:`
+- `tests/test_wip67_registration_direct_calls.py:23` — `def test_registration_has_auditable_access_concepts():`
+- `tests/test_event_calendar.py:39` — `class TestEventRecord:`
+- `tests/test_event_calendar.py:61` — `class TestGetEvent:`
+- `tests/test_event_calendar.py:64` — `def test_no_event_configured(self):`
+- `tests/test_event_calendar.py:69` — `def test_event_found(self):`
+- `tests/test_event_calendar.py:103` — `class TestEventEntryAllowed:`
+- `tests/test_event_calendar.py:106` — `def test_no_event_allowed(self):`
+- `tests/test_event_calendar.py:123` — `def test_non_blocking_event(self):`
+- `tests/test_event_calendar.py:137` — `class TestEventSizeMultiplier:`
+- `tests/test_event_calendar.py:140` — `def test_no_event_returns_1(self):`
+- `tests/test_event_calendar.py:144` — `def test_event_reduces_size(self):`
+- `tests/test_event_calendar.py:169` — `class TestEventSummary:`
+- `tests/test_event_calendar.py:172` — `def test_no_event(self):`
+- `tests/test_event_calendar.py:178` — `def test_with_event(self):`
+- `tests/test_event_calendar.py:427` — `class TestIPOEvent:`
+- `tests/test_event_calendar.py:430` — `def test_ipo_event_dataclass(self):`
+- `tests/test_event_calendar.py:448` — `def test_fetch_ipo_events_disabled(self):`
+- `tests/test_event_calendar.py:453` — `def test_fetch_ipo_events_empty(self):`
+- `tests/test_event_calendar.py:458` — `def test_fetch_ipo_events_with_data(self):`
+- `tests/test_event_calendar.py:480` — `def test_fetch_ipo_events_bad_entry(self):`
+- `tests/test_event_calendar.py:491` — `def test_fetch_ipo_events_sorted(self):`
+- `tests/test_smoke_execution_hardening.py:88` — `class TestAuditJournalSmoke:`
+- `tests/test_smoke_execution_hardening.py:91` — `def test_log_event(self):`
+- `tests/test_paper_trader_enhanced.py:579` — `def test_reset_clears_fill_history(self, trader: PaperTrader) -> None:`
+- `tests/test_enterprise_dashboard.py:300` — `def test_lifespan_events(self, state_file: str, trades_db: str, config_file: str, defaults_file: str):`
+- `tests/test_enterprise_dashboard.py:366` — `class TestSecurityHeaders:`
+- `tests/test_enterprise_dashboard.py:796` — `def test_apply_creates_audit_trail(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:959` — `class TestConfigHistory:`
+- `tests/test_enterprise_dashboard.py:960` — `def test_history_returns_backups(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:979` — `def test_history_sorted_newest_first(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:997` — `def test_history_empty(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1008` — `def test_history_handles_bad_filenames(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1024` — `def test_history_triggers_valueerror(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1045` — `class TestConfigAuditLog:`
+- `tests/test_enterprise_dashboard.py:1068` — `def test_audit_log_returns_recorded_entries_newest_first(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1087` — `def test_audit_log_includes_rollback_entries(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1107` — `def test_audit_log_empty_when_no_file(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1116` — `def test_audit_log_respects_limit(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1203` — `class TestConfigAudit:`
+- `tests/test_enterprise_dashboard.py:1204` — `def test_log_config_audit_writes_file(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1221` — `def test_log_config_audit_append(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1237` — `def test_log_audit_write_error_does_not_raise(self):`
+- `tests/test_enterprise_dashboard.py:1243` — `def test_apply_creates_audit_log(self, tmp_path):`
+- `tests/test_enterprise_dashboard.py:1261` — `def test_audit_log_error_does_not_crash(self, monkeypatch):`
+- `tests/test_enterprise_dashboard.py:1883` — `def test_config_history_with_auth(self, admin_client: TestClient):`
+- `tests/test_enterprise_dashboard.py:1929` — `def test_api_config_history_internal(self, dashboard):`
+- `tests/test_enterprise_dashboard.py:2221` — `def test_security_page_requires_login(self, mock_templates, no_csrf, admin_auth):`
+- `tests/test_enterprise_dashboard.py:2229` — `def test_security_page_blocks_non_admin(self, mock_templates, no_csrf, admin_auth):`
+- `tests/test_enterprise_dashboard.py:2243` — `def test_security_page_allows_admin(self, mock_templates, no_csrf, admin_auth):`
+- `tests/test_execution_replay_engine.py:195` — `def test_get_session_events_not_found(self, engine):`
+- `tests/test_market_calendar.py:131` — `def test_sleep_until_respects_stop_event():`
+- `tests/test_config_helpers.py:153` — `class TestBuildAuditConfigSnapshot:`
+- `tests/test_ai_governance.py:230` — `class TestAuditLog:`
+- `tests/test_ai_governance.py:231` — `def test_audit_log_records_actions(self, governance_with_model):`
+- `tests/test_ai_governance.py:237` — `def test_audit_log_approval(self, governance_with_model):`
+- `tests/test_ai_governance.py:243` — `def test_audit_log_promotion(self, governance_with_model):`
+- `tests/test_ai_governance.py:254` — `def test_audit_log_rollback(self, governance_with_model):`
+- `tests/test_ai_governance.py:266` — `def test_audit_log_limit(self, governance_with_model):`
+- `tests/test_ai_governance.py:272` — `def test_audit_log_thread_safety(self, governance):`
+- `tests/test_auth_register.py:157` — `def test_register_creates_audit_log(self, client, auth_handler):`
+- `tests/test_option_premium_model.py:262` — `def test_event_tighter_both(self) -> None:`
+
+## State-changing route coverage
+- `/login` — `tests/test_auth_comprehensive.py:167` — direct audit signal: **NO**
+- `/signals/{signal_id}/mark-order-placed` — `tests/test_admin_signal_rbac_contract.py:17` — direct audit signal: **NO**
+- `/chat` — `archive/unrelated_modules/realestate/ai_chatbot.py:372` — direct audit signal: **NO**
+- `/projects` — `archive/unrelated_modules/realestate/builder_portal.py:368` — direct audit signal: **NO**
+- `/projects/{project_id}/units` — `archive/unrelated_modules/realestate/builder_portal.py:404` — direct audit signal: **NO**
+- `/projects/{project_id}/units/bulk` — `archive/unrelated_modules/realestate/builder_portal.py:409` — direct audit signal: **NO**
+- `/projects/{project_id}/units/{unit_id}/book` — `archive/unrelated_modules/realestate/builder_portal.py:425` — direct audit signal: **NO**
+- `/projects/{project_id}/status` — `archive/unrelated_modules/realestate/builder_portal.py:436` — direct audit signal: **NO**
+- `/check-property` — `archive/unrelated_modules/realestate/fraud_detection.py:459` — direct audit signal: **NO**
+- `/check-enquiry` — `archive/unrelated_modules/realestate/fraud_detection.py:482` — direct audit signal: **NO**
+- `/blacklist/phone` — `archive/unrelated_modules/realestate/fraud_detection.py:492` — direct audit signal: **NO**
+- `/blacklist/user` — `archive/unrelated_modules/realestate/fraud_detection.py:497` — direct audit signal: **NO**
+- `/moderation/{property_id}/approve` — `archive/unrelated_modules/realestate/admin_panel.py:372` — direct audit signal: **NO**
+- `/moderation/{property_id}/reject` — `archive/unrelated_modules/realestate/admin_panel.py:379` — direct audit signal: **NO**
+- `/reports` — `archive/unrelated_modules/realestate/admin_panel.py:387` — direct audit signal: **NO**
+- `/reports/{report_id}/resolve` — `archive/unrelated_modules/realestate/admin_panel.py:404` — direct audit signal: **NO**
+- `/kyc/submit` — `archive/unrelated_modules/realestate/admin_panel.py:416` — direct audit signal: **NO**
+- `/kyc/{user_id}/verify` — `archive/unrelated_modules/realestate/admin_panel.py:423` — direct audit signal: **NO**
+- `/{property_id}` — `archive/unrelated_modules/realestate/saved_properties.py:120` — direct audit signal: **NO**
+- `/{property_id}` — `archive/unrelated_modules/realestate/saved_properties.py:130` — direct audit signal: **NO**
+- `/predict` — `archive/unrelated_modules/realestate/ml_prediction.py:405` — direct audit signal: **NO**
+- `/predict/train` — `archive/unrelated_modules/realestate/ml_prediction.py:436` — direct audit signal: **NO**
+- `/tasks/{task_id}/run` — `archive/unrelated_modules/realestate/scheduler.py:425` — direct audit signal: **NO**
+- `/run-all` — `archive/unrelated_modules/realestate/scheduler.py:441` — direct audit signal: **NO**
+- `/tasks/{task_id}/toggle` — `archive/unrelated_modules/realestate/scheduler.py:479` — direct audit signal: **NO**
+- `/import` — `archive/unrelated_modules/realestate/export_import.py:319` — direct audit signal: **NO**
+- `/orders` — `archive/unrelated_modules/realestate/payments.py:463` — direct audit signal: **NO**
+- `/verify` — `archive/unrelated_modules/realestate/payments.py:480` — direct audit signal: **NO**
+- `/offline` — `archive/unrelated_modules/realestate/payments.py:492` — direct audit signal: **NO**
+- `/refund` — `archive/unrelated_modules/realestate/payments.py:526` — direct audit signal: **NO**
+- `/webhook` — `archive/unrelated_modules/realestate/payments.py:537` — direct audit signal: **NO**
+- `/google` — `archive/unrelated_modules/realestate/auth_service.py:389` — direct audit signal: **NO**
+- `/guest` — `archive/unrelated_modules/realestate/auth_service.py:400` — direct audit signal: **NO**
+- `/logout` — `archive/unrelated_modules/realestate/auth_service.py:406` — direct audit signal: **NO**
+- `/{notification_id}/read` — `archive/unrelated_modules/realestate/notifications.py:395` — direct audit signal: **NO**
+- `/mark-all-read` — `archive/unrelated_modules/realestate/notifications.py:401` — direct audit signal: **NO**
+- `/{notification_id}` — `archive/unrelated_modules/realestate/notifications.py:407` — direct audit signal: **NO**
+- `/saved-searches` — `archive/unrelated_modules/realestate/notifications.py:413` — direct audit signal: **NO**
+- `/add` — `archive/unrelated_modules/realestate/comparison.py:163` — direct audit signal: **NO**
+- `/remove` — `archive/unrelated_modules/realestate/comparison.py:172` — direct audit signal: **NO**
+- `/clear` — `archive/unrelated_modules/realestate/comparison.py:189` — direct audit signal: **NO**
+- `/register` — `archive/unrelated_modules/realestate/rera_compliance.py:349` — direct audit signal: **NO**
+- `/register` — `archive/unrelated_modules/realestate/webhooks.py:348` — direct audit signal: **NO**
+- `/{endpoint_id}` — `archive/unrelated_modules/realestate/webhooks.py:359` — direct audit signal: **NO**
+- `/test/{event_type}` — `archive/unrelated_modules/realestate/webhooks.py:371` — direct audit signal: **NO**
+- `/payments` — `archive/unrelated_modules/realestate/tenant_portal.py:340` — direct audit signal: **NO**
+- `/maintenance` — `archive/unrelated_modules/realestate/tenant_portal.py:370` — direct audit signal: **NO**
+- `/maintenance/{request_id}/status` — `archive/unrelated_modules/realestate/tenant_portal.py:395` — direct audit signal: **NO**
+- `/properties` — `archive/unrelated_modules/realestate/api/__init__.py:95` — direct audit signal: **NO**
+- `/properties/{property_id}/media` — `archive/unrelated_modules/realestate/api/__init__.py:164` — direct audit signal: **NO**
+- `/properties/{property_id}` — `archive/unrelated_modules/realestate/api/__init__.py:177` — direct audit signal: **NO**
+- `/leads` — `archive/unrelated_modules/realestate/api/__init__.py:224` — direct audit signal: **NO**
+- `/leads/{lead_id}/status` — `archive/unrelated_modules/realestate/api/__init__.py:245` — direct audit signal: **NO**
+- `/enquiries` — `archive/unrelated_modules/realestate/api/__init__.py:253` — direct audit signal: **NO**
+- `/agreements/rent` — `archive/unrelated_modules/realestate/api/__init__.py:275` — direct audit signal: **NO**
+- `/agreements/rent/{agreement_id}/e-stamp` — `archive/unrelated_modules/realestate/api/__init__.py:306` — direct audit signal: **NO**
+- `/agreements/rent/{agreement_id}/e-sign` — `archive/unrelated_modules/realestate/api/__init__.py:314` — direct audit signal: **NO**
+- `/{auction_id}/bid` — `archive/unrelated_modules/realestate/auction/engine.py:506` — direct audit signal: **NO**
+- `/{auction_id}/buy-it-now` — `archive/unrelated_modules/realestate/auction/engine.py:523` — direct audit signal: **NO**
+- `/{auction_id}/start` — `archive/unrelated_modules/realestate/auction/engine.py:534` — direct audit signal: **NO**
+- `/{auction_id}/close` — `archive/unrelated_modules/realestate/auction/engine.py:540` — direct audit signal: **NO**
+- `/register` — `core/auth/routes.py:137` — direct audit signal: **NO**
+- `/login` — `core/auth/routes.py:225` — direct audit signal: **NO**
+- `/logout` — `core/auth/routes.py:283` — direct audit signal: **NO**
+- `/profile` — `core/auth/routes.py:349` — direct audit signal: **NO**
+- `/change-password` — `core/auth/routes.py:389` — direct audit signal: **NO**
+- `/users` — `core/auth/routes.py:422` — direct audit signal: **NO**
+- `/users/{username}/role` — `core/auth/routes.py:483` — direct audit signal: **NO**
+- `/users/{username}/reset-password` — `core/auth/routes.py:519` — direct audit signal: **NO**
+- `/users/{username}/disable` — `core/auth/routes.py:536` — direct audit signal: **NO**
+- `/users/{username}/enable` — `core/auth/routes.py:548` — direct audit signal: **NO**
+- `/users/{username}` — `core/auth/routes.py:559` — direct audit signal: **NO**
+- `/users/{username}/permissions` — `core/auth/routes.py:661` — direct audit signal: **YES**
+- `/users/{username}/toggle-signals` — `core/auth/routes.py:741` — direct audit signal: **YES**
+- `/signals/{signal_id}/mark-order-placed` — `core/auth/routes.py:794` — direct audit signal: **YES**
+- `/users/{username}/revoke-sessions` — `core/auth/routes.py:831` — direct audit signal: **YES**
+- `/mfa/setup` — `core/auth/routes.py:884` — direct audit signal: **NO**
+- `/mfa/verify` — `core/auth/routes.py:921` — direct audit signal: **NO**
+- `/mfa/disable` — `core/auth/routes.py:956` — direct audit signal: **NO**
+- `/mfa/verify-session` — `core/auth/routes.py:1005` — direct audit signal: **NO**
+- `/forgot-password` — `core/auth/routes.py:1174` — direct audit signal: **NO**
+- `/verify-reset-token` — `core/auth/routes.py:1193` — direct audit signal: **NO**
+- `/reset-password` — `core/auth/routes.py:1209` — direct audit signal: **NO**
+- `/emergency-reset-password` — `core/auth/routes.py:1222` — direct audit signal: **NO**
+- `/mode/{target}` — `core/control_plane/server.py:377` — direct audit signal: **YES**
+- `/invariants/{name}/toggle` — `core/control_plane/server.py:462` — direct audit signal: **YES**
+- `/control/halt` — `core/control_plane/server.py:486` — direct audit signal: **YES**
+- `/control/resume` — `core/control_plane/server.py:502` — direct audit signal: **YES**
+- `/strategies/{name}/toggle` — `core/control_plane/server.py:541` — direct audit signal: **YES**
+- `/assets/{name}/toggle` — `core/control_plane/server.py:574` — direct audit signal: **YES**
+- `/features/{name}` — `core/control_plane/server.py:607` — direct audit signal: **YES**
+- `/models/{model_id}/select` — `core/control_plane/server.py:646` — direct audit signal: **YES**
+- `/roles/{operator}` — `core/control_plane/server.py:704` — direct audit signal: **YES**
+- `/config/reload` — `core/control_plane/server.py:724` — direct audit signal: **YES**
+- `/control/auth/login` — `core/control_plane/server.py:769` — direct audit signal: **YES**
+- `/control/kill` — `core/control_plane/server.py:805` — direct audit signal: **YES**
+- `/control/strategy/{name}/{action}` — `core/control_plane/server.py:814` — direct audit signal: **YES**
+- `/control/asset_class/{asset_class}/{action}` — `core/control_plane/server.py:823` — direct audit signal: **YES**
+- `/control/capital/{amount}` — `core/control_plane/server.py:832` — direct audit signal: **YES**
+- `/control/risk_limit/{name}/{value}` — `core/control_plane/server.py:841` — direct audit signal: **YES**
+- `/control/ai_model/{name}/{action}` — `core/control_plane/server.py:850` — direct audit signal: **YES**
+- `/control/feature_flag/{name}/{value}` — `core/control_plane/server.py:859` — direct audit signal: **YES**
+- `/logout` — `core/enterprise_dashboard/main.py:458` — direct audit signal: **NO**
+- `/api/governance/request` — `core/enterprise_dashboard/routes/governance.py:157` — direct audit signal: **NO**
+- `/api/governance/approve` — `core/enterprise_dashboard/routes/governance.py:189` — direct audit signal: **NO**
+- `/api/governance/reject` — `core/enterprise_dashboard/routes/governance.py:218` — direct audit signal: **NO**
+- `/api/platform/provisioning/request` — `core/enterprise_dashboard/routes/provisioning.py:80` — direct audit signal: **NO**
+- `/api/platform/provisioning/requests/{request_id}/approve` — `core/enterprise_dashboard/routes/provisioning.py:119` — direct audit signal: **NO**
+- `/api/platform/provisioning/requests/{request_id}/provisioned` — `core/enterprise_dashboard/routes/provisioning.py:139` — direct audit signal: **NO**
+- `/api/platform/provisioning/requests/{request_id}/reject` — `core/enterprise_dashboard/routes/provisioning.py:158` — direct audit signal: **NO**
+- `/api/v1/admin/test-dispatch-signal` — `core/enterprise_dashboard/routes/admin.py:23` — direct audit signal: **NO**
+- `/api/v1/admin/test-email` — `core/enterprise_dashboard/routes/admin.py:205` — direct audit signal: **NO**
+- `/api/config/validate` — `core/enterprise_dashboard/routes/admin.py:306` — direct audit signal: **YES**
+- `/api/config/preview` — `core/enterprise_dashboard/routes/admin.py:314` — direct audit signal: **YES**
+- `/api/config/apply` — `core/enterprise_dashboard/routes/admin.py:322` — direct audit signal: **YES**
+- `/api/config/rollback/{version}` — `core/enterprise_dashboard/routes/admin.py:389` — direct audit signal: **YES**
+- `/api/system/kill` — `core/enterprise_dashboard/routes/admin.py:398` — direct audit signal: **YES**
+- `/api/system/resume` — `core/enterprise_dashboard/routes/admin.py:414` — direct audit signal: **YES**
+- `/api/system/pause` — `core/enterprise_dashboard/routes/admin.py:434` — direct audit signal: **NO**
+- `/api/system/resume-entry` — `core/enterprise_dashboard/routes/admin.py:441` — direct audit signal: **NO**
+- `/api/changes/propose` — `core/enterprise_dashboard/routes/admin.py:468` — direct audit signal: **YES**
+- `/api/changes/approve/{change_id}` — `core/enterprise_dashboard/routes/admin.py:497` — direct audit signal: **YES**
+- `/api/changes/reject/{change_id}` — `core/enterprise_dashboard/routes/admin.py:516` — direct audit signal: **YES**
+- `/api/system/self-test` — `core/enterprise_dashboard/routes/admin.py:560` — direct audit signal: **NO**
+- `/api/v1/admin/broker/fetch-holdings` — `core/enterprise_dashboard/routes/admin.py:648` — direct audit signal: **YES**
+- `/api/v1/admin/analyze-portfolio` — `core/enterprise_dashboard/routes/admin.py:666` — direct audit signal: **YES**
+- `/api/v1/admin/auto-hedge` — `core/enterprise_dashboard/routes/admin.py:694` — direct audit signal: **YES**
+- `/api/v1/admin/execute-hedge` — `core/enterprise_dashboard/routes/admin.py:703` — direct audit signal: **YES**
+- `/api/v1/admin/tax-loss-harvest` — `core/enterprise_dashboard/routes/admin.py:723` — direct audit signal: **YES**
+- `/api/v1/admin/generate-report` — `core/enterprise_dashboard/routes/admin.py:743` — direct audit signal: **NO**
+- `/api/intelligence/presentation/generate-all` — `core/enterprise_dashboard/routes/intelligence.py:479` — direct audit signal: **NO**
+- `/api/intelligence/synthetic-monitor/run` — `core/enterprise_dashboard/routes/intelligence.py:513` — direct audit signal: **NO**
+- `/api/intelligence/sbom/generate` — `core/enterprise_dashboard/routes/intelligence.py:550` — direct audit signal: **NO**
+- `/api/intelligence/chaos/run` — `core/enterprise_dashboard/routes/intelligence.py:583` — direct audit signal: **NO**
+- `/api/intelligence/ai-gate/analyze-prompt` — `core/enterprise_dashboard/routes/intelligence.py:618` — direct audit signal: **NO**
+- `/api/intelligence/ai-gate/analyze-response` — `core/enterprise_dashboard/routes/intelligence.py:648` — direct audit signal: **NO**
+- `/api/intelligence/threat-model/analyze` — `core/enterprise_dashboard/routes/intelligence.py:714` — direct audit signal: **NO**
+- `/api/intelligence/postmortem/generate` — `core/enterprise_dashboard/routes/intelligence.py:766` — direct audit signal: **NO**
+- `/api/intelligence/decisions/record` — `core/enterprise_dashboard/routes/intelligence.py:849` — direct audit signal: **NO**
+- `/api/intelligence/digital-twin/snapshot` — `core/enterprise_dashboard/routes/intelligence.py:961` — direct audit signal: **NO**
+- `/api/intelligence/runtime-security/check` — `core/enterprise_dashboard/routes/intelligence.py:1020` — direct audit signal: **NO**
+- `/api/intelligence/executive/briefing` — `core/enterprise_dashboard/routes/intelligence.py:1080` — direct audit signal: **NO**
+- `/api/intelligence/accessibility/assess` — `core/enterprise_dashboard/routes/intelligence.py:1118` — direct audit signal: **NO**
+- `/api/intelligence/ml/retrain` — `core/enterprise_dashboard/routes/intelligence.py:1147` — direct audit signal: **NO**
+- `/api/payoff-calculator/compute` — `core/enterprise_dashboard/routes/payoff_calculator.py:69` — direct audit signal: **NO**
+- `/api/intelligence/security/scan` — `core/enterprise_dashboard/routes/intelligence_bi.py:103` — direct audit signal: **NO**
+- `/api/intelligence/performance/analyze` — `core/enterprise_dashboard/routes/intelligence_bi.py:139` — direct audit signal: **NO**
+- `/api/intelligence/architecture/analyze` — `core/enterprise_dashboard/routes/intelligence_bi.py:175` — direct audit signal: **NO**
+- `/api/intelligence/recommendations/generate` — `core/enterprise_dashboard/routes/intelligence_bi.py:218` — direct audit signal: **NO**
+- `/api/intelligence/presentation/generate` — `core/enterprise_dashboard/routes/intelligence_bi.py:260` — direct audit signal: **NO**
+- `/api/fundamentals/weights` — `core/enterprise_dashboard/routes/fundamentals.py:52` — direct audit signal: **NO**
+- `/api/fundamentals/screen` — `core/enterprise_dashboard/routes/fundamentals.py:147` — direct audit signal: **NO**
+- `/api/v1/trade/paper-trade` — `core/enterprise_dashboard/routes/monitoring.py:70` — direct audit signal: **NO**
+- `/api/system/notifications/{notif_id}/acknowledge` — `core/enterprise_dashboard/routes/monitoring.py:104` — direct audit signal: **NO**
+- `/api/system/notifications/acknowledge-all` — `core/enterprise_dashboard/routes/monitoring.py:110` — direct audit signal: **NO**
+- `/api/system/notifications/push` — `core/enterprise_dashboard/routes/monitoring.py:118` — direct audit signal: **NO**
+- `/api/telegram/webhook` — `core/enterprise_dashboard/routes/monitoring.py:440` — direct audit signal: **NO**
+- `/api/v1/push/subscribe` — `core/enterprise_dashboard/routes/monitoring.py:469` — direct audit signal: **NO**
+- `/api/copier/execute` — `core/enterprise_dashboard/routes/monitoring.py:493` — direct audit signal: **NO**
+- `/api/execution/iceberg-slice` — `core/enterprise_dashboard/routes/monitoring.py:563` — direct audit signal: **YES**
+- `/api/billing/confirm-upi-payment` — `core/enterprise_dashboard/routes/monitoring.py:595` — direct audit signal: **YES**
+- `/api/backup/trigger-snapshot` — `core/enterprise_dashboard/routes/monitoring.py:627` — direct audit signal: **YES**
+- `/api/backup/restore-snapshot` — `core/enterprise_dashboard/routes/monitoring.py:644` — direct audit signal: **YES**
+- `/api/intelligence/root-cause/investigate` — `core/enterprise_dashboard/routes/intelligence_analysis.py:72` — direct audit signal: **NO**
+- `/api/intelligence/risk-score` — `core/enterprise_dashboard/routes/intelligence_analysis.py:176` — direct audit signal: **NO**
+- `/api/intelligence/incidents/create` — `core/enterprise_dashboard/routes/intelligence_incidents.py:48` — direct audit signal: **NO**
+- `/api/intelligence/incidents/acknowledge/{incident_id}` — `core/enterprise_dashboard/routes/intelligence_incidents.py:83` — direct audit signal: **NO**
+- `/api/intelligence/incidents/resolve/{incident_id}` — `core/enterprise_dashboard/routes/intelligence_incidents.py:96` — direct audit signal: **NO**
+- `/api/intelligence/incidents/close/{incident_id}` — `core/enterprise_dashboard/routes/intelligence_incidents.py:109` — direct audit signal: **NO**
+- `/api/intelligence/incidents/detect` — `core/enterprise_dashboard/routes/intelligence_incidents.py:122` — direct audit signal: **NO**
+- `/signals/inject` — `core/enterprise_dashboard/routes/webhooks.py:71` — direct audit signal: **NO**
+- `/api/intelligence/test-generator/analyze` — `core/enterprise_dashboard/routes/intelligence_pipeline.py:22` — direct audit signal: **NO**
+- `/api/intelligence/docs/generate` — `core/enterprise_dashboard/routes/intelligence_pipeline.py:51` — direct audit signal: **NO**
+- `/api/intelligence/pipeline/run` — `core/enterprise_dashboard/routes/intelligence_pipeline.py:87` — direct audit signal: **NO**
+
+## Final acceptance contract
+- State-changing operations must emit server-side audit events.
+- Shared audit infrastructure must be used consistently where applicable.
+- Audit events must include actor/action/target/timestamp/result and applicable before/after/reason/correlation data.
+- Reject and rollback require a reason before execution.
+- Secrets/passwords/tokens must not be logged.
+- Audit failures must not silently turn a successful state change into an unaudited operation; the transaction/error policy must be explicit.

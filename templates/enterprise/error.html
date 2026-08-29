@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB Enterprise — Error {{ code|default('Notice') }}</title>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<script src="/static/theme_engine.js?v=3.3" nonce="{{ nonce }}"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif);
+            background-color: var(--bg-primary, #080c14);
+            color: var(--text-primary, #f8fafc);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+            overflow-x: hidden;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        .ambient-glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--header-glow, rgba(56, 189, 248, 0.15)) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .top-theme-dock {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.75rem;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: var(--bg-card, #131e33);
+            border: 1px solid var(--border-color, #1e293b);
+            padding: 0.45rem 0.9rem;
+            border-radius: 9999px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            transition: all 0.25s ease;
+        }
+
+        .top-theme-dock:hover { border-color: var(--accent-color, #38bdf8); }
+        .theme-dock-icon { font-size: 0.9rem; color: var(--accent-color, #38bdf8); }
+        .theme-dock-select { background: transparent; color: var(--text-primary, #f8fafc); border: none; font-size: 0.82rem; font-weight: 700; cursor: pointer; outline: none; }
+        .theme-dock-select option { background: var(--bg-card, #131e33); color: var(--text-primary, #f8fafc); }
+
+        .card {
+            position: relative;
+            z-index: 10;
+            background: var(--bg-card, #131e33);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 1.25rem;
+            padding: 2.75rem 2.5rem;
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: var(--card-shadow, 0 25px 50px -12px rgba(0, 0, 0, 0.6));
+            backdrop-filter: blur(16px);
+            transition: all 0.25s ease;
+        }
+
+        .error-code-badge {
+            display: inline-block;
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--danger-color, #ef4444);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.04em;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary, #ffffff);
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message {
+            color: var(--text-secondary, #94a3b8);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 2rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.65rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient, linear-gradient(135deg, #0284c7 0%, #2563eb 100%));
+            color: var(--text-primary, #ffffff);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary, #94a3b8);
+            border: 1px solid var(--border-color, #1e293b);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary, #ffffff);
+        }
+    </style>
+    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/opb_design_system.css">
+    
+</head>
+<body>
+    <div class="ambient-glow"></div>
+
+    <div class="top-theme-dock" title="Switch Workspace Theme">
+        <i class="fas fa-palette theme-dock-icon"></i>
+        <select id="global-theme-select" class="opb-theme-selector theme-dock-select opb-top-theme-select">
+            <option value="dark-cyber">🌌 Dark Cyber (Default)</option>
+            <option value="nordic-frost">❄️ Nordic Frost (Rich Light)</option>
+            <option value="ivory-gold">🏛️ Ivory & Gold (Luxury Light)</option>
+            <option value="obsidian-gold">👑 Obsidian Gold (Luxury Dark)</option>
+            <option value="midnight-slate">☀️ Sapphire Day</option>
+            <option value="emerald-matrix">❇️ Emerald Matrix</option>
+            <option value="dracula-purple">🌸 Plum Cloud</option>
+        </select>
+    </div>
+
+    <div class="card">
+        <div class="error-code-badge">{{ code|default('Notice') }}</div>
+        <h1 class="error-title">{{ title|default('System Notice') }}</h1>
+        <p class="error-message">{{ message|default('You do not have permission or the requested resource was not found.') }}</p>
+        <div class="btn-group">
+            <a href="/" class="btn btn-primary"><i class="fas fa-home"></i> Cockpit</a>
+            <a href="/login" class="btn btn-ghost"><i class="fas fa-sign-in-alt"></i> Login</a>
+        </div>
+    </div>
+    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

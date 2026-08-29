@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — Strategy Governance</title>
+    <script src="/static/vendor/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        .back-link { color: #3b82f6; text-decoration: none; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 1rem; text-align: center; }
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #e2e8f0); }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 0.25rem; }
+        .badge { display: inline-flex; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 500; }
+        .badge-pass { background: rgba(34,197,94,0.12); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.2); }
+        .badge-pending { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+        .badge-rejected { background: rgba(239,68,68,0.12); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.15); }
+        .badge-expired { background: rgba(148,163,184,0.1); color: var(--text-muted, #94a3b8); border: 1px solid var(--border-color, #1e293b); }
+        .badge-green { background: rgba(34,197,94,0.1); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.15); }
+        .badge-red { background: rgba(239,68,68,0.1); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.15); }
+        .badge-yellow { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.15); }
+        .badge-active { background: rgba(34,197,94,0.1); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.15); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #94a3b8); padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.08); }
+        td { font-size: 0.8rem; padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); }
+        tr:hover td { background: rgba(59,130,246,0.03); }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 500; cursor: pointer; border: none; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-ghost { background: transparent; color: var(--text-muted, #94a3b8); border: 1px solid var(--border-color, #1e293b); }
+        .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.7rem; }
+        .flex-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+        .code { font-family: monospace; font-size: 0.75rem; color: var(--text-secondary, #cbd5e1); }
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { padding: 0.75rem 1.25rem; border-radius: 0.5rem; color: white; font-size: 0.8rem; opacity: 0; transform: translateY(1rem); transition: all 0.3s ease; }
+        .toast.visible { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #065f46; border-left: 3px solid #22c55e; }
+        .toast.error { background: #7f1d1d; border-left: 3px solid #ef4444; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.visible { display: flex; }
+        .modal { background: #1a1f2e; border: 1px solid var(--border-color, #1e293b); border-radius: 1rem; padding: 1.5rem; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .input-field { width: 100%; padding: 0.5rem 0.7rem; background: #0f1319; border: 1px solid var(--border-color, #1e293b); border-radius: 0.35rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; outline: none; }
+        .input-field:focus { border-color: #3b82f6; }
+        select.input-field { cursor: pointer; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .tab-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .tab { padding: 0.4rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; cursor: pointer; border: 1px solid var(--border-color, #1e293b); background: transparent; color: var(--text-muted, #94a3b8); }
+        .tab.active { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.3); }
+    </style>    {% include "_pwa_head.html" %}
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<!-- Fonts & Design System Tokens -->
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/opb_design_system.css">
+    <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/report_filters.css"><script src="/static/report_filters.js" defer></script></head>
+<body>
+    {% include '_nav.html' %}
+    
+    <h1><i class="fas fa-gavel" style="color:#3b82f6;margin-right:0.5rem;"></i> Strategy Governance</h1>
+    <p class="subtitle">Strategy approval workflow, data quality scoring, and governance controls</p>
+
+    <div id="errorAlert" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:0.5rem;padding:1rem;margin-bottom:1rem;color: var(--danger-color, #dc2626);font-size:0.85rem;"></div>
+
+    <div class="grid-4" id="summaryCards">
+        <div class="stat-card"><div class="stat-value" id="pendingCount">-</div><div class="stat-label">Pending Approvals</div></div>
+        <div class="stat-card"><div class="stat-value" id="approvedCount">-</div><div class="stat-label">Approved Live</div></div>
+        <div class="stat-card"><div class="stat-value" id="dataQualityScore">-</div><div class="stat-label">Data Quality Score</div></div>
+        <div class="stat-card"><div class="stat-value" id="invariantCount">-</div><div class="stat-label">Invariant Checks</div></div>
+    </div>
+
+    <div class="tab-bar" id="tabBar">
+        <div class="tab active" data-tab="approvals">Pending Approvals</div>
+        <div class="tab" data-tab="history">Request History</div>
+        <div class="tab" data-tab="quality">Data Quality</div>
+        <div class="tab" data-tab="request">New Request</div>
+    </div>
+
+    <div id="section-approvals" class="section active">
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Pending Approval Requests</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Strategy</th><th>From</th><th>To</th><th>Requested By</th><th>Evidence</th><th>Actions</th></tr></thead>
+                <tbody id="pendingTableBody"><tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-history" class="section">
+        <div class="card">
+            <div class="flex-row" style="margin-bottom:1rem;">
+                <h3 style="font-size:0.9rem;font-weight:600;">Approval Request History</h3>
+                <input type="text" id="historyFilter" class="input-field" placeholder="Filter by strategy name..." style="max-width:250px;padding:0.35rem 0.6rem;font-size:0.75rem;">
+            </div>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Strategy</th><th>Transition</th><th>Status</th><th>Requested By</th><th>Approved By</th><th>Date</th></tr></thead>
+                <tbody id="historyTableBody"><tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-quality" class="section">
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Data Quality Scores by Source</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Data Source</th><th>Score</th><th>Health</th><th>Findings</th><th>Finding Rate</th></tr></thead>
+                <tbody id="qualityTableBody"><tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Category Scores</h3>
+            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table>
+                <thead><tr><th>Category</th><th>Score</th><th>Health</th></tr></thead>
+                <tbody id="categoryTableBody"><tr><td colspan="3" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
+            </table>
+</div>
+        </div>
+    </div>
+
+    <div id="section-request" class="section">
+        <div class="card">
+            <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Request Strategy Transition</h3>
+            <form id="requestForm" style="display:flex;flex-direction:column;gap:0.75rem;max-width:500px;">
+                <input type="text" id="reqStrategy" class="input-field" placeholder="Strategy name (e.g. ma_crossover)" required>
+                <select id="reqToState" class="input-field">
+                    <option value="PAPER_ONLY">PAPER_ONLY</option>
+                    <option value="LIVE_APPROVED">LIVE_APPROVED</option>
+                    <option value="DONT_RUN">DONT_RUN</option>
+                    <option value="DEPRECATED">DEPRECATED</option>
+                </select>
+                <textarea id="reqEvidence" class="input-field" placeholder='Evidence JSON (e.g. {"backtest_sharpe": 1.8, "paper_trades": 150})' rows="3" style="font-family:monospace;font-size:0.75rem;"></textarea>
+                <div><button type="submit" class="btn btn-primary" id="submitRequestBtn"><i class="fas fa-paper-plane"></i> Submit Request</button></div>
+                <div id="requestResult" style="font-size:0.8rem;color: var(--text-muted, #94a3b8);display:none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script nonce="{{ nonce }}">
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : '';
+        }
+
+        function showToast(msg, type='info') {
+            const c=document.getElementById('toastContainer');
+            const t=document.createElement('div');
+            t.className=`toast ${type} visible`;
+            t.textContent=msg;
+            c.appendChild(t);
+            setTimeout(()=>{t.classList.remove('visible');setTimeout(()=>t.remove(),300);},3500);
+        }
+
+        function showError(msg) {
+            const el=document.getElementById('errorAlert');
+            el.textContent=msg;
+            el.style.display='block';
+        }
+
+        function hideError() {
+            document.getElementById('errorAlert').style.display='none';
+        }
+
+        async function apiFetch(url, opts={}) {
+            const csrfToken = getCookie('opb_csrf');
+            const headers={'Content-Type':'application/json',...opts.headers};
+            if (csrfToken && opts.method && opts.method !== 'GET') {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+            const res=await fetch(url,{headers,credentials:'include',...opts});
+            if (res.status===401) { window.location.href='/login'; return null; }
+            return res.json();
+        }
+
+        function badgeForStatus(status) {
+            if (status === 'APPROVED') return '<span class="badge badge-pass">APPROVED</span>';
+            if (status === 'PENDING') return '<span class="badge badge-pending">PENDING</span>';
+            if (status === 'REJECTED') return '<span class="badge badge-rejected">REJECTED</span>';
+            if (status === 'EXPIRED') return '<span class="badge badge-expired">EXPIRED</span>';
+            if (status === 'GREEN') return '<span class="badge badge-green">GREEN</span>';
+            if (status === 'YELLOW') return '<span class="badge badge-yellow">YELLOW</span>';
+            if (status === 'RED') return '<span class="badge badge-red">RED</span>';
+            if (status === 'ACTIVE') return '<span class="badge badge-active">ACTIVE</span>';
+            return `<span class="badge">${status}</span>`;
+        }
+
+        async function loadGovernanceStatus() {
+            try {
+                const data = await apiFetch('/api/governance/status');
+                if (!data) return;
+                document.getElementById('pendingCount').textContent = data.pending_approvals ?? '-';
+                document.getElementById('approvedCount').textContent = data.approved_live ?? '-';
+                document.getElementById('dataQualityScore').textContent = data.data_quality_score != null ? (data.data_quality_score * 100).toFixed(1) + '%' : '-';
+                document.getElementById('invariantCount').textContent = data.invariant_checks ?? '-';
+            } catch (e) {
+                showError('Failed to load governance status: ' + e.message);
+            }
+        }
+
+        async function loadPendingApprovals() {
+            try {
+                const data = await apiFetch('/api/governance/pending');
+                if (!data) return;
+                const tbody = document.getElementById('pendingTableBody');
+                if (!data.pending || data.pending.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">No pending approvals</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.pending.map(r => `<tr>
+                    <td><strong>${r.strategy_name}</strong></td>
+                    <td>${r.from_state}</td>
+                    <td><span class="badge badge-pending">${r.to_state}</span></td>
+                    <td>${r.requested_by || '-'}</td>
+                    <td style="font-size:0.7rem;">${Object.keys(r.evidence || {}).length} items</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" data-action="approve-transition" data-strategy="${r.strategy_name}" data-to-state="${r.to_state}" type="button"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-ghost btn-sm" data-action="reject-transition" data-strategy="${r.strategy_name}" data-to-state="${r.to_state}" type="button"><i class="fas fa-times"></i></button>
+                    </td>
+                </tr>`).join('');
+            } catch (e) {
+                document.getElementById('pendingTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--danger-color, #dc2626);">Error loading: ' + e.message + '</td></tr>';
+            }
+        }
+        document.getElementById('pendingTableBody').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            if (btn.dataset.action === 'approve-transition') approveTransition(btn.dataset.strategy, btn.dataset.toState);
+            else if (btn.dataset.action === 'reject-transition') rejectTransition(btn.dataset.strategy, btn.dataset.toState);
+        });
+
+        async function loadHistory() {
+            try {
+                const filter = document.getElementById('historyFilter').value;
+                const url = filter ? `/api/governance/history?strategy_name=${encodeURIComponent(filter)}` : '/api/governance/history';
+                const data = await apiFetch(url);
+                if (!data) return;
+                const tbody = document.getElementById('historyTableBody');
+                if (!data.history || data.history.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">No history available</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.history.map(r => `<tr>
+                    <td><strong>${r.strategy_name}</strong></td>
+                    <td>${r.from_state} → ${r.to_state}</td>
+                    <td>${badgeForStatus(r.status)}</td>
+                    <td>${r.requested_by || '-'}</td>
+                    <td>${r.approved_by || '-'}</td>
+                    <td style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">${r.requested_at ? r.requested_at.substring(0, 19).replace('T', ' ') : '-'}</td>
+                </tr>`).join('');
+            } catch (e) {
+                document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--danger-color, #dc2626);">Error loading: ' + e.message + '</td></tr>';
+            }
+        }
+
+        async function loadDataQuality() {
+            try {
+                const data = await apiFetch('/api/governance/quality');
+                if (!data) return;
+                const tbody = document.getElementById('qualityTableBody');
+                const sources = data.sources || {};
+                const entries = Object.entries(sources);
+                if (entries.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">No data quality data available</td></tr>';
+                } else {
+                    tbody.innerHTML = entries.map(([src, s]) => `<tr>
+                        <td><strong>${src}</strong></td>
+                        <td>${(s.score * 100).toFixed(1)}%</td>
+                        <td>${badgeForStatus(s.health)}</td>
+                        <td>${s.findings}</td>
+                        <td>${(s.finding_rate * 100).toFixed(1)}%</td>
+                    </tr>`).join('');
+                }
+                const catTbody = document.getElementById('categoryTableBody');
+                const cats = data.categories || {};
+                const catEntries = Object.entries(cats);
+                if (catEntries.length === 0) {
+                    catTbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color: var(--text-muted, #94a3b8);">No category data available</td></tr>';
+                } else {
+                    catTbody.innerHTML = catEntries.map(([cat, s]) => `<tr>
+                        <td><strong>${cat}</strong></td>
+                        <td>${(s.score * 100).toFixed(1)}%</td>
+                        <td>${badgeForStatus(s.health)}</td>
+                    </tr>`).join('');
+                }
+            } catch (e) {
+                document.getElementById('qualityTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--danger-color, #dc2626);">Error: ' + e.message + '</td></tr>';
+            }
+        }
+
+        async function approveTransition(strategy, toState) {
+            hideError();
+            const res = await apiFetch('/api/governance/approve', {
+                method: 'POST',
+                body: JSON.stringify({ strategy_name: strategy, to_state: toState }),
+            });
+            if (res && res.success) {
+                showToast(res.message, 'success');
+                loadPendingApprovals();
+                loadGovernanceStatus();
+            } else {
+                showError('Approval failed: ' + (res?.message || 'Unknown error'));
+            }
+        }
+
+        async function rejectTransition(strategy, toState) {
+            hideError();
+            const reason = prompt('Rejection reason:', 'Insufficient evidence');
+            if (reason === null) return;
+            const res = await apiFetch('/api/governance/reject', {
+                method: 'POST',
+                body: JSON.stringify({ strategy_name: strategy, to_state: toState, reason }),
+            });
+            if (res && res.success) {
+                showToast(res.message, 'success');
+                loadPendingApprovals();
+                loadGovernanceStatus();
+            } else {
+                showError('Rejection failed: ' + (res?.message || 'Unknown error'));
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadGovernanceStatus();
+            loadPendingApprovals();
+            loadHistory();
+            loadDataQuality();
+
+            document.querySelectorAll('.tab[data-tab]').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    document.getElementById('section-' + tab.dataset.tab)?.classList.add('active');
+                    if (tab.dataset.tab === 'history') loadHistory();
+                    if (tab.dataset.tab === 'quality') loadDataQuality();
+                });
+            });
+
+            document.getElementById('historyFilter').addEventListener('input', function() {
+                clearTimeout(this._timer);
+                this._timer = setTimeout(() => loadHistory(), 300);
+            });
+
+            document.getElementById('requestForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                hideError();
+                const strategy = document.getElementById('reqStrategy').value;
+                const toState = document.getElementById('reqToState').value;
+                let evidence = {};
+                try {
+                    const evText = document.getElementById('reqEvidence').value;
+                    if (evText.trim()) evidence = JSON.parse(evText);
+                } catch (err) {
+                    showError('Invalid evidence JSON: ' + err.message);
+                    return;
+                }
+                const res = await apiFetch('/api/governance/request', {
+                    method: 'POST',
+                    body: JSON.stringify({ strategy_name: strategy, to_state: toState, evidence }),
+                });
+                const resultEl = document.getElementById('requestResult');
+                if (res && res.success) {
+                    resultEl.textContent = '✅ ' + res.message;
+                    resultEl.style.display = 'block';
+                    showToast('Request submitted', 'success');
+                    loadPendingApprovals();
+                    loadGovernanceStatus();
+                } else {
+                    showError('Request failed: ' + (res?.message || ''));
+                }
+            });
+        });
+    </script>    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

@@ -1,0 +1,326 @@
+"""yf_data_provider.py - Standalone yfinance data provider.
+
+Provides a single-source yfinance data layer extracted from the
+trading brain to reduce index_trader.py file size and eliminate
+duplicate code between signal and execution modules. Offers a
+single source of truth for:
+
+- fetch_intraday_data()        - 1m/5m/15m OHLCV for an index
+- fetch_intraday_data_cached() - cached variant with TTL
+- fetch_last_close_summary()   - last close price by index
+- fetch_vix()                  - India VIX snapshot
+- get_vix()                    - VIX from intraday data (1m bar)
+
+Thread-safe: module-level caches are protected by threading.RLock.
+Intended to be imported by index_trader.py and other consumers.
+"""
+
+from __future__ import annotations
+
+import logging
+import random
+import threading
+import time
+from typing import Any
+
+import yfinance as yf
+
+_log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Module-level caches (thread-safe)
+# ---------------------------------------------------------------------------
+_yf_data_cache: dict[str, tuple] = {}
+_yf_data_cache_lock = threading.RLock()
+_yf_data_cache_ts: float = 0.0
+_YF_CACHE_TTL: float = 60.0  # seconds before refresh
+
+_last_close_cache: dict[str, dict[str, Any]] = {}
+_last_close_cache_lock = threading.RLock()
+_last_close_cache_ts: float = 0.0
+
+# ── Rate limiting ────────────────────────────────────────────────────────
+# Exponential backoff: tracks consecutive failures per symbol to back off
+# before retrying, reducing unnecessary calls to yfinance during API hiccups.
+_yf_failure_count: dict[str, int] = {}
+_yf_failure_lock = threading.RLock()
+_YF_MAX_BACKOFF: float = 300.0  # max 5 min between retries
+_YF_BASE_BACKOFF: float = 5.0   # start with 5s
+_YF_BACKOFF_MULTIPLIER: float = 2.0
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+
+def _get_backoff_delay(yf_sym: str) -> float:
+    """Calculate exponential backoff delay for a symbol based on failure count.
+
+    Returns 0.0 if no backoff is needed (no recent failures).
+    """
+    with _yf_failure_lock:
+        failures = _yf_failure_count.get(yf_sym, 0)
+        if failures == 0:
+            return 0.0
+        delay = min(
+            _YF_BASE_BACKOFF * (_YF_BACKOFF_MULTIPLIER ** (failures - 1)),
+            _YF_MAX_BACKOFF,
+        )
+        # Add jitter (±25%) to avoid thundering herd when multiple symbols fail simultaneously
+        jitter = random.uniform(0.75, 1.25)
+        return delay * jitter
+
+
+def _record_failure(yf_sym: str) -> None:
+    """Increment failure count for exponential backoff."""
+    with _yf_failure_lock:
+        _yf_failure_count[yf_sym] = _yf_failure_count.get(yf_sym, 0) + 1
+
+
+def _record_success(yf_sym: str) -> None:
+    """Reset failure count on success (clear backoff)."""
+    with _yf_failure_lock:
+        _yf_failure_count.pop(yf_sym, None)
+
+
+def _flatten_columns(df: Any) -> Any:
+    """Flatten MultiIndex columns from ``yf.download`` to a single level.
+
+    yfinance >= 0.2.30 returns columns like ``[('Close', '^NSEI'), ...]`` when
+    downloading a single symbol. Consumers expect flat ``Close``/``High``/...
+    columns, so drop the trailing ticker level when present.
+    """
+    try:
+        if df is not None and not df.empty and hasattr(df.columns, "nlevels"):
+            if df.columns.nlevels > 1:
+                df.columns = df.columns.get_level_values(0)
+    except (ValueError, TypeError, AttributeError, KeyError):
+        pass  # leave as-is on any shape mismatch
+    return df
+
+
+def fetch_intraday_data(yf_sym: str) -> tuple:
+    """Fetch intraday OHLCV data (1m, 5m, 15m) for an index via yfinance.
+
+    Implements exponential backoff on failure to reduce yfinance rate limit hits.
+
+    Args:
+        yf_sym: Yahoo Finance symbol (e.g. "^NSEI", "^NSEBANK").
+
+    Returns:
+        Tuple of (df1m, df5m, df15m) - each may be None on failure.
+
+    """
+    if not yf_sym:
+        return None, None, None
+
+    # Check backoff before attempting fetch
+    delay = _get_backoff_delay(yf_sym)
+    if delay > 0:
+        _log.info("yfinance backoff: waiting %.1fs for %s (%d failures)",
+                  delay, yf_sym, _yf_failure_count.get(yf_sym, 0))
+        # Shutdown-aware wait: exit early if system is shutting down
+        _sleep_or_shutdown(delay)
+
+    try:
+        df1m = yf.download(yf_sym, period="2d", interval="1m", progress=False)
+        df5m = yf.download(yf_sym, period="5d", interval="5m", progress=False)
+        df15m = yf.download(yf_sym, period="15d", interval="15m", progress=False)
+        # Flatten MultiIndex columns (yfinance >= 0.2.30) so consumers such as
+        # FeatureEngine can index ``df["Close"]`` as a Series. Without this,
+        # ``df["Close"]`` returns a DataFrame and price extraction yields 0.0.
+        df1m = _flatten_columns(df1m)
+        df5m = _flatten_columns(df5m)
+        df15m = _flatten_columns(df15m)
+        _record_success(yf_sym)
+        return (
+            df1m if not df1m.empty else None,
+            df5m if not df5m.empty else None,
+            df15m if not df15m.empty else None,
+        )
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, ConnectionError, TimeoutError, OSError) as exc:
+        _log.warning("yfinance intraday fetch failed for %s: %s", yf_sym, exc)
+        _record_failure(yf_sym)
+        return None, None, None
+    except Exception as exc:
+        _log.warning("yfinance intraday fetch failed for %s (unexpected: %s): %s", yf_sym, type(exc).__name__, exc)
+        _record_failure(yf_sym)
+        return None, None, None
+
+
+def fetch_intraday_data_cached(yf_sym: str) -> tuple:
+    """Fetch intraday data with cross-cycle caching to avoid yfinance rate limits."""
+    global _yf_data_cache_ts
+    now = time.time()
+    with _yf_data_cache_lock:
+        if yf_sym in _yf_data_cache and now - _yf_data_cache_ts < _YF_CACHE_TTL:
+            return _yf_data_cache[yf_sym]
+    result = fetch_intraday_data(yf_sym)
+    with _yf_data_cache_lock:
+        _yf_data_cache[yf_sym] = result
+        _yf_data_cache_ts = now
+    return result
+
+
+def fetch_last_close_summary(index_map: dict[str, dict[str, str]]) -> dict[str, dict[str, Any]]:
+    """Fetch last close price and change % for each index.
+
+    Args:
+        index_map: Mapping of index name → {"yf": "<YF symbol>"}.
+
+    Returns:
+        Dict of index name → {"close": float, "change": float, "pct": float, "date": str}.
+
+    """
+    global _last_close_cache_ts
+    result: dict[str, dict[str, Any]] = {}
+    now = time.time()
+
+    for name, info in index_map.items():
+        yf_sym = info.get("yf", "")
+        if not yf_sym:
+            continue
+        try:
+            with _last_close_cache_lock:
+                if yf_sym in _last_close_cache:
+                    result[name] = _last_close_cache[yf_sym]
+                    continue
+            ticker = yf.Ticker(yf_sym)
+            h = ticker.history(period="5d", interval="1d")
+            if h.empty:
+                continue
+            last = h.iloc[-1]
+            prev = h.iloc[-2] if len(h) > 1 else last
+            change = float(last["Close"]) - float(prev["Close"])
+            pct = round(change / float(prev["Close"]) * 100, 2) if prev["Close"] else 0.0
+            last_date = h.index[-1]
+            date_str = last_date.strftime("%d-%b-%Y")
+            entry = {
+                "close": float(last["Close"]),
+                "change": round(change, 2),
+                "pct": pct,
+                "date": date_str,
+            }
+            with _last_close_cache_lock:
+                _last_close_cache[yf_sym] = entry
+            result[name] = entry
+        except (ValueError, TypeError, KeyError, AttributeError, IndexError, ConnectionError, TimeoutError, OSError) as exc:
+            _log.warning("yfinance last close fetch failed for %s (%s): %s", name, yf_sym, exc)
+            continue
+        except Exception as exc:
+            _log.warning("yfinance last close fetch failed for %s (%s) (unexpected: %s): %s", name, yf_sym, type(exc).__name__, exc)
+            continue
+
+    with _last_close_cache_lock:
+        _last_close_cache_ts = now
+    return result
+
+
+def fetch_vix() -> float:
+    """Fetch India VIX directly via yfinance.
+
+    Implements exponential backoff on failure.
+
+    Returns:
+        Latest VIX close value, or 0.0 on failure.
+
+    """
+    try:
+        delay = _get_backoff_delay("^INDIAVIX")
+        if delay > 0:
+            _log.info("yfinance VIX backoff: waiting %.1fs", delay)
+            _sleep_or_shutdown(delay)
+        vix_df = yf.download("^INDIAVIX", period="5d", interval="1d", progress=False)
+        if vix_df is not None and not vix_df.empty:
+            close_val = vix_df["Close"].iloc[-1]
+            # Handle MultiIndex columns (yfinance >= 0.2.30)
+            if hasattr(close_val, "iloc"):
+                close_val = close_val.iloc[0]
+            _record_success("^INDIAVIX")
+            return float(close_val)
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, ConnectionError, TimeoutError, OSError) as exc:
+        _log.warning("VIX fetch failed: %s", exc)
+        _record_failure("^INDIAVIX")
+        return 0.0
+    except Exception as exc:
+        _log.warning("VIX fetch failed (unexpected: %s): %s", type(exc).__name__, exc)
+        _record_failure("^INDIAVIX")
+    return 0.0
+
+
+def get_vix_from_intraday() -> float:
+    """Fetch India VIX from intraday data (1m bar).
+
+    Implements exponential backoff on failure.
+
+    Returns:
+        Latest VIX close value, or 0.0 on failure.
+
+    """
+    try:
+        delay = _get_backoff_delay("^INDIAVIX")
+        if delay > 0:
+            _log.info("yfinance VIX intraday backoff: waiting %.1fs", delay)
+            _sleep_or_shutdown(delay)
+        vix_data = yf.download("^INDIAVIX", period="1d", interval="1m", progress=False)
+        if not vix_data.empty:
+            close_val = vix_data["Close"].iloc[-1]
+            # Handle MultiIndex columns (yfinance >= 0.2.30)
+            if hasattr(close_val, "iloc"):
+                close_val = close_val.iloc[0]
+            _record_success("^INDIAVIX")
+            return float(close_val)
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError, ConnectionError, TimeoutError, OSError) as exc:
+        _log.warning("VIX intraday fetch failed: %s", exc)
+        _record_failure("^INDIAVIX")
+        return 0.0
+    except Exception as exc:
+        _log.warning("VIX intraday fetch failed (unexpected: %s): %s", type(exc).__name__, exc)
+        _record_failure("^INDIAVIX")
+    return 0.0
+
+
+# ---------------------------------------------------------------------------
+# Invalidation helpers
+# ---------------------------------------------------------------------------
+
+
+def invalidate_cache() -> None:
+    """Force cache refresh on next fetch."""
+    global _yf_data_cache_ts, _last_close_cache_ts
+    with _yf_data_cache_lock:
+        _yf_data_cache_ts = 0.0
+        _yf_data_cache.clear()
+    with _last_close_cache_lock:
+        _last_close_cache_ts = 0.0
+        _last_close_cache.clear()
+
+
+__all__ = [
+    "fetch_intraday_data",
+    "fetch_intraday_data_cached",
+    "fetch_last_close_summary",
+    "fetch_vix",
+    "get_vix_from_intraday",
+    "invalidate_cache",
+]
+
+
+# ---------------------------------------------------------------------------
+# Shutdown-aware sleep helper
+# ---------------------------------------------------------------------------
+
+
+def _sleep_or_shutdown(seconds: float) -> None:
+    """Sleep for *seconds* but wake early if shutdown signal is set.
+
+    Uses ``_shutdown.wait()`` internally so the system can shut down
+    promptly even during backoff delays, avoiding watchdog force-kills.
+    """
+    try:
+        from core.safety_state import _shutdown
+        _shutdown.wait(seconds)
+    except (ImportError, AttributeError):
+        time.sleep(seconds)
+

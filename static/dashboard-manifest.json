@@ -1,0 +1,27 @@
+{
+  "name": "OPB Index Options Buying Bot",
+  "short_name": "OPB Trader",
+  "description": "NSE Index Options signal intelligence, risk governance, and trade tracking — installable admin dashboard.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080b10",
+  "theme_color": "#3b82f6",
+  "categories": ["finance", "trading", "productivity"],
+  "lang": "en-IN",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/static/opb-icon-192.svg", "type": "image/svg+xml", "sizes": "192x192", "purpose": "any maskable" },
+    { "src": "/static/opb-icon-512.svg", "type": "image/svg+xml", "sizes": "512x512", "purpose": "any maskable" }
+  ],
+  "screenshots": [],
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "shortcuts": [
+    { "name": "Signal History", "short_name": "Signals", "url": "/admin/signals", "icons": [{ "src": "/static/opb-icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "Live P&L", "short_name": "P&L", "url": "/live-pnl", "icons": [{ "src": "/static/opb-icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "Kill Switch", "short_name": "Kill Switch", "url": "/admin/kill-switch", "icons": [{ "src": "/static/opb-icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
+}

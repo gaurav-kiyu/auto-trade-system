@@ -1,0 +1,104 @@
+# RealEstate India Platform — Docker Compose
+# ============================================================
+# Starts the real estate API service with optional database.
+#
+# Start:
+#   docker compose -f docker-compose.realestate.yml up -d
+#
+# Stop:
+#   docker compose -f docker-compose.realestate.yml down
+#
+# View logs:
+#   docker compose -f docker-compose.realestate.yml logs -f api
+#
+# Access:
+#   API:      http://localhost:8766
+#   Health:   http://localhost:8766/api/realestate/health
+#   Adminer:  http://localhost:8080 (if DB enabled)
+#
+# Production: set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET env vars
+
+version: '3.8'
+
+services:
+  # ── Real Estate API ────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.realestate
+    container_name: realestate-api
+    restart: unless-stopped
+    ports:
+      - "8766:8766"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - REAL_ESTATE_PORT=8766
+      - REAL_ESTATE_HOST=0.0.0.0
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-rzp_test_placeholder}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-test_secret}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///data/db/realestate.db}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+    volumes:
+      - realestate_data:/app/data
+      - ./json/config.json:/app/json/config.json:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8766/api/realestate/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - realestate-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Database (optional — uncomment for Postgres) ───────────────────────
+  # Comment out for SQLite-only mode (default).
+  # Requires DATABASE_URL=postgresql://user:pass@db:5432/realestate
+  #
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: realestate-db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: realestate
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+  #     POSTGRES_DB: realestate
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     - realestate-net
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U realestate"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # ── Adminer (database UI — optional) ───────────────────────────────────
+  adminer:
+    image: adminer:latest
+    container_name: realestate-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    profiles:
+      - db
+      - full
+    networks:
+      - realestate-net
+
+volumes:
+  realestate_data:
+    driver: local
+  # postgres_data:
+  #   driver: local
+
+networks:
+  realestate-net:
+    driver: bridge

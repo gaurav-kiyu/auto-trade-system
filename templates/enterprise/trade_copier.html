@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — Master Multi-Account Trade Copier</title>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 1.5rem; }
+        .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th { text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #94a3b8); padding: 0.75rem 0.8rem; border-bottom: 1px solid rgba(148,163,184,0.08); }
+        .table td { font-size: 0.8rem; padding: 0.75rem 0.8rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); vertical-align: middle; }
+        .badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 600; }
+        .badge-live { background: rgba(34,197,94,0.15); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.3); }
+        .badge-paper { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; border-radius: 0.4rem; font-size: 0.8rem; font-weight: 500; cursor: pointer; border: none; }
+        .btn-primary { background: #3b82f6; color: #fff; }
+        .btn-ghost { background: transparent; color: var(--text-muted, #94a3b8); border: 1px solid var(--border-color, #1e293b); }
+    </style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+
+<link rel="stylesheet" href="/static/report_filters.css"><script src="/static/report_filters.js" defer></script></head>
+<body>
+    {% include '_nav.html' %}
+    
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+<div>
+<h1><i class="fas fa-clone" style="margin-right:0.5rem;color:#3b82f6;"></i> Master Multi-Account Trade Copier</h1>
+<p class="subtitle">Execute master orders with automatic parallel prorating and sub-second replication across all connected client broker accounts</p>
+</div>
+<button class="btn btn-ghost" id="cspfix-1" type="button"><i class="fas fa-sync-alt"></i> Refresh Accounts</button>
+</div>
+<div style="background:#422006;border:1px solid #b45309;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:#fcd34d;font-size:0.85rem;">
+<i class="fas fa-triangle-exclamation" style="margin-right:0.4rem;"></i>
+<strong>Sample data only.</strong> The accounts below are seeded demo accounts, not real linked broker connections - no broker account-linking flow exists yet. Every replication is simulated regardless of an account's configured mode; nothing here places a real order.
+    </div>
+<!-- Master Trade Trigger Box -->
+<div class="card" style="border-left: 4px solid #3b82f6;">
+<h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-bolt" style="color:#60a5fa;margin-right:0.5rem;"></i> Execute Master Trade (Replicate to All Accounts)</h3>
+<div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+<div>
+<label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">Symbol</label>
+<input id="tradeSymbol" style="background:#0f1319;border:1px solid rgba(148,163,184,0.2);padding:0.4rem 0.6rem;border-radius:0.35rem;color: var(--text-primary, #e2e8f0);font-size:0.8rem;font-weight:600;" type="text" value="NIFTY24AUG24500CE"/>
+</div>
+<div>
+<label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">Direction</label>
+<select id="tradeDirection" style="background:#0f1319;border:1px solid rgba(148,163,184,0.2);padding:0.4rem 0.6rem;border-radius:0.35rem;color: var(--text-primary, #e2e8f0);font-size:0.8rem;">
+<option value="BUY">BUY / CALL</option>
+<option value="SELL">SELL / PUT</option>
+</select>
+</div>
+<div>
+<label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">Master Qty</label>
+<input id="tradeQty" style="background:#0f1319;border:1px solid rgba(148,163,184,0.2);padding:0.4rem 0.6rem;border-radius:0.35rem;color: var(--text-primary, #e2e8f0);font-size:0.8rem;width:80px;" type="number" value="100"/>
+</div>
+<div>
+<label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">Entry Price (₹)</label>
+<input id="tradePrice" step="0.5" style="background:#0f1319;border:1px solid rgba(148,163,184,0.2);padding:0.4rem 0.6rem;border-radius:0.35rem;color: var(--text-primary, #e2e8f0);font-size:0.8rem;width:100px;" type="number" value="135.0"/>
+</div>
+<button class="btn btn-primary" id="cspfix-2" type="button"><i class="fas fa-paper-plane"></i> Dispatch Master Trade</button>
+</div>
+</div>
+<!-- Linked Client Accounts Table -->
+<div class="card">
+<h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-users" style="color:#10b981;margin-right:0.5rem;"></i> Linked Client Broker Accounts (Multi-Tenant Mirroring)</h3>
+<div style="overflow-x:auto;">
+<table class="table">
+<thead>
+<tr>
+<th>Account ID</th>
+<th>Client Name</th>
+<th>Broker</th>
+<th>Risk Multiplier</th>
+<th>Max Capital Cap</th>
+<th>Mode</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="accountsTableBody">
+<tr><td colspan="7" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading linked accounts...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Live Replicated Execution Log -->
+<div class="card">
+<h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-history" style="color:#60a5fa;margin-right:0.5rem;"></i> Real-Time Copied Orders History</h3>
+<div style="overflow-x:auto;">
+<table class="table">
+<thead>
+<tr>
+<th>Time</th>
+<th>Order ID</th>
+<th>Client / Broker</th>
+<th>Symbol</th>
+<th>Side</th>
+<th>Copied Qty</th>
+<th>Fill Price</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="executionsTableBody">
+<tr><td colspan="8" style="text-align:center;color: var(--text-muted, #94a3b8);">No recent copied orders</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+        async function loadCopierData() {
+            const res = await fetch('/api/copier/accounts', {credentials: 'include'});
+            const data = await res.json();
+            if (!data) return;
+
+            const accTb = document.getElementById('accountsTableBody');
+            accTb.innerHTML = (data.accounts || []).map(a => `
+                <tr>
+                    <td style="font-family:monospace;color:#60a5fa;">${a.account_id}</td>
+                    <td><strong>${a.client_name}</strong></td>
+                    <td style="text-transform:uppercase;font-size:0.75rem;font-weight:600;">${a.broker_code}</td>
+                    <td style="font-weight:600;color:#facc15;">${a.risk_multiplier}x</td>
+                    <td style="font-family:monospace;">₹${a.max_capital_per_trade.toLocaleString('en-IN')}</td>
+                    <td><span class="badge ${a.mode === 'LIVE' ? 'badge-live' : 'badge-paper'}">${a.mode}</span></td>
+                    <td><span class="badge badge-live">ACTIVE</span></td>
+                </tr>
+            `).join('');
+
+            const execTb = document.getElementById('executionsTableBody');
+            const history = data.history || [];
+            if (history.length === 0) {
+                execTb.innerHTML = '<tr><td colspan="8" style="text-align:center;color: var(--text-muted, #94a3b8);">No recent copied orders</td></tr>';
+            } else {
+                execTb.innerHTML = history.map(e => `
+                    <tr>
+                        <td style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">${new Date(e.timestamp * 1000).toLocaleTimeString()}</td>
+                        <td style="font-family:monospace;font-size:0.7rem;">${e.execution_id}</td>
+                        <td><strong>${e.username}</strong> <span style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">(${e.broker_code})</span></td>
+                        <td style="font-weight:600;">${e.symbol}</td>
+                        <td><span class="badge ${e.direction === 'BUY' ? 'badge-live' : 'badge-paper'}">${e.direction}</span></td>
+                        <td style="font-family:monospace;font-weight:600;">${e.copied_quantity}</td>
+                        <td style="font-family:monospace;">₹${e.executed_price.toFixed(2)}</td>
+                        <td><span class="badge badge-live">${e.status}</span></td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function triggerMasterTrade() {
+            const sym = document.getElementById('tradeSymbol').value;
+            const dir = document.getElementById('tradeDirection').value;
+            const qty = parseInt(document.getElementById('tradeQty').value);
+            const price = parseFloat(document.getElementById('tradePrice').value);
+
+            const res = await fetch('/api/copier/execute', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({symbol: sym, direction: dir, master_quantity: qty, entry_price: price}),
+                credentials: 'include',
+            });
+            const resData = await res.json();
+            alert(`✅ Master trade dispatched! Successfully replicated across ${resData.total_replications} client accounts.`);
+            loadCopierData();
+        }
+
+        loadCopierData();
+    </script>    {% include "_pwa_sw_reg.html" %}
+    <script nonce="{{ nonce }}">
+        // Wired via addEventListener, not inline attributes - CSP's script-src
+        // has no 'unsafe-inline', which silently blocks inline event-handler
+        // attributes even though a nonce'd block itself can still run (2026-08-22 fix).
+        document.getElementById('cspfix-1')?.addEventListener('click', function(event) { loadCopierData() });
+        document.getElementById('cspfix-2')?.addEventListener('click', function(event) { triggerMasterTrade() });
+    </script>
+</body>
+</html>

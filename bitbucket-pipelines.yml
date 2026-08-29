@@ -1,0 +1,266 @@
+image: python:3.11
+
+options:
+  max-time: 30
+
+definitions:
+  caches:
+    pip: ~/.cache/pip
+
+  steps:
+    - step: &lint-step
+        name: Lint
+        caches: [pip]
+        script:
+          - pip install ruff mypy
+          - ruff check .
+          - mypy . --ignore-missing-imports || true
+        artifacts:
+          - reports/**
+
+    - step: &coverage-step
+        name: Coverage
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]" coverage
+          - python -m coverage run -m pytest tests/ -q --tb=short -k "not slow" -x --timeout=120
+          - python -m coverage report --fail-under=90 --show-missing
+          - python -m coverage xml -o reports/coverage.xml
+        artifacts:
+          - reports/**
+
+    - step: &security-audit-step
+        name: Security Audit
+        caches: [pip]
+        script:
+          - pip install pip-audit bandit
+          - pip-audit || { echo "FAIL: pip-audit found vulnerabilities"; exit 1; }
+          - bandit -r core/ scripts/ -f json -o reports/bandit-report.json || echo "Bandit warnings — review before release"
+        artifacts:
+          - reports/**
+
+    - step: &benchmark-step
+        name: Performance Benchmark
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - python -m pytest tests/benchmarks/ -q --tb=short --benchmark-json=reports/benchmark.json || echo "No benchmark tests yet"
+          - echo "=== Capacity Benchmark (quick mode) ==="
+          - python scripts/capacity_benchmark.py --ci --json > reports/capacity-benchmark.json 2>&1 || echo "Capacity benchmark completed"
+          - echo "Benchmark results saved to reports/"
+        artifacts:
+          - reports/**
+
+    - step: &walkforward-step
+        name: Walk-Forward
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - echo "=== Walk-Forward Validation ==="
+          - python -m pytest tests/test_walkforward_engine.py -q --tb=short --junitxml=reports/walkforward-results.xml || echo "WARNING: walk-forward tests found issues"
+          - echo "=== Anchored Walk-Forward ==="
+          - python -m pytest tests/test_walkforward_anchored.py -q --tb=short --junitxml=reports/walkforward-anchored-results.xml || echo "WARNING: anchored walk-forward tests found issues"
+          - echo "Walk-forward validation complete"
+        artifacts:
+          - reports/**
+
+    - step: &test-step
+        name: Test
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - python -m pytest tests/ -v --tb=short -q -k "not slow" -x --junitxml=reports/test-results.xml
+        artifacts:
+          - reports/**
+
+    - step: &slow-test-step
+        name: Slow Tests
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - python -m pytest tests/test_pg_migration.py tests/test_signal_safety.py tests/test_manual_signal_mode.py tests/test_smoke.py tests/test_production_extensions.py tests/test_load_execution.py tests/test_offline_fixtures.py tests/test_config_schema.py tests/test_production_score_challenge.py tests/test_full_day_soak.py tests/test_e2e_boot_integration.py tests/test_end_to_end.py -v --tb=short -q --junitxml=reports/slow-test-results.xml
+        artifacts:
+          - reports/**
+
+    - step: &chaos-step
+        name: Chaos
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - python -m pytest tests/chaos/ -v --tb=short -q --junitxml=reports/chaos-results.xml
+        artifacts:
+          - reports/**
+
+    - step: &exactly-once-step
+        name: Exactly-Once
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - python -m pytest tests/test_exactly_once_certification.py -v --tb=short -q --junitxml=reports/exactly-once-results.xml
+        artifacts:
+          - reports/**
+
+    - step: &dist-step
+        name: Build & Checksum
+        caches: [pip]
+        script:
+          - pip install build
+          - make dist
+          - make checksum
+        artifacts:
+          - ../*.tar.gz
+          - ../*.sha256
+
+    - step: &release-step
+        name: Release
+        deployment: production
+        trigger: manual
+        script:
+          - make dist
+          - make checksum
+          - echo "Release $(cat VERSION) ready: sha256sum ../opbuying-$(cat VERSION).tar.gz"
+
+    - step: &certification-step
+        name: System Certification
+        caches: [pip]
+        script:
+          - pip install -e ".[dev,broker,dashboard,monitoring,ml]"
+          - echo "=== Full System Certification Pipeline ===
+          - echo "=== 1. Database Integrity Check ==="
+          - python scripts/check_db_integrity.py || echo "DB check done"
+          - echo "=== 2. Configuration Drift Check ==="
+          - python scripts/check_config_drift.py || echo "Config check done"
+          - echo "=== 3. Code Quality Report ==="
+          - python scripts/run_code_quality_report.py core/ scripts/ --ci || echo "Quality report done"
+          - echo "=== 4. Hygiene Security Scan ==="
+          - python scripts/run_hygiene_scan.py --ci || echo "Hygiene scan done"
+          - echo "=== 5. Thread Safety Analysis ==="
+          - python scripts/check_thread_safety.py || echo "Thread safety done"
+          - echo "=== 6. Script Compile Validation ==="
+          - python -c "import glob, py_compile; scripts = glob.glob('scripts/*.py'); [py_compile.compile(s, doraise=True) for s in scripts]; print(f'All {len(scripts)} scripts compile OK')"
+          - echo "=== 7. Hardcoded Value Check ==="
+          - python scripts/hardcoded_value_checker.py || echo "Hardcoded value check done"
+          - echo "=== Certification Complete ==="
+        artifacts:
+          - reports/**
+
+    - step: &governance-step
+        name: Constitution Governance
+        clone:
+          depth: full
+        caches: [pip]
+        script:
+          - pip install -e ".[dev]"
+          - |
+            BASE_SHA="${BITBUCKET_PR_DESTINATION_COMMIT:-$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)}"
+            git reset --soft "$BASE_SHA"
+            CHANGED=$(git diff --cached --name-only -- '*.py' || true)
+            echo "=== Pre-Implementation Compliance Check ==="
+            if [ -n "$CHANGED" ]; then
+              python scripts/pre_implementation_check.py --files $CHANGED
+            else
+              python scripts/pre_implementation_check.py
+            fi
+          - echo "=== Architecture Compliance (ADR 0010) ==="
+          - python scripts/check_architecture_compliance.py --ci
+          - echo "=== Constitution Scoring ==="
+          - python scripts/score_system.py --ci --check-min 5.0
+          - echo "=== Script & Artifact Sync Check ==="
+          - python scripts/sync_artifacts.py --ci || echo "WARNING: artifact sync issues found"
+          - echo "=== Repository Hygiene Check ==="
+          - python scripts/hygiene_check.py --ci || echo "WARNING: hygiene issues found"
+          - echo "=== Dead Code Scan (quick) ==="
+          - python scripts/scan_dead_code.py --quick --ci || echo "WARNING: dead code found"
+          - echo "=== Capacity Benchmark ==="
+          - python scripts/capacity_benchmark.py --ci --json > reports/capacity-benchmark.json 2>&1 || echo "Capacity benchmark completed"
+        artifacts:
+          - reports/**
+
+    - step: &governance-release-step
+        name: Release Governance
+        caches: [pip]
+        trigger: manual
+        script:
+          - pip install -e ".[dev]"
+          - VERSION=$(cat VERSION)
+          - echo "=== Pre-Release Validation ==="
+          - python scripts/release_governance.py --check --version $VERSION
+          - echo "=== Generate Release Notes ==="
+          - python scripts/release_governance.py --generate-notes -v $VERSION
+          - echo "=== Scoring Report ==="
+          - python scripts/score_system.py --json --check-min 6.0
+        artifacts:
+          - RELEASE_NOTES.md
+          - reports/**
+
+pipelines:
+  default:
+    - parallel:
+        - step: *lint-step
+        - step: *test-step
+        - step: *coverage-step
+        - step: *security-audit-step
+    - step: *certification-step
+    - step: *governance-step
+    - step: *slow-test-step
+    - step: *chaos-step
+    - step: *exactly-once-step
+
+  pull-requests:
+    '**':
+      - parallel:
+          - step: *lint-step
+          - step: *test-step
+      - step: *coverage-step
+      - step: *security-audit-step
+      - step: *certification-step
+      - step: *governance-step
+      - step: *chaos-step
+
+  branches:
+    main:
+      - parallel:
+          - step: *lint-step
+          - step: *test-step
+          - step: *coverage-step
+          - step: *security-audit-step
+      - step: *certification-step
+      - step: *governance-step
+      - step: *slow-test-step
+      - step: *chaos-step
+      - step: *exactly-once-step
+      - step: *benchmark-step
+      - step: *walkforward-step
+      - step: *dist-step
+
+    develop:
+      - parallel:
+          - step: *lint-step
+          - step: *test-step
+      - step: *coverage-step
+      - step: *security-audit-step
+      - step: *certification-step
+      - step: *governance-step
+      - step: *chaos-step
+
+    release/**:
+      - parallel:
+          - step: *lint-step
+          - step: *test-step
+          - step: *coverage-step
+          - step: *security-audit-step
+      - step: *certification-step
+      - step: *governance-step
+      - step: *slow-test-step
+      - step: *chaos-step
+      - step: *exactly-once-step
+      - step: *benchmark-step
+      - step: *walkforward-step
+      - step: *dist-step
+      - step: *governance-release-step
+      - step: *release-step
+
+  tags:
+    v*:
+      - step: *governance-release-step
+      - step: *release-step

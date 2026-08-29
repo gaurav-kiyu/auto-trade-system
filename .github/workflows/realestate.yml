@@ -1,0 +1,133 @@
+# RealEstate India Platform — CI/CD Pipeline
+# Runs tests, coverage, linting, and optional Playwright E2E tests
+name: RealEstate Platform CI
+
+on:
+  push:
+    branches: [main, develop, 'release/*']
+    paths:
+      - 'realestate/**'
+      - 'core/static/**'
+      - 'templates/realestate/**'
+      - 'tests/test_realestate*.py'
+      - '.github/workflows/realestate.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'realestate/**'
+      - 'tests/test_realestate*.py'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,broker,dashboard,monitoring,ml]"
+          pip install -r requirements-dev.txt
+          pip install coverage pytest-timeout 2>/dev/null || true
+
+      - name: Run real estate tests
+        run: |
+          python -m pytest tests/test_realestate.py tests/test_realestate_notifications.py tests/test_realestate_modules.py \
+            -v --tb=short --timeout=120 -q \
+            --junitxml=reports/realestate-junit.xml
+
+      - name: Run startup tests
+        run: |
+          python -m pytest tests/test_startup.py -x -q --tb=short --timeout=60
+
+      - name: Coverage report
+        run: |
+          python -m coverage run --source=realestate -m pytest tests/test_realestate.py tests/test_realestate_notifications.py tests/test_realestate_modules.py -q --tb=short --timeout=120
+          python -m coverage report --fail-under=30 --show-missing
+          python -m coverage xml -o reports/realestate-coverage.xml --fail-under=30
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: realestate-coverage
+          path: reports/realestate-coverage.xml
+
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install deps
+        run: |
+          pip install flake8 mypy 2>/dev/null || true
+          pip install -e ".[dev]" 2>/dev/null || true
+      - name: Flake8 (realestate only)
+        run: |
+          flake8 realestate/ --max-line-length=120 --extend-ignore=E203,W503 --statistics --exit-zero
+        continue-on-error: true
+      - name: mypy (realestate only)
+        run: |
+          mypy realestate/ --ignore-missing-imports --follow-imports=silent --exit-zero
+        continue-on-error: true
+
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install deps
+        run: |
+          pip install -e ".[dev,broker,dashboard,monitoring,ml]"
+          pip install pytest-playwright
+          playwright install chromium --with-deps
+      - name: Run E2E tests
+        run: |
+          python -m pytest tests/e2e/test_realestate_flows.py -v --tb=short --timeout=120 \
+            --junitxml=reports/e2e-results.xml
+        continue-on-error: true
+      - name: Upload E2E results
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: reports/e2e-results.xml
+
+  pwa-audit:
+    name: PWA Lighthouse Audit
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: false  # Disabled by default — requires running server
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lighthouse CI Action
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            http://localhost:8765/realestate
+          uploadArtifacts: true
+          temporaryPublicStorage: true

@@ -1,0 +1,193 @@
+# OPB WEB CLOSURE WIP55 — True UI Route Inventory
+
+Raw WIP53 UI route candidates: 44
+Parser/template artifacts removed: 7
+True route-like UI references: 37
+Distinct explicit navigation declarations: 146
+
+## True route-like UI references
+- `/ab-tester`
+- `/admin/config`
+- `/admin/kill-switch`
+- `/admin/portfolio-analyzer`
+- `/admin/signals`
+- `/admin/users`
+- `/capacity`
+- `/change-password`
+- `/dashboard-sw.js`
+- `/data-quality`
+- `/event-store`
+- `/expiry-harvester`
+- `/fii-dii-radar`
+- `/forgot-password`
+- `/governance`
+- `/intelligence`
+- `/intelligence/presentation`
+- `/live-pnl`
+- `/margin-radar`
+- `/metrics-trend`
+- `/my-signals`
+- `/observability`
+- `/options-chain`
+- `/payoff-calculator`
+- `/performance`
+- `/pricing-plans`
+- `/profile`
+- `/realestate`
+- `/realestate/search`
+- `/register`
+- `/sector-radar`
+- `/security`
+- `/strategy-sandbox`
+- `/system-health`
+- `/trade-copier`
+- `/trade-journal`
+- `/whats-new`
+
+## Explicit href/data navigation declarations
+- `/strategy-sandbox` — `templates/enterprise/dashboard.html`
+- `/strategy-sandbox` — `templates/enterprise/dashboard.html`
+- `/my-signals` — `templates/enterprise/dashboard.html`
+- `/live-pnl` — `templates/enterprise/dashboard.html`
+- `/options-chain` — `templates/enterprise/dashboard.html`
+- `/trade-journal` — `templates/enterprise/dashboard.html`
+- `/sector-radar` — `templates/enterprise/dashboard.html`
+- `/strategy-sandbox` — `templates/enterprise/dashboard.html`
+- `/margin-radar` — `templates/enterprise/dashboard.html`
+- `/governance` — `templates/enterprise/dashboard.html`
+- `/admin/config` — `templates/enterprise/dashboard.html`
+- `/admin/kill-switch` — `templates/enterprise/dashboard.html`
+- `/login` — `templates/enterprise/intelligence.html`
+- `/login` — `templates/enterprise/intelligence.html`
+- `/forgot-password` — `templates/enterprise/login.html`
+- `/register` — `templates/enterprise/login.html`
+- `/login` — `templates/enterprise/data_quality.html`
+- `/admin/config` — `templates/enterprise/admin_config.html`
+- `/admin/signals` — `templates/enterprise/admin_config.html`
+- `/admin/portfolio-analyzer` — `templates/enterprise/admin_config.html`
+- `/login` — `templates/enterprise/admin_config.html`
+- `/login` — `templates/enterprise/ab_tester.html`
+- `/login` — `templates/enterprise/event_store.html`
+- `/admin/config` — `templates/enterprise/admin_portfolio_analyzer.html`
+- `/admin/signals` — `templates/enterprise/admin_portfolio_analyzer.html`
+- `/admin/portfolio-analyzer` — `templates/enterprise/admin_portfolio_analyzer.html`
+- `/admin/portfolio-analyzer` — `templates/enterprise/admin_portfolio_analyzer.html`
+- `/login` — `templates/enterprise/admin_portfolio_analyzer.html`
+- `/admin/portfolio-analyzer` — `templates/enterprise/admin_portfolio_analyzer.html`
+- `/` — `templates/enterprise/_pwa_mobile_nav.html`
+- `/performance` — `templates/enterprise/_pwa_mobile_nav.html`
+- `/trade-journal` — `templates/enterprise/_pwa_mobile_nav.html`
+- `/metrics-trend` — `templates/enterprise/_pwa_mobile_nav.html`
+- `/live-pnl` — `templates/enterprise/_pwa_mobile_nav.html`
+- `/login` — `templates/enterprise/user_signals.html`
+- `/admin/config` — `templates/enterprise/admin_signals.html`
+- `/admin/signals` — `templates/enterprise/admin_signals.html`
+- `/admin/portfolio-analyzer` — `templates/enterprise/admin_signals.html`
+- `/login` — `templates/enterprise/admin_signals.html`
+- `/login` — `templates/enterprise/security.html`
+- `/admin/config` — `templates/enterprise/admin_users.html`
+- `/admin/signals` — `templates/enterprise/admin_users.html`
+- `/admin/portfolio-analyzer` — `templates/enterprise/admin_users.html`
+- `/login` — `templates/enterprise/admin_users.html`
+- `/login` — `templates/enterprise/capacity.html`
+- `/login` — `templates/enterprise/observability.html`
+- `/login` — `templates/enterprise/kill_switch.html`
+- `/login` — `templates/enterprise/reset_password.html`
+- `/login` — `templates/enterprise/reset_password.html`
+- `/` — `templates/enterprise/error.html`
+- `/login` — `templates/enterprise/error.html`
+- `/my-signals` — `templates/enterprise/pricing_plans.html`
+- `/` — `templates/enterprise/change_password.html`
+- `/login` — `templates/enterprise/forgot_password.html`
+- `/login` — `templates/enterprise/forgot_password.html`
+- `/login` — `templates/enterprise/governance.html`
+- `/login` — `templates/enterprise/trade_journal.html`
+- `/login` — `templates/enterprise/register.html`
+- `/login` — `templates/enterprise/register.html`
+- `/login` — `templates/enterprise/options_chain.html`
+- `/login` — `templates/enterprise/system_health.html`
+- `/my-signals` — `templates/enterprise/profile.html`
+- `/live-pnl` — `templates/enterprise/profile.html`
+- `/options-chain` — `templates/enterprise/profile.html`
+- `/login` — `templates/enterprise/profile.html`
+- `/login` — `templates/enterprise/performance.html`
+- `/` — `templates/enterprise/_nav.html`
+- `/admin/kill-switch` — `templates/enterprise/_nav.html`
+- `/profile` — `templates/enterprise/_nav.html`
+- `/logout` — `templates/enterprise/_nav.html`
+- `/` — `templates/enterprise/_nav.html`
+- `/my-signals` — `templates/enterprise/_nav.html`
+- `/options-chain` — `templates/enterprise/_nav.html`
+- `/options-chain` — `templates/enterprise/_nav.html`
+- `/sector-radar` — `templates/enterprise/_nav.html`
+- `/fii-dii-radar` — `templates/enterprise/_nav.html`
+- `/expiry-harvester` — `templates/enterprise/_nav.html`
+- `/margin-radar` — `templates/enterprise/_nav.html`
+- `/live-pnl` — `templates/enterprise/_nav.html`
+- `/live-pnl` — `templates/enterprise/_nav.html`
+- `/trade-journal` — `templates/enterprise/_nav.html`
+- `/trade-copier` — `templates/enterprise/_nav.html`
+- `/payoff-calculator` — `templates/enterprise/_nav.html`
+- `/performance` — `templates/enterprise/_nav.html`
+- `/strategy-sandbox` — `templates/enterprise/_nav.html`
+- `/strategy-sandbox` — `templates/enterprise/_nav.html`
+- `/intelligence` — `templates/enterprise/_nav.html`
+- `/ab-tester` — `templates/enterprise/_nav.html`
+- `/metrics-trend` — `templates/enterprise/_nav.html`
+- `/admin/config` — `templates/enterprise/_nav.html`
+- `/admin/users` — `templates/enterprise/_nav.html`
+- `/admin/config` — `templates/enterprise/_nav.html`
+- `/admin/signals` — `templates/enterprise/_nav.html`
+- `/admin/portfolio-analyzer` — `templates/enterprise/_nav.html`
+- `/governance` — `templates/enterprise/_nav.html`
+- `/security` — `templates/enterprise/_nav.html`
+- `/observability` — `templates/enterprise/_nav.html`
+- `/system-health` — `templates/enterprise/_nav.html`
+- `/data-quality` — `templates/enterprise/_nav.html`
+- `/capacity` — `templates/enterprise/_nav.html`
+- `/event-store` — `templates/enterprise/_nav.html`
+- `/pricing-plans` — `templates/enterprise/_nav.html`
+- `/whats-new` — `templates/enterprise/_nav.html`
+- `/intelligence/presentation` — `templates/enterprise/_nav.html`
+- `/admin/kill-switch` — `templates/enterprise/_nav.html`
+- `/` — `templates/enterprise/_nav.html`
+- `/admin/kill-switch` — `templates/enterprise/_nav.html`
+- `/logout` — `templates/enterprise/_nav.html`
+- `/` — `templates/enterprise/_nav.html`
+- `/my-signals` — `templates/enterprise/_nav.html`
+- `/strategy-sandbox` — `templates/enterprise/_nav.html`
+- `/intelligence` — `templates/enterprise/_nav.html`
+- `/options-chain` — `templates/enterprise/_nav.html`
+- `/margin-radar` — `templates/enterprise/_nav.html`
+- `/sector-radar` — `templates/enterprise/_nav.html`
+- `/fii-dii-radar` — `templates/enterprise/_nav.html`
+- `/expiry-harvester` — `templates/enterprise/_nav.html`
+- `/live-pnl` — `templates/enterprise/_nav.html`
+- `/trade-journal` — `templates/enterprise/_nav.html`
+- `/trade-copier` — `templates/enterprise/_nav.html`
+- `/payoff-calculator` — `templates/enterprise/_nav.html`
+- `/performance` — `templates/enterprise/_nav.html`
+- `/metrics-trend` — `templates/enterprise/_nav.html`
+- `/admin/users` — `templates/enterprise/_nav.html`
+- `/admin/config` — `templates/enterprise/_nav.html`
+- `/admin/signals` — `templates/enterprise/_nav.html`
+- `/admin/portfolio-analyzer` — `templates/enterprise/_nav.html`
+- `/governance` — `templates/enterprise/_nav.html`
+- `/security` — `templates/enterprise/_nav.html`
+- `/observability` — `templates/enterprise/_nav.html`
+- `/system-health` — `templates/enterprise/_nav.html`
+- `/data-quality` — `templates/enterprise/_nav.html`
+- `/capacity` — `templates/enterprise/_nav.html`
+- `/event-store` — `templates/enterprise/_nav.html`
+- `/ab-tester` — `templates/enterprise/_nav.html`
+- `/pricing-plans` — `templates/enterprise/_nav.html`
+- `/whats-new` — `templates/enterprise/_nav.html`
+- `/intelligence/presentation` — `templates/enterprise/_nav.html`
+- `/admin/kill-switch` — `templates/enterprise/_nav.html`
+- `/profile` — `templates/enterprise/_nav.html`
+- `/logout` — `templates/enterprise/_nav.html`
+- `/` — `templates/enterprise/_nav.html`
+- `/my-signals` — `templates/enterprise/_nav.html`
+- `/live-pnl` — `templates/enterprise/_nav.html`
+- `/options-chain` — `templates/enterprise/_nav.html`
+- `/login` — `templates/enterprise/live_pnl.html`

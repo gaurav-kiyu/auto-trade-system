@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — A/B Strategy Tester</title>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 1rem; text-align: center; }
+        .stat-value { font-size: 1.25rem; font-weight: 700; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 0.25rem; }
+        .stat-positive { color: var(--success-color, #16a34a); }
+        .stat-negative { color: var(--danger-color, #dc2626); }
+        .badge { display: inline-flex; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 500; }
+        .badge-ok { background: rgba(34,197,94,0.1); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.15); }
+        .badge-warn { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.15); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #94a3b8); padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.08); }
+        td { font-size: 0.8rem; padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; border-radius: 0.5rem; font-size: 0.75rem; cursor: pointer; border: none; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-ghost { background: transparent; color: var(--text-muted, #94a3b8); border: 1px solid var(--border-color, #1e293b); }
+    </style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+    <h1><i class="fas fa-flask" style="color:#a855f7;margin-right:0.5rem;"></i> A/B Strategy Tester</h1>
+<p class="subtitle">Paper-only CONTROL vs VARIANT comparison with Mann-Whitney significance testing</p>
+<div class="grid-4" id="summaryCards">
+<div class="stat-card"><div class="stat-value" id="tradesControl">-</div><div class="stat-label">Control Trades</div></div>
+<div class="stat-card"><div class="stat-value" id="tradesVariant">-</div><div class="stat-label">Variant Trades</div></div>
+<div class="stat-card"><div class="stat-value" id="pValue">-</div><div class="stat-label">P-Value</div></div>
+<div class="stat-card"><div class="stat-value" id="significant">-</div><div class="stat-label">Significant?</div></div>
+</div>
+<div class="card">
+<h3 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Results Comparison</h3>
+<div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<table><thead><tr><th>Metric</th><th>Control</th><th>Variant</th><th>Difference</th></tr></thead><tbody id="comparisonBody"><tr><td colspan="4" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody></table>
+</div>
+</div>
+<div class="card">
+<div style="display:flex;gap:0.75rem;">
+<button class="btn btn-danger" id="resetBtn" type="button"><i class="fas fa-redo"></i> Reset Experiment</button>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+        function getCookie(n){const m=document.cookie.match(new RegExp('(^| )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):'';}
+        async function apiFetch(url,o={}){const h={'Content-Type':'application/json',...o.headers};const t=getCookie('opb_csrf');if(t&&o.method&&o.method!=='GET')h['X-CSRF-Token']=t;const r=await fetch(url,{headers:h,credentials:'include',...o});if(r.status===401){window.location.href='/login';return null}return r.json();}
+        function fmtPnl(v){if(v==null)return '-';return '<span class="'+(v>=0?'stat-positive':'stat-negative')+'">₹'+v.toFixed(2)+'</span>';}
+
+        async function load() {
+            const data = await apiFetch('/api/system/ab-test');
+            if (!data) return;
+            const cTrades = data.control?.n_trades ?? data.control?.trades ?? data.control_trades ?? 0;
+            const vTrades = data.variant?.n_trades ?? data.variant?.trades ?? data.variant_trades ?? 0;
+            document.getElementById('tradesControl').textContent = cTrades;
+            document.getElementById('tradesVariant').textContent = vTrades;
+            const pVal = data.p_value != null ? Number(data.p_value) : 1.0;
+            document.getElementById('pValue').textContent = pVal.toFixed(4);
+            const sig = (data.is_significant === true) || (pVal < 0.05 && (cTrades > 0 || vTrades > 0));
+            document.getElementById('significant').innerHTML = sig ? '<span class="badge badge-ok">YES (p < 0.05)</span>' : '<span class="badge badge-warn">NO</span>';
+
+            const cPnl = Number(data.control?.total_pnl || 0);
+            const vPnl = Number(data.variant?.total_pnl || 0);
+            const cWin = Number(data.control?.win_rate || 0);
+            const vWin = Number(data.variant?.win_rate || 0);
+            const cAvg = cTrades > 0 ? (cPnl / cTrades) : 0.0;
+            const vAvg = vTrades > 0 ? (vPnl / vTrades) : 0.0;
+
+            const tb = document.getElementById('comparisonBody');
+            const rows = [
+                ['Total PnL', cPnl, vPnl, vPnl - cPnl],
+                ['Win Rate', (cWin * 100).toFixed(1) + '%', (vWin * 100).toFixed(1) + '%', ((vWin - cWin) * 100).toFixed(1) + '%'],
+                ['Avg Trade PnL', cAvg, vAvg, vAvg - cAvg],
+                ['Profit Factor', Number(data.control?.profit_factor || 0).toFixed(2), Number(data.variant?.profit_factor || 0).toFixed(2), (Number(data.variant?.profit_factor || 0) - Number(data.control?.profit_factor || 0)).toFixed(2)],
+                ['Sharpe Ratio', Number(data.control?.sharpe || 0).toFixed(2), Number(data.variant?.sharpe || 0).toFixed(2), (Number(data.variant?.sharpe || 0) - Number(data.control?.sharpe || 0)).toFixed(2)]
+            ];
+
+            tb.innerHTML = rows.map(([k, c, v, diff]) => {
+                let diffHtml = diff;
+                if (typeof diff === 'number') {
+                    diffHtml = fmtPnl(diff);
+                } else if (typeof diff === 'string' && diff.startsWith('+')) {
+                    diffHtml = '<span class="stat-positive">' + diff + '</span>';
+                }
+                const cVal = typeof c === 'number' ? '₹' + c.toFixed(2) : c;
+                const vVal = typeof v === 'number' ? '₹' + v.toFixed(2) : v;
+                return '<tr><td><strong>' + k + '</strong></td><td>' + cVal + '</td><td>' + vVal + '</td><td>' + diffHtml + '</td></tr>';
+            }).join('');
+        }
+
+        document.getElementById('resetBtn').addEventListener('click', async () => {
+            if (!confirm('Reset A/B experiment? This will clear all current data.')) return;
+            const res = await apiFetch('/api/system/ab-test?reset=true', {method:'POST'});
+            if (res && res.success) { load(); alert('Experiment reset successfully'); }
+        });
+
+        document.addEventListener('DOMContentLoaded', ()=>{load();document.querySelectorAll('.tab[data-tab]').forEach(t=>t.addEventListener('click',function(){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('section-'+this.dataset.tab).classList.add('active');}));setInterval(load,30000);});
+    </script>    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

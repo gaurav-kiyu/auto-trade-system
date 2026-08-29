@@ -1,0 +1,136 @@
+{
+  "targets": [
+    {
+      "n": 1,
+      "path": "core/auth/sso.py",
+      "line": 17,
+      "matched": "redirect_uri=\"https://example.com/api/auth/sso/callback\",",
+      "context": [
+        "- `14:         provider=\"google\",`",
+        "- `15:         client_id=\"...\",`",
+        "- `16:         client_secret=\"...\",`",
+        "- `17:         redirect_uri=\"https://example.com/api/auth/sso/callback\",`",
+        "- `18:     )`",
+        "- `19: `",
+        "- `20:     # FastAPI routes:`"
+      ],
+      "actual": "redirect_uri=\"https://example.com/api/auth/sso/callback\",",
+      "classification": "EXTERNAL_LINK_CANDIDATE"
+    },
+    {
+      "n": 2,
+      "path": "core/auth/sso.py",
+      "line": 167,
+      "matched": "redirect_uri=cfg.get(\"sso_redirect_uri\", \"\"),",
+      "context": [
+        "- `164:             provider=provider,`",
+        "- `165:             client_id=cfg.get(\"sso_client_id\", \"\"),`",
+        "- `166:             client_secret=cfg.get(\"sso_client_secret\", \"\"),`",
+        "- `167:             redirect_uri=cfg.get(\"sso_redirect_uri\", \"\"),`",
+        "- `168:             authorize_url=cfg.get(\"sso_authorize_url\", provider_cfg.get(\"authorize_url\", \"\")),`",
+        "- `169:             token_url=cfg.get(\"sso_token_url\", provider_cfg.get(\"token_url\", \"\")),`",
+        "- `170:             userinfo_url=cfg.get(\"sso_userinfo_url\", provider_cfg.get(\"userinfo_url\", \"\")),`"
+      ],
+      "actual": "redirect_uri=cfg.get(\"sso_redirect_uri\", \"\"),",
+      "classification": "EXTERNAL_LINK_CANDIDATE"
+    },
+    {
+      "n": 3,
+      "path": "core/auth/sso.py",
+      "line": 199,
+      "matched": "_log.warning(\"[SSO] SSO not configured: missing client_id or redirect_uri\")",
+      "context": [
+        "- `196:             _log.warning(\"[SSO] authlib not installed -- cannot generate auth URL\")`",
+        "- `197:             return None`",
+        "- `198:         if not self._config.client_id or not self._config.redirect_uri:`",
+        "- `199:             _log.warning(\"[SSO] SSO not configured: missing client_id or redirect_uri\")`",
+        "- `200:             return None`",
+        "- `201: `",
+        "- `202:         state = state or secrets.token_urlsafe(32)`"
+      ],
+      "actual": "_log.warning(\"[SSO] SSO not configured: missing client_id or redirect_uri\")",
+      "classification": "EXTERNAL_LINK_CANDIDATE"
+    },
+    {
+      "n": 4,
+      "path": "core/auth/sso.py",
+      "line": 212,
+      "matched": "redirect_uri=self._config.redirect_uri,",
+      "context": [
+        "- `209:             session = OAuth2Session(`",
+        "- `210:                 client_id=self._config.client_id,`",
+        "- `211:                 client_secret=self._config.client_secret,`",
+        "- `212:                 redirect_uri=self._config.redirect_uri,`",
+        "- `213:                 scope=self._config.scope,`",
+        "- `214:             )`",
+        "- `215:             uri, _ = session.create_authorization_url(`"
+      ],
+      "actual": "redirect_uri=self._config.redirect_uri,",
+      "classification": "EXTERNAL_LINK_CANDIDATE"
+    },
+    {
+      "n": 5,
+      "path": "core/auth/sso.py",
+      "line": 258,
+      "matched": "redirect_uri=self._config.redirect_uri,",
+      "context": [
+        "- `255:             async with OAuth2Client(`",
+        "- `256:                 client_id=self._config.client_id,`",
+        "- `257:                 client_secret=self._config.client_secret,`",
+        "- `258:                 redirect_uri=self._config.redirect_uri,`",
+        "- `259:                 scope=self._config.scope,`",
+        "- `260:             ) as client:`",
+        "- `261:                 # Exchange code for token`"
+      ],
+      "actual": "redirect_uri=self._config.redirect_uri,",
+      "classification": "EXTERNAL_LINK_CANDIDATE"
+    },
+    {
+      "n": 6,
+      "path": "core/auth/sso.py",
+      "line": 431,
+      "matched": "issues.append(\"Missing sso_redirect_uri\")",
+      "context": [
+        "- `428:         if not self._config.client_secret:`",
+        "- `429:             issues.append(\"Missing sso_client_secret\")`",
+        "- `430:         if not self._config.redirect_uri:`",
+        "- `431:             issues.append(\"Missing sso_redirect_uri\")`",
+        "- `432:         if not self._config.authorize_url:`",
+        "- `433:             issues.append(\"Missing sso_authorize_url (check provider config)\")`",
+        "- `434:         if not self._config.token_url:`"
+      ],
+      "actual": "issues.append(\"Missing sso_redirect_uri\")",
+      "classification": "EXTERNAL_LINK_CANDIDATE"
+    },
+    {
+      "n": 7,
+      "path": "core/auth/routes.py",
+      "line": 1085,
+      "matched": "app_config[\"sso_redirect_uri\"] = sso_redirect_uri",
+      "context": [
+        "- `1082:                 \"/api/auth/sso/callback\",`",
+        "- `1083:                 cfg=app_config,`",
+        "- `1084:             )`",
+        "- `1085:             app_config[\"sso_redirect_uri\"] = sso_redirect_uri`",
+        "- `1086:             sso = SSOAuthenticator.from_config(auth_handler, app_config)`",
+        "- `1087: `",
+        "- `1088:         # Keep the OAuth callback on the canonical public origin configured for`"
+      ],
+      "actual": "app_config[\"sso_redirect_uri\"] = sso_redirect_uri",
+      "classification": "EXTERNAL_LINK_CANDIDATE"
+    }
+  ],
+  "repair_candidates": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "already_centralized": [],
+  "ambiguous": [],
+  "deployment": false,
+  "certified": false
+}

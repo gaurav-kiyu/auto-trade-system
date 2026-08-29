@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — Super Admin User &amp; Signal Permissions</title>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        .table-filter-input { width:100%; min-width:82px; margin-top:0.35rem; box-sizing:border-box; background:var(--input-bg,#0b1120); border:1px solid var(--border-color,#334155); border-radius:0.35rem; color:var(--text-primary,#e2e8f0); font-size:0.68rem; padding:0.32rem 0.4rem; outline:none; }
+        .table-filter-input:focus { border-color:var(--accent-color,#38bdf8); box-shadow:0 0 0 2px rgba(56,189,248,0.10); }
+        .admin-users-table th.actions-col, .admin-users-table td.actions-col { min-width:210px; white-space:nowrap; }
+        @media (max-width: 900px) { .admin-users-table th, .admin-users-table td { white-space:nowrap; } .admin-users-table .actions-col { position:sticky; right:0; } }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 1.5rem; }
+        .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 1rem; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: #60a5fa; margin-top: 0.25rem; }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.04em; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th { text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #94a3b8); padding: 0.75rem 0.8rem; border-bottom: 1px solid rgba(148,163,184,0.08); }
+        .table td { font-size: 0.8rem; padding: 0.75rem 0.8rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); vertical-align: middle; }
+        .table tr:hover td { background: rgba(59,130,246,0.03); }
+        .badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 500; }
+        .badge-admin { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+        .badge-operator { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+        .badge-viewer { background: rgba(148,163,184,0.1); color: var(--text-muted, #94a3b8); border: 1px solid var(--border-color, #1e293b); }
+        .badge-ok { background: rgba(34,197,94,0.1); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.15); }
+        .badge-critical { background: rgba(239,68,68,0.1); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.15); }
+        .badge-category { display: inline-flex; align-items: center; background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.25); font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 0.35rem; white-space: nowrap; line-height: 1.2; }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-success { background: #16a34a; color: white; }
+        .btn-ghost { background: transparent; color: var(--text-muted, #94a3b8); border: 1px solid var(--border-color, #1e293b); }
+        .btn-ghost:hover { background: rgba(148,163,184,0.08); color: var(--text-primary, #e2e8f0); }
+        .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.visible { display: flex; }
+        .modal { background: #1a1f2e; border: 1px solid var(--border-color, #1e293b); border-radius: 1rem; padding: 1.5rem; max-width: 680px; width: 95%; max-height: 90vh; overflow-y: auto; }
+        .input-field { width: 100%; padding: 0.5rem 0.75rem; background: #0f1319; border: 1px solid var(--border-color, #1e293b); border-radius: 0.4rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; outline: none; }
+        .input-field:focus { border-color: #3b82f6; }
+        .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; margin: 0.5rem 0; }
+        .category-item { display: flex; align-items: center; gap: 0.5rem; background: #0f1319; border: 1px solid var(--border-color, #1e293b); border-radius: 0.4rem; padding: 0.4rem 0.6rem; font-size: 0.75rem; cursor: pointer; }
+        .category-item:hover { border-color: #3b82f6; }
+        .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success-color, #16a34a); }
+        input:checked + .slider:before { transform: translateX(16px); }
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { padding: 0.75rem 1.25rem; border-radius: 0.5rem; color: white; font-size: 0.8rem; opacity: 0; transform: translateY(1rem); transition: all 0.3s ease; }
+        .toast.visible { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #065f46; border-left: 3px solid #22c55e; }
+        .toast.error { background: #7f1d1d; border-left: 3px solid #ef4444; }
+        .toast.info { background: #1e3a8a; border-left: 3px solid #3b82f6; }
+        .admin-users-table-wrap { max-width: 100%; overflow-x: auto; overflow-y: visible; border: 1px solid var(--border-color, #1e293b); border-radius: 0.6rem; }
+        .admin-users-table { min-width: 1120px; }
+        .admin-users-table th:last-child, .admin-users-table td:last-child {
+            position: sticky; right: 0; z-index: 3; background: var(--bg-card, #0f1319);
+            box-shadow: -8px 0 14px rgba(0,0,0,0.18);
+        }
+        .admin-users-table th:last-child { z-index: 4; }
+        .admin-users-table td:last-child .btn { min-width: 34px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; }
+        @media (max-width: 900px) {
+            body { padding: 0.75rem !important; }
+            .admin-users-table-wrap { -webkit-overflow-scrolling: touch; }
+            .admin-users-table th:last-child, .admin-users-table td:last-child { min-width: 138px; }
+        }
+    
+        .input-password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+</style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+    <!-- Super Admin Header Quick Switcher -->
+<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;background:var(--bg-card, #0f172a);border:1px solid var(--border-color, #1e293b);padding:0.4rem 0.6rem;border-radius:0.65rem;flex-wrap:wrap;">
+<span style="font-size:0.75rem;font-weight:800;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.05em;margin-right:0.4rem;padding-left:0.3rem;">⚡ Admin Suite:</span>
+<a class="btn btn-sm btn-ghost" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>
+<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>
+<a class="btn btn-sm btn-ghost" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+<div>
+<h1><i class="fas fa-user-shield" style="margin-right:0.5rem;color:#3b82f6;"></i> Super Admin User &amp; Signal Control Panel</h1>
+<p class="subtitle">Full control over registered users, signal authorizations, market categories, multi-timeframe quotas, and notification channels</p>
+</div>
+<div style="display:flex;gap:0.75rem;">
+<button class="btn btn-ghost btn-sm" id="refreshBtn" type="button"><i class="fas fa-sync-alt"></i> Refresh</button>
+<button class="btn btn-primary btn-sm" id="createUserBtn" type="button"><i class="fas fa-user-plus"></i> Create New User</button>
+</div>
+</div>
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-label">Total Users</div>
+<div class="stat-value" id="statTotalUsers">-</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">Signals Authorized</div>
+<div class="stat-value" id="statActiveSignals" style="color: var(--success-color, #16a34a);">-</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">Telegram Recipients</div>
+<div class="stat-value" id="statTgUsers" style="color:#38bdf8;">-</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">Email Recipients</div>
+<div class="stat-value" id="statEmailUsers" style="color:#f59e0b;">-</div>
+</div>
+</div>
+<!-- Main User Permissions Table -->
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:0.75rem;flex-wrap:wrap;">
+<h3 style="font-size:0.95rem;font-weight:600;"><i class="fas fa-users-cog" style="color:#60a5fa;margin-right:0.5rem;"></i> User Signal Permissions &amp; Quota Management</h3>
+<button class="btn btn-ghost btn-sm" id="clearUserFilters" type="button"><i class="fas fa-eraser"></i> Clear Filters</button>
+</div>
+<div style="font-size:0.72rem;color:var(--text-muted,#94a3b8);margin-bottom:0.6rem;">Use the filter controls directly inside the column headers. Filters are applied instantly and persist while the table refreshes.</div>
+<div class="admin-users-table-wrap" style="overflow-x:auto;position:relative;">
+<table class="table admin-users-table">
+<thead>
+<tr>
+<th>User<br/><input class="table-filter-input" id="colFilterUser" placeholder="Filter..."/></th>
+<th>Role<br/><select class="table-filter-input" id="colFilterRole"><option value="">All</option><option value="super_admin">Super Admin</option><option value="admin">Admin</option><option value="operator">Trader</option><option value="viewer">Viewer</option><option value="observer">Observer</option></select></th>
+<th>Signal Status<br/><select class="table-filter-input" id="colFilterSignalStatus"><option value="">All</option><option value="allowed">Allowed</option><option value="blocked">Blocked</option></select></th>
+<th>Conviction Tier<br/><select class="table-filter-input" id="colFilterTier"><option value="">All</option><option value="STRONG_ONLY">Strong</option><option value="MODERATE_AND_STRONG">Moderate+</option><option value="ALL">All</option></select></th>
+<th>Subscribed Categories<br/><select class="table-filter-input" id="colFilterCategory"><option value="">All</option></select></th>
+<th>Quota Usage<br/><input class="table-filter-input" id="colFilterQuota" placeholder="e.g. 2/15"/></th>
+<th>Channels<br/><select class="table-filter-input" id="colFilterChannel"><option value="">All</option><option value="telegram">Telegram</option><option value="email">Email</option><option value="none">None</option></select></th>
+<th class="actions-col">ACTIONS</th>
+</tr>
+</thead>
+<tbody id="permissionsTableBody">
+<tr><td colspan="8" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading user permissions...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Auth Audit Log -->
+<div class="card">
+<h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-history" style="color: var(--text-muted, #94a3b8);margin-right:0.5rem;"></i> Super Admin Audit Trail</h3>
+<div style="overflow-x:auto;">
+<table class="table">
+<thead><tr><th>Time</th><th>Event</th><th>Username</th><th>IP</th><th>Status</th></tr></thead>
+<tbody id="auditTableBody"><tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading audit log...</td></tr></tbody>
+</table>
+</div>
+</div>
+<!-- Read-only User Detail Modal -->
+<div class="modal-overlay" id="viewUserModal">
+<div class="modal" style="max-width:720px;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+<h3 style="font-size:1.1rem;font-weight:700;"><i class="fas fa-eye" style="color:#60a5fa;margin-right:0.5rem;"></i> User Details</h3>
+<button class="btn btn-ghost btn-sm" id="closeViewUserBtn" type="button"><i class="fas fa-times"></i></button>
+</div>
+<div id="viewUserContent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.75rem;"></div>
+</div>
+</div>
+<!-- Edit User Signal Permissions Modal -->
+<div class="modal-overlay" id="editPermModal">
+<div class="modal">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+<h3 style="font-size:1.1rem;font-weight:600;"><i class="fas fa-sliders-h" style="color:#3b82f6;margin-right:0.5rem;"></i> Edit User Signal Permissions</h3>
+<button class="btn btn-ghost btn-sm" id="closePermModalBtn" type="button"><i class="fas fa-times"></i></button>
+</div>
+<form id="permForm" style="display:flex;flex-direction:column;gap:1rem;">
+<!-- Basic Info -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+<div>
+<label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">Username</label>
+<input class="input-field" id="permUsername" readonly="" style="background:#161b26;color: var(--text-muted, #94a3b8);" type="text"/>
+</div>
+<div>
+<label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">Display Name</label>
+<input class="input-field" id="permDisplayName" type="text"/>
+</div>
+</div>
+<!-- Master Signal Switch -->
+<div style="background:#0f1319;border: 1px solid var(--border-color, #1e293b);border-radius:0.5rem;padding:0.75rem 1rem;display:flex;justify-content:space-between;align-items:center;">
+<div>
+<div style="font-weight:600;font-size:0.85rem;color: var(--text-primary, #e2e8f0);">Master Signal Authorization</div>
+<div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Allow or completely block trade signals for this user</div>
+</div>
+<label class="toggle-switch">
+<input id="permSignalsEnabled" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<!-- Allowed Categories -->
+<div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">
+<label style="font-size:0.75rem;font-weight:600;color: var(--text-muted, #94a3b8);">Allowed Market Categories</label>
+<div style="font-size:0.7rem;display:flex;gap:0.5rem;">
+<button class="link-button" id="selectAllCats" style="color:#60a5fa;text-decoration:none;" type="button">Select All</button> |
+                            <button class="link-button" id="clearAllCats" style="color: var(--danger-color, #dc2626);text-decoration:none;" type="button">Clear All</button>
+</div>
+</div>
+<div class="category-grid" id="categoryCheckboxes">
+<!-- Populated dynamically -->
+</div>
+</div>
+<!-- Conviction Tier & Multi-Timeframe Quotas -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+<div>
+<label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">Minimum Conviction Tier</label>
+<select class="input-field" id="permMinTier">
+<option value="STRONG_ONLY">STRONG ONLY (Score ≥ 80)</option>
+<option value="MODERATE_AND_STRONG">MODERATE &amp; STRONG (Score ≥ 68)</option>
+<option value="ALL">ALL SIGNALS (Exploratory ≥ 50)</option>
+</select>
+</div>
+<div>
+<label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">User Role</label>
+<select class="input-field" id="permRole">
+<option value="viewer">Viewer</option>
+<option value="operator">Operator</option>
+<option value="admin">Admin</option>
+<option value="super_admin">Super Admin</option>
+</select>
+</div>
+</div>
+<!-- Per-user RBAC overrides -->
+<div style="background:#0f1319;border:1px solid var(--border-color,#1e293b);border-radius:0.5rem;padding:0.75rem;">
+<div style="font-size:0.75rem;font-weight:700;color:var(--text-primary,#e2e8f0);margin-bottom:0.25rem;">Individual Feature Permissions</div>
+<div style="font-size:0.68rem;color:var(--text-muted,#94a3b8);margin-bottom:0.65rem;">Role permissions are the baseline. Explicit Allow adds a capability; Deny removes it. Super Admin remains unrestricted.</div>
+<div id="permissionOverrideGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.5rem;"></div>
+</div>
+<div style="background:#0f1319;border: 1px solid var(--border-color, #1e293b);border-radius:0.5rem;padding:0.75rem;">
+<div style="font-size:0.75rem;font-weight:600;color: var(--text-muted, #94a3b8);margin-bottom:0.5rem;">Multi-Timeframe Quota Limits (0 = Unlimited)</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.5rem;">
+<div>
+<label style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Daily Limit</label>
+<input class="input-field" id="permDailyLimit" min="0" type="number" value="15"/>
+</div>
+<div>
+<label style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Weekly Limit</label>
+<input class="input-field" id="permWeeklyLimit" min="0" type="number" value="75"/>
+</div>
+<div>
+<label style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Monthly Limit</label>
+<input class="input-field" id="permMonthlyLimit" min="0" type="number" value="300"/>
+</div>
+<div>
+<label style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Yearly Limit</label>
+<input class="input-field" id="permYearlyLimit" min="0" type="number" value="3600"/>
+</div>
+</div>
+</div>
+<!-- Custom Delivery Channels -->
+<div style="background:#0f1319;border: 1px solid var(--border-color, #1e293b);border-radius:0.5rem;padding:0.75rem;display:flex;flex-direction:column;gap:0.75rem;">
+<div style="font-size:0.75rem;font-weight:600;color: var(--text-muted, #94a3b8);">User Notification Delivery Channels</div>
+<div>
+<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+<input id="permTgEnabled" type="checkbox"/>
+<label for="permTgEnabled" style="font-size:0.75rem;color: var(--text-primary, #e2e8f0);font-weight:500;"><i class="fab fa-telegram" style="color:#38bdf8;"></i> Enable Telegram Alerts</label>
+</div>
+<input class="input-field" id="permTgChatId" placeholder="Telegram Chat ID(s) e.g. 1148730533, 987654321" type="text"/>
+</div>
+<div>
+<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+<input id="permEmailEnabled" type="checkbox"/>
+<label for="permEmailEnabled" style="font-size:0.75rem;color: var(--text-primary, #e2e8f0);font-weight:500;"><i class="fas fa-envelope" style="color:#f59e0b;"></i> Enable Email Alerts</label>
+</div>
+<input class="input-field" id="permEmail" placeholder="Email Address(es) e.g. user@gmail.com, trader2@company.com" type="text"/>
+</div>
+</div>
+<div id="permError" style="color: var(--danger-color, #dc2626);font-size:0.8rem;display:none;"></div>
+<div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:0.5rem;">
+<button class="btn btn-ghost btn-sm" id="cancelPermBtn" type="button">Cancel</button>
+<button class="btn btn-primary btn-sm" type="submit"><i class="fas fa-save"></i> Save Permissions</button>
+</div>
+</form>
+</div>
+</div>
+<!-- Create User Modal -->
+<div class="modal-overlay" id="createModal">
+<div class="modal" style="max-width:480px;">
+<h3 style="font-size:1rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-user-plus" style="color:#3b82f6;margin-right:0.5rem;"></i> Create New User</h3>
+<form id="createForm" style="display:flex;flex-direction:column;gap:0.75rem;">
+<input class="input-field" id="newUsername" placeholder="Username" required="" type="text"/>
+<input class="input-field" id="newEmail" placeholder="Email Address (for signal alerts)" type="email"/>
+<input class="input-field" id="newDisplayName" placeholder="Display Name" type="text"/>
+<input class="input-field" id="newTelegramChatId" placeholder="Telegram Chat ID (optional)" type="text"/>
+<select class="input-field" id="newRole">
+<option value="viewer">Viewer</option>
+<option value="operator">Operator</option>
+<option value="admin">Admin</option>
+</select>
+<div class="input-password-wrapper opb-password-wrapper">
+<input class="input-field" id="newPassword" placeholder="Password" required="" style="width:100%;padding-right:2.5rem;" type="password"/>
+<button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+</div>
+<div id="createError" style="color: var(--danger-color, #dc2626);font-size:0.8rem;display:none;"></div>
+<div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:0.5rem;">
+<button class="btn btn-sm btn-ghost" id="closeCreateBtn" type="button">Cancel</button>
+<button class="btn btn-primary btn-sm" type="submit">Create User</button>
+</div>
+</form>
+</div>
+</div>
+<!-- Reset Password Modal -->
+<div class="modal-overlay" id="resetModal">
+<div class="modal" style="max-width:480px;">
+<h3 style="font-size:1rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-key" style="color:#f59e0b;margin-right:0.5rem;"></i> Reset Password</h3>
+<p style="font-size:0.85rem;color: var(--text-muted, #94a3b8);margin-bottom:1rem;">Reset password for <strong id="resetUsername" style="color: var(--text-primary, #e2e8f0);"></strong></p>
+<div class="input-password-wrapper opb-password-wrapper">
+<input class="input-field" id="resetPassword" placeholder="New password (min 8 chars)" required="" style="width:100%;padding-right:2.5rem;" type="password"/>
+<button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+</div>
+<div id="resetError" style="color: var(--danger-color, #dc2626);font-size:0.8rem;display:none;"></div>
+<div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem;">
+<button class="btn btn-sm btn-ghost" id="closeResetBtn" type="button">Cancel</button>
+<button class="btn btn-primary btn-sm" id="executeResetBtn" type="button">Reset Password</button>
+</div>
+</div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+<script nonce="{{ nonce }}">
+            } else {
+                input.type = 'password';
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        }
+
+        let allCategories = [];
+        let permissionsList = [];
+        let editingUsername = null;
+        let filteredPermissions = [];
+
+        const categoryLabels = {
+            'INDEX_OPTIONS': '<i class="fas fa-chart-line"></i> Index Options',
+            'STOCK_OPTIONS': '<i class="fas fa-layer-group"></i> Stock Options',
+            'EQUITY_SWING_DELIVERY': '<i class="fas fa-box"></i> Equity Swing & Delivery',
+            'LARGE_CAP_EQUITY': '<i class="fas fa-building"></i> Large-Cap Equity',
+            'MID_SMALL_CAP': '<i class="fas fa-rocket"></i> Mid/Small-Cap',
+            'PENNY_SME': '<i class="fas fa-gem"></i> Penny & SME',
+            'COMMODITIES': '<i class="fas fa-coins"></i> Commodities (MCX)',
+            'CURRENCIES': '<i class="fas fa-dollar-sign"></i> Currencies',
+            'FUTURES': '<i class="fas fa-chart-bar"></i> Futures',
+            'ETFS_REITS': '<i class="fas fa-landmark"></i> ETFs & REITs',
+        };
+
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : '';
+        }
+
+        function showToast(msg, type='info') {
+            const c=document.getElementById('toastContainer');
+            const t=document.createElement('div');
+            t.className=`toast ${type} visible`;
+            t.textContent=msg;
+            c.appendChild(t);
+            setTimeout(()=>{t.classList.remove('visible');setTimeout(()=>t.remove(),300);},3500);
+        }
+
+        async function apiFetch(url, opts={}) {
+            const csrfToken = getCookie('opb_csrf');
+            const headers={'Content-Type':'application/json',...opts.headers};
+            if (csrfToken && opts.method && opts.method !== 'GET') {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+            const res=await fetch(url,{headers,credentials:'include',...opts});
+            if (res.status===401) { window.location.href='/login'; return null; }
+            return res.json();
+        }
+
+        function badgeForRole(role, username) {
+            const r = (role || '').toLowerCase();
+            if (r === 'super_admin' || (r === 'admin' && username === 'admin')) {
+                return '<span class="badge" style="background:linear-gradient(135deg,rgba(168,85,247,0.2),rgba(99,102,241,0.2));color:#c084fc;border:1px solid rgba(168,85,247,0.35);font-weight:700;"><i class="fas fa-crown"></i> Super Admin</span>';
+            }
+            if (r === 'admin') return '<span class="badge badge-admin"><i class="fas fa-shield-alt"></i> Admin</span>';
+            if (r === 'operator' || r === 'trader' || r === 'power_user') return '<span class="badge badge-operator"><i class="fas fa-bolt"></i> Trader</span>';
+            if (r === 'normal_user' || r === 'user') return '<span class="badge" style="background:rgba(56,189,248,0.1);color:#38bdf8;border:1px solid rgba(56,189,248,0.2);"><i class="fas fa-user"></i> User</span>';
+            return '<span class="badge badge-viewer"><i class="fas fa-eye"></i> Viewer</span>';
+        }
+
+        async function loadPermissions() {
+            const data = await apiFetch('/api/auth/user-permissions');
+            if (!data || !data.permissions) {
+                document.getElementById('permissionsTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center;color: var(--danger-color, #dc2626);">Failed to load user permissions</td></tr>';
+                return;
+            }
+            allCategories = data.categories || [];
+            permissionsList = data.permissions || [];
+
+            // Update stats
+            document.getElementById('statTotalUsers').textContent = permissionsList.length;
+            document.getElementById('statActiveSignals').textContent = permissionsList.filter(u => u.signals_enabled && u.is_active).length;
+            document.getElementById('statTgUsers').textContent = permissionsList.filter(u => u.telegram_enabled && u.telegram_chat_id).length;
+            document.getElementById('statEmailUsers').textContent = permissionsList.filter(u => u.email_enabled && u.email).length;
+
+            const tb = document.getElementById('permissionsTableBody');
+            populateCategoryFilter();
+            renderPermissionRows();
+        }
+
+        function populateCategoryFilter() {
+            ['colFilterCategory','filterCategory'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const current = el.value;
+                el.innerHTML = '<option value="">All</option>' + allCategories.map(c => `<option value="${c}">${categoryLabels[c] || c}</option>`).join('');
+                el.value = current;
+            });
+        }
+
+        function filterValue(primaryId, legacyId='') {
+            const a = document.getElementById(primaryId);
+            if (a) return a.value || '';
+            return legacyId ? (document.getElementById(legacyId)?.value || '') : '';
+        }
+
+        function matchesUserFilters(u) {
+            const q = filterValue('colFilterUser', 'filterUser').trim().toLowerCase();
+            const role = filterValue('colFilterRole', 'filterRole').toLowerCase();
+            const status = filterValue('colFilterSignalStatus', 'filterSignalStatus');
+            const tier = filterValue('colFilterTier', 'filterTier');
+            const category = filterValue('colFilterCategory', 'filterCategory');
+            const channel = filterValue('colFilterChannel', 'filterChannel');
+            const quota = filterValue('colFilterQuota').trim().toLowerCase();
+            const username = String(u.username || '').toLowerCase();
+            const name = String(u.display_name || '').toLowerCase();
+            const actualRole = String(u.role || '').toLowerCase();
+            const isSuper = actualRole === 'super_admin' || (actualRole === 'admin' && u.username === 'admin');
+            const hasTelegram = !!(u.telegram_enabled && u.telegram_chat_id);
+            const hasEmail = !!(u.email_enabled && u.email);
+            const quotaText = `${u.daily_signals_used || 0}/${u.max_signals_daily || 0} ${u.weekly_signals_used || 0}/${u.max_signals_weekly || 0} ${u.monthly_signals_used || 0}/${u.max_signals_monthly || 0} ${u.yearly_signals_used || 0}/${u.max_signals_yearly || 0}`.toLowerCase();
+            return (!q || username.includes(q) || name.includes(q))
+                && (!role || (role === 'super_admin' ? isSuper : actualRole === role))
+                && (!status || (status === 'allowed' ? !!u.signals_enabled : !u.signals_enabled))
+                && (!tier || String(u.min_signal_tier || '') === tier)
+                && (!category || (u.allowed_categories || []).includes(category))
+                && (!channel || (channel === 'telegram' ? hasTelegram : channel === 'email' ? hasEmail : !hasTelegram && !hasEmail))
+                && (!quota || quotaText.includes(quota));
+        }
+
+        const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({
+            "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[ch]));
+
+        function renderPermissionRows() {
+            const tb = document.getElementById('permissionsTableBody');
+            filteredPermissions = permissionsList.filter(matchesUserFilters);
+            if (filteredPermissions.length === 0) {
+                tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color: var(--text-muted, #94a3b8);padding:1.5rem;">No users match the current filters</td></tr>';
+                return;
+            }
+            tb.innerHTML = filteredPermissions.map(u => {
+                const safeUsername = escapeHtml(u.username);
+                const safeDisplayName = escapeHtml(u.display_name || "-");
+                const isAll = (u.allowed_categories || []).length >= 10;
+                let catsHtml = '';
+                if (isAll) {
+                    catsHtml = `<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-weight:700;font-size:0.7rem;"><i class="fas fa-check-double"></i> All 10 Categories</span>`;
+                } else if ((u.allowed_categories || []).length === 0) {
+                    catsHtml = `<span style="color: var(--text-muted, #94a3b8);font-size:0.7rem;">None</span>`;
+                } else {
+                    catsHtml = `<div style="display:flex;flex-wrap:wrap;gap:0.25rem;max-width:280px;">` +
+                        (u.allowed_categories || []).map(c => 
+                            `<span class="badge-category">${categoryLabels[c] || c}</span>`
+                        ).join('') +
+                        `</div>`;
+                }
+
+                const quotaHtml = `
+                    <div style="font-family:monospace;font-size:0.75rem;font-variant-numeric:tabular-nums;line-height:1.35;">
+                        <span title="Daily Quota">D: <b>${u.daily_signals_used}</b> / ${u.max_signals_daily > 0 ? u.max_signals_daily : '∞'}</span><br>
+                        <span style="color:var(--text-muted,#94a3b8);font-size:0.7rem;" title="Weekly, Monthly & Yearly Quotas">W: <b>${u.weekly_signals_used}</b>/${u.max_signals_weekly > 0 ? u.max_signals_weekly : '∞'} | M: <b>${u.monthly_signals_used}</b>/${u.max_signals_monthly > 0 ? u.max_signals_monthly : '∞'} | Y: <b>${u.yearly_signals_used || 0}</b>/${u.max_signals_yearly > 0 ? u.max_signals_yearly : '∞'}</span>
+                    </div>
+                `;
+
+                const channelsHtml = `
+                    <div style="display:flex;align-items:center;gap:0.45rem;font-size:0.85rem;">
+                        <span style="color:${u.telegram_enabled && u.telegram_chat_id ? '#38bdf8' : 'rgba(148,163,184,0.3)'};" title="${u.telegram_chat_id ? 'Telegram: ' + u.telegram_chat_id : 'No TG'}"><i class="fab fa-telegram"></i></span>
+                        <span style="color:${u.email_enabled && u.email ? '#f59e0b' : 'rgba(148,163,184,0.3)'};" title="${u.email ? 'Email: ' + u.email : 'No Email'}"><i class="fas fa-envelope"></i></span>
+                    </div>
+                `;
+
+                const statusBtn = u.signals_enabled
+                    ? `<button type="button" class="badge badge-ok cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-check-circle"></i> ALLOWED</button>`
+                    : `<button type="button" class="badge badge-critical cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-ban"></i> BLOCKED</button>`;
+
+                return `<tr>
+                    <td style="min-width:130px;">
+                        <div style="font-weight:600;color: var(--text-primary, #e2e8f0);">${safeUsername}</div>
+                        <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">${safeDisplayName}</div>
+                    </td>
+                    <td style="min-width:110px;">${badgeForRole(u.role, u.username)}</td>
+                    <td style="min-width:105px;">${statusBtn}</td>
+                    <td style="min-width:110px;font-size:0.75rem;font-weight:500;color: var(--text-muted, #94a3b8);">${u.min_signal_tier}</td>
+                    <td style="min-width:220px;max-width:300px;">${catsHtml}</td>
+                    <td style="min-width:145px;white-space:nowrap;">${quotaHtml}</td>
+                    <td style="min-width:75px;">${channelsHtml}</td>
+                    <td class="actions-col" style="min-width:210px;text-align:right;position:sticky;right:0;background:var(--bg-card,#0f172a);z-index:2;">
+                        <div style="display:flex;justify-content:flex-end;gap:0.3rem;">
+                            <button type="button" class="btn btn-ghost btn-sm" title="View User" aria-label="View user ${safeUsername}" data-action="view-user" data-username="${safeUsername}"><i class="fas fa-eye" style="color:#38bdf8;"></i> View</button>
+                            <button type="button" class="btn btn-ghost btn-sm" title="Edit Permissions & Quotas" data-action="open-edit-modal" data-username="${safeUsername}"><i class="fas fa-sliders-h" style="color:#60a5fa;"></i> Edit</button>
+                            <button type="button" class="btn btn-ghost btn-sm" title="Reset Password" data-action="reset-user-pw" data-username="${safeUsername}"><i class="fas fa-key" style="color:#f59e0b;"></i></button>
+                            ${u.disabled
+                                ? `<button type="button" class="btn btn-ghost btn-sm" title="Enable User" data-action="enable-user" data-username="${safeUsername}"><i class="fas fa-user-check" style="color:#22c55e;"></i></button>`
+                                : `<button type="button" class="btn btn-ghost btn-sm" title="Disable User" data-action="disable-user" data-username="${safeUsername}"><i class="fas fa-user-slash" style="color:#f97316;"></i></button>`}
+                            <button type="button" class="btn btn-ghost btn-sm" title="Delete User" data-action="delete-user" data-username="${safeUsername}"><i class="fas fa-trash" style="color: var(--danger-color, #dc2626);"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function loadAuditLog() {
+            try {
+                const data = await apiFetch('/api/auth/audit?limit=25');
+                const log = Array.isArray(data) ? data : (data?.log || []);
+                const tb = document.getElementById('auditTableBody');
+                if (!tb) return;
+                if (log.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">No audit events logged</td></tr>';
+                    return;
+                }
+                tb.innerHTML = log.map(e => {
+                    let ts = '-';
+                    if (e.timestamp_str) {
+                        ts = e.timestamp_str;
+                    } else if (typeof e.timestamp === 'number') {
+                        ts = new Date(e.timestamp * 1000).toLocaleString();
+                    } else if (typeof e.timestamp === 'string') {
+                        ts = e.timestamp.substring(0, 19);
+                    }
+                    const evt = e.event_type || e.action || e.event || '-';
+                    const ip = e.ip_address || e.ip || '-';
+                    const ok = e.success !== false;
+                    return `<tr>
+                        <td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);font-family:monospace;">${ts}</td>
+                        <td style="font-weight:500;font-size:0.8rem;"><span class="badge" style="background: var(--bg-card-hover, #1e293b);color: var(--text-secondary, #cbd5e1);">${evt}</span></td>
+                        <td style="font-weight:600;color: var(--text-primary, #e2e8f0);">${e.username || '-'}</td>
+                        <td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);font-family:monospace;">${ip}</td>
+                        <td>${ok ? '<span class="badge badge-ok">OK</span>' : '<span class="badge badge-critical">FAIL</span>'}</td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                console.error("Error loading audit log:", err);
+                const tb = document.getElementById('auditTableBody');
+                if (tb) tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--danger-color, #dc2626);">Failed to load audit log</td></tr>';
+            }
+        }
+
+        async function toggleSignals(username) {
+            const res = await apiFetch(`/api/auth/users/${username}/toggle-signals`, {method: 'POST'});
+            if (res && res.success) {
+                showToast(res.message, 'success');
+                await loadPermissions();
+            } else {
+                showToast(res?.detail || 'Failed to toggle signals', 'error');
+            }
+        }
+
+        const RBAC_PERMISSION_LABELS = {
+            view_state: 'View System State',
+            halt_trading: 'Halt Trading / Kill Switch',
+            modify_risk_limits: 'Modify Risk Limits',
+            toggle_strategies: 'Enable / Disable Strategies',
+            deploy_models: 'Deploy / Promote Models',
+            modify_code: 'Modify Code',
+            view_logs: 'View Audit / System Logs',
+            add_brokers: 'Manage Brokers',
+            modify_config: 'Modify System Configuration',
+            manage_users: 'Manage Registered Users',
+            manage_permissions: 'Assign RBAC & Signal Permissions'
+        };
+
+        function renderPermissionOverrides(u) {
+            const allowed = new Set((u.allowed_permissions || []).map(x => String(x).toLowerCase()));
+            const denied = new Set((u.denied_permissions || []).map(x => String(x).toLowerCase()));
+            const grid = document.getElementById('permissionOverrideGrid');
+            if (!grid) return;
+            grid.innerHTML = Object.entries(RBAC_PERMISSION_LABELS).map(([key, label]) => `
+                <div style="border:1px solid var(--border-color,#1e293b);border-radius:0.5rem;padding:0.55rem;background:rgba(148,163,184,0.03);">
+                    <div style="font-size:0.72rem;font-weight:700;margin-bottom:0.35rem;">${label}</div>
+                    <label style="font-size:0.68rem;margin-right:0.7rem;"><input type="checkbox" class="perm-allow" value="${key}" ${allowed.has(key) ? 'checked' : ''}> Allow</label>
+                    <label style="font-size:0.68rem;"><input type="checkbox" class="perm-deny" value="${key}" ${denied.has(key) ? 'checked' : ''}> Deny</label>
+                </div>`).join('');
+        }
+
+        async function openEditModal(username) {
+            let u = permissionsList.find(p => p.username === username);
+            try {
+                const fresh = await apiFetch(`/api/auth/users/${username}/permissions`);
+                if (fresh && fresh.permissions) {
+                    u = fresh.permissions;
+                }
+            } catch (e) {}
+            if (!u) return;
+
+            editingUsername = username;
+            document.getElementById('permUsername').value = u.username || username;
+            document.getElementById('permDisplayName').value = u.display_name || '';
+            document.getElementById('permSignalsEnabled').checked = !!u.signals_enabled;
+            document.getElementById('permMinTier').value = u.min_signal_tier || 'MODERATE_AND_STRONG';
+            document.getElementById('permRole').value = u.role || 'viewer';
+            document.getElementById('permDailyLimit').value = u.max_signals_daily ?? 15;
+            document.getElementById('permWeeklyLimit').value = u.max_signals_weekly ?? 75;
+            document.getElementById('permMonthlyLimit').value = u.max_signals_monthly ?? 300;
+            document.getElementById('permYearlyLimit').value = u.max_signals_yearly ?? 3600;
+            renderPermissionOverrides(u);
+
+            // Auto-populate Telegram chat ID and Email ID from registered profile / permissions
+            const tgId = u.telegram_chat_id || '';
+            const emailId = u.email || '';
+            document.getElementById('permTgChatId').value = tgId;
+            document.getElementById('permTgEnabled').checked = (u.telegram_enabled !== false) && (!!u.telegram_enabled || !!tgId);
+            document.getElementById('permEmail').value = emailId;
+            document.getElementById('permEmailEnabled').checked = (u.email_enabled !== false) && (!!u.email_enabled || !!emailId);
+
+            // Render Categories Checkboxes
+            const catGrid = document.getElementById('categoryCheckboxes');
+            const allowed = u.allowed_categories || [];
+            catGrid.innerHTML = allCategories.map(c => {
+                const isChecked = allowed.includes(c);
+                return `
+                    <label class="category-item">
+                        <input type="checkbox" class="cat-checkbox" value="${c}" ${isChecked ? 'checked' : ''}>
+                        <span>${categoryLabels[c] || c}</span>
+                    </label>
+                `;
+            }).join('');
+
+            document.getElementById('permError').style.display = 'none';
+            document.getElementById('editPermModal').classList.add('visible');
+        }
+
+        function viewUser(username) {
+            const u = permissionsList.find(x => x.username === username);
+            if (!u) return;
+            const esc = v => String(v ?? '-').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+            const roleLabel = (u.role === 'admin' && u.username === 'admin') ? 'Super Admin' : (u.role || 'Viewer');
+            const cats = (u.allowed_categories || []).map(c => categoryLabels[c] || c).join(', ') || 'None';
+            document.getElementById('viewUserContent').innerHTML = [
+                ['Username', u.username], ['Display Name', u.display_name || '-'], ['Role', roleLabel],
+                ['Account Status', u.is_active ? 'Active' : 'Disabled'], ['Signals', u.signals_enabled ? 'Allowed' : 'Blocked'],
+                ['Minimum Tier', u.min_signal_tier || '-'], ['Categories', cats],
+                ['Daily Quota', `${u.daily_signals_used || 0} / ${u.max_signals_daily > 0 ? u.max_signals_daily : 'Unlimited'}`],
+                ['Weekly Quota', `${u.weekly_signals_used || 0} / ${u.max_signals_weekly > 0 ? u.max_signals_weekly : 'Unlimited'}`],
+                ['Monthly Quota', `${u.monthly_signals_used || 0} / ${u.max_signals_monthly > 0 ? u.max_signals_monthly : 'Unlimited'}`],
+                ['Yearly Quota', `${u.yearly_signals_used || 0} / ${u.max_signals_yearly > 0 ? u.max_signals_yearly : 'Unlimited'}`],
+                ['Telegram', u.telegram_enabled && u.telegram_chat_id ? u.telegram_chat_id : 'Disabled'],
+                ['Email', u.email_enabled && u.email ? u.email : 'Disabled'],
+                ['Last Updated By', u.updated_by || '-'], ['Last Updated', u.updated_at || '-']
+            ].map(([k,v]) => `<div style="padding:0.75rem;background:rgba(148,163,184,0.05);border:1px solid var(--border-color,#1e293b);border-radius:0.5rem;"><div style="font-size:0.68rem;color:var(--text-muted,#94a3b8);text-transform:uppercase;font-weight:800;">${esc(k)}</div><div style="font-size:0.82rem;margin-top:0.25rem;word-break:break-word;">${esc(v)}</div></div>`).join('');
+            document.getElementById('viewUserModal').classList.add('visible');
+        }
+
+        document.getElementById('closeViewUserBtn').addEventListener('click', () => document.getElementById('viewUserModal').classList.remove('visible'));
+
+        document.getElementById('selectAllCats').addEventListener('click', (e) => { e.preventDefault();
+            document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = true);
+        });
+
+        document.getElementById('clearAllCats').addEventListener('click', (e) => { e.preventDefault();
+            document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = false);
+        });
+
+        document.getElementById('closePermModalBtn').addEventListener('click', () => {
+            document.getElementById('editPermModal').classList.remove('visible');
+        });
+
+        document.getElementById('cancelPermBtn').addEventListener('click', () => {
+            document.getElementById('editPermModal').classList.remove('visible');
+        });
+
+        document.getElementById('permissionOverrideGrid')?.addEventListener('change', (e) => {
+            const el = e.target;
+            if (!(el instanceof HTMLInputElement)) return;
+            if (el.classList.contains('perm-allow') && el.checked) {
+                document.querySelector(`.perm-deny[value=\"${el.value}\"]`)?.click();
+            }
+            if (el.classList.contains('perm-deny') && el.checked) {
+                document.querySelector(`.perm-allow[value=\"${el.value}\"]`)?.click();
+            }
+        });
+
+        document.getElementById('permForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const selectedCats = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(cb => cb.value);
+            const payload = {
+                display_name: document.getElementById('permDisplayName').value,
+                signals_enabled: document.getElementById('permSignalsEnabled').checked,
+                allowed_categories: selectedCats,
+                min_signal_tier: document.getElementById('permMinTier').value,
+                role: document.getElementById('permRole').value,
+                max_signals_daily: Number(document.getElementById('permDailyLimit').value),
+                max_signals_weekly: Number(document.getElementById('permWeeklyLimit').value),
+                max_signals_monthly: Number(document.getElementById('permMonthlyLimit').value),
+                max_signals_yearly: Number(document.getElementById('permYearlyLimit').value),
+                allowed_permissions: Array.from(document.querySelectorAll('.perm-allow:checked')).map(x => x.value),
+                denied_permissions: Array.from(document.querySelectorAll('.perm-deny:checked')).map(x => x.value),
+                telegram_enabled: document.getElementById('permTgEnabled').checked,
+                telegram_chat_id: document.getElementById('permTgChatId').value,
+                email_enabled: document.getElementById('permEmailEnabled').checked,
+                email: document.getElementById('permEmail').value,
+            };
+
+            const res = await apiFetch(`/api/auth/users/${editingUsername}/permissions`, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+            });
+
+            if (res && res.success) {
+                showToast(`Permissions updated for ${editingUsername}`, 'success');
+                document.getElementById('editPermModal').classList.remove('visible');
+                await loadPermissions();
+            } else {
+                document.getElementById('permError').textContent = res?.detail || 'Failed to update permissions';
+                document.getElementById('permError').style.display = 'block';
+            }
+        });
+
+        // User Creation
+        document.getElementById('createUserBtn').addEventListener('click', () => {
+            document.getElementById('createError').style.display = 'none';
+            document.getElementById('createForm').reset();
+            document.getElementById('createModal').classList.add('visible');
+        });
+
+        document.getElementById('closeCreateBtn').addEventListener('click', () => {
+            document.getElementById('createModal').classList.remove('visible');
+        });
+
+        document.getElementById('createForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                username: document.getElementById('newUsername').value.trim(),
+                email: document.getElementById('newEmail').value.trim(),
+                display_name: document.getElementById('newDisplayName').value.trim(),
+                telegram_chat_id: document.getElementById('newTelegramChatId').value.trim(),
+                role: document.getElementById('newRole').value,
+                password: document.getElementById('newPassword').value,
+            };
+            const res = await apiFetch('/api/auth/users', {
+                method: 'POST',
+                body: JSON.stringify(payload),
+            });
+            if (res && res.success) {
+                showToast('User created successfully: ' + payload.username, 'success');
+                document.getElementById('createModal').classList.remove('visible');
+                await loadPermissions();
+            } else {
+                document.getElementById('createError').textContent = res?.detail || 'Failed to create user';
+                document.getElementById('createError').style.display = 'block';
+            }
+        });
+
+        // Password Reset
+        let resetTargetUsername = null;
+        async function resetUserPw(username) {
+            resetTargetUsername = username;
+            document.getElementById('resetUsername').textContent = username;
+            document.getElementById('resetError').style.display = 'none';
+            document.getElementById('resetPassword').value = '';
+            document.getElementById('resetModal').classList.add('visible');
+        }
+
+        document.getElementById('closeResetBtn').addEventListener('click', () => {
+            document.getElementById('resetModal').classList.remove('visible');
+        });
+
+        document.getElementById('executeResetBtn').addEventListener('click', async () => {
+            const pw = document.getElementById('resetPassword').value;
+            if (!pw || pw.length < 8) {
+                document.getElementById('resetError').textContent = 'Password must be at least 8 characters';
+                document.getElementById('resetError').style.display = 'block';
+                return;
+            }
+            const res = await apiFetch(`/api/auth/users/${resetTargetUsername}/reset-password`, {
+                method: 'POST',
+                body: JSON.stringify({new_password: pw}),
+            });
+            if (res && res.success) {
+                showToast('Password reset for ' + resetTargetUsername, 'success');
+                document.getElementById('resetModal').classList.remove('visible');
+            } else {
+                document.getElementById('resetError').textContent = res?.detail || 'Reset failed';
+                document.getElementById('resetError').style.display = 'block';
+            }
+        });
+
+        async function setUserEnabled(username, enabled) {
+            const verb = enabled ? 'enable' : 'disable';
+            if (!confirm(`Are you sure you want to ${verb} user ${username}?`)) return;
+            const res = await apiFetch(`/api/auth/users/${username}/${enabled ? 'enable' : 'disable'}`, {method: 'POST'});
+            if (res && res.success) {
+                showToast(`${username} ${enabled ? 'enabled' : 'disabled'}`, 'success');
+                await loadPermissions();
+                await loadAuditLog();
+            } else {
+                showToast(res?.detail || `Failed to ${verb} user`, 'error');
+            }
+        }
+
+        async function deleteUser(username) {
+            if (!confirm(`Are you sure you want to delete user ${username}? This action is irreversible.`)) return;
+            const res = await apiFetch(`/api/auth/users/${username}`, {method: 'DELETE'});
+            if (res && res.success) {
+                showToast('User deleted: ' + username, 'info');
+                await loadPermissions();
+                await loadAuditLog();
+            } else {
+                showToast(res?.detail || 'Failed to delete user', 'error');
+            }
+        }
+
+        document.getElementById('refreshBtn').addEventListener('click', async () => {
+            await loadPermissions();
+            await loadAuditLog();
+            showToast('User permissions refreshed', 'info');
+        });
+
+        // Delegated listener for dynamically-rendered per-user action buttons -
+        // rows are built via a JS template literal at render time, so CSP (no
+        // 'unsafe-inline') blocks the old inline onclick regardless of when the
+        // button was inserted; delegation on data-action/data-username is
+        // required instead.
+        document.getElementById('permissionsTableBody').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const username = btn.dataset.username;
+            if (btn.dataset.action === 'view-user') viewUser(username);
+            else if (btn.dataset.action === 'toggle-signals') toggleSignals(username);
+            else if (btn.dataset.action === 'open-edit-modal') openEditModal(username);
+            else if (btn.dataset.action === 'reset-user-pw') resetUserPw(username);
+            else if (btn.dataset.action === 'disable-user') setUserEnabled(username, false);
+            else if (btn.dataset.action === 'enable-user') setUserEnabled(username, true);
+            else if (btn.dataset.action === 'delete-user') deleteUser(username);
+        });
+
+        ['colFilterUser','colFilterRole','colFilterSignalStatus','colFilterTier','colFilterCategory','colFilterQuota','colFilterChannel'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.addEventListener('input', renderPermissionRows); el.addEventListener('change', renderPermissionRows); }
+        });
+        document.getElementById('clearUserFilters').addEventListener('click', () => {
+            ['colFilterUser','colFilterRole','colFilterSignalStatus','colFilterTier','colFilterCategory','colFilterQuota','colFilterChannel'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            renderPermissionRows();
+        });
+
+        // Initialize on load
+        loadPermissions();
+        loadAuditLog();
+    </script>    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — Pricing Plans &amp; Instant UPI Activation</title>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
+        .plans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .plan-card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: all 0.2s ease; }
+        .plan-card:hover { border-color: rgba(96,165,250,0.4); transform: translateY(-3px); }
+        .plan-badge { position: absolute; top: -10px; right: 20px; background: #3b82f6; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 1rem; text-transform: uppercase; }
+        .plan-price { font-size: 2rem; font-weight: 800; color: #fff; margin: 1rem 0; }
+        .plan-features { list-style: none; margin-bottom: 1.5rem; }
+        .plan-features li { font-size: 0.8rem; color: var(--text-muted, #94a3b8); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .plan-features li i { color: var(--success-color, #16a34a); }
+        .btn-pay { width: 100%; padding: 0.6rem; border-radius: 0.5rem; background: #3b82f6; color: #fff; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; transition: background 0.2s; }
+        .btn-pay:hover { background: #2563eb; }
+        .qr-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 50; align-items: center; justify-content: center; }
+    </style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+
+</head>
+<body>
+    {% include '_nav.html' %}
+    
+
+    <div style="text-align:center;max-width:700px;margin:0 auto 2.5rem auto;">
+<h1><i class="fas fa-gem" style="margin-right:0.5rem;color:#3b82f6;"></i> Subscription Plans &amp; Instant Activation</h1>
+<p class="subtitle">Select your desired quantitative signal access tier. Scan with any UPI app (GPay, PhonePe, Paytm, BHIM) for 100% zero-fee instant activation.</p>
+</div>
+<!-- Pricing Cards Grid -->
+<div class="plans-grid" id="plansContainer">
+<!-- Rendered via JS -->
+</div>
+<!-- Direct UPI QR Payment Modal -->
+<div class="qr-modal" id="qrModal">
+<div style="background:#111827;border:1px solid rgba(148,163,184,0.2);border-radius:1rem;padding:2rem;max-width:400px;width:90%;text-align:center;position:relative;">
+<button id="cspfix-1" style="position:absolute;top:15px;right:15px;background:transparent;border:none;color: var(--text-muted, #94a3b8);font-size:1.2rem;cursor:pointer;" type="button">×</button>
+<h3 id="modalPlanTitle" style="font-weight:700;font-size:1.1rem;margin-bottom:0.25rem;">Plan Title</h3>
+<p style="color: var(--text-muted, #94a3b8);font-size:0.8rem;margin-bottom:1rem;">Scan with PhonePe, Google Pay, Paytm, or BHIM</p>
+<div style="background:#fff;padding:1rem;border-radius:0.5rem;display:inline-block;margin-bottom:1rem;">
+<img alt="UPI QR Code" id="modalQrImg" src="" style="width:200px;height:200px;display:block;"/>
+</div>
+<div id="modalPrice" style="font-family:monospace;font-size:0.85rem;color:#38bdf8;font-weight:600;margin-bottom:1.5rem;">₹-</div>
+<button class="btn-pay" id="cspfix-2" style="background:#22c55e;" type="button">✅ I Have Paid — Activate Instantly</button>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+        let currentSelectedPlan = null;
+
+        async function loadPlans() {
+            const res = await fetch('/api/billing/plans', {credentials: 'include'});
+            const plans = await res.json();
+            if (!plans) return;
+
+            const cont = document.getElementById('plansContainer');
+            cont.innerHTML = plans.map(p => `
+                <div class="plan-card">
+                    <div class="plan-badge">${p.badge}</div>
+                    <div>
+                        <h3 style="font-weight:700;font-size:1.1rem;">${p.name}</h3>
+                        <div class="plan-price">₹${p.price_inr.toLocaleString('en-IN')}<span style="font-size:0.8rem;color: var(--text-muted, #94a3b8);font-weight:400;"> / month</span></div>
+                        <ul class="plan-features">
+                            ${p.features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <button class="btn-pay" data-action="open-qr-modal" data-plan-id="${p.plan_id}" type="button">⚡ Get Started</button>
+                </div>
+            `).join('');
+        }
+        document.getElementById('plansContainer').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action="open-qr-modal"]');
+            if (btn) openQrModal(btn.dataset.planId);
+        });
+
+        async function openQrModal(planId) {
+            currentSelectedPlan = planId;
+            const res = await fetch(`/api/billing/generate-qr?plan_id=${planId}&username={{ user.username or 'guest' }}`, {credentials: 'include'});
+            const data = await res.json();
+            if (data.error) return alert(data.error);
+
+            document.getElementById('modalPlanTitle').textContent = data.plan_name;
+            document.getElementById('modalPrice').textContent = `Amount: ₹${data.price_inr}`;
+            document.getElementById('modalQrImg').src = data.qr_generator_url;
+            document.getElementById('qrModal').style.display = 'flex';
+        }
+
+        function closeQrModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        async function confirmPayment() {
+            if (!currentSelectedPlan) return;
+            const res = await fetch('/api/billing/confirm-upi-payment', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({
+                    plan_id: currentSelectedPlan,
+                    username: '{{ user.username or "admin" }}',
+                    ref: 'UPI-DIRECT-' + Date.now()
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                window.location.href = '/my-signals';
+            } else {
+                alert(data.message || 'Payment verification failed');
+            }
+        }
+
+        loadPlans();
+    </script>    {% include "_pwa_sw_reg.html" %}
+    <script nonce="{{ nonce }}">
+        // Wired via addEventListener, not inline attributes - CSP's script-src
+        // has no 'unsafe-inline', which silently blocks inline event-handler
+        // attributes even though a nonce'd block itself can still run (2026-08-22 fix).
+        document.getElementById('cspfix-1')?.addEventListener('click', function(event) { closeQrModal() });
+        document.getElementById('cspfix-2')?.addEventListener('click', function(event) { confirmPayment() });
+    </script>
+</body>
+</html>

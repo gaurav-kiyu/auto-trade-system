@@ -1,0 +1,225 @@
+# OPB WEB CLOSURE WIP65 — Registration Handler Chain
+
+Concrete registration route candidates: 10
+Downstream lifecycle signals in route neighborhoods: 207
+
+## Registration route candidates
+- `/register` — `archive/unrelated_modules/realestate/webhooks.py:348` — `@router.post("/register")`
+- `/register` — `core/auth/routes.py:137` — `@router.post("/register")`
+- `/users` — `core/auth/routes.py:422` — `@router.post("/users")`
+- `/users/{username}/role` — `core/auth/routes.py:483` — `@router.put("/users/{username}/role")`
+- `/users/{username}/reset-password` — `core/auth/routes.py:519` — `@router.post("/users/{username}/reset-password")`
+- `/users/{username}/disable` — `core/auth/routes.py:536` — `@router.post("/users/{username}/disable")`
+- `/users/{username}/enable` — `core/auth/routes.py:548` — `@router.post("/users/{username}/enable")`
+- `/users/{username}/permissions` — `core/auth/routes.py:661` — `@router.post("/users/{username}/permissions")`
+- `/users/{username}/toggle-signals` — `core/auth/routes.py:741` — `@router.post("/users/{username}/toggle-signals")`
+- `/users/{username}/revoke-sessions` — `core/auth/routes.py:831` — `@router.post("/users/{username}/revoke-sessions")`
+
+## Downstream lifecycle evidence
+- `core/auth/routes.py:141` — `"""Register a new user (self-registration, defaults to viewer role).`
+- `core/auth/routes.py:170` — `role = "viewer"  # Self-registration always creates viewers`
+- `core/auth/routes.py:178` — `result = auth_handler.create_user(`
+- `core/auth/routes.py:181` — `role=role,`
+- `core/auth/routes.py:190` — `# Save email & telegram_chat_id into UserPermissionManager`
+- `core/auth/routes.py:192` — `perm_mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:201` — `perm_mgr.update_user_permissions(username, update_data, admin_username="self-register")`
+- `core/auth/routes.py:203` — `_log.warning("[AUTH] Failed to save user signal permissions on register: %s", e)`
+- `core/auth/routes.py:205` — `notification_result = notify_new_registration(`
+- `core/auth/routes.py:209` — `role=role,`
+- `core/auth/routes.py:214` — `"message": "Account created successfully with viewer role and is pending administrator authorization.",`
+- `core/auth/routes.py:215` — `"notification": notification_result,`
+- `core/auth/routes.py:423` — `async def create_user(`
+- `core/auth/routes.py:431` — `role = str(body.get("role", "viewer")).strip().lower()`
+- `core/auth/routes.py:439` — `valid_roles = {"super_admin", "admin", "operator", "viewer", "observer", "developer"}`
+- `core/auth/routes.py:440` — `if role not in valid_roles:`
+- `core/auth/routes.py:441` — `raise HTTPException(status_code=400, detail=f"Unsupported role: {role}")`
+- `core/auth/routes.py:442` — `if not is_super_admin_identity(admin.username, admin.role) and role != "viewer":`
+- `core/auth/routes.py:443` — `raise HTTPException(status_code=403, detail="Only Super Admin can create accounts with elevated roles")`
+- `core/auth/routes.py:445` — `result = auth_handler.create_user(`
+- `core/auth/routes.py:448` — `role=role,`
+- `core/auth/routes.py:458` — `perm_mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:461` — `"role": role,`
+- `core/auth/routes.py:469` — `perm_mgr.update_user_permissions(username, create_data, admin_username=admin.username)`
+- `core/auth/routes.py:471` — `_log.warning("[AUTH] Failed to save user signal permissions on admin create user: %s", e)`
+- `core/auth/routes.py:473` — `notification_result = notify_new_registration(`
+- `core/auth/routes.py:477` — `role=role,`
+- `core/auth/routes.py:480` — `result["notification"] = notification_result`
+- `core/auth/routes.py:483` — `@router.put("/users/{username}/role")`
+- `core/auth/routes.py:484` — `async def update_user_role(`
+- `core/auth/routes.py:487` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:489` — `"""Update a user's role. Admin only."""`
+- `core/auth/routes.py:491` — `new_role = str(body.get("role", "")).lower()`
+- `core/auth/routes.py:496` — `# Only the root role may grant/revoke Super Admin. This prevents an`
+- `core/auth/routes.py:497` — `# ordinary Admin from escalating another account to the root role.`
+- `core/auth/routes.py:498` — `if new_role == "super_admin" and not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:499` — `raise HTTPException(status_code=403, detail="Only Super Admin can assign Super Admin role")`
+- `core/auth/routes.py:500` — `if str(target.role).lower() == "super_admin" and new_role != "super_admin" and not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:504` — `if str(target.role).lower() == "super_admin" and new_role != "super_admin":`
+- `core/auth/routes.py:505` — `roots = [u for u in auth_handler.list_users() if str(u.get("role", "")).lower() == "super_admin" and not u.get("disabled")]`
+- `core/auth/routes.py:509` — `result = auth_handler.update_user_role(username, new_role, admin.username)`
+- `core/auth/routes.py:511` — `raise HTTPException(status_code=400, detail=result.get("error", "Role update failed"))`
+- `core/auth/routes.py:513` — `UserPermissionManager.get_instance().update_user_permissions(username, {"role": new_role}, admin_username=admin.username)`
+- `core/auth/routes.py:515` — `_log.warning("[AUTH] Failed to synchronize role metadata for %s: %s", username, sync_ex)`
+- `core/auth/routes.py:480` — `result["notification"] = notification_result`
+- `core/auth/routes.py:483` — `@router.put("/users/{username}/role")`
+- `core/auth/routes.py:484` — `async def update_user_role(`
+- `core/auth/routes.py:487` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:489` — `"""Update a user's role. Admin only."""`
+- `core/auth/routes.py:491` — `new_role = str(body.get("role", "")).lower()`
+- `core/auth/routes.py:496` — `# Only the root role may grant/revoke Super Admin. This prevents an`
+- `core/auth/routes.py:497` — `# ordinary Admin from escalating another account to the root role.`
+- `core/auth/routes.py:498` — `if new_role == "super_admin" and not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:499` — `raise HTTPException(status_code=403, detail="Only Super Admin can assign Super Admin role")`
+- `core/auth/routes.py:500` — `if str(target.role).lower() == "super_admin" and new_role != "super_admin" and not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:504` — `if str(target.role).lower() == "super_admin" and new_role != "super_admin":`
+- `core/auth/routes.py:505` — `roots = [u for u in auth_handler.list_users() if str(u.get("role", "")).lower() == "super_admin" and not u.get("disabled")]`
+- `core/auth/routes.py:509` — `result = auth_handler.update_user_role(username, new_role, admin.username)`
+- `core/auth/routes.py:511` — `raise HTTPException(status_code=400, detail=result.get("error", "Role update failed"))`
+- `core/auth/routes.py:513` — `UserPermissionManager.get_instance().update_user_permissions(username, {"role": new_role}, admin_username=admin.username)`
+- `core/auth/routes.py:515` — `_log.warning("[AUTH] Failed to synchronize role metadata for %s: %s", username, sync_ex)`
+- `core/auth/routes.py:570` — `admins = [u for u in auth_handler.list_users() if str(u.get("role", "")).lower() in {"admin", "super_admin"} and not u.get("disabled")]`
+- `core/auth/routes.py:572` — `if target_user and str(target_user.role).lower() in {"admin", "super_admin"} and len(admins) <= 1:`
+- `core/auth/routes.py:578` — `UserPermissionManager.get_instance().delete_user_permissions(target)`
+- `core/auth/routes.py:581` — `# ── Super Admin User Signal Permissions & Quotas ──────────────────────────`
+- `core/auth/routes.py:583` — `@router.get("/user-permissions")`
+- `core/auth/routes.py:584` — `async def list_all_user_permissions(`
+- `core/auth/routes.py:585` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:587` — `"""List all users with full signal permissions, quotas, and categories."""`
+- `core/auth/routes.py:588` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:595` — `perm = mgr.get_user_permissions(uname)`
+- `core/auth/routes.py:599` — `u_role = u.get("role", "viewer")`
+- `core/auth/routes.py:602` — `mgr.update_user_permissions(`
+- `core/auth/routes.py:515` — `_log.warning("[AUTH] Failed to synchronize role metadata for %s: %s", username, sync_ex)`
+- `core/auth/routes.py:570` — `admins = [u for u in auth_handler.list_users() if str(u.get("role", "")).lower() in {"admin", "super_admin"} and not u.get("disabled")]`
+- `core/auth/routes.py:572` — `if target_user and str(target_user.role).lower() in {"admin", "super_admin"} and len(admins) <= 1:`
+- `core/auth/routes.py:578` — `UserPermissionManager.get_instance().delete_user_permissions(target)`
+- `core/auth/routes.py:581` — `# ── Super Admin User Signal Permissions & Quotas ──────────────────────────`
+- `core/auth/routes.py:583` — `@router.get("/user-permissions")`
+- `core/auth/routes.py:584` — `async def list_all_user_permissions(`
+- `core/auth/routes.py:585` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:587` — `"""List all users with full signal permissions, quotas, and categories."""`
+- `core/auth/routes.py:588` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:595` — `perm = mgr.get_user_permissions(uname)`
+- `core/auth/routes.py:599` — `u_role = u.get("role", "viewer")`
+- `core/auth/routes.py:602` — `mgr.update_user_permissions(`
+- `core/auth/routes.py:606` — `"role": u_role,`
+- `core/auth/routes.py:608` — `"signals_enabled": True if u_role in {"admin", "super_admin"} else False,`
+- `core/auth/routes.py:617` — `all_perms = mgr.list_all_permissions()`
+- `core/auth/routes.py:621` — `"permissions": all_perms,`
+- `core/auth/routes.py:624` — `@router.get("/users/{username}/permissions")`
+- `core/auth/routes.py:625` — `async def get_user_permissions(`
+- `core/auth/routes.py:627` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:629` — `"""Get signal permissions and quota usage for a specific user."""`
+- `core/auth/routes.py:630` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:570` — `admins = [u for u in auth_handler.list_users() if str(u.get("role", "")).lower() in {"admin", "super_admin"} and not u.get("disabled")]`
+- `core/auth/routes.py:572` — `if target_user and str(target_user.role).lower() in {"admin", "super_admin"} and len(admins) <= 1:`
+- `core/auth/routes.py:578` — `UserPermissionManager.get_instance().delete_user_permissions(target)`
+- `core/auth/routes.py:581` — `# ── Super Admin User Signal Permissions & Quotas ──────────────────────────`
+- `core/auth/routes.py:583` — `@router.get("/user-permissions")`
+- `core/auth/routes.py:584` — `async def list_all_user_permissions(`
+- `core/auth/routes.py:585` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:587` — `"""List all users with full signal permissions, quotas, and categories."""`
+- `core/auth/routes.py:588` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:595` — `perm = mgr.get_user_permissions(uname)`
+- `core/auth/routes.py:599` — `u_role = u.get("role", "viewer")`
+- `core/auth/routes.py:602` — `mgr.update_user_permissions(`
+- `core/auth/routes.py:606` — `"role": u_role,`
+- `core/auth/routes.py:608` — `"signals_enabled": True if u_role in {"admin", "super_admin"} else False,`
+- `core/auth/routes.py:617` — `all_perms = mgr.list_all_permissions()`
+- `core/auth/routes.py:621` — `"permissions": all_perms,`
+- `core/auth/routes.py:624` — `@router.get("/users/{username}/permissions")`
+- `core/auth/routes.py:625` — `async def get_user_permissions(`
+- `core/auth/routes.py:627` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:629` — `"""Get signal permissions and quota usage for a specific user."""`
+- `core/auth/routes.py:630` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:640` — `perm = mgr.get_user_permissions(username)`
+- `core/auth/routes.py:642` — `mgr.update_user_permissions(`
+- `core/auth/routes.py:646` — `"role": u.role,`
+- `core/auth/routes.py:648` — `"signals_enabled": True if u.role in {"admin", "super_admin"} else False,`
+- `core/auth/routes.py:656` — `perm = mgr.get_user_permissions(username)`
+- `core/auth/routes.py:570` — `admins = [u for u in auth_handler.list_users() if str(u.get("role", "")).lower() in {"admin", "super_admin"} and not u.get("disabled")]`
+- `core/auth/routes.py:572` — `if target_user and str(target_user.role).lower() in {"admin", "super_admin"} and len(admins) <= 1:`
+- `core/auth/routes.py:578` — `UserPermissionManager.get_instance().delete_user_permissions(target)`
+- `core/auth/routes.py:581` — `# ── Super Admin User Signal Permissions & Quotas ──────────────────────────`
+- `core/auth/routes.py:583` — `@router.get("/user-permissions")`
+- `core/auth/routes.py:584` — `async def list_all_user_permissions(`
+- `core/auth/routes.py:585` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:587` — `"""List all users with full signal permissions, quotas, and categories."""`
+- `core/auth/routes.py:588` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:595` — `perm = mgr.get_user_permissions(uname)`
+- `core/auth/routes.py:599` — `u_role = u.get("role", "viewer")`
+- `core/auth/routes.py:602` — `mgr.update_user_permissions(`
+- `core/auth/routes.py:606` — `"role": u_role,`
+- `core/auth/routes.py:608` — `"signals_enabled": True if u_role in {"admin", "super_admin"} else False,`
+- `core/auth/routes.py:617` — `all_perms = mgr.list_all_permissions()`
+- `core/auth/routes.py:621` — `"permissions": all_perms,`
+- `core/auth/routes.py:624` — `@router.get("/users/{username}/permissions")`
+- `core/auth/routes.py:625` — `async def get_user_permissions(`
+- `core/auth/routes.py:627` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:629` — `"""Get signal permissions and quota usage for a specific user."""`
+- `core/auth/routes.py:630` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:640` — `perm = mgr.get_user_permissions(username)`
+- `core/auth/routes.py:642` — `mgr.update_user_permissions(`
+- `core/auth/routes.py:646` — `"role": u.role,`
+- `core/auth/routes.py:648` — `"signals_enabled": True if u.role in {"admin", "super_admin"} else False,`
+- `core/auth/routes.py:656` — `perm = mgr.get_user_permissions(username)`
+- `core/auth/routes.py:659` — `return {"success": True, "categories": ALL_CATEGORIES, "permissions": perm_dict}`
+- `core/auth/routes.py:661` — `@router.post("/users/{username}/permissions")`
+- `core/auth/routes.py:662` — `async def update_user_permissions(`
+- `core/auth/routes.py:665` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:667` — `"""Super Admin update of user signal permissions, category subscriptions, quotas, and channels."""`
+- `core/auth/routes.py:659` — `return {"success": True, "categories": ALL_CATEGORIES, "permissions": perm_dict}`
+- `core/auth/routes.py:661` — `@router.post("/users/{username}/permissions")`
+- `core/auth/routes.py:662` — `async def update_user_permissions(`
+- `core/auth/routes.py:665` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:667` — `"""Super Admin update of user signal permissions, category subscriptions, quotas, and channels."""`
+- `core/auth/routes.py:673` — `target_role = str(target_user.role or "viewer").lower()`
+- `core/auth/routes.py:674` — `admin_role = admin.role.lower()`
+- `core/auth/routes.py:675` — `requested_role = str(body.get("role", target_role) or target_role).lower()`
+- `core/auth/routes.py:676` — `valid_roles = {"super_admin", "admin", "operator", "viewer", "observer", "developer"}`
+- `core/auth/routes.py:677` — `if requested_role not in valid_roles:`
+- `core/auth/routes.py:678` — `raise HTTPException(status_code=400, detail=f"Unsupported role: {requested_role}")`
+- `core/auth/routes.py:679` — `if requested_role != target_role and not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:680` — `raise HTTPException(status_code=403, detail="Only Super Admin can change user roles")`
+- `core/auth/routes.py:681` — `if target_role == "super_admin" and not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:682` — `raise HTTPException(status_code=403, detail="Only Super Admin can modify Super Admin permissions")`
+- `core/auth/routes.py:685` — `# does not possess. This makes the permission UI an actual security`
+- `core/auth/routes.py:687` — `requested_allowed = {str(v).lower() for v in (body.get("allowed_permissions") or [])}`
+- `core/auth/routes.py:688` — `requested_denied = {str(v).lower() for v in (body.get("denied_permissions") or [])}`
+- `core/auth/routes.py:689` — `if not is_super_admin_identity(admin.username, admin.role):`
+- `core/auth/routes.py:690` — `from core.auth.permissions import get_role_permissions`
+- `core/auth/routes.py:691` — `own = {p.value for p in get_role_permissions(admin_role)}`
+- `core/auth/routes.py:693` — `raise HTTPException(status_code=403, detail="Admin cannot grant permissions beyond their own role")`
+- `core/auth/routes.py:694` — `if target_role == "super_admin":`
+- `core/auth/routes.py:695` — `raise HTTPException(status_code=403, detail="Only Super Admin can modify Super Admin permissions")`
+- `core/auth/routes.py:697` — `if requested_role != target_role:`
+- `core/auth/routes.py:698` — `role_result = auth_handler.update_user_role(username, requested_role, admin.username)`
+- `core/auth/routes.py:699` — `if not role_result.get("success"):`
+- `core/auth/routes.py:700` — `raise HTTPException(status_code=400, detail=role_result.get("error", "Role update failed"))`
+- `core/auth/routes.py:701` — `target_role = requested_role`
+- `core/auth/routes.py:703` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:704` — `ok, msg, updated = mgr.update_user_permissions(username, {**body, "role": target_role}, admin_username=admin.username)`
+- `core/auth/routes.py:728` — `_log.info("[ADMIN_SYNC] Synchronized admin user permissions to system config: %s", list(cfg_updates.keys()))`
+- `core/auth/routes.py:732` — `auth_handler._audit_log(`
+- `core/auth/routes.py:733` — `"user_permissions_updated", admin.username, "",`
+- `core/auth/routes.py:739` — `return {"success": True, "message": msg, "permissions": updated}`
+- `core/auth/routes.py:744` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:747` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:749` — `auth_handler._audit_log(`
+- `core/auth/routes.py:739` — `return {"success": True, "message": msg, "permissions": updated}`
+- `core/auth/routes.py:744` — `admin: AuthUser = Depends(manage_permissions),`
+- `core/auth/routes.py:747` — `mgr = UserPermissionManager.get_instance()`
+- `core/auth/routes.py:749` — `auth_handler._audit_log(`
+- `core/auth/routes.py:809` — `auth_handler._audit_log(`
+- `core/auth/routes.py:838` — `auth_handler._audit_log(`
+- `core/auth/routes.py:844` — `# ── Audit log (admin) ─────────────────────────────────────────────────────`
+- `core/auth/routes.py:846` — `@router.get("/audit")`
+- `core/auth/routes.py:847` — `async def get_audit_log(`
+- `core/auth/routes.py:852` — `"""Get auth audit log. Admin only."""`
+- `core/auth/routes.py:854` — `raw_logs = auth_handler.get_audit_log(limit=limit, event_type=event_type)`
+- `core/auth/routes.py:838` — `auth_handler._audit_log(`
+- `core/auth/routes.py:844` — `# ── Audit log (admin) ─────────────────────────────────────────────────────`
+- `core/auth/routes.py:846` — `@router.get("/audit")`
+- `core/auth/routes.py:847` — `async def get_audit_log(`
+- `core/auth/routes.py:852` — `"""Get auth audit log. Admin only."""`
+- `core/auth/routes.py:854` — `raw_logs = auth_handler.get_audit_log(limit=limit, event_type=event_type)`

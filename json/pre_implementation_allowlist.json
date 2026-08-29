@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "description": "Reviewed-change allowlist for pre_implementation_check.py. Entries here suppress RISK_SENSITIVE_PATTERNS violations for the exact (file, pattern) pair ONLY after explicit human review. BLOCKED_CHANGES can never be allowlisted. SCOPE: an entry auto-allows ANY future diff matching the same (file, pattern) - re-review if risk logic in that file changes. Add entries ONLY via: python scripts/pre_implementation_check.py --allow-add <file> --pattern <pattern> --reason \"...\" (hand-editing bypasses pattern/blocked-file validation and breaks the audit trail)",
+  "entries": [
+    {
+      "id": "ALLOW-0001",
+      "file": "index_app/index_trader.py",
+      "pattern": "PAPER_MODE",
+      "reason": "Wiring the documented --paper CLI flag (v2.58): cli_paper now reads sys.argv instead of hardcoded False, forcing PAPER mode at config load and in the fail-safe path. Fully reviewed, ruff-clean, 183+ affected tests passing, live --paper run verified in PAPER mode.",
+      "reviewer": "Buffy (AI review) + operator verification",
+      "date": "2026-08-10"
+    },
+    {
+      "id": "ALLOW-0002",
+      "file": "tests/test_pre_implementation_check.py",
+      "pattern": "MAX_DAILY_LOSS",
+      "reason": "Test fixture string only - allowlist tests assert risk patterns are matched/validated; no risk-control code modified",
+      "reviewer": "AI review + operator",
+      "date": "2026-08-10"
+    },
+    {
+      "id": "ALLOW-0003",
+      "file": "tests/test_pre_implementation_check.py",
+      "pattern": "SL_PCT",
+      "reason": "Test fixture string only - allowlist tests assert risk patterns are matched/validated; no risk-control code modified",
+      "reviewer": "AI review + operator",
+      "date": "2026-08-10"
+    },
+    {
+      "id": "ALLOW-0004",
+      "file": "tests/test_pre_implementation_check.py",
+      "pattern": "TARGET_PCT",
+      "reason": "Test fixture string only - allowlist tests assert risk patterns are matched/validated; no risk-control code modified",
+      "reviewer": "AI review + operator",
+      "date": "2026-08-10"
+    },
+    {
+      "id": "ALLOW-0005",
+      "file": "tests/test_pre_implementation_check.py",
+      "pattern": "PAPER_MODE",
+      "reason": "Test fixture string only - allowlist tests assert risk patterns are matched/validated; no risk-control code modified",
+      "reviewer": "AI review + operator",
+      "date": "2026-08-10"
+    },
+    {
+      "id": "ALLOW-0006",
+      "file": "scripts/paper_session_review.py",
+      "pattern": "PaperBrokerAdapter",
+      "reason": "Docstring mention only - wrapper documents the paper-mode invariant; no broker adapter code modified",
+      "reviewer": "AI review + operator",
+      "date": "2026-08-10"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a8a"/>
+      <stop offset="100%" style="stop-color:#111827"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="32" fill="url(#bg)"/>
+  <!-- Chart line icon -->
+  <g transform="translate(36, 56)" stroke="#3b82f6" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="0,70 25,45 50,55 75,20 105,30 120,5"/>
+  </g>
+  <!-- Upward arrow -->
+  <g transform="translate(116, 36)" fill="#22c55e">
+    <polygon points="0,30 8,0 16,30 10,30 10,50 6,50 6,30"/>
+  </g>
+  <!-- "OPB" text -->
+  <text x="96" y="150" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="28" font-weight="bold" fill="#e2e8f0" text-anchor="middle" letter-spacing="2">OPB</text>
+</svg>

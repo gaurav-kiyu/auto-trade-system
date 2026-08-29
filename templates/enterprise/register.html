@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB Enterprise — Register</title>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<script nonce="{{ nonce }}" src="/static/theme_engine.js?v=3.3"></script>
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif);
+            background-color: var(--bg-primary, #080c14);
+            color: var(--text-primary, #f8fafc);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+            overflow-x: hidden;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        .ambient-glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--header-glow, rgba(56, 189, 248, 0.15)) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+            transition: background 0.3s ease;
+        }
+
+        .top-theme-dock {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.75rem;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: var(--bg-card, #131e33);
+            border: 1px solid var(--border-color, #1e293b);
+            padding: 0.45rem 0.9rem;
+            border-radius: 9999px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            transition: all 0.25s ease;
+        }
+
+        .top-theme-dock:hover {
+            border-color: var(--accent-color, #38bdf8);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .theme-dock-icon { font-size: 0.9rem; color: var(--accent-color, #38bdf8); }
+        .theme-dock-select { background: transparent; color: var(--text-primary, #f8fafc); border: none; font-size: 0.82rem; font-weight: 700; cursor: pointer; outline: none; }
+        .theme-dock-select option { background: var(--bg-card, #131e33); color: var(--text-primary, #f8fafc); }
+
+        .card {
+            position: relative;
+            z-index: 10;
+            background: var(--bg-card, #131e33);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 1.25rem;
+            padding: 2rem 2.5rem;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: var(--card-shadow, 0 25px 50px -12px rgba(0, 0, 0, 0.6));
+            backdrop-filter: blur(16px);
+            transition: all 0.25s ease;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.75rem;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent-color, #38bdf8);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+
+        .pulse-dot { width: 6px; height: 6px; background: var(--success-color, #22c55e); border-radius: 50%; box-shadow: 0 0 8px var(--success-color, #22c55e); }
+        h1 { font-size: 1.65rem; font-weight: 800; text-align: center; margin-bottom: 0.25rem; color: var(--text-primary, #fff); }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.85rem; text-align: center; margin-bottom: 1.25rem; }
+        
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.7rem 2.6rem 0.7rem 1rem;
+            background: var(--input-bg, #0b1120);
+            border: 1px solid var(--input-border, #1e293b);
+            border-radius: 0.5rem;
+            color: var(--text-primary, #e2e8f0);
+            font-size: 0.88rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .input-field:focus { border-color: var(--accent-color, #38bdf8); box-shadow: 0 0 0 3px rgba(56,189,248,0.15); }
+label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary, #94a3b8); margin-bottom: 0.3rem; display: block; }
+        
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.85rem; border-radius: 0.5rem; font-size: 0.95rem; font-weight: 700; cursor: pointer; border: none; }
+        .btn-primary { background: var(--accent-gradient, linear-gradient(135deg, #0284c7, #2563eb)); color: white; box-shadow: 0 4px 15px rgba(37,99,235,0.35); transition: all 0.25s ease; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(37,99,235,0.45); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .error-msg { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: 0.5rem; padding: 0.75rem; color: var(--danger-color, #dc2626); font-size: 0.85rem; display: none; margin-bottom: 1rem; }
+        .success-msg { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); border-radius: 0.5rem; padding: 0.75rem; color: var(--success-color, #16a34a); font-size: 0.85rem; display: none; margin-bottom: 1rem; }
+        .footer { text-align: center; margin-top: 1.25rem; font-size: 0.85rem; color: var(--text-muted, #64748b); padding-top: 1rem; border-top: 1px solid var(--border-color, #1e293b); }
+        .footer a { color: var(--accent-color, #38bdf8); text-decoration: none; font-weight: 700; }
+        .password-hint { font-size: 0.7rem; color: var(--text-muted, #64748b); margin-top: 0.25rem; }
+        .spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    
+        /* =========================================================
+           OPB V46 RESPONSIVE REGISTER REPAIR
+           Keep all primary controls accessible on compact screens.
+           ========================================================= */
+
+        @media (max-width: 600px) {
+
+            body {
+                align-items: flex-start;
+                padding: 72px 8px 24px;
+                min-height: 100vh;
+            }
+
+            .top-theme-dock {
+                left: 8px;
+                right: 8px;
+                width: auto;
+                max-width: calc(100vw - 16px);
+                box-sizing: border-box;
+                justify-content: center;
+            }
+
+            .theme-dock-select {
+                min-width: 0;
+                max-width: calc(100vw - 70px);
+                width: auto;
+            }
+
+            .card {
+                width: 100%;
+                max-width: 500px;
+                margin-bottom: 0;
+                padding: 12px;
+                box-sizing: border-box;
+            }
+
+            #registerForm {
+                gap: 0.55rem !important;
+            }
+
+            #registerForm .form-group,
+            #registerForm .form-row {
+                margin-bottom: 0 !important;
+            }
+
+            #registerForm input,
+            #registerForm select,
+            #registerForm button {
+                box-sizing: border-box;
+            }
+
+            #registerBtn {
+                margin-top: 0 !important;
+            }
+
+            .footer {
+                margin-top: 0.65rem;
+                padding-top: 0.65rem;
+            }
+        }
+
+        @media (max-width: 390px) {
+
+            body {
+                padding-top: 68px;
+            }
+
+            .top-theme-dock {
+                left: 6px;
+                right: 6px;
+                max-width: calc(100vw - 12px);
+                gap: 6px;
+                padding: 6px 8px;
+            }
+
+            .theme-dock-icon {
+                flex: 0 0 auto;
+            }
+
+            .theme-dock-select {
+                width: 0;
+                flex: 1 1 auto;
+                max-width: none;
+            }
+
+            .card {
+                padding: 10px;
+            }
+
+            #registerForm {
+                gap: 0.45rem !important;
+            }
+        }
+
+
+        /* =========================================================
+           OPB V46.1 SHORT VIEWPORT REPAIR
+           Keep registration actions reachable on shorter displays.
+           ========================================================= */
+
+        @media (min-width: 601px) and (max-height: 800px) {
+
+            body {
+                align-items: flex-start;
+                padding-top: 18px;
+                padding-bottom: 18px;
+                min-height: 100vh;
+            }
+
+            .card {
+                padding: 12px;
+                margin-bottom: 0;
+            }
+
+            #registerForm {
+                gap: 0.45rem !important;
+            }
+
+            #registerForm .form-group,
+            #registerForm .form-row {
+                margin-bottom: 0 !important;
+            }
+
+            #registerBtn {
+                margin-top: 0 !important;
+            }
+
+            .footer {
+                margin-top: 0.55rem;
+                padding-top: 0.55rem;
+            }
+        }
+
+        @media (max-width: 600px) and (max-height: 820px) {
+
+            .footer {
+                margin-top: 0.45rem;
+                padding-top: 0.45rem;
+            }
+
+            #registerForm {
+                gap: 0.4rem !important;
+            }
+        }
+
+
+        /* =========================================================
+           OPB V46.2 FINAL 360PX FOOTER REPAIR
+           ========================================================= */
+
+        @media (max-width: 360px) and (max-height: 820px) {
+
+            body {
+                padding-top: 64px;
+                padding-bottom: 12px;
+            }
+
+            .card {
+                padding: 8px;
+            }
+
+            #registerForm {
+                gap: 0.32rem !important;
+            }
+
+            .footer {
+                margin-top: 0.25rem;
+                padding-top: 0.3rem;
+            }
+        }
+
+</style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="ambient-glow"></div>
+<div class="top-theme-dock" title="Switch Workspace Theme">
+<i class="fas fa-palette theme-dock-icon"></i>
+<select class="opb-theme-selector theme-dock-select opb-top-theme-select" id="global-theme-select">
+<option value="dark-cyber">🌌 Dark Cyber (Default)</option>
+<option value="nordic-frost">❄️ Nordic Frost (High-Contrast Light)</option>
+<option value="ivory-gold">🏛️ Ivory &amp; Gold (Luxury Warm Light)</option>
+<option value="tokyo-night">🗼 Tokyo Night (Neon Noir)</option>
+<option value="catppuccin-mocha">🐱 Catppuccin Mocha (Pastel Dark)</option>
+<option value="obsidian-gold">👑 Obsidian Gold (Luxury Dark)</option>
+<option value="midnight-slate">☀️ Sapphire Day</option>
+<option value="emerald-matrix">❇️ Emerald Matrix</option>
+<option value="dracula-purple">🌸 Plum Cloud</option>
+</select>
+</div>
+<div class="card">
+<div style="text-align:center;">
+<div class="brand-badge">
+<span class="pulse-dot"></span>
+<span>OPB QUANT ENTERPRISE</span>
+</div>
+<h1>Create Account</h1>
+<p class="subtitle">Register for OPB Enterprise Trading Cockpit</p>
+</div>
+<div class="error-msg" id="errorMsg"></div>
+<div class="success-msg" id="successMsg"></div>
+<form id="registerForm" style="display:flex;flex-direction:column;gap:0.85rem;">
+<div>
+<label for="username"><i class="fas fa-user" style="margin-right:0.3rem;"></i> Username</label>
+<div class="input-wrapper opb-password-wrapper">
+<input autocomplete="username" class="input-field" id="username" placeholder="Choose a username" required="" style="padding-right:1rem;" type="text"/>
+</div>
+</div>
+<div>
+<label for="email"><i class="fas fa-envelope" style="margin-right:0.3rem;"></i> Email Address (for signals &amp; OTP recovery)</label>
+<div class="input-wrapper opb-password-wrapper">
+<input autocomplete="email" class="input-field" id="email" placeholder="name@example.com" required="" style="padding-right:1rem;" type="email"/>
+</div>
+</div>
+<div>
+<label for="displayName"><i class="fas fa-id-card" style="margin-right:0.3rem;"></i> Display Name (optional)</label>
+<div class="input-wrapper opb-password-wrapper">
+<input class="input-field" id="displayName" placeholder="Your display name" style="padding-right:1rem;" type="text"/>
+</div>
+</div>
+<div>
+<label for="telegramChatId"><i class="fab fa-telegram-plane" style="margin-right:0.3rem;"></i> Telegram Chat ID (optional for alerts)</label>
+<div class="input-wrapper opb-password-wrapper">
+<input class="input-field" id="telegramChatId" placeholder="e.g. 1148730533" style="padding-right:1rem;" type="text"/>
+</div>
+</div>
+<div>
+<label for="password"><i class="fas fa-lock" style="margin-right:0.3rem;"></i> Password</label>
+<div class="input-wrapper opb-password-wrapper">
+<input autocomplete="new-password" class="input-field" id="password" minlength="8" placeholder="Minimum 8 characters" required="" type="password"/><button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+
+</div>
+<div class="password-hint"><i class="fas fa-info-circle"></i> At least 8 characters</div>
+</div>
+<div>
+<label for="confirmPassword"><i class="fas fa-lock" style="margin-right:0.3rem;"></i> Confirm Password</label>
+<div class="input-wrapper opb-password-wrapper">
+<input autocomplete="new-password" class="input-field" id="confirmPassword" placeholder="Re-enter password" required="" type="password"/><button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+
+</div>
+</div>
+<input id="role" type="hidden" value="viewer"/>
+<div style="font-size:0.75rem;color:var(--text-muted,#94a3b8);padding:0.6rem 0.85rem;background:rgba(56,189,248,0.06);border-radius:0.5rem;border:1px solid rgba(56,189,248,0.15);">
+<i class="fas fa-info-circle" style="color:var(--accent-color,#38bdf8);"></i> You will be assigned <strong>viewer</strong> access. Super Admin can provision premium signal categories anytime.
+            </div>
+<button class="btn btn-primary" id="registerBtn" style="margin-top:0.25rem;" type="submit">
+<span id="btnText">Create Account</span>
+<span class="spinner" id="btnSpinner"></span>
+</button>
+</form>
+<div class="footer">
+            Already have an account? <a href="/login">Sign in</a>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : '';
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const displayName = document.getElementById('displayName').value.trim();
+            const telegramChatId = document.getElementById('telegramChatId').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const role = document.getElementById('role').value;
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match.');
+                return;
+            }
+            if (password.length < 8) {
+                showError('Password must be at least 8 characters.');
+                return;
+            }
+
+            setLoading(true);
+            try {
+                const csrfToken = getCookie('opb_csrf');
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers,
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        username,
+                        email,
+                        display_name: displayName || username,
+                        telegram_chat_id: telegramChatId,
+                        password,
+                        role
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    showSuccess('Account created successfully! Redirecting to login...');
+                    setTimeout(() => { window.location.href = '/login'; }, 1500);
+                } else {
+                    showError(data.detail || 'Registration failed.');
+                }
+            } catch (err) {
+                showError('Network error. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        });
+    </script>    {% include "_pwa_sw_reg.html" %}
+    <script nonce="{{ nonce }}">
+        // Wired via addEventListener, not inline attributes - CSP's script-src
+        // has no 'unsafe-inline', which silently blocks inline event-handler
+        // attributes even though a nonce'd block itself can still run (2026-08-22 fix).
+    </script>
+</body>
+</html>

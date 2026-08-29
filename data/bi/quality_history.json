@@ -1,0 +1,16 @@
+[
+  {
+    "timestamp": 1787920923.1645324,
+    "date": "2026-08-28T18:12:03.164532",
+    "total_modules": 601,
+    "total_symbols": 14291,
+    "total_lines": 210717,
+    "design_smells": 0,
+    "duplicate_clusters": 0,
+    "maintenance_hotspots": 2,
+    "test_coverage_pct": 98.5,
+    "total_tests": 17854,
+    "avg_complexity": 567.5,
+    "modules_without_tests": 0
+  }
+]

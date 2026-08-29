@@ -1,0 +1,116 @@
+name: Dependabot auto-merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# WARNING: pull_request_target runs with the workflow from the DEFAULT branch
+# and grants write permissions. Never check out PR code or run PR-controlled
+# scripts here — this workflow only performs GitHub API calls via `gh`.
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dependabot-automerge-${{ github.event.pull_request.number }}
+  # Cancel a stale run when Dependabot pushes new commits (synchronize), so an
+  # old run can never merge a head SHA whose CI it never watched.
+  cancel-in-progress: true
+
+jobs:
+  auto-merge:
+    name: Approve & merge Dependabot PRs
+    runs-on: ubuntu-latest
+    # Only Dependabot PRs, still open and not a draft.
+    if: >-
+      github.actor == 'dependabot[bot]' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.state == 'open' &&
+      github.event.pull_request.draft == false
+    timeout-minutes: 180
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      # Only the two allowlisted groups from .github/dependabot.yml are
+      # auto-merged:
+      #   - security-updates  (alert-driven security fixes — any semver)
+      #   - patch-and-minor   (routine patch/minor version bumps)
+      # Major-version bumps are NOT in a group (dependency-group is empty),
+      # so they fall through and require manual review.
+      - name: Allowlist dependency group
+        id: allowed
+        run: |
+          GROUP="${{ steps.metadata.outputs.dependency-group }}"
+          echo "dependency-group='$GROUP'"
+          if [ "$GROUP" = "security-updates" ] || [ "$GROUP" = "patch-and-minor" ]; then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "allowed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # No branch protection on this repo, so GitHub's auto-merge has no
+      # required checks to gate on and would merge immediately. We therefore
+      # wait for the `CI` workflow run on the PR head to complete (and pass)
+      # BEFORE approving/merging. If CI fails, this step exits non-zero and
+      # the merge step never runs.
+      - name: Wait for CI to pass
+        if: steps.allowed.outputs.allowed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          SHA="${{ github.event.pull_request.head.sha }}"
+          RUN_ID=""
+          # The CI run may take a moment to be registered after the PR event.
+          # `|| RUN_ID=""` keeps the loop going on transient gh/API errors
+          # instead of aborting the whole step under `set -e`.
+          for i in $(seq 1 60); do
+            RUN_ID=$(gh run list --repo "$REPO" --workflow=ci.yml \
+              --commit "$SHA" --event pull_request \
+              --json databaseId,event \
+              --jq '[.[] | select(.event == "pull_request")] | .[0].databaseId // ""' \
+              2>/dev/null) || RUN_ID=""
+            if [ -n "$RUN_ID" ]; then
+              echo "Found CI run $RUN_ID for $SHA (attempt $i)"
+              break
+            fi
+            sleep 10
+          done
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No CI run found for $SHA within 10 minutes — not auto-merging"
+            exit 1
+          fi
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status --interval 30
+
+      - name: Approve PR
+        if: steps.allowed.outputs.allowed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          DECISION=$(gh pr view "$PR_URL" --json reviewDecision --jq '.reviewDecision // ""')
+          if [ "$DECISION" != "APPROVED" ]; then
+            gh pr review --approve "$PR_URL"
+          else
+            echo "PR already approved — skipping"
+          fi
+
+      - name: Verify head SHA unchanged, then merge
+        if: steps.allowed.outputs.allowed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          # Belt-and-suspenders with cancel-in-progress: never merge a head
+          # commit whose CI we did not actually watch and wait on.
+          CURRENT=$(gh pr view "$PR_URL" --json headRefOid --jq '.headRefOid')
+          if [ "$CURRENT" != "${{ github.event.pull_request.head.sha }}" ]; then
+            echo "::error::PR head moved ($CURRENT) — CI was watched for ${{ github.event.pull_request.head.sha }}. Not merging."
+            exit 1
+          fi
+          gh pr merge --squash --delete-branch "$PR_URL"

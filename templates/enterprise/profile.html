@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile & Settings | GAURAV™ SUPER-PLATFORM</title>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/opb_design_system.css">
+    <style>
+        body {
+            background-color: var(--bg-primary, #0a0e17);
+            color: var(--text-primary, #f8fafc);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .profile-container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 1.5rem 1.5rem 3.5rem;
+        }
+
+        /* ── Hero Profile Banner ── */
+        .profile-hero {
+            background: var(--bg-card, #0f172a);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.85rem;
+            padding: 1.5rem 1.75rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            box-shadow: var(--card-shadow, 0 4px 20px rgba(0,0,0,0.25));
+        }
+
+        .profile-avatar-block {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--accent-color, #38bdf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--bg-primary, #0a0e17);
+            box-shadow: 0 0 16px var(--accent-color, rgba(56, 189, 248, 0.4));
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .profile-names h1 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: var(--text-primary, #f8fafc);
+        }
+
+        .profile-meta-tags {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .role-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.65rem;
+            border-radius: 0.35rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-color, #38bdf8);
+            border: 1px solid var(--accent-color, #38bdf8);
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1.85fr 1.15fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 960px) {
+            .profile-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── Profile Cards ── */
+        .profile-card {
+            background: var(--bg-card, #0f172a);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.75rem;
+            padding: 1.35rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--card-shadow, 0 4px 20px rgba(0,0,0,0.2));
+        }
+
+        .profile-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-color, #334155);
+            padding-bottom: 0.65rem;
+        }
+
+        .profile-card-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary, #f8fafc);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ── Form Inputs & Password Toggles ── */
+        .form-group {
+            margin-bottom: 1.15rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary, #94a3b8);
+            margin-bottom: 0.35rem;
+        }
+
+        .form-input {
+            width: 100%;
+            box-sizing: border-box;
+            background: var(--bg-secondary, #1e293b);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.45rem;
+            padding: 0.6rem 0.85rem;
+            color: var(--text-primary, #f8fafc);
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-color, #38bdf8);
+            box-shadow: 0 0 8px var(--accent-color, rgba(56, 189, 248, 0.25));
+        }
+
+        .form-input[readonly], .form-input:disabled {
+            background: var(--bg-primary, #0a0e17) !important;
+            opacity: 0.8;
+            cursor: not-allowed;
+            color: var(--text-muted, #64748b) !important;
+        }
+
+        .form-help {
+            font-size: 0.7rem;
+            color: var(--text-muted, #64748b);
+            margin-top: 0.3rem;
+            line-height: 1.35;
+        }
+
+        .input-password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+/* ── Buttons ── */
+        .profile-btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: var(--accent-color, #38bdf8);
+            color: var(--bg-primary, #0a0e17);
+            border: 1px solid var(--accent-color, #38bdf8);
+            padding: 0.55rem 1.25rem;
+            border-radius: 0.45rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .profile-btn-primary:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        .profile-btn-warning {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: var(--warning-color, #f59e0b);
+            color: #000000;
+            border: 1px solid var(--warning-color, #f59e0b);
+            padding: 0.55rem 1.25rem;
+            border-radius: 0.45rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .profile-btn-warning:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        /* ── Entitlements List ── */
+        .entitlement-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.65rem 0;
+            border-bottom: 1px solid var(--border-color, #334155);
+            font-size: 0.8rem;
+        }
+
+        .entitlement-row:last-child {
+            border-bottom: none;
+        }
+
+        .entitlement-label {
+            color: var(--text-secondary, #94a3b8);
+            font-weight: 500;
+        }
+
+        .entitlement-val {
+            font-weight: 700;
+            color: var(--text-primary, #f8fafc);
+            font-variant-numeric: tabular-nums;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .quota-progress-container {
+            margin-bottom: 1.25rem;
+            padding: 0.85rem;
+            background: var(--bg-secondary, #1e293b);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color, #334155);
+        }
+
+        .quota-bar {
+            height: 7px;
+            border-radius: 4px;
+            background: var(--bg-primary, #0a0e17);
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .quota-fill {
+            height: 100%;
+            background: var(--accent-color, #38bdf8);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .cat-chip {
+            display: inline-block;
+            background: var(--bg-secondary, #1e293b);
+            color: var(--accent-color, #38bdf8);
+            border: 1px solid var(--border-color, #334155);
+            padding: 0.15rem 0.45rem;
+            border-radius: 0.3rem;
+            font-size: 0.68rem;
+            font-weight: 600;
+            margin: 0.15rem 0.15rem 0.15rem 0;
+        }
+
+        /* ── Quick Link ── */
+        .quick-nav-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.65rem 0.9rem;
+            border-radius: 0.45rem;
+            background: var(--bg-secondary, #1e293b);
+            border: 1px solid var(--border-color, #334155);
+            color: var(--text-primary, #f8fafc);
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .quick-nav-link:hover {
+            border-color: var(--accent-color, #38bdf8);
+            transform: translateX(3px);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            animation: toastIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toast-success { background: #065f46; color: #a7f3d0; border: 1px solid #10b981; }
+        .toast-error { background: #7f1d1d; color: #fecaca; border: 1px solid #ef4444; }
+
+        @keyframes toastIn {
+            from { transform: translateY(12px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+    <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+</head>
+<body>
+    {% include '_nav.html' %}
+
+    <!-- Unified 6-Tier Navigation -->
+    
+
+    <div class="profile-container">
+        <!-- Hero Header -->
+        <div class="profile-hero">
+            <div class="profile-avatar-block">
+                <div class="profile-avatar" id="avatarInitial">
+                    {{ (user.username if user and user.username else 'U')[0] }}
+                </div>
+                <div class="profile-names">
+                    <h1 id="heroDisplayName">{{ user.display_name or user.username or 'Trader' }}</h1>
+                    <div class="profile-meta-tags">
+                        <span class="role-pill" id="heroRole">
+                            <i class="fas fa-shield-alt"></i> {{ user.role if user else 'VIEWER' }}
+                        </span>
+                        <span style="font-size:0.75rem;color:var(--text-muted, #94a3b8);">
+                            <i class="fas fa-user-circle"></i> <span id="heroUsername">@{{ user.username if user else 'user' }}</span>
+                        </span>
+                        <span style="font-size:0.75rem;color:var(--text-muted, #94a3b8);">
+                            <i class="fas fa-clock"></i> Member since <span id="heroCreated">-</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:0.75rem;align-items:center;">
+                <span style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.3rem 0.75rem;border-radius:0.4rem;font-size:0.75rem;font-weight:700;background:rgba(16,185,129,0.15);color:var(--success-color, #10b981);border:1px solid var(--success-color, #10b981);">
+                    <i class="fas fa-check-circle"></i> ACCOUNT ACTIVE
+                </span>
+            </div>
+        </div>
+
+        <!-- Main Profile Grid -->
+        <div class="profile-grid">
+            <!-- Left Column: Personal Information & Alerts -->
+            <div>
+                <!-- Alert & Contact Information -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h2 class="profile-card-title">
+                            <i class="fas fa-address-card" style="color:var(--accent-color, #38bdf8);"></i> Profile & Signal Delivery Channels
+                        </h2>
+                        <span style="font-size:0.72rem;color:var(--text-muted, #94a3b8);">Auto-Synchronized</span>
+                    </div>
+
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-input" id="profileUsername" value="{{ user.username }}" readonly>
+                            <div class="form-help">Unique institutional identity (immutable).</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Display Name / Alias</label>
+                            <input type="text" class="form-input" id="profileDisplayName" placeholder="Enter your full name or nickname" required>
+                            <div class="form-help">Shown across trading dashboards, journals, and reports.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Email Address (Signal Dispatches)</label>
+                            <input type="email" class="form-input" id="profileEmail" placeholder="your.email@example.com">
+                            <div class="form-help">Used for instant daily digests, trade execution confirmations, and alerts.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Telegram Chat ID (Instant Bot Routing)</label>
+                            <input type="text" class="form-input" id="profileTgChatId" placeholder="e.g. 123456789">
+                            <div class="form-help">Used for 1-to-1 high-speed trade signal alerts via Gaurav Capital Bot.</div>
+                        </div>
+
+                        <div style="margin-top:1.5rem;display:flex;justify-content:flex-end;">
+                            <button type="submit" class="profile-btn-primary" id="saveProfileBtn">
+                                <i class="fas fa-save"></i> Save Profile Details
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Password & Security -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h2 class="profile-card-title">
+                            <i class="fas fa-key" style="color:var(--warning-color, #f59e0b);"></i> Change Account Password
+                        </h2>
+                    </div>
+
+                    <form id="passwordForm">
+                        <div class="form-group">
+                            <label class="form-label">Current Password</label>
+                            <div class="input-password-wrapper opb-password-wrapper">
+                                <input type="password" class="form-input" id="currentPassword" placeholder="••••••••" required style="padding-right:2.5rem;">
+                                <button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                            </div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                            <div class="form-group">
+                                <label class="form-label">New Password</label>
+                                <div class="input-password-wrapper opb-password-wrapper">
+                                    <input type="password" class="form-input" id="newPassword" placeholder="Min 8 characters" minlength="8" required style="padding-right:2.5rem;">
+                                    <button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Confirm New Password</label>
+                                <div class="input-password-wrapper opb-password-wrapper">
+                                    <input type="password" class="form-input" id="confirmPassword" placeholder="Repeat new password" minlength="8" required style="padding-right:2.5rem;">
+                                    <button type="button" class="opb-password-toggle" data-toggle="password" aria-label="Show password" title="Show/Hide password" tabindex="-1"><svg viewBox="0 0 24 24" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:1rem;display:flex;justify-content:flex-end;">
+                            <button type="submit" class="profile-btn-warning" id="changePasswordBtn">
+                                <i class="fas fa-lock"></i> Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Column: Signal Quotas & Entitlements -->
+            <div>
+                <!-- Entitlements & Quotas -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h2 class="profile-card-title">
+                            <i class="fas fa-layer-group" style="color:var(--accent-color, #38bdf8);"></i> Signal Entitlements
+                        </h2>
+                    </div>
+
+                    <div class="quota-progress-container">
+                        <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-secondary, #94a3b8);">
+                            <span>Daily Signal Usage</span>
+                            <span style="font-weight:700;color:var(--text-primary, #f8fafc);" id="quotaUsageText">0 / 20</span>
+                        </div>
+                        <div class="quota-bar">
+                            <div class="quota-fill" id="quotaUsageBar" style="width:0%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="entitlement-row">
+                        <span class="entitlement-label">Signals Status</span>
+                        <span class="entitlement-val" id="permStatusBadge">
+                            <span style="background:rgba(16,185,129,0.15);color:var(--success-color, #10b981);border:1px solid var(--success-color, #10b981);padding:0.15rem 0.5rem;border-radius:0.25rem;font-size:0.72rem;">ENABLED</span>
+                        </span>
+                    </div>
+                    <div class="entitlement-row">
+                        <span class="entitlement-label">Min Conviction Tier</span>
+                        <span class="entitlement-val" id="permTierText">Score ≥ 68</span>
+                    </div>
+                    <div class="entitlement-row">
+                        <span class="entitlement-label">Telegram Channel</span>
+                        <span class="entitlement-val" id="permTgStatus"><i class="fas fa-check-circle" style="color:var(--success-color, #10b981);"></i> Active</span>
+                    </div>
+                    <div class="entitlement-row">
+                        <span class="entitlement-label">Email Channel</span>
+                        <span class="entitlement-val" id="permEmailStatus"><i class="fas fa-check-circle" style="color:var(--success-color, #10b981);"></i> Active</span>
+                    </div>
+                    <div class="entitlement-row" style="flex-direction:column;align-items:flex-start;gap:0.35rem;">
+                        <span class="entitlement-label">Allowed Market Categories</span>
+                        <div id="permCategories" style="display:flex;flex-wrap:wrap;">
+                            <span class="cat-chip">INDEX_OPTIONS</span>
+                            <span class="cat-chip">LARGE_CAP_EQUITY</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Navigation Box -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h2 class="profile-card-title">
+                            <i class="fas fa-compass" style="color:var(--accent-color, #38bdf8);"></i> Quick Access
+                        </h2>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                        <a href="/my-signals" class="quick-nav-link">
+                            <span><i class="fas fa-bell" style="color:#c084fc;margin-right:0.4rem;"></i> My Active Signals</span>
+                            <i class="fas fa-arrow-right" style="color:var(--text-muted, #64748b);"></i>
+                        </a>
+                        <a href="/live-pnl" class="quick-nav-link">
+                            <span><i class="fas fa-dollar-sign" style="color:#10b981;margin-right:0.4rem;"></i> Live P&L & Positions</span>
+                            <i class="fas fa-arrow-right" style="color:var(--text-muted, #64748b);"></i>
+                        </a>
+                        <a href="/options-chain" class="quick-nav-link">
+                            <span><i class="fas fa-list" style="color:#ec4899;margin-right:0.4rem;"></i> Real-time Options Chain</span>
+                            <i class="fas fa-arrow-right" style="color:var(--text-muted, #64748b);"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script nonce="{{ nonce }}">
+        function togglePassword(button) {
+            const wrapper = button.closest('.opb-password-wrapper');
+            if (!wrapper) return;
+
+            const input = wrapper.querySelector('input[type="password"], input[type="text"]');
+            if (!input) return;
+
+            const icon = button.querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.setAttribute('aria-label', 'Hide password');
+
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+            } else {
+                input.type = 'password';
+                button.setAttribute('aria-label', 'Show password');
+
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.opb-password-toggle').forEach(button => {
+                if (button.dataset.opbToggleBound === '1') return;
+
+                button.dataset.opbToggleBound = '1';
+
+                button.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const wrapper = this.closest('.opb-password-wrapper');
+                    if (!wrapper) return;
+
+                    const input = wrapper.querySelector('input');
+                    if (!input) return;
+
+                    const showing = input.type === 'text';
+
+                    input.type = showing ? 'password' : 'text';
+
+                    this.setAttribute(
+                        'aria-label',
+                        showing ? 'Show password' : 'Hide password'
+                    );
+
+                    const openIcon = this.querySelector('.eye-svg-open');
+                    const closedIcon = this.querySelector('.eye-svg-closed');
+
+                    if (openIcon) {
+                        openIcon.style.display = showing ? '' : 'none';
+                    }
+
+                    if (closedIcon) {
+                        closedIcon.style.display = showing ? 'none' : '';
+                    }
+                });
+            });
+        });
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return '';
+        }
+
+        async function loadProfile() {
+            try {
+                const res = await fetch('/api/auth/profile', {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'include'
+                });
+                if (res.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const data = await res.json();
+                if (!data.success || !data.user) return;
+
+                const u = data.user;
+                document.getElementById('avatarInitial').textContent = (u.username || 'U')[0].toUpperCase();
+                document.getElementById('heroDisplayName').textContent = u.display_name || u.username;
+                document.getElementById('heroUsername').textContent = '@' + u.username;
+                document.getElementById('profileDisplayName').value = u.display_name || '';
+                document.getElementById('profileEmail').value = u.email || '';
+                document.getElementById('profileTgChatId').value = u.telegram_chat_id || '';
+
+                if (u.created_ts) {
+                    const d = new Date(u.created_ts * 1000);
+                    document.getElementById('heroCreated').textContent = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                }
+
+                // Populate Entitlements
+                const p = u.permissions || {};
+                const dailyLimit = p.max_signals_daily ?? 15;
+                const dailyUsed = p.daily_signals_used ?? 0;
+                document.getElementById('quotaUsageText').textContent = `${dailyUsed} / ${dailyLimit > 0 ? dailyLimit : '∞'}`;
+                const pct = dailyLimit > 0 ? Math.min(100, Math.round((dailyUsed / dailyLimit) * 100)) : 0;
+                document.getElementById('quotaUsageBar').style.width = pct + '%';
+
+                if (p.min_signal_tier) {
+                    document.getElementById('permTierText').textContent = p.min_signal_tier.replace(/_/g, ' ');
+                }
+
+                if (p.allowed_categories && Array.isArray(p.allowed_categories) && p.allowed_categories.length > 0) {
+                    document.getElementById('permCategories').innerHTML = p.allowed_categories.map(c => 
+                        `<span class="cat-chip">${c}</span>`
+                    ).join('');
+                } else {
+                    document.getElementById('permCategories').innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted, #64748b);">All Market Categories</span>';
+                }
+
+                document.getElementById('permTgStatus').innerHTML = (p.telegram_enabled && (p.telegram_chat_id || u.telegram_chat_id)) ? 
+                    '<i class="fas fa-check-circle" style="color:var(--success-color, #10b981);"></i> Active' : 
+                    '<span style="color:var(--text-muted, #64748b);font-size:0.75rem;">Not Configured</span>';
+                document.getElementById('permEmailStatus').innerHTML = (p.email_enabled && (p.email || u.email)) ? 
+                    '<i class="fas fa-check-circle" style="color:var(--success-color, #10b981);"></i> Active' : 
+                    '<span style="color:var(--text-muted, #64748b);font-size:0.75rem;">Not Configured</span>';
+
+            } catch (err) {
+                console.error('Failed to load profile:', err);
+                showToast('Failed to load profile details: ' + err.message, 'error');
+            }
+        }
+
+        async function handleProfileSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('saveProfileBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const payload = {
+                    display_name: document.getElementById('profileDisplayName').value.trim(),
+                    email: document.getElementById('profileEmail').value.trim(),
+                    telegram_chat_id: document.getElementById('profileTgChatId').value.trim()
+                };
+
+                const res = await fetch('/api/auth/profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': getCookie('opb_csrf')
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Profile updated successfully!', 'success');
+                    await loadProfile();
+                } else {
+                    showToast(data.detail || 'Failed to update profile', 'error');
+                }
+            } catch (err) {
+                showToast('Connection error: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Profile Details';
+            }
+        }
+
+        async function handlePasswordSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('changePasswordBtn');
+            const newPw = document.getElementById('newPassword').value;
+            const confirmPw = document.getElementById('confirmPassword').value;
+
+            if (newPw !== confirmPw) {
+                showToast('New passwords do not match', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+            try {
+                const res = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': getCookie('opb_csrf')
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        old_password: document.getElementById('currentPassword').value,
+                        new_password: newPw
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Password changed successfully!', 'success');
+                    document.getElementById('passwordForm').reset();
+                } else {
+                    showToast(data.detail || data.error || 'Password update failed', 'error');
+                }
+            } catch (err) {
+                showToast('Error changing password: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-lock"></i> Update Password';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('profileForm')?.addEventListener('submit', handleProfileSubmit);
+            document.getElementById('passwordForm')?.addEventListener('submit', handlePasswordSubmit);
+            loadProfile();
+        });
+    </script>
+</body>
+</html>

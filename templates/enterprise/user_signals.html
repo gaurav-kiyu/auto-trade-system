@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — My Received Signals</title>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 1.5rem 2rem 3rem 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .card { background: var(--bg-card, linear-gradient(135deg, #131926 0%, #0d121c 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--card-shadow); }
+        .filter-bar { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; background: #0f1523; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color, #1e293b); }
+        .filter-select { background: #131a29; border: 1px solid rgba(148,163,184,0.2); border-radius: 0.35rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; padding: 0.4rem 0.6rem; outline: none; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th { text-align: left; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted, #94a3b8); padding: 0.75rem 0.8rem; border-bottom: 1px solid rgba(148,163,184,0.15); }
+        .table td { font-size: 0.8rem; padding: 0.75rem 0.8rem; border-bottom: 1px solid rgba(148,163,184,0.08); color: var(--text-secondary, #cbd5e1); vertical-align: middle; }
+        .table tr:hover td { background: rgba(56,189,248,0.03); }
+        .badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; }
+        .badge-buy { background: rgba(34,197,94,0.15); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.3); }
+        .badge-sell { background: rgba(239,68,68,0.15); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.3); }
+        .badge-t1 { background: rgba(34,197,94,0.15); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.3); font-weight: 700; }
+        .badge-t2 { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); font-weight: 800; }
+        .badge-sl { background: rgba(239,68,68,0.15); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.3); }
+        .badge-active { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border-radius: 0.4rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s ease; }
+        .btn-ghost { background: transparent; color: var(--text-muted, #94a3b8); border: 1px solid rgba(148,163,184,0.2); }
+        .btn-ghost:hover { background: rgba(148,163,184,0.1); color: var(--text-primary, #ffffff); }
+
+        /* Modal styling */
+        .opb-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .opb-modal-box {
+            background: #0d121c;
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 1rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.85);
+            animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>    {% include "_pwa_head.html" %}
+    <!-- Fonts & Design System Tokens -->
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link href="/static/opb_design_system.css" rel="stylesheet"/>
+
+<link rel="stylesheet" href="/static/report_filters.css"><script src="/static/report_filters.js" defer></script></head>
+<body>
+    {% include '_nav.html' %}
+    
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+<div>
+<h1><i class="fas fa-bell" style="margin-right:0.5rem;color:#38bdf8;"></i> My Received Signals Feed</h1>
+<p class="subtitle">Complete personalized history of all trade signals delivered based on your category access and subscription tier</p>
+</div>
+<button class="btn btn-ghost" id="refreshBtn" type="button"><i class="fas fa-sync-alt"></i> Refresh Feed</button>
+</div>
+<div id="demoDataBanner" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:0.5rem;padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:#fbbf24;">
+<i class="fas fa-info-circle"></i> Sample data — this account hasn't received any real signals yet. The rows below are example content shown so this screen isn't empty, not genuine trade signals.
+    </div>
+<!-- Filters Bar: Year, Month, Week, Category -->
+<div class="filter-bar">
+<div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+<div>
+<label style="font-size:0.7rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.2rem;font-weight:600;">Year</label>
+<select class="filter-select" id="filterYear">
+<option value="all">All Years</option>
+</select>
+</div>
+<div>
+<label style="font-size:0.7rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.2rem;font-weight:600;">Month</label>
+<select class="filter-select" id="filterMonth">
+<option value="all">All Months</option>
+</select>
+</div>
+<div>
+<label style="font-size:0.7rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.2rem;font-weight:600;">Category</label>
+<select class="filter-select" id="filterCategory">
+<option value="all">All Subscribed Categories</option>
+</select>
+</div>
+</div>
+<div style="margin-left:auto;font-size:0.82rem;color: var(--text-muted, #94a3b8);">
+            Total Received: <strong id="totalCount" style="color:#38bdf8;font-weight:800;">0</strong> signals
+        </div>
+</div>
+<!-- Signals Feed Table -->
+<div class="card">
+<div style="overflow-x:auto;">
+<table class="table">
+<thead>
+<tr>
+<th>Date &amp; Time (IST)</th>
+<th>Instrument</th>
+<th>Category</th>
+<th>Holding Horizon</th>
+<th>Signal Action</th>
+<th>Score &amp; Conviction</th>
+<th>Entry Price</th>
+<th>Targets (T1 / T2)</th>
+<th>Stop Loss</th>
+<th>R:R to T2</th>
+<th>Outcome Status</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="userSignalsBody">
+<tr><td colspan="12" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading your signals...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Interactive Trade Plan & Exit Strategy Modal -->
+<div class="opb-modal-backdrop" id="signalDetailModal">
+<div class="opb-modal-box" id="cspfix-1">
+<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:0.75rem;margin-bottom:1rem;">
+<div id="mTitle" style="font-size:1.1rem;font-weight:800;color: var(--text-primary, #ffffff);display:flex;align-items:center;gap:0.5rem;">
+                    Signal Details
+                </div>
+<button id="cspfix-2" style="background:transparent;border:none;color: var(--text-muted, #94a3b8);font-size:1.2rem;cursor:pointer;" type="button">✕</button>
+</div>
+<div id="mBody" style="font-size:0.85rem;color: var(--text-secondary, #cbd5e1);line-height:1.6;">
+<!-- Dynamically populated -->
+</div>
+<div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem;border-top:1px solid #1e293b;padding-top:0.75rem;">
+<button class="btn btn-ghost" id="cspfix-3" type="button">Close</button>
+<button class="btn" id="mExecBtn" style="background:linear-gradient(90deg,#0284c7,#2563eb);color:#fff;" type="button">⚡ Execute Paper Trade</button>
+</div>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+        let signalsCache = [];
+
+        function statusBadge(status) {
+            if (status === 'TARGET_2_HIT') return '<span class="badge badge-t2"><i class="fas fa-check-double"></i> TARGET 2 HIT (+8%)</span>';
+            if (status === 'TARGET_1_HIT') return '<span class="badge badge-t1"><i class="fas fa-check"></i> TARGET 1 HIT (+4%)</span>';
+            if (status === 'SL_HIT') return '<span class="badge badge-sl"><i class="fas fa-times"></i> SL HIT (-3%)</span>';
+            return '<span class="badge badge-active"><i class="fas fa-circle-notch fa-spin"></i> ACTIVE</span>';
+        }
+
+        function formatHumanName(sym, cat) {
+            const m = sym.match(/^([A-Z]+)(\d{2}[A-Z]{3})(\d+)(CE|PE)$/i);
+            if (m) {
+                const optType = m[4].toUpperCase() === 'CE' ? 'Call' : 'Put';
+                return `${m[1]} ${parseInt(m[3]).toLocaleString('en-IN')} ${optType} Option`;
+            }
+            return sym;
+        }
+
+        async function triggerPaperTrade(sym, direction, score) {
+            try {
+                const res = await fetch('/api/v1/trade/paper-trade', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({symbol: sym, direction: direction, score: score})
+                });
+                const d = await res.json();
+                if (d && d.success) {
+                    alert(`⚡ ${sym} queued for paper execution (signal ${d.signal_id}) - the trading loop will pick it up on its next scan cycle.`);
+                } else {
+                    alert(`Could not queue paper trade for ${sym}: ${d?.error || res.statusText}`);
+                }
+            } catch (e) {
+                alert(`Could not queue paper trade for ${sym}: ${e}`);
+            }
+        }
+
+        function openSignalPlanModal(idx) {
+            const s = signalsCache[idx];
+            if (!s) return;
+
+            const isBuy = s.direction === 'CALL' || s.direction === 'BUY';
+            const actionLabel = isBuy ? '🟢 STRONG BUY SIGNAL' : '🔴 STRONG SELL SIGNAL';
+            const humanTitle = formatHumanName(s.symbol, s.category);
+            const isOpt = s.category && (s.category.includes('OPTION') || s.category.includes('0DTE'));
+
+            const risk = Math.abs(s.entry_price - s.stop_loss);
+            const rewardT2 = Math.abs(s.target_2 - s.entry_price);
+            const rr = risk > 0 ? (rewardT2 / risk).toFixed(1) : '2.3';
+
+            document.getElementById('mTitle').innerHTML = `${actionLabel}: ${humanTitle}`;
+            const execBtn = document.getElementById('mExecBtn');
+            if (execBtn) {
+                execBtn.dataset.symbol = s.symbol || '';
+                execBtn.dataset.direction = s.direction || '';
+                execBtn.dataset.score = String(s.score ?? '');
+            }
+
+            document.getElementById('mBody').innerHTML = `
+                <div style="background:#131a29;border: 1px solid var(--border-color, #1e293b);border-radius:8px;padding:12px;margin-bottom:12px;">
+                    <div style="font-size:0.8rem;color: var(--text-muted, #94a3b8);margin-bottom:6px;"><strong>Contract:</strong> <code>${s.symbol}</code> &nbsp;|&nbsp; <strong>Score:</strong> <span style="color: var(--success-color, #16a34a);font-weight:700;">${s.score}/100 (${s.tier})</span></div>
+                    <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;font-size:0.8rem;">
+                        <div>📌 Entry: <strong style="color:#38bdf8;">₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></div>
+                        <div>🛡️ Stop Loss: <strong style="color: var(--danger-color, #dc2626);">₹${s.stop_loss.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></div>
+                        <div>🎯 Target 1: <strong style="color: var(--success-color, #16a34a);">₹${s.target_1.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></div>
+                        <div>🚀 Target 2: <strong style="color: var(--success-color, #16a34a);">₹${s.target_2.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></div>
+                        <div style="grid-column:span 2;">⚖️ Risk : Reward to Target 2: <strong style="color:#facc15;">1 : ${rr}</strong></div>
+                    </div>
+                </div>
+                <div style="font-size:0.82rem;font-weight:700;color:#38bdf8;margin-bottom:6px;">🎯 STEP-BY-STEP EXIT STRATEGY:</div>
+                <div style="background:#131a29;border-left:3px solid #22c55e;border-radius:0 6px 6px 0;padding:10px 12px;font-size:0.78rem;line-height:1.5;">
+                    <div style="margin-bottom:6px;">• <strong>Step 1:</strong> Book 50% of your position at Target 1 (₹${s.target_1.toLocaleString('en-IN', {minimumFractionDigits:2})}) and move Stop Loss to Entry Price (₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits:2})}) for a risk-free trade.</div>
+                    <div style="margin-bottom:6px;">• <strong>Step 2:</strong> Hold the remaining 50% position for Target 2 (₹${s.target_2.toLocaleString('en-IN', {minimumFractionDigits:2})}).</div>
+                    <div>• <strong>Step 3:</strong> If neither Target 2 nor SL is hit, exit remaining position by ${isOpt ? '15:15 IST' : 'end of Max Horizon'}.</div>
+                </div>
+                <div style="margin-top:10px;font-size:0.75rem;color: var(--text-muted, #94a3b8);">
+                    <strong>Position Sizing:</strong> Size according to your predefined portfolio risk limit.
+                </div>
+            `;
+
+            document.getElementById('signalDetailModal').style.display = 'flex';
+        }
+
+        function closeSignalModal() {
+            document.getElementById('signalDetailModal').style.display = 'none';
+        }
+
+        async function loadUserSignals() {
+            const y = document.getElementById('filterYear').value;
+            const m = document.getElementById('filterMonth').value;
+            const cat = document.getElementById('filterCategory').value;
+
+            const res = await fetch(`/api/auth/signals/my-history?year=${y}&month=${m}&category=${cat}`, {credentials: 'include'});
+            if (res.status === 401) { window.location.href = '/login'; return; }
+            const data = await res.json();
+            if (!data) return;
+
+            document.getElementById('totalCount').textContent = data.total_received ?? 0;
+            document.getElementById('demoDataBanner').style.display = data.contains_demo_data ? 'block' : 'none';
+
+            const ySel = document.getElementById('filterYear');
+            if (ySel.options.length === 1 && data.available_years) {
+                data.available_years.forEach(yr => {
+                    const opt = document.createElement('option');
+                    opt.value = yr; opt.textContent = yr;
+                    ySel.appendChild(opt);
+                });
+            }
+
+            const mSel = document.getElementById('filterMonth');
+            if (mSel.options.length === 1 && data.available_months) {
+                data.available_months.forEach(mo => {
+                    const opt = document.createElement('option');
+                    opt.value = mo; opt.textContent = mo;
+                    mSel.appendChild(opt);
+                });
+            }
+
+            const cSel = document.getElementById('filterCategory');
+            if (cSel.options.length === 1 && data.available_categories) {
+                data.available_categories.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c; opt.textContent = c;
+                    cSel.appendChild(opt);
+                });
+            }
+
+            const tb = document.getElementById('userSignalsBody');
+            signalsCache = data.signals || [];
+            if (signalsCache.length === 0) {
+                tb.innerHTML = '<tr><td colspan="12" style="text-align:center;color: var(--text-muted, #94a3b8);">No signals received for selected timeframe</td></tr>';
+                return;
+            }
+
+            tb.innerHTML = signalsCache.map((s, idx) => {
+                const isBuy = s.direction === 'CALL' || s.direction === 'BUY';
+                const dirBadge = isBuy
+                    ? '<span class="badge badge-buy"><i class="fas fa-arrow-up"></i> STRONG BUY</span>'
+                    : '<span class="badge badge-sell"><i class="fas fa-arrow-down"></i> STRONG SELL</span>';
+
+                const scoreColor = s.score >= 80 ? '#22c55e' : (s.score >= 68 ? '#eab308' : '#94a3b8');
+                const humanTitle = formatHumanName(s.symbol, s.category);
+
+                const risk = Math.abs(s.entry_price - s.stop_loss);
+                const rewardT2 = Math.abs(s.target_2 - s.entry_price);
+                const rr = risk > 0 ? (rewardT2 / risk).toFixed(1) : '2.3';
+
+                return `<tr>
+                    <td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);font-family:monospace;white-space:nowrap;">
+                        <i class="far fa-clock" style="margin-right:0.3rem;color: var(--text-muted, #94a3b8);"></i>${s.timestamp ? s.timestamp.substring(0, 19).replace('T', ' ') : '-'}
+                    </td>
+                    <td>
+                        <div style="font-weight:700;color: var(--text-primary, #ffffff);font-size:0.88rem;">${humanTitle}</div>
+                        <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);font-family:monospace;"><code>${s.symbol}</code></div>
+                    </td>
+                    <td>
+                        <span style="display:inline-block;padding:2px 8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:6px;font-size:0.7rem;color:#93c5fd;font-weight:600;">
+                            ${s.category}
+                        </span>
+                    </td>
+                    <td>
+                        ${(s.category && (s.category.includes('OPTION') || s.category.includes('0DTE'))) 
+                            ? '<span style="color:#f59e0b;font-weight:700;font-size:0.75rem;"><i class="fas fa-bolt"></i> Intraday (<15:15)</span>' 
+                            : '<span style="color:#38bdf8;font-weight:700;font-size:0.75rem;"><i class="far fa-calendar-alt"></i> 1–5 Days (Swing)</span>'}
+                    </td>
+                    <td>${dirBadge}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-weight:800;color:${scoreColor};font-size:0.9rem;">${s.score}</span>
+                            <span style="font-size:0.65rem;color: var(--text-muted, #94a3b8);">/100</span>
+                            <span style="font-size:0.65rem;padding:2px 6px;background: var(--bg-card-hover, #1e293b);border-radius:4px;color: var(--text-secondary, #cbd5e1);font-weight:600;">${s.tier}</span>
+                        </div>
+                    </td>
+                    <td style="font-family:monospace;font-weight:700;color:#38bdf8;font-size:0.85rem;">₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td>
+                        <div style="font-family:monospace;font-size:0.75rem;color: var(--success-color, #16a34a);">
+                            <strong style="color: var(--success-color, #16a34a);">T1:</strong> ₹${s.target_1.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#86efac;">(+4%)</span>
+                        </div>
+                        <div style="font-family:monospace;font-size:0.75rem;color:#34d399;margin-top:2px;">
+                            <strong style="color:#10b981;">T2:</strong> ₹${s.target_2.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#6ee7b7;">(+8%)</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-family:monospace;font-size:0.75rem;color: var(--danger-color, #dc2626);font-weight:600;">
+                            ₹${s.stop_loss.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#fca5a5;">(-3%)</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span style="font-family:monospace;font-size:0.75rem;color:#facc15;font-weight:700;">1 : ${rr}</span>
+                    </td>
+                    <td>${statusBadge(s.status)}</td>
+                    <td>
+                        <div style="display:flex;gap:4px;">
+                            <button data-action="open-signal-plan-modal" data-idx="${idx}" class="btn btn-ghost" style="padding:3px 7px;font-size:0.7rem;" title="View Plan & Exit Steps" type="button">
+                                📋 Plan
+                            </button>
+                            <button data-action="trigger-paper-trade" data-symbol="${s.symbol}" class="btn" style="padding:3px 7px;font-size:0.7rem;background:linear-gradient(90deg,#0284c7,#2563eb);color:#fff;" title="1-Click Paper Trade" type="button">
+                                ⚡ Trade
+                            </button>
+                            <a href="https://in.tradingview.com/chart/?symbol=NSE:${s.symbol}" target="_blank" class="btn btn-ghost" style="padding:3px 7px;font-size:0.7rem;text-decoration:none;" title="Open Chart">
+                                📊
+                            </a>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        document.getElementById('userSignalsBody').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            if (btn.dataset.action === 'open-signal-plan-modal') openSignalPlanModal(Number(btn.dataset.idx));
+            else if (btn.dataset.action === 'trigger-paper-trade') triggerPaperTrade(btn.dataset.symbol);
+        });
+        document.getElementById('mExecBtn')?.addEventListener('click', async () => {
+            const btn = document.getElementById('mExecBtn');
+            if (!btn || !btn.dataset.symbol) return;
+            btn.disabled = true;
+            try {
+                await triggerPaperTrade(btn.dataset.symbol, btn.dataset.direction || undefined, Number(btn.dataset.score || 0));
+                closeSignalModal();
+            } finally {
+                btn.disabled = false;
+            }
+        });
+        document.getElementById('filterYear').addEventListener('change', loadUserSignals);
+        document.getElementById('filterMonth').addEventListener('change', loadUserSignals);
+        document.getElementById('filterCategory').addEventListener('change', loadUserSignals);
+        document.getElementById('refreshBtn').addEventListener('click', loadUserSignals);
+
+        loadUserSignals();
+    </script>    {% include "_pwa_sw_reg.html" %}
+    <script nonce="{{ nonce }}">
+        // Wired via addEventListener, not inline attributes - CSP's script-src
+        // has no 'unsafe-inline', which silently blocks inline event-handler
+        // attributes even though a nonce'd block itself can still run (2026-08-22 fix).
+        document.getElementById('signalDetailModal')?.addEventListener('click', function(event) { closeSignalModal() });
+        document.getElementById('cspfix-1')?.addEventListener('click', function(event) { event.stopPropagation() });
+        document.getElementById('cspfix-2')?.addEventListener('click', function(event) { closeSignalModal() });
+        document.getElementById('cspfix-3')?.addEventListener('click', function(event) { closeSignalModal() });
+    </script>
+</body>
+</html>

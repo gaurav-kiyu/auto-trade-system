@@ -1,0 +1,74 @@
+# RealEstate India Platform — Standalone Docker Image
+# ============================================================
+# Multi-stage build: builder (dev deps) → runtime (slim)
+#
+# Build:
+#   docker build -f Dockerfile.realestate -t realestate-india .
+#
+# Run:
+#   docker run -p 8766:8766 realestate-india
+#
+# With config:
+#   docker run -p 8766:8766 \
+#     -v $(pwd)/json/config.json:/app/json/config.json \
+#     -e RAZORPAY_KEY_ID=rzp_live_xxx \
+#     -e RAZORPAY_KEY_SECRET=xxx \
+#     realestate-india
+
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy dependency files
+COPY pyproject.toml requirements*.txt ./
+
+# Install production dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+        fastapi uvicorn[standard] jinja2 aiofiles python-multipart \
+        httpx pytz && \
+    pip install --no-cache-dir \
+        razorpay 2>/dev/null || true
+
+# ── Runtime stage ───────────────────────────────────────────────────────────
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install only runtime system deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Create data directories
+RUN mkdir -p /app/data/ml_models /app/data/db /app/data/exports
+
+# Copy application code
+COPY . .
+
+# Environment defaults
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV REAL_ESTATE_PORT=8766
+ENV REAL_ESTATE_HOST=0.0.0.0
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8766/api/realestate/health || exit 1
+
+# Expose the real estate API port
+EXPOSE 8766
+
+# Run the real estate platform. Single-line JSON-array CMD: backslash
+# line-continuations are NOT valid inside JSON-array form, and raw newlines made
+# Docker parse `import uvicorn` as a bogus instruction ("unknown instruction").
+CMD ["python", "-c", "import uvicorn; from realestate.startup import startup_realestate_system; from fastapi import FastAPI; app = FastAPI(title='RealEstate India API', version='1.0.0'); startup_realestate_system(app=app); uvicorn.run(app, host='0.0.0.0', port=8766)"]

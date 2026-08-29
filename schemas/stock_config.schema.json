@@ -1,0 +1,464 @@
+{
+  "$id": "https://opbuying.local/schemas/stock_config",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "ADAPTIVE_HISTORY_LOOKBACK": {
+      "type": "integer"
+    },
+    "ADAPTIVE_THRESHOLD_ENABLED": {
+      "type": "boolean"
+    },
+    "ADAPTIVE_THRESHOLD_MAX_BONUS": {
+      "type": "integer"
+    },
+    "ADAPTIVE_THRESHOLD_MAX_DISCOUNT": {
+      "type": "integer"
+    },
+    "ADX_CHOP_THRESHOLD": {
+      "type": "number"
+    },
+    "ADX_TREND_THRESHOLD": {
+      "type": "number"
+    },
+    "AI_THRESHOLD": {
+      "type": "integer"
+    },
+    "ANGEL_API_KEY": {
+      "type": "string"
+    },
+    "ANGEL_CLIENT_ID": {
+      "type": "string"
+    },
+    "ANGEL_PASSWORD": {
+      "type": "string"
+    },
+    "ANGEL_REFRESH_TOKEN": {
+      "type": "string"
+    },
+    "ANGEL_TOTP_KEY": {
+      "type": "string"
+    },
+    "API_DEGRADE_BLOCK_ENTRIES_AT": {
+      "type": "integer"
+    },
+    "API_DEGRADE_HALT_AT": {
+      "type": "integer"
+    },
+    "API_DEGRADE_REDUCE_SIZE_AT": {
+      "type": "integer"
+    },
+    "API_DEGRADE_SIZE_MULT": {
+      "type": "number"
+    },
+    "API_FAIL_BLOCK_NEW_ENTRIES": {
+      "type": "integer"
+    },
+    "BASE_CAPITAL": {
+      "type": "integer"
+    },
+    "BOT_TOKEN": {
+      "type": "string"
+    },
+    "BREAKOUT_TIMEOUT": {
+      "type": "integer"
+    },
+    "BROKERAGE_PER_TRADE": {
+      "type": "integer"
+    },
+    "BROKER_API_ENABLED": {
+      "type": "boolean"
+    },
+    "BROKER_BACKEND": {
+      "type": "string"
+    },
+    "BROKER_CONFIG": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "BROKER_CUSTOM_FACTORY": {
+      "type": "string"
+    },
+    "BROKER_DRIVER": {
+      "type": "string"
+    },
+    "BROKER_LATENCY_ENFORCE_ORDER": {
+      "type": "boolean"
+    },
+    "BROKER_NAME": {
+      "type": "string"
+    },
+    "BROKER_WAIT_POLL_SEC": {
+      "type": "number"
+    },
+    "CHAT_ID": {
+      "type": "string"
+    },
+    "CIRCUIT_BREAKER_THRESHOLD": {
+      "type": "integer"
+    },
+    "CIRCUIT_BREAKER_WINDOW": {
+      "type": "integer"
+    },
+    "CONFIG_DRIFT_AUTO_RELOAD": {
+      "type": "boolean"
+    },
+    "COOLDOWN": {
+      "type": "integer"
+    },
+    "CROSS_VALIDATE_TOLERANCE": {
+      "type": "number"
+    },
+    "DAILY_TARGET": {
+      "type": "integer"
+    },
+    "DASHBOARD_COMPACT": {
+      "type": "boolean"
+    },
+    "DATA_CROSS_VALIDATE": {
+      "type": "boolean"
+    },
+    "DYNAMIC_SL_ATR_MULT": {
+      "type": "number"
+    },
+    "DYNAMIC_TARGET_ATR_MULT": {
+      "type": "number"
+    },
+    "EQUITY_SL_MOVE_PCT": {
+      "type": "number"
+    },
+    "EQUITY_TP_MOVE_PCT": {
+      "type": "number"
+    },
+    "EXCEPTION_ALERT_THRESHOLD": {
+      "type": "integer"
+    },
+    "EXIT_RECON_MAX_AGE_SEC": {
+      "type": "integer"
+    },
+    "EXIT_SPREAD_GUARD_MULT": {
+      "type": "number"
+    },
+    "FORCE_PRE_TRADE_RECON": {
+      "type": "boolean"
+    },
+    "IV_SPIKE_THRESHOLD": {
+      "type": "number"
+    },
+    "KITE_ACCESS_TOKEN": {
+      "type": "string"
+    },
+    "KITE_API_KEY": {
+      "type": "string"
+    },
+    "KITE_PASSWORD": {
+      "type": "string"
+    },
+    "KITE_TOTP_KEY": {
+      "type": "string"
+    },
+    "KITE_USER_ID": {
+      "type": "string"
+    },
+    "LATENCY_BUDGET_MS": {
+      "type": "integer"
+    },
+    "LEARNING_SCORE_ADJ_CLAMP": {
+      "type": "integer"
+    },
+    "LOCK_TRIGGER_PCT": {
+      "type": "number"
+    },
+    "LOG_PERIODIC_SUMMARY": {
+      "type": "boolean"
+    },
+    "LTP_FREEZE_THRESHOLD": {
+      "type": "integer"
+    },
+    "MAX_BREAKOUT_DISTANCE": {
+      "type": "number"
+    },
+    "MAX_DAILY_LOSS": {
+      "type": "integer"
+    },
+    "MAX_DRAWDOWN": {
+      "type": "number"
+    },
+    "MAX_LOT_CAPITAL_PCT": {
+      "type": "number"
+    },
+    "MAX_OPEN": {
+      "type": "integer"
+    },
+    "MAX_POSITIONS_PER_SECTOR": {
+      "type": "integer"
+    },
+    "MAX_POSITION_AGE": {
+      "type": "integer"
+    },
+    "MAX_TRADES_DAY": {
+      "type": "integer"
+    },
+    "METRICS_BIND": {
+      "type": "string"
+    },
+    "METRICS_PORT": {
+      "type": "integer"
+    },
+    "MIN_NET_RR": {
+      "type": "number"
+    },
+    "MIN_OPTION_OI": {
+      "type": "integer"
+    },
+    "MIN_OPTION_VOLUME": {
+      "type": "integer"
+    },
+    "MIN_TRADE_DURATION_MINS": {
+      "type": "integer"
+    },
+    "NSE_BLOCK_NEW_ENTRIES_FROM_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_BLOCK_NEW_ENTRIES_FROM_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CASH_SESSION_END_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CASH_SESSION_END_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CASH_SESSION_START_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CASH_SESSION_START_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CONTINUOUS_TRADE_START_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_CONTINUOUS_TRADE_START_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_EARLY_SESSION_END_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_EARLY_SESSION_END_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_MARKET_STATUS_CLOSED_HOUR": {
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_MARKET_STATUS_CLOSED_MINUTE": {
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_POST_OPEN_NO_TRADE_MINUTES": {
+      "maximum": 240,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "NSE_SESSION_RESET_THRESHOLD": {
+      "type": "integer"
+    },
+    "ORDER_STATUS_VERIFY_RETRIES": {
+      "type": "integer"
+    },
+    "PAPER_TRACK_CAPITAL": {
+      "type": "boolean"
+    },
+    "PARTIAL_EXIT_ENABLED": {
+      "type": "boolean"
+    },
+    "PARTIAL_EXIT_MULT": {
+      "type": "number"
+    },
+    "PARTIAL_EXIT_TRAIL": {
+      "type": "number"
+    },
+    "PORTFOLIO_MAX_SL_RISK_PCT": {
+      "type": "number"
+    },
+    "RECONCILE_HALT_ON_QTY_MISMATCH": {
+      "type": "boolean"
+    },
+    "RECONCILE_INTERVAL": {
+      "type": "integer"
+    },
+    "RISK_FIXED_AMOUNT": {
+      "type": "integer"
+    },
+    "RISK_MODE": {
+      "enum": [
+        "FIXED",
+        "PERCENT"
+      ],
+      "type": "string"
+    },
+    "RISK_PER_TRADE": {
+      "type": "number"
+    },
+    "RSI_OVERBOUGHT": {
+      "type": "integer"
+    },
+    "RSI_OVERSOLD": {
+      "type": "integer"
+    },
+    "SCAN_BATCH_DELAY": {
+      "type": "integer"
+    },
+    "SCAN_BATCH_SIZE": {
+      "type": "integer"
+    },
+    "SCAN_INTERVAL": {
+      "type": "integer"
+    },
+    "SHUTDOWN_ON_UI_CLOSE": {
+      "type": "boolean"
+    },
+    "SIGNAL_MAX_AGE": {
+      "type": "integer"
+    },
+    "SLIPPAGE": {
+      "type": "number"
+    },
+    "SLIPPAGE_LOW_VOL_EXTRA": {
+      "type": "number"
+    },
+    "SLIPPAGE_VIX_FACTOR": {
+      "type": "number"
+    },
+    "SL_PCT": {
+      "type": "number"
+    },
+    "SL_WARN_PCT": {
+      "type": "number"
+    },
+    "STOCK_ALERT_MODE": {
+      "enum": [
+        "OPTIONS",
+        "EQUITY"
+      ],
+      "type": "string"
+    },
+    "STOCK_WATCHLIST": {
+      "type": "array"
+    },
+    "SUMMARY_INTERVAL": {
+      "type": "integer"
+    },
+    "TAKE_PROFIT_AND_STOP": {
+      "type": "boolean"
+    },
+    "TARGET_PCT": {
+      "type": "number"
+    },
+    "TG_CACHE_TTL_SEC": {
+      "type": "integer"
+    },
+    "TG_FALLBACK_FILE": {
+      "type": "string"
+    },
+    "TG_MAX_PER_MIN": {
+      "type": "integer"
+    },
+    "TG_PERIODIC_SUMMARY_TELEGRAM": {
+      "type": "boolean"
+    },
+    "TG_QUIET_MODE": {
+      "type": "boolean"
+    },
+    "TG_SIGNAL_COOLDOWN": {
+      "type": "integer"
+    },
+    "TG_SIGNAL_GLOBAL_COOLDOWN_SEC": {
+      "type": "integer"
+    },
+    "TG_STARTUP_ALERT": {
+      "type": "boolean"
+    },
+    "TG_TRADE_ALERTS_STRICT": {
+      "type": "boolean"
+    },
+    "TG_TRADE_CRITICAL_PATTERNS": {
+      "type": [
+        "string",
+        "number",
+        "integer",
+        "boolean",
+        "object",
+        "array",
+        "null"
+      ]
+    },
+    "TG_TRADE_ONLY": {
+      "type": "boolean"
+    },
+    "TRAIL_ACTIVATE": {
+      "type": "number"
+    },
+    "TRAIL_PCT": {
+      "type": "number"
+    },
+    "TRAIL_STEP_PCT": {
+      "type": "number"
+    },
+    "USER_TIPS_ON_START": {
+      "type": "boolean"
+    },
+    "VIX_BLOCK_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_FALLING_COOLDOWN_MULT": {
+      "type": "number"
+    },
+    "VIX_HALT_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_RISING_THRESHOLD_BONUS": {
+      "type": "integer"
+    },
+    "VIX_SIZE_HIGH_THRESHOLD": {
+      "type": "number"
+    },
+    "VIX_SIZE_MED_THRESHOLD": {
+      "type": "number"
+    },
+    "VOL_RATIO_MIN": {
+      "type": "number"
+    },
+    "WATCHDOG_TIMEOUT": {
+      "type": "integer"
+    },
+    "WEEKDAY_BIAS": {
+      "additionalProperties": true,
+      "type": "object"
+    }
+  },
+  "title": "Stock bot merged config (stock_config.json over stock_config.defaults.json)",
+  "type": "object"
+}

@@ -1,0 +1,225 @@
+---
+# OPB Bot — PrometheusRule Alerts
+# ─────────────────────────────────────────────────────────────────────────────
+# Alerting rules for the OPB Index Options Buying Bot.
+# Requires Prometheus Operator or compatible rule evaluation.
+#
+# Metric Name Verification
+# ───────────────────────────
+# Before deploying, verify that the metric names referenced below match
+# the actual metrics exported by the bot's metrics_exporter.py:
+#
+#   kubectl port-forward svc/opb-service 9090:9090 -n opb-trading
+#   curl http://localhost:9090/metrics | grep '^opb_'
+#
+# If a metric name does not match, the corresponding alert will silently
+# remain in "no data" state (Prometheus treats missing metrics as no-data
+# rather than an error). Adjust metric names in the `expr:` field to match
+# actual exporter output.
+#
+# Severity levels:
+#   critical  → Immediate operator attention required (page/notify)
+#   warning   → Operator should investigate within business hours
+#   info      → Informational, no immediate action required
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: opb-alerts
+  labels:
+    app: opb-bot
+    tier: trading
+    release: prometheus-operator
+spec:
+  groups:
+    - name: opb-trading-alerts
+      interval: 30s
+      rules:
+        # ── Availability ────────────────────────────────────────────────────
+        - alert: OpbBotDown
+          expr: up{app="opb-bot"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "OPB Bot is down"
+            description: "OPB Bot pod {{ $labels.pod }} has been unreachable for more than 2 minutes."
+            runbook: "docs/runbooks/broker_outage.md"
+
+        - alert: OpbBotRestartLoop
+          expr: changes(kube_pod_status_ready{condition="true",pod=~"opb-deployment.*"}[15m]) > 3
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "OPB Bot restart loop detected"
+            description: "OPB Bot has restarted more than 3 times in the last 15 minutes."
+            runbook: "docs/runbooks/db_corruption.md"
+
+        # ── Risk & Safety ──────────────────────────────────────────────────
+        - alert: OpbHardHaltTriggered
+          expr: opb_hard_halt_active == 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Hard halt triggered"
+            description: "OPB Bot hard halt is active. All trading entries blocked. Reason: {{ $labels.reason }}"
+            runbook: "docs/runbooks/stale_feed.md"
+
+        - alert: OpbDrawdownWarning
+          expr: opb_drawdown_pct > 0.15
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Drawdown threshold warning"
+            description: "Current drawdown is {{ $value | humanizePercentage }}. Exceeds 15% warning threshold."
+
+        - alert: OpbDrawdownCritical
+          expr: opb_drawdown_pct > 0.25
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Drawdown critical threshold breached"
+            description: "Current drawdown is {{ $value | humanizePercentage }}. Exceeds 25% critical threshold."
+
+        # ── Execution & Reconciliation ──────────────────────────────────────
+        - alert: OpbReconciliationLag
+          expr: opb_reconciliation_lag_seconds > 60
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Reconciliation backlog"
+            description: "Reconciliation lag is {{ $value }} seconds. Potential position state drift."
+            runbook: "docs/runbooks/db_corruption.md"
+
+        - alert: OpbReconciliationMismatch
+          expr: opb_reconciliation_mismatches > 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Position reconciliation mismatch"
+            description: "Broker-vs-internal position mismatch detected ({{ $value }} mismatches). Trading may be frozen."
+            runbook: "docs/runbooks/split_brain.md"
+
+        # ── Data Quality ────────────────────────────────────────────────────
+        - alert: OpbStaleMarketData
+          expr: time() - opb_last_data_timestamp_seconds > 180
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Stale market data feed"
+            description: "Market data feed is {{ $value }} seconds stale. Threshold is 180s."
+            runbook: "docs/runbooks/stale_feed.md"
+
+        - alert: OpbDataFeedDegraded
+          expr: opb_data_provider_failures_rate > 0.5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Data feed degradation"
+            description: "Data provider failure rate is {{ $value | humanizePercentage }}. Graceful degradation active."
+
+        # ── Performance & Capacity ──────────────────────────────────────────
+        - alert: OpbHighMemoryUsage
+          expr: container_memory_working_set_bytes{pod=~"opb-deployment.*"} / container_spec_memory_limit_bytes{pod=~"opb-deployment.*"} > 0.85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage"
+            description: "Container memory usage is {{ $value | humanizePercentage }}. Consider increasing limits."
+
+        - alert: OpbScanLoopSlow
+          expr: opb_scan_cycle_duration_ms > 5000
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Trading scan loop slow"
+            description: "Scan cycle duration is {{ $value }}ms (threshold 5000ms). Possible bottleneck."
+
+        # ── Concurrency & Safety ────────────────────────────────────────────
+        - alert: OpbConsecutiveLosses
+          expr: opb_consecutive_losses > 2
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Consecutive losses detected"
+            description: "{{ $value }} consecutive losses. Circuit breaker may engage."
+
+        - alert: OpbApiDegradation
+          expr: opb_api_failure_count > 10
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "API degradation"
+            description: "{{ $value }} API failures in the current window. Entries may be blocked."
+
+        # ── Broker Connectivity ─────────────────────────────────────────────
+        - alert: OpbBrokerDisconnected
+          expr: opb_broker_connected == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Broker disconnected"
+            description: "Broker connection lost. Auto-reconnect initiated."
+            runbook: "docs/runbooks/broker_outage.md"
+
+        - alert: OpbBrokerAuthExpiry
+          expr: opb_broker_token_expires_in_seconds < 3600
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Broker authentication expiring"
+            description: "Broker token expires in {{ $value }} seconds. TokenRefreshService should auto-renew."
+            runbook: "docs/runbooks/auth_expiry.md"
+
+        # ── Database & Storage ──────────────────────────────────────────────
+        - alert: OpbDiskSpaceLow
+          expr: kubelet_volume_stats_available_bytes{persistentvolumeclaim="opb-data-pvc"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim="opb-data-pvc"} < 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk space low"
+            description: "Less than 10% disk space remaining on persistent volume. Cleanup recommended."
+            runbook: "docs/runbooks/disk_pressure.md"
+
+        - alert: OpbDatabaseLag
+          expr: opb_wal_checkpoint_lag_mb > 100
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "WAL checkpoint lag"
+            description: "Write-Ahead Log checkpoint is {{ $value }}MB behind. Auto-checkpoint may be needed."
+
+        # ── Trading Performance ─────────────────────────────────────────────
+        - alert: OpbTradeLossStreak
+          expr: opb_trade_streak < -3
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Trade loss streak"
+            description: "{{ $value }} consecutive losing trades. Review signal quality and market conditions."
+
+        - alert: OpbDailyLossLimitApproach
+          expr: opb_daily_pnl / opb_max_daily_loss > 0.8
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Daily loss limit approaching"
+            description: "Current PnL is at {{ $value | humanizePercentage }} of the daily loss limit."

@@ -1,0 +1,337 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "OPB Trading System — Production Dashboard",
+  "version": 1,
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "title": "System Health Overview",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+      "targets": [{
+        "expr": "up{job=\"opb-trading\"}",
+        "legendFormat": "Uptime"
+      }],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "textMode": "auto"
+      }
+    },
+    {
+      "title": "Active Positions",
+      "type": "gauge",
+      "gridPos": {"h": 6, "w": 4, "x": 0, "y": 4},
+      "targets": [{"expr": "trading_positions_active", "legendFormat": "Positions"}],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "thresholds": [{"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 3}]
+      }
+    },
+    {
+      "title": "Daily P&L",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 5, "x": 4, "y": 4},
+      "targets": [{"expr": "trading_daily_pnl", "legendFormat": "P&L"}],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "thresholds": [
+          {"color": "red", "value": null},
+          {"color": "green", "value": 0}
+        ]
+      }
+    },
+    {
+      "title": "Available Capital",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 5, "x": 9, "y": 4},
+      "targets": [{"expr": "trading_available_capital", "legendFormat": "Capital"}],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "thresholds": [{"color": "red", "value": null}, {"color": "orange", "value": 50000}, {"color": "green", "value": 100000}]
+      }
+    },
+    {
+      "title": "Consecutive Losses",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 5, "x": 14, "y": 4},
+      "targets": [{"expr": "trading_consecutive_losses", "legendFormat": "Losses"}],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "thresholds": [{"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 3}]
+      }
+    },
+    {
+      "title": "Hard Halt Status",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 5, "x": 19, "y": 4},
+      "targets": [{"expr": "trading_hard_halt", "legendFormat": "Halt"}],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "thresholds": [{"color": "green", "value": 0}, {"color": "red", "value": 1}]
+      }
+    },
+    {
+      "title": "Daily P&L Timeline",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+      "targets": [
+        {"expr": "trading_daily_pnl", "legendFormat": "P&L"},
+        {"expr": "trading_daily_pnl_max_drawdown", "legendFormat": "Max DD"}
+      ],
+      "options": {
+        "legend": {"calcs": ["min", "max", "last"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": [{"color": "red", "value": null}, {"color": "green", "value": 0}],
+          "color": {"mode": "palette-classic"}
+        }
+      }
+    },
+    {
+      "title": "Portfolio Capital",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+      "targets": [
+        {"expr": "trading_total_capital", "legendFormat": "Total"},
+        {"expr": "trading_available_capital", "legendFormat": "Available"},
+        {"expr": "trading_used_capital", "legendFormat": "Used"}
+      ],
+      "options": {
+        "legend": {"calcs": ["min", "max", "last"], "displayMode": "table", "placement": "bottom"}
+      }
+    },
+    {
+      "title": "Signal Score Distribution",
+      "type": "bargauge",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 18},
+      "targets": [{"expr": "signal_score", "legendFormat": "Score"}],
+      "options": {
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "thresholds": [
+          {"color": "red", "value": null},
+          {"color": "orange", "value": 30},
+          {"color": "yellow", "value": 60},
+          {"color": "green", "value": 75}
+        ]
+      }
+    },
+    {
+      "title": "Trade Win Rate (30d)",
+      "type": "stat",
+      "gridPos": {"h": 6, "w": 4, "x": 12, "y": 18},
+      "targets": [{"expr": "trading_win_rate * 100", "legendFormat": "Win Rate"}],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "thresholds": [
+          {"color": "red", "value": null},
+          {"color": "orange", "value": 40},
+          {"color": "yellow", "value": 55},
+          {"color": "green", "value": 65}
+        ]
+      }
+    },
+    {
+      "title": "Profit Factor (30d)",
+      "type": "stat",
+      "gridPos": {"h": 6, "w": 4, "x": 16, "y": 18},
+      "targets": [{"expr": "trading_profit_factor", "legendFormat": "PF"}],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "thresholds": [
+          {"color": "red", "value": null},
+          {"color": "orange", "value": 1.0},
+          {"color": "yellow", "value": 1.5},
+          {"color": "green", "value": 2.0}
+        ]
+      }
+    },
+    {
+      "title": "Total Trades (30d)",
+      "type": "stat",
+      "gridPos": {"h": 6, "w": 4, "x": 20, "y": 18},
+      "targets": [{"expr": "trading_total_trades", "legendFormat": "Trades"}],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"]}
+      }
+    },
+    {
+      "title": "Risk Metrics",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "targets": [
+        {"expr": "trading_var_95", "legendFormat": "VaR 95%"},
+        {"expr": "trading_var_99", "legendFormat": "VaR 99%"},
+        {"expr": "trading_sharpe_ratio", "legendFormat": "Sharpe"},
+        {"expr": "trading_sortino_ratio", "legendFormat": "Sortino"},
+        {"expr": "trading_max_drawdown_pct", "legendFormat": "Max DD %"}
+      ],
+      "transformations": [{"id": "organize", "options": {"excludeByName": {}, "indexByName": {}, "renameByName": {}}}],
+      "options": {
+        "sortBy": [{"displayName": "Metric"}]
+      }
+    },
+    {
+      "title": "Broker & System Health",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "targets": [
+        {"expr": "up{job=\"opb-trading\"}", "legendFormat": "Trading Engine"},
+        {"expr": "up{job=\"opb-broker\"}", "legendFormat": "Broker Connection"},
+        {"expr": "up{job=\"opb-database\"}", "legendFormat": "Database"},
+        {"expr": "up{job=\"opb-ml\"}", "legendFormat": "ML Classifier"},
+        {"expr": "up{job=\"opb-telegram\"}", "legendFormat": "Telegram"}
+      ],
+      "options": {
+        "sortBy": [{"displayName": "Component"}]
+      }
+    },
+    {
+      "title": "ML Prediction Probability",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 32},
+      "targets": [{"expr": "ml_prediction_probability", "legendFormat": "Win Prob"}],
+      "options": {
+        "legend": {"calcs": ["min", "max", "mean", "last"], "displayMode": "table", "placement": "bottom"},
+        "thresholds": [
+          {"color": "red", "value": null},
+          {"color": "orange", "value": 0.4},
+          {"color": "green", "value": 0.6}
+        ]
+      }
+    },
+    {
+      "title": "Drift Detection Score",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 32},
+      "targets": [{"expr": "ml_drift_score", "legendFormat": "Drift"}],
+      "options": {
+        "legend": {"calcs": ["min", "max", "mean", "last"], "displayMode": "table", "placement": "bottom"},
+        "thresholds": [
+          {"color": "green", "value": null},
+          {"color": "orange", "value": 0.1},
+          {"color": "red", "value": 0.25}
+        ]
+      }
+    },
+    {
+      "title": "Error Budget Remaining",
+      "type": "gauge",
+      "gridPos": {"h": 5, "w": 8, "x": 0, "y": 38},
+      "targets": [{"expr": "slo_error_budget_remaining * 100", "legendFormat": "Budget"}],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "thresholds": [
+          {"color": "green", "value": null},
+          {"color": "orange", "value": 50},
+          {"color": "red", "value": 20}
+        ]
+      }
+    },
+    {
+      "title": "API Rate Limit Usage",
+      "type": "gauge",
+      "gridPos": {"h": 5, "w": 8, "x": 8, "y": 38},
+      "targets": [{"expr": "rate_limit_usage * 100", "legendFormat": "Usage"}],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "thresholds": [
+          {"color": "green", "value": null},
+          {"color": "orange", "value": 70},
+          {"color": "red", "value": 90}
+        ]
+      }
+    },
+    {
+      "title": "Last Scan Timestamp",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 8, "x": 16, "y": 38},
+      "targets": [{"expr": "time() - trading_last_scan_timestamp", "legendFormat": "Age (s)"}],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "thresholds": [
+          {"color": "green", "value": null},
+          {"color": "orange", "value": 60},
+          {"color": "red", "value": 120}
+        ]
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "prometheus",
+        "query": "prometheus",
+        "current": {"text": "Prometheus", "value": "Prometheus"}
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Trade Entry",
+        "type": "events",
+        "datasource": "Prometheus",
+        "expr": "trading_trade_entry",
+        "iconColor": "green",
+        "enable": true
+      },
+      {
+        "name": "Trade Exit",
+        "type": "events",
+        "datasource": "Prometheus",
+        "expr": "trading_trade_exit",
+        "iconColor": "orange",
+        "enable": true
+      },
+      {
+        "name": "Hard Halt",
+        "type": "events",
+        "datasource": "Prometheus",
+        "expr": "trading_hard_halt_event",
+        "iconColor": "red",
+        "enable": true
+      }
+    ]
+  },
+  "schemaVersion": 30,
+  "style": "dark",
+  "tags": ["opb", "trading", "production"],
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {
+    "refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "30m", "1h"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+  }
+}
