@@ -6,12 +6,11 @@ kill switch, and monitoring.
 
 from __future__ import annotations
 
-import sqlite3
-from core.notifications.url_resolver import is_production_environment
 import json
 import logging
 import os
 import secrets
+import sqlite3
 import threading
 import time
 import uuid
@@ -19,6 +18,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
+
+from core.notifications.url_resolver import is_production_environment
 
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -498,8 +499,8 @@ class EnterpriseDashboard:
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; "
                 f"script-src 'self' 'nonce-{nonce}'; "
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
-                "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+                "style-src 'self' 'unsafe-inline'; "
+                "font-src 'self' data:; "
                 "img-src 'self' data: https:; "
                 "connect-src 'self' ws: wss:; "
                 "form-action 'self'; "
@@ -688,10 +689,10 @@ class EnterpriseDashboard:
         from core.enterprise_dashboard.routes.fundamentals import register_fundamentals_routes
         from core.enterprise_dashboard.routes.monitoring import register_monitoring_routes
         from core.enterprise_dashboard.routes.pages import register_page_routes
+        from core.enterprise_dashboard.routes.reporting import register_reporting_routes
         from core.enterprise_dashboard.routes.risk import register_risk_routes
         from core.enterprise_dashboard.routes.system import register_system_routes
         from core.enterprise_dashboard.routes.webhooks import register_webhook_routes
-        from core.enterprise_dashboard.routes.reporting import register_reporting_routes
 
         register_page_routes(app, self, _require_admin_page, _require_operator_or_admin_page)
         register_system_routes(app, self, admin_only, operator_or_admin)
@@ -1285,7 +1286,7 @@ class EnterpriseDashboard:
             return []
         entries: list[dict] = []
         try:
-            with open(audit_file, "r", encoding="utf-8") as f:
+            with open(audit_file, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line:
