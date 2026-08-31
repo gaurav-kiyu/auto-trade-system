@@ -5,7 +5,15 @@ Run: python -m pytest tests/test_smoke_execution_hardening.py -v
 """
 
 import pytest
+from core.safety_state import reset_consecutive_losses
 
+
+@pytest.fixture(autouse=True)
+def _reset_safety_state():
+    """Reset process-global safety state between smoke tests."""
+    reset_consecutive_losses()
+    yield
+    reset_consecutive_losses()
 
 class TestSystemModeSmoke:
     """Smoke test for system mode manager."""

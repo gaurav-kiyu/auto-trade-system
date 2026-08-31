@@ -4,11 +4,25 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+from core.ports.risk.risk_port import RiskPort
 from index_app.domains.admin.control_plane import init_admin_control_plane
 
 
 class TestInitAdminControlPlane:
     """Tests for init_admin_control_plane function."""
+
+    @pytest.fixture
+    def mock_risk_port(self, monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+        """Provide the canonical RiskPort dependency expected by production wiring."""
+        mock_container = MagicMock()
+        mock_risk = MagicMock(spec=RiskPort)
+        mock_container.try_resolve.return_value = mock_risk
+        monkeypatch.setattr(
+            "core.di_container.get_container",
+            lambda: mock_container,
+        )
+        return mock_risk
 
     def test_disabled_returns_none(self) -> None:
         """When disabled, returns None and does not wire anything."""
@@ -20,7 +34,7 @@ class TestInitAdminControlPlane:
         result = init_admin_control_plane(cfg={})
         assert result is None
 
-    def test_enabled_with_all_deps(self) -> None:
+    def test_enabled_with_all_deps(self, mock_risk_port: MagicMock) -> None:
         """When enabled, wires all dependencies and starts the thread."""
         mock_thread = MagicMock()
         mock_thread.name = "admin-cp-1"
@@ -54,7 +68,7 @@ class TestInitAdminControlPlane:
             assert call_kwargs["certifier"] is mock_cert.return_value
             assert call_kwargs["config_reload"] is not None
 
-    def test_enabled_audit_logger_unavailable(self) -> None:
+    def test_enabled_audit_logger_unavailable(self, mock_risk_port: MagicMock) -> None:
         """Gracefully handles missing audit_logger."""
         mock_thread = MagicMock()
 
@@ -69,7 +83,7 @@ class TestInitAdminControlPlane:
             result = init_admin_control_plane(cfg={"admin_control_plane_enabled": True})
             assert result is mock_thread
 
-    def test_enabled_model_registry_unavailable(self) -> None:
+    def test_enabled_model_registry_unavailable(self, mock_risk_port: MagicMock) -> None:
         """Gracefully handles missing model_registry."""
         mock_thread = MagicMock()
 
@@ -85,7 +99,7 @@ class TestInitAdminControlPlane:
             result = init_admin_control_plane(cfg={"admin_control_plane_enabled": True})
             assert result is mock_thread
 
-    def test_enabled_strips_unknown_config(self) -> None:
+    def test_enabled_strips_unknown_config(self, mock_risk_port: MagicMock) -> None:
         """Unknown config keys are safely ignored."""
         mock_thread = MagicMock()
 
@@ -104,7 +118,7 @@ class TestInitAdminControlPlane:
             })
             assert result is mock_thread
 
-    def test_no_callbacks_no_crash(self) -> None:
+    def test_no_callbacks_no_crash(self, mock_risk_port: MagicMock) -> None:
         """When callbacks are None, still works."""
         mock_thread = MagicMock()
 

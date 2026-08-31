@@ -98,6 +98,9 @@
     "AI_THRESHOLD": {
       "type": "integer"
     },
+    "ALERT_RATE_WINDOW_SECS": {
+      "type": "integer"
+    },
     "ALLOW_ZERO_PRICE": {
       "type": "boolean"
     },
@@ -369,6 +372,9 @@
     "COMPACT_INTERVAL_SEC": {
       "type": "integer"
     },
+    "COMPOSITE_BASE_MAX_SCORE": {
+      "type": "integer"
+    },
     "CONFIG_DRIFT_AUTO_RELOAD": {
       "type": "boolean"
     },
@@ -505,6 +511,9 @@
     },
     "EMAIL_USER": {
       "type": "string"
+    },
+    "ENABLE_TELEGRAM_EXECUTE_BUTTON": {
+      "type": "boolean"
     },
     "ENVIRONMENT": {
       "type": "string"
@@ -777,6 +786,9 @@
     "LEARNING_SCORE_ADJ_CLAMP": {
       "type": "integer"
     },
+    "LEGACY_SYSTEM_BROADCAST_ENABLED": {
+      "type": "boolean"
+    },
     "LOCK_TRIGGER_PCT": {
       "type": "number"
     },
@@ -969,6 +981,15 @@
     "MARGIN_WARNING_PCT": {
       "type": "number"
     },
+    "MAX_ALERTS_PER_CYCLE": {
+      "type": "integer"
+    },
+    "MAX_ALERTS_PER_DAY": {
+      "type": "integer"
+    },
+    "MAX_ALERTS_PER_WINDOW": {
+      "type": "integer"
+    },
     "MAX_BREAKOUT_DISTANCE": {
       "type": "number"
     },
@@ -1035,11 +1056,17 @@
     "MIN_TRADE_INTERVAL_SECONDS": {
       "type": "integer"
     },
+    "ML_ALERT_MIN_PROBABILITY": {
+      "type": "number"
+    },
     "ML_BRIER_TARGET": {
       "type": "number"
     },
     "ML_CONFIDENCE_THRESHOLD": {
       "type": "number"
+    },
+    "ML_REQUIRED_FOR_ALERTS": {
+      "type": "boolean"
     },
     "ML_WALKFORWARD_WINDOWS": {
       "type": "integer"

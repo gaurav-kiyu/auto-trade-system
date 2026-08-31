@@ -365,6 +365,33 @@ class TestKiteBrokerAdapterMocked:
         assert adapter.connect() is True
         assert adapter.connect() is True  # second connect should succeed
 
+    def test_connect_profile_returns_none(self):
+        """Connection must fail closed when profile verification returns None."""
+        adapter = self._make_adapter()
+
+        mock_client = MockKiteConnect("test_key")
+        mock_client.profile = MagicMock(return_value=None)
+
+        with patch.object(self.module, "KiteConnect", return_value=mock_client):
+            assert adapter.connect() is False
+
+        assert adapter._connected is False
+        assert adapter._kite is mock_client
+
+    def test_connect_profile_failure_returns_false(self):
+        """Connection must fail closed when profile verification raises."""
+        adapter = self._make_adapter()
+
+        mock_client = MockKiteConnect("test_key")
+        mock_client.profile = MagicMock(
+            side_effect=ValueError("invalid input during profile verification")
+        )
+
+        with patch.object(self.module, "KiteConnect", return_value=mock_client):
+            assert adapter.connect() is False
+
+        assert adapter._connected is False
+        assert adapter._kite is mock_client
     def test_disconnect(self):
         adapter = self._make_adapter()
         adapter.connect()

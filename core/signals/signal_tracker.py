@@ -322,7 +322,6 @@ class SignalTracker:
                 direction = str(signal_dict.get("direction", "CALL")).upper()
                 cat = str(signal_dict.get("category", "LARGE_CAP_EQUITY")).upper()
                 strategy = str(signal_dict.get("strategy") or signal_dict.get("strategy_name") or "default").lower()
-                regime = str(signal_dict.get("regime") or "UNKNOWN").upper()
                 entry_price = float(signal_dict.get("price", 0.0))
                 sl_price = float(signal_dict.get("stop_loss", round(entry_price * 0.97, 2)))
                 t1_price = float(signal_dict.get("target_1", round(entry_price * 1.04, 2)))

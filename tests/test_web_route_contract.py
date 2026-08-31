@@ -6,10 +6,8 @@ URLs leaking into enterprise templates.
 """
 from __future__ import annotations
 
-import glob
 import re
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT / "templates" / "enterprise"
@@ -27,6 +25,31 @@ def _declared_routes() -> set[str]:
     return routes
 
 
+def _route_matches_href(route: str, href: str) -> bool:
+    """Return True when an href resolves to a declared route.
+
+    Declared routes may contain FastAPI-style path parameters such as
+    ``{report_id}`` or ``{fmt}``. Template links may contain either concrete
+    values or JavaScript template expressions such as ``${x.id}``.
+    """
+    route_parts = route.rstrip("/").split("/")
+    href_parts = href.rstrip("/").split("/")
+
+    if len(route_parts) != len(href_parts):
+        return False
+
+    for route_part, href_part in zip(route_parts, href_parts):
+        if re.fullmatch(r"\{[^{}]+\}", route_part):
+            if not href_part:
+                return False
+            continue
+
+        if route_part != href_part:
+            return False
+
+    return True
+
+
 def test_enterprise_internal_href_targets_are_declared_routes_or_anchors():
     routes = _declared_routes()
     missing: list[str] = []
@@ -38,6 +61,8 @@ def test_enterprise_internal_href_targets_are_declared_routes_or_anchors():
                 continue
             route = href.split("#", 1)[0].split("?", 1)[0]
             if not route or route in routes:
+                continue
+            if any(_route_matches_href(declared, route) for declared in routes):
                 continue
             missing.append(f"{path.relative_to(ROOT)} -> {href}")
     assert not missing, "Broken internal navigation targets:\n" + "\n".join(sorted(set(missing)))

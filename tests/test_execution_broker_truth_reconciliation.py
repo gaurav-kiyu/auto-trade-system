@@ -5,6 +5,17 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _reset_broker_truth_reconciler():
+    """Reset process-global broker truth reconciler between tests."""
+    import core.execution.broker_truth_reconciliation as btr
+
+    btr._reconciler = None
+    yield
+    btr._reconciler = None
+
 from core.execution.broker_truth_reconciliation import (
     BrokerTruthReconciler,
     ReconciliationResult,
