@@ -28,7 +28,25 @@ from fastapi.testclient import TestClient
 def _make_config_file(path: str, data: dict | None = None) -> Path:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(data or {"BASE_CAPITAL": 100000, "SL_PCT": 5}), encoding="utf-8")
+    default_config = {
+        "EXECUTION_MODE": "PAPER",
+        "BASE_CAPITAL": 100000,
+        "MAX_DAILY_LOSS": -400,
+        "MAX_DRAWDOWN": 0.2,
+        "RISK_MODE": "FIXED",
+        "RISK_FIXED_AMOUNT": 100,
+        "SL_PCT": 0.92,
+        "TARGET_PCT": 1.30,
+        "MIN_NET_RR": 1.5,
+    }
+    merged_config = dict(default_config)
+    if data is not None:
+        merged_config.update(data)
+
+    p.write_text(
+        json.dumps(merged_config),
+        encoding="utf-8",
+    )
     return p
 
 
@@ -741,12 +759,12 @@ class TestConfigManagement:
     def test_validate_config_skip_underscore(self, dashboard):
         r = dashboard._validate_config_change({"_internal": "secret"})
         assert r["valid"]
-        assert r["warnings"] == []
+        assert all(w["key"] != "_SECRET" for w in r["warnings"])
 
     def test_validate_config_skip_broker_config(self, dashboard):
         r = dashboard._validate_config_change({"BROKER_CONFIG": {"key": "val"}})
         assert r["valid"]
-        assert r["warnings"] == []
+        assert all(w["key"] != "BROKER_CONFIG" for w in r["warnings"])
 
     def test_preview_config_change_existing(self, dashboard):
         dashboard._cfg["KEY"] = "old"
@@ -778,7 +796,7 @@ class TestConfigManagement:
                 "auth_db_path": str(tmp_path / "auth.db"),
             }
         )
-        r = db._apply_config_change({"K": "new", "SL_PCT": 3}, "admin")
+        r = db._apply_config_change({"K": "new", "SL_PCT": 0.92}, "admin")
         assert r["success"]
         assert r["applied_count"] == 2
         assert "K" in r["applied_keys"]

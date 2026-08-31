@@ -789,44 +789,172 @@ class EnterpriseDashboard:
         return {}
 
     def _validate_config_change(self, change: dict) -> dict:
-        """Validate a config change against schema rules.
+        """Validate an Admin config delta against the canonical config contract.
 
-        Args:
-            change: Dict of key-value pairs to validate.
+        The Admin UI may submit a sparse delta, while the canonical validator
+        expects an effective configuration. Therefore validation is performed
+        in two layers:
 
-        Returns:
-            Dict with 'valid' bool, 'errors' list, and 'warnings' list.
+        1. Validate the submitted Admin delta for Admin-specific constraints.
+        2. Merge canonical defaults + persisted configuration + submitted delta
+           and run the authoritative runtime/startup validator.
 
+        No configuration is written by this method.
         """
-        errors : list[Any] = []
-        warnings = []
-        for key, value in change.items():
-            if key.startswith("_"):
-                continue
+        errors: list[Any] = []
+        warnings: list[Any] = []
+
+        # Only public configuration keys participate in Admin validation.
+        public_change = {
+            key: value
+            for key, value in change.items()
+            if not key.startswith("_")
+        }
+
+        # ------------------------------------------------------------
+        # 1. Admin-delta validation
+        # ------------------------------------------------------------
+        for key, value in public_change.items():
             if key in ("BROKER_CONFIG",) and isinstance(value, dict):
                 continue
+
             if key in {"PUBLIC_BASE_URL", "PUBLIC_BASE_URL_ADMIN_OVERRIDE"}:
-                from core.notifications.url_resolver import _is_loopback_url
                 import urllib.parse
+
+                from core.notifications.url_resolver import _is_loopback_url
+
                 if not isinstance(value, str) or not value.strip():
-                    errors.append({"key": key, "message": "PUBLIC_BASE_URL must be a non-empty URL"})
+                    errors.append({
+                        "key": key,
+                        "message": "PUBLIC_BASE_URL must be a non-empty URL",
+                    })
                     continue
+
                 candidate = value.strip()
                 if not candidate.startswith(("http://", "https://")):
                     candidate = f"https://{candidate}"
+
                 parsed = urllib.parse.urlparse(candidate)
+
                 if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-                    errors.append({"key": key, "message": "PUBLIC_BASE_URL must include a valid http(s) host"})
+                    errors.append({
+                        "key": key,
+                        "message": "PUBLIC_BASE_URL must include a valid http(s) host",
+                    })
                 elif is_production_environment(self._cfg) and _is_loopback_url(candidate):
-                    errors.append({"key": key, "message": "PUBLIC_BASE_URL cannot point to localhost/loopback in production"})
+                    errors.append({
+                        "key": key,
+                        "message": (
+                            "PUBLIC_BASE_URL cannot point to "
+                            "localhost/loopback in production"
+                        ),
+                    })
                 elif parsed.username or parsed.password:
-                    errors.append({"key": key, "message": "PUBLIC_BASE_URL must not contain embedded credentials"})
+                    errors.append({
+                        "key": key,
+                        "message": (
+                            "PUBLIC_BASE_URL must not contain embedded credentials"
+                        ),
+                    })
                 elif parsed.path not in ("", "/") or parsed.query or parsed.fragment:
-                    warnings.append({"key": key, "message": "PUBLIC_BASE_URL should normally be an origin without a path/query/fragment"})
+                    warnings.append({
+                        "key": key,
+                        "message": (
+                            "PUBLIC_BASE_URL should normally be an origin "
+                            "without a path/query/fragment"
+                        ),
+                    })
                 continue
+
             if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
-                warnings.append({"key": key, "message": "References environment variable"})
-        return {"valid": len(errors) == 0, "errors": errors, "warnings": warnings}
+                warnings.append({
+                    "key": key,
+                    "message": "References environment variable",
+                })
+
+        if errors:
+            return {
+                "valid": False,
+                "errors": errors,
+                "warnings": warnings,
+            }
+
+        # ------------------------------------------------------------
+        # 2. Canonical effective-config validation
+        # ------------------------------------------------------------
+        config_path = self._resolve_config_path()
+
+        try:
+            if config_path.is_file():
+                original = json.loads(
+                    config_path.read_text(encoding="utf-8")
+                )
+            else:
+                from core.defaults_loader import load_defaults_file
+
+                project_root = Path(__file__).resolve().parents[2]
+                original = load_defaults_file(
+                    project_root,
+                    "json/index_config.defaults.json",
+                )
+
+            if not isinstance(original, dict):
+                return {
+                    "valid": False,
+                    "errors": [{
+                        "key": "config",
+                        "message": "Persisted configuration must be a JSON object",
+                    }],
+                    "warnings": warnings,
+                }
+
+            from core.config_validator import validate_config
+            from core.defaults_loader import load_defaults_file
+
+            project_root = Path(__file__).resolve().parents[2]
+            defaults = load_defaults_file(
+                project_root,
+                "json/index_config.defaults.json",
+            )
+
+            # Defaults are only the validation baseline. They are NOT written
+            # into the persisted config by the validate endpoint.
+            validation_base = dict(defaults)
+            validation_base.update(original)
+
+            prospective = dict(validation_base)
+            prospective.update(public_change)
+
+            canonical_errors, canonical_warnings = validate_config(prospective)
+
+        except Exception as exc:
+            return {
+                "valid": False,
+                "errors": [{
+                    "key": "config",
+                    "message": (
+                        "Canonical configuration validation failed: "
+                        f"{exc}"
+                    ),
+                }],
+                "warnings": warnings,
+            }
+
+        errors.extend(
+            {"key": "config", "message": message}
+            for message in canonical_errors
+        )
+        warnings.extend(
+            {"key": "config", "message": message}
+            for message in canonical_warnings
+        )
+
+        return {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "warnings": warnings,
+        }
+
 
     def _preview_config_change(self, change: dict) -> dict:
         """Preview what a config change would look like as a diff.
@@ -870,9 +998,118 @@ class EnterpriseDashboard:
             Dict with 'success' bool, 'applied_count', 'applied_keys', and 'backup_file'.
 
         """
+        # Load the persisted configuration before canonical validation.
+        # _validate_config_change() validates the submitted Admin delta only;
+        # the complete prospective configuration is validated below.
         config_path = self._resolve_config_path()
         try:
-            original = json.loads(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {}
+            if config_path.is_file():
+                original = json.loads(config_path.read_text(encoding="utf-8"))
+            else:
+                # A brand-new Admin-managed config must start from the
+                # repository's canonical defaults rather than an empty dict.
+                # Do not duplicate defaults here: defaults_loader is the
+                # single source of truth for bundled configuration defaults.
+                from core.defaults_loader import load_defaults_file
+
+                project_root = Path(__file__).resolve().parents[2]
+                original = load_defaults_file(
+                    project_root,
+                    "json/index_config.defaults.json",
+                )
+
+            if not isinstance(original, dict):
+                return {
+                    "success": False,
+                    "error": "Configuration validation failed",
+                    "validation": {
+                        "valid": False,
+                        "errors": [{
+                            "key": "config",
+                            "message": "Persisted configuration must be a JSON object",
+                        }],
+                        "warnings": [],
+                    },
+                }
+
+            # Only public keys participate in the persisted prospective config.
+            public_change = {
+                key: value
+                for key, value in change.items()
+                if not key.startswith("_")
+            }
+
+            # First preserve the existing Admin-delta validation behavior.
+            delta_validation = self._validate_config_change(public_change)
+            if not delta_validation["valid"]:
+                return {
+                    "success": False,
+                    "error": "Configuration validation failed",
+                    "validation": delta_validation,
+                }
+
+            # Canonical validator is the authoritative startup/runtime
+            # configuration validator. Validate the COMPLETE EFFECTIVE
+            # prospective configuration before any backup or disk mutation.
+            #
+            # Admin-managed config files may intentionally be sparse. Therefore
+            # canonical defaults are used as the validation baseline only.
+            # The persisted file itself is still based on `original`, so this
+            # does not silently materialize 1,000+ default keys into the file.
+            try:
+                from core.config_validator import validate_config
+                from core.defaults_loader import load_defaults_file
+
+                project_root = Path(__file__).resolve().parents[2]
+                defaults = load_defaults_file(
+                    project_root,
+                    "json/index_config.defaults.json",
+                )
+
+                validation_base = dict(defaults)
+                validation_base.update(original)
+
+                prospective = dict(validation_base)
+                prospective.update(public_change)
+
+                canonical_errors, canonical_warnings = validate_config(prospective)
+            except Exception as exc:
+                return {
+                    "success": False,
+                    "error": "Configuration validation failed",
+                    "validation": {
+                        "valid": False,
+                        "errors": [{
+                            "key": "config",
+                            "message": (
+                                "Canonical configuration validation failed: "
+                                f"{exc}"
+                            ),
+                        }],
+                        "warnings": delta_validation["warnings"],
+                    },
+                }
+
+            if canonical_errors:
+                return {
+                    "success": False,
+                    "error": "Configuration validation failed",
+                    "validation": {
+                        "valid": False,
+                        "errors": [
+                            {"key": "config", "message": message}
+                            for message in canonical_errors
+                        ],
+                        "warnings": (
+                            delta_validation["warnings"]
+                            + [
+                                {"key": "config", "message": message}
+                                for message in canonical_warnings
+                            ]
+                        ),
+                    },
+                }
+
         except (OSError, json.JSONDecodeError, ValueError) as e:
             return {"success": False, "error": f"Failed to read config: {e}"}
 

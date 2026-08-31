@@ -73,7 +73,25 @@ def _make_trades_db(db_path: str) -> None:
 def _make_config_file(path: str, data: dict | None = None) -> Path:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(data or {"BASE_CAPITAL": 100000, "SL_PCT": 5}), encoding="utf-8")
+    default_config = {
+        "EXECUTION_MODE": "PAPER",
+        "BASE_CAPITAL": 100000,
+        "MAX_DAILY_LOSS": -400,
+        "MAX_DRAWDOWN": 0.2,
+        "RISK_MODE": "FIXED",
+        "RISK_FIXED_AMOUNT": 100,
+        "SL_PCT": 0.92,
+        "TARGET_PCT": 1.30,
+        "MIN_NET_RR": 1.5,
+    }
+    merged_config = dict(default_config)
+    if data is not None:
+        merged_config.update(data)
+
+    p.write_text(
+        json.dumps(merged_config),
+        encoding="utf-8",
+    )
     return p
 
 
@@ -683,7 +701,7 @@ class TestConfigValidation:
         db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})
         r = db._validate_config_change({"_internal_key": "secret"})
         assert r["valid"]
-        assert r["warnings"] == []
+        assert not any(w.get("key") == "_internal_key" for w in r["warnings"])
 
     def test_validate_skip_broker_config(self):
         from core.enterprise_dashboard import EnterpriseDashboard
@@ -691,7 +709,7 @@ class TestConfigValidation:
         db = EnterpriseDashboard(config={"web_dashboard_host": "127.0.0.1"})
         r = db._validate_config_change({"BROKER_CONFIG": {"api_key": "xyz"}})
         assert r["valid"]
-        assert r["warnings"] == []
+        assert not any(w.get("key") == "BROKER_CONFIG" for w in r["warnings"])
 
 
 # ── Config Preview ─────────────────────────────────────────────────────────────
@@ -744,7 +762,7 @@ class TestConfigApply:
             "index_config_path": config_path,
             "auth_db_path": str(tmp_path / "auth.db"),
         })
-        r = db._apply_config_change({"BASE_CAPITAL": 2000, "SL_PCT": 3}, "testuser")
+        r = db._apply_config_change({"BASE_CAPITAL": 2000, "SL_PCT": 0.92}, "testuser")
         assert r["success"]
         assert r["applied_count"] == 2
         assert "BASE_CAPITAL" in r["applied_keys"]
@@ -763,6 +781,114 @@ class TestConfigApply:
         })
         r = db._apply_config_change({"NEW_KEY": "newval"}, "testuser")
         assert r["success"]
+
+    def test_apply_rejects_invalid_sl_pct_before_backup_or_write(self, tmp_path):
+        """Invalid SL_PCT must fail closed before backup/config mutation."""
+        from core.enterprise_dashboard import EnterpriseDashboard
+
+        config_path = tmp_path / "config.json"
+        original = {
+            "BASE_CAPITAL": 1000,
+            "SL_PCT": 0.92,
+        }
+        _make_config_file(str(config_path), original)
+
+        db = EnterpriseDashboard(config={
+            "web_dashboard_host": "127.0.0.1",
+            "index_config_path": str(config_path),
+            "auth_db_path": str(tmp_path / "auth.db"),
+            "config_audit_log_path": str(tmp_path / "config_audit.jsonl"),
+        })
+
+        before = config_path.read_text(encoding="utf-8")
+        backups_before = sorted(config_path.parent.glob("config.json.backup.*"))
+
+        for invalid_sl in (0, -0.1, 1.0, 1.01):
+            result = db._apply_config_change(
+                {"SL_PCT": invalid_sl},
+                "testuser",
+            )
+
+            assert not result["success"], f"SL_PCT={invalid_sl} unexpectedly accepted"
+            assert result["error"] == "Configuration validation failed"
+            assert result["validation"]["valid"] is False
+
+            assert config_path.read_text(encoding="utf-8") == before
+            assert sorted(config_path.parent.glob("config.json.backup.*")) == backups_before
+
+        assert db._cfg.get("SL_PCT") != 1.0
+        assert db._cfg.get("SL_PCT") != 0
+        assert db._cfg.get("SL_PCT") != -0.1
+        assert db._cfg.get("SL_PCT") != 1.01
+
+    def test_apply_accepts_valid_sl_pct_and_persists_change(self, tmp_path):
+        """A valid SL_PCT must pass canonical Admin Apply validation."""
+        from core.enterprise_dashboard import EnterpriseDashboard
+
+        config_path = tmp_path / "config.json"
+        _make_config_file(
+            str(config_path),
+            {
+                "BASE_CAPITAL": 1000,
+                "SL_PCT": 0.90,
+            },
+        )
+
+        db = EnterpriseDashboard(config={
+            "web_dashboard_host": "127.0.0.1",
+            "index_config_path": str(config_path),
+            "auth_db_path": str(tmp_path / "auth.db"),
+            "config_audit_log_path": str(tmp_path / "config_audit.jsonl"),
+        })
+
+        result = db._apply_config_change(
+            {"SL_PCT": 0.92},
+            "testuser",
+        )
+
+        assert result["success"]
+        assert result["applied_count"] == 1
+        assert "SL_PCT" in result["applied_keys"]
+
+        saved = json.loads(config_path.read_text(encoding="utf-8"))
+        assert saved["SL_PCT"] == 0.92
+        assert db._cfg["SL_PCT"] == 0.92
+
+    def test_apply_rejects_invalid_target_pct_before_mutation(self, tmp_path):
+        """TARGET_PCT must also fail closed through Admin Apply."""
+        from core.enterprise_dashboard import EnterpriseDashboard
+
+        config_path = tmp_path / "config.json"
+        original = {
+            "BASE_CAPITAL": 1000,
+            "SL_PCT": 0.92,
+            "TARGET_PCT": 1.30,
+        }
+        _make_config_file(str(config_path), original)
+
+        db = EnterpriseDashboard(config={
+            "web_dashboard_host": "127.0.0.1",
+            "index_config_path": str(config_path),
+            "auth_db_path": str(tmp_path / "auth.db"),
+            "config_audit_log_path": str(tmp_path / "config_audit.jsonl"),
+        })
+
+        before = config_path.read_text(encoding="utf-8")
+        backups_before = sorted(config_path.parent.glob("config.json.backup.*"))
+
+        for invalid_target in (0, 1.0, -1):
+            result = db._apply_config_change(
+                {"TARGET_PCT": invalid_target},
+                "testuser",
+            )
+
+            assert not result["success"], (
+                f"TARGET_PCT={invalid_target} unexpectedly accepted"
+            )
+            assert result["validation"]["valid"] is False
+            assert config_path.read_text(encoding="utf-8") == before
+            assert sorted(config_path.parent.glob("config.json.backup.*")) == backups_before
+
 
     def test_apply_skip_underscore_keys(self, tmp_path):
         from core.enterprise_dashboard import EnterpriseDashboard
@@ -2061,6 +2187,85 @@ class TestHttpEndpoints:
             c.cookies.set("opb_session", token)
             r = c.post("/api/config/preview", json={"NEW_KEY": "val"})
         assert r.status_code == 200
+
+    def test_post_config_validate_rejects_invalid_sl_pct(
+        self, mock_templates, no_csrf, admin_auth
+    ):
+        """Admin Validate endpoint must reject invalid SL_PCT fail-closed."""
+        d, token = admin_auth
+
+        with TestClient(d.app) as c:
+            c.cookies.set("opb_session", token)
+
+            for invalid_sl in (0, -0.1, 1.0, 1.01):
+                r = c.post(
+                    "/api/config/validate",
+                    json={"SL_PCT": invalid_sl},
+                )
+
+                assert r.status_code == 200
+                data = r.json()
+                assert data["valid"] is False, (
+                    f"SL_PCT={invalid_sl} unexpectedly passed HTTP validation"
+                )
+                assert any(
+                    "SL_PCT" in str(error).upper()
+                    for error in data.get("errors", [])
+                )
+
+    def test_post_config_apply_rejects_invalid_sl_pct_without_mutation(
+        self, mock_templates, no_csrf, admin_auth, tmp_path
+    ):
+        """Admin Apply endpoint must reject invalid SL_PCT before mutation."""
+        d, token = admin_auth
+
+        config_path = tmp_path / "config.json"
+        original = {
+            "BASE_CAPITAL": 100000,
+            "SL_PCT": 0.92,
+            "TARGET_PCT": 1.30,
+            "MIN_NET_RR": 1.5,
+            "EXECUTION_MODE": "PAPER",
+            "RISK_MODE": "FIXED",
+            "RISK_FIXED_AMOUNT": 100,
+            "MAX_DAILY_LOSS": -400,
+            "MAX_DRAWDOWN": 0.2,
+        }
+        config_path.write_text(
+            json.dumps(original, indent=4),
+            encoding="utf-8",
+        )
+
+        d._cfg["index_config_path"] = str(config_path)
+
+        before = config_path.read_text(encoding="utf-8")
+        backups_before = sorted(
+            config_path.parent.glob("config.json.backup.*")
+        )
+
+        with TestClient(d.app) as c:
+            c.cookies.set("opb_session", token)
+
+            for invalid_sl in (0, -0.1, 1.0, 1.01):
+                r = c.post(
+                    "/api/config/apply",
+                    json={"SL_PCT": invalid_sl},
+                )
+
+                assert r.status_code == 200
+                data = r.json()
+                assert data["success"] is False
+                assert data["error"] == "Configuration validation failed"
+                assert data["validation"]["valid"] is False
+
+                assert config_path.read_text(encoding="utf-8") == before
+                assert sorted(
+                    config_path.parent.glob("config.json.backup.*")
+                ) == backups_before
+
+        assert json.loads(
+            config_path.read_text(encoding="utf-8")
+        ) == original
 
     def test_post_config_apply(self, mock_templates, no_csrf, admin_auth):
         """POST /api/config/apply applies changes."""

@@ -354,10 +354,13 @@ def validate_config(cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
         )
 
     # -- 10. SL/Target sanity ----------------------------------------------
+    # SL_PCT is a multiplicative stop-price factor:
+    #   0.92 => an 8% stop below entry.
+    # Keep this aligned with the shared risk validator contract: 0 < SL_PCT < 1.
     sl_pct = float(cfg.get("SL_PCT", 0))
     tp_pct = float(cfg.get("TARGET_PCT", 0))
-    if sl_pct >= 1.0:
-        err(f"SL_PCT={sl_pct} should be < 1.0 (e.g. 0.92 for 8% stop)")
+    if not 0 < sl_pct < 1.0:
+        err(f"SL_PCT={sl_pct} must be in (0, 1) (e.g. 0.92 for 8% stop)")
     if tp_pct <= 1.0:
         err(f"TARGET_PCT={tp_pct} should be > 1.0 (e.g. 1.3 for 30% target)")
     if sl_pct > 0 and tp_pct > 0 and (1.0 - sl_pct) > 0:
