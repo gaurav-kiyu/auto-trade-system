@@ -7,14 +7,14 @@ Handles: /api/config/* (CRUD), /api/changes/* (change management),
 
 from __future__ import annotations
 
-from core.enterprise_dashboard.routes.pages import _page_context
-
 import json
 import logging
 import time
 from typing import Any
 
 from fastapi import Depends, Request
+
+from core.enterprise_dashboard.routes.pages import _page_context
 
 _log = logging.getLogger(__name__)
 
@@ -24,13 +24,15 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
     async def api_test_dispatch_signal(request: Request, user: Any = Depends(dashboard._auth_deps.require_permission("modify_config"))):
         """Dispatch a live test trade signal across Telegram, Email, and DB Signal Tracker."""
         import smtplib
-        import requests
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
+
+        import requests
+
+        from core.auth.user_signal_permissions import UserPermissionManager
         from core.datetime_ist import now_ist
         from core.notifications.rich_signal_formatter import RichSignalFormatter
         from core.signals.signal_tracker import SignalTracker
-        from core.auth.user_signal_permissions import UserPermissionManager
 
         try:
             body = await request.json()
@@ -213,6 +215,7 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         import smtplib
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
+
         from core.datetime_ist import now_ist
 
         cfg = dashboard._cfg

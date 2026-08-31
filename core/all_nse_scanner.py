@@ -16,11 +16,11 @@ import json
 import os
 import smtplib
 import sys
-import time
 import threading
-from collections import deque
+import time
 import urllib.parse
 import urllib.request
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -76,7 +76,7 @@ class AllNSEScanner:
         if cfg is None:
             cfg_path = _ROOT / "json" / "config.json"
             if cfg_path.exists():
-                with open(cfg_path, "r", encoding="utf-8") as f:
+                with open(cfg_path, encoding="utf-8") as f:
                     cfg = json.load(f)
             else:
                 cfg = {}
@@ -169,7 +169,7 @@ class AllNSEScanner:
         try:
             cfg_path = _ROOT / "json" / "config.json"
             if cfg_path.exists():
-                with open(cfg_path, "r", encoding="utf-8") as f:
+                with open(cfg_path, encoding="utf-8") as f:
                     self._cfg = json.load(f)
         except Exception as ex:
             _log.debug("Failed to reload config.json: %s", ex)
@@ -218,7 +218,7 @@ class AllNSEScanner:
         if not force_refresh and cache_is_fresh:
             try:
                 stocks = []
-                with open(_CACHE_PATH, "r", encoding="utf-8", errors="ignore") as f:
+                with open(_CACHE_PATH, encoding="utf-8", errors="ignore") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         sym = row.get("SYMBOL", "").strip()
@@ -509,7 +509,6 @@ class AllNSEScanner:
         try:
             import datetime
             import json
-            from pathlib import Path
 
             logs_dir = _ROOT / "logs"
             logs_dir.mkdir(parents=True, exist_ok=True)

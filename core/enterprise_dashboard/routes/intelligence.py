@@ -1148,7 +1148,11 @@ def register_intelligence_routes(app, dashboard, admin_only, operator_or_admin) 
     async def api_ml_retrain(user: Any = admin_only):
         """Retrain and calibrate the ML win probability classifier."""
         try:
-            from core.ml_performance_tracker import compute_brier_score, compute_calibration, get_feature_importance_trend
+            from core.ml_performance_tracker import (
+                compute_brier_score,
+                compute_calibration,
+                get_feature_importance_trend,
+            )
             n_bins = int(dashboard._cfg.get("ML_WALKFORWARD_WINDOWS", 5))
             brier_target = float(dashboard._cfg.get("ML_BRIER_TARGET", 0.20))
             brier = compute_brier_score(days=30)

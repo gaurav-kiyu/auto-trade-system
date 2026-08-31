@@ -87,10 +87,10 @@ def signal_report_excel(report: dict[str, Any]) -> bytes:
 
 
 def signal_report_pdf(report: dict[str, Any]) -> bytes:
-    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+    from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     output = io.BytesIO()
     doc = SimpleDocTemplate(output, pagesize=landscape(A4), rightMargin=24, leftMargin=24, topMargin=24, bottomMargin=24)

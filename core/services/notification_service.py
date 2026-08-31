@@ -7,10 +7,10 @@ the trading system.
 """
 
 from __future__ import annotations
-from typing import Any
 
 import os
 import threading
+from typing import Any
 
 __all__ = [
     "NotificationService",
@@ -446,7 +446,7 @@ class NotificationService:
                 load_dotenv(env_file, override=True)
             cfg_path = root / "json" / "config.json"
             if cfg_path.exists():
-                with open(cfg_path, "r", encoding="utf-8") as f:
+                with open(cfg_path, encoding="utf-8") as f:
                     cfg = json.load(f)
         except Exception:
             pass

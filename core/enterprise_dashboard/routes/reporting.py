@@ -15,8 +15,8 @@ def register_reporting_routes(app, dashboard, admin_only, operator_or_admin) -> 
     async def export_signal_intelligence(fmt: str, days: int = Query(90, ge=1, le=3650), category: str = "all", tier: str = "all", user=Depends(operator_or_admin)):
         if fmt not in {"pdf", "xlsx"}:
             return Response(content="Unsupported format", status_code=400, media_type="text/plain")
-        from core.reporting.signal_intelligence import build_signal_intelligence_report
         from core.reporting.exporter import signal_report_excel, signal_report_pdf
+        from core.reporting.signal_intelligence import build_signal_intelligence_report
         report = build_signal_intelligence_report(days=days, category=category, tier=tier)
         if fmt == "pdf":
             return Response(signal_report_pdf(report), media_type="application/pdf", headers={"Content-Disposition": 'attachment; filename="signal_intelligence_report.pdf"'})
@@ -89,6 +89,7 @@ def register_reporting_routes(app, dashboard, admin_only, operator_or_admin) -> 
                 clean.append({"name": str(table.get("name") or f"Report{idx+1}")[:31], "headers": headers, "rows": safe_rows})
             if fmt == "xlsx":
                 import io
+
                 import xlsxwriter
                 out = io.BytesIO()
                 wb = xlsxwriter.Workbook(out, {"in_memory": True})
@@ -108,11 +109,12 @@ def register_reporting_routes(app, dashboard, admin_only, operator_or_admin) -> 
                 wb.close()
                 return Response(out.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                 headers={"Content-Disposition": 'attachment; filename="report_export.xlsx"'})
-            from reportlab.lib import colors
-            from reportlab.lib.pagesizes import landscape, A4
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-            from reportlab.lib.styles import getSampleStyleSheet
             import io
+
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4, landscape
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Table, TableStyle
             out = io.BytesIO()
             doc = SimpleDocTemplate(out, pagesize=landscape(A4), rightMargin=18, leftMargin=18, topMargin=18, bottomMargin=18)
             styles = getSampleStyleSheet()

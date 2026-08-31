@@ -53,9 +53,9 @@ from core.auth.mfa import (
     hash_recovery_code,
     verify_mfa_token,
 )
-from core.auth.user_signal_permissions import ALL_CATEGORIES, UserPermissionManager
 from core.auth.permissions import is_super_admin_identity
 from core.auth.registration_notifications import notify_new_registration
+from core.auth.user_signal_permissions import ALL_CATEGORIES, UserPermissionManager
 from core.notifications.url_resolver import build_action_url
 
 _log = logging.getLogger(__name__)

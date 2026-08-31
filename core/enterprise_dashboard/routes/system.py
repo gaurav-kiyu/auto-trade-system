@@ -27,8 +27,9 @@ _log = logging.getLogger(__name__)
 def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> None:
     @app.get("/api/system/market-telemetry")
     async def api_market_telemetry(user: Any = Depends(dashboard._auth_deps.require_auth_optional)):
-        from core.datetime_ist import now_ist
         from datetime import time as dt_time
+
+        from core.datetime_ist import now_ist
 
         now = now_ist()
         weekday = now.weekday()  # 0=Mon, ..., 4=Fri, 5=Sat, 6=Sun
