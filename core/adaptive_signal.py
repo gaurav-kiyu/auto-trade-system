@@ -342,6 +342,7 @@ def _compute_features_and_score(
     allow_tf_mismatch: bool,
     allow_choppy: bool,
     force_direction: str | None = None,
+    reasons: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """Core feature extraction + scoring, with selectable relaxation of tf and regime gates.
     Returns a partial-signal dict, or None if data is genuinely insufficient.
@@ -545,7 +546,7 @@ def _compute_features_and_score(
             "atr_floor", "rsi_bonus", "smart_money", "pcr", "learning_bonus"
         )
     )
-    if abs(int(_base_raw) - int(_base_component_total)) > 1:
+    if abs(int(_base_raw) - int(_base_component_total)) > 1 and reasons is not None:
         reasons.append(
             f"[SCORE_AUDIT] base_components={int(_base_component_total)} scorer_raw={int(_base_raw)}"
         )
@@ -655,6 +656,7 @@ def evaluate_adaptive_signal(
             learning_score_bonus=learning_score_bonus,
             allow_tf_mismatch=True,
             allow_choppy=True,
+            reasons=reasons,
         )
         if data is None:
             return None, reason
@@ -677,6 +679,7 @@ def evaluate_adaptive_signal(
             learning_score_bonus=learning_score_bonus,
             allow_tf_mismatch=False,
             allow_choppy=True,
+            reasons=reasons,
         )
         if data is None:
             return None, reason
