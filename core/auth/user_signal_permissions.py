@@ -115,7 +115,7 @@ class UserPermissionManager:
         with self._io_lock:
             if self._path.exists():
                 try:
-                    with open(self._path, "r", encoding="utf-8") as f:
+                    with open(self._path, encoding="utf-8") as f:
                         data = json.load(f)
                     for uname, udata in data.items():
                         # Migrate missing fields gracefully

@@ -107,7 +107,7 @@ class SignalAuditLedger:
     def _load_last_hash(self) -> None:
         if self._path.exists():
             try:
-                with open(self._path, "r", encoding="utf-8") as f:
+                with open(self._path, encoding="utf-8") as f:
                     lines = f.readlines()
                     if lines:
                         last_record = json.loads(lines[-1].strip())

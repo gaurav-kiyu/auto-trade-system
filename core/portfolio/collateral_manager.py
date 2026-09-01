@@ -1,6 +1,5 @@
 import logging
 from dataclasses import dataclass
-from typing import List
 
 _log = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ class CollateralManager:
         self.LIQUID_ETF_SYMBOL = "LIQUIDBEES"
         self.LIQUID_ETF_PRICE = 1000.0  # Approx constant NAV
 
-    def analyze_cash_drag(self, total_portfolio_val: float, current_cash: float, current_etf_qty: int) -> List[SweepAction]:
+    def analyze_cash_drag(self, total_portfolio_val: float, current_cash: float, current_etf_qty: int) -> list[SweepAction]:
         """
         Determines if idle cash should be pledged, or if ETFs need to be sold to restore the buffer.
         """

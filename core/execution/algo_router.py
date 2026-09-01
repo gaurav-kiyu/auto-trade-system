@@ -1,7 +1,7 @@
 import logging
 import threading
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 _log = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class AlgoExecutionEngine:
         slices: int = 5,
         interval_sec: int = 60,
         current_price: float = 0.0,
-        execute_callback: Optional[Callable[[str, int, str], bool]] = None
+        execute_callback: Callable[[str, int, str], bool] | None = None
     ):
         """
         Executes a large order in `slices` over time.

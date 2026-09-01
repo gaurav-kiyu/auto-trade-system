@@ -47,7 +47,7 @@ def _get_global_config() -> dict[str, Any]:
     config_path = os.path.join(os.path.dirname(__file__), "..", "..", "json", "config.json")
     if os.path.exists(config_path):
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 _CACHED_CONFIG = json.load(f)
                 return _CACHED_CONFIG
         except Exception:

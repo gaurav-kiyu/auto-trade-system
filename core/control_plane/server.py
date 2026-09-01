@@ -78,11 +78,11 @@ _DEFAULT_PORT = 7080
 # Active ControlPlaneServer created by maybe_start_control_plane().
 # This is a handle to the canonical server instance only; it never
 # constructs or replaces a ControlPlaneServer.
-_ACTIVE_CONTROL_PLANE_SERVER: "ControlPlaneServer | None" = None
+_ACTIVE_CONTROL_PLANE_SERVER: ControlPlaneServer | None = None
 _ACTIVE_CONTROL_PLANE_SERVER_LOCK = threading.RLock()
 
 
-def get_active_control_plane_server() -> "ControlPlaneServer | None":
+def get_active_control_plane_server() -> ControlPlaneServer | None:
     """Return the currently active Admin Control Plane server instance."""
     with _ACTIVE_CONTROL_PLANE_SERVER_LOCK:
         return _ACTIVE_CONTROL_PLANE_SERVER
