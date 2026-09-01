@@ -492,9 +492,9 @@ def _update_section_in_file(
         if section_end < len(content):
             new_content += content[section_end:]
         else:
-            # Ensure blank line after section
-            if section_lines and section_lines[-1].strip():
-                new_content.append("\n")
+            # Generated section already ends with exactly one newline.
+            # Do not append an additional blank line at EOF.
+            pass
     else:
         # Section doesn't exist, append it
         new_content = content
@@ -550,7 +550,7 @@ def update_dead_code_register(findings: list[DeadCodeFinding]) -> bool:
     section_lines = [
         "## Scan Results\n",
         "\n",
-        f"**Total findings:** {len(findings)}  \n",
+        f"**Total findings:** {len(findings)}\n",
         f"**Last scanned:** {time.strftime('%Y-%m-%d %H:%M:%S')}\n",
         "\n",
     ]
@@ -574,7 +574,7 @@ def update_duplicate_code_register(findings: list[DuplicateFinding]) -> bool:
     section_lines = [
         "## Scan Results\n",
         "\n",
-        f"**Total findings:** {len(findings)}  \n",
+        f"**Total findings:** {len(findings)}\n",
         f"**Last scanned:** {time.strftime('%Y-%m-%d %H:%M:%S')}\n",
         "\n",
     ]

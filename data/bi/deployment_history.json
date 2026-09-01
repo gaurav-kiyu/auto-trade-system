@@ -1,1 +1,110 @@
-[]
+[
+  {
+    "timestamp": 1787568537.0,
+    "date": "2026-08-24T16:18:57",
+    "version": "38e61b933578",
+    "commit_hash": "38e61b933578",
+    "commit_message": "docs(phase14): add Phase 14 master audit verdict and forensic remediation log",
+    "author": "Gaurav Yadav",
+    "files_changed": 1,
+    "lines_added": 10,
+    "lines_deleted": 0,
+    "environment": "production"
+  },
+  {
+    "timestamp": 1778621248.0,
+    "date": "2026-05-13T02:57:28",
+    "version": "55aae6b318d5",
+    "commit_hash": "55aae6b318d5",
+    "commit_message": "feat: Initialize OPB Index Options Buying Bot v2.45+ with core service decomposi",
+    "author": "Gaurav",
+    "files_changed": 1,
+    "lines_added": 10,
+    "lines_deleted": 0,
+    "environment": "production"
+  },
+  {
+    "timestamp": 1788246691.0,
+    "date": "2026-09-01T12:41:31",
+    "version": "",
+    "commit_hash": "ff202c6fdf9c",
+    "commit_message": "Q297: clean remaining Ruff findings",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788207800.0,
+    "date": "2026-09-01T01:53:20",
+    "version": "",
+    "commit_hash": "07259efc3262",
+    "commit_message": "Q295: fix adaptive score audit reason sink",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788202346.0,
+    "date": "2026-09-01T00:22:26",
+    "version": "",
+    "commit_hash": "3580912a9aea",
+    "commit_message": "Q292: harden dashboard CSP and runtime contracts",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788201886.0,
+    "date": "2026-09-01T00:14:46",
+    "version": "",
+    "commit_hash": "772b1aec9e8f",
+    "commit_message": "Q291: clean production Ruff findings",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788200963.0,
+    "date": "2026-08-31T23:59:23",
+    "version": "",
+    "commit_hash": "3016415421fe",
+    "commit_message": "Q290: harden runtime contracts and regression coverage",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788197418.0,
+    "date": "2026-08-31T23:00:18",
+    "version": "",
+    "commit_hash": "db6cf2e006fc",
+    "commit_message": "Q289: harden Admin config validation and SL_PCT contract",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788031417.0,
+    "date": "2026-08-30T00:53:37",
+    "version": "",
+    "commit_hash": "a21302a32d9c",
+    "commit_message": "chore: establish local source of truth baseline",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  }
+]

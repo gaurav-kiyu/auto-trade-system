@@ -1,13 +1,13 @@
 ## Scan Results
 
 **Total findings:** 431
-**Last scanned:** 2026-08-28 18:31:46
+**Last scanned:** 2026-09-01 20:56:32
 
 | ID | Source A | Source B | Symbol | Similarity | Description | Severity |
 |----|----------|----------|--------|------------|-------------|----------|
 | DUP-001 | core\ab_strategy_tester.py:58 | core\certification\strategy_certifier.py:138 | profit_factor | 100% | 'profit_factor' defined in both ab_strategy_tester.py and strategy_certifier.py | MEDIUM |
 | DUP-002 | core\ab_strategy_tester.py:170 | core\safety_state.py:161 | record_trade_outcome | 100% | 'record_trade_outcome' defined in both ab_strategy_tester.py and safety_state.py | MEDIUM |
-| DUP-003 | core\adaptive_behavior_governance.py:102 | core\control_plane\server.py:366 | get_mode | 100% | 'get_mode' defined in both adaptive_behavior_governance.py and server.py | MEDIUM |
+| DUP-003 | core\adaptive_behavior_governance.py:102 | core\control_plane\server.py:460 | get_mode | 100% | 'get_mode' defined in both adaptive_behavior_governance.py and server.py | MEDIUM |
 | DUP-004 | core\adaptive_behavior_governance.py:258 | core\strategy\approval_workflow.py:391 | get_pending_approvals | 100% | 'get_pending_approvals' defined in both adaptive_behavior_governance.py and approval_workflow.py | MEDIUM |
 | DUP-005 | core\adaptive_behavior_governance.py:263 | core\strategy\approval_workflow.py:431 | get_governance_report | 100% | 'get_governance_report' defined in both adaptive_behavior_governance.py and approval_workflow.py | MEDIUM |
 | DUP-006 | core\ai_token_cost_tracker.py:431 | core\cost_governance.py:105 | set_budget | 100% | 'set_budget' defined in both ai_token_cost_tracker.py and cost_governance.py | MEDIUM |
@@ -28,12 +28,12 @@
 | DUP-021 | core\audit_mode.py:292 | core\auditor\auditor.py:382 | audit_scoring | 100% | 'audit_scoring' defined in both audit_mode.py and auditor.py | MEDIUM |
 | DUP-022 | core\auto_learner.py:539 | core\pattern_learner.py:155 | learn_from_incident | 100% | 'learn_from_incident' defined in both auto_learner.py and pattern_learner.py | MEDIUM |
 | DUP-023 | core\backtest_engine.py:128 | core\execution\replay_engine.py:50 | ReplayEngine | 100% | 'ReplayEngine' defined in both backtest_engine.py and replay_engine.py | MEDIUM |
-| DUP-024 | core\bi_dashboard.py:151 | core\health_reporter.py:14 | HealthScore | 100% | 'HealthScore' defined in both bi_dashboard.py and health_reporter.py | MEDIUM |
-| DUP-025 | core\broker_capture.py:36 | core\enterprise_dashboard\main.py:1379 | write | 100% | 'write' defined in both broker_capture.py and main.py | MEDIUM |
+| DUP-024 | core\bi_dashboard.py:150 | core\health_reporter.py:14 | HealthScore | 100% | 'HealthScore' defined in both bi_dashboard.py and health_reporter.py | MEDIUM |
+| DUP-025 | core\broker_capture.py:36 | core\enterprise_dashboard\main.py:1617 | write | 100% | 'write' defined in both broker_capture.py and main.py | MEDIUM |
 | DUP-026 | core\candle_backtest.py:175 | core\candle_backtest.py:191 | avg_pnl | 100% | 'avg_pnl' defined in both candle_backtest.py and candle_backtest.py | MEDIUM |
 | DUP-027 | core\capacity_planning.py:93 | core\health_checker.py:93 | ok_count | 100% | 'ok_count' defined in both capacity_planning.py and health_checker.py | MEDIUM |
 | DUP-028 | core\capacity_planning.py:97 | core\health_checker.py:97 | warn_count | 100% | 'warn_count' defined in both capacity_planning.py and health_checker.py | MEDIUM |
-| DUP-029 | core\capital_manager.py:148 | core\services\risk_service.py:990 | lock_profits | 100% | 'lock_profits' defined in both capital_manager.py and risk_service.py | MEDIUM |
+| DUP-029 | core\capital_manager.py:148 | core\services\risk_service.py:1079 | lock_profits | 100% | 'lock_profits' defined in both capital_manager.py and risk_service.py | MEDIUM |
 | DUP-030 | core\change_governance.py:62 | core\change_management.py:74 | ChangeStatus | 100% | 'ChangeStatus' defined in both change_governance.py and change_management.py | MEDIUM |
 | DUP-031 | core\change_governance.py:139 | core\self_healing\approval_workflow.py:98 | is_approved | 100% | 'is_approved' defined in both change_governance.py and approval_workflow.py | MEDIUM |
 | DUP-032 | core\change_governance.py:150 | core\observability\opentelemetry.py:275 | add_event | 100% | 'add_event' defined in both change_governance.py and opentelemetry.py | MEDIUM |
@@ -94,7 +94,7 @@
 | DUP-087 | core\exceptions.py:236 | core\ports\persistence\persistence_port.py:16 | PersistenceError | 100% | 'PersistenceError' defined in both exceptions.py and persistence_port.py | MEDIUM |
 | DUP-088 | core\execution_error_classifier.py:32 | core\execution\retry_policy\classifier.py:24 | BrokerErrorClassifier | 100% | 'BrokerErrorClassifier' defined in both execution_error_classifier.py and classifier.py | MEDIUM |
 | DUP-089 | core\execution_error_classifier.py:114 | core\execution\retry_policy\classifier.py:112 | classify_broker_error | 100% | 'classify_broker_error' defined in both execution_error_classifier.py and classifier.py | MEDIUM |
-| DUP-090 | core\execution_guards.py:300 | core\services\risk_service.py:619 | get_trades_today | 100% | 'get_trades_today' defined in both execution_guards.py and risk_service.py | MEDIUM |
+| DUP-090 | core\execution_guards.py:300 | core\services\risk_service.py:708 | get_trades_today | 100% | 'get_trades_today' defined in both execution_guards.py and risk_service.py | MEDIUM |
 | DUP-091 | core\execution_wiring.py:46 | core\adapters\database\connection_pool.py:165 | initialize | 100% | 'initialize' defined in both execution_wiring.py and connection_pool.py | MEDIUM |
 | DUP-092 | core\execution_wiring.py:88 | core\startup_reconciliation.py:159 | run_startup_reconciliation | 100% | 'run_startup_reconciliation' defined in both execution_wiring.py and startup_reconciliation.py | MEDIUM |
 | DUP-093 | core\expiry_day_controller.py:33 | core\session_classifier.py:243 | ExpirySession | 100% | 'ExpirySession' defined in both expiry_day_controller.py and session_classifier.py | MEDIUM |
@@ -181,7 +181,7 @@
 | DUP-174 | core\session_report.py:237 | scripts\generate_constitution_report.py:325 | save_report | 100% | 'save_report' defined in both session_report.py and generate_constitution_report.py | MEDIUM |
 | DUP-175 | core\signal_service.py:58 | core\domains\signal_engine\service.py:29 | SignalService | 100% | 'SignalService' defined in both signal_service.py and service.py | MEDIUM |
 | DUP-176 | core\signal_service.py:72 | index_app\index_trader.py:1009 | validate_signal_pillars | 100% | 'validate_signal_pillars' defined in both signal_service.py and index_trader.py | MEDIUM |
-| DUP-177 | core\signal_utils.py:356 | core\ai\shap_signal_explainer.py:59 | explain_signal | 100% | 'explain_signal' defined in both signal_utils.py and shap_signal_explainer.py | MEDIUM |
+| DUP-177 | core\signal_utils.py:374 | core\ai\shap_signal_explainer.py:59 | explain_signal | 100% | 'explain_signal' defined in both signal_utils.py and shap_signal_explainer.py | MEDIUM |
 | DUP-178 | core\spread_strategy.py:53 | core\domains\fo\models.py:386 | SpreadLeg | 100% | 'SpreadLeg' defined in both spread_strategy.py and models.py | MEDIUM |
 | DUP-179 | core\spread_strategy.py:62 | core\domains\fo\models.py:414 | SpreadPosition | 100% | 'SpreadPosition' defined in both spread_strategy.py and models.py | MEDIUM |
 | DUP-180 | core\startup_checklist.py:71 | core\strategy\config.py:167 | as_dict | 100% | 'as_dict' defined in both startup_checklist.py and config.py | MEDIUM |
@@ -258,7 +258,7 @@
 | DUP-251 | index_app\domains\config\loader.py:490 | index_app\domains\config\loader.py:380 | make_fail_safe_config | 100% | 'make_fail_safe_config' defined in both loader.py and loader.py | MEDIUM |
 | DUP-252 | index_app\domains\config\manager.py:66 | core\ports\market_data.py:39 | all | 100% | 'all' defined in both manager.py and market_data.py | MEDIUM |
 | DUP-253 | index_app\domains\market\adapter_factory.py:26 | core\ports\market_data.py:135 | create_market_data_adapter | 100% | 'create_market_data_adapter' defined in both adapter_factory.py and market_data.py | MEDIUM |
-| DUP-254 | index_app\domains\signal\evaluator.py:19 | core\services\signal_evaluator.py:538 | SignalEvaluator | 100% | 'SignalEvaluator' defined in both evaluator.py and signal_evaluator.py | MEDIUM |
+| DUP-254 | index_app\domains\signal\evaluator.py:20 | core\services\signal_evaluator.py:538 | SignalEvaluator | 100% | 'SignalEvaluator' defined in both evaluator.py and signal_evaluator.py | MEDIUM |
 | DUP-255 | core\adapters\base_adapter.py:55 | core\adapters\broker_adapters.py:118 | BrokerAdapter | 100% | 'BrokerAdapter' defined in both base_adapter.py and broker_adapters.py | MEDIUM |
 | DUP-256 | core\adapters\broker_adapters.py:768 | core\ports\broker\__init__.py:241 | create_broker_adapter | 100% | 'create_broker_adapter' defined in both broker_adapters.py and __init__.py | MEDIUM |
 | DUP-257 | core\ai\canary_manager.py:118 | core\auth\session_store.py:101 | list_active | 100% | 'list_active' defined in both canary_manager.py and session_store.py | MEDIUM |
@@ -278,7 +278,7 @@
 | DUP-271 | core\auth\routes.py:632 | core\auth\user_signal_permissions.py:213 | get_user_permissions | 100% | 'get_user_permissions' defined in both routes.py and user_signal_permissions.py | MEDIUM |
 | DUP-272 | core\auth\routes.py:669 | core\auth\user_signal_permissions.py:235 | update_user_permissions | 100% | 'update_user_permissions' defined in both routes.py and user_signal_permissions.py | MEDIUM |
 | DUP-273 | core\auth\routes.py:748 | core\auth\user_signal_permissions.py:313 | toggle_user_signals | 100% | 'toggle_user_signals' defined in both routes.py and user_signal_permissions.py | MEDIUM |
-| DUP-274 | core\auth\routes.py:767 | core\signals\signal_tracker.py:773 | get_admin_signal_analytics | 100% | 'get_admin_signal_analytics' defined in both routes.py and signal_tracker.py | MEDIUM |
+| DUP-274 | core\auth\routes.py:767 | core\signals\signal_tracker.py:772 | get_admin_signal_analytics | 100% | 'get_admin_signal_analytics' defined in both routes.py and signal_tracker.py | MEDIUM |
 | DUP-275 | core\auth\routes.py:827 | core\auth\handler\session_manager.py:198 | get_user_sessions | 100% | 'get_user_sessions' defined in both routes.py and session_manager.py | MEDIUM |
 | DUP-276 | core\auth\routes.py:882 | archive\unrelated_modules\realestate\auth_service.py:425 | auth_stats | 100% | 'auth_stats' defined in both routes.py and auth_service.py | MEDIUM |
 | DUP-277 | core\auth\routes.py:14 | archive\unrelated_modules\realestate\api\__init__.py:21 | APIRouter | 100% | 'APIRouter' defined in both routes.py and __init__.py | MEDIUM |
@@ -286,13 +286,13 @@
 | DUP-279 | core\auth\sso.py:456 | core\notifications\url_resolver.py:198 | build_action_url | 100% | 'build_action_url' defined in both sso.py and url_resolver.py | MEDIUM |
 | DUP-280 | core\black_swan\__init__.py:438 | core\black_swan\__init__.py:277 | run_critical_suite | 100% | 'run_critical_suite' defined in both __init__.py and __init__.py | MEDIUM |
 | DUP-281 | core\control_plane\admin_auth.py:208 | core\auth\handler\session_manager.py:160 | revoke_session | 100% | 'revoke_session' defined in both admin_auth.py and session_manager.py | MEDIUM |
-| DUP-282 | core\control_plane\server.py:133 | core\invariants\engine.py:89 | register_halt_callback | 100% | 'register_halt_callback' defined in both server.py and engine.py | MEDIUM |
-| DUP-283 | core\control_plane\server.py:744 | core\enterprise_dashboard\routes\pages.py:105 | root | 100% | 'root' defined in both server.py and pages.py | MEDIUM |
-| DUP-284 | core\control_plane\server.py:833 | core\services\portfolio_service.py:48 | set_capital | 100% | 'set_capital' defined in both server.py and portfolio_service.py | MEDIUM |
+| DUP-282 | core\control_plane\server.py:147 | core\invariants\engine.py:89 | register_halt_callback | 100% | 'register_halt_callback' defined in both server.py and engine.py | MEDIUM |
+| DUP-283 | core\control_plane\server.py:838 | core\enterprise_dashboard\routes\pages.py:105 | root | 100% | 'root' defined in both server.py and pages.py | MEDIUM |
+| DUP-284 | core\control_plane\server.py:927 | core\services\portfolio_service.py:48 | set_capital | 100% | 'set_capital' defined in both server.py and portfolio_service.py | MEDIUM |
 | DUP-285 | core\cqrs\command_bus.py:18 | core\patterns\mediator.py:90 | Command | 100% | 'Command' defined in both command_bus.py and mediator.py | MEDIUM |
 | DUP-286 | core\cqrs\command_bus.py:118 | core\cqrs\query_bus.py:118 | unregister_handler | 100% | 'unregister_handler' defined in both command_bus.py and query_bus.py | MEDIUM |
-| DUP-287 | core\enterprise_dashboard\main.py:1381 | core\wal\journal.py:314 | flush | 100% | 'flush' defined in both main.py and journal.py | MEDIUM |
-| DUP-288 | core\enterprise_dashboard\main.py:39 | core\patterns\mediator.py:479 | add_middleware | 100% | 'add_middleware' defined in both main.py and mediator.py | MEDIUM |
+| DUP-287 | core\enterprise_dashboard\main.py:1619 | core\wal\journal.py:314 | flush | 100% | 'flush' defined in both main.py and journal.py | MEDIUM |
+| DUP-288 | core\enterprise_dashboard\main.py:40 | core\patterns\mediator.py:479 | add_middleware | 100% | 'add_middleware' defined in both main.py and mediator.py | MEDIUM |
 | DUP-289 | core\event_store\__init__.py:146 | core\execution\event_system.py:182 | EventStore | 100% | 'EventStore' defined in both __init__.py and event_system.py | MEDIUM |
 | DUP-290 | core\event_store\__init__.py:774 | core\execution\event_system.py:855 | get_event_store | 100% | 'get_event_store' defined in both __init__.py and event_system.py | MEDIUM |
 | DUP-291 | core\event_store\__init__.py:502 | core\execution\event_system.py:568 | get_events_by_type | 100% | 'get_events_by_type' defined in both __init__.py and event_system.py | MEDIUM |
@@ -335,12 +335,12 @@
 | DUP-328 | core\services\portfolio_service.py:13 | core\domains\portfolio\service.py:83 | PortfolioService | 100% | 'PortfolioService' defined in both portfolio_service.py and service.py | MEDIUM |
 | DUP-329 | core\services\rate_limiting_service.py:148 | core\ports\rate_limiting\rate_limit_port.py:91 | get_retry_after | 100% | 'get_retry_after' defined in both rate_limiting_service.py and rate_limit_port.py | MEDIUM |
 | DUP-330 | core\services\risk_service.py:122 | core\domains\risk\service.py:25 | RiskService | 100% | 'RiskService' defined in both risk_service.py and service.py | MEDIUM |
-| DUP-331 | core\services\risk_service.py:341 | core\ports\risk\risk_port.py:116 | validate_margin_requirements | 100% | 'validate_margin_requirements' defined in both risk_service.py and risk_port.py | MEDIUM |
-| DUP-332 | core\services\risk_service.py:502 | core\ports\risk\risk_port.py:171 | reset_daily_metrics | 100% | 'reset_daily_metrics' defined in both risk_service.py and risk_port.py | MEDIUM |
-| DUP-333 | core\services\risk_service.py:1034 | core\ports\risk\risk_port.py:198 | get_min_score_for_regime | 100% | 'get_min_score_for_regime' defined in both risk_service.py and risk_port.py | MEDIUM |
-| DUP-334 | core\services\risk_service.py:1052 | core\ports\risk\risk_port.py:206 | get_max_trades_per_day | 100% | 'get_max_trades_per_day' defined in both risk_service.py and risk_port.py | MEDIUM |
-| DUP-335 | core\services\risk_service.py:1061 | core\ports\risk\risk_port.py:210 | get_live_vix | 100% | 'get_live_vix' defined in both risk_service.py and risk_port.py | MEDIUM |
-| DUP-336 | core\strategy\orchestrator.py:108 | core\ports\strategy\strategy_port.py:71 | route_decision | 100% | 'route_decision' defined in both orchestrator.py and strategy_port.py | MEDIUM |
+| DUP-331 | core\services\risk_service.py:430 | core\ports\risk\risk_port.py:116 | validate_margin_requirements | 100% | 'validate_margin_requirements' defined in both risk_service.py and risk_port.py | MEDIUM |
+| DUP-332 | core\services\risk_service.py:591 | core\ports\risk\risk_port.py:171 | reset_daily_metrics | 100% | 'reset_daily_metrics' defined in both risk_service.py and risk_port.py | MEDIUM |
+| DUP-333 | core\services\risk_service.py:1123 | core\ports\risk\risk_port.py:198 | get_min_score_for_regime | 100% | 'get_min_score_for_regime' defined in both risk_service.py and risk_port.py | MEDIUM |
+| DUP-334 | core\services\risk_service.py:1141 | core\ports\risk\risk_port.py:206 | get_max_trades_per_day | 100% | 'get_max_trades_per_day' defined in both risk_service.py and risk_port.py | MEDIUM |
+| DUP-335 | core\services\risk_service.py:1150 | core\ports\risk\risk_port.py:210 | get_live_vix | 100% | 'get_live_vix' defined in both risk_service.py and risk_port.py | MEDIUM |
+| DUP-336 | core\strategy\orchestrator.py:161 | core\ports\strategy\strategy_port.py:71 | route_decision | 100% | 'route_decision' defined in both orchestrator.py and strategy_port.py | MEDIUM |
 | DUP-337 | core\strategy\plugin_framework.py:60 | core\domains\signal_engine\model.py:70 | MarketData | 100% | 'MarketData' defined in both plugin_framework.py and model.py | MEDIUM |
 | DUP-338 | core\strategy\plugin_framework.py:118 | core\strategy\strategies.py:8 | BaseStrategy | 100% | 'BaseStrategy' defined in both plugin_framework.py and strategies.py | MEDIUM |
 | DUP-339 | core\telemetry\metrics.py:51 | core\common\utilities\metrics.py:68 | MetricsCollector | 100% | 'MetricsCollector' defined in both metrics.py and metrics.py | MEDIUM |
@@ -357,7 +357,7 @@
 | DUP-350 | core\ports\notification\notification_port.py:28 | archive\unrelated_modules\realestate\notifications.py:26 | NotificationPriority | 100% | 'NotificationPriority' defined in both notification_port.py and notifications.py | MEDIUM |
 | DUP-351 | core\ports\risk\risk_port.py:56 | core\domains\risk\model.py:81 | PortfolioRiskMetrics | 100% | 'PortfolioRiskMetrics' defined in both risk_port.py and model.py | MEDIUM |
 | DUP-352 | core\ports\strategy\strategy_port.py:20 | core\domains\strategy\model.py:15 | StrategyDecision | 100% | 'StrategyDecision' defined in both strategy_port.py and model.py | MEDIUM |
-| DUP-353 | core\enterprise_dashboard\routes\admin.py:648 | core\enterprise_dashboard\routes\monitoring.py:134 | api_broker_info | 100% | 'api_broker_info' defined in both admin.py and monitoring.py | MEDIUM |
+| DUP-353 | core\enterprise_dashboard\routes\admin.py:651 | core\enterprise_dashboard\routes\monitoring.py:134 | api_broker_info | 100% | 'api_broker_info' defined in both admin.py and monitoring.py | MEDIUM |
 | DUP-354 | core\enterprise_dashboard\routes\pages.py:129 | archive\unrelated_modules\realestate\auth_service.py:440 | login_page | 100% | 'login_page' defined in both pages.py and auth_service.py | MEDIUM |
 | DUP-355 | core\domains\corporate_actions\__init__.py:42 | core\domains\equity\models.py:50 | CorporateActionType | 100% | 'CorporateActionType' defined in both __init__.py and models.py | MEDIUM |
 | DUP-356 | core\domains\currency\models.py:186 | core\domains\fo\models.py:234 | is_call | 100% | 'is_call' defined in both models.py and models.py | MEDIUM |

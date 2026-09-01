@@ -1,16 +1,16 @@
 [
   {
-    "timestamp": 1787920923.1645324,
-    "date": "2026-08-28T18:12:03.164532",
+    "timestamp": 1788257216.876969,
+    "date": "2026-09-01T15:36:56.876969",
     "total_modules": 601,
-    "total_symbols": 14291,
-    "total_lines": 210717,
+    "total_symbols": 14296,
+    "total_lines": 211483,
     "design_smells": 0,
     "duplicate_clusters": 0,
-    "maintenance_hotspots": 2,
+    "maintenance_hotspots": 1,
     "test_coverage_pct": 98.5,
-    "total_tests": 17854,
-    "avg_complexity": 567.5,
+    "total_tests": 17872,
+    "avg_complexity": 561.0,
     "modules_without_tests": 0
   }
 ]
