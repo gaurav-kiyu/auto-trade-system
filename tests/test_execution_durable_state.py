@@ -11,6 +11,7 @@ Covers:
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -84,7 +85,7 @@ class TestDurableExecutionStoreInit:
 
     def test_init_creates_table(self, store):
         """Init should create the execution_state table."""
-        with sqlite3.connect(store._db_path) as conn:
+        with closing(sqlite3.connect(store._db_path)) as conn:
             cursor = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='execution_state'"
             )
@@ -92,7 +93,7 @@ class TestDurableExecutionStoreInit:
 
     def test_init_creates_indexes(self, store):
         """Init should create indexes on state and updated_at."""
-        with sqlite3.connect(store._db_path) as conn:
+        with closing(sqlite3.connect(store._db_path)) as conn:
             cursor = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_exec_state'"
             )
