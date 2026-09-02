@@ -70,6 +70,19 @@ def _make_trades_db(db_path: str) -> None:
     conn.close()
 
 
+@pytest.fixture(autouse=True)
+def isolate_env_sync(tmp_path, monkeypatch):
+    from core import env_sync
+
+    real_sync = env_sync.sync_env_file
+
+    def isolated_sync(changes, env_path=None):
+        target = env_path if env_path is not None else tmp_path / ".env"
+        return real_sync(changes, env_path=target)
+
+    monkeypatch.setattr(env_sync, "sync_env_file", isolated_sync)
+
+
 def _make_config_file(path: str, data: dict | None = None) -> Path:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -271,6 +284,59 @@ class TestDashboardInit:
         templates_dir = db._ensure_templates()
         assert templates_dir.is_dir()
         assert templates_dir.name == "enterprise"
+
+    def test_slo_health_poller_uses_dashboard_db_path(
+        self, state_file: str, trades_db: str, config_file: str,
+        defaults_file: str, monkeypatch
+    ):
+        """SLO health poller must use the dashboard's injected trades DB path."""
+        from core.enterprise_dashboard import EnterpriseDashboard
+        import core.health_checker as health_checker
+        import core.slo_governance as slo_governance
+
+        observed = []
+        called = threading.Event()
+
+        def fake_health_check(cfg=None, db_path="db/trades.db"):
+            observed.append(db_path)
+            called.set()
+            return MagicMock(summary="test")
+
+        monkeypatch.setattr(
+            health_checker,
+            "run_full_health_check",
+            fake_health_check,
+        )
+        monkeypatch.setattr(
+            slo_governance,
+            "ingest_health_report",
+            lambda report: None,
+        )
+
+        slo = MagicMock()
+        monkeypatch.setattr(
+            slo_governance,
+            "get_slo_governance",
+            lambda: slo,
+        )
+
+        cfg = {
+            "web_dashboard_host": "127.0.0.1",
+            "trader_state_path": state_file,
+            "auth_db_path": str(Path(state_file).parent / "auth.db"),
+            "index_config_path": config_file,
+            "index_config_defaults_path": defaults_file,
+            "broker_name": "Zerodha",
+            "execution_mode": "paper",
+            "broker_adapter": "kite",
+        }
+
+        dashboard = EnterpriseDashboard(config=cfg, db_path=trades_db)
+
+        with TestClient(dashboard.app):
+            assert called.wait(3), "SLO health poller did not execute"
+            assert observed, "SLO health poller did not call health check"
+            assert observed[0] == trades_db
 
     def test_start_session_cleanup_starts_thread(self, tmp_path):
         from core.enterprise_dashboard import EnterpriseDashboard
