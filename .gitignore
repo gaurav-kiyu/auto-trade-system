@@ -92,6 +92,7 @@ db/*.sqlite
 db/*.db-wal
 db/*.db-shm
 json/*.json
+!json/index_config.defaults.json
 json/*.jsonl
 !json/config.template.json
 !json/stock_config.defaults.json
