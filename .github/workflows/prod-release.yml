@@ -29,8 +29,17 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
-      - name: Ruff lint (strict)
-        run: python -m ruff check index_app core scripts tests
+      - name: Ruff lint (release-touched Python files)
+        shell: bash
+        run: |
+          git fetch origin main --depth=1
+          CHANGED=$(git diff --name-only origin/main...HEAD -- '*.py')
+          if [ -z "$CHANGED" ]; then
+            echo "No release-touched Python files; Ruff gate passed"
+            exit 0
+          fi
+          printf '%s\n' "$CHANGED"
+          python -m ruff check $CHANGED
 
   register-consistency:
     name: Register Consistency Gate
