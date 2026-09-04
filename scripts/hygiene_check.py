@@ -356,9 +356,9 @@ def _is_gitignored(path: Path) -> bool:
         # Directory-only patterns (end with /)
         if raw_name.endswith("/"):
             base = raw_name.rstrip("/")
-            # Check if any part of the path matches
+            # Check if any path component matches the directory pattern.
             rel_parts = rel.split("/")
-            if base in rel_parts:
+            if any(fnmatch.fnmatch(part, base) for part in rel_parts):
                 return True
             if fnmatch.fnmatch(rel, raw_name) or fnmatch.fnmatch(rel, f"{base}/*"):
                 return True
