@@ -290,9 +290,9 @@ class TestDashboardInit:
         defaults_file: str, monkeypatch
     ):
         """SLO health poller must use the dashboard's injected trades DB path."""
-        from core.enterprise_dashboard import EnterpriseDashboard
         import core.health_checker as health_checker
         import core.slo_governance as slo_governance
+        from core.enterprise_dashboard import EnterpriseDashboard
 
         observed = []
         called = threading.Event()
