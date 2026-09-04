@@ -80,6 +80,8 @@ services:
       - opb_models:/data/models
       - opb_reports:/data/reports
       - opb_logs:/data/logs
+      # Persistent encrypted credential-storage directory
+      - opb_config:/home/opb/.config
       # Optional: mount a custom config.json without rebuilding the image
       # - ./json/config.local.json:/app/json/config.local.json:ro
 
@@ -185,3 +187,4 @@ volumes:
   opb_models:
   opb_reports:
   opb_logs:
+  opb_config:
