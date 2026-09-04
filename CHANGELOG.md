@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.59.1 (2026-09-05)
+
+- Fixed the invalid multiline Supervisor dashboard configuration that prevented the v2.59.0 Docker image from starting correctly.
+- Dashboard lifecycle is managed by `index_app/index_trader.py` via `core.web_dashboard.maybe_start_dashboard()`.
+- Synchronized release metadata for the v2.59.1 corrective release.
+
+
 ## v2.59.0 (2026-08-22 update)
 
 - **GUI launcher EXE opened a dead port + opened the browser too early (real user-reported bugs, found via live testing):**

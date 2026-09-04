@@ -1,3 +1,21 @@
+# Release v2.59.1
+
+**Date:** 2026-09-05
+**Previous Release:** v2.59.0
+
+---
+
+## Corrective Release
+
+- Fixed the invalid multiline Supervisor dashboard configuration that prevented the v2.59.0 Docker image from starting correctly.
+- Removed the obsolete `[program:opb_dashboard]` Supervisor entry.
+- Dashboard lifecycle remains managed by `index_app/index_trader.py` via `core.web_dashboard.maybe_start_dashboard()`.
+- Synchronized release metadata to v2.59.1.
+- No trading logic, risk controls, or production state were changed.
+- The published v2.59.0 image remains unchanged.
+
+---
+
 # Release v2.59.0
 
 **Date:** 2026-08-21
