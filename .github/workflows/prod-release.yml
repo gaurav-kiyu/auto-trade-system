@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -32,8 +34,16 @@ jobs:
       - name: Ruff lint (release-touched Python files)
         shell: bash
         run: |
-          git fetch origin main --depth=1
-          CHANGED=$(git diff --name-only origin/main...HEAD -- '*.py')
+          # Tag runs point HEAD at the release tag itself, so origin/main...HEAD
+          # cannot identify release-touched files reliably. Use the first-parent
+          # merge baseline from the release PR instead.
+          BASE=$(git log --first-parent --merges -1 --format='%H^1' HEAD)
+          if [ -z "$BASE" ]; then
+            echo "ERROR: unable to determine release baseline"
+            exit 1
+          fi
+          echo "Ruff baseline: $BASE"
+          CHANGED=$(git diff --name-only "$BASE" HEAD -- '*.py')
           if [ -z "$CHANGED" ]; then
             echo "No release-touched Python files; Ruff gate passed"
             exit 0
@@ -220,29 +230,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # Production deployment is intentionally manual.
+  # EC2 deployment must follow docs/deployment/AWS_EC2_PRODUCTION_RUNBOOK.md:
+  # aws_preflight.sh -> AWS compose overlay -> PAPER smoke test ->
+  # persistence/restart test -> manual production approval.
   deploy:
     runs-on: ubuntu-latest
     needs: [release-artifact-verification, docker-build, register-consistency]
-    if: github.ref_name == 'main' || startsWith(github.ref, 'refs/tags/v')
+    if: ${{ false }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh/
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-        shell: bash
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-      - name: Deploy via Docker Compose
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "cd ${{ secrets.DEPLOY_PATH }} && \
-             docker compose pull && \
-             docker compose up -d --force-recreate"
-        shell: bash
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-        if: env.DEPLOY_SSH_KEY != '' && env.DEPLOY_HOST != ''
+      - run: echo "Automatic EC2 deployment disabled; use the AWS production runbook."
