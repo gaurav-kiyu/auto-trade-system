@@ -1,3 +1,20 @@
+# Release v2.59.2
+
+**Date:** 2026-09-05
+**Previous Release:** v2.59.1
+
+---
+
+## Corrective Release
+
+- Fixed read-only runtime incompatibility in encrypted credential storage by providing a dedicated persistent `/home/opb/.config` volume.
+- Removed runtime Supervisor schema generation because generated schemas are release artifacts and `/app` is intentionally read-only at runtime.
+- Preserved container hardening: read-only root filesystem, dropped capabilities, and no-new-privileges.
+- No trading logic, risk controls, or production state were changed.
+- The published v2.59.1 image remains unchanged.
+
+---
+
 # Release v2.59.1
 
 **Date:** 2026-09-05

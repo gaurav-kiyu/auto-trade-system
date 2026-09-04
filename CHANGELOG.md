@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.59.2 (2026-09-05)
+
+- Fixed read-only runtime incompatibility in encrypted credential storage by providing a dedicated persistent `/home/opb/.config` volume.
+- Removed runtime Supervisor schema generation because generated schemas are release artifacts and `/app` is intentionally read-only at runtime.
+- Preserved container hardening: read-only root filesystem, dropped capabilities, and no-new-privileges.
+- Corrective release based exactly on v2.59.1.
+- No trading logic, risk controls, or production state were changed.
+
+
 ## v2.59.1 (2026-09-05)
 
 - Fixed the invalid multiline Supervisor dashboard configuration that prevented the v2.59.0 Docker image from starting correctly.
