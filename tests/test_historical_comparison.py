@@ -244,6 +244,52 @@ class TestHistoricalComparer:
         assert report.target_revision == "v2"
         assert report.diff_stat.files_changed == 5
 
+    @patch.object(HistoricalComparer, "_list_docs")
+    @patch.object(HistoricalComparer, "_list_python_files")
+    @patch.object(HistoricalComparer, "_show_file")
+    @patch.object(HistoricalComparer, "_run_git")
+    def test_doc_diff_ignores_unchanged_historical_doc(
+        self, mock_git, mock_show, mock_python, mock_docs
+    ):
+        """Unchanged historical docs must not create a new release regression."""
+        mock_docs.return_value = ["docs/audit/history.md"]
+        mock_python.return_value = ["core/current.py"]
+        mock_show.return_value = "`core/removed_module.py`"
+        mock_git.return_value = ""
+
+        comparer = HistoricalComparer()
+        diff = comparer._compute_doc_diff("old", "new")
+
+        assert diff.docs_stale == []
+        assert diff.module_mismatches == 0
+
+    @patch.object(HistoricalComparer, "_list_docs")
+    @patch.object(HistoricalComparer, "_list_python_files")
+    @patch.object(HistoricalComparer, "_show_file")
+    @patch.object(HistoricalComparer, "_run_git")
+    def test_doc_diff_detects_changed_doc_with_missing_module(
+        self, mock_git, mock_show, mock_python, mock_docs
+    ):
+        """A changed document introducing a missing module must remain a regression."""
+        mock_docs.return_value = ["docs/current.md"]
+        mock_python.return_value = ["core/current.py"]
+        mock_show.return_value = "`core/removed_module.py`"
+
+        def git_side_effect(args):
+            if args[:3] == ["diff", "--name-only", "old..new"]:
+                return "docs/current.md"
+            return ""
+
+        mock_git.side_effect = git_side_effect
+
+        comparer = HistoricalComparer()
+        diff = comparer._compute_doc_diff("old", "new")
+
+        assert diff.docs_stale == [
+            "docs/current.md references missing core/removed_module.py"
+        ]
+        assert diff.module_mismatches == 1
+
     def test_extract_public_symbols(self):
         comparer = HistoricalComparer()
         content = "\n".join([

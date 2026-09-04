@@ -476,9 +476,21 @@ class HistoricalComparer:
         diff.docs_added = sorted(set(tgt_docs) - set(src_docs))
         diff.docs_removed = sorted(set(src_docs) - set(tgt_docs))
 
-        # Check for docs that mention modules that no longer exist
+        # Only documentation changed in this release comparison is checked
+        # for stale current-module references. Historical/forensic documents
+        # may intentionally preserve references to modules from an earlier
+        # repository state and should not become regressions merely because
+        # unrelated code changed.
         tgt_modules = set(self._list_python_files(tgt))
-        for doc_path in tgt_docs:
+        changed_docs = (
+            set(diff.docs_added)
+            | set(diff.docs_removed)
+            | set(self._run_git([
+                "diff", "--name-only", f"{src}..{tgt}", "--", "*.md"
+            ]).splitlines())
+        )
+
+        for doc_path in sorted(set(tgt_docs) & changed_docs):
             content = self._show_file(tgt, doc_path)
             if content:
                 # Find module references in docs

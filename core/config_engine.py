@@ -78,8 +78,8 @@ class ConfigValidator:
 
     def validate(self) -> ConfigValidationResult:
         mode = str(self._cfg.get("EXECUTION_MODE") or "MANUAL").upper()
-        if mode not in ("MANUAL", "PAPER", "AUTO", "SIGNALS"):
-            self._error("EXECUTION_MODE", "must be MANUAL, PAPER, AUTO, or SIGNALS")
+        if mode not in ("MANUAL", "PAPER", "AUTO", "SIGNAL_ONLY"):
+            self._error("EXECUTION_MODE", "must be MANUAL, PAPER, AUTO, or SIGNAL_ONLY")
 
         provider_priority = self._cfg.get("DATA_PROVIDER_PRIORITY", [])
         enabled = self._cfg.get("DATA_PROVIDER_ENABLED", {})

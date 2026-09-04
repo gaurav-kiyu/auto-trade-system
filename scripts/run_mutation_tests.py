@@ -16,6 +16,7 @@ import os
 import subprocess
 import sys
 import time
+import tokenize
 from pathlib import Path
 from typing import Any
 
@@ -87,36 +88,79 @@ def _generate_mutants(filepath: str) -> list[Mutant]:
     source_lines = source.splitlines()
     mutant_id = 0
 
-    def _find_nth_occurrence(text: str, pattern: str, n: int) -> int:
-        idx = -1
-        for _ in range(n + 1):
-            idx = text.find(pattern, idx + 1)
-            if idx < 0:
-                return -1
-        return idx
+    def _token_start_index(line: str, token: tokenize.TokenInfo) -> int:
+        """Return the character offset of a tokenize token on its source line."""
+        if token.start[0] != token.end[0]:
+            return -1
+        return token.start[1]
+
+    try:
+        token_lines = source.splitlines(keepends=True)
+        token_stream = list(tokenize.generate_tokens(iter(token_lines).__next__))
+    except (tokenize.TokenError, IndentationError):
+        token_stream = []
+
+    def _tokens_on_line(line_no: int) -> list[tokenize.TokenInfo]:
+        return [
+            tok for tok in token_stream
+            if tok.start[0] == line_no and tok.end[0] == line_no
+        ]
 
     def _add_mutant(node: ast.AST, old_type: type, occurrence: int = 0) -> None:
         nonlocal mutant_id
         if old_type not in _OP_RULES:
             return
+
         new_op_cls, old_symbol = _OP_RULES[old_type]
         lineno = getattr(node, "lineno", 0)
         if not lineno or lineno > len(source_lines):
             return
+
         line = source_lines[lineno - 1]
         new_symbol = _OP_NEW_SYMBOL[new_op_cls]
-        idx = _find_nth_occurrence(line, old_symbol, occurrence)
-        if idx >= 0:
-            mutated_line = line[:idx] + new_symbol + line[idx + len(old_symbol):]
-            if mutated_line != line:
-                mutant_id += 1
-                mutants.append(Mutant(
-                    mutant_id=f"MUT-{mutant_id:04d}",
-                    operator=_OP_RULE_NAMES.get(old_type, "unknown"),
-                    location=f"{Path(filepath).name}:{lineno}",
-                    original_line=line,
-                    mutated_line=mutated_line,
-                ))
+
+        # Locate the actual Python token rather than doing a substring search.
+        # This prevents selecting the '>' inside '>=' (and similarly '<=' etc.).
+        candidates = [
+            tok for tok in _tokens_on_line(lineno)
+            if tok.string == old_symbol
+            and tok.type in (tokenize.OP, tokenize.NAME)
+        ]
+
+        if not candidates:
+            return
+
+        # For chained comparisons, occurrence identifies the corresponding
+        # operator on the line. For BoolOp/BinOp there is normally one match.
+        if occurrence >= len(candidates):
+            return
+
+        token = candidates[occurrence]
+        idx = _token_start_index(line, token)
+
+        if idx < 0 or line[idx:idx + len(old_symbol)] != old_symbol:
+            return
+
+        mutated_line = line[:idx] + new_symbol + line[idx + len(old_symbol):]
+
+        # Fail closed if token-aware replacement somehow produces invalid
+        # Python. Such a mutant must never enter the execution phase.
+        try:
+            ast.parse("\n".join(
+                source_lines[:lineno - 1] + [mutated_line] + source_lines[lineno:]
+            ), filename=filepath)
+        except SyntaxError:
+            return
+
+        if mutated_line != line:
+            mutant_id += 1
+            mutants.append(Mutant(
+                mutant_id=f"MUT-{mutant_id:04d}",
+                operator=_OP_RULE_NAMES.get(old_type, "unknown"),
+                location=f"{Path(filepath).name}:{lineno}",
+                original_line=line,
+                mutated_line=mutated_line,
+            ))
 
     occurrence_counters: dict[tuple[int, type], int] = {}
     for node in ast.walk(tree):
@@ -159,10 +203,43 @@ def _apply_mutant(source: str, mutant: Mutant) -> str:
 
 # ── Core mutation test runner ─────────────────────────────────────────────────
 
+
+
+def _classify_pytest_result(returncode: int, stdout: str | None, stderr: str | None) -> str:
+    """Classify a pytest subprocess result as KILLED or ERROR.
+
+    A non-zero pytest return code is only evidence of a killed mutant when
+    pytest actually reached test execution. Collection/import/syntax and
+    pytest invocation failures are infrastructure errors.
+    """
+    if returncode == 0:
+        return "SURVIVED"
+
+    combined = f"{stdout or ''}\n{stderr or ''}"
+
+    error_markers = (
+        "ERROR collecting",
+        "ImportError:",
+        "ModuleNotFoundError:",
+        "SyntaxError:",
+        "INTERNALERROR",
+        "Interrupted:",
+        "ERROR: file or directory not found",
+        "ERROR: not found",
+        "no tests ran",
+    )
+
+    if any(marker in combined for marker in error_markers):
+        return "ERROR"
+
+    return "KILLED"
+
+
 def run_mutation_test(
     filepath: str,
     test_pattern: str | None = None,
     timeout: int = 30,
+    mutation_ids: set[str] | None = None,
 ) -> dict[str, Any]:
     filepath = os.path.abspath(filepath)
     if not os.path.exists(filepath):
@@ -172,8 +249,12 @@ def run_mutation_test(
     if test_pattern is None:
         module_name = filename.replace("test_", "").replace("_test", "")
         test_pattern = f"tests/test_{module_name}.py"
-        # Discover all matching test files using glob (systemic fix for dual-file issue)
-        test_files_found = sorted(glob.glob(f"tests/test_*{module_name}.py"))
+        # Discover all matching test files recursively so unit/integration
+        # suites under nested tests/ directories are included.
+        test_files_found = sorted(
+            str(p)
+            for p in Path("tests").rglob(f"test_*{module_name}.py")
+        )
         if len(test_files_found) > 1 or (len(test_files_found) == 1 and test_files_found[0] != test_pattern):
             test_pattern = test_files_found
 
@@ -181,6 +262,15 @@ def run_mutation_test(
         original_source = f.read()
 
     mutants = _generate_mutants(filepath)
+
+    if mutation_ids is not None:
+        mutants = [m for m in mutants if m.id in mutation_ids]
+        print(f"  Mutation selector: {len(mutants)} selected")
+
+        missing = mutation_ids - {m.id for m in mutants}
+        if missing:
+            raise ValueError(f"Requested mutation IDs not generated: {sorted(missing)}")
+
     if not mutants:
         test_path = test_pattern.replace("*", "") if isinstance(test_pattern, str) else test_pattern[0]
         if not os.path.exists(test_path):
@@ -233,8 +323,22 @@ def run_mutation_test(
                 results["survived"] += 1
                 print(f"  [SURVIVED] {mutant.id} ({elapsed:.1f}s) @ {mutant.location})")
             else:
-                mutant.status = "KILLED"
-                results["killed"] += 1
+                result_status = _classify_pytest_result(
+                    proc.returncode,
+                    proc.stdout,
+                    proc.stderr,
+                )
+
+                if result_status == "ERROR":
+                    mutant.status = "ERROR"
+                    results["error"] += 1
+                    print(
+                        f"  [ERROR] {mutant.id} ({elapsed:.1f}s): "
+                        "pytest collection/import/infrastructure failure"
+                    )
+                else:
+                    mutant.status = "KILLED"
+                    results["killed"] += 1
 
         except subprocess.TimeoutExpired:
             mutant.status = "TIMEOUT"
@@ -248,8 +352,18 @@ def run_mutation_test(
             try:
                 with open(filepath, "w", encoding="utf-8") as f:
                     f.write(original_source)
+
+                with open(filepath, encoding="utf-8") as f:
+                    restored_source = f.read()
+
+                if restored_source != original_source:
+                    mutant.status = "ERROR"
+                    results["error"] += 1
+                    print(f"  [ERROR] {mutant.id}: source restoration verification failed")
             except OSError as e:
-                print(f"  [WARN] Source restore failed: {e}")
+                mutant.status = "ERROR"
+                results["error"] += 1
+                print(f"  [ERROR] {mutant.id}: source restore failed: {e}")
 
     score = (results["killed"] / results["total"] * 100) if results["total"] > 0 else 0.0
     results["score"] = round(score, 1)
@@ -292,6 +406,11 @@ def main() -> None:
                         help="Target file or directory")
     parser.add_argument("--test", default=None, help="Specific test pattern")
     parser.add_argument("--timeout", type=int, default=30, help="Per-mutant timeout")
+    parser.add_argument(
+        "--mutations",
+        default=None,
+        help="Comma-separated mutation IDs to execute (diagnostic selector)",
+    )
     parser.add_argument("--list-targets", action="store_true", help="List targets")
     args = parser.parse_args()
 
@@ -316,7 +435,16 @@ def main() -> None:
         print(f"\n{'='*60}")
         print(f"Mutation testing: {fp}")
         print(f"{'='*60}")
-        result = run_mutation_test(fp, test_pattern=args.test, timeout=args.timeout)
+        if args.mutations:
+            selected_ids = {item.strip() for item in args.mutations.split(",") if item.strip()}
+            result = run_mutation_test(
+                fp,
+                test_pattern=args.test,
+                timeout=args.timeout,
+                mutation_ids=selected_ids,
+            )
+        else:
+            result = run_mutation_test(fp, test_pattern=args.test, timeout=args.timeout)
         all_results.append(result)
 
     total_killed = sum(r.get("killed", 0) for r in all_results)

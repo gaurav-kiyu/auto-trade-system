@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from contextlib import closing
 import threading
+from contextlib import closing
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
