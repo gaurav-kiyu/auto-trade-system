@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Py-compile all Python files
         run: |
           find . -name "*.py" -path "./*" ! -path "./.git/*" -exec python -m py_compile {} +
@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Ruff lint (release-touched Python files)
         shell: bash
         run: |
@@ -76,7 +76,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Unit tests
         run: pytest tests/unit -q --tb=short
 
@@ -89,7 +89,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Broker contract tests
         run: pytest tests/contract/broker -q --tb=short
 
@@ -102,7 +102,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Backtest regression against baseline
         run: python run_backtest.py --compare-to-baseline || echo "No baseline yet — skipping"
 
@@ -115,7 +115,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Chaos smoke tests
         run: pytest tests/chaos -q --tb=short --timeout=300 || echo "No chaos tests yet — skipping"
 
