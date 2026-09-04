@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 import threading
+from contextlib import closing
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -78,7 +79,7 @@ class DurableExecutionStore:
     def _init_db(self) -> None:
         """Initialize SQLite schema for execution state."""
         try:
-            with self._lock, get_connection(self._db_path) as conn:
+            with self._lock, closing(get_connection(self._db_path)) as conn:
                 conn.execute("""
                         CREATE TABLE IF NOT EXISTS execution_state (
                             intent_id TEXT PRIMARY KEY,
@@ -114,7 +115,7 @@ class DurableExecutionStore:
     def save_execution(self, record: DurableExecutionRecord) -> bool:
         """Save or update execution state atomically."""
         try:
-            with self._lock, get_connection(self._db_path) as conn:
+            with self._lock, closing(get_connection(self._db_path)) as conn:
                 conn.execute("""
                         INSERT OR REPLACE INTO execution_state (
                             intent_id, client_order_id, symbol, direction,
@@ -147,7 +148,7 @@ class DurableExecutionStore:
     def get_execution(self, intent_id: str) -> DurableExecutionRecord | None:
         """Get execution state by intent_id."""
         try:
-            with self._lock, get_connection(self._db_path) as conn:
+            with self._lock, closing(get_connection(self._db_path)) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute(
                     "SELECT * FROM execution_state WHERE intent_id = ?",
@@ -164,7 +165,7 @@ class DurableExecutionStore:
     def get_non_terminal_executions(self) -> list[DurableExecutionRecord]:
         """Get all non-terminal executions for reconciliation."""
         try:
-            with self._lock, get_connection(self._db_path) as conn:
+            with self._lock, closing(get_connection(self._db_path)) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute("""
                         SELECT * FROM execution_state
@@ -194,7 +195,7 @@ class DurableExecutionStore:
     ) -> bool:
         """Update execution state atomically."""
         try:
-            with self._lock, get_connection(self._db_path) as conn:
+            with self._lock, closing(get_connection(self._db_path)) as conn:
                 updates = ["state = ?", "updated_at = ?"]
                 params = [state.value, now_ist().isoformat()]
 
@@ -231,7 +232,7 @@ class DurableExecutionStore:
     def increment_retry(self, intent_id: str) -> int:
         """Increment retry count and return new count."""
         try:
-            with self._lock, get_connection(self._db_path) as conn:
+            with self._lock, closing(get_connection(self._db_path)) as conn:
                 cursor = conn.execute(
                     "UPDATE execution_state SET retry_count = retry_count + 1, updated_at = ? WHERE intent_id = ?",
                     (now_ist().isoformat(), intent_id),
@@ -266,7 +267,7 @@ class DurableExecutionStore:
         """
         try:
             cutoff = (now_ist() - timedelta(hours=hours)).isoformat()
-            with self._lock, get_connection(self._db_path) as conn:
+            with self._lock, closing(get_connection(self._db_path)) as conn:
                 cursor = conn.execute("""
                         DELETE FROM execution_state
                         WHERE state IN (?, ?, ?, ?)
@@ -284,7 +285,7 @@ class DurableExecutionStore:
     def get_stats(self) -> dict[str, Any]:
         """Get execution state statistics."""
         try:
-            with self._lock, get_connection(self._db_path) as conn:
+            with self._lock, closing(get_connection(self._db_path)) as conn:
                 result = {}
                 for state in ExecutionState:
                     cursor = conn.execute(

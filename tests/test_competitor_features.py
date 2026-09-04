@@ -57,6 +57,9 @@ def test_smart_order_router_failover():
 def test_automated_testing_bridge():
     bridge = AutomatedTestingBridge()
     comp = bridge.run_hygiene_and_compliance()
+    if not comp["overall_pass"]:
+        print("\n=== AUTOMATED TESTING BRIDGE DIAGNOSTICS ===")
+        print(comp)
     assert comp["hygiene_passed"] is True
     assert comp["architecture_passed"] is True
 

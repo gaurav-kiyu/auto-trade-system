@@ -80,7 +80,7 @@ class TestExecutionMode:
         }
 
     def test_valid_modes(self, base_cfg: dict):
-        for mode in ("MANUAL", "PAPER", "AUTO", "SIGNALS"):
+        for mode in ("MANUAL", "PAPER", "AUTO", "SIGNAL_ONLY"):
             cfg = {**base_cfg, "EXECUTION_MODE": mode}
             result = ConfigValidator(cfg).validate()
             assert result.ok, f"Mode {mode} should be valid"

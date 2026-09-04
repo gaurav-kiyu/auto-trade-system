@@ -24,6 +24,78 @@
     "environment": "production"
   },
   {
+    "timestamp": 1788379279.0,
+    "date": "2026-09-03T01:31:19",
+    "version": "",
+    "commit_hash": "813ae9897fb7",
+    "commit_message": "fix(sqlite): close ephemeral execution-state connections",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788376473.0,
+    "date": "2026-09-03T00:44:33",
+    "version": "",
+    "commit_hash": "7468441825c0",
+    "commit_message": "test(review): isolate generated review artifacts",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788371372.0,
+    "date": "2026-09-02T23:19:32",
+    "version": "",
+    "commit_hash": "c36966ae0452",
+    "commit_message": "fix(dashboard): isolate health checks to configured database",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788343376.0,
+    "date": "2026-09-02T15:32:56",
+    "version": "",
+    "commit_hash": "ca831fda5a30",
+    "commit_message": "fix(release): restore env example artifact",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788331513.0,
+    "date": "2026-09-02T12:15:13",
+    "version": "",
+    "commit_hash": "c92e6e6d1b85",
+    "commit_message": "fix(release): restore canonical index config defaults",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
+    "timestamp": 1788300373.0,
+    "date": "2026-09-02T03:36:13",
+    "version": "",
+    "commit_hash": "e3845e6c5212",
+    "commit_message": "Q298: certify release artifacts and repository hygiene",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
     "timestamp": 1788246691.0,
     "date": "2026-09-01T12:41:31",
     "version": "",

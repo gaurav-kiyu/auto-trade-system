@@ -85,7 +85,7 @@ VERIFICATION: list[tuple[str, str]] = [
 
 
 # ── PDF ──────────────────────────────────────────────────────────────────────
-def build_pdf() -> None:
+def build_pdf(pdf_path: str = PDF_PATH) -> None:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -101,7 +101,7 @@ def build_pdf() -> None:
     small = ParagraphStyle("Small", parent=styles["BodyText"], fontSize=8, leading=10)
 
     doc = SimpleDocTemplate(
-        PDF_PATH, pagesize=A4,
+        pdf_path, pagesize=A4,
         leftMargin=16 * mm, rightMargin=16 * mm,
         topMargin=14 * mm, bottomMargin=14 * mm,
         title=f"OPB System Review {REVIEW_DATE}", author="OPB Engineering",
@@ -191,11 +191,11 @@ def build_pdf() -> None:
         story.append(Spacer(1, 1.5 * mm))
 
     doc.build(story)
-    print(f"PDF written: {PDF_PATH}")
+    print(f"PDF written: {pdf_path}")
 
 
 # ── PPT ──────────────────────────────────────────────────────────────────────
-def build_ppt() -> None:
+def build_ppt(ppt_path: str = PPT_PATH) -> None:
     from pptx import Presentation
     from pptx.dml.color import RGBColor
     from pptx.util import Inches, Pt
@@ -326,8 +326,8 @@ def build_ppt() -> None:
         ("Recommendation", "Run paper mode until criteria met; then MANUAL -> PAPER -> SIGNAL_ONLY -> AUTO progression with broker secrets."),
     ], top=1.5, font_size=13)
 
-    prs.save(PPT_PATH)
-    print(f"PPT written: {PPT_PATH}")
+    prs.save(ppt_path)
+    print(f"PPT written: {ppt_path}")
 
 
 if __name__ == "__main__":

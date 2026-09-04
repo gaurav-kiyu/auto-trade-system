@@ -494,8 +494,10 @@ class TestShutdown:
 
 
 class TestErrorHandling:
-    def test_invalid_db_path_raises(self) -> None:
-        """Should raise on invalid path since __init__ calls _init_db."""
+    def test_invalid_db_path_raises(self, tmp_path: Path) -> None:
+        """Should raise when the database parent directory does not exist."""
         import sqlite3
+
+        invalid_db_path = tmp_path / "nonexistent_parent" / "trade_journal.db"
         with pytest.raises(sqlite3.OperationalError):
-            TradeJournal(db_path=r"Z:\nonexistent\trade_journal.db")
+            TradeJournal(db_path=str(invalid_db_path))

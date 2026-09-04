@@ -311,7 +311,7 @@ class EnterpriseDashboard:
                     try:
                         from core.health_checker import run_full_health_check
                         from core.slo_governance import get_slo_governance, ingest_health_report
-                        report = run_full_health_check(self._cfg)
+                        report = run_full_health_check(self._cfg, db_path=self._db_path)
                         ingest_health_report(report)
                         # Also run SLO compliance check so data is fresh when UI queries /api/slo/compliance
                         slo = get_slo_governance()

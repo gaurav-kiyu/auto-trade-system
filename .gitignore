@@ -92,6 +92,7 @@ db/*.sqlite
 db/*.db-wal
 db/*.db-shm
 json/*.json
+!json/index_config.defaults.json
 json/*.jsonl
 !json/config.template.json
 !json/stock_config.defaults.json
@@ -258,7 +259,7 @@ reports/paper_trading/
 # ── OPB Production Runtime / EC2 ───────────────────────────────────────────
 /.env
 /.env.*
-!/env.example
+!/.env.example
 !/env.*.example
 
 /venv/

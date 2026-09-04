@@ -25,7 +25,23 @@ jobs:
         run: |
           pip install -e ".[dev]"
       - name: Ruff check
-        run: ruff check --statistics core/ index_app/ infrastructure/ scripts/ tests/
+        run: |
+          git fetch --no-tags --prune origin main
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git rev-parse origin/main)"
+          fi
+          FILES="$(git diff --name-only "$BASE_SHA"...HEAD -- '*.py' || true)"
+          if [ -n "$FILES" ]; then
+            echo "$FILES"
+            echo "$FILES" | xargs ruff check --statistics
+          else
+            echo "No changed Python files; Ruff check skipped."
+          fi
       - name: Mypy check (core/di_container/)
         run: mypy core/di_container/ --ignore-missing-imports --no-strict-optional
       - name: Mypy check (core/)

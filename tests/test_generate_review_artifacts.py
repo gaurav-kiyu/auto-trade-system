@@ -5,8 +5,6 @@ summary PDF and architecture PPTX under docs/review/.
 """
 from __future__ import annotations
 
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -24,20 +22,23 @@ def test_script_exists() -> None:
 
 
 @pytest.mark.skipif(not _SCRIPT.exists(), reason="generator script not present")
-def test_generator_produces_pdf_and_pptx() -> None:
-    """Running the generator must exit 0 and create both deliverables."""
-    result = subprocess.run(
-        [sys.executable, str(_SCRIPT)],
-        cwd=str(_PROJECT_ROOT),
-        capture_output=True,
-        text=True,
-        timeout=180,
-    )
-    assert result.returncode == 0, f"generator failed: {result.stderr[-2000:]}"
-    assert _PDF.is_file(), f"PDF not produced: {_PDF}"
-    assert _PPTX.is_file(), f"PPTX not produced: {_PPTX}"
-    assert _PDF.stat().st_size > 1000, "PDF looks empty"
-    assert _PPTX.stat().st_size > 1000, "PPTX looks empty"
+def test_generator_produces_pdf_and_pptx(tmp_path) -> None:
+    """Running the real generator functions must not mutate release artifacts."""
+    from scripts import generate_review_artifacts as generator
+
+    output_dir = tmp_path / "review"
+    output_dir.mkdir()
+
+    pdf_path = output_dir / "SYSTEM_REVIEW_SUMMARY.pdf"
+    pptx_path = output_dir / "ARCHITECTURE_OVERVIEW.pptx"
+
+    generator.build_pdf(str(pdf_path))
+    generator.build_ppt(str(pptx_path))
+
+    assert pdf_path.is_file(), f"PDF not produced: {pdf_path}"
+    assert pptx_path.is_file(), f"PPTX not produced: {pptx_path}"
+    assert pdf_path.stat().st_size > 1000, "PDF looks empty"
+    assert pptx_path.stat().st_size > 1000, "PPTX looks empty"
 
 
 @pytest.mark.skipif(not (_PDF.exists() and _PPTX.exists()),

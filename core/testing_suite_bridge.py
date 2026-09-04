@@ -53,6 +53,12 @@ class AutomatedTestingBridge:
             "hygiene_passed": hygiene_res.returncode == 0,
             "architecture_passed": arch_res.returncode == 0,
             "overall_pass": hygiene_res.returncode == 0 and arch_res.returncode == 0,
+            "hygiene_exit_code": hygiene_res.returncode,
+            "architecture_exit_code": arch_res.returncode,
+            "hygiene_stdout": hygiene_res.stdout[-4000:] if hygiene_res.stdout else "",
+            "hygiene_stderr": hygiene_res.stderr[-4000:] if hygiene_res.stderr else "",
+            "architecture_stdout": arch_res.stdout[-4000:] if arch_res.stdout else "",
+            "architecture_stderr": arch_res.stderr[-4000:] if arch_res.stderr else "",
         }
 
     def generate_full_scorecard(self) -> dict[str, Any]:

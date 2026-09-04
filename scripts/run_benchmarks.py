@@ -36,11 +36,16 @@ from typing import Any
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-BENCHMARKS_DIR = Path(__file__).resolve().parent.parent / ".benchmarks"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+BENCHMARKS_DIR = _PROJECT_ROOT / ".benchmarks"
 HISTORY_FILE = BENCHMARKS_DIR / "benchmark_history.json"
 REPORT_FILE = BENCHMARKS_DIR / "benchmark_report.json"
 HTML_REPORT = BENCHMARKS_DIR / "benchmark_report.html"
 REGRESSION_THRESHOLD_PCT = 10.0  # Alert if latency increases >10%
+BENCHMARK_SCHEMA_VERSION = 2
 WARMUP_ITERATIONS = 3
 MEASURE_ITERATIONS = 100
 
@@ -208,14 +213,50 @@ def _create_signal_data() -> dict[str, Any]:
 def benchmark_signal_generation() -> dict[str, Any]:
     """Benchmark the full signal generation pipeline."""
     try:
-        from core.pure_index_signal import generate_signal
-        data = _create_signal_data()
+        import pandas as pd
+        from core.pure_index_signal import (
+            PureIndexRegimeParams,
+            PureIndexSignalParams,
+            evaluate_dual_direction_signal,
+        )
+
+        def make_df(periods: int, step: float) -> pd.DataFrame:
+            prices = [23000 + i * step for i in range(periods)]
+            return pd.DataFrame({
+                "Open": prices,
+                "High": [p + 20 for p in prices],
+                "Low": [p - 20 for p in prices],
+                "Close": prices,
+                "Volume": [500000] * periods,
+            })
+
+        params = PureIndexSignalParams(
+            name="NIFTY",
+            signal_cfg={},
+            regime=PureIndexRegimeParams(
+                vix_block_threshold=35.0,
+                adx_trend_threshold=25.0,
+                adx_chop_threshold=20.0,
+            ),
+            iv_spike_threshold=50.0,
+            vol_ratio_min=1.2,
+            is_early_session=False,
+        )
+        df1 = make_df(60, 5)
+        df5 = make_df(12, 25)
+        df15 = make_df(6, 60)
         return _measure(
-            lambda: generate_signal(
-                high=data["price"] + 100,
-                low=data["price"] - 100,
-                close=data["price"],
-                volume=500000,
+            lambda: evaluate_dual_direction_signal(
+                params=params,
+                df1=df1,
+                df5=df5,
+                df15=df15,
+                vix=15,
+                iv=10,
+                oi_sup=0,
+                oi_res=0,
+                pcr=1,
+                smart="NEUTRAL",
             ),
             iterations=50,
             label="signal_generation",
@@ -284,6 +325,12 @@ def benchmark_ml_prediction() -> dict[str, Any]:
     """Benchmark ML model prediction latency."""
     try:
         from core.ml_classifier import predict_win_prob
+
+        class _BenchmarkModel:
+            def predict_proba(self, rows):
+                return [[0.35, 0.65] for _ in rows]
+
+        model = _BenchmarkModel()
         features = {
             "score": 72, "confidence": 0.65, "direction_call": 1,
             "is_strong": 1, "is_moderate": 0, "is_weak": 0,
@@ -292,7 +339,7 @@ def benchmark_ml_prediction() -> dict[str, Any]:
             "regime_code": 1, "session_code": 2,
         }
         return _measure(
-            lambda: predict_win_prob(features),
+            lambda: predict_win_prob(model, features),
             iterations=20,
             label="ml_prediction",
         )
@@ -303,16 +350,18 @@ def benchmark_ml_prediction() -> dict[str, Any]:
 def benchmark_db_queries() -> dict[str, Any]:
     """Benchmark SQLite query latency."""
     try:
+        from contextlib import closing
+
         from core.db_utils import get_connection
-        conn = get_connection(":memory:")
-        conn.execute("CREATE TABLE IF NOT EXISTS bench (id INTEGER PRIMARY KEY, val TEXT)")
-        conn.execute("INSERT INTO bench VALUES (1, 'test')")
-        conn.commit()
+        with closing(get_connection(":memory:")) as conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS bench (id INTEGER PRIMARY KEY, val TEXT)")
+            conn.execute("INSERT INTO bench VALUES (1, 'test')")
+            conn.commit()
 
-        def query():
-            conn.execute("SELECT * FROM bench WHERE id = 1").fetchone()
+            def query():
+                conn.execute("SELECT * FROM bench WHERE id = 1").fetchone()
 
-        return _measure(query, iterations=100, label="db_query_sqlite")
+            return _measure(query, iterations=100, label="db_query_sqlite")
     except Exception as exc:
         return {"label": "db_query_sqlite", "error": str(exc)}
 
@@ -320,9 +369,12 @@ def benchmark_db_queries() -> dict[str, Any]:
 def benchmark_config_load() -> dict[str, Any]:
     """Benchmark config loading latency."""
     try:
-        from core.config_bootstrap import load_config
+        from core.config_bootstrap import get_effective_config
         return _measure(
-            lambda: load_config({"CONFIG_PATH": "json/index_config.defaults.json"}),
+            lambda: get_effective_config(
+                "json/index_config.defaults.json",
+                "json",
+            ),
             iterations=20,
             label="config_load",
         )
@@ -356,6 +408,9 @@ def _compare_with_history(current: dict, history: dict) -> list[dict[str, Any]]:
 
     Returns list of regressions found.
     """
+    if history.get("benchmark_schema_version") != current.get("benchmark_schema_version"):
+        return []
+
     regressions = []
     for label, cur in current.get("latency", {}).items():
         if not isinstance(cur, dict) or "p50_ms" not in cur:
@@ -516,14 +571,11 @@ def run_benchmarks(json_output: bool = False, html_output: bool = True, ci_mode:
     print("  OPB BENCHMARK SUITE v2.57.0")
     print("=" * 60)
 
-    # Start memory tracing (safe: no-op if already started)
-    if not tracemalloc.is_tracing():
-        tracemalloc.start()
-    _tracemalloc_started = tracemalloc.is_tracing()
 
     results: dict[str, Any] = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S IST"),
         "version": "2.57.0",
+        "benchmark_schema_version": BENCHMARK_SCHEMA_VERSION,
         "commit": os.environ.get("GIT_COMMIT", "local"),
         "python_version": sys.version,
     }
@@ -556,6 +608,12 @@ def run_benchmarks(json_output: bool = False, html_output: bool = True, ci_mode:
             print(f"  {label:<30s} ERROR: {result['error']}")
     results["latency"] = latency
 
+    # Start memory tracing only after latency benchmarks so instrumentation
+    # overhead does not contaminate latency measurements.
+    if not tracemalloc.is_tracing():
+        tracemalloc.start()
+    _tracemalloc_started = tracemalloc.is_tracing()
+
     # 3. Memory usage
     print("\n[3/6] Memory usage...")
     results["memory"] = [_measure_memory("post_benchmark")]
@@ -568,6 +626,15 @@ def run_benchmarks(json_output: bool = False, html_output: bool = True, ci_mode:
     print("\n[5/6] Historical comparison...")
     history = _load_history()
     if history:
+        results["history_comparable"] = (
+            history.get("benchmark_schema_version")
+            == results.get("benchmark_schema_version")
+        )
+        results["history_comparison_reason"] = (
+            "comparable"
+            if results["history_comparable"]
+            else "benchmark_schema_mismatch"
+        )
         regressions = _compare_with_history(results, history)
         results["regressions"] = regressions
         results["history_file"] = str(HISTORY_FILE)
@@ -578,6 +645,8 @@ def run_benchmarks(json_output: bool = False, html_output: bool = True, ci_mode:
         else:
             print("  ✅ No regressions detected")
     else:
+        results["history_comparable"] = False
+        results["history_comparison_reason"] = "no_previous_baseline"
         results["regressions"] = []
         print("  ℹ️  No previous benchmark data for comparison")
 
@@ -612,7 +681,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="OPB Benchmark Suite")
     parser.add_argument("--json", action="store_true", help="Output JSON to stdout")
     parser.add_argument("--no-html", action="store_true", help="Skip HTML report generation")
-    parser.add_argument("--ci", action="store_true", help="CI mode: exit non-zero on regressions")
+    parser.add_argument("--ci", action="store_true", help="CI mode: exit non-zero on regressions or benchmark errors")
     args = parser.parse_args()
 
     results = run_benchmarks(
@@ -621,11 +690,21 @@ def main() -> int:
         ci_mode=args.ci,
     )
 
+    benchmark_errors = [
+        result
+        for result in results.get("latency", {}).values()
+        if isinstance(result, dict) and "error" in result
+    ]
+    if args.ci and benchmark_errors:
+        print(f"\nCI FAILED: {len(benchmark_errors)} benchmark error(s) found")
+        for result in benchmark_errors:
+            print(f"    {result.get('label', 'unknown')}: {result.get('error')}")
+        return 1
+
     if args.ci and results.get("regressions"):
-        print(f"\n❌ CI FAILED: {len(results['regressions'])} regression(s) found")
+        print(f"\nCI FAILED: {len(results['regressions'])} regression(s) found")
         return 1
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -1,7 +1,7 @@
 ## Scan Results
 
 **Total findings:** 431
-**Last scanned:** 2026-09-01 20:56:32
+**Last scanned:** 2026-09-04 13:00:33
 
 | ID | Source A | Source B | Symbol | Similarity | Description | Severity |
 |----|----------|----------|--------|------------|-------------|----------|
@@ -215,7 +215,7 @@
 | DUP-208 | scripts\hygiene_check.py:248 | scripts\run_pr_audit.py:404 | check_gitignore | 100% | 'check_gitignore' defined in both hygiene_check.py and run_pr_audit.py | MEDIUM |
 | DUP-209 | scripts\institutional_challenge.py:51 | scripts\production_score_challenge.py:38 | ChallengeResult | 100% | 'ChallengeResult' defined in both institutional_challenge.py and production_score_challenge.py | MEDIUM |
 | DUP-210 | scripts\live_paper_test.py:47 | scripts\validate_pillar7_pipeline.py:53 | print_step | 100% | 'print_step' defined in both live_paper_test.py and validate_pillar7_pipeline.py | MEDIUM |
-| DUP-211 | scripts\run_benchmarks.py:312 | core\patterns\mediator.py:618 | query | 100% | 'query' defined in both run_benchmarks.py and mediator.py | MEDIUM |
+| DUP-211 | scripts\run_benchmarks.py:361 | core\patterns\mediator.py:618 | query | 100% | 'query' defined in both run_benchmarks.py and mediator.py | MEDIUM |
 | DUP-212 | scripts\run_constitution_checks.py:96 | scripts\verify_constitution_system.py:68 | failed | 100% | 'failed' defined in both run_constitution_checks.py and verify_constitution_system.py | MEDIUM |
 | DUP-213 | scripts\run_constitution_checks.py:100 | scripts\verify_constitution_system.py:76 | score_pct | 100% | 'score_pct' defined in both run_constitution_checks.py and verify_constitution_system.py | MEDIUM |
 | DUP-214 | scripts\score_system.py:315 | core\constitution\_evidence_main.py:27 | collect_auto_evidence | 100% | 'collect_auto_evidence' defined in both score_system.py and _evidence_main.py | MEDIUM |
@@ -299,7 +299,7 @@
 | DUP-292 | core\event_store\__init__.py:559 | core\execution\event_system.py:449 | get_events_for_order | 100% | 'get_events_for_order' defined in both __init__.py and event_system.py | MEDIUM |
 | DUP-293 | core\event_store\__init__.py:586 | core\execution\event_system.py:588 | get_events_in_range | 100% | 'get_events_in_range' defined in both __init__.py and event_system.py | MEDIUM |
 | DUP-294 | core\execution\continuous_reconciliation.py:35 | core\execution\reconciliation\service.py:60 | ReconciliationIssue | 100% | 'ReconciliationIssue' defined in both continuous_reconciliation.py and service.py | MEDIUM |
-| DUP-295 | core\execution\deterministic_state_machine.py:37 | core\execution\durable_state.py:30 | ExecutionState | 100% | 'ExecutionState' defined in both deterministic_state_machine.py and durable_state.py | MEDIUM |
+| DUP-295 | core\execution\deterministic_state_machine.py:37 | core\execution\durable_state.py:31 | ExecutionState | 100% | 'ExecutionState' defined in both deterministic_state_machine.py and durable_state.py | MEDIUM |
 | DUP-296 | core\execution\event_system.py:56 | core\observability\opentelemetry.py:216 | trace_event | 100% | 'trace_event' defined in both event_system.py and opentelemetry.py | MEDIUM |
 | DUP-297 | core\execution\event_system.py:55 | core\observability\opentelemetry.py:447 | duration_ms | 100% | 'duration_ms' defined in both event_system.py and opentelemetry.py | MEDIUM |
 | DUP-298 | core\execution\order_lifecycle.py:23 | core\services\execution_service.py:236 | run_stale_order_timeout | 100% | 'run_stale_order_timeout' defined in both order_lifecycle.py and execution_service.py | MEDIUM |
