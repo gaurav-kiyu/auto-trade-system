@@ -330,14 +330,24 @@
 </div>
 <div class="toast-container" id="toastContainer"></div>
 <script nonce="{{ nonce }}">
-            } else {
-                input.type = 'password';
-                if (icon) {
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                }
-            }
-        }
+        // Password visibility controls for Create User and Reset Password.
+        document.querySelectorAll('.opb-password-toggle').forEach(button => {
+            button.addEventListener('click', () => {
+                const wrapper = button.closest('.opb-password-wrapper');
+                const input = wrapper
+                    ? wrapper.querySelector('input[type="password"], input[type="text"]')
+                    : null;
+                if (!input) return;
+
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                button.setAttribute(
+                    'aria-label',
+                    showing ? 'Show password' : 'Hide password'
+                );
+            });
+        });
+
 
         let allCategories = [];
         let permissionsList = [];

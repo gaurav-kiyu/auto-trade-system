@@ -46,3 +46,14 @@ def test_admin_config_save_uses_flat_changed_keys_and_validate_apply_flow():
 
     # A successful apply must reload the canonical config state.
     assert "loadConfig()" in text
+
+
+def test_admin_config_validation_errors_render_structured_objects():
+    text = _read_admin_config()
+
+    # Structured backend validation errors must not collapse to
+    # JavaScript's unhelpful "[object Object]" representation.
+    assert "validation.errors.map(err => {" in text
+    assert "typeof err === 'string'" in text
+    assert "err.message || err.detail || err.error || JSON.stringify(err)" in text
+    assert "messages.join(', ')" in text

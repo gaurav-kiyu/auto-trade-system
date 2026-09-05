@@ -183,6 +183,7 @@ def create_auth_router(
             created_by="self-register",
             email=email,
             telegram_chat_id=telegram_chat_id,
+            disabled=True,
         )
         if not result["success"]:
             raise HTTPException(status_code=400, detail=result.get("error", "Registration failed"))
