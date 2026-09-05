@@ -29,7 +29,8 @@ class SecureConfigAdapter(ConfigPort):
                  defaults_path: str | Path | None = None,
                  config_dir: str | Path | None = None,
                  env_prefix: str = "OPBUYING_",
-                 enable_secret_redaction: bool = True):
+                 enable_secret_redaction: bool = True,
+                 config: dict[str, Any] | None = None):
         """
         Initialize the secure configuration adapter.
 
@@ -45,6 +46,12 @@ class SecureConfigAdapter(ConfigPort):
             env_prefix=env_prefix,
             enable_secret_redaction=enable_secret_redaction
         )
+
+        # Use the canonical, already-resolved configuration when supplied.
+        # This prevents DI from creating a second independent configuration
+        # source with different environment/default values.
+        if config is not None:
+            self._secure_config._merged_config = dict(config)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value by key."""

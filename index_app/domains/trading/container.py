@@ -99,7 +99,7 @@ def setup_di_container(
     from infrastructure.config.secure_config_adapter import SecureConfigAdapter
 
     container = get_container()
-    config_adapter = SecureConfigAdapter()
+    config_adapter = SecureConfigAdapter(config=cfg)
     container.register_instance(ConfigPort, config_adapter)
 
     config = container.resolve(ConfigPort)
