@@ -306,8 +306,13 @@ jobs:
         run: make dist
       - name: Generate checksum
         run: make checksum
+      - name: Stage dist artifacts
+        run: |
+          mkdir -p dist-artifacts
+          cp ../opbuying-*.tar.gz* dist-artifacts/
+
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: ../opbuying-*.tar.gz*
+          path: dist-artifacts/opbuying-*.tar.gz*
