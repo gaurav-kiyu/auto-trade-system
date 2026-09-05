@@ -1,3 +1,21 @@
+# Release v2.59.3
+
+**Date:** 2026-09-05
+**Previous Release:** v2.59.2
+
+---
+
+## Configuration / Runtime Correction
+
+- Fixed trading DI configuration wiring so `ConfigPort` uses the already-resolved canonical configuration.
+- Prevented the trading DI layer from creating a second independent `SecureConfig` source that could fall back to `dev` defaults.
+- Preserved the existing `ConfigPort` abstraction and PAPER-mode execution safety.
+- Fixed GitHub Actions Build & Checksum artifact staging for `upload-artifact@v4`.
+- No production state was changed by this release preparation.
+- No LIVE execution is permitted.
+
+---
+
 # Release v2.59.2
 
 **Date:** 2026-09-05
