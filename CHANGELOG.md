@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.59.3 (2026-09-05)
+
+- Fixed trading DI configuration wiring so `ConfigPort` uses the already-resolved canonical configuration.
+- Prevented a second independent configuration source from falling back to `dev` defaults.
+- Preserved PAPER-mode execution safety and the existing `ConfigPort` abstraction.
+- Fixed GitHub Actions Build & Checksum artifact staging for `upload-artifact@v4`.
+
 ## v2.59.2 (2026-09-05)
 
 - Fixed read-only runtime incompatibility in encrypted credential storage by providing a dedicated persistent `/home/opb/.config` volume.
