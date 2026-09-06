@@ -38,7 +38,7 @@ nltk==3.10.0  # CVE-2026-12061/12074/12075/12243 fixed (was 3.9.4)
 numpy==2.4.6
 nselib==2.5.1
 nsepython==2.97
-openai==2.38.0
+openai==3.3.1
 packaging==26.2
 pandas==3.0.3
 peewee==4.0.5
