@@ -70,13 +70,22 @@ class AdapterEntry:
         self._connected = value
 
 
-class MarketDataService:
+class MarketDataService(MarketDataPort):
     """Aggregated market data service with automatic failover across adapters.
 
     Adapters are registered by name with an asset-class label and priority.
     When data is requested, adapters matching the requested asset class are
     tried in descending priority order until one returns usable data.
     """
+
+    def connect(self) -> bool:
+        """Connect the registered adapter mesh; true when at least one connects."""
+        results = self.connect_all()
+        return any(results.values()) if results else False
+
+    def disconnect(self) -> None:
+        """Disconnect all registered adapters."""
+        self.disconnect_all()
 
     def __init__(self) -> None:
         # Registry: asset_class -> list of AdapterEntry sorted by priority desc
@@ -104,6 +113,8 @@ class MarketDataService:
             priority: Higher = tried first.  100=real-time, 50=broker, 10=REST.
 
         """
+        if name in self._by_name:
+            self.unregister(name)
         entry = AdapterEntry(name, adapter, asset_classes, priority)
         self._by_name[name] = entry
 
@@ -224,6 +235,61 @@ class MarketDataService:
         _log.warning("[MDS] historical data exhausted for %s", symbol)
         return []
 
+    def get_option_chain(
+        self,
+        symbol: str,
+        expiry_date: datetime | None = None,
+        asset_class: str = "index",
+    ) -> list[dict[str, Any]]:
+        """Get an option chain through the centralized provider mesh.
+
+        This is the canonical failover entry point.  Callers that require a
+        specific exchange/provider (for example NSE OI certification) should
+        use :meth:`get_option_chain_with_source` with ``provider="nse"``.
+        """
+        chain, _ = self.get_option_chain_with_source(
+            symbol, expiry_date=expiry_date, asset_class=asset_class
+        )
+        return chain
+
+    def get_option_chain_with_source(
+        self,
+        symbol: str,
+        expiry_date: datetime | None = None,
+        asset_class: str = "index",
+        provider: str | None = None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
+        """Return option-chain data plus the provider that supplied it.
+
+        ``provider`` is an exact registered-provider selector.  When omitted,
+        normal priority failover is used.  An explicit provider is used by
+        certification-sensitive workflows so a Yahoo fallback cannot be
+        misreported as NSE data.
+        """
+        if provider:
+            entry = self._by_name.get(provider.strip().lower())
+            entries = [entry] if entry is not None else []
+        else:
+            entries = self.get_entries_for(asset_class)
+
+        for entry in entries:
+            if entry is None:
+                continue
+            getter = getattr(entry.adapter, "get_option_chain", None)
+            if not callable(getter):
+                continue
+            try:
+                data = getter(symbol) if expiry_date is None else getter(symbol, expiry_date)
+                if data:
+                    return list(data), entry.name
+            except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, KeyError, RuntimeError) as exc:
+                _log.warning(
+                    "[MDS] %s get_option_chain(%s) failed: %s",
+                    entry.name, symbol, exc,
+                )
+
+        return [], None
+
     def get_latest_data(
         self,
         symbol: str,
@@ -263,6 +329,35 @@ class MarketDataService:
                 results[entry.name] = False
         return results
 
+    def unsubscribe_from_market_data(self, symbol: str) -> bool:
+        """Unsubscribe from all matching adapters; return whether any succeeded."""
+        results = []
+        for entry in self.get_entries_for("index"):
+            fn = getattr(entry.adapter, "unsubscribe_from_market_data", None)
+            if callable(fn):
+                try:
+                    results.append(bool(fn(symbol)))
+                except (OSError, ConnectionError, ValueError, TypeError):
+                    continue
+        return any(results)
+
+    def is_data_fresh(self, market_data: Any, max_age_seconds: int = 30) -> bool:
+        """Best-effort freshness check for common timestamp-bearing payloads."""
+        if market_data is None:
+            return False
+        timestamp = getattr(market_data, "timestamp", None)
+        if timestamp is None and isinstance(market_data, dict):
+            timestamp = market_data.get("timestamp")
+        if timestamp is None:
+            return True
+        try:
+            if isinstance(timestamp, datetime):
+                age = (datetime.now(timestamp.tzinfo) - timestamp).total_seconds() if timestamp.tzinfo else (datetime.now() - timestamp).total_seconds()
+                return age <= max_age_seconds
+            return True
+        except (TypeError, ValueError):
+            return False
+
     def get_instrument_details(
         self,
         symbol: str,
@@ -298,6 +393,8 @@ class MarketDataService:
             Number of adapters successfully registered.
 
         """
+        for provider_name in MarketDataProvider.all():
+            self.unregister(provider_name)
         pairs = MarketDataProvider.adapters_from_config(config)
         count = 0
         for name, adapter in pairs:

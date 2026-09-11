@@ -7,6 +7,7 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
+from core.services.market_data_service import MarketDataService
 from core.nse_option_recorder import (
     _aggregate_oi_data,
     get_oi_summary,
@@ -143,9 +144,11 @@ class TestRecordOiSnapshotsForIndices:
         ]
         mock_record.return_value = True
 
+        svc = MarketDataService()
+        svc.register("nse", mock_adapter, ["index"], priority=10)
         result = record_oi_snapshots_for_indices(
             ["NIFTY"], {"oi_snapshot_enabled": True, "OI_SNAPSHOT_DB_PATH": ":memory:"},
-            nse_adapter=mock_adapter,
+            market_data_service=svc,
         )
         assert result["NIFTY"] is True
         mock_adapter.get_option_chain.assert_called_once_with("NIFTY")
@@ -162,10 +165,12 @@ class TestRecordOiSnapshotsForIndices:
         ]
         mock_record.return_value = True
 
+        svc = MarketDataService()
+        svc.register("nse", mock_adapter, ["index"], priority=10)
         result = record_oi_snapshots_for_indices(
             ["NIFTY", "BANKNIFTY"],
             {"oi_snapshot_enabled": True, "OI_SNAPSHOT_DB_PATH": ":memory:"},
-            nse_adapter=mock_adapter,
+            market_data_service=svc,
         )
         assert len(result) == 2
         assert all(v is True for v in result.values())
@@ -175,10 +180,12 @@ class TestRecordOiSnapshotsForIndices:
         mock_adapter = MagicMock()
         mock_adapter.get_option_chain.side_effect = ConnectionError("NSE API down")
 
+        svc = MarketDataService()
+        svc.register("nse", mock_adapter, ["index"], priority=10)
         result = record_oi_snapshots_for_indices(
             ["NIFTY"],
             {"oi_snapshot_enabled": True, "OI_SNAPSHOT_DB_PATH": ":memory:"},
-            nse_adapter=mock_adapter,
+            market_data_service=svc,
         )
         assert result["NIFTY"] is False
 
@@ -204,10 +211,12 @@ class TestRecordOiSnapshotsForIndices:
         mock_adapter.get_option_chain.return_value = []
 
         with patch("core.nse_option_recorder.record_snapshot") as mock_record:
+            svc = MarketDataService()
+            svc.register("nse", mock_adapter, ["index"], priority=10)
             result = record_oi_snapshots_for_indices(
                 ["NIFTY"],
                 {"oi_snapshot_enabled": True},
-                nse_adapter=mock_adapter,
+                market_data_service=svc,
             )
             assert result["NIFTY"] is False
             mock_record.assert_not_called()
@@ -229,11 +238,9 @@ class TestGetOiSummary:
             {"strike": 22000, "optionType": "PUT", "openInterest": 800, "volume": 80},
         ]
 
-        with patch(
-            "infrastructure.adapters.market_data.nse.adapter.NSEAdapter",
-            return_value=mock_adapter,
-        ):
-            result = get_oi_summary(["NIFTY"], {})
+        svc = MarketDataService()
+        svc.register("nse", mock_adapter, ["index"], priority=10)
+        result = get_oi_summary(["NIFTY"], {}, svc)
         assert "NIFTY" in result
         assert result["NIFTY"]["pcr_ratio"] == pytest.approx(1.6)
         assert result["NIFTY"]["call_oi"] == 500
@@ -246,11 +253,9 @@ class TestGetOiSummary:
             {"strike": 22000, "optionType": "PUT", "openInterest": 150, "volume": 15},
         ]
 
-        with patch(
-            "infrastructure.adapters.market_data.nse.adapter.NSEAdapter",
-            return_value=mock_adapter,
-        ):
-            result = get_oi_summary(["NIFTY", "BANKNIFTY", "FINNIFTY"], {})
+        svc = MarketDataService()
+        svc.register("nse", mock_adapter, ["index"], priority=10)
+        result = get_oi_summary(["NIFTY", "BANKNIFTY", "FINNIFTY"], {}, svc)
         assert len(result) == 3
         for idx in ("NIFTY", "BANKNIFTY", "FINNIFTY"):
             assert idx in result
@@ -259,11 +264,9 @@ class TestGetOiSummary:
         mock_adapter = MagicMock()
         mock_adapter.get_option_chain.side_effect = RuntimeError("API failure")
 
-        with patch(
-            "infrastructure.adapters.market_data.nse.adapter.NSEAdapter",
-            return_value=mock_adapter,
-        ):
-            result = get_oi_summary(["NIFTY"], {})
+        svc = MarketDataService()
+        svc.register("nse", mock_adapter, ["index"], priority=10)
+        result = get_oi_summary(["NIFTY"], {}, svc)
         assert "NIFTY" in result
         assert "error" in result["NIFTY"]
 
@@ -271,10 +274,8 @@ class TestGetOiSummary:
         mock_adapter = MagicMock()
         mock_adapter.get_option_chain.return_value = []
 
-        with patch(
-            "infrastructure.adapters.market_data.nse.adapter.NSEAdapter",
-            return_value=mock_adapter,
-        ):
-            result = get_oi_summary(["NIFTY"], {})
+        svc = MarketDataService()
+        svc.register("nse", mock_adapter, ["index"], priority=10)
+        result = get_oi_summary(["NIFTY"], {}, svc)
         assert "NIFTY" in result
-        assert result["NIFTY"].get("error") == "No data"
+        assert result["NIFTY"].get("error") == "NSE option-chain unavailable"

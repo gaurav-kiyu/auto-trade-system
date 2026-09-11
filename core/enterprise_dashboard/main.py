@@ -1422,7 +1422,7 @@ class EnterpriseDashboard:
             "is_demo_data": not has_real_stats,
             "risk_halted": st.get("risk_halted", False),
             "circuit_breaker": st.get("circuit_breaker", "Closed"),
-            "execution_mode": st.get("execution_mode", "LIVE_PAPER"),
+            "execution_mode": st.get("execution_mode", "PAPER"),
             "status": st.get("status", "RUNNING"),
             "hard_halt": st.get("hard_halt", False),
         }

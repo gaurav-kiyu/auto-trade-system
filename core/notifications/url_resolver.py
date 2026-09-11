@@ -120,6 +120,19 @@ def get_deployment_base_url(cfg: dict[str, Any] | None = None) -> str:
 
 
 
+def get_external_notification_base_url(cfg: dict[str, Any] | None = None) -> str:
+    """Return a non-loopback base URL suitable for external notification actions.
+
+    External buttons must never point users at localhost/0.0.0.0.  Development
+    deployments therefore use the canonical public cockpit origin rather than
+    the legacy local dashboard origin.
+    """
+    root = get_deployment_base_url(cfg)
+    if _is_loopback_url(root):
+        return DEFAULT_PRODUCTION_URL
+    return root.rstrip("/")
+
+
 def get_public_base_url(cfg: dict[str, Any] | None = None) -> str:
     """Resolve the canonical public base URL for notifications, emails, and external links.
 

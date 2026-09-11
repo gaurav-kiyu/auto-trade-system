@@ -1,4 +1,4 @@
-"""
+﻿"""
 Yahoo Finance Market Data Adapter
 
 This adapter implements the MarketDataPort interface for Yahoo Finance data.
@@ -445,7 +445,7 @@ class YahooFinanceAdapter(MarketDataPort):
                 )
             else:
                 options_data = self._make_request_with_retry(
-                    lambda: ticker.option_chain
+                    lambda: ticker.option_chain()
                 )
 
             if not options_data:

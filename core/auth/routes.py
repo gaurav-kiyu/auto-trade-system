@@ -904,9 +904,8 @@ def create_auth_router(
         """
         secret = generate_mfa_secret()
         provisioning_uri = get_mfa_provisioning_uri(
-            username=current_user.username,
             secret=secret,
-            issuer="OPB Enterprise",
+            username=current_user.username,
         )
         recovery_codes = generate_recovery_codes()
 

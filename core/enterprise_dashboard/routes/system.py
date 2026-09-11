@@ -690,9 +690,10 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
 
         live: dict[str, Any] = {}
         try:
+            market_data_service = dashboard._bot_refs.get("market_data_service")
             from core.nse_option_recorder import get_oi_summary
-            live = get_oi_summary(index_names, dashboard._cfg)
-        except (ImportError, ValueError, TypeError, OSError) as exc:
+            live = get_oi_summary(index_names, dashboard._cfg, market_data_service=market_data_service)
+        except (ImportError, ValueError, TypeError, OSError, AttributeError, RuntimeError) as exc:
             _log.debug("[DASH] Live OI summary unavailable: %s", exc)
 
         recent: dict[str, Any] = {}

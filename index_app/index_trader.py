@@ -1181,6 +1181,8 @@ def _yf_fetch_vix() -> float:
 def _run_trading_loop() -> None:
     """Main trading loop. Delegates to TradingLoopService (DEBT-008)."""
     from core.nse_option_recorder import record_oi_snapshots_for_indices
+    from core.di_container import get_container
+    from core.services.market_data_service import MarketDataService
     from core.safety_state import _shutdown
     try:
         from core.invariants.engine import check_all as _check_invariants
@@ -1189,9 +1191,8 @@ def _run_trading_loop() -> None:
 
     # Create dashboard notifier (safe no-op if dashboard not running)
     from core.enterprise_dashboard import DashboardNotifier
-    _dash_host = _CFG.get("web_dashboard_host", "127.0.0.1")
-    _dash_port = int(_CFG.get("web_dashboard_port", 8000))
-    _dash_url = f"http://{_dash_host}:{_dash_port}"
+    from core.notifications.url_resolver import get_external_notification_base_url
+    _dash_url = get_external_notification_base_url(dict(_CFG))
     _dash_notifier = DashboardNotifier(base_url=_dash_url)
     if _CFG.get("web_dashboard_enabled", False):
         try:
@@ -1202,6 +1203,13 @@ def _run_trading_loop() -> None:
         _dash_notifier.push_bot_start(mode=EXECUTION_MODE)
     else:
         _dash_notifier.disable()
+
+    _market_data_service = get_container().resolve(MarketDataService)
+
+    def _record_oi(index_names, config):
+        return record_oi_snapshots_for_indices(
+            index_names, config, market_data_service=_market_data_service
+        )
 
     service = TradingLoopService(
         cfg=_CFG,
@@ -1223,7 +1231,7 @@ def _run_trading_loop() -> None:
         pos_lock=_pos_lock,
         stale_detector=_stale_detector,
         update_closes_fn=update_closes,
-        record_oi_fn=record_oi_snapshots_for_indices,
+        record_oi_fn=_record_oi,
         check_invariants_fn=_check_invariants,
         send_fn=send,
         equity_trader=_equity_trader,

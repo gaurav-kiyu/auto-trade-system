@@ -30,6 +30,22 @@ class FakeBrokerPort:
         return {"available_cash": 50000, "used_margin": 25000, "total_value": 75000}
 
 
+@pytest.fixture(autouse=True)
+def _reset_continuous_reconciliation_singleton():
+    """Reset process-global continuous reconciliation service between tests."""
+    import core.execution.continuous_reconciliation as cr
+
+    existing = cr._continuous_reconciliation
+    if existing is not None and existing._running:
+        existing.stop()
+    cr._continuous_reconciliation = None
+    yield
+    existing = cr._continuous_reconciliation
+    if existing is not None and existing._running:
+        existing.stop()
+    cr._continuous_reconciliation = None
+
+
 class TestReconciliationReport:
     """ReconciliationReport dataclass coverage."""
 

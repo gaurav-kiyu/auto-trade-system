@@ -82,8 +82,8 @@ def test_run_startup_checklist_all_pass() -> None:
         data_feed_max_age_sec=30.0,
         positions_aligned=True,
         execution_mode="MANUAL",
-        config_version=1,
-        expected_config_version=1,
+        config_version="2.58.0",
+        expected_config_version="2.58.0",
     )
     assert result.passed is True
     assert result.failed_count == 0
@@ -232,8 +232,8 @@ def test_check_config_version_mismatch() -> None:
         data_feed_max_age_sec=30.0,
         positions_aligned=True,
         execution_mode="PAPER",
-        config_version=2,
-        expected_config_version=1,
+        config_version="mismatch",
+        expected_config_version="2.58.0",
     )
     ver_item = result.items[6]  # config_version
     assert ver_item.passed is False

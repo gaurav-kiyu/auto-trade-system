@@ -102,13 +102,13 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
         }
 
     @app.post("/api/system/notifications/{notif_id}/acknowledge")
-    async def api_notifications_acknowledge(notif_id: str, user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
+    async def api_notifications_acknowledge(notif_id: str, user: Any = Depends(dashboard._auth_deps.require_auth)):  # type: ignore[no-untyped-def]
         """Acknowledge a single notification."""
         ok = dashboard._notifications.acknowledge(notif_id)
         return {"success": ok, "notification_id": notif_id}
 
     @app.post("/api/system/notifications/acknowledge-all")
-    async def api_notifications_acknowledge_all(request: Request, user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
+    async def api_notifications_acknowledge_all(request: Request, user: Any = Depends(dashboard._auth_deps.require_auth)):  # type: ignore[no-untyped-def]
         """Acknowledge all notifications, optionally filtered by severity."""
         body = await request.json()
         severity = body.get("severity", None)
@@ -116,7 +116,7 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
         return {"success": True, "count": count}
 
     @app.post("/api/system/notifications/push")
-    async def api_notifications_push(request: Request, user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
+    async def api_notifications_push(request: Request, user: Any = Depends(operator_or_admin)):  # type: ignore[no-untyped-def]
         """Push a notification programmatically."""
         body = await request.json()
         notif = dashboard._notifications.push(

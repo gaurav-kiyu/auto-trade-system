@@ -1,3 +1,17 @@
+# Release v2.59.4
+
+**Date:** 2026-09-09
+**Previous Release:** v2.59.3
+
+---
+
+## Phase-14 Certification / Market Data Correction
+
+- Fixed canonical market-data dependency injection and NSE option-chain/OI provenance so certification-sensitive OI uses the centralized MarketDataService with explicit NSE sourcing and fail-closed provider behavior.
+- Added Phase-14 runtime certification coverage for market-data failover, production notification URL safety, execution safety, architecture compliance, and the canonical release gate.
+
+---
+
 # Release v2.59.3
 
 **Date:** 2026-09-05

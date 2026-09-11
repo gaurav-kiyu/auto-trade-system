@@ -256,14 +256,15 @@ def get_broker_truth_reconciler(broker_port, config: dict | None = None) -> Brok
     Thread-safe via _reconciler_lock.
     """
     global _reconciler
-    if _reconciler is not None:
-        return _reconciler
     with _reconciler_lock:
-        # Double-checked locking
-        if _reconciler is None:
-            max_staleness = config.get("RECONCILIATION_MAX_STALENESS_SEC", 30) if config else 30
-            interval = config.get("RECONCILIATION_INTERVAL_SEC", 60) if config else 60
-            _reconciler = BrokerTruthReconciler(broker_port, max_staleness, interval)
+        # Reuse the singleton only when it is bound to the same broker port.
+        # A reconciler must never silently retain a stale/different broker.
+        if _reconciler is not None and _reconciler._broker_port is broker_port:
+            return _reconciler
+
+        max_staleness = config.get("RECONCILIATION_MAX_STALENESS_SEC", 30) if config else 30
+        interval = config.get("RECONCILIATION_INTERVAL_SEC", 60) if config else 60
+        _reconciler = BrokerTruthReconciler(broker_port, max_staleness, interval)
         return _reconciler
 
 

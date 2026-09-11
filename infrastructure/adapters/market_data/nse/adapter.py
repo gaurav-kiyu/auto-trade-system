@@ -86,10 +86,20 @@ class NSEAdapter(MarketDataPort):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Encoding': 'gzip, deflate',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
         }
+
+        self._logger = LoggingService(
+            log_dir="logs",
+            log_filename_prefix="nse_adapter_",
+            retain_days=30,
+            json_log_file="",
+            version="UNKNOWN",
+            enable_correlation_ids=False,
+            enable_contextual_logging=False
+        )
 
         # Session for connection pooling
         # Priority: cloudscraper > requests > urllib
@@ -115,21 +125,14 @@ class NSEAdapter(MarketDataPort):
         self._nse_session_initialized = False
         self._nse_session_init_time = 0.0
         self._nse_session_ttl = 300  # Re-init session every 5 minutes
+        self._nse_unavailable_until = 0.0
+        self._nse_unavailable_cooldown = 60.0
 
         # Cache for symbol mappings and instrument data
         self._symbol_cache: dict[str, dict[str, Any]] = {}
         self._symbol_cache_time: dict[str, float] = {}
         self._cache_ttl = 300  # 5 minutes for symbol data
 
-        self._logger = LoggingService(
-            log_dir="logs",
-            log_filename_prefix="nse_adapter_",
-            retain_days=30,
-            json_log_file="",
-            version="UNKNOWN",
-            enable_correlation_ids=False,
-            enable_contextual_logging=False
-        )
         self._logger.info("NSE market data adapter initialized")
         self._logger.info(f"Using session type: {self._session_type}")
         self._logger.info(f"Using nsepython library: {self._use_nsepython}")
@@ -168,10 +171,11 @@ class NSEAdapter(MarketDataPort):
             return False
 
         try:
-            # Step 1: Visit homepage to get initial cookies
+            # Step 1: Visit homepage. NSE may return 403 here while still
+            # allowing the public option-chain page to establish valid cookies.
             self._logger.info("[NSE] Initializing session - visiting homepage")
             homepage_url = "https://www.nseindia.com"
-            resp = self._session.get(
+            homepage_resp = self._session.get(
                 homepage_url,
                 timeout=15,
                 headers={
@@ -179,29 +183,41 @@ class NSEAdapter(MarketDataPort):
                     "Referer": "https://www.google.com/",
                 },
             )
-            resp.raise_for_status()
 
-            # Step 2: Visit the market status page to get additional cookies
-            # This is needed for the option chain API specifically
-            market_status_url = "https://www.nseindia.com/market-data/market-status"
-            self._session.get(
-                market_status_url,
-                timeout=10,
+            if homepage_resp.status_code == 403:
+                self._logger.info(
+                    "[NSE] Homepage returned 403; continuing with option-chain "
+                    "session bootstrap"
+                )
+            else:
+                homepage_resp.raise_for_status()
+
+            # Step 2: The public option-chain page is the authoritative
+            # browser/session bootstrap for the current NSE frontend.
+            option_chain_url = "https://www.nseindia.com/option-chain"
+            option_chain_resp = self._session.get(
+                option_chain_url,
+                timeout=15,
                 headers={
                     **self._headers,
                     "Referer": homepage_url,
                 },
             )
+            option_chain_resp.raise_for_status()
 
-            # Update session headers with NSE cookies
+            # Update session headers after the NSE browser/session bootstrap.
             self._session.headers.update({
-                "Referer": homepage_url,
+                "Referer": option_chain_url,
                 "Origin": "https://www.nseindia.com",
             })
 
             self._nse_session_initialized = True
             self._nse_session_init_time = now
-            self._logger.info("[NSE] Session initialized successfully")
+            self._logger.info(
+                "[NSE] Session initialized successfully "
+                f"(option-chain status={option_chain_resp.status_code}, "
+                f"cookies={len(self._session.cookies)})"
+            )
             return True
 
         except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as e:
@@ -223,6 +239,9 @@ class NSEAdapter(MarketDataPort):
         Raises:
             Exception: If all retry attempts fail
         """
+        if "nseindia.com" in url and time.time() < self._nse_unavailable_until:
+            raise ConnectionError("NSE endpoint temporarily unavailable (circuit open)")
+
         last_exception = None
         for attempt in range(self._max_retries):
             try:
@@ -267,6 +286,8 @@ class NSEAdapter(MarketDataPort):
                     wait_time = (2 ** attempt) * 2.0  # Start with 2 seconds
                     time.sleep(wait_time)
                 else:
+                    if "nseindia.com" in url and isinstance(e, (OSError, ConnectionError, TimeoutError)):
+                        self._nse_unavailable_until = time.time() + self._nse_unavailable_cooldown
                     raise
         raise last_exception
 
@@ -748,9 +769,40 @@ class NSEAdapter(MarketDataPort):
             else:
                 nse_symbol = symbol
 
-            # NSE option chain API
-            url = f"https://www.nseindia.com/api/option-chain-indices?symbol={nse_symbol}"
-            data = self._make_request_with_retry(url)
+            # NSE option chain v3 API
+            # Current NSE endpoint requires type=Indices and an expiry.
+            url = "https://www.nseindia.com/api/option-chain-v3"
+            params = {
+                "type": "Indices",
+                "symbol": nse_symbol,
+            }
+
+            if expiry_date:
+                params["expiry"] = expiry_date.strftime("%d-%b-%Y")
+            else:
+                # Resolve the nearest available expiry from NSE contract metadata.
+                contract_info_url = "https://www.nseindia.com/api/option-chain-contract-info"
+                contract_info = self._make_request_with_retry(
+                    contract_info_url,
+                    params={"symbol": nse_symbol},
+                )
+                expiry_dates = (
+                    contract_info.get("expiryDates", [])
+                    if isinstance(contract_info, dict)
+                    else []
+                )
+
+                if expiry_dates:
+                    params["expiry"] = expiry_dates[0]
+                else:
+                    raise ValueError(f"NSE returned no expiry dates for {symbol}")
+
+            self._logger.info(
+                f"Fetching NSE option chain v3 for {symbol}, "
+                f"expiry={params['expiry']}"
+            )
+
+            data = self._make_request_with_retry(url, params=params)
 
             if data:
                 return self._parse_option_chain_data(data, symbol)
@@ -789,8 +841,8 @@ class NSEAdapter(MarketDataPort):
                             'symbol': f"{symbol}{int(strike_price)}{ce_data.get('identifier', '')[-2:] if ce_data.get('identifier') else 'CE'}",
                             'strike': strike_price,
                             'lastPrice': float(ce_data.get('lastPrice', 0.0)),
-                            'bid': float(ce_data.get('bidPrice', 0.0)),
-                            'ask': float(ce_data.get('askPrice', 0.0)),
+                            'bid': float(ce_data.get('bidPrice', ce_data.get('buyPrice1', 0.0))),
+                            'ask': float(ce_data.get('askPrice', ce_data.get('sellPrice1', 0.0))),
                             'volume': int(ce_data.get('totalTradedVolume', 0)),
                             'openInterest': int(ce_data.get('openInterest', 0)),
                             'impliedVolatility': float(ce_data.get('impliedVolatility', 0.0)) if ce_data.get('impliedVolatility') else 0.0,
@@ -805,8 +857,8 @@ class NSEAdapter(MarketDataPort):
                             'symbol': f"{symbol}{int(strike_price)}{pe_data.get('identifier', '')[-2:] if pe_data.get('identifier') else 'PE'}",
                             'strike': strike_price,
                             'lastPrice': float(pe_data.get('lastPrice', 0.0)),
-                            'bid': float(pe_data.get('bidPrice', 0.0)),
-                            'ask': float(pe_data.get('askPrice', 0.0)),
+                            'bid': float(pe_data.get('bidPrice', pe_data.get('buyPrice1', 0.0))),
+                            'ask': float(pe_data.get('askPrice', pe_data.get('sellPrice1', 0.0))),
                             'volume': int(pe_data.get('totalTradedVolume', 0)),
                             'openInterest': int(pe_data.get('openInterest', 0)),
                             'impliedVolatility': float(pe_data.get('impliedVolatility', 0.0)) if pe_data.get('impliedVolatility') else 0.0,

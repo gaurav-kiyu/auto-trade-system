@@ -40,9 +40,15 @@ def _page_context(user, nonce: str, current_page: str) -> dict:
     user_dict = user.to_dict() if hasattr(user, "to_dict") else dict(user or {})
     username = str(user_dict.get("username", ""))
     role = str(user_dict.get("role", "viewer")).lower()
-    effective = UserPermissionManager.get_instance().get_effective_permissions(username, base_role=role)
-    if not effective:
-        effective = {p.value for p in get_role_permissions(role)}
+    if is_super_admin_identity(username, role):
+        # The Super Admin identity is authoritative for the UI capability
+        # context and must receive the canonical Super Admin RBAC matrix.
+        # Endpoint/page authorization remains independently enforced below.
+        effective = {p.value for p in get_role_permissions("super_admin")}
+    else:
+        effective = UserPermissionManager.get_instance().get_effective_permissions(username, base_role=role)
+        if not effective:
+            effective = {p.value for p in get_role_permissions(role)}
     return {
         "user": user_dict, "nonce": nonce, "current_page": current_page,
         "is_admin": role in (Role.ADMIN.value, Role.SUPER_ADMIN.value),
