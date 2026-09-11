@@ -7,12 +7,12 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
-from core.services.market_data_service import MarketDataService
 from core.nse_option_recorder import (
     _aggregate_oi_data,
     get_oi_summary,
     record_oi_snapshots_for_indices,
 )
+from core.services.market_data_service import MarketDataService
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

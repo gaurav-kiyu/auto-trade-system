@@ -36,41 +36,22 @@ Covers:
 
 from __future__ import annotations
 
-
-
 from typing import Any
 
-
-
 import pytest
-
 from core.datetime_ist import now_ist
-
 from core.safety_state import (
-
     _HARD_HALT,
-
     is_hard_halted,
-
     reset_consecutive_losses,
-
 )
-
 from core.services.risk_service import (
-
     PortfolioRiskMetrics,
-
     PositionSizingInput,
-
     RiskDecision,
-
     RiskService,
-
     RiskServiceConfig,
-
 )
-
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 

@@ -1180,10 +1180,10 @@ def _yf_fetch_vix() -> float:
 
 def _run_trading_loop() -> None:
     """Main trading loop. Delegates to TradingLoopService (DEBT-008)."""
-    from core.nse_option_recorder import record_oi_snapshots_for_indices
     from core.di_container import get_container
-    from core.services.market_data_service import MarketDataService
+    from core.nse_option_recorder import record_oi_snapshots_for_indices
     from core.safety_state import _shutdown
+    from core.services.market_data_service import MarketDataService
     try:
         from core.invariants.engine import check_all as _check_invariants
     except ImportError:

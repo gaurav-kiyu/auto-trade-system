@@ -11,7 +11,6 @@ from pathlib import Path
 
 from core.auth.mfa import get_mfa_provisioning_uri
 
-
 ROOT = Path(__file__).resolve().parents[1]
 ROUTES = ROOT / "core" / "auth" / "routes.py"
 

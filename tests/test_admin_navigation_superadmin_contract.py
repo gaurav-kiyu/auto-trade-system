@@ -1,7 +1,6 @@
-from pathlib import Path
 import ast
 import re
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 NAV = ROOT / "templates" / "enterprise" / "_nav.html"
