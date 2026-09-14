@@ -57,3 +57,25 @@ def test_admin_config_validation_errors_render_structured_objects():
     assert "typeof err === 'string'" in text
     assert "err.message || err.detail || err.error || JSON.stringify(err)" in text
     assert "messages.join(', ')" in text
+
+
+def test_admin_config_sl_pct_in_risk_category_and_toast_container_present():
+    text = _read_admin_config()
+    assert "'SL_PCT'" in text or '"SL_PCT"' in text
+    assert 'id="toastContainer"' in text
+    assert 'toast error' in text or '.toast.error' in text
+    assert 'data-tab="risk"' in text
+    assert 'id="section-risk"' in text
+    assert 'id="config-risk"' in text
+
+
+def test_admin_config_sl_pct_browser_gate_spec_present():
+    spec = ROOT / "_phase14_browser_runner" / "OPB_v2594_ADMIN_CONFIG_SL_PCT_GATE.spec.js"
+    assert spec.exists(), "Targeted browser gate spec for Admin Config SL_PCT must exist"
+    content = spec.read_text(encoding="utf-8")
+    assert "/admin/config" in content
+    assert "SL_PCT" in content
+    assert "1.5" in content
+    assert "/api/config/validate" in content
+    assert "/api/config/apply" in content
+    assert "toastContainer" in content
