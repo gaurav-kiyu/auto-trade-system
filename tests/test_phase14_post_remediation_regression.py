@@ -242,3 +242,73 @@ class TestMobileLayoutInvariants:
             tpl_content = tpl_path.read_text(encoding="utf-8")
             assert "opb-table-container" in tpl_content, f"{tpl} must contain opb-table-container"
             assert "table-responsive" in tpl_content, f"{tpl} must contain table-responsive"
+
+
+class TestSignalPersistenceExecutionBoundary:
+    """Verify durable signal_id enforcement across trading entry paths."""
+
+    def test_missing_durable_signal_blocks_execution_fail_closed(self):
+        """Ensure that when an ad-hoc signal lacks a durable signal_id and cannot be persisted,
+        execution remains strictly blocked (fail-closed) with TradeBlockError."""
+        from unittest.mock import Mock, patch
+        from core.position_service import PositionService, TradeBlockError
+
+        svc = PositionService.__new__(PositionService)
+        svc._execution_service = Mock()
+        svc._portfolio_service = None
+        svc._risk_service = None
+        svc._margin_validator = None
+        svc._execution_mode = "PAPER"
+        svc._check_liquidity_gate = Mock(return_value=(True, "ok"))
+
+        with patch("core.signals.signal_tracker.SignalTracker.get_instance") as get_tracker:
+            tracker = Mock()
+            tracker.record_generated_signal.return_value = ""
+            tracker.get_active_signal_id.return_value = None
+            get_tracker.return_value = tracker
+
+            with pytest.raises(TradeBlockError, match="SIGNAL_PERSISTENCE_BLOCK"):
+                svc._submit_order_under_lock(
+                    name="NIFTY",
+                    price=150.0,
+                    qty=1,
+                    sig={"signal": "BUY", "direction": "CALL", "score": 85},
+                    order_direction="BUY",
+                    idempotency_key="idem-fail-closed-test",
+                )
+
+            svc._execution_service.execute_order.assert_not_called()
+
+    def test_valid_durable_signal_allows_execution(self):
+        """Ensure that when a signal carries a durable signal_id, execution proceeds."""
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from core.position_service import PositionService
+
+        svc = PositionService.__new__(PositionService)
+        svc._execution_service = Mock()
+        svc._portfolio_service = None
+        svc._risk_service = None
+        svc._margin_validator = None
+        svc._execution_mode = "PAPER"
+        svc._check_liquidity_gate = Mock(return_value=(True, "ok"))
+        svc._execution_service.execute_order.return_value = SimpleNamespace(
+            status="FILLED",
+            order_id="ORD-DURABLE-001",
+            filled_quantity=1,
+            average_price=150.0,
+        )
+
+        res = svc._submit_order_under_lock(
+            name="NIFTY",
+            price=150.0,
+            qty=1,
+            sig={"signal_id": "SIG_VALID_DURABLE_001", "signal": "BUY", "direction": "CALL", "score": 85},
+            order_direction="BUY",
+            idempotency_key="idem-valid-test",
+        )
+        assert res.status == "FILLED"
+        svc._execution_service.execute_order.assert_called_once()
+        context = svc._execution_service.execute_order.call_args[0][1]
+        assert context.signal_id == "SIG_VALID_DURABLE_001"
+
