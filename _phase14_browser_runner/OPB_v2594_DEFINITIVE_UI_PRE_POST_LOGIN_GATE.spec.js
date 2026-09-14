@@ -478,7 +478,8 @@ test("OPB v2.59.4 DEFINITIVE UI PRE/POST LOGIN", async ({ browser, page }) => {
   }
 
   if (envToken && isLogin(page.url())) {
-    await page.context().addCookies([{ name: "opb_session", value: envToken, domain: "127.0.0.1", path: "/" }]);
+    const hostname = new URL(BASE_URL).hostname;
+    await page.context().addCookies([{ name: "opb_session", value: envToken, domain: hostname, path: "/" }]);
     await page.goto(`${BASE_URL}/change-password`, { waitUntil: "domcontentloaded", timeout: 30000 });
   }
 
