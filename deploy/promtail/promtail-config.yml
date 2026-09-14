@@ -68,7 +68,7 @@ scrape_configs:
 
   # ── Audit logs ─────────────────────────────────────────────────────────
   # Audit logs are written by infrastructure/security/audit_logger.py.
-  # In Docker, the bot runs as user 'opb' so the path is ~opb/.opb/audit.log.
+  # In Docker, the audit logger writes to the persistent /data/logs mount.
   # This scrape config is best-effort; audit logs are also replicated to
   # the structured Python logging pipeline (opb_bot.log) for full coverage.
   - job_name: opb-audit
@@ -77,7 +77,7 @@ scrape_configs:
         labels:
           job: opb-audit
           app: opb
-          __path__: /home/opb/.opb/audit.log*
+          __path__: /data/logs/audit.log*
     pipeline_stages:
       - regex:
           expression: '^{"event_id":"(?P<event_id>.*?)","event_type":"(?P<event_type>.*?)","severity":"(?P<severity>.*?)"}'

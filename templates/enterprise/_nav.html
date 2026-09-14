@@ -386,6 +386,438 @@
         background: var(--market-buy, #10b981) !important;
         box-shadow: 0 0 8px var(--market-buy, #10b981) !important;
     }
+
+/* OPB v2.59.4 FINAL THEME-AWARE NAV TYPOGRAPHY */
+.opb-desktop-nav .opb-nav-item,
+.opb-desktop-nav .opb-ws-item {
+    color: var(--text-primary, #f8fafc);
+    font-family: inherit;
+    text-decoration: none;
+}
+.opb-desktop-nav .opb-nav-item:hover,
+.opb-desktop-nav .opb-nav-item:focus-visible,
+.opb-desktop-nav .opb-ws-item:hover,
+.opb-desktop-nav .opb-ws-item:focus-visible {
+    color: var(--accent-color, #38bdf8);
+}
+/* OPB v2.59.4 ACTIVE NAV TEXT SEMANTIC COLORS */
+
+/*
+ * Active navigation items already use an accent background.
+ * Foreground text therefore uses a dedicated semantic token
+ * rather than the accent color itself.
+ */
+
+/* Default: readable dark text on bright accent surfaces. */
+:root {
+    --nav-active-text: #0f172a;
+}
+
+/* Dark Cyber: cyan accent needs dark readable foreground. */
+body[data-theme="dark-cyber"] {
+    --nav-active-text: #082f49;
+}
+
+/* Plum Cloud: purple accent is best paired with soft white. */
+body[data-theme="dracula-purple"] {
+    --nav-active-text: #ffffff;
+}
+
+/* Ivory Gold: warm accent surface uses soft white. */
+body[data-theme="ivory-gold"] {
+    --nav-active-text: #ffffff;
+}
+
+/* Sapphire Day: blue accent uses white. */
+body[data-theme="midnight-slate"] {
+    --nav-active-text: #ffffff;
+}
+
+/* Emerald: teal accent uses white. */
+body[data-theme="emerald-matrix"] {
+    --nav-active-text: #ffffff;
+}
+
+.opb-desktop-nav .opb-nav-item.active,
+.opb-desktop-nav .opb-ws-item.active {
+    color: var(--nav-active-text, #0f172a);
+}
+.opb-mobile-drawer .drawer-nav-item,
+.opb-mobile-drawer .drawer-section-title,
+.opb-mobile-drawer .drawer-user-card,
+.opb-mobile-drawer .drawer-theme-card,
+.opb-mobile-drawer .drawer-search-input {
+    font-family: inherit;
+}
+.opb-mobile-drawer .drawer-nav-item {
+    color: var(--text-secondary, #cbd5e1);
+}
+.opb-mobile-drawer .drawer-nav-item:hover,
+.opb-mobile-drawer .drawer-nav-item:focus-visible,
+.opb-mobile-drawer .drawer-nav-item.active {
+    color: var(--accent-color, #38bdf8);
+}
+.opb-mobile-drawer .drawer-section-title {
+    color: var(--text-muted, #64748b);
+}
+.opb-mobile-drawer .drawer-search-input,
+.opb-mobile-drawer .drawer-theme-card,
+.opb-mobile-drawer .drawer-theme-card select {
+    color: var(--text-primary, #f8fafc);
+}
+.opb-mobile-bottom-dock .mobile-dock-tab {
+    color: var(--text-secondary, #94a3b8);
+    font-family: inherit;
+}
+.opb-mobile-bottom-dock .mobile-dock-tab:hover,
+.opb-mobile-bottom-dock .mobile-dock-tab:focus-visible,
+.opb-mobile-bottom-dock .mobile-dock-tab.active,
+.opb-mobile-bottom-dock .mobile-dock-tab:active {
+    color: var(--accent-color, #38bdf8);
+}
+
+/* ============================================================
+   OPB v2.59.4 SHARED UI CONSISTENCY CONTRACT
+   ------------------------------------------------------------
+   Scope:
+     - existing five themes only
+     - existing navigation DOM only
+     - no route/RBAC changes
+     - no new theme IDs
+   ============================================================ */
+
+:root {
+    --opb-ui-font:
+        Inter,
+        "Plus Jakarta Sans",
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+
+    --opb-ui-mono:
+        "JetBrains Mono",
+        "SF Mono",
+        "Roboto Mono",
+        Menlo,
+        Consolas,
+        monospace;
+
+    --opb-nav-size: 13px;
+    --opb-nav-line: 19px;
+    --opb-drawer-size: 14px;
+    --opb-drawer-line: 20px;
+    --opb-dock-size: 12px;
+    --opb-dock-line: 15px;
+    --opb-section-size: 11px;
+    --opb-section-line: 15px;
+
+    --nav-active-text: var(--text-primary, #0f172a);
+}
+
+/* ------------------------------------------------------------
+   Desktop navigation
+   ------------------------------------------------------------ */
+
+.opb-desktop-nav .opb-nav-item,
+.opb-desktop-nav .opb-ws-item {
+    font-family: var(--opb-ui-font) !important;
+    font-size: var(--opb-nav-size) !important;
+    line-height: var(--opb-nav-line) !important;
+    font-weight: 700 !important;
+    color: var(--text-primary, #0f172a) !important;
+    text-decoration: none !important;
+}
+
+.opb-desktop-nav .opb-nav-item:hover,
+.opb-desktop-nav .opb-ws-item:hover {
+    color: var(--accent-color, #38bdf8) !important;
+}
+
+.opb-desktop-nav .opb-nav-item.active,
+.opb-desktop-nav .opb-ws-item.active {
+    color: var(--nav-active-text, var(--text-primary, #0f172a)) !important;
+}
+
+/* ------------------------------------------------------------
+   Mobile app bar
+   ------------------------------------------------------------ */
+
+@media (max-width: 1023px) {
+
+    .opb-mobile-appbar {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        box-sizing: border-box !important;
+        gap: 10px !important;
+        overflow: hidden !important;
+    }
+
+    .mobile-hamburger-btn,
+    #mobileTopMenuBtn {
+        flex: 0 0 44px !important;
+        width: 44px !important;
+        min-width: 44px !important;
+        max-width: 44px !important;
+        height: 44px !important;
+        min-height: 44px !important;
+        max-height: 44px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        position: relative !important;
+        overflow: hidden !important;
+
+        border-radius: 10px !important;
+        border: 1px solid var(--border-color, #334155) !important;
+        background: var(--bg-card, #0f172a) !important;
+        color: var(--text-primary, #f8fafc) !important;
+
+        font-family: var(--opb-ui-font) !important;
+        font-size: 0 !important;
+        line-height: 1 !important;
+
+        cursor: pointer !important;
+        text-decoration: none !important;
+    }
+
+    .mobile-hamburger-btn:hover,
+    .mobile-hamburger-btn:focus-visible,
+    #mobileTopMenuBtn:hover,
+    #mobileTopMenuBtn:focus-visible {
+        color: var(--accent-color, #38bdf8) !important;
+        border-color: var(--accent-color, #38bdf8) !important;
+        outline: none !important;
+    }
+
+    .mobile-hamburger-btn svg,
+    #mobileTopMenuBtn svg {
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        min-height: 24px !important;
+        max-width: 24px !important;
+        max-height: 24px !important;
+        display: block !important;
+        flex: 0 0 24px !important;
+        color: currentColor !important;
+        stroke: currentColor !important;
+    }
+
+    .mobile-hamburger-btn i,
+    #mobileTopMenuBtn i {
+        font-size: 22px !important;
+        line-height: 1 !important;
+        color: currentColor !important;
+    }
+
+    /* Prevent generic label/button rules from stretching the menu. */
+    .opb-mobile-appbar label.mobile-hamburger-btn,
+    .opb-mobile-appbar button#mobileTopMenuBtn {
+        width: 44px !important;
+        min-width: 44px !important;
+        max-width: 44px !important;
+        flex-basis: 44px !important;
+    }
+
+    /* --------------------------------------------------------
+       Mobile drawer
+       -------------------------------------------------------- */
+
+    .opb-mobile-drawer {
+        font-family: var(--opb-ui-font) !important;
+        color: var(--text-primary, #f8fafc) !important;
+        background: var(--bg-card, #0f172a) !important;
+    }
+
+    .opb-mobile-drawer .drawer-header,
+    .opb-mobile-drawer .drawer-user-card,
+    .opb-mobile-drawer .drawer-theme-card,
+    .opb-mobile-drawer .drawer-search-box,
+    .opb-mobile-drawer .drawer-nav-list,
+    .opb-mobile-drawer .drawer-footer {
+        font-family: var(--opb-ui-font) !important;
+    }
+
+    .opb-mobile-drawer .drawer-section-title {
+        color: var(--text-muted, #94a3b8) !important;
+        font-family: var(--opb-ui-font) !important;
+        font-size: var(--opb-section-size) !important;
+        line-height: var(--opb-section-line) !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.045em !important;
+        text-transform: uppercase !important;
+    }
+
+    .opb-mobile-drawer .drawer-nav-item {
+        display: flex !important;
+        align-items: center !important;
+        width: 100% !important;
+        min-height: 44px !important;
+        box-sizing: border-box !important;
+
+        font-family: var(--opb-ui-font) !important;
+        font-size: var(--opb-drawer-size) !important;
+        line-height: var(--opb-drawer-line) !important;
+        font-weight: 650 !important;
+
+        color: var(--text-secondary, #cbd5e1) !important;
+        background: transparent !important;
+
+        text-decoration: none !important;
+    }
+
+    .opb-mobile-drawer .drawer-nav-item:hover,
+    .opb-mobile-drawer .drawer-nav-item:focus-visible {
+        color: var(--text-primary, #f8fafc) !important;
+        background: var(--bg-secondary, #131e33) !important;
+    }
+
+    .opb-mobile-drawer .drawer-nav-item.active {
+        color: var(--accent-color, #38bdf8) !important;
+        background: color-mix(
+            in srgb,
+            var(--accent-color, #38bdf8) 12%,
+            var(--bg-secondary, #131e33)
+        ) !important;
+    }
+
+    .opb-mobile-drawer .drawer-nav-item > span:first-child {
+        flex: 0 0 auto !important;
+        width: 24px !important;
+        min-width: 24px !important;
+        margin-right: 8px !important;
+        font-size: 18px !important;
+        line-height: 1 !important;
+    }
+
+    .opb-mobile-drawer .drawer-nav-item > span:last-child {
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    .opb-mobile-drawer .drawer-search-input {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        font-family: var(--opb-ui-font) !important;
+        font-size: 14px !important;
+        line-height: 20px !important;
+        color: var(--text-primary, #f8fafc) !important;
+        background: var(--input-bg, #0b1120) !important;
+        border-color: var(--border-color, #334155) !important;
+    }
+
+    .opb-mobile-drawer .drawer-close-btn {
+        color: var(--text-primary, #f8fafc) !important;
+        background: transparent !important;
+    }
+
+    /* --------------------------------------------------------
+       Mobile bottom dock
+       -------------------------------------------------------- */
+
+    .opb-mobile-bottom-dock {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+
+        font-family: var(--opb-ui-font) !important;
+        background: var(--bg-card, #0f172a) !important;
+        border-color: var(--border-color, #334155) !important;
+    }
+
+    .opb-mobile-bottom-dock .mobile-dock-tab {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        max-width: none !important;
+
+        font-family: var(--opb-ui-font) !important;
+        font-size: var(--opb-dock-size) !important;
+        line-height: var(--opb-dock-line) !important;
+        font-weight: 750 !important;
+
+        color: var(--text-secondary, #cbd5e1) !important;
+        text-decoration: none !important;
+    }
+
+    .opb-mobile-bottom-dock .mobile-dock-tab .dock-label {
+        font-family: var(--opb-ui-font) !important;
+        font-size: var(--opb-dock-size) !important;
+        line-height: var(--opb-dock-line) !important;
+        font-weight: 750 !important;
+        color: currentColor !important;
+    }
+
+    .opb-mobile-bottom-dock .mobile-dock-tab .dock-icon {
+        font-size: 20px !important;
+        line-height: 20px !important;
+    }
+
+    .opb-mobile-bottom-dock .mobile-dock-tab:hover,
+    .opb-mobile-bottom-dock .mobile-dock-tab:focus-visible {
+        color: var(--text-primary, #f8fafc) !important;
+    }
+
+    .opb-mobile-bottom-dock .mobile-dock-tab.active {
+        color: var(--accent-color, #38bdf8) !important;
+    }
+}
+
+/* ------------------------------------------------------------
+   Explicit desktop suppression of mobile-only UI.
+   This protects against historical media-scope leakage.
+   ------------------------------------------------------------ */
+
+@media (min-width: 1024px) {
+
+    .opb-mobile-appbar,
+    .opb-mobile-drawer-backdrop,
+    .opb-mobile-drawer,
+    .opb-mobile-bottom-dock {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+}
+
+/* ------------------------------------------------------------
+   Existing five-theme semantic active-nav contract
+   ------------------------------------------------------------ */
+
+body[data-theme="dark-cyber"] {
+    --nav-active-text: #082f49;
+}
+
+body[data-theme="dracula-purple"] {
+    --nav-active-text: #ffffff;
+}
+
+body[data-theme="ivory-gold"] {
+    --nav-active-text: #ffffff;
+}
+
+body[data-theme="midnight-slate"] {
+    --nav-active-text: #ffffff;
+}
+
+body[data-theme="emerald-matrix"] {
+    --nav-active-text: #ffffff;
+}
+
 </style>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
@@ -418,18 +850,14 @@
                 <span class="opb-num" id="desktop-live-latency" style="color:var(--text-primary,#ffffff);font-family:var(--font-mono);font-weight:700;white-space:nowrap;display:inline-block;">12ms</span>
             </span>
 
-            <!-- 9-Theme Selector Dropdown -->
+            <!-- 5-Theme Selector Dropdown -->
             <select id="desktopThemeSelect" data-theme-select="true" class="opb-theme-selector" style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#334155);color:var(--text-primary,#ffffff);padding:0.35rem 0.65rem;border-radius:0.4rem;font-size:0.75rem;font-weight:700;outline:none;cursor:pointer;flex-shrink:0 !important;width:auto !important;max-width:145px !important;min-width:125px !important;white-space:nowrap !important;display:inline-block !important;">
-                <option value="dark-cyber">🌌 Dark Cyber</option>
-                <option value="nordic-frost">❄️ Nordic Frost</option>
-                <option value="ivory-gold">🏛️ Ivory Gold</option>
-                <option value="tokyo-night">🗼 Tokyo Night</option>
-                <option value="catppuccin-mocha">🐱 Catppuccin</option>
-                <option value="obsidian-gold">👑 Obsidian Gold</option>
-                <option value="midnight-slate">☀️ Sapphire Day</option>
-                <option value="emerald-matrix">❇️ Emerald</option>
-                <option value="dracula-purple">🌸 Plum Cloud</option>
-            </select>
+<option value="dark-cyber">&#x1F30C; Dark Cyber</option>
+<option value="dracula-purple">&#x1F338; Plum Cloud</option>
+<option value="ivory-gold">&#x1F3DB;&#xFE0F; Ivory Gold</option>
+<option value="midnight-slate">&#x2600;&#xFE0F; Sapphire Day</option>
+<option value="emerald-matrix">&#x2747;&#xFE0F; Emerald</option>
+</select>
 
             <!-- Emergency Kill Switch (P1) -->
             {% if can_halt_trading %}<a href="/admin/kill-switch" class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:0.35rem;font-weight:800;padding:0.35rem 0.75rem;font-size:0.75rem;text-decoration:none;border-radius:0.4rem;box-shadow:0 2px 8px rgba(220,38,38,0.35);flex-shrink:0;white-space:nowrap;min-width:max-content;">
@@ -578,16 +1006,12 @@
     <div class="drawer-theme-card" style="padding:0.65rem 1rem;background:var(--bg-card,#0f172a);border-bottom:1px solid var(--border-color,#1e293b);display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
         <span style="font-size:0.72rem;font-weight:800;color:var(--text-secondary,#cbd5e1);text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;">🎨 Theme</span>
         <select id="drawerThemeSelect" data-theme-select="true" class="opb-theme-selector" style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#1e293b);color:var(--text-primary,#ffffff);padding:0.3rem 0.6rem;border-radius:0.375rem;font-size:0.75rem;font-weight:700;outline:none;width:auto;flex:1;max-width:180px;">
-            <option value="dark-cyber">🌌 Dark Cyber</option>
-            <option value="nordic-frost">❄️ Nordic Frost</option>
-            <option value="ivory-gold">🏛️ Ivory Gold</option>
-            <option value="tokyo-night">🗼 Tokyo Night</option>
-            <option value="catppuccin-mocha">🐱 Catppuccin</option>
-            <option value="obsidian-gold">👑 Obsidian Gold</option>
-            <option value="midnight-slate">☀️ Sapphire Day</option>
-            <option value="emerald-matrix">❇️ Emerald</option>
-            <option value="dracula-purple">🌸 Plum Cloud</option>
-        </select>
+<option value="dark-cyber">&#x1F30C; Dark Cyber</option>
+<option value="dracula-purple">&#x1F338; Plum Cloud</option>
+<option value="ivory-gold">&#x1F3DB;&#xFE0F; Ivory Gold</option>
+<option value="midnight-slate">&#x2600;&#xFE0F; Sapphire Day</option>
+<option value="emerald-matrix">&#x2747;&#xFE0F; Emerald</option>
+</select>
     </div>
 
     <!-- 3. Search Filter -->

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -88,7 +89,7 @@ class AuditLogger:
             backup_count: Number of backup files to keep.
             enable_console_output: Whether to also output to console (for development).
         """
-        self.log_file = log_file or (Path.home() / ".opb" / "audit.log")
+        self.log_file = log_file or Path(os.environ.get("OPB_AUDIT_LOG_PATH", str(Path.home() / ".opb" / "audit.log")))
         self.max_file_size = max_file_size
         self.backup_count = backup_count
         self.enable_console_output = enable_console_output

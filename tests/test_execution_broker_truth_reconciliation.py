@@ -210,3 +210,14 @@ class TestGetBrokerTruthReconciler:
         broker = FakeBrokerPort()
         reconciler = get_broker_truth_reconciler(broker)
         assert isinstance(reconciler, BrokerTruthReconciler)
+
+    def test_different_broker_gets_new_reconciler(self):
+        broker_a = FakeBrokerPort(orders={"A": {"status": "PENDING"}})
+        broker_b = FakeBrokerPort(orders={"B": {"status": "FILLED"}})
+
+        reconciler_a = get_broker_truth_reconciler(broker_a)
+        reconciler_b = get_broker_truth_reconciler(broker_b)
+
+        assert reconciler_a is not reconciler_b
+        assert reconciler_b._broker_port is broker_b
+        assert reconciler_b.reconcile_order("A", "PENDING").status == ReconciliationStatus.INTERNAL_ONLY

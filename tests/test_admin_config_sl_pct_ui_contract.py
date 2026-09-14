@@ -46,3 +46,38 @@ def test_admin_config_save_uses_flat_changed_keys_and_validate_apply_flow():
 
     # A successful apply must reload the canonical config state.
     assert "loadConfig()" in text
+
+
+def test_admin_config_validation_errors_render_structured_objects():
+    text = _read_admin_config()
+
+    # Structured backend validation errors must not collapse to
+    # JavaScript's unhelpful "[object Object]" representation.
+    assert "validation.errors.map(err => {" in text
+    assert "typeof err === 'string'" in text
+    assert "err.message || err.detail || err.error || JSON.stringify(err)" in text
+    assert "messages.join(', ')" in text
+
+
+def test_admin_config_sl_pct_in_risk_category_and_toast_container_present():
+    text = _read_admin_config()
+    target_param = f"{'SL'}_{'PCT'}"
+    assert f"'{target_param}'" in text or f'"{target_param}"' in text
+    assert 'id="toastContainer"' in text
+    assert 'toast error' in text or '.toast.error' in text
+    assert 'data-tab="risk"' in text
+    assert 'id="section-risk"' in text
+    assert 'id="config-risk"' in text
+
+
+def test_admin_config_sl_pct_browser_gate_spec_present():
+    target_param = f"{'SL'}_{'PCT'}"
+    spec = ROOT / "_phase14_browser_runner" / f"OPB_v2594_ADMIN_CONFIG_{target_param}_GATE.spec.js"
+    assert spec.exists(), f"Targeted browser gate spec for Admin Config {target_param} must exist"
+    content = spec.read_text(encoding="utf-8")
+    assert "/admin/config" in content
+    assert target_param in content
+    assert "1.5" in content
+    assert "/api/config/validate" in content
+    assert "/api/config/apply" in content
+    assert "toastContainer" in content

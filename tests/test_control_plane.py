@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -33,6 +34,24 @@ class TestInitAdminControlPlane:
         """When not configured, defaults to disabled and returns None."""
         result = init_admin_control_plane(cfg={})
         assert result is None
+
+    def test_audit_logger_uses_configured_environment_path(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """AuditLogger honors OPB_AUDIT_LOG_PATH for read-only Docker rootfs."""
+        import infrastructure.security.audit_logger as audit_module
+
+        log_path = tmp_path / "audit.log"
+        monkeypatch.setenv("OPB_AUDIT_LOG_PATH", str(log_path))
+        monkeypatch.setattr(audit_module, "_audit_logger", None)
+
+        logger = audit_module.get_audit_logger()
+
+        assert logger.log_file == log_path
+        assert log_path.parent.exists()
+
+        # Reset singleton so this test cannot leak state to later tests.
+        monkeypatch.setattr(audit_module, "_audit_logger", None)
 
     def test_enabled_with_all_deps(self, mock_risk_port: MagicMock) -> None:
         """When enabled, wires all dependencies and starts the thread."""

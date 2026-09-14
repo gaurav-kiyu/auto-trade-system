@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.59.4 (2026-09-09)
+
+- Fixed canonical market-data dependency injection and NSE option-chain/OI provenance so certification-sensitive OI uses the centralized MarketDataService with explicit NSE sourcing and fail-closed provider behavior.
+- Added Phase-14 runtime certification coverage for market-data failover, production notification URL safety, execution safety, architecture compliance, and the complete canonical release gate.
+
+
 ## v2.59.3 (2026-09-05)
 
 - Fixed trading DI configuration wiring so `ConfigPort` uses the already-resolved canonical configuration.

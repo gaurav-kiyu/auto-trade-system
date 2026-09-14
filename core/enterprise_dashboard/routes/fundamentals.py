@@ -52,7 +52,7 @@ def register_fundamentals_routes(app, dashboard, admin_only, operator_or_admin) 
     @app.put("/api/fundamentals/weights", tags=["Fundamentals"])
     async def api_fundamentals_weights_update(  # type: ignore[no-untyped-def]
         request: Request,
-        user: Any = Depends(dashboard._auth_deps.require_auth_optional),
+        user: Any = admin_only,
     ):
         """Update fundamental analysis dimension weights at runtime."""
         try:
@@ -147,7 +147,7 @@ def register_fundamentals_routes(app, dashboard, admin_only, operator_or_admin) 
     @app.post("/api/fundamentals/screen", tags=["Fundamentals"])
     async def api_fundamentals_screen(  # type: ignore[no-untyped-def]
         request: Request,
-        user: Any = Depends(dashboard._auth_deps.require_auth_optional),
+        user: Any = operator_or_admin,
     ):
         """Screen multiple symbols by fundamental scores."""
         try:

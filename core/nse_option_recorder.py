@@ -14,25 +14,18 @@ Usage in trading loop::
 Architecture
 ------------
 - Depends on ``core.oi_snapshot_store.record_snapshot()`` for persistence.
-- Uses the NSE market data adapter (``infrastructure.adapters.market_data.nse.adapter``)
-  to fetch live option chain data.
-- Never blocks or raises - all exceptions are caught and logged.
-- **Caches the NSEAdapter instance across calls** to maintain session cookies.
+- Uses the injected central ``MarketDataService`` to fetch live NSE option-chain data.
+- Never constructs infrastructure adapters directly.
+- Never silently substitutes another provider for an NSE-certified OI snapshot.
 """
 from __future__ import annotations
 
 import logging
-import threading
 from typing import Any
 
 from core.oi_snapshot_store import record_snapshot
 
 _log = logging.getLogger(__name__)
-
-# Module-level cache for NSEAdapter instance (preserves session cookies across calls)
-_nse_adapter_cache: Any = None
-_adapter_cache_lock: threading.Lock = threading.Lock()
-
 
 def _aggregate_oi_data(chain: list[dict[str, Any]]) -> dict[str, Any]:
     """Aggregate option chain records into a single OI snapshot dict.
@@ -80,6 +73,7 @@ def _aggregate_oi_data(chain: list[dict[str, Any]]) -> dict[str, Any]:
 def record_oi_snapshots_for_indices(
     index_names: list[str],
     config: dict[str, Any],
+    market_data_service: Any = None,
     nse_adapter: Any = None,
 ) -> dict[str, bool]:
     """Fetch option chain data for each index and record OI snapshots.
@@ -87,7 +81,7 @@ def record_oi_snapshots_for_indices(
     Args:
         index_names: List of index names (e.g. ``["NIFTY", "BANKNIFTY", "FINNIFTY"]``).
         config: Merged bot config dict (used to read OI snapshot settings).
-        nse_adapter: Optional NSE adapter instance. If None, lazy-imports one.
+        market_data_service: Injected central MarketDataService.
 
     Returns:
         Dict mapping each index name to whether a snapshot was recorded.
@@ -118,37 +112,37 @@ def record_oi_snapshots_for_indices(
         config.get("oi_snapshot_archive_days", config.get("OI_SNAPSHOT_ARCHIVE_DAYS", 90)),
     )
 
-    # Lazy-import NSE adapter (avoids import errors if infrastructure not available)
-    # Uses module-level cache to maintain session cookies across scan cycles
-    # Thread-safe via _adapter_cache_lock
-    if nse_adapter is None:
-        global _nse_adapter_cache
-        with _adapter_cache_lock:
-            if _nse_adapter_cache is not None:
-                nse_adapter = _nse_adapter_cache
-            else:
-                try:
-                    from infrastructure.adapters.market_data.nse.adapter import NSEAdapter
-                    nse_adapter = NSEAdapter(
-                        enable_rate_limit=True,
-                        max_retries=2,
-                        requests_per_second=0.5,
-                    )
-                    _nse_adapter_cache = nse_adapter  # Cache for next scan cycle
-                except ImportError as exc:
-                    _log.warning("[NSE_RECORDER] NSEAdapter not available: %s", exc)
-                    return dict.fromkeys(index_names, False)
-                except (OSError, RuntimeError) as exc:
-                    _log.warning("[NSE_RECORDER] Failed to initialize NSEAdapter: %s", exc)
-                    return dict.fromkeys(index_names, False)
+    # ``nse_adapter`` is a test/backward-compatibility injection alias only.
+    # Production callers must pass the central MarketDataService.
+    if market_data_service is None and nse_adapter is not None:
+        market_data_service = nse_adapter
+
+    if market_data_service is None:
+        _log.error("[NSE_RECORDER] Central MarketDataService is not wired; refusing direct adapter fallback")
+        return dict.fromkeys(index_names, False)
 
     results: dict[str, bool] = {}
 
     for idx_name in index_names:
         try:
-            chain = nse_adapter.get_option_chain(idx_name)
-            if not chain:
-                _log.debug("[NSE_RECORDER] No option chain data for %s", idx_name)
+            if hasattr(market_data_service, "get_option_chain_with_source"):
+                result = market_data_service.get_option_chain_with_source(
+                    idx_name, asset_class="index", provider="nse"
+                )
+                if isinstance(result, tuple) and len(result) == 2:
+                    chain, source = result
+                elif hasattr(market_data_service, "get_option_chain"):
+                    chain = market_data_service.get_option_chain(idx_name)
+                    source = "nse" if chain else None
+                else:
+                    chain, source = [], None
+            elif hasattr(market_data_service, "get_option_chain"):
+                chain = market_data_service.get_option_chain(idx_name)
+                source = "nse" if chain else None
+            else:
+                chain, source = [], None
+            if source != "nse" or not chain:
+                _log.warning("[NSE_RECORDER] NSE option-chain unavailable for %s; source=%s", idx_name, source)
                 results[idx_name] = False
                 continue
 
@@ -181,54 +175,36 @@ def record_oi_snapshots_for_indices(
 
 
 def reset_nse_adapter_cache() -> None:
-    """Reset the module-level NSE adapter cache.
+    """Compatibility no-op retained for existing tests/callers.
 
-    Used primarily in tests to ensure test isolation when patching
-    the NSEAdapter import.
+    Adapter lifetime is now owned by the central DI container.
     """
-    global _nse_adapter_cache
-    _nse_adapter_cache = None
+    return None
 
 
-def get_oi_summary(index_names: list[str], config: dict[str, Any]) -> dict[str, Any]:
-    """Fetch current OI/PCR summary for the given indices (read-only, no recording).
+def get_oi_summary(
+    index_names: list[str],
+    config: dict[str, Any],
+    market_data_service: Any = None,
+) -> dict[str, Any]:
+    """Fetch current NSE OI/PCR summaries through the central market-data service."""
+    if market_data_service is None or not hasattr(market_data_service, "get_option_chain_with_source"):
+        return {idx: {"error": "MarketDataService not wired"} for idx in index_names}
 
-    Useful for dashboards, Telegram summaries, and health checks.
-    Does NOT use the module-level adapter cache (since it's infrequently called).
-
-    Args:
-        index_names: List of index names.
-        config: Merged bot config dict.
-
-    Returns:
-        Dict mapping index name to OI summary dict (pcr, call_oi, put_oi, etc.)
-        or error dict if fetching failed.
-
-    """
     summary: dict[str, Any] = {}
-
-    try:
-        from infrastructure.adapters.market_data.nse.adapter import NSEAdapter
-        nse_adapter = NSEAdapter(
-            enable_rate_limit=True,
-            max_retries=2,
-            requests_per_second=0.5,
-        )
-    except ImportError as exc:
-        _log.warning("[NSE_RECORDER] NSEAdapter not available for summary: %s", exc)
-        return {idx: {"error": str(exc)} for idx in index_names}
-
     for idx_name in index_names:
         try:
-            chain = nse_adapter.get_option_chain(idx_name)
-            if not chain:
-                summary[idx_name] = {"error": "No data"}
+            chain, source = market_data_service.get_option_chain_with_source(
+                idx_name, asset_class="index", provider="nse"
+            )
+            if source != "nse" or not chain:
+                summary[idx_name] = {"error": "NSE option-chain unavailable", "source": source}
                 continue
             oi_data = _aggregate_oi_data(chain)
+            oi_data["source"] = source
             summary[idx_name] = oi_data
-        except (ValueError, TypeError, OSError, RuntimeError) as exc:
-            summary[idx_name] = {"error": str(exc)}
-
+        except (ValueError, TypeError, OSError, RuntimeError, KeyError) as exc:
+            summary[idx_name] = {"error": str(exc), "source": "nse"}
     return summary
 
 

@@ -1,4 +1,4 @@
-"""Dependency Injection Container Setup — service wiring for production trading.
+﻿"""Dependency Injection Container Setup â€” service wiring for production trading.
 
 Extracted from ``index_trader.py`` ``setup_di_container()`` (DEBT-008) to reduce
 the monolith and centralise all service-implementation registration.
@@ -91,7 +91,6 @@ def setup_di_container(
     from core.signal_service import get_signal_service
     from core.strategy import StrategyOrchestrator
     from infrastructure.adapters.correlation_id.correlation_id_adapter import CorrelationIdAdapter
-    from infrastructure.adapters.market_data.yahoofinance.adapter import YahooFinanceAdapter
     from infrastructure.adapters.metrics.metrics_adapter import MetricsAdapter
     from infrastructure.adapters.ml_model.ml_model_adapter import MLModelAdapter
     from infrastructure.adapters.persistence.sqlite_adapter import SQLiteAdapter
@@ -111,9 +110,17 @@ def setup_di_container(
     _wal_journal = WriteAheadJournal(db_path=cfg.get("wal_journal_db_path", "db/wal_journal.db"))
 
     trade_persistence = SQLiteAdapter("db/trades.db")
-    market_data_port = YahooFinanceAdapter()
-
-    container.register_instance(MarketDataPort, market_data_port)
+    from core.services.market_data_service import MarketDataService
+    if not container.is_registered(MarketDataService):
+        container.register_singleton(MarketDataService, MarketDataService)
+    market_data_service = container.resolve(MarketDataService)
+    market_data_service.populate_from_config(dict(cfg))
+    container.register_instance(MarketDataPort, market_data_service)
+    _log.info("[MDS] canonical market-data service wired with providers=%s", list(market_data_service.list_adapters()))
+    if bool(cfg.get("oi_snapshot_enabled", cfg.get("OI_SNAPSHOT_ENABLED", True))):
+        enabled = cfg.get("DATA_PROVIDER_ENABLED", {})
+        if isinstance(enabled, dict) and enabled.get("nse", True) and "nse" not in market_data_service.list_adapters():
+            _log.error("[MDS] REQUIRED NSE provider is not registered; NSE OI workflow is unavailable")
 
     # Wire WS feed manager into the container for health checks / future use
     ws_feed_manager = sg("_ws_feed_manager")
@@ -315,9 +322,9 @@ def setup_di_container(
     _wire_clean_orchestrator(globals_store)
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Internal helpers
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 def _initialize_position_service(
@@ -352,7 +359,7 @@ def _initialize_position_service(
         signal_max_age=cfg.get("SIGNAL_MAX_AGE", 90),
         # CRITICAL: pass through execution-mode flags so the PositionService
         # singleton honors PAPER/AUTO (paper fills) instead of defaulting to
-        # MANUAL (notify-only) — otherwise the 50-paper-trade track record
+        # MANUAL (notify-only) â€” otherwise the 50-paper-trade track record
         # required by the live-readiness gate can never be built.
         manual_signals_only=bool(cfg.get("MANUAL_SIGNALS_ONLY", True)),
         execution_mode=str(cfg.get("EXECUTION_MODE", "MANUAL")),
@@ -412,7 +419,7 @@ def _start_background_services(
 
     get_underlying_ltp = globals_store.get("get_underlying_ltp_fn")
     if get_underlying_ltp is None:
-        _log.warning("[CB] get_underlying_ltp callback not available — circuit breaker monitor will have no-op price feed")
+        _log.warning("[CB] get_underlying_ltp callback not available â€” circuit breaker monitor will have no-op price feed")
 
     # Start morning checklist (runs at 9:00 AM IST)
     run_morning_checklist(send_fn=send_fn, cfg=cfg)
@@ -525,7 +532,7 @@ def _start_background_services(
         from core.feature_quality_sla import get_feature_quality_sla, start_feature_sla_poller
         fq_sla = get_feature_quality_sla()
         start_feature_sla_poller(monitor=fq_sla)
-        _log.info("[FQ-SLA] Feature Quality SLA background poller started — monitoring %d features",
+        _log.info("[FQ-SLA] Feature Quality SLA background poller started â€” monitoring %d features",
                   len(fq_sla._feature_slas))
     except (ValueError, TypeError, ImportError, OSError, RuntimeError) as _fq_err:
         _log.debug("[FQ-SLA] Feature Quality SLA init skipped: %s", _fq_err)
@@ -702,4 +709,3 @@ def _wire_clean_orchestrator(globals_store: dict[str, Any]) -> None:
             _log.debug("Clean-architecture TradingOrchestrator not available (graceful skip)")
     except (ValueError, TypeError, ImportError, AttributeError, OSError) as exc:
         _log.debug("Clean-architecture TradingOrchestrator unavailable: %s", exc)
-

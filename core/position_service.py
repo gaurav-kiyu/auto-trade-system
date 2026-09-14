@@ -972,7 +972,13 @@ class PositionService:
         order_direction: str, idempotency_key: str,
     ) -> Any:
         """Submit order under state lock - covers margin check + submission."""
-        from core.ports.execution.execution_port import OrderRequest, OrderType
+        from core.ports.execution.execution_port import (
+            ExecutionContext,
+            ExecutionMode,
+            OrderRequest,
+            OrderType,
+        )
+        from core.signals.signal_tracker import SignalTracker
 
         available_margin = 0.0
         if self._portfolio_service is not None:
@@ -1016,7 +1022,8 @@ class PositionService:
         if not liq_ok:
             raise TradeBlockError(f"LIQUIDITY_BLOCK: {liq_reason}", reason="liquidity")
 
-        # Submit order
+        # Submit order only after the complete pre-submission safety boundary
+        # above has passed.
         order_request = OrderRequest(
             symbol=name,
             direction=order_direction,
@@ -1027,9 +1034,100 @@ class PositionService:
             idempotency_key=idempotency_key,
         )
 
-        if self._execution_service is not None:
-            return self._execution_service.execute_order(order_request)
-        raise RuntimeError("No execution service available")
+        if self._execution_service is None:
+            raise RuntimeError("No execution service available")
+
+        # Durable signal boundary:
+        # execution must always carry a durable SignalTracker signal_id.
+        # Preserve an upstream signal_id when one already exists.
+        signal_id = str(sig.get("signal_id") or "").strip()
+
+        if not signal_id:
+            signal_record = dict(sig)
+            signal_record.setdefault("symbol", name)
+            signal_record.setdefault("direction", order_direction)
+            signal_record.setdefault("entry_price", price)
+
+            strategy_name = str(
+                signal_record.get("strategy_name")
+                or signal_record.get("strategy")
+                or "position_service"
+            )
+
+            signal_record.setdefault("strategy", strategy_name)
+            signal_record.setdefault("strategy_name", strategy_name)
+
+            tracker = SignalTracker.get_instance()
+            signal_id = str(
+                tracker.record_generated_signal(
+                    signal_record
+                )
+                or ""
+            ).strip()
+
+            if not signal_id:
+                record_dir = str(signal_record.get("direction") or order_direction).upper()
+                opp_key = str(
+                    signal_record.get("opportunity_key")
+                    or f"{name.upper()}|{record_dir}|{str(signal_record.get('category', 'LARGE_CAP_EQUITY')).upper()}|{strategy_name.lower()}"
+                )
+                get_active = getattr(tracker, "get_active_signal_id", None)
+                if callable(get_active):
+                    active_id = get_active(opp_key)
+                    if (not active_id or not str(active_id).strip()) and order_direction.upper() != record_dir:
+                        alt_key = f"{name.upper()}|{order_direction.upper()}|{str(signal_record.get('category', 'LARGE_CAP_EQUITY')).upper()}|{strategy_name.lower()}"
+                        active_id = get_active(alt_key)
+                    if isinstance(active_id, str) and active_id.strip():
+                        signal_id = active_id.strip()
+
+        # Fail closed: execution is forbidden without durable signal identity.
+        if not signal_id:
+            raise TradeBlockError(
+                "SIGNAL_PERSISTENCE_BLOCK: durable signal_id unavailable",
+                reason="signal_persistence",
+            )
+
+        # Translate PositionService runtime mode to the port-layer enum.
+        mode_name = str(self._execution_mode or "MANUAL").upper()
+
+        if mode_name == "PAPER":
+            execution_mode = ExecutionMode.PAPER
+        elif mode_name in ("AUTO", "AUTOMATIC"):
+            execution_mode = ExecutionMode.AUTOMATIC
+        else:
+            execution_mode = ExecutionMode.MANUAL
+
+        signal_timestamp = sig.get(
+            "signal_timestamp",
+            sig.get("timestamp"),
+        )
+
+        context_kwargs: dict[str, Any] = {
+            "signal_id": signal_id,
+            "strategy_name": str(
+                sig.get("strategy_name")
+                or sig.get("strategy")
+                or "position_service"
+            ),
+            "execution_mode": execution_mode,
+            "correlation_id": str(
+                sig.get("correlation_id") or idempotency_key
+            ),
+            "metadata": {
+                "source": "position_service",
+                "symbol": name,
+            },
+        }
+
+        if hasattr(signal_timestamp, "year"):
+            context_kwargs["signal_timestamp"] = signal_timestamp
+
+        execution_context = ExecutionContext(**context_kwargs)
+
+        return self._execution_service.execute_order(
+            order_request,
+            execution_context,
+        )
 
     def _resolve_dte(self, name: str) -> int:
         """Approximate calendar days-to-expiry from the weekly expiry weekday.

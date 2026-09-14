@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>OPB — Super Admin User &amp; Signal Permissions</title>
+<title>OPB â€” Super Admin User &amp; Signal Permissions</title>
 <script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
 <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
 <link rel="stylesheet" href="/static/fontawesome.min.css">
@@ -90,10 +90,10 @@
     
     <!-- Super Admin Header Quick Switcher -->
 <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;background:var(--bg-card, #0f172a);border:1px solid var(--border-color, #1e293b);padding:0.4rem 0.6rem;border-radius:0.65rem;flex-wrap:wrap;">
-<span style="font-size:0.75rem;font-weight:800;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.05em;margin-right:0.4rem;padding-left:0.3rem;">⚡ Admin Suite:</span>
-<a class="btn btn-sm btn-ghost" href="/admin/config" style="text-decoration:none;font-weight:700;">⚙️ Configuration Cockpit</a>
-<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">🎯 Signal Accuracy Matrix</a>
-<a class="btn btn-sm btn-ghost" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">💼 Multi-Broker Portfolio</a>
+<span style="font-size:0.75rem;font-weight:800;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.05em;margin-right:0.4rem;padding-left:0.3rem;">&#9889; Admin Suite:</span>
+<a class="btn btn-sm btn-ghost" href="/admin/config" style="text-decoration:none;font-weight:700;">&#9881;&#65039; Configuration Cockpit</a>
+<a class="btn btn-sm btn-ghost" href="/admin/signals" style="text-decoration:none;font-weight:700;">&#127919; Signal Accuracy Matrix</a>
+<a class="btn btn-sm btn-ghost" href="/admin/portfolio-analyzer" style="text-decoration:none;font-weight:700;">&#128188; Multi-Broker Portfolio</a>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
 <div>
@@ -218,9 +218,9 @@
 <div>
 <label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">Minimum Conviction Tier</label>
 <select class="input-field" id="permMinTier">
-<option value="STRONG_ONLY">STRONG ONLY (Score ≥ 80)</option>
-<option value="MODERATE_AND_STRONG">MODERATE &amp; STRONG (Score ≥ 68)</option>
-<option value="ALL">ALL SIGNALS (Exploratory ≥ 50)</option>
+<option value="STRONG_ONLY">STRONG ONLY (Score â‰¥ 80)</option>
+<option value="MODERATE_AND_STRONG">MODERATE &amp; STRONG (Score â‰¥ 68)</option>
+<option value="ALL">ALL SIGNALS (Exploratory â‰¥ 50)</option>
 </select>
 </div>
 <div>
@@ -330,14 +330,24 @@
 </div>
 <div class="toast-container" id="toastContainer"></div>
 <script nonce="{{ nonce }}">
-            } else {
-                input.type = 'password';
-                if (icon) {
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                }
-            }
-        }
+        // Password visibility controls for Create User and Reset Password.
+        document.querySelectorAll('.opb-password-toggle').forEach(button => {
+            button.addEventListener('click', () => {
+                const wrapper = button.closest('.opb-password-wrapper');
+                const input = wrapper
+                    ? wrapper.querySelector('input[type="password"], input[type="text"]')
+                    : null;
+                if (!input) return;
+
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                button.setAttribute(
+                    'aria-label',
+                    showing ? 'Show password' : 'Hide password'
+                );
+            });
+        });
+
 
         let allCategories = [];
         let permissionsList = [];
@@ -483,8 +493,8 @@
 
                 const quotaHtml = `
                     <div style="font-family:monospace;font-size:0.75rem;font-variant-numeric:tabular-nums;line-height:1.35;">
-                        <span title="Daily Quota">D: <b>${u.daily_signals_used}</b> / ${u.max_signals_daily > 0 ? u.max_signals_daily : '∞'}</span><br>
-                        <span style="color:var(--text-muted,#94a3b8);font-size:0.7rem;" title="Weekly, Monthly & Yearly Quotas">W: <b>${u.weekly_signals_used}</b>/${u.max_signals_weekly > 0 ? u.max_signals_weekly : '∞'} | M: <b>${u.monthly_signals_used}</b>/${u.max_signals_monthly > 0 ? u.max_signals_monthly : '∞'} | Y: <b>${u.yearly_signals_used || 0}</b>/${u.max_signals_yearly > 0 ? u.max_signals_yearly : '∞'}</span>
+                        <span title="Daily Quota">D: <b>${u.daily_signals_used}</b> / ${u.max_signals_daily > 0 ? u.max_signals_daily : 'âˆž'}</span><br>
+                        <span style="color:var(--text-muted,#94a3b8);font-size:0.7rem;" title="Weekly, Monthly & Yearly Quotas">W: <b>${u.weekly_signals_used}</b>/${u.max_signals_weekly > 0 ? u.max_signals_weekly : 'âˆž'} | M: <b>${u.monthly_signals_used}</b>/${u.max_signals_monthly > 0 ? u.max_signals_monthly : 'âˆž'} | Y: <b>${u.yearly_signals_used || 0}</b>/${u.max_signals_yearly > 0 ? u.max_signals_yearly : 'âˆž'}</span>
                     </div>
                 `;
 
@@ -496,8 +506,8 @@
                 `;
 
                 const statusBtn = u.signals_enabled
-                    ? `<button type="button" class="badge badge-ok cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-check-circle"></i> ALLOWED</button>`
-                    : `<button type="button" class="badge badge-critical cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-ban"></i> BLOCKED</button>`;
+                    ? `<button type="button" class="badge badge-ok signal-status-btn cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-check-circle"></i> ALLOWED</button>`
+                    : `<button type="button" class="badge badge-critical signal-status-btn cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-ban"></i> BLOCKED</button>`;
 
                 return `<tr>
                     <td style="min-width:130px;">
@@ -689,10 +699,10 @@
             const el = e.target;
             if (!(el instanceof HTMLInputElement)) return;
             if (el.classList.contains('perm-allow') && el.checked) {
-                document.querySelector(`.perm-deny[value=\"${el.value}\"]`)?.click();
+                const deny = document.querySelector(`.perm-deny[value=\"${el.value}\"]`); if (deny) deny.checked = false;
             }
             if (el.classList.contains('perm-deny') && el.checked) {
-                document.querySelector(`.perm-allow[value=\"${el.value}\"]`)?.click();
+                const allow = document.querySelector(`.perm-allow[value=\"${el.value}\"]`); if (allow) allow.checked = false;
             }
         });
 

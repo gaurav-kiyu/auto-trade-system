@@ -689,7 +689,14 @@
                 body: JSON.stringify(changedKeys),
             });
             if (validation && validation.errors && validation.errors.length > 0) {
-                showToast('Validation failed: ' + validation.errors.join(', '), 'error');
+                const messages = validation.errors.map(err => {
+                    if (typeof err === 'string') return err;
+                    if (err && typeof err === 'object') {
+                        return err.message || err.detail || err.error || JSON.stringify(err);
+                    }
+                    return String(err);
+                });
+                showToast('Validation failed: ' + messages.join(', '), 'error');
                 return;
             }
             if (validation && validation.warnings && validation.warnings.length > 0) {

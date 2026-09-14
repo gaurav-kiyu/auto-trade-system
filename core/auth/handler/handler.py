@@ -254,6 +254,7 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
         email: str = "",
         telegram_chat_id: str = "",
         metadata: dict[str, Any] | None = None,
+        disabled: bool = False,
     ) -> dict[str, Any]:
         """Create a new user. Returns result dict."""
         username = username.strip().lower()
@@ -279,9 +280,9 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
                 meta["telegram_chat_id"] = str(telegram_chat_id).strip()
             meta_json = json.dumps(meta)
             conn.execute(
-                "INSERT INTO users (user_id, username, password_hash, role, display_name, created_ts, metadata) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (user_id, username, pwd_hash, role, display_name or username, time.time(), meta_json),
+                "INSERT INTO users (user_id, username, password_hash, role, display_name, created_ts, metadata, disabled) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (user_id, username, pwd_hash, role, display_name or username, time.time(), meta_json, int(disabled)),
             )
             conn.commit()
             self._audit_log("user_created", username, "", {"created_by": created_by, "role": role, "email": email, "telegram_chat_id": telegram_chat_id})

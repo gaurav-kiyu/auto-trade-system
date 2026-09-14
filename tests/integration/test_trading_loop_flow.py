@@ -860,6 +860,7 @@ class TestFullTradingLoopFlow:
         mock_now_ist.return_value = time.time()
 
         sig = {
+            "signal_id": "SIG_REENTRY_TEST_NIFTY_001",
             "signal": "BUY", "direction": "CALL", "score": 85,
             "price": 150.0, "signal_ts": time.time(), "timestamp": time.time(),
             "breakout_ok": True,
@@ -920,6 +921,7 @@ class TestFullTradingLoopFlow:
         log_msg = str(it.decision_log.get("NIFTY", {}).get("msg", ""))
         assert "Executed" in log_msg, \
             f"Expected 'Executed' in decision_log, got: {log_msg}"
+
 
     def test_stub_exports_compatibility(self):
         """Test Phase 14: Verify all stub exports are present and callable.

@@ -25,7 +25,7 @@ Usage example (in index_trader.py)::
         positions_aligned=_session_recovery_report.positions_aligned,
         execution_mode=EXECUTION_MODE,
         config_version=_CFG.get("CONFIG_VERSION"),
-        expected_config_version=1,
+        expected_config_version=None,
     )
     audit.record("startup_checklist", severity="AUDIT",
                  passed=result.passed, checks=result.as_dict())
@@ -90,8 +90,8 @@ def run_startup_checklist(
     data_feed_max_age_sec: float,
     positions_aligned: bool,
     execution_mode: str,
-    config_version: int | None = None,
-    expected_config_version: int | None = None,
+    config_version: str | None = None,
+    expected_config_version: str | None = None,
 ) -> StartupCheckResult:
     """Evaluate all pre-session safety checks and return a structured result.
 

@@ -27,7 +27,7 @@ def create_market_data_adapter(provider_type: str, config: dict[str, Any]) -> Ma
     """Create a market data adapter instance based on provider type.
 
     Args:
-        provider_type: One of YFINANCE, NSE_EQUITY, MCX_COMMODITY, CDS_CURRENCY, WEBSOCKET.
+        provider_type: One of YFINANCE, NSE, NSE_EQUITY, MCX_COMMODITY, CDS_CURRENCY, WEBSOCKET.
         config: Configuration dictionary for the provider.
 
     Returns:
@@ -41,6 +41,8 @@ def create_market_data_adapter(provider_type: str, config: dict[str, Any]) -> Ma
 
     if pt == "YFINANCE":
         return _create_yfinance_adapter(config)
+    elif pt == "NSE":
+        return _create_nse_adapter(config)
     elif pt == "NSE_EQUITY":
         return _create_nse_equity_adapter(config)
     elif pt == "MCX_COMMODITY":
@@ -86,12 +88,30 @@ def register_multi_asset_adapters(container_instance: Any) -> None:
 
 
 def _create_yfinance_adapter(config: dict[str, Any]) -> MarketDataPort:
-    """Create a Yahoo Finance market data adapter (index focus)."""
+    """Create the concrete Yahoo Finance MarketDataPort adapter."""
     try:
-        from core.data_engine import DataEngine
-        return DataEngine(config)  # type: ignore[return-value]
-    except (ImportError, TypeError) as e:
+        from infrastructure.adapters.market_data.yahoofinance.adapter import YahooFinanceAdapter
+        return YahooFinanceAdapter(
+            enable_rate_limit=bool(config.get("yfinance_enable_rate_limit", True)),
+            max_retries=int(config.get("yfinance_max_retries", 3)),
+            requests_per_second=float(config.get("yfinance_requests_per_second", 2.0)),
+        )
+    except (ImportError, TypeError, ValueError) as e:
         raise NotImplementedError(f"YFinance adapter creation failed: {e}") from e
+
+
+def _create_nse_adapter(config: dict[str, Any]) -> MarketDataPort:
+    """Create the generic NSE adapter used for exchange option-chain/OI data."""
+    try:
+        from infrastructure.adapters.market_data.nse.adapter import NSEAdapter
+        return NSEAdapter(
+            enable_rate_limit=bool(config.get("nse_enable_rate_limit", True)),
+            max_retries=int(config.get("nse_max_retries", 2)),
+            requests_per_second=float(config.get("nse_requests_per_second", 0.5)),
+            use_nsepython=bool(config.get("nse_use_nsepython", True)),
+        )
+    except (ImportError, TypeError, ValueError) as e:
+        raise NotImplementedError(f"NSE adapter creation failed: {e}") from e
 
 
 def _create_nse_equity_adapter(config: dict[str, Any]) -> MarketDataPort:

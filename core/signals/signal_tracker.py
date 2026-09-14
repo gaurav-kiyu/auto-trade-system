@@ -417,6 +417,46 @@ class SignalTracker:
             finally:
                 conn.close()
 
+    def get_active_signal_id(
+        self, opportunity_key: str, cooldown_secs: int = 900
+    ) -> str:
+        """Return existing active/recent signal_id for opportunity_key, or empty string."""
+        with self._io_lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    """SELECT signal_id FROM system_signals
+                       WHERE opportunity_key = ? AND status = 'ACTIVE'
+                       ORDER BY timestamp DESC LIMIT 1""",
+                    (opportunity_key,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    cutoff = (now_ist() - timedelta(seconds=max(0, cooldown_secs))).strftime("%Y-%m-%d %H:%M:%S")
+                    cur.execute(
+                        """SELECT signal_id FROM system_signals
+                           WHERE opportunity_key = ? AND timestamp >= ?
+                           ORDER BY timestamp DESC LIMIT 1""",
+                        (opportunity_key, cutoff),
+                    )
+                    row = cur.fetchone()
+                if not row and "|" in str(opportunity_key):
+                    sym = str(opportunity_key).split("|")[0].strip().upper()
+                    if sym:
+                        cur.execute(
+                            """SELECT signal_id FROM system_signals
+                               WHERE symbol = ? AND status = 'ACTIVE'
+                               ORDER BY timestamp DESC LIMIT 1""",
+                            (sym,),
+                        )
+                        row = cur.fetchone()
+                return str(row["signal_id"] or "").strip() if row else ""
+            except Exception:
+                return ""
+            finally:
+                conn.close()
+
     def count_generated_today(self) -> int:
         """Return the number of real generated signals for the current IST date."""
         with self._io_lock:

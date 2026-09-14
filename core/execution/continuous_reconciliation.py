@@ -99,11 +99,19 @@ class ContinuousReconciliation:
         log.info(f"Continuous reconciliation started (active={self._active_interval_seconds}s, idle={self._idle_interval_seconds}s)")
 
     def stop(self) -> None:
-        """Stop the reconciliation thread."""
+        """Stop the reconciliation thread and release the singleton instance."""
+        global _continuous_reconciliation
+
         self._running = False
         self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=5)
+
+        # Only clear the singleton if it still points to this service.
+        # This preserves a newer service if one was created concurrently.
+        if _continuous_reconciliation is self:
+            _continuous_reconciliation = None
+
         log.info("Continuous reconciliation stopped")
 
     def _run_loop(self) -> None:

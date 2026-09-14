@@ -1,21 +1,39 @@
 """
+
 Tests for core/services/risk_service.py - Risk Service Implementation.
 
+
+
 Covers:
+
   - RiskServiceConfig defaults and custom config
+
   - RiskService initialization with dependency injection
+
   - evaluate_trade - full lifecycle with all risk checks
+
   - calculate_position_size with volatility adjustments
+
   - validate_margin_requirements
+
   - get_portfolio_risk_metrics with drawdown tracking
+
   - update_position / remove_position lifecycle
+
   - reset_daily_metrics and loss counter reset
+
   - health_check
+
   - Trading policy gates (window, first 20m, last 45m)
+
   - Greeks limits check
+
   - Trade quality checks
+
   - Error handling
+
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -38,1003 +56,2433 @@ from core.services.risk_service import (
 # ── Fixtures ─────────────────────────────────────────────────────────
 
 
+
+
+
 @pytest.fixture(autouse=True)
+
 def _reset_safety_state() -> None:
+
     """Reset safety state between tests."""
+
     _HARD_HALT.clear()
+
     reset_consecutive_losses()
 
 
+
+
+
 @pytest.fixture()
+
 def default_config() -> RiskServiceConfig:
+
     return RiskServiceConfig()
 
 
+
+
+
 @pytest.fixture()
+
 def risk_service() -> RiskService:
+
     """RiskService with all default injected functions."""
+
     return RiskService(
+
         get_capital_fn=lambda: 100000.0,
+
         get_open_positions_fn=lambda: 0,
+
         get_daily_pnl_fn=lambda: 0.0,
+
         get_volatility_fn=lambda s: 20.0,
+
         get_margin_fn=lambda s, q: 5000.0,
+
         get_live_vix_fn=lambda: 20.0,
+
     )
 
 
+
+
+
 def _sample_signal(**overrides: Any) -> dict[str, Any]:
+
     """Create a sample signal dict for testing."""
+
     data = {
+
         "direction": "CALL",
+
         "price": 23500.0,
+
         "stop_loss": 23450.0,
+
         "target": 23600.0,
+
         "strength": 80,
+
         "volume_ratio": 1.5,
+
         "spread_pct": 0.5,
+
         "quantity": 1,
+
         "stop_loss_pct": 0.02,
+
     }
+
     data.update(overrides)
+
     return data
 
 
+
+
+
 def _sample_metrics(**overrides: Any) -> PortfolioRiskMetrics:
+
     """Create sample portfolio metrics for testing."""
+
     data = {
+
         "total_capital": 100000.0,
+
         "used_capital": 0.0,
+
         "available_capital": 100000.0,
+
         "daily_pnl": 0.0,
+
         "max_daily_loss": -2000.0,
+
         "current_drawdown": 0.0,
+
         "max_drawdown": 0.0,
+
         "open_positions_count": 0,
+
         "max_open_positions": 1,
+
         "consecutive_losses": 0,
+
         "max_consecutive_losses": 3,
+
         "sector_exposure": {},
+
         "symbol_exposure": {},
+
     }
+
     data.update(overrides)
+
     return PortfolioRiskMetrics(**data)
+
+
+
 
 
 # ── RiskServiceConfig ────────────────────────────────────────────────
 
 
+
+
+
+class TestUpdateRiskLimitBoundaries:
+
+    def test_update_risk_limit_exact_minimum_is_allowed(
+
+        self, risk_service: RiskService
+
+    ) -> None:
+
+        previous, updated = risk_service.update_risk_limit(
+
+            "MAX_CONSECUTIVE_LOSSES", 1
+
+        )
+
+
+
+        assert updated == 1
+
+        assert previous == 3
+
+        assert risk_service.config.max_consecutive_losses == 1
+
+
+
+    def test_update_risk_limit_below_minimum_is_rejected_without_mutation(
+
+        self, risk_service: RiskService
+
+    ) -> None:
+
+        original = risk_service.config.max_consecutive_losses
+
+
+
+        with pytest.raises(ValueError, match="MAX_CONSECUTIVE_LOSSES"):
+
+            risk_service.update_risk_limit("MAX_CONSECUTIVE_LOSSES", 0)
+
+
+
+        assert risk_service.config.max_consecutive_losses == original
+
+
+
+    def test_update_risk_limit_exact_maximum_is_allowed(
+
+        self, risk_service: RiskService
+
+    ) -> None:
+
+        previous, updated = risk_service.update_risk_limit(
+
+            "MAX_PORTFOLIO_RISK", 1.0
+
+        )
+
+
+
+        assert updated == pytest.approx(1.0)
+
+        assert previous == pytest.approx(0.25)
+
+        assert risk_service.config.max_portfolio_risk == pytest.approx(1.0)
+
+
+
+    def test_update_risk_limit_above_maximum_is_rejected_without_mutation(
+
+        self, risk_service: RiskService
+
+    ) -> None:
+
+        original = risk_service.config.max_portfolio_risk
+
+
+
+        with pytest.raises(ValueError, match="MAX_PORTFOLIO_RISK"):
+
+            risk_service.update_risk_limit("MAX_PORTFOLIO_RISK", 1.000001)
+
+
+
+        assert risk_service.config.max_portfolio_risk == original
+
+
+
+
+
 class TestRiskServiceConfig:
+
     def test_default_values(self) -> None:
+
         cfg = RiskServiceConfig()
+
         assert cfg.default_risk_per_trade == 0.02
+
         assert cfg.max_risk_per_trade == 0.05
+
         assert cfg.max_daily_loss == -2000.0
+
         assert cfg.max_daily_trades == 10
+
         assert cfg.max_open_positions == 1
+
         assert cfg.max_portfolio_risk == 0.25
 
+
+
     def test_custom_values(self) -> None:
+
         cfg = RiskServiceConfig(
+
             default_risk_per_trade=0.01,
+
             max_daily_loss=-5000.0,
+
             max_open_positions=3,
+
         )
+
         assert cfg.default_risk_per_trade == 0.01
+
         assert cfg.max_daily_loss == -5000.0
+
         assert cfg.max_open_positions == 3
+
+
+
 
 
 # ── RiskService Initialization ───────────────────────────────────────
 
 
+
+
+
 class TestInit:
+
     def test_default_construction(self) -> None:
+
         service = RiskService()
+
         assert service.config.default_risk_per_trade == 0.02
+
         assert service._get_capital() == 100000.0
 
+
+
     def test_custom_config(self, default_config: RiskServiceConfig) -> None:
+
         default_config.max_daily_loss = -10000.0
+
         service = RiskService(config=default_config)
+
         assert service.config.max_daily_loss == -10000.0
 
+
+
     def test_injection_callables(self) -> None:
+
         capital: list[float] = [50000.0]
 
+
+
         def get_cap() -> float:
+
             return capital[0]
 
+
+
         service = RiskService(get_capital_fn=get_cap)
+
         assert service._get_capital() == 50000.0
 
+
+
     def test_greeks_engine_lazy_init(self, risk_service: RiskService) -> None:
+
         assert risk_service._greeks_engine is None
+
         # Accessing through evaluate_trade should init it
+
         risk_service._check_greeks_limits(
+
             "NIFTY", _sample_signal(), _sample_metrics()
+
         )
+
         assert risk_service._greeks_engine is not None
+
+
+
 
 
 # ── evaluate_trade ──────────────────────────────────────────────────
 
 
+
+
+
 class TestEvaluateTrade:
+
     def test_allows_valid_trade(self, risk_service: RiskService) -> None:
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(), _sample_metrics())
+
         assert result.decision == RiskDecision.ALLOWED
+
         assert result.recommended_position_size > 0
 
+
+
     def test_denied_missing_direction(self, risk_service: RiskService) -> None:
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(direction=""), _sample_metrics())
+
         assert result.decision == RiskDecision.DENIED
+
+
 
     def test_denied_missing_price(self, risk_service: RiskService) -> None:
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(price=0), _sample_metrics())
+
         assert result.decision == RiskDecision.DENIED
+
+
 
     def test_denied_daily_loss_limit(self, risk_service: RiskService) -> None:
+
         metrics = _sample_metrics(daily_pnl=-2500.0)
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(), metrics)
+
         assert result.decision == RiskDecision.DENIED
+
         assert "daily loss limit" in result.reason.lower()
+
         assert is_hard_halted()
 
+
+
     def test_denied_consecutive_losses(self, risk_service: RiskService) -> None:
+
         metrics = _sample_metrics(consecutive_losses=3)
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(), metrics)
+
         assert result.decision == RiskDecision.DENIED
+
         assert "consecutive loss limit" in result.reason.lower()
 
+
+
     def test_denied_max_open_positions(self, risk_service: RiskService) -> None:
+
         metrics = _sample_metrics(open_positions_count=1)
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(), metrics)
+
         assert result.decision == RiskDecision.DENIED
+
         assert "maximum open positions" in result.reason.lower()
 
+
+
     def test_denied_low_volume(self, risk_service: RiskService) -> None:
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(volume_ratio=0.1), _sample_metrics())
+
         assert result.decision == RiskDecision.DENIED
+
         assert "volume" in result.reason.lower()
 
+
+
     def test_denied_excessive_spread(self, risk_service: RiskService) -> None:
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(spread_pct=5.0), _sample_metrics())
+
         assert result.decision == RiskDecision.DENIED
+
         assert "spread" in result.reason.lower()
 
+
+
     def test_returns_risk_score(self, risk_service: RiskService) -> None:
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(), _sample_metrics())
+
         assert 0.0 <= result.risk_score <= 1.0
 
+
+
     def test_allows_trade_with_no_entries_recorded_yet(self, risk_service: RiskService) -> None:
+
         """Regression guard: a fresh service (0 recorded entries) must not deny."""
+
         assert risk_service.get_trades_today() == 0
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(), _sample_metrics())
+
         assert result.decision == RiskDecision.ALLOWED
+
+
 
     def test_denied_daily_trade_count_limit(self, risk_service: RiskService) -> None:
+
         """MAX_TRADES_DAY must actually be enforced, not just threaded through config."""
+
         for _ in range(risk_service.config.max_daily_trades):
+
             risk_service.record_trade_entry("NIFTY")
+
         assert risk_service.get_trades_today() == risk_service.config.max_daily_trades
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(), _sample_metrics())
+
         assert result.decision == RiskDecision.DENIED
+
         assert "daily trade count" in result.reason.lower()
 
+
+
     def test_daily_trade_count_below_limit_allows(self, risk_service: RiskService) -> None:
+
         for _ in range(risk_service.config.max_daily_trades - 1):
+
             risk_service.record_trade_entry("NIFTY")
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(), _sample_metrics())
+
         assert result.decision == RiskDecision.ALLOWED
 
+
+
     def test_reset_daily_metrics_clears_trade_entry_count(self, risk_service: RiskService) -> None:
+
         from datetime import timedelta
 
+
+
         yesterday = now_ist() - timedelta(days=1)
+
         risk_service._trade_entry_times = [yesterday] * risk_service.config.max_daily_trades
+
         risk_service.reset_daily_metrics()
+
         assert risk_service.get_trades_today() == 0
+
+
+
 
 
 # ── calculate_position_size ─────────────────────────────────────────
 
 
+
+
+
 class TestCalculatePositionSize:
+
     def test_returns_positive_size(self, risk_service: RiskService) -> None:
+
         sizing = PositionSizingInput(
+
             symbol="NIFTY", entry_price=23500.0, stop_loss_price=23450.0,
+
             capital_available=100000.0, risk_per_trade=0.02, lot_size=50,
+
             volatility=20.0, existing_exposure=0.0,
+
         )
+
         size = risk_service.calculate_position_size(sizing)
+
         assert size > 0
 
+
+
     def test_zero_on_invalid_stop(self, risk_service: RiskService) -> None:
+
         sizing = PositionSizingInput(
+
             symbol="NIFTY", entry_price=23500.0, stop_loss_price=0,
+
             capital_available=100000.0, risk_per_trade=0.02, lot_size=50,
+
             volatility=20.0, existing_exposure=0.0,
+
         )
+
         assert risk_service.calculate_position_size(sizing) == 0
+
+
 
     def test_zero_on_matching_price(self, risk_service: RiskService) -> None:
+
         sizing = PositionSizingInput(
+
             symbol="NIFTY", entry_price=23500.0, stop_loss_price=23500.0,
+
             capital_available=100000.0, risk_per_trade=0.02, lot_size=50,
+
             volatility=20.0, existing_exposure=0.0,
+
         )
+
         assert risk_service.calculate_position_size(sizing) == 0
 
+
+
     def test_volatility_reduces_size(self, risk_service: RiskService) -> None:
+
         low_vol = PositionSizingInput(
+
             symbol="NIFTY", entry_price=23500.0, stop_loss_price=23450.0,
+
             capital_available=100000.0, risk_per_trade=0.02, lot_size=50,
+
             volatility=12.0, existing_exposure=0.0,
+
         )
+
         high_vol = PositionSizingInput(
+
             symbol="NIFTY", entry_price=23500.0, stop_loss_price=23450.0,
+
             capital_available=100000.0, risk_per_trade=0.02, lot_size=50,
+
             volatility=40.0, existing_exposure=0.0,
+
         )
+
         low_size = risk_service.calculate_position_size(low_vol)
+
         high_size = risk_service.calculate_position_size(high_vol)
+
         # Low volatility should have higher size (1.2x multiplier)
+
         # High volatility should have lower size (0.6x multiplier)
+
         if low_size > 0 and high_size > 0:
+
             assert low_size >= high_size
 
+
+
     def test_minimum_size_one(self, risk_service: RiskService) -> None:
+
         sizing = PositionSizingInput(
+
             symbol="NIFTY", entry_price=23500.0, stop_loss_price=100.0,
+
             capital_available=1000.0, risk_per_trade=0.02, lot_size=50,
+
             volatility=20.0, existing_exposure=0.0,
+
         )
+
         # Very tight stop should still give minimum size
+
         size = risk_service.calculate_position_size(sizing)
+
         assert size >= 0
+
+
+
 
 
 # ── validate_margin_requirements ────────────────────────────────────
 
 
+
+
+
 class TestValidateMargin:
+
     def test_zero_quantity_returns_true(self, risk_service: RiskService) -> None:
+
         assert risk_service.validate_margin_requirements("NIFTY", 0, 100000.0)
 
+
+
     def test_sufficient_margin(self, risk_service: RiskService) -> None:
+
         assert risk_service.validate_margin_requirements("NIFTY", 1, 100000.0)
 
+
+
     def test_insufficient_margin(self, risk_service: RiskService) -> None:
+
         service = RiskService(
+
             get_margin_fn=lambda s, q: 1000000.0,  # Very high margin
+
             get_capital_fn=lambda: 100000.0,
+
         )
+
         assert not service.validate_margin_requirements("NIFTY", 5, 100000.0)
 
+
+
     def test_margin_error_fails_safe(self, risk_service: RiskService) -> None:
+
         service = RiskService(
+
             get_margin_fn=lambda s, q: (_ for _ in ()).throw(TypeError("bad type")),
+
         )
+
         assert not service.validate_margin_requirements("NIFTY", 1, 100000.0)
+
+
+
 
 
 # ── get_portfolio_risk_metrics ──────────────────────────────────────
 
 
+
+
+
 class TestPortfolioRiskMetrics:
+
     def test_returns_valid_metrics(self, risk_service: RiskService) -> None:
+
         metrics = risk_service.get_portfolio_risk_metrics()
+
         assert metrics.total_capital == 100000.0
+
         assert metrics.available_capital == 100000.0
+
         assert metrics.open_positions_count == 0
 
+
+
     def test_tracks_drawdown(self, risk_service: RiskService) -> None:
+
         # Initially zero
+
         m1 = risk_service.get_portfolio_risk_metrics()
+
         assert m1.current_drawdown == 0.0
 
+
+
     def test_drawdown_updates(self, risk_service: RiskService) -> None:
+
         # Set peak P&L by calling with high daily P&L
+
         service = RiskService(
+
             get_daily_pnl_fn=lambda: 1000.0,
+
             get_capital_fn=lambda: 100000.0,
+
         )
+
         service.get_portfolio_risk_metrics()
+
         # Now simulate drop
+
         service._get_daily_pnl = lambda: 500.0
+
         m2 = service.get_portfolio_risk_metrics()
+
         assert m2.current_drawdown >= 0.0
+
         if m2.max_drawdown > 0:
+
             assert m2.daily_pnl == 500.0
 
+
+
     def test_consecutive_losses_from_safety(self, risk_service: RiskService) -> None:
+
         from core.safety_state import record_trade_outcome
+
         record_trade_outcome(was_profit=False)
+
         record_trade_outcome(was_profit=False)
+
         metrics = risk_service.get_portfolio_risk_metrics()
+
         assert metrics.consecutive_losses >= 2
+
+
+
 
 
 # ── update_position / remove_position ───────────────────────────────
 
 
+
+
+
 class TestPositionLifecycle:
+
     def test_add_position(self, risk_service: RiskService) -> None:
+
         risk_service.update_position("NIFTY", 1, 23500.0, now_ist())
+
         assert "NIFTY" in risk_service._positions
+
         assert risk_service._positions["NIFTY"]["quantity"] == 1
 
+
+
     def test_add_position_uses_default_greeks(self, risk_service: RiskService) -> None:
+
         risk_service.update_position("NIFTY", 1, 23500.0, now_ist())
+
         pos = risk_service._positions["NIFTY"]
+
         assert pos["option_type"] == "CE"
+
         assert pos["tte_days"] == 3.0
+
         assert pos["iv"] == 0.15
 
+
+
     def test_add_position_with_option_type(self, risk_service: RiskService) -> None:
+
         risk_service.update_position("NIFTY", 1, 23500.0, now_ist(), option_type="PE")
+
         assert risk_service._positions["NIFTY"]["option_type"] == "PE"
 
+
+
     def test_zero_quantity_removes_position(self, risk_service: RiskService) -> None:
+
         risk_service.update_position("NIFTY", 1, 23500.0, now_ist())
+
         risk_service.update_position("NIFTY", 0, 0.0, now_ist())
+
         assert "NIFTY" not in risk_service._positions
+
+
 
     def test_remove_position(self, risk_service: RiskService) -> None:
+
         risk_service.update_position("NIFTY", 1, 23500.0, now_ist())
+
         risk_service.remove_position("NIFTY")
+
         assert "NIFTY" not in risk_service._positions
 
+
+
     def test_remove_nonexistent_position(self, risk_service: RiskService) -> None:
+
         risk_service.remove_position("BANKNIFTY")  # Should not raise
 
+
+
     def test_multiple_positions(self, risk_service: RiskService) -> None:
+
         risk_service.update_position("NIFTY", 1, 23500.0, now_ist())
+
         risk_service.update_position("BANKNIFTY", 2, 50000.0, now_ist())
+
         assert len(risk_service._positions) == 2
+
         metrics = risk_service.get_portfolio_risk_metrics()
+
         assert metrics.symbol_exposure.get("NIFTY", 0.0) > 0
+
+
+
 
 
 # ── reset_daily_metrics ─────────────────────────────────────────────
 
 
+
+
+
 class TestResetDailyMetrics:
+
     def test_reset_does_not_crash(self, risk_service: RiskService) -> None:
+
         risk_service.reset_daily_metrics()
 
+
+
     def test_reset_preserves_peak_pnl(self, risk_service: RiskService) -> None:
+
         service = RiskService(
+
             get_daily_pnl_fn=lambda: 1000.0,
+
             get_capital_fn=lambda: 100000.0,
+
         )
+
         service.get_portfolio_risk_metrics()  # Sets peak
+
         service.reset_daily_metrics()
+
         # After reset, peak should be 0
+
         assert service._peak_pnl == 0.0
+
+
+
 
 
 # ── Trading Policy Gates ────────────────────────────────────────────
 
 
+
+
+
 class TestTradingPolicyGates:
+
     def test_is_in_trading_window(self, risk_service: RiskService) -> None:
+
         # Morning window: 9:20-11:30 IST
+
         # Afternoon window: 13:00-14:45 IST
+
         result = risk_service.is_in_trading_window()
+
         # Result depends on current time - just verify it returns bool
+
         assert isinstance(result, bool)
+
+
 
     def test_should_skip_first_20_min(self, risk_service: RiskService) -> None:
+
         # First 20 min after 9:20 is 9:20-9:40
+
         result = risk_service.should_skip_first_20_min()
+
         assert isinstance(result, bool)
+
+
 
     def test_should_skip_last_45_min(self, risk_service: RiskService) -> None:
+
         # Last 45 min before 15:20 is 14:35-15:20
+
         result = risk_service.should_skip_last_45_min()
+
         assert isinstance(result, bool)
 
+
+
     def test_get_min_score_for_regime(self, risk_service: RiskService) -> None:
+
         assert risk_service.get_min_score_for_regime("TRENDING") == 68
+
         assert risk_service.get_min_score_for_regime("NEUTRAL") == 73
+
         assert risk_service.get_min_score_for_regime("CHOPPY") == 78
+
         assert risk_service.get_min_score_for_regime("UNKNOWN") == 73
 
+
+
     def test_should_block_false_signal(self, risk_service: RiskService) -> None:
+
         assert risk_service.should_block_false_signal(80, 30)
+
         assert not risk_service.should_block_false_signal(70, 20)
+
         assert not risk_service.should_block_false_signal(80, 20)  # Low IV
 
+
+
     def test_get_max_trades_per_day(self, risk_service: RiskService) -> None:
+
         assert risk_service.get_max_trades_per_day(vix=15, consecutive_losses=0) == 4
+
         assert risk_service.get_max_trades_per_day(vix=22, consecutive_losses=0) == 2
+
         assert risk_service.get_max_trades_per_day(vix=30, consecutive_losses=0) == 1
+
         assert risk_service.get_max_trades_per_day(vix=15, consecutive_losses=2) == 1
+
+
+
 
 
 # ── Greeks Limits Check ─────────────────────────────────────────────
 
 
+
+
+
 class TestGreeksCheck:
+
     def test_greeks_check_allows_valid(self, risk_service: RiskService) -> None:
+
         result = risk_service._check_greeks_limits("NIFTY", _sample_signal(), _sample_metrics())
+
         assert result.decision == RiskDecision.ALLOWED
+
+
 
     def test_greeks_check_skips_missing_direction(self, risk_service: RiskService) -> None:
+
         result = risk_service._check_greeks_limits("NIFTY", _sample_signal(direction=""), _sample_metrics())
+
         assert result.decision == RiskDecision.ALLOWED
+
         assert "skipped" in result.reason.lower()
 
+
+
     def test_greeks_check_skips_unknown_type(self, risk_service: RiskService) -> None:
+
         result = risk_service._check_greeks_limits("NIFTY", _sample_signal(direction="OTHER"), _sample_metrics())
+
         assert result.decision == RiskDecision.ALLOWED
+
         assert "unknown" in result.reason.lower()
 
+
+
     def test_greeks_check_with_existing_positions(self, risk_service: RiskService) -> None:
+
         risk_service.update_position("BANKNIFTY", 1, 50000.0, now_ist(), option_type="PE")
+
         result = risk_service._check_greeks_limits("NIFTY", _sample_signal(), _sample_metrics())
+
         assert result.decision in (RiskDecision.ALLOWED, RiskDecision.DENIED)
+
+
+
+    def test_greeks_existing_position_preserves_signed_direction_and_option_type(
+
+        self, risk_service: RiskService
+
+    ) -> None:
+
+        class CaptureEngine:
+
+            class _Result:
+
+                class _Status:
+
+                    value = "ALLOW"
+
+
+
+                status = _Status()
+
+                reasons: list[str] = []
+
+
+
+            def __init__(self) -> None:
+
+                self.proposed = None
+
+                self.existing = None
+
+
+
+            def check_pre_trade_greeks(self, proposed, existing):
+
+                self.proposed = proposed
+
+                self.existing = existing
+
+                return self._Result()
+
+
+
+        engine = CaptureEngine()
+
+        risk_service._greeks_engine = engine
+
+        risk_service.update_position(
+
+            "BANKNIFTY", -2, 50000.0, now_ist(), option_type="CE"
+
+        )
+
+
+
+        result = risk_service._check_greeks_limits(
+
+            "NIFTY", _sample_signal(), _sample_metrics()
+
+        )
+
+
+
+        assert result.decision == RiskDecision.ALLOWED
+
+        assert len(engine.existing) == 1
+
+        existing = engine.existing[0]
+
+        assert existing.direction == "SHORT"
+
+        assert existing.option_type.value == "CE"
+
+        assert existing.quantity_lots == 2
+
+
+
 
 
 # ── Health Check ────────────────────────────────────────────────────
 
 
+
+
+
 class TestHealthCheck:
+
     def test_health_check_returns_healthy(self, risk_service: RiskService) -> None:
+
         result = risk_service.health_check()
+
         assert result["status"] == "healthy"
+
         assert result["service"] == "RiskService"
 
+
+
     def test_health_check_has_config(self, risk_service: RiskService) -> None:
+
         result = risk_service.health_check()
+
         assert "config" in result
+
         assert result["config"]["max_daily_loss"] == -2000.0
 
+
+
     def test_health_check_has_metrics(self, risk_service: RiskService) -> None:
+
         result = risk_service.health_check()
+
         assert "metrics" in result
+
         assert result["metrics"]["capital"] == 100000.0
 
+
+
     def test_health_check_unhealthy_on_error(self) -> None:
+
         def bad_capital() -> float:
+
             raise ValueError("Capital unavailable")
 
+
+
         service = RiskService(get_capital_fn=bad_capital)
+
         result = service.health_check()
+
         assert result["status"] == "unhealthy"
+
+
+
 
 
 # ── Helper: Lot Size ────────────────────────────────────────────────
 
 
+
+
+
 class TestLotSize:
+
     def test_nifty_lot_size(self, risk_service: RiskService) -> None:
+
         assert risk_service._get_lot_size("NIFTY") == 50
 
+
+
     def test_banknifty_lot_size(self, risk_service: RiskService) -> None:
+
         assert risk_service._get_lot_size("BANKNIFTY") == 15
 
+
+
     def test_unknown_symbol_default(self, risk_service: RiskService) -> None:
+
         assert risk_service._get_lot_size("UNKNOWN") == 50
 
+
+
     def test_finnifty_lot_size(self, risk_service: RiskService) -> None:
+
         assert risk_service._get_lot_size("FINNIFTY") == 40
+
+
+
 
 
 # ── Helper: Volatility Multiplier ───────────────────────────────────
 
 
+
+
+
 class TestVolatilityMultiplier:
+
     def test_low_volatility_increases_size(self, risk_service: RiskService) -> None:
+
         mult = risk_service._get_volatility_multiplier(12.0)
+
         assert mult == 1.2
 
+
+
     def test_high_volatility_decreases_size(self, risk_service: RiskService) -> None:
+
         mult = risk_service._get_volatility_multiplier(40.0)
+
         assert mult == 0.6
 
+
+
     def test_mid_volatility_interpolates(self, risk_service: RiskService) -> None:
+
         mult_low = risk_service._get_volatility_multiplier(15.0)
+
         mult_high = risk_service._get_volatility_multiplier(35.0)
+
         mid = risk_service._get_volatility_multiplier(25.0)
+
         # Linear interpolation between 1.2 and 0.6
+
         assert mult_low == 1.2
+
         assert mid > 0.6 and mid < 1.2
+
         assert mult_high == 0.6
 
+
+
     def test_mid_calculation(self, risk_service: RiskService) -> None:
+
         # At threshold_low=15, mult=1.2
+
         # At threshold_high=35, mult=0.6
+
         # At 25: ratio=(25-15)/(35-15)=0.5, mult=1.2+0.5*(0.6-1.2)=1.2-0.3=0.9
+
         mult = risk_service._get_volatility_multiplier(25.0)
+
         assert mult == pytest.approx(0.9, abs=1e-10)
+
+
+
 
 
 # ── Helper: Risk Score Calculation ──────────────────────────────────
 
 
+
+
+
 class TestRiskScore:
+
     def test_risk_score_in_range(self, risk_service: RiskService) -> None:
+
         score = risk_service._calculate_risk_score("NIFTY", _sample_signal(), _sample_metrics())
+
         assert 0.0 <= score <= 1.0
 
+
+
     def test_risk_score_lower_for_strong_signal(self, risk_service: RiskService) -> None:
+
         weak = risk_service._calculate_risk_score("NIFTY", _sample_signal(strength=30), _sample_metrics())
+
         strong = risk_service._calculate_risk_score("NIFTY", _sample_signal(strength=90), _sample_metrics())
+
         assert weak >= strong
 
+
+
     def test_risk_score_higher_with_loss_usage(self, risk_service: RiskService) -> None:
+
         metrics_near_loss = _sample_metrics(daily_pnl=-1500.0)
+
         metrics_flat = _sample_metrics(daily_pnl=0.0)
+
         score1 = risk_service._calculate_risk_score("NIFTY", _sample_signal(price=23500.0, stop_loss=23450.0), metrics_near_loss)
+
         score2 = risk_service._calculate_risk_score("NIFTY", _sample_signal(price=23500.0, stop_loss=23450.0), metrics_flat)
+
         assert score1 >= score2
+
+
+
 
 
 # ── Margin Check Inside evaluate_trade ──────────────────────────────
 
 
+
+
+
 class TestMarginCheck:
+
     def test_insufficient_margin_denies(self) -> None:
+
         service = RiskService(
+
             get_margin_fn=lambda s, q: 200000.0,  # Very high margin needed
+
             get_capital_fn=lambda: 100000.0,
+
             get_open_positions_fn=lambda: 0,
+
             get_daily_pnl_fn=lambda: 0.0,
+
             get_volatility_fn=lambda s: 20.0,
+
             get_live_vix_fn=lambda: 20.0,
+
         )
+
         signal = _sample_signal(price=23500.0, stop_loss=23450.0)
+
         result = service.evaluate_trade("NIFTY", signal, _sample_metrics())
+
         assert result.decision in (RiskDecision.ALLOWED, RiskDecision.DENIED)
+
+
+
 
 
 # ── Error Handling ──────────────────────────────────────────────────
 
 
+
+
+
 class TestErrorHandling:
+
     def test_get_portfolio_metrics_error_safe(self) -> None:
+
         def bad_capital() -> float:
+
             raise KeyError("Missing capital data")
 
+
+
         service = RiskService(get_capital_fn=bad_capital)
+
         metrics = service.get_portfolio_risk_metrics()
+
         # Fail-closed: returns metrics that block trading
+
         assert metrics.available_capital == 0.0
+
         assert metrics.open_positions_count == 999
 
+
+
     def test_evaluate_trade_handles_exception(self) -> None:
+
         def bad_volatility(symbol: str) -> float:
+
             raise TypeError("Volatility unavailable")
 
+
+
         service = RiskService(
+
             get_volatility_fn=bad_volatility,
+
             get_capital_fn=lambda: 100000.0,
+
             get_open_positions_fn=lambda: 0,
+
             get_daily_pnl_fn=lambda: 0.0,
+
             get_margin_fn=lambda s, q: 5000.0,
+
             get_live_vix_fn=lambda: 20.0,
+
         )
+
         result = service.evaluate_trade("NIFTY", _sample_signal(), _sample_metrics())
+
         # Should handle gracefully and return denied
+
         assert result.decision == RiskDecision.DENIED
 
+
+
     def test_health_check_error(self) -> None:
+
         def bad_open() -> int:
+
             raise TypeError("Bad type")
 
+
+
         service = RiskService(get_open_positions_fn=bad_open)
+
         result = service.health_check()
+
         assert result["status"] == "unhealthy"
+
+
+
 
 
 # ── Live VIX ────────────────────────────────────────────────────────
 
 
+
+
+
 class TestLiveVIX:
+
     def test_get_live_vix_returns_value(self, risk_service: RiskService) -> None:
+
         vix = risk_service.get_live_vix()
+
         assert vix == 20.0
+
+
 
     def test_get_live_vix_fallback_on_error(self) -> None:
+
         def bad_vix() -> float:
+
             raise OSError("Connection failed")
 
+
+
         service = RiskService(get_live_vix_fn=bad_vix)
+
         vix = service.get_live_vix()
+
         assert vix == 20.0
 
+
+
+    def test_get_live_vix_rejects_negative_value(self) -> None:
+
+        service = RiskService(get_live_vix_fn=lambda: -5.0)
+
+        assert service._lazy_vix_getter() == 20.0
+
+
+
+    def test_get_live_vix_zero_primary_uses_positive_iv_rank_fallback(
+
+        self, monkeypatch: pytest.MonkeyPatch
+
+    ) -> None:
+
+        import core.iv_rank as iv_rank
+
+
+
+        class VixSource:
+
+            _vix = 17.5
+
+
+
+        monkeypatch.setattr(iv_rank, "get_iv_rank", lambda: VixSource())
+
+        service = RiskService(get_live_vix_fn=lambda: 0.0)
+
+
+
+        assert service._lazy_vix_getter() == 17.5
+
+
+
+    def test_get_live_vix_zero_primary_without_valid_fallback_uses_default(
+
+        self, monkeypatch
+
+    ) -> None:
+
+        import core.iv_rank as iv_rank
+
+
+
+        class VixSource:
+
+            _vix = None
+
+
+
+        monkeypatch.setattr(iv_rank, "get_iv_rank", lambda: VixSource())
+
+
+
+        service = RiskService(get_live_vix_fn=lambda: 0.0)
+
+
+
+        assert service._lazy_vix_getter() == 20.0
+
+
+
+    def test_get_live_vix_zero_secondary_uses_default(
+
+        self, monkeypatch
+
+    ) -> None:
+
+        import core.iv_rank as iv_rank
+
+
+
+        class VixSource:
+
+            _vix = 0.0
+
+
+
+        monkeypatch.setattr(iv_rank, "get_iv_rank", lambda: VixSource())
+
+
+
+        service = RiskService(get_live_vix_fn=lambda: -1.0)
+
+
+
+        assert service._lazy_vix_getter() == 20.0
+
+
+
+    def test_get_live_vix_rejects_negative_iv_rank_fallback(
+
+        self, monkeypatch: pytest.MonkeyPatch
+
+    ) -> None:
+
+        import core.iv_rank as iv_rank
+
+
+
+        class VixSource:
+
+            _vix = -5.0
+
+
+
+        monkeypatch.setattr(iv_rank, "get_iv_rank", lambda: VixSource())
+
+        service = RiskService(get_live_vix_fn=lambda: 0.0)
+
+
+
+        assert service._lazy_vix_getter() == 20.0
+
+
+
     def test_required_margin_per_lot(self, risk_service: RiskService) -> None:
+
         margin = risk_service.get_required_margin_per_lot("NIFTY", 23500.0)
+
         # 23500 * 50 * 0.20 = 235000
+
         assert margin == 235000.0
 
 
+
+
+
 class TestMutationBoundaryCoverage:
+
     """Exact-boundary and independent-branch tests for risk-policy semantics."""
 
+
+
     def test_daily_loss_exact_limit_denies(self, risk_service: RiskService) -> None:
+
         metrics = _sample_metrics(daily_pnl=-2000.0)
+
         result = risk_service.evaluate_trade("NIFTY", _sample_signal(), metrics)
+
         assert result.decision == RiskDecision.DENIED
+
         assert "daily loss limit" in result.reason.lower()
 
+
+
     def test_daily_loss_just_above_limit_allows_that_gate(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         metrics = _sample_metrics(daily_pnl=-1999.99)
+
         result = risk_service._check_daily_loss_limit(
+
             "NIFTY", _sample_signal(), metrics
+
         )
+
         assert result.decision == RiskDecision.ALLOWED
+
+
 
     def test_spread_exact_limit_is_allowed(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         limit = risk_service.config.max_spread_pct
+
         signal = _sample_signal(spread_pct=limit)
+
         result = risk_service._check_trade_quality(
+
             "NIFTY", signal, _sample_metrics()
+
         )
+
         assert result.decision == RiskDecision.ALLOWED
+
+
 
     def test_spread_just_above_limit_is_denied(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         limit = risk_service.config.max_spread_pct
+
         signal = _sample_signal(spread_pct=limit + 0.0001)
+
         result = risk_service._check_trade_quality(
+
             "NIFTY", signal, _sample_metrics()
+
         )
+
         assert result.decision == RiskDecision.DENIED
+
+
 
     def test_false_signal_requires_iv_above_26(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         assert risk_service.should_block_false_signal(75, 26.0) is False
+
         assert risk_service.should_block_false_signal(75, 26.0001) is True
 
+
+
     def test_max_trades_vix_28_boundary(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         assert risk_service.get_max_trades_per_day(vix=28.0) == 2
+
         assert risk_service.get_max_trades_per_day(vix=28.0001) == 1
 
+
+
     def test_max_trades_vix_20_boundary(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         assert risk_service.get_max_trades_per_day(vix=20.0) == 4
+
         assert risk_service.get_max_trades_per_day(vix=20.0001) == 2
 
+
+
     def test_volatility_low_threshold_is_inclusive(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         assert risk_service._get_volatility_multiplier(12.0) == 1.2
 
+
+
     def test_volatility_high_threshold_is_inclusive(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         assert risk_service._get_volatility_multiplier(35.0) == 0.6
 
+
+
     def test_portfolio_metrics_peak_and_drawdown_boundaries(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         risk_service._peak_pnl = 1000.0
+
         risk_service._max_drawdown = 500.0
+
         risk_service._get_daily_pnl = lambda: 1000.0
+
         risk_service._get_open_positions = lambda: 0
+
+
 
         metrics = risk_service.get_portfolio_risk_metrics()
 
+
+
         assert metrics.current_drawdown == 0.0
+
         assert metrics.max_drawdown == 500.0
+
         assert metrics.available_capital == metrics.total_capital
 
+
+
     def test_portfolio_metrics_subtracts_exposure_from_available_capital(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         risk_service._positions = {
+
             "NIFTY": {"market_value": 25000.0},
+
         }
+
         risk_service._get_daily_pnl = lambda: 0.0
+
         risk_service._get_open_positions = lambda: 1
 
+
+
         metrics = risk_service.get_portfolio_risk_metrics()
+
+
 
         assert metrics.used_capital == 25000.0
+
         assert metrics.available_capital == 75000.0
 
+
+
     def test_position_size_rejects_when_both_prices_invalid(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         sizing = PositionSizingInput(
+
             symbol="NIFTY",
+
             entry_price=0.0,
+
             stop_loss_price=0.0,
+
             capital_available=100000.0,
+
             risk_per_trade=0.02,
+
             lot_size=50,
+
             volatility=20.0,
+
             existing_exposure=0.0,
+
         )
+
         assert risk_service.calculate_position_size(sizing) == 0
 
+
+
     def test_position_size_rejects_each_invalid_price_independently(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         base = dict(
+
             symbol="NIFTY",
+
             capital_available=100000.0,
+
             risk_per_trade=0.02,
+
             lot_size=50,
+
             volatility=20.0,
+
             existing_exposure=0.0,
+
         )
+
+
 
         valid = PositionSizingInput(
+
             entry_price=23500.0,
+
             stop_loss_price=23400.0,
+
             **base,
+
         )
+
         invalid_entry = PositionSizingInput(
+
             entry_price=0.0,
+
             stop_loss_price=23400.0,
+
             **base,
+
         )
+
         invalid_stop = PositionSizingInput(
+
             entry_price=23500.0,
+
             stop_loss_price=0.0,
+
             **base,
+
         )
+
+
 
         assert risk_service.calculate_position_size(valid) > 0
+
         assert risk_service.calculate_position_size(invalid_entry) == 0
+
         assert risk_service.calculate_position_size(invalid_stop) == 0
 
+
+
     def test_position_size_uses_absolute_price_distance(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         sizing = PositionSizingInput(
+
             symbol="NIFTY",
+
             entry_price=23500.0,
+
             stop_loss_price=23400.0,
+
             capital_available=100000.0,
+
             risk_per_trade=0.02,
+
             lot_size=50,
+
             volatility=20.0,
+
             existing_exposure=0.0,
+
         )
+
         result = risk_service.calculate_position_size(sizing)
+
         assert result > 0
 
+
+
     def test_portfolio_risk_limit_is_strictly_exceeded(self, risk_service: RiskService) -> None:
+
         risk_service._estimate_portfolio_risk = lambda: risk_service.config.max_portfolio_risk
 
+
+
         result = risk_service._check_portfolio_limits(
+
             "NIFTY", {}, _sample_metrics()
+
         )
+
         assert result.decision == RiskDecision.ALLOWED
 
+
+
         risk_service._estimate_portfolio_risk = (
+
             lambda: risk_service.config.max_portfolio_risk + 1e-9
+
         )
+
         result = risk_service._check_portfolio_limits(
+
             "NIFTY", {}, _sample_metrics()
+
         )
+
         assert result.decision == RiskDecision.DENIED
 
+
+
     def test_position_size_rejects_when_either_price_is_invalid(self, risk_service: RiskService) -> None:
+
         base = dict(
+
             symbol="NIFTY",
+
             capital_available=100000.0,
+
             risk_per_trade=0.02,
+
             lot_size=50,
+
             volatility=20.0,
+
             existing_exposure=0.0,
+
         )
 
-        assert risk_service.calculate_position_size(
-            PositionSizingInput(
-                entry_price=0.0,
-                stop_loss_price=23400.0,
-                **base,
-            )
-        ) == 0
+
 
         assert risk_service.calculate_position_size(
+
             PositionSizingInput(
-                entry_price=23500.0,
-                stop_loss_price=0.0,
+
+                entry_price=0.0,
+
+                stop_loss_price=23400.0,
+
                 **base,
+
             )
+
         ) == 0
+
+
+
+        assert risk_service.calculate_position_size(
+
+            PositionSizingInput(
+
+                entry_price=23500.0,
+
+                stop_loss_price=0.0,
+
+                **base,
+
+            )
+
+        ) == 0
+
+
 
     def test_risk_score_zero_loss_limit_skips_loss_utilization(self, risk_service: RiskService) -> None:
+
         risk_service._get_volatility = lambda symbol: 0.0
+
         signal = _sample_signal(strength=100)
+
         metrics = _sample_metrics(
+
             daily_pnl=-1000.0,
+
             max_daily_loss=0.0,
+
             total_capital=100000.0,
+
             used_capital=0.0,
+
         )
 
+
+
         original = risk_service.config.max_daily_loss
+
         try:
+
             risk_service.config.max_daily_loss = 0.0
+
             zero_score = risk_service._calculate_risk_score(
+
                 "NIFTY", signal, metrics
+
             )
+
+
 
             risk_service.config.max_daily_loss = -2000.0
+
             negative_score = risk_service._calculate_risk_score(
+
                 "NIFTY", signal, metrics
+
             )
+
         finally:
+
             risk_service.config.max_daily_loss = original
 
+
+
         # The production branch is controlled by config.max_daily_loss.
+
         # At exactly zero there is no loss-utilization contribution; at a
+
         # negative limit, the same daily loss contributes 0.15.
+
         assert zero_score == pytest.approx(0.0)
+
         assert negative_score == pytest.approx(0.15)
 
+
+
     def test_portfolio_peak_updates_only_on_strictly_higher_pnl(self, risk_service: RiskService) -> None:
+
         risk_service._peak_pnl = 1000.0
+
         risk_service._max_drawdown = 0.0
+
         risk_service._get_daily_pnl = lambda: 1000.0
+
         risk_service._get_open_positions = lambda: 0
+
+
 
         metrics = risk_service.get_portfolio_risk_metrics()
 
+
+
         assert metrics.daily_pnl == 1000.0
+
         assert risk_service._peak_pnl == 1000.0
+
         assert metrics.current_drawdown == 0.0
 
+
+
     def test_risk_score_zero_loss_limit_does_not_divide(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         metrics = _sample_metrics(
+
             daily_pnl=-1000.0,
+
             max_daily_loss=0.0,
+
             total_capital=100000.0,
+
             used_capital=0.0,
+
         )
+
         score = risk_service._calculate_risk_score(
+
             "NIFTY", _sample_signal(), metrics
+
         )
+
         assert 0.0 <= score <= 1.0
 
+
+
     def test_risk_score_negative_loss_limit_contributes_loss_usage(
+
         self, risk_service: RiskService
+
     ) -> None:
+
         metrics = _sample_metrics(
+
             daily_pnl=-1000.0,
+
             max_daily_loss=-2000.0,
+
             total_capital=100000.0,
+
             used_capital=0.0,
+
         )
+
         score = risk_service._calculate_risk_score(
+
             "NIFTY", _sample_signal(), metrics
+
         )
+
         assert score >= 0.15
 
 
+
+
+
 class TestMutationTimeBoundaryCoverage:
+
     """Deterministic tests for NSE trading-window boundary semantics."""
 
+
+
     @staticmethod
+
     def _at(hour: int, minute: int):
+
         from datetime import datetime
+
+
 
         return datetime(2026, 9, 3, hour, minute)
 
+
+
     def test_trading_window_morning_boundaries(
+
         self, risk_service: RiskService, monkeypatch
+
     ) -> None:
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(9, 20),
+
         )
+
         assert risk_service.is_in_trading_window() is True
 
+
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(11, 30),
+
         )
+
         assert risk_service.is_in_trading_window() is True
 
+
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(11, 31),
+
         )
+
         assert risk_service.is_in_trading_window() is False
+
+
 
     def test_trading_window_afternoon_boundaries(
+
         self, risk_service: RiskService, monkeypatch
+
     ) -> None:
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(13, 0),
+
         )
+
         assert risk_service.is_in_trading_window() is True
 
+
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(14, 45),
+
         )
+
         assert risk_service.is_in_trading_window() is True
 
+
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(14, 46),
+
         )
+
         assert risk_service.is_in_trading_window() is False
+
+
 
     def test_trading_window_before_morning_open(
+
         self, risk_service: RiskService, monkeypatch
+
     ) -> None:
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(9, 19),
+
         )
+
         assert risk_service.is_in_trading_window() is False
 
+
+
     def test_skip_first_20_minutes_boundary(
+
         self, risk_service: RiskService, monkeypatch
+
     ) -> None:
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(9, 20),
+
         )
+
         assert risk_service.should_skip_first_20_min() is True
 
+
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(9, 39),
+
         )
+
         assert risk_service.should_skip_first_20_min() is True
 
+
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(9, 40),
+
         )
+
         assert risk_service.should_skip_first_20_min() is False
 
+
+
     def test_skip_first_20_minutes_before_open(
+
         self, risk_service: RiskService, monkeypatch
+
     ) -> None:
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(9, 19),
+
         )
+
         assert risk_service.should_skip_first_20_min() is True
 
+
+
     def test_skip_last_45_minutes_boundary(
+
         self, risk_service: RiskService, monkeypatch
+
     ) -> None:
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(14, 34),
+
         )
+
         assert risk_service.should_skip_last_45_min() is False
 
+
+
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
+
             lambda: self._at(14, 35),
+
         )
+
         assert risk_service.should_skip_last_45_min() is False
 
-        monkeypatch.setattr(
-            "core.services.risk_service.now_ist",
-            lambda: self._at(14, 36),
-        )
-        assert risk_service.should_skip_last_45_min() is True
+
 
         monkeypatch.setattr(
+
             "core.services.risk_service.now_ist",
-            lambda: self._at(15, 20),
+
+            lambda: self._at(14, 36),
+
         )
+
         assert risk_service.should_skip_last_45_min() is True
+
+
+
+        monkeypatch.setattr(
+
+            "core.services.risk_service.now_ist",
+
+            lambda: self._at(15, 20),
+
+        )
+
+        assert risk_service.should_skip_last_45_min() is True
+
+
+
+class TestRiskMutationBoundaryHardening:
+
+    def test_margin_exactly_at_available_capital_limit_is_allowed(
+
+        self, risk_service, monkeypatch
+
+    ):
+
+        monkeypatch.setattr(
+
+            risk_service,
+
+            "_get_margin",
+
+            lambda symbol, quantity: 16000.0,
+
+        )
+
+
+
+        assert risk_service.validate_margin_requirements(
+
+            symbol="NIFTY24SepFUT",
+
+            quantity=10,
+
+            capital_available=20000.0,
+
+        ) is True
+
+
+
+    def test_volume_exactly_at_minimum_is_allowed(self, risk_service):
+
+        signal = _sample_signal(
+
+            volume_ratio=risk_service.config.min_volume_ratio,
+
+        )
+
+
+
+        result = risk_service._check_trade_quality(
+
+            "NIFTY",
+
+            signal,
+
+            _sample_metrics(),
+
+        )
+
+
+
+        assert result.decision == RiskDecision.ALLOWED
+
+
+
+    def test_position_sizing_exactly_one_percent_stop_is_not_tight(
+
+        self, risk_service
+
+    ):
+
+        result = risk_service._check_position_sizing_limits(
+
+            "NIFTY",
+
+            {
+
+                "price": 100.0,
+
+                "stop_loss": 99.0,
+
+            },
+
+            _sample_metrics(),
+
+        )
+
+
+
+        assert "Very tight stop loss" not in result.reason
+
+        assert result.recommended_position_size is None
+
+
+
+    def test_portfolio_sizing_exact_max_risk_is_not_scaled(self, risk_service):
+
+        sizing = PositionSizingInput(
+
+            symbol="NIFTY",
+
+            entry_price=100.0,
+
+            stop_loss_price=90.0,
+
+            capital_available=100000.0,
+
+            risk_per_trade=risk_service.config.max_portfolio_risk,
+
+            lot_size=50,
+
+            volatility=20.0,
+
+            existing_exposure=0.0,
+
+        )
+
+
+
+        assert risk_service._calculate_max_lots_by_portfolio(
+
+            sizing,
+
+            25,
+
+        ) == 25
+
+
+
+    def test_capital_sizing_zero_risk_per_trade_returns_zero(self, risk_service):
+
+        sizing = PositionSizingInput(
+
+            symbol="NIFTY",
+
+            entry_price=100.0,
+
+            stop_loss_price=90.0,
+
+            capital_available=100000.0,
+
+            risk_per_trade=0.0,
+
+            lot_size=50,
+
+            volatility=20.0,
+
+            existing_exposure=0.0,
+
+        )
+
+
+
+        assert risk_service._calculate_max_lots_by_capital(sizing) == 0

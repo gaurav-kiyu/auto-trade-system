@@ -183,6 +183,7 @@ def create_auth_router(
             created_by="self-register",
             email=email,
             telegram_chat_id=telegram_chat_id,
+            disabled=True,
         )
         if not result["success"]:
             raise HTTPException(status_code=400, detail=result.get("error", "Registration failed"))
@@ -903,9 +904,8 @@ def create_auth_router(
         """
         secret = generate_mfa_secret()
         provisioning_uri = get_mfa_provisioning_uri(
-            username=current_user.username,
             secret=secret,
-            issuer="OPB Enterprise",
+            username=current_user.username,
         )
         recovery_codes = generate_recovery_codes()
 
