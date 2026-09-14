@@ -251,6 +251,7 @@ class TestSignalPersistenceExecutionBoundary:
         """Ensure that when an ad-hoc signal lacks a durable signal_id and cannot be persisted,
         execution remains strictly blocked (fail-closed) with TradeBlockError."""
         from unittest.mock import Mock, patch
+
         from core.position_service import PositionService, TradeBlockError
 
         svc = PositionService.__new__(PositionService)
@@ -283,6 +284,7 @@ class TestSignalPersistenceExecutionBoundary:
         """Ensure that when a signal carries a durable signal_id, execution proceeds."""
         from types import SimpleNamespace
         from unittest.mock import Mock
+
         from core.position_service import PositionService
 
         svc = PositionService.__new__(PositionService)
@@ -311,4 +313,45 @@ class TestSignalPersistenceExecutionBoundary:
         svc._execution_service.execute_order.assert_called_once()
         context = svc._execution_service.execute_order.call_args[0][1]
         assert context.signal_id == "SIG_VALID_DURABLE_001"
+
+    def test_active_signal_id_recovered_when_record_generated_suppresses_duplicate(self):
+        """Ensure that when an existing active opportunity suppresses duplicate creation,
+        PositionService recovers the active signal_id using the opportunity key or symbol."""
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        from core.position_service import PositionService
+
+        svc = PositionService.__new__(PositionService)
+        svc._execution_service = Mock()
+        svc._portfolio_service = None
+        svc._risk_service = None
+        svc._margin_validator = None
+        svc._execution_mode = "PAPER"
+        svc._check_liquidity_gate = Mock(return_value=(True, "ok"))
+        svc._execution_service.execute_order.return_value = SimpleNamespace(
+            status="FILLED",
+            order_id="ORD-RECOVERED-001",
+            filled_quantity=1,
+            average_price=150.0,
+        )
+
+        with patch("core.signals.signal_tracker.SignalTracker.get_instance") as get_tracker:
+            tracker = Mock()
+            # Simulate deduplication returning ""
+            tracker.record_generated_signal.return_value = ""
+            tracker.get_active_signal_id.return_value = "SIG-ACTIVE-RECOVERED-001"
+            get_tracker.return_value = tracker
+
+            res = svc._submit_order_under_lock(
+                name="NIFTY",
+                price=150.0,
+                qty=1,
+                sig={"direction": "CALL", "score": 85},
+                order_direction="BUY",
+                idempotency_key="idem-recover-test",
+            )
+            assert res.status == "FILLED"
+            context = svc._execution_service.execute_order.call_args[0][1]
+            assert context.signal_id == "SIG-ACTIVE-RECOVERED-001"
 

@@ -441,6 +441,16 @@ class SignalTracker:
                         (opportunity_key, cutoff),
                     )
                     row = cur.fetchone()
+                if not row and "|" in str(opportunity_key):
+                    sym = str(opportunity_key).split("|")[0].strip().upper()
+                    if sym:
+                        cur.execute(
+                            """SELECT signal_id FROM system_signals
+                               WHERE symbol = ? AND status = 'ACTIVE'
+                               ORDER BY timestamp DESC LIMIT 1""",
+                            (sym,),
+                        )
+                        row = cur.fetchone()
                 return str(row["signal_id"] or "").strip() if row else ""
             except Exception:
                 return ""

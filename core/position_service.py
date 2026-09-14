@@ -1066,13 +1066,17 @@ class PositionService:
             ).strip()
 
             if not signal_id:
+                record_dir = str(signal_record.get("direction") or order_direction).upper()
                 opp_key = str(
                     signal_record.get("opportunity_key")
-                    or f"{name.upper()}|{order_direction.upper()}|{str(signal_record.get('category', 'LARGE_CAP_EQUITY')).upper()}|{strategy_name.lower()}"
+                    or f"{name.upper()}|{record_dir}|{str(signal_record.get('category', 'LARGE_CAP_EQUITY')).upper()}|{strategy_name.lower()}"
                 )
                 get_active = getattr(tracker, "get_active_signal_id", None)
                 if callable(get_active):
                     active_id = get_active(opp_key)
+                    if (not active_id or not str(active_id).strip()) and order_direction.upper() != record_dir:
+                        alt_key = f"{name.upper()}|{order_direction.upper()}|{str(signal_record.get('category', 'LARGE_CAP_EQUITY')).upper()}|{strategy_name.lower()}"
+                        active_id = get_active(alt_key)
                     if isinstance(active_id, str) and active_id.strip():
                         signal_id = active_id.strip()
 
