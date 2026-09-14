@@ -1,10 +1,9 @@
-﻿from types import SimpleNamespace
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
-
-from core.position_service import PositionService, TradeBlockError
 from core.ports.execution.execution_port import ExecutionContext, ExecutionMode
+from core.position_service import PositionService, TradeBlockError
 
 
 def make_service(mode="PAPER"):

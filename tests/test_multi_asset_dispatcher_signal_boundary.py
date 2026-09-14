@@ -2,7 +2,6 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
-
 from core.ports.execution.execution_port import ExecutionContext, ExecutionMode, ExecutionPort
 from core.strategy.multi_asset_dispatcher import _build_broker_executor_for_dispatcher
 
