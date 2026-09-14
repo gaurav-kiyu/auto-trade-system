@@ -34,7 +34,7 @@ lxml==6.1.1
 MarkupSafe==3.0.3
 mcp==1.28.1  # CVE-2026-52869/52870/59950 fixed (was 1.23.3)
 multitasking==0.0.13
-nltk==3.10.0  # CVE-2026-12061/12074/12075/12243 fixed (was 3.9.4)
+nltk==3.10.3  # CVE-2026-12061/12074/12075/12243 fixed (was 3.9.4)
 numpy==2.4.6
 nselib==2.5.1
 nsepython==2.97
