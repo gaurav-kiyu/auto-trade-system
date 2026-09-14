@@ -31,7 +31,7 @@ exclude = ["tests*", "data*", "logs*", "reports*", "backups*"]
 
 [project.optional-dependencies]
 broker = [
-    "kiteconnect>=5.0.0",
+    "kiteconnect>=5.2.1",
     "pyotp>=2.9.0",
 ]
 dashboard = [
