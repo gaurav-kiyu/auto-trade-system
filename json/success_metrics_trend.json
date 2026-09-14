@@ -175,6 +175,22 @@
         "commits_30d": 44.0,
         "engineering_velocity": 0.0
       }
+    },
+    {
+      "captured_at": 1789382076.6962893,
+      "captured_at_iso": "2026-09-14T10:34:36.696289+00:00",
+      "release_label": "v2.59.4-post-merge.1",
+      "indicators": {
+        "dead_code_findings": 49578.0,
+        "duplicate_code": 498.0,
+        "config_drift": 25.0,
+        "doc_drift": 0.0,
+        "open_regressions": 0.0,
+        "test_files": 796.0,
+        "evidence_items": 1894.0,
+        "commits_30d": 61.0,
+        "engineering_velocity": 0.0
+      }
     }
   ]
 }
