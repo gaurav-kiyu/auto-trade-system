@@ -28,7 +28,7 @@
 /* Primary Button */
 .btn-primary, .opb-btn-primary {
     background: var(--accent-color, #38bdf8);
-    color: #000000 !important;
+    color: var(--btn-primary-text, #000000) !important;
     border-color: var(--accent-color, #38bdf8);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }

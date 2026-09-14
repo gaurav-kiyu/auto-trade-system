@@ -34,7 +34,7 @@ Full rule specification: [`.agents/rules/opb-ui-architecture.md`](.agents/rules/
 ## 3. ZERO MUTATION CONSTRAINTS
 - **Zero Hardcoded Colors**: No theme-specific hex codes inside business components or templates.
 - **Zero Backend / Trading Mutations**: Never modify trading, risk, broker, strategy, execution, or database logic during UI-only tasks.
-- **All-Theme Verification**: Every visual change must be verified across all 9 supported themes (`dark-cyber`, `nordic-frost`, `ivory-gold`, `obsidian-gold`, `midnight-slate`, `emerald-matrix`, `dracula-purple`).
+- **All-Theme Verification**: Every visual change must be verified across all 5 supported themes (`dark-cyber`, `dracula-purple`, `ivory-gold`, `midnight-slate`, `emerald-matrix`).
 - **Tabular Numeral Enforcement**: All financial figures, quantities, timestamps, and percentages must use tabular monospaced numbers (`"tnum" 1, "zero" 1`).
 
 ---

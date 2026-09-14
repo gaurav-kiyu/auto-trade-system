@@ -44,6 +44,7 @@ from core.auth.handler import (
     AuthToken,
     AuthUser,
     generate_csrf_token,
+    validate_password_strength,
 )
 from core.auth.mfa import (
     generate_mfa_secret,
@@ -172,8 +173,9 @@ def create_auth_router(
         if not username or not password:
             raise HTTPException(status_code=400, detail="Username and password required")
 
-        if len(password) < 8:
-            raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+        valid_pw, pw_err = validate_password_strength(password)
+        if not valid_pw:
+            raise HTTPException(status_code=400, detail=pw_err)
 
         result = auth_handler.create_user(
             username=username,
@@ -183,7 +185,7 @@ def create_auth_router(
             created_by="self-register",
             email=email,
             telegram_chat_id=telegram_chat_id,
-            disabled=True,
+            disabled=False,
         )
         if not result["success"]:
             raise HTTPException(status_code=400, detail=result.get("error", "Registration failed"))
@@ -217,7 +219,7 @@ def create_auth_router(
         )
         return {
             "success": True,
-            "message": "Account created successfully with viewer role and is pending administrator authorization.",
+            "message": "Account created successfully with viewer role. You may now log in to the cockpit. (Signal trading permissions require administrator approval).",
             "notification": notification_result,
         }
 

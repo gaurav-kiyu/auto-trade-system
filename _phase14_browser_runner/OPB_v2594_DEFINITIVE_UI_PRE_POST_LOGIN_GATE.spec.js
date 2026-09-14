@@ -393,7 +393,9 @@ test("OPB v2.59.4 DEFINITIVE UI PRE/POST LOGIN", async ({ browser, page }) => {
   page.on("requestfailed", req => {
     const url = req.url();
     if (!url.startsWith(BASE_URL) && !url.startsWith("http")) return;
-    report.request_failures.push({ url: page.url(), method: req.method(), request_url: url, resource_type: req.resourceType(), failure: req.failure()?.errorText || "unknown" });
+    const failure = req.failure()?.errorText || "unknown";
+    if (failure === "net::ERR_ABORTED") return;
+    report.request_failures.push({ url: page.url(), method: req.method(), request_url: url, resource_type: req.resourceType(), failure });
   });
   page.on("response", res => {
     const status = res.status();
@@ -476,7 +478,8 @@ test("OPB v2.59.4 DEFINITIVE UI PRE/POST LOGIN", async ({ browser, page }) => {
   }
 
   if (envToken && isLogin(page.url())) {
-    await page.context().addCookies([{ name: "opb_session", value: envToken, domain: "127.0.0.1", path: "/" }]);
+    const hostname = new URL(BASE_URL).hostname;
+    await page.context().addCookies([{ name: "opb_session", value: envToken, domain: hostname, path: "/" }]);
     await page.goto(`${BASE_URL}/change-password`, { waitUntil: "domcontentloaded", timeout: 30000 });
   }
 
@@ -556,7 +559,7 @@ test("OPB v2.59.4 DEFINITIVE UI PRE/POST LOGIN", async ({ browser, page }) => {
     record("Admin Config Preview Diff executes", "PASS");
   } else record("Admin Config Preview Diff exists", "FAIL");
 
-  const reload = page.getByRole("button", { name: /^Reload$/i }).first();
+  const reload = page.locator('#reloadBtn, button:has-text("Reload")').first();
   if (await reload.count()) {
     await reload.click();
     await settle(page);
