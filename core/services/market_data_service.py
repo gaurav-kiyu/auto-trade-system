@@ -352,7 +352,12 @@ class MarketDataService(MarketDataPort):
             return True
         try:
             if isinstance(timestamp, datetime):
-                age = (datetime.now(timestamp.tzinfo) - timestamp).total_seconds() if timestamp.tzinfo else (datetime.now() - timestamp).total_seconds()
+                from core.datetime_ist import now_ist
+                current = now_ist()
+                if timestamp.tzinfo is not None:
+                    age = (current - timestamp).total_seconds()
+                else:
+                    age = (current.replace(tzinfo=None) - timestamp).total_seconds()
                 return age <= max_age_seconds
             return True
         except (TypeError, ValueError):
