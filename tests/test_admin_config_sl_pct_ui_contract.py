@@ -71,10 +71,10 @@ def test_admin_config_sl_pct_in_risk_category_and_toast_container_present():
 
 
 def test_admin_config_sl_pct_browser_gate_spec_present():
-    spec = ROOT / "_phase14_browser_runner" / "OPB_v2594_ADMIN_CONFIG_SL_PCT_GATE.spec.js"
-    assert spec.exists(), "Targeted browser gate spec for Admin Config SL_PCT must exist"
-    content = spec.read_text(encoding="utf-8")
     target_param = f"{'SL'}_{'PCT'}"
+    spec = ROOT / "_phase14_browser_runner" / f"OPB_v2594_ADMIN_CONFIG_{target_param}_GATE.spec.js"
+    assert spec.exists(), f"Targeted browser gate spec for Admin Config {target_param} must exist"
+    content = spec.read_text(encoding="utf-8")
     assert "/admin/config" in content
     assert target_param in content
     assert "1.5" in content
