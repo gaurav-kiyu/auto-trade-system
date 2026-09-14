@@ -1,21 +1,17 @@
-﻿"""Regression guards for the canonical theme presentation contract."""
+"""Regression guards for the canonical theme presentation contract."""
 
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# The theme engine may support these existing IDs internally.
+# The theme engine supports these canonical 5 themes internally.
 ENGINE_THEME_IDS = (
     "dark-cyber",
-    "nordic-frost",
+    "dracula-purple",
     "ivory-gold",
-    "tokyo-night",
-    "catppuccin-mocha",
-    "obsidian-gold",
     "midnight-slate",
     "emerald-matrix",
-    "dracula-purple",
 )
 
 # Only these five themes are selectable from the user-facing navigation.

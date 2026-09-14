@@ -196,3 +196,34 @@ class TestRegisterEndpoint:
             json={"username": long_name, "password": "TestPass123!"},
         )
         assert resp.status_code == 200 or resp.status_code == 400
+
+    def test_register_can_login_and_has_restricted_signals(self, client, auth_handler):
+        """Test newly registered user has disabled=False, can authenticate, but has restricted signals."""
+        from core.auth.user_signal_permissions import UserPermissionManager
+
+        username = "regloginuser"
+        pw = "TestPass123!"
+        resp = client.post(
+            "/api/auth/register",
+            json={"username": username, "password": pw, "email": "test@example.com"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+        # User is not disabled
+        user = auth_handler.get_user(username)
+        assert user is not None
+        assert user.disabled is False
+        assert user.role == "viewer"
+
+        # User can authenticate
+        authenticated = auth_handler.authenticate(username, pw, ip_address="127.0.0.1")
+        assert authenticated is not None
+        assert authenticated.username == username
+
+        # Signal access is restricted pending admin authorization
+        perm_mgr = UserPermissionManager.get_instance()
+        user_perm = perm_mgr.get_user_permissions(username)
+        assert user_perm is not None
+        assert user_perm.is_active is False
+        assert user_perm.signals_enabled is False

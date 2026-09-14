@@ -23,6 +23,8 @@
                 '--border-color-hover': '#38bdf8',
                 '--accent-color': '#38bdf8',
                 '--accent-gradient': 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #7c3aed 100%)',
+                '--btn-primary-text': '#080c14',
+                '--nav-active-text': '#082f49',
                 '--success-color': '#22c55e',
                 '--warning-color': '#f59e0b',
                 '--danger-color': '#ef4444',
@@ -32,28 +34,30 @@
                 '--header-glow': 'rgba(56, 189, 248, 0.15)'
             }
         },
-        'nordic-frost': {
-            name: '❄️ Nordic Frost (High-Contrast Light)',
+        'dracula-purple': {
+            name: '🌸 Plum Cloud (Premium Light)',
             type: 'light',
             vars: {
-                '--bg-primary': '#f8fafc',
-                '--bg-secondary': '#eef2f6',
+                '--bg-primary': '#faf7fc',
+                '--bg-secondary': '#f2ecf8',
                 '--bg-card': '#ffffff',
-                '--bg-card-hover': '#f1f5f9',
-                '--text-primary': '#0f172a',
-                '--text-secondary': '#334155',
-                '--text-muted': '#475569',
-                '--border-color': '#cbd5e1',
-                '--border-color-hover': '#0369a1',
-                '--accent-color': '#0369a1',
-                '--accent-gradient': 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                '--bg-card-hover': '#f8f1fb',
+                '--text-primary': '#24172b',
+                '--text-secondary': '#4c3a57',
+                '--text-muted': '#6b5a75',
+                '--border-color': '#d8cbe2',
+                '--border-color-hover': '#7c3aed',
+                '--accent-color': '#7c3aed',
+                '--accent-gradient': 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                '--btn-primary-text': '#ffffff',
+                '--nav-active-text': '#ffffff',
                 '--success-color': '#15803d',
-                '--warning-color': '#b45309',
+                '--warning-color': '#a16207',
                 '--danger-color': '#b91c1c',
-                '--card-shadow': '0 2px 8px rgba(15, 23, 42, 0.06), 0 0 0 1px #cbd5e1',
+                '--card-shadow': '0 4px 20px -4px rgba(76, 58, 87, 0.08), 0 0 0 1px #e3d9ea',
                 '--input-bg': '#ffffff',
-                '--input-border': '#94a3b8',
-                '--header-glow': 'rgba(2, 132, 199, 0.08)'
+                '--input-border': '#a78bb8',
+                '--header-glow': 'rgba(124, 58, 237, 0.10)'
             }
         },
         'ivory-gold': {
@@ -71,6 +75,8 @@
                 '--border-color-hover': '#92400e',
                 '--accent-color': '#92400e',
                 '--accent-gradient': 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                '--btn-primary-text': '#ffffff',
+                '--nav-active-text': '#ffffff',
                 '--success-color': '#15803d',
                 '--warning-color': '#92400e',
                 '--danger-color': '#b91c1c',
@@ -78,78 +84,6 @@
                 '--input-bg': '#ffffff',
                 '--input-border': '#a89f91',
                 '--header-glow': 'rgba(217, 119, 6, 0.1)'
-            }
-        },
-        'tokyo-night': {
-            name: '🗼 Tokyo Night (Neon Noir)',
-            type: 'dark',
-            vars: {
-                '--bg-primary': '#16161e',
-                '--bg-secondary': '#1a1b26',
-                '--bg-card': '#24283b',
-                '--bg-card-hover': '#2f3549',
-                '--text-primary': '#c0caf5',
-                '--text-secondary': '#a9b1d6',
-                '--text-muted': '#7aa2f7',
-                '--border-color': '#414868',
-                '--border-color-hover': '#7aa2f7',
-                '--accent-color': '#7aa2f7',
-                '--accent-gradient': 'linear-gradient(135deg, #7aa2f7 0%, #bb9af7 100%)',
-                '--success-color': '#9ece6a',
-                '--warning-color': '#e0af68',
-                '--danger-color': '#f7768e',
-                '--card-shadow': '0 20px 40px -15px rgba(0, 0, 0, 0.75)',
-                '--input-bg': '#1a1b26',
-                '--input-border': '#414868',
-                '--header-glow': 'rgba(122, 162, 247, 0.2)'
-            }
-        },
-        'catppuccin-mocha': {
-            name: '🐱 Catppuccin Mocha (Pastel Dark)',
-            type: 'dark',
-            vars: {
-                '--bg-primary': '#11111b',
-                '--bg-secondary': '#181825',
-                '--bg-card': '#1e1e2e',
-                '--bg-card-hover': '#313244',
-                '--text-primary': '#cdd6f4',
-                '--text-secondary': '#bac2de',
-                '--text-muted': '#a6adc8',
-                '--border-color': '#45475a',
-                '--border-color-hover': '#89b4fa',
-                '--accent-color': '#89b4fa',
-                '--accent-gradient': 'linear-gradient(135deg, #89b4fa 0%, #cba6f7 100%)',
-                '--success-color': '#a6e3a1',
-                '--warning-color': '#fab387',
-                '--danger-color': '#f38ba8',
-                '--card-shadow': '0 20px 40px -15px rgba(0, 0, 0, 0.75)',
-                '--input-bg': '#181825',
-                '--input-border': '#45475a',
-                '--header-glow': 'rgba(137, 180, 250, 0.2)'
-            }
-        },
-        'obsidian-gold': {
-            name: '👑 Obsidian Gold (Luxury Dark)',
-            type: 'dark',
-            vars: {
-                '--bg-primary': '#0d0b08',
-                '--bg-secondary': '#17130e',
-                '--bg-card': '#211c14',
-                '--bg-card-hover': '#2d251a',
-                '--text-primary': '#fffbeb',
-                '--text-secondary': '#fde68a',
-                '--text-muted': '#d97706',
-                '--border-color': '#3d3324',
-                '--border-color-hover': '#f59e0b',
-                '--accent-color': '#f59e0b',
-                '--accent-gradient': 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #92400e 100%)',
-                '--success-color': '#10b981',
-                '--warning-color': '#fbbf24',
-                '--danger-color': '#f87171',
-                '--card-shadow': '0 20px 40px -15px rgba(0, 0, 0, 0.8)',
-                '--input-bg': '#14110d',
-                '--input-border': '#3d3324',
-                '--header-glow': 'rgba(245, 158, 11, 0.15)'
             }
         },
         'midnight-slate': {
@@ -167,6 +101,8 @@
                 '--border-color-hover': '#1d4ed8',
                 '--accent-color': '#1d4ed8',
                 '--accent-gradient': 'linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%)',
+                '--btn-primary-text': '#ffffff',
+                '--nav-active-text': '#ffffff',
                 '--success-color': '#15803d',
                 '--warning-color': '#a16207',
                 '--danger-color': '#b91c1c',
@@ -191,6 +127,8 @@
                 '--border-color-hover': '#10b981',
                 '--accent-color': '#10b981',
                 '--accent-gradient': 'linear-gradient(135deg, #34d399 0%, #059669 100%)',
+                '--btn-primary-text': '#020d07',
+                '--nav-active-text': '#ffffff',
                 '--success-color': '#34d399',
                 '--warning-color': '#fbbf24',
                 '--danger-color': '#f87171',
@@ -198,30 +136,6 @@
                 '--input-bg': '#051b11',
                 '--input-border': '#14533a',
                 '--header-glow': 'rgba(16, 185, 129, 0.15)'
-            }
-        },
-        'dracula-purple': {
-            name: '🌸 Plum Cloud (Premium Light)',
-            type: 'light',
-            vars: {
-                '--bg-primary': '#faf7fc',
-                '--bg-secondary': '#f2ecf8',
-                '--bg-card': '#ffffff',
-                '--bg-card-hover': '#f8f1fb',
-                '--text-primary': '#24172b',
-                '--text-secondary': '#4c3a57',
-                '--text-muted': '#6b5a75',
-                '--border-color': '#d8cbe2',
-                '--border-color-hover': '#7c3aed',
-                '--accent-color': '#7c3aed',
-                '--accent-gradient': 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
-                '--success-color': '#15803d',
-                '--warning-color': '#a16207',
-                '--danger-color': '#b91c1c',
-                '--card-shadow': '0 4px 20px -4px rgba(76, 58, 87, 0.08), 0 0 0 1px #e3d9ea',
-                '--input-bg': '#ffffff',
-                '--input-border': '#a78bb8',
-                '--header-glow': 'rgba(124, 58, 237, 0.10)'
             }
         }
     };
@@ -917,33 +831,58 @@
 
     function applyTheme(themeKey) {
         const theme = THEMES[themeKey] || THEMES['dark-cyber'];
+        const effectiveKey = THEMES[themeKey] ? themeKey : 'dark-cyber';
         const root = document.documentElement;
+        const isDark = (theme.type === 'dark');
         
+        // 1. Root class synchronization (eliminates light theme dark-mode override)
+        if (isDark) {
+            root.classList.add('dark');
+            root.classList.remove('light');
+        } else {
+            root.classList.remove('dark');
+            root.classList.add('light');
+        }
+
+        // 2. Data attributes on html (root)
+        root.setAttribute('data-theme', effectiveKey);
+        root.setAttribute('data-theme-type', theme.type || 'dark');
+
+        // 3. CSS variables on root
         Object.entries(theme.vars).forEach(([key, val]) => {
             root.style.setProperty(key, val);
         });
 
+        // 4. Synchronize body
         if (document.body) {
+            if (isDark) {
+                document.body.classList.add('dark');
+                document.body.classList.remove('light');
+            } else {
+                document.body.classList.remove('dark');
+                document.body.classList.add('light');
+            }
             document.body.style.backgroundColor = theme.vars['--bg-primary'];
             document.body.style.color = theme.vars['--text-primary'];
-            document.body.setAttribute('data-theme', themeKey);
+            document.body.setAttribute('data-theme', effectiveKey);
             document.body.setAttribute('data-theme-type', theme.type || 'dark');
         }
 
-        localStorage.setItem('opb_app_theme', themeKey);
-        localStorage.setItem('opb_theme', themeKey);
-        document.cookie = "opb_theme=" + themeKey + "; path=/; max-age=31536000";
+        // 5. Persistence
+        localStorage.setItem('opb_app_theme', effectiveKey);
+        localStorage.setItem('opb_theme', effectiveKey);
+        document.cookie = "opb_theme=" + effectiveKey + "; path=/; max-age=31536000";
 
-        // Sync all theme dropdown selectors across desktop and mobile
-        const THEME_SELECTORS = '.opb-theme-selector, #global-theme-select, #admin-theme-select, .opb-top-theme-select, #opb-theme-select-nav, #drawerThemeSelect, select[data-theme-select], select[data-theme-selector]';
+        // 6. Sync all dropdown selectors across desktop and mobile
+        const THEME_SELECTORS = '.opb-theme-selector, #global-theme-select, #admin-theme-select, .opb-top-theme-select, #opb-theme-select-nav, #drawerThemeSelect, #desktopThemeSelect, select[data-theme-select], select[data-theme-selector]';
         const selectElements = document.querySelectorAll(THEME_SELECTORS);
         selectElements.forEach(selectEl => {
-            if (selectEl && selectEl.value !== themeKey) {
-                selectEl.value = themeKey;
+            if (selectEl && selectEl.value !== effectiveKey) {
+                selectEl.value = effectiveKey;
             }
         });
 
-        window.dispatchEvent(new CustomEvent('opbThemeChanged', { detail: { theme: themeKey, config: theme } }));
+        window.dispatchEvent(new CustomEvent('opbThemeChanged', { detail: { theme: effectiveKey, config: theme } }));
     }
 
     function setDensity(density) {
@@ -958,20 +897,28 @@
         });
     }
 
+    function getSavedTheme() {
+        const ls = localStorage.getItem('opb_app_theme') || localStorage.getItem('opb_theme');
+        if (ls && THEMES[ls]) return ls;
+        const cookieMatch = document.cookie.match(/(?:^|;\s*)opb_theme=([^;]+)/);
+        if (cookieMatch && THEMES[cookieMatch[1]]) return cookieMatch[1];
+        return 'dark-cyber';
+    }
+
     function initThemeEngine() {
         injectRichStyles();
-        const savedTheme = localStorage.getItem('opb_app_theme') || localStorage.getItem('opb_theme') || 'dark-cyber';
+        const savedTheme = getSavedTheme();
         applyTheme(savedTheme);
         const savedDensity = localStorage.getItem('opb_app_density') || 'comfortable';
         setDensity(savedDensity);
 
         function setupListeners() {
             injectRichStyles();
-            const currentTheme = localStorage.getItem('opb_app_theme') || localStorage.getItem('opb_theme') || 'dark-cyber';
+            const currentTheme = getSavedTheme();
             applyTheme(currentTheme);
             setDensity(localStorage.getItem('opb_app_density') || 'comfortable');
 
-            const THEME_SELECTORS = '.opb-theme-selector, #global-theme-select, #admin-theme-select, .opb-top-theme-select, #opb-theme-select-nav, #drawerThemeSelect, select[data-theme-select], select[data-theme-selector]';
+            const THEME_SELECTORS = '.opb-theme-selector, #global-theme-select, #admin-theme-select, .opb-top-theme-select, #opb-theme-select-nav, #drawerThemeSelect, #desktopThemeSelect, select[data-theme-select], select[data-theme-selector]';
             const selectElements = document.querySelectorAll(THEME_SELECTORS);
             selectElements.forEach(selectEl => {
                 if (selectEl) {

@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>OPB â€” Super Admin User &amp; Signal Permissions</title>
+<title>OPB — Super Admin User &amp; Signal Permissions</title>
 <script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
 <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
 <link rel="stylesheet" href="/static/fontawesome.min.css">
@@ -218,9 +218,9 @@
 <div>
 <label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">Minimum Conviction Tier</label>
 <select class="input-field" id="permMinTier">
-<option value="STRONG_ONLY">STRONG ONLY (Score â‰¥ 80)</option>
-<option value="MODERATE_AND_STRONG">MODERATE &amp; STRONG (Score â‰¥ 68)</option>
-<option value="ALL">ALL SIGNALS (Exploratory â‰¥ 50)</option>
+<option value="STRONG_ONLY">STRONG ONLY (Score &ge; 80)</option>
+<option value="MODERATE_AND_STRONG">MODERATE &amp; STRONG (Score &ge; 68)</option>
+<option value="ALL">ALL SIGNALS (Exploratory &ge; 50)</option>
 </select>
 </div>
 <div>
@@ -493,8 +493,8 @@
 
                 const quotaHtml = `
                     <div style="font-family:monospace;font-size:0.75rem;font-variant-numeric:tabular-nums;line-height:1.35;">
-                        <span title="Daily Quota">D: <b>${u.daily_signals_used}</b> / ${u.max_signals_daily > 0 ? u.max_signals_daily : 'âˆž'}</span><br>
-                        <span style="color:var(--text-muted,#94a3b8);font-size:0.7rem;" title="Weekly, Monthly & Yearly Quotas">W: <b>${u.weekly_signals_used}</b>/${u.max_signals_weekly > 0 ? u.max_signals_weekly : 'âˆž'} | M: <b>${u.monthly_signals_used}</b>/${u.max_signals_monthly > 0 ? u.max_signals_monthly : 'âˆž'} | Y: <b>${u.yearly_signals_used || 0}</b>/${u.max_signals_yearly > 0 ? u.max_signals_yearly : 'âˆž'}</span>
+                        <span title="Daily Quota">D: <b>${u.daily_signals_used}</b> / ${u.max_signals_daily > 0 ? u.max_signals_daily : '∞'}</span><br>
+                        <span style="color:var(--text-muted,#94a3b8);font-size:0.7rem;" title="Weekly, Monthly & Yearly Quotas">W: <b>${u.weekly_signals_used}</b>/${u.max_signals_weekly > 0 ? u.max_signals_weekly : '∞'} | M: <b>${u.monthly_signals_used}</b>/${u.max_signals_monthly > 0 ? u.max_signals_monthly : '∞'} | Y: <b>${u.yearly_signals_used || 0}</b>/${u.max_signals_yearly > 0 ? u.max_signals_yearly : '∞'}</span>
                     </div>
                 `;
 
