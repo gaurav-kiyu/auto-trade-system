@@ -131,13 +131,77 @@ def _build_broker_executor_for_dispatcher(
                 ),
             )
 
-            context = ExecutionContext(
-                strategy_name="multi_asset_dispatcher",
-                execution_mode=_execution_mode(),
-                metadata={
-                    "source": "multi_asset_dispatcher",
-                },
+            from core.signals.signal_tracker import SignalTracker
+
+            strategy_name = str(
+                kwargs.get("strategy_id")
+                or kwargs.get("strategy_name")
+                or kwargs.get("strategy")
+                or "multi_asset_dispatcher"
             )
+
+            # Durable signal boundary:
+            # execution must always carry a durable SignalTracker signal_id.
+            # Preserve an upstream signal_id when one already exists.
+            signal_id = str(kwargs.get("signal_id") or "").strip()
+
+            if not signal_id:
+                raw_sig = kwargs.get("signal") or kwargs.get("sig")
+                signal_record = dict(raw_sig) if isinstance(raw_sig, dict) else {}
+                signal_record.setdefault("symbol", str(symbol))
+                signal_record.setdefault("direction", str(direction).upper())
+                signal_record.setdefault("entry_price", price)
+                signal_record.setdefault("strategy", strategy_name)
+                signal_record.setdefault("strategy_name", strategy_name)
+                signal_record.setdefault("quantity", int(quantity))
+
+                tracker = SignalTracker.get_instance()
+                signal_id = str(
+                    tracker.record_generated_signal(
+                        signal_record
+                    )
+                    or ""
+                ).strip()
+
+                if not signal_id:
+                    opp_key = str(
+                        signal_record.get("opportunity_key")
+                        or f"{str(symbol).upper()}|{str(direction).upper()}|{str(signal_record.get('category', 'LARGE_CAP_EQUITY')).upper()}|{strategy_name.lower()}"
+                    )
+                    get_active = getattr(tracker, "get_active_signal_id", None)
+                    if callable(get_active):
+                        active_id = get_active(opp_key)
+                        if isinstance(active_id, str) and active_id.strip():
+                            signal_id = active_id.strip()
+
+            # Fail closed: execution is forbidden without durable signal identity.
+            if not signal_id:
+                _log.error(
+                    "SIGNAL_PERSISTENCE_BLOCK: durable signal_id unavailable for %s",
+                    symbol,
+                )
+                return False
+
+            context_kwargs: dict[str, Any] = {
+                "signal_id": signal_id,
+                "strategy_name": strategy_name,
+                "execution_mode": _execution_mode(),
+                "correlation_id": str(
+                    kwargs.get("correlation_id")
+                    or kwargs.get("idempotency_key")
+                    or ""
+                ),
+                "metadata": {
+                    "source": "multi_asset_dispatcher",
+                    "symbol": str(symbol),
+                },
+            }
+
+            signal_timestamp = kwargs.get("signal_timestamp", kwargs.get("timestamp"))
+            if hasattr(signal_timestamp, "year"):
+                context_kwargs["signal_timestamp"] = signal_timestamp
+
+            context = ExecutionContext(**context_kwargs)
 
             result = execution_service.execute_order(
                 request,
