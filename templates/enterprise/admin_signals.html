@@ -155,20 +155,35 @@
 <div class="opb-table-container table-responsive">
 <table class="table">
 <thead>
-<tr>
-<th>Time (IST)<input class="column-filter" data-col="time" placeholder="Filter time"/></th>
-<th>Instrument<input class="column-filter" data-col="instrument" placeholder="Symbol / name"/></th>
-<th>Category<select class="column-filter" data-col="category"><option value="">All</option><option value="INDEX_OPTIONS">Index Options</option><option value="STOCK_OPTIONS">Stock Options</option><option value="EQUITY_SWING_DELIVERY">Equity</option><option value="FUTURES">Futures</option><option value="COMMODITIES">Commodities</option><option value="CURRENCIES">Currencies</option><option value="ETFS_REITS">ETF / REIT</option></select></th>
+<tr class="table-header-row">
+<th>Time (IST)</th>
+<th>Instrument</th>
+<th>Category</th>
 <th>Holding Horizon</th>
-<th>Signal Action<select class="column-filter" data-col="action"><option value="">All</option><option value="BUY">BUY / CALL</option><option value="SELL">SELL / PUT</option></select></th>
-<th>Score / Tier<input class="column-filter" data-col="score" max="100" min="0" placeholder="Min score" type="number"/></th>
+<th>Signal Action</th>
+<th>Score / Tier</th>
 <th>Entry LTP</th>
 <th>Target 1 / 2</th>
 <th>Stop Loss</th>
-<th>Outcome Status<select class="column-filter" data-col="status"><option value="">All</option><option value="ACTIVE">Active</option><option value="TARGET_1_HIT">Target 1</option><option value="TARGET_2_HIT">Target 2</option><option value="SL_HIT">🔴 Stop Loss</option><option value="EXPIRED">Expired</option></select></th>
+<th>Outcome Status</th>
 <th>P&amp;L %</th>
 <th>Recipients</th>
 <th>Order Placed?</th>
+</tr>
+<tr class="table-filter-row">
+<th><input class="opb-input column-filter" data-col="time" placeholder="Filter time"/></th>
+<th><input class="opb-input column-filter" data-col="instrument" placeholder="Symbol / name"/></th>
+<th><select class="opb-input column-filter" data-col="category"><option value="">All</option><option value="INDEX_OPTIONS">Index Options</option><option value="STOCK_OPTIONS">Stock Options</option><option value="EQUITY_SWING_DELIVERY">Equity</option><option value="FUTURES">Futures</option><option value="COMMODITIES">Commodities</option><option value="CURRENCIES">Currencies</option><option value="ETFS_REITS">ETF / REIT</option></select></th>
+<th></th>
+<th><select class="opb-input column-filter" data-col="action"><option value="">All</option><option value="BUY">BUY / CALL</option><option value="SELL">SELL / PUT</option></select></th>
+<th><input class="opb-input column-filter" data-col="score" max="100" min="0" placeholder="Min score" type="number"/></th>
+<th></th>
+<th></th>
+<th></th>
+<th><select class="opb-input column-filter" data-col="status"><option value="">All</option><option value="ACTIVE">Active</option><option value="TARGET_1_HIT">Target 1</option><option value="TARGET_2_HIT">Target 2</option><option value="SL_HIT">🔴 Stop Loss</option><option value="EXPIRED">Expired</option></select></th>
+<th></th>
+<th></th>
+<th></th>
 </tr>
 </thead>
 <tbody id="signalsTableBody">

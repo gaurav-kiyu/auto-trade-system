@@ -57,10 +57,20 @@
   }
 
 
+  function getCookie(n) {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + n + '=([^;]+)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
   function collectTables() {
     return [...document.querySelectorAll("table")].map((table, idx) => {
       const thead = table.tHead;
-      const headers = thead && thead.rows.length ? [...thead.rows[thead.rows.length - 1].cells].map(c => c.textContent.trim()) : [];
+      const headerRow = thead ? ([...thead.rows].find(r => !r.classList.contains("report-column-filter-row") && !r.classList.contains("table-filter-row")) || thead.rows[0]) : null;
+      const headers = headerRow ? [...headerRow.cells].map(c => {
+        const clone = c.cloneNode(true);
+        clone.querySelectorAll("input, select, button, .column-filter").forEach(el => el.remove());
+        return clone.textContent.trim();
+      }).filter(h => h.length > 0) : [];
       const rows = [...table.tBodies].flatMap(tb => [...tb.rows].filter(r => !r.hidden).map(r => [...r.cells].map(c => c.textContent.trim())));
       return {name: table.getAttribute("data-report-name") || `Report${idx + 1}`, headers, rows};
     }).filter(t => t.headers.length);
@@ -72,10 +82,15 @@
       window.alert("No tabular report data is available on this page.");
       return;
     }
+    const headers = {"Content-Type": "application/json"};
+    const csrfToken = getCookie("opb_csrf");
+    if (csrfToken) {
+      headers["X-CSRF-Token"] = csrfToken;
+    }
     const res = await fetch(`/api/reports/table-export/${fmt}`, {
       method: "POST",
       credentials: "include",
-      headers: {"Content-Type": "application/json"},
+      headers: headers,
       body: JSON.stringify({tables})
     });
     if (!res.ok) throw new Error(`Export failed: HTTP ${res.status}`);

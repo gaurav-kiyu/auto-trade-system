@@ -607,17 +607,38 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
         try:
             if success is None:
                 success = False if any(f in event_type.lower() for f in ("fail", "error", "denied", "lockout", "invalid")) else True
+            now_ts = time.time()
             conn = self._get_conn()
             try:
                 conn.execute(
                     "INSERT INTO audit_log (timestamp, event_type, username, ip_address, details, success) "
                     "VALUES (?, ?, ?, ?, ?, ?)",
-                    (time.time(), event_type, username, ip_address,
+                    (now_ts, event_type, username, ip_address,
                      json.dumps(details or {}), 1 if success else 0),
                 )
                 conn.commit()
             finally:
                 conn.close()
+
+            # Mirror to append-only JSONL audit trail
+            try:
+                from core.auth.audit_service import get_audit_service
+                svc = get_audit_service()
+                trail_file = svc.audit_trail_path
+                trail_file.parent.mkdir(parents=True, exist_ok=True)
+                with open(trail_file, "a", encoding="utf-8") as f:
+                    rec = {
+                        "event_id": f"aud_{int(now_ts * 1000)}",
+                        "timestamp": now_ts,
+                        "action": event_type.upper(),
+                        "actor_username": username,
+                        "ip_address": ip_address,
+                        "result": "SUCCESS" if success else "FAILED",
+                        "details": details or {},
+                    }
+                    f.write(json.dumps(rec, default=str) + "\n")
+            except Exception:
+                pass
         except (OSError, ValueError, TypeError) as e:
             _log.warning("[AUTH] Audit log write failed: %s", e)
 
@@ -634,18 +655,26 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
                 cursor = conn.execute(
                     "SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT ?", (limit,),
                 )
-            return [
-                {
+            results = []
+            for r in cursor.fetchall():
+                det = json.loads(r["details"]) if isinstance(r["details"], str) else {}
+                item = {
                     "id": r["id"],
                     "timestamp": r["timestamp"],
                     "event_type": r["event_type"],
+                    "action": r["event_type"],
                     "username": r["username"],
                     "ip_address": r["ip_address"],
-                    "details": json.loads(r["details"]) if isinstance(r["details"], str) else {},
+                    "details": det,
                     "success": bool(r["success"]),
+                    "result": "SUCCESS" if r["success"] else "FAILED",
                 }
-                for r in cursor.fetchall()
-            ]
+                if isinstance(det, dict):
+                    for k in ("event_id", "target", "route", "method", "before_state", "after_state", "reason", "correlation_id", "actor_role"):
+                        if k in det and k not in item:
+                            item[k] = det[k]
+                results.append(item)
+            return results
         finally:
             conn.close()
 

@@ -233,6 +233,33 @@
             }
         }
 
+        .desktop-cockpit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .dashboard-page-subbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 0.85rem;
+            background: var(--opb-surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+        }
+        @media (min-width: 1024px) {
+            .dashboard-page-subbar { display: none !important; }
+            .desktop-cockpit-header { display: flex !important; }
+        }
+        @media (max-width: 1023px) {
+            .desktop-cockpit-header { display: none !important; }
+            .dashboard-page-subbar { display: flex !important; }
+        }
+
 </style>
     <link rel="stylesheet" href="/static/fontawesome.min.css">
 </head>
@@ -242,7 +269,7 @@
 
     <!-- ── Cockpit Header: Global System Status & Session Bar ── -->
     <!-- Desktop Header (>= 1024px) -->
-    <div class="desktop-cockpit-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+    <div class="desktop-cockpit-header">
         <div>
             <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
                 <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.02em;color:var(--text-primary);">
@@ -270,8 +297,8 @@
         </div>
     </div>
 
-        <!-- Dashboard Section Sub-Bar -->
-    <div class="dashboard-page-subbar" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.85rem;background:var(--opb-surface-card);border:1px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:1rem;">
+    <!-- Dashboard Section Sub-Bar (< 1024px) -->
+    <div class="dashboard-page-subbar">
         <div style="display:flex;align-items:center;gap:0.5rem;">
             <i class="fas fa-tachometer-alt" style="color:var(--accent-color);font-size:1rem;"></i>
             <span style="font-size:0.95rem;font-weight:800;color:var(--text-primary);">Command Center</span>
@@ -320,7 +347,7 @@
         <!-- Capital Base Card -->
         <div class="opb-stat-card">
             <div class="opb-stat-label"><i class="fas fa-wallet" style="color:#38bdf8;margin-right:0.3rem;"></i> Capital Base</div>
-            <div class="opb-stat-value opb-num" id="capitalDisplay">₹10,000.00</div>
+            <div class="opb-stat-value opb-num" id="capitalDisplay">₹{{ "{:,.2f}".format((config.get('BASE_CAPITAL', 10000.0) if config else 10000.0)|float) }}</div>
             <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem;">Available Margin: <span style="color:var(--text-secondary);font-weight:700;">100%</span></div>
         </div>
 

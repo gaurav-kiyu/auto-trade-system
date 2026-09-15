@@ -109,7 +109,8 @@ def register_risk_routes(app, dashboard, admin_only, operator_or_admin) -> None:
         """Calculate position concentration risk metrics."""
         trades = dashboard._load_recent_trades(days=1, n=500)
         state = dashboard._read_state()
-        capital = state.get("base_capital", state.get("capital", 1_000_000)) or 1_000_000
+        cfg_cap = float(dashboard._cfg.get("BASE_CAPITAL", 10000.0))
+        capital = float(state.get("capital", state.get("base_capital", cfg_cap)) or cfg_cap)
         open_positions = [t for t in trades if t.get("status") == "open" or t.get("exit_time") is None]
         concentration_risk = "LOW"
         single_largest_pct = 0
@@ -149,7 +150,8 @@ def register_risk_routes(app, dashboard, admin_only, operator_or_admin) -> None:
 
         try:
             state = dashboard._read_state()
-            cash = state.get("capital", state.get("base_capital", 0)) or 0
+            cfg_cap = float(dashboard._cfg.get("BASE_CAPITAL", 10000.0))
+            cash = float(state.get("capital", state.get("base_capital", cfg_cap)) or cfg_cap)
 
             equity_positions = dashboard._bot_refs.get("equity_positions", [])
             fo_futures = dashboard._bot_refs.get("fo_futures", [])

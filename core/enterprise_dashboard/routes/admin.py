@@ -77,8 +77,9 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
             target_2=target_2,
         )
 
-        from core.notifications.url_resolver import get_public_base_url
+        from core.notifications.url_resolver import get_external_notification_base_url, get_public_base_url
         base_url = get_public_base_url(cfg)
+        ext_base_url = get_external_notification_base_url(cfg)
 
         rich_html_email = RichSignalFormatter.build_rich_html_email(
             symbol=symbol,
@@ -153,7 +154,7 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
                             ],
                             [
                                 {"text": "📊 View Chart", "url": f"https://in.tradingview.com/chart/?symbol=NSE:{symbol}"},
-                                {"text": "🏛️ Cockpit Dashboard", "url": f"{base_url}/my-signals"},
+                                {"text": "🏛️ Cockpit Dashboard", "url": f"{ext_base_url}/my-signals"},
                             ]
                         ]
                     }
@@ -208,6 +209,20 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
             "email": email_result,
             "timestamp": now_ist().strftime("%Y-%m-%d %H:%M:%S IST")
         }
+        try:
+            from core.auth.audit_service import log_privileged_action
+            log_privileged_action(
+                action="SIGNAL_DISPATCH_TEST",
+                actor_username=user.username,
+                actor_role=getattr(user, "role", "admin"),
+                target=f"{symbol}:{category}",
+                route="/api/v1/admin/test-dispatch-signal",
+                result="SUCCESS",
+                after_state={"signal_id": signal_id, "recipients": len(eligible_users)},
+            )
+        except Exception as aud_ex:
+            _log.warning("[ADMIN] Audit logging failed for test signal dispatch: %s", aud_ex)
+        return resp
 
     @app.post("/api/v1/admin/test-email")
     async def api_test_email(user: Any = Depends(dashboard._auth_deps.require_permission("modify_config"))):

@@ -33,6 +33,9 @@ def _resolve_session_user(request: Request, dashboard):  # type: ignore[no-untyp
 
 
 
+_DASHBOARD_REF = None
+
+
 def _page_context(user, nonce: str, current_page: str) -> dict:
     """Shared authenticated-page context, including effective RBAC flags."""
     from core.auth.permissions import Permission, Role, get_role_permissions, is_super_admin_identity
@@ -64,6 +67,7 @@ def _page_context(user, nonce: str, current_page: str) -> dict:
         "can_modify_config": Permission.MODIFY_CONFIG.value in effective,
         "can_manage_users": Permission.MANAGE_USERS.value in effective,
         "can_manage_permissions": Permission.MANAGE_PERMISSIONS.value in effective,
+        "config": getattr(_DASHBOARD_REF, "_cfg", {}) if _DASHBOARD_REF else {},
     }
 
 
@@ -104,6 +108,9 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
             used to check operator/admin auth for privileged pages.
 
     """
+    global _DASHBOARD_REF
+    _DASHBOARD_REF = dashboard
+
     if _require_operator_or_admin_page is None:
         _require_operator_or_admin_page = _require_admin_page
 
