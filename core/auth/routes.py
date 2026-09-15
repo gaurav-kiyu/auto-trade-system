@@ -448,6 +448,21 @@ def create_auth_router(
         if role not in valid_roles:
             raise HTTPException(status_code=400, detail=f"Unsupported role: {role}")
         if not is_super_admin_identity(admin.username, admin.role) and role != "viewer":
+            try:
+                from core.auth.audit_service import get_audit_service
+                get_audit_service().log_privileged_action(
+                    action="USER_CREATE_DENIED",
+                    actor_username=admin.username,
+                    actor_role=admin.role,
+                    target=username,
+                    result="DENIED",
+                    reason="Only Super Admin can create accounts with elevated roles",
+                    route="/api/auth/users",
+                    method="POST",
+                    details={"attempted_role": role},
+                )
+            except Exception:
+                pass
             raise HTTPException(status_code=403, detail="Only Super Admin can create accounts with elevated roles")
 
         result = auth_handler.create_user(
@@ -506,8 +521,38 @@ def create_auth_router(
         # Only the root role may grant/revoke Super Admin. This prevents an
         # ordinary Admin from escalating another account to the root role.
         if new_role == "super_admin" and not is_super_admin_identity(admin.username, admin.role):
+            try:
+                from core.auth.audit_service import get_audit_service
+                get_audit_service().log_privileged_action(
+                    action="ROLE_ASSIGN_DENIED",
+                    actor_username=admin.username,
+                    actor_role=admin.role,
+                    target=username,
+                    result="DENIED",
+                    reason="Only Super Admin can assign Super Admin role",
+                    route=f"/api/auth/users/{username}/role",
+                    method="PUT",
+                    details={"attempted_role": new_role},
+                )
+            except Exception:
+                pass
             raise HTTPException(status_code=403, detail="Only Super Admin can assign Super Admin role")
         if str(target.role).lower() == "super_admin" and new_role != "super_admin" and not is_super_admin_identity(admin.username, admin.role):
+            try:
+                from core.auth.audit_service import get_audit_service
+                get_audit_service().log_privileged_action(
+                    action="ROLE_MODIFY_DENIED",
+                    actor_username=admin.username,
+                    actor_role=admin.role,
+                    target=username,
+                    result="DENIED",
+                    reason="Only Super Admin can modify a Super Admin",
+                    route=f"/api/auth/users/{username}/role",
+                    method="PUT",
+                    details={"target_role": target.role, "attempted_role": new_role},
+                )
+            except Exception:
+                pass
             raise HTTPException(status_code=403, detail="Only Super Admin can modify a Super Admin")
 
         # Never remove the final active Super Admin.

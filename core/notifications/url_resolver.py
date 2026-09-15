@@ -127,7 +127,7 @@ def get_external_notification_base_url(cfg: dict[str, Any] | None = None) -> str
     deployments therefore use the canonical public cockpit origin rather than
     the legacy local dashboard origin.
     """
-    root = get_deployment_base_url(cfg)
+    root = get_public_base_url(cfg) or get_deployment_base_url(cfg)
     if _is_loopback_url(root):
         return DEFAULT_PRODUCTION_URL
     return root.rstrip("/")

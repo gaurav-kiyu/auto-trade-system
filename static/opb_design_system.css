@@ -959,3 +959,151 @@ html, body {
     flex-shrink: 0 !important;
     white-space: nowrap !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UNIVERSAL MODAL DESIGN SYSTEM ABSTRACTIONS (OPB-MODAL-2026)
+   ══════════════════════════════════════════════════════════════════════════ */
+.modal-overlay, .opb-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.modal-overlay.visible, .opb-modal-overlay.visible {
+    display: flex !important;
+}
+
+.modal, .opb-modal {
+    background: var(--bg-card, #131e33) !important;
+    color: var(--text-primary, #f8fafc) !important;
+    border: 1px solid var(--border-color, #1e293b);
+    border-radius: var(--radius-lg, 0.75rem);
+    padding: 1.5rem;
+    max-width: 680px;
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--card-shadow, 0 20px 40px -15px rgba(0, 0, 0, 0.7));
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.modal h2, .modal h3, .opb-modal h2, .opb-modal h3 {
+    color: var(--text-primary, #f8fafc) !important;
+}
+
+.modal label, .opb-modal label {
+    color: var(--text-secondary, #cbd5e1);
+}
+
+.modal-header, .opb-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color, #1e293b);
+}
+
+.modal-footer, .opb-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color, #1e293b);
+}
+
+.modal-body, .opb-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Form Controls & Password Wrapper */
+.opb-input, .input-field {
+    background: var(--input-bg, #0b1120);
+    border: 1px solid var(--border-color, #1e293b);
+    color: var(--text-primary, #f8fafc);
+    border-radius: var(--radius-md, 0.5rem);
+    padding: 0.5rem 0.75rem;
+    font-size: var(--font-sm, 0.875rem);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.opb-input:focus, .input-field:focus {
+    border-color: var(--accent-color, #38bdf8);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.opb-password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.opb-password-wrapper input {
+    padding-right: 2.75rem !important;
+}
+
+.opb-password-toggle {
+    position: absolute;
+    right: 0.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    padding: 0.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+    transition: color 0.15s ease;
+}
+
+.opb-password-toggle:hover {
+    color: var(--text-primary, #ffffff);
+}
+
+/* Dedicated Table Filter Row & Controls */
+.table-filter-row th, tr.table-filter-row th {
+    padding: 0.35rem 0.5rem !important;
+    background: var(--bg-card, #131e33) !important;
+    border-bottom: 2px solid var(--border-color, #1e293b) !important;
+    font-weight: normal;
+}
+
+.table-filter-input, .column-filter {
+    background: var(--input-bg, #0b1120) !important;
+    border: 1px solid var(--border-color, #1e293b) !important;
+    color: var(--text-primary, #f8fafc) !important;
+    border-radius: var(--radius-sm, 0.375rem);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.72rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.table-filter-input:focus, .column-filter:focus {
+    border-color: var(--accent-color, #38bdf8) !important;
+    box-shadow: 0 0 0 1px var(--accent-color, #38bdf8);
+}

@@ -9,7 +9,7 @@
 
     const THEMES = {
         'dark-cyber': {
-            name: '🌌 Dark Cyber (Default)',
+            name: '🌌 Dark Cyber (Dark)',
             type: 'dark',
             vars: {
                 '--bg-primary': '#080c14',
@@ -35,7 +35,7 @@
             }
         },
         'dracula-purple': {
-            name: '🌸 Plum Cloud (Premium Light)',
+            name: '🟣 Dracula Purple (Light)',
             type: 'light',
             vars: {
                 '--bg-primary': '#faf7fc',
@@ -61,7 +61,7 @@
             }
         },
         'ivory-gold': {
-            name: '🏛️ Ivory & Gold (Luxury Warm Light)',
+            name: '🏛️ Ivory Gold (Light)',
             type: 'light',
             vars: {
                 '--bg-primary': '#f5f0e6',
@@ -87,7 +87,7 @@
             }
         },
         'midnight-slate': {
-            name: '☀️ Sapphire Day (Modern Finance Light)',
+            name: '🌑 Midnight Slate (Light)',
             type: 'light',
             vars: {
                 '--bg-primary': '#f6f8fb',
@@ -113,7 +113,7 @@
             }
         },
         'emerald-matrix': {
-            name: '❇️ Emerald Matrix',
+            name: '❇️ Emerald Matrix (Dark)',
             type: 'dark',
             vars: {
                 '--bg-primary': '#020d07',

@@ -117,18 +117,36 @@ def register_reporting_routes(app, dashboard, admin_only, operator_or_admin) -> 
             from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Table, TableStyle
             out = io.BytesIO()
             doc = SimpleDocTemplate(out, pagesize=landscape(A4), rightMargin=18, leftMargin=18, topMargin=18, bottomMargin=18)
+            import html
             styles = getSampleStyleSheet()
+            cell_style = styles["Normal"].clone("ReportCell")
+            cell_style.fontSize = 6.5
+            cell_style.leading = 8
+            header_style = styles["Normal"].clone("ReportHeaderCell")
+            header_style.fontSize = 7
+            header_style.leading = 9
+            header_style.textColor = colors.white
+            header_style.fontName = "Helvetica-Bold"
+
             story = [Paragraph("Report Export", styles["Title"])]
             for i, table in enumerate(clean):
-                story.append(Paragraph(table["name"], styles["Heading2"]))
-                data = [table["headers"] or ["Value"]] + table["rows"]
-                tbl = Table(data, repeatRows=1)
+                story.append(Paragraph(html.escape(table["name"]), styles["Heading2"]))
+                headers = table["headers"] or ["Value"]
+                num_cols = max(1, len(headers))
+                col_width = 805.0 / num_cols
+
+                header_row = [Paragraph(html.escape(str(h)), header_style) for h in headers]
+                data = [header_row]
+                for row in table["rows"]:
+                    data.append([Paragraph(html.escape(str(c)), cell_style) for c in row[:num_cols]])
+
+                tbl = Table(data, colWidths=[col_width] * num_cols, repeatRows=1)
                 tbl.setStyle(TableStyle([
                     ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#1f4e78")),
-                    ("TEXTCOLOR", (0,0), (-1,0), colors.white),
                     ("GRID", (0,0), (-1,-1), 0.25, colors.grey),
-                    ("FONTSIZE", (0,0), (-1,-1), 6),
                     ("VALIGN", (0,0), (-1,-1), "TOP"),
+                    ("TOPPADDING", (0,0), (-1,-1), 2),
+                    ("BOTTOMPADDING", (0,0), (-1,-1), 2),
                 ]))
                 story.append(tbl)
                 if i < len(clean)-1:

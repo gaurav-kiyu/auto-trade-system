@@ -252,9 +252,23 @@ class UserPermissionManager:
                 self._permissions[username] = new_perm
                 self._save_unlocked()
                 _log.info("[ADMIN] SuperAdmin %s created permissions for user %s", admin_username, username)
+                try:
+                    from core.auth.audit_service import log_privileged_action
+                    log_privileged_action(
+                        action="USER_PERMISSIONS_CREATE",
+                        actor_username=admin_username,
+                        target=username,
+                        route=f"/api/auth/users/{username}/permissions",
+                        result="SUCCESS",
+                        before_state=None,
+                        after_state=new_perm.to_dict(),
+                    )
+                except Exception as aud_ex:
+                    _log.warning("[ADMIN] Audit logging failed for user permission create: %s", aud_ex)
                 return True, f"Permissions created for user {username}", new_perm.to_dict()
 
             # Update existing entry
+            before_dict = existing.to_dict()
             for k, v in data.items():
                 if hasattr(existing, k) and k not in ("username", "daily_signals_used", "weekly_signals_used", "monthly_signals_used", "yearly_signals_used", "last_daily_reset", "last_weekly_reset", "last_monthly_reset", "last_yearly_reset"):
                     setattr(existing, k, v)
@@ -263,6 +277,19 @@ class UserPermissionManager:
             existing.updated_at = now_ist().isoformat()
             self._save_unlocked()
             _log.info("[ADMIN] SuperAdmin %s updated permissions for user %s", admin_username, username)
+            try:
+                from core.auth.audit_service import log_privileged_action
+                log_privileged_action(
+                    action="USER_PERMISSIONS_UPDATE",
+                    actor_username=admin_username,
+                    target=username,
+                    route=f"/api/auth/users/{username}/permissions",
+                    result="SUCCESS",
+                    before_state=before_dict,
+                    after_state=existing.to_dict(),
+                )
+            except Exception as aud_ex:
+                _log.warning("[ADMIN] Audit logging failed for user permission update: %s", aud_ex)
             return True, f"Permissions updated for user {username}", existing.to_dict()
 
 
@@ -323,6 +350,19 @@ class UserPermissionManager:
             self._save_unlocked()
             _log.info("[ADMIN] SuperAdmin %s toggled signals for %s -> %s",
                       admin_username, username, perm.signals_enabled)
+            try:
+                from core.auth.audit_service import log_privileged_action
+                log_privileged_action(
+                    action="USER_SIGNALS_TOGGLE",
+                    actor_username=admin_username,
+                    target=username,
+                    route=f"/api/auth/users/{username}/toggle-signals",
+                    result="SUCCESS",
+                    before_state={"signals_enabled": not perm.signals_enabled},
+                    after_state={"signals_enabled": perm.signals_enabled},
+                )
+            except Exception as aud_ex:
+                _log.warning("[ADMIN] Audit logging failed for toggle signals: %s", aud_ex)
             return True, f"Signals {'ENABLED' if perm.signals_enabled else 'BLOCKED'} for {username}", perm.signals_enabled
 
     def get_eligible_recipients(

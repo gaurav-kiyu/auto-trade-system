@@ -845,18 +845,18 @@ body[data-theme="emerald-matrix"] {
         <!-- Right: Telemetry, Theme Selector, Emergency Kill Switch, User Identity -->
         <div style="display:flex;align-items:center;gap:0.65rem;flex-shrink:0;min-width:max-content;margin-left:auto;white-space:nowrap;">
             <!-- Telemetry Pulse & Latency -->
-            <span style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#334155);padding:0.3rem 0.65rem;border-radius:0.4rem;font-size:0.75rem;display:inline-flex;align-items:center;gap:0.4rem;flex-shrink:0;white-space:nowrap;min-width:max-content;">
+            <span style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#334155);height:34px;padding:0 0.65rem;border-radius:0.4rem;font-size:0.75rem;display:inline-flex;align-items:center;gap:0.4rem;flex-shrink:0;white-space:nowrap;min-width:max-content;box-sizing:border-box;">
                 <span class="opb-latency-pulse pulse-live" id="desktop-telemetry-pulse" style="width:8px;height:8px;border-radius:50%;background:var(--market-buy,#10b981);display:inline-block;flex-shrink:0;"></span>
                 <span class="opb-num" id="desktop-live-latency" style="color:var(--text-primary,#ffffff);font-family:var(--font-mono);font-weight:700;white-space:nowrap;display:inline-block;">12ms</span>
             </span>
 
             <!-- 5-Theme Selector Dropdown -->
-            <select id="desktopThemeSelect" data-theme-select="true" class="opb-theme-selector" style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#334155);color:var(--text-primary,#ffffff);padding:0.35rem 0.65rem;border-radius:0.4rem;font-size:0.75rem;font-weight:700;outline:none;cursor:pointer;flex-shrink:0 !important;width:auto !important;max-width:145px !important;min-width:125px !important;white-space:nowrap !important;display:inline-block !important;">
-<option value="dark-cyber">&#x1F30C; Dark Cyber</option>
-<option value="dracula-purple">&#x1F338; Plum Cloud</option>
-<option value="ivory-gold">&#x1F3DB;&#xFE0F; Ivory Gold</option>
-<option value="midnight-slate">&#x2600;&#xFE0F; Sapphire Day</option>
-<option value="emerald-matrix">&#x2747;&#xFE0F; Emerald</option>
+            <select id="desktopThemeSelect" data-theme-select="true" class="opb-theme-selector" style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#334155);color:var(--text-primary,#ffffff);height:34px;padding:0 0.65rem;border-radius:0.4rem;font-size:0.75rem;font-weight:700;outline:none;cursor:pointer;flex-shrink:0 !important;width:auto !important;max-width:145px !important;min-width:125px !important;white-space:nowrap !important;display:inline-flex !important;align-items:center;box-sizing:border-box;">
+<option value="dark-cyber">&#x1F30C; Dark Cyber (Dark)</option>
+<option value="dracula-purple">&#x1F7E3; Dracula Purple (Light)</option>
+<option value="ivory-gold">&#x1F3DB;&#xFE0F; Ivory Gold (Light)</option>
+<option value="midnight-slate">&#x1F311; Midnight Slate (Light)</option>
+<option value="emerald-matrix">&#x2747;&#xFE0F; Emerald Matrix (Dark)</option>
 </select>
 
             <!-- Emergency Kill Switch (P1) -->
@@ -1005,12 +1005,12 @@ body[data-theme="emerald-matrix"] {
     <!-- 2. Dedicated Multi-Theme Selector Region -->
     <div class="drawer-theme-card" style="padding:0.65rem 1rem;background:var(--bg-card,#0f172a);border-bottom:1px solid var(--border-color,#1e293b);display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
         <span style="font-size:0.72rem;font-weight:800;color:var(--text-secondary,#cbd5e1);text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;">🎨 Theme</span>
-        <select id="drawerThemeSelect" data-theme-select="true" class="opb-theme-selector" style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#1e293b);color:var(--text-primary,#ffffff);padding:0.3rem 0.6rem;border-radius:0.375rem;font-size:0.75rem;font-weight:700;outline:none;width:auto;flex:1;max-width:180px;">
-<option value="dark-cyber">&#x1F30C; Dark Cyber</option>
-<option value="dracula-purple">&#x1F338; Plum Cloud</option>
-<option value="ivory-gold">&#x1F3DB;&#xFE0F; Ivory Gold</option>
-<option value="midnight-slate">&#x2600;&#xFE0F; Sapphire Day</option>
-<option value="emerald-matrix">&#x2747;&#xFE0F; Emerald</option>
+        <select id="drawerThemeSelect" data-theme-select="true" class="opb-theme-selector" style="background:var(--input-bg,#0b1120);border:1px solid var(--border-color,#1e293b);color:var(--text-primary,#ffffff);height:34px;padding:0 0.6rem;border-radius:0.375rem;font-size:0.75rem;font-weight:700;outline:none;width:auto;flex:1;max-width:180px;box-sizing:border-box;">
+<option value="dark-cyber">&#x1F30C; Dark Cyber (Dark)</option>
+<option value="dracula-purple">&#x1F7E3; Dracula Purple (Light)</option>
+<option value="ivory-gold">&#x1F3DB;&#xFE0F; Ivory Gold (Light)</option>
+<option value="midnight-slate">&#x1F311; Midnight Slate (Light)</option>
+<option value="emerald-matrix">&#x2747;&#xFE0F; Emerald Matrix (Dark)</option>
 </select>
     </div>
 

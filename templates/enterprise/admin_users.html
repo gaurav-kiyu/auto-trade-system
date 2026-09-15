@@ -42,12 +42,12 @@
         .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; }
         .modal-overlay.visible { display: flex; }
-        .modal { background: #1a1f2e; border: 1px solid var(--border-color, #1e293b); border-radius: 1rem; padding: 1.5rem; max-width: 680px; width: 95%; max-height: 90vh; overflow-y: auto; }
-        .input-field { width: 100%; padding: 0.5rem 0.75rem; background: #0f1319; border: 1px solid var(--border-color, #1e293b); border-radius: 0.4rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; outline: none; }
-        .input-field:focus { border-color: #3b82f6; }
+        .modal { background: var(--bg-card, #131e33); color: var(--text-primary, #f8fafc); border: 1px solid var(--border-color, #1e293b); border-radius: 1rem; padding: 1.5rem; max-width: 680px; width: 95%; max-height: 90vh; overflow-y: auto; }
+        .input-field { width: 100%; padding: 0.5rem 0.75rem; background: var(--input-bg, #0b1120); border: 1px solid var(--border-color, #1e293b); border-radius: 0.4rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; outline: none; }
+        .input-field:focus { border-color: var(--accent-color, #3b82f6); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
         .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; margin: 0.5rem 0; }
-        .category-item { display: flex; align-items: center; gap: 0.5rem; background: #0f1319; border: 1px solid var(--border-color, #1e293b); border-radius: 0.4rem; padding: 0.4rem 0.6rem; font-size: 0.75rem; cursor: pointer; }
-        .category-item:hover { border-color: #3b82f6; }
+        .category-item { display: flex; align-items: center; gap: 0.5rem; background: var(--input-bg, #0b1120); color: var(--text-primary, #e2e8f0); border: 1px solid var(--border-color, #1e293b); border-radius: 0.4rem; padding: 0.4rem 0.6rem; font-size: 0.75rem; cursor: pointer; }
+        .category-item:hover { border-color: var(--accent-color, #3b82f6); }
         .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 20px; }
@@ -354,18 +354,33 @@
         let editingUsername = null;
         let filteredPermissions = [];
 
-        const categoryLabels = {
-            'INDEX_OPTIONS': '<i class="fas fa-chart-line"></i> Index Options',
-            'STOCK_OPTIONS': '<i class="fas fa-layer-group"></i> Stock Options',
-            'EQUITY_SWING_DELIVERY': '<i class="fas fa-box"></i> Equity Swing & Delivery',
-            'LARGE_CAP_EQUITY': '<i class="fas fa-building"></i> Large-Cap Equity',
-            'MID_SMALL_CAP': '<i class="fas fa-rocket"></i> Mid/Small-Cap',
-            'PENNY_SME': '<i class="fas fa-gem"></i> Penny & SME',
-            'COMMODITIES': '<i class="fas fa-coins"></i> Commodities (MCX)',
-            'CURRENCIES': '<i class="fas fa-dollar-sign"></i> Currencies',
-            'FUTURES': '<i class="fas fa-chart-bar"></i> Futures',
-            'ETFS_REITS': '<i class="fas fa-landmark"></i> ETFs & REITs',
+        const categoryNames = {
+            'INDEX_OPTIONS': 'Index Options',
+            'STOCK_OPTIONS': 'Stock Options',
+            'EQUITY_SWING_DELIVERY': 'Equity Swing & Delivery',
+            'LARGE_CAP_EQUITY': 'Large-Cap Equity',
+            'MID_SMALL_CAP': 'Mid/Small-Cap',
+            'PENNY_SME': 'Penny & SME',
+            'COMMODITIES': 'Commodities (MCX)',
+            'CURRENCIES': 'Currencies',
+            'FUTURES': 'Futures',
+            'ETFS_REITS': 'ETFs & REITs',
         };
+
+        const categoryIcons = {
+            'INDEX_OPTIONS': 'fas fa-chart-line',
+            'STOCK_OPTIONS': 'fas fa-layer-group',
+            'EQUITY_SWING_DELIVERY': 'fas fa-box',
+            'LARGE_CAP_EQUITY': 'fas fa-building',
+            'MID_SMALL_CAP': 'fas fa-rocket',
+            'PENNY_SME': 'fas fa-gem',
+            'COMMODITIES': 'fas fa-coins',
+            'CURRENCIES': 'fas fa-dollar-sign',
+            'FUTURES': 'fas fa-chart-bar',
+            'ETFS_REITS': 'fas fa-landmark',
+        };
+
+        const getCategoryBadge = (c) => `<i class="${categoryIcons[c] || 'fas fa-tag'}"></i> ${categoryNames[c] || c}`;
 
         function getCookie(name) {
             const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -428,7 +443,7 @@
                 const el = document.getElementById(id);
                 if (!el) return;
                 const current = el.value;
-                el.innerHTML = '<option value="">All</option>' + allCategories.map(c => `<option value="${c}">${categoryLabels[c] || c}</option>`).join('');
+                el.innerHTML = '<option value="">All</option>' + allCategories.map(c => `<option value="${c}">${categoryNames[c] || c}</option>`).join('');
                 el.value = current;
             });
         }
@@ -486,7 +501,7 @@
                 } else {
                     catsHtml = `<div style="display:flex;flex-wrap:wrap;gap:0.25rem;max-width:280px;">` +
                         (u.allowed_categories || []).map(c => 
-                            `<span class="badge-category">${categoryLabels[c] || c}</span>`
+                            `<span class="badge-category">${getCategoryBadge(c)}</span>`
                         ).join('') +
                         `</div>`;
                 }
@@ -537,7 +552,7 @@
 
         async function loadAuditLog() {
             try {
-                const data = await apiFetch('/api/auth/audit?limit=25');
+                const data = await apiFetch('/api/auth/audit?limit=50');
                 const log = Array.isArray(data) ? data : (data?.log || []);
                 const tb = document.getElementById('auditTableBody');
                 if (!tb) return;
@@ -577,6 +592,7 @@
             if (res && res.success) {
                 showToast(res.message, 'success');
                 await loadPermissions();
+                await loadAuditLog();
             } else {
                 showToast(res?.detail || 'Failed to toggle signals', 'error');
             }
@@ -647,7 +663,7 @@
                 return `
                     <label class="category-item">
                         <input type="checkbox" class="cat-checkbox" value="${c}" ${isChecked ? 'checked' : ''}>
-                        <span>${categoryLabels[c] || c}</span>
+                        <span>${getCategoryBadge(c)}</span>
                     </label>
                 `;
             }).join('');
@@ -661,7 +677,7 @@
             if (!u) return;
             const esc = v => String(v ?? '-').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
             const roleLabel = (u.role === 'admin' && u.username === 'admin') ? 'Super Admin' : (u.role || 'Viewer');
-            const cats = (u.allowed_categories || []).map(c => categoryLabels[c] || c).join(', ') || 'None';
+            const cats = (u.allowed_categories || []).map(c => categoryNames[c] || c).join(', ') || 'None';
             document.getElementById('viewUserContent').innerHTML = [
                 ['Username', u.username], ['Display Name', u.display_name || '-'], ['Role', roleLabel],
                 ['Account Status', u.is_active ? 'Active' : 'Disabled'], ['Signals', u.signals_enabled ? 'Allowed' : 'Blocked'],
@@ -736,6 +752,7 @@
                 showToast(`Permissions updated for ${editingUsername}`, 'success');
                 document.getElementById('editPermModal').classList.remove('visible');
                 await loadPermissions();
+                await loadAuditLog();
             } else {
                 document.getElementById('permError').textContent = res?.detail || 'Failed to update permissions';
                 document.getElementById('permError').style.display = 'block';
@@ -771,6 +788,7 @@
                 showToast('User created successfully: ' + payload.username, 'success');
                 document.getElementById('createModal').classList.remove('visible');
                 await loadPermissions();
+                await loadAuditLog();
             } else {
                 document.getElementById('createError').textContent = res?.detail || 'Failed to create user';
                 document.getElementById('createError').style.display = 'block';
@@ -805,6 +823,7 @@
             if (res && res.success) {
                 showToast('Password reset for ' + resetTargetUsername, 'success');
                 document.getElementById('resetModal').classList.remove('visible');
+                await loadAuditLog();
             } else {
                 document.getElementById('resetError').textContent = res?.detail || 'Reset failed';
                 document.getElementById('resetError').style.display = 'block';

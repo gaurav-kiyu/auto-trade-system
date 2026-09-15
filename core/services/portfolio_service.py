@@ -27,7 +27,8 @@ class PortfolioService:
 
     def get_capital(self) -> float:
         """Returns current available capital."""
-        return float(state_manager.get("capital", self._base_capital))
+        base_cap = float(self.config.get("BASE_CAPITAL", self._base_capital))
+        return float(state_manager.get("capital", base_cap))
 
     def get_available_margin(self) -> float:
         """Returns available margin (capital minus blocked margin for open positions)."""

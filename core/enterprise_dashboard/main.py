@@ -1040,9 +1040,52 @@ class EnterpriseDashboard:
                 if not key.startswith("_")
             }
 
+            # Safety invariant enforcement: TRADING_MODE is strictly locked to PAPER
+            if "TRADING_MODE" in public_change and str(public_change["TRADING_MODE"]).upper() != "PAPER":
+                try:
+                    from core.auth.audit_service import log_privileged_action
+                    log_privileged_action(
+                        action="CONFIG_APPLY",
+                        actor_username=username,
+                        target="TRADING_MODE",
+                        route="/api/config/apply",
+                        result="FAILED",
+                        before_state={"TRADING_MODE": original.get("TRADING_MODE", "PAPER") if isinstance(original, dict) else "PAPER"},
+                        after_state={"TRADING_MODE": public_change["TRADING_MODE"]},
+                        reason="TRADING_MODE is locked to PAPER by safety invariants",
+                    )
+                except Exception:
+                    pass
+                return {
+                    "success": False,
+                    "error": "TRADING_MODE is strictly locked to PAPER by safety invariants",
+                    "validation": {
+                        "valid": False,
+                        "errors": [{
+                            "key": "TRADING_MODE",
+                            "message": "TRADING_MODE is strictly locked to PAPER in this environment",
+                        }],
+                        "warnings": [],
+                    },
+                }
+
             # First preserve the existing Admin-delta validation behavior.
             delta_validation = self._validate_config_change(public_change)
             if not delta_validation["valid"]:
+                try:
+                    from core.auth.audit_service import log_privileged_action
+                    log_privileged_action(
+                        action="CONFIG_APPLY",
+                        actor_username=username,
+                        target=",".join(list(public_change.keys())[:5]),
+                        route="/api/config/apply",
+                        result="FAILED",
+                        before_state={k: original.get(k) for k in public_change if isinstance(original, dict)},
+                        after_state=public_change,
+                        reason="Delta validation failed",
+                    )
+                except Exception as audit_err:
+                    _log.warning("[DASH] Audit log failed for config validation error: %s", audit_err)
                 return {
                     "success": False,
                     "error": "Configuration validation failed",
@@ -1092,6 +1135,20 @@ class EnterpriseDashboard:
                 }
 
             if canonical_errors:
+                try:
+                    from core.auth.audit_service import log_privileged_action
+                    log_privileged_action(
+                        action="CONFIG_APPLY",
+                        actor_username=username,
+                        target=",".join(list(public_change.keys())[:5]),
+                        route="/api/config/apply",
+                        result="FAILED",
+                        before_state={k: original.get(k) for k in public_change if isinstance(original, dict)},
+                        after_state=public_change,
+                        reason="; ".join(canonical_errors[:3]),
+                    )
+                except Exception as audit_err:
+                    _log.warning("[DASH] Audit log failed for canonical config validation error: %s", audit_err)
                 return {
                     "success": False,
                     "error": "Configuration validation failed",
@@ -1141,7 +1198,6 @@ class EnterpriseDashboard:
             return {"success": False, "error": f"Write failed, rolled back: {e}"}
 
         with self._config_lock:
-            self._cfg.clear()
             self._cfg.update(current)
             # Re-freeze the config so the config property stays current
             self._cfg_frozen = _freeze(self._cfg)
@@ -1183,7 +1239,42 @@ class EnterpriseDashboard:
         except Exception as env_sync_ex:
             _log.warning("[DASH] .env sync FAILED for keys %s: %s", list(applied.keys()), env_sync_ex)
 
+        # Synchronize BASE_CAPITAL to self._state_path (json/trader_state.json)
+        if "BASE_CAPITAL" in applied:
+            try:
+                new_base_cap = float(applied["BASE_CAPITAL"])
+                sp = Path(self._state_path)
+                state_data: dict[str, Any] = {}
+                if sp.is_file():
+                    try:
+                        loaded_st = json.loads(sp.read_text(encoding="utf-8"))
+                        if isinstance(loaded_st, dict):
+                            state_data = loaded_st
+                    except Exception:
+                        state_data = {}
+                state_data["base_capital"] = new_base_cap
+                old_base_cap = original.get("BASE_CAPITAL") if isinstance(original, dict) else None
+                if "capital" not in state_data or state_data.get("capital") == old_base_cap:
+                    state_data["capital"] = new_base_cap
+                sp.write_text(json.dumps(state_data, indent=4), encoding="utf-8")
+                _log.info("[DASH] Synchronized BASE_CAPITAL=%s to %s", new_base_cap, self._state_path)
+            except Exception as st_ex:
+                _log.warning("[DASH] Failed to sync BASE_CAPITAL to trader state: %s", st_ex)
+
         self._log_config_audit(username, list(applied.keys()), list(applied.values()), "config_apply")
+        try:
+            from core.auth.audit_service import log_privileged_action
+            log_privileged_action(
+                action="CONFIG_APPLY",
+                actor_username=username,
+                target=",".join(list(applied.keys())[:5]),
+                route="/api/config/apply",
+                result="SUCCESS",
+                before_state={k: original.get(k) for k in applied if isinstance(original, dict)},
+                after_state=dict(applied),
+            )
+        except Exception as audit_err:
+            _log.warning("[DASH] Audit log failed for config apply: %s", audit_err)
         return {
             "success": True,
             "applied_count": len(applied),
@@ -1251,6 +1342,18 @@ class EnterpriseDashboard:
             except Exception as cache_ex:
                 _log.warning("[DASH] PUBLIC_BASE_URL cache invalidation failed during rollback: %s", cache_ex)
             self._log_config_audit(username, ["rollback"], [version], "config_rollback")
+            try:
+                from core.auth.audit_service import log_privileged_action
+                log_privileged_action(
+                    action="CONFIG_ROLLBACK",
+                    actor_username=username,
+                    target=version,
+                    route="/api/config/rollback",
+                    result="SUCCESS",
+                    after_state={"restored_from": version, "keys_restored": len(backup_data)},
+                )
+            except Exception as audit_err:
+                _log.warning("[DASH] Audit log failed for config rollback: %s", audit_err)
             return {"success": True, "restored_from": version, "keys_restored": len(backup_data)}
         except (OSError, json.JSONDecodeError, ValueError, TypeError) as e:
             _log.warning("[DASH] Config rollback failed: %s", e)
@@ -1387,7 +1490,9 @@ class EnterpriseDashboard:
         except (OSError, json.JSONDecodeError, ValueError) as exc:
             _log.warning("[DASH] Failed to read trader state: %s", exc)
 
-        capital = st.get("capital") or st.get("base_capital") or st.get("current_capital") or 10000.0
+        cfg_cap = float(self._cfg.get("BASE_CAPITAL", 10000.0))
+        capital = float(st.get("capital") or st.get("base_capital") or st.get("current_capital") or cfg_cap)
+        base_cap = float(st.get("base_capital") or self._cfg.get("BASE_CAPITAL", capital))
         day_pnl = st.get("day_pnl") if st.get("day_pnl") is not None else (st.get("daily_pnl") if st.get("daily_pnl") is not None else (st.get("net_daily_pnl") if st.get("net_daily_pnl") is not None else 0.0))
         open_trades = st.get("open_trades") if st.get("open_trades") is not None else (st.get("open_positions") if st.get("open_positions") is not None else 0)
         # Previously fell back to plausible-looking fabricated numbers
@@ -1407,7 +1512,7 @@ class EnterpriseDashboard:
 
         return {
             "capital": capital,
-            "base_capital": capital,
+            "base_capital": base_cap,
             "current_capital": capital,
             "day_pnl": day_pnl,
             "daily_pnl": day_pnl,
@@ -1541,7 +1646,8 @@ class EnterpriseDashboard:
             "hard_halt": state.get("hard_halt", False),
             "uptime": uptime_secs,
             "uptime_human": f"{int(uptime_secs//3600)}h{int(uptime_secs%3600//60)}m",
-            "capital": state.get("base_capital", state.get("capital", 10000.0)),
+            "capital": float(state.get("capital", state.get("base_capital", self._cfg.get("BASE_CAPITAL", 10000.0)))),
+            "base_capital": float(state.get("base_capital", self._cfg.get("BASE_CAPITAL", 10000.0))),
             "execution_mode": state.get("execution_mode", self._cfg.get("execution_mode", "paper")),
             "circuit_breaker": state.get("circuit_breaker", "Closed"),
             "timestamp": time.time(),
