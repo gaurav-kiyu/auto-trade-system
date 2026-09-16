@@ -404,6 +404,31 @@ class TestValidateOhlcv:
         result, dropped = validate_ohlcv(df)
         assert result is None  # Only 2 rows input, function requires >=3
 
+    def test_allow_zero_volume_accepts_zero_volume(self):
+        df = _ohlcv(20)
+        df["Volume"] = 0  # 100% zero volume, typical for index feeds
+        result, dropped = validate_ohlcv(df, allow_zero_volume=True)
+        assert result is not None
+        assert dropped == 0
+        assert len(result) == 20
+
+    def test_allow_zero_volume_rejects_negative_volume(self):
+        df = _ohlcv(20)
+        df.iloc[0, df.columns.get_loc("Volume")] = -10
+        result, dropped = validate_ohlcv(df, allow_zero_volume=True)
+        assert result is not None
+        assert dropped == 1
+        assert len(result) == 19
+
+    def test_allow_zero_volume_still_validates_ohlc(self):
+        df = _ohlcv(20)
+        df["Volume"] = 0
+        df.iloc[0, df.columns.get_loc("High")] = df.iloc[0]["Low"] - 1
+        result, dropped = validate_ohlcv(df, allow_zero_volume=True)
+        assert result is not None
+        assert dropped == 1
+        assert len(result) == 19
+
 
 # ── explain_signal ──────────────────────────────────────────────────────────
 

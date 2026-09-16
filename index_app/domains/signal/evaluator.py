@@ -17,6 +17,11 @@ from core.signal_utils import validate_ohlcv
 _log = logging.getLogger(__name__)
 
 
+_INDEX_SYMBOLS = {
+    "NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX",
+}
+
+
 class SignalEvaluator:
     """Evaluate adaptive signals for a given index symbol.
 
@@ -47,6 +52,7 @@ class SignalEvaluator:
         name: str,
         frames: dict[str, Any],
         vix: float = 0.0,
+        allow_zero_volume: bool | None = None,
     ) -> tuple[AdaptiveSignal | None, str]:
         """Build signal params + context and evaluate the adaptive signal.
 
@@ -58,6 +64,9 @@ class SignalEvaluator:
             Dict with ``df1m``, ``df5m``, ``df15m`` DataFrames.
         vix:
             Current VIX value.
+        allow_zero_volume:
+            Whether zero volume is permitted. When None, defaults to True for
+            cash index benchmarks (_INDEX_SYMBOLS) and False for traded equities.
 
         Returns
         -------
@@ -71,14 +80,16 @@ class SignalEvaluator:
             PureIndexSignalParams,
         )
 
-        # â”€â”€ Frames â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Frames ────────────────────────────────────────────────────────
 
         # STRICT PRODUCTION OHLCV SAFETY BOUNDARY
         #
-        # The existing validate_ohlcv() helper is intentionally a
-        # cleaning validator for legacy callers. Production signal
-        # generation must fail closed instead of silently dropping a
-        # malformed market-data row.
+        # Cash/index instruments (NIFTY, BANKNIFTY, FINNIFTY, etc.) do not have
+        # trade volume in Yahoo Finance data feeds and legitimately contain Volume == 0.
+        # Traded instruments (equities) retain strict positive-volume validation (allow_zero_volume=False).
+        if allow_zero_volume is None:
+            allow_zero_volume = name.upper() in _INDEX_SYMBOLS
+
         for _tf_name in ("df1m", "df5m", "df15m"):
             _tf_frame = frames.get(_tf_name)
             if _tf_frame is None:
@@ -87,6 +98,7 @@ class SignalEvaluator:
             _clean_frame, _dropped_rows = validate_ohlcv(
                 _tf_frame,
                 interval=_tf_name,
+                allow_zero_volume=allow_zero_volume,
             )
 
             if _clean_frame is None:

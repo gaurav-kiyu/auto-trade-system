@@ -314,6 +314,7 @@ def validate_ohlcv(
     df: pd.DataFrame,
     interval: str = "1m",
     max_drop_ratio: float = 0.15,
+    allow_zero_volume: bool = False,
 ) -> tuple[pd.DataFrame | None, int]:
     """Validate an OHLCV DataFrame for common data quality issues.
 
@@ -322,13 +323,17 @@ def validate_ohlcv(
     - All required OHLCV values are finite (no NaN or +/-inf)
     - High >= Low for all rows
     - Close is within [Low, High] range
-    - Volume > 0 for every retained row
+    - Volume:
+        - If allow_zero_volume=False (default): Volume > 0 for every retained row (strictly positive for traded equities).
+        - If allow_zero_volume=True: Volume >= 0 for every retained row (permits zero volume for cash index benchmarks).
+        - Negative volume (Volume < 0) is always rejected in both modes.
     - Drop ratio does not exceed max_drop_ratio
 
     Args:
         df: OHLCV DataFrame to validate.
         interval: Label for logging (default "1m").
         max_drop_ratio: Maximum allowed fraction of dropped rows (default 0.15).
+        allow_zero_volume: Whether zero volume is permitted (default False).
 
     Returns:
         (cleaned_df or None, number_of_dropped_rows).
@@ -357,8 +362,15 @@ def validate_ohlcv(
     df = df[df["High"] >= df["Low"]]
     df = df[(df["Close"] >= df["Low"]) & (df["Close"] <= df["High"])]
 
-    # Volume must be strictly positive for every retained OHLCV row.
-    df = df[df["Volume"] > 0]
+    # Volume validation:
+    # Traded instruments require strictly positive volume (Volume > 0).
+    # Non-traded cash/index benchmarks (e.g. NIFTY, BANKNIFTY) may opt into
+    # allow_zero_volume=True to accept Volume == 0. Negative volume (Volume < 0)
+    # is always rejected in both modes.
+    if allow_zero_volume:
+        df = df[df["Volume"] >= 0]
+    else:
+        df = df[df["Volume"] > 0]
 
     n_drop = n - len(df)
     if n > 0 and n_drop / n > max_drop_ratio:
