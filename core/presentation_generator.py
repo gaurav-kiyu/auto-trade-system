@@ -1092,10 +1092,27 @@ class PresentationGenerator:
             f"{core_count}+ core modules in core/",
             f"{test_count}+ test files",
         ]
+        # Auto-fetch live performance and signal track record
+        win_rate_disp = "N/A (0 resolved real signals)"
+        real_signals_count = 0
+        resolved_signals_count = 0
+        try:
+            from core.signals.signal_tracker import SignalTracker
+            st = SignalTracker.get_instance()
+            analytics = st.get_admin_signal_analytics(include_seed_samples=False)
+            real_signals_count = analytics.get("total_signals", 0)
+            resolved_signals_count = analytics.get("resolved_signals", 0)
+            win_rate_disp = analytics.get("win_rate_display", "N/A (0 resolved real signals)")
+        except Exception as st_exc:
+            self._log(f"[PRESENTATION] Live signals analytics fetch failed: {st_exc}")
+
         base["kpis"] = {
+            "Version": self._fetch_version(),
             "Core Modules": f"{core_count}",
             "Test Files": f"{test_count}",
-            "Version": self._fetch_version(),
+            "Real Signals Generated": f"{real_signals_count}",
+            "Resolved Signals": f"{resolved_signals_count}",
+            "Current Win Rate": win_rate_disp,
         }
         base["module_rows"] = [
             ["core/", f"{core_count}", "Core engine modules"],

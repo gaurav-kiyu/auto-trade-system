@@ -12,12 +12,12 @@ def register_reporting_routes(app, dashboard, admin_only, operator_or_admin) -> 
         return build_signal_intelligence_report(days=days, category=category, tier=tier, include_seed_samples=include_seed_samples)
 
     @app.get("/api/reports/signal-intelligence/export/{fmt}")
-    async def export_signal_intelligence(fmt: str, days: int = Query(90, ge=1, le=3650), category: str = "all", tier: str = "all", user=Depends(operator_or_admin)):
+    async def export_signal_intelligence(fmt: str, days: int = Query(90, ge=1, le=3650), category: str = "all", tier: str = "all", include_seed_samples: bool = Query(False), user=Depends(operator_or_admin)):
         if fmt not in {"pdf", "xlsx"}:
             return Response(content="Unsupported format", status_code=400, media_type="text/plain")
         from core.reporting.exporter import signal_report_excel, signal_report_pdf
         from core.reporting.signal_intelligence import build_signal_intelligence_report
-        report = build_signal_intelligence_report(days=days, category=category, tier=tier)
+        report = build_signal_intelligence_report(days=days, category=category, tier=tier, include_seed_samples=include_seed_samples)
         if fmt == "pdf":
             return Response(signal_report_pdf(report), media_type="application/pdf", headers={"Content-Disposition": 'attachment; filename="signal_intelligence_report.pdf"'})
         return Response(signal_report_excel(report), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": 'attachment; filename="signal_intelligence_report.xlsx"'})

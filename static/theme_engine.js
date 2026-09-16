@@ -96,7 +96,7 @@
                 '--bg-card-hover': '#f0f5fa',
                 '--text-primary': '#0f172a',
                 '--text-secondary': '#334155',
-                '--text-muted': '#64748b',
+                '--text-muted': '#54667a',
                 '--border-color': '#cbd5e1',
                 '--border-color-hover': '#1d4ed8',
                 '--accent-color': '#1d4ed8',

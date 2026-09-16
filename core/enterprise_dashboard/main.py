@@ -1530,6 +1530,8 @@ class EnterpriseDashboard:
             "execution_mode": st.get("execution_mode", "PAPER"),
             "status": st.get("status", "RUNNING"),
             "hard_halt": st.get("hard_halt", False),
+            "version": "2.59.4",
+            "release_tag": "v2.59.4-post-merge.3",
         }
 
     def _load_recent_trades(self, days: int = 30, n: int = 100) -> list:

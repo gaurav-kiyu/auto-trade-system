@@ -230,9 +230,9 @@ def register_intelligence_routes(app, dashboard, admin_only, operator_or_admin) 
         try:
             from core.bi_dashboard import get_bi_dashboard
             bi = get_bi_dashboard()
-            result["bi_dashboard"] = bi.get_stats()
+            result["bi_dashboard"] = {**bi.get_stats(), "version": "2.59.4"}
         except ImportError:
-            result["bi_dashboard"] = {"error": "not available"}
+            result["bi_dashboard"] = {"error": "not available", "version": "2.59.4"}
 
         # Security Auditor (Vision Module)
         try:

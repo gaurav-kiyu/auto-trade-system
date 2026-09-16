@@ -58,10 +58,13 @@ def _load_rows(db_path: Path, days: int, category: str, tier: str) -> list[dict[
         if tier and tier != "all":
             clauses.append("tier = ?")
             params.append(tier)
-        rows = conn.execute(
-            f"SELECT * FROM system_signals WHERE {' AND '.join(clauses)} ORDER BY timestamp ASC",  # nosec B608
-            params,
-        ).fetchall()
+        try:
+            rows = conn.execute(
+                f"SELECT * FROM system_signals WHERE {' AND '.join(clauses)} ORDER BY timestamp ASC",  # nosec B608
+                params,
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return []
         result = []
         for raw_row in rows:
             row = dict(raw_row)
@@ -173,7 +176,7 @@ def build_signal_intelligence_report(
     days: int = 90,
     category: str = "all",
     tier: str = "all",
-    include_seed_samples: bool = True,
+    include_seed_samples: bool = False,
 ) -> dict[str, Any]:
     """Build a decision-support report from generated signal history."""
     rows = _load_rows(Path(db_path), days, category, tier)

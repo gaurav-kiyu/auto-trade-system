@@ -1107,3 +1107,169 @@ html, body {
     border-color: var(--accent-color, #38bdf8) !important;
     box-shadow: 0 0 0 1px var(--accent-color, #38bdf8);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UNIVERSAL ACCESSIBILITY, FOCUS-VISIBLE & FORM/COMPONENT STANDARDS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Universal Focus Outline for Keyboard Navigation */
+:focus-visible,
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible,
+.btn:focus-visible,
+.opb-btn:focus-visible,
+.opb-tab:focus-visible {
+    outline: 2px solid var(--accent-color, #38bdf8) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25) !important;
+}
+
+/* System-Wide Native Form Controls */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+select,
+textarea {
+    background-color: var(--input-bg, #0b1120);
+    border: 1px solid var(--border-color, #1e293b);
+    color: var(--text-primary, #f8fafc);
+    border-radius: var(--radius-md, 0.5rem);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--accent-color, #38bdf8) !important;
+    background-color: var(--input-bg, #0b1120);
+    color: var(--text-primary, #f8fafc);
+}
+
+select option {
+    background-color: var(--bg-card, #131e33) !important;
+    color: var(--text-primary, #f8fafc) !important;
+}
+
+/* Native Checkbox and Radio controls */
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--accent-color, #38bdf8);
+    cursor: pointer;
+}
+
+/* Disabled State */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+.btn:disabled,
+.opb-btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    filter: grayscale(0.5);
+}
+
+/* Universal State Indicators */
+.state-error, .is-invalid {
+    border-color: var(--danger-color, #ef4444) !important;
+    color: var(--danger-color, #ef4444) !important;
+}
+
+.state-warning {
+    border-color: var(--warning-color, #f59e0b) !important;
+    color: var(--warning-color, #f59e0b) !important;
+}
+
+.state-success {
+    border-color: var(--success-color, #22c55e) !important;
+    color: var(--success-color, #22c55e) !important;
+}
+
+/* Universal Alert Callouts */
+.alert, .opb-alert {
+    padding: 0.85rem 1.25rem;
+    border-radius: var(--radius-md, 0.5rem);
+    font-size: var(--font-sm, 0.875rem);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid transparent;
+}
+
+.alert-info, .opb-alert-info {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: rgba(56, 189, 248, 0.3);
+    color: var(--accent-color, #38bdf8);
+}
+
+.alert-success, .opb-alert-success {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: var(--success-color, #22c55e);
+}
+
+.alert-warning, .opb-alert-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: var(--warning-color, #f59e0b);
+}
+
+.alert-danger, .opb-alert-danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: var(--danger-color, #ef4444);
+}
+
+/* Badges */
+.badge, .opb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-full, 9999px);
+    font-size: var(--font-xs, 0.75rem);
+    font-weight: 600;
+    line-height: 1;
+    font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+.badge-primary, .opb-badge-primary {
+    background: rgba(56, 189, 248, 0.15);
+    color: var(--accent-color, #38bdf8);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.badge-success, .opb-badge-success {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success-color, #22c55e);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.badge-warning, .opb-badge-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning-color, #f59e0b);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-danger, .opb-badge-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger-color, #ef4444);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+

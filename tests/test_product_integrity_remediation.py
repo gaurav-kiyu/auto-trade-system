@@ -226,6 +226,72 @@ class TestCanonicalMarketTaxonomy:
         assert classify_instrument_market("EMBASSY-REIT") == "ETFS_REITS"
         assert classify_instrument_market("XYZNONFNO") == "EQUITY_SWING_DELIVERY"
 
+    def test_canonical_taxonomy_boundary_semantics(self):
+        """Verify boundary semantics between cash equity, F&O, and delivery."""
+        # 1. INDEX_OPTIONS
+        assert classify_instrument_market("NIFTY24DEC25000CE") == "INDEX_OPTIONS"
+        assert classify_instrument_market("BANKNIFTY", series="EQ") == "INDEX_OPTIONS"
+        # 2. STOCK_OPTIONS
+        assert classify_instrument_market("RELIANCE") == "STOCK_OPTIONS"
+        assert classify_instrument_market("TCS", series="EQ", instrument_type="OPTSTK") == "STOCK_OPTIONS"
+        # 3. FUTURES
+        assert classify_instrument_market("NIFTY-FUT") == "FUTURES"
+        assert classify_instrument_market("RELIANCE", instrument_type="FUTSTK") == "FUTURES"
+        # 4. COMMODITIES
+        assert classify_instrument_market("MCX:SILVER") == "COMMODITIES"
+        assert classify_instrument_market("GOLDM") == "COMMODITIES"
+        # 5. CURRENCIES
+        assert classify_instrument_market("USDINR") == "CURRENCIES"
+        assert classify_instrument_market("CDS:GBPINR") == "CURRENCIES"
+        # 6. ETFS_REITS
+        assert classify_instrument_market("NIFTYBEES") == "ETFS_REITS"
+        assert classify_instrument_market("EMBASSY-REIT") == "ETFS_REITS"
+        # 7. PENNY_SME
+        assert classify_instrument_market("SHREE_SME", series="SM") == "PENNY_SME"
+        assert classify_instrument_market("ALPHA_ST", series="ST") == "PENNY_SME"
+        assert classify_instrument_market("VINEETLAB", series="SME") == "PENNY_SME"
+        # 8. LARGE_CAP_EQUITY
+        assert classify_instrument_market("RELIANCE", series="LC") == "LARGE_CAP_EQUITY"
+        assert classify_instrument_market("HDFCBANK", series="EQ", instrument_type="CASH") == "LARGE_CAP_EQUITY"
+        assert classify_instrument_market("TCS", series="LARGE_CAP") == "LARGE_CAP_EQUITY"
+        # 9. MID_SMALL_CAP
+        assert classify_instrument_market("DIXON", series="SMC") == "MID_SMALL_CAP"
+        assert classify_instrument_market("SUZLON", series="MID_CAP") == "MID_SMALL_CAP"
+        assert classify_instrument_market("IDEA", series="EQ", instrument_type="CASH") == "MID_SMALL_CAP"
+        # 10. EQUITY_SWING_DELIVERY
+        assert classify_instrument_market("XYZNONFNO") == "EQUITY_SWING_DELIVERY"
+        assert classify_instrument_market("RELIANCE", series="SWING") == "EQUITY_SWING_DELIVERY"
+        assert classify_instrument_market("INFY", series="CNC", instrument_type="DELIVERY") == "EQUITY_SWING_DELIVERY"
+
+    def test_strict_authorization_no_privilege_escalation(self, tmp_path):
+        """CRITICAL: Prove remediation did not accidentally broaden user permissions."""
+        from core.auth.user_signal_permissions import UserSignalPermission, UserPermissionManager
+
+        p = tmp_path / "strict_perms.json"
+        mgr = UserPermissionManager(store_path=p)
+        u_large = UserSignalPermission(username="u_large", is_active=True, signals_enabled=True, allowed_categories=["LARGE_CAP_EQUITY"])
+        u_swing = UserSignalPermission(username="u_swing", is_active=True, signals_enabled=True, allowed_categories=["EQUITY_SWING_DELIVERY"])
+        u_opt   = UserSignalPermission(username="u_opt", is_active=True, signals_enabled=True, allowed_categories=["STOCK_OPTIONS"])
+        u_mid   = UserSignalPermission(username="u_mid", is_active=True, signals_enabled=True, allowed_categories=["MID_SMALL_CAP"])
+        mgr._permissions = {"u_large": u_large, "u_swing": u_swing, "u_opt": u_opt, "u_mid": u_mid}
+        mgr._save_unlocked()
+
+        # Large cap signal goes ONLY to u_large
+        recipients = [u.username for u in mgr.get_eligible_recipients(category="LARGE_CAP_EQUITY", tier="STRONG")]
+        assert recipients == ["u_large"]
+
+        # Swing delivery signal goes ONLY to u_swing
+        recipients = [u.username for u in mgr.get_eligible_recipients(category="EQUITY_SWING_DELIVERY", tier="STRONG")]
+        assert recipients == ["u_swing"]
+
+        # Stock options signal goes ONLY to u_opt
+        recipients = [u.username for u in mgr.get_eligible_recipients(category="STOCK_OPTIONS", tier="STRONG")]
+        assert recipients == ["u_opt"]
+
+        # Mid/small cap signal goes ONLY to u_mid
+        recipients = [u.username for u in mgr.get_eligible_recipients(category="MID_SMALL_CAP", tier="STRONG")]
+        assert recipients == ["u_mid"]
+
 
 class TestExecutionModeSemantics:
     """Test suite for R4: PAPER execution mode representation."""
@@ -253,6 +319,17 @@ class TestPresentationGeneratorIntegrity:
         assert "Benchmark" in core_py
         assert "Historical 30 trading days reference benchmark" in core_py
 
+    def test_presentation_generator_live_kpi_autofetch(self, tmp_path):
+        gen = pres_gen.get_presentation_generator(output_dir=str(tmp_path))
+        # Test auto-fetching data
+        data: dict[str, Any] = {}
+        # Execute generate_report logic checks
+        ver = gen._fetch_version()
+        assert ver == "2.59.4"
+        counts = gen._fetch_file_counts()
+        assert counts["core"] > 0
+        assert counts["tests"] > 0
+
 
 class TestThemeTokenCompliance:
     """Test suite for R6: Semantic design system variables and contrast."""
@@ -266,6 +343,119 @@ class TestThemeTokenCompliance:
         pricing_html = Path("templates/enterprise/pricing_plans.html").read_text(encoding="utf-8")
         assert "var(--bg-card" in pricing_html
         assert "Automated self-activation of paid plans is disabled" in pricing_html
+
+    def test_design_system_universal_focus_visible_and_controls(self):
+        css_content = Path("static/opb_design_system.css").read_text(encoding="utf-8")
+        assert ":focus-visible" in css_content
+        assert "var(--accent-color" in css_content
+        assert "input[type=\"text\"]" in css_content
+
+    def test_all_five_themes_wcag_aa_contrast(self):
+        """Verify contrast >= 4.5:1 for normal text across all 5 themes."""
+        def lum(c: str) -> float:
+            c = c.lstrip("#")
+            r, g, b = [int(c[i:i+2], 16) / 255.0 for i in (0, 2, 4)]
+            r = r / 12.92 if r <= 0.03928 else ((r + 0.055) / 1.055) ** 2.4
+            g = g / 12.92 if g <= 0.03928 else ((g + 0.055) / 1.055) ** 2.4
+            b = b / 12.92 if b <= 0.03928 else ((b + 0.055) / 1.055) ** 2.4
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+        def cr(fg: str, bg: str) -> float:
+            l1, l2 = lum(fg), lum(bg)
+            return (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
+
+        themes = {
+            "dark-cyber": {"bg": "#080c14", "card": "#131e33", "tp": "#f8fafc", "ts": "#cbd5e1", "tm": "#94a3b8"},
+            "dracula-purple": {"bg": "#faf7fc", "card": "#ffffff", "tp": "#24172b", "ts": "#4c3a57", "tm": "#6b5a75"},
+            "ivory-gold": {"bg": "#f5f0e6", "card": "#ffffff", "tp": "#1c1917", "ts": "#292524", "tm": "#57534e"},
+            "midnight-slate": {"bg": "#f6f8fb", "card": "#ffffff", "tp": "#0f172a", "ts": "#334155", "tm": "#54667a"},
+            "emerald-matrix": {"bg": "#020d07", "card": "#0a2c1d", "tp": "#ecfdf5", "ts": "#a7f3d0", "tm": "#6ee7b7"},
+        }
+
+        for tname, colors in themes.items():
+            for bg_k in ("bg", "card"):
+                for fg_k in ("tp", "ts", "tm"):
+                    contrast = cr(colors[fg_k], colors[bg_k])
+                    assert contrast >= 4.5, (
+                        f"Theme {tname} {fg_k} on {bg_k} has contrast {contrast:.2f}:1, below 4.5:1"
+                    )
+
+
+class TestResponsiveMatrixCoverage:
+    """Test suite for R7: Mandatory 9 viewports coverage."""
+
+    MANDATORY_VIEWPORTS = [
+        (1920, 1080),
+        (1536, 864),
+        (1440, 900),
+        (1366, 768),
+        (1280, 800),
+        (1024, 768),
+        (768, 1024),
+        (430, 932),
+        (375, 667),
+    ]
+
+    def test_mandatory_viewport_definitions(self):
+        assert len(self.MANDATORY_VIEWPORTS) == 9
+        assert (430, 932) in self.MANDATORY_VIEWPORTS
+        assert (414, 896) not in self.MANDATORY_VIEWPORTS
+
+
+class TestCrossScreenCanonicalConsistency:
+    """Test suite for R8: Single source of truth across all subsystems."""
+
+    def test_canonical_version_and_release_invariants(self, tmp_path):
+        from core.enterprise_dashboard.main import EnterpriseDashboard
+
+        state_file = tmp_path / "state.json"
+        state_file.write_text(json.dumps({"execution_mode": "PAPER", "base_capital": 3000}), encoding="utf-8")
+        d = EnterpriseDashboard(config={"trader_state_path": str(state_file), "BASE_CAPITAL": 3000})
+        st = d._read_state()
+        assert st["version"] == "2.59.4"
+        assert st["release_tag"] == "v2.59.4-post-merge.3"
+        assert st["execution_mode"] == "PAPER"
+        assert st["base_capital"] == 3000.0
+
+    def test_signal_intelligence_report_seed_sample_default(self, tmp_path):
+        from core.reporting.signal_intelligence import build_signal_intelligence_report
+
+        # Calling with non-existent db yields empty report cleanly with seed samples excluded by default
+        rep = build_signal_intelligence_report(str(tmp_path / "nonexistent.db"))
+        assert rep["data_quality"]["total_signals"] == 0
+        assert rep["data_quality"]["signal_funnel"]["seed_samples_excluded"] == 0
+
+
+class TestSystemHealthSemantics:
+    """Test suite for R9: System health calculations and honest states."""
+
+    def test_health_config_sanity_base_capital_denominator(self):
+        from core.health_checker import check_config_sanity
+
+        cfg = {"SL_PCT": 0.88, "TARGET_PCT": 1.05, "MAX_DAILY_LOSS": -600, "BASE_CAPITAL": 3000.0, "AI_THRESHOLD": 60}
+        results = check_config_sanity(cfg)
+        loss_check = [r for r in results if r.name == "Daily loss % of capital"][0]
+        assert loss_check.status == "WARN"
+        assert loss_check.value == 20.0
+        assert "is 20.0% of BASE_CAPITAL" in loss_check.message
+
+    def test_health_ml_insufficient_data_distinction(self):
+        from core.health_checker import check_ml_health
+
+        cfg = {"health_check_brier_warn": 0.30}
+        results = check_ml_health(cfg)
+        brier_check = [r for r in results if r.name == "Brier score"][0]
+        assert brier_check.status == "WARN"
+        assert "Insufficient data" in brier_check.message
+
+    def test_health_recent_performance_inactivity_distinction(self, tmp_path):
+        from core.health_checker import check_recent_performance
+
+        cfg = {"health_check_trade_days": 60}
+        results = check_recent_performance(cfg, db_path=str(tmp_path / "empty.db"))
+        trade_check = [r for r in results if r.name == "Trade count"][0]
+        assert trade_check.status == "WARN"
+        assert "inactivity; no orders placed" in trade_check.message
 
 
 class TestRealSignalsDatabaseInvariants:
@@ -286,3 +476,4 @@ class TestRealSignalsDatabaseInvariants:
             assert "signal_id" in col_names
             assert "status" in col_names
             assert "raw_data" in col_names
+

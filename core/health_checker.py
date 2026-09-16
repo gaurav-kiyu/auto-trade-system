@@ -199,7 +199,7 @@ def check_ml_health(cfg: dict[str, Any]) -> list[HealthCheckResult]:
 
         if brier is None and not cal_bins:
             results.append(HealthCheckResult("ML", "Brier score", "WARN", None,
-                                             "No ML predictions recorded yet."))
+                                             "Insufficient data: No ML predictions recorded yet."))
             return results
 
         brier_val = brier if brier is not None else 0.25
@@ -231,12 +231,12 @@ def check_recent_performance(
     results: list[HealthCheckResult] = []
     try:
         from core.performance_metrics import compute_metrics, load_trades
-        days    = int(cfg.get("sensitivity_report_days", 30))
+        days    = int(cfg.get("health_check_trade_days", cfg.get("sensitivity_report_days", 60)))
         trades  = load_trades(db_path, days=days)
         if not trades:
             results.append(HealthCheckResult(
                 "PERF", "Trade count", "WARN", 0,
-                f"No trades in last {days} days.",
+                f"No trades in last {days} days (inactivity; no orders placed).",
             ))
             return results
         metrics = compute_metrics(trades)
@@ -291,7 +291,7 @@ def check_config_sanity(cfg: dict[str, Any]) -> list[HealthCheckResult]:
         ))
 
     max_loss = float(cfg.get("MAX_DAILY_LOSS", 0))
-    capital  = float(cfg.get("BASE_CAPITAL",  100000))
+    capital  = float(cfg.get("BASE_CAPITAL",  3000.0))
     # MAX_DAILY_LOSS is stored as negative (e.g. -600 = limit losses to Rs 600)
     loss_abs = abs(max_loss)
     if loss_abs > 0 and capital > 0:
