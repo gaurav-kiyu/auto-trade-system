@@ -138,6 +138,75 @@ class EnterpriseDashboard:
                 return False
 
         self._templates.env.globals["user_can"] = _template_user_can
+
+        # Early wiring of dashboard reference for template page context
+        from core.enterprise_dashboard.routes import pages as _pages_mod
+        _pages_mod._DASHBOARD_REF = self
+
+        # Centralized template rendering wrapper:
+        # Guarantees complete privilege context (is_admin, can_*, etc.) and
+        # strict Cache-Control headers across all rendered HTML responses.
+        def _safe_template_response(*args: Any, **kwargs: Any) -> Any:
+            req: Request | None = kwargs.get("request")
+            name: str = kwargs.get("name", "")
+            ctx: dict[str, Any] | None = kwargs.get("context")
+
+            ctx_arg_idx: int | None = None
+            if args:
+                if isinstance(args[0], Request):
+                    req = args[0]
+                    if len(args) > 1 and isinstance(args[1], str):
+                        name = args[1]
+                    if len(args) > 2 and isinstance(args[2], dict):
+                        ctx = args[2]
+                        ctx_arg_idx = 2
+                elif isinstance(args[0], str):
+                    name = args[0]
+                    if len(args) > 1 and isinstance(args[1], dict):
+                        ctx = args[1]
+                        ctx_arg_idx = 1
+
+            if ctx is None:
+                ctx = {}
+            else:
+                ctx = dict(ctx)
+
+            if req is not None and isinstance(req, Request):
+                if "nonce" not in ctx:
+                    ctx["nonce"] = getattr(req.state, "nonce", "")
+
+                if "is_admin" not in ctx:
+                    session_token = req.cookies.get("opb_session", "")
+                    user = None
+                    if session_token:
+                        try:
+                            token = self._auth.verify_session(session_token)
+                            if token:
+                                user = self._auth.get_user_by_id(token.user_id)
+                        except Exception as ex:
+                            _log.debug("[DASH] Session resolution during template render: %s", ex)
+                    current_page = str(ctx.get("current_page") or (name.split(".")[0] if name else ""))
+                    page_ctx = _pages_mod._page_context(user, ctx.get("nonce", ""), current_page)
+                    for k, v in page_ctx.items():
+                        if k not in ctx:
+                            ctx[k] = v
+
+            if ctx_arg_idx is not None:
+                new_args = list(args)
+                new_args[ctx_arg_idx] = ctx
+                args = tuple(new_args)
+                kwargs.pop("context", None)
+            else:
+                kwargs["context"] = ctx
+
+            resp = Jinja2Templates.TemplateResponse(self._templates, *args, **kwargs)
+            if resp is not None and hasattr(resp, "headers"):
+                resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                resp.headers["Pragma"] = "no-cache"
+                resp.headers["Expires"] = "0"
+            return resp
+
+        self._templates.TemplateResponse = _safe_template_response
         self._static_dir = self._ensure_static()
 
         # References to bot internals (wired externally)

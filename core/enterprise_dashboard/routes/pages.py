@@ -41,6 +41,31 @@ def _page_context(user, nonce: str, current_page: str) -> dict:
     from core.auth.permissions import Permission, Role, get_role_permissions, is_super_admin_identity
     from core.auth.user_signal_permissions import UserPermissionManager
     user_dict = user.to_dict() if hasattr(user, "to_dict") else dict(user or {})
+    if not user_dict or not user:
+        return {
+            "user": None,
+            "nonce": nonce,
+            "current_page": current_page,
+            "is_admin": False,
+            "is_super_admin": False,
+            "can_view_state": False,
+            "can_halt_trading": False,
+            "can_modify_risk": False,
+            "can_toggle_strategies": False,
+            "can_deploy_models": False,
+            "can_modify_code": False,
+            "can_view_logs": False,
+            "can_manage_brokers": False,
+            "can_modify_config": False,
+            "can_manage_users": False,
+            "can_manage_permissions": False,
+            "config": getattr(_DASHBOARD_REF, "_cfg", {}) if _DASHBOARD_REF else {},
+            "execution_mode": str(
+                (getattr(_DASHBOARD_REF, "_cfg", {}) or {}).get("EXECUTION_MODE")
+                or (getattr(_DASHBOARD_REF, "_cfg", {}) or {}).get("execution_mode")
+                or "PAPER"
+            ).upper(),
+        }
     username = str(user_dict.get("username", ""))
     role = str(user_dict.get("role", "viewer")).lower()
     if is_super_admin_identity(username, role):
@@ -53,8 +78,10 @@ def _page_context(user, nonce: str, current_page: str) -> dict:
         if not effective:
             effective = {p.value for p in get_role_permissions(role)}
     return {
-        "user": user_dict, "nonce": nonce, "current_page": current_page,
-        "is_admin": role in (Role.ADMIN.value, Role.SUPER_ADMIN.value),
+        "user": user_dict,
+        "nonce": nonce,
+        "current_page": current_page,
+        "is_admin": role in (Role.ADMIN.value, Role.SUPER_ADMIN.value) or is_super_admin_identity(username, role),
         "is_super_admin": is_super_admin_identity(username, role),
         "can_view_state": Permission.VIEW_STATE.value in effective,
         "can_halt_trading": Permission.HALT_TRADING.value in effective,
@@ -330,10 +357,11 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
     @app.get("/change-password", response_class=HTMLResponse)
     async def change_password_page(request: Request):  # type: ignore[no-untyped-def]
         nonce = getattr(request.state, "nonce", "")
+        user = _resolve_session_user(request, dashboard)
         return dashboard._templates.TemplateResponse(
             request=request,
             name="change_password.html",
-            context={"nonce": nonce, "current_page": "change_password"},
+            context=_page_context(user, nonce, "change_password"),
         )
 
     @app.get("/reports", response_class=HTMLResponse)
