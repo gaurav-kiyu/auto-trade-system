@@ -598,14 +598,10 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
     ):
         """Auto-provision user permissions upon UPI payment confirmation.
 
-        NOTE: there is no real payment-gateway (PSP) verification behind this -
-        no webhook, no transaction lookup - it is a self-reported "I paid" click.
-        This previously had no auth at all AND accepted an arbitrary `username`
-        in the body, so anyone could self-grant paid tiers to any account for
-        free. Now requires login and always provisions the CALLER's own
-        account, and every confirmation is written to the audit log so paid
-        tiers granted this way are at least reviewable after the fact.
+        Fail-closed security enforcement: Automated self-activation of paid plans
+        without genuine PSP payment-gateway verification is strictly blocked.
         """
+        from fastapi.responses import JSONResponse
         from core.billing.upi_billing_engine import UpiBillingEngine
         body = await request.json()
         pid = body.get("plan_id", "plan_options_vip")
@@ -613,14 +609,25 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
         result = UpiBillingEngine.confirm_and_provision_user(
             username=user.username, plan_id=pid, transaction_ref=ref,
         )
+        success = bool(result.get("success"))
         try:
+            action = "billing_self_confirmed_payment" if success else "billing_payment_verification_blocked"
             dashboard._auth._audit_log(
-                "billing_self_confirmed_payment", user.username, "",
-                {"plan_id": pid, "transaction_ref": ref, "result": result.get("success")},
+                action, user.username, "",
+                {
+                    "plan_id": pid,
+                    "transaction_ref": ref,
+                    "success": success,
+                    "error_code": result.get("error_code", "SUCCESS" if success else "REJECTED"),
+                    "price_inr": result.get("price_inr", 0),
+                },
+                success=success,
             )
         except (ValueError, AttributeError, TypeError, OSError) as e:
             _log.warning("[DASH] Billing confirmation audit log write failed: %s", e)
-        return result
+        status_code = 200 if success else 400
+        return JSONResponse(status_code=status_code, content=result)
+
 
     # ── 100% Free Disaster Recovery & Local Snapshot Endpoints ──
 

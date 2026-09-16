@@ -262,7 +262,7 @@ class _SlideBuilder:
 
 def _build_executive(b: _SlideBuilder, data: dict[str, Any]) -> None:
     """Executive template — 10 slides: title, mission, KPIs, risk, performance, security, deployment, certification, recommendations, final."""
-    version = str(data.get("version", "2.57.0"))
+    version = str(data.get("version", "2.59.4"))
     date = str(data.get("date", time.strftime("%B %Y")))
     score = str(data.get("score", "9.6/10"))
     strengths = data.get("strengths", [
@@ -278,13 +278,13 @@ def _build_executive(b: _SlideBuilder, data: dict[str, Any]) -> None:
         "VIX > 27 blocks all entries",
         "Expiry day cutoff (13:30 IST)",
     ])
-    perf_headers = data.get("perf_headers", ["Metric", "Value"])
+    perf_headers = data.get("perf_headers", ["Metric", "Value [Historical Reference Benchmark]"])
     perf_rows = data.get("perf_rows", [
-        ["Win Rate", "54.5%"],
-        ["Profit Factor", "2.54"],
-        ["Sharpe Ratio", "6.99"],
-        ["Total PnL", "₹3,252"],
-        ["Max Drawdown", "0%"],
+        ["Win Rate", "54.5% (Reference Benchmark)"],
+        ["Profit Factor", "2.54 (Reference Benchmark)"],
+        ["Sharpe Ratio", "6.99 (Reference Benchmark)"],
+        ["Total PnL", "₹3,252 (Reference Benchmark)"],
+        ["Max Drawdown", "0% (Reference Benchmark)"],
     ])
 
     # Slide 1 — Title
@@ -454,7 +454,7 @@ def _build_executive(b: _SlideBuilder, data: dict[str, Any]) -> None:
 
 def _build_developer(b: _SlideBuilder, data: dict[str, Any]) -> None:
     """Developer template — 12 slides: title, architecture, components, data flow, stack, coverage, modules, CI/CD, API, testing, observability, next."""
-    version = str(data.get("version", "2.57.0"))
+    version = str(data.get("version", "2.59.4"))
 
     # Slide 1 — Title
     slide = b.new_slide()
@@ -677,7 +677,7 @@ def _build_developer(b: _SlideBuilder, data: dict[str, Any]) -> None:
 
 def _build_client(b: _SlideBuilder, data: dict[str, Any]) -> None:
     """Client template — 11 slides: title, overview, features, security, performance, roadmap, support, pricing, architecture, certification, contact."""
-    version = str(data.get("version", "2.57.0"))
+    version = str(data.get("version", "2.59.4"))
 
     # Slide 1 — Title
     slide = b.new_slide()
@@ -708,7 +708,7 @@ def _build_client(b: _SlideBuilder, data: dict[str, Any]) -> None:
         "Multi-broker support (Zerodha, Angel)",
         "Comprehensive audit trail for every action",
         "3-timeframe analysis (1m, 5m, 15m)",
-        "Proven track record: 54.5% win rate, 2.54 PF",
+        "Historical benchmark: 54.5% win rate, 2.54 PF",
     ], font_size=15, title="Key Benefits")
 
     # Slide 3 — Key Features
@@ -752,24 +752,24 @@ def _build_client(b: _SlideBuilder, data: dict[str, Any]) -> None:
     # Slide 5 — Performance
     slide = b.new_slide()
     b._fill_bg(slide)
-    b._add_title_bar(slide, "Trading Performance — 55 Paper Trades")
-    perf_headers = ["Metric", "Value"]
+    b._add_title_bar(slide, "Trading Performance — [Historical Reference Benchmark]")
+    perf_headers = ["Metric", "Value [Historical Reference Benchmark]"]
     perf_rows = data.get("perf_rows", [
-        ["Total Trades", "55"],
-        ["Win Rate", "54.5%"],
-        ["Profit Factor", "2.54"],
-        ["Total PnL", "₹3,252"],
-        ["Avg PnL/Trade", "₹59.13"],
-        ["Sharpe Ratio", "6.99"],
-        ["Max Drawdown", "0%"],
+        ["Total Trades", "55 (Benchmark)"],
+        ["Win Rate", "54.5% (Benchmark)"],
+        ["Profit Factor", "2.54 (Benchmark)"],
+        ["Total PnL", "₹3,252 (Benchmark)"],
+        ["Avg PnL/Trade", "₹59.13 (Benchmark)"],
+        ["Sharpe Ratio", "6.99 (Benchmark)"],
+        ["Max Drawdown", "0% (Benchmark)"],
     ])
     b._add_table(slide, 0.5, 1.3, 5.5, 3, perf_headers, perf_rows)
     b._add_bullets(slide, 6.8, 1.3, 5.5, 3, [
-        "30 trading days of paper trading",
+        "Historical 30 trading days reference benchmark",
         "Starting capital: ₹5,000",
         "Ending capital: ₹5,150 (+3.0%)",
         "No losing streaks exceeding 3 trades",
-        "Zero drawdown during paper period",
+        "Zero drawdown during benchmark paper period",
     ], font_size=13, title="Equity Curve Summary")
 
     # Slide 6 — Roadmap
@@ -778,10 +778,9 @@ def _build_client(b: _SlideBuilder, data: dict[str, Any]) -> None:
     b._add_title_bar(slide, "Product Roadmap")
     roadmap_headers = ["Phase", "Features", "Timeline"]
     roadmap_rows = data.get("roadmap_rows", [
-        ["Current (v2.56)", "Multi-asset wiring, PostgreSQL, 89% coverage", "July 2026"],
-        ["Next (v2.57)", "Full equity trading, CI coverage >90%", "Q3 2026"],
-        ["Future (v3.0)", "Commodities, Currency, Mutual Funds", "Q4 2026"],
-        ["Vision (v4.0)", "Auto-learner, self-healing, AI agents", "2027"],
+        ["Current (v2.59.4)", "Hardened multi-asset runtime, fail-closed auth/billing, 100% CI pass", "Active Certified"],
+        ["Next", "Expanded multi-asset live execution & automated PSP", "Planned"],
+        ["Future", "Commodities, Currency direct routing", "Roadmap"],
     ])
     b._add_table(slide, 0.5, 1.3, 12, 2.5, roadmap_headers, roadmap_rows)
 
@@ -977,7 +976,7 @@ class PresentationGenerator:
                 return ver_file.read_text(encoding="utf-8").strip()
         except (OSError, UnicodeDecodeError) as exc:
             log.debug("[PRESENTATION] Version fetch failed: %s", exc)
-        return "2.57.0"
+        return "2.59.4"
 
     # Simple module-level cache for file counts (30 second TTL)
     _file_count_cache: dict[str, Any] | None = None

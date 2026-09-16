@@ -815,8 +815,14 @@ class SignalTracker:
         category: str = "all",
         tier: str = "all",
         status: str = "all",
+        include_seed_samples: bool = False,
     ) -> dict[str, Any]:
-        """Compute system-wide signal metrics, category accuracy, and historical logs."""
+        """Compute system-wide signal metrics, category accuracy, and historical logs.
+
+        By default (include_seed_samples=False), sample/seed records are excluded so that
+        production accuracy and win-rate metrics reflect only genuine live/paper signals.
+        When 0 real signals have resolved, win_rate_pct is None (displayed as 'N/A (0 resolved)').
+        """
         with self._io_lock:
             conn = self._get_conn()
             try:
@@ -858,22 +864,35 @@ class SignalTracker:
                     WHERE {where_clause}
                     ORDER BY timestamp DESC
                 """, params)
-                rows = [dict(r) for r in cur.fetchall()]
+                all_raw_rows = [dict(r) for r in cur.fetchall()]
+
+                demo_samples_available = any(bool(r.get("raw_data") and "is_seed_sample" in r["raw_data"]) for r in all_raw_rows)
+                total_real_signals = sum(1 for r in all_raw_rows if not (r.get("raw_data") and "is_seed_sample" in r["raw_data"]))
+                total_seeded_signals = len(all_raw_rows) - total_real_signals
+
+                if not include_seed_samples:
+                    rows = [r for r in all_raw_rows if not (r.get("raw_data") and "is_seed_sample" in r["raw_data"])]
+                else:
+                    rows = all_raw_rows
 
                 total_signals = len(rows)
                 t1_hits = sum(1 for r in rows if r["status"] in ("TARGET_1_HIT", "TARGET_2_HIT"))
                 t2_hits = sum(1 for r in rows if r["status"] == "TARGET_2_HIT")
                 sl_hits = sum(1 for r in rows if r["status"] == "SL_HIT")
                 active_signals = sum(1 for r in rows if r["status"] == "ACTIVE")
+                resolved_signals = t1_hits + sl_hits
 
-                # Previously defaulted to 100.0 when nothing had resolved yet
-                # (0 T1 hits, 0 SL hits) - "100% win rate" is a misleading way
-                # to present "no resolved signals yet".
-                win_rate = round((t1_hits / max(t1_hits + sl_hits, 1)) * 100, 1) if (t1_hits + sl_hits) > 0 else 0.0
+                if resolved_signals > 0:
+                    win_rate: float = round((t1_hits / resolved_signals) * 100, 1)
+                    win_rate_display = f"{win_rate}%"
+                else:
+                    win_rate = 0.0
+                    win_rate_display = "N/A (0 resolved real signals)" if not include_seed_samples else "N/A (0 resolved)"
+
                 contains_demo_data = any(bool(r.get("raw_data") and "is_seed_sample" in r["raw_data"]) for r in rows)
-                t1_rate = round((t1_hits / max(total_signals, 1)) * 100, 1)
-                t2_rate = round((t2_hits / max(total_signals, 1)) * 100, 1)
-                avg_pnl = round(sum(r["pnl_pct"] for r in rows) / max(total_signals, 1), 2)
+                t1_rate = round((t1_hits / max(total_signals, 1)) * 100, 1) if total_signals > 0 else 0.0
+                t2_rate = round((t2_hits / max(total_signals, 1)) * 100, 1) if total_signals > 0 else 0.0
+                avg_pnl = round(sum(r["pnl_pct"] for r in rows) / max(total_signals, 1), 2) if total_signals > 0 else 0.0
                 orders_placed_count = sum(1 for r in rows if r.get("order_placed"))
 
                 # Category breakdown
@@ -891,7 +910,13 @@ class SignalTracker:
 
                 for c, stats in cat_breakdown.items():
                     stats["avg_score"] = round(stats["sum_score"] / max(stats["total"], 1), 1)
-                    stats["win_rate"] = round((stats["t1_hits"] / max(stats["t1_hits"] + stats["sl_hits"], 1)) * 100, 1)
+                    res_c = stats["t1_hits"] + stats["sl_hits"]
+                    if res_c > 0:
+                        stats["win_rate"] = round((stats["t1_hits"] / res_c) * 100, 1)
+                        stats["win_rate_display"] = f"{stats['win_rate']}%"
+                    else:
+                        stats["win_rate"] = 0.0
+                        stats["win_rate_display"] = "N/A (0 resolved)"
 
                 return {
                     "timeframe": timeframe,
@@ -899,7 +924,11 @@ class SignalTracker:
                     "tier": tier,
                     "status": status,
                     "total_signals": total_signals,
+                    "total_real_signals": total_real_signals,
+                    "total_seeded_signals": total_seeded_signals,
+                    "resolved_signals": resolved_signals,
                     "win_rate_pct": win_rate,
+                    "win_rate_display": win_rate_display,
                     "t1_hit_rate_pct": t1_rate,
                     "t2_hit_rate_pct": t2_rate,
                     "active_signals": active_signals,
@@ -908,6 +937,8 @@ class SignalTracker:
                     "category_breakdown": cat_breakdown,
                     "signals": rows,
                     "contains_demo_data": contains_demo_data,
+                    "demo_samples_available": demo_samples_available,
+                    "include_seed_samples": include_seed_samples,
                 }
             except Exception as ex:
                 _log.error("Failed to compute admin signal analytics: %s", ex)

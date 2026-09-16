@@ -64,7 +64,7 @@ class UpiBillingEngine:
             duration_days=30,
             daily_quota=0,  # Unlimited
             allowed_categories=list(ALL_CATEGORIES),
-            features=["Unlimited Signals across ALL 8 Categories", "Sector Rotation Radar (+5 Boost)", "Master Trade Copier Access", "FII/DII Smart Money Radar", "AI Daily Cognitive Debrief"],
+            features=["Unlimited Signals across ALL 10 Categories", "Sector Rotation Radar (+5 Boost)", "Master Trade Copier Access", "FII/DII Smart Money Radar", "AI Daily Cognitive Debrief"],
             badge="INSTITUTIONAL",
         ),
     ]
@@ -112,10 +112,23 @@ class UpiBillingEngine:
         plan_id: str,
         transaction_ref: str = "UPI-DIRECT",
     ) -> dict[str, Any]:
-        """Instantly provision user signal permissions and quotas upon payment confirmation."""
+        """Instantly provision user signal permissions and quotas upon payment confirmation.
+
+        Fail-closed security enforcement: Automated self-activation of paid plans
+        (price_inr > 0) without genuine PSP payment-gateway settlement is strictly blocked.
+        """
         plan = next((p for p in cls.PLANS if p.plan_id == plan_id), None)
         if not plan:
-            return {"success": False, "message": "Invalid plan ID"}
+            return {"success": False, "message": "Invalid plan ID", "error_code": "INVALID_PLAN"}
+
+        if plan.price_inr > 0:
+            return {
+                "success": False,
+                "message": "Automated payment verification is unavailable. Self-reported activation of paid plans is disabled. Please contact an administrator for manual verification.",
+                "error_code": "PAYMENT_GATEWAY_UNAVAILABLE",
+                "plan_id": plan_id,
+                "price_inr": plan.price_inr,
+            }
 
         mgr = UserPermissionManager.get_instance()
         ok, msg, updated = mgr.update_user_permissions(

@@ -57,13 +57,24 @@
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
 <div>
 <h1><i class="fas fa-chart-pie" style="margin-right:0.5rem;color:#38bdf8;"></i> Super Admin Signal Intelligence &amp; Category Accuracy</h1>
-<p class="subtitle">System-wide historical signal feed, category win rates, target hit rates, and real-time accuracy audit across all 8 market classes</p>
+<p class="subtitle">System-wide historical signal feed, category win rates, target hit rates, and real-time accuracy audit across all 10 market classes</p>
 </div>
 <div style="display:flex;gap:0.6rem;flex-wrap:wrap;"><button class="btn btn-ghost" id="openSignalTestModalBtn" style="color:#38bdf8;border-color:rgba(56,189,248,0.4);" type="button"><i class="fas fa-satellite-dish"></i> 🚀 Test Live Signal Dispatch</button><button class="btn btn-ghost" id="refreshBtn" type="button"><i class="fas fa-sync-alt"></i> Refresh Signals</button><a class="btn btn-ghost" href="/api/reports/signal-intelligence/export/pdf">📄 Export PDF</a><a class="btn btn-ghost" href="/api/reports/signal-intelligence/export/xlsx">📊 Export Excel</a><a class="btn btn-ghost" href="/reports">📚 Report Center</a></div>
 </div>
-<div id="demoDataBanner" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:0.5rem;padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:#fbbf24;">
-<i class="fas fa-info-circle"></i> Sample data included — no real signals have been generated yet. The metrics and rows below include example content seeded so this screen isn't empty; they are not genuine system performance.
+<div id="productionSignalsBanner" style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.25);border-radius:0.5rem;padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--text-primary, #e2e8f0);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+    <div>
+        <i class="fas fa-shield-alt" style="color:#38bdf8;margin-right:0.4rem;"></i>
+        <span>Real system signals present (<span id="bannerSignalCount" style="font-weight:700;">1,327</span> generated; <span id="bannerResolvedCount" style="font-weight:700;">0</span> terminal resolutions). Production performance metrics strictly exclude sample/seed records.</span>
     </div>
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+        <label style="font-size:0.75rem;color:var(--text-muted, #94a3b8);display:flex;align-items:center;gap:0.35rem;cursor:pointer;">
+            <input type="checkbox" id="includeSeedSamplesCheckbox" style="cursor:pointer;" /> Include Seed Samples (Demo Mode)
+        </label>
+    </div>
+</div>
+<div id="demoDataBanner" style="display:none;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:0.5rem;padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:#fbbf24;">
+<i class="fas fa-exclamation-triangle"></i> <strong>DEMO / SEED DATA INCLUDED — NOT REAL PERFORMANCE:</strong> Seeded sample records are currently visible in the feed. Production performance metrics strictly exclude sample/seed records.
+</div>
 <!-- Filter Bar -->
 <div class="filter-bar">
 <div class="timeframe-group">
@@ -76,8 +87,10 @@
 </div>
 <div style="display:flex;gap:0.5rem;align-items:center;margin-left:auto;flex-wrap:wrap;">
 <select class="filter-select" id="categoryFilter">
-<option value="all">All Categories (8)</option>
+<option value="all">All Categories (10)</option>
 <option value="INDEX_OPTIONS">📈 Index Options</option>
+<option value="STOCK_OPTIONS">🎯 Stock Options</option>
+<option value="EQUITY_SWING_DELIVERY">🔄 Equity Swing &amp; Delivery</option>
 <option value="LARGE_CAP_EQUITY">🏢 Large-Cap Equity</option>
 <option value="MID_SMALL_CAP">🚀 Mid/Small-Cap</option>
 <option value="PENNY_SME">💎 Penny &amp; SME</option>
@@ -173,7 +186,7 @@
 <tr class="table-filter-row">
 <th><input class="opb-input column-filter" data-col="time" placeholder="Filter time"/></th>
 <th><input class="opb-input column-filter" data-col="instrument" placeholder="Symbol / name"/></th>
-<th><select class="opb-input column-filter" data-col="category"><option value="">All</option><option value="INDEX_OPTIONS">Index Options</option><option value="STOCK_OPTIONS">Stock Options</option><option value="EQUITY_SWING_DELIVERY">Equity</option><option value="FUTURES">Futures</option><option value="COMMODITIES">Commodities</option><option value="CURRENCIES">Currencies</option><option value="ETFS_REITS">ETF / REIT</option></select></th>
+<th><select class="opb-input column-filter" data-col="category"><option value="">All</option><option value="INDEX_OPTIONS">Index Options</option><option value="STOCK_OPTIONS">Stock Options</option><option value="EQUITY_SWING_DELIVERY">Equity Swing &amp; Delivery</option><option value="LARGE_CAP_EQUITY">Large-Cap Equity</option><option value="MID_SMALL_CAP">Mid/Small-Cap</option><option value="PENNY_SME">Penny &amp; SME</option><option value="COMMODITIES">Commodities</option><option value="CURRENCIES">Currencies</option><option value="FUTURES">Futures</option><option value="ETFS_REITS">ETFs &amp; REITs</option></select></th>
 <th></th>
 <th><select class="opb-input column-filter" data-col="action"><option value="">All</option><option value="BUY">BUY / CALL</option><option value="SELL">SELL / PUT</option></select></th>
 <th><input class="opb-input column-filter" data-col="score" max="100" min="0" placeholder="Min score" type="number"/></th>
@@ -276,15 +289,26 @@
             const cat = document.getElementById('categoryFilter').value;
             const tier = document.getElementById('tierFilter').value;
             const status = document.getElementById('statusFilter').value;
-            const url = `/api/auth/signals/analytics?timeframe=${encodeURIComponent(currentTimeframe)}&category=${encodeURIComponent(cat)}&tier=${encodeURIComponent(tier)}&status=${encodeURIComponent(status)}`;
+            const includeSeed = document.getElementById('includeSeedSamplesCheckbox')?.checked || false;
+            const url = `/api/auth/signals/analytics?timeframe=${encodeURIComponent(currentTimeframe)}&category=${encodeURIComponent(cat)}&tier=${encodeURIComponent(tier)}&status=${encodeURIComponent(status)}&include_seed_samples=${includeSeed ? 'true' : 'false'}`;
             const data = await apiFetch(url);
             if (!data) return;
 
-            document.getElementById('demoDataBanner').style.display = data.contains_demo_data ? 'block' : 'none';
+            document.getElementById('demoDataBanner').style.display = (data.contains_demo_data || includeSeed) ? 'block' : 'none';
+            if (document.getElementById('bannerSignalCount')) {
+                document.getElementById('bannerSignalCount').textContent = (data.total_real_signals !== undefined) ? data.total_real_signals : (data.total_signals ?? 0);
+            }
+            if (document.getElementById('bannerResolvedCount')) {
+                document.getElementById('bannerResolvedCount').textContent = (data.resolved_signals !== undefined && !includeSeed) ? data.resolved_signals : ((data.signals || []).filter(s => s.status !== 'ACTIVE').length);
+            }
 
             // KPI Cards
             document.getElementById('statTotalSignals').textContent = data.total_signals ?? 0;
-            document.getElementById('statWinRate').textContent = `${data.win_rate_pct ?? 0}%`;
+            if (data.resolved_signals > 0 && data.win_rate_pct !== null && data.win_rate_pct !== undefined) {
+                document.getElementById('statWinRate').textContent = `${data.win_rate_pct}%`;
+            } else {
+                document.getElementById('statWinRate').textContent = data.win_rate_display || 'N/A (0 resolved)';
+            }
             document.getElementById('statT1Rate').textContent = `${data.t1_hit_rate_pct ?? 0}%`;
             document.getElementById('statT2Rate').textContent = `${data.t2_hit_rate_pct ?? 0}%`;
             document.getElementById('statAvgPnl').textContent = `${data.average_pnl_pct > 0 ? '+' : ''}${data.average_pnl_pct ?? 0}%`;
@@ -296,16 +320,18 @@
             if (Object.keys(cats).length === 0) {
                 catTb.innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">No category data for selected filter</td></tr>';
             } else {
-                catTb.innerHTML = Object.entries(cats).map(([cname, stats]) => `
+                catTb.innerHTML = Object.entries(cats).map(([cname, stats]) => {
+                    const winDisplay = (stats.t1_hits + stats.sl_hits > 0 && stats.win_rate !== null && stats.win_rate !== undefined) ? `${stats.win_rate}%` : (stats.win_rate_display || 'N/A (0 resolved)');
+                    return `
                     <tr>
                         <td><strong>${cname}</strong></td>
                         <td>${stats.total}</td>
                         <td style="color: var(--success-color, #16a34a);font-weight:600;">${stats.t1_hits}</td>
                         <td style="color: var(--danger-color, #dc2626);font-weight:600;">${stats.sl_hits}</td>
-                        <td><strong style="color: var(--success-color, #16a34a);">${stats.win_rate}%</strong></td>
+                        <td><strong style="color: var(--success-color, #16a34a);">${winDisplay}</strong></td>
                         <td>${stats.avg_score}/100</td>
                     </tr>
-                `).join('');
+                `;}).join('');
             }
 
             // Signals Table
@@ -401,6 +427,7 @@
         document.getElementById('tierFilter').addEventListener('change', loadSignalAnalytics);
         document.getElementById('statusFilter').addEventListener('change', loadSignalAnalytics);
         document.getElementById('refreshBtn').addEventListener('click', loadSignalAnalytics);
+        document.getElementById('includeSeedSamplesCheckbox')?.addEventListener('change', loadSignalAnalytics);
         document.querySelectorAll('.column-filter').forEach(el => el.addEventListener('input', applyColumnFilters));
         document.querySelectorAll('.column-filter').forEach(el => el.addEventListener('change', applyColumnFilters));
 

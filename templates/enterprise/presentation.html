@@ -90,7 +90,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div>
 <label class="block text-xs text-gray-400 mb-1">Version</label>
-<input class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-version" placeholder="2.56.0" type="text"/>
+<input class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-version" placeholder="2.59.4" type="text"/>
 </div>
 <div>
 <label class="block text-xs text-gray-400 mb-1">Score</label>
@@ -113,8 +113,8 @@
 <div class="md:col-span-2">
 <label class="block text-xs text-gray-400 mb-1">Custom KPIs (key:value, one per line)</label>
 <textarea class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-kpis" placeholder="Total Tests: 2600+
-Win Rate: 54.5%
-Sharpe: 6.99" rows="3"></textarea>
+Benchmark Win Rate: 54.5%
+Benchmark Sharpe: 6.99" rows="3"></textarea>
 </div>
 </div>
 </div>
@@ -197,7 +197,7 @@ Sharpe: 6.99" rows="3"></textarea>
                         const data = await r.json();
                         const pg = data.presentation_generator || {};
                         const html = [
-                            `<p>Version: <span class="text-gray-300">${data.bi_dashboard?.version || '2.56.0'}</span></p>`,
+                            `<p>Version: <span class="text-gray-300">${data.bi_dashboard?.version || '2.59.4'}</span></p>`,
                             `<p>Templates: <span class="text-gray-300">${(pg.templates || ['executive']).join(', ')}</span></p>`,
                             `<p>Output: <span class="text-gray-300">${pg.output_dir || 'reports/presentations/'}</span></p>`,
                             `<p>Default: <span class="text-gray-300">${pg.default_template || 'executive'}</span></p>`,
@@ -211,7 +211,7 @@ Sharpe: 6.99" rows="3"></textarea>
                         if (vR.ok) {
                             const vData = await vR.json();
                             $('auto-fetch-content').innerHTML = `
-                                <p>Version: <span class="text-gray-300">2.56.0</span></p>
+                                <p>Version: <span class="text-gray-300">${vData.version || '2.59.4'}</span></p>
                                 <p>System: <span class="text-gray-300">${vData.paused ? 'PAUSED' : 'RUNNING'}</span></p>
                                 <p>Capital: <span class="text-gray-300">₹${(vData.capital || 0).toLocaleString()}</span></p>
                                 <p class="text-gray-600 mt-1">Auto-detected from system state</p>

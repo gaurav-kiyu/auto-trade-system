@@ -44,15 +44,18 @@
 </div>
 <!-- Direct UPI QR Payment Modal -->
 <div class="qr-modal" id="qrModal">
-<div style="background:#111827;border:1px solid rgba(148,163,184,0.2);border-radius:1rem;padding:2rem;max-width:400px;width:90%;text-align:center;position:relative;">
+<div style="background:var(--bg-card, #111827);border:1px solid var(--border-color, rgba(148,163,184,0.2));border-radius:1rem;padding:2rem;max-width:420px;width:90%;text-align:center;position:relative;">
 <button id="cspfix-1" style="position:absolute;top:15px;right:15px;background:transparent;border:none;color: var(--text-muted, #94a3b8);font-size:1.2rem;cursor:pointer;" type="button">×</button>
 <h3 id="modalPlanTitle" style="font-weight:700;font-size:1.1rem;margin-bottom:0.25rem;">Plan Title</h3>
-<p style="color: var(--text-muted, #94a3b8);font-size:0.8rem;margin-bottom:1rem;">Scan with PhonePe, Google Pay, Paytm, or BHIM</p>
+<p style="color: var(--text-muted, #94a3b8);font-size:0.8rem;margin-bottom:0.75rem;">Scan with PhonePe, Google Pay, Paytm, or BHIM</p>
+<div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:0.5rem;padding:0.6rem;font-size:0.75rem;color:#fbbf24;margin-bottom:0.85rem;line-height:1.4;text-align:left;">
+<i class="fas fa-shield-alt" style="margin-right:0.3rem;"></i> <strong>Verification Requirement:</strong> Automated self-activation of paid plans is disabled. Genuine payment-gateway verification or administrator approval is required for activation.
+</div>
 <div style="background:#fff;padding:1rem;border-radius:0.5rem;display:inline-block;margin-bottom:1rem;">
 <img alt="UPI QR Code" id="modalQrImg" src="" style="width:200px;height:200px;display:block;"/>
 </div>
 <div id="modalPrice" style="font-family:monospace;font-size:0.85rem;color:#38bdf8;font-weight:600;margin-bottom:1.5rem;">₹-</div>
-<button class="btn-pay" id="cspfix-2" style="background:#22c55e;" type="button">✅ I Have Paid — Activate Instantly</button>
+<button class="btn-pay" id="cspfix-2" style="background:#22c55e;" type="button">✅ Submit Payment Confirmation</button>
 </div>
 </div>
 <script nonce="{{ nonce }}">

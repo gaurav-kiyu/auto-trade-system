@@ -68,6 +68,11 @@ def _page_context(user, nonce: str, current_page: str) -> dict:
         "can_manage_users": Permission.MANAGE_USERS.value in effective,
         "can_manage_permissions": Permission.MANAGE_PERMISSIONS.value in effective,
         "config": getattr(_DASHBOARD_REF, "_cfg", {}) if _DASHBOARD_REF else {},
+        "execution_mode": str(
+            (getattr(_DASHBOARD_REF, "_cfg", {}) or {}).get("EXECUTION_MODE")
+            or (getattr(_DASHBOARD_REF, "_cfg", {}) or {}).get("execution_mode")
+            or "PAPER"
+        ).upper(),
     }
 
 

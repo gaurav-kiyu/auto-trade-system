@@ -65,7 +65,7 @@ def is_index_symbol(symbol: str) -> bool:
 
 
 def classify_instrument_market(symbol: str, series: str = "EQ") -> str:
-    """Classify instrument into exact trading category."""
+    """Classify instrument into exact trading category across canonical taxonomy."""
     clean_sym = symbol.strip().upper().replace(".NS", "")
     if clean_sym in FNO_INDICES:
         return "INDEX_OPTIONS"
@@ -73,4 +73,13 @@ def classify_instrument_market(symbol: str, series: str = "EQ") -> str:
         return "STOCK_OPTIONS"
     if series in ("SM", "ST"):
         return "PENNY_SME"
+    if clean_sym.endswith(("-FUT", "_FUT", "FUT")) or clean_sym.endswith("FUTURES"):
+        return "FUTURES"
+    if clean_sym in {"CRUDEOIL", "NATURALGAS", "GOLD", "GOLDM", "SILVER", "SILVERM", "COPPER", "ZINC", "LEAD", "ALUMINIUM", "NICKEL"} or clean_sym.startswith("MCX:"):
+        return "COMMODITIES"
+    if clean_sym in {"USDINR", "EURINR", "GBPINR", "JPYINR"}:
+        return "CURRENCIES"
+    if any(k in clean_sym for k in ("BEES", "ETF", "INVIT", "REIT", "GOLDSHARE")):
+        return "ETFS_REITS"
     return "EQUITY_SWING_DELIVERY"
+

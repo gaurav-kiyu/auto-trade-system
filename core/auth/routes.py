@@ -817,12 +817,19 @@ def create_auth_router(
         category: str = "all",
         tier: str = "all",
         status: str = "all",
+        include_seed_samples: bool = False,
         admin: AuthUser = Depends(view_signal_analytics),
     ) -> dict:
         """Signal Intelligence / Accuracy / Category Breakdown for authorized viewers."""
         from core.signals.signal_tracker import SignalTracker
         tracker = SignalTracker.get_instance()
-        return tracker.get_admin_signal_analytics(timeframe=timeframe, category=category, tier=tier, status=status)
+        return tracker.get_admin_signal_analytics(
+            timeframe=timeframe,
+            category=category,
+            tier=tier,
+            status=status,
+            include_seed_samples=include_seed_samples,
+        )
 
     @router.get("/signals/my-history")
     async def get_my_signal_history(
