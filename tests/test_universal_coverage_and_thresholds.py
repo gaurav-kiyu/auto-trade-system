@@ -136,11 +136,19 @@ def test_futures_expiry_resolution():
 
     assert c_curr.expiry_date < c_next.expiry_date < c_far.expiry_date
 
-    # Verify FinNifty Tuesday expiry vs Nifty Thursday expiry
+    # Verify authoritative SEBI/NSE Circular 68685 expiry alignment:
+    # NSE Index & Stock derivatives expire on Tuesday (weekday 1, or 0 if holiday shifted)
+    # BSE Index derivatives expire on Thursday (weekday 3, or 2 if holiday shifted)
+    nifty_contract = resolver.resolve_current_contract("NIFTY")
+    assert nifty_contract.expiry_date.weekday() in (0, 1)
+
     fin_contract = resolver.resolve_current_contract("FINNIFTY")
     assert fin_contract is not None
-    # If not adjusted for holiday, FINNIFTY expires on Tuesday (weekday 1)
-    assert fin_contract.expiry_date.weekday() in (0, 1)  # Monday or Tuesday (holiday shift)
+    assert fin_contract.expiry_date.weekday() in (0, 1)
+
+    sensex_contract = resolver.resolve_current_contract("SENSEX")
+    assert sensex_contract is not None
+    assert sensex_contract.expiry_date.weekday() in (2, 3)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -573,11 +581,11 @@ def test_contract_holiday_expiry():
     resolver = FuturesContractResolver()
 
     # Normal expiry without holiday
-    normal_exp = resolver.get_monthly_expiry(2026, 9, target_weekday=3)
+    normal_exp = resolver.get_monthly_expiry(2026, 9, target_weekday=1)
 
     # Add holiday on normal expiry day
     resolver.add_holiday(normal_exp)
-    adjusted_exp = resolver.get_monthly_expiry(2026, 9, target_weekday=3)
+    adjusted_exp = resolver.get_monthly_expiry(2026, 9, target_weekday=1)
 
     assert adjusted_exp < normal_exp
     assert adjusted_exp.weekday() not in (5, 6)  # Not on weekend

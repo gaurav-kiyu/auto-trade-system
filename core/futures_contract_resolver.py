@@ -58,13 +58,13 @@ OFFICIAL_TRADING_HOLIDAYS_2026: set[datetime.date] = {
 # Authoritative Verified Lot Sizes for Major Indices & F&O Equities
 # Exposed with source timestamp and fallback labeling
 _AUTHORITATIVE_INDEX_LOT_SIZES: dict[str, dict[str, Any]] = {
-    "NIFTY": {"exchange": "NSE", "segment": "NFO", "lot": 50, "tick": 0.05, "freeze": 1800, "expiry_weekday": 3, "step": 50},
-    "BANKNIFTY": {"exchange": "NSE", "segment": "NFO", "lot": 15, "tick": 0.05, "freeze": 900, "expiry_weekday": 3, "step": 100},
-    "FINNIFTY": {"exchange": "NSE", "segment": "NFO", "lot": 40, "tick": 0.05, "freeze": 1800, "expiry_weekday": 1, "step": 50},  # Tuesday Expiry
-    "MIDCPNIFTY": {"exchange": "NSE", "segment": "NFO", "lot": 50, "tick": 0.05, "freeze": 2100, "expiry_weekday": 0, "step": 25},  # Monday Expiry
-    "NIFTYNXT50": {"exchange": "NSE", "segment": "NFO", "lot": 25, "tick": 0.05, "freeze": 1000, "expiry_weekday": 3, "step": 50},
-    "SENSEX": {"exchange": "BSE", "segment": "BFO", "lot": 10, "tick": 0.05, "freeze": 1000, "expiry_weekday": 4, "step": 100},  # Friday Expiry
-    "BANKEX": {"exchange": "BSE", "segment": "BFO", "lot": 15, "tick": 0.05, "freeze": 900, "expiry_weekday": 4, "step": 100},   # Friday Expiry
+    "NIFTY": {"exchange": "NSE", "segment": "NFO", "lot": 50, "tick": 0.05, "freeze": 1800, "expiry_weekday": 1, "step": 50},       # Tuesday Expiry (NSE Circular 68685)
+    "BANKNIFTY": {"exchange": "NSE", "segment": "NFO", "lot": 15, "tick": 0.05, "freeze": 900, "expiry_weekday": 1, "step": 100},    # Tuesday Expiry (NSE Circular 68685)
+    "FINNIFTY": {"exchange": "NSE", "segment": "NFO", "lot": 40, "tick": 0.05, "freeze": 1800, "expiry_weekday": 1, "step": 50},     # Tuesday Expiry (NSE Circular 68685)
+    "MIDCPNIFTY": {"exchange": "NSE", "segment": "NFO", "lot": 50, "tick": 0.05, "freeze": 2100, "expiry_weekday": 1, "step": 25},   # Tuesday Expiry (NSE Circular 68685)
+    "NIFTYNXT50": {"exchange": "NSE", "segment": "NFO", "lot": 25, "tick": 0.05, "freeze": 1000, "expiry_weekday": 1, "step": 50},   # Tuesday Expiry (NSE Circular 68685)
+    "SENSEX": {"exchange": "BSE", "segment": "BFO", "lot": 10, "tick": 0.05, "freeze": 1000, "expiry_weekday": 3, "step": 100},     # Thursday Expiry (BSE Realignment Notice)
+    "BANKEX": {"exchange": "BSE", "segment": "BFO", "lot": 15, "tick": 0.05, "freeze": 900, "expiry_weekday": 3, "step": 100},      # Thursday Expiry (BSE Realignment Notice)
 }
 
 # Sample authoritative verified lot sizes for major stock futures
@@ -200,7 +200,7 @@ class FuturesContractResolver:
         self,
         year: int,
         month: int,
-        target_weekday: int = 3,  # 3 = Thursday (default NSE F&O)
+        target_weekday: int = 1,  # 1 = Tuesday (authoritative NSE standard per Circular 68685; 3 = Thursday for BSE)
     ) -> datetime.date:
         """Calculate the holiday-adjusted monthly expiry date for a given year & month.
 
@@ -259,10 +259,10 @@ class FuturesContractResolver:
         instrument_type = "FUTIDX" if is_idx else "FUTSTK"
         segment = "NFO" if exchange.upper() == "NSE" else "BFO"
 
-        # Resolve Lot Size & Expiry Weekday
+        # Resolve Lot Size & Expiry Weekday (authoritative: Tuesday for NSE, Thursday for BSE per Circular 68685)
         lot_size = 1
         freeze_qty = None
-        expiry_weekday = 3  # Thursday default
+        expiry_weekday = 1 if exchange.upper() == "NSE" else 3
         source = "EXCHANGE_METADATA"
 
         if is_idx:
@@ -270,20 +270,23 @@ class FuturesContractResolver:
             if idx_meta:
                 lot_size = idx_meta["lot"]
                 freeze_qty = idx_meta.get("freeze")
-                expiry_weekday = idx_meta.get("expiry_weekday", 3)
+                expiry_weekday = idx_meta.get("expiry_weekday", 1 if idx_meta.get("exchange") == "NSE" else 3)
                 if idx_meta.get("exchange"):
                     exchange = idx_meta["exchange"]
                     segment = idx_meta.get("segment", segment)
             else:
                 source = "FALLBACK_METADATA"
                 lot_size = 50
+                expiry_weekday = 1 if exchange.upper() == "NSE" else 3
         else:
             if clean_sym in _AUTHORITATIVE_STOCK_LOT_SIZES:
                 lot_size = _AUTHORITATIVE_STOCK_LOT_SIZES[clean_sym]
+                source = "EXCHANGE_METADATA"
             else:
                 # Dynamic fallback estimation for newly admitted F&O stocks
                 source = "FALLBACK_METADATA"
                 lot_size = 500
+            expiry_weekday = 1 if exchange.upper() == "NSE" else 3
 
         # Build 3 active contract cycles: Current Month, Next Month, Far Month
         resolved_contracts: list[FuturesContract] = []
