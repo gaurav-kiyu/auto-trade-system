@@ -1,0 +1,1774 @@
+{
+  "certification": "OPB v2.59.4 Final Coverage Closure Gate",
+  "timestamp": "2026-09-17T12:42:27.689Z",
+  "base_url": "http://127.0.0.1:8765",
+  "viewports": [
+    {
+      "name": "fhd_1080p",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "name": "desktop_1536",
+      "width": 1536,
+      "height": 864
+    },
+    {
+      "name": "laptop_1440",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "name": "laptop_1366",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "name": "compact_1280",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "name": "tablet_landscape_1024",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "name": "tablet_portrait_768",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "name": "mobile_large_430",
+      "width": 430,
+      "height": 932
+    },
+    {
+      "name": "mobile_compact_375",
+      "width": 375,
+      "height": 667
+    }
+  ],
+  "themes": [
+    "dark-cyber",
+    "dracula-purple",
+    "ivory-gold",
+    "midnight-slate",
+    "emerald-matrix"
+  ],
+  "checks": [
+    {
+      "name": "Page Load: change_password on fhd_1080p (1920x1080)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: change_password on fhd_1080p",
+      "status": "PASS",
+      "detail": "Text length: 443"
+    },
+    {
+      "name": "Zero Mojibake: change_password on fhd_1080p",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: change_password on fhd_1080p",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: change_password on desktop_1536 (1536x864)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: change_password on desktop_1536",
+      "status": "PASS",
+      "detail": "Text length: 443"
+    },
+    {
+      "name": "Zero Mojibake: change_password on desktop_1536",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: change_password on desktop_1536",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: change_password on laptop_1440 (1440x900)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: change_password on laptop_1440",
+      "status": "PASS",
+      "detail": "Text length: 443"
+    },
+    {
+      "name": "Zero Mojibake: change_password on laptop_1440",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: change_password on laptop_1440",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: change_password on laptop_1366 (1366x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: change_password on laptop_1366",
+      "status": "PASS",
+      "detail": "Text length: 443"
+    },
+    {
+      "name": "Zero Mojibake: change_password on laptop_1366",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: change_password on laptop_1366",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: change_password on compact_1280 (1280x800)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: change_password on compact_1280",
+      "status": "PASS",
+      "detail": "Text length: 443"
+    },
+    {
+      "name": "Zero Mojibake: change_password on compact_1280",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: change_password on compact_1280",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: change_password on tablet_landscape_1024 (1024x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: change_password on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Text length: 443"
+    },
+    {
+      "name": "Zero Mojibake: change_password on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: change_password on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: change_password on tablet_portrait_768 (768x1024)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: change_password on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Text length: 185"
+    },
+    {
+      "name": "Zero Mojibake: change_password on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: change_password on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: change_password on mobile_large_430 (430x932)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: change_password on mobile_large_430",
+      "status": "PASS",
+      "detail": "Text length: 185"
+    },
+    {
+      "name": "Zero Mojibake: change_password on mobile_large_430",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: change_password on mobile_large_430",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: change_password on mobile_compact_375 (375x667)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: change_password on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Text length: 185"
+    },
+    {
+      "name": "Zero Mojibake: change_password on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: change_password on mobile_compact_375",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Theme Applied: dark-cyber on change_password",
+      "status": "PASS",
+      "detail": "Theme: dark-cyber"
+    },
+    {
+      "name": "Theme Applied: dracula-purple on change_password",
+      "status": "PASS",
+      "detail": "Theme: dracula-purple"
+    },
+    {
+      "name": "Theme Applied: ivory-gold on change_password",
+      "status": "PASS",
+      "detail": "Theme: ivory-gold"
+    },
+    {
+      "name": "Theme Applied: midnight-slate on change_password",
+      "status": "PASS",
+      "detail": "Theme: midnight-slate"
+    },
+    {
+      "name": "Theme Applied: emerald-matrix on change_password",
+      "status": "PASS",
+      "detail": "Theme: emerald-matrix"
+    },
+    {
+      "name": "Interactive Controls Found: change_password",
+      "status": "PASS",
+      "detail": "Buttons: 4, Inputs: 7, Tabs: 0"
+    },
+    {
+      "name": "Page Load: event_store on fhd_1080p (1920x1080)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: event_store on fhd_1080p",
+      "status": "PASS",
+      "detail": "Text length: 671"
+    },
+    {
+      "name": "Zero Mojibake: event_store on fhd_1080p",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: event_store on fhd_1080p",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: event_store on desktop_1536 (1536x864)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: event_store on desktop_1536",
+      "status": "PASS",
+      "detail": "Text length: 671"
+    },
+    {
+      "name": "Zero Mojibake: event_store on desktop_1536",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: event_store on desktop_1536",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: event_store on laptop_1440 (1440x900)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: event_store on laptop_1440",
+      "status": "PASS",
+      "detail": "Text length: 671"
+    },
+    {
+      "name": "Zero Mojibake: event_store on laptop_1440",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: event_store on laptop_1440",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: event_store on laptop_1366 (1366x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: event_store on laptop_1366",
+      "status": "PASS",
+      "detail": "Text length: 671"
+    },
+    {
+      "name": "Zero Mojibake: event_store on laptop_1366",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: event_store on laptop_1366",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: event_store on compact_1280 (1280x800)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: event_store on compact_1280",
+      "status": "PASS",
+      "detail": "Text length: 671"
+    },
+    {
+      "name": "Zero Mojibake: event_store on compact_1280",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: event_store on compact_1280",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: event_store on tablet_landscape_1024 (1024x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: event_store on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Text length: 671"
+    },
+    {
+      "name": "Zero Mojibake: event_store on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: event_store on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: event_store on tablet_portrait_768 (768x1024)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: event_store on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Text length: 413"
+    },
+    {
+      "name": "Zero Mojibake: event_store on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: event_store on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: event_store on mobile_large_430 (430x932)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: event_store on mobile_large_430",
+      "status": "PASS",
+      "detail": "Text length: 413"
+    },
+    {
+      "name": "Zero Mojibake: event_store on mobile_large_430",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: event_store on mobile_large_430",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: event_store on mobile_compact_375 (375x667)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: event_store on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Text length: 413"
+    },
+    {
+      "name": "Zero Mojibake: event_store on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: event_store on mobile_compact_375",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Theme Applied: dark-cyber on event_store",
+      "status": "PASS",
+      "detail": "Theme: dark-cyber"
+    },
+    {
+      "name": "Theme Applied: dracula-purple on event_store",
+      "status": "PASS",
+      "detail": "Theme: dracula-purple"
+    },
+    {
+      "name": "Theme Applied: ivory-gold on event_store",
+      "status": "PASS",
+      "detail": "Theme: ivory-gold"
+    },
+    {
+      "name": "Theme Applied: midnight-slate on event_store",
+      "status": "PASS",
+      "detail": "Theme: midnight-slate"
+    },
+    {
+      "name": "Theme Applied: emerald-matrix on event_store",
+      "status": "PASS",
+      "detail": "Theme: emerald-matrix"
+    },
+    {
+      "name": "Interactive Controls Found: event_store",
+      "status": "PASS",
+      "detail": "Buttons: 2, Inputs: 6, Tabs: 0"
+    },
+    {
+      "name": "Page Load: live_pnl on fhd_1080p (1920x1080)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: live_pnl on fhd_1080p",
+      "status": "PASS",
+      "detail": "Text length: 657"
+    },
+    {
+      "name": "Zero Mojibake: live_pnl on fhd_1080p",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: live_pnl on fhd_1080p",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: live_pnl on desktop_1536 (1536x864)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: live_pnl on desktop_1536",
+      "status": "PASS",
+      "detail": "Text length: 657"
+    },
+    {
+      "name": "Zero Mojibake: live_pnl on desktop_1536",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: live_pnl on desktop_1536",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: live_pnl on laptop_1440 (1440x900)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: live_pnl on laptop_1440",
+      "status": "PASS",
+      "detail": "Text length: 657"
+    },
+    {
+      "name": "Zero Mojibake: live_pnl on laptop_1440",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: live_pnl on laptop_1440",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: live_pnl on laptop_1366 (1366x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: live_pnl on laptop_1366",
+      "status": "PASS",
+      "detail": "Text length: 657"
+    },
+    {
+      "name": "Zero Mojibake: live_pnl on laptop_1366",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: live_pnl on laptop_1366",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: live_pnl on compact_1280 (1280x800)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: live_pnl on compact_1280",
+      "status": "PASS",
+      "detail": "Text length: 657"
+    },
+    {
+      "name": "Zero Mojibake: live_pnl on compact_1280",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: live_pnl on compact_1280",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: live_pnl on tablet_landscape_1024 (1024x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: live_pnl on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Text length: 657"
+    },
+    {
+      "name": "Zero Mojibake: live_pnl on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: live_pnl on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: live_pnl on tablet_portrait_768 (768x1024)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: live_pnl on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Text length: 399"
+    },
+    {
+      "name": "Zero Mojibake: live_pnl on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: live_pnl on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: live_pnl on mobile_large_430 (430x932)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: live_pnl on mobile_large_430",
+      "status": "PASS",
+      "detail": "Text length: 399"
+    },
+    {
+      "name": "Zero Mojibake: live_pnl on mobile_large_430",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: live_pnl on mobile_large_430",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: live_pnl on mobile_compact_375 (375x667)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: live_pnl on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Text length: 399"
+    },
+    {
+      "name": "Zero Mojibake: live_pnl on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: live_pnl on mobile_compact_375",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Theme Applied: dark-cyber on live_pnl",
+      "status": "PASS",
+      "detail": "Theme: dark-cyber"
+    },
+    {
+      "name": "Theme Applied: dracula-purple on live_pnl",
+      "status": "PASS",
+      "detail": "Theme: dracula-purple"
+    },
+    {
+      "name": "Theme Applied: ivory-gold on live_pnl",
+      "status": "PASS",
+      "detail": "Theme: ivory-gold"
+    },
+    {
+      "name": "Theme Applied: midnight-slate on live_pnl",
+      "status": "PASS",
+      "detail": "Theme: midnight-slate"
+    },
+    {
+      "name": "Theme Applied: emerald-matrix on live_pnl",
+      "status": "PASS",
+      "detail": "Theme: emerald-matrix"
+    },
+    {
+      "name": "Interactive Controls Found: live_pnl",
+      "status": "PASS",
+      "detail": "Buttons: 0, Inputs: 4, Tabs: 5"
+    },
+    {
+      "name": "Page Load: payoff_calculator on fhd_1080p (1920x1080)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: payoff_calculator on fhd_1080p",
+      "status": "PASS",
+      "detail": "Text length: 808"
+    },
+    {
+      "name": "Zero Mojibake: payoff_calculator on fhd_1080p",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: payoff_calculator on fhd_1080p",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: payoff_calculator on desktop_1536 (1536x864)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: payoff_calculator on desktop_1536",
+      "status": "PASS",
+      "detail": "Text length: 808"
+    },
+    {
+      "name": "Zero Mojibake: payoff_calculator on desktop_1536",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: payoff_calculator on desktop_1536",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: payoff_calculator on laptop_1440 (1440x900)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: payoff_calculator on laptop_1440",
+      "status": "PASS",
+      "detail": "Text length: 808"
+    },
+    {
+      "name": "Zero Mojibake: payoff_calculator on laptop_1440",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: payoff_calculator on laptop_1440",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: payoff_calculator on laptop_1366 (1366x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: payoff_calculator on laptop_1366",
+      "status": "PASS",
+      "detail": "Text length: 808"
+    },
+    {
+      "name": "Zero Mojibake: payoff_calculator on laptop_1366",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: payoff_calculator on laptop_1366",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: payoff_calculator on compact_1280 (1280x800)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: payoff_calculator on compact_1280",
+      "status": "PASS",
+      "detail": "Text length: 808"
+    },
+    {
+      "name": "Zero Mojibake: payoff_calculator on compact_1280",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: payoff_calculator on compact_1280",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: payoff_calculator on tablet_landscape_1024 (1024x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: payoff_calculator on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Text length: 808"
+    },
+    {
+      "name": "Zero Mojibake: payoff_calculator on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: payoff_calculator on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: payoff_calculator on tablet_portrait_768 (768x1024)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: payoff_calculator on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Text length: 550"
+    },
+    {
+      "name": "Zero Mojibake: payoff_calculator on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: payoff_calculator on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: payoff_calculator on mobile_large_430 (430x932)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: payoff_calculator on mobile_large_430",
+      "status": "PASS",
+      "detail": "Text length: 550"
+    },
+    {
+      "name": "Zero Mojibake: payoff_calculator on mobile_large_430",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: payoff_calculator on mobile_large_430",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: payoff_calculator on mobile_compact_375 (375x667)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: payoff_calculator on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Text length: 550"
+    },
+    {
+      "name": "Zero Mojibake: payoff_calculator on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: payoff_calculator on mobile_compact_375",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Theme Applied: dark-cyber on payoff_calculator",
+      "status": "PASS",
+      "detail": "Theme: dark-cyber"
+    },
+    {
+      "name": "Theme Applied: dracula-purple on payoff_calculator",
+      "status": "PASS",
+      "detail": "Theme: dracula-purple"
+    },
+    {
+      "name": "Theme Applied: ivory-gold on payoff_calculator",
+      "status": "PASS",
+      "detail": "Theme: ivory-gold"
+    },
+    {
+      "name": "Theme Applied: midnight-slate on payoff_calculator",
+      "status": "PASS",
+      "detail": "Theme: midnight-slate"
+    },
+    {
+      "name": "Theme Applied: emerald-matrix on payoff_calculator",
+      "status": "PASS",
+      "detail": "Theme: emerald-matrix"
+    },
+    {
+      "name": "Interactive Controls Found: payoff_calculator",
+      "status": "PASS",
+      "detail": "Buttons: 4, Inputs: 16, Tabs: 0"
+    },
+    {
+      "name": "Page Load: trade_journal on fhd_1080p (1920x1080)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: trade_journal on fhd_1080p",
+      "status": "PASS",
+      "detail": "Text length: 964"
+    },
+    {
+      "name": "Zero Mojibake: trade_journal on fhd_1080p",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: trade_journal on fhd_1080p",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: trade_journal on desktop_1536 (1536x864)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: trade_journal on desktop_1536",
+      "status": "PASS",
+      "detail": "Text length: 964"
+    },
+    {
+      "name": "Zero Mojibake: trade_journal on desktop_1536",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: trade_journal on desktop_1536",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: trade_journal on laptop_1440 (1440x900)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: trade_journal on laptop_1440",
+      "status": "PASS",
+      "detail": "Text length: 964"
+    },
+    {
+      "name": "Zero Mojibake: trade_journal on laptop_1440",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: trade_journal on laptop_1440",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: trade_journal on laptop_1366 (1366x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: trade_journal on laptop_1366",
+      "status": "PASS",
+      "detail": "Text length: 964"
+    },
+    {
+      "name": "Zero Mojibake: trade_journal on laptop_1366",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: trade_journal on laptop_1366",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: trade_journal on compact_1280 (1280x800)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: trade_journal on compact_1280",
+      "status": "PASS",
+      "detail": "Text length: 964"
+    },
+    {
+      "name": "Zero Mojibake: trade_journal on compact_1280",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: trade_journal on compact_1280",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: trade_journal on tablet_landscape_1024 (1024x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: trade_journal on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Text length: 964"
+    },
+    {
+      "name": "Zero Mojibake: trade_journal on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: trade_journal on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: trade_journal on tablet_portrait_768 (768x1024)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: trade_journal on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Text length: 706"
+    },
+    {
+      "name": "Zero Mojibake: trade_journal on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: trade_journal on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: trade_journal on mobile_large_430 (430x932)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: trade_journal on mobile_large_430",
+      "status": "PASS",
+      "detail": "Text length: 706"
+    },
+    {
+      "name": "Zero Mojibake: trade_journal on mobile_large_430",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: trade_journal on mobile_large_430",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: trade_journal on mobile_compact_375 (375x667)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: trade_journal on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Text length: 706"
+    },
+    {
+      "name": "Zero Mojibake: trade_journal on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: trade_journal on mobile_compact_375",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Theme Applied: dark-cyber on trade_journal",
+      "status": "PASS",
+      "detail": "Theme: dark-cyber"
+    },
+    {
+      "name": "Theme Applied: dracula-purple on trade_journal",
+      "status": "PASS",
+      "detail": "Theme: dracula-purple"
+    },
+    {
+      "name": "Theme Applied: ivory-gold on trade_journal",
+      "status": "PASS",
+      "detail": "Theme: ivory-gold"
+    },
+    {
+      "name": "Theme Applied: midnight-slate on trade_journal",
+      "status": "PASS",
+      "detail": "Theme: midnight-slate"
+    },
+    {
+      "name": "Theme Applied: emerald-matrix on trade_journal",
+      "status": "PASS",
+      "detail": "Theme: emerald-matrix"
+    },
+    {
+      "name": "Interactive Controls Found: trade_journal",
+      "status": "PASS",
+      "detail": "Buttons: 2, Inputs: 13, Tabs: 0"
+    },
+    {
+      "name": "Page Load: metrics_trend on fhd_1080p (1920x1080)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: metrics_trend on fhd_1080p",
+      "status": "PASS",
+      "detail": "Text length: 1054"
+    },
+    {
+      "name": "Zero Mojibake: metrics_trend on fhd_1080p",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: metrics_trend on fhd_1080p",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: metrics_trend on desktop_1536 (1536x864)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: metrics_trend on desktop_1536",
+      "status": "PASS",
+      "detail": "Text length: 1054"
+    },
+    {
+      "name": "Zero Mojibake: metrics_trend on desktop_1536",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: metrics_trend on desktop_1536",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: metrics_trend on laptop_1440 (1440x900)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: metrics_trend on laptop_1440",
+      "status": "PASS",
+      "detail": "Text length: 1054"
+    },
+    {
+      "name": "Zero Mojibake: metrics_trend on laptop_1440",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: metrics_trend on laptop_1440",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: metrics_trend on laptop_1366 (1366x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: metrics_trend on laptop_1366",
+      "status": "PASS",
+      "detail": "Text length: 1054"
+    },
+    {
+      "name": "Zero Mojibake: metrics_trend on laptop_1366",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: metrics_trend on laptop_1366",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: metrics_trend on compact_1280 (1280x800)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: metrics_trend on compact_1280",
+      "status": "PASS",
+      "detail": "Text length: 1054"
+    },
+    {
+      "name": "Zero Mojibake: metrics_trend on compact_1280",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: metrics_trend on compact_1280",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: metrics_trend on tablet_landscape_1024 (1024x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: metrics_trend on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Text length: 1054"
+    },
+    {
+      "name": "Zero Mojibake: metrics_trend on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: metrics_trend on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: metrics_trend on tablet_portrait_768 (768x1024)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: metrics_trend on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Text length: 796"
+    },
+    {
+      "name": "Zero Mojibake: metrics_trend on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: metrics_trend on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: metrics_trend on mobile_large_430 (430x932)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: metrics_trend on mobile_large_430",
+      "status": "PASS",
+      "detail": "Text length: 796"
+    },
+    {
+      "name": "Zero Mojibake: metrics_trend on mobile_large_430",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: metrics_trend on mobile_large_430",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: metrics_trend on mobile_compact_375 (375x667)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: metrics_trend on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Text length: 796"
+    },
+    {
+      "name": "Zero Mojibake: metrics_trend on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: metrics_trend on mobile_compact_375",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Theme Applied: dark-cyber on metrics_trend",
+      "status": "PASS",
+      "detail": "Theme: dark-cyber"
+    },
+    {
+      "name": "Theme Applied: dracula-purple on metrics_trend",
+      "status": "PASS",
+      "detail": "Theme: dracula-purple"
+    },
+    {
+      "name": "Theme Applied: ivory-gold on metrics_trend",
+      "status": "PASS",
+      "detail": "Theme: ivory-gold"
+    },
+    {
+      "name": "Theme Applied: midnight-slate on metrics_trend",
+      "status": "PASS",
+      "detail": "Theme: midnight-slate"
+    },
+    {
+      "name": "Theme Applied: emerald-matrix on metrics_trend",
+      "status": "PASS",
+      "detail": "Theme: emerald-matrix"
+    },
+    {
+      "name": "Interactive Controls Found: metrics_trend",
+      "status": "PASS",
+      "detail": "Buttons: 3, Inputs: 17, Tabs: 0"
+    },
+    {
+      "name": "Page Load: ab_tester on fhd_1080p (1920x1080)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: ab_tester on fhd_1080p",
+      "status": "PASS",
+      "detail": "Text length: 709"
+    },
+    {
+      "name": "Zero Mojibake: ab_tester on fhd_1080p",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: ab_tester on fhd_1080p",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: ab_tester on desktop_1536 (1536x864)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: ab_tester on desktop_1536",
+      "status": "PASS",
+      "detail": "Text length: 709"
+    },
+    {
+      "name": "Zero Mojibake: ab_tester on desktop_1536",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: ab_tester on desktop_1536",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: ab_tester on laptop_1440 (1440x900)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: ab_tester on laptop_1440",
+      "status": "PASS",
+      "detail": "Text length: 709"
+    },
+    {
+      "name": "Zero Mojibake: ab_tester on laptop_1440",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: ab_tester on laptop_1440",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: ab_tester on laptop_1366 (1366x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: ab_tester on laptop_1366",
+      "status": "PASS",
+      "detail": "Text length: 709"
+    },
+    {
+      "name": "Zero Mojibake: ab_tester on laptop_1366",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: ab_tester on laptop_1366",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: ab_tester on compact_1280 (1280x800)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: ab_tester on compact_1280",
+      "status": "PASS",
+      "detail": "Text length: 709"
+    },
+    {
+      "name": "Zero Mojibake: ab_tester on compact_1280",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: ab_tester on compact_1280",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: ab_tester on tablet_landscape_1024 (1024x768)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: ab_tester on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Text length: 709"
+    },
+    {
+      "name": "Zero Mojibake: ab_tester on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: ab_tester on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: ab_tester on tablet_portrait_768 (768x1024)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: ab_tester on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Text length: 451"
+    },
+    {
+      "name": "Zero Mojibake: ab_tester on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: ab_tester on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: ab_tester on mobile_large_430 (430x932)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: ab_tester on mobile_large_430",
+      "status": "PASS",
+      "detail": "Text length: 451"
+    },
+    {
+      "name": "Zero Mojibake: ab_tester on mobile_large_430",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: ab_tester on mobile_large_430",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: ab_tester on mobile_compact_375 (375x667)",
+      "status": "PASS",
+      "detail": "Status: 200 (expected 200)"
+    },
+    {
+      "name": "Content Rendered: ab_tester on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Text length: 451"
+    },
+    {
+      "name": "Zero Mojibake: ab_tester on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: ab_tester on mobile_compact_375",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Theme Applied: dark-cyber on ab_tester",
+      "status": "PASS",
+      "detail": "Theme: dark-cyber"
+    },
+    {
+      "name": "Theme Applied: dracula-purple on ab_tester",
+      "status": "PASS",
+      "detail": "Theme: dracula-purple"
+    },
+    {
+      "name": "Theme Applied: ivory-gold on ab_tester",
+      "status": "PASS",
+      "detail": "Theme: ivory-gold"
+    },
+    {
+      "name": "Theme Applied: midnight-slate on ab_tester",
+      "status": "PASS",
+      "detail": "Theme: midnight-slate"
+    },
+    {
+      "name": "Theme Applied: emerald-matrix on ab_tester",
+      "status": "PASS",
+      "detail": "Theme: emerald-matrix"
+    },
+    {
+      "name": "Interactive Controls Found: ab_tester",
+      "status": "PASS",
+      "detail": "Buttons: 1, Inputs: 4, Tabs: 0"
+    },
+    {
+      "name": "Page Load: error_404 on fhd_1080p (1920x1080)",
+      "status": "PASS",
+      "detail": "Status: 404 (expected 404)"
+    },
+    {
+      "name": "Content Rendered: error_404 on fhd_1080p",
+      "status": "PASS",
+      "detail": "Text length: 118"
+    },
+    {
+      "name": "Zero Mojibake: error_404 on fhd_1080p",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: error_404 on fhd_1080p",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: error_404 on desktop_1536 (1536x864)",
+      "status": "PASS",
+      "detail": "Status: 404 (expected 404)"
+    },
+    {
+      "name": "Content Rendered: error_404 on desktop_1536",
+      "status": "PASS",
+      "detail": "Text length: 118"
+    },
+    {
+      "name": "Zero Mojibake: error_404 on desktop_1536",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: error_404 on desktop_1536",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: error_404 on laptop_1440 (1440x900)",
+      "status": "PASS",
+      "detail": "Status: 404 (expected 404)"
+    },
+    {
+      "name": "Content Rendered: error_404 on laptop_1440",
+      "status": "PASS",
+      "detail": "Text length: 118"
+    },
+    {
+      "name": "Zero Mojibake: error_404 on laptop_1440",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: error_404 on laptop_1440",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: error_404 on laptop_1366 (1366x768)",
+      "status": "PASS",
+      "detail": "Status: 404 (expected 404)"
+    },
+    {
+      "name": "Content Rendered: error_404 on laptop_1366",
+      "status": "PASS",
+      "detail": "Text length: 118"
+    },
+    {
+      "name": "Zero Mojibake: error_404 on laptop_1366",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: error_404 on laptop_1366",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: error_404 on compact_1280 (1280x800)",
+      "status": "PASS",
+      "detail": "Status: 404 (expected 404)"
+    },
+    {
+      "name": "Content Rendered: error_404 on compact_1280",
+      "status": "PASS",
+      "detail": "Text length: 118"
+    },
+    {
+      "name": "Zero Mojibake: error_404 on compact_1280",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: error_404 on compact_1280",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: error_404 on tablet_landscape_1024 (1024x768)",
+      "status": "PASS",
+      "detail": "Status: 404 (expected 404)"
+    },
+    {
+      "name": "Content Rendered: error_404 on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Text length: 118"
+    },
+    {
+      "name": "Zero Mojibake: error_404 on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: error_404 on tablet_landscape_1024",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: error_404 on tablet_portrait_768 (768x1024)",
+      "status": "PASS",
+      "detail": "Status: 404 (expected 404)"
+    },
+    {
+      "name": "Content Rendered: error_404 on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Text length: 118"
+    },
+    {
+      "name": "Zero Mojibake: error_404 on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: error_404 on tablet_portrait_768",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: error_404 on mobile_large_430 (430x932)",
+      "status": "PASS",
+      "detail": "Status: 404 (expected 404)"
+    },
+    {
+      "name": "Content Rendered: error_404 on mobile_large_430",
+      "status": "PASS",
+      "detail": "Text length: 118"
+    },
+    {
+      "name": "Zero Mojibake: error_404 on mobile_large_430",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: error_404 on mobile_large_430",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Page Load: error_404 on mobile_compact_375 (375x667)",
+      "status": "PASS",
+      "detail": "Status: 404 (expected 404)"
+    },
+    {
+      "name": "Content Rendered: error_404 on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Text length: 118"
+    },
+    {
+      "name": "Zero Mojibake: error_404 on mobile_compact_375",
+      "status": "PASS",
+      "detail": "Mojibake instances: 0"
+    },
+    {
+      "name": "Responsive No-Overflow: error_404 on mobile_compact_375",
+      "status": "PASS",
+      "detail": "ScrollWidth: Contained"
+    },
+    {
+      "name": "Theme Applied: dark-cyber on error_404",
+      "status": "PASS",
+      "detail": "Theme: dark-cyber"
+    },
+    {
+      "name": "Theme Applied: dracula-purple on error_404",
+      "status": "PASS",
+      "detail": "Theme: dracula-purple"
+    },
+    {
+      "name": "Theme Applied: ivory-gold on error_404",
+      "status": "PASS",
+      "detail": "Theme: ivory-gold"
+    },
+    {
+      "name": "Theme Applied: midnight-slate on error_404",
+      "status": "PASS",
+      "detail": "Theme: midnight-slate"
+    },
+    {
+      "name": "Theme Applied: emerald-matrix on error_404",
+      "status": "PASS",
+      "detail": "Theme: emerald-matrix"
+    },
+    {
+      "name": "Interactive Controls Found: error_404",
+      "status": "PASS",
+      "detail": "Buttons: 0, Inputs: 1, Tabs: 0"
+    },
+    {
+      "name": "Operator Access Permitted: /my-signals",
+      "status": "PASS",
+      "detail": "Rendered signals content: 1182 chars"
+    },
+    {
+      "name": "Operator Access Permitted: /reports",
+      "status": "PASS",
+      "detail": "Rendered reports content: 1231 chars"
+    },
+    {
+      "name": "Operator Access Denied to /admin/users (RBAC Enforced)",
+      "status": "PASS",
+      "detail": "Status: 403, URL: http://127.0.0.1:8765/admin/users, Body contains permission denial: true"
+    },
+    {
+      "name": "Error 403 Confinement: Styled OPB Error Presentation",
+      "status": "PASS",
+      "detail": "Styled UI container visible: true"
+    }
+  ],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "page_errors": [],
+  "request_failures": []
+}
