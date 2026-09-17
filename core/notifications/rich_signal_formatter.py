@@ -50,6 +50,26 @@ class RichSignalFormatter:
                 "is_option": True
             }
 
+        # Futures check (e.g. NIFTY26SEPFUT, RELIANCE26SEPFUT, NIFTY-FUT)
+        fut_match = re.match(r"^([A-Z&-]+)(\d{2}[A-Z]{3})FUT$", sym_clean, re.IGNORECASE)
+        if fut_match:
+            underlying, expiry = fut_match.groups()
+            return {
+                "display_title": f"{underlying} {expiry} Futures Contract",
+                "subject_instrument": f"{underlying} {expiry} Futures",
+                "contract_code": sym_clean,
+                "instrument_type": "Futures Contract (FUT)",
+                "is_option": False,
+            }
+        if "FUTURES" in cat_upper or sym_clean.endswith(("-FUT", "_FUT", "FUT")):
+            return {
+                "display_title": f"{sym_clean} Futures",
+                "subject_instrument": sym_clean,
+                "contract_code": sym_clean,
+                "instrument_type": "Futures Contract (FUT)",
+                "is_option": False,
+            }
+
         # Equities
         return {
             "display_title": sym_clean,
@@ -65,7 +85,16 @@ class RichSignalFormatter:
         cat_upper = category.upper()
         now = datetime.now()
 
-        if any(w in cat_upper for w in ("OPTION", "0DTE", "INTRADAY", "INDEX")):
+        if "FUTURES" in cat_upper:
+            holding_period = "Positional Futures — 1 to 5 Trading Days"
+            valid_from = now.strftime("%d %b %Y, 09:15 IST")
+            max_dt = now + timedelta(days=5)
+            valid_until = max_dt.strftime("%d %b %Y, 15:30 IST")
+            short_horizon = "1–5 Days"
+            horizon_badge = "📈 FUTURES"
+            horizon_color = "#8b5cf6"
+            is_intraday = False
+        elif any(w in cat_upper for w in ("OPTION", "0DTE", "INTRADAY", "INDEX")):
             holding_period = "Intraday — same-day exit"
             valid_from = now.strftime("%d %b %Y, 09:15 IST")
             valid_until = now.strftime("%d %b %Y, 15:15 IST")

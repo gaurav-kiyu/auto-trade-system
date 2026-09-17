@@ -287,6 +287,8 @@
     "CURRENCIES": 80,
     "DEFAULT": 68,
     "EQUITY_SWING_DELIVERY": 68,
+    "ETFS_REITS": 68,
+    "FUTURES": 80,
     "INDEX_OPTIONS": 80,
     "LARGE_CAP_EQUITY": 68,
     "MID_SMALL_CAP": 68,
@@ -413,31 +415,67 @@
   "_comment_futures_map": "FUTURES_MAP — index and single-stock futures contracts. yf symbols are unavailable on yfinance for NSE futures; use broker API as primary data source.",
   "FUTURES_MAP": {
     "NIFTY_FUT": {
-      "yf": "",
+      "yf": "^NSEI",
       "nse": "NIFTY",
       "sector": "INDEX_FUTURES",
       "category": "INDEX_FUTURES",
       "lot": 50,
-      "step": 0,
-      "enabled": false
+      "step": 50,
+      "enabled": true
     },
     "BANKNIFTY_FUT": {
-      "yf": "",
+      "yf": "^NSEBANK",
       "nse": "BANKNIFTY",
       "sector": "INDEX_FUTURES",
       "category": "INDEX_FUTURES",
       "lot": 15,
-      "step": 0,
-      "enabled": false
+      "step": 100,
+      "enabled": true
     },
     "FINNIFTY_FUT": {
-      "yf": "",
+      "yf": "NIFTY_FIN_SERVICE.NS",
       "nse": "FINNIFTY",
       "sector": "INDEX_FUTURES",
       "category": "INDEX_FUTURES",
       "lot": 40,
-      "step": 0,
-      "enabled": false
+      "step": 50,
+      "enabled": true
+    },
+    "MIDCPNIFTY_FUT": {
+      "yf": "NIFTY_MID_SELECT.NS",
+      "nse": "MIDCPNIFTY",
+      "sector": "INDEX_FUTURES",
+      "category": "INDEX_FUTURES",
+      "lot": 50,
+      "step": 25,
+      "enabled": true
+    },
+    "NIFTYNXT50_FUT": {
+      "yf": "^NSMIDCP",
+      "nse": "NIFTYNXT50",
+      "sector": "INDEX_FUTURES",
+      "category": "INDEX_FUTURES",
+      "lot": 25,
+      "step": 50,
+      "enabled": true
+    },
+    "SENSEX_FUT": {
+      "yf": "^BSESN",
+      "nse": "SENSEX",
+      "sector": "INDEX_FUTURES",
+      "category": "INDEX_FUTURES",
+      "lot": 10,
+      "step": 100,
+      "enabled": true
+    },
+    "BANKEX_FUT": {
+      "yf": "BSE-BANK.BO",
+      "nse": "BANKEX",
+      "sector": "INDEX_FUTURES",
+      "category": "INDEX_FUTURES",
+      "lot": 15,
+      "step": 100,
+      "enabled": true
     }
   },
   "_comment_commodity": "COMMODITY section — MCX commodity futures trading (disabled by default). Enable via COMMODITY_ENABLED: true. See core/commodity_trader.py",

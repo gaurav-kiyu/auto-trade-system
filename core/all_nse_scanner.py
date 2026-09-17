@@ -204,8 +204,9 @@ class AllNSEScanner:
             {"symbol": "NIFTY", "name": "Nifty 50 Index (NSE)", "series": "INDEX"},
             {"symbol": "BANKNIFTY", "name": "Bank Nifty Index (NSE)", "series": "INDEX"},
             {"symbol": "FINNIFTY", "name": "Nifty Fin Services (NSE)", "series": "INDEX"},
-            {"symbol": "SENSEX", "name": "BSE Sensex Index (BSE)", "series": "INDEX"},
             {"symbol": "MIDCPNIFTY", "name": "Nifty Midcap Select (NSE)", "series": "INDEX"},
+            {"symbol": "SENSEX", "name": "BSE Sensex Index (BSE)", "series": "INDEX"},
+            {"symbol": "BANKEX", "name": "BSE Bankex Index (BSE)", "series": "INDEX"},
         ]
 
         # Check if local cache is fresh from TODAY
@@ -336,6 +337,8 @@ class AllNSEScanner:
             yf_ticker = "NIFTY_MID_SELECT.NS"
         elif sym == "SENSEX":
             yf_ticker = "^BSESN"
+        elif sym == "BANKEX":
+            yf_ticker = "BSE-BANK.BO"
         else:
             yf_ticker = f"{sym}.NS"
 
@@ -915,6 +918,186 @@ class AllNSEScanner:
                           len(authorized_emails), ", ".join(authorized_emails), signal.symbol, category)
             except Exception as ex:
                 _log.error("[ERROR] Gmail dispatch failed for %s: %s", signal.symbol, ex)
+
+        # Trigger distinct Futures signal evaluation for F&O eligible instruments
+        self._dispatch_futures_alert_if_eligible(signal)
+
+    def _dispatch_futures_alert_if_eligible(self, parent_signal: ScannedStockSignal) -> None:
+        """Evaluate and dispatch distinct Futures contract signal for F&O eligible instruments."""
+        if getattr(parent_signal, "series", "") == "FUT":
+            return
+        if not bool(self._cfg.get("FUTURES_ENABLED", True)):
+            return
+
+        try:
+            from core.fno_universe import is_fno_symbol
+            if not is_fno_symbol(parent_signal.symbol):
+                return
+
+            from core.futures_contract_resolver import FuturesContractResolver
+            resolver = FuturesContractResolver.get_instance()
+            contract = resolver.resolve_current_contract(parent_signal.symbol)
+            if not contract or not contract.active:
+                return
+
+            fut_category = "FUTURES"
+            fut_min_score = self.get_min_score_for_category(fut_category)
+
+            if parent_signal.score < fut_min_score:
+                return
+
+            fut_direction = "BUY" if parent_signal.direction in ("CALL", "BUY") else "SELL"
+            fut_symbol = contract.canonical_symbol
+
+            fut_signal = ScannedStockSignal(
+                symbol=fut_symbol,
+                company_name=f"{parent_signal.symbol} Futures ({fut_symbol})",
+                series="FUT",
+                direction=fut_direction,
+                score=parent_signal.score,
+                raw_score=parent_signal.raw_score,
+                tier=parent_signal.tier,
+                regime=parent_signal.regime,
+                price=parent_signal.price,
+                rsi=parent_signal.rsi,
+                adx=parent_signal.adx,
+                vwap=parent_signal.vwap,
+                confidence=parent_signal.confidence,
+                ml_probability=parent_signal.ml_probability,
+                score_components=dict(parent_signal.score_components),
+            )
+
+            # Persist and check recipient eligibility
+            from core.auth.user_signal_permissions import UserPermissionManager
+            perm_mgr = UserPermissionManager.get_instance()
+            eligible_users = perm_mgr.get_eligible_recipients(
+                category=fut_category, tier=fut_signal.tier, symbol=fut_symbol
+            )
+
+            # Log audit record
+            self._log_signal_audit_record(
+                signal=fut_signal,
+                category=fut_category,
+                threshold_applied=fut_min_score,
+                decision="ACCEPTED",
+            )
+
+            if not eligible_users:
+                return
+
+            # Record in persistent SignalTracker
+            from core.signals.signal_tracker import SignalTracker
+            tracker = SignalTracker.get_instance()
+
+            # Separate theoretical fair value from actual price
+            fv_info = resolver.calculate_fair_value(parent_signal.price, contract.expiry_date)
+
+            sl_price = round(parent_signal.price * (0.97 if fut_direction == "BUY" else 1.03), 2)
+            t1_price = round(parent_signal.price * (1.04 if fut_direction == "BUY" else 0.96), 2)
+            t2_price = round(parent_signal.price * (1.08 if fut_direction == "BUY" else 0.92), 2)
+
+            sig_id = tracker.record_generated_signal({
+                "symbol": fut_symbol,
+                "company_name": fut_signal.company_name,
+                "series": "FUT",
+                "direction": fut_direction,
+                "price": fut_signal.price,
+                "score": fut_signal.score,
+                "raw_score": fut_signal.raw_score,
+                "normalized_score": fut_signal.score,
+                "confidence": fut_signal.confidence,
+                "ml_probability": fut_signal.ml_probability,
+                "score_components": fut_signal.score_components,
+                "tier": fut_signal.tier,
+                "regime": fut_signal.regime,
+                "category": fut_category,
+                "strategy": "futures_momentum_breakout",
+                "dedup_cooldown_secs": self._cooldown_secs,
+                "stop_loss": sl_price,
+                "target_1": t1_price,
+                "target_2": t2_price,
+            }, eligible_users=eligible_users)
+
+            if not sig_id:
+                return
+
+            # Gather authorized Telegram & Email recipients
+            auth_chats = {u.telegram_chat_id for u in eligible_users if u.telegram_enabled and u.telegram_chat_id}
+            auth_emails = {u.email for u in eligible_users if u.email_enabled and u.email}
+
+            from core.notifications.rich_signal_formatter import RichSignalFormatter
+            from core.notifications.url_resolver import get_public_base_url
+            base_url = get_public_base_url(self._cfg)
+
+            tg_html = RichSignalFormatter.build_rich_telegram_html(
+                symbol=fut_symbol,
+                category=fut_category,
+                direction=fut_direction,
+                price=fut_signal.price,
+                score=fut_signal.score,
+                tier=fut_signal.tier,
+                stop_loss=sl_price,
+                target_1=t1_price,
+                target_2=t2_price,
+                signal_id=sig_id,
+            )
+
+            # Telegram dispatch
+            if self._bot_token and auth_chats:
+                for cid in auth_chats:
+                    for clean_cid in cid.split(","):
+                        clean_c = clean_cid.strip()
+                        if clean_c and not clean_c.startswith("YOUR_"):
+                            try:
+                                import requests
+                                requests.post(
+                                    f"https://api.telegram.org/bot{self._bot_token}/sendMessage",
+                                    json={"chat_id": clean_c, "text": tg_html, "parse_mode": "HTML"},
+                                    timeout=6,
+                                )
+                            except Exception:
+                                pass
+
+            # Email dispatch
+            if self._email_enabled and self._email_user and self._email_pass and auth_emails:
+                try:
+                    import smtplib
+                    from email.mime.multipart import MIMEMultipart
+                    from email.mime.text import MIMEText
+                    email_html = RichSignalFormatter.build_rich_html_email(
+                        symbol=fut_symbol,
+                        company_name=fut_signal.company_name,
+                        series="FUT",
+                        category=fut_category,
+                        direction=fut_direction,
+                        price=fut_signal.price,
+                        score=fut_signal.score,
+                        tier=fut_signal.tier,
+                        regime=fut_signal.regime,
+                        rsi=fut_signal.rsi,
+                        adx=fut_signal.adx,
+                        vwap=fut_signal.vwap,
+                        stop_loss=sl_price,
+                        target_1=t1_price,
+                        target_2=t2_price,
+                        base_url=base_url,
+                        signal_id=sig_id,
+                    )
+                    srv = smtplib.SMTP(self._email_smtp, self._email_port, timeout=10)
+                    srv.starttls()
+                    srv.login(self._email_user, self._email_pass)
+                    em_msg = MIMEMultipart("alternative")
+                    em_msg["Subject"] = f"[OPB FUTURES ALERT] {fut_direction} {fut_symbol} | Score: {fut_signal.score}/100 ({fut_signal.tier})"
+                    em_msg["From"] = self._email_user
+                    em_msg["To"] = ", ".join(auth_emails)
+                    em_msg.attach(MIMEText(email_html, "html", "utf-8"))
+                    srv.sendmail(self._email_user, list(auth_emails), em_msg.as_string())
+                    srv.quit()
+                except Exception:
+                    pass
+
+        except Exception as ex:
+            _log.debug("[FUTURES_EVAL] Exception in futures alert evaluation: %s", ex)
 
 
 def run_all_nse_scanner():

@@ -307,7 +307,7 @@ def test_email_notification_for_qualifying_signal(isolated_tracker):
 
         with patch("core.signals.signal_tracker.SignalTracker.get_instance", return_value=tracker),              patch("core.auth.user_signal_permissions.UserPermissionManager.get_instance") as mock_pm,              patch("smtplib.SMTP") as mock_smtp_cls:
 
-            mock_pm.return_value.get_eligible_recipients.return_value = [mock_recipient]
+            mock_pm.return_value.get_eligible_recipients.side_effect = lambda category, **kw: [mock_recipient] if category in mock_recipient.allowed_categories else []
             mock_smtp = MagicMock()
             mock_smtp_cls.return_value = mock_smtp
 

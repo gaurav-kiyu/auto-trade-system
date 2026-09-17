@@ -467,12 +467,16 @@ class _FuturesSignalStrategy(_BaseSignalStrategy):
 
             score = min(100, max(0, _score))
 
-            # Strength classification
-            if score >= 70:
+            # Canonical Strength classification:
+            # 80-100: STRONG
+            # 68-79:  MODERATE
+            # 60-67:  WEAK
+            # 0-59:   IGNORE (None)
+            if score >= 80:
                 strength = "STRONG"
-            elif score >= 50:
+            elif score >= 68:
                 strength = "MODERATE"
-            elif score >= 35:
+            elif score >= 60:
                 strength = "WEAK"
             else:
                 return None

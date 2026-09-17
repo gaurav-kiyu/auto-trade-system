@@ -135,15 +135,17 @@
   "BROKER_STATUS_POLL_SEC": 1.0,
   "BROKER_WAIT_POLL_SEC": 2.0,
   "CATEGORY_SCORE_THRESHOLDS": {
-    "COMMODITIES": 100,
-    "CURRENCIES": 100,
-    "DEFAULT": 100,
-    "EQUITY_SWING_DELIVERY": 100,
-    "INDEX_OPTIONS": 100,
-    "LARGE_CAP_EQUITY": 100,
-    "MID_SMALL_CAP": 100,
-    "PENNY_SME": 100,
-    "STOCK_OPTIONS": 100
+    "COMMODITIES": 80,
+    "CURRENCIES": 80,
+    "DEFAULT": 80,
+    "EQUITY_SWING_DELIVERY": 68,
+    "ETFS_REITS": 68,
+    "FUTURES": 80,
+    "INDEX_OPTIONS": 80,
+    "LARGE_CAP_EQUITY": 68,
+    "MID_SMALL_CAP": 68,
+    "PENNY_SME": 80,
+    "STOCK_OPTIONS": 80
   },
   "CHAT_ID": "YOUR_TELEGRAM_CHAT_ID",
   "CIRCUIT_BREAKER_THRESHOLD": 15,
@@ -381,41 +383,81 @@
   "FORCE_EXIT_AFTER_SHUTDOWN": true,
   "FORCE_PRE_TRADE_RECON": true,
   "FUTURES_DEFAULT_QTY": 1,
-  "FUTURES_ENABLED": false,
+  "FUTURES_ENABLED": true,
   "FUTURES_MAP": {
-    "BANKNIFTY_FUT": {
-      "category": "INDEX_FUTURES",
-      "enabled": false,
-      "lot": 15,
-      "nse": "BANKNIFTY",
-      "sector": "INDEX_FUTURES",
-      "step": 0,
-      "yf": ""
-    },
-    "FINNIFTY_FUT": {
-      "category": "INDEX_FUTURES",
-      "enabled": false,
-      "lot": 40,
-      "nse": "FINNIFTY",
-      "sector": "INDEX_FUTURES",
-      "step": 0,
-      "yf": ""
-    },
     "NIFTY_FUT": {
       "category": "INDEX_FUTURES",
-      "enabled": false,
+      "enabled": true,
       "lot": 50,
       "nse": "NIFTY",
       "sector": "INDEX_FUTURES",
-      "step": 0,
-      "yf": ""
+      "step": 50,
+      "yf": "^NSEI"
+    },
+    "BANKNIFTY_FUT": {
+      "category": "INDEX_FUTURES",
+      "enabled": true,
+      "lot": 15,
+      "nse": "BANKNIFTY",
+      "sector": "INDEX_FUTURES",
+      "step": 100,
+      "yf": "^NSEBANK"
+    },
+    "FINNIFTY_FUT": {
+      "category": "INDEX_FUTURES",
+      "enabled": true,
+      "lot": 40,
+      "nse": "FINNIFTY",
+      "sector": "INDEX_FUTURES",
+      "step": 50,
+      "yf": "NIFTY_FIN_SERVICE.NS"
+    },
+    "MIDCPNIFTY_FUT": {
+      "category": "INDEX_FUTURES",
+      "enabled": true,
+      "lot": 50,
+      "nse": "MIDCPNIFTY",
+      "sector": "INDEX_FUTURES",
+      "step": 25,
+      "yf": "NIFTY_MID_SELECT.NS"
+    },
+    "NIFTYNXT50_FUT": {
+      "category": "INDEX_FUTURES",
+      "enabled": true,
+      "lot": 25,
+      "nse": "NIFTYNXT50",
+      "sector": "INDEX_FUTURES",
+      "step": 50,
+      "yf": "^NSMIDCP"
+    },
+    "SENSEX_FUT": {
+      "category": "INDEX_FUTURES",
+      "enabled": true,
+      "lot": 10,
+      "nse": "SENSEX",
+      "sector": "INDEX_FUTURES",
+      "step": 100,
+      "yf": "^BSESN"
+    },
+    "BANKEX_FUT": {
+      "category": "INDEX_FUTURES",
+      "enabled": true,
+      "lot": 15,
+      "nse": "BANKEX",
+      "sector": "INDEX_FUTURES",
+      "step": 100,
+      "yf": "BSE-BANK.BO"
     }
   },
   "FUTURES_MAX_DAILY_TRADES": 10,
   "FUTURES_PRIORITY": [
     "NIFTY_FUT",
     "BANKNIFTY_FUT",
-    "FINNIFTY_FUT"
+    "FINNIFTY_FUT",
+    "MIDCPNIFTY_FUT",
+    "SENSEX_FUT",
+    "BANKEX_FUT",
+    "NIFTYNXT50_FUT"
   ],
   "FUTURES_SL_PCT": 0.97,
   "FUTURES_TARGET_PCT": 1.05,
