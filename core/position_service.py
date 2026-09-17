@@ -171,6 +171,16 @@ class PositionService:
             self._decision_log[name] = {"msg": "HARD HALT ACTIVE - blocked"}
             return
 
+        # Decoupled signal persistence invariant:
+        # A genuinely qualified MODERATE or STRONG signal must be durably
+        # recorded and made available to the Super Admin independently of
+        # whether its associated trade is subsequently executable.
+        if self._is_qualified_signal(sig):
+            try:
+                self._ensure_signal_persisted(name, sig, asset_type=asset_type)
+            except Exception as _persist_err:
+                _log.debug("Signal persistence hook failed (fail-open for signal): %s", _persist_err)
+
         # Intraday P&L gate
         if check_intraday_pnl_and_halt(source="enter_trade"):
             self._decision_log[name] = {"msg": "INTRADAY_LOSS_LIMIT - hard halt tripped"}
@@ -967,6 +977,180 @@ class PositionService:
             return False, "breakout_ok false"
         return True, "ok"
 
+    def _is_qualified_signal(self, sig: dict[str, Any]) -> bool:
+        """Check if a signal is genuinely qualified (MODERATE or STRONG).
+
+        Signal qualification and trade execution are separate concerns.
+        Classification uses configured thresholds:
+          - STRONG_THRESHOLD (default 80)
+          - MODERATE_THRESHOLD (default 68)
+          - AI_THRESHOLD (default 60)
+        A signal is qualified if:
+          - tier/strength is explicitly 'MODERATE' or 'STRONG', OR
+          - score >= MODERATE_THRESHOLD (or score >= AI_THRESHOLD when signal in BUY/SELL).
+        """
+        if not isinstance(sig, dict):
+            return False
+
+        sig_action = str(sig.get("signal") or "").upper()
+        if sig_action == "HOLD":
+            return False
+
+        tier = str(sig.get("tier") or sig.get("strength") or "").upper()
+        score = float(sig.get("score") if sig.get("score") is not None else (sig.get("raw_score") or 0))
+
+        cfg = getattr(self, "_cfg", None) or {}
+        moderate_th = float(cfg.get("MODERATE_THRESHOLD", 68))
+        strong_th = float(cfg.get("STRONG_THRESHOLD", 80))
+        ai_th = float(cfg.get("AI_THRESHOLD", 60))
+
+        if tier in ("STRONG", "MODERATE"):
+            return True
+        if tier == "WEAK":
+            return False
+        if tier == "IGNORE":
+            return False
+
+        # Fallback to score thresholds if tier is unspecified
+        if score >= strong_th or score >= moderate_th:
+            return True
+
+        return score >= ai_th and sig_action in ("BUY", "SELL")
+
+    def _ensure_signal_persisted(
+        self,
+        name: str,
+        sig: dict[str, Any],
+        asset_type: AssetType | None = None,
+        order_direction: str | None = None,
+        price: float | None = None,
+        force: bool = False,
+    ) -> str:
+        """Durable signal boundary: Persist qualified signal into SignalTracker.
+
+        Establishes the invariant:
+        A genuinely qualified MODERATE or STRONG signal must be durably recorded
+        and made available to the Super Admin independently of whether its associated
+        trade is subsequently executable.
+
+        Flow:
+        Market Data -> Signal Evaluation -> Qualification / Classification ->
+        Eligible Recipient Resolution -> Signal Persistence ->
+        Super Admin/User Signal Visibility -> Margin Validation ->
+        Risk/Execution Validation -> PAPER Execution.
+        """
+        signal_id = str(sig.get("signal_id") or "").strip()
+        if signal_id:
+            return signal_id
+
+        if not force and not self._is_qualified_signal(sig):
+            return ""
+
+        from core.signals.signal_tracker import SignalTracker
+
+        signal_record = dict(sig)
+        signal_record.setdefault("symbol", name)
+
+        direction = str(
+            signal_record.get("direction")
+            or order_direction
+            or "CALL"
+        ).upper()
+        signal_record.setdefault("direction", direction)
+
+        price_val = float(sig.get("price") or price or 0.0)
+        signal_record.setdefault("entry_price", price_val)
+        signal_record.setdefault("price", price_val)
+
+        cat = str(signal_record.get("category") or "").upper()
+        if not cat:
+            if asset_type is not None and hasattr(asset_type, "value"):
+                cat = asset_type.value
+            elif name in ("NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX"):
+                cat = "INDEX_OPTIONS"
+            else:
+                cat = "LARGE_CAP_EQUITY"
+        signal_record.setdefault("category", cat)
+
+        score_val = int(signal_record.get("score") if signal_record.get("score") is not None else (signal_record.get("raw_score") or 80))
+        signal_record.setdefault("score", score_val)
+        signal_record.setdefault("raw_score", score_val)
+
+        tier = str(signal_record.get("tier") or signal_record.get("strength") or "").upper()
+        if not tier or tier not in ("STRONG", "MODERATE", "WEAK", "IGNORE"):
+            cfg = getattr(self, "_cfg", None) or {}
+            strong_th = int(cfg.get("STRONG_THRESHOLD", 80))
+            moderate_th = int(cfg.get("MODERATE_THRESHOLD", 68))
+            ai_th = int(cfg.get("AI_THRESHOLD", 60))
+            if score_val >= strong_th:
+                tier = "STRONG"
+            elif score_val >= moderate_th:
+                tier = "MODERATE"
+            elif score_val >= ai_th:
+                tier = "WEAK"
+            else:
+                tier = "IGNORE"
+        signal_record.setdefault("tier", tier)
+
+        strategy_name = str(
+            signal_record.get("strategy_name")
+            or signal_record.get("strategy")
+            or "position_service"
+        )
+        signal_record.setdefault("strategy", strategy_name)
+        signal_record.setdefault("strategy_name", strategy_name)
+
+        # Eligible Recipient Resolution
+        eligible_users = None
+        try:
+            from core.auth.user_signal_permissions import UserPermissionManager
+            perm_mgr = UserPermissionManager.get_instance()
+            eligible_users = perm_mgr.get_eligible_recipients(
+                category=cat,
+                tier=tier,
+                symbol=name,
+            )
+        except Exception as _perm_err:
+            _log.debug("Failed to resolve eligible recipients: %s", _perm_err)
+
+        # Signal Persistence
+        tracker = SignalTracker.get_instance()
+        try:
+            signal_id = str(
+                tracker.record_generated_signal(
+                    signal_record, eligible_users=eligible_users
+                )
+                or ""
+            ).strip()
+        except TypeError:
+            signal_id = str(
+                tracker.record_generated_signal(
+                    signal_record
+                )
+                or ""
+            ).strip()
+
+        # Repeated evaluation / deduplication handling
+        if not signal_id:
+            record_dir = str(signal_record.get("direction") or direction).upper()
+            opp_key = str(
+                signal_record.get("opportunity_key")
+                or f"{name.upper()}|{record_dir}|{cat}|{strategy_name.lower()}"
+            )
+            get_active = getattr(tracker, "get_active_signal_id", None)
+            if callable(get_active):
+                active_id = get_active(opp_key)
+                if (not active_id or not str(active_id).strip()) and order_direction and order_direction.upper() != record_dir:
+                    alt_key = f"{name.upper()}|{order_direction.upper()}|{cat}|{strategy_name.lower()}"
+                    active_id = get_active(alt_key)
+                if isinstance(active_id, str) and active_id.strip():
+                    signal_id = active_id.strip()
+
+        if signal_id:
+            sig["signal_id"] = signal_id
+
+        return signal_id
+
     def _submit_order_under_lock(
         self, name: str, price: float, qty: int, sig: dict[str, Any],
         order_direction: str, idempotency_key: str,
@@ -979,6 +1163,23 @@ class PositionService:
             OrderType,
         )
         from core.signals.signal_tracker import SignalTracker
+
+        # Durable signal boundary:
+        # Every qualifying signal evaluated for execution must have a durable
+        # SignalTracker identity so it is visible in Super Admin / User feeds
+        # independently of downstream trade execution gates (margin, broker).
+        signal_id = str(sig.get("signal_id") or "").strip()
+        if not signal_id:
+            signal_id = self._ensure_signal_persisted(
+                name, sig, order_direction=order_direction, price=price, force=True
+            )
+
+        # Fail closed: execution is forbidden without durable signal identity.
+        if not signal_id:
+            raise TradeBlockError(
+                "SIGNAL_PERSISTENCE_BLOCK: durable signal_id unavailable",
+                reason="signal_persistence",
+            )
 
         available_margin = 0.0
         if self._portfolio_service is not None:
@@ -1036,56 +1237,6 @@ class PositionService:
 
         if self._execution_service is None:
             raise RuntimeError("No execution service available")
-
-        # Durable signal boundary:
-        # execution must always carry a durable SignalTracker signal_id.
-        # Preserve an upstream signal_id when one already exists.
-        signal_id = str(sig.get("signal_id") or "").strip()
-
-        if not signal_id:
-            signal_record = dict(sig)
-            signal_record.setdefault("symbol", name)
-            signal_record.setdefault("direction", order_direction)
-            signal_record.setdefault("entry_price", price)
-
-            strategy_name = str(
-                signal_record.get("strategy_name")
-                or signal_record.get("strategy")
-                or "position_service"
-            )
-
-            signal_record.setdefault("strategy", strategy_name)
-            signal_record.setdefault("strategy_name", strategy_name)
-
-            tracker = SignalTracker.get_instance()
-            signal_id = str(
-                tracker.record_generated_signal(
-                    signal_record
-                )
-                or ""
-            ).strip()
-
-            if not signal_id:
-                record_dir = str(signal_record.get("direction") or order_direction).upper()
-                opp_key = str(
-                    signal_record.get("opportunity_key")
-                    or f"{name.upper()}|{record_dir}|{str(signal_record.get('category', 'LARGE_CAP_EQUITY')).upper()}|{strategy_name.lower()}"
-                )
-                get_active = getattr(tracker, "get_active_signal_id", None)
-                if callable(get_active):
-                    active_id = get_active(opp_key)
-                    if (not active_id or not str(active_id).strip()) and order_direction.upper() != record_dir:
-                        alt_key = f"{name.upper()}|{order_direction.upper()}|{str(signal_record.get('category', 'LARGE_CAP_EQUITY')).upper()}|{strategy_name.lower()}"
-                        active_id = get_active(alt_key)
-                    if isinstance(active_id, str) and active_id.strip():
-                        signal_id = active_id.strip()
-
-        # Fail closed: execution is forbidden without durable signal identity.
-        if not signal_id:
-            raise TradeBlockError(
-                "SIGNAL_PERSISTENCE_BLOCK: durable signal_id unavailable",
-                reason="signal_persistence",
-            )
 
         # Translate PositionService runtime mode to the port-layer enum.
         mode_name = str(self._execution_mode or "MANUAL").upper()

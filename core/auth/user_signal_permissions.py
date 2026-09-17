@@ -302,7 +302,10 @@ class UserPermissionManager:
         from core.auth.permissions import get_role_permissions
         perm = self.get_user_permissions(username)
         if perm is None:
-            return set()
+            role_name = str(base_role or "viewer").lower()
+            if role_name == "super_admin":
+                return {p.value for p in get_role_permissions("super_admin")}
+            return {p.value for p in get_role_permissions(role_name)}
         # Auth DB role is authoritative; permission-record role is metadata only.
         role_name = str(base_role or perm.role or "viewer").lower()
         if role_name == "super_admin":
