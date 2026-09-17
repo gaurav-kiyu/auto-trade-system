@@ -218,20 +218,16 @@ def calc_atr_stop_loss(
 def classify_strength(
     score: int,
     threshold: int = 60,
-    strong_min: int = 85,
-    moderate_min: int = 70,
+    strong_min: int = 80,
+    moderate_min: int = 68,
 ) -> str:
     """Classify signal strength based on score thresholds.
 
-    Args:
-        score: Signal score (0-100).
-        threshold: Minimum score for any signal.
-        strong_min: Minimum score for STRONG classification.
-        moderate_min: Minimum score for MODERATE classification.
-
-    Returns:
-        "STRONG", "MODERATE", "WEAK", or "NONE".
-
+    Canonical classification:
+      0-59:   NONE / IGNORE
+      60-67:  WEAK (>= 60)
+      68-79:  MODERATE (>= 68)
+      80-100: STRONG (>= 80)
     """
     if score >= strong_min:
         return "STRONG"

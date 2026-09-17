@@ -681,8 +681,8 @@ def finalize_index_signal_with_threshold(
     strength = classify_strength(
         score,
         thr,
-        strong_min=int(sc.get("STRONG_THRESHOLD", 85)),
-        moderate_min=int(sc.get("MODERATE_THRESHOLD", 70)),
+        strong_min=int(sc.get("STRONG_THRESHOLD", 80)),
+        moderate_min=int(sc.get("MODERATE_THRESHOLD", 68)),
     )
     sig = classify_signal(direction, score, thr)
     action = "BUY" if sig == "BUY" else "HOLD"

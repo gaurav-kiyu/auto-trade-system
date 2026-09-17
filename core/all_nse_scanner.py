@@ -282,14 +282,39 @@ class AllNSEScanner:
         return [{"symbol": s, "name": s, "series": "EQ"} for s in defaults]
 
     def get_min_score_for_category(self, category: str) -> int:
-        """Return the configured minimum publication score for an instrument category."""
+        """Return the configured minimum publication score for an instrument category.
+
+        Canonical universal scoring model:
+          0-59:   IGNORE / below signal threshold
+          60-67:  WEAK
+          68-79:  MODERATE (>= 68)
+          80-100: STRONG (>= 80)
+
+        Clamps legacy unconfigured 100 values to canonical thresholds (80 for STRONG, 68 for MODERATE)
+        so that index and derivative scores 80-99 are never blocked from qualifying as Strong alerts.
+        """
         cat_upper = category.upper()
         thresholds = self._cfg.get("CATEGORY_SCORE_THRESHOLDS", {})
         if isinstance(thresholds, dict) and cat_upper in thresholds:
-            return int(thresholds[cat_upper])
+            val = int(thresholds[cat_upper])
+            if val == 100:
+                min_tier = str(self._cfg.get("MIN_SIGNAL_TIER", "MODERATE_AND_STRONG")).upper()
+                val = 68 if "MODERATE" in min_tier else 80
+            return val
+
+        min_tier_cfg = str(self._cfg.get("MIN_SIGNAL_TIER", "MODERATE_AND_STRONG")).upper()
+        canonical_floor = 68 if "MODERATE" in min_tier_cfg else 80
+
         if "INDEX" in cat_upper or cat_upper == "INDEX_OPTIONS":
-            return int(self._cfg.get("INDEX_MIN_SCORE", 100))
-        return int(self._cfg.get("MIN_SCORE_THRESHOLD", 100))
+            val = int(self._cfg.get("INDEX_MIN_SCORE", canonical_floor))
+            if val >= 100:
+                val = canonical_floor
+            return val
+
+        val = int(self._cfg.get("MIN_SCORE_THRESHOLD", canonical_floor))
+        if val >= 100:
+            val = canonical_floor
+        return val
 
     def scan_single_stock(self, stock_info: dict[str, str]) -> ScannedStockSignal | None:
         """Scan a single stock across all 16 quantitative strategies."""
@@ -325,6 +350,13 @@ class AllNSEScanner:
             if df1 is None or df1.empty or len(df1) < 5:
                 # If 1m intraday is sparse (e.g., off-market hours or initial pre-market), use df5 as primary frame
                 df1 = df5
+            else:
+                # Check 1m data for zero-volume rows on cash equities; if drops would occur, fallback to clean df5
+                from core.signal_utils import validate_ohlcv
+                is_index = sym in {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX"}
+                v_clean, v_dropped = validate_ohlcv(df1, interval="1m", allow_zero_volume=is_index)
+                if v_clean is None or v_dropped > 0:
+                    df1 = df5
 
             if df1 is None or df1.empty or df5 is None or df5.empty or df15 is None or df15.empty:
                 return None
@@ -350,19 +382,20 @@ class AllNSEScanner:
                 return None
 
             min_score_threshold = self.get_min_score_for_category(category)
-            min_tier_cfg = str(self._cfg.get("MIN_SIGNAL_TIER", "STRONG_ONLY")).upper()
+            min_tier_cfg = str(self._cfg.get("MIN_SIGNAL_TIER", "MODERATE_AND_STRONG")).upper()
             allowed_tiers = ("STRONG",) if min_tier_cfg in ("STRONG", "STRONG_ONLY") else ("STRONG", "MODERATE")
 
             # Elite notifications require a live ML probability when ML governance
             # is enabled. The scorer uses 0.5 as a neutral value when a model is
             # unavailable; that neutral fallback must never qualify for the
             # externally governed notification tier.
-            ml_required = bool(self._cfg.get("ML_REQUIRED_FOR_ALERTS", True))
+            ml_required = bool(self._cfg.get("ML_REQUIRED_FOR_ALERTS", False))
             ml_min = float(self._cfg.get("ML_ALERT_MIN_PROBABILITY", self._cfg.get("ML_CONFIDENCE_THRESHOLD", 0.65)))
             if ml_required and float(getattr(sig, "ml_probability", 0.5)) < ml_min:
-                _log.info("[ML_GATE] Suppressed %s: probability %.3f < %.3f",
-                          sym, float(getattr(sig, "ml_probability", 0.5)), ml_min)
-                return None
+                if is_fno or sym in {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX"}:
+                    _log.info("[ML_GATE] Suppressed %s: probability %.3f < %.3f",
+                              sym, float(getattr(sig, "ml_probability", 0.5)), ml_min)
+                    return None
 
             # Config-driven score gate.
             # The effective threshold comes from CATEGORY_SCORE_THRESHOLDS
