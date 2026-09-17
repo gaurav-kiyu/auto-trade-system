@@ -41,7 +41,7 @@ from core.logging import get_logger
 
 _log = get_logger("ALL_NSE_SCANNER")
 _NSE_EQUITY_CSV_URL = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
-_CACHE_PATH = _ROOT / "data" / "nse_equities.csv"
+_CACHE_PATH = Path("/tmp/nse_equities.csv") if os.path.exists("/tmp") and os.access("/tmp", os.W_OK) else (_ROOT / "data" / "nse_equities.csv")
 
 
 @dataclass
@@ -246,8 +246,11 @@ class AllNSEScanner:
             )
             with urllib.request.urlopen(req, timeout=12) as resp:
                 content = resp.read().decode("utf-8", errors="ignore")
-                with open(_CACHE_PATH, "w", encoding="utf-8") as f:
-                    f.write(content)
+                try:
+                    with open(_CACHE_PATH, "w", encoding="utf-8") as f:
+                        f.write(content)
+                except Exception as write_err:
+                    _log.debug("Cache write to %s skipped: %s", _CACHE_PATH, write_err)
                 reader = csv.DictReader(io.StringIO(content))
                 stocks = [
                     {
