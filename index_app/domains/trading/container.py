@@ -195,6 +195,8 @@ def setup_di_container(
     globals_store["RISK_ENGINE"] = risk_service
     mandate_service = sg("_mandate_service")
     if mandate_service is not None:
+        mandate_service._risk_service = risk_service
+
     # Configure intraday P&L monitoring from config
     from core.safety_state import set_intraday_loss_limit
     set_intraday_loss_limit(float(cfg.get("INTRADAY_LOSS_LIMIT", cfg.get("MAX_DAILY_LOSS", -2000))))
