@@ -78,10 +78,10 @@ def test_tc_0965_service_worker_script(auth_dash_env):
 
 
 def test_tc_0966_health_route(auth_dash_env):
-    """TC-0966: GET /health -> 307 redirect to /#page-health"""
+    """TC-0966: GET /health -> 200 JSON health status"""
     resp = auth_dash_env.client.get("/health", follow_redirects=False)
-    assert resp.status_code == 307
-    assert resp.headers.get("location") == "/#page-health"
+    assert resp.status_code == 200
+    assert resp.json().get("status") == "ok"
 
 
 def test_tc_0967_logout_route(auth_dash_env):
@@ -169,3 +169,35 @@ def test_tc_0980_swagger_oauth_redirect(auth_dash_env):
     """TC-0980: GET /docs/oauth2-redirect -> Swagger OAuth redirect"""
     resp = auth_dash_env.client.get("/docs/oauth2-redirect")
     assert resp.status_code in (200, 401, 403, 404)
+
+
+def test_tc_0981_admin_capabilities_page(auth_dash_env):
+    """TC-0981: GET /admin/capabilities -> 200 for authenticated admin"""
+    resp = auth_dash_env.client.get("/admin/capabilities", cookies={"opb_session": auth_dash_env.token})
+    assert resp.status_code == 200
+    assert "Capability Diagnostics" in resp.text
+
+
+def test_tc_0982_api_admin_capabilities(auth_dash_env):
+    """TC-0982: GET /api/admin/capabilities -> 200 JSON capability report"""
+    resp = auth_dash_env.client.get("/api/admin/capabilities", cookies={"opb_session": auth_dash_env.token})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "capabilities" in data
+    assert "summary" in data
+
+
+def test_tc_0983_api_health_route(auth_dash_env):
+    """TC-0983: GET /api/health -> 200 JSON health status"""
+    resp = auth_dash_env.client.get("/api/health")
+    assert resp.status_code == 200
+    assert resp.json().get("status") == "ok"
+
+
+def test_tc_0984_api_market_telemetry(auth_dash_env):
+    """TC-0984: GET /api/system/market-telemetry -> 200 market status"""
+    resp = auth_dash_env.client.get("/api/system/market-telemetry")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "status" in data
+    assert "label" in data

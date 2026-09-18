@@ -498,198 +498,9 @@ class SignalTracker:
             its last known price without ever hitting either.
 
         """
-        checked = resolved = expired = 0
-        with self._io_lock:
-            conn = self._get_conn()
-            try:
-                cur = conn.cursor()
-                # Continue observing signals after the first barrier hit.
-                # first_touch is immutable historical truth; status represents
-                # the latest observed lifecycle state.
-                cur.execute(
-                    """SELECT * FROM system_signals
-                       WHERE status IN (
-                           'ACTIVE',
-                           'TARGET_1_HIT',
-                           'TARGET_2_HIT',
-                           'SL_HIT',
-                           'AMBIGUOUS'
-                       )"""
-                )
-                active_rows = [dict(r) for r in cur.fetchall()]
-                today_str = now_ist().date().isoformat()
-
-                for row in active_rows:
-                    checked += 1
-                    symbol = row["symbol"]
-                    direction = str(row["direction"]).upper()
-                    entry = float(row["entry_price"])
-                    sl = float(row["stop_loss"])
-                    t1 = float(row["target_1"])
-                    t2 = float(row["target_2"])
-
-                    try:
-                        price = price_lookup_fn(symbol)
-                    except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
-                        price = None
-                    if price is None:
-                        continue
-                    price = float(price)
-
-                    is_call = direction in ("CALL", "BUY", "LONG")
-                    if is_call:
-                        hit_sl, hit_t1, hit_t2 = price <= sl, price >= t1, price >= t2
-                    else:
-                        hit_sl, hit_t1, hit_t2 = price >= sl, price <= t1, price <= t2
-
-                    observed_at = now_ist().isoformat()
-                    # Persist a lifecycle observation only when the
-                    # observed barrier combination changes. This prevents
-                    # repeated polling of the same already-crossed barrier
-                    # from creating duplicate lifecycle events.
-                    current_hits = (int(hit_sl), int(hit_t1), int(hit_t2))
-
-                    cur.execute(
-                        """SELECT hit_sl, hit_t1, hit_t2
-                           FROM signal_outcome_events
-                           WHERE signal_id = ?
-                           ORDER BY event_id DESC
-                           LIMIT 1""",
-                        (row["signal_id"],),
-                    )
-
-                    previous_event = cur.fetchone()
-
-                    previous_hits = (
-                        (
-                            int(previous_event["hit_sl"]),
-                            int(previous_event["hit_t1"]),
-                            int(previous_event["hit_t2"]),
-                        )
-                        if previous_event is not None
-                        else None
-                    )
-
-                    new_event = previous_hits != current_hits
-
-                    if new_event:
-                        cur.execute(
-                            """INSERT INTO signal_outcome_events
-                               (signal_id, observed_at, observed_price, hit_sl, hit_t1, hit_t2)
-                               VALUES (?, ?, ?, ?, ?, ?)""",
-                            (
-                                row["signal_id"],
-                                observed_at,
-                                price,
-                                int(hit_sl),
-                                int(hit_t1),
-                                int(hit_t2),
-                            ),
-                        )
-
-                    new_status = None
-                    first_touch = None
-                    confidence = "UNKNOWN"
-                    # A single polling observation can cross multiple barriers.
-                    # Never declare a win merely because T2 is checked first.
-                    existing_first_touch = str(
-                        row.get("first_touch") or ""
-                    ).strip()
-
-                    existing_first_touch_at = str(
-                        row.get("first_touch_at") or ""
-                    ).strip()
-
-                    if sum((hit_sl, hit_t1, hit_t2)) > 1:
-                        observed_touch = "AMBIGUOUS_SAME_OBSERVATION"
-                        observed_confidence = "AMBIGUOUS"
-                        new_status = "AMBIGUOUS"
-
-                    elif hit_t2:
-                        observed_touch = "T2"
-                        observed_confidence = "EXACT_OBSERVATION"
-                        new_status = "TARGET_2_HIT"
-
-                    elif hit_t1:
-                        observed_touch = "T1"
-                        observed_confidence = "EXACT_OBSERVATION"
-                        new_status = "TARGET_1_HIT"
-
-                    elif hit_sl:
-                        observed_touch = "SL"
-                        observed_confidence = "EXACT_OBSERVATION"
-                        new_status = "SL_HIT"
-
-                    elif not existing_first_touch and row["created_date"] < today_str:
-                        observed_touch = "UNRESOLVED"
-                        observed_confidence = "UNRESOLVED"
-                        new_status = "EXPIRED"
-                        expired += 1
-
-                    else:
-                        observed_touch = ""
-                        observed_confidence = "UNKNOWN"
-
-                    # first_touch is write-once historical truth.
-                    # A later SL/T1/T2 event must never replace it.
-                    if existing_first_touch:
-                        first_touch = existing_first_touch
-                        confidence = str(
-                            row.get("outcome_confidence") or "UNKNOWN"
-                        )
-                        first_touch_at = existing_first_touch_at
-
-                    elif observed_touch:
-                        first_touch = observed_touch
-                        confidence = observed_confidence
-                        first_touch_at = observed_at
-
-                    else:
-                        first_touch = ""
-                        confidence = str(
-                            row.get("outcome_confidence") or "UNKNOWN"
-                        )
-                        first_touch_at = ""
-
-                    pnl_pct = round((price - entry) / entry * 100, 2) if is_call else round((entry - price) / entry * 100, 2)
-
-                    if new_status is not None:
-                        cur.execute(
-                            """UPDATE system_signals
-                               SET current_price = ?, status = ?, pnl_pct = ?,
-                                   first_touch = ?, first_touch_at = ?, outcome_confidence = ?
-                               WHERE signal_id = ?""",
-                            (
-                                price,
-                                new_status,
-                                pnl_pct,
-                                first_touch or "",
-                                first_touch_at,
-                                confidence,
-                                row["signal_id"],
-                            ),
-                        )
-                        cur.execute(
-                            "UPDATE user_deliveries SET current_price = ?, status = ?, pnl_pct = ? WHERE signal_id = ?",
-                            (price, new_status, pnl_pct, row["signal_id"]),
-                        )
-                        if new_status != "EXPIRED":
-                            resolved += 1
-                    else:
-                        cur.execute(
-                            "UPDATE system_signals SET current_price = ? WHERE signal_id = ?",
-                            (price, row["signal_id"]),
-                        )
-                        cur.execute(
-                            "UPDATE user_deliveries SET current_price = ? WHERE signal_id = ?",
-                            (price, row["signal_id"]),
-                        )
-                conn.commit()
-            except Exception as ex:
-                _log.error("Failed to update active signal outcomes: %s", ex)
-            finally:
-                conn.close()
-        return {"checked": checked, "resolved": resolved, "expired": expired}
+        from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+        tracker = SignalOutcomeTracker.get_instance(db_path=self._db_path)
+        return tracker.update_active_signal_outcomes(price_lookup_fn=price_lookup_fn)
 
     def mark_order_placed(self, signal_id: str, placed: bool, username: str) -> bool:
         """Record that an admin/user actually placed a real (or paper) order
@@ -876,10 +687,13 @@ class SignalTracker:
                     rows = all_raw_rows
 
                 total_signals = len(rows)
+                open_signals = sum(1 for r in rows if r["status"] in ("ACTIVE", "OPEN"))
                 t1_hits = sum(1 for r in rows if r["status"] in ("TARGET_1_HIT", "TARGET_2_HIT"))
                 t2_hits = sum(1 for r in rows if r["status"] == "TARGET_2_HIT")
                 sl_hits = sum(1 for r in rows if r["status"] == "SL_HIT")
                 active_signals = sum(1 for r in rows if r["status"] == "ACTIVE")
+                ambiguous_count = sum(1 for r in rows if r["status"] == "AMBIGUOUS" or "AMBIGUOUS" in str(r.get("first_touch") or ""))
+                expired_count = sum(1 for r in rows if r["status"] == "EXPIRED")
                 resolved_signals = t1_hits + sl_hits
 
                 if resolved_signals > 0:
@@ -888,6 +702,10 @@ class SignalTracker:
                 else:
                     win_rate = 0.0
                     win_rate_display = "N/A (0 resolved real signals)" if not include_seed_samples else "N/A (0 resolved)"
+
+                winning_pnl = sum(r["pnl_pct"] for r in rows if r["status"] in ("TARGET_1_HIT", "TARGET_2_HIT") and r["pnl_pct"] > 0)
+                losing_pnl = abs(sum(r["pnl_pct"] for r in rows if r["status"] == "SL_HIT" and r["pnl_pct"] < 0))
+                profit_factor = round(winning_pnl / losing_pnl, 2) if losing_pnl > 0 else (999.99 if winning_pnl > 0 else 0.0)
 
                 contains_demo_data = any(bool(r.get("raw_data") and "is_seed_sample" in r["raw_data"]) for r in rows)
                 t1_rate = round((t1_hits / max(total_signals, 1)) * 100, 1) if total_signals > 0 else 0.0
@@ -926,12 +744,19 @@ class SignalTracker:
                     "total_signals": total_signals,
                     "total_real_signals": total_real_signals,
                     "total_seeded_signals": total_seeded_signals,
+                    "open_signals": open_signals,
                     "resolved_signals": resolved_signals,
                     "win_rate_pct": win_rate,
                     "win_rate_display": win_rate_display,
+                    "first_touch_win_rate_pct": win_rate,
+                    "first_touch_win_rate_display": win_rate_display,
+                    "metric_type": "FIRST_TOUCH_OBSERVATIONAL",
                     "t1_hit_rate_pct": t1_rate,
                     "t2_hit_rate_pct": t2_rate,
                     "active_signals": active_signals,
+                    "ambiguous_count": ambiguous_count,
+                    "expired_count": expired_count,
+                    "profit_factor": profit_factor,
                     "average_pnl_pct": avg_pnl,
                     "orders_placed_count": orders_placed_count,
                     "category_breakdown": cat_breakdown,
@@ -945,6 +770,24 @@ class SignalTracker:
                 return {"error": str(ex), "signals": []}
             finally:
                 conn.close()
+
+    def get_outcome_stats(
+        self,
+        timeframe: str = "all",
+        category: str = "all",
+        tier: str = "all",
+        status: str = "all",
+        include_seed_samples: bool = False,
+    ) -> dict[str, Any]:
+        """Compute observational outcome statistics across all market categories."""
+        from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+        return SignalOutcomeTracker.get_instance(db_path=self._db_path).get_outcome_statistics(
+            timeframe=timeframe,
+            category=category,
+            tier=tier,
+            status=status,
+            include_seed_samples=include_seed_samples,
+        )
 
     def get_user_received_signals(
         self,

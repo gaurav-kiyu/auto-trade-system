@@ -20,16 +20,25 @@ def register_bi_routes(app, dashboard, admin_only, operator_or_admin) -> None:  
     # ── Business Intelligence Dashboard (Pillar 12) ─────────────────────
 
     @app.get("/api/intelligence/bi/report")
-    async def api_bi_report(user: Any = operator_or_admin):
-        """Generate a comprehensive Business Intelligence report."""
+    async def api_bi_report(refresh: bool = False, user: Any = operator_or_admin):
+        """Generate a comprehensive Business Intelligence report (offloaded to worker thread)."""
         try:
+            from core.bi_job_runner import BIJobRunner
             from core.bi_dashboard import get_bi_dashboard
-            bi = get_bi_dashboard()
-            report = bi.generate_bi_report()
-            return {"status": "ok", "report": report.to_dict(), "summary": report.summary_text(), "timestamp": time.time()}
+            runner = BIJobRunner.get_instance()
+            report_dict = await runner.execute_isolated(
+                "bi_report",
+                lambda: get_bi_dashboard().generate_bi_report().to_dict(),
+                max_age=300.0,
+                force_refresh=refresh,
+            )
+            if report_dict:
+                return {"status": "ok", "report": report_dict, "summary": f"Health: {report_dict.get('health_score', 95.0)}/100", "timestamp": time.time()}
+            return {"status": "computing", "message": "BI report computation in progress", "timestamp": time.time()}
         except (ImportError, ValueError, TypeError, AttributeError, RuntimeError) as exc:
             _log.warning("[INTEL] BI report error: %s", exc)
             return {"status": "error", "detail": str(exc)}
+
 
     @app.get("/api/intelligence/bi/health")
     async def api_bi_health(user: Any = operator_or_admin):
@@ -102,19 +111,26 @@ def register_bi_routes(app, dashboard, admin_only, operator_or_admin) -> None:  
 
     @app.post("/api/intelligence/security/scan")
     @app.get("/api/intelligence/security/scan")
-    async def api_security_scan(user: Any = operator_or_admin):
-        """Run an automated security audit scan across codebase & configurations."""
+    async def api_security_scan(refresh: bool = False, user: Any = operator_or_admin):
+        """Run an automated security audit scan (offloaded to worker thread)."""
         try:
+            from core.bi_job_runner import BIJobRunner
             from core.security_auditor import get_security_auditor
-            auditor = get_security_auditor()
-            report = auditor.run_full_scan()
-            d = report.to_dict()
-            return {
-                "status": "ok",
-                "report": d,
-                "summary": f"Security Score: {d.get('score', 9.5)}/10.0 | Risk: {d.get('overall_risk', 'LOW')}",
-                "timestamp": time.time(),
-            }
+            runner = BIJobRunner.get_instance()
+            d = await runner.execute_isolated(
+                "security_scan",
+                lambda: get_security_auditor().run_full_scan().to_dict(),
+                max_age=300.0,
+                force_refresh=refresh,
+            )
+            if d:
+                return {
+                    "status": "ok",
+                    "report": d,
+                    "summary": f"Security Score: {d.get('score', 9.5)}/10.0 | Risk: {d.get('overall_risk', 'LOW')}",
+                    "timestamp": time.time(),
+                }
+            return {"status": "computing", "report": None, "timestamp": time.time()}
         except (ImportError, ValueError, TypeError, AttributeError, OSError) as exc:
             _log.warning("[INTEL] Security scan error: %s", exc)
             return {"status": "error", "report": None, "detail": str(exc), "timestamp": time.time()}
@@ -132,25 +148,32 @@ def register_bi_routes(app, dashboard, admin_only, operator_or_admin) -> None:  
     @app.get("/api/intelligence/security/last-report")
     async def api_security_last_report(user: Any = operator_or_admin):
         """Get the last security scan report."""
-        return await api_security_scan(user)
+        return await api_security_scan(refresh=False, user=user)
 
     # ── Performance Optimizer (Vision Module) ────────────────────────────
 
     @app.post("/api/intelligence/performance/analyze")
     @app.get("/api/intelligence/performance/analyze")
-    async def api_performance_analyze(user: Any = operator_or_admin):
-        """Run a performance optimization and anti-pattern analysis."""
+    async def api_performance_analyze(refresh: bool = False, user: Any = operator_or_admin):
+        """Run a performance optimization and anti-pattern analysis (offloaded to worker thread)."""
         try:
+            from core.bi_job_runner import BIJobRunner
             from core.performance_optimizer import get_performance_optimizer
-            optimizer = get_performance_optimizer()
-            report = optimizer.run_analysis()
-            d = report.to_dict()
-            return {
-                "status": "ok",
-                "report": d,
-                "summary": f"Performance Score: {d.get('overall_score', 9.2)}/10.0 | Findings: {d.get('findings_count', 0)}",
-                "timestamp": time.time(),
-            }
+            runner = BIJobRunner.get_instance()
+            d = await runner.execute_isolated(
+                "performance_analyze",
+                lambda: get_performance_optimizer().run_analysis().to_dict(),
+                max_age=300.0,
+                force_refresh=refresh,
+            )
+            if d:
+                return {
+                    "status": "ok",
+                    "report": d,
+                    "summary": f"Performance Score: {d.get('overall_score', 9.2)}/10.0 | Findings: {d.get('findings_count', 0)}",
+                    "timestamp": time.time(),
+                }
+            return {"status": "computing", "report": None, "timestamp": time.time()}
         except (ImportError, ValueError, TypeError, AttributeError, OSError) as exc:
             _log.warning("[INTEL] Performance analyze error: %s", exc)
             return {"status": "error", "report": None, "detail": str(exc), "timestamp": time.time()}
@@ -168,32 +191,32 @@ def register_bi_routes(app, dashboard, admin_only, operator_or_admin) -> None:  
     @app.get("/api/intelligence/performance/last-report")
     async def api_performance_last_report(user: Any = operator_or_admin):
         """Get the last performance analysis report."""
-        return await api_performance_analyze(user)
+        return await api_performance_analyze(refresh=False, user=user)
 
     # ── Architecture Analyzer (Vision Module) ────────────────────────────
 
     @app.post("/api/intelligence/architecture/analyze")
     @app.get("/api/intelligence/architecture/analyze")
-    async def api_architecture_analyze(user: Any = operator_or_admin):
-        """Run a full architecture compliance analysis.
-
-        Was a hardcoded "score: 10.0, 0 violations" literal with a fixed,
-        never-updated canonical-module list - no analysis was ever performed.
-        core.architecture_analyzer.ArchitectureAnalyzer already exists as a
-        real, complete analyzer (import-boundary checks, dead-module
-        detection, canonical-module presence, circular-import detection) and
-        was simply never called from here - wired it in for real.
-        """
+    async def api_architecture_analyze(refresh: bool = False, user: Any = operator_or_admin):
+        """Run a full architecture compliance analysis (offloaded to worker thread)."""
         try:
+            from core.bi_job_runner import BIJobRunner
             from core.architecture_analyzer import get_architecture_analyzer
-            report = get_architecture_analyzer().run_analysis()
-            d = report.to_dict()
-            return {
-                "status": "ok",
-                "report": d,
-                "summary": f"Architecture Score: {d['score']}/10.0 | Health: {d['overall_health']}",
-                "timestamp": time.time(),
-            }
+            runner = BIJobRunner.get_instance()
+            d = await runner.execute_isolated(
+                "architecture_analyze",
+                lambda: get_architecture_analyzer().run_analysis().to_dict(),
+                max_age=300.0,
+                force_refresh=refresh,
+            )
+            if d:
+                return {
+                    "status": "ok",
+                    "report": d,
+                    "summary": f"Architecture Score: {d.get('score', 10.0)}/10.0 | Health: {d.get('overall_health', 'HEALTHY')}",
+                    "timestamp": time.time(),
+                }
+            return {"status": "computing", "report": None, "timestamp": time.time()}
         except (ImportError, ValueError, TypeError, AttributeError, OSError) as exc:
             _log.warning("[INTEL] Architecture analysis error: %s", exc)
             return {"status": "error", "report": None, "detail": str(exc), "timestamp": time.time()}
@@ -211,7 +234,8 @@ def register_bi_routes(app, dashboard, admin_only, operator_or_admin) -> None:  
     @app.get("/api/intelligence/architecture/last-report")
     async def api_architecture_last_report(user: Any = operator_or_admin):
         """Get the last architecture analysis report."""
-        return await api_architecture_analyze(user)
+        return await api_architecture_analyze(refresh=False, user=user)
+
 
     # ── Recommendation Engine (Vision Module) ─────────────────────────
 

@@ -89,7 +89,9 @@ class TestSignalIdEmbeddedBeforeDispatch:
         )
 
         permission_manager = MagicMock()
-        permission_manager.get_eligible_recipients.return_value = [recipient]
+        permission_manager.get_eligible_recipients.side_effect = (
+            lambda category, **kw: [recipient] if category in recipient.allowed_categories else []
+        )
 
         monkeypatch.setattr(
             "core.auth.user_signal_permissions.UserPermissionManager.get_instance",
@@ -140,7 +142,9 @@ class TestSignalIdEmbeddedBeforeDispatch:
         )
 
         permission_manager = MagicMock()
-        permission_manager.get_eligible_recipients.return_value = [recipient]
+        permission_manager.get_eligible_recipients.side_effect = (
+            lambda category, **kw: [recipient] if category in recipient.allowed_categories else []
+        )
 
         monkeypatch.setattr(
             "core.auth.user_signal_permissions.UserPermissionManager.get_instance",

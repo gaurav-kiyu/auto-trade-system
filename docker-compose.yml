@@ -108,11 +108,12 @@ services:
         max-file: "5"
 
     healthcheck:
-      test: ["CMD", "python", "-c", "import os, sqlite3, sys; db=os.environ.get('OPBUYING_TRADES_DB','/data/db/trades.db'); sys.exit(0 if (not os.path.exists(db) or sqlite3.connect(db).execute('SELECT 1').fetchone() == (1,)) else 1)"]
-      interval: 60s
-      timeout: 10s
+      test: ["CMD", "python", "scripts/docker_healthcheck.py"]
+      interval: 30s
+      timeout: 5s
       retries: 3
       start_period: 30s
+
 
 
   # ── Test Infrastructure ─────────────────────────────────────────────────────

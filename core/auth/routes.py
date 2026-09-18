@@ -831,6 +831,26 @@ def create_auth_router(
             include_seed_samples=include_seed_samples,
         )
 
+    @router.get("/signals/outcome-stats")
+    async def get_signal_outcome_stats(
+        timeframe: str = "all",
+        category: str = "all",
+        tier: str = "all",
+        status: str = "all",
+        include_seed_samples: bool = False,
+        user: AuthUser = Depends(auth_deps.require_auth),
+    ) -> dict:
+        """Observational signal outcome statistics across all asset classes."""
+        from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+        tracker = SignalOutcomeTracker.get_instance()
+        return tracker.get_outcome_statistics(
+            timeframe=timeframe,
+            category=category,
+            tier=tier,
+            status=status,
+            include_seed_samples=include_seed_samples,
+        )
+
     @router.get("/signals/my-history")
     async def get_my_signal_history(
         year: str = "all",

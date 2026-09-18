@@ -13,6 +13,7 @@ import time
 from typing import Any
 
 from fastapi import Depends, Request
+from fastapi.responses import JSONResponse
 
 from core.enterprise_dashboard.routes.pages import _page_context
 
@@ -20,6 +21,27 @@ _log = logging.getLogger(__name__)
 
 
 def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None:
+    @app.get("/api/v1/signals/outcome-stats")
+    async def api_get_signal_outcome_stats(
+        request: Request,
+        timeframe: str = "all",
+        category: str = "all",
+        tier: str = "all",
+        status: str = "all",
+        include_seed_samples: bool = False,
+        user: Any = Depends(dashboard._auth_deps.require_auth),
+    ) -> dict:
+        """Observational signal outcome statistics across all asset classes."""
+        from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+        tracker = SignalOutcomeTracker.get_instance()
+        return tracker.get_outcome_statistics(
+            timeframe=timeframe,
+            category=category,
+            tier=tier,
+            status=status,
+            include_seed_samples=include_seed_samples,
+        )
+
     @app.post("/api/v1/admin/test-dispatch-signal")
     async def api_test_dispatch_signal(request: Request, user: Any = Depends(dashboard._auth_deps.require_permission("modify_config"))):
         """Dispatch a live test trade signal across Telegram, Email, and DB Signal Tracker."""
@@ -331,7 +353,26 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         request: Request,
         user: Any = Depends(dashboard._auth_deps.require_permission("modify_config")),
     ):
-        body = await request.json()
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "valid": False,
+                    "errors": [{"key": "payload", "message": "Malformed JSON payload"}],
+                    "warnings": [],
+                },
+            )
+        if not isinstance(body, dict):
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "valid": False,
+                    "errors": [{"key": "payload", "message": "Configuration payload must be a JSON object (dict)"}],
+                    "warnings": [],
+                },
+            )
         return dashboard._validate_config_change(body)
 
     @app.post("/api/config/preview")
@@ -339,7 +380,18 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         request: Request,
         user: Any = Depends(dashboard._auth_deps.require_permission("modify_config")),
     ):
-        body = await request.json()
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Malformed JSON payload", "changed_keys": {}, "total_changes": 0},
+            )
+        if not isinstance(body, dict):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Configuration payload must be a JSON object (dict)", "changed_keys": {}, "total_changes": 0},
+            )
         return dashboard._preview_config_change(body)
 
     @app.post("/api/config/apply")
@@ -347,8 +399,46 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         request: Request,
         user: Any = Depends(dashboard._auth_deps.require_permission("modify_config")),
     ):
-        body = await request.json()
-        return dashboard._apply_config_change(body, user.username)
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "success": False,
+                    "error": "Invalid JSON body",
+                    "validation": {
+                        "valid": False,
+                        "errors": [{"key": "payload", "message": "Malformed JSON payload"}],
+                        "warnings": [],
+                    },
+                },
+            )
+        if not isinstance(body, dict):
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "success": False,
+                    "error": "Invalid configuration payload: must be a JSON object (dict)",
+                    "validation": {
+                        "valid": False,
+                        "errors": [{"key": "payload", "message": "Configuration payload must be a JSON object (dict)"}],
+                        "warnings": [],
+                    },
+                },
+            )
+        res = dashboard._apply_config_change(body, user.username)
+        if not res.get("success", False):
+            return JSONResponse(status_code=422, content=res)
+        return res
+
+    @app.get("/api/admin/capabilities")
+    async def api_admin_capabilities(
+        user: Any = Depends(dashboard._auth_deps.require_permission("view_state")),
+    ) -> dict[str, Any]:
+        """Dynamic Capability Registry report for Super Admin diagnostics."""
+        from core.capabilities import CapabilityRegistry
+        return CapabilityRegistry.get_instance().evaluate_all(force_refresh=True)
 
     @app.get("/api/config/history")
     async def api_config_history(user: Any = Depends(dashboard._auth_deps.require_permission("modify_config"))):  # type: ignore[no-untyped-def]

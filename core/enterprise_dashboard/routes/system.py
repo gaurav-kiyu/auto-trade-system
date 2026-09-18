@@ -28,12 +28,17 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
     @app.get("/api/system/market-telemetry")
     async def api_market_telemetry(user: Any = Depends(dashboard._auth_deps.require_auth_optional)):
         from datetime import time as dt_time
-
         from core.datetime_ist import now_ist
+        from core.exchange_calendar_engine import get_calendar_engine
 
         now = now_ist()
+        today_d = now.date()
+        cal = get_calendar_engine()
+        is_market_day = cal.is_market_day(today_d)
+
         weekday = now.weekday()  # 0=Mon, ..., 4=Fri, 5=Sat, 6=Sun
         is_weekend = weekday >= 5
+        is_holiday = not is_weekend and not is_market_day
         curr_time = now.time()
 
         t_0900 = dt_time(9, 0)
@@ -43,10 +48,16 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
 
         if is_weekend:
             status = "CLOSED"
-            label = "NSE CLOSED"
+            label = "MARKET CLOSED"
             is_open = False
             state_color = "var(--text-muted, #94a3b8)"
             pulse_class = "pulse-muted"
+        elif is_holiday:
+            status = "HOLIDAY"
+            label = "NSE HOLIDAY"
+            is_open = False
+            state_color = "var(--accent-purple, #a855f7)"
+            pulse_class = "pulse-warning"
         elif curr_time < t_0900:
             status = "PRE_MARKET"
             label = "PRE-MARKET (09:15)"
@@ -55,13 +66,13 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
             pulse_class = "pulse-warning"
         elif t_0900 <= curr_time < t_0915:
             status = "PRE_OPEN"
-            label = "NSE PRE-OPEN"
+            label = "PRE-OPEN"
             is_open = True
             state_color = "var(--warning-color, #f59e0b)"
             pulse_class = "pulse-warning"
         elif t_0915 <= curr_time < t_1530:
             status = "LIVE"
-            label = "NSE LIVE"
+            label = "MARKET OPEN"
             is_open = True
             state_color = "var(--market-buy, #10b981)"
             pulse_class = "pulse-live"
@@ -73,7 +84,7 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
             pulse_class = "pulse-warning"
         else:
             status = "CLOSED"
-            label = "NSE CLOSED"
+            label = "MARKET CLOSED"
             is_open = False
             state_color = "var(--text-muted, #94a3b8)"
             pulse_class = "pulse-muted"

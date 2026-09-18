@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>OPB — Capability Diagnostics & Feature Readiness</title>
+    <script src="/static/vendor/tailwind.min.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <link rel="stylesheet" href="/static/opb_design_system.css"/>
+    {% include "_pwa_head.html" %}
+    <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-ui, 'Inter', sans-serif);
+            background: var(--bg-primary, #080b10);
+            color: var(--text-primary, #e2e8f0);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+        h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .card {
+            background: var(--bg-card, #0f172a);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--card-shadow, 0 4px 20px rgba(0,0,0,0.25));
+        }
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--bg-card, #0f1319);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            font-family: var(--font-mono, monospace);
+            font-feature-settings: "tnum" 1, "zero" 1;
+        }
+        .stat-label {
+            font-size: 0.72rem;
+            color: var(--text-muted, #94a3b8);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 0.25rem;
+            font-weight: 700;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .badge-available {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--market-buy, #10b981);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .badge-unavailable {
+            background: rgba(148, 163, 184, 0.12);
+            color: var(--text-muted, #94a3b8);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+        .badge-degraded {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .badge-demo {
+            background: rgba(239, 68, 68, 0.12);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted, #94a3b8);
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color, #1e293b);
+        }
+        td {
+            font-size: 0.82rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color, #1e293b);
+            color: var(--text-secondary, #cbd5e1);
+        }
+        tr:hover td {
+            background: var(--bg-card-hover, rgba(56, 189, 248, 0.04));
+        }
+        .btn-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid var(--border-color, #334155);
+            background: var(--input-bg, #0b1120);
+            color: var(--text-primary, #ffffff);
+            transition: all 0.15s ease;
+        }
+        .btn-refresh:hover {
+            border-color: var(--accent-color, #38bdf8);
+            color: var(--accent-color, #38bdf8);
+        }
+    </style>
+</head>
+<body>
+    {% include '_nav.html' %}
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1>⚙️ Capability Diagnostics & Dependency Radar</h1>
+            <p class="subtitle">Authoritative Super Admin operational readiness inspector. Dynamically gates navigation and UI modules based on live dependency health.</p>
+        </div>
+        <div>
+            <button class="btn-refresh" id="btnRefreshCapabilities" type="button">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i> Re-evaluate Dependencies
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="grid-4" id="kpiContainer">
+        <div class="stat-card">
+            <div class="stat-value" id="kpiAvailable" style="color: var(--market-buy, #10b981);">
+                {{ capability_report.summary.AVAILABLE if capability_report else 0 }}
+            </div>
+            <div class="stat-label">Available (Production Ready)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="kpiUnavailable" style="color: var(--text-muted, #94a3b8);">
+                {{ capability_report.summary.UNAVAILABLE if capability_report else 0 }}
+            </div>
+            <div class="stat-label">Safely Gated (Unavailable)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="kpiDegraded" style="color: #f59e0b;">
+                {{ capability_report.summary.DEGRADED if capability_report else 0 }}
+            </div>
+            <div class="stat-label">Degraded (Partial)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="kpiTotal">
+                {{ capability_report.capabilities|length if capability_report else 0 }}
+            </div>
+            <div class="stat-label">Total Capabilities Managed</div>
+        </div>
+    </div>
+
+    <!-- Governance Notice Banner -->
+    <div class="card" style="border-left: 4px solid var(--accent-color, #38bdf8); background: rgba(56, 189, 248, 0.05);">
+        <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary, #ffffff); margin-bottom: 0.25rem;">
+            🛡️ Zero-Assumption Production Gating Rule
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted, #94a3b8); line-height: 1.4;">
+            In accordance with OPB engineering governance, features with missing broker credentials or unstreamed market-data feeds are dynamically marked <strong>UNAVAILABLE</strong>. Static sample data alone is strictly rejected as evidence for readiness. Features will automatically re-enable once live production adapters report verified telemetry.
+        </div>
+    </div>
+
+    <!-- Managed Capabilities Table -->
+    <div class="card" style="padding: 0; overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Capability & Route</th>
+                    <th>Category</th>
+                    <th>Readiness State</th>
+                    <th>Required Dependencies</th>
+                    <th>Operational Reason / Verification Detail</th>
+                    <th>Last Verified</th>
+                </tr>
+            </thead>
+            <tbody id="capabilitiesTableBody">
+                {% if capability_report and capability_report.capabilities %}
+                    {% for key, cap in capability_report.capabilities.items() %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 700; color: var(--text-primary, #ffffff);">
+                                {{ cap.name }}
+                            </div>
+                            <div style="font-family: var(--font-mono, monospace); font-size: 0.72rem; color: var(--text-muted, #94a3b8);">
+                                {{ cap.route }}
+                            </div>
+                        </td>
+                        <td>
+                            <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary, #cbd5e1);">
+                                {{ cap.category }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if cap.state == 'AVAILABLE' %}
+                                <span class="badge badge-available"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span> AVAILABLE</span>
+                            {% elif cap.state == 'DEGRADED' %}
+                                <span class="badge badge-degraded"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span> DEGRADED</span>
+                            {% else %}
+                                <span class="badge badge-unavailable"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span> UNAVAILABLE</span>
+                                {% if cap.is_demo_only %}
+                                    <span class="badge badge-demo" style="margin-left: 0.25rem;">Sample Only</span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary, #cbd5e1);">
+                                {{ cap.required_dependencies|join(', ') }}
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-size: 0.78rem; color: var(--text-secondary, #cbd5e1);">
+                                {{ cap.reason }}
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-family: var(--font-mono, monospace); font-size: 0.72rem; color: var(--text-muted, #94a3b8);">
+                                {{ cap.last_verified_at[:19].replace('T', ' ') if cap.last_verified_at else 'N/A' }}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted, #94a3b8);">
+                            No capability metadata available.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <script nonce="{{ nonce }}">
+        async function refreshCapabilities() {
+            const btn = document.getElementById('btnRefreshCapabilities');
+            const icon = document.getElementById('refreshIcon');
+            if (icon) icon.classList.add('fa-spin');
+            if (btn) btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/admin/capabilities');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+
+                // Update KPI Cards
+                if (data.summary) {
+                    document.getElementById('kpiAvailable').textContent = data.summary.AVAILABLE || 0;
+                    document.getElementById('kpiUnavailable').textContent = data.summary.UNAVAILABLE || 0;
+                    document.getElementById('kpiDegraded').textContent = data.summary.DEGRADED || 0;
+                }
+                if (data.capabilities) {
+                    const total = Object.keys(data.capabilities).length;
+                    document.getElementById('kpiTotal').textContent = total;
+
+                    // Re-render table body
+                    const tbody = document.getElementById('capabilitiesTableBody');
+                    tbody.innerHTML = '';
+                    for (const [key, cap] of Object.entries(data.capabilities)) {
+                        const tr = document.createElement('tr');
+
+                        let badgeHtml = '';
+                        if (cap.state === 'AVAILABLE') {
+                            badgeHtml = '<span class="badge badge-available"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span> AVAILABLE</span>';
+                        } else if (cap.state === 'DEGRADED') {
+                            badgeHtml = '<span class="badge badge-degraded"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span> DEGRADED</span>';
+                        } else {
+                            badgeHtml = '<span class="badge badge-unavailable"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span> UNAVAILABLE</span>';
+                            if (cap.is_demo_only) {
+                                badgeHtml += '<span class="badge badge-demo" style="margin-left:0.25rem;">Sample Only</span>';
+                            }
+                        }
+
+                        const verified = cap.last_verified_at ? cap.last_verified_at.substring(0, 19).replace('T', ' ') : 'N/A';
+                        const deps = Array.isArray(cap.required_dependencies) ? cap.required_dependencies.join(', ') : '';
+
+                        tr.innerHTML = `
+                            <td>
+                                <div style="font-weight:700;color:var(--text-primary,#ffffff);">${cap.name}</div>
+                                <div style="font-family:var(--font-mono,monospace);font-size:0.72rem;color:var(--text-muted,#94a3b8);">${cap.route}</div>
+                            </td>
+                            <td><span style="font-size:0.75rem;font-weight:600;color:var(--text-secondary,#cbd5e1);">${cap.category}</span></td>
+                            <td>${badgeHtml}</td>
+                            <td><div style="font-size:0.75rem;color:var(--text-secondary,#cbd5e1);">${deps}</div></td>
+                            <td><div style="font-size:0.78rem;color:var(--text-secondary,#cbd5e1);">${cap.reason}</div></td>
+                            <td><div style="font-family:var(--font-mono,monospace);font-size:0.72rem;color:var(--text-muted,#94a3b8);">${verified}</div></td>
+                        `;
+                        tbody.appendChild(tr);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to refresh capabilities:', err);
+            } finally {
+                if (icon) icon.classList.remove('fa-spin');
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('btnRefreshCapabilities')?.addEventListener('click', refreshCapabilities);
+        });
+    </script>
+</body>
+</html>

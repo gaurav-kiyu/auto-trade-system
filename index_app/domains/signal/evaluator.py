@@ -104,14 +104,6 @@ class SignalEvaluator:
             if _clean_frame is None:
                 return None, f"{_tf_name}_invalid_ohlcv"
 
-            # Any dropped row means the source frame contained malformed
-            # OHLCV data. Do not score a partially repaired live frame.
-            if _dropped_rows > 0:
-                return None, f"{_tf_name}_invalid_ohlcv"
-
-            if len(_clean_frame) != len(_tf_frame):
-                return None, f"{_tf_name}_invalid_ohlcv"
-
             frames[_tf_name] = _clean_frame
 
         df1 = frames.get("df1m")

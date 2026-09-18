@@ -874,6 +874,13 @@ class EnterpriseDashboard:
         errors: list[Any] = []
         warnings: list[Any] = []
 
+        if not isinstance(change, dict):
+            return {
+                "valid": False,
+                "errors": [{"key": "payload", "message": "Configuration change payload must be a JSON object (dict)"}],
+                "warnings": [],
+            }
+
         # Only public configuration keys participate in Admin validation.
         public_change = {
             key: value
@@ -1037,6 +1044,14 @@ class EnterpriseDashboard:
             and full 'preview_config' after merge.
 
         """
+        if not isinstance(change, dict):
+            return {
+                "changed_keys": {},
+                "total_changes": 0,
+                "preview_config": dict(self._cfg),
+                "error": "Configuration change payload must be a JSON object (dict)",
+            }
+
         merged = dict(self._cfg)
         changed_keys = {}
         for key, value in change.items():
@@ -1068,6 +1083,20 @@ class EnterpriseDashboard:
             Dict with 'success' bool, 'applied_count', 'applied_keys', and 'backup_file'.
 
         """
+        if not isinstance(change, dict):
+            return {
+                "success": False,
+                "error": "Configuration change payload must be a JSON object (dict)",
+                "validation": {
+                    "valid": False,
+                    "errors": [{
+                        "key": "payload",
+                        "message": "Configuration change payload must be a JSON object (dict)",
+                    }],
+                    "warnings": [],
+                },
+            }
+
         # Load the persisted configuration before canonical validation.
         # _validate_config_change() validates the submitted Admin delta only;
         # the complete prospective configuration is validated below.

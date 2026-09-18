@@ -681,8 +681,8 @@
                         <td class="opb-num" style="font-weight:700;color:var(--accent-color);">₹${(s.entry_price || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
                         <td class="opb-num" style="font-size:0.75rem;color:var(--market-buy);">₹${(s.target_1 || 0).toLocaleString('en-IN')} / ₹${(s.target_2 || 0).toLocaleString('en-IN')}</td>
                         <td>
-                            <button data-action="trigger-paper-trade" data-symbol="${s.symbol}" data-direction="${s.direction}" data-score="${s.score}" class="opb-badge badge-buy" style="cursor:pointer;border:none;" title="Queue Paper Trade" type="button">
-                                ⚡ Trade
+                            <button data-action="trigger-paper-trade" data-symbol="${s.symbol}" data-direction="${s.direction}" data-score="${s.score}" class="opb-badge badge-buy" style="cursor:pointer;border:none;" title="Queue Manual Paper Trade (Simulation)" type="button">
+                                ⚡ Manual Paper Trade
                             </button>
                         </td>
                     </tr>`;

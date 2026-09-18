@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 _log = logging.getLogger(__name__)
 
@@ -60,6 +60,7 @@ def _page_context(user, nonce: str, current_page: str) -> dict:
             "can_manage_users": False,
             "can_manage_permissions": False,
             "config": getattr(_DASHBOARD_REF, "_cfg", {}) if _DASHBOARD_REF else {},
+            "capabilities": {},
             "execution_mode": str(
                 (getattr(_DASHBOARD_REF, "_cfg", {}) or {}).get("EXECUTION_MODE")
                 or (getattr(_DASHBOARD_REF, "_cfg", {}) or {}).get("execution_mode")
@@ -77,6 +78,10 @@ def _page_context(user, nonce: str, current_page: str) -> dict:
         effective = UserPermissionManager.get_instance().get_effective_permissions(username, base_role=role)
         if not effective:
             effective = {p.value for p in get_role_permissions(role)}
+
+    from core.capabilities import CapabilityRegistry
+    capabilities = CapabilityRegistry.get_instance().get_states()
+
     return {
         "user": user_dict,
         "nonce": nonce,
@@ -95,6 +100,7 @@ def _page_context(user, nonce: str, current_page: str) -> dict:
         "can_manage_users": Permission.MANAGE_USERS.value in effective,
         "can_manage_permissions": Permission.MANAGE_PERMISSIONS.value in effective,
         "config": getattr(_DASHBOARD_REF, "_cfg", {}) if _DASHBOARD_REF else {},
+        "capabilities": capabilities,
         "execution_mode": str(
             (getattr(_DASHBOARD_REF, "_cfg", {}) or {}).get("EXECUTION_MODE")
             or (getattr(_DASHBOARD_REF, "_cfg", {}) or {}).get("execution_mode")
@@ -575,6 +581,23 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
             context=_page_context(user, nonce, "security"),
         )
 
+    @app.get("/admin/capabilities", response_class=HTMLResponse)
+    async def admin_capabilities_page(request: Request):
+        nonce = getattr(request.state, "nonce", "")
+        user, err = _require_permission_page(request, dashboard, "view_state", admin_only=True)
+        if err:
+            return err
+        from core.capabilities import CapabilityRegistry
+        report = CapabilityRegistry.get_instance().evaluate_all(force_refresh=True)
+        return dashboard._templates.TemplateResponse(
+            request=request,
+            name="admin_capabilities.html",
+            context={
+                **_page_context(user, nonce, "admin_capabilities"),
+                "capability_report": report,
+            },
+        )
+
     @app.get("/intelligence/presentation", response_class=HTMLResponse)
     async def presentation_page(request: Request):  # type: ignore[no-untyped-def]
         nonce = getattr(request.state, "nonce", "")
@@ -587,6 +610,36 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
             context=_page_context(user, nonce, "presentation"),
         )
 
+    # Lightweight, non-blocking health check endpoint (<5ms)
+    @app.get("/health", response_class=JSONResponse, include_in_schema=False)
+    @app.get("/api/health", response_class=JSONResponse, include_in_schema=False)
+    async def health_check() -> JSONResponse:
+        """Lightweight, non-blocking health check (<5ms) for container orchestrators and probes."""
+        import time
+        from core.safety_state import is_hard_halted
+        mode = "PAPER"
+        try:
+            if _DASHBOARD_REF and getattr(_DASHBOARD_REF, "_cfg", None):
+                mode = str(
+                    _DASHBOARD_REF._cfg.get("EXECUTION_MODE")
+                    or _DASHBOARD_REF._cfg.get("execution_mode")
+                    or "PAPER"
+                ).upper()
+        except Exception:
+            pass
+        return JSONResponse(
+            content={
+                "status": "ok",
+                "app": "opb",
+                "trading_mode": mode,
+                "hard_halted": is_hard_halted(),
+                "timestamp": int(time.time()),
+            },
+            status_code=200,
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+
+
     # SPA redirect pages — these redirect to /#page-{anchor}
     _redirect_pages = [
         ("/trading", "trading"),
@@ -594,7 +647,6 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
         ("/risk", "risk"),
         ("/broker", "broker"),
         ("/ml", "ml"),
-        ("/health", "health"),
         ("/logs", "logs"),
         ("/system/state", "system-state"),
     ]

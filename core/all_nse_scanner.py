@@ -126,6 +126,12 @@ class AllNSEScanner:
         now = now_ist()
         if now.weekday() >= 5:
             return False
+        try:
+            from core.exchange_calendar_engine import get_calendar_engine
+            if not get_calendar_engine(self._cfg).is_market_day(now.date()):
+                return False
+        except Exception:
+            pass
         start = str(self._cfg.get("MARKET_OPEN", "09:15"))
         end = str(self._cfg.get("MARKET_CLOSE", "15:30"))
         try:
@@ -394,14 +400,34 @@ class AllNSEScanner:
             # Elite notifications require a live ML probability when ML governance
             # is enabled. The scorer uses 0.5 as a neutral value when a model is
             # unavailable; that neutral fallback must never qualify for the
-            # externally governed notification tier.
+            # externally governed notification tier in live/auto execution mode,
+            # but is permitted in paper / signal-only evaluation modes when a model
+            # is genuinely unavailable.
             ml_required = bool(self._cfg.get("ML_REQUIRED_FOR_ALERTS", False))
             ml_min = float(self._cfg.get("ML_ALERT_MIN_PROBABILITY", self._cfg.get("ML_CONFIDENCE_THRESHOLD", 0.65)))
-            if ml_required and float(getattr(sig, "ml_probability", 0.5)) < ml_min:
+            ml_prob = float(getattr(sig, "ml_probability", 0.5))
+            if ml_required and ml_prob < ml_min:
                 if is_fno or sym in {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX"}:
-                    _log.info("[ML_GATE] Suppressed %s: probability %.3f < %.3f",
-                              sym, float(getattr(sig, "ml_probability", 0.5)), ml_min)
-                    return None
+                    mode = str(self._cfg.get("EXECUTION_MODE", "SIGNAL_ONLY")).upper()
+                    has_ml_reason = any(str(r).startswith("[ML]") for r in getattr(sig, "reasons", []))
+                    model_unavailable = (ml_prob == 0.5) and not bool(getattr(sig, "ml_pred_id", "")) and not has_ml_reason
+                    if model_unavailable and mode in {"PAPER", "SIGNAL_ONLY", "BACKTEST", "REPLAY", "PAPER_REPLAY"}:
+                        _log.info(
+                            "[ML_GATE] Neutral 0.500 fallback permitted in %s mode for %s (ML model unavailable)",
+                            mode, sym,
+                        )
+                    else:
+                        if model_unavailable:
+                            _log.info(
+                                "[ML_GATE] Suppressed %s: probability %.3f < %.3f (strict ML required in %s mode)",
+                                sym, ml_prob, ml_min, mode,
+                            )
+                        else:
+                            _log.info(
+                                "[ML_GATE] Suppressed %s: probability %.3f < %.3f",
+                                sym, ml_prob, ml_min,
+                            )
+                        return None
 
             # Config-driven score gate.
             # The effective threshold comes from CATEGORY_SCORE_THRESHOLDS
@@ -530,8 +556,13 @@ class AllNSEScanner:
             SignalTracker.get_instance().record_scan_cycle(
                 stats, symbols_scanned=len(stocks), timestamp=now_ist().isoformat()
             )
+            # Observational outcome tracking: grade active signals against latest prices discovered in this scan
+            latest_prices = {s.symbol: s.price for s in detected_signals}
+            if latest_prices:
+                from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+                SignalOutcomeTracker.get_instance().update_active_signal_outcomes(lambda sym: latest_prices.get(sym))
         except Exception as ex:
-            _log.debug("[SCAN_AUDIT] Failed to persist cycle metrics: %s", ex)
+            _log.debug("[SCAN_AUDIT] Failed to persist cycle metrics or update outcomes: %s", ex)
         _log.info("[SCAN_METRICS] evaluated=%d accepted=%d returned=%d errors=%d",
                   stats["evaluated"], stats["accepted"], len(detected_signals), stats["errors"])
         return detected_signals

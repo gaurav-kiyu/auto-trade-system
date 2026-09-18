@@ -1,0 +1,87 @@
+{
+  "title": "OPB v2.59.4 Final External Playwright Master Certification",
+  "timestamp": "2026-09-18T14:39:55.918Z",
+  "base_url": "http://127.0.0.1:8765",
+  "operating_state": {
+    "trading_mode": "PAPER",
+    "signal_only": true,
+    "full_auto_allowed": false,
+    "sl_pct": 0.88,
+    "base_capital": 3000
+  },
+  "viewports_tested": [
+    {
+      "name": "fhd_1080p",
+      "width": 1920,
+      "height": 1080,
+      "type": "Desktop"
+    },
+    {
+      "name": "desktop_1536",
+      "width": 1536,
+      "height": 864,
+      "type": "Laptop FHD scaled"
+    },
+    {
+      "name": "laptop_1440",
+      "width": 1440,
+      "height": 900,
+      "type": "MacBook Pro"
+    },
+    {
+      "name": "laptop_1366",
+      "width": 1366,
+      "height": 768,
+      "type": "Legacy Laptop"
+    },
+    {
+      "name": "compact_1280",
+      "width": 1280,
+      "height": 800,
+      "type": "Compact Laptop"
+    },
+    {
+      "name": "tablet_landscape_1024",
+      "width": 1024,
+      "height": 768,
+      "type": "Tablet Landscape"
+    },
+    {
+      "name": "tablet_portrait_768",
+      "width": 768,
+      "height": 1024,
+      "type": "Tablet Portrait"
+    },
+    {
+      "name": "mobile_large_430",
+      "width": 430,
+      "height": 932,
+      "type": "Modern Large Mobile"
+    },
+    {
+      "name": "mobile_compact_375",
+      "width": 375,
+      "height": 667,
+      "type": "Compact Mobile"
+    }
+  ],
+  "themes_tested": [
+    "dark-cyber",
+    "dracula-purple",
+    "ivory-gold",
+    "midnight-slate",
+    "emerald-matrix"
+  ],
+  "test_matrix": {
+    "total_checks": 131,
+    "passed": 131,
+    "failed": 0,
+    "overflow_violations": [],
+    "contrast_violations": [],
+    "console_errors": [],
+    "page_errors": [],
+    "failed_requests": [],
+    "rbac_checks": [],
+    "functional_checks": []
+  }
+}

@@ -39,24 +39,41 @@ MODULES = [
 
 
 def main() -> int:
-    # 1) Verify all critical modules are importable.
-    for mod in MODULES:
-        __import__(mod)
+    import os
+    import sqlite3
 
-    # 2) Optional: check the dashboard HTTP health endpoint.
-    try:
-        resp = urllib.request.urlopen(
-            "http://127.0.0.1:8765/api/system/health/docker", timeout=5
-        )
-        data = json.loads(resp.read().decode())
-        if data.get("status") == "degraded":
-            print("DEGRADED")
+    # 1) Verify database connectivity if DB file exists
+    db = os.environ.get("OPBUYING_TRADES_DB", "/data/db/trades.db")
+    if os.path.exists(db):
+        try:
+            conn = sqlite3.connect(db, timeout=2.0)
+            res = conn.execute("SELECT 1").fetchone()
+            conn.close()
+            if res != (1,):
+                print("DB query returned invalid result", file=sys.stderr)
+                return 1
+        except Exception as e:
+            print(f"DB check failed: {e}", file=sys.stderr)
             return 1
-        print("OK")
-    except (urllib.error.URLError, ConnectionRefusedError):
-        # Dashboard not running — still OK (bot may run without it).
-        print("OK (no web)")
-    return 0
+
+    # 2) Verify dashboard HTTP health endpoint (<3s)
+    port = os.environ.get("PORT", "8765")
+    health_url = f"http://127.0.0.1:{port}/health"
+    try:
+        req = urllib.request.Request(health_url, headers={"User-Agent": "OPB-Docker-Healthcheck/1.0"})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            if resp.status != 200:
+                print(f"HTTP health returned status {resp.status}", file=sys.stderr)
+                return 1
+            data = json.loads(resp.read().decode())
+            if data.get("status") != "ok":
+                print(f"HTTP health status not ok: {data.get('status')}", file=sys.stderr)
+                return 1
+            print("OK")
+            return 0
+    except Exception as e:
+        print(f"HTTP healthcheck failed: {e}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

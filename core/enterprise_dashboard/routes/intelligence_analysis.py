@@ -136,16 +136,25 @@ def register_analysis_routes(app, dashboard, admin_only, operator_or_admin) -> N
             return {"status": "error", "detail": str(exc)}
 
     @app.get("/api/intelligence/knowledge-graph/report")
-    async def api_knowledge_report(user: Any = operator_or_admin):
-        """Get the full knowledge graph report."""
+    async def api_knowledge_report(refresh: bool = False, user: Any = operator_or_admin):
+        """Get the full knowledge graph report (offloaded to worker thread)."""
         try:
+            from core.bi_job_runner import BIJobRunner
             from core.codebase_knowledge_graph import get_knowledge_graph
-            kg = get_knowledge_graph()
-            report = kg.get_report()
-            return {"status": "ok", "report": report.to_dict(), "summary": report.summary_text(), "timestamp": time.time()}
+            runner = BIJobRunner.get_instance()
+            report_dict = await runner.execute_isolated(
+                "knowledge_report",
+                lambda: get_knowledge_graph().get_report().to_dict(),
+                max_age=300.0,
+                force_refresh=refresh,
+            )
+            if report_dict:
+                return {"status": "ok", "report": report_dict, "summary": f"Symbols: {report_dict.get('total_symbols', 0)}", "timestamp": time.time()}
+            return {"status": "computing", "report": None, "timestamp": time.time()}
         except (ImportError, ValueError, TypeError, AttributeError, RuntimeError) as exc:
             _log.warning("[INTEL] Knowledge graph report error: %s", exc)
             return {"status": "error", "detail": str(exc)}
+
 
     @app.get("/api/intelligence/knowledge-graph/hotspots")
     async def api_knowledge_hotspots(user: Any = operator_or_admin):
@@ -206,16 +215,25 @@ def register_analysis_routes(app, dashboard, admin_only, operator_or_admin) -> N
     # ── Dependency Analyzer (Vision Module) ───────────────────────
 
     @app.get("/api/intelligence/dependencies/report")
-    async def api_dependency_report(user: Any = operator_or_admin):
-        """Get full dependency analysis report."""
+    async def api_dependency_report(refresh: bool = False, user: Any = operator_or_admin):
+        """Get full dependency analysis report (offloaded to worker thread)."""
         try:
+            from core.bi_job_runner import BIJobRunner
             from core.dependency_analyzer import get_dependency_analyzer
-            analyzer = get_dependency_analyzer()
-            report = analyzer.analyze()
-            return {"status": "ok", "report": report.to_dict(), "summary": report.summary_text(), "timestamp": time.time()}
+            runner = BIJobRunner.get_instance()
+            report_dict = await runner.execute_isolated(
+                "dependency_report",
+                lambda: get_dependency_analyzer().analyze().to_dict(),
+                max_age=300.0,
+                force_refresh=refresh,
+            )
+            if report_dict:
+                return {"status": "ok", "report": report_dict, "summary": f"Modules: {report_dict.get('total_modules', 0)}", "timestamp": time.time()}
+            return {"status": "computing", "report": None, "timestamp": time.time()}
         except (ImportError, ValueError, OSError, RuntimeError, TypeError) as exc:
             _log.warning("[INTEL] Dependency report error: %s", exc)
             return {"status": "error", "detail": str(exc)}
+
 
     @app.get("/api/intelligence/dependencies/module/{module_path:path}")
     async def api_dependency_module(module_path: str, user: Any = operator_or_admin):

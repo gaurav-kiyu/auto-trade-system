@@ -39,6 +39,12 @@ def is_market_hours(force_run: bool = False) -> bool:
     # Check weekday (0 = Mon, 4 = Fri, 5/6 = Sat/Sun)
     if now.weekday() >= 5:
         return False
+    try:
+        from core.exchange_calendar_engine import get_calendar_engine
+        if not get_calendar_engine().is_market_day(now.date()):
+            return False
+    except Exception:
+        pass
     cur_time = now.time()
     return MARKET_OPEN_TIME <= cur_time <= MARKET_CLOSE_TIME
 

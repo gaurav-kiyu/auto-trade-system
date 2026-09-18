@@ -1198,8 +1198,10 @@
                 });
             });
 
-            setInterval(loadBIReport, 30000);
+            // Unconditional 30s BI polling removed to prevent background server stalls.
+            // Reports are fetched on page load and refreshed via manual button click.
         });
+
     </script>    {% include "_pwa_sw_reg.html" %}
     <script nonce="{{ nonce }}">
         async function retrainML() {

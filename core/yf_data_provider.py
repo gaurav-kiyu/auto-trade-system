@@ -32,12 +32,13 @@ _log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 _yf_data_cache: dict[str, tuple] = {}
 _yf_data_cache_lock = threading.RLock()
-_yf_data_cache_ts: float = 0.0
+_yf_data_cache_ts: dict[str, float] = {}
 _YF_CACHE_TTL: float = 60.0  # seconds before refresh
 
 _last_close_cache: dict[str, dict[str, Any]] = {}
 _last_close_cache_lock = threading.RLock()
 _last_close_cache_ts: float = 0.0
+_LAST_CLOSE_CACHE_TTL: float = 300.0  # seconds before refresh
 
 # ── Rate limiting ────────────────────────────────────────────────────────
 # Exponential backoff: tracks consecutive failures per symbol to back off
@@ -151,15 +152,15 @@ def fetch_intraday_data(yf_sym: str) -> tuple:
 
 def fetch_intraday_data_cached(yf_sym: str) -> tuple:
     """Fetch intraday data with cross-cycle caching to avoid yfinance rate limits."""
-    global _yf_data_cache_ts
     now = time.time()
     with _yf_data_cache_lock:
-        if yf_sym in _yf_data_cache and now - _yf_data_cache_ts < _YF_CACHE_TTL:
+        cached_at = _yf_data_cache_ts.get(yf_sym, 0.0)
+        if yf_sym in _yf_data_cache and (now - cached_at) < _YF_CACHE_TTL:
             return _yf_data_cache[yf_sym]
     result = fetch_intraday_data(yf_sym)
     with _yf_data_cache_lock:
         _yf_data_cache[yf_sym] = result
-        _yf_data_cache_ts = now
+        _yf_data_cache_ts[yf_sym] = now
     return result
 
 
@@ -183,7 +184,7 @@ def fetch_last_close_summary(index_map: dict[str, dict[str, str]]) -> dict[str, 
             continue
         try:
             with _last_close_cache_lock:
-                if yf_sym in _last_close_cache:
+                if (now - _last_close_cache_ts) < _LAST_CLOSE_CACHE_TTL and yf_sym in _last_close_cache:
                     result[name] = _last_close_cache[yf_sym]
                     continue
             ticker = yf.Ticker(yf_sym)
@@ -288,9 +289,9 @@ def get_vix_from_intraday() -> float:
 
 def invalidate_cache() -> None:
     """Force cache refresh on next fetch."""
-    global _yf_data_cache_ts, _last_close_cache_ts
+    global _last_close_cache_ts
     with _yf_data_cache_lock:
-        _yf_data_cache_ts = 0.0
+        _yf_data_cache_ts.clear()
         _yf_data_cache.clear()
     with _last_close_cache_lock:
         _last_close_cache_ts = 0.0
