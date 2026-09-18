@@ -36,7 +36,7 @@ pypdf>=6.16.1
 # click: transitive (Flask/uvicorn/etc). 8.4.1 fixes CVE-2026-7246
 click>=8.4.1
 # soupsieve: transitive via beautifulsoup4. 2.8.4 fixes GHSA-836r-79rf-4m37
-soupsieve>=2.8.4
+soupsieve>=2.9
 # setuptools: build tooling. 83.0.0 fixes GHSA-h35f-9h28-mq5c
 setuptools>=83.0.0
 
