@@ -17,6 +17,8 @@ __all__ = [
     "QueuedNotification",
     "ServiceMetrics",
     "ServiceStatus",
+    "get_notification_service",
+    "reset_notification_service",
 ]
 import time
 from collections.abc import Callable
@@ -215,6 +217,11 @@ class NotificationService:
             self._logger.error(f"Failed to start notification service: {e} (type: {type(e).__name__})")
             self._status = ServiceStatus.ERROR
             return False
+
+    @property
+    def is_running(self) -> bool:
+        """Return True if service is currently RUNNING."""
+        return self._status == ServiceStatus.RUNNING
 
     def stop(self) -> bool:
         """Stop the notification service."""
@@ -692,3 +699,344 @@ class NotificationService:
             # Add current timestamp
             self._rate_limit_windows[channel].append(now)
             return True
+
+    def dispatch_qualifying_signal(
+        self,
+        signal: dict[str, Any],
+        eligible_users: list[Any] | None = None,
+        sync: bool = True,
+    ) -> dict[str, Any]:
+        """Dispatch qualifying signal (MODERATE or STRONG) to eligible users via independent dual-channel (Telegram AND Email).
+
+        Guarantees:
+        - Out-of-band from trade execution (never touches orders, positions, capital, risk gates).
+        - Independent channels: Telegram failure does not block Email; Email failure does not undo Telegram.
+        - Idempotent: checks SignalTracker.is_signal_delivered to prevent spamming duplicate signals.
+        - Auditable: every channel attempt and outcome is durably recorded in `signal_delivery_audit`.
+        - Recipient-specific routing: respects user telegram_chat_id and user email.
+        """
+        if self._status != ServiceStatus.RUNNING:
+            self.start()
+
+        results: dict[str, Any] = {
+            "signal_id": "",
+            "deliveries": {},
+            "status": "PROCESSED",
+        }
+
+        signal_id = str(signal.get("signal_id") or signal.get("sig_id") or "").strip()
+        results["signal_id"] = signal_id
+        if not signal_id:
+            self._logger.warning("[SIGNAL_NOTIFICATION] Cannot dispatch signal without signal_id: %s", signal.get("symbol"))
+            results["status"] = "NO_SIGNAL_ID"
+            return results
+
+        # 1. Canonical Tier Validation
+        tier = str(signal.get("tier") or signal.get("strength") or "").upper()
+        if not tier:
+            score_val = signal.get("score") if signal.get("score") is not None else signal.get("raw_score")
+            if score_val is not None:
+                try:
+                    s = float(score_val)
+                    if s >= 80.0:
+                        tier = "STRONG"
+                    elif s >= 70.0:
+                        tier = "MODERATE"
+                    else:
+                        tier = "WEAK"
+                except (ValueError, TypeError):
+                    pass
+
+        if tier not in ("STRONG", "MODERATE"):
+            self._logger.info("[SIGNAL_NOTIFICATION] Signal %s tier %s is not qualifying (MODERATE/STRONG); skipping dispatch", signal_id, tier)
+            results["status"] = "NON_QUALIFYING_TIER"
+            return results
+
+        sym = str(signal.get("symbol") or "UNKNOWN").upper()
+        direction = str(signal.get("direction") or "CALL").upper()
+        category = str(signal.get("category") or "INDEX_OPTIONS").upper()
+        score = int(signal.get("score") if signal.get("score") is not None else (signal.get("raw_score") or 70))
+        entry_price = float(signal.get("entry_price") or signal.get("price") or 0.0)
+        sl_price = float(signal.get("stop_loss") or round(entry_price * 0.97, 2))
+        t1_price = float(signal.get("target_1") or round(entry_price * 1.04, 2))
+        t2_price = float(signal.get("target_2") or round(entry_price * 1.08, 2))
+        strategy = str(signal.get("strategy") or signal.get("strategy_name") or "position_service")
+        ts_str = str(signal.get("timestamp") or now_ist().strftime("%d-%b-%Y %H:%M:%S IST"))
+
+        # 2. Recipient Resolution
+        recipients = list(eligible_users) if eligible_users is not None else []
+        try:
+            from core.auth.user_signal_permissions import UserPermissionManager
+            perm_mgr = UserPermissionManager.get_instance()
+            if not recipients:
+                recipients = perm_mgr.get_eligible_recipients(category=category, tier=tier, symbol=sym)
+
+            # Defensive guarantee: Ensure Super Admin is always evaluated for qualifying signals
+            has_admin = any(getattr(u, "username", str(u)) == "admin" for u in recipients)
+            if not has_admin:
+                admin_perm = perm_mgr.get_user_permissions("admin")
+                if admin_perm and admin_perm.is_active and admin_perm.signals_enabled:
+                    admin_tier_ok = (admin_perm.min_signal_tier == "ALL" or
+                                     (admin_perm.min_signal_tier == "MODERATE_AND_STRONG" and tier in ("STRONG", "MODERATE")) or
+                                     (admin_perm.min_signal_tier == "STRONG_ONLY" and tier == "STRONG"))
+                    cat_ok = not admin_perm.allowed_categories or any(c.upper() == category for c in admin_perm.allowed_categories)
+                    if admin_tier_ok and cat_ok:
+                        recipients.append(admin_perm)
+        except Exception as perm_ex:
+            self._logger.warning("[SIGNAL_NOTIFICATION] Recipient resolution exception: %s", perm_ex)
+
+        if not recipients:
+            self._logger.info("[SIGNAL_NOTIFICATION] No eligible recipients for signal %s (%s %s)", signal_id, sym, tier)
+            results["status"] = "NO_RECIPIENTS"
+            return results
+
+        # 3. Message Formatting (Fintech standard, zero live trade implication)
+        dir_emoji = "🟢" if direction == "CALL" else "🔴" if direction == "PUT" else "⚪"
+        tier_emoji = "💎" if tier == "STRONG" else "🟡"
+        sep = "─" * 32
+        formatted_plain_msg = (
+            f"{sep}\n"
+            f"🔔 [OPB QUALIFYING SIGNAL]  {dir_emoji}\n"
+            f"{sep}\n"
+            f"📌 Symbol   : {sym}\n"
+            f"💰 Price    : ₹{entry_price:,.2f}\n"
+            f"🧭 Direction: {direction}\n"
+            f"💪 Strength : {tier} (Score: {score}/100)\n"
+            f"{tier_emoji} Tier     : {tier}\n"
+            f"📊 Category : {category}\n"
+            f"🎯 Strategy : {strategy}\n"
+            f"🛑 Stop Loss: ₹{sl_price:,.2f}\n"
+            f"🎯 Target 1 : ₹{t1_price:,.2f}\n"
+            f"🎯 Target 2 : ₹{t2_price:,.2f}\n"
+            f"🆔 Signal ID: {signal_id}\n"
+            f"🕒 Time     : {ts_str}\n"
+            f"{sep}\n"
+            f"⚡ Mode     : PAPER / SIGNAL_ONLY\n"
+            f"⚠️  Notification only — no live trade executed.\n"
+            f"{sep}"
+        )
+        email_subject = f"[OPB QUALIFYING SIGNAL] {tier} {sym} {direction} (Score: {score})"
+
+        from core.signals.signal_tracker import SignalTracker
+        tracker = SignalTracker.get_instance()
+
+        tg_adapter = self._adapters.get(NotificationChannel.TELEGRAM)
+        email_adapter = self._adapters.get(NotificationChannel.EMAIL)
+
+        # 4. Dispatch Loop across Eligible Recipients
+        for u in recipients:
+            uname = getattr(u, "username", str(u))
+            user_deliveries: dict[str, str] = {}
+            results["deliveries"][uname] = user_deliveries
+
+            # ── CHANNEL 1: TELEGRAM ─────────────────────────────────────
+            tg_enabled = bool(getattr(u, "telegram_enabled", True))
+            tg_chat_id = str(
+                getattr(u, "telegram_chat_id", "")
+                or os.environ.get("OPBUYING_CHAT_ID")
+                or os.environ.get("OPBUYING_TELEGRAM_CHAT_ID")
+                or os.environ.get("CHAT_ID")
+                or self._cfg.get("CHAT_ID", "1148730533")
+            ).strip()
+
+            if not tg_enabled:
+                tracker.record_delivery_attempt(
+                    signal_id=signal_id,
+                    username=uname,
+                    channel="TELEGRAM",
+                    destination=tg_chat_id,
+                    attempted=False,
+                    status="DISABLED",
+                    error_message="User telegram_enabled is false",
+                )
+                user_deliveries["TELEGRAM"] = "DISABLED"
+            elif not tg_chat_id:
+                tracker.record_delivery_attempt(
+                    signal_id=signal_id,
+                    username=uname,
+                    channel="TELEGRAM",
+                    destination="",
+                    attempted=False,
+                    status="NO_DESTINATION",
+                    error_message="No telegram chat_id configured",
+                )
+                user_deliveries["TELEGRAM"] = "NO_DESTINATION"
+            elif tracker.is_signal_delivered(signal_id, uname, "TELEGRAM"):
+                self._logger.info("[SIGNAL_DEDUP] Telegram already delivered for %s/%s; suppressing duplicate", signal_id, uname)
+                user_deliveries["TELEGRAM"] = "ALREADY_DELIVERED"
+            else:
+                audit_id = tracker.record_delivery_attempt(
+                    signal_id=signal_id,
+                    username=uname,
+                    channel="TELEGRAM",
+                    destination=tg_chat_id,
+                    attempted=True,
+                    status="ATTEMPTED",
+                )
+                tg_avail = tg_adapter is not None and (
+                    getattr(tg_adapter, "enabled", False)
+                    or getattr(tg_adapter, "_enabled", False)
+                    or (hasattr(tg_adapter, "is_channel_available") and tg_adapter.is_channel_available(NotificationChannel.TELEGRAM))
+                )
+                if not tg_avail:
+                    err_msg = "Telegram adapter is not enabled or not configured"
+                    tracker.update_delivery_status(audit_id, "FAILED", error_message=err_msg)
+                    self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=TELEGRAM status=FAILED error=%s", signal_id, uname, err_msg)
+                    user_deliveries["TELEGRAM"] = "FAILED"
+                else:
+                    try:
+                        tg_notif = Notification(
+                            message=formatted_plain_msg,
+                            channel=NotificationChannel.TELEGRAM,
+                            priority=NotificationPriority.CRITICAL if tier == "STRONG" else NotificationPriority.HIGH,
+                            recipient=tg_chat_id,
+                            subject=email_subject,
+                            metadata={
+                                "signal_id": signal_id,
+                                "symbol": sym,
+                                "direction": direction,
+                                "price": entry_price,
+                                "score": score,
+                                "tier": tier,
+                                "strength": tier,
+                                "stop_loss": sl_price,
+                                "tp1": t1_price,
+                                "tp2": t2_price,
+                                "chat_id": tg_chat_id,
+                                "category": category,
+                                "strategy": strategy,
+                                "custom_message": formatted_plain_msg,
+                            },
+                        )
+                        tg_res = tg_adapter.send_notification(tg_notif)
+                        if tg_res and getattr(tg_res, "status", None) == NotificationStatus.SENT:
+                            tracker.update_delivery_status(audit_id, "SENT")
+                            self._logger.info("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=TELEGRAM status=SENT", signal_id, uname)
+                            user_deliveries["TELEGRAM"] = "SENT"
+                        else:
+                            err_msg = str(getattr(tg_res, "error_message", "") or "Telegram adapter send failed")
+                            tracker.update_delivery_status(audit_id, "FAILED", error_message=err_msg)
+                            self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=TELEGRAM status=FAILED error=%s", signal_id, uname, err_msg)
+                            user_deliveries["TELEGRAM"] = "FAILED"
+                    except Exception as tg_ex:
+                        tracker.update_delivery_status(audit_id, "FAILED", error_message=str(tg_ex))
+                        self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=TELEGRAM status=FAILED error=%s", signal_id, uname, tg_ex)
+                        user_deliveries["TELEGRAM"] = "FAILED"
+
+            # ── CHANNEL 2: EMAIL ────────────────────────────────────────
+            email_enabled = bool(getattr(u, "email_enabled", True))
+            user_email = str(
+                getattr(u, "email", "")
+                or os.environ.get("OPBUYING_EMAIL_TO")
+                or self._cfg.get("EMAIL_TO", "")
+            ).strip()
+
+            if not email_enabled:
+                tracker.record_delivery_attempt(
+                    signal_id=signal_id,
+                    username=uname,
+                    channel="EMAIL",
+                    destination=user_email,
+                    attempted=False,
+                    status="DISABLED",
+                    error_message="User email_enabled is false",
+                )
+                user_deliveries["EMAIL"] = "DISABLED"
+            elif not user_email:
+                tracker.record_delivery_attempt(
+                    signal_id=signal_id,
+                    username=uname,
+                    channel="EMAIL",
+                    destination="",
+                    attempted=False,
+                    status="NO_DESTINATION",
+                    error_message="No email address configured",
+                )
+                user_deliveries["EMAIL"] = "NO_DESTINATION"
+            elif tracker.is_signal_delivered(signal_id, uname, "EMAIL"):
+                self._logger.info("[SIGNAL_DEDUP] Email already delivered for %s/%s; suppressing duplicate", signal_id, uname)
+                user_deliveries["EMAIL"] = "ALREADY_DELIVERED"
+            else:
+                audit_id = tracker.record_delivery_attempt(
+                    signal_id=signal_id,
+                    username=uname,
+                    channel="EMAIL",
+                    destination=user_email,
+                    attempted=True,
+                    status="ATTEMPTED",
+                )
+                email_avail = email_adapter is not None and (
+                    getattr(email_adapter, "enabled", False)
+                    or getattr(email_adapter, "_enabled", False)
+                    or (hasattr(email_adapter, "is_channel_available") and email_adapter.is_channel_available(NotificationChannel.EMAIL))
+                )
+                if not email_avail:
+                    err_msg = "Email adapter is not enabled or credentials not configured"
+                    tracker.update_delivery_status(audit_id, "FAILED", error_message=err_msg)
+                    self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=EMAIL status=FAILED error=%s", signal_id, uname, err_msg)
+                    user_deliveries["EMAIL"] = "FAILED"
+                else:
+                    try:
+                        email_notif = Notification(
+                            message=formatted_plain_msg,
+                            channel=NotificationChannel.EMAIL,
+                            priority=NotificationPriority.CRITICAL if tier == "STRONG" else NotificationPriority.HIGH,
+                            recipient=user_email,
+                            subject=email_subject,
+                            metadata={
+                                "signal_id": signal_id,
+                                "symbol": sym,
+                                "direction": direction,
+                                "price": entry_price,
+                                "score": score,
+                                "tier": tier,
+                                "category": category,
+                                "strategy": strategy,
+                            },
+                        )
+                        email_res = email_adapter.send_notification(email_notif)
+                        if email_res and getattr(email_res, "status", None) == NotificationStatus.SENT:
+                            tracker.update_delivery_status(audit_id, "SENT")
+                            self._logger.info("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=EMAIL status=SENT", signal_id, uname)
+                            user_deliveries["EMAIL"] = "SENT"
+                        else:
+                            err_msg = str(getattr(email_res, "error_message", "") or "Email adapter send failed")
+                            tracker.update_delivery_status(audit_id, "FAILED", error_message=err_msg)
+                            self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=EMAIL status=FAILED error=%s", signal_id, uname, err_msg)
+                            user_deliveries["EMAIL"] = "FAILED"
+                    except Exception as em_ex:
+                        tracker.update_delivery_status(audit_id, "FAILED", error_message=str(em_ex))
+                        self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=EMAIL status=FAILED error=%s", signal_id, uname, em_ex)
+                        user_deliveries["EMAIL"] = "FAILED"
+
+        return results
+
+
+# ── Singleton factory ─────────────────────────────────────────────────────────
+
+_notification_service_instance: NotificationService | None = None
+_notification_service_lock = threading.RLock()
+
+
+def get_notification_service(cfg: dict[str, Any] | None = None) -> NotificationService:
+    """Return the process-level NotificationService singleton."""
+    global _notification_service_instance
+    with _notification_service_lock:
+        if _notification_service_instance is None:
+            _notification_service_instance = NotificationService(cfg=cfg)
+            _notification_service_instance.start()
+        elif cfg and not _notification_service_instance._cfg:
+            _notification_service_instance._cfg = cfg
+        return _notification_service_instance
+
+
+def reset_notification_service() -> None:
+    """Force-reset singleton (tests only)."""
+    global _notification_service_instance
+    with _notification_service_lock:
+        if _notification_service_instance is not None:
+            try:
+                _notification_service_instance.stop()
+            except Exception:
+                pass
+            _notification_service_instance = None

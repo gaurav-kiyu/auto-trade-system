@@ -104,10 +104,10 @@ class UserPermissionManager:
         self._load()
 
     @classmethod
-    def get_instance(cls) -> UserPermissionManager:
+    def get_instance(cls, store_path: Path | None = None) -> UserPermissionManager:
         with cls._lock:
             if cls._instance is None:
-                cls._instance = UserPermissionManager()
+                cls._instance = UserPermissionManager(store_path=store_path)
             return cls._instance
 
     def _load(self) -> None:
@@ -155,10 +155,10 @@ class UserPermissionManager:
             is_active=True,
             signals_enabled=True,
             allowed_categories=list(ALL_CATEGORIES),
-            min_signal_tier="STRONG_ONLY",
-            telegram_enabled=bool(admin_chat),
+            min_signal_tier="MODERATE_AND_STRONG",
+            telegram_enabled=True,
             telegram_chat_id=admin_chat,
-            email_enabled=bool(admin_email),
+            email_enabled=True,
             email=admin_email,
             max_signals_daily=0,  # Unlimited
             max_signals_weekly=0,

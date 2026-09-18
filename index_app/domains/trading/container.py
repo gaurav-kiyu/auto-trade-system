@@ -1,4 +1,4 @@
-﻿"""Dependency Injection Container Setup â€” service wiring for production trading.
+"""Dependency Injection Container Setup â€” service wiring for production trading.
 
 Extracted from ``index_trader.py`` ``setup_di_container()`` (DEBT-008) to reduce
 the monolith and centralise all service-implementation registration.
@@ -195,17 +195,6 @@ def setup_di_container(
     globals_store["RISK_ENGINE"] = risk_service
     mandate_service = sg("_mandate_service")
     if mandate_service is not None:
-        mandate_service._risk_service = risk_service
-
-    # Wire PositionService with all dependencies
-    _position_service = _initialize_position_service(
-        cfg=cfg,
-        risk_service=risk_service,
-        execution_service=execution_service,
-        globals_store=globals_store,
-    )
-    globals_store["_position_service"] = _position_service
-
     # Configure intraday P&L monitoring from config
     from core.safety_state import set_intraday_loss_limit
     set_intraday_loss_limit(float(cfg.get("INTRADAY_LOSS_LIMIT", cfg.get("MAX_DAILY_LOSS", -2000))))
@@ -219,12 +208,25 @@ def setup_di_container(
     notification_service = NotificationService(cfg=cfg)
     notification_service.start()
     container.register_instance(NotificationPort, notification_service)
+    globals_store["_notification_service"] = notification_service
 
     # Get send function from notification service
     send_fn = _resolve_send_fn(notification_service)
 
     # Wire legacy send() to the real notification service
     _flush_and_wire_send(send_fn=send_fn, globals_store=globals_store)
+
+    # Wire PositionService with all dependencies including notification_service
+    _position_service = _initialize_position_service(
+        cfg=cfg,
+        risk_service=risk_service,
+        execution_service=execution_service,
+        globals_store=globals_store,
+        notification_service=notification_service,
+    )
+    globals_store["_position_service"] = _position_service
+    if hasattr(_position_service, "_notification_service") and _position_service._notification_service is None:
+        _position_service._notification_service = notification_service
 
     # v2.47 Execution Hardening
     from core.execution_hardening_integration import init_execution_hardening
@@ -332,6 +334,7 @@ def _initialize_position_service(
     risk_service: Any,
     execution_service: Any,
     globals_store: dict[str, Any],
+    notification_service: Any = None,
 ) -> Any:
     """Initialize and return the PositionService with all dependencies."""
     from core.position_service import get_position_service
@@ -359,11 +362,12 @@ def _initialize_position_service(
         signal_max_age=cfg.get("SIGNAL_MAX_AGE", 90),
         # CRITICAL: pass through execution-mode flags so the PositionService
         # singleton honors PAPER/AUTO (paper fills) instead of defaulting to
-        # MANUAL (notify-only) â€” otherwise the 50-paper-trade track record
+        # MANUAL (notify-only) — otherwise the 50-paper-trade track record
         # required by the live-readiness gate can never be built.
         manual_signals_only=bool(cfg.get("MANUAL_SIGNALS_ONLY", True)),
         execution_mode=str(cfg.get("EXECUTION_MODE", "MANUAL")),
         broker_api_enabled=bool(cfg.get("BROKER_API_ENABLED", False)),
+        notification_service=notification_service or globals_store.get("_notification_service"),
     )
     _log.info(
         "[MODE] PositionService wired: manual_signals_only=%s execution_mode=%s "

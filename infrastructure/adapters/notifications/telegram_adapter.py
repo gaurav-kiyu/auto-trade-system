@@ -131,8 +131,13 @@ class _TelegramClient:
         category = signal.get("category", "") or SECTOR_TO_CATEGORY.get(sector, "DEFAULT")
         strength = signal.get("strength", "NONE")
 
+        # Explicit recipient destination has highest precedence
+        target_cid = signal.get("chat_id") or signal.get("target_chat_id")
+        if target_cid:
+            raw_targets.append(str(target_cid))
+
         cat_id = self.channel_map.get(category)
-        if cat_id:
+        if cat_id and cat_id not in raw_targets:
             raw_targets.append(cat_id)
 
         if signal.get("direction") in ("CALL", "PUT") and signal.get("signal") != "HOLD":
@@ -287,12 +292,20 @@ class _TelegramClient:
         else:
             dir_emoji, side = "\u26aa", "N/A"
 
+        custom_msg = signal.get("custom_message") or signal.get("formatted_message")
+        if custom_msg:
+            return str(custom_msg)
+
+        sig_id = signal.get("signal_id") or signal.get("sig_id") or ""
+        strategy = signal.get("strategy") or signal.get("strategy_name") or ""
+        cat_display = signal.get("category") or sector or "INDEX_OPTIONS"
+
         sep = "\u2500" * 30
         msg = (
             f"{sep}\n"
-            f"\U0001f514 [{sig_type}] ALERT  {dir_emoji}\n"
+            f"\U0001f514 [OPB QUALIFYING SIGNAL]  {dir_emoji}\n"
             f"{sep}\n"
-            f"\U0001f4cc Stock    : {symbol}\n"
+            f"\U0001f4cc Symbol   : {symbol}\n"
             f"\U0001f4b0 Price    : {R}{price:,.2f}\n"
             f"\U0001f4ca Signal   : {sig_type} {side}\n"
             f"\U0001f4aa Strength : {strength} (Score: {score:.0f}/100)\n"
@@ -301,6 +314,12 @@ class _TelegramClient:
             f"\U0001f4b9 Position : {position_pct:.0f}% ({exec_lots} lots) [{exec_mode}]\n"
             f"\U0001f3af Quality  : {quality:.0%}\n"
         )
+        if sig_id:
+            msg += f"🆔 Signal ID: {sig_id}\n"
+        if cat_display:
+            msg += f"📊 Category : {cat_display}\n"
+        if strategy:
+            msg += f"🎯 Strategy : {strategy}\n"
         if soft_blocks:
             msg += f"⚠️ Soft-blocks: {soft_str}\n"
         msg += (
@@ -314,6 +333,7 @@ class _TelegramClient:
         msg += (
             f"\U0001f552 Time  : {ts}\n"
             f"\U0001f3f7 Sector: {sector}\n"
+            f"⚡ Mode     : PAPER / SIGNAL_ONLY (Notification only - no live trade)\n"
             f"{sep}"
         )
         return msg
@@ -549,8 +569,9 @@ class TelegramNotificationAdapter(NotificationPort):
 
     def _notification_to_signal(self, notification: Notification) -> dict:
         """Convert Notification format to signal dict expected by _TelegramClient."""
+        rec = str(notification.recipient or "").strip()
         signal = {
-            "symbol": notification.recipient or "UNKNOWN",
+            "symbol": notification.metadata.get("symbol") or (rec if not (rec.isdigit() or rec.startswith("-")) else "UNKNOWN"),
             "signal": "BUY" if "BUY" in notification.message.upper() else "SELL" if "SELL" in notification.message.upper() else "ALERT",
             "price": 0.0,
             "strength": "STRONG" if notification.priority == NotificationPriority.CRITICAL else
@@ -562,5 +583,7 @@ class TelegramNotificationAdapter(NotificationPort):
             "score": 50,
             "message": notification.message
         }
+        if rec and (rec.isdigit() or rec.startswith("-") or rec.startswith("@")):
+            signal["chat_id"] = rec
         signal.update(notification.metadata)
         return signal
