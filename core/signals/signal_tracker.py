@@ -177,6 +177,24 @@ class SignalTracker:
                     )
                 """)
 
+                # 4. Delivery audit observations: append-only proof of physical adapter dispatch
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS signal_delivery_audit (
+                        audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        signal_id TEXT NOT NULL,
+                        username TEXT NOT NULL,
+                        channel TEXT NOT NULL,
+                        destination TEXT NOT NULL,
+                        attempted INTEGER NOT NULL,
+                        status TEXT NOT NULL,
+                        error_message TEXT,
+                        timestamp TEXT NOT NULL,
+                        FOREIGN KEY (signal_id) REFERENCES system_signals (signal_id)
+                    )
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_delivery_audit_sig_user ON signal_delivery_audit(signal_id, username, channel)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_delivery_audit_ts ON signal_delivery_audit(timestamp)")
+
                 # Migration: order-placed marking (admin manually records "I
                 # placed a real/paper order off this signal" for historical
                 # tracking - see mark_order_placed()). ADD COLUMN has no
@@ -592,6 +610,7 @@ class SignalTracker:
                     )
                     return 0
 
+                cur.execute(f"DELETE FROM signal_delivery_audit WHERE signal_id IN ({placeholders})", ids)
                 cur.execute(f"DELETE FROM user_deliveries WHERE signal_id IN ({placeholders})", ids)
                 cur.execute(f"DELETE FROM system_signals WHERE signal_id IN ({placeholders})", ids)
                 conn.commit()
@@ -865,5 +884,122 @@ class SignalTracker:
             except Exception as ex:
                 _log.error("Failed to fetch user signals for %s: %s", username, ex)
                 return {"username": username, "total_received": 0, "signals": []}
+            finally:
+                conn.close()
+
+    def record_delivery_attempt(
+        self,
+        signal_id: str,
+        username: str,
+        channel: str,
+        destination: str,
+        attempted: bool,
+        status: str,
+        error_message: str | None = None,
+    ) -> int:
+        """Record an append-only physical delivery attempt or outcome.
+
+        Status values: 'ELIGIBLE', 'QUEUED', 'ATTEMPTED', 'SENT', 'FAILED', 'RATE_LIMITED', 'DISABLED', 'NO_DESTINATION'
+        """
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                now_str = now_ist().strftime("%Y-%m-%d %H:%M:%S")
+                cur.execute("""
+                    INSERT INTO signal_delivery_audit (
+                        signal_id, username, channel, destination, attempted,
+                        status, error_message, timestamp
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    signal_id, username, channel.upper(), str(destination or ""),
+                    1 if attempted else 0, status.upper(),
+                    str(error_message or "") if error_message else None,
+                    now_str,
+                ))
+                audit_id = cur.lastrowid or 0
+                conn.commit()
+                return audit_id
+            except Exception as ex:
+                _log.error("Failed to record delivery attempt for %s/%s/%s: %s", signal_id, username, channel, ex)
+                return 0
+            finally:
+                conn.close()
+
+    def update_delivery_status(
+        self,
+        audit_id: int,
+        status: str,
+        error_message: str | None = None,
+    ) -> bool:
+        """Update the delivery status of an existing audit entry."""
+        if not audit_id:
+            return False
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                now_str = now_ist().strftime("%Y-%m-%d %H:%M:%S")
+                cur.execute("""
+                    UPDATE signal_delivery_audit
+                    SET status = ?, error_message = ?, timestamp = ?
+                    WHERE audit_id = ?
+                """, (status.upper(), str(error_message or "") if error_message else None, now_str, audit_id))
+                conn.commit()
+                return cur.rowcount > 0
+            except Exception as ex:
+                _log.error("Failed to update delivery status for audit %d: %s", audit_id, ex)
+                return False
+            finally:
+                conn.close()
+
+    def is_signal_delivered(self, signal_id: str, username: str, channel: str) -> bool:
+        """Check if a signal has already been successfully delivered to user on channel."""
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT 1 FROM signal_delivery_audit
+                    WHERE signal_id = ? AND username = ? AND channel = ? AND status = 'SENT'
+                    LIMIT 1
+                """, (signal_id, username, channel.upper()))
+                return cur.fetchone() is not None
+            except Exception as ex:
+                _log.error("Failed to check delivery status: %s", ex)
+                return False
+            finally:
+                conn.close()
+
+    def get_delivery_audit(
+        self,
+        signal_id: str | None = None,
+        username: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Retrieve delivery audit records with optional filtering."""
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                conditions = []
+                params = []
+                if signal_id:
+                    conditions.append("signal_id = ?")
+                    params.append(signal_id)
+                if username:
+                    conditions.append("username = ?")
+                    params.append(username)
+                where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+                cur.execute(f"""
+                    SELECT * FROM signal_delivery_audit
+                    {where}
+                    ORDER BY audit_id DESC
+                    LIMIT ?
+                """, (*params, limit))
+                return [dict(r) for r in cur.fetchall()]
+            except Exception as ex:
+                _log.error("Failed to fetch delivery audit: %s", ex)
+                return []
             finally:
                 conn.close()

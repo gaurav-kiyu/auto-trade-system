@@ -67,7 +67,8 @@ except ImportError:
     class StaticFiles:  # type: ignore
         def __init__(self, *args: Any, **kwargs: Any) -> None: pass
     class Jinja2Templates:  # type: ignore
-        def __init__(self, *args: Any, **kwargs: Any) -> None: pass
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            self.env = type("Env", (), {"globals": {}})()
         def TemplateResponse(self, *args: Any, **kwargs: Any) -> Any: return None
 
 
@@ -137,7 +138,8 @@ class EnterpriseDashboard:
             except Exception:
                 return False
 
-        self._templates.env.globals["user_can"] = _template_user_can
+        if hasattr(self._templates, "env") and hasattr(self._templates.env, "globals"):
+            self._templates.env.globals["user_can"] = _template_user_can
 
         # Early wiring of dashboard reference for template page context
         from core.enterprise_dashboard.routes import pages as _pages_mod

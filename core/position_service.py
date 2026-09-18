@@ -1000,9 +1000,9 @@ class PositionService:
         score = float(sig.get("score") if sig.get("score") is not None else (sig.get("raw_score") or 0))
 
         cfg = getattr(self, "_cfg", None) or {}
-        moderate_th = float(cfg.get("MODERATE_THRESHOLD", 68))
-        strong_th = float(cfg.get("STRONG_THRESHOLD", 80))
-        ai_th = float(cfg.get("AI_THRESHOLD", 60))
+        moderate_th = float(cfg.get("TIER_MODERATE_MIN", cfg.get("MODERATE_THRESHOLD", 70)))
+        strong_th = float(cfg.get("TIER_STRONG_MIN", cfg.get("STRONG_THRESHOLD", 80)))
+        ai_th = float(cfg.get("TIER_WEAK_MIN", cfg.get("AI_THRESHOLD", 60)))
 
         if tier in ("STRONG", "MODERATE"):
             return True
@@ -1079,9 +1079,9 @@ class PositionService:
         tier = str(signal_record.get("tier") or signal_record.get("strength") or "").upper()
         if not tier or tier not in ("STRONG", "MODERATE", "WEAK", "IGNORE"):
             cfg = getattr(self, "_cfg", None) or {}
-            strong_th = int(cfg.get("STRONG_THRESHOLD", 80))
-            moderate_th = int(cfg.get("MODERATE_THRESHOLD", 68))
-            ai_th = int(cfg.get("AI_THRESHOLD", 60))
+            strong_th = int(cfg.get("TIER_STRONG_MIN", cfg.get("STRONG_THRESHOLD", 80)))
+            moderate_th = int(cfg.get("TIER_MODERATE_MIN", cfg.get("MODERATE_THRESHOLD", 70)))
+            ai_th = int(cfg.get("TIER_WEAK_MIN", cfg.get("AI_THRESHOLD", 60)))
             if score_val >= strong_th:
                 tier = "STRONG"
             elif score_val >= moderate_th:
@@ -1130,6 +1130,20 @@ class PositionService:
                 or ""
             ).strip()
 
+        # Dual-Channel Notification Boundary (Out-of-band from trade execution):
+        # When a genuine qualifying signal is newly persisted (not a suppressed duplicate),
+        # dispatch independent Telegram and Email notifications to eligible users.
+        if signal_id:
+            sig["signal_id"] = signal_id
+            try:
+                self._dispatch_signal_notifications(
+                    signal_record=signal_record,
+                    signal_id=signal_id,
+                    eligible_users=eligible_users,
+                )
+            except Exception as _notify_err:
+                _log.warning("Out-of-band signal notification dispatch failed (fail-open for signal): %s", _notify_err)
+
         # Repeated evaluation / deduplication handling
         if not signal_id:
             record_dir = str(signal_record.get("direction") or direction).upper()
@@ -1150,6 +1164,30 @@ class PositionService:
             sig["signal_id"] = signal_id
 
         return signal_id
+
+    def _dispatch_signal_notifications(
+        self,
+        signal_record: dict[str, Any],
+        signal_id: str,
+        eligible_users: list[Any] | None = None,
+    ) -> None:
+        """Dispatch dual-channel qualifying signal notifications out-of-band from trade execution."""
+        ns = getattr(self, "_notification_service", None)
+        if ns is None:
+            try:
+                from core.services.notification_service import get_notification_service
+                ns = get_notification_service(cfg=getattr(self, "_cfg", None))
+                self._notification_service = ns
+            except Exception as get_ns_err:
+                _log.debug("Lazy get_notification_service failed: %s", get_ns_err)
+
+        if ns is not None and hasattr(ns, "dispatch_qualifying_signal"):
+            try:
+                sig_to_dispatch = dict(signal_record)
+                sig_to_dispatch["signal_id"] = signal_id
+                ns.dispatch_qualifying_signal(sig_to_dispatch, eligible_users=eligible_users)
+            except Exception as dispatch_err:
+                _log.warning("Qualifying signal dispatch error (fail-open for signal): %s", dispatch_err)
 
     def _submit_order_under_lock(
         self, name: str, price: float, qty: int, sig: dict[str, Any],
