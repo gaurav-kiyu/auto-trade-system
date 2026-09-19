@@ -182,6 +182,10 @@ class MorningChecklist:
         ipo_ok, ipo_msg = self._check_ipo_calendar()
         report_lines.append(f"  [{'ℹ' if ipo_ok else 'i'}] {ipo_msg}")
 
+        # 14. Sweep stale signals from prior sessions
+        stale_ok, stale_msg = self._sweep_stale_signals()
+        report_lines.append(f"  [{'✓' if stale_ok else 'i'}] {stale_msg}")
+
         # Summary
         report_lines.append("")
         if critical_failed:
@@ -434,6 +438,20 @@ class MorningChecklist:
         except (ImportError, AttributeError, ValueError) as e:
             self._logger.warning(f"IPO calendar check failed: {e}")
             return True, "IPO calendar check unavailable"
+
+    def _sweep_stale_signals(self) -> tuple[bool, str]:
+        """Sweep and transition stale signals from prior sessions to EXPIRED. Fail-open."""
+        try:
+            from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+            tracker = SignalOutcomeTracker.get_instance()
+            res = tracker.run_stale_signal_expiry_sweep(force=True)
+            trans = res.get("transitioned", 0)
+            if trans > 0:
+                return True, f"Signal lifecycle: {trans} stale signal(s) expired"
+            return True, "Signal lifecycle: clean"
+        except (ImportError, AttributeError, ValueError, OSError) as e:
+            self._logger.warning(f"Signal lifecycle sweep failed: {e}")
+            return True, "Signal lifecycle sweep skipped"
 
 
 def run_morning_checklist(

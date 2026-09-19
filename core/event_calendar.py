@@ -240,6 +240,8 @@ _NSE_HOLIDAY_API  = "https://www.nseindia.com/api/holiday-master?type=trading"
 _LIVE_HOLIDAYS: set[datetime.date] | None = None
 _LIVE_HOLIDAYS_TS: float = 0.0
 _LIVE_HOLIDAYS_TTL: float = 3600.0  # 1 hour cache (in-memory)
+_LIVE_HOLIDAYS_FAILURE_TS: float = 0.0
+_LIVE_HOLIDAYS_FAILURE_TTL: float = 300.0  # 5 minutes failure backoff to prevent NSE 403 request flooding
 _LIVE_HOLIDAYS_LOCK = threading.RLock()
 
 # Persistent file cache path (survives restarts)
@@ -345,17 +347,27 @@ def _fetch_nse_holidays() -> set[datetime.date]:
 
 
 def _get_live_holidays() -> set[datetime.date]:
-    """Return cached live NSE holidays, refreshing from API if stale."""
-    global _LIVE_HOLIDAYS, _LIVE_HOLIDAYS_TS
+    """Return cached live NSE holidays, refreshing from API if stale.
+
+    Throttled by _LIVE_HOLIDAYS_FAILURE_TTL on failure to prevent NSE 403 request flooding.
+    """
+    global _LIVE_HOLIDAYS, _LIVE_HOLIDAYS_TS, _LIVE_HOLIDAYS_FAILURE_TS
     now = _time.time()
     with _LIVE_HOLIDAYS_LOCK:
+        # If a fetch failed within failure TTL window, do not hit API again
+        if (now - _LIVE_HOLIDAYS_FAILURE_TS) < _LIVE_HOLIDAYS_FAILURE_TTL:
+            return set(_LIVE_HOLIDAYS or ())
+
         if _LIVE_HOLIDAYS is None or (now - _LIVE_HOLIDAYS_TS) > _LIVE_HOLIDAYS_TTL:
             fetched = _fetch_nse_holidays()
             if fetched:
                 _LIVE_HOLIDAYS = fetched
                 _LIVE_HOLIDAYS_TS = now
-            elif _LIVE_HOLIDAYS is None:
-                _LIVE_HOLIDAYS = set()  # empty fallback if never fetched
+                _LIVE_HOLIDAYS_FAILURE_TS = 0.0
+            else:
+                _LIVE_HOLIDAYS_FAILURE_TS = now
+                if _LIVE_HOLIDAYS is None:
+                    _LIVE_HOLIDAYS = set()  # empty fallback if never fetched
         return set(_LIVE_HOLIDAYS)
 
 

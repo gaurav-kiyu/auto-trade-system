@@ -24,7 +24,10 @@ import logging
 import threading
 from typing import Any
 
-import duckdb
+try:
+    import duckdb
+except ImportError:
+    duckdb = None  # type: ignore
 
 _log = logging.getLogger(__name__)
 
@@ -46,6 +49,9 @@ class TimeSeriesDataLake:
         self._init_db()
 
     def _init_db(self):
+        if duckdb is None:
+            _log.debug("DuckDB not installed; timeseries data lake operating in stub mode")
+            return
         try:
             self._conn = duckdb.connect(self.db_path)
             # Create a hyper-fast columnar table for market ticks

@@ -23,6 +23,7 @@ import json
 import logging
 import sqlite3
 import threading
+import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -99,6 +100,7 @@ class SignalEvaluationResult:
 class SignalOutcomeTracker:
     """Observational subsystem for tracking and evaluating real-market signal outcomes."""
 
+    _instances: dict[Path, SignalOutcomeTracker] = {}
     _instance: SignalOutcomeTracker | None = None
     _lock = threading.Lock()
 
@@ -110,6 +112,8 @@ class SignalOutcomeTracker:
         self._db_path = Path(db_path) if db_path is not None else _DEFAULT_DB_PATH
         self._calendar_engine = calendar_engine or ExchangeCalendarEngine()
         self._io_lock = threading.Lock()
+        self._last_sweep_ts: float = 0.0
+        self._sweep_min_interval: float = 60.0
         self._ensure_schema()
 
     @classmethod
@@ -118,14 +122,18 @@ class SignalOutcomeTracker:
         db_path: Path | str | None = None,
         calendar_engine: ExchangeCalendarEngine | None = None,
     ) -> SignalOutcomeTracker:
+        target_path = Path(db_path or _DEFAULT_DB_PATH).resolve()
         with cls._lock:
-            if cls._instance is None:
-                cls._instance = cls(db_path=db_path, calendar_engine=calendar_engine)
-            return cls._instance
+            if target_path not in cls._instances:
+                cls._instances[target_path] = cls(db_path=target_path, calendar_engine=calendar_engine)
+            inst = cls._instances[target_path]
+            cls._instance = inst
+            return inst
 
     @classmethod
     def reset_instance(cls) -> None:
         with cls._lock:
+            cls._instances.clear()
             cls._instance = None
 
     def _get_conn(self) -> sqlite3.Connection:
@@ -298,7 +306,7 @@ class SignalOutcomeTracker:
         is_trading_day = self._calendar_engine.is_market_day(today_date)
 
         # Intraday options vs swing holding
-        is_intraday = "OPTION" in category or "0DTE" in category
+        is_intraday = ("OPTION" in category) or ("0DTE" in category) or ("INTRADAY" in category)
 
         new_status = None
         new_first_touch = existing_first_touch
@@ -341,55 +349,65 @@ class SignalOutcomeTracker:
                 transition_note = f"Stop loss hit at bar low/high {bar.low if is_call else bar.high}"
             else:
                 # No barrier hit in this bar. Check if signal has reached horizon expiry.
-                if is_trading_day and created_date_str:
+                created_d = None
+                if created_date_str:
                     try:
-                        created_d = datetime.date.fromisoformat(created_date_str)
+                        created_d = datetime.date.fromisoformat(created_date_str[:10])
                     except Exception:
-                        created_d = today_date
+                        pass
+                if created_d is None and signal.get("timestamp"):
+                    try:
+                        created_d = datetime.date.fromisoformat(str(signal["timestamp"])[:10])
+                    except Exception:
+                        pass
+                if created_d is None:
+                    created_d = today_date
 
-                    # Near-close grace period:
-                    # If signal was generated today after 15:15 IST, it receives a 1-session grace
-                    # period and is not expired today at 15:30 IST.
-                    sig_ts_raw = str(signal.get("timestamp") or "")
-                    near_close_created = False
-                    if sig_ts_raw:
-                        try:
-                            # parse HH:MM
-                            time_part = sig_ts_raw.split(" ")[-1].split("T")[-1]
-                            h, m = int(time_part[:2]), int(time_part[3:5])
-                            if datetime.time(h, m) >= NEAR_CLOSE_THRESHOLD_TIME:
-                                near_close_created = True
-                        except Exception:
-                            pass
+                # Near-close grace period:
+                # If signal was generated today after 15:15 IST, it receives a 1-session grace
+                # period and is not expired today at 15:30 IST.
+                sig_ts_raw = str(signal.get("timestamp") or "")
+                near_close_created = False
+                if sig_ts_raw:
+                    try:
+                        # parse HH:MM
+                        time_part = sig_ts_raw.split(" ")[-1].split("T")[-1]
+                        h, m = int(time_part[:2]), int(time_part[3:5])
+                        if datetime.time(h, m) >= NEAR_CLOSE_THRESHOLD_TIME:
+                            near_close_created = True
+                    except Exception:
+                        pass
 
-                    # Intraday expiration check
-                    if is_intraday:
-                        if created_d < today_date:
-                            # From a previous calendar day -> Expired
-                            new_status = "EXPIRED"
-                            new_first_touch = "EXPIRED"
-                            new_first_touch_at = now_str
-                            new_first_touch_price = bar.close
-                            new_confidence = OutcomeConfidence.UNRESOLVED.value
-                            transition_note = f"Intraday signal expired (created {created_date_str}, current {today_date})"
-                        elif created_d == today_date and now.time() >= MARKET_CLOSE_TIME and not near_close_created:
-                            # Created today before 15:15, and now market is closed (>= 15:30)
-                            new_status = "EXPIRED"
-                            new_first_touch = "EXPIRED"
-                            new_first_touch_at = now_str
-                            new_first_touch_price = bar.close
-                            new_confidence = OutcomeConfidence.UNRESOLVED.value
-                            transition_note = f"Intraday signal expired at session close (15:30 IST)"
-                    else:
-                        # Swing / Delivery: expires after 5 trading days without touching T1 or SL
-                        trading_days_elapsed = self._count_trading_days(created_d, today_date)
-                        if trading_days_elapsed >= 5:
-                            new_status = "EXPIRED"
-                            new_first_touch = "EXPIRED"
-                            new_first_touch_at = now_str
-                            new_first_touch_price = bar.close
-                            new_confidence = OutcomeConfidence.UNRESOLVED.value
-                            transition_note = f"Swing signal expired after {trading_days_elapsed} trading days"
+                # Intraday expiration check (suppressed on weekends and holidays)
+                if not is_trading_day:
+                    pass
+                elif is_intraday:
+                    if created_d < today_date:
+                        # From a previous calendar day -> Expired
+                        new_status = "EXPIRED"
+                        new_first_touch = "EXPIRED"
+                        new_first_touch_at = now_str
+                        new_first_touch_price = bar.close
+                        new_confidence = OutcomeConfidence.UNRESOLVED.value
+                        transition_note = f"Intraday signal expired (created {created_date_str}, current {today_date})"
+                    elif created_d == today_date and now.time() >= MARKET_CLOSE_TIME and not near_close_created:
+                        # Created today before 15:15, and now market is closed (>= 15:30)
+                        new_status = "EXPIRED"
+                        new_first_touch = "EXPIRED"
+                        new_first_touch_at = now_str
+                        new_first_touch_price = bar.close
+                        new_confidence = OutcomeConfidence.UNRESOLVED.value
+                        transition_note = f"Intraday signal expired at session close (15:30 IST)"
+                else:
+                    # Swing / Delivery: expires after 5 trading days without touching T1 or SL
+                    trading_days_elapsed = self._count_trading_days(created_d, today_date)
+                    if trading_days_elapsed >= 5:
+                        new_status = "EXPIRED"
+                        new_first_touch = "EXPIRED"
+                        new_first_touch_at = now_str
+                        new_first_touch_price = bar.close
+                        new_confidence = OutcomeConfidence.UNRESOLVED.value
+                        transition_note = f"Swing signal expired after {trading_days_elapsed} trading days"
         else:
             # FIRST-TOUCH IMMUTABILITY: first_touch, first_touch_at, first_touch_price are write-once historical truth.
             new_first_touch_price = existing_first_touch_price
@@ -400,6 +418,42 @@ class SignalOutcomeTracker:
                 elif hit_sl:
                     new_status = "SL_HIT"
                     transition_note = f"Stop loss hit following initial T1 hit (Lifecycle progression recorded)"
+                else:
+                    # Horizon expiry check after initial T1 hit
+                    created_d = None
+                    if created_date_str:
+                        try:
+                            created_d = datetime.date.fromisoformat(created_date_str[:10])
+                        except Exception:
+                            pass
+                    if created_d is None and signal.get("timestamp"):
+                        try:
+                            created_d = datetime.date.fromisoformat(str(signal["timestamp"])[:10])
+                        except Exception:
+                            pass
+                    if created_d is None:
+                        created_d = today_date
+
+                    sig_ts_raw = str(signal.get("timestamp") or "")
+                    near_close_created = False
+                    if sig_ts_raw:
+                        try:
+                            time_part = sig_ts_raw.split(" ")[-1].split("T")[-1]
+                            h, m = int(time_part[:2]), int(time_part[3:5])
+                            if datetime.time(h, m) >= NEAR_CLOSE_THRESHOLD_TIME:
+                                near_close_created = True
+                        except Exception:
+                            pass
+
+                    if is_intraday:
+                        if created_d < today_date or (created_d == today_date and is_trading_day and now.time() >= MARKET_CLOSE_TIME and not near_close_created):
+                            new_status = "EXPIRED"
+                            transition_note = f"Intraday signal expired after hitting T1 (first_touch preserved)"
+                    else:
+                        trading_days_elapsed = self._count_trading_days(created_d, today_date)
+                        if trading_days_elapsed >= 5:
+                            new_status = "EXPIRED"
+                            transition_note = f"Swing signal expired after {trading_days_elapsed} trading days (first_touch preserved)"
             elif existing_first_touch in ("SL", "AMBIGUOUS", "EXPIRED", "AMBIGUOUS_SAME_BAR"):
                 # Terminal states remain unchanged
                 new_status = current_status
@@ -549,28 +603,28 @@ class SignalOutcomeTracker:
                             price_flt = float(price)
 
 
-                        is_call = direction in ("CALL", "BUY", "LONG")
-                        if is_call:
-                            hit_sl, hit_t1, hit_t2 = price_flt <= sl, price_flt >= t1, price_flt >= t2
-                        else:
-                            hit_sl, hit_t1, hit_t2 = price_flt >= sl, price_flt <= t1, price_flt <= t2
+                            is_call = direction in ("CALL", "BUY", "LONG")
+                            if is_call:
+                                hit_sl, hit_t1, hit_t2 = price_flt <= sl, price_flt >= t1, price_flt >= t2
+                            else:
+                                hit_sl, hit_t1, hit_t2 = price_flt >= sl, price_flt <= t1, price_flt <= t2
 
-                        eval_result = self.evaluate_tick(row, price_flt, current_time=now)
+                            eval_result = self.evaluate_tick(row, price_flt, current_time=now)
 
-                        # In single LTP observation, if multiple targets crossed in one poll
-                        # (e.g. price moved from 100 to 190, crossing both T1 and T2), existing tests
-                        # assert AMBIGUOUS_SAME_OBSERVATION for single-tick polling if sum > 1:
-                        existing_first_touch = str(row.get("first_touch") or "").strip()
-                        if not existing_first_touch and sum((hit_sl, hit_t1, hit_t2)) > 1:
-                            eval_result.first_touch = "AMBIGUOUS_SAME_OBSERVATION"
-                            eval_result.first_touch_price = price_flt
-                            eval_result.outcome_confidence = OutcomeConfidence.AMBIGUOUS.value
-                            eval_result.new_status = "AMBIGUOUS"
+                            # In single LTP observation, if multiple targets crossed in one poll
+                            # (e.g. price moved from 100 to 190, crossing both T1 and T2), existing tests
+                            # assert AMBIGUOUS_SAME_OBSERVATION for single-tick polling if sum > 1:
+                            existing_first_touch = str(row.get("first_touch") or "").strip()
+                            if not existing_first_touch and sum((hit_sl, hit_t1, hit_t2)) > 1:
+                                eval_result.first_touch = "AMBIGUOUS_SAME_OBSERVATION"
+                                eval_result.first_touch_price = price_flt
+                                eval_result.outcome_confidence = OutcomeConfidence.AMBIGUOUS.value
+                                eval_result.new_status = "AMBIGUOUS"
 
                     if eval_result is None:
                         continue
 
-                    # Persist lifecycle event if barrier status changed (Idempotency)
+                    # Persist lifecycle event if barrier status changed or expired (Idempotency)
                     current_hits = (int(eval_result.hit_sl), int(eval_result.hit_t1), int(eval_result.hit_t2))
                     cur.execute(
                         """SELECT hit_sl, hit_t1, hit_t2
@@ -587,21 +641,34 @@ class SignalOutcomeTracker:
                         else None
                     )
 
-                    if prev_hits != current_hits and (eval_result.hit_sl or eval_result.hit_t1 or eval_result.hit_t2):
-                        cur.execute(
-                            """INSERT INTO signal_outcome_events
-                               (signal_id, observed_at, observed_price, hit_sl, hit_t1, hit_t2, transition_note)
-                               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                            (
-                                row["signal_id"],
-                                now_str,
-                                eval_result.current_price,
-                                int(eval_result.hit_sl),
-                                int(eval_result.hit_t1),
-                                int(eval_result.hit_t2),
-                                eval_result.transition_note,
-                            ),
-                        )
+                    should_log_barrier = prev_hits != current_hits and (eval_result.hit_sl or eval_result.hit_t1 or eval_result.hit_t2)
+                    should_log_expiry = eval_result.new_status == "EXPIRED"
+
+                    if should_log_barrier or should_log_expiry:
+                        already_logged = False
+                        if should_log_expiry:
+                            cur.execute(
+                                """SELECT event_id FROM signal_outcome_events
+                                   WHERE signal_id = ? AND transition_note LIKE '%expired%'""",
+                                (row["signal_id"],),
+                            )
+                            already_logged = cur.fetchone() is not None
+
+                        if not already_logged:
+                            cur.execute(
+                                """INSERT INTO signal_outcome_events
+                                   (signal_id, observed_at, observed_price, hit_sl, hit_t1, hit_t2, transition_note)
+                                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                                (
+                                    row["signal_id"],
+                                    now_str,
+                                    eval_result.current_price,
+                                    int(eval_result.hit_sl),
+                                    int(eval_result.hit_t1),
+                                    int(eval_result.hit_t2),
+                                    eval_result.transition_note,
+                                ),
+                            )
 
                     # Update system_signals and user_deliveries if new status
                     if eval_result.new_status is not None:
@@ -965,6 +1032,41 @@ class SignalOutcomeTracker:
                 }
             finally:
                 conn.close()
+
+    @classmethod
+    def sweep_stale_signals(
+        cls,
+        db_path: Path | str | None = None,
+        force: bool = False,
+    ) -> dict[str, Any]:
+        """Convenience classmethod to sweep stale signals for a given DB path."""
+        tracker = cls.get_instance(db_path=db_path)
+        return tracker.run_stale_signal_expiry_sweep(force=force)
+
+    def run_stale_signal_expiry_sweep(
+        self,
+        force: bool = False,
+        current_time: datetime.datetime | None = None,
+    ) -> dict[str, Any]:
+        """Periodically sweep and transition stale non-terminal signals to EXPIRED.
+
+        Rate-limited to run at most once per 60 seconds (unless force=True).
+        Safe to call from any daemon loop, scheduler, or checklist.
+        """
+        now = current_time or now_ist()
+        now_epoch = time.time() if current_time is None else current_time.timestamp()
+        with self._io_lock:
+            if not force and (now_epoch - self._last_sweep_ts) < self._sweep_min_interval:
+                return {"status": "throttled", "transitioned": 0}
+            self._last_sweep_ts = now_epoch
+
+        res = self.expire_stale_signals(dry_run=False, current_time=now)
+        if res.get("transitioned", 0) > 0:
+            _log.info(
+                "[OUTCOME_TRACKER] Stale signal expiry sweep transitioned %d signal(s) to EXPIRED",
+                res["transitioned"],
+            )
+        return res
 
     def get_outcome_statistics(
 

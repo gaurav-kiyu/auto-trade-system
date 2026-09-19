@@ -17,6 +17,7 @@ from collections.abc import Generator
 from typing import Any
 
 import pytest
+pytest.importorskip("duckdb")
 from core.adapters.database import DuckDBDatabaseAdapter
 from core.adapters.database.duckdb_adapter import _parse_duckdb_dsn
 from core.ports.database import DatabasePort, DatabaseStats

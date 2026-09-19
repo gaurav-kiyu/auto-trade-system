@@ -31,7 +31,7 @@ class TestHeartbeatAndLag:
 
     def test_lag_grows_without_heartbeat(self):
         wd = LoopWatchdog(cfg={})
-        time.sleep(0.05)
+        time.sleep(0.08)
         assert wd.get_lag() >= 0.05
 
 

@@ -100,7 +100,7 @@ class LoopWatchdog:
         with self._lock:
             elapsed = time.monotonic() - self._last_heartbeat
             timeout = self._timeout()
-            stalled = elapsed > timeout
+            stalled = elapsed >= timeout
             if stalled and not self._alerted:
                 self._alerted = True
                 _log.critical(

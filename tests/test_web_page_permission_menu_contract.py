@@ -16,7 +16,7 @@ def test_governance_menu_matches_toggle_strategies_page_gate():
 def test_trade_copier_menu_matches_broker_management_boundary():
     nav = NAV.read_text(encoding="utf-8")
     pages = PAGES.read_text(encoding="utf-8")
-    assert nav.count('{% if can_manage_brokers %}<a href="/trade-copier"') == 2
+    assert nav.count("{% if can_manage_brokers and capabilities.trade_copier == 'AVAILABLE' %}<a href=\"/trade-copier\"") == 2
     # Trade Copier remains an admin-only page; menu is hidden for users without broker-management privilege.
     assert 'name="trade_copier.html"' in pages
     assert 'user, err = _require_admin_page(request)' in pages

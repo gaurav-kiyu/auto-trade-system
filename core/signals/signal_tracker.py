@@ -520,6 +520,12 @@ class SignalTracker:
         tracker = SignalOutcomeTracker.get_instance(db_path=self._db_path)
         return tracker.update_active_signal_outcomes(price_lookup_fn=price_lookup_fn)
 
+    def run_stale_signal_expiry_sweep(self, force: bool = False) -> dict[str, Any]:
+        """Expose periodic stale signal expiry sweep on SignalTracker."""
+        from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+        tracker = SignalOutcomeTracker.get_instance(db_path=self._db_path)
+        return tracker.run_stale_signal_expiry_sweep(force=force)
+
     def mark_order_placed(self, signal_id: str, placed: bool, username: str) -> bool:
         """Record that an admin/user actually placed a real (or paper) order
         off this specific signal - a manual complement to

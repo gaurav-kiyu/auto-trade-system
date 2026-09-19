@@ -204,7 +204,7 @@
   "WATCHDOG_TIMEOUT": 300,
   "loop_watchdog_enabled": false,
   "timeseries_lake_enabled": false,
-  "signal_outcome_tracking_enabled": false,
+  "signal_outcome_tracking_enabled": true,
   "EXCEPTION_ALERT_THRESHOLD": 10,
   "SHUTDOWN_ON_UI_CLOSE": true,
   "FORCE_EXIT_AFTER_SHUTDOWN": true,

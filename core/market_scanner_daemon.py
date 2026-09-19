@@ -76,6 +76,11 @@ def run_continuous_daemon(
 
         if not in_market:
             _log.info("[STANDBY] Market is currently CLOSED (Trading Hours: 09:15-15:30 IST, Mon-Fri). Sleeping for 60s...")
+            try:
+                from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+                SignalOutcomeTracker.get_instance().run_stale_signal_expiry_sweep()
+            except Exception as e:
+                _log.debug("[STANDBY] Expiry sweep skipped: %s", e)
             time.sleep(60)
             continue
 

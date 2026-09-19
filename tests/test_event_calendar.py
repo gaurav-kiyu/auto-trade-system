@@ -645,3 +645,24 @@ class TestSEBICircular:
         assert isinstance(summary, list)
         if summary:
             assert summary[0]["title"] == "Margin change"
+
+    def test_get_live_holidays_failure_backoff(self):
+        """When _fetch_nse_holidays returns empty/fails, subsequent calls within failure TTL do not retry."""
+        import core.event_calendar as ec
+        with patch.object(ec, "_fetch_nse_holidays") as mock_fetch:
+            mock_fetch.return_value = set()  # simulate failure
+            # Reset cache state
+            ec._LIVE_HOLIDAYS = None
+            ec._LIVE_HOLIDAYS_TS = 0.0
+            ec._LIVE_HOLIDAYS_FAILURE_TS = 0.0
+
+            # First call attempts fetch
+            res1 = ec._get_live_holidays()
+            assert res1 == set()
+            assert mock_fetch.call_count == 1
+            assert ec._LIVE_HOLIDAYS_FAILURE_TS > 0.0
+
+            # Second call within TTL does NOT call fetch again (prevents 403 request flooding)
+            res2 = ec._get_live_holidays()
+            assert res2 == set()
+            assert mock_fetch.call_count == 1

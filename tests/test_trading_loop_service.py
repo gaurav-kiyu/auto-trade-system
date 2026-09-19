@@ -182,6 +182,7 @@ class TestTimeseriesLakeWiring:
     def test_enabled_real_tick_actually_recorded(self, tmp_path):
         """End-to-end (no mocking of TimeSeriesDataLake itself): with the
         flag on, a real tick lands in a real DuckDB-backed lake."""
+        pytest.importorskip("duckdb")
         from core.persistence.timeseries_db import (
             get_timeseries_lake,
             reset_timeseries_lake,
@@ -456,3 +457,27 @@ class TestSignalOutcomeTrackingWiring:
         svc = _make_service(cfg={"signal_outcome_tracking_enabled": True})
         with patch("core.signals.signal_tracker.SignalTracker.get_instance", side_effect=ValueError("boom")):
             svc._update_signal_outcomes_tick(self._frames_with_price("NIFTY", 100.0))  # must not raise
+
+
+# =============================================================================
+# Stale signal expiry sweep wiring
+# =============================================================================
+
+class TestStaleSignalExpirySweepWiring:
+    def test_off_market_cycle_triggers_sweep(self):
+        shutdown_evt = threading.Event()
+        shutdown_evt.set()
+        svc = _make_service(market_status_fn=lambda: "POST_MARKET", shutdown_event=shutdown_evt)
+        with patch("core.signals.signal_outcome_tracker.SignalOutcomeTracker.get_instance") as mock_get:
+            mock_tracker = MagicMock()
+            mock_get.return_value = mock_tracker
+            svc.execute_cycle()
+            mock_tracker.run_stale_signal_expiry_sweep.assert_called_once()
+
+    def test_sweep_internal_error_is_swallowed(self):
+        shutdown_evt = threading.Event()
+        shutdown_evt.set()
+        svc = _make_service(market_status_fn=lambda: "POST_MARKET", shutdown_event=shutdown_evt)
+        with patch("core.signals.signal_outcome_tracker.SignalOutcomeTracker.get_instance", side_effect=RuntimeError("boom")):
+            svc.execute_cycle()  # must not raise
+

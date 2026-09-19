@@ -284,6 +284,7 @@ class TradingLoopService:
         """One iteration: check market → fetch data → evaluate signals → monitor → reconcile."""
         mkt_status = self._market_status()
         if mkt_status not in ("OPEN",):
+            self._maybe_sweep_stale_signals()
             self._shutdown.wait(60 if mkt_status != "HOLIDAY" else 300)
             return
         if self._is_hard_halted():
@@ -392,6 +393,14 @@ class TradingLoopService:
             SignalTracker.get_instance().update_active_signal_outcomes(_price_lookup)
         except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
             _log.debug("Signal outcome tracking tick failed", exc_info=True)
+
+    def _maybe_sweep_stale_signals(self) -> None:
+        """Periodic sweep of stale signals past holding horizon when off-market. Fail-open."""
+        try:
+            from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+            SignalOutcomeTracker.get_instance().run_stale_signal_expiry_sweep()
+        except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError, RuntimeError):
+            _log.debug("Off-market stale signal sweep failed", exc_info=True)
 
     def _record_oi_snapshots(self) -> None:
         """Record OI snapshots (best-effort)."""
