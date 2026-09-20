@@ -195,6 +195,45 @@ class SignalTracker:
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_delivery_audit_sig_user ON signal_delivery_audit(signal_id, username, channel)")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_delivery_audit_ts ON signal_delivery_audit(timestamp)")
 
+                # 5. Durable notification retry queue: supports independent multi-attempt exponential backoff
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS notification_retry_queue (
+                        retry_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        signal_id TEXT NOT NULL,
+                        username TEXT NOT NULL,
+                        channel TEXT NOT NULL,
+                        destination TEXT NOT NULL,
+                        payload TEXT NOT NULL,
+                        attempt_count INTEGER NOT NULL DEFAULT 0,
+                        max_attempts INTEGER NOT NULL DEFAULT 3,
+                        next_attempt_at TEXT NOT NULL,
+                        last_error TEXT,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'PENDING',
+                        FOREIGN KEY (signal_id) REFERENCES system_signals (signal_id)
+                    )
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_notif_retry_status ON notification_retry_queue(status, next_attempt_at)")
+                cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_notif_retry_unique ON notification_retry_queue(signal_id, username, channel)")
+
+                # 6. Dead letter queue (DLQ) for permanently failed notifications after exhausted retries
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS notification_dead_letter (
+                        dlq_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        signal_id TEXT NOT NULL,
+                        username TEXT NOT NULL,
+                        channel TEXT NOT NULL,
+                        destination TEXT NOT NULL,
+                        payload TEXT,
+                        attempt_count INTEGER NOT NULL,
+                        last_error TEXT,
+                        dead_lettered_at TEXT NOT NULL,
+                        FOREIGN KEY (signal_id) REFERENCES system_signals (signal_id)
+                    )
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_notif_dlq_sig ON notification_dead_letter(signal_id, username, channel)")
+
                 # Migration: order-placed marking (admin manually records "I
                 # placed a real/paper order off this signal" for historical
                 # tracking - see mark_order_placed()). ADD COLUMN has no
@@ -702,6 +741,18 @@ class SignalTracker:
                 """, params)
                 all_raw_rows = [dict(r) for r in cur.fetchall()]
 
+                for r in all_raw_rows:
+                    raw = r.get("raw_data")
+                    components = {}
+                    if raw:
+                        try:
+                            parsed = json.loads(raw) if isinstance(raw, str) else raw
+                            if isinstance(parsed, dict):
+                                components = parsed.get("score_components") or {}
+                        except Exception:
+                            pass
+                    r["score_components"] = components
+
                 demo_samples_available = any(bool(r.get("raw_data") and "is_seed_sample" in r["raw_data"]) for r in all_raw_rows)
                 total_real_signals = sum(1 for r in all_raw_rows if not (r.get("raw_data") and "is_seed_sample" in r["raw_data"]))
                 total_seeded_signals = len(all_raw_rows) - total_real_signals
@@ -793,6 +844,75 @@ class SignalTracker:
             except Exception as ex:
                 _log.error("Failed to compute admin signal analytics: %s", ex)
                 return {"error": str(ex), "signals": []}
+            finally:
+                conn.close()
+
+    def get_signal_explanation(self, signal_id: str) -> dict[str, Any] | None:
+        """Return the canonical persisted score components and indicators for a signal.
+
+        Guarantees:
+        - Read-only inspection.
+        - Uses strictly canonical persisted data from system_signals.raw_data.
+        - Zero recalculation using current runtime or market indicators.
+        """
+        with self._io_lock:
+            conn = self._get_conn()
+            try:
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+                cur.execute("SELECT * FROM system_signals WHERE signal_id = ?", (signal_id,))
+                row = cur.fetchone()
+                if not row:
+                    return None
+                r = dict(row)
+                raw = r.get("raw_data")
+                parsed_raw: dict[str, Any] = {}
+                if raw:
+                    try:
+                        parsed_raw = json.loads(raw) if isinstance(raw, str) else raw
+                    except Exception:
+                        parsed_raw = {}
+
+                components = parsed_raw.get("score_components")
+                if not components or not isinstance(components, dict):
+                    components = {
+                        "base_score": r.get("raw_score", r["score"]),
+                        "normalized_score": r.get("normalized_score", r["score"]),
+                        "confidence": parsed_raw.get("confidence", 1.0),
+                    }
+                    if "ml_probability" in parsed_raw:
+                        components["ml_probability"] = parsed_raw["ml_probability"]
+                    if "regime" in parsed_raw:
+                        components["regime_multiplier"] = parsed_raw["regime"]
+
+                return {
+                    "signal_id": r["signal_id"],
+                    "symbol": r["symbol"],
+                    "company_name": r.get("company_name", r["symbol"]),
+                    "category": r["category"],
+                    "direction": r["direction"],
+                    "score": r["score"],
+                    "tier": r["tier"],
+                    "timestamp": r["timestamp"],
+                    "entry_price": r["entry_price"],
+                    "stop_loss": r["stop_loss"],
+                    "target_1": r["target_1"],
+                    "target_2": r["target_2"],
+                    "status": r["status"],
+                    "score_components": components,
+                    "metadata": {
+                        "raw_score": r.get("raw_score", r["score"]),
+                        "normalized_score": r.get("normalized_score", r["score"]),
+                        "saturated": bool(r.get("score_saturated", 0)),
+                        "opportunity_key": r.get("opportunity_key", ""),
+                        "strategy": parsed_raw.get("strategy") or parsed_raw.get("strategy_name") or "default",
+                        "first_touch": r.get("first_touch", ""),
+                        "outcome_confidence": r.get("outcome_confidence", "UNKNOWN"),
+                    },
+                }
+            except Exception as ex:
+                _log.error("Failed to get signal explanation for %s: %s", signal_id, ex)
+                return None
             finally:
                 conn.close()
 
@@ -967,7 +1087,7 @@ class SignalTracker:
                 cur = conn.cursor()
                 cur.execute("""
                     SELECT 1 FROM signal_delivery_audit
-                    WHERE signal_id = ? AND username = ? AND channel = ? AND status = 'SENT'
+                    WHERE signal_id = ? AND username = ? AND channel = ? AND status IN ('SENT', 'ACCEPTED', 'TRANSMITTED')
                     LIMIT 1
                 """, (signal_id, username, channel.upper()))
                 return cur.fetchone() is not None
@@ -1006,6 +1126,268 @@ class SignalTracker:
                 return [dict(r) for r in cur.fetchall()]
             except Exception as ex:
                 _log.error("Failed to fetch delivery audit: %s", ex)
+                return []
+            finally:
+                conn.close()
+
+    def enqueue_notification_retry(
+        self,
+        signal_id: str,
+        username: str,
+        channel: str,
+        destination: str,
+        payload: dict[str, Any] | str,
+        error_message: str,
+        max_attempts: int = 3,
+        delay_seconds: int = 5,
+    ) -> int:
+        """Enqueue a failed notification attempt for background retry.
+
+        Uses atomic UPSERT semantics on (signal_id, username, channel) so duplicate
+        enqueuing does not create redundant retry records.
+        """
+        payload_str = json.dumps(payload) if isinstance(payload, (dict, list)) else str(payload or "")
+        now_dt = now_ist()
+        now_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+        next_dt = now_dt + timedelta(seconds=delay_seconds)
+        next_str = next_dt.strftime("%Y-%m-%d %H:%M:%S")
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    INSERT INTO notification_retry_queue (
+                        signal_id, username, channel, destination, payload,
+                        attempt_count, max_attempts, next_attempt_at,
+                        last_error, created_at, updated_at, status
+                    ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 'PENDING')
+                    ON CONFLICT(signal_id, username, channel) DO UPDATE SET
+                        next_attempt_at = excluded.next_attempt_at,
+                        last_error = excluded.last_error,
+                        updated_at = excluded.updated_at,
+                        status = CASE WHEN status = 'COMPLETED' THEN status ELSE 'PENDING' END
+                """, (
+                    signal_id, username, channel.upper(), str(destination or ""),
+                    payload_str, max_attempts, next_str,
+                    str(error_message or ""), now_str, now_str,
+                ))
+                conn.commit()
+                cur.execute("""
+                    SELECT retry_id FROM notification_retry_queue
+                    WHERE signal_id = ? AND username = ? AND channel = ?
+                """, (signal_id, username, channel.upper()))
+                row = cur.fetchone()
+                return int(row[0]) if row else 0
+            except Exception as ex:
+                _log.error("Failed to enqueue notification retry for %s/%s/%s: %s", signal_id, username, channel, ex)
+                return 0
+            finally:
+                conn.close()
+
+    def claim_due_notification_retries(
+        self,
+        max_items: int = 20,
+        lock_timeout_seconds: int = 60,
+    ) -> list[dict[str, Any]]:
+        """Atomically claim due notification retries for processing.
+
+        Concurrency protection: atomically transitions status from 'PENDING' -> 'PROCESSING'
+        (or reclaims 'PROCESSING' entries older than lock_timeout_seconds).
+        """
+        now_dt = now_ist()
+        now_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+        stale_threshold_str = (now_dt - timedelta(seconds=lock_timeout_seconds)).strftime("%Y-%m-%d %H:%M:%S")
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT retry_id FROM notification_retry_queue
+                    WHERE (status = 'PENDING' AND next_attempt_at <= ?)
+                       OR (status = 'PROCESSING' AND updated_at <= ?)
+                    ORDER BY next_attempt_at ASC
+                    LIMIT ?
+                """, (now_str, stale_threshold_str, max_items))
+                candidate_ids = [row["retry_id"] for row in cur.fetchall()]
+                if not candidate_ids:
+                    return []
+
+                placeholders = ",".join("?" for _ in candidate_ids)
+                cur.execute(f"""
+                    UPDATE notification_retry_queue
+                    SET status = 'PROCESSING', updated_at = ?
+                    WHERE retry_id IN ({placeholders})
+                """, (now_str, *candidate_ids))
+                conn.commit()
+
+                cur.execute(f"""
+                    SELECT * FROM notification_retry_queue
+                    WHERE retry_id IN ({placeholders})
+                """, candidate_ids)
+                return [dict(r) for r in cur.fetchall()]
+            except Exception as ex:
+                _log.error("Failed to claim notification retries: %s", ex)
+                return []
+            finally:
+                conn.close()
+
+    def complete_notification_retry(self, retry_id: int) -> bool:
+        """Mark a claimed notification retry as successfully COMPLETED."""
+        now_str = now_ist().strftime("%Y-%m-%d %H:%M:%S")
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    UPDATE notification_retry_queue
+                    SET status = 'COMPLETED', updated_at = ?
+                    WHERE retry_id = ?
+                """, (now_str, retry_id))
+                conn.commit()
+                return cur.rowcount > 0
+            except Exception as ex:
+                _log.error("Failed to complete retry %d: %s", retry_id, ex)
+                return False
+            finally:
+                conn.close()
+
+    def fail_notification_retry(
+        self,
+        retry_id: int,
+        error_message: str,
+        next_delay_seconds: int | None = None,
+    ) -> str:
+        """Record an attempt failure on a claimed retry.
+
+        If attempt_count >= max_attempts, moves entry into notification_dead_letter (DLQ)
+        and sets retry_queue status to 'DEAD_LETTER'.
+        Otherwise schedules next attempt with next_delay_seconds.
+        Returns outcome status: 'RETRY_SCHEDULED' or 'DEAD_LETTER'.
+        """
+        now_dt = now_ist()
+        now_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT signal_id, username, channel, destination, payload,
+                           attempt_count, max_attempts
+                    FROM notification_retry_queue
+                    WHERE retry_id = ?
+                """, (retry_id,))
+                row = cur.fetchone()
+                if not row:
+                    return "NOT_FOUND"
+
+                (
+                    sig_id, uname, channel, dest, payload,
+                    attempt_count, max_attempts,
+                ) = row
+                new_attempts = attempt_count + 1
+
+                if new_attempts >= max_attempts or next_delay_seconds is None:
+                    # Move to Dead Letter Queue (DLQ)
+                    cur.execute("""
+                        INSERT INTO notification_dead_letter (
+                            signal_id, username, channel, destination, payload,
+                            attempt_count, last_error, dead_lettered_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        sig_id, uname, channel, dest, payload,
+                        new_attempts, str(error_message or ""), now_str,
+                    ))
+                    cur.execute("""
+                        UPDATE notification_retry_queue
+                        SET status = 'DEAD_LETTER', attempt_count = ?, last_error = ?, updated_at = ?
+                        WHERE retry_id = ?
+                    """, (new_attempts, str(error_message or ""), now_str, retry_id))
+                    conn.commit()
+                    return "DEAD_LETTER"
+                else:
+                    next_dt = now_dt + timedelta(seconds=next_delay_seconds)
+                    next_str = next_dt.strftime("%Y-%m-%d %H:%M:%S")
+                    cur.execute("""
+                        UPDATE notification_retry_queue
+                        SET status = 'PENDING', attempt_count = ?, next_attempt_at = ?,
+                            last_error = ?, updated_at = ?
+                        WHERE retry_id = ?
+                    """, (new_attempts, next_str, str(error_message or ""), now_str, retry_id))
+                    conn.commit()
+                    return "RETRY_SCHEDULED"
+            except Exception as ex:
+                _log.error("Failed to update retry failure for %d: %s", retry_id, ex)
+                return "ERROR"
+            finally:
+                conn.close()
+
+    def get_notification_queue_metrics(self) -> dict[str, Any]:
+        """Return counts and health metrics for retry queue and dead letter queue."""
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT status, count(*) FROM notification_retry_queue
+                    GROUP BY status
+                """)
+                retry_counts = {r[0]: r[1] for r in cur.fetchall()}
+
+                cur.execute("SELECT count(*) FROM notification_dead_letter")
+                dlq_count = cur.fetchone()[0]
+
+                cur.execute("""
+                    SELECT channel, count(*) FROM notification_retry_queue
+                    WHERE status = 'PENDING'
+                    GROUP BY channel
+                """)
+                pending_by_channel = {r[0]: r[1] for r in cur.fetchall()}
+
+                cur.execute("""
+                    SELECT channel, count(*) FROM notification_dead_letter
+                    GROUP BY channel
+                """)
+                dlq_by_channel = {r[0]: r[1] for r in cur.fetchall()}
+
+                return {
+                    "pending_retries": retry_counts.get("PENDING", 0),
+                    "processing_retries": retry_counts.get("PROCESSING", 0),
+                    "completed_retries": retry_counts.get("COMPLETED", 0),
+                    "dead_letter_retries": retry_counts.get("DEAD_LETTER", 0),
+                    "dlq_total": dlq_count,
+                    "pending_by_channel": pending_by_channel,
+                    "dlq_by_channel": dlq_by_channel,
+                }
+            except Exception as ex:
+                _log.error("Failed to fetch notification queue metrics: %s", ex)
+                return {
+                    "pending_retries": 0,
+                    "processing_retries": 0,
+                    "completed_retries": 0,
+                    "dead_letter_retries": 0,
+                    "dlq_total": 0,
+                    "pending_by_channel": {},
+                    "dlq_by_channel": {},
+                }
+            finally:
+                conn.close()
+
+    def get_dead_letters(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Retrieve dead letter queue records for diagnostics."""
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT * FROM notification_dead_letter
+                    ORDER BY dlq_id DESC
+                    LIMIT ?
+                """, (limit,))
+                return [dict(r) for r in cur.fetchall()]
+            except Exception as ex:
+                _log.error("Failed to fetch dead letters: %s", ex)
                 return []
             finally:
                 conn.close()

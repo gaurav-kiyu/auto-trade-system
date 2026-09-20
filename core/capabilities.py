@@ -9,9 +9,9 @@ Crucially: Rejects sample/demo data alone as evidence for AVAILABLE state.
 from __future__ import annotations
 
 import datetime
-from enum import Enum
 import logging
 import threading
+from enum import Enum
 from typing import Any
 
 _log = logging.getLogger("CAPABILITY_REGISTRY")

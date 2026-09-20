@@ -141,6 +141,89 @@
         </div>
     </div>
 
+    <!-- Unified Super Admin Live Control Center HUD -->
+    <div class="card" style="border: 1px solid rgba(56, 189, 248, 0.3); background: rgba(15, 23, 42, 0.7); margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, #1e293b); padding-bottom: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text-primary, #ffffff); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-shield-halved" style="color: #38bdf8;"></i> Unified Super Admin Live Control Center HUD
+                </h3>
+                <div style="font-size: 0.75rem; color: var(--text-muted, #94a3b8); margin-top: 0.2rem;" id="hudTimestamp">
+                    Telemetry: Synchronizing...
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; font-size: 0.72rem; font-weight: 700;">
+                <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+                    <i class="fas fa-lock"></i> SIGNAL_ONLY / PAPER
+                </span>
+                <span class="badge" style="background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <i class="fas fa-shield-alt"></i> LOCKOUT ACTIVE (0 Live Trades)
+                </span>
+                <span class="badge" style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); font-variant-numeric: tabular-nums;">
+                    CAPITAL: ₹3,000 | SL: 0.88%
+                </span>
+            </div>
+        </div>
+
+        <div class="grid-4" style="margin-bottom: 0;">
+            <!-- Panel 1: Market Session -->
+            <div class="stat-card" style="text-align: left; padding: 0.875rem;">
+                <div style="font-size: 0.7rem; color: var(--text-muted, #94a3b8); font-weight: 700; text-transform: uppercase;">
+                    <i class="far fa-clock" style="color: #38bdf8; margin-right: 0.3rem;"></i> Market Session Radar
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                    <div class="stat-value" id="hudSessionState" style="font-size: 1.15rem; color: #facc15;">--</div>
+                    <span id="hudTradingDay" class="badge badge-unavailable" style="font-size: 0.65rem;">--</span>
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-muted, #94a3b8); margin-top: 0.35rem;" id="hudSessionDetail">
+                    Evaluating session state...
+                </div>
+            </div>
+
+            <!-- Panel 2: Signals Intelligence -->
+            <div class="stat-card" style="text-align: left; padding: 0.875rem;">
+                <div style="font-size: 0.7rem; color: var(--text-muted, #94a3b8); font-weight: 700; text-transform: uppercase;">
+                    <i class="fas fa-satellite-dish" style="color: #22c55e; margin-right: 0.3rem;"></i> Signals Today
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                    <div class="stat-value" id="hudSignalsToday" style="font-size: 1.15rem; color: var(--text-primary, #ffffff);">0</div>
+                    <div style="font-size: 0.75rem; font-weight: 700; color: #22c55e;" id="hudWinRate">Win Rate: N/A</div>
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-muted, #94a3b8); margin-top: 0.35rem;" id="hudSignalsDetail">
+                    Active: 0 | Resolved: 0
+                </div>
+            </div>
+
+            <!-- Panel 3: Notification Subsystem -->
+            <div class="stat-card" style="text-align: left; padding: 0.875rem;">
+                <div style="font-size: 0.7rem; color: var(--text-muted, #94a3b8); font-weight: 700; text-transform: uppercase;">
+                    <i class="fas fa-bell" style="color: #a855f7; margin-right: 0.3rem;"></i> Delivery Subsystem
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                    <div class="stat-value" id="hudNotifStatus" style="font-size: 1.15rem; color: #22c55e;">HEALTHY</div>
+                    <span id="hudQueueBacklog" class="badge badge-available" style="font-size: 0.65rem;">0 Pending</span>
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-muted, #94a3b8); margin-top: 0.35rem;" id="hudNotifDetail">
+                    Telegram: Ready | Email: Ready
+                </div>
+            </div>
+
+            <!-- Panel 4: DLQ Health -->
+            <div class="stat-card" style="text-align: left; padding: 0.875rem;">
+                <div style="font-size: 0.7rem; color: var(--text-muted, #94a3b8); font-weight: 700; text-transform: uppercase;">
+                    <i class="fas fa-triangle-exclamation" style="color: #ef4444; margin-right: 0.3rem;"></i> Dead Letter Queue (DLQ)
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
+                    <div class="stat-value" id="hudDlqTotal" style="font-size: 1.15rem; color: #22c55e;">0</div>
+                    <span id="hudDlqBadge" class="badge badge-available" style="font-size: 0.65rem;">ZERO LOSS</span>
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-muted, #94a3b8); margin-top: 0.35rem;" id="hudDlqDetail">
+                    Terminal failures: 0
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Summary KPI Cards -->
     <div class="grid-4" id="kpiContainer">
         <div class="stat-card">
@@ -250,6 +333,98 @@
     </div>
 
     <script nonce="{{ nonce }}">
+        async function fetchControlCenterStatus() {
+            try {
+                const res = await fetch('/api/v1/admin/control-center-status');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.app && data.app.timestamp) {
+                    const tsEl = document.getElementById('hudTimestamp');
+                    if (tsEl) tsEl.textContent = `Telemetry: ${data.app.timestamp} (${data.app.version})`;
+                }
+
+                if (data.market_session) {
+                    const sess = data.market_session;
+                    const sessEl = document.getElementById('hudSessionState');
+                    if (sessEl) sessEl.textContent = sess.state || '--';
+                    const isTrade = sess.is_trading_day;
+                    const tradeDayEl = document.getElementById('hudTradingDay');
+                    if (tradeDayEl) {
+                        tradeDayEl.textContent = isTrade ? 'Trading Day' : 'Holiday / Closed';
+                        tradeDayEl.className = isTrade ? 'badge badge-available' : 'badge badge-unavailable';
+                    }
+                    const sessDetEl = document.getElementById('hudSessionDetail');
+                    if (sessDetEl) {
+                        sessDetEl.textContent = sess.description || 'Operating outside active market hours';
+                    }
+                }
+
+                if (data.signals_summary) {
+                    const sig = data.signals_summary;
+                    const sigTotEl = document.getElementById('hudSignalsToday');
+                    if (sigTotEl) sigTotEl.textContent = sig.total_signals_today ?? 0;
+                    const winEl = document.getElementById('hudWinRate');
+                    if (winEl) {
+                        if (sig.resolved_signals > 0 && sig.win_rate_pct !== null) {
+                            winEl.textContent = `Win Rate: ${sig.win_rate_pct.toFixed(1)}%`;
+                            winEl.style.color = sig.win_rate_pct >= 60 ? '#22c55e' : (sig.win_rate_pct >= 45 ? '#f59e0b' : '#ef4444');
+                        } else {
+                            winEl.textContent = 'Win Rate: N/A';
+                            winEl.style.color = '#94a3b8';
+                        }
+                    }
+                    const sigDetEl = document.getElementById('hudSignalsDetail');
+                    if (sigDetEl) {
+                        sigDetEl.textContent = `Active: ${sig.active_signals || 0} | Resolved: ${sig.resolved_signals || 0}`;
+                    }
+                }
+
+                if (data.notification_subsystem) {
+                    const notif = data.notification_subsystem;
+                    const statusEl = document.getElementById('hudNotifStatus');
+                    if (statusEl) {
+                        statusEl.textContent = notif.healthy ? 'HEALTHY' : 'DEGRADED';
+                        statusEl.style.color = notif.healthy ? '#22c55e' : '#f59e0b';
+                    }
+
+                    const qm = notif.queue_metrics || {};
+                    const pending = qm.pending_retries || 0;
+                    const backlogEl = document.getElementById('hudQueueBacklog');
+                    if (backlogEl) {
+                        backlogEl.textContent = `${pending} Pending`;
+                        backlogEl.className = pending === 0 ? 'badge badge-available' : 'badge badge-degraded';
+                    }
+
+                    const tgReady = notif.adapters?.telegram?.enabled ? 'Active' : (notif.adapters?.telegram?.configured ? 'Configured' : 'Disabled');
+                    const emReady = notif.adapters?.email?.enabled ? 'Active' : (notif.adapters?.email?.configured ? 'Configured' : 'Disabled');
+                    const notifDetEl = document.getElementById('hudNotifDetail');
+                    if (notifDetEl) {
+                        notifDetEl.textContent = `Telegram: ${tgReady} | Email: ${emReady}`;
+                    }
+
+                    const dlqTotal = qm.dlq_total || 0;
+                    const dlqValEl = document.getElementById('hudDlqTotal');
+                    if (dlqValEl) {
+                        dlqValEl.textContent = dlqTotal;
+                        dlqValEl.style.color = dlqTotal === 0 ? '#22c55e' : '#ef4444';
+                    }
+
+                    const dlqBadge = document.getElementById('hudDlqBadge');
+                    if (dlqBadge) {
+                        dlqBadge.textContent = dlqTotal === 0 ? 'ZERO LOSS' : `${dlqTotal} DEAD LETTER`;
+                        dlqBadge.className = dlqTotal === 0 ? 'badge badge-available' : 'badge badge-demo';
+                    }
+                    const dlqDetEl = document.getElementById('hudDlqDetail');
+                    if (dlqDetEl) {
+                        dlqDetEl.textContent = `Terminal failures: ${dlqTotal}`;
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch control center telemetry:', err);
+            }
+        }
+
         async function refreshCapabilities() {
             const btn = document.getElementById('btnRefreshCapabilities');
             const icon = document.getElementById('refreshIcon');
@@ -257,6 +432,7 @@
             if (btn) btn.disabled = true;
 
             try {
+                await fetchControlCenterStatus();
                 const res = await fetch('/api/admin/capabilities');
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
@@ -315,6 +491,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            fetchControlCenterStatus();
             document.getElementById('btnRefreshCapabilities')?.addEventListener('click', refreshCapabilities);
         });
     </script>

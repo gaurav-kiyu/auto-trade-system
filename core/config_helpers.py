@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import re
 from typing import Any
 
 __all__ = [
@@ -11,7 +12,31 @@ __all__ = [
     "deep_merge_dict",
     "normalize_tg_trade_patterns",
     "redact",
+    "redact_credential_urls",
 ]
+
+_TG_BOT_TOKEN_RE = re.compile(r"bot(\d+:[A-Za-z0-9_-]+)", re.IGNORECASE)
+_CREDENTIAL_PARAM_RE = re.compile(r"(token|password|secret|key|api_key|bot_token)=([^&\s\"'>]+)", re.IGNORECASE)
+_AUTH_HEADER_RE = re.compile(r"(Bearer\s+)[A-Za-z0-9._~+/-]+", re.IGNORECASE)
+
+
+def redact_credential_urls(text: str | Any) -> str:
+    """Airtight redaction of Telegram bot tokens, API keys, passwords, and authorization headers in error/log text.
+
+    Examples:
+        https://api.telegram.org/bot123456:ABC-DEF/sendMessage -> https://api.telegram.org/bot<REDACTED>/sendMessage
+        /bot987654321:AAFlkm_34/getUpdates -> /bot<REDACTED>/getUpdates
+        password=supersecret -> password=<REDACTED>
+        Bearer eyJhbGciOi... -> Bearer <REDACTED>
+    """
+    if not text:
+        return "" if text is None else str(text)
+    s = str(text)
+    s = _TG_BOT_TOKEN_RE.sub("bot<REDACTED>", s)
+    s = _AUTH_HEADER_RE.sub(r"\1<REDACTED>", s)
+    s = _CREDENTIAL_PARAM_RE.sub(r"\1=<REDACTED>", s)
+    return s
+
 
 def decode_if_b64(s: Any) -> Any:
     """Decode values prefixed with ``b64:`` in config JSON for light obfuscation."""

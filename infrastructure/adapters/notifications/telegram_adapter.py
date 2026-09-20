@@ -16,6 +16,7 @@ import time
 from datetime import timedelta, timezone
 from typing import Any
 
+from core.config_helpers import redact_credential_urls
 from core.datetime_ist import now_ist
 from core.ports.notification.notification_port import (
     Notification,
@@ -364,10 +365,10 @@ class _TelegramClient:
                         logger.warning("TG pin parse error (message was sent): %s", e)
                 return True
             else:
-                logger.warning("TG send failed: %d %s", resp.status_code, (resp.text or "")[:200])
+                logger.warning("TG send failed: %d %s", resp.status_code, redact_credential_urls((resp.text or "")[:200]))
                 return False
         except Exception as e:
-            logger.error("TG send error: %s", e)
+            logger.error("TG send error: %s", redact_credential_urls(str(e)))
             return False
 
     def _pin_message(self, chat_id: str, message_id: int):
@@ -383,7 +384,7 @@ class _TelegramClient:
                 "disable_notification": True,
             }, timeout=self.pin_timeout)
         except Exception as e:
-            logger.warning("TG pin failed: %s", e)
+            logger.warning("TG pin failed: %s", redact_credential_urls(str(e)))
 
     # ─── PUBLIC API ─────────────────────────────────────────
 
@@ -525,13 +526,14 @@ class TelegramNotificationAdapter(NotificationPort):
                 )
 
         except (ConnectionError, TimeoutError, OSError, ValueError, TypeError) as e:
-            logger.error("Error sending Telegram notification: %s", e)
+            redacted_err = redact_credential_urls(str(e))
+            logger.error("Error sending Telegram notification: %s", redacted_err)
             return NotificationResult(
                 notification_id=f"tg_error_{now_ist().timestamp()}",
                 status=NotificationStatus.FAILED,
                 channel=NotificationChannel.TELEGRAM,
                 timestamp=now_ist(),
-                error_message=str(e)
+                error_message=redacted_err
             )
 
     def send_notifications(self, notifications: list[Notification]) -> list[NotificationResult]:

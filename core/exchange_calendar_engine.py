@@ -156,6 +156,11 @@ class ExchangeCalendarEngine:
         self._lock = threading.RLock()
         self._special_cache: dict[int, list[dict[str, Any]]] = {}
 
+    @classmethod
+    def get_instance(cls, cfg: dict[str, Any] | None = None) -> ExchangeCalendarEngine:
+        """Return the process-level ExchangeCalendarEngine singleton."""
+        return get_calendar_engine(cfg)
+
     # ── Market day / holiday checks ──────────────────────────────────────
 
     def is_market_day(self, check_date: datetime.date | None = None) -> bool:

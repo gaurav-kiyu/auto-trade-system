@@ -1200,7 +1200,6 @@ class PositionService:
             OrderRequest,
             OrderType,
         )
-        from core.signals.signal_tracker import SignalTracker
 
         # Durable signal boundary:
         # Every qualifying signal evaluated for execution must have a durable

@@ -28,6 +28,7 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
     @app.get("/api/system/market-telemetry")
     async def api_market_telemetry(user: Any = Depends(dashboard._auth_deps.require_auth_optional)):
         from datetime import time as dt_time
+
         from core.datetime_ist import now_ist
         from core.exchange_calendar_engine import get_calendar_engine
 

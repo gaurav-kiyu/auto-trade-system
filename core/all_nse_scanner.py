@@ -373,9 +373,25 @@ class AllNSEScanner:
             if df1 is None or df1.empty or df5 is None or df5.empty or df15 is None or df15.empty:
                 return None
 
+            from core.data_freshness_guard import check_data_freshness
+            frames_to_eval = {"df1m": df1, "df5m": df5, "df15m": df15}
+            fresh_res = check_data_freshness(
+                frames=frames_to_eval,
+                vix_ts=time.time(),
+                cfg=self._cfg,
+                session_aware=True,
+                allow_off_market=True,
+            )
+            if not fresh_res.passed:
+                _log.info(
+                    "[FRESHNESS_GATE] Filtered %s: %s (code=%s)",
+                    sym, fresh_res.reject_reason, fresh_res.reject_code,
+                )
+                return None
+
             sig, reason = self._evaluator.evaluate(
                 name=sym,
-                frames={"df1m": df1, "df5m": df5, "df15m": df15},
+                frames=frames_to_eval,
                 vix=self._current_vix,
             )
 
@@ -916,7 +932,8 @@ class AllNSEScanner:
                         urllib.request.urlopen(fallback_req, timeout=10)
                     except Exception:
                         pass
-                    _log.error("[ERROR] Telegram dispatch failed for chat %s on %s: %s", cid, signal.symbol, ex)
+                    from core.config_helpers import redact_credential_urls
+                    _log.error("[ERROR] Telegram dispatch failed for chat %s on %s: %s", cid, signal.symbol, redact_credential_urls(str(ex)))
 
         # 2. Gmail SMTP Dispatch with Rich Multipart HTML Email
         if self._email_enabled and self._email_user and self._email_pass and authorized_emails:
@@ -1021,7 +1038,7 @@ class AllNSEScanner:
             tracker = SignalTracker.get_instance()
 
             # Separate theoretical fair value from actual price
-            fv_info = resolver.calculate_fair_value(parent_signal.price, contract.expiry_date)
+            _fv_info = resolver.calculate_fair_value(parent_signal.price, contract.expiry_date)
 
             sl_price = round(parent_signal.price * (0.97 if fut_direction == "BUY" else 1.03), 2)
             t1_price = round(parent_signal.price * (1.04 if fut_direction == "BUY" else 0.96), 2)

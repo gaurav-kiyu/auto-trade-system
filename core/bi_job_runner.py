@@ -12,7 +12,8 @@ import concurrent.futures
 import logging
 import threading
 import time
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 _log = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ _log = logging.getLogger(__name__)
 class BIJobRunner:
     """Thread-pool isolated executor with TTL caching for expensive analysis workloads."""
 
-    _instance: Optional[BIJobRunner] = None
+    _instance: BIJobRunner | None = None
     _lock = threading.Lock()
 
     def __init__(self, max_workers: int = 2) -> None:
@@ -28,9 +29,9 @@ class BIJobRunner:
             max_workers=max_workers,
             thread_name_prefix="bi_isolated_worker",
         )
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
         self._cache_lock = threading.Lock()
-        self._running_jobs: Dict[str, float] = {}
+        self._running_jobs: dict[str, float] = {}
 
     @classmethod
     def get_instance(cls) -> BIJobRunner:
@@ -40,7 +41,7 @@ class BIJobRunner:
                     cls._instance = cls()
         return cls._instance
 
-    def get_cached(self, key: str, max_age: float = 300.0) -> Optional[Any]:
+    def get_cached(self, key: str, max_age: float = 300.0) -> Any | None:
         """Retrieve cached result if still within max_age seconds."""
         with self._cache_lock:
             entry = self._cache.get(key)
@@ -53,7 +54,7 @@ class BIJobRunner:
         with self._cache_lock:
             self._cache[key] = {"data": data, "timestamp": time.time()}
 
-    def clear_cache(self, key: Optional[str] = None) -> None:
+    def clear_cache(self, key: str | None = None) -> None:
         """Clear specific key or entire cache."""
         with self._cache_lock:
             if key:

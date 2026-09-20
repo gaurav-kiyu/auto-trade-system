@@ -616,6 +616,7 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
     async def health_check() -> JSONResponse:
         """Lightweight, non-blocking health check (<5ms) for container orchestrators and probes."""
         import time
+
         from core.safety_state import is_hard_halted
         mode = "PAPER"
         try:

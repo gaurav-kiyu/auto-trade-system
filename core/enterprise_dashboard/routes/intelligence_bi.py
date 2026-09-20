@@ -23,8 +23,8 @@ def register_bi_routes(app, dashboard, admin_only, operator_or_admin) -> None:  
     async def api_bi_report(refresh: bool = False, user: Any = operator_or_admin):
         """Generate a comprehensive Business Intelligence report (offloaded to worker thread)."""
         try:
-            from core.bi_job_runner import BIJobRunner
             from core.bi_dashboard import get_bi_dashboard
+            from core.bi_job_runner import BIJobRunner
             runner = BIJobRunner.get_instance()
             report_dict = await runner.execute_isolated(
                 "bi_report",
@@ -200,8 +200,8 @@ def register_bi_routes(app, dashboard, admin_only, operator_or_admin) -> None:  
     async def api_architecture_analyze(refresh: bool = False, user: Any = operator_or_admin):
         """Run a full architecture compliance analysis (offloaded to worker thread)."""
         try:
-            from core.bi_job_runner import BIJobRunner
             from core.architecture_analyzer import get_architecture_analyzer
+            from core.bi_job_runner import BIJobRunner
             runner = BIJobRunner.get_instance()
             d = await runner.execute_isolated(
                 "architecture_analyze",

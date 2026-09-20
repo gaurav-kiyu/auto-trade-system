@@ -26,7 +26,6 @@ import calendar
 import datetime
 import logging
 import math
-import os
 import threading
 import time
 from dataclasses import dataclass, field
@@ -247,7 +246,7 @@ class FuturesContractResolver:
                     return cached_contracts
 
         # Determine instrument type and metadata
-        from core.fno_universe import FNO_INDICES, FNO_EQUITY_STOCKS
+        from core.fno_universe import FNO_EQUITY_STOCKS, FNO_INDICES
 
         is_idx = clean_sym in FNO_INDICES or clean_sym in _AUTHORITATIVE_INDEX_LOT_SIZES
         is_stk = clean_sym in FNO_EQUITY_STOCKS or clean_sym in _AUTHORITATIVE_STOCK_LOT_SIZES
@@ -477,7 +476,7 @@ class FuturesContractResolver:
 
     def refresh_universe(self, exchange: str = "NSE") -> dict[str, list[FuturesContract]]:
         """Refresh full futures universe across all supported indices and equities."""
-        from core.fno_universe import FNO_INDICES, FNO_EQUITY_STOCKS
+        from core.fno_universe import FNO_EQUITY_STOCKS, FNO_INDICES
 
         all_syms = set(FNO_INDICES) | set(FNO_EQUITY_STOCKS)
         universe: dict[str, list[FuturesContract]] = {}

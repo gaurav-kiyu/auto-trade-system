@@ -392,10 +392,12 @@
                     </td>
                     <td>${dirBadge}</td>
                     <td>
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="font-weight:800;color:${scoreColor};font-size:0.9rem;">${s.score}</span>
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span style="font-weight:800;color:${scoreColor};font-size:0.9rem;font-variant-numeric:tabular-nums;">${s.score}</span>
                             <span style="font-size:0.65rem;color: var(--text-muted, #94a3b8);">/100</span>
-                            <span style="font-size:0.65rem;padding:2px 6px;background: var(--bg-card-hover, #1e293b);border-radius:4px;color: var(--text-secondary, #cbd5e1);font-weight:600;">${s.tier}</span>
+                            <button type="button" class="opb-btn opb-btn-xs btn-explain-signal" data-action="explain-signal" data-signal-id="${s.signal_id}" title="Inspect Persisted Explainability Components" style="padding:2px 6px;font-size:0.65rem;border-radius:4px;background:rgba(56,189,248,0.12);color:#38bdf8;border:1px solid rgba(56,189,248,0.25);cursor:pointer;white-space:nowrap;">
+                                🔍 Breakdown
+                            </button>
                         </div>
                     </td>
                     <td style="font-family:monospace;font-weight:700;color:#38bdf8;font-size:0.85rem;">₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
@@ -620,7 +622,125 @@
         document.querySelectorAll('[data-action="close-signal-test-modal"]').forEach(function(el) {
             el.addEventListener('click', closeSignalTestModal);
         });
+        document.querySelectorAll('[data-action="close-signal-explain-modal"]').forEach(function(el) {
+            el.addEventListener('click', closeSignalExplainModal);
+        });
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-action="explain-signal"]');
+            if (btn) {
+                const sigId = btn.getAttribute('data-signal-id');
+                if (sigId) openSignalExplainModal(sigId);
+            }
+        });
     });
+
+    async function openSignalExplainModal(signalId) {
+        const modal = document.getElementById('signalExplainModal');
+        const content = document.getElementById('signalExplainContent');
+        if (!modal || !content) return;
+        modal.style.display = 'flex';
+        content.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted, #94a3b8);"><i class="fas fa-spinner fa-spin"></i> Loading canonical signal components...</div>';
+        try {
+            const res = await fetch(`/api/auth/signals/${encodeURIComponent(signalId)}/explain`, { credentials: 'include' });
+            if (!res.ok) {
+                content.innerHTML = `<div style="color:var(--danger-color, #ef4444);padding:1rem;"><i class="fas fa-exclamation-triangle"></i> Failed to load explanation for ${signalId} (HTTP ${res.status}).</div>`;
+                return;
+            }
+            const data = await res.json();
+            const scoreColor = data.score >= 80 ? '#22c55e' : (data.score >= 68 ? '#eab308' : '#94a3b8');
+            const comps = data.score_components || {};
+            const compEntries = Object.entries(comps);
+
+            let compRows = '';
+            if (compEntries.length === 0) {
+                compRows = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted, #94a3b8);">No granular sub-components recorded for this signal.</td></tr>';
+            } else {
+                compRows = compEntries.map(([k, v]) => {
+                    const numVal = typeof v === 'number' ? v : parseFloat(v);
+                    let badge = '<span style="color:#94a3b8;">~</span>';
+                    if (!isNaN(numVal)) {
+                        if (numVal > 0) badge = '<span style="color:#22c55e;font-weight:bold;">+ POSITIVE</span>';
+                        else if (numVal < 0) badge = '<span style="color:#ef4444;font-weight:bold;">- NEGATIVE</span>';
+                        else badge = '<span style="color:#94a3b8;">0 NEUTRAL</span>';
+                    }
+                    const formattedVal = (typeof v === 'number') ? (v % 1 === 0 ? v.toString() : v.toFixed(2)) : String(v);
+                    return `<tr>
+                        <td style="font-weight:600;color:var(--text-primary, #e2e8f0);text-transform:capitalize;">${k.replace(/_/g, ' ')}</td>
+                        <td style="font-variant-numeric:tabular-nums;font-family:monospace;font-weight:700;color:var(--text-primary, #ffffff);text-align:right;">${formattedVal}</td>
+                        <td style="text-align:center;">${badge}</td>
+                    </tr>`;
+                }).join('');
+            }
+
+            content.innerHTML = `
+                <div style="background:rgba(15,23,42,0.6);border:1px solid var(--border-color, #334155);border-radius:8px;padding:0.875rem;margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:8px;">
+                        <div>
+                            <span style="font-size:1.1rem;font-weight:800;color:var(--text-primary, #ffffff);">${data.symbol}</span>
+                            <span style="font-size:0.75rem;color:var(--text-muted, #94a3b8);margin-left:0.5rem;">${data.category}</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:1.25rem;font-weight:900;color:${scoreColor};font-variant-numeric:tabular-nums;">${data.score}</span>
+                            <span style="font-size:0.75rem;color:var(--text-muted, #94a3b8);">/100</span>
+                            <span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:rgba(56,189,248,0.15);color:#38bdf8;font-weight:700;">${data.tier}</span>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:0.5rem;font-size:0.75rem;color:var(--text-secondary, #cbd5e1);margin-top:0.5rem;font-variant-numeric:tabular-nums;">
+                        <div><strong>Action:</strong> <span style="color:${data.direction === 'CALL' ? '#22c55e' : '#ef4444'};font-weight:700;">${data.direction}</span></div>
+                        <div><strong>Entry LTP:</strong> ₹${Number(data.entry_price).toFixed(2)}</div>
+                        <div><strong>Stop Loss:</strong> ₹${Number(data.stop_loss).toFixed(2)}</div>
+                        <div><strong>Target 1:</strong> ₹${Number(data.target_1).toFixed(2)}</div>
+                        <div><strong>Target 2:</strong> ₹${Number(data.target_2).toFixed(2)}</div>
+                    </div>
+                </div>
+
+                <h4 style="font-size:0.85rem;font-weight:700;color:var(--text-secondary, #cbd5e1);margin-bottom:0.5rem;display:flex;align-items:center;gap:0.4rem;">
+                    <i class="fas fa-list-check" style="color:#38bdf8;"></i> Component Contributions
+                </h4>
+                <div class="opb-table-container" style="max-height:220px;overflow-y:auto;margin-bottom:1rem;">
+                    <table class="table" style="width:100%;font-size:0.8rem;">
+                        <thead>
+                            <tr class="table-header-row">
+                                <th>Component</th>
+                                <th style="text-align:right;">Score / Value</th>
+                                <th style="text-align:center;">Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody>${compRows}</tbody>
+                    </table>
+                </div>
+
+                <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.2);border-radius:6px;padding:0.6rem 0.8rem;font-size:0.7rem;color:var(--text-muted, #94a3b8);display:flex;align-items:center;gap:0.5rem;">
+                    <i class="fas fa-shield-alt" style="color:#38bdf8;"></i>
+                    <span>Canonical persisted signal evidence. Historical scores are read directly from execution state (zero runtime recalculation).</span>
+                </div>
+            `;
+        } catch (e) {
+            content.innerHTML = `<div style="color:var(--danger-color, #ef4444);padding:1rem;">Error fetching signal explanation: ${e.message}</div>`;
+        }
+    }
+
+    function closeSignalExplainModal() {
+        const modal = document.getElementById('signalExplainModal');
+        if (modal) modal.style.display = 'none';
+    }
 </script>
+
+<!-- Signal Explainability Modal -->
+<div id="signalExplainModal" class="opb-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+    <div class="card opb-card" style="max-width:650px;width:100%;max-height:90vh;overflow-y:auto;border:1px solid var(--border-color, #334155);box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-color, #334155);padding-bottom:0.75rem;margin-bottom:1rem;">
+            <h3 style="margin:0;font-size:1.1rem;font-weight:700;color:var(--text-primary, #f8fafc);display:flex;align-items:center;gap:0.5rem;">
+                <i class="fas fa-microscope" style="color:#38bdf8;"></i> Signal Explainability Breakdown
+            </h3>
+            <button type="button" data-action="close-signal-explain-modal" style="background:none;border:none;color:var(--text-muted, #94a3b8);font-size:1.25rem;cursor:pointer;">&times;</button>
+        </div>
+        <div id="signalExplainContent" style="font-size:0.875rem;">
+            <div style="text-align:center;padding:2rem;color:var(--text-muted, #94a3b8);">
+                <i class="fas fa-spinner fa-spin"></i> Loading canonical signal components...
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>

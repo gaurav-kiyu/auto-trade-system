@@ -42,6 +42,81 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
             include_seed_samples=include_seed_samples,
         )
 
+    @app.get("/api/v1/signals/{signal_id}/explain")
+    async def api_get_signal_explainability(
+        signal_id: str,
+        user: Any = Depends(dashboard._auth_deps.require_auth),
+    ) -> dict:
+        """Return canonical persisted score components and indicators for a signal."""
+        from core.signals.signal_tracker import SignalTracker
+        tracker = SignalTracker.get_instance()
+        explanation = tracker.get_signal_explanation(signal_id)
+        if not explanation:
+            return JSONResponse(status_code=404, content={"error": "Signal explanation not found"})
+        return explanation
+
+    @app.get("/api/v1/admin/control-center-status")
+    async def api_get_control_center_status(
+        request: Request,
+        user: Any = Depends(dashboard._auth_deps.require_permission("view_state")),
+    ) -> dict:
+        """Unified Super Admin Control Center aggregate telemetry."""
+        from core.datetime_ist import now_ist
+        from core.exchange_calendar_engine import ExchangeCalendarEngine, ExtendedMarketStatus
+        from core.services.notification_service import get_notification_service
+        from core.signals.signal_tracker import SignalTracker
+
+        now = now_ist()
+        cal = ExchangeCalendarEngine.get_instance()
+        market_status = cal.get_market_status(now)
+        trading_hours = cal.get_trading_hours(now.date())
+        is_active = market_status in (
+            ExtendedMarketStatus.OPEN,
+            ExtendedMarketStatus.MUHURAT,
+            ExtendedMarketStatus.HALF_DAY,
+        )
+
+        tracker = SignalTracker.get_instance()
+        today_analytics = tracker.get_admin_signal_analytics(timeframe="today")
+
+        notif_svc = get_notification_service()
+        notif_health = notif_svc.get_notification_health()
+
+        return {
+            "app": {
+                "version": "v2.59.4",
+                "status": "HEALTHY",
+                "mode": "SIGNAL_ONLY / PAPER",
+                "timestamp": now.strftime("%Y-%m-%d %H:%M:%S IST"),
+            },
+            "safety_invariants": {
+                "BASE_CAPITAL": 3000,
+                "SL_PCT": 0.88,
+                "EXECUTION_MODE": "SIGNAL_ONLY",
+                "SIGNAL_ONLY": True,
+                "LIVE_TRADING_LOCKOUT": True,
+                "full_auto_allowed": False,
+                "broker_auto_routing": "DISCONNECTED",
+                "live_trades_count": 0,
+                "live_orders_count": 0,
+            },
+            "market_session": {
+                "state": market_status.value,
+                "is_trading_day": trading_hours.is_trading_day,
+                "is_active_market": is_active,
+                "description": trading_hours.description,
+            },
+            "signals_today": {
+                "total": today_analytics.get("total_signals", 0),
+                "resolved": today_analytics.get("resolved_signals", 0),
+                "active": today_analytics.get("active_signals", 0),
+                "win_rate_display": today_analytics.get("win_rate_display", "N/A"),
+                "t1_rate": today_analytics.get("t1_hit_rate_pct", 0),
+                "t2_rate": today_analytics.get("t2_hit_rate_pct", 0),
+            },
+            "notification_subsystem": notif_health,
+        }
+
     @app.post("/api/v1/admin/test-dispatch-signal")
     async def api_test_dispatch_signal(request: Request, user: Any = Depends(dashboard._auth_deps.require_permission("modify_config"))):
         """Dispatch a live test trade signal across Telegram, Email, and DB Signal Tracker."""
@@ -220,7 +295,7 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         else:
             email_result["detail"] = "Missing EMAIL_USER, EMAIL_PASS, or valid recipients in EMAIL_TO"
 
-        return {
+        resp = {
             "success": True,
             "signal_id": signal_id,
             "symbol": symbol,

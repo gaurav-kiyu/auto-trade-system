@@ -896,6 +896,25 @@ def create_auth_router(
             raise HTTPException(status_code=404, detail="Signal not found")
         return {"success": True, "signal_id": signal_id, "placed": placed}
 
+    @router.get("/signals/{signal_id}/explain")
+    async def get_signal_explainability(
+        signal_id: str,
+        user: AuthUser = Depends(auth_deps.require_auth),
+    ) -> dict:
+        """Return canonical persisted score components and indicators for a signal.
+
+        Guarantees:
+        - Out-of-band: read-only inspection.
+        - Uses strictly persisted components from system_signals.raw_data.
+        - Zero recalculation using current runtime or market indicators.
+        """
+        from core.signals.signal_tracker import SignalTracker
+        tracker = SignalTracker.get_instance()
+        explanation = tracker.get_signal_explanation(signal_id)
+        if not explanation:
+            raise HTTPException(status_code=404, detail="Signal explanation not found")
+        return explanation
+
     # ── Session management (admin) ────────────────────────────────────────────
 
     @router.get("/users/{username}/sessions")

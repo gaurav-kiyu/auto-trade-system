@@ -8,6 +8,7 @@ the trading system.
 
 from __future__ import annotations
 
+import json
 import os
 import threading
 from typing import Any
@@ -176,6 +177,14 @@ class NotificationService:
         # Metrics
         self._metrics = ServiceMetrics()
         self._metrics_lock = threading.RLock()
+
+        # Retry & Dead-Letter Queue Configuration (Exponential backoff [5, 15, 45]s)
+        self.RETRY_BACKOFF_SECONDS = [5, 15, 45]
+        self.MAX_RETRY_ATTEMPTS = 3
+        self._watchdog_lock = threading.Lock()
+        self._last_delivery_success: datetime | None = None
+        self._last_delivery_failure: datetime | None = None
+        self._consecutive_failures: int = 0
 
         self._logger.info("NotificationService initialized")
 
@@ -531,7 +540,27 @@ class NotificationService:
             worker.start()
             self._workers.append(worker)
 
-        self._logger.info("Started %d notification worker threads", worker_count)
+        retry_worker = Thread(
+            target=self._retry_worker_loop,
+            name="NotificationRetryWorker",
+            daemon=True,
+        )
+        retry_worker.start()
+        self._workers.append(retry_worker)
+
+        self._logger.info("Started %d notification worker threads plus 1 retry worker", worker_count)
+
+    def _retry_worker_loop(self) -> None:
+        """Periodic background sweeper for notification_retry_queue."""
+        self._logger.debug("Notification retry worker started")
+        while not self._stop_event.is_set():
+            try:
+                self.process_retry_queue(max_items=10)
+            except Exception as e:
+                self._logger.error("Error in notification retry worker: %s", e)
+            if self._stop_event.wait(5.0):
+                break
+        self._logger.debug("Notification retry worker stopped")
 
     def _worker_loop(self) -> None:
         """Main worker loop for processing notifications."""
@@ -882,6 +911,24 @@ class NotificationService:
                     err_msg = "Telegram adapter is not enabled or not configured"
                     tracker.update_delivery_status(audit_id, "FAILED", error_message=err_msg)
                     self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=TELEGRAM status=FAILED error=%s", signal_id, uname, err_msg)
+                    with self._watchdog_lock:
+                        self._last_delivery_failure = now_ist()
+                        self._consecutive_failures += 1
+                    tracker.enqueue_notification_retry(
+                        signal_id=signal_id,
+                        username=uname,
+                        channel="TELEGRAM",
+                        destination=tg_chat_id,
+                        payload={
+                            "signal": signal,
+                            "custom_message": formatted_plain_msg,
+                            "subject": email_subject,
+                            "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
+                        },
+                        error_message=err_msg,
+                        max_attempts=self.MAX_RETRY_ATTEMPTS,
+                        delay_seconds=self.RETRY_BACKOFF_SECONDS[0],
+                    )
                     user_deliveries["TELEGRAM"] = "FAILED"
                 else:
                     try:
@@ -911,16 +958,56 @@ class NotificationService:
                         tg_res = tg_adapter.send_notification(tg_notif)
                         if tg_res and getattr(tg_res, "status", None) == NotificationStatus.SENT:
                             tracker.update_delivery_status(audit_id, "SENT")
+                            with self._watchdog_lock:
+                                self._last_delivery_success = now_ist()
+                                self._consecutive_failures = 0
                             self._logger.info("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=TELEGRAM status=SENT", signal_id, uname)
                             user_deliveries["TELEGRAM"] = "SENT"
                         else:
                             err_msg = str(getattr(tg_res, "error_message", "") or "Telegram adapter send failed")
                             tracker.update_delivery_status(audit_id, "FAILED", error_message=err_msg)
                             self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=TELEGRAM status=FAILED error=%s", signal_id, uname, err_msg)
+                            with self._watchdog_lock:
+                                self._last_delivery_failure = now_ist()
+                                self._consecutive_failures += 1
+                            tracker.enqueue_notification_retry(
+                                signal_id=signal_id,
+                                username=uname,
+                                channel="TELEGRAM",
+                                destination=tg_chat_id,
+                                payload={
+                                    "signal": signal,
+                                    "custom_message": formatted_plain_msg,
+                                    "subject": email_subject,
+                                    "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
+                                },
+                                error_message=err_msg,
+                                max_attempts=self.MAX_RETRY_ATTEMPTS,
+                                delay_seconds=self.RETRY_BACKOFF_SECONDS[0],
+                            )
                             user_deliveries["TELEGRAM"] = "FAILED"
                     except Exception as tg_ex:
-                        tracker.update_delivery_status(audit_id, "FAILED", error_message=str(tg_ex))
+                        err_msg = str(tg_ex)
+                        tracker.update_delivery_status(audit_id, "FAILED", error_message=err_msg)
                         self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=TELEGRAM status=FAILED error=%s", signal_id, uname, tg_ex)
+                        with self._watchdog_lock:
+                            self._last_delivery_failure = now_ist()
+                            self._consecutive_failures += 1
+                        tracker.enqueue_notification_retry(
+                            signal_id=signal_id,
+                            username=uname,
+                            channel="TELEGRAM",
+                            destination=tg_chat_id,
+                            payload={
+                                "signal": signal,
+                                "custom_message": formatted_plain_msg,
+                                "subject": email_subject,
+                                "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
+                            },
+                            error_message=err_msg,
+                            max_attempts=self.MAX_RETRY_ATTEMPTS,
+                            delay_seconds=self.RETRY_BACKOFF_SECONDS[0],
+                        )
                         user_deliveries["TELEGRAM"] = "FAILED"
 
             # ── CHANNEL 2: EMAIL ────────────────────────────────────────
@@ -974,6 +1061,24 @@ class NotificationService:
                     err_msg = "Email adapter is not enabled or credentials not configured"
                     tracker.update_delivery_status(audit_id, "FAILED", error_message=err_msg)
                     self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=EMAIL status=FAILED error=%s", signal_id, uname, err_msg)
+                    with self._watchdog_lock:
+                        self._last_delivery_failure = now_ist()
+                        self._consecutive_failures += 1
+                    tracker.enqueue_notification_retry(
+                        signal_id=signal_id,
+                        username=uname,
+                        channel="EMAIL",
+                        destination=user_email,
+                        payload={
+                            "signal": signal,
+                            "custom_message": formatted_plain_msg,
+                            "subject": email_subject,
+                            "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
+                        },
+                        error_message=err_msg,
+                        max_attempts=self.MAX_RETRY_ATTEMPTS,
+                        delay_seconds=self.RETRY_BACKOFF_SECONDS[0],
+                    )
                     user_deliveries["EMAIL"] = "FAILED"
                 else:
                     try:
@@ -997,19 +1102,242 @@ class NotificationService:
                         email_res = email_adapter.send_notification(email_notif)
                         if email_res and getattr(email_res, "status", None) == NotificationStatus.SENT:
                             tracker.update_delivery_status(audit_id, "SENT")
+                            with self._watchdog_lock:
+                                self._last_delivery_success = now_ist()
+                                self._consecutive_failures = 0
                             self._logger.info("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=EMAIL status=SENT", signal_id, uname)
                             user_deliveries["EMAIL"] = "SENT"
                         else:
                             err_msg = str(getattr(email_res, "error_message", "") or "Email adapter send failed")
                             tracker.update_delivery_status(audit_id, "FAILED", error_message=err_msg)
                             self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=EMAIL status=FAILED error=%s", signal_id, uname, err_msg)
+                            with self._watchdog_lock:
+                                self._last_delivery_failure = now_ist()
+                                self._consecutive_failures += 1
+                            tracker.enqueue_notification_retry(
+                                signal_id=signal_id,
+                                username=uname,
+                                channel="EMAIL",
+                                destination=user_email,
+                                payload={
+                                    "signal": signal,
+                                    "custom_message": formatted_plain_msg,
+                                    "subject": email_subject,
+                                    "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
+                                },
+                                error_message=err_msg,
+                                max_attempts=self.MAX_RETRY_ATTEMPTS,
+                                delay_seconds=self.RETRY_BACKOFF_SECONDS[0],
+                            )
                             user_deliveries["EMAIL"] = "FAILED"
                     except Exception as em_ex:
-                        tracker.update_delivery_status(audit_id, "FAILED", error_message=str(em_ex))
+                        err_msg = str(em_ex)
+                        tracker.update_delivery_status(audit_id, "FAILED", error_message=err_msg)
                         self._logger.error("[SIGNAL_NOTIFICATION] signal_id=%s recipient=%s channel=EMAIL status=FAILED error=%s", signal_id, uname, em_ex)
+                        with self._watchdog_lock:
+                            self._last_delivery_failure = now_ist()
+                            self._consecutive_failures += 1
+                        tracker.enqueue_notification_retry(
+                            signal_id=signal_id,
+                            username=uname,
+                            channel="EMAIL",
+                            destination=user_email,
+                            payload={
+                                "signal": signal,
+                                "custom_message": formatted_plain_msg,
+                                "subject": email_subject,
+                                "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
+                            },
+                            error_message=err_msg,
+                            max_attempts=self.MAX_RETRY_ATTEMPTS,
+                            delay_seconds=self.RETRY_BACKOFF_SECONDS[0],
+                        )
                         user_deliveries["EMAIL"] = "FAILED"
 
         return results
+
+    def process_retry_queue(self, max_items: int = 20) -> dict[str, int]:
+        """Process pending notification retries that are due.
+
+        Concurrency & Idempotency:
+        - Atomically claims pending retries via tracker.claim_due_notification_retries
+        - Checks is_signal_delivered to avoid redundant transmissions
+        - Uses progressive backoff [5, 15, 45]s
+        - Moves exhausted attempts to notification_dead_letter (DLQ)
+        - Completely independent state between Telegram and Email channels
+        """
+        counts = {"processed": 0, "succeeded": 0, "retried": 0, "dead_lettered": 0}
+        from core.signals.signal_tracker import SignalTracker
+        tracker = SignalTracker.get_instance()
+
+        claimed = tracker.claim_due_notification_retries(max_items=max_items)
+        if not claimed:
+            return counts
+
+        for item in claimed:
+            counts["processed"] += 1
+            retry_id = item["retry_id"]
+            sig_id = item["signal_id"]
+            uname = item["username"]
+            channel = str(item["channel"]).upper()
+            dest = item["destination"]
+            attempt_count = item["attempt_count"]
+            max_attempts = item["max_attempts"]
+
+            raw_payload = item.get("payload")
+            payload: dict[str, Any] = {}
+            if isinstance(raw_payload, dict):
+                payload = raw_payload
+            elif isinstance(raw_payload, str):
+                try:
+                    payload = json.loads(raw_payload)
+                except Exception:
+                    payload = {"custom_message": raw_payload}
+
+            # Deduplication check: Has this signal already been delivered on this channel?
+            if tracker.is_signal_delivered(sig_id, uname, channel):
+                tracker.complete_notification_retry(retry_id)
+                counts["succeeded"] += 1
+                self._logger.info("[RETRY_QUEUE] Item %d (%s/%s/%s) already delivered; marked COMPLETED", retry_id, sig_id, uname, channel)
+                continue
+
+            success = False
+            err_msg = ""
+
+            if channel == "TELEGRAM":
+                tg_adapter = self._adapters.get(NotificationChannel.TELEGRAM)
+                tg_avail = tg_adapter is not None and (
+                    getattr(tg_adapter, "enabled", False)
+                    or getattr(tg_adapter, "_enabled", False)
+                    or (hasattr(tg_adapter, "is_channel_available") and tg_adapter.is_channel_available(NotificationChannel.TELEGRAM))
+                )
+                if not tg_avail:
+                    err_msg = "Telegram adapter is not available or not configured"
+                else:
+                    try:
+                        msg_text = payload.get("custom_message") or payload.get("message") or f"[RETRY] Signal {sig_id}"
+                        prio = NotificationPriority.CRITICAL if payload.get("priority") == "CRITICAL" else NotificationPriority.HIGH
+                        tg_notif = Notification(
+                            message=msg_text,
+                            channel=NotificationChannel.TELEGRAM,
+                            priority=prio,
+                            recipient=dest,
+                            subject=payload.get("subject", "Trading Signal"),
+                            metadata=payload.get("signal", {}),
+                        )
+                        tg_res = tg_adapter.send_notification(tg_notif)
+                        if tg_res and getattr(tg_res, "status", None) == NotificationStatus.SENT:
+                            success = True
+                        else:
+                            err_msg = str(getattr(tg_res, "error_message", "") or "Telegram retry send failed")
+                    except Exception as ex:
+                        err_msg = str(ex)
+
+            elif channel == "EMAIL":
+                email_adapter = self._adapters.get(NotificationChannel.EMAIL)
+                email_avail = email_adapter is not None and (
+                    getattr(email_adapter, "enabled", False)
+                    or getattr(email_adapter, "_enabled", False)
+                    or (hasattr(email_adapter, "is_channel_available") and email_adapter.is_channel_available(NotificationChannel.EMAIL))
+                )
+                if not email_avail:
+                    err_msg = "Email adapter is not available or not configured"
+                else:
+                    try:
+                        msg_text = payload.get("custom_message") or payload.get("message") or f"[RETRY] Signal {sig_id}"
+                        prio = NotificationPriority.CRITICAL if payload.get("priority") == "CRITICAL" else NotificationPriority.HIGH
+                        email_notif = Notification(
+                            message=msg_text,
+                            channel=NotificationChannel.EMAIL,
+                            priority=prio,
+                            recipient=dest,
+                            subject=payload.get("subject", "Trading Signal"),
+                            metadata=payload.get("signal", {}),
+                        )
+                        email_res = email_adapter.send_notification(email_notif)
+                        if email_res and getattr(email_res, "status", None) == NotificationStatus.SENT:
+                            success = True
+                        else:
+                            err_msg = str(getattr(email_res, "error_message", "") or "Email retry send failed")
+                    except Exception as ex:
+                        err_msg = str(ex)
+            else:
+                err_msg = f"Unsupported retry channel: {channel}"
+
+            if success:
+                tracker.complete_notification_retry(retry_id)
+                tracker.record_delivery_attempt(
+                    signal_id=sig_id,
+                    username=uname,
+                    channel=channel,
+                    destination=dest,
+                    attempted=True,
+                    status="SENT",
+                )
+                with self._watchdog_lock:
+                    self._last_delivery_success = now_ist()
+                    self._consecutive_failures = 0
+                counts["succeeded"] += 1
+                self._logger.info("[RETRY_QUEUE] Successfully delivered retry %d (%s/%s/%s)", retry_id, sig_id, uname, channel)
+            else:
+                with self._watchdog_lock:
+                    self._last_delivery_failure = now_ist()
+                    self._consecutive_failures += 1
+                next_attempt = attempt_count + 1
+                if next_attempt < max_attempts:
+                    delay_idx = min(attempt_count, len(self.RETRY_BACKOFF_SECONDS) - 1)
+                    delay_sec = self.RETRY_BACKOFF_SECONDS[delay_idx]
+                    tracker.fail_notification_retry(retry_id, err_msg, next_delay_seconds=delay_sec)
+                    counts["retried"] += 1
+                    self._logger.warning("[RETRY_QUEUE] Retry %d attempt %d/%d failed: %s (rescheduled in %ds)", retry_id, next_attempt, max_attempts, err_msg, delay_sec)
+                else:
+                    tracker.fail_notification_retry(retry_id, err_msg, next_delay_seconds=None)
+                    counts["dead_lettered"] += 1
+                    self._logger.error("[RETRY_QUEUE] Retry %d reached max attempts (%d); moved to DEAD LETTER QUEUE (DLQ): %s", retry_id, max_attempts, err_msg)
+
+        return counts
+
+    def get_notification_health(self) -> dict[str, Any]:
+        """Return comprehensive health assessment of notification delivery subsystems."""
+        from core.signals.signal_tracker import SignalTracker
+        tracker = SignalTracker.get_instance()
+        queue_metrics = tracker.get_notification_queue_metrics()
+
+        tg_adapter = self._adapters.get(NotificationChannel.TELEGRAM)
+        email_adapter = self._adapters.get(NotificationChannel.EMAIL)
+
+        with self._watchdog_lock:
+            last_succ = self._last_delivery_success.strftime("%Y-%m-%d %H:%M:%S") if self._last_delivery_success else None
+            last_fail = self._last_delivery_failure.strftime("%Y-%m-%d %H:%M:%S") if self._last_delivery_failure else None
+            consecutive_fails = self._consecutive_failures
+
+        tg_status = {
+            "configured": bool(tg_adapter),
+            "enabled": bool(tg_adapter and (getattr(tg_adapter, "enabled", False) or getattr(tg_adapter, "_enabled", False))),
+        }
+        email_status = {
+            "configured": bool(email_adapter),
+            "enabled": bool(email_adapter and (getattr(email_adapter, "enabled", False) or getattr(email_adapter, "_enabled", False))),
+        }
+
+        is_healthy = (
+            self.is_running
+            and queue_metrics.get("dlq_total", 0) == 0
+            and consecutive_fails < 5
+        )
+
+        return {
+            "service_status": self._status.value if hasattr(self._status, "value") else str(self._status),
+            "healthy": is_healthy,
+            "adapters": {
+                "telegram": tg_status,
+                "email": email_status,
+            },
+            "queue_metrics": queue_metrics,
+            "consecutive_failures": consecutive_fails,
+            "last_delivery_success": last_succ,
+            "last_delivery_failure": last_fail,
+        }
 
 
 # ── Singleton factory ─────────────────────────────────────────────────────────

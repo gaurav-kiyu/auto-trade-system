@@ -11,17 +11,16 @@ Supports dual persistence:
 
 from __future__ import annotations
 
-import copy
 import json
 import logging
-import os
 import sqlite3
 import threading
 import time
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 _log = logging.getLogger("audit_service")
 

@@ -19,15 +19,15 @@ Strict Governance Invariants:
 from __future__ import annotations
 
 import datetime
-import json
 import logging
 import sqlite3
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from core.datetime_ist import now_ist
 from core.exchange_calendar_engine import ExchangeCalendarEngine
@@ -397,7 +397,7 @@ class SignalOutcomeTracker:
                         new_first_touch_at = now_str
                         new_first_touch_price = bar.close
                         new_confidence = OutcomeConfidence.UNRESOLVED.value
-                        transition_note = f"Intraday signal expired at session close (15:30 IST)"
+                        transition_note = "Intraday signal expired at session close (15:30 IST)"
                 else:
                     # Swing / Delivery: expires after 5 trading days without touching T1 or SL
                     trading_days_elapsed = self._count_trading_days(created_d, today_date)
@@ -414,10 +414,10 @@ class SignalOutcomeTracker:
             if existing_first_touch == "T1" and current_status == "TARGET_1_HIT":
                 if hit_t2 and not hit_sl:
                     new_status = "TARGET_2_HIT"
-                    transition_note = f"Target 2 reached following initial T1 hit"
+                    transition_note = "Target 2 reached following initial T1 hit"
                 elif hit_sl:
                     new_status = "SL_HIT"
-                    transition_note = f"Stop loss hit following initial T1 hit (Lifecycle progression recorded)"
+                    transition_note = "Stop loss hit following initial T1 hit (Lifecycle progression recorded)"
                 else:
                     # Horizon expiry check after initial T1 hit
                     created_d = None
@@ -448,7 +448,7 @@ class SignalOutcomeTracker:
                     if is_intraday:
                         if created_d < today_date or (created_d == today_date and is_trading_day and now.time() >= MARKET_CLOSE_TIME and not near_close_created):
                             new_status = "EXPIRED"
-                            transition_note = f"Intraday signal expired after hitting T1 (first_touch preserved)"
+                            transition_note = "Intraday signal expired after hitting T1 (first_touch preserved)"
                     else:
                         trading_days_elapsed = self._count_trading_days(created_d, today_date)
                         if trading_days_elapsed >= 5:
@@ -596,7 +596,7 @@ class SignalOutcomeTracker:
                             # Tick evaluation
                             # Backward-compatibility logic for single-point polling:
                             direction = str(row["direction"]).upper()
-                            entry = float(row["entry_price"])
+                            _entry = float(row["entry_price"])
                             sl = float(row["stop_loss"])
                             t1 = float(row["target_1"])
                             t2 = float(row["target_2"])
@@ -1145,9 +1145,13 @@ class SignalOutcomeTracker:
                 if resolved_signals > 0:
                     win_rate_pct = round((t1_hits / resolved_signals) * 100, 2)
                     win_rate_display = f"{win_rate_pct}%"
+                    loss_rate_pct = round((sl_hits / resolved_signals) * 100, 2)
+                    loss_rate_display = f"{loss_rate_pct}%"
                 else:
                     win_rate_pct = None
                     win_rate_display = "N/A (0 resolved)"
+                    loss_rate_pct = 0.0
+                    loss_rate_display = "0.0%"
 
                 # Profit Factor calculation
                 winning_pnl = sum(r["pnl_pct"] for r in rows if r["status"] in ("TARGET_1_HIT", "TARGET_2_HIT") and r["pnl_pct"] > 0)
@@ -1159,6 +1163,228 @@ class SignalOutcomeTracker:
                     profit_factor = 999.99  # Infinite / zero losses
                 else:
                     profit_factor = 0.0
+
+                # Detailed average win / loss PnL lists
+                winning_pnls: list[float] = []
+                for r in rows:
+                    if r.get("first_touch") in ("T1", "T2") or (not r.get("first_touch") and r.get("status") in ("TARGET_1_HIT", "TARGET_2_HIT")):
+                        p = float(r.get("pnl_pct") or 0.0)
+                        if p > 0:
+                            winning_pnls.append(p)
+                        elif r.get("entry_price") and r.get("target_1") and float(r["entry_price"]) > 0:
+                            ep = float(r["entry_price"])
+                            t1 = float(r["target_1"])
+                            calc_p = abs((t1 - ep) / ep * 100.0)
+                            winning_pnls.append(calc_p)
+
+                losing_pnls: list[float] = []
+                for r in rows:
+                    if r.get("first_touch") == "SL" or (not r.get("first_touch") and r.get("status") == "SL_HIT"):
+                        p = float(r.get("pnl_pct") or 0.0)
+                        if p != 0:
+                            losing_pnls.append(abs(p))
+                        elif r.get("entry_price") and r.get("stop_loss") and float(r["entry_price"]) > 0:
+                            ep = float(r["entry_price"])
+                            sl = float(r["stop_loss"])
+                            calc_p = abs((ep - sl) / ep * 100.0)
+                            losing_pnls.append(calc_p)
+
+                avg_win_pnl = round(sum(winning_pnls) / len(winning_pnls), 2) if winning_pnls else 0.0
+                avg_loss_pnl = round(sum(losing_pnls) / len(losing_pnls), 2) if losing_pnls else 0.0
+
+                # Mathematical Expectancy = (win_rate * avg_win) - (loss_rate * avg_loss)
+                if resolved_signals > 0:
+                    win_frac = t1_hits / resolved_signals
+                    loss_frac = sl_hits / resolved_signals
+                    expectancy_pct = round((win_frac * avg_win_pnl) - (loss_frac * avg_loss_pnl), 2)
+                    expectancy_display = f"{expectancy_pct:+.2f}%"
+                else:
+                    expectancy_pct = None
+                    expectancy_display = "N/A (0 resolved)"
+
+                # MFE / MAE computation from signal_outcome_events and barrier touches
+                events_by_signal: dict[str, list[float]] = {}
+                sig_ids = [r["signal_id"] for r in rows if r.get("signal_id")]
+                if sig_ids:
+                    chunk_size = 500
+                    for i in range(0, len(sig_ids), chunk_size):
+                        chunk = sig_ids[i:i + chunk_size]
+                        placeholders = ",".join("?" for _ in chunk)
+                        cur.execute(
+                            f"SELECT signal_id, observed_price FROM signal_outcome_events WHERE signal_id IN ({placeholders})",
+                            chunk,
+                        )
+                        for ev in cur.fetchall():
+                            events_by_signal.setdefault(ev["signal_id"], []).append(float(ev["observed_price"]))
+
+                all_mfes: list[float] = []
+                all_maes: list[float] = []
+                for r in rows:
+                    ep = float(r.get("entry_price") or 0.0)
+                    if ep <= 0:
+                        continue
+                    is_b = str(r.get("direction", "")).upper() in ("BUY", "CALL", "LONG")
+                    prices = list(events_by_signal.get(r["signal_id"], []))
+                    if r.get("first_touch_price") and float(r["first_touch_price"]) > 0:
+                        prices.append(float(r["first_touch_price"]))
+                    if r.get("current_price") and float(r["current_price"]) > 0:
+                        prices.append(float(r["current_price"]))
+                    if r.get("first_touch") in ("T1", "T2") or r.get("status") in ("TARGET_1_HIT", "TARGET_2_HIT"):
+                        if r.get("target_1") and float(r["target_1"]) > 0:
+                            prices.append(float(r["target_1"]))
+                    if r.get("first_touch") == "T2" or r.get("status") == "TARGET_2_HIT":
+                        if r.get("target_2") and float(r["target_2"]) > 0:
+                            prices.append(float(r["target_2"]))
+                    if r.get("first_touch") == "SL" or r.get("status") == "SL_HIT":
+                        if r.get("stop_loss") and float(r["stop_loss"]) > 0:
+                            prices.append(float(r["stop_loss"]))
+
+                    if prices:
+                        sig_mfes = []
+                        sig_maes = []
+                        for p in prices:
+                            if is_b:
+                                fav = (p - ep) / ep * 100.0
+                                adv = (ep - p) / ep * 100.0
+                            else:
+                                fav = (ep - p) / ep * 100.0
+                                adv = (p - ep) / ep * 100.0
+                            sig_mfes.append(max(0.0, fav))
+                            sig_maes.append(max(0.0, adv))
+                        if sig_mfes:
+                            all_mfes.append(max(sig_mfes))
+                            all_maes.append(max(sig_maes))
+
+                avg_mfe_pct = round(sum(all_mfes) / len(all_mfes), 2) if all_mfes else 0.0
+                max_mfe_pct = round(max(all_mfes), 2) if all_mfes else 0.0
+                avg_mae_pct = round(sum(all_maes) / len(all_maes), 2) if all_maes else 0.0
+                max_mae_pct = round(max(all_maes), 2) if all_maes else 0.0
+
+                # Duration to first touch
+                durations: list[float] = []
+                win_durations: list[float] = []
+                loss_durations: list[float] = []
+                for r in rows:
+                    ts_created = r.get("timestamp")
+                    ts_touch = r.get("first_touch_at")
+                    if ts_created and ts_touch:
+                        try:
+                            dt1 = datetime.datetime.fromisoformat(str(ts_created).replace("Z", "+00:00").replace(" ", "T"))
+                            dt2 = datetime.datetime.fromisoformat(str(ts_touch).replace("Z", "+00:00").replace(" ", "T"))
+                            dur_mins = (dt2 - dt1).total_seconds() / 60.0
+                            if dur_mins >= 0:
+                                durations.append(dur_mins)
+                                if r.get("first_touch") in ("T1", "T2") or r.get("status") in ("TARGET_1_HIT", "TARGET_2_HIT"):
+                                    win_durations.append(dur_mins)
+                                elif r.get("first_touch") == "SL" or r.get("status") == "SL_HIT":
+                                    loss_durations.append(dur_mins)
+                        except Exception:
+                            pass
+
+                avg_duration_to_first_touch_mins = round(sum(durations) / len(durations), 1) if durations else None
+                avg_duration_to_win_mins = round(sum(win_durations) / len(win_durations), 1) if win_durations else None
+                avg_duration_to_loss_mins = round(sum(loss_durations) / len(loss_durations), 1) if loss_durations else None
+
+                # Multi-dimensional Segmentation
+                def _calc_segment(sub_rows: list[dict[str, Any]]) -> dict[str, Any]:
+                    sub_total = len(sub_rows)
+                    sub_t1 = sum(1 for r in sub_rows if r.get("first_touch") in ("T1", "T2") or (not r.get("first_touch") and r.get("status") in ("TARGET_1_HIT", "TARGET_2_HIT")))
+                    sub_sl = sum(1 for r in sub_rows if r.get("first_touch") == "SL" or (not r.get("first_touch") and r.get("status") == "SL_HIT"))
+                    sub_res = sub_t1 + sub_sl
+                    sub_win = round((sub_t1 / sub_res) * 100, 2) if sub_res > 0 else None
+                    sub_loss = round((sub_sl / sub_res) * 100, 2) if sub_res > 0 else 0.0
+
+                    sub_w = []
+                    for r in sub_rows:
+                        if r.get("first_touch") in ("T1", "T2") or (not r.get("first_touch") and r.get("status") in ("TARGET_1_HIT", "TARGET_2_HIT")):
+                            p = float(r.get("pnl_pct") or 0.0)
+                            if p > 0:
+                                sub_w.append(p)
+                            elif r.get("entry_price") and r.get("target_1") and float(r["entry_price"]) > 0:
+                                sub_w.append(abs((float(r["target_1"]) - float(r["entry_price"])) / float(r["entry_price"]) * 100.0))
+
+                    sub_l = []
+                    for r in sub_rows:
+                        if r.get("first_touch") == "SL" or (not r.get("first_touch") and r.get("status") == "SL_HIT"):
+                            p = float(r.get("pnl_pct") or 0.0)
+                            if p != 0:
+                                sub_l.append(abs(p))
+                            elif r.get("entry_price") and r.get("stop_loss") and float(r["entry_price"]) > 0:
+                                sub_l.append(abs((float(r["entry_price"]) - float(r["stop_loss"])) / float(r["entry_price"]) * 100.0))
+
+                    s_avg_w = round(sum(sub_w) / len(sub_w), 2) if sub_w else 0.0
+                    s_avg_l = round(sum(sub_l) / len(sub_l), 2) if sub_l else 0.0
+                    s_exp = round(((sub_t1 / sub_res) * s_avg_w) - ((sub_sl / sub_res) * s_avg_l), 2) if sub_res > 0 else None
+                    warn = sub_total < 5
+                    return {
+                        "total_signals": sub_total,
+                        "resolved_signals": sub_res,
+                        "t1_hits": sub_t1,
+                        "sl_hits": sub_sl,
+                        "win_rate_pct": sub_win,
+                        "loss_rate_pct": sub_loss,
+                        "avg_win_pnl": s_avg_w,
+                        "avg_loss_pnl": s_avg_l,
+                        "expectancy_pct": s_exp,
+                        "sample_size_warning": warn,
+                        "warning": "Low sample size (< 5). Results may not be statistically significant." if warn else None,
+                    }
+
+                segmentation: dict[str, dict[str, Any]] = {
+                    "by_direction": {},
+                    "by_tier": {},
+                    "by_category": {},
+                    "by_score_band": {},
+                    "by_symbol": {},
+                }
+
+                # Group by direction
+                dir_groups: dict[str, list[dict[str, Any]]] = {}
+                for r in rows:
+                    d = str(r.get("direction") or "UNKNOWN").upper()
+                    dir_groups.setdefault(d, []).append(r)
+                for d, g in dir_groups.items():
+                    segmentation["by_direction"][d] = _calc_segment(g)
+
+                # Group by tier
+                tier_groups: dict[str, list[dict[str, Any]]] = {}
+                for r in rows:
+                    t = str(r.get("tier") or "UNKNOWN").upper()
+                    tier_groups.setdefault(t, []).append(r)
+                for t, g in tier_groups.items():
+                    segmentation["by_tier"][t] = _calc_segment(g)
+
+                # Group by category
+                cat_groups: dict[str, list[dict[str, Any]]] = {}
+                for r in rows:
+                    c = str(r.get("category") or "UNKNOWN").upper()
+                    cat_groups.setdefault(c, []).append(r)
+                for c, g in cat_groups.items():
+                    segmentation["by_category"][c] = _calc_segment(g)
+
+                # Group by score band
+                score_groups: dict[str, list[dict[str, Any]]] = {">=80": [], "70-79": [], "<70": []}
+                for r in rows:
+                    sc = float(r.get("score") or 0.0)
+                    if sc >= 80:
+                        score_groups[">=80"].append(r)
+                    elif sc >= 70:
+                        score_groups["70-79"].append(r)
+                    else:
+                        score_groups["<70"].append(r)
+                for sb, g in score_groups.items():
+                    segmentation["by_score_band"][sb] = _calc_segment(g)
+
+                # Group by symbol (top 20 symbols by signal count)
+                sym_groups: dict[str, list[dict[str, Any]]] = {}
+                for r in rows:
+                    s = str(r.get("symbol") or "UNKNOWN").upper()
+                    sym_groups.setdefault(s, []).append(r)
+                sorted_syms = sorted(sym_groups.items(), key=lambda item: len(item[1]), reverse=True)[:20]
+                for s, g in sorted_syms:
+                    segmentation["by_symbol"][s] = _calc_segment(g)
+
+                overall_sample_warning = total_signals < 5
 
                 return {
                     "total_signals": total_signals,
@@ -1173,6 +1399,24 @@ class SignalOutcomeTracker:
                     "first_touch_win_rate_display": win_rate_display,
                     "win_rate_pct": win_rate_pct,
                     "win_rate_display": win_rate_display,
+                    "loss_rate_pct": loss_rate_pct,
+                    "loss_rate_display": loss_rate_display,
+                    "avg_win_pnl": avg_win_pnl,
+                    "avg_loss_pnl": avg_loss_pnl,
+                    "expectancy_pct": expectancy_pct,
+                    "expectancy_display": expectancy_display,
+                    "mfe_stats": {"avg_pct": avg_mfe_pct, "max_pct": max_mfe_pct, "samples": len(all_mfes)},
+                    "mae_stats": {"avg_pct": avg_mae_pct, "max_pct": max_mae_pct, "samples": len(all_maes)},
+                    "avg_mfe_pct": avg_mfe_pct,
+                    "max_mfe_pct": max_mfe_pct,
+                    "avg_mae_pct": avg_mae_pct,
+                    "max_mae_pct": max_mae_pct,
+                    "avg_duration_to_first_touch_mins": avg_duration_to_first_touch_mins,
+                    "avg_duration_to_win_mins": avg_duration_to_win_mins,
+                    "avg_duration_to_loss_mins": avg_duration_to_loss_mins,
+                    "segmentation": segmentation,
+                    "sample_size_warning": overall_sample_warning,
+                    "sample_size_note": "Low sample size (< 5). Results may not be statistically significant." if overall_sample_warning else None,
                     "metric_type": "FIRST_TOUCH_OBSERVATIONAL",
                     "lifecycle_sl_after_t1": lifecycle_sl_after_t1,
                     "profit_factor": profit_factor,
@@ -1189,10 +1433,29 @@ class SignalOutcomeTracker:
                     "sl_hits": 0,
                     "ambiguous": 0,
                     "expired": 0,
+                    "resolved_signals": 0,
                     "first_touch_win_rate_pct": None,
                     "first_touch_win_rate_display": "N/A",
                     "win_rate_pct": None,
                     "win_rate_display": "N/A",
+                    "loss_rate_pct": 0.0,
+                    "loss_rate_display": "0.0%",
+                    "avg_win_pnl": 0.0,
+                    "avg_loss_pnl": 0.0,
+                    "expectancy_pct": None,
+                    "expectancy_display": "N/A",
+                    "mfe_stats": {"avg_pct": 0.0, "max_pct": 0.0, "samples": 0},
+                    "mae_stats": {"avg_pct": 0.0, "max_pct": 0.0, "samples": 0},
+                    "avg_mfe_pct": 0.0,
+                    "max_mfe_pct": 0.0,
+                    "avg_mae_pct": 0.0,
+                    "max_mae_pct": 0.0,
+                    "avg_duration_to_first_touch_mins": None,
+                    "avg_duration_to_win_mins": None,
+                    "avg_duration_to_loss_mins": None,
+                    "segmentation": {},
+                    "sample_size_warning": False,
+                    "sample_size_note": None,
                     "metric_type": "FIRST_TOUCH_OBSERVATIONAL",
                     "lifecycle_sl_after_t1": 0,
                     "profit_factor": 0.0,
