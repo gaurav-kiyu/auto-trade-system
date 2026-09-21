@@ -47,7 +47,7 @@ jobs:
           python scripts/scan_dead_code.py --quick --ci || echo "Dead code found"
 
       - name: Upload audit report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pr-audit-report
           path: reports/pr-audit-report.json
