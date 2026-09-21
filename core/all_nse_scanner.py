@@ -110,37 +110,81 @@ class AllNSEScanner:
         self._vix_fetched_at: float = 0.0
         self._vix_cache_ttl: float = 600.0
 
+        self._evaluation_states_lock = threading.Lock()
+        self._evaluation_states: dict[str, dict[str, Any]] = {}
+
         self._reload_config_credentials()
 
-    def _market_session_is_open(self) -> bool:
-        """Server-side NSE/BSE cash/F&O session gate.
+    def _record_evaluation_state(
+        self,
+        symbol: str,
+        state: str,
+        reason: str = "",
+        category: str = "",
+        score: int | None = None,
+    ) -> None:
+        """Record discrete evaluation telemetry state for an instrument (16-state model)."""
+        with self._evaluation_states_lock:
+            self._evaluation_states[symbol] = {
+                "symbol": symbol,
+                "category": category,
+                "state": state,
+                "score": score,
+                "reason": reason,
+                "timestamp": now_ist().isoformat(),
+            }
 
-        Live scans are blocked outside 09:15-15:30 IST on weekdays unless an
-        explicit replay/backtest/after-hours override is enabled. This gate
-        prevents a live scanner from producing signals from stale/off-session
-        Yahoo Finance bars.
+    def get_evaluation_states(self, category: str | None = None) -> list[dict[str, Any]]:
+        """Return snapshot of current evaluation states across all symbols or a category."""
+        with self._evaluation_states_lock:
+            if category:
+                cat_upper = category.upper()
+                return [v for v in self._evaluation_states.values() if v.get("category", "").upper() == cat_upper]
+            return list(self._evaluation_states.values())
+
+    def get_category_evaluation_summary(self) -> dict[str, dict[str, int]]:
+        """Return counts of symbols per state grouped by category."""
+        with self._evaluation_states_lock:
+            summary: dict[str, dict[str, int]] = {}
+            for item in self._evaluation_states.values():
+                cat = item.get("category", "UNKNOWN")
+                st = item.get("state", "NOT_EVALUATED")
+                if cat not in summary:
+                    summary[cat] = {}
+                summary[cat][st] = summary[cat].get(st, 0) + 1
+            return summary
+
+    def _market_session_is_open(self) -> bool:
+        """Server-side multi-asset session gate.
+
+        Live scans are blocked outside operating market sessions on weekdays
+        unless an explicit replay/backtest/after-hours override is enabled.
+        Considers Equity, Derivatives, Currencies (NSE CDS till 17:00 IST),
+        and Commodities (MCX till 23:30 IST).
         """
         mode = str(self._cfg.get("EXECUTION_MODE", "SIGNAL_ONLY")).upper()
         if bool(self._cfg.get("ALLOW_AFTER_HOURS_SCANNING", False)) or mode in {"BACKTEST", "REPLAY", "PAPER_REPLAY"}:
             return True
         now = now_ist()
         if now.weekday() >= 5:
-            return False
-        try:
-            from core.exchange_calendar_engine import get_calendar_engine
-            if not get_calendar_engine(self._cfg).is_market_day(now.date()):
+            try:
+                from core.exchange_calendar_engine import get_calendar_engine
+                if not get_calendar_engine(self._cfg).is_muhurat_trading(now.date()):
+                    return False
+            except Exception:
                 return False
+        try:
+            from core.exchange_calendar_engine import get_calendar_engine, is_category_session_open
+            cal = get_calendar_engine(self._cfg)
+            if not cal.is_market_day(now.date()) and not cal.is_muhurat_trading(now.date()):
+                return False
+            for cat in ("EQUITY", "INDEX_OPTIONS", "CURRENCIES", "COMMODITIES"):
+                if is_category_session_open(cat, now):
+                    return True
+            return False
         except Exception:
             pass
-        start = str(self._cfg.get("MARKET_OPEN", "09:15"))
-        end = str(self._cfg.get("MARKET_CLOSE", "15:30"))
-        try:
-            sh, sm = (int(x) for x in start.split(":")[:2])
-            eh, em = (int(x) for x in end.split(":")[:2])
-            current = now.hour * 60 + now.minute
-            return sh * 60 + sm <= current <= eh * 60 + em
-        except (ValueError, TypeError):
-            return 9 * 60 + 15 <= now.hour * 60 + now.minute <= 15 * 60 + 30
+        return 9 * 60 + 0 <= now.hour * 60 + now.minute <= 23 * 60 + 30
 
     def _get_live_vix(self) -> float:
         """Fetch the real India VIX (^INDIAVIX) once per scan cycle with a TTL cache.
@@ -205,14 +249,23 @@ class AllNSEScanner:
         _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         today = now_ist().date()
 
-        # Priority Option Indices (Always scanned first)
-        priority_indices = [
+        # Priority Multi-Asset Instruments (Indices, Commodities, Currencies - Scanned first)
+        priority_instruments = [
             {"symbol": "NIFTY", "name": "Nifty 50 Index (NSE)", "series": "INDEX"},
             {"symbol": "BANKNIFTY", "name": "Bank Nifty Index (NSE)", "series": "INDEX"},
             {"symbol": "FINNIFTY", "name": "Nifty Fin Services (NSE)", "series": "INDEX"},
             {"symbol": "MIDCPNIFTY", "name": "Nifty Midcap Select (NSE)", "series": "INDEX"},
             {"symbol": "SENSEX", "name": "BSE Sensex Index (BSE)", "series": "INDEX"},
             {"symbol": "BANKEX", "name": "BSE Bankex Index (BSE)", "series": "INDEX"},
+            {"symbol": "GOLD", "name": "MCX Gold Commodity", "series": "COMMODITY"},
+            {"symbol": "SILVER", "name": "MCX Silver Commodity", "series": "COMMODITY"},
+            {"symbol": "CRUDEOIL", "name": "MCX Crude Oil Commodity", "series": "COMMODITY"},
+            {"symbol": "NATURALGAS", "name": "MCX Natural Gas Commodity", "series": "COMMODITY"},
+            {"symbol": "COPPER", "name": "MCX Copper Commodity", "series": "COMMODITY"},
+            {"symbol": "USDINR", "name": "USD/INR Currency Pair (NSE CDS)", "series": "CURRENCY"},
+            {"symbol": "EURINR", "name": "EUR/INR Currency Pair (NSE CDS)", "series": "CURRENCY"},
+            {"symbol": "GBPINR", "name": "GBP/INR Currency Pair (NSE CDS)", "series": "CURRENCY"},
+            {"symbol": "JPYINR", "name": "JPY/INR Currency Pair (NSE CDS)", "series": "CURRENCY"},
         ]
 
         # Check if local cache is fresh from TODAY
@@ -236,10 +289,10 @@ class AllNSEScanner:
                                 "series": row.get(" SERIES", row.get("SERIES", "EQ")).strip(),
                             })
                 if stocks:
-                    # Prepend Priority Indices
-                    self._symbols_cache = priority_indices + stocks
-                    _log.info("[DYNAMIC SYNC] Loaded %d verified symbols (including %d Priority Indices) for %s",
-                              len(self._symbols_cache), len(priority_indices), today.isoformat())
+                    # Prepend Priority Multi-Asset Instruments
+                    self._symbols_cache = priority_instruments + stocks
+                    _log.info("[DYNAMIC SYNC] Loaded %d verified symbols (including %d Priority Instruments) for %s",
+                              len(self._symbols_cache), len(priority_instruments), today.isoformat())
                     return self._symbols_cache
             except Exception as ex:
                 _log.warning("Cache load failed: %s. Re-fetching from NSE India...", ex)
@@ -268,13 +321,13 @@ class AllNSEScanner:
                     for row in reader
                     if row.get("SYMBOL")
                 ]
-                self._symbols_cache = priority_indices + stocks
-                _log.info("[DYNAMIC SYNC] SUCCESS: Daily refreshed & synchronized %d active stocks + %d Indices for %s!",
-                          len(stocks), len(priority_indices), today.isoformat())
+                self._symbols_cache = priority_instruments + stocks
+                _log.info("[DYNAMIC SYNC] SUCCESS: Daily refreshed & synchronized %d active stocks + %d Priority Instruments for %s!",
+                          len(stocks), len(priority_instruments), today.isoformat())
                 return self._symbols_cache
         except Exception as ex:
             _log.error("NSE live sync error: %s. Loading fallback equity universe.", ex)
-            return priority_indices + self._get_fallback_universe()
+            return priority_instruments + self._get_fallback_universe()
 
     def _get_fallback_universe(self) -> list[dict[str, str]]:
         """Fallback list of major liquid NSE stocks if network is offline."""
@@ -296,24 +349,24 @@ class AllNSEScanner:
 
         Canonical universal scoring model:
           0-59:   IGNORE / below signal threshold
-          60-67:  WEAK
-          68-79:  MODERATE (>= 68)
+          60-69:  WEAK
+          70-79:  MODERATE (>= 70)
           80-100: STRONG (>= 80)
 
-        Clamps legacy unconfigured 100 values to canonical thresholds (80 for STRONG, 68 for MODERATE)
+        Clamps legacy unconfigured 100 values to canonical thresholds (80 for STRONG, 70 for MODERATE)
         so that index and derivative scores 80-99 are never blocked from qualifying as Strong alerts.
         """
         cat_upper = category.upper()
         thresholds = self._cfg.get("CATEGORY_SCORE_THRESHOLDS", {})
         if isinstance(thresholds, dict) and cat_upper in thresholds:
             val = int(thresholds[cat_upper])
-            if val == 100:
+            if val >= 100:
                 min_tier = str(self._cfg.get("MIN_SIGNAL_TIER", "MODERATE_AND_STRONG")).upper()
-                val = 68 if "MODERATE" in min_tier else 80
+                val = 70 if "MODERATE" in min_tier else 80
             return val
 
         min_tier_cfg = str(self._cfg.get("MIN_SIGNAL_TIER", "MODERATE_AND_STRONG")).upper()
-        canonical_floor = 68 if "MODERATE" in min_tier_cfg else 80
+        canonical_floor = 70 if "MODERATE" in min_tier_cfg else 80
 
         if "INDEX" in cat_upper or cat_upper == "INDEX_OPTIONS":
             val = int(self._cfg.get("INDEX_MIN_SCORE", canonical_floor))
@@ -332,6 +385,19 @@ class AllNSEScanner:
         with self._stats_lock:
             self._scan_stats["evaluated"] += 1
 
+        from core.fno_universe import classify_instrument_market, is_fno_symbol
+        category = classify_instrument_market(sym, stock_info.get("series", "EQ"))
+        is_fno = is_fno_symbol(sym)
+
+        # Category session gate: evaluate if session is open or in after-hours / simulation mode
+        mode = str(self._cfg.get("EXECUTION_MODE", "SIGNAL_ONLY")).upper()
+        allow_off = bool(self._cfg.get("ALLOW_AFTER_HOURS_SCANNING", False)) or bool(self._cfg.get("SCANNER_FORCE_RUN", False)) or mode in {"BACKTEST", "REPLAY", "PAPER_REPLAY"}
+        if not allow_off:
+            from core.exchange_calendar_engine import is_category_session_open
+            if not is_category_session_open(category):
+                self._record_evaluation_state(sym, "MARKET_CLOSED", f"Market session closed for category {category}", category=category)
+                return None
+
         # Map to accurate Yahoo Finance / Data Ticker
         if sym == "NIFTY":
             yf_ticker = "^NSEI"
@@ -345,6 +411,24 @@ class AllNSEScanner:
             yf_ticker = "^BSESN"
         elif sym == "BANKEX":
             yf_ticker = "BSE-BANK.BO"
+        elif sym in ("GOLD", "MCX:GOLD"):
+            yf_ticker = "GC=F"
+        elif sym in ("SILVER", "MCX:SILVER"):
+            yf_ticker = "SI=F"
+        elif sym in ("CRUDEOIL", "MCX:CRUDEOIL"):
+            yf_ticker = "CL=F"
+        elif sym in ("NATURALGAS", "MCX:NATURALGAS"):
+            yf_ticker = "NG=F"
+        elif sym in ("COPPER", "MCX:COPPER"):
+            yf_ticker = "HG=F"
+        elif sym in ("USDINR", "CDS:USDINR"):
+            yf_ticker = "USDINR=X"
+        elif sym in ("EURINR", "CDS:EURINR"):
+            yf_ticker = "EURINR=X"
+        elif sym in ("GBPINR", "CDS:GBPINR"):
+            yf_ticker = "GBPINR=X"
+        elif sym in ("JPYINR", "CDS:JPYINR"):
+            yf_ticker = "JPYINR=X"
         else:
             yf_ticker = f"{sym}.NS"
 
@@ -371,6 +455,7 @@ class AllNSEScanner:
                     df1 = df5
 
             if df1 is None or df1.empty or df5 is None or df5.empty or df15 is None or df15.empty:
+                self._record_evaluation_state(sym, "DATA_UNAVAILABLE", "Empty OHLCV data from data provider", category=category)
                 return None
 
             from core.data_freshness_guard import check_data_freshness
@@ -383,6 +468,7 @@ class AllNSEScanner:
                 allow_off_market=True,
             )
             if not fresh_res.passed:
+                self._record_evaluation_state(sym, "FRESHNESS_BLOCKED", f"{fresh_res.reject_reason} (code={fresh_res.reject_code})", category=category)
                 _log.info(
                     "[FRESHNESS_GATE] Filtered %s: %s (code=%s)",
                     sym, fresh_res.reject_reason, fresh_res.reject_code,
@@ -395,18 +481,18 @@ class AllNSEScanner:
                 vix=self._current_vix,
             )
 
-            from core.fno_universe import classify_instrument_market, is_fno_symbol
-            is_fno = is_fno_symbol(sym)
-            category = classify_instrument_market(sym, stock_info.get("series", "EQ"))
-
             if sig is None:
+                self._record_evaluation_state(sym, "EVALUATED_NO_SIGNAL", reason or "No setup identified by strategies", category=category)
                 return None
 
             # LONG-ONLY CASH GATE:
-            # If the stock is NOT in the F&O universe, strictly block and suppress PUT/SELL signals.
+            # If the instrument is non-F&O cash equity, strictly block and suppress PUT/SELL signals.
             # Cash equities are only scanned for BUY (Swing / Positional / CNC Delivery).
-            if not is_fno and sig.direction == "PUT":
+            # Derivatives (Indices, Commodities, Currencies, Stock Options, Futures) are two-way.
+            is_derivative = is_fno or category in {"COMMODITIES", "CURRENCIES", "FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"}
+            if not is_derivative and sig.direction == "PUT":
                 _log.debug("[CASH GATE] Filtered PUT/SELL for non-F&O stock %s (Cash is strictly LONG-ONLY)", sym)
+                self._record_evaluation_state(sym, "FILTERED", "Cash equity is strictly LONG-ONLY (PUT/SELL suppressed)", category=category, score=sig.score)
                 return None
 
             min_score_threshold = self.get_min_score_for_category(category)
@@ -424,7 +510,6 @@ class AllNSEScanner:
             ml_prob = float(getattr(sig, "ml_probability", 0.5))
             if ml_required and ml_prob < ml_min:
                 if is_fno or sym in {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX"}:
-                    mode = str(self._cfg.get("EXECUTION_MODE", "SIGNAL_ONLY")).upper()
                     has_ml_reason = any(str(r).startswith("[ML]") for r in getattr(sig, "reasons", []))
                     model_unavailable = (ml_prob == 0.5) and not bool(getattr(sig, "ml_pred_id", "")) and not has_ml_reason
                     if model_unavailable and mode in {"PAPER", "SIGNAL_ONLY", "BACKTEST", "REPLAY", "PAPER_REPLAY"}:
@@ -443,34 +528,44 @@ class AllNSEScanner:
                                 "[ML_GATE] Suppressed %s: probability %.3f < %.3f",
                                 sym, ml_prob, ml_min,
                             )
+                        self._record_evaluation_state(sym, "FILTERED", f"Suppressed by ML gate: probability {ml_prob:.3f} < {ml_min:.3f}", category=category, score=sig.score)
                         return None
 
             # Config-driven score gate.
             # The effective threshold comes from CATEGORY_SCORE_THRESHOLDS
             # with configured fallback rules in get_min_score_for_category().
-            if sig and sig.score >= min_score_threshold and sig.tier in allowed_tiers:
-                with self._stats_lock:
-                    self._scan_stats["accepted"] += 1
-                return ScannedStockSignal(
-                    symbol=sym,
-                    company_name=stock_info.get("name", sym),
-                    series=stock_info.get("series", "EQ"),
-                    direction=sig.direction,
-                    score=sig.score,
-                    raw_score=sig.raw_score,
-                    tier=sig.tier,
-                    regime=sig.regime,
-                    price=sig.price,
-                    rsi=sig.rsi,
-                    adx=sig.adx,
-                    vwap=sig.vwap,
-                    confidence=sig.confidence,
-                    ml_probability=sig.ml_probability,
-                    score_components=dict(sig.score_components),
-                )
-        except Exception:
+            if sig.score < min_score_threshold:
+                self._record_evaluation_state(sym, "SIGNAL_BELOW_THRESHOLD", f"Score {sig.score} < threshold {min_score_threshold}", category=category, score=sig.score)
+                return None
+
+            if sig.tier not in allowed_tiers:
+                self._record_evaluation_state(sym, "FILTERED", f"Tier {sig.tier} not in allowed tiers {allowed_tiers}", category=category, score=sig.score)
+                return None
+
+            self._record_evaluation_state(sym, "SIGNAL_QUALIFIED", f"Qualified {sig.direction} signal: score {sig.score} ({sig.tier})", category=category, score=sig.score)
+            with self._stats_lock:
+                self._scan_stats["accepted"] += 1
+            return ScannedStockSignal(
+                symbol=sym,
+                company_name=stock_info.get("name", sym),
+                series=stock_info.get("series", "EQ"),
+                direction=sig.direction,
+                score=sig.score,
+                raw_score=sig.raw_score,
+                tier=sig.tier,
+                regime=sig.regime,
+                price=sig.price,
+                rsi=sig.rsi,
+                adx=sig.adx,
+                vwap=sig.vwap,
+                confidence=sig.confidence,
+                ml_probability=sig.ml_probability,
+                score_components=dict(sig.score_components),
+            )
+        except Exception as ex:
             with self._stats_lock:
                 self._scan_stats["errors"] += 1
+            self._record_evaluation_state(sym, "FAILED", f"Scan exception: {ex}", category=category if 'category' in locals() else "UNKNOWN")
             return None
         return None
 
@@ -577,8 +672,20 @@ class AllNSEScanner:
             if latest_prices:
                 from core.signals.signal_outcome_tracker import SignalOutcomeTracker
                 SignalOutcomeTracker.get_instance().update_active_signal_outcomes(lambda sym: latest_prices.get(sym))
+
+            # Persist 16-state evaluation telemetry snapshot for operators and monitoring
+            eval_states_snapshot = {
+                "timestamp": now_ist().isoformat(),
+                "cycle_stats": stats,
+                "summary": self.get_category_evaluation_summary(),
+                "states": self.get_evaluation_states(),
+            }
+            logs_dir = _ROOT / "logs"
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            with open(logs_dir / "evaluation_states_latest.json", "w", encoding="utf-8") as f:
+                json.dump(eval_states_snapshot, f, indent=2)
         except Exception as ex:
-            _log.debug("[SCAN_AUDIT] Failed to persist cycle metrics or update outcomes: %s", ex)
+            _log.debug("[SCAN_AUDIT] Failed to persist cycle metrics, evaluation snapshot, or update outcomes: %s", ex)
         _log.info("[SCAN_METRICS] evaluated=%d accepted=%d returned=%d errors=%d",
                   stats["evaluated"], stats["accepted"], len(detected_signals), stats["errors"])
         return detected_signals
@@ -601,9 +708,11 @@ class AllNSEScanner:
             audit_file = logs_dir / "forward_audit_signals.jsonl"
 
             # Compute virtual risk bounds for counterfactual tracking
-            sl_price = round(signal.price * 0.97 if signal.direction == "CALL" else signal.price * 1.03, 2)
-            t1_price = round(signal.price * 1.04 if signal.direction == "CALL" else signal.price * 0.96, 2)
-            t2_price = round(signal.price * 1.08 if signal.direction == "CALL" else signal.price * 0.92, 2)
+            from core.signal_utils import calculate_directional_levels
+            sl_price, t1_price, t2_price = calculate_directional_levels(
+                entry_price=signal.price,
+                direction=signal.direction,
+            )
 
             record = {
                 "signal_id": f"SIG-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}-{signal.symbol}-{signal.direction}",
@@ -656,21 +765,25 @@ class AllNSEScanner:
 
     def _dispatch_alert_if_eligible(self, signal: ScannedStockSignal) -> None:
         """Dispatch real-time trade signals via Telegram and Email."""
+        from core.fno_universe import classify_instrument_market
+        category = classify_instrument_market(signal.symbol, signal.series)
+
         # Cooldown gate - at most one alert per symbol per cooldown window
         now = time.time()
         last_sent = self._last_alert_time.get(signal.symbol, 0.0)
         if now - last_sent < self._cooldown_secs:
             _log.info("[COOLDOWN] Alert for %s suppressed (%.0fs cooldown remaining)",
                       signal.symbol, self._cooldown_secs - (now - last_sent))
+            self._record_evaluation_state(signal.symbol, "COOLDOWN_SUPPRESSED", f"Cooldown remaining {self._cooldown_secs - (now - last_sent):.0f}s", category=category, score=signal.score)
             return
         if not self._rate_limit_allows_dispatch():
             _log.warning("[RATE_LIMIT] Suppressed %s: maximum %d alerts per %ds window",
                          signal.symbol, self._max_alerts_per_window, self._alert_window_secs)
+            self._record_evaluation_state(signal.symbol, "FILTERED", f"Rate limit: max {self._max_alerts_per_window} per window", category=category, score=signal.score)
             return
-        from core.fno_universe import classify_instrument_market
-        category = classify_instrument_market(signal.symbol, signal.series)
 
         if not self._daily_signal_limit_allows_dispatch():
+            self._record_evaluation_state(signal.symbol, "FILTERED", "Daily signal limit reached", category=category, score=signal.score)
             return
 
         # Commit the in-memory cooldown only after all pre-dispatch
@@ -683,9 +796,11 @@ class AllNSEScanner:
         from core.notifications.url_resolver import get_public_base_url
         base_url = get_public_base_url(self._cfg)
 
-        sl_price = round(signal.price * (0.97 if signal.direction == "CALL" else 1.03), 2)
-        t1_price = round(signal.price * (1.04 if signal.direction == "CALL" else 0.96), 2)
-        t2_price = round(signal.price * (1.08 if signal.direction == "CALL" else 0.92), 2)
+        from core.signal_utils import calculate_directional_levels
+        sl_price, t1_price, t2_price = calculate_directional_levels(
+            entry_price=signal.price,
+            direction=signal.direction,
+        )
 
         rich_html_email = RichSignalFormatter.build_rich_html_email(
             symbol=signal.symbol,
@@ -731,7 +846,10 @@ class AllNSEScanner:
         rich_html_email = rich_html_email.replace("</body>", score_evidence + "</body>") if "</body>" in rich_html_email else rich_html_email + score_evidence
 
         # Plain text fallback
-        direction_label = "STRONG BUY / ACCUMULATE" if signal.direction == "CALL" else "STRONG SELL / SHORT BREAKDOWN"
+        is_buy = signal.direction.upper() in {"BUY", "CALL", "LONG"}
+        sl_sign = "-" if is_buy else "+"
+        t_sign = "+" if is_buy else "-"
+        direction_label = "STRONG BUY / ACCUMULATE" if is_buy else "STRONG SELL / SHORT BREAKDOWN"
         plain_msg_body = f"""🎯 [OPB ALL-NSE UNIVERSE STRATEGY SIGNAL]
 
 📊 Stock: {signal.symbol} ({signal.company_name})
@@ -743,9 +861,9 @@ class AllNSEScanner:
 • Indicators: RSI: {signal.rsi:.1f} | ADX: {signal.adx:.1f} | VWAP: ₹{signal.vwap:,.2f}
 
 🛡️ Risk Parameters:
-• Stop Loss: ₹{sl_price:,.2f} (3.0%)
-• Target 1: ₹{t1_price:,.2f} (4.0%)
-• Target 2: ₹{t2_price:,.2f} (8.0%)
+• Stop Loss: ₹{sl_price:,.2f} ({sl_sign}3.0%)
+• Target 1: ₹{t1_price:,.2f} ({t_sign}4.0%)
+• Target 2: ₹{t2_price:,.2f} ({t_sign}8.0%)
 
 📐 Score Evidence:
 • Raw Component Score: {signal.raw_score} / {int(self._cfg.get("COMPOSITE_BASE_MAX_SCORE", 150))}
@@ -768,6 +886,7 @@ class AllNSEScanner:
                 signal.score,
                 min_score_threshold,
             )
+            self._record_evaluation_state(signal.symbol, "SIGNAL_BELOW_THRESHOLD", f"Score {signal.score} < threshold {min_score_threshold}", category=category, score=signal.score)
             self._log_signal_audit_record(
                 signal=signal,
                 category=category,
@@ -824,6 +943,7 @@ class AllNSEScanner:
         if not authorized_chat_ids and not authorized_emails:
             _log.info("[GATE] Signal for %s (%s, Tier: %s) suppressed - no authorized recipients configured",
                       signal.symbol, category, signal.tier)
+            self._record_evaluation_state(signal.symbol, "FILTERED", "No authorized recipients configured", category=category, score=signal.score)
             return
 
         # 0. Real-Time Signal & Delivery History Logging - runs BEFORE dispatch
@@ -867,7 +987,10 @@ class AllNSEScanner:
         # but still send Telegram/SMTP because it continued with signal_id="".
         if not signal_id:
             _log.info("[DELIVERY_GUARD] No persisted signal id for %s; external dispatch suppressed", signal.symbol)
+            self._record_evaluation_state(signal.symbol, "DEDUP_SUPPRESSED", "Signal duplicate or failed persistence", category=category, score=signal.score)
             return
+
+        self._record_evaluation_state(signal.symbol, "ELIGIBLE", f"Eligible for dispatch (signal_id={signal_id})", category=category, score=signal.score)
 
         if signal_id:
             plain_msg_body += (
@@ -883,6 +1006,9 @@ class AllNSEScanner:
                 f"<br><br>🆔 <b>Signal ID:</b> <code>{signal_id}</code>"
                 f"<br>Reply <code>/placed {signal_id}</code> in Telegram once you place the order."
             )
+
+        tg_success = False
+        email_success = False
 
         # 1. Telegram Dispatch with Rich HTML & 1-Click Interactive Inline Action Buttons
         if self._bot_token and authorized_chat_ids:
@@ -915,6 +1041,7 @@ class AllNSEScanner:
                     with urllib.request.urlopen(req, timeout=10) as resp:
                         res = json.loads(resp.read().decode())
                         if res.get("ok"):
+                            tg_success = True
                             _log.info("[OK] Telegram alert with interactive buttons sent to %s for %s (%s, MsgID: %s)",
                                       cid, signal.symbol, category, res.get("result", {}).get("message_id"))
                 except Exception as ex:
@@ -929,7 +1056,10 @@ class AllNSEScanner:
                             f"https://api.telegram.org/bot{self._bot_token}/sendMessage",
                             data=fallback_data,
                         )
-                        urllib.request.urlopen(fallback_req, timeout=10)
+                        with urllib.request.urlopen(fallback_req, timeout=10) as fb_resp:
+                            fb_res = json.loads(fb_resp.read().decode())
+                            if fb_res.get("ok"):
+                                tg_success = True
                     except Exception:
                         pass
                     from core.config_helpers import redact_credential_urls
@@ -962,10 +1092,16 @@ class AllNSEScanner:
 
                 server.sendmail(self._email_user, list(authorized_emails), msg.as_string())
                 server.quit()
+                email_success = True
                 _log.info("[OK] Rich HTML Gmail alert sent to %d authorized recipients (%s) for %s (%s)",
                           len(authorized_emails), ", ".join(authorized_emails), signal.symbol, category)
             except Exception as ex:
                 _log.error("[ERROR] Gmail dispatch failed for %s: %s", signal.symbol, ex)
+
+        if tg_success or email_success:
+            self._record_evaluation_state(signal.symbol, "ACCEPTED", f"Dispatched via Telegram/Email (signal_id={signal_id})", category=category, score=signal.score)
+        elif authorized_chat_ids or authorized_emails:
+            self._record_evaluation_state(signal.symbol, "FAILED", "Dispatch attempts failed", category=category, score=signal.score)
 
         # Trigger distinct Futures signal evaluation for F&O eligible instruments
         self._dispatch_futures_alert_if_eligible(signal)
@@ -1040,9 +1176,11 @@ class AllNSEScanner:
             # Separate theoretical fair value from actual price
             _fv_info = resolver.calculate_fair_value(parent_signal.price, contract.expiry_date)
 
-            sl_price = round(parent_signal.price * (0.97 if fut_direction == "BUY" else 1.03), 2)
-            t1_price = round(parent_signal.price * (1.04 if fut_direction == "BUY" else 0.96), 2)
-            t2_price = round(parent_signal.price * (1.08 if fut_direction == "BUY" else 0.92), 2)
+            from core.signal_utils import calculate_directional_levels
+            sl_price, t1_price, t2_price = calculate_directional_levels(
+                entry_price=parent_signal.price,
+                direction=fut_direction,
+            )
 
             sig_id = tracker.record_generated_signal({
                 "symbol": fut_symbol,

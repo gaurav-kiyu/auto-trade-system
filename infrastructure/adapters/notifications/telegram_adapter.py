@@ -341,7 +341,7 @@ class _TelegramClient:
 
     # ─── SENDING ────────────────────────────────────────────
 
-    def _send_message(self, chat_id: str, text: str, pin: bool = False) -> bool:
+    def _send_message(self, chat_id: str, text: str, pin: bool = False, parse_mode: str | None = None) -> bool:
         with self._lock:
             if self._closed or not self.enabled or not self._session:
                 return False
@@ -352,6 +352,8 @@ class _TelegramClient:
             "text": text,
             "disable_web_page_preview": True,
         }
+        if parse_mode:
+            payload["parse_mode"] = parse_mode
         try:
             resp = sess.post(url, json=payload, timeout=self.send_timeout)
             if resp.status_code == 200:
@@ -364,6 +366,14 @@ class _TelegramClient:
                     except Exception as e:
                         logger.warning("TG pin parse error (message was sent): %s", e)
                 return True
+            elif parse_mode and resp.status_code == 400:
+                logger.warning("TG HTML send rejected (400), falling back to plain text send: %s", redact_credential_urls((resp.text or "")[:200]))
+                payload.pop("parse_mode", None)
+                resp_fb = sess.post(url, json=payload, timeout=self.send_timeout)
+                if resp_fb.status_code == 200:
+                    return True
+                logger.warning("TG fallback send failed: %d %s", resp_fb.status_code, redact_credential_urls((resp_fb.text or "")[:200]))
+                return False
             else:
                 logger.warning("TG send failed: %d %s", resp.status_code, redact_credential_urls((resp.text or "")[:200]))
                 return False
@@ -408,10 +418,11 @@ class _TelegramClient:
         msg = self.format_alert(signal)
         strength = signal.get("strength", "NONE")
         should_pin = strength == "STRONG"
+        parse_mode = signal.get("parse_mode")
 
         sent = False
         for chat_id in channels:
-            if self._send_message(chat_id, msg, pin=should_pin):
+            if self._send_message(chat_id, msg, pin=should_pin, parse_mode=parse_mode):
                 sent = True
 
         if sent:
@@ -419,7 +430,7 @@ class _TelegramClient:
 
         return sent
 
-    def send_raw(self, text: str, chat_id: str = None, critical: bool = False) -> bool:
+    def send_raw(self, text: str, chat_id: str = None, critical: bool = False, parse_mode: str | None = None) -> bool:
         """Send arbitrary text to a specific or default channel."""
         cid = chat_id or self.default_chat_id
         if not self._try_reserve_rate_slots(1):
@@ -427,7 +438,7 @@ class _TelegramClient:
                 return False
             with self._lock:
                 self._send_times.append(time.time())
-        return self._send_message(cid, text, pin=critical)
+        return self._send_message(cid, text, pin=critical, parse_mode=parse_mode)
 
     def get_cooldown_status(self) -> dict:
         """Return current cooldown state for all symbols."""

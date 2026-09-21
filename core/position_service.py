@@ -1062,6 +1062,18 @@ class PositionService:
         signal_record.setdefault("entry_price", price_val)
         signal_record.setdefault("price", price_val)
 
+        from core.signal_utils import calculate_directional_levels
+        sl_val, t1_val, t2_val = calculate_directional_levels(
+            entry_price=price_val,
+            direction=direction,
+            stop_loss=signal_record.get("stop_loss"),
+            target_1=signal_record.get("target_1"),
+            target_2=signal_record.get("target_2"),
+        )
+        signal_record.setdefault("stop_loss", sl_val)
+        signal_record.setdefault("target_1", t1_val)
+        signal_record.setdefault("target_2", t2_val)
+
         cat = str(signal_record.get("category") or "").upper()
         if not cat:
             if asset_type is not None and hasattr(asset_type, "value"):

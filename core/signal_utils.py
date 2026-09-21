@@ -456,12 +456,98 @@ def format_change(chg: Any, pct: Any) -> str:
     return f"{arrow}{c:+.1f} ({p:+.1f}%)"
 
 
+def calculate_directional_levels(
+    entry_price: float,
+    direction: str,
+    stop_loss: float | None = None,
+    target_1: float | None = None,
+    target_2: float | None = None,
+) -> tuple[float, float, float]:
+    """Calculate direction-consistent Stop Loss, Target 1, and Target 2 levels.
+
+    Canonical Rules:
+    - If explicit levels are provided and valid (> 0.0), they are preserved.
+    - If entry_price <= 0.0, fallback levels are 0.0.
+    - For LONG/CALL/BUY:
+        SL is 3% below entry (entry * 0.97)
+        T1 is 4% above entry (entry * 1.04)
+        T2 is 8% above entry (entry * 1.08)
+    - For SHORT/PUT/SELL:
+        SL is 3% above entry (entry * 1.03)
+        T1 is 4% below entry (entry * 0.96)
+        T2 is 8% below entry (entry * 0.92)
+
+    All calculated levels are rounded to 2 decimal places per application standard.
+    """
+    try:
+        entry = float(entry_price or 0.0)
+    except (ValueError, TypeError):
+        entry = 0.0
+
+    dir_norm = str(direction or "CALL").strip().upper()
+    is_long = dir_norm in ("CALL", "BUY", "LONG")
+
+    # Stop Loss
+    if stop_loss is not None:
+        try:
+            sl_val = float(stop_loss)
+            if sl_val > 0.0:
+                sl = round(sl_val, 2)
+            elif entry > 0.0:
+                sl = round(entry * 0.97 if is_long else entry * 1.03, 2)
+            else:
+                sl = 0.0
+        except (ValueError, TypeError):
+            sl = round(entry * 0.97 if is_long else entry * 1.03, 2) if entry > 0.0 else 0.0
+    elif entry > 0.0:
+        sl = round(entry * 0.97 if is_long else entry * 1.03, 2)
+    else:
+        sl = 0.0
+
+    # Target 1
+    if target_1 is not None:
+        try:
+            t1_val = float(target_1)
+            if t1_val > 0.0:
+                t1 = round(t1_val, 2)
+            elif entry > 0.0:
+                t1 = round(entry * 1.04 if is_long else entry * 0.96, 2)
+            else:
+                t1 = 0.0
+        except (ValueError, TypeError):
+            t1 = round(entry * 1.04 if is_long else entry * 0.96, 2) if entry > 0.0 else 0.0
+    elif entry > 0.0:
+        t1 = round(entry * 1.04 if is_long else entry * 0.96, 2)
+    else:
+        t1 = 0.0
+
+    # Target 2
+    if target_2 is not None:
+        try:
+            t2_val = float(target_2)
+            if t2_val > 0.0:
+                t2 = round(t2_val, 2)
+            elif entry > 0.0:
+                t2 = round(entry * 1.08 if is_long else entry * 0.92, 2)
+            else:
+                t2 = 0.0
+        except (ValueError, TypeError):
+            t2 = round(entry * 1.08 if is_long else entry * 0.92, 2) if entry > 0.0 else 0.0
+    elif entry > 0.0:
+        t2 = round(entry * 1.08 if is_long else entry * 0.92, 2)
+    else:
+        t2 = 0.0
+
+    return sl, t1, t2
+
+
 __all__ = [
     "breakout_strength_ok",
     "calc_atr_stop_loss",
     "calc_chandelier_exit",
     "calc_fibonacci_targets",
     "calc_support_resistance_pivot",
+    "calculate_directional_levels",
     "classify_signal",
     "classify_strength",
     "explain_signal",
