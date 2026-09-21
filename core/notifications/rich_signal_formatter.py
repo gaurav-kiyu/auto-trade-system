@@ -212,14 +212,18 @@ class RichSignalFormatter:
         """Generate clean, institutional standard HTML email with clear separation of concerns."""
         from core.notifications.url_resolver import build_action_url, build_chart_url
 
-        is_buy = direction.upper() in ("CALL", "BUY")
+        is_buy = direction.upper() in ("CALL", "BUY", "LONG")
         action_title = "STRONG BUY SIGNAL" if is_buy else "STRONG SELL SIGNAL"
         action_color = "#22c55e" if is_buy else "#ef4444"
         action_emoji = "🟢" if is_buy else "🔴"
 
-        sl_pct = abs(round(((stop_loss - price) / price) * 100.0, 1))
-        t1_pct = abs(round(((target_1 - price) / price) * 100.0, 1))
-        t2_pct = abs(round(((target_2 - price) / price) * 100.0, 1))
+        sl_pct = abs(round(((stop_loss - price) / price) * 100.0, 1)) if price > 0 else 3.0
+        t1_pct = abs(round(((target_1 - price) / price) * 100.0, 1)) if price > 0 else 4.0
+        t2_pct = abs(round(((target_2 - price) / price) * 100.0, 1)) if price > 0 else 8.0
+
+        sl_sign = "-" if is_buy else "+"
+        t1_sign = "+" if is_buy else "-"
+        t2_sign = "+" if is_buy else "-"
 
         # Risk-to-Reward explicitly measured to Target 2
         risk = abs(price - stop_loss)
@@ -304,15 +308,15 @@ class RichSignalFormatter:
                                 </tr>
                                 <tr style="border-bottom:1px solid #1e293b;">
                                     <td style="padding:10px 14px;font-weight:600;">🛡️ <strong>Stop Loss</strong></td>
-                                    <td align="right" style="padding:10px 14px;font-family:monospace;font-weight:800;color:#f87171;font-size:14px;">₹{stop_loss:,.2f} (-{sl_pct}%)</td>
+                                    <td align="right" style="padding:10px 14px;font-family:monospace;font-weight:800;color:#f87171;font-size:14px;">₹{stop_loss:,.2f} ({sl_sign}{sl_pct}%)</td>
                                 </tr>
                                 <tr style="border-bottom:1px solid #1e293b;">
                                     <td style="padding:10px 14px;font-weight:600;">🎯 <strong>Target 1</strong></td>
-                                    <td align="right" style="padding:10px 14px;font-family:monospace;font-weight:800;color:#4ade80;font-size:14px;">₹{target_1:,.2f} (+{t1_pct}%)</td>
+                                    <td align="right" style="padding:10px 14px;font-family:monospace;font-weight:800;color:#4ade80;font-size:14px;">₹{target_1:,.2f} ({t1_sign}{t1_pct}%)</td>
                                 </tr>
                                 <tr style="border-bottom:1px solid #1e293b;">
                                     <td style="padding:10px 14px;font-weight:600;">🚀 <strong>Target 2</strong></td>
-                                    <td align="right" style="padding:10px 14px;font-family:monospace;font-weight:800;color:#22c55e;font-size:14px;">₹{target_2:,.2f} (+{t2_pct}%)</td>
+                                    <td align="right" style="padding:10px 14px;font-family:monospace;font-weight:800;color:#22c55e;font-size:14px;">₹{target_2:,.2f} ({t2_sign}{t2_pct}%)</td>
                                 </tr>
                                 <tr>
                                     <td style="padding:10px 14px;font-weight:600;">⚖️ <strong>Risk : Reward to Target 2</strong></td>
@@ -366,10 +370,10 @@ class RichSignalFormatter:
                                 💡 WHAT THIS SIGNAL MEANS
                             </div>
                             <div style="background:#131a29;border:1px solid #1e293b;border-radius:8px;padding:14px;font-size:13px;color:#cbd5e1;line-height:1.7;">
-                                <p style="margin:0 0 8px 0;">Our quantitative model currently identifies the <strong>{human_sym['display_title']}</strong> as a strong bullish setup for a <strong>{horizon['short_horizon'].lower()}</strong> trade.</p>
-                                <div><strong>Target 1 Potential:</strong> <span style="color:#4ade80;font-weight:700;">+{t1_pct}%</span></div>
-                                <div><strong>Target 2 Potential:</strong> <span style="color:#22c55e;font-weight:700;">+{t2_pct}%</span></div>
-                                <div style="margin-top:4px;"><strong>Maximum Planned Loss at Stop Loss:</strong> <span style="color:#f87171;font-weight:700;">-{sl_pct}% of {asset_type_label}</span></div>
+                                <p style="margin:0 0 8px 0;">Our quantitative model currently identifies the <strong>{human_sym['display_title']}</strong> as a strong {'bullish' if is_buy else 'bearish'} setup for a <strong>{horizon['short_horizon'].lower()}</strong> trade.</p>
+                                <div><strong>Target 1 Potential:</strong> <span style="color:#4ade80;font-weight:700;">{t1_sign}{t1_pct}%</span></div>
+                                <div><strong>Target 2 Potential:</strong> <span style="color:#22c55e;font-weight:700;">{t2_sign}{t2_pct}%</span></div>
+                                <div style="margin-top:4px;"><strong>Maximum Planned Loss at Stop Loss:</strong> <span style="color:#f87171;font-weight:700;">{sl_sign}{sl_pct}% of {asset_type_label}</span></div>
                                 <div style="font-size:11px;color:#94a3b8;margin-top:2px;">(Actual portfolio impact depends on the allocated position size.)</div>
                             </div>
                         </td>
@@ -442,7 +446,7 @@ class RichSignalFormatter:
         signal_id: str = "",
     ) -> str:
         """Generate a clean, visually structured Telegram HTML card with the exact standardized hierarchy."""
-        is_buy = direction.upper() in ("CALL", "BUY")
+        is_buy = direction.upper() in ("CALL", "BUY", "LONG")
         cat_upper = category.upper()
 
         if "OPTION" in cat_upper or "0DTE" in cat_upper or "INDEX" in cat_upper:
@@ -452,13 +456,28 @@ class RichSignalFormatter:
             else:
                 action_emoji = "🔴"
                 action_text = "🎯 OPTION BUYING: BUY PE (PUT)"
+        elif "FUTURES" in cat_upper:
+            if is_buy:
+                action_emoji = "📈"
+                action_text = "📈 FUTURES BUY / LONG"
+            else:
+                action_emoji = "📉"
+                action_text = "📉 FUTURES SELL / SHORT"
         else:
-            action_emoji = "📈"
-            action_text = "📈 EQUITY SWING / DELIVERY BUY (CNC)"
+            if is_buy:
+                action_emoji = "📈"
+                action_text = "📈 EQUITY SWING / DELIVERY BUY (CNC)"
+            else:
+                action_emoji = "📉"
+                action_text = "📉 EQUITY SHORT / SELL SETUP"
 
-        sl_pct = abs(round(((stop_loss - price) / price) * 100.0, 1))
-        t1_pct = abs(round(((target_1 - price) / price) * 100.0, 1))
-        t2_pct = abs(round(((target_2 - price) / price) * 100.0, 1))
+        sl_pct = abs(round(((stop_loss - price) / price) * 100.0, 1)) if price > 0 else 3.0
+        t1_pct = abs(round(((target_1 - price) / price) * 100.0, 1)) if price > 0 else 4.0
+        t2_pct = abs(round(((target_2 - price) / price) * 100.0, 1)) if price > 0 else 8.0
+
+        sl_sign = "-" if is_buy else "+"
+        t1_sign = "+" if is_buy else "-"
+        t2_sign = "+" if is_buy else "-"
 
         # Risk-to-Reward explicitly measured to Target 2
         risk = abs(price - stop_loss)
@@ -476,9 +495,9 @@ class RichSignalFormatter:
             "📊 <b>SIGNAL SUMMARY</b>",
             f"• <b>Signal Strength:</b> <code>{score}/100 ({tier})</code>",
             f"• 📌 <b>Entry Price:</b> <code>₹{price:,.2f}</code>",
-            f"• 🛡️ <b>Stop Loss:</b> <code>₹{stop_loss:,.2f}</code> (-{sl_pct}%)",
-            f"• 🎯 <b>Target 1:</b> <code>₹{target_1:,.2f}</code> (+{t1_pct}%)",
-            f"• 🚀 <b>Target 2:</b> <code>₹{target_2:,.2f}</code> (+{t2_pct}%)",
+            f"• 🛡️ <b>Stop Loss:</b> <code>₹{stop_loss:,.2f}</code> ({sl_sign}{sl_pct}%)",
+            f"• 🎯 <b>Target 1:</b> <code>₹{target_1:,.2f}</code> ({t1_sign}{t1_pct}%)",
+            f"• 🚀 <b>Target 2:</b> <code>₹{target_2:,.2f}</code> ({t2_sign}{t2_pct}%)",
             f"• ⚖️ <b>Risk : Reward to Target 2:</b> <code>1 : {rr_ratio}</code>",
             "━━━━━━━━━━━━━━━━━━━━━",
             "📅 <b>TRADE PLAN</b>",
@@ -533,3 +552,148 @@ class RichSignalFormatter:
             target_2=target_2,
             signal_id=kwargs.get("signal_id", ""),
         )
+
+    @classmethod
+    def build_canonical_notification(
+        cls,
+        signal: dict[str, Any],
+        base_url: str = "",
+    ) -> dict[str, Any]:
+        """Build standardized canonical notification package for Telegram and Email.
+
+        Returns:
+            dict containing:
+            - subject: Email subject string
+            - telegram_html: Rich Telegram HTML string
+            - email_html: Full institutional HTML email body
+            - plain_text: Plain text fallback string
+            - metadata: Normalized signal attributes dict
+        """
+        def _get_val(k: str, default: Any = None) -> Any:
+            if isinstance(signal, dict):
+                v = signal.get(k)
+            else:
+                v = getattr(signal, k, None)
+            return v if v is not None else default
+
+        sym = str(_get_val("symbol") or "UNKNOWN").strip().upper()
+        category = str(_get_val("category") or "LARGE_CAP_EQUITY").strip().upper()
+        direction = str(_get_val("direction") or "BUY").strip().upper()
+        price = float(_get_val("price") or _get_val("entry_price") or 0.0)
+        score = int(_get_val("score") if _get_val("score") is not None else 80)
+        raw_score = float(_get_val("raw_score") or score)
+        tier = str(_get_val("tier") or ("STRONG" if score >= 85 else "MODERATE")).strip().upper()
+        regime = str(_get_val("regime") or "TRENDING").strip()
+        rsi = float(_get_val("rsi") or 50.0)
+        adx = float(_get_val("adx") or 25.0)
+        vwap = float(_get_val("vwap") or price)
+        signal_id = str(_get_val("signal_id") or _get_val("sig_id") or "").strip()
+        company_name = str(_get_val("company_name") or sym).strip()
+        series = str(_get_val("series") or "EQ").strip()
+        strategy = str(_get_val("strategy") or _get_val("strategy_name") or "OPB Quantitative Engine").strip()
+
+        from core.signal_utils import calculate_directional_levels
+        stop_loss, target_1, target_2 = calculate_directional_levels(
+            entry_price=price,
+            direction=direction,
+            stop_loss=_get_val("stop_loss"),
+            target_1=_get_val("target_1"),
+            target_2=_get_val("target_2"),
+        )
+
+        subject = cls.build_rich_email_subject(
+            symbol=sym,
+            category=category,
+            direction=direction,
+            price=price,
+            score=score,
+            tier=tier,
+            target_1=target_1,
+            target_2=target_2,
+        )
+
+        email_html = cls.build_rich_html_email(
+            symbol=sym,
+            company_name=company_name,
+            series=series,
+            category=category,
+            direction=direction,
+            price=price,
+            score=score,
+            tier=tier,
+            regime=regime,
+            rsi=rsi,
+            adx=adx,
+            vwap=vwap,
+            stop_loss=stop_loss,
+            target_1=target_1,
+            target_2=target_2,
+            base_url=base_url,
+            signal_id=signal_id,
+        )
+
+        telegram_html = cls.build_rich_telegram_message(
+            symbol=sym,
+            category=category,
+            direction=direction,
+            price=price,
+            score=score,
+            tier=tier,
+            stop_loss=stop_loss,
+            target_1=target_1,
+            target_2=target_2,
+            signal_id=signal_id,
+        )
+
+        is_buy = direction in ("CALL", "BUY", "LONG")
+        sl_sign = "-" if is_buy else "+"
+        t1_sign = "+" if is_buy else "-"
+        t2_sign = "+" if is_buy else "-"
+        sl_pct = abs(round(((stop_loss - price) / price) * 100.0, 1)) if price > 0 else 3.0
+        t1_pct = abs(round(((target_1 - price) / price) * 100.0, 1)) if price > 0 else 4.0
+        t2_pct = abs(round(((target_2 - price) / price) * 100.0, 1)) if price > 0 else 8.0
+
+        dir_emoji = "🟢" if is_buy else "🔴"
+        tier_emoji = "💎" if tier == "STRONG" else "🟡"
+        sep = "─" * 32
+        plain_text = (
+            f"{sep}\n"
+            f"🔔 [OPB QUALIFYING SIGNAL]  {dir_emoji}\n"
+            f"{sep}\n"
+            f"📌 Symbol   : {sym}\n"
+            f"💰 Price    : ₹{price:,.2f}\n"
+            f"🧭 Direction: {direction}\n"
+            f"💪 Strength : {tier} (Score: {score}/100)\n"
+            f"{tier_emoji} Tier     : {tier}\n"
+            f"📊 Category : {category}\n"
+            f"🎯 Strategy : {strategy}\n"
+            f"🛑 Stop Loss: ₹{stop_loss:,.2f} ({sl_sign}{sl_pct}%)\n"
+            f"🎯 Target 1 : ₹{target_1:,.2f} ({t1_sign}{t1_pct}%)\n"
+            f"🎯 Target 2 : ₹{target_2:,.2f} ({t2_sign}{t2_pct}%)\n"
+            f"🆔 Signal ID: {signal_id}\n"
+            f"{sep}\n"
+            f"⚡ Mode     : PAPER / SIGNAL_ONLY\n"
+            f"⚠️  Notification only — zero live trade execution.\n"
+            f"{sep}"
+        )
+
+        return {
+            "subject": subject,
+            "telegram_html": telegram_html,
+            "email_html": email_html,
+            "plain_text": plain_text,
+            "metadata": {
+                "symbol": sym,
+                "category": category,
+                "direction": direction,
+                "price": price,
+                "score": score,
+                "raw_score": raw_score,
+                "tier": tier,
+                "stop_loss": stop_loss,
+                "target_1": target_1,
+                "target_2": target_2,
+                "signal_id": signal_id,
+            },
+        }
+

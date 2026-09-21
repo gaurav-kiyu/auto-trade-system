@@ -358,8 +358,8 @@ def test_currency_coverage_if_supported():
 # 13. test_universal_moderate_threshold
 # ─────────────────────────────────────────────────────────────────────────────
 def test_universal_moderate_threshold():
-    """Verify canonical score range 68-79 produces MODERATE."""
-    for score in (68, 70, 75, 79):
+    """Verify canonical score range 70-79 produces MODERATE."""
+    for score in (70, 72, 75, 79):
         assert classify_strength(score) == "MODERATE"
 
 
@@ -644,8 +644,24 @@ def test_score_boundary_67():
 # 32. test_score_boundary_68
 # ─────────────────────────────────────────────────────────────────────────────
 def test_score_boundary_68():
-    """Verify boundary: 68 produces MODERATE."""
-    assert classify_strength(68) == "MODERATE"
+    """Verify boundary: 68 produces WEAK (sub-threshold, no notification)."""
+    assert classify_strength(68) == "WEAK"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 32b. test_score_boundary_69
+# ─────────────────────────────────────────────────────────────────────────────
+def test_score_boundary_69():
+    """Verify boundary: 69 produces WEAK (sub-threshold, no notification)."""
+    assert classify_strength(69) == "WEAK"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 32c. test_score_boundary_70
+# ─────────────────────────────────────────────────────────────────────────────
+def test_score_boundary_70():
+    """Verify boundary: 70 produces MODERATE (qualifies for notification)."""
+    assert classify_strength(70) == "MODERATE"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

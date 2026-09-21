@@ -786,9 +786,14 @@ class NotificationService:
         category = str(signal.get("category") or "INDEX_OPTIONS").upper()
         score = int(signal.get("score") if signal.get("score") is not None else (signal.get("raw_score") or 70))
         entry_price = float(signal.get("entry_price") or signal.get("price") or 0.0)
-        sl_price = float(signal.get("stop_loss") or round(entry_price * 0.97, 2))
-        t1_price = float(signal.get("target_1") or round(entry_price * 1.04, 2))
-        t2_price = float(signal.get("target_2") or round(entry_price * 1.08, 2))
+        from core.signal_utils import calculate_directional_levels
+        sl_price, t1_price, t2_price = calculate_directional_levels(
+            entry_price=entry_price,
+            direction=direction,
+            stop_loss=signal.get("stop_loss"),
+            target_1=signal.get("target_1"),
+            target_2=signal.get("target_2"),
+        )
         strategy = str(signal.get("strategy") or signal.get("strategy_name") or "position_service")
         ts_str = str(signal.get("timestamp") or now_ist().strftime("%d-%b-%Y %H:%M:%S IST"))
 
@@ -819,32 +824,34 @@ class NotificationService:
             results["status"] = "NO_RECIPIENTS"
             return results
 
-        # 3. Message Formatting (Fintech standard, zero live trade implication)
-        dir_emoji = "🟢" if direction == "CALL" else "🔴" if direction == "PUT" else "⚪"
-        tier_emoji = "💎" if tier == "STRONG" else "🟡"
-        sep = "─" * 32
-        formatted_plain_msg = (
-            f"{sep}\n"
-            f"🔔 [OPB QUALIFYING SIGNAL]  {dir_emoji}\n"
-            f"{sep}\n"
-            f"📌 Symbol   : {sym}\n"
-            f"💰 Price    : ₹{entry_price:,.2f}\n"
-            f"🧭 Direction: {direction}\n"
-            f"💪 Strength : {tier} (Score: {score}/100)\n"
-            f"{tier_emoji} Tier     : {tier}\n"
-            f"📊 Category : {category}\n"
-            f"🎯 Strategy : {strategy}\n"
-            f"🛑 Stop Loss: ₹{sl_price:,.2f}\n"
-            f"🎯 Target 1 : ₹{t1_price:,.2f}\n"
-            f"🎯 Target 2 : ₹{t2_price:,.2f}\n"
-            f"🆔 Signal ID: {signal_id}\n"
-            f"🕒 Time     : {ts_str}\n"
-            f"{sep}\n"
-            f"⚡ Mode     : PAPER / SIGNAL_ONLY\n"
-            f"⚠️  Notification only — no live trade executed.\n"
-            f"{sep}"
+        # 3. Canonical Message Formatting (Institutional Standard DEF-P2-001)
+        from core.notifications.rich_signal_formatter import RichSignalFormatter
+        canonical_pkg = RichSignalFormatter.build_canonical_notification(
+            signal={
+                "symbol": sym,
+                "category": category,
+                "direction": direction,
+                "price": entry_price,
+                "score": score,
+                "raw_score": signal.get("raw_score", score),
+                "tier": tier,
+                "stop_loss": sl_price,
+                "target_1": t1_price,
+                "target_2": t2_price,
+                "strategy": strategy,
+                "regime": signal.get("regime", "TRENDING"),
+                "rsi": signal.get("rsi", 50.0),
+                "adx": signal.get("adx", 25.0),
+                "vwap": signal.get("vwap", entry_price),
+                "signal_id": signal_id,
+                "company_name": signal.get("company_name", sym),
+                "series": signal.get("series", "EQ"),
+            }
         )
-        email_subject = f"[OPB QUALIFYING SIGNAL] {tier} {sym} {direction} (Score: {score})"
+        email_subject = canonical_pkg["subject"]
+        formatted_tg_msg = canonical_pkg["telegram_html"]
+        formatted_plain_msg = canonical_pkg["plain_text"]
+        formatted_email_html = canonical_pkg["email_html"]
 
         from core.signals.signal_tracker import SignalTracker
         tracker = SignalTracker.get_instance()
@@ -921,7 +928,7 @@ class NotificationService:
                         destination=tg_chat_id,
                         payload={
                             "signal": signal,
-                            "custom_message": formatted_plain_msg,
+                            "custom_message": formatted_tg_msg,
                             "subject": email_subject,
                             "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
                         },
@@ -933,7 +940,7 @@ class NotificationService:
                 else:
                     try:
                         tg_notif = Notification(
-                            message=formatted_plain_msg,
+                            message=formatted_tg_msg,
                             channel=NotificationChannel.TELEGRAM,
                             priority=NotificationPriority.CRITICAL if tier == "STRONG" else NotificationPriority.HIGH,
                             recipient=tg_chat_id,
@@ -952,7 +959,8 @@ class NotificationService:
                                 "chat_id": tg_chat_id,
                                 "category": category,
                                 "strategy": strategy,
-                                "custom_message": formatted_plain_msg,
+                                "custom_message": formatted_tg_msg,
+                                "parse_mode": "HTML",
                             },
                         )
                         tg_res = tg_adapter.send_notification(tg_notif)
@@ -977,7 +985,7 @@ class NotificationService:
                                 destination=tg_chat_id,
                                 payload={
                                     "signal": signal,
-                                    "custom_message": formatted_plain_msg,
+                                    "custom_message": formatted_tg_msg,
                                     "subject": email_subject,
                                     "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
                                 },
@@ -1000,7 +1008,7 @@ class NotificationService:
                             destination=tg_chat_id,
                             payload={
                                 "signal": signal,
-                                "custom_message": formatted_plain_msg,
+                                "custom_message": formatted_tg_msg,
                                 "subject": email_subject,
                                 "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
                             },
@@ -1072,6 +1080,7 @@ class NotificationService:
                         payload={
                             "signal": signal,
                             "custom_message": formatted_plain_msg,
+                            "html_content": formatted_email_html,
                             "subject": email_subject,
                             "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
                         },
@@ -1097,6 +1106,7 @@ class NotificationService:
                                 "tier": tier,
                                 "category": category,
                                 "strategy": strategy,
+                                "html_content": formatted_email_html,
                             },
                         )
                         email_res = email_adapter.send_notification(email_notif)
@@ -1122,6 +1132,7 @@ class NotificationService:
                                 payload={
                                     "signal": signal,
                                     "custom_message": formatted_plain_msg,
+                                    "html_content": formatted_email_html,
                                     "subject": email_subject,
                                     "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
                                 },
@@ -1145,6 +1156,7 @@ class NotificationService:
                             payload={
                                 "signal": signal,
                                 "custom_message": formatted_plain_msg,
+                                "html_content": formatted_email_html,
                                 "subject": email_subject,
                                 "priority": "CRITICAL" if tier == "STRONG" else "HIGH",
                             },

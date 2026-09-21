@@ -134,6 +134,32 @@ _WEEKLY_EXPIRY_MAP: dict[str, int] = {
 
 _MONTHLY_EXPIRY_DEFAULT: int = 3  # Last Thursday (default for most indices)
 
+# ── Category-specific trading session schedules (IST) ───────────────────────
+CATEGORY_SESSION_SCHEDULES: dict[str, dict[str, Any]] = {
+    # Equity & Cash Segments (09:15 - 15:30 IST)
+    "EQUITY": {"open": datetime.time(9, 15), "close": datetime.time(15, 30), "name": "NSE Equity"},
+    "LARGE_CAP_EQUITY": {"open": datetime.time(9, 15), "close": datetime.time(15, 30), "name": "Large Cap Equity"},
+    "MID_CAP_EQUITY": {"open": datetime.time(9, 15), "close": datetime.time(15, 30), "name": "Mid Cap Equity"},
+    "SMALL_CAP_EQUITY": {"open": datetime.time(9, 15), "close": datetime.time(15, 30), "name": "Small Cap Equity"},
+    "MICRO_CAP_EQUITY": {"open": datetime.time(9, 15), "close": datetime.time(15, 30), "name": "Micro Cap Equity"},
+    "PENNY_SME": {"open": datetime.time(9, 15), "close": datetime.time(15, 30), "name": "Penny / SME Equity"},
+    "ETFS_REITS": {"open": datetime.time(9, 15), "close": datetime.time(15, 30), "name": "ETFs & REITs"},
+
+    # Derivatives Segments (09:15 - 15:40 IST)
+    "DERIVATIVES": {"open": datetime.time(9, 15), "close": datetime.time(15, 40), "name": "Derivatives (Futures & Options)"},
+    "INDEX_OPTIONS": {"open": datetime.time(9, 15), "close": datetime.time(15, 40), "name": "Index Options"},
+    "STOCK_OPTIONS": {"open": datetime.time(9, 15), "close": datetime.time(15, 40), "name": "Stock Options"},
+    "FUTURES": {"open": datetime.time(9, 15), "close": datetime.time(15, 40), "name": "NSE Futures"},
+
+    # Currency Derivatives Segments (09:00 - 17:00 IST)
+    "CURRENCIES": {"open": datetime.time(9, 0), "close": datetime.time(17, 0), "name": "NSE Currency Derivatives (CDS)"},
+    "CURRENCY": {"open": datetime.time(9, 0), "close": datetime.time(17, 0), "name": "NSE Currency Derivatives (CDS)"},
+
+    # Commodity Derivatives Segments (09:00 - 23:30 IST)
+    "COMMODITIES": {"open": datetime.time(9, 0), "close": datetime.time(23, 30), "name": "MCX Commodity Derivatives"},
+    "COMMODITY": {"open": datetime.time(9, 0), "close": datetime.time(23, 30), "name": "MCX Commodity Derivatives"},
+}
+
 
 class ExchangeCalendarEngine:
     """Unified Exchange Calendar Engine.
@@ -402,6 +428,102 @@ class ExchangeCalendarEngine:
         from core.event_calendar import get_market_status as _base_status
         base = _base_status(self._cfg, dt)
         return ExtendedMarketStatus(base.value)
+
+    # ── Category-specific session awareness ──────────────────────────────
+
+    def is_category_session_open(
+        self,
+        category: str,
+        check_dt: datetime.datetime | None = None,
+    ) -> bool:
+        """Check if the market session for the given asset category is currently open.
+
+        Handles:
+        - Trading holidays and weekends (delegating to is_market_day)
+        - Special sessions (Muhurat, Half Day)
+        - Category-specific operating hours:
+            * Equity / Cash / ETFs / SME: 09:15 - 15:30 IST
+            * Derivatives (Options & Futures): 09:15 - 15:40 IST
+            * Currencies (NSE CDS): 09:00 - 17:00 IST
+            * Commodities (MCX): 09:00 - 23:30 IST
+        """
+        dt = check_dt or now_ist()
+        cat_norm = str(category or "EQUITY").strip().upper()
+
+        # Check trading day first (trading days apply to NSE/BSE/MCX weekdays)
+        if not self.is_market_day(dt.date()):
+            # Check if Muhurat trading today
+            if self.is_muhurat_trading(dt.date()):
+                for session in self.get_special_sessions(dt.date().year):
+                    if session["date"] == dt.date() and session["type"] == "MUHURAT":
+                        open_t = session.get("open_time", datetime.time(18, 15))
+                        close_t = session.get("close_time", datetime.time(19, 15))
+                        return open_t <= dt.time() <= close_t
+            return False
+
+        # Half-day check (Equity/Derivatives close early at 12:30)
+        if self.is_half_day(dt.date()):
+            if cat_norm not in ("COMMODITIES", "COMMODITY"):
+                return datetime.time(9, 15) <= dt.time() <= datetime.time(12, 30)
+
+        sched = CATEGORY_SESSION_SCHEDULES.get(cat_norm)
+        if not sched:
+            # Fall back to general matching
+            if any(w in cat_norm for w in ("COMMODITY", "MCX", "GOLD", "SILVER", "CRUDE")):
+                sched = CATEGORY_SESSION_SCHEDULES["COMMODITIES"]
+            elif any(w in cat_norm for w in ("CURRENCY", "CDS", "FOREX")):
+                sched = CATEGORY_SESSION_SCHEDULES["CURRENCIES"]
+            elif any(w in cat_norm for w in ("OPTION", "FUTURES", "DERIVATIVE", "0DTE")):
+                sched = CATEGORY_SESSION_SCHEDULES["INDEX_OPTIONS"]
+            else:
+                sched = CATEGORY_SESSION_SCHEDULES["EQUITY"]
+
+        return sched["open"] <= dt.time() <= sched["close"]
+
+    def get_category_session_state(
+        self,
+        category: str,
+        check_dt: datetime.datetime | None = None,
+    ) -> str:
+        """Get the discrete session state for a given category.
+
+        Returns:
+            'OPEN', 'PRE_MARKET', 'POST_MARKET', or 'NON_TRADING'.
+        """
+        dt = check_dt or now_ist()
+        cat_norm = str(category or "EQUITY").strip().upper()
+
+        if not self.is_market_day(dt.date()):
+            if self.is_muhurat_trading(dt.date()):
+                for session in self.get_special_sessions(dt.date().year):
+                    if session["date"] == dt.date() and session["type"] == "MUHURAT":
+                        open_t = session.get("open_time", datetime.time(18, 15))
+                        close_t = session.get("close_time", datetime.time(19, 15))
+                        if dt.time() < open_t:
+                            return "PRE_MARKET"
+                        elif open_t <= dt.time() <= close_t:
+                            return "OPEN"
+                        else:
+                            return "POST_MARKET"
+            return "NON_TRADING"
+
+        sched = CATEGORY_SESSION_SCHEDULES.get(cat_norm)
+        if not sched:
+            if any(w in cat_norm for w in ("COMMODITY", "MCX", "GOLD", "SILVER", "CRUDE")):
+                sched = CATEGORY_SESSION_SCHEDULES["COMMODITIES"]
+            elif any(w in cat_norm for w in ("CURRENCY", "CDS", "FOREX")):
+                sched = CATEGORY_SESSION_SCHEDULES["CURRENCIES"]
+            elif any(w in cat_norm for w in ("OPTION", "FUTURES", "DERIVATIVE", "0DTE")):
+                sched = CATEGORY_SESSION_SCHEDULES["INDEX_OPTIONS"]
+            else:
+                sched = CATEGORY_SESSION_SCHEDULES["EQUITY"]
+
+        if dt.time() < sched["open"]:
+            return "PRE_MARKET"
+        elif sched["open"] <= dt.time() <= sched["close"]:
+            return "OPEN"
+        else:
+            return "POST_MARKET"
 
     # ── Expiry calendar ──────────────────────────────────────────────────
 
@@ -710,10 +832,23 @@ def get_calendar_engine(cfg: dict[str, Any] | None = None) -> ExchangeCalendarEn
         return _engine_cache[key]
 
 
+def is_category_session_open(category: str, check_dt: datetime.datetime | None = None) -> bool:
+    """Check if the market session for the given category is currently open."""
+    return get_calendar_engine().is_category_session_open(category, check_dt)
+
+
+def get_category_session_state(category: str, check_dt: datetime.datetime | None = None) -> str:
+    """Get the discrete session state for a given category ('OPEN', 'PRE_MARKET', 'POST_MARKET', 'NON_TRADING')."""
+    return get_calendar_engine().get_category_session_state(category, check_dt)
+
+
 __all__ = [
+    "CATEGORY_SESSION_SCHEDULES",
     "ExchangeCalendarEngine",
     "ExpiryRecord",
     "ExtendedMarketStatus",
     "TradingHours",
     "get_calendar_engine",
+    "get_category_session_state",
+    "is_category_session_open",
 ]

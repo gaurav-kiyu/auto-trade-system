@@ -159,7 +159,10 @@ class EmailNotificationAdapter(NotificationPort):
                 msg.attach(MIMEText(body, "plain", "utf-8"))
 
                 # HTML part for richer notifications
-                html_body = self._to_html(body, notification)
+                if notification.metadata and notification.metadata.get("html_content"):
+                    html_body = notification.metadata["html_content"]
+                else:
+                    html_body = self._to_html(body, notification)
                 msg.attach(MIMEText(html_body, "html", "utf-8"))
 
                 # Send

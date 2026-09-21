@@ -212,6 +212,7 @@ class TestMLAlertGateFallback:
             "ML_REQUIRED_FOR_ALERTS": True,
             "ML_ALERT_MIN_PROBABILITY": 0.65,
             "EXECUTION_MODE": "PAPER",
+            "ALLOW_AFTER_HOURS_SCANNING": True,
             "MIN_SCORE_THRESHOLD": 60,
             "INDEX_MIN_SCORE": 60,
         }
@@ -221,7 +222,7 @@ class TestMLAlertGateFallback:
         mock_sig = self._make_mock_signal(ml_prob=0.5, ml_pred_id="")
         with patch.object(scanner._evaluator, "evaluate", return_value=(mock_sig, "")), \
              patch("yfinance.Ticker") as mock_ticker:
-            times = pd.date_range("2026-09-18 09:15", periods=50, freq="5min")
+            times = pd.date_range(end=pd.Timestamp.now(tz="Asia/Kolkata"), periods=50, freq="5min")
             df = pd.DataFrame({"Open": 100.0, "High": 105.0, "Low": 95.0, "Close": 100.0, "Volume": 1000.0}, index=times)
             mock_ticker.return_value.history.return_value = df
 
@@ -235,6 +236,7 @@ class TestMLAlertGateFallback:
             "ML_REQUIRED_FOR_ALERTS": True,
             "ML_ALERT_MIN_PROBABILITY": 0.65,
             "EXECUTION_MODE": "AUTO",
+            "ALLOW_AFTER_HOURS_SCANNING": True,
             "MIN_SCORE_THRESHOLD": 60,
             "INDEX_MIN_SCORE": 60,
         }
@@ -244,7 +246,7 @@ class TestMLAlertGateFallback:
         mock_sig = self._make_mock_signal(ml_prob=0.5, ml_pred_id="")
         with patch.object(scanner._evaluator, "evaluate", return_value=(mock_sig, "")), \
              patch("yfinance.Ticker") as mock_ticker:
-            times = pd.date_range("2026-09-18 09:15", periods=50, freq="5min")
+            times = pd.date_range(end=pd.Timestamp.now(tz="Asia/Kolkata"), periods=50, freq="5min")
             df = pd.DataFrame({"Open": 100.0, "High": 105.0, "Low": 95.0, "Close": 100.0, "Volume": 1000.0}, index=times)
             mock_ticker.return_value.history.return_value = df
 
@@ -257,6 +259,7 @@ class TestMLAlertGateFallback:
             "ML_REQUIRED_FOR_ALERTS": True,
             "ML_ALERT_MIN_PROBABILITY": 0.65,
             "EXECUTION_MODE": "PAPER",
+            "ALLOW_AFTER_HOURS_SCANNING": True,
             "MIN_SCORE_THRESHOLD": 60,
             "INDEX_MIN_SCORE": 60,
         }
@@ -266,7 +269,7 @@ class TestMLAlertGateFallback:
         mock_sig = self._make_mock_signal(ml_prob=0.40, ml_pred_id="pred_123")
         with patch.object(scanner._evaluator, "evaluate", return_value=(mock_sig, "")), \
              patch("yfinance.Ticker") as mock_ticker:
-            times = pd.date_range("2026-09-18 09:15", periods=50, freq="5min")
+            times = pd.date_range(end=pd.Timestamp.now(tz="Asia/Kolkata"), periods=50, freq="5min")
             df = pd.DataFrame({"Open": 100.0, "High": 105.0, "Low": 95.0, "Close": 100.0, "Volume": 1000.0}, index=times)
             mock_ticker.return_value.history.return_value = df
 

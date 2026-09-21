@@ -32,21 +32,30 @@ MARKET_CLOSE_TIME = dtime(15, 30)
 
 
 def is_market_hours(force_run: bool = False) -> bool:
-    """Check if the current time is within live NSE trading hours."""
+    """Check if current time is within any supported Indian market session (Equity, Derivatives, Currencies, Commodities)."""
     if force_run:
         return True
     now = now_ist()
     # Check weekday (0 = Mon, 4 = Fri, 5/6 = Sat/Sun)
     if now.weekday() >= 5:
-        return False
-    try:
-        from core.exchange_calendar_engine import get_calendar_engine
-        if not get_calendar_engine().is_market_day(now.date()):
+        try:
+            from core.exchange_calendar_engine import get_calendar_engine
+            if not get_calendar_engine().is_muhurat_trading(now.date()):
+                return False
+        except Exception:
             return False
+    try:
+        from core.exchange_calendar_engine import get_calendar_engine, is_category_session_open
+        cal = get_calendar_engine()
+        if not cal.is_market_day(now.date()) and not cal.is_muhurat_trading(now.date()):
+            return False
+        for cat in ("EQUITY", "INDEX_OPTIONS", "CURRENCIES", "COMMODITIES"):
+            if is_category_session_open(cat, now):
+                return True
+        return False
     except Exception:
-        pass
-    cur_time = now.time()
-    return MARKET_OPEN_TIME <= cur_time <= MARKET_CLOSE_TIME
+        cur_time = now.time()
+        return dtime(9, 0) <= cur_time <= dtime(23, 30)
 
 
 def run_continuous_daemon(
@@ -62,7 +71,8 @@ def run_continuous_daemon(
     print(f"Scan Interval: {interval_secs}s | Workers: {max_workers} | Force Run: {force_run}")
     print("=" * 75)
 
-    scanner = AllNSEScanner(max_workers=max_workers)
+    daemon_cfg = {"SCANNER_FORCE_RUN": True} if force_run else {}
+    scanner = AllNSEScanner(max_workers=max_workers, cfg=daemon_cfg)
 
     # Load universe
     universe = scanner.load_nse_universe()
@@ -75,7 +85,7 @@ def run_continuous_daemon(
         in_market = is_market_hours(force_run)
 
         if not in_market:
-            _log.info("[STANDBY] Market is currently CLOSED (Trading Hours: 09:15-15:30 IST, Mon-Fri). Sleeping for 60s...")
+            _log.info("[STANDBY] All market sessions currently CLOSED (Sessions: Equity 09:15-15:30, Derivatives 09:15-15:40, Currencies 09:00-17:00, Commodities 09:00-23:30 IST). Sleeping for 60s...")
             try:
                 from core.signals.signal_outcome_tracker import SignalOutcomeTracker
                 SignalOutcomeTracker.get_instance().run_stale_signal_expiry_sweep()
