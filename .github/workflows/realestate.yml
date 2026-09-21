@@ -61,7 +61,7 @@ jobs:
           python -m coverage xml -o reports/realestate-coverage.xml --fail-under=30
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: realestate-coverage
           path: reports/realestate-coverage.xml
@@ -111,7 +111,7 @@ jobs:
             --junitxml=reports/e2e-results.xml
         continue-on-error: true
       - name: Upload E2E results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-results
           path: reports/e2e-results.xml

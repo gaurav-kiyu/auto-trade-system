@@ -73,7 +73,7 @@ jobs:
           python -m coverage report --fail-under=40 --show-missing
           python -m coverage xml -o reports/coverage-realestate.xml --fail-under=40
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: realestate-coverage-report
           path: reports/coverage-realestate.xml
@@ -99,7 +99,7 @@ jobs:
         run: |
           bandit -r realestate/ -f json -o reports/bandit-realestate.json || echo "Bandit warnings found"
       - name: Upload security reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: realestate-security-reports
           path: reports/semgrep-realestate.json

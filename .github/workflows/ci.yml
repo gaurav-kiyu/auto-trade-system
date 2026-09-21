@@ -110,7 +110,7 @@ jobs:
           python -m coverage report --fail-under=15 --show-missing
           python -m coverage xml -o reports/coverage.xml --fail-under=15
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: reports/coverage.xml
@@ -139,12 +139,12 @@ jobs:
           pip install semgrep
           semgrep --config .semgrep.yaml --json -o reports/semgrep-report.json || echo "Semgrep findings — review before release"
       - name: Upload bandit report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bandit-report
           path: reports/bandit-report.json
       - name: Upload semgrep report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: semgrep-report
           path: reports/semgrep-report.json
@@ -254,7 +254,7 @@ jobs:
           print(f'All {len(scripts)} scripts compile OK')
           PYEOF
       - name: Upload certification reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: certification-reports
           path: reports/
@@ -285,7 +285,7 @@ jobs:
         run: |
           python scripts/capacity_benchmark.py --ci --json > reports/capacity-benchmark.json || echo "Capacity benchmark completed"
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-results
           path: reports/capacity-benchmark.json
@@ -312,7 +312,7 @@ jobs:
           cp ../opbuying-*.tar.gz* dist-artifacts/
 
       - name: Upload dist artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist-artifacts/opbuying-*.tar.gz*
