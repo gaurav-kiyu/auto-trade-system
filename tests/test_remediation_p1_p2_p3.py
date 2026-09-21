@@ -313,26 +313,31 @@ class TestMultiAssetUniverseAndTelemetry:
         assert classify_instrument_market("TCS", instrument_type="CASH") == "LARGE_CAP_EQUITY"
         assert classify_instrument_market("TCS") == "STOCK_OPTIONS"
 
-    def test_16_state_evaluation_telemetry_recording(self):
-        """Scanner records evaluation states and generates category summaries."""
+    def test_18_state_evaluation_telemetry_recording(self):
+        """Scanner records 18-state evaluation/delivery lifecycle and generates category summaries."""
+        from core.all_nse_scanner import CANONICAL_LIFECYCLE_STATES, STATE_ALIASES
+        assert len(CANONICAL_LIFECYCLE_STATES) == 18
+
         with patch.object(AllNSEScanner, "_reload_config_credentials", lambda self: None):
             scanner = AllNSEScanner(cfg={"MIN_SCORE_THRESHOLD": 70})
 
-        scanner._record_evaluation_state("RELIANCE", "SIGNAL_QUALIFIED", "Score 85", category="LARGE_CAP_EQUITY", score=85)
-        scanner._record_evaluation_state("INFY", "EVALUATED_NO_SIGNAL", "No trigger", category="LARGE_CAP_EQUITY")
-        scanner._record_evaluation_state("GOLD", "SIGNAL_QUALIFIED", "Score 92", category="COMMODITIES", score=92)
+        # Test all 18 states can be recorded and tracked without disappearing
+        for idx, st in enumerate(CANONICAL_LIFECYCLE_STATES):
+            scanner._record_evaluation_state(f"SYM_{idx}", st, f"Reason for {st}", category="TEST_CAT")
+
+        # Test alias mapping (MARKET_CLOSED -> SESSION_WAIT)
         scanner._record_evaluation_state("SILVER", "MARKET_CLOSED", "Closed", category="COMMODITIES")
 
         states = scanner.get_evaluation_states()
-        assert len(states) >= 4
+        assert len(states) == 19
 
         summary = scanner.get_category_evaluation_summary()
-        assert "LARGE_CAP_EQUITY" in summary
-        assert summary["LARGE_CAP_EQUITY"].get("SIGNAL_QUALIFIED") == 1
-        assert summary["LARGE_CAP_EQUITY"].get("EVALUATED_NO_SIGNAL") == 1
-        assert "COMMODITIES" in summary
-        assert summary["COMMODITIES"].get("SIGNAL_QUALIFIED") == 1
-        assert summary["COMMODITIES"].get("MARKET_CLOSED") == 1
+        assert "TEST_CAT" in summary
+        for st in CANONICAL_LIFECYCLE_STATES:
+            assert summary["TEST_CAT"].get(st) == 1, f"State {st} must be recorded in summary"
+
+        # Alias must be normalized to SESSION_WAIT
+        assert summary["COMMODITIES"].get("SESSION_WAIT") == 1
 
 
 # ==============================================================================
@@ -356,5 +361,242 @@ class TestProductionSafetyInvariants:
         assert cfg.get("live_trading_lockout_enabled") is True
         assert cfg.get("full_auto_allowed") is False
 
-        # Canonical score threshold must be >= 68 (MODERATE tier floor)
-        assert int(cfg.get("MIN_SCORE_THRESHOLD", 68)) >= 68
+        # Canonical score threshold must be strictly == 70 (MODERATE tier floor)
+        assert cfg.get("MIN_SCORE_THRESHOLD") == 70
+        assert cfg.get("MODERATE_THRESHOLD") == 70
+        assert cfg.get("QUALITY_MIN_SCORE") == 70
+        assert cfg.get("TIER_MODERATE_MIN") == 70
+
+        cat_th = cfg.get("CATEGORY_SCORE_THRESHOLDS", {})
+        assert cat_th.get("EQUITY_SWING_DELIVERY") == 70
+        assert cat_th.get("LARGE_CAP_EQUITY") == 70
+        assert cat_th.get("MID_SMALL_CAP") == 70
+        assert cat_th.get("ETFS_REITS") == 70
+
+
+# ==============================================================================
+# Threshold Governance & Notification Boundary Verification (Blocker 1)
+# ==============================================================================
+
+class TestCanonicalThresholdGovernanceAndNotificationBoundary:
+    """Verify strictly canonical score tiers and notification qualification boundaries.
+
+    Canonical tiers:
+      0-59:   IGNORE (no trade, no notification)
+      60-69:  WEAK   (sub-threshold, no notification)
+      70-79:  MODERATE (qualifying floor >= 70)
+      80-100: STRONG   (high conviction >= 80)
+    """
+
+    def test_score_67_produces_no_notification(self):
+        """Score 67 is WEAK and MUST NOT qualify for publication or notification."""
+        from core.signal_utils import classify_strength
+        from core.tier_engine import classify_tier
+        from core.position_service import PositionService
+
+        assert classify_strength(67) == "WEAK"
+        assert classify_tier(67) == "WEAK"
+
+        ps = PositionService.__new__(PositionService)
+        ps._cfg = {"MIN_SCORE_THRESHOLD": 70, "MODERATE_THRESHOLD": 70, "TIER_MODERATE_MIN": 70}
+        sig = {"symbol": "INFY", "score": 67, "raw_score": 67, "signal": "BUY", "tier": "WEAK"}
+        assert ps._is_qualified_signal(sig) is False
+
+    def test_score_68_produces_no_notification(self):
+        """Score 68 is WEAK and MUST NOT qualify for publication or notification."""
+        from core.signal_utils import classify_strength
+        from core.tier_engine import classify_tier
+        from core.position_service import PositionService
+
+        assert classify_strength(68) == "WEAK"
+        assert classify_tier(68) == "WEAK"
+
+        ps = PositionService.__new__(PositionService)
+        ps._cfg = {"MIN_SCORE_THRESHOLD": 70, "MODERATE_THRESHOLD": 70, "TIER_MODERATE_MIN": 70}
+        sig = {"symbol": "RELIANCE", "score": 68, "raw_score": 68, "signal": "BUY", "tier": "WEAK"}
+        assert ps._is_qualified_signal(sig) is False
+
+        # Even with unspecified tier, score 68 must not qualify
+        sig_no_tier = {"symbol": "RELIANCE", "score": 68, "signal": "BUY"}
+        assert ps._is_qualified_signal(sig_no_tier) is False
+
+    def test_score_69_produces_no_notification(self):
+        """Score 69 is WEAK and MUST NOT qualify for publication or notification."""
+        from core.signal_utils import classify_strength
+        from core.tier_engine import classify_tier
+        from core.position_service import PositionService
+
+        assert classify_strength(69) == "WEAK"
+        assert classify_tier(69) == "WEAK"
+
+        ps = PositionService.__new__(PositionService)
+        ps._cfg = {"MIN_SCORE_THRESHOLD": 70, "MODERATE_THRESHOLD": 70, "TIER_MODERATE_MIN": 70}
+        sig = {"symbol": "TCS", "score": 69, "raw_score": 69, "signal": "BUY", "tier": "WEAK"}
+        assert ps._is_qualified_signal(sig) is False
+
+    def test_score_70_qualifies_for_notification(self):
+        """Score 70 is MODERATE and DOES qualify for publication and notification."""
+        from core.signal_utils import classify_strength
+        from core.tier_engine import classify_tier
+        from core.position_service import PositionService
+
+        assert classify_strength(70) == "MODERATE"
+        assert classify_tier(70) == "MODERATE"
+
+        ps = PositionService.__new__(PositionService)
+        ps._cfg = {"MIN_SCORE_THRESHOLD": 70, "MODERATE_THRESHOLD": 70, "TIER_MODERATE_MIN": 70}
+        sig = {"symbol": "HDFCBANK", "score": 70, "raw_score": 70, "signal": "BUY", "tier": "MODERATE"}
+        assert ps._is_qualified_signal(sig) is True
+
+    def test_score_79_qualifies_for_notification(self):
+        """Score 79 is MODERATE and DOES qualify for publication and notification."""
+        from core.signal_utils import classify_strength
+        from core.tier_engine import classify_tier
+        from core.position_service import PositionService
+
+        assert classify_strength(79) == "MODERATE"
+        assert classify_tier(79) == "MODERATE"
+
+        ps = PositionService.__new__(PositionService)
+        ps._cfg = {"MIN_SCORE_THRESHOLD": 70, "MODERATE_THRESHOLD": 70, "TIER_MODERATE_MIN": 70}
+        sig = {"symbol": "ICICIBANK", "score": 79, "raw_score": 79, "signal": "BUY", "tier": "MODERATE"}
+        assert ps._is_qualified_signal(sig) is True
+
+    def test_score_80_qualifies_for_notification(self):
+        """Score 80 is STRONG and DOES qualify for publication and notification."""
+        from core.signal_utils import classify_strength
+        from core.tier_engine import classify_tier
+        from core.position_service import PositionService
+
+        assert classify_strength(80) == "STRONG"
+        assert classify_tier(80) == "STRONG"
+
+        ps = PositionService.__new__(PositionService)
+        ps._cfg = {"MIN_SCORE_THRESHOLD": 70, "MODERATE_THRESHOLD": 70, "TIER_MODERATE_MIN": 70}
+        sig = {"symbol": "NIFTY", "score": 80, "raw_score": 80, "signal": "BUY", "tier": "STRONG"}
+        assert ps._is_qualified_signal(sig) is True
+
+    def test_all_nse_scanner_minimum_floor_enforcement(self):
+        """AllNSEScanner clamps any sub-70 category threshold up to canonical floor 70."""
+        with patch.object(AllNSEScanner, "_reload_config_credentials", lambda self: None):
+            scanner = AllNSEScanner(cfg={
+                "MIN_SCORE_THRESHOLD": 68,
+                "CATEGORY_SCORE_THRESHOLDS": {"LARGE_CAP_EQUITY": 65, "ETFS_REITS": 68},
+            })
+
+        # Clamped to at least 70
+        assert scanner.get_min_score_for_category("LARGE_CAP_EQUITY") >= 70
+        assert scanner.get_min_score_for_category("ETFS_REITS") >= 70
+        assert scanner.get_min_score_for_category("MID_SMALL_CAP") >= 70
+
+    def test_single_evaluation_owner_governance_prevents_duplicate_evaluation(self):
+        """AllNSEScanner marks INDEX_OPTIONS as NOT_EVALUATED when opb_bot is runtime owner."""
+        with patch.object(AllNSEScanner, "_reload_config_credentials", lambda self: None):
+            scanner = AllNSEScanner(cfg={
+                "INDEX_OPTIONS_EVALUATION_OWNER": "opb_bot",
+                "EXECUTION_MODE": "SIGNAL_ONLY",
+                "ALLOW_AFTER_HOURS_SCANNING": True,
+            })
+
+        stock_info = {"symbol": "NIFTY", "name": "Nifty 50", "series": "INDEX"}
+        result = scanner.scan_single_stock(stock_info)
+
+        # Must return None and record state NOT_EVALUATED
+        assert result is None
+        states = scanner.get_evaluation_states("INDEX_OPTIONS")
+        assert len(states) == 1
+        assert states[0]["state"] == "NOT_EVALUATED"
+        assert "opb_bot" in states[0]["reason"]
+
+
+# ==============================================================================
+# Category Threshold Governance Verification (Universal Floor >= 70 vs Category Thresholds)
+# ==============================================================================
+
+class TestCategoryThresholdGovernance:
+    """Explicit tests for Universal floor >= 70 vs Category-specific quality thresholds."""
+
+    @pytest.fixture
+    def scanner(self):
+        cfg = {
+            "CATEGORY_SCORE_THRESHOLDS": {
+                "LARGE_CAP_EQUITY": 70,
+                "MID_SMALL_CAP": 70,
+                "ETFS_REITS": 70,
+                "STOCK_OPTIONS": 80,
+                "INDEX_OPTIONS": 80,
+                "COMMODITIES": 80,
+                "CURRENCIES": 80,
+                "FUTURES": 80,
+            },
+            "MIN_SCORE_THRESHOLD": 70,
+        }
+        with patch.object(AllNSEScanner, "_reload_config_credentials", lambda self: None):
+            return AllNSEScanner(cfg=cfg)
+
+    def test_score_69_never_qualifies_anywhere(self, scanner):
+        """Score 69 is below the canonical universal floor (70) and never qualifies anywhere."""
+        from core.signal_utils import classify_strength
+        from core.tier_engine import classify_tier
+
+        # Universal tier is strictly WEAK
+        assert classify_strength(69) == "WEAK"
+        assert classify_tier(69) == "WEAK"
+
+        # Check against category with threshold 70
+        assert scanner.get_min_score_for_category("LARGE_CAP_EQUITY") == 70
+        assert 69 < scanner.get_min_score_for_category("LARGE_CAP_EQUITY")
+
+        # Check against category with threshold 80
+        assert scanner.get_min_score_for_category("STOCK_OPTIONS") == 80
+        assert 69 < scanner.get_min_score_for_category("STOCK_OPTIONS")
+
+    def test_score_70_qualifies_for_70_categories_but_not_80_categories(self, scanner):
+        """Score 70 qualifies in categories with threshold 70, but does NOT qualify in 80 categories."""
+        from core.signal_utils import classify_strength
+        assert classify_strength(70) == "MODERATE"
+
+        # 70-threshold category: qualifies
+        assert 70 >= scanner.get_min_score_for_category("LARGE_CAP_EQUITY")
+        assert 70 >= scanner.get_min_score_for_category("MID_SMALL_CAP")
+        assert 70 >= scanner.get_min_score_for_category("ETFS_REITS")
+
+        # 80-threshold category: rejected
+        assert 70 < scanner.get_min_score_for_category("STOCK_OPTIONS")
+        assert 70 < scanner.get_min_score_for_category("INDEX_OPTIONS")
+        assert 70 < scanner.get_min_score_for_category("COMMODITIES")
+        assert 70 < scanner.get_min_score_for_category("CURRENCIES")
+        assert 70 < scanner.get_min_score_for_category("FUTURES")
+
+    def test_score_79_qualifies_for_70_categories_but_not_80_categories(self, scanner):
+        """Score 79 qualifies in categories with threshold 70, but does NOT qualify in 80 categories."""
+        from core.signal_utils import classify_strength
+        assert classify_strength(79) == "MODERATE"
+
+        # 70-threshold category: qualifies
+        assert 79 >= scanner.get_min_score_for_category("LARGE_CAP_EQUITY")
+        assert 79 >= scanner.get_min_score_for_category("MID_SMALL_CAP")
+
+        # 80-threshold category: rejected
+        assert 79 < scanner.get_min_score_for_category("STOCK_OPTIONS")
+        assert 79 < scanner.get_min_score_for_category("INDEX_OPTIONS")
+        assert 79 < scanner.get_min_score_for_category("COMMODITIES")
+
+    def test_score_80_qualifies_in_all_categories(self, scanner):
+        """Score 80 is STRONG and can qualify across all categories subject to remaining gates."""
+        from core.signal_utils import classify_strength
+        assert classify_strength(80) == "STRONG"
+
+        for cat in [
+            "LARGE_CAP_EQUITY",
+            "MID_SMALL_CAP",
+            "ETFS_REITS",
+            "STOCK_OPTIONS",
+            "INDEX_OPTIONS",
+            "COMMODITIES",
+            "CURRENCIES",
+            "FUTURES",
+        ]:
+            min_score = scanner.get_min_score_for_category(cat)
+            assert 80 >= min_score, f"Score 80 must satisfy category {cat} threshold {min_score}"
+

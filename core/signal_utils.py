@@ -219,14 +219,14 @@ def classify_strength(
     score: int,
     threshold: int = 60,
     strong_min: int = 80,
-    moderate_min: int = 68,
+    moderate_min: int = 70,
 ) -> str:
     """Classify signal strength based on score thresholds.
 
     Canonical classification:
       0-59:   NONE / IGNORE
-      60-67:  WEAK (>= 60)
-      68-79:  MODERATE (>= 68)
+      60-69:  WEAK (>= 60)
+      70-79:  MODERATE (>= 70)
       80-100: STRONG (>= 80)
     """
     if score >= strong_min:

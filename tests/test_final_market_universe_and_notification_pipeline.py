@@ -670,7 +670,7 @@ def test_dynamic_instrument_universe():
             "COMMODITIES": 85,
         },
         "INDEX_MIN_SCORE": 80,
-        "MIN_SCORE_THRESHOLD": 68,
+        "MIN_SCORE_THRESHOLD": 70,
     }
     with patch.object(AllNSEScanner, "_reload_config_credentials", lambda self: None):
         scanner = AllNSEScanner(cfg=cfg)
@@ -678,4 +678,4 @@ def test_dynamic_instrument_universe():
         assert scanner.get_min_score_for_category("STOCK_OPTIONS") == 75
         assert scanner.get_min_score_for_category("LARGE_CAP_EQUITY") == 72
         assert scanner.get_min_score_for_category("COMMODITIES") == 85
-        assert scanner.get_min_score_for_category("NEW_CUSTOM_ASSET") == 68
+        assert scanner.get_min_score_for_category("NEW_CUSTOM_ASSET") == 70

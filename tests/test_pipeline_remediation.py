@@ -212,6 +212,7 @@ class TestMLAlertGateFallback:
             "ML_REQUIRED_FOR_ALERTS": True,
             "ML_ALERT_MIN_PROBABILITY": 0.65,
             "EXECUTION_MODE": "PAPER",
+            "ALLOW_AFTER_HOURS_SCANNING": True,
             "MIN_SCORE_THRESHOLD": 60,
             "INDEX_MIN_SCORE": 60,
         }
@@ -235,6 +236,7 @@ class TestMLAlertGateFallback:
             "ML_REQUIRED_FOR_ALERTS": True,
             "ML_ALERT_MIN_PROBABILITY": 0.65,
             "EXECUTION_MODE": "AUTO",
+            "ALLOW_AFTER_HOURS_SCANNING": True,
             "MIN_SCORE_THRESHOLD": 60,
             "INDEX_MIN_SCORE": 60,
         }
@@ -257,6 +259,7 @@ class TestMLAlertGateFallback:
             "ML_REQUIRED_FOR_ALERTS": True,
             "ML_ALERT_MIN_PROBABILITY": 0.65,
             "EXECUTION_MODE": "PAPER",
+            "ALLOW_AFTER_HOURS_SCANNING": True,
             "MIN_SCORE_THRESHOLD": 60,
             "INDEX_MIN_SCORE": 60,
         }

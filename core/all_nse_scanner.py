@@ -43,6 +43,33 @@ _log = get_logger("ALL_NSE_SCANNER")
 _NSE_EQUITY_CSV_URL = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
 _CACHE_PATH = Path("/tmp/nse_equities.csv") if os.path.exists("/tmp") and os.access("/tmp", os.W_OK) else (_ROOT / "data" / "nse_equities.csv")
 
+# ==============================================================================
+# 18-State Evaluation & Delivery Lifecycle Model (OPB v2.59.4)
+# ==============================================================================
+CANONICAL_LIFECYCLE_STATES: tuple[str, ...] = (
+    "NOT_EVALUATED",
+    "SESSION_WAIT",
+    "DATA_FETCHING",
+    "DATA_UNAVAILABLE",
+    "FRESHNESS_BLOCKED",
+    "EVALUATING",
+    "EVALUATED_NO_SIGNAL",
+    "SIGNAL_GENERATED",
+    "SIGNAL_BELOW_THRESHOLD",
+    "SIGNAL_QUALIFIED",
+    "FILTERED",
+    "COOLDOWN_SUPPRESSED",
+    "DEDUP_SUPPRESSED",
+    "ELIGIBLE",
+    "ATTEMPTED",
+    "ACCEPTED",
+    "FAILED",
+    "DLQ",
+)
+STATE_ALIASES: dict[str, str] = {
+    "MARKET_CLOSED": "SESSION_WAIT",
+}
+
 
 @dataclass
 class ScannedStockSignal:
@@ -123,12 +150,13 @@ class AllNSEScanner:
         category: str = "",
         score: int | None = None,
     ) -> None:
-        """Record discrete evaluation telemetry state for an instrument (16-state model)."""
+        """Record discrete evaluation telemetry state for an instrument (18-state evaluation/delivery lifecycle model)."""
+        canonical_state = STATE_ALIASES.get(state, state)
         with self._evaluation_states_lock:
             self._evaluation_states[symbol] = {
                 "symbol": symbol,
                 "category": category,
-                "state": state,
+                "state": canonical_state,
                 "score": score,
                 "reason": reason,
                 "timestamp": now_ist().isoformat(),
@@ -257,15 +285,15 @@ class AllNSEScanner:
             {"symbol": "MIDCPNIFTY", "name": "Nifty Midcap Select (NSE)", "series": "INDEX"},
             {"symbol": "SENSEX", "name": "BSE Sensex Index (BSE)", "series": "INDEX"},
             {"symbol": "BANKEX", "name": "BSE Bankex Index (BSE)", "series": "INDEX"},
-            {"symbol": "GOLD", "name": "MCX Gold Commodity", "series": "COMMODITY"},
-            {"symbol": "SILVER", "name": "MCX Silver Commodity", "series": "COMMODITY"},
-            {"symbol": "CRUDEOIL", "name": "MCX Crude Oil Commodity", "series": "COMMODITY"},
-            {"symbol": "NATURALGAS", "name": "MCX Natural Gas Commodity", "series": "COMMODITY"},
-            {"symbol": "COPPER", "name": "MCX Copper Commodity", "series": "COMMODITY"},
-            {"symbol": "USDINR", "name": "USD/INR Currency Pair (NSE CDS)", "series": "CURRENCY"},
-            {"symbol": "EURINR", "name": "EUR/INR Currency Pair (NSE CDS)", "series": "CURRENCY"},
-            {"symbol": "GBPINR", "name": "GBP/INR Currency Pair (NSE CDS)", "series": "CURRENCY"},
-            {"symbol": "JPYINR", "name": "JPY/INR Currency Pair (NSE CDS)", "series": "CURRENCY"},
+            {"symbol": "GOLD", "name": "MCX Gold Commodity [PROXY DATA: GC=F]", "series": "COMMODITY"},
+            {"symbol": "SILVER", "name": "MCX Silver Commodity [PROXY DATA: SI=F]", "series": "COMMODITY"},
+            {"symbol": "CRUDEOIL", "name": "MCX Crude Oil Commodity [PROXY DATA: CL=F]", "series": "COMMODITY"},
+            {"symbol": "NATURALGAS", "name": "MCX Natural Gas Commodity [PROXY DATA: NG=F]", "series": "COMMODITY"},
+            {"symbol": "COPPER", "name": "MCX Copper Commodity [PROXY DATA: HG=F]", "series": "COMMODITY"},
+            {"symbol": "USDINR", "name": "USD/INR Currency Pair [PROXY DATA: USDINR=X]", "series": "CURRENCY"},
+            {"symbol": "EURINR", "name": "EUR/INR Currency Pair [PROXY DATA: EURINR=X]", "series": "CURRENCY"},
+            {"symbol": "GBPINR", "name": "GBP/INR Currency Pair [PROXY DATA: GBPINR=X]", "series": "CURRENCY"},
+            {"symbol": "JPYINR", "name": "JPY/INR Currency Pair [PROXY DATA: JPYINR=X]", "series": "CURRENCY"},
         ]
 
         # Check if local cache is fresh from TODAY
@@ -347,37 +375,42 @@ class AllNSEScanner:
     def get_min_score_for_category(self, category: str) -> int:
         """Return the configured minimum publication score for an instrument category.
 
-        Canonical universal scoring model:
-          0-59:   IGNORE / below signal threshold
-          60-69:  WEAK
-          70-79:  MODERATE (>= 70)
-          80-100: STRONG (>= 80)
+        Universal floor >= 70:
+          No category may ever qualify below the canonical global minimum floor of 70.
+          Canonical scoring tiers:
+            0-59:   IGNORE / below signal threshold
+            60-69:  WEAK (never qualifies anywhere)
+            70-79:  MODERATE (qualifies in categories with threshold 70)
+            80-100: STRONG (qualifies in all categories, subject to remaining gates)
 
-        Clamps legacy unconfigured 100 values to canonical thresholds (80 for STRONG, 70 for MODERATE)
-        so that index and derivative scores 80-99 are never blocked from qualifying as Strong alerts.
+        Category-specific quality threshold >= universal floor:
+          Categories intentionally configure distinct quality thresholds:
+            - Large-Cap / Mid-Cap Equity, ETFs, REITs: 70
+            - Stock Options, Index Options, Futures, Commodities, Currencies: 80
+          Scores 70-79 qualify for 70-threshold categories but are rejected by 80-threshold categories.
+          Clamps legacy unconfigured 100 values to canonical floors so that genuine setups are not blocked.
         """
         cat_upper = category.upper()
+        min_tier_cfg = str(self._cfg.get("MIN_SIGNAL_TIER", "MODERATE_AND_STRONG")).upper()
+        canonical_floor = 70 if "MODERATE" in min_tier_cfg else 80
+
         thresholds = self._cfg.get("CATEGORY_SCORE_THRESHOLDS", {})
         if isinstance(thresholds, dict) and cat_upper in thresholds:
             val = int(thresholds[cat_upper])
             if val >= 100:
-                min_tier = str(self._cfg.get("MIN_SIGNAL_TIER", "MODERATE_AND_STRONG")).upper()
-                val = 70 if "MODERATE" in min_tier else 80
-            return val
-
-        min_tier_cfg = str(self._cfg.get("MIN_SIGNAL_TIER", "MODERATE_AND_STRONG")).upper()
-        canonical_floor = 70 if "MODERATE" in min_tier_cfg else 80
+                val = canonical_floor
+            return max(canonical_floor, val)
 
         if "INDEX" in cat_upper or cat_upper == "INDEX_OPTIONS":
             val = int(self._cfg.get("INDEX_MIN_SCORE", canonical_floor))
             if val >= 100:
                 val = canonical_floor
-            return val
+            return max(canonical_floor, val)
 
         val = int(self._cfg.get("MIN_SCORE_THRESHOLD", canonical_floor))
         if val >= 100:
             val = canonical_floor
-        return val
+        return max(canonical_floor, val)
 
     def scan_single_stock(self, stock_info: dict[str, str]) -> ScannedStockSignal | None:
         """Scan a single stock across all 16 quantitative strategies."""
@@ -389,13 +422,27 @@ class AllNSEScanner:
         category = classify_instrument_market(sym, stock_info.get("series", "EQ"))
         is_fno = is_fno_symbol(sym)
 
+        # Single evaluation owner per category governance (OPB v2.59.4):
+        # opb_bot (index_trader.py) is the primary dedicated evaluation & execution owner for INDEX_OPTIONS.
+        # When running under supervisor alongside opb_bot, AllNSEScanner skips INDEX_OPTIONS to guarantee
+        # exactly one evaluation owner and zero duplicate evaluation/alerts.
+        index_owner = str(self._cfg.get("INDEX_OPTIONS_EVALUATION_OWNER", "opb_bot")).lower()
+        if category == "INDEX_OPTIONS" and index_owner == "opb_bot" and not bool(self._cfg.get("SCANNER_EVALUATE_INDEX", False)):
+            self._record_evaluation_state(
+                sym,
+                "NOT_EVALUATED",
+                "Evaluation owned by opb_bot (index_trader.py) — single owner governance",
+                category=category,
+            )
+            return None
+
         # Category session gate: evaluate if session is open or in after-hours / simulation mode
         mode = str(self._cfg.get("EXECUTION_MODE", "SIGNAL_ONLY")).upper()
         allow_off = bool(self._cfg.get("ALLOW_AFTER_HOURS_SCANNING", False)) or bool(self._cfg.get("SCANNER_FORCE_RUN", False)) or mode in {"BACKTEST", "REPLAY", "PAPER_REPLAY"}
         if not allow_off:
             from core.exchange_calendar_engine import is_category_session_open
             if not is_category_session_open(category):
-                self._record_evaluation_state(sym, "MARKET_CLOSED", f"Market session closed for category {category}", category=category)
+                self._record_evaluation_state(sym, "SESSION_WAIT", f"Market session closed for category {category}", category=category)
                 return None
 
         # Map to accurate Yahoo Finance / Data Ticker
@@ -1009,6 +1056,15 @@ class AllNSEScanner:
 
         tg_success = False
         email_success = False
+
+        if authorized_chat_ids or authorized_emails:
+            self._record_evaluation_state(
+                signal.symbol,
+                "ATTEMPTED",
+                f"Attempting dispatch to {len(authorized_chat_ids)} Telegram chats and {len(authorized_emails)} emails",
+                category=category,
+                score=signal.score,
+            )
 
         # 1. Telegram Dispatch with Rich HTML & 1-Click Interactive Inline Action Buttons
         if self._bot_token and authorized_chat_ids:

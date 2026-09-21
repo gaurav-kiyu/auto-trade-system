@@ -983,11 +983,11 @@ class PositionService:
         Signal qualification and trade execution are separate concerns.
         Classification uses configured thresholds:
           - STRONG_THRESHOLD (default 80)
-          - MODERATE_THRESHOLD (default 68)
+          - MODERATE_THRESHOLD (default 70)
           - AI_THRESHOLD (default 60)
         A signal is qualified if:
           - tier/strength is explicitly 'MODERATE' or 'STRONG', OR
-          - score >= MODERATE_THRESHOLD (or score >= AI_THRESHOLD when signal in BUY/SELL).
+          - score >= MODERATE_THRESHOLD (and tier is not WEAK or IGNORE).
         """
         if not isinstance(sig, dict):
             return False
@@ -1002,7 +1002,6 @@ class PositionService:
         cfg = getattr(self, "_cfg", None) or {}
         moderate_th = float(cfg.get("TIER_MODERATE_MIN", cfg.get("MODERATE_THRESHOLD", 70)))
         strong_th = float(cfg.get("TIER_STRONG_MIN", cfg.get("STRONG_THRESHOLD", 80)))
-        ai_th = float(cfg.get("TIER_WEAK_MIN", cfg.get("AI_THRESHOLD", 60)))
 
         if tier in ("STRONG", "MODERATE"):
             return True
@@ -1012,10 +1011,7 @@ class PositionService:
             return False
 
         # Fallback to score thresholds if tier is unspecified
-        if score >= strong_th or score >= moderate_th:
-            return True
-
-        return score >= ai_th and sig_action in ("BUY", "SELL")
+        return score >= moderate_th
 
     def _ensure_signal_persisted(
         self,
