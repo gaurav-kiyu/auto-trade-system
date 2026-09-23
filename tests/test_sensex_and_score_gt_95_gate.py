@@ -23,7 +23,7 @@ def test_priority_indices_in_universe_loader():
 
 
 def test_index_score_below_100_is_suppressed():
-    """Verify Index signals with score < 100 are rejected by the conviction gate."""
+    """Verify Index signals with score < 80 are rejected by the conviction gate."""
     scanner = AllNSEScanner()
     scanner._reload_config_credentials()
 
@@ -44,12 +44,12 @@ def test_index_score_below_100_is_suppressed():
     )
 
     min_score = scanner.get_min_score_for_category("INDEX_OPTIONS")
-    assert min_score == 100
+    assert min_score == 80
     assert sig_75.score < min_score
 
 
 def test_index_score_100_and_above_is_permitted():
-    """Verify Index signals with score >= 100 (e.g. 100) pass the conviction gate."""
+    """Verify Index signals with score >= 80 (e.g. 88) pass the conviction gate."""
     scanner = AllNSEScanner()
     scanner._reload_config_credentials()
     
@@ -59,8 +59,8 @@ def test_index_score_100_and_above_is_permitted():
         company_name="BSE Sensex Index",
         series="INDEX",
         direction="CALL",
-        score=100,
-        raw_score=100.0,
+        score=88,
+        raw_score=88.0,
         tier="STRONG",
         regime="TRENDING_BULLISH",
         price=100500.0,

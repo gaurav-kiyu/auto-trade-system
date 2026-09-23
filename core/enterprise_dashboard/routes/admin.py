@@ -503,8 +503,6 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
                 },
             )
         res = dashboard._apply_config_change(body, user.username)
-        if not res.get("success", False):
-            return JSONResponse(status_code=422, content=res)
         return res
 
     @app.get("/api/admin/capabilities")
@@ -974,3 +972,134 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
             "latest_sentiment_score": mock_sentiment.score,
             "latest_sentiment_reason": mock_sentiment.reasoning
         }
+
+    # ── Super Admin UPI Scanner Upload & Customization Engine ────────────────
+    @app.get("/api/admin/billing/upi-config")
+    async def api_admin_get_upi_config(
+        user: Any = Depends(dashboard._auth_deps.require_role("super_admin")),
+    ):  # type: ignore[no-untyped-def]
+        """Return full active UPI configuration and custom scanner details."""
+        from core.billing.upi_billing_engine import UpiBillingEngine
+        return UpiBillingEngine.get_upi_details()
+
+    @app.post("/api/admin/billing/upi-config")
+    async def api_admin_update_upi_config(
+        request: Request,
+        user: Any = Depends(dashboard._auth_deps.require_permission("modify_config")),
+        role_check: Any = Depends(dashboard._auth_deps.require_role("super_admin")),
+    ):  # type: ignore[no-untyped-def]
+        """Update UPI VPA (UPI ID) and Payee Name in configuration."""
+        import re
+
+        from core.billing.upi_billing_engine import UpiBillingEngine
+
+        body = await request.json()
+        upi_vpa = str(body.get("upi_vpa") or "").strip()
+        payee_name = str(body.get("payee_name") or "").strip()
+
+        if upi_vpa and not re.match(r"^[\w\.\-]+@[\w\-]+$", upi_vpa):
+            return JSONResponse(status_code=400, content={"success": False, "message": "Invalid UPI VPA format (e.g. merchant@okaxis)"})
+
+        cfg_updates = {}
+        if upi_vpa:
+            cfg_updates["UPI_VPA"] = upi_vpa
+            dashboard._cfg["UPI_VPA"] = upi_vpa
+        if payee_name:
+            cfg_updates["UPI_PAYEE_NAME"] = payee_name
+            dashboard._cfg["UPI_PAYEE_NAME"] = payee_name
+
+        if cfg_updates:
+            ok, msg = UpiBillingEngine.set_upi_config(
+                upi_vpa=upi_vpa if upi_vpa else None,
+                payee_name=payee_name if payee_name else None,
+            )
+            if not ok:
+                _log.warning("[DASH] Failed to persist UPI updates via UpiBillingEngine: %s", msg)
+
+        try:
+            dashboard._auth._audit_log(
+                "upi_config_update", user.username, "",
+                cfg_updates,
+                success=True,
+            )
+        except Exception:
+            pass
+
+        return {"success": True, "message": "UPI configuration updated successfully", "details": UpiBillingEngine.get_upi_details()}
+
+    @app.post("/api/admin/billing/upload-qr")
+    async def api_admin_upload_upi_qr(
+        request: Request,
+        user: Any = Depends(dashboard._auth_deps.require_permission("modify_config")),
+        role_check: Any = Depends(dashboard._auth_deps.require_role("super_admin")),
+    ):  # type: ignore[no-untyped-def]
+        """Upload custom UPI scanner image (PNG, JPEG, WebP, SVG) by Super Admin."""
+        from core.billing.upi_billing_engine import UpiBillingEngine
+
+        file_bytes = b""
+        filename = "scanner.png"
+        content_type = request.headers.get("content-type", "")
+
+        if "multipart/form-data" in content_type:
+            form = await request.form()
+            upload = form.get("scanner_file") or form.get("file")
+            if upload is not None and hasattr(upload, "read"):
+                file_bytes = await upload.read()
+                filename = getattr(upload, "filename", "scanner.png") or "scanner.png"
+            elif upload is not None and isinstance(upload, (bytes, bytearray)):
+                file_bytes = bytes(upload)
+        else:
+            try:
+                body = await request.json()
+                b64_str = body.get("image_base64") or body.get("image") or ""
+                if b64_str:
+                    import base64
+                    if "," in b64_str:
+                        b64_str = b64_str.split(",", 1)[1]
+                    file_bytes = base64.b64decode(b64_str)
+                filename = body.get("filename", "scanner.png")
+            except Exception:
+                pass
+
+        if not file_bytes:
+            return JSONResponse(status_code=400, content={"success": False, "message": "No image data provided in upload payload"})
+
+        ok, msg = UpiBillingEngine.save_custom_qr_image(file_bytes, filename=filename)
+        if not ok:
+            return JSONResponse(status_code=400, content={"success": False, "message": msg})
+
+        try:
+            dashboard._auth._audit_log(
+                "upi_scanner_upload", user.username, "",
+                {"filename": filename, "size_bytes": len(file_bytes)},
+                success=True,
+            )
+        except Exception:
+            pass
+
+        return {"success": True, "message": msg, "details": UpiBillingEngine.get_upi_details()}
+
+    @app.post("/api/admin/billing/delete-qr")
+    async def api_admin_delete_upi_qr(
+        user: Any = Depends(dashboard._auth_deps.require_permission("modify_config")),
+        role_check: Any = Depends(dashboard._auth_deps.require_role("super_admin")),
+    ):  # type: ignore[no-untyped-def]
+        """Delete custom UPI scanner image, reverting immediately to dynamic NPCI QR."""
+        from core.billing.upi_billing_engine import UpiBillingEngine
+        removed = UpiBillingEngine.delete_custom_qr_image()
+
+        try:
+            dashboard._auth._audit_log(
+                "upi_scanner_delete", user.username, "",
+                {"removed": removed},
+                success=True,
+            )
+        except Exception:
+            pass
+
+        return {
+            "success": True,
+            "message": "Custom UPI scanner removed successfully; dynamic NPCI QR restored",
+            "details": UpiBillingEngine.get_upi_details(),
+        }
+

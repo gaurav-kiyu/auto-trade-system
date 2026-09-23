@@ -619,6 +619,11 @@ mod.latency_check                  = lambda ts: True
 mod._broker_order_followup_enabled = lambda: False
 mod._api_entry_policy              = lambda: (1.0, "normal")
 
+# ── News sentinel: isolate from live external RSS feeds ──────────────────
+if hasattr(mod, "_position_service") and mod._position_service:
+    mod._position_service._news_sentinel = None
+mod._news_sentinel = None
+
 # ── Telegram throttle: clear so send() fires ─────────────────────────────
 mod._manual_sig_last.clear()
 

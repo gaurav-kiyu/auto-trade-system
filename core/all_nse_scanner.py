@@ -397,19 +397,13 @@ class AllNSEScanner:
         thresholds = self._cfg.get("CATEGORY_SCORE_THRESHOLDS", {})
         if isinstance(thresholds, dict) and cat_upper in thresholds:
             val = int(thresholds[cat_upper])
-            if val >= 100:
-                val = canonical_floor
             return max(canonical_floor, val)
 
         if "INDEX" in cat_upper or cat_upper == "INDEX_OPTIONS":
             val = int(self._cfg.get("INDEX_MIN_SCORE", canonical_floor))
-            if val >= 100:
-                val = canonical_floor
             return max(canonical_floor, val)
 
         val = int(self._cfg.get("MIN_SCORE_THRESHOLD", canonical_floor))
-        if val >= 100:
-            val = canonical_floor
         return max(canonical_floor, val)
 
     def scan_single_stock(self, stock_info: dict[str, str]) -> ScannedStockSignal | None:
@@ -866,6 +860,7 @@ class AllNSEScanner:
             target_1=t1_price,
             target_2=t2_price,
             base_url=base_url,
+            timestamp_str=signal.timestamp,
         )
 
         rich_tg_msg = RichSignalFormatter.build_rich_telegram_html(
@@ -878,6 +873,7 @@ class AllNSEScanner:
             stop_loss=sl_price,
             target_1=t1_price,
             target_2=t2_price,
+            timestamp_str=signal.timestamp,
         )
 
         # Make score provenance visible in every alert; this prevents a capped
@@ -1282,6 +1278,7 @@ class AllNSEScanner:
                 target_1=t1_price,
                 target_2=t2_price,
                 signal_id=sig_id,
+                timestamp_str=fut_signal.timestamp,
             )
 
             # Telegram dispatch
@@ -1324,6 +1321,7 @@ class AllNSEScanner:
                         target_2=t2_price,
                         base_url=base_url,
                         signal_id=sig_id,
+                        timestamp_str=fut_signal.timestamp,
                     )
                     srv = smtplib.SMTP(self._email_smtp, self._email_port, timeout=10)
                     srv.starttls()

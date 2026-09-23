@@ -11,13 +11,16 @@ Operates during live NSE market hours (09:15 AM - 15:30 PM IST, Mon-Fri):
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 from datetime import time as dtime
 from pathlib import Path
 
-# Add project root to sys.path
+# Add project root to sys.path and remove script directory to avoid shadowing stdlib 'logging'
 _ROOT = Path(__file__).resolve().parent.parent
+_SCRIPT_DIR_NORM = os.path.normcase(os.path.abspath(str(Path(__file__).resolve().parent)))
+sys.path = [p for p in sys.path if os.path.normcase(os.path.abspath(p)) != _SCRIPT_DIR_NORM]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 

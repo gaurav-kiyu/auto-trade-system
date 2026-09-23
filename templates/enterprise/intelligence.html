@@ -637,14 +637,33 @@
             }
         }
 
+        let _secLoaded = false;
+        let _isSecRunning = false;
+        let _perfLoaded = false;
+        let _isPerfRunning = false;
+        let _archLoaded = false;
+        let _isArchRunning = false;
+
         // ── Security Tab ──────────────────────────────────────
-        async function runSecurityScan() {
+        async function runSecurityScan(refresh = false) {
+            if (_isSecRunning) return;
+            _isSecRunning = true;
             const display = document.getElementById('securityDisplay');
-            display.innerHTML = '<div style="text-align:center;color: var(--text-muted, #94a3b8);font-size:0.8rem;padding:1rem;"><i class="fas fa-spinner fa-spin"></i> Scanning codebase...</div>';
+            if (!_secLoaded) {
+                display.innerHTML = '<div style="text-align:center;color: var(--text-muted, #94a3b8);font-size:0.8rem;padding:1rem;"><i class="fas fa-spinner fa-spin"></i> Scanning codebase...</div>';
+            }
             try {
-                const data = await apiFetch('/api/intelligence/security/scan');
+                const url = refresh ? '/api/intelligence/security/scan?refresh=true' : '/api/intelligence/security/scan';
+                const data = await apiFetch(url);
+                if (data && data.status === 'computing') {
+                    display.innerHTML = '<div class="stat-card" style="margin:1rem 0;border-left:3px solid #38bdf8;text-align:left;padding:1rem;"><div style="font-size:0.9rem;font-weight:600;color:#38bdf8;"><i class="fas fa-spinner fa-spin"></i> Security scan in progress</div><div style="font-size:0.75rem;color:var(--text-muted, #94a3b8);margin-top:0.3rem;">Security audit is running in the background. Updating automatically...</div></div>';
+                    _isSecRunning = false;
+                    setTimeout(() => runSecurityScan(false), 3000);
+                    return;
+                }
                 if (!data || data.status !== 'ok') {
                     display.innerHTML = '<div style="text-align:center;color: var(--danger-color, #dc2626);font-size:0.8rem;padding:1rem;">Error: '+(data?.detail||'unknown')+'</div>';
+                    _isSecRunning = false;
                     return;
                 }
                 const r = data.report || {};
@@ -680,21 +699,37 @@
                 }
 
                 display.innerHTML = html;
-                showToast('Security scan completed', 'success');
+                _secLoaded = true;
+                if (refresh) showToast('Security scan completed', 'success');
             } catch(e) {
                 display.innerHTML = '<div style="text-align:center;color: var(--danger-color, #dc2626);font-size:0.8rem;padding:1rem;">Error: '+e.message+'</div>';
+            } finally {
+                _isSecRunning = false;
             }
         }
 
         // ── Performance Tab ────────────────────────────────────
-        async function runPerformanceAnalysis() {
+        async function runPerformanceAnalysis(refresh = false) {
+            if (_isPerfRunning) return;
+            _isPerfRunning = true;
             const display = document.getElementById('performanceDisplay');
-            display.innerHTML = '<div style="text-align:center;color: var(--text-muted, #94a3b8);font-size:0.8rem;padding:1rem;"><i class="fas fa-spinner fa-spin"></i> Analyzing performance...</div>';
+            if (!_perfLoaded) {
+                display.innerHTML = '<div style="text-align:center;color: var(--text-muted, #94a3b8);font-size:0.8rem;padding:1rem;"><i class="fas fa-spinner fa-spin"></i> Analyzing performance...</div>';
+            }
             try {
-                const data = await apiFetch('/api/intelligence/performance/analyze');
+                const url = refresh ? '/api/intelligence/performance/analyze?refresh=true' : '/api/intelligence/performance/analyze';
+                const data = await apiFetch(url);
+
+                if (data && data.status === 'computing') {
+                    display.innerHTML = '<div class="stat-card" style="margin:1rem 0;border-left:3px solid #38bdf8;text-align:left;padding:1rem;"><div style="font-size:0.9rem;font-weight:600;color:#38bdf8;"><i class="fas fa-spinner fa-spin"></i> Performance analysis in progress</div><div style="font-size:0.75rem;color:var(--text-muted, #94a3b8);margin-top:0.3rem;">Performance analysis is running in the background. Updating automatically...</div></div>';
+                    _isPerfRunning = false;
+                    setTimeout(() => runPerformanceAnalysis(false), 3000);
+                    return;
+                }
 
                 if (!data || data.status !== 'ok') {
                     display.innerHTML = '<div style="text-align:center;color: var(--danger-color, #dc2626);font-size:0.8rem;padding:1rem;">Error: '+(data?.detail||'unknown')+'</div>';
+                    _isPerfRunning = false;
                     return;
                 }
                 const r = data.report || {};
@@ -728,20 +763,35 @@
                 }
 
                 display.innerHTML = html;
-                showToast('Performance analysis completed', 'success');
+                _perfLoaded = true;
+                if (refresh) showToast('Performance analysis completed', 'success');
             } catch(e) {
                 display.innerHTML = '<div style="text-align:center;color: var(--danger-color, #dc2626);font-size:0.8rem;padding:1rem;">Error: '+e.message+'</div>';
+            } finally {
+                _isPerfRunning = false;
             }
         }
 
         // ── Architecture Tab ───────────────────────────────────
-        async function runArchitectureAnalysis() {
+        async function runArchitectureAnalysis(refresh = false) {
+            if (_isArchRunning) return;
+            _isArchRunning = true;
             const display = document.getElementById('architectureDisplay');
-            display.innerHTML = '<div style="text-align:center;color: var(--text-muted, #94a3b8);font-size:0.8rem;padding:1rem;"><i class="fas fa-spinner fa-spin"></i> Analyzing architecture...</div>';
+            if (!_archLoaded) {
+                display.innerHTML = '<div style="text-align:center;color: var(--text-muted, #94a3b8);font-size:0.8rem;padding:1rem;"><i class="fas fa-spinner fa-spin"></i> Analyzing architecture...</div>';
+            }
             try {
-                const data = await apiFetch('/api/intelligence/architecture/analyze');
+                const url = refresh ? '/api/intelligence/architecture/analyze?refresh=true' : '/api/intelligence/architecture/analyze';
+                const data = await apiFetch(url);
+                if (data && data.status === 'computing') {
+                    display.innerHTML = '<div class="stat-card" style="margin:1rem 0;border-left:3px solid #38bdf8;text-align:left;padding:1rem;"><div style="font-size:0.9rem;font-weight:600;color:#38bdf8;"><i class="fas fa-spinner fa-spin"></i> Architecture analysis in progress</div><div style="font-size:0.75rem;color:var(--text-muted, #94a3b8);margin-top:0.3rem;">Architecture analysis is running in the background. Updating automatically...</div></div>';
+                    _isArchRunning = false;
+                    setTimeout(() => runArchitectureAnalysis(false), 3000);
+                    return;
+                }
                 if (!data || data.status !== 'ok') {
                     display.innerHTML = '<div style="text-align:center;color: var(--danger-color, #dc2626);font-size:0.8rem;padding:1rem;">Error: '+(data?.detail||'unknown')+'</div>';
+                    _isArchRunning = false;
                     return;
                 }
                 const r = data.report || {};
@@ -786,9 +836,12 @@
                 }
 
                 display.innerHTML = html;
-                showToast('Architecture analysis completed', 'success');
+                _archLoaded = true;
+                if (refresh) showToast('Architecture analysis completed', 'success');
             } catch(e) {
                 display.innerHTML = '<div style="text-align:center;color: var(--danger-color, #dc2626);font-size:0.8rem;padding:1rem;">Error: '+e.message+'</div>';
+            } finally {
+                _isArchRunning = false;
             }
         }
 
@@ -1180,14 +1233,16 @@
                         if (_icsRefreshTimer) clearInterval(_icsRefreshTimer);
                         _icsRefreshTimer = setInterval(loadIncidentCommander, 15000);
                     } else if (tab.dataset.tab === 'performance') {
-                        runPerformanceAnalysis();
+                        if (!_perfLoaded) runPerformanceAnalysis(false);
                         if (_icsRefreshTimer) { clearInterval(_icsRefreshTimer); _icsRefreshTimer = null; }
                     } else if (tab.dataset.tab === 'architecture') {
-                        runArchitectureAnalysis();
-                        loadArchitectureStandards();
+                        if (!_archLoaded) {
+                            runArchitectureAnalysis(false);
+                            loadArchitectureStandards();
+                        }
                         if (_icsRefreshTimer) { clearInterval(_icsRefreshTimer); _icsRefreshTimer = null; }
                     } else if (tab.dataset.tab === 'security') {
-                        runSecurityScan();
+                        if (!_secLoaded) runSecurityScan(false);
                         if (_icsRefreshTimer) { clearInterval(_icsRefreshTimer); _icsRefreshTimer = null; }
                     } else {
                         if (_icsRefreshTimer) {
@@ -1242,9 +1297,9 @@
 
         document.getElementById('btnRetrainMl')?.addEventListener('click', retrainML);
         document.getElementById('cspfix-2')?.addEventListener('click', function(event) { loadBIReport() });
-        document.getElementById('cspfix-3')?.addEventListener('click', function(event) { runSecurityScan() });
-        document.getElementById('cspfix-4')?.addEventListener('click', function(event) { runPerformanceAnalysis() });
-        document.getElementById('cspfix-5')?.addEventListener('click', function(event) { runArchitectureAnalysis() });
+        document.getElementById('cspfix-3')?.addEventListener('click', function(event) { runSecurityScan(true) });
+        document.getElementById('cspfix-4')?.addEventListener('click', function(event) { runPerformanceAnalysis(true) });
+        document.getElementById('cspfix-5')?.addEventListener('click', function(event) { runArchitectureAnalysis(true) });
         document.getElementById('cspfix-6')?.addEventListener('click', function(event) { loadArchitectureStandards() });
         document.getElementById('cspfix-7')?.addEventListener('click', function(event) { loadDeployments() });
         document.getElementById('cspfix-8')?.addEventListener('click', function(event) { loadBIReport() });

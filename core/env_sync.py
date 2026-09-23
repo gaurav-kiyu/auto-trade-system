@@ -49,7 +49,12 @@ def sync_env_file(
     # Flatten changes to .env key-value pairs
     env_updates: dict[str, str] = {}
     for cfg_key, val in changes.items():
-        val_str = str(val) if val is not None else ""
+        if isinstance(val, float) and val.is_integer():
+            val_str = str(int(val))
+        elif val is not None:
+            val_str = str(val)
+        else:
+            val_str = ""
         # Direct OPBUYING_ prefix
         env_updates[f"OPBUYING_{cfg_key}"] = val_str
         # Mapped specific variables
@@ -57,9 +62,11 @@ def sync_env_file(
             for env_var in CONFIG_TO_ENV_MAP[cfg_key]:
                 env_updates[env_var] = val_str
 
-    # Update os.environ immediately for current running process
-    for env_var, val_str in env_updates.items():
-        os.environ[env_var] = val_str
+    # Update os.environ immediately for current running process only when syncing canonical .env
+    root = Path(__file__).resolve().parent.parent
+    if env_path is None or str(target_path.resolve()) == str((root / ".env").resolve()):
+        for env_var, val_str in env_updates.items():
+            os.environ[env_var] = val_str
 
     if not target_path.exists():
         try:

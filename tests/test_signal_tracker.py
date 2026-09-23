@@ -612,3 +612,95 @@ class TestFirstHitLifecycleV174:
         assert events[0]["hit_t1"] == 1
         assert events[0]["hit_sl"] == 0
         assert events[0]["hit_t2"] == 0
+
+
+class TestOppositeDirectionWhipsawGuard:
+    def _tracker(self, tmp_path):
+        from core.signals.signal_tracker import SignalTracker as _ST
+        tracker = _ST(db_path=tmp_path / "signals.db")
+        conn = tracker._get_conn()
+        conn.execute("DELETE FROM system_signals")
+        conn.commit()
+        conn.close()
+        return tracker
+
+    def test_opposite_direction_whipsaw_suppressed_within_cooldown(self, tmp_path):
+        tracker = self._tracker(tmp_path)
+        sig1 = tracker.record_generated_signal({
+            "symbol": "FINNIFTY",
+            "direction": "CALL",
+            "price": 25600.0,
+            "category": "INDEX_OPTIONS",
+            "tier": "STRONG",
+            "score": 86,
+            "opposite_dir_cooldown_secs": 1800,
+        })
+        assert sig1 != ""
+
+        # Rapid flip to PUT within 30 min must be suppressed
+        sig2 = tracker.record_generated_signal({
+            "symbol": "FINNIFTY",
+            "direction": "PUT",
+            "price": 25500.0,
+            "category": "INDEX_OPTIONS",
+            "tier": "MODERATE",
+            "score": 78,
+            "opposite_dir_cooldown_secs": 1800,
+        })
+        assert sig2 == ""
+
+        conn = tracker._get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT signal_id, direction, status FROM system_signals WHERE symbol = 'FINNIFTY'")
+        rows = cur.fetchall()
+        conn.close()
+        assert len(rows) == 1
+        assert rows[0][1] == "CALL"
+        assert rows[0][2] == "ACTIVE"
+
+    def test_opposite_direction_reversal_expires_prior_active_after_cooldown(self, tmp_path):
+        tracker = self._tracker(tmp_path)
+        sig1 = tracker.record_generated_signal({
+            "symbol": "NIFTY",
+            "direction": "PUT",
+            "price": 23400.0,
+            "category": "INDEX_OPTIONS",
+            "tier": "MODERATE",
+            "score": 72,
+            "opposite_dir_cooldown_secs": 10,
+        })
+        assert sig1 != ""
+
+        # Manually backdate timestamp in DB to simulate cooldown expiration
+        conn = tracker._get_conn()
+        conn.execute("UPDATE system_signals SET timestamp = '2026-09-22 10:00:00' WHERE signal_id = ?", (sig1,))
+        conn.commit()
+        conn.close()
+
+        # Reversal after cooldown should succeed and expire prior active signal
+        sig2 = tracker.record_generated_signal({
+            "symbol": "NIFTY",
+            "direction": "CALL",
+            "price": 23450.0,
+            "category": "INDEX_OPTIONS",
+            "tier": "MODERATE",
+            "score": 74,
+            "opposite_dir_cooldown_secs": 10,
+        })
+        assert sig2 != ""
+        assert sig2 != sig1
+
+        conn = tracker._get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT signal_id, direction, status FROM system_signals WHERE symbol = 'NIFTY' ORDER BY timestamp ASC")
+        rows = cur.fetchall()
+        conn.close()
+        assert len(rows) == 2
+        # First signal transitioned from ACTIVE to EXPIRED
+        assert rows[0][0] == sig1
+        assert rows[0][1] == "PUT"
+        assert rows[0][2] == "EXPIRED"
+        # Second signal is now the single ACTIVE signal
+        assert rows[1][0] == sig2
+        assert rows[1][1] == "CALL"
+        assert rows[1][2] == "ACTIVE"

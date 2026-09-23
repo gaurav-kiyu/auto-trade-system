@@ -54,6 +54,7 @@ class TestConfigPropagation(unittest.TestCase):
         )
         AuditService._instance = self.real_audit
 
+        self._orig_environ = os.environ.copy()
         self.app = EnterpriseDashboard(
             config={
                 "index_config_path": str(self.config_path),
@@ -61,6 +62,7 @@ class TestConfigPropagation(unittest.TestCase):
                 "config_audit_log_path": str(self.config_audit_path),
                 "auth_db_path": str(self.db_path),
                 "trades_db": str(self.trades_db),
+                "env_path": str(self.base_path / ".env"),
                 "BASE_CAPITAL": 10000.0,
                 "TRADING_MODE": "PAPER",
             },
@@ -70,6 +72,8 @@ class TestConfigPropagation(unittest.TestCase):
 
     def tearDown(self):
         AuditService._instance = None
+        os.environ.clear()
+        os.environ.update(self._orig_environ)
         gc.collect()
         try:
             self.temp_dir.cleanup()

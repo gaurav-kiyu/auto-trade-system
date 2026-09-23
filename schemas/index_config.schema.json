@@ -789,6 +789,9 @@
     "LEGACY_SYSTEM_BROADCAST_ENABLED": {
       "type": "boolean"
     },
+    "LIVE_TRADING_LOCKOUT": {
+      "type": "boolean"
+    },
     "LOCK_TRIGGER_PCT": {
       "type": "number"
     },
@@ -1390,6 +1393,9 @@
     },
     "SIGNAL_MAX_AGE": {
       "type": "integer"
+    },
+    "SIGNAL_ONLY": {
+      "type": "boolean"
     },
     "SIGNAL_TS_MAX_AGE": {
       "type": "integer"
@@ -2376,6 +2382,9 @@
       "type": "object"
     },
     "force_pre_trade_recon_enabled": {
+      "type": "boolean"
+    },
+    "full_auto_allowed": {
       "type": "boolean"
     },
     "general_cooldown_enabled": {

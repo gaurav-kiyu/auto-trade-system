@@ -32,34 +32,158 @@
 </head>
 <body>
     {% include '_nav.html' %}
-    
+
+    {% if is_super_admin or (user and user.role == 'super_admin') %}
+    <!-- Super Admin Quick UPI & Scanner Management Bar -->
+    <div style="max-width:800px;margin:0 auto 2rem auto;background:var(--bg-card, #111827);border:1px solid var(--accent-color, #38bdf8);border-radius:0.75rem;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;" id="superAdminBanner">
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+            <div style="background:rgba(56,189,248,0.15);width:38px;height:38px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;color:var(--accent-color, #38bdf8);font-size:1.15rem;">
+                <i class="fas fa-qrcode"></i>
+            </div>
+            <div>
+                <div style="font-weight:700;font-size:0.9rem;color:var(--text-primary, #ffffff);">Super Admin UPI Scanner &amp; Merchant Engine</div>
+                <div style="font-size:0.75rem;color:var(--text-muted, #94a3b8);">Upload custom QR scanner, configure VPA ID, and manage instant subscriber checkout settings.</div>
+            </div>
+        </div>
+        <button id="btnOpenSuperAdminModal" class="btn-pay" style="width:auto;padding:0.45rem 1rem;background:var(--accent-color, #38bdf8);color:#0f172a;font-weight:700;" type="button">
+            <i class="fas fa-sliders-h"></i> Customize Scanner &amp; VPA
+        </button>
+    </div>
+    {% endif %}
 
     <div style="text-align:center;max-width:700px;margin:0 auto 2.5rem auto;">
-<h1><i class="fas fa-gem" style="margin-right:0.5rem;color:#3b82f6;"></i> Subscription Plans &amp; Instant Activation</h1>
-<p class="subtitle">Select your desired quantitative signal access tier. Scan with any UPI app (GPay, PhonePe, Paytm, BHIM) for 100% zero-fee instant activation.</p>
-</div>
-<!-- Pricing Cards Grid -->
-<div class="plans-grid" id="plansContainer">
-<!-- Rendered via JS -->
-</div>
-<!-- Direct UPI QR Payment Modal -->
-<div class="qr-modal" id="qrModal">
-<div style="background:var(--bg-card, #111827);border:1px solid var(--border-color, rgba(148,163,184,0.2));border-radius:1rem;padding:2rem;max-width:420px;width:90%;text-align:center;position:relative;">
-<button id="cspfix-1" style="position:absolute;top:15px;right:15px;background:transparent;border:none;color: var(--text-muted, #94a3b8);font-size:1.2rem;cursor:pointer;" type="button">×</button>
-<h3 id="modalPlanTitle" style="font-weight:700;font-size:1.1rem;margin-bottom:0.25rem;">Plan Title</h3>
-<p style="color: var(--text-muted, #94a3b8);font-size:0.8rem;margin-bottom:0.75rem;">Scan with PhonePe, Google Pay, Paytm, or BHIM</p>
-<div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:0.5rem;padding:0.6rem;font-size:0.75rem;color:#fbbf24;margin-bottom:0.85rem;line-height:1.4;text-align:left;">
-<i class="fas fa-shield-alt" style="margin-right:0.3rem;"></i> <strong>Verification Requirement:</strong> Automated self-activation of paid plans is disabled. Genuine payment-gateway verification or administrator approval is required for activation.
-</div>
-<div style="background:#fff;padding:1rem;border-radius:0.5rem;display:inline-block;margin-bottom:1rem;">
-<img alt="UPI QR Code" id="modalQrImg" src="" style="width:200px;height:200px;display:block;"/>
-</div>
-<div id="modalPrice" style="font-family:monospace;font-size:0.85rem;color:#38bdf8;font-weight:600;margin-bottom:1.5rem;">₹-</div>
-<button class="btn-pay" id="cspfix-2" style="background:#22c55e;" type="button">✅ Submit Payment Confirmation</button>
-</div>
-</div>
+        <h1><i class="fas fa-gem" style="margin-right:0.5rem;color:var(--accent-color, #3b82f6);"></i> Subscription Plans &amp; Instant Activation</h1>
+        <p class="subtitle">Select your desired quantitative signal access tier. Scan with any UPI app (GPay, PhonePe, Paytm, BHIM) for 100% zero-fee instant activation.</p>
+    </div>
+
+    <!-- Pricing Cards Grid -->
+    <div class="plans-grid" id="plansContainer">
+        <!-- Rendered via JS -->
+    </div>
+
+    <!-- Direct UPI QR Payment Modal -->
+    <div class="qr-modal" id="qrModal">
+        <div style="background:var(--bg-card, #111827);border:1px solid var(--border-color, rgba(148,163,184,0.2));border-radius:1rem;padding:2rem;max-width:440px;width:92%;text-align:center;position:relative;max-height:92vh;overflow-y:auto;">
+            <button id="cspfix-1" style="position:absolute;top:15px;right:15px;background:transparent;border:none;color: var(--text-muted, #94a3b8);font-size:1.2rem;cursor:pointer;" type="button">×</button>
+            <h3 id="modalPlanTitle" style="font-weight:700;font-size:1.15rem;margin-bottom:0.25rem;">Plan Title</h3>
+            <p style="color: var(--text-muted, #94a3b8);font-size:0.8rem;margin-bottom:0.6rem;">Scan with PhonePe, Google Pay, Paytm, or BHIM</p>
+
+            <div id="modalMerchantBadge" style="display:none;align-items:center;justify-content:center;gap:0.4rem;font-size:0.75rem;color:var(--success-color, #22c55e);background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:0.35rem;padding:0.25rem 0.65rem;margin:0 auto 0.75rem auto;width:fit-content;font-weight:600;">
+                <i class="fas fa-check-circle"></i> <span id="modalMerchantBadgeText">Configured Merchant QR</span>
+            </div>
+
+            <div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:0.5rem;padding:0.6rem;font-size:0.75rem;color:#fbbf24;margin-bottom:0.85rem;line-height:1.4;text-align:left;">
+                <i class="fas fa-shield-alt" style="margin-right:0.3rem;"></i> <strong>Verification Requirement:</strong> Automated self-activation of paid plans is disabled. Genuine payment-gateway verification or administrator approval is required for activation.
+            </div>
+
+            <div style="background:#ffffff;padding:0.85rem;border-radius:0.75rem;display:inline-block;margin-bottom:0.85rem;box-shadow:0 4px 14px rgba(0,0,0,0.3);">
+                <img alt="UPI QR Code" id="modalQrImg" src="" style="width:200px;height:200px;display:block;object-fit:contain;border-radius:0.25rem;"/>
+            </div>
+
+            <!-- Details Box -->
+            <div style="background:var(--bg-secondary, #0b1120);border:1px solid var(--border-color, #1e293b);border-radius:0.5rem;padding:0.75rem;margin-bottom:0.85rem;text-align:left;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+                    <span style="font-size:0.75rem;color:var(--text-muted, #94a3b8);">Amount:</span>
+                    <span id="modalPrice" style="font-family:monospace;font-size:0.95rem;color:var(--accent-color, #38bdf8);font-weight:700;font-variant-numeric:tabular-nums;">₹-</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+                    <span style="font-size:0.75rem;color:var(--text-muted, #94a3b8);">Payee Name:</span>
+                    <span id="modalPayeeName" style="font-size:0.8rem;font-weight:600;color:var(--text-primary, #ffffff);">-</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:0.75rem;color:var(--text-muted, #94a3b8);">UPI ID (VPA):</span>
+                    <div style="display:flex;align-items:center;gap:0.4rem;">
+                        <span id="modalVpa" style="font-family:monospace;font-size:0.8rem;color:var(--text-primary, #ffffff);font-variant-numeric:tabular-nums;">-</span>
+                        <button id="btnCopyVpa" type="button" style="background:transparent;border:none;color:var(--accent-color, #38bdf8);cursor:pointer;font-size:0.8rem;padding:2px 4px;" title="Copy UPI ID">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile UPI Intent Deep Link Button -->
+            <button id="btnMobileUpi" type="button" style="display:none;width:100%;padding:0.55rem;border-radius:0.5rem;background:rgba(56,189,248,0.15);color:var(--accent-color, #38bdf8);border:1px solid rgba(56,189,248,0.3);text-decoration:none;font-weight:600;font-size:0.8rem;margin-bottom:0.85rem;box-sizing:border-box;text-align:center;cursor:pointer;">
+                <i class="fas fa-mobile-alt"></i> Open In UPI App (GPay / PhonePe / Paytm)
+            </button>
+
+            <!-- Transaction Reference Input -->
+            <div style="text-align:left;margin-bottom:1rem;">
+                <label for="txnRefInput" style="display:block;font-size:0.72rem;color:var(--text-muted, #94a3b8);margin-bottom:0.25rem;">UPI Transaction ID / UTR (Optional for instant record):</label>
+                <input id="txnRefInput" placeholder="e.g. 423456789012" style="width:100%;padding:0.5rem 0.75rem;background:var(--bg-secondary, #080b10);border:1px solid var(--border-color, #1e293b);border-radius:0.4rem;color:var(--text-primary, #fff);font-size:0.82rem;font-family:monospace;" type="text" />
+            </div>
+
+            <button class="btn-pay" id="cspfix-2" style="background:#22c55e;" type="button">✅ Submit Payment Confirmation</button>
+        </div>
+    </div>
+
+    {% if is_super_admin or (user and user.role == 'super_admin') %}
+    <!-- Super Admin UPI Scanner Customization Modal -->
+    <div class="qr-modal" id="superAdminModal">
+        <div style="background:var(--bg-card, #111827);border:1px solid var(--border-color, #1e293b);border-radius:1rem;padding:1.75rem;max-width:480px;width:92%;text-align:left;position:relative;max-height:92vh;overflow-y:auto;">
+            <button id="closeAdminModalBtn" style="position:absolute;top:15px;right:15px;background:transparent;border:none;color:var(--text-muted, #94a3b8);font-size:1.2rem;cursor:pointer;" type="button">×</button>
+            <h3 style="font-weight:700;font-size:1.15rem;margin-bottom:0.35rem;color:var(--text-primary, #ffffff);display:flex;align-items:center;gap:0.5rem;">
+                <i class="fas fa-qrcode" style="color:var(--accent-color, #38bdf8);"></i> Customize UPI Scanner &amp; VPA
+            </h3>
+            <p style="font-size:0.78rem;color:var(--text-muted, #94a3b8);margin-bottom:1.15rem;">
+                Super Admin control. Upload your official QR scanner image or change your merchant UPI ID. Updates take effect immediately.
+            </p>
+
+            <!-- Status Box -->
+            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary, #080b10);border:1px solid var(--border-color, #1e293b);padding:0.6rem 0.85rem;border-radius:0.5rem;margin-bottom:1rem;">
+                <div style="font-size:0.78rem;">
+                    <span style="color:var(--text-muted, #94a3b8);">Active Scanner: </span>
+                    <strong id="adminQrStatusText" style="color:var(--accent-color, #38bdf8);">Checking...</strong>
+                </div>
+                <span id="adminQrTypeBadge" class="plan-badge" style="position:static;font-size:0.65rem;">-</span>
+            </div>
+
+            <!-- Scanner Preview -->
+            <div style="text-align:center;margin-bottom:1.15rem;">
+                <div style="background:#ffffff;padding:0.6rem;border-radius:0.5rem;display:inline-block;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+                    <img id="adminScannerPreviewImg" src="" alt="UPI Scanner Preview" style="width:160px;height:160px;display:block;object-fit:contain;" />
+                </div>
+            </div>
+
+            <!-- Credentials Form -->
+            <div style="margin-bottom:0.75rem;">
+                <label for="adminUpiVpaInput" style="display:block;font-size:0.75rem;color:var(--text-muted, #94a3b8);margin-bottom:0.25rem;">Merchant UPI VPA (ID):</label>
+                <input id="adminUpiVpaInput" placeholder="e.g. merchant@okaxis" style="width:100%;padding:0.5rem 0.75rem;background:var(--bg-secondary, #080b10);border:1px solid var(--border-color, #1e293b);border-radius:0.4rem;color:var(--text-primary, #fff);font-size:0.82rem;font-family:monospace;" type="text" />
+            </div>
+
+            <div style="margin-bottom:1rem;">
+                <label for="adminPayeeNameInput" style="display:block;font-size:0.75rem;color:var(--text-muted, #94a3b8);margin-bottom:0.25rem;">Merchant / Payee Name:</label>
+                <input id="adminPayeeNameInput" placeholder="e.g. OPB Trading Technologies" style="width:100%;padding:0.5rem 0.75rem;background:var(--bg-secondary, #080b10);border:1px solid var(--border-color, #1e293b);border-radius:0.4rem;color:var(--text-primary, #fff);font-size:0.82rem;" type="text" />
+            </div>
+
+            <button id="btnSaveUpiConfig" class="btn-pay" style="background:var(--accent-color, #38bdf8);color:#0f172a;font-weight:700;margin-bottom:1.25rem;" type="button">
+                💾 Save UPI Details
+            </button>
+
+            <hr style="border:none;border-top:1px solid var(--border-color, #1e293b);margin:0.85rem 0 1rem 0;" />
+
+            <!-- File Upload Section -->
+            <div style="margin-bottom:1rem;">
+                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-primary, #fff);margin-bottom:0.25rem;">Upload Branded QR Scanner Image:</label>
+                <p style="font-size:0.72rem;color:var(--text-muted, #94a3b8);margin-bottom:0.5rem;">Supported formats: PNG, JPEG, WebP, SVG (Max 2 MB). Magic bytes verified.</p>
+                <input id="adminQrFileInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="width:100%;font-size:0.78rem;color:var(--text-muted, #94a3b8);margin-bottom:0.75rem;" type="file" />
+
+                <div style="display:flex;gap:0.5rem;">
+                    <button id="btnUploadScanner" class="btn-pay" style="flex:1;background:#22c55e;" type="button" disabled>
+                        📤 Upload Image
+                    </button>
+                    <button id="btnDeleteScanner" class="btn-pay" style="flex:1;background:#ef4444;" type="button">
+                        🗑️ Use Dynamic QR
+                    </button>
+                </div>
+            </div>
+
+            <div id="adminQrAlert" style="display:none;font-size:0.75rem;padding:0.5rem;border-radius:0.35rem;margin-top:0.75rem;"></div>
+        </div>
+    </div>
+    {% endif %}
 <script nonce="{{ nonce }}">
         let currentSelectedPlan = null;
+        let currentUpiVpa = '';
 
         async function loadPlans() {
             const res = await fetch('/api/billing/plans', {credentials: 'include'});
@@ -93,8 +217,32 @@
             if (data.error) return alert(data.error);
 
             document.getElementById('modalPlanTitle').textContent = data.plan_name;
-            document.getElementById('modalPrice').textContent = `Amount: ₹${data.price_inr}`;
-            document.getElementById('modalQrImg').src = data.qr_generator_url;
+            document.getElementById('modalPrice').textContent = `₹${data.price_inr.toLocaleString('en-IN')}`;
+            document.getElementById('modalPayeeName').textContent = data.payee_name || 'OPB Trading';
+            document.getElementById('modalVpa').textContent = data.upi_vpa || '';
+            currentUpiVpa = data.upi_vpa || '';
+
+            const qrImg = document.getElementById('modalQrImg');
+            const merchantBadge = document.getElementById('modalMerchantBadge');
+
+            if (data.has_custom_qr) {
+                qrImg.src = `${data.custom_qr_url}?t=${Date.now()}`;
+                merchantBadge.style.display = 'inline-flex';
+                document.getElementById('modalMerchantBadgeText').textContent = `Configured Merchant QR: ${data.payee_name}`;
+            } else {
+                qrImg.src = data.qr_generator_url;
+                merchantBadge.style.display = 'none';
+            }
+
+            const mobileBtn = document.getElementById('btnMobileUpi');
+            if (data.upi_uri) {
+                mobileBtn.dataset.upiUri = data.upi_uri;
+                mobileBtn.style.display = 'block';
+            } else {
+                mobileBtn.dataset.upiUri = '';
+                mobileBtn.style.display = 'none';
+            }
+
             document.getElementById('qrModal').style.display = 'flex';
         }
 
@@ -102,8 +250,21 @@
             document.getElementById('qrModal').style.display = 'none';
         }
 
+        async function copyVpa() {
+            if (!currentUpiVpa) return;
+            try {
+                await navigator.clipboard.writeText(currentUpiVpa);
+                const btn = document.getElementById('btnCopyVpa');
+                btn.innerHTML = '<i class="fas fa-check" style="color:var(--success-color, #22c55e);"></i>';
+                setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 2000);
+            } catch (err) {
+                prompt('Copy UPI VPA:', currentUpiVpa);
+            }
+        }
+
         async function confirmPayment() {
             if (!currentSelectedPlan) return;
+            const txnRef = (document.getElementById('txnRefInput')?.value || '').trim();
             const res = await fetch('/api/billing/confirm-upi-payment', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -111,7 +272,7 @@
                 body: JSON.stringify({
                     plan_id: currentSelectedPlan,
                     username: '{{ user.username or "admin" }}',
-                    ref: 'UPI-DIRECT-' + Date.now()
+                    ref: txnRef || ('UPI-DIRECT-' + Date.now())
                 })
             });
             const data = await res.json();
@@ -123,6 +284,114 @@
             }
         }
 
+        {% if is_super_admin or (user and user.role == 'super_admin') %}
+        async function loadAdminUpiDetails() {
+            try {
+                const res = await fetch('/api/admin/billing/upi-config', {credentials: 'include'});
+                if (!res.ok) return;
+                const data = await res.json();
+                document.getElementById('adminUpiVpaInput').value = data.upi_vpa || '';
+                document.getElementById('adminPayeeNameInput').value = data.payee_name || '';
+
+                const statusText = document.getElementById('adminQrStatusText');
+                const typeBadge = document.getElementById('adminQrTypeBadge');
+                const previewImg = document.getElementById('adminScannerPreviewImg');
+
+                if (data.has_custom_qr) {
+                    statusText.textContent = `Custom QR Uploaded (${data.custom_qr_filename || 'Active'})`;
+                    typeBadge.textContent = 'Custom Upload';
+                    typeBadge.style.background = '#22c55e';
+                    previewImg.src = `/api/billing/upi-qr-image?t=${Date.now()}`;
+                } else {
+                    statusText.textContent = 'Dynamic NPCI QR Active (Default)';
+                    typeBadge.textContent = 'Dynamic Fallback';
+                    typeBadge.style.background = '#38bdf8';
+                    previewImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=upi://pay?pa=${encodeURIComponent(data.upi_vpa)}&pn=${encodeURIComponent(data.payee_name)}&cu=INR`;
+                }
+            } catch (err) {
+                console.error('Failed to load admin UPI details:', err);
+            }
+        }
+
+        function showAdminAlert(msg, isSuccess) {
+            const alertBox = document.getElementById('adminQrAlert');
+            alertBox.style.display = 'block';
+            alertBox.style.background = isSuccess ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)';
+            alertBox.style.color = isSuccess ? '#22c55e' : '#ef4444';
+            alertBox.style.border = `1px solid ${isSuccess ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`;
+            alertBox.textContent = msg;
+            setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+        }
+
+        async function saveUpiConfig() {
+            const upi_vpa = document.getElementById('adminUpiVpaInput').value.trim();
+            const payee_name = document.getElementById('adminPayeeNameInput').value.trim();
+            try {
+                const res = await fetch('/api/admin/billing/upi-config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({ upi_vpa, payee_name })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminAlert('✅ ' + data.message, true);
+                    await loadAdminUpiDetails();
+                } else {
+                    showAdminAlert('❌ ' + (data.message || 'Update failed'), false);
+                }
+            } catch (err) {
+                showAdminAlert('❌ Network error: ' + err, false);
+            }
+        }
+
+        async function uploadScannerImage() {
+            const fileInput = document.getElementById('adminQrFileInput');
+            if (!fileInput.files || fileInput.files.length === 0) return;
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('scanner_file', file);
+
+            try {
+                const res = await fetch('/api/admin/billing/upload-qr', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminAlert('✅ ' + data.message, true);
+                    fileInput.value = '';
+                    document.getElementById('btnUploadScanner').disabled = true;
+                    await loadAdminUpiDetails();
+                } else {
+                    showAdminAlert('❌ ' + (data.message || 'Upload failed'), false);
+                }
+            } catch (err) {
+                showAdminAlert('❌ Network error during upload: ' + err, false);
+            }
+        }
+
+        async function deleteScannerImage() {
+            if (!confirm('Revert back to dynamic NPCI QR codes? The custom uploaded scanner image will be deleted.')) return;
+            try {
+                const res = await fetch('/api/admin/billing/delete-qr', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminAlert('✅ ' + data.message, true);
+                    await loadAdminUpiDetails();
+                } else {
+                    showAdminAlert('❌ ' + (data.message || 'Deletion failed'), false);
+                }
+            } catch (err) {
+                showAdminAlert('❌ Network error: ' + err, false);
+            }
+        }
+        {% endif %}
+
         loadPlans();
     </script>    {% include "_pwa_sw_reg.html" %}
     <script nonce="{{ nonce }}">
@@ -131,6 +400,29 @@
         // attributes even though a nonce'd block itself can still run (2026-08-22 fix).
         document.getElementById('cspfix-1')?.addEventListener('click', function(event) { closeQrModal() });
         document.getElementById('cspfix-2')?.addEventListener('click', function(event) { confirmPayment() });
+        document.getElementById('btnCopyVpa')?.addEventListener('click', function(event) { copyVpa() });
+        document.getElementById('btnMobileUpi')?.addEventListener('click', function() {
+            const uri = this.dataset.upiUri;
+            if (uri) {
+                window.location.href = uri;
+            }
+        });
+
+        {% if is_super_admin or (user and user.role == 'super_admin') %}
+        document.getElementById('btnOpenSuperAdminModal')?.addEventListener('click', function() {
+            document.getElementById('superAdminModal').style.display = 'flex';
+            loadAdminUpiDetails();
+        });
+        document.getElementById('closeAdminModalBtn')?.addEventListener('click', function() {
+            document.getElementById('superAdminModal').style.display = 'none';
+        });
+        document.getElementById('btnSaveUpiConfig')?.addEventListener('click', saveUpiConfig);
+        document.getElementById('btnUploadScanner')?.addEventListener('click', uploadScannerImage);
+        document.getElementById('btnDeleteScanner')?.addEventListener('click', deleteScannerImage);
+        document.getElementById('adminQrFileInput')?.addEventListener('change', function(e) {
+            document.getElementById('btnUploadScanner').disabled = !(e.target.files && e.target.files.length > 0);
+        });
+        {% endif %}
     </script>
 </body>
 </html>

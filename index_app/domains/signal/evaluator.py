@@ -90,10 +90,24 @@ class SignalEvaluator:
         if allow_zero_volume is None:
             allow_zero_volume = name.upper() in _INDEX_SYMBOLS
 
+        import numpy as _np
+        import pandas as _pd
+
         for _tf_name in ("df1m", "df5m", "df15m"):
             _tf_frame = frames.get(_tf_name)
             if _tf_frame is None:
                 return None, f"{_tf_name}_missing"
+
+            # Strict upfront boundary check: reject negative volume, NaN values, or +/- inf in OHLCV
+            for _col in ("Open", "High", "Low", "Close", "Volume"):
+                if _col in _tf_frame.columns:
+                    _vals = _pd.to_numeric(_tf_frame[_col], errors="coerce")
+                    if _vals.isna().any() or _np.isinf(_vals).any():
+                        return None, f"{_tf_name}_invalid_ohlcv"
+            if "Volume" in _tf_frame.columns:
+                _vol = _pd.to_numeric(_tf_frame["Volume"], errors="coerce")
+                if (_vol < 0).any():
+                    return None, f"{_tf_name}_invalid_ohlcv"
 
             _clean_frame, _dropped_rows = validate_ohlcv(
                 _tf_frame,

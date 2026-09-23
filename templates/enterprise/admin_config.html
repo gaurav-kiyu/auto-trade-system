@@ -299,6 +299,7 @@
 <div class="tab" data-tab="signals"><i class="fas fa-wave-square"></i> Signals &amp; Quant</div>
 <div class="tab" data-tab="ml"><i class="fas fa-brain"></i> Machine Learning</div>
 <div class="tab" data-tab="notifications"><i class="fas fa-bell"></i> Notifications (TG &amp; Email)</div>
+<div class="tab" data-tab="billing"><i class="fas fa-qrcode"></i> UPI &amp; Billing</div>
 <div class="tab" data-tab="system"><i class="fas fa-server"></i> System Core</div>
 </div>
 <div class="preview-box" id="previewBox"></div>
@@ -392,6 +393,81 @@
       </div>
       <div class="config-desc-box"><i class="fas fa-route"></i>
         This is the URL currently used by externally visible action links, notification links, email/Telegram links and SSO callbacks.
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="section" id="section-billing">
+<div class="card" style="padding:1.25rem;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
+    <div>
+      <div style="font-weight:700;font-size:1.05rem;color:var(--text-primary);"><i class="fas fa-qrcode" style="color:var(--accent-color);margin-right:0.4rem;"></i> Super Admin UPI Payment Gateway &amp; Custom Scanner</div>
+      <div style="color:var(--text-muted,#94a3b8);font-size:.78rem;margin-top:.2rem;">
+        Configure merchant UPI VPA, official payee title, and upload branded QR scanner images for instant subscriber activation.
+      </div>
+    </div>
+    <span class="config-type-badge" style="background:rgba(56,189,248,0.15);color:var(--accent-color);">super_admin required</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-top:1rem;">
+    <!-- Column 1: Config Fields -->
+    <div>
+      <div class="config-item" style="margin-bottom:1rem;">
+        <div class="config-header">
+          <span class="config-key">Merchant UPI ID (VPA)</span>
+          <span class="config-type-badge">LIVE GATEWAY</span>
+        </div>
+        <div class="config-value">
+          <input id="adminUpiVpaField" class="billing-input form-control" type="text" placeholder="e.g. merchant@okaxis" style="font-family:var(--font-mono, monospace);width:100%;padding:0.5rem;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:0.4rem;">
+        </div>
+        <div class="config-desc-box"><i class="fas fa-info-circle"></i>
+          Primary UPI Virtual Private Address (VPA) used for all incoming subscription payments.
+        </div>
+      </div>
+
+      <div class="config-item" style="margin-bottom:1rem;">
+        <div class="config-header">
+          <span class="config-key">Merchant Payee Name</span>
+          <span class="config-type-badge">OFFICIAL TITLE</span>
+        </div>
+        <div class="config-value">
+          <input id="adminPayeeNameField" class="billing-input form-control" type="text" placeholder="e.g. OPB Trading Technologies" style="width:100%;padding:0.5rem;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:0.4rem;">
+        </div>
+        <div class="config-desc-box"><i class="fas fa-id-card"></i>
+          Configured merchant name displayed on subscriber payment screens and banking UPI intent receipts.
+        </div>
+      </div>
+
+      <div style="margin-top:1.25rem;">
+        <button id="saveUpiConfigBtn" class="btn btn-primary" type="button" style="width:100%;">
+          <i class="fas fa-save"></i> Save UPI Merchant Details
+        </button>
+      </div>
+    </div>
+
+    <!-- Column 2: Scanner Upload & Preview -->
+    <div style="background:var(--bg-secondary,#0f1319);border:1px solid var(--border-color,#1e293b);border-radius:0.75rem;padding:1.25rem;text-align:center;">
+      <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.25rem;color:var(--text-primary);">Active Scanner Preview</div>
+      <div id="adminConfigQrStatusText" style="font-size:0.75rem;color:var(--text-muted,#94a3b8);margin-bottom:0.75rem;">Loading status...</div>
+
+      <div style="background:#ffffff;padding:0.75rem;border-radius:0.5rem;display:inline-block;margin-bottom:1rem;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+        <img id="adminConfigQrPreviewImg" src="" alt="Active UPI Scanner" style="width:170px;height:170px;display:block;object-fit:contain;">
+      </div>
+
+      <div style="text-align:left;margin-top:0.5rem;">
+        <label for="adminConfigQrFile" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-primary);margin-bottom:0.3rem;">Upload Custom Scanner Image:</label>
+        <div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);margin-bottom:0.5rem;">PNG, JPEG, WebP, or SVG (Max 2 MB). Magic bytes verified.</div>
+        <input id="adminConfigQrFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="width:100%;font-size:0.75rem;color:var(--text-muted,#94a3b8);margin-bottom:0.75rem;">
+
+        <div style="display:flex;gap:0.5rem;">
+          <button id="adminConfigUploadQrBtn" class="btn btn-primary" type="button" style="flex:1;background:var(--success-color,#16a34a);border-color:transparent;" disabled>
+            <i class="fas fa-upload"></i> Upload Scanner
+          </button>
+          <button id="adminConfigDeleteQrBtn" class="btn btn-ghost" type="button" style="flex:1;border-color:var(--danger-color,#ef4444);color:var(--danger-color,#ef4444);">
+            <i class="fas fa-trash-alt"></i> Revert to Dynamic QR
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -837,6 +913,109 @@ async function triggerTestEmail() {
 }
 
 document.getElementById('testEmailBtn')?.addEventListener('click', triggerTestEmail);
+
+// ── Super Admin UPI Gateway & Scanner Handlers ────────────────────────
+async function loadAdminBillingConfig() {
+    try {
+        const res = await fetch('/api/admin/billing/upi-config', {credentials: 'include'});
+        if (!res.ok) return;
+        const data = await res.json();
+        const vpaField = document.getElementById('adminUpiVpaField');
+        const payeeField = document.getElementById('adminPayeeNameField');
+        const statusText = document.getElementById('adminConfigQrStatusText');
+        const previewImg = document.getElementById('adminConfigQrPreviewImg');
+
+        if (vpaField) vpaField.value = data.upi_vpa || '';
+        if (payeeField) payeeField.value = data.payee_name || '';
+
+        if (data.has_custom_qr) {
+            if (statusText) statusText.innerHTML = '<span style="color:var(--success-color,#16a34a);font-weight:700;"><i class="fas fa-check-circle"></i> Custom Scanner Active</span> (' + (data.custom_qr_filename || 'scanner') + ')';
+            if (previewImg) previewImg.src = '/api/billing/upi-qr-image?t=' + Date.now();
+        } else {
+            if (statusText) statusText.innerHTML = '<span style="color:var(--accent-color,#38bdf8);font-weight:700;"><i class="fas fa-info-circle"></i> Dynamic NPCI QR Fallback</span>';
+            if (previewImg) previewImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=' + encodeURIComponent('upi://pay?pa=' + (data.upi_vpa || '') + '&pn=' + (data.payee_name || '') + '&cu=INR');
+        }
+    } catch (err) {
+        console.error('Failed to load billing config:', err);
+    }
+}
+
+async function saveAdminBillingConfig() {
+    const upi_vpa = (document.getElementById('adminUpiVpaField')?.value || '').trim();
+    const payee_name = (document.getElementById('adminPayeeNameField')?.value || '').trim();
+    try {
+        const res = await fetch('/api/admin/billing/upi-config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'include',
+            body: JSON.stringify({ upi_vpa, payee_name })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            await loadAdminBillingConfig();
+        } else {
+            showToast('❌ ' + (data.message || 'Update failed'), 'error');
+        }
+    } catch (err) {
+        showToast('❌ Network error: ' + err, 'error');
+    }
+}
+
+async function uploadAdminBillingQr() {
+    const fileInput = document.getElementById('adminConfigQrFile');
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('scanner_file', file);
+
+    try {
+        const res = await fetch('/api/admin/billing/upload-qr', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            fileInput.value = '';
+            document.getElementById('adminConfigUploadQrBtn').disabled = true;
+            await loadAdminBillingConfig();
+        } else {
+            showToast('❌ ' + (data.message || 'Upload failed'), 'error');
+        }
+    } catch (err) {
+        showToast('❌ Network error during upload: ' + err, 'error');
+    }
+}
+
+async function deleteAdminBillingQr() {
+    if (!confirm('Revert back to dynamic NPCI QR codes? The custom uploaded scanner image will be deleted.')) return;
+    try {
+        const res = await fetch('/api/admin/billing/delete-qr', {
+            method: 'POST',
+            credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('✅ ' + data.message, 'success');
+            await loadAdminBillingConfig();
+        } else {
+            showToast('❌ ' + (data.message || 'Deletion failed'), 'error');
+        }
+    } catch (err) {
+        showToast('❌ Network error: ' + err, 'error');
+    }
+}
+
+document.getElementById('saveUpiConfigBtn')?.addEventListener('click', saveAdminBillingConfig);
+document.getElementById('adminConfigUploadQrBtn')?.addEventListener('click', uploadAdminBillingQr);
+document.getElementById('adminConfigDeleteQrBtn')?.addEventListener('click', deleteAdminBillingQr);
+document.getElementById('adminConfigQrFile')?.addEventListener('change', function(e) {
+    const btn = document.getElementById('adminConfigUploadQrBtn');
+    if (btn) btn.disabled = !(e.target.files && e.target.files.length > 0);
+});
+document.querySelector('.tab[data-tab="billing"]')?.addEventListener('click', loadAdminBillingConfig);
 
 </script>    {% include "_pwa_sw_reg.html" %}
 

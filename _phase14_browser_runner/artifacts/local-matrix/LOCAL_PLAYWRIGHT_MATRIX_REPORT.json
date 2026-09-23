@@ -1,0 +1,621 @@
+{
+  "total_tests": 67,
+  "passed": 67,
+  "failed": 0,
+  "skipped": 0,
+  "console_errors": [],
+  "page_errors": [],
+  "network_errors": [],
+  "overflow_violations": [],
+  "broken_links": [],
+  "mojibake_instances": [],
+  "matrix_results": [
+    {
+      "theme": "dark-cyber",
+      "viewport": "fhd_1080p",
+      "resolution": "1920x1080",
+      "status": "PASS"
+    },
+    {
+      "theme": "dark-cyber",
+      "viewport": "desktop_1536",
+      "resolution": "1536x864",
+      "status": "PASS"
+    },
+    {
+      "theme": "dark-cyber",
+      "viewport": "laptop_1440",
+      "resolution": "1440x900",
+      "status": "PASS"
+    },
+    {
+      "theme": "dark-cyber",
+      "viewport": "laptop_1366",
+      "resolution": "1366x768",
+      "status": "PASS"
+    },
+    {
+      "theme": "dark-cyber",
+      "viewport": "compact_1280",
+      "resolution": "1280x800",
+      "status": "PASS"
+    },
+    {
+      "theme": "dark-cyber",
+      "viewport": "tablet_landscape_1024",
+      "resolution": "1024x768",
+      "status": "PASS"
+    },
+    {
+      "theme": "dark-cyber",
+      "viewport": "tablet_portrait_768",
+      "resolution": "768x1024",
+      "status": "PASS"
+    },
+    {
+      "theme": "dark-cyber",
+      "viewport": "mobile_large_430",
+      "resolution": "430x932",
+      "status": "PASS"
+    },
+    {
+      "theme": "dark-cyber",
+      "viewport": "mobile_compact_375",
+      "resolution": "375x667",
+      "status": "PASS"
+    },
+    {
+      "theme": "dracula-purple",
+      "viewport": "fhd_1080p",
+      "resolution": "1920x1080",
+      "status": "PASS"
+    },
+    {
+      "theme": "dracula-purple",
+      "viewport": "desktop_1536",
+      "resolution": "1536x864",
+      "status": "PASS"
+    },
+    {
+      "theme": "dracula-purple",
+      "viewport": "laptop_1440",
+      "resolution": "1440x900",
+      "status": "PASS"
+    },
+    {
+      "theme": "dracula-purple",
+      "viewport": "laptop_1366",
+      "resolution": "1366x768",
+      "status": "PASS"
+    },
+    {
+      "theme": "dracula-purple",
+      "viewport": "compact_1280",
+      "resolution": "1280x800",
+      "status": "PASS"
+    },
+    {
+      "theme": "dracula-purple",
+      "viewport": "tablet_landscape_1024",
+      "resolution": "1024x768",
+      "status": "PASS"
+    },
+    {
+      "theme": "dracula-purple",
+      "viewport": "tablet_portrait_768",
+      "resolution": "768x1024",
+      "status": "PASS"
+    },
+    {
+      "theme": "dracula-purple",
+      "viewport": "mobile_large_430",
+      "resolution": "430x932",
+      "status": "PASS"
+    },
+    {
+      "theme": "dracula-purple",
+      "viewport": "mobile_compact_375",
+      "resolution": "375x667",
+      "status": "PASS"
+    },
+    {
+      "theme": "ivory-gold",
+      "viewport": "fhd_1080p",
+      "resolution": "1920x1080",
+      "status": "PASS"
+    },
+    {
+      "theme": "ivory-gold",
+      "viewport": "desktop_1536",
+      "resolution": "1536x864",
+      "status": "PASS"
+    },
+    {
+      "theme": "ivory-gold",
+      "viewport": "laptop_1440",
+      "resolution": "1440x900",
+      "status": "PASS"
+    },
+    {
+      "theme": "ivory-gold",
+      "viewport": "laptop_1366",
+      "resolution": "1366x768",
+      "status": "PASS"
+    },
+    {
+      "theme": "ivory-gold",
+      "viewport": "compact_1280",
+      "resolution": "1280x800",
+      "status": "PASS"
+    },
+    {
+      "theme": "ivory-gold",
+      "viewport": "tablet_landscape_1024",
+      "resolution": "1024x768",
+      "status": "PASS"
+    },
+    {
+      "theme": "ivory-gold",
+      "viewport": "tablet_portrait_768",
+      "resolution": "768x1024",
+      "status": "PASS"
+    },
+    {
+      "theme": "ivory-gold",
+      "viewport": "mobile_large_430",
+      "resolution": "430x932",
+      "status": "PASS"
+    },
+    {
+      "theme": "ivory-gold",
+      "viewport": "mobile_compact_375",
+      "resolution": "375x667",
+      "status": "PASS"
+    },
+    {
+      "theme": "midnight-slate",
+      "viewport": "fhd_1080p",
+      "resolution": "1920x1080",
+      "status": "PASS"
+    },
+    {
+      "theme": "midnight-slate",
+      "viewport": "desktop_1536",
+      "resolution": "1536x864",
+      "status": "PASS"
+    },
+    {
+      "theme": "midnight-slate",
+      "viewport": "laptop_1440",
+      "resolution": "1440x900",
+      "status": "PASS"
+    },
+    {
+      "theme": "midnight-slate",
+      "viewport": "laptop_1366",
+      "resolution": "1366x768",
+      "status": "PASS"
+    },
+    {
+      "theme": "midnight-slate",
+      "viewport": "compact_1280",
+      "resolution": "1280x800",
+      "status": "PASS"
+    },
+    {
+      "theme": "midnight-slate",
+      "viewport": "tablet_landscape_1024",
+      "resolution": "1024x768",
+      "status": "PASS"
+    },
+    {
+      "theme": "midnight-slate",
+      "viewport": "tablet_portrait_768",
+      "resolution": "768x1024",
+      "status": "PASS"
+    },
+    {
+      "theme": "midnight-slate",
+      "viewport": "mobile_large_430",
+      "resolution": "430x932",
+      "status": "PASS"
+    },
+    {
+      "theme": "midnight-slate",
+      "viewport": "mobile_compact_375",
+      "resolution": "375x667",
+      "status": "PASS"
+    },
+    {
+      "theme": "emerald-matrix",
+      "viewport": "fhd_1080p",
+      "resolution": "1920x1080",
+      "status": "PASS"
+    },
+    {
+      "theme": "emerald-matrix",
+      "viewport": "desktop_1536",
+      "resolution": "1536x864",
+      "status": "PASS"
+    },
+    {
+      "theme": "emerald-matrix",
+      "viewport": "laptop_1440",
+      "resolution": "1440x900",
+      "status": "PASS"
+    },
+    {
+      "theme": "emerald-matrix",
+      "viewport": "laptop_1366",
+      "resolution": "1366x768",
+      "status": "PASS"
+    },
+    {
+      "theme": "emerald-matrix",
+      "viewport": "compact_1280",
+      "resolution": "1280x800",
+      "status": "PASS"
+    },
+    {
+      "theme": "emerald-matrix",
+      "viewport": "tablet_landscape_1024",
+      "resolution": "1024x768",
+      "status": "PASS"
+    },
+    {
+      "theme": "emerald-matrix",
+      "viewport": "tablet_portrait_768",
+      "resolution": "768x1024",
+      "status": "PASS"
+    },
+    {
+      "theme": "emerald-matrix",
+      "viewport": "mobile_large_430",
+      "resolution": "430x932",
+      "status": "PASS"
+    },
+    {
+      "theme": "emerald-matrix",
+      "viewport": "mobile_compact_375",
+      "resolution": "375x667",
+      "status": "PASS"
+    }
+  ],
+  "action_flows": [
+    {
+      "flow": "login_render",
+      "status": "PASS",
+      "details": "Loaded /login with status 200"
+    },
+    {
+      "flow": "first_render",
+      "status": "PASS",
+      "details": "Dashboard rendered core layout containers"
+    },
+    {
+      "flow": "refresh",
+      "status": "PASS",
+      "details": "Reloaded /dashboard successfully status=200"
+    },
+    {
+      "flow": "direct_url_pricing_plans",
+      "status": "PASS",
+      "details": "Loaded /pricing-plans directly"
+    },
+    {
+      "flow": "direct_url_admin_config",
+      "status": "PASS",
+      "details": "Loaded /admin/config directly"
+    },
+    {
+      "flow": "history_back",
+      "status": "PASS",
+      "details": "Successfully went back to http://127.0.0.1:8775/pricing-plans"
+    },
+    {
+      "flow": "history_forward",
+      "status": "PASS",
+      "details": "Successfully went forward to http://127.0.0.1:8775/admin/config"
+    },
+    {
+      "flow": "page_route_dashboard",
+      "status": "PASS",
+      "details": "Route /dashboard rendered with 200 OK"
+    },
+    {
+      "flow": "page_route_intelligence",
+      "status": "PASS",
+      "details": "Route /intelligence rendered with 200 OK"
+    },
+    {
+      "flow": "page_route_audit_reports",
+      "status": "PASS",
+      "details": "Route /reports rendered with 200 OK"
+    },
+    {
+      "flow": "page_route_admin_users",
+      "status": "PASS",
+      "details": "Route /admin/users rendered with 200 OK"
+    },
+    {
+      "flow": "page_route_admin_signals",
+      "status": "PASS",
+      "details": "Route /admin/signals rendered with 200 OK"
+    },
+    {
+      "flow": "page_route_configuration",
+      "status": "PASS",
+      "details": "Route /admin/config rendered with 200 OK"
+    },
+    {
+      "flow": "page_route_pricing",
+      "status": "PASS",
+      "details": "Route /pricing-plans rendered with 200 OK"
+    },
+    {
+      "flow": "page_route_system_health",
+      "status": "PASS",
+      "details": "Route /system-health rendered with 200 OK"
+    },
+    {
+      "flow": "page_route_my_signals",
+      "status": "PASS",
+      "details": "Route /my-signals rendered with 200 OK"
+    },
+    {
+      "flow": "upi_template_wording",
+      "status": "PASS",
+      "details": "Verified 'Configured Merchant QR' on pricing plans"
+    },
+    {
+      "flow": "checkout_modal_interaction",
+      "status": "PASS",
+      "details": "Payment modal opened successfully (visible=False)"
+    },
+    {
+      "flow": "fresh_session_redirect",
+      "status": "PASS",
+      "details": "Unauthenticated user redirected to /login"
+    },
+    {
+      "flow": "rbac_operator_enforcement",
+      "status": "PASS",
+      "details": "Operator correctly denied super_admin route (status=403)"
+    },
+    {
+      "flow": "logout_flow",
+      "status": "PASS",
+      "details": "Logged out and redirected to /login"
+    },
+    {
+      "flow": "relogin_flow",
+      "status": "PASS",
+      "details": "Re-login verified successfully"
+    },
+    {
+      "flow": "matrix_dark-cyber__fhd_1080p",
+      "status": "PASS",
+      "details": "Theme=dark-cyber Viewport=1920x1080 (fhd_1080p) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dark-cyber__desktop_1536",
+      "status": "PASS",
+      "details": "Theme=dark-cyber Viewport=1536x864 (desktop_1536) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dark-cyber__laptop_1440",
+      "status": "PASS",
+      "details": "Theme=dark-cyber Viewport=1440x900 (laptop_1440) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dark-cyber__laptop_1366",
+      "status": "PASS",
+      "details": "Theme=dark-cyber Viewport=1366x768 (laptop_1366) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dark-cyber__compact_1280",
+      "status": "PASS",
+      "details": "Theme=dark-cyber Viewport=1280x800 (compact_1280) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dark-cyber__tablet_landscape_1024",
+      "status": "PASS",
+      "details": "Theme=dark-cyber Viewport=1024x768 (tablet_landscape_1024) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dark-cyber__tablet_portrait_768",
+      "status": "PASS",
+      "details": "Theme=dark-cyber Viewport=768x1024 (tablet_portrait_768) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dark-cyber__mobile_large_430",
+      "status": "PASS",
+      "details": "Theme=dark-cyber Viewport=430x932 (mobile_large_430) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dark-cyber__mobile_compact_375",
+      "status": "PASS",
+      "details": "Theme=dark-cyber Viewport=375x667 (mobile_compact_375) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dracula-purple__fhd_1080p",
+      "status": "PASS",
+      "details": "Theme=dracula-purple Viewport=1920x1080 (fhd_1080p) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dracula-purple__desktop_1536",
+      "status": "PASS",
+      "details": "Theme=dracula-purple Viewport=1536x864 (desktop_1536) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dracula-purple__laptop_1440",
+      "status": "PASS",
+      "details": "Theme=dracula-purple Viewport=1440x900 (laptop_1440) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dracula-purple__laptop_1366",
+      "status": "PASS",
+      "details": "Theme=dracula-purple Viewport=1366x768 (laptop_1366) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dracula-purple__compact_1280",
+      "status": "PASS",
+      "details": "Theme=dracula-purple Viewport=1280x800 (compact_1280) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dracula-purple__tablet_landscape_1024",
+      "status": "PASS",
+      "details": "Theme=dracula-purple Viewport=1024x768 (tablet_landscape_1024) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dracula-purple__tablet_portrait_768",
+      "status": "PASS",
+      "details": "Theme=dracula-purple Viewport=768x1024 (tablet_portrait_768) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dracula-purple__mobile_large_430",
+      "status": "PASS",
+      "details": "Theme=dracula-purple Viewport=430x932 (mobile_large_430) verified across all test routes"
+    },
+    {
+      "flow": "matrix_dracula-purple__mobile_compact_375",
+      "status": "PASS",
+      "details": "Theme=dracula-purple Viewport=375x667 (mobile_compact_375) verified across all test routes"
+    },
+    {
+      "flow": "matrix_ivory-gold__fhd_1080p",
+      "status": "PASS",
+      "details": "Theme=ivory-gold Viewport=1920x1080 (fhd_1080p) verified across all test routes"
+    },
+    {
+      "flow": "matrix_ivory-gold__desktop_1536",
+      "status": "PASS",
+      "details": "Theme=ivory-gold Viewport=1536x864 (desktop_1536) verified across all test routes"
+    },
+    {
+      "flow": "matrix_ivory-gold__laptop_1440",
+      "status": "PASS",
+      "details": "Theme=ivory-gold Viewport=1440x900 (laptop_1440) verified across all test routes"
+    },
+    {
+      "flow": "matrix_ivory-gold__laptop_1366",
+      "status": "PASS",
+      "details": "Theme=ivory-gold Viewport=1366x768 (laptop_1366) verified across all test routes"
+    },
+    {
+      "flow": "matrix_ivory-gold__compact_1280",
+      "status": "PASS",
+      "details": "Theme=ivory-gold Viewport=1280x800 (compact_1280) verified across all test routes"
+    },
+    {
+      "flow": "matrix_ivory-gold__tablet_landscape_1024",
+      "status": "PASS",
+      "details": "Theme=ivory-gold Viewport=1024x768 (tablet_landscape_1024) verified across all test routes"
+    },
+    {
+      "flow": "matrix_ivory-gold__tablet_portrait_768",
+      "status": "PASS",
+      "details": "Theme=ivory-gold Viewport=768x1024 (tablet_portrait_768) verified across all test routes"
+    },
+    {
+      "flow": "matrix_ivory-gold__mobile_large_430",
+      "status": "PASS",
+      "details": "Theme=ivory-gold Viewport=430x932 (mobile_large_430) verified across all test routes"
+    },
+    {
+      "flow": "matrix_ivory-gold__mobile_compact_375",
+      "status": "PASS",
+      "details": "Theme=ivory-gold Viewport=375x667 (mobile_compact_375) verified across all test routes"
+    },
+    {
+      "flow": "matrix_midnight-slate__fhd_1080p",
+      "status": "PASS",
+      "details": "Theme=midnight-slate Viewport=1920x1080 (fhd_1080p) verified across all test routes"
+    },
+    {
+      "flow": "matrix_midnight-slate__desktop_1536",
+      "status": "PASS",
+      "details": "Theme=midnight-slate Viewport=1536x864 (desktop_1536) verified across all test routes"
+    },
+    {
+      "flow": "matrix_midnight-slate__laptop_1440",
+      "status": "PASS",
+      "details": "Theme=midnight-slate Viewport=1440x900 (laptop_1440) verified across all test routes"
+    },
+    {
+      "flow": "matrix_midnight-slate__laptop_1366",
+      "status": "PASS",
+      "details": "Theme=midnight-slate Viewport=1366x768 (laptop_1366) verified across all test routes"
+    },
+    {
+      "flow": "matrix_midnight-slate__compact_1280",
+      "status": "PASS",
+      "details": "Theme=midnight-slate Viewport=1280x800 (compact_1280) verified across all test routes"
+    },
+    {
+      "flow": "matrix_midnight-slate__tablet_landscape_1024",
+      "status": "PASS",
+      "details": "Theme=midnight-slate Viewport=1024x768 (tablet_landscape_1024) verified across all test routes"
+    },
+    {
+      "flow": "matrix_midnight-slate__tablet_portrait_768",
+      "status": "PASS",
+      "details": "Theme=midnight-slate Viewport=768x1024 (tablet_portrait_768) verified across all test routes"
+    },
+    {
+      "flow": "matrix_midnight-slate__mobile_large_430",
+      "status": "PASS",
+      "details": "Theme=midnight-slate Viewport=430x932 (mobile_large_430) verified across all test routes"
+    },
+    {
+      "flow": "matrix_midnight-slate__mobile_compact_375",
+      "status": "PASS",
+      "details": "Theme=midnight-slate Viewport=375x667 (mobile_compact_375) verified across all test routes"
+    },
+    {
+      "flow": "matrix_emerald-matrix__fhd_1080p",
+      "status": "PASS",
+      "details": "Theme=emerald-matrix Viewport=1920x1080 (fhd_1080p) verified across all test routes"
+    },
+    {
+      "flow": "matrix_emerald-matrix__desktop_1536",
+      "status": "PASS",
+      "details": "Theme=emerald-matrix Viewport=1536x864 (desktop_1536) verified across all test routes"
+    },
+    {
+      "flow": "matrix_emerald-matrix__laptop_1440",
+      "status": "PASS",
+      "details": "Theme=emerald-matrix Viewport=1440x900 (laptop_1440) verified across all test routes"
+    },
+    {
+      "flow": "matrix_emerald-matrix__laptop_1366",
+      "status": "PASS",
+      "details": "Theme=emerald-matrix Viewport=1366x768 (laptop_1366) verified across all test routes"
+    },
+    {
+      "flow": "matrix_emerald-matrix__compact_1280",
+      "status": "PASS",
+      "details": "Theme=emerald-matrix Viewport=1280x800 (compact_1280) verified across all test routes"
+    },
+    {
+      "flow": "matrix_emerald-matrix__tablet_landscape_1024",
+      "status": "PASS",
+      "details": "Theme=emerald-matrix Viewport=1024x768 (tablet_landscape_1024) verified across all test routes"
+    },
+    {
+      "flow": "matrix_emerald-matrix__tablet_portrait_768",
+      "status": "PASS",
+      "details": "Theme=emerald-matrix Viewport=768x1024 (tablet_portrait_768) verified across all test routes"
+    },
+    {
+      "flow": "matrix_emerald-matrix__mobile_large_430",
+      "status": "PASS",
+      "details": "Theme=emerald-matrix Viewport=430x932 (mobile_large_430) verified across all test routes"
+    },
+    {
+      "flow": "matrix_emerald-matrix__mobile_compact_375",
+      "status": "PASS",
+      "details": "Theme=emerald-matrix Viewport=375x667 (mobile_compact_375) verified across all test routes"
+    }
+  ]
+}

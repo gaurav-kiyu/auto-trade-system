@@ -83,6 +83,14 @@ def test_config_api_routes_reject_string_payload():
                 return {"username": "super_admin"}
             return _dep
 
+        def require_role(self, *roles: str):
+            async def _dep():
+                class MockUser:
+                    username = "super_admin"
+                    role = "super_admin"
+                return MockUser()
+            return _dep
+
     class MockDash:
         _auth_deps = MockAuthDeps()
         _cfg = {"EXECUTION_MODE": "PAPER"}

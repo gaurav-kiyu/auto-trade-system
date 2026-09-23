@@ -14,7 +14,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import shutil
 import threading
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -23,7 +25,59 @@ from core.datetime_ist import now_ist
 
 _log = logging.getLogger("USER_PERMISSIONS")
 _ROOT = Path(__file__).resolve().parent.parent.parent
-_PERMISSIONS_STORE_PATH = _ROOT / "json" / "user_signal_permissions.json"
+
+
+def _resolve_permissions_store_path() -> Path:
+    """Resolve the authoritative persistent location for user permissions.
+
+    Priority:
+    1. OPBUYING_USER_PERMISSIONS_PATH environment variable override.
+    2. Persistent container volume (/data/db) when directory exists and is writable.
+    3. Project json directory fallback.
+    """
+    env_override = os.getenv("OPBUYING_USER_PERMISSIONS_PATH")
+    if env_override:
+        return Path(env_override)
+
+    prod_dir = Path("/data/db")
+    if prod_dir.is_dir() and os.access(prod_dir, os.W_OK):
+        return prod_dir / "user_signal_permissions.json"
+
+    return _ROOT / "json" / "user_signal_permissions.json"
+
+
+_PERMISSIONS_STORE_PATH = _resolve_permissions_store_path()
+
+
+def validate_telegram_chat_id(chat_id: str | int | None) -> tuple[bool, str, str]:
+    """Validate Telegram Chat ID.
+
+    Returns: (is_valid, normalized_chat_id, error_message)
+    Accepts:
+      - Standard user chat IDs (e.g. "1148730533" or 1148730533)
+      - Supergroup/channel chat IDs with negative sign (e.g. "-100123456789" or -100123456789)
+      - Comma-separated chat IDs (e.g. "111,222" or "111, 222")
+      - Empty string / None (means disabled/cleared)
+    Strips whitespace.
+    Rejects non-numeric characters.
+    """
+    if chat_id is None:
+        return True, "", ""
+    s = str(chat_id).strip()
+    if not s:
+        return True, "", ""
+    parts = [p.strip() for p in s.split(",")]
+    if not any(parts):
+        return True, "", ""
+    norm_parts = []
+    for p in parts:
+        if not p:
+            continue
+        test_p = p[1:] if p.startswith("-") else p
+        if not test_p.isdigit() or len(test_p) == 0:
+            return False, "", f"Invalid Telegram Chat ID: '{s}'. Chat ID must contain only digits (optional leading '-' for channels/supergroups)."
+        norm_parts.append(p)
+    return True, ",".join(norm_parts), ""
 
 ALL_CATEGORIES: list[str] = [
     "INDEX_OPTIONS",
@@ -98,7 +152,8 @@ class UserPermissionManager:
     _lock = threading.Lock()
 
     def __init__(self, store_path: Path | None = None) -> None:
-        self._path = store_path or _PERMISSIONS_STORE_PATH
+        self._is_custom_path = store_path is not None
+        self._path = store_path or _resolve_permissions_store_path()
         self._permissions: dict[str, UserSignalPermission] = {}
         self._io_lock = threading.Lock()
         self._load()
@@ -108,32 +163,124 @@ class UserPermissionManager:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = UserPermissionManager(store_path=store_path)
+            elif store_path is not None and cls._instance._path.resolve() != store_path.resolve():
+                cls._instance = UserPermissionManager(store_path=store_path)
             return cls._instance
 
+    @classmethod
+    def reset_instance_for_testing(cls) -> None:
+        """Reset singleton instance (used exclusively in automated tests)."""
+        with cls._lock:
+            cls._instance = None
+
+    def _attempt_legacy_migration(self) -> None:
+        """Migrate existing legacy permissions store to authoritative location if needed."""
+        if getattr(self, "_is_custom_path", False):
+            return
+        legacy_paths = [
+            _ROOT / "json" / "user_signal_permissions.json",
+            Path("/app/json/user_signal_permissions.json"),
+        ]
+        for leg in legacy_paths:
+            try:
+                if leg.exists() and leg.stat().st_size > 0:
+                    if leg.resolve() != self._path.resolve():
+                        with open(leg, encoding="utf-8") as f:
+                            data = json.load(f)
+                        if isinstance(data, dict) and data:
+                            _log.info("[MIGRATION] Migrating %d permissions from legacy %s to authoritative %s", len(data), leg, self._path)
+                            self._path.parent.mkdir(parents=True, exist_ok=True)
+                            tmp_file = self._path.with_suffix(f".tmp.{os.getpid()}.{int(time.time() * 1000)}")
+                            with open(tmp_file, "w", encoding="utf-8") as f_out:
+                                json.dump(data, f_out, indent=4, sort_keys=True)
+                                f_out.flush()
+                                os.fsync(f_out.fileno())
+                            os.replace(tmp_file, self._path)
+                            return
+            except Exception as mex:
+                _log.warning("[MIGRATION] Legacy migration check failed for %s: %s", leg, mex)
+
     def _load(self) -> None:
-        """Load permissions from JSON store or seed defaults."""
+        """Load permissions from JSON store with strict corruption protection."""
         with self._io_lock:
-            if self._path.exists():
+            # Check for legacy migration if target store does not exist or is empty
+            if not self._path.exists() or self._path.stat().st_size == 0:
+                self._attempt_legacy_migration()
+
+            if self._path.exists() and self._path.stat().st_size > 0:
                 try:
                     with open(self._path, encoding="utf-8") as f:
                         data = json.load(f)
-                    for uname, udata in data.items():
-                        # Migrate missing fields gracefully
-                        valid_fields = UserSignalPermission.__dataclass_fields__.keys()
-                        filtered = {k: v for k, v in udata.items() if k in valid_fields}
-                        self._permissions[uname] = UserSignalPermission(**filtered)
-                    _log.info("Loaded %d user signal permissions from %s", len(self._permissions), self._path)
-                    return
+                    if isinstance(data, dict) and data:
+                        loaded: dict[str, UserSignalPermission] = {}
+                        for uname, udata in data.items():
+                            if isinstance(udata, dict):
+                                valid_fields = UserSignalPermission.__dataclass_fields__.keys()
+                                filtered = {k: v for k, v in udata.items() if k in valid_fields}
+                                loaded[uname] = UserSignalPermission(**filtered)
+                        if loaded:
+                            self._permissions = loaded
+                            _log.info("Loaded %d user signal permissions from %s", len(self._permissions), self._path)
+                            return
                 except Exception as ex:
-                    _log.warning("Failed to load permissions store: %s. Seeding defaults.", ex)
+                    _log.critical("CORRUPTION DETECTED in user permissions store %s: %s", self._path, ex, exc_info=True)
+                    try:
+                        corrupt_backup = self._path.with_suffix(f".corrupt.{int(time.time())}")
+                        shutil.copy2(self._path, corrupt_backup)
+                        _log.warning("Preserved corrupted permissions store to %s", corrupt_backup)
+                    except Exception as bex:
+                        _log.error("Failed to backup corrupted permissions file: %s", bex)
 
-            # Seed default admin user
-            self._seed_default_users()
+                    # INVARIANT: Startup or reload MUST NEVER overwrite valid in-memory state on error
+                    if self._permissions:
+                        _log.warning("Retaining %d active in-memory user permissions despite disk corruption.", len(self._permissions))
+                        return
+
+            # Seed defaults ONLY if permissions are completely empty
+            if not self._permissions:
+                self._seed_default_users()
 
     def _seed_default_users(self) -> None:
-        """Seed initial super admin & default users."""
-        # Notification destinations are runtime configuration. Never embed
-        # credentials or personal routing identifiers in source code.
+        """Seed initial super admin & default users.
+
+        CRITICAL INVARIANT: Never overwrite a valid existing admin value with blank/default.
+        """
+        if "admin" in self._permissions and self._permissions["admin"].telegram_chat_id:
+            _log.info("Admin already configured in memory; skipping seed.")
+            return
+
+        admin_chat = ""
+        admin_email = ""
+
+        # 1. Check SQLite auth.db metadata for existing admin settings
+        try:
+            auth_db_paths = [Path("/data/db/auth.db"), _ROOT / "db" / "auth.db"]
+            for adb in auth_db_paths:
+                if adb.exists():
+                    import sqlite3
+                    with sqlite3.connect(adb, timeout=3.0) as conn:
+                        row = conn.execute("SELECT metadata FROM users WHERE username = 'admin'").fetchone()
+                        if row and row[0]:
+                            meta = json.loads(row[0]) if isinstance(row[0], str) else (row[0] or {})
+                            admin_chat = str(meta.get("telegram_chat_id") or "").strip()
+                            admin_email = str(meta.get("email") or "").strip()
+                            if admin_chat:
+                                break
+        except Exception as adb_ex:
+            _log.debug("Could not inspect auth.db during seed: %s", adb_ex)
+
+        # 2. Check environment variables
+        if not admin_chat:
+            admin_chat = str(
+                os.getenv("OPBUYING_CHAT_ID")
+                or os.getenv("OPBUYING_TELEGRAM_CHAT_ID")
+                or ""
+            ).strip()
+
+        if not admin_email:
+            admin_email = str(os.getenv("OPBUYING_EMAIL_TO") or "").strip()
+
+        # 3. Check config.json fallback
         cfg: dict[str, Any] = {}
         try:
             cfg_path = _ROOT / "json" / "config.json"
@@ -141,13 +288,12 @@ class UserPermissionManager:
                 cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
         except Exception as exc:
             _log.warning("Failed to load admin notification defaults: %s", exc)
-        admin_email = str(os.getenv("OPBUYING_EMAIL_TO") or cfg.get("EMAIL_TO") or "").strip()
-        admin_chat = str(
-            os.getenv("OPBUYING_CHAT_ID")
-            or os.getenv("OPBUYING_TELEGRAM_CHAT_ID")
-            or cfg.get("CHAT_ID")
-            or ""
-        ).strip()
+
+        if not admin_chat:
+            admin_chat = str(cfg.get("CHAT_ID") or "").strip()
+        if not admin_email:
+            admin_email = str(cfg.get("EMAIL_TO") or "").strip()
+
         default_admin = UserSignalPermission(
             username="admin",
             display_name="Super Admin",
@@ -156,9 +302,9 @@ class UserPermissionManager:
             signals_enabled=True,
             allowed_categories=list(ALL_CATEGORIES),
             min_signal_tier="MODERATE_AND_STRONG",
-            telegram_enabled=True,
+            telegram_enabled=bool(admin_chat),
             telegram_chat_id=admin_chat,
-            email_enabled=True,
+            email_enabled=bool(admin_email),
             email=admin_email,
             max_signals_daily=0,  # Unlimited
             max_signals_weekly=0,
@@ -170,14 +316,18 @@ class UserPermissionManager:
         self._save_unlocked()
 
     def _save_unlocked(self) -> None:
-        """Write in-memory permissions to disk."""
+        """Write in-memory permissions to disk atomically."""
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             serializable = {uname: u.to_dict() for uname, u in self._permissions.items()}
-            with open(self._path, "w", encoding="utf-8") as f:
+            tmp_file = self._path.with_suffix(f".tmp.{os.getpid()}.{int(time.time() * 1000)}")
+            with open(tmp_file, "w", encoding="utf-8") as f:
                 json.dump(serializable, f, indent=4, sort_keys=True)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_file, self._path)
         except Exception as ex:
-            _log.error("Failed to persist user permissions: %s", ex)
+            _log.error("Failed to persist user permissions atomically to %s: %s", self._path, ex)
 
     def _check_and_reset_quotas(self, perm: UserSignalPermission) -> bool:
         """Check and reset daily, weekly, monthly counters if boundaries crossed."""
@@ -240,6 +390,14 @@ class UserPermissionManager:
     ) -> tuple[bool, str, dict[str, Any] | None]:
         """Update or register permissions for a user."""
         with self._io_lock:
+            # Validate Telegram Chat ID if provided
+            if "telegram_chat_id" in data:
+                val_ok, norm_id, err_msg = validate_telegram_chat_id(data["telegram_chat_id"])
+                if not val_ok:
+                    return False, err_msg, None
+                data = dict(data)
+                data["telegram_chat_id"] = norm_id
+
             existing = self._permissions.get(username)
             if existing is None:
                 # Create new entry

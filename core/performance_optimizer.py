@@ -24,11 +24,14 @@ Usage:
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
+import os
 import re
 import threading
 import time
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -39,7 +42,29 @@ _log = logging.getLogger(__name__)
 # ── Constants ──────────────────────────────────────────────────────────────
 
 ROOT = Path(__file__).resolve().parent.parent
-EXCLUDED_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv", "dist", "build", ".benchmarks"}
+EXCLUDED_DIRS = {
+    ".git",
+    "__pycache__",
+    "node_modules",
+    ".venv",
+    "venv",
+    "dist",
+    "build",
+    ".benchmarks",
+    "backups",
+    "data",
+    "db",
+    "logs",
+    "reports",
+    "archive",
+    "_phase14_browser_runner",
+    "pre_deploy_snapshots",
+    "scratch",
+    "tmp",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+}
 MAX_FILE_SIZE = 1024 * 50  # 50KB max for scanning
 
 # Performance anti-patterns to detect
@@ -193,6 +218,370 @@ class PerfReport:
         return "\n".join(lines)
 
 
+# ── Anti-Pattern Recommendations Map ───────────────────────────────────────
+
+_RECOMMENDATIONS_MAP: dict[str, str] = {
+    "Sync DB in async": "Use async database driver (asyncpg, aiosqlite) or wrap in run_in_executor",
+    "Sleep in loop": "Use asyncio.sleep() or batch delay — avoid blocking the event loop",
+    "Giant list comp": "Use generator expression instead of list comprehension for large datasets",
+    "Nested loop O(n²)": "Consider using dict/set lookups or itertools.product to reduce complexity",
+    "Missing set lookup": "Convert list to set for O(1) membership tests",
+    "subprocess in loop": "Move subprocess calls outside the loop or batch inputs",
+    "json.load in loop": "Load JSON once outside the loop when possible",
+    "No batch processing": "Use bulk operations instead of individual inserts/updates",
+    "requests in loop": "Use asyncio/aiohttp or batch requests outside the loop",
+    "list() constructor waste": "Use list literal [...] instead of list([...])",
+    "dict() constructor waste": "Use dict literal {...} instead of dict({...})",
+    "str concat in loop": "Use ''.join(list) for string concatenation in loops",
+    "Large file read all": "Use streaming/iterator to process files line by line",
+    "Unbatched insert": "Use executemany() or bulk_insert for batch database operations",
+    "Missing timeout": "Always set timeout parameter on network requests",
+    "Deep nested loop O(n³)": "Restructure algorithm — consider alternatives like early exit, caching, or divide-and-conquer",
+}
+
+
+RE_AWAIT = re.compile(r"await\s+.*\.(execute|fetch|fetchall|fetchone)")
+RE_SET_LOOKUP = re.compile(r"if\s+.*in\s+\[.*\]|if\s+.*in\s+list\(|in\s+self\.\w+list")
+
+
+class UnifiedVisitor(ast.NodeVisitor):
+    __slots__ = ("rel_path", "lines", "findings", "cache_ops", "loop_stack", "scope_stack")
+
+    def __init__(
+        self,
+        rel_path: str,
+        lines: list[str],
+        findings: list[PerfFinding],
+        cache_ops: list[CacheOpportunity],
+    ) -> None:
+        self.rel_path = rel_path
+        self.lines = lines
+        self.findings = findings
+        self.cache_ops = cache_ops
+        self.loop_stack: list[int] = []
+        self.scope_stack: list[dict[str, list[tuple[str, int, str]]]] = [
+            {"api": [], "queries": [], "len": []}
+        ]
+
+    def _enter_scope(self) -> None:
+        self.scope_stack.append({"api": [], "queries": [], "len": []})
+
+    def _exit_scope(self) -> None:
+        scope = self.scope_stack.pop()
+        # Repeated API calls
+        seen_api: set[str] = set()
+        for url, l_num, snip in scope["api"]:
+            if url in seen_api:
+                self.cache_ops.append(CacheOpportunity(
+                    file_path=self.rel_path,
+                    line_number=l_num,
+                    pattern_name="Repeated API call",
+                    severity="MEDIUM",
+                    snippet=snip,
+                ))
+            seen_api.add(url)
+
+        # Identical queries
+        seen_q: set[str] = set()
+        for q, l_num, snip in scope["queries"]:
+            if q in seen_q:
+                self.cache_ops.append(CacheOpportunity(
+                    file_path=self.rel_path,
+                    line_number=l_num,
+                    pattern_name="Identical query",
+                    severity="MEDIUM",
+                    snippet=snip,
+                ))
+            seen_q.add(q)
+
+        # Recomputed len()
+        seen_len: set[str] = set()
+        for arg, l_num, snip in scope["len"]:
+            if arg in seen_len:
+                self.cache_ops.append(CacheOpportunity(
+                    file_path=self.rel_path,
+                    line_number=l_num,
+                    pattern_name="Recomputed value",
+                    severity="LOW",
+                    snippet=snip,
+                ))
+            seen_len.add(arg)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._enter_scope()
+        self.generic_visit(node)
+        self._exit_scope()
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._enter_scope()
+        self.generic_visit(node)
+        self._exit_scope()
+
+    def visit_For(self, node: ast.For) -> None:
+        self._check_loop(node)
+        self.generic_visit(node)
+        self.loop_stack.pop()
+
+    def visit_While(self, node: ast.While) -> None:
+        self._check_loop(node)
+        self.generic_visit(node)
+        self.loop_stack.pop()
+
+    def _check_loop(self, node: ast.AST) -> None:
+        loop_line = getattr(node, "lineno", 1)
+        self.loop_stack.append(loop_line)
+        depth = len(self.loop_stack)
+        snip = self.lines[loop_line - 1].strip() if loop_line <= len(self.lines) else ""
+        if depth == 2:
+            self.findings.append(PerfFinding(
+                file_path=self.rel_path,
+                line_number=loop_line,
+                pattern_name="Nested loop O(n²)",
+                severity="MEDIUM",
+                weight=6,
+                snippet=snip,
+                recommendation=_RECOMMENDATIONS_MAP.get("Nested loop O(n²)", ""),
+            ))
+        elif depth >= 3:
+            self.findings.append(PerfFinding(
+                file_path=self.rel_path,
+                line_number=loop_line,
+                pattern_name="Deep nested loop O(n³)",
+                severity="HIGH",
+                weight=8,
+                snippet=snip,
+                recommendation=_RECOMMENDATIONS_MAP.get("Deep nested loop O(n³)", ""),
+            ))
+
+    def visit_ListComp(self, node: ast.ListComp) -> None:
+        if len(node.generators) > 1:
+            lineno = getattr(node, "lineno", 1)
+            snip = self.lines[lineno - 1].strip() if lineno <= len(self.lines) else ""
+            self.findings.append(PerfFinding(
+                file_path=self.rel_path,
+                line_number=lineno,
+                pattern_name="Giant list comp",
+                severity="MEDIUM",
+                weight=5,
+                snippet=snip,
+                recommendation=_RECOMMENDATIONS_MAP.get("Giant list comp", ""),
+            ))
+        self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        lineno = getattr(node, "lineno", 1)
+        snip = self.lines[lineno - 1].strip() if lineno <= len(self.lines) else ""
+        func = node.func
+        cur_scope = self.scope_stack[-1]
+
+        if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and func.value.id == "requests":
+            if func.attr in ("get", "post", "put"):
+                if node.args and isinstance(node.args[0], ast.Constant):
+                    cur_scope["api"].append((str(node.args[0].value), lineno, snip))
+                if not any(kw.arg == "timeout" for kw in node.keywords):
+                    self.findings.append(PerfFinding(
+                        file_path=self.rel_path,
+                        line_number=lineno,
+                        pattern_name="Missing timeout",
+                        severity="MEDIUM",
+                        weight=4,
+                        snippet=snip,
+                        recommendation=_RECOMMENDATIONS_MAP.get("Missing timeout", ""),
+                    ))
+                if self.loop_stack:
+                    self.findings.append(PerfFinding(
+                        file_path=self.rel_path,
+                        line_number=self.loop_stack[-1],
+                        pattern_name="requests in loop",
+                        severity="HIGH",
+                        weight=9,
+                        snippet=snip,
+                        recommendation=_RECOMMENDATIONS_MAP.get("requests in loop", ""),
+                    ))
+
+        elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and func.value.id in ("time", "_time") and func.attr == "sleep":
+            if self.loop_stack:
+                self.findings.append(PerfFinding(
+                    file_path=self.rel_path,
+                    line_number=self.loop_stack[-1],
+                    pattern_name="Sleep in loop",
+                    severity="HIGH",
+                    weight=9,
+                    snippet=snip,
+                    recommendation=_RECOMMENDATIONS_MAP.get("Sleep in loop", ""),
+                ))
+
+        elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and func.value.id == "subprocess":
+            if self.loop_stack and func.attr in ("run", "call", "Popen"):
+                self.findings.append(PerfFinding(
+                    file_path=self.rel_path,
+                    line_number=self.loop_stack[-1],
+                    pattern_name="subprocess in loop",
+                    severity="HIGH",
+                    weight=9,
+                    snippet=snip,
+                    recommendation=_RECOMMENDATIONS_MAP.get("subprocess in loop", ""),
+                ))
+
+        elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and func.value.id == "json":
+            if self.loop_stack and func.attr in ("load", "loads"):
+                self.findings.append(PerfFinding(
+                    file_path=self.rel_path,
+                    line_number=self.loop_stack[-1],
+                    pattern_name="json.load in loop",
+                    severity="MEDIUM",
+                    weight=5,
+                    snippet=snip,
+                    recommendation=_RECOMMENDATIONS_MAP.get("json.load in loop", ""),
+                ))
+
+        elif isinstance(func, ast.Name) and func.id == "len":
+            if node.args and isinstance(node.args[0], ast.Name):
+                cur_scope["len"].append((node.args[0].id, lineno, snip))
+
+        elif isinstance(func, ast.Attribute):
+            if func.attr in ("execute", "executemany") and node.args and isinstance(node.args[0], ast.Constant):
+                cur_scope["queries"].append((str(node.args[0].value), lineno, snip))
+
+            if self.loop_stack:
+                loop_line = self.loop_stack[-1]
+                if func.attr in ("insert", "update", "delete", "save"):
+                    self.findings.append(PerfFinding(
+                        file_path=self.rel_path,
+                        line_number=loop_line,
+                        pattern_name="No batch processing",
+                        severity="HIGH",
+                        weight=7,
+                        snippet=snip,
+                        recommendation=_RECOMMENDATIONS_MAP.get("No batch processing", ""),
+                    ))
+                elif func.attr in ("execute", "executemany"):
+                    if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                        if "INSERT" in node.args[0].value.upper():
+                            self.findings.append(PerfFinding(
+                                file_path=self.rel_path,
+                                line_number=loop_line,
+                                pattern_name="Unbatched insert",
+                                severity="HIGH",
+                                weight=8,
+                                snippet=snip,
+                                recommendation=_RECOMMENDATIONS_MAP.get("Unbatched insert", ""),
+                            ))
+
+        self.generic_visit(node)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> None:
+        if self.loop_stack and isinstance(node.op, ast.Add):
+            if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                lineno = getattr(node, "lineno", 1)
+                snip = self.lines[lineno - 1].strip() if lineno <= len(self.lines) else ""
+                self.findings.append(PerfFinding(
+                    file_path=self.rel_path,
+                    line_number=self.loop_stack[-1],
+                    pattern_name="str concat in loop",
+                    severity="MEDIUM",
+                    weight=4,
+                    snippet=snip,
+                    recommendation=_RECOMMENDATIONS_MAP.get("str concat in loop", ""),
+                ))
+        self.generic_visit(node)
+
+
+def _scan_source_content(rel_path: str, content: str) -> tuple[list[PerfFinding], list[CacheOpportunity]]:
+    """Scan source code for performance issues and cache opportunities in a single pass."""
+    findings: list[PerfFinding] = []
+    cache_ops: list[CacheOpportunity] = []
+
+    if not content.strip():
+        return findings, cache_ops
+
+    lines = content.splitlines()
+
+    # 1. Fast line-by-line checks
+    for i, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if "await" in line and ("execute" in line or "fetch" in line):
+            if RE_AWAIT.search(line):
+                findings.append(PerfFinding(
+                    file_path=rel_path,
+                    line_number=i,
+                    pattern_name="Sync DB in async",
+                    severity="HIGH",
+                    weight=8,
+                    snippet=stripped[:200],
+                    recommendation=_RECOMMENDATIONS_MAP.get("Sync DB in async", ""),
+                ))
+        if "list([" in line:
+            findings.append(PerfFinding(
+                file_path=rel_path,
+                line_number=i,
+                pattern_name="list() constructor waste",
+                severity="LOW",
+                weight=2,
+                snippet=stripped[:200],
+                recommendation=_RECOMMENDATIONS_MAP.get("list() constructor waste", ""),
+            ))
+        if "dict({" in line:
+            findings.append(PerfFinding(
+                file_path=rel_path,
+                line_number=i,
+                pattern_name="dict() constructor waste",
+                severity="LOW",
+                weight=2,
+                snippet=stripped[:200],
+                recommendation=_RECOMMENDATIONS_MAP.get("dict() constructor waste", ""),
+            ))
+        if "if " in line and ("[" in line or "list(" in line or "list" in line):
+            if RE_SET_LOOKUP.search(line):
+                findings.append(PerfFinding(
+                    file_path=rel_path,
+                    line_number=i,
+                    pattern_name="Missing set lookup",
+                    severity="MEDIUM",
+                    weight=4,
+                    snippet=stripped[:200],
+                    recommendation=_RECOMMENDATIONS_MAP.get("Missing set lookup", ""),
+                ))
+        if ".readlines()" in line or ".read()" in line:
+            surrounding = "\n".join(lines[max(0, i - 1):min(len(lines), i + 3)])
+            if "for " in surrounding:
+                findings.append(PerfFinding(
+                    file_path=rel_path,
+                    line_number=i,
+                    pattern_name="Large file read all",
+                    severity="MEDIUM",
+                    weight=5,
+                    snippet=stripped[:200],
+                    recommendation=_RECOMMENDATIONS_MAP.get("Large file read all", ""),
+                ))
+
+    # 2. Parse AST for structural / loop anti-patterns and cache opportunities
+    try:
+        tree = ast.parse(content)
+    except Exception:
+        return findings, cache_ops
+
+    visitor = UnifiedVisitor(rel_path, lines, findings, cache_ops)
+    visitor.visit(tree)
+    visitor._exit_scope()
+
+    return findings, cache_ops
+
+
+def _worker_scan_file(item: tuple[str, str]) -> tuple[str, list[tuple], list[tuple]]:
+    """Worker process helper for parallel file scanning using fast tuple serialization."""
+    rel_path, file_str = item
+    try:
+        p = Path(file_str)
+        content = p.read_text(encoding="utf-8", errors="ignore")
+        findings, cache_ops = _scan_source_content(rel_path, content)
+        f_tuples = [(f.file_path, f.line_number, f.pattern_name, f.severity, f.weight, f.snippet, f.recommendation) for f in findings]
+        c_tuples = [(c.file_path, c.line_number, c.pattern_name, c.severity, c.snippet) for c in cache_ops]
+        return rel_path, f_tuples, c_tuples
+    except Exception:
+        return rel_path, [], []
+
+
 # ── Performance Optimizer ──────────────────────────────────────────────────
 
 
@@ -221,20 +610,24 @@ class PerformanceOptimizer:
 
     # ── Analysis ──────────────────────────────────────────────────────────
 
-    def run_analysis(self) -> PerfReport:
+    def run_analysis(self, force: bool = False) -> PerfReport:
         """Run a complete performance analysis of the codebase.
 
         Returns:
             PerfReport with findings, module scores, recommendations.
         """
+        with self._lock:
+            if not force and self._last_report is not None and (time.time() - self._last_report.timestamp < 300.0):
+                return self._last_report
+
         report = PerfReport(timestamp=time.time())
         src_dirs = [ROOT / "core", ROOT / "index_app", ROOT / "infrastructure", ROOT / "scripts"]
 
         all_findings: list[PerfFinding] = []
         all_cache_ops: list[CacheOpportunity] = []
         module_findings: dict[str, list[PerfFinding]] = {}
-        total_files = 0
 
+        file_items: list[tuple[str, str]] = []
         for src_dir in src_dirs:
             if not src_dir.is_dir():
                 continue
@@ -247,22 +640,58 @@ class PerformanceOptimizer:
                 try:
                     if file_path.stat().st_size > MAX_FILE_SIZE:
                         continue
-                    content = file_path.read_text(encoding="utf-8", errors="ignore")
+                    rel_path = str(file_path.relative_to(ROOT))
+                    file_items.append((rel_path, str(file_path)))
                 except (OSError, UnicodeDecodeError):
                     continue
 
-                rel_path = str(file_path.relative_to(ROOT))
-                total_files += 1
+        total_files = len(file_items)
 
-                findings, cache_ops = self._scan_file(rel_path, content)
-                all_findings.extend(findings)
-                all_cache_ops.extend(cache_ops)
-
-                if findings:
-                    module_key = "/".join(rel_path.split("/")[:2])  # e.g., "core/services"
-                    if module_key not in module_findings:
-                        module_findings[module_key] = []
-                    module_findings[module_key].extend(findings)
+        # Parallel file scan with chunked batching, safe sequential fallback
+        try:
+            with ProcessPoolExecutor(max_workers=min(6, os.cpu_count() or 1)) as ex:
+                results = list(ex.map(_worker_scan_file, file_items, chunksize=30))
+            for rel_p, f_tuples, c_tuples in results:
+                f_objs = [
+                    PerfFinding(
+                        file_path=t[0],
+                        line_number=t[1],
+                        pattern_name=t[2],
+                        severity=t[3],
+                        weight=t[4],
+                        snippet=t[5],
+                        recommendation=t[6],
+                    )
+                    for t in f_tuples
+                ]
+                c_objs = [
+                    CacheOpportunity(
+                        file_path=t[0],
+                        line_number=t[1],
+                        pattern_name=t[2],
+                        severity=t[3],
+                        snippet=t[4],
+                    )
+                    for t in c_tuples
+                ]
+                all_findings.extend(f_objs)
+                all_cache_ops.extend(c_objs)
+                if f_objs:
+                    module_key = "/".join(rel_p.split("/")[:2])
+                    module_findings.setdefault(module_key, []).extend(f_objs)
+        except Exception as pool_ex:
+            _log.warning("ProcessPoolExecutor unavailable (%s); falling back to sequential scan", pool_ex)
+            for rel_p, f_path_str in file_items:
+                try:
+                    content = Path(f_path_str).read_text(encoding="utf-8", errors="ignore")
+                    f_objs, c_objs = self._scan_file(rel_p, content)
+                    all_findings.extend(f_objs)
+                    all_cache_ops.extend(c_objs)
+                    if f_objs:
+                        module_key = "/".join(rel_p.split("/")[:2])
+                        module_findings.setdefault(module_key, []).extend(f_objs)
+                except Exception:
+                    continue
 
         report.findings = all_findings
         report.cache_opportunities = all_cache_ops
@@ -304,64 +733,12 @@ class PerformanceOptimizer:
         return report
 
     def _scan_file(self, rel_path: str, content: str) -> tuple[list[PerfFinding], list[CacheOpportunity]]:
-        """Scan a single file for performance issues."""
-        findings: list[PerfFinding] = []
-        cache_ops: list[CacheOpportunity] = []
-
-        content.split("\n")
-
-        for pattern_name, regex, severity, weight in PERF_PATTERNS:
-            for match in re.finditer(regex, content, re.MULTILINE | re.DOTALL):
-                line_num = content[:match.start()].count("\n") + 1
-                snippet = content[max(0, match.start() - 30):min(len(content), match.end() + 30)].replace("\n", " ").strip()
-
-                recommendation = self._get_recommendation(pattern_name)
-                findings.append(PerfFinding(
-                    file_path=rel_path,
-                    line_number=line_num,
-                    pattern_name=pattern_name,
-                    severity=severity,
-                    weight=weight,
-                    snippet=snippet,
-                    recommendation=recommendation,
-                ))
-
-        # Check for cache opportunities
-        for pattern_name, regex, severity in CACHE_PATTERNS:
-            for match in re.finditer(regex, content, re.MULTILINE | re.DOTALL):
-                line_num = content[:match.start()].count("\n") + 1
-                snippet = content[max(0, match.start() - 40):min(len(content), match.end() + 40)].replace("\n", " ").strip()
-                cache_ops.append(CacheOpportunity(
-                    file_path=rel_path,
-                    line_number=line_num,
-                    pattern_name=pattern_name,
-                    severity=severity,
-                    snippet=snippet,
-                ))
-
-        return findings, cache_ops
+        """Scan a single file for performance issues using fast AST analysis and line checks."""
+        return _scan_source_content(rel_path, content)
 
     def _get_recommendation(self, pattern_name: str) -> str:
         """Get recommendation text for a performance pattern."""
-        recs = {
-            "Sync DB in async": "Use async database driver (asyncpg, aiosqlite) or wrap in run_in_executor",
-            "Sleep in loop": "Use asyncio.sleep() or batch delay — avoid blocking the event loop",
-            "Giant list comp": "Use generator expression instead of list comprehension for large datasets",
-            "Nested loop O(n²)": "Consider using dict/set lookups or itertools.product to reduce complexity",
-            "Missing set lookup": "Convert list to set for O(1) membership tests",
-            "subprocess in loop": "Move subprocess calls outside the loop or batch inputs",
-            "json.load in loop": "Load JSON once outside the loop when possible",
-            "No batch processing": "Use bulk operations instead of individual inserts/updates",
-            "requests in loop": "Use asyncio/aiohttp or batch requests outside the loop",
-            "list() constructor waste": "Use list literal [...] instead of list([...])",
-            "dict() constructor waste": "Use dict literal {...} instead of dict({...})",
-            "str concat in loop": "Use ''.join(list) for string concatenation in loops",
-            "Large file read all": "Use streaming/iterator to process files line by line",
-            "Unbatched insert": "Use executemany() or bulk_insert for batch database operations",
-            "Missing timeout": "Always set timeout parameter on network requests",
-            "Deep nested loop O(n³)": "Restructure algorithm — consider alternatives like early exit, caching, or divide-and-conquer",
-        }
-        return recs.get(pattern_name, "Review this code for potential performance improvement")
+        return _RECOMMENDATIONS_MAP.get(pattern_name, "Review this code for potential performance improvement")
 
     def _generate_recommendations(self, report: PerfReport) -> list[str]:
         """Generate actionable performance recommendations."""

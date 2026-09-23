@@ -194,7 +194,8 @@
             if (!s) return;
 
             const isBuy = s.direction === 'CALL' || s.direction === 'BUY';
-            const actionLabel = isBuy ? '🟢 STRONG BUY SIGNAL' : '🔴 STRONG SELL SIGNAL';
+            const tierLabel = (s.tier || (s.score >= 85 ? 'STRONG' : 'MODERATE')).toUpperCase();
+            const actionLabel = `${isBuy ? '🟢' : '🔴'} ${tierLabel} ${isBuy ? 'BUY' : 'SELL'} SIGNAL`;
             const humanTitle = formatHumanName(s.symbol, s.category);
             const isOpt = s.category && (s.category.includes('OPTION') || s.category.includes('0DTE'));
 

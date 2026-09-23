@@ -21,6 +21,7 @@ Usage:
 from __future__ import annotations
 
 import ast
+import functools
 import importlib.util
 import json
 import logging
@@ -36,6 +37,40 @@ _log = logging.getLogger(__name__)
 # ── Constants ──────────────────────────────────────────────────────────────
 
 ROOT = Path(__file__).resolve().parent.parent
+
+ARCH_EXCLUDED_DIRS = {
+    ".git",
+    "__pycache__",
+    "node_modules",
+    ".venv",
+    "venv",
+    "dist",
+    "build",
+    ".benchmarks",
+    "backups",
+    "data",
+    "db",
+    "logs",
+    "reports",
+    "archive",
+    "_phase14_browser_runner",
+    "pre_deploy_snapshots",
+    "scratch",
+    "tmp",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+}
+
+
+@functools.lru_cache(maxsize=4096)
+def _cached_parse_tree(filepath_str: str, mtime: float) -> ast.AST | None:
+    """Parse AST once per file mtime to avoid redundant file I/O and parsing."""
+    try:
+        return ast.parse(Path(filepath_str).read_text(encoding="utf-8", errors="ignore"))
+    except (SyntaxError, UnicodeDecodeError, OSError):
+        return None
+
 
 # core/ modules exempt from the no-infrastructure-import rule
 CORE_NO_INFRA_MODULES = {
@@ -251,7 +286,7 @@ class ArchitectureAnalyzer:
             ArchitectureReport with violations, dependencies, and recommendations.
         """
         with self._lock:
-            if not force and self._last_report is not None and (time.time() - self._last_report.timestamp < 60.0):
+            if not force and self._last_report is not None and (time.time() - self._last_report.timestamp < 300.0):
                 return self._last_report
 
         report = ArchitectureReport(timestamp=time.time())
@@ -321,7 +356,7 @@ class ArchitectureAnalyzer:
             return
 
         for pyfile in sorted(core_dir.rglob("*.py")):
-            if "__pycache__" in str(pyfile):
+            if "__pycache__" in str(pyfile) or any(ex in str(pyfile) for ex in ARCH_EXCLUDED_DIRS):
                 continue
 
             mod = self._module_name(pyfile)
@@ -352,7 +387,7 @@ class ArchitectureAnalyzer:
             if not src.is_dir():
                 continue
             for pyfile in src.rglob("*.py"):
-                if "__pycache__" in str(pyfile):
+                if "__pycache__" in str(pyfile) or any(ex in str(pyfile) for ex in ARCH_EXCLUDED_DIRS):
                     continue
                 mod = self._module_name(pyfile)
                 imports = self._list_imports(pyfile)
@@ -385,7 +420,7 @@ class ArchitectureAnalyzer:
         if not core_dir.is_dir():
             return
         for pyfile in sorted(core_dir.rglob("*.py")):
-            if "__pycache__" in str(pyfile):
+            if "__pycache__" in str(pyfile) or any(ex in str(pyfile) for ex in ARCH_EXCLUDED_DIRS):
                 continue
             mod = self._module_name(pyfile)
             if "broker_adapter" in mod or mod in BROKER_SDK_EXEMPT:
@@ -410,7 +445,7 @@ class ArchitectureAnalyzer:
         # Build import map
         import_map: dict[str, set[str]] = {}
         for pyfile in core_dir.rglob("*.py"):
-            if "__pycache__" in str(pyfile):
+            if "__pycache__" in str(pyfile) or any(ex in str(pyfile) for ex in ARCH_EXCLUDED_DIRS):
                 continue
             mod = self._module_name(pyfile)
             imports = set(self._list_module_level_imports(pyfile))
@@ -418,11 +453,11 @@ class ArchitectureAnalyzer:
             core_imports = {i for i in imports if i.startswith("core.")}
             import_map[mod] = core_imports
 
-        # Detect simple cycles (A imports B, B imports A)
+        # Detect simple cycles (A imports B, B imports A) via direct graph lookup
         for mod_a, imps_a in import_map.items():
-            for mod_b, imps_b in import_map.items():
-                if mod_a < mod_b:  # Check each pair once
-                    if mod_a in imps_b and mod_b in imps_a:
+            for mod_b in imps_a:
+                if mod_a < mod_b and mod_b in import_map:
+                    if mod_a in import_map[mod_b]:
                         violations.append(Violation(
                             check_name="CIRCULAR",
                             message=f"Circular dependency: '{mod_a}' <-> '{mod_b}'",
@@ -446,22 +481,13 @@ class ArchitectureAnalyzer:
         return ".".join(parts)
 
     def _list_module_level_imports(self, filepath: Path) -> list[str]:
-        """Extract only import paths that execute at module load time.
-
-        Unlike _list_imports() (which walks the whole tree, including
-        function bodies), this only looks at the module's direct top-level
-        statements. A function-local "lazy import to avoid circular deps" is
-        a deliberate, safe pattern - it doesn't run until the function is
-        called, so it can't actually crash Python at import time the way a
-        genuine module-level A<->B import cycle would. _check_circular_imports
-        needs this distinction; the CORE_TO_INFRA/BROKER_SDK checks
-        deliberately keep using the full-walk _list_imports() below, since a
-        lazily-deferred infra import is still an architecture violation, just
-        a deferred one.
-        """
+        """Extract only import paths that execute at module load time."""
         try:
-            tree = ast.parse(filepath.read_text(encoding="utf-8", errors="ignore"))
-        except (SyntaxError, UnicodeDecodeError, OSError):
+            mtime = filepath.stat().st_mtime
+            tree = _cached_parse_tree(str(filepath), mtime)
+        except OSError:
+            return []
+        if tree is None:
             return []
         imports: list[str] = []
         for node in tree.body:
@@ -479,8 +505,11 @@ class ArchitectureAnalyzer:
     def _list_imports(self, filepath: Path) -> list[str]:
         """Extract all import paths from a Python file."""
         try:
-            tree = ast.parse(filepath.read_text(encoding="utf-8", errors="ignore"))
-        except (SyntaxError, UnicodeDecodeError, OSError):
+            mtime = filepath.stat().st_mtime
+            tree = _cached_parse_tree(str(filepath), mtime)
+        except OSError:
+            return []
+        if tree is None:
             return []
         imports: list[str] = []
         for node in ast.walk(tree):
@@ -500,8 +529,8 @@ class ArchitectureAnalyzer:
         count = 0
         for src in [ROOT / "core", ROOT / "index_app"]:
             if src.is_dir():
-                count += sum(1 for _ in src.rglob("*.py")
-                             if "__pycache__" not in str(_))
+                count += sum(1 for p in src.rglob("*.py")
+                             if "__pycache__" not in str(p) and not any(ex in str(p) for ex in ARCH_EXCLUDED_DIRS))
         return count
 
     # ── Scoring ───────────────────────────────────────────────────────────

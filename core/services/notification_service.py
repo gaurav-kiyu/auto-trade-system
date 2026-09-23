@@ -96,7 +96,7 @@ class NotificationService:
     - Monitoring and metrics
     """
 
-    def __init__(self, cfg: dict[str, Any] | None = None) -> None:
+    def __init__(self, cfg: dict[str, Any] | None = None, permissions_manager: Any = None) -> None:
         # Effective config dict, used only by the notification-filter gate
         # in send() (core.notification_filters) -- optional and backward
         # compatible: omitting it (as all pre-existing call sites did)
@@ -104,6 +104,7 @@ class NotificationService:
         # defaults to False and cfg.get() on an empty dict returns that
         # default.
         self._cfg: dict[str, Any] = cfg or {}
+        self._permissions_manager = permissions_manager
         self._status = ServiceStatus.STOPPED
         self._status_lock = threading.RLock()
 
@@ -187,6 +188,50 @@ class NotificationService:
         self._consecutive_failures: int = 0
 
         self._logger.info("NotificationService initialized")
+
+    def get_user_destinations(self, username: str) -> dict[str, Any]:
+        """Resolve notification destination endpoints (telegram, email) for a user."""
+        if self._permissions_manager is not None:
+            perm_mgr = self._permissions_manager
+        else:
+            from core.auth.user_signal_permissions import UserPermissionManager
+            perm_mgr = UserPermissionManager.get_instance()
+
+        u = perm_mgr.get_user_permissions(username)
+        if not u:
+            return {"telegram_chat_id": "", "email": "", "telegram_enabled": False, "email_enabled": False}
+
+        raw_tg_cid = getattr(u, "telegram_chat_id", None)
+        if raw_tg_cid is not None and str(raw_tg_cid).strip():
+            tg_chat_id = str(raw_tg_cid).strip()
+        elif username == "admin":
+            tg_chat_id = str(
+                os.environ.get("OPBUYING_CHAT_ID")
+                or os.environ.get("OPBUYING_TELEGRAM_CHAT_ID")
+                or os.environ.get("CHAT_ID")
+                or self._cfg.get("CHAT_ID", "1148730533")
+            ).strip()
+        else:
+            tg_chat_id = ""
+
+        raw_email = getattr(u, "email", None)
+        if raw_email is not None and str(raw_email).strip():
+            email = str(raw_email).strip()
+        elif username == "admin":
+            email = str(
+                os.environ.get("OPBUYING_EMAIL_TO")
+                or os.environ.get("EMAIL_TO")
+                or self._cfg.get("EMAIL_TO", "")
+            ).strip()
+        else:
+            email = ""
+
+        return {
+            "telegram_chat_id": tg_chat_id,
+            "email": email,
+            "telegram_enabled": bool(getattr(u, "telegram_enabled", True)),
+            "email_enabled": bool(getattr(u, "email_enabled", True)),
+        }
 
     def start(self) -> bool:
         """Start the notification service."""
@@ -795,13 +840,15 @@ class NotificationService:
             target_2=signal.get("target_2"),
         )
         strategy = str(signal.get("strategy") or signal.get("strategy_name") or "position_service")
-        ts_str = str(signal.get("timestamp") or now_ist().strftime("%d-%b-%Y %H:%M:%S IST"))
 
         # 2. Recipient Resolution
         recipients = list(eligible_users) if eligible_users is not None else []
         try:
-            from core.auth.user_signal_permissions import UserPermissionManager
-            perm_mgr = UserPermissionManager.get_instance()
+            if self._permissions_manager is not None:
+                perm_mgr = self._permissions_manager
+            else:
+                from core.auth.user_signal_permissions import UserPermissionManager
+                perm_mgr = UserPermissionManager.get_instance()
             if not recipients:
                 recipients = perm_mgr.get_eligible_recipients(category=category, tier=tier, symbol=sym)
 
@@ -867,13 +914,18 @@ class NotificationService:
 
             # ── CHANNEL 1: TELEGRAM ─────────────────────────────────────
             tg_enabled = bool(getattr(u, "telegram_enabled", True))
-            tg_chat_id = str(
-                getattr(u, "telegram_chat_id", "")
-                or os.environ.get("OPBUYING_CHAT_ID")
-                or os.environ.get("OPBUYING_TELEGRAM_CHAT_ID")
-                or os.environ.get("CHAT_ID")
-                or self._cfg.get("CHAT_ID", "1148730533")
-            ).strip()
+            raw_tg_cid = getattr(u, "telegram_chat_id", None)
+            if raw_tg_cid is not None and str(raw_tg_cid).strip():
+                tg_chat_id = str(raw_tg_cid).strip()
+            elif uname == "admin":
+                tg_chat_id = str(
+                    os.environ.get("OPBUYING_CHAT_ID")
+                    or os.environ.get("OPBUYING_TELEGRAM_CHAT_ID")
+                    or os.environ.get("CHAT_ID")
+                    or self._cfg.get("CHAT_ID", "1148730533")
+                ).strip()
+            else:
+                tg_chat_id = ""
 
             if not tg_enabled:
                 tracker.record_delivery_attempt(
@@ -1020,11 +1072,16 @@ class NotificationService:
 
             # ── CHANNEL 2: EMAIL ────────────────────────────────────────
             email_enabled = bool(getattr(u, "email_enabled", True))
-            user_email = str(
-                getattr(u, "email", "")
-                or os.environ.get("OPBUYING_EMAIL_TO")
-                or self._cfg.get("EMAIL_TO", "")
-            ).strip()
+            raw_email = getattr(u, "email", None)
+            if raw_email is not None and str(raw_email).strip():
+                user_email = str(raw_email).strip()
+            elif uname == "admin":
+                user_email = str(
+                    os.environ.get("OPBUYING_EMAIL_TO")
+                    or self._cfg.get("EMAIL_TO", "")
+                ).strip()
+            else:
+                user_email = ""
 
             if not email_enabled:
                 tracker.record_delivery_attempt(
