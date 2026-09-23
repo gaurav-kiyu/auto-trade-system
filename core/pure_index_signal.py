@@ -631,8 +631,9 @@ def evaluate_dual_direction_signal(
 
     adjusted_opp_score = opp_score - penalty
 
-    # Pick the better direction
-    if adjusted_opp_score > primary_score:
+    min_advantage = int(sc.get("DUAL_DIRECTION_MIN_SCORE_ADVANTAGE", 3))
+    # Pick the better direction (require distinct edge over primary trend)
+    if adjusted_opp_score >= primary_score + min_advantage:
         # Opposite direction wins
         best = dict(opp_partial)
         best["score"] = adjusted_opp_score

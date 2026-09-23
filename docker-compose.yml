@@ -70,6 +70,7 @@ services:
       OPBUYING_ML_MODEL_PATH:         /data/models/signal_classifier.pkl
       OPBUYING_REPORT_OUTPUT_DIR:     /data/reports
       OPBUYING_TIMESERIES_DB_PATH:    /data/db/timeseries.duckdb
+      OPBUYING_USER_PERMISSIONS_PATH: /data/db/user_signal_permissions.json
       OPB_AUDIT_LOG_PATH:              /data/logs/audit.log
 
       TZ:                             Asia/Kolkata
@@ -83,6 +84,8 @@ services:
       - opb_logs:/data/logs
       # Persistent encrypted credential-storage directory
       - opb_config:/home/opb/.config
+      # Deterministic Supervisor configuration mount
+      - ./supervisord.conf:/etc/supervisor/conf.d/opb.conf:ro
       # Optional: mount a custom config.json without rebuilding the image
       # - ./json/config.local.json:/app/json/config.local.json:ro
 

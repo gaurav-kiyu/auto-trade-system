@@ -426,6 +426,39 @@ class SignalTracker:
                     _log.info("[SIGNAL_DEDUP] Suppressed duplicate %s -> %s", sym, duplicate["signal_id"])
                     return ""
 
+                # Opposite direction whipsaw protection on same symbol:
+                # Do not permit holding contradictory ACTIVE signals (e.g. active CALL and active PUT)
+                # on the same underlying symbol simultaneously.
+                cur.execute(
+                    """SELECT signal_id, direction, timestamp FROM system_signals
+                       WHERE symbol = ? AND status = 'ACTIVE'
+                       ORDER BY timestamp DESC LIMIT 1""",
+                    (sym,),
+                )
+                active_same_sym = cur.fetchone()
+                if active_same_sym:
+                    active_dir = str(active_same_sym["direction"]).upper()
+                    if active_dir != direction:
+                        opp_cooldown = int(signal_dict.get("opposite_dir_cooldown_secs", 1800))
+                        opp_cutoff = (now - timedelta(seconds=max(0, opp_cooldown))).strftime("%Y-%m-%d %H:%M:%S")
+                        if active_same_sym["timestamp"] >= opp_cutoff:
+                            _log.warning(
+                                "[SIGNAL_DEDUP] Suppressed opposite direction whipsaw for %s: active %s (%s) within %ds cooldown",
+                                sym, active_dir, active_same_sym["signal_id"], opp_cooldown
+                            )
+                            return ""
+                        else:
+                            # Cooldown elapsed: expire prior opposite signal cleanly before activating new reversal
+                            cur.execute(
+                                """UPDATE system_signals SET status = 'EXPIRED'
+                                   WHERE signal_id = ? AND status = 'ACTIVE'""",
+                                (active_same_sym["signal_id"],)
+                            )
+                            _log.info(
+                                "[SIGNAL_LIFECYCLE] Expired prior active %s %s (%s) upon qualified reversal to %s",
+                                sym, active_dir, active_same_sym["signal_id"], direction
+                            )
+
                 sig_id = f"SIG-{now.strftime('%Y%m%d%H%M%S')}-{sym}-{uuid.uuid4().hex[:6]}"
                 date_str = now.date().isoformat()
                 week_str = f"{now.year}-W{now.isocalendar()[1]}"

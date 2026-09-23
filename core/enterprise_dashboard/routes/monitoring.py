@@ -586,6 +586,38 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
         from core.billing.upi_billing_engine import UpiBillingEngine
         return UpiBillingEngine.get_plans()
 
+    @app.get("/api/billing/upi-details")
+    async def api_billing_upi_details():  # type: ignore[no-untyped-def]
+        """Return active UPI VPA, payee name, and custom scanner availability."""
+        from core.billing.upi_billing_engine import UpiBillingEngine
+        return UpiBillingEngine.get_upi_details()
+
+    @app.get("/api/billing/upi-qr-image")
+    async def api_billing_upi_qr_image():  # type: ignore[no-untyped-def]
+        """Serve the uploaded custom UPI scanner image if available."""
+        from fastapi.responses import FileResponse, JSONResponse
+
+        from core.billing.upi_billing_engine import UpiBillingEngine
+
+        qr_path = UpiBillingEngine.get_custom_qr_path()
+        if not qr_path or not qr_path.exists():
+            return JSONResponse(status_code=404, content={"detail": "No custom UPI QR scanner uploaded"})
+
+        ext = qr_path.suffix.lower()
+        media_types = {
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".webp": "image/webp",
+            ".svg": "image/svg+xml",
+        }
+        media_type = media_types.get(ext, "image/png")
+        return FileResponse(
+            str(qr_path),
+            media_type=media_type,
+            headers={"Cache-Control": "no-cache, must-revalidate"},
+        )
+
     @app.get("/api/billing/generate-qr")
     async def api_billing_generate_qr(plan_id: str = "plan_options_vip", username: str = "guest"):  # type: ignore[no-untyped-def]
         """Generate native NPCI UPI QR string and render URI."""

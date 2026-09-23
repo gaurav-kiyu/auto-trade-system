@@ -1720,7 +1720,7 @@ class TestRiskConcentration:
                 resp = client.get("/api/risk/concentration")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["capital"] == 1_000_000
+        assert data["capital"] == float(dashboard._cfg.get("BASE_CAPITAL", 10000.0))
 
     def test_risk_concentration_by_index(self, dashboard, client):
         with patch.object(

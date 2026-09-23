@@ -569,3 +569,44 @@ def test_p0_safety_invariants_preserved():
         assert cfg.get("BASE_CAPITAL", 3000) == 3000
         assert cfg.get("SIGNAL_ONLY", True) is True
 
+
+def test_non_admin_no_chat_id_records_no_destination(clean_database):
+    """A viewer user with no telegram_chat_id must get NO_DESTINATION, not fallback to admin chat ID."""
+    perm_mgr = clean_database["perm_mgr"]
+    perm_mgr.update_user_permissions("admin", {"telegram_chat_id": "1148730533", "email": "admin@example.com"})
+    perm_mgr.update_user_permissions("kiyu", {
+        "is_active": True,
+        "signals_enabled": True,
+        "telegram_enabled": True,
+        "telegram_chat_id": "",
+        "email_enabled": True,
+        "email": "kiyu@example.com",
+        "min_signal_tier": "MODERATE_AND_STRONG",
+        "allowed_categories": ["INDEX_OPTIONS"],
+    })
+
+    svc, mock_tg, mock_email = make_mock_notification_service()
+    signal = {
+        "signal_id": "SIG-NO-DEST-001",
+        "symbol": "FINNIFTY",
+        "direction": "CALL",
+        "tier": "STRONG",
+        "score": 88,
+        "price": 25000.0,
+        "category": "INDEX_OPTIONS",
+    }
+
+    res = svc.dispatch_qualifying_signal(signal)
+    deliveries = res["deliveries"]
+
+    assert deliveries["admin"]["TELEGRAM"] == "SENT"
+    assert deliveries["kiyu"]["TELEGRAM"] == "NO_DESTINATION"
+    assert deliveries["kiyu"]["EMAIL"] == "SENT"
+
+    tracker = clean_database["tracker"]
+    audit = tracker.get_delivery_audit(signal_id="SIG-NO-DEST-001")
+    kiyu_tg = [a for a in audit if a["username"] == "kiyu" and a["channel"] == "TELEGRAM"][0]
+    assert kiyu_tg["status"] == "NO_DESTINATION"
+    assert kiyu_tg["attempted"] == 0
+
+

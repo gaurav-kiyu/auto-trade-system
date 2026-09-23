@@ -765,21 +765,39 @@ def create_auth_router(
                 },
                 display_name=body.get("display_name"),
             )
-            # Synchronize admin user changes across json/config.json and runtime config
+            # Synchronize admin user changes across json/config.json, .env, and runtime config
             if username == "admin":
                 try:
-                    from core.config_manager import get_config_manager
-                    cfg_mgr = get_config_manager()
+                    import json
+                    import os
+                    from pathlib import Path
+
+                    from core.env_sync import sync_env_file
+
+                    root_dir = Path(__file__).resolve().parent.parent.parent
                     cfg_updates = {}
                     if "email" in body:
-                        cfg_updates["EMAIL_TO"] = str(body["email"])
+                        cfg_updates["EMAIL_TO"] = str(body["email"]).strip()
                         if "email_enabled" in body:
                             cfg_updates["EMAIL_ENABLED"] = bool(body["email_enabled"])
                     if "telegram_chat_id" in body:
-                        cfg_updates["CHAT_ID"] = str(body["telegram_chat_id"])
+                        cfg_updates["CHAT_ID"] = str(body["telegram_chat_id"]).strip()
                     if cfg_updates:
-                        cfg_mgr.update(cfg_updates)
-                        _log.info("[ADMIN_SYNC] Synchronized admin user permissions to system config: %s", list(cfg_updates.keys()))
+                        # 1. Update config.json atomically if file exists
+                        cfg_path = Path(os.environ.get("OPBUYING_INDEX_CONFIG", str(root_dir / "json" / "config.json")))
+                        if cfg_path.exists():
+                            try:
+                                cfg_data = json.loads(cfg_path.read_text(encoding="utf-8"))
+                                cfg_data.update(cfg_updates)
+                                tmp_cfg = cfg_path.with_suffix(f".tmp.{os.getpid()}")
+                                tmp_cfg.write_text(json.dumps(cfg_data, indent=4), encoding="utf-8")
+                                os.replace(tmp_cfg, cfg_path)
+                            except Exception as cf_err:
+                                _log.warning("[ADMIN_SYNC] Could not write config.json: %s", cf_err)
+
+                        # 2. Update .env and os.environ
+                        sync_env_file(cfg_updates)
+                        _log.info("[ADMIN_SYNC] Synchronized admin user permissions to system config and .env: %s", list(cfg_updates.keys()))
                 except Exception as sync_ex:
                     _log.warning("[ADMIN_SYNC] Could not sync admin user to system config: %s", sync_ex)
 

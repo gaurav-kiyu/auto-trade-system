@@ -220,6 +220,9 @@ class EnterpriseDashboard:
         self._control_plane: Any = None
         self._bot_refs: dict[str, Any] = {}
         self._config_lock: threading.RLock = threading.RLock()
+        self._env_path: Path | None = (
+            Path(self._cfg["env_path"]) if self._cfg.get("env_path") else None
+        )
 
         # Create the FastAPI app
         self.app = self._create_app()
@@ -1284,6 +1287,13 @@ class EnterpriseDashboard:
         for key, value in change.items():
             if key.startswith("_"):
                 continue
+            if (
+                isinstance(value, float)
+                and value.is_integer()
+                and isinstance(original.get(key), int)
+                and not isinstance(original.get(key), bool)
+            ):
+                value = int(value)
             current[key] = value
             applied[key] = value
 
@@ -1335,7 +1345,14 @@ class EnterpriseDashboard:
         # Synchronize to .env and os.environ
         try:
             from core.env_sync import sync_env_file
-            sync_env_file(applied)
+            env_target = None
+            if hasattr(self, "_env_path") and self._env_path:
+                env_target = self._env_path
+            else:
+                cfg_p = str(config_path).replace("\\", "/")
+                if not cfg_p.endswith("json/config.json"):
+                    env_target = config_path.parent / ".env"
+            sync_env_file(applied, env_path=env_target)
         except Exception as env_sync_ex:
             _log.warning("[DASH] .env sync FAILED for keys %s: %s", list(applied.keys()), env_sync_ex)
 

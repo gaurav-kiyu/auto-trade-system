@@ -137,12 +137,22 @@ def _apply_opbuying_env_overrides(cfg: dict[str, Any], project_root: str | Path 
             try:
                 new_value = int(env_value)
             except ValueError:
-                log.debug("Failed to coerce env %s=%s to int", env_key, env_value)
+                try:
+                    f = float(env_value)
+                    if f.is_integer():
+                        new_value = int(f)
+                    else:
+                        log.debug("Failed to coerce env %s=%s to int", env_key, env_value)
+                        new_value = current
+                except ValueError:
+                    log.debug("Failed to coerce env %s=%s to int", env_key, env_value)
+                    new_value = current
         elif isinstance(current, float):
             try:
                 new_value = float(env_value)
             except ValueError:
                 log.debug("Failed to coerce env %s=%s to float", env_key, env_value)
+                new_value = current
         cfg[target_key] = new_value
         applied += 1
     if applied:

@@ -7,9 +7,12 @@ and professional portfolio risk limits.
 
 from __future__ import annotations
 
+import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
+
+_log = logging.getLogger("RICH_SIGNAL_FORMATTER")
 
 
 class RichSignalFormatter:
@@ -80,42 +83,109 @@ class RichSignalFormatter:
         }
 
     @classmethod
+    def _add_trading_days(cls, start_dt: datetime, num_trading_days: int) -> datetime:
+        """Add N trading days skipping Saturdays, Sundays, and statutory exchange holidays."""
+        # Standard NSE/BSE statutory holidays (YYYY-MM-DD)
+        EXCHANGE_HOLIDAYS = {
+            "2026-01-26",  # Republic Day
+            "2026-03-03",  # Holi
+            "2026-03-27",  # Good Friday
+            "2026-04-14",  # Dr. Ambedkar Jayanti
+            "2026-05-01",  # Maharashtra Day
+            "2026-08-15",  # Independence Day
+            "2026-10-02",  # Mahatma Gandhi Jayanti
+            "2026-10-20",  # Dussehra
+            "2026-11-08",  # Diwali Laxmi Pujan
+            "2026-11-10",  # Diwali Balipratipada
+            "2026-11-24",  # Gurunanak Jayanti
+            "2026-12-25",  # Christmas
+        }
+        current = start_dt
+        added = 0
+        while added < num_trading_days:
+            current += timedelta(days=1)
+            # Skip Saturday (5) and Sunday (6)
+            if current.weekday() in (5, 6):
+                continue
+            # Skip statutory holidays
+            if current.strftime("%Y-%m-%d") in EXCHANGE_HOLIDAYS:
+                continue
+            added += 1
+        return current
+
+    @classmethod
     def get_holding_horizon_info(cls, category: str, timestamp_str: str = "") -> dict[str, Any]:
         """Compute holding duration, valid date range, and exit strategy based on category."""
+        from core.datetime_ist import now_ist
         cat_upper = category.upper()
-        now = datetime.now()
+
+        sig_dt = None
+        if timestamp_str:
+            try:
+                cleaned_ts = str(timestamp_str).replace("Z", "+00:00")
+                parsed_dt = datetime.fromisoformat(cleaned_ts)
+                if parsed_dt.tzinfo is not None:
+                    ist_tz = timezone(timedelta(hours=5, minutes=30))
+                    sig_dt = parsed_dt.astimezone(ist_tz).replace(tzinfo=None)
+                else:
+                    sig_dt = parsed_dt
+            except Exception:
+                sig_dt = None
+        if sig_dt is None:
+            _log.warning(
+                "[SIGNAL_INTEGRITY] timestamp_str missing or malformed (%r); falling back to now_ist()",
+                timestamp_str,
+            )
+            sig_dt = now_ist()
+
+        if sig_dt.second > 0:
+            valid_from = sig_dt.strftime("%d %b %Y, %H:%M:%S IST")
+        else:
+            valid_from = sig_dt.strftime("%d %b %Y, %H:%M IST")
 
         if "FUTURES" in cat_upper:
             holding_period = "Positional Futures — 1 to 5 Trading Days"
-            valid_from = now.strftime("%d %b %Y, 09:15 IST")
-            max_dt = now + timedelta(days=5)
-            valid_until = max_dt.strftime("%d %b %Y, 15:30 IST")
+            exit_dt = cls._add_trading_days(sig_dt, 5)
+            valid_until = exit_dt.strftime("%d %b %Y, 15:30 IST")
             short_horizon = "1–5 Days"
             horizon_badge = "📈 FUTURES"
             horizon_color = "#8b5cf6"
             is_intraday = False
-        elif any(w in cat_upper for w in ("OPTION", "0DTE", "INTRADAY", "INDEX")):
+        elif any(w in cat_upper for w in ("OPTION", "0DTE", "INTRADAY", "INDEX", "EXPIRY", "VOLATILITY")):
             holding_period = "Intraday — same-day exit"
-            valid_from = now.strftime("%d %b %Y, 09:15 IST")
-            valid_until = now.strftime("%d %b %Y, 15:15 IST")
+            # Intraday positions: if generated during live session before 15:15 IST, exit is today 15:15.
+            # If generated after 15:15 IST or on weekend/holiday, roll to next active trading day 15:15.
+            is_weekend = sig_dt.weekday() in (5, 6)
+            is_after_cutoff = (sig_dt.hour > 15) or (sig_dt.hour == 15 and sig_dt.minute >= 15)
+            if is_weekend or is_after_cutoff:
+                exit_dt = cls._add_trading_days(sig_dt, 1)
+                valid_until = exit_dt.strftime("%d %b %Y, 15:15 IST")
+            else:
+                valid_until = sig_dt.strftime("%d %b %Y, 15:15 IST")
             short_horizon = "Intraday"
             horizon_badge = "⚡ INTRADAY"
             horizon_color = "#f59e0b"
             is_intraday = True
-        elif any(w in cat_upper for w in ("COMMODITY", "CURRENCY")):
+        elif any(w in cat_upper for w in ("COMMODIT", "MCX")):
             holding_period = "1 – 3 Trading Sessions"
-            valid_from = now.strftime("%d %b %Y, %H:%M IST")
-            max_dt = now + timedelta(days=3)
-            valid_until = max_dt.strftime("%d %b %Y, 23:30 IST")
+            exit_dt = cls._add_trading_days(sig_dt, 3)
+            valid_until = exit_dt.strftime("%d %b %Y, 23:30 IST")
             short_horizon = "1–3 Days"
             horizon_badge = "🌐 1–3 DAYS"
             horizon_color = "#38bdf8"
             is_intraday = False
-        else: # Equities & Positional Breakouts
+        elif any(w in cat_upper for w in ("CURRENC", "CDS", "FOREX")):
+            holding_period = "1 – 2 Trading Sessions"
+            exit_dt = cls._add_trading_days(sig_dt, 2)
+            valid_until = exit_dt.strftime("%d %b %Y, 17:00 IST")
+            short_horizon = "1–2 Days"
+            horizon_badge = "💱 1–2 DAYS"
+            horizon_color = "#38bdf8"
+            is_intraday = False
+        else:  # Equities & Positional Breakouts
             holding_period = "1–5 Trading Days"
-            valid_from = now.strftime("%d %b %Y, 09:35 IST")
-            max_dt = now + timedelta(days=7) # ~5 trading days
-            valid_until = max_dt.strftime("%d %b %Y, 15:30 IST")
+            exit_dt = cls._add_trading_days(sig_dt, 5)
+            valid_until = exit_dt.strftime("%d %b %Y, 15:30 IST")
             short_horizon = "1–5 Days"
             horizon_badge = "📅 1–5 DAYS"
             horizon_color = "#22c55e"
@@ -162,6 +232,7 @@ class RichSignalFormatter:
         tier: str,
         target_1: float,
         target_2: float,
+        timestamp_str: str = "",
     ) -> str:
         """Generate a clean, high-scan inbox subject following the user's preferred hierarchy.
 
@@ -184,7 +255,7 @@ class RichSignalFormatter:
             action_name = "BUY (CNC / DELIVERY)"
 
         human_sym = cls.format_human_friendly_symbol(symbol, category)
-        horizon = cls.get_holding_horizon_info(category)
+        horizon = cls.get_holding_horizon_info(category, timestamp_str=timestamp_str)
 
         return f"{action_emoji} {human_sym['subject_instrument']} {action_name} | Entry ₹{price:,.2f} | Target ₹{target_1:,.2f} | {horizon['short_horizon']}"
 
@@ -208,12 +279,21 @@ class RichSignalFormatter:
         target_2: float,
         base_url: str = "",
         signal_id: str = "",
+        timestamp_str: str = "",
     ) -> str:
         """Generate clean, institutional standard HTML email with clear separation of concerns."""
         from core.notifications.url_resolver import build_action_url, build_chart_url
 
         is_buy = direction.upper() in ("CALL", "BUY", "LONG")
-        action_title = "STRONG BUY SIGNAL" if is_buy else "STRONG SELL SIGNAL"
+        tier_norm = str(tier or "STRONG").strip().upper()
+        if tier_norm == "MODERATE":
+            action_title = "MODERATE BUY SIGNAL" if is_buy else "MODERATE SELL SIGNAL"
+        elif tier_norm == "STRONG":
+            action_title = "STRONG BUY SIGNAL" if is_buy else "STRONG SELL SIGNAL"
+        elif tier_norm == "WEAK":
+            action_title = "WEAK BUY SIGNAL" if is_buy else "WEAK SELL SIGNAL"
+        else:
+            action_title = "BUY SIGNAL" if is_buy else "SELL SIGNAL"
         action_color = "#22c55e" if is_buy else "#ef4444"
         action_emoji = "🟢" if is_buy else "🔴"
 
@@ -230,7 +310,7 @@ class RichSignalFormatter:
         reward_t2 = abs(target_2 - price)
         rr_ratio = round(reward_t2 / risk, 1) if risk > 0 else 2.3
 
-        horizon = cls.get_holding_horizon_info(category)
+        horizon = cls.get_holding_horizon_info(category, timestamp_str=timestamp_str)
         human_sym = cls.format_human_friendly_symbol(symbol, category)
         mkt_cond = cls.format_market_condition(regime, is_buy)
         score_label = f"{score}/100 — {tier.title()}"
@@ -444,6 +524,7 @@ class RichSignalFormatter:
         target_1: float,
         target_2: float,
         signal_id: str = "",
+        timestamp_str: str = "",
     ) -> str:
         """Generate a clean, visually structured Telegram HTML card with the exact standardized hierarchy."""
         is_buy = direction.upper() in ("CALL", "BUY", "LONG")
@@ -484,13 +565,17 @@ class RichSignalFormatter:
         reward_t2 = abs(target_2 - price)
         rr_ratio = round(reward_t2 / risk, 1) if risk > 0 else 2.3
 
-        horizon = cls.get_holding_horizon_info(category)
+        horizon = cls.get_holding_horizon_info(category, timestamp_str=timestamp_str)
         human_sym = cls.format_human_friendly_symbol(symbol, category)
 
         lines = [
             f"<b>{action_emoji} {action_text}</b>",
             f"<b>{human_sym['display_title']}</b>",
             f"<code>Contract: {human_sym['contract_code']}</code>",
+        ]
+        if signal_id:
+            lines.append(f"<code>ID: {signal_id}</code>")
+        lines.extend([
             "━━━━━━━━━━━━━━━━━━━━━",
             "📊 <b>SIGNAL SUMMARY</b>",
             f"• <b>Signal Strength:</b> <code>{score}/100 ({tier})</code>",
@@ -506,7 +591,7 @@ class RichSignalFormatter:
             f"• <b>Max Exit Time:</b> <code>{horizon['valid_until']}</code>",
             "━━━━━━━━━━━━━━━━━━━━━",
             "🎯 <b>EXIT STRATEGY</b>",
-        ]
+        ])
 
         if horizon["is_intraday"]:
             lines.append(f"• <b>Step 1:</b> Book 50% at Target 1 (<code>₹{target_1:,.2f}</code>) & move SL to Entry (<code>₹{price:,.2f}</code>).")
@@ -519,6 +604,7 @@ class RichSignalFormatter:
 
         lines.extend([
             "━━━━━━━━━━━━━━━━━━━━━",
+            "⚡ <i>PAPER / SIGNAL_ONLY (No live trade executed)</i>",
             "⚠️ <i>Position Sizing: Size according to your defined risk budget.</i>",
             "🏛️ <b>OPB Quantitative Engine</b>"
         ])
@@ -551,6 +637,7 @@ class RichSignalFormatter:
             target_1=target_1,
             target_2=target_2,
             signal_id=kwargs.get("signal_id", ""),
+            timestamp_str=kwargs.get("timestamp_str", kwargs.get("timestamp", "")),
         )
 
     @classmethod
@@ -591,6 +678,9 @@ class RichSignalFormatter:
         company_name = str(_get_val("company_name") or sym).strip()
         series = str(_get_val("series") or "EQ").strip()
         strategy = str(_get_val("strategy") or _get_val("strategy_name") or "OPB Quantitative Engine").strip()
+        timestamp_str = str(
+            _get_val("timestamp") or _get_val("generated_at") or _get_val("signal_ts") or _get_val("time") or ""
+        ).strip()
 
         from core.signal_utils import calculate_directional_levels
         stop_loss, target_1, target_2 = calculate_directional_levels(
@@ -610,6 +700,7 @@ class RichSignalFormatter:
             tier=tier,
             target_1=target_1,
             target_2=target_2,
+            timestamp_str=timestamp_str,
         )
 
         email_html = cls.build_rich_html_email(
@@ -630,6 +721,7 @@ class RichSignalFormatter:
             target_2=target_2,
             base_url=base_url,
             signal_id=signal_id,
+            timestamp_str=timestamp_str,
         )
 
         telegram_html = cls.build_rich_telegram_message(
@@ -643,6 +735,7 @@ class RichSignalFormatter:
             target_1=target_1,
             target_2=target_2,
             signal_id=signal_id,
+            timestamp_str=timestamp_str,
         )
 
         is_buy = direction in ("CALL", "BUY", "LONG")

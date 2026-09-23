@@ -13,7 +13,7 @@ def temp_signal_tracker(tmp_path):
 
 def test_seed_and_initial_signals(temp_signal_tracker):
     tracker = temp_signal_tracker
-    analytics = tracker.get_admin_signal_analytics()
+    analytics = tracker.get_admin_signal_analytics(include_seed_samples=True)
     assert analytics["total_signals"] >= 10
     assert analytics["win_rate_pct"] > 0
     assert "INDEX_OPTIONS" in analytics["category_breakdown"]
@@ -26,7 +26,7 @@ def test_seeded_sample_signals_are_flagged_as_demo_data(temp_signal_tracker):
     the admin analytics nor a user's own received-signals feed distinguished
     them from genuine delivered signals."""
     tracker = temp_signal_tracker
-    analytics = tracker.get_admin_signal_analytics()
+    analytics = tracker.get_admin_signal_analytics(include_seed_samples=True)
     assert analytics["contains_demo_data"] is True
 
     user_history = tracker.get_user_received_signals("admin")

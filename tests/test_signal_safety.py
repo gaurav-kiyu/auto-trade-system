@@ -59,6 +59,9 @@ def _preamble() -> str:
         f"spec = importlib.util.spec_from_file_location('_it', r'{INDEX_IMPL}')\n"
         f"mod = importlib.util.module_from_spec(spec)\n"
         f"spec.loader.exec_module(mod)\n"
+        f"if hasattr(mod, '_position_service') and mod._position_service:\n"
+        f"    mod._position_service._news_sentinel = None\n"
+        f"mod._news_sentinel = None\n"
     )
 
 
@@ -181,8 +184,14 @@ mod.sniper_ok = lambda name, data, signal_type: False
 _expected_age = """ + str(_expected_age) + """
 assert mod.SIGNAL_MAX_AGE == _expected_age, f"Expected SIGNAL_MAX_AGE={_expected_age} from config, got {mod.SIGNAL_MAX_AGE}"
 
+# Pin time so execution delays do not push a (threshold - 1s) boundary signal past the limit
+_now = time.time()
+time.time = lambda: _now
+import core.position_service
+core.position_service.time.time = lambda: _now
+
 # Signal 1 second BEFORE the threshold should pass the gate
-just_fresh_ts = time.time() - (mod.SIGNAL_MAX_AGE - 1)
+just_fresh_ts = _now - (mod.SIGNAL_MAX_AGE - 1)
 with mod._bos_lock:
     mod.breakout_state["NIFTY"] = {"type": "CALL", "confirmed_ts": just_fresh_ts}
 sig = {"score": 75, "direction": "CALL", "vix": 15.0, "signal_ts": just_fresh_ts,
@@ -193,7 +202,7 @@ msg = dlog.get("msg", "") if isinstance(dlog, dict) else str(dlog)
 assert "stale" not in msg.lower(), f"Signal 1s before threshold wrongly blocked: {msg!r}"
 
 # Signal 1 second AFTER the threshold must be stale
-just_stale_ts = time.time() - (mod.SIGNAL_MAX_AGE + 1)
+just_stale_ts = _now - (mod.SIGNAL_MAX_AGE + 1)
 with mod._bos_lock:
     mod.breakout_state["NIFTY"]["confirmed_ts"] = just_stale_ts
 # Also update signal_ts so the stale check triggers on signal age

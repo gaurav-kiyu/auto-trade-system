@@ -1001,7 +1001,6 @@ class PositionService:
 
         cfg = getattr(self, "_cfg", None) or {}
         moderate_th = float(cfg.get("TIER_MODERATE_MIN", cfg.get("MODERATE_THRESHOLD", 70)))
-        strong_th = float(cfg.get("TIER_STRONG_MIN", cfg.get("STRONG_THRESHOLD", 80)))
 
         if tier in ("STRONG", "MODERATE"):
             return True

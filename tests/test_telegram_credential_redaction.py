@@ -117,3 +117,88 @@ class TestTelegramCredentialRedaction:
 
         assert secret_token not in caplog.text
         assert "bot<REDACTED>" in caplog.text
+
+    def test_non_signal_alert_does_not_emit_qualifying_signal_template(self):
+        """Plain text alerts (DLQ, constitution, system) must return raw message, not dummy signal format."""
+        adapter = TelegramNotificationAdapter(
+            bot_token="123456:FAKE_TOKEN",
+            default_chat_id="123456",
+            enabled=True,
+        )
+
+        notif = Notification(
+            message="Notification delivery to kiyu failed after 3 attempts",
+            channel=NotificationChannel.TELEGRAM,
+            priority=NotificationPriority.CRITICAL,
+            recipient="admin",
+            subject="Delivery Failure",
+        )
+
+        sig = adapter._notification_to_signal(notif)
+        formatted = _TelegramClient.format_alert(sig)
+        # Must NOT contain the dummy [OPB QUALIFYING SIGNAL] template with 0 price
+        assert "[OPB QUALIFYING SIGNAL]" not in formatted
+        assert "₹0.00" not in formatted
+        assert "Notification delivery to kiyu failed" in formatted
+
+    def test_dummy_signal_is_never_pinned_even_if_critical(self):
+        """_TelegramClient must NEVER pin a dummy signal with ₹0.00 price or unknown symbol."""
+        client = _TelegramClient(
+            bot_token="123456:FAKE_TOKEN",
+            default_chat_id="123456",
+            enabled=True,
+        )
+        client._send_message = MagicMock(return_value=True)
+        client._pin_message = MagicMock()
+
+        dummy_signal = {
+            "symbol": "UNKNOWN",
+            "price": 0.0,
+            "signal": "ALERT",
+            "strength": "STRONG",
+            "score": 50,
+            "direction": "NONE",
+        }
+
+        sent = client.send_signal_alert(dummy_signal)
+        assert sent is True
+        client._send_message.assert_called_once()
+        # Pin argument passed to _send_message must be False
+        assert client._send_message.call_args[1]["pin"] is False
+
+    def test_multi_user_telegram_cooldown_isolation(self):
+        """User A receiving a signal does not trigger cooldown block for User B with different chat ID."""
+        client = _TelegramClient(
+            bot_token="123456:FAKE_TOKEN",
+            default_chat_id="111111",
+            enabled=True,
+            cooldown_seconds=900,
+        )
+        client._send_message = MagicMock(return_value=True)
+
+        sig_user_a = {
+            "symbol": "FINNIFTY",
+            "price": 25000.0,
+            "signal": "BUY",
+            "strength": "STRONG",
+            "direction": "CALL",
+            "score": 85,
+            "chat_id": "111111",
+        }
+        sig_user_b = {
+            "symbol": "FINNIFTY",
+            "price": 25000.0,
+            "signal": "BUY",
+            "strength": "STRONG",
+            "direction": "CALL",
+            "score": 85,
+            "chat_id": "222222",
+        }
+
+        # User A sends successfully
+        assert client.send_signal_alert(sig_user_a) is True
+        # User B should NOT be blocked by User A's cooldown
+        assert client.send_signal_alert(sig_user_b) is True
+        # But User A sending AGAIN immediately is blocked by User A's cooldown
+        assert client.send_signal_alert(sig_user_a) is False
+

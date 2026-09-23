@@ -178,20 +178,22 @@ class _TelegramClient:
         price = _safe_num(signal.get("price"), 0)
         score = signal.get("score", 0)
         now = time.time()
+        target_cid = str(signal.get("chat_id") or signal.get("target_chat_id") or "default").strip()
+        cd_key = f"{target_cid}:{symbol}" if target_cid else symbol
 
         sig_hash = hashlib.md5(
-            f"{symbol}:{direction}:{score}:{round(price, 0)}".encode(),
+            f"{cd_key}:{direction}:{score}:{round(price, 0)}".encode(),
             usedforsecurity=False,
         ).hexdigest()[:16]
 
         with self._lock:
-            last = self._cooldowns.get(symbol)
+            last = self._cooldowns.get(cd_key)
             if last is not None:
                 elapsed = now - last.get("ts", 0)
                 if last.get("direction") == direction and elapsed < self.cooldown_seconds:
                     return False
 
-            if self._last_signals.get(symbol) == sig_hash:
+            if self._last_signals.get(cd_key) == sig_hash:
                 return False
 
         return True
@@ -203,15 +205,17 @@ class _TelegramClient:
         price = _safe_num(signal.get("price"), 0)
         score = signal.get("score", 0)
         now = time.time()
+        target_cid = str(signal.get("chat_id") or signal.get("target_chat_id") or "default").strip()
+        cd_key = f"{target_cid}:{symbol}" if target_cid else symbol
 
         sig_hash = hashlib.md5(
-            f"{symbol}:{direction}:{score}:{round(price, 0)}".encode(),
+            f"{cd_key}:{direction}:{score}:{round(price, 0)}".encode(),
             usedforsecurity=False,
         ).hexdigest()[:16]
 
         with self._lock:
-            self._last_signals[symbol] = sig_hash
-            self._cooldowns[symbol] = {
+            self._last_signals[cd_key] = sig_hash
+            self._cooldowns[cd_key] = {
                 "ts": now,
                 "direction": direction,
                 "score": score,
@@ -296,6 +300,16 @@ class _TelegramClient:
         custom_msg = signal.get("custom_message") or signal.get("formatted_message")
         if custom_msg:
             return str(custom_msg)
+
+        # Plain text notification / system alert guard:
+        # If this is not a valid trading signal (no positive price and symbol is empty/UNKNOWN, or signal is ALERT),
+        # return the raw message text instead of formatting a dummy [OPB QUALIFYING SIGNAL].
+        if price <= 0 or (symbol in ("", "UNKNOWN", "?")) or sig_type == "ALERT":
+            msg_text = signal.get("message") or signal.get("text") or ""
+            if msg_text:
+                return str(msg_text)
+            if price <= 0:
+                return f"⚠️ [OPB ALERT] Incomplete signal data for {symbol} (price={price})."
 
         sig_id = signal.get("signal_id") or signal.get("sig_id") or ""
         strategy = signal.get("strategy") or signal.get("strategy_name") or ""
@@ -410,6 +424,12 @@ class _TelegramClient:
         if not self._check_cooldown_fresh(signal):
             return False
 
+        price = _safe_num(signal.get("price"), 0.0)
+        custom_msg = signal.get("custom_message") or signal.get("formatted_message") or signal.get("message")
+        if price <= 0.0 and not custom_msg and sig_type != "ALERT":
+            logger.warning("Rejected dummy/zero-price signal for symbol=%s", signal.get("symbol"))
+            return False
+
         channels = self._resolve_channel(signal)
         if not self._try_reserve_rate_slots(len(channels)):
             logger.warning("TG rate limit reached, skipping alert")
@@ -417,7 +437,10 @@ class _TelegramClient:
 
         msg = self.format_alert(signal)
         strength = signal.get("strength", "NONE")
-        should_pin = strength == "STRONG"
+        price = _safe_num(signal.get("price"), 0.0)
+        sym = str(signal.get("symbol", "")).strip()
+        # Only pin genuine qualified trade signals with positive price and known symbol
+        should_pin = (strength == "STRONG" and price > 0.0 and sym not in ("", "UNKNOWN", "?"))
         parse_mode = signal.get("parse_mode")
 
         sent = False
@@ -536,7 +559,7 @@ class TelegramNotificationAdapter(NotificationPort):
                     error_message="Failed to send Telegram notification"
                 )
 
-        except (ConnectionError, TimeoutError, OSError, ValueError, TypeError) as e:
+        except (requests.RequestException if requests else (), ConnectionError, TimeoutError, OSError, ValueError, TypeError) as e:
             redacted_err = redact_credential_urls(str(e))
             logger.error("Error sending Telegram notification: %s", redacted_err)
             return NotificationResult(
@@ -583,18 +606,24 @@ class TelegramNotificationAdapter(NotificationPort):
     def _notification_to_signal(self, notification: Notification) -> dict:
         """Convert Notification format to signal dict expected by _TelegramClient."""
         rec = str(notification.recipient or "").strip()
+        custom_msg = (
+            notification.metadata.get("custom_message")
+            or notification.metadata.get("formatted_message")
+            or notification.message
+        )
         signal = {
             "symbol": notification.metadata.get("symbol") or (rec if not (rec.isdigit() or rec.startswith("-")) else "UNKNOWN"),
             "signal": "BUY" if "BUY" in notification.message.upper() else "SELL" if "SELL" in notification.message.upper() else "ALERT",
-            "price": 0.0,
+            "price": float(notification.metadata.get("price") or 0.0),
             "strength": "STRONG" if notification.priority == NotificationPriority.CRITICAL else
                        "MODERATE" if notification.priority == NotificationPriority.HIGH else "WEAK",
             "direction": "BUY" if "BUY" in notification.message.upper() else "SELL" if "SELL" in notification.message.upper() else "NONE",
             "timestamp": notification.timestamp.strftime("%d-%b-%Y %H:%M:%S"),
             "sector": notification.metadata.get("sector", "GENERAL"),
             "category": notification.metadata.get("category", "DEFAULT"),
-            "score": 50,
-            "message": notification.message
+            "score": int(notification.metadata.get("score") or 50),
+            "message": notification.message,
+            "custom_message": custom_msg,
         }
         if rec and (rec.isdigit() or rec.startswith("-") or rec.startswith("@")):
             signal["chat_id"] = rec

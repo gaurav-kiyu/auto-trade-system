@@ -148,6 +148,8 @@ def _patch_network_calls(monkeypatch: pytest.MonkeyPatch) -> None:
     if _YFINANCE_AVAILABLE:
         monkeypatch.setattr(yfinance, "download", lambda *a, **kw: None)
     monkeypatch.setattr("requests.Session.request", lambda *a, **kw: type("Resp", (), {"status_code": 200, "text": "{}", "json": lambda: {}}))
+    import urllib.request
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **kw: type("Resp", (), {"read": lambda: b"<rss></rss>", "close": lambda: None, "__enter__": lambda s: s, "__exit__": lambda *args: None})())
 
 
 # ── Thread-safety helper for tests ────────────────────────────────────────────
