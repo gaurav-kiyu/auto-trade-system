@@ -7,9 +7,12 @@ and professional portfolio risk limits.
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
+
+_log = logging.getLogger("RICH_SIGNAL_FORMATTER")
 
 
 class RichSignalFormatter:
@@ -129,6 +132,10 @@ class RichSignalFormatter:
             except Exception:
                 sig_dt = None
         if sig_dt is None:
+            _log.warning(
+                "[SIGNAL_INTEGRITY] timestamp_str missing or malformed (%r); falling back to now_ist()",
+                timestamp_str,
+            )
             sig_dt = now_ist()
 
         if sig_dt.second > 0:
@@ -225,6 +232,7 @@ class RichSignalFormatter:
         tier: str,
         target_1: float,
         target_2: float,
+        timestamp_str: str = "",
     ) -> str:
         """Generate a clean, high-scan inbox subject following the user's preferred hierarchy.
 
@@ -247,7 +255,7 @@ class RichSignalFormatter:
             action_name = "BUY (CNC / DELIVERY)"
 
         human_sym = cls.format_human_friendly_symbol(symbol, category)
-        horizon = cls.get_holding_horizon_info(category)
+        horizon = cls.get_holding_horizon_info(category, timestamp_str=timestamp_str)
 
         return f"{action_emoji} {human_sym['subject_instrument']} {action_name} | Entry ₹{price:,.2f} | Target ₹{target_1:,.2f} | {horizon['short_horizon']}"
 
@@ -692,6 +700,7 @@ class RichSignalFormatter:
             tier=tier,
             target_1=target_1,
             target_2=target_2,
+            timestamp_str=timestamp_str,
         )
 
         email_html = cls.build_rich_html_email(

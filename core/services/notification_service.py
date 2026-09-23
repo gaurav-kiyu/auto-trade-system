@@ -872,6 +872,13 @@ class NotificationService:
             return results
 
         # 3. Canonical Message Formatting (Institutional Standard DEF-P2-001)
+        canonical_ts = str(
+            signal.get("timestamp")
+            or signal.get("generated_at")
+            or signal.get("signal_ts")
+            or signal.get("time")
+            or ""
+        ).strip()
         from core.notifications.rich_signal_formatter import RichSignalFormatter
         canonical_pkg = RichSignalFormatter.build_canonical_notification(
             signal={
@@ -893,6 +900,7 @@ class NotificationService:
                 "signal_id": signal_id,
                 "company_name": signal.get("company_name", sym),
                 "series": signal.get("series", "EQ"),
+                "timestamp": canonical_ts,
             }
         )
         email_subject = canonical_pkg["subject"]
