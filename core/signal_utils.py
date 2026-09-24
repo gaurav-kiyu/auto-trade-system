@@ -487,11 +487,11 @@ def calculate_directional_levels(
     dir_norm = str(direction or "CALL").strip().upper()
     is_long = dir_norm in ("CALL", "BUY", "LONG")
 
-    # Stop Loss
+    # Stop Loss: for LONG must be < entry; for SHORT must be > entry
     if stop_loss is not None:
         try:
             sl_val = float(stop_loss)
-            if sl_val > 0.0:
+            if sl_val > 0.0 and ((is_long and sl_val < entry) or (not is_long and sl_val > entry)):
                 sl = round(sl_val, 2)
             elif entry > 0.0:
                 sl = round(entry * 0.97 if is_long else entry * 1.03, 2)
@@ -504,11 +504,11 @@ def calculate_directional_levels(
     else:
         sl = 0.0
 
-    # Target 1
+    # Target 1: for LONG must be > entry; for SHORT must be < entry
     if target_1 is not None:
         try:
             t1_val = float(target_1)
-            if t1_val > 0.0:
+            if t1_val > 0.0 and ((is_long and t1_val > entry) or (not is_long and t1_val < entry)):
                 t1 = round(t1_val, 2)
             elif entry > 0.0:
                 t1 = round(entry * 1.04 if is_long else entry * 0.96, 2)
@@ -521,11 +521,11 @@ def calculate_directional_levels(
     else:
         t1 = 0.0
 
-    # Target 2
+    # Target 2: for LONG must be > t1; for SHORT must be < t1
     if target_2 is not None:
         try:
             t2_val = float(target_2)
-            if t2_val > 0.0:
+            if t2_val > 0.0 and ((is_long and t2_val > t1) or (not is_long and t2_val < t1)):
                 t2 = round(t2_val, 2)
             elif entry > 0.0:
                 t2 = round(entry * 1.08 if is_long else entry * 0.92, 2)
@@ -539,6 +539,36 @@ def calculate_directional_levels(
         t2 = 0.0
 
     return sl, t1, t2
+
+
+def validate_signal_geometry(
+    entry_price: float,
+    direction: str,
+    stop_loss: float,
+    target_1: float,
+    target_2: float,
+) -> bool:
+    """Validate that signal levels satisfy strict directional risk geometry.
+
+    Rules:
+    - entry_price, stop_loss, target_1, target_2 must all be > 0.0
+    - For CALL / BUY / LONG: stop_loss < entry_price < target_1 < target_2
+    - For PUT / SELL / SHORT: target_2 < target_1 < entry_price < stop_loss
+    """
+    try:
+        e = float(entry_price)
+        sl = float(stop_loss)
+        t1 = float(target_1)
+        t2 = float(target_2)
+        if min(e, sl, t1, t2) <= 0.0:
+            return False
+        dir_norm = str(direction or "CALL").strip().upper()
+        if dir_norm in ("CALL", "BUY", "LONG"):
+            return sl < e < t1 < t2
+        else:
+            return t2 < t1 < e < sl
+    except (ValueError, TypeError):
+        return False
 
 
 __all__ = [
@@ -556,4 +586,5 @@ __all__ = [
     "score_to_label",
     "score_to_stars",
     "validate_ohlcv",
+    "validate_signal_geometry",
 ]

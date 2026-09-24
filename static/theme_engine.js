@@ -52,7 +52,7 @@
                 '--btn-primary-text': '#ffffff',
                 '--nav-active-text': '#ffffff',
                 '--success-color': '#15803d',
-                '--warning-color': '#a16207',
+                '--warning-color': '#92400e',
                 '--danger-color': '#b91c1c',
                 '--card-shadow': '0 4px 20px -4px rgba(76, 58, 87, 0.08), 0 0 0 1px #e3d9ea',
                 '--input-bg': '#ffffff',
@@ -104,7 +104,7 @@
                 '--btn-primary-text': '#ffffff',
                 '--nav-active-text': '#ffffff',
                 '--success-color': '#15803d',
-                '--warning-color': '#a16207',
+                '--warning-color': '#92400e',
                 '--danger-color': '#b91c1c',
                 '--card-shadow': '0 4px 18px -4px rgba(15, 23, 42, 0.08), 0 0 0 1px #dbe3ec',
                 '--input-bg': '#ffffff',
@@ -128,7 +128,7 @@
                 '--accent-color': '#10b981',
                 '--accent-gradient': 'linear-gradient(135deg, #34d399 0%, #059669 100%)',
                 '--btn-primary-text': '#020d07',
-                '--nav-active-text': '#ffffff',
+                '--nav-active-text': '#020d07',
                 '--success-color': '#34d399',
                 '--warning-color': '#fbbf24',
                 '--danger-color': '#f87171',
@@ -1243,6 +1243,7 @@
         toggleBtn.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
         toggleBtn.setAttribute('title', isCurrentlyPassword ? 'Hide password' : 'Show password');
     }
+    window.togglePasswordField = togglePasswordField;
 
     function initUniversalPasswordToggles() {
         document.querySelectorAll('input[type="password"]').forEach(input => {

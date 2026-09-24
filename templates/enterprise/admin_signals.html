@@ -147,7 +147,7 @@
 </div>
 <div class="stat-card">
 <div class="stat-label">Orders Actually Placed</div>
-<div class="stat-value" id="statOrdersPlaced" style="color:#facc15;">-</div>
+<div class="stat-value" id="statOrdersPlaced" style="color:var(--warning-color, #d97706);">-</div>
 </div>
 </div>
 <!-- Category Accuracy Matrix -->
@@ -236,7 +236,7 @@
             if (status === 'TARGET_2_HIT') return '<span class="badge badge-t2"><i class="fas fa-check-double"></i> TARGET 2 HIT (+8%)</span>';
             if (status === 'TARGET_1_HIT') return '<span class="badge badge-t1"><i class="fas fa-check"></i> TARGET 1 HIT (+4%)</span>';
             if (status === 'SL_HIT') return '<span class="badge badge-sl"><i class="fas fa-times"></i> SL HIT (-3%)</span>';
-            if (status === 'AMBIGUOUS' || status === 'AMBIGUOUS_SAME_BAR') return '<span class="badge" style="background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3);font-weight:700;"><i class="fas fa-question-circle"></i> AMBIGUOUS</span>';
+            if (status === 'AMBIGUOUS' || status === 'AMBIGUOUS_SAME_BAR') return '<span class="badge" style="background:var(--market-warning-bg, rgba(217,119,6,0.14));color:var(--warning-color, #d97706);border:1px solid var(--warning-color, #d97706);font-weight:700;"><i class="fas fa-question-circle"></i> AMBIGUOUS</span>';
             if (status === 'EXPIRED') return '<span class="badge" style="background:rgba(148,163,184,0.15);color:var(--text-muted, #94a3b8);border:1px solid rgba(148,163,184,0.3);"><i class="fas fa-clock"></i> EXPIRED</span>';
             return '<span class="badge badge-active"><i class="fas fa-circle-notch fa-spin"></i> ACTIVE</span>';
         }
@@ -372,6 +372,20 @@
                 const pnlText = `${s.pnl_pct >= 0 ? '+' : ''}${s.pnl_pct.toFixed(2)}%`;
                 const humanTitle = formatHumanName(s.symbol, s.category);
 
+                const entry = Number(s.entry_price) || 0;
+                const t1 = Number(s.target_1) || 0;
+                const t2 = Number(s.target_2) || 0;
+                const sl = Number(s.stop_loss) || 0;
+                let t1PctStr = '', t2PctStr = '', slPctStr = '';
+                if (entry > 0) {
+                    const t1Pct = ((t1 - entry) / entry) * 100;
+                    const t2Pct = ((t2 - entry) / entry) * 100;
+                    const slPct = ((sl - entry) / entry) * 100;
+                    t1PctStr = `(${t1Pct >= 0 ? '+' : ''}${t1Pct.toFixed(1)}%)`;
+                    t2PctStr = `(${t2Pct >= 0 ? '+' : ''}${t2Pct.toFixed(1)}%)`;
+                    slPctStr = `(${slPct >= 0 ? '+' : ''}${slPct.toFixed(1)}%)`;
+                }
+
                 return `<tr data-signal-row="1" data-instrument="${String(s.symbol || '').replace(/"/g, '&quot;').toUpperCase()} ${String(humanTitle || '').replace(/"/g, '&quot;').toUpperCase()}" data-time="${String(s.timestamp || '').replace(/"/g, '&quot;').toUpperCase()}" data-category="${String(s.category || '').replace(/"/g, '&quot;').toUpperCase()}" data-action="${String(s.direction || '').replace(/"/g, '&quot;').toUpperCase()}" data-score="${Number(s.score || 0)}" data-status="${String(s.status || '').replace(/"/g, '&quot;').toUpperCase()}">
                     <td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);font-family:monospace;white-space:nowrap;">
                         <i class="far fa-clock" style="margin-right:0.3rem;color: var(--text-muted, #94a3b8);"></i>${s.timestamp ? s.timestamp.substring(0, 19).replace('T', ' ') : '-'}
@@ -387,7 +401,7 @@
                     </td>
                     <td>
                         ${(s.category && (s.category.includes('OPTION') || s.category.includes('0DTE'))) 
-                            ? '<span style="color:#f59e0b;font-weight:700;font-size:0.75rem;"><i class="fas fa-bolt"></i> Intraday (<15:15)</span>' 
+                            ? '<span style="color:var(--warning-color, #d97706);font-weight:700;font-size:0.75rem;"><i class="fas fa-bolt"></i> Intraday (<15:15)</span>' 
                             : '<span style="color:#38bdf8;font-weight:700;font-size:0.75rem;"><i class="far fa-calendar-alt"></i> 1–5 Days (Swing)</span>'}
                     </td>
                     <td>${dirBadge}</td>
@@ -403,15 +417,15 @@
                     <td style="font-family:monospace;font-weight:700;color:#38bdf8;font-size:0.85rem;">₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td>
                         <div style="font-family:monospace;font-size:0.75rem;color: var(--success-color, #16a34a);">
-                            <strong style="color: var(--success-color, #16a34a);">T1:</strong> ₹${s.target_1.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#86efac;">(+4%)</span>
+                            <strong style="color: var(--success-color, #16a34a);">T1:</strong> ₹${s.target_1.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#86efac;">${t1PctStr}</span>
                         </div>
                         <div style="font-family:monospace;font-size:0.75rem;color:#34d399;margin-top:2px;">
-                            <strong style="color:#10b981;">T2:</strong> ₹${s.target_2.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#6ee7b7;">(+8%)</span>
+                            <strong style="color:#10b981;">T2:</strong> ₹${s.target_2.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#6ee7b7;">${t2PctStr}</span>
                         </div>
                     </td>
                     <td>
                         <div style="font-family:monospace;font-size:0.75rem;color: var(--danger-color, #dc2626);font-weight:600;">
-                            ₹${s.stop_loss.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#fca5a5;">(-3%)</span>
+                            ₹${s.stop_loss.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#fca5a5;">${slPctStr}</span>
                         </div>
                     </td>
                     <td>${statusBadge(s.status)}</td>
@@ -421,7 +435,7 @@
                         {% if can_manage_users %}
                         <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
                             <input type="checkbox" class="orderPlacedCheckbox" data-signal-id="${s.signal_id}"
-                                   ${s.order_placed ? 'checked' : ''} style="width:16px;height:16px;accent-color:#facc15;cursor:pointer;">
+                                   ${s.order_placed ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--warning-color, #d97706);cursor:pointer;">
                             <span style="font-size:0.7rem;color: var(--text-muted, #94a3b8);" class="orderPlacedLabel">
                                 ${s.order_placed ? `by ${s.order_placed_by || 'admin'}` : ''}
                             </span>

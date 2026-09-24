@@ -299,7 +299,7 @@
 <div class="tab" data-tab="signals"><i class="fas fa-wave-square"></i> Signals &amp; Quant</div>
 <div class="tab" data-tab="ml"><i class="fas fa-brain"></i> Machine Learning</div>
 <div class="tab" data-tab="notifications"><i class="fas fa-bell"></i> Notifications (TG &amp; Email)</div>
-<div class="tab" data-tab="billing"><i class="fas fa-qrcode"></i> UPI &amp; Billing</div>
+{% if is_super_admin %}<div class="tab" data-tab="billing"><i class="fas fa-qrcode"></i> UPI &amp; Billing</div>{% endif %}
 <div class="tab" data-tab="system"><i class="fas fa-server"></i> System Core</div>
 </div>
 <div class="preview-box" id="previewBox"></div>
@@ -397,7 +397,7 @@
     </div>
   </div>
 </div>
-</div>
+{% if is_super_admin %}
 <div class="section" id="section-billing">
 <div class="card" style="padding:1.25rem;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
@@ -473,6 +473,7 @@
   </div>
 </div>
 </div>
+{% endif %}
 <div class="section" id="section-system"><div class="card"><div class="config-grid" id="config-system"><div style="color: var(--text-muted, #94a3b8);text-align:center;">Loading...</div></div></div></div>
 </div>
 <div id="historyModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;">
@@ -944,9 +945,12 @@ async function saveAdminBillingConfig() {
     const upi_vpa = (document.getElementById('adminUpiVpaField')?.value || '').trim();
     const payee_name = (document.getElementById('adminPayeeNameField')?.value || '').trim();
     try {
+        const csrfToken = getCookie('opb_csrf');
+        const headers = {'Content-Type': 'application/json'};
+        if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
         const res = await fetch('/api/admin/billing/upi-config', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             credentials: 'include',
             body: JSON.stringify({ upi_vpa, payee_name })
         });
@@ -970,8 +974,12 @@ async function uploadAdminBillingQr() {
     formData.append('scanner_file', file);
 
     try {
+        const csrfToken = getCookie('opb_csrf');
+        const headers = {};
+        if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
         const res = await fetch('/api/admin/billing/upload-qr', {
             method: 'POST',
+            headers: headers,
             credentials: 'include',
             body: formData
         });
@@ -992,8 +1000,12 @@ async function uploadAdminBillingQr() {
 async function deleteAdminBillingQr() {
     if (!confirm('Revert back to dynamic NPCI QR codes? The custom uploaded scanner image will be deleted.')) return;
     try {
+        const csrfToken = getCookie('opb_csrf');
+        const headers = {'Content-Type': 'application/json'};
+        if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
         const res = await fetch('/api/admin/billing/delete-qr', {
             method: 'POST',
+            headers: headers,
             credentials: 'include'
         });
         const data = await res.json();

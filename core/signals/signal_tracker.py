@@ -95,7 +95,10 @@ class SignalTracker:
                         normalized_score REAL,
                         score_saturated INTEGER DEFAULT 0,
                         opportunity_key TEXT,
-                        outcome_confidence TEXT DEFAULT 'POLLING'
+                        outcome_confidence TEXT DEFAULT 'POLLING',
+                        first_touch TEXT DEFAULT '',
+                        first_touch_at TEXT DEFAULT '',
+                        first_touch_price REAL DEFAULT 0.0
                     )
                 """)
 
@@ -106,6 +109,9 @@ class SignalTracker:
                     ("score_saturated", "ALTER TABLE system_signals ADD COLUMN score_saturated INTEGER DEFAULT 0"),
                     ("opportunity_key", "ALTER TABLE system_signals ADD COLUMN opportunity_key TEXT"),
                     ("outcome_confidence", "ALTER TABLE system_signals ADD COLUMN outcome_confidence TEXT DEFAULT 'POLLING'"),
+                    ("first_touch", "ALTER TABLE system_signals ADD COLUMN first_touch TEXT DEFAULT ''"),
+                    ("first_touch_at", "ALTER TABLE system_signals ADD COLUMN first_touch_at TEXT DEFAULT ''"),
+                    ("first_touch_price", "ALTER TABLE system_signals ADD COLUMN first_touch_price REAL DEFAULT 0.0"),
                 ):
                     try:
                         cur.execute(f"SELECT {col} FROM system_signals LIMIT 1")
@@ -173,6 +179,7 @@ class SignalTracker:
                         hit_sl INTEGER NOT NULL DEFAULT 0,
                         hit_t1 INTEGER NOT NULL DEFAULT 0,
                         hit_t2 INTEGER NOT NULL DEFAULT 0,
+                        transition_note TEXT DEFAULT '',
                         FOREIGN KEY (signal_id) REFERENCES system_signals(signal_id)
                     )
                 """)
@@ -260,6 +267,11 @@ class SignalTracker:
                         cur.execute(f"ALTER TABLE system_signals ADD COLUMN {col} {col_type}")
                     except sqlite3.OperationalError:
                         pass
+
+                try:
+                    cur.execute("ALTER TABLE signal_outcome_events ADD COLUMN transition_note TEXT DEFAULT ''")
+                except sqlite3.OperationalError:
+                    pass
 
                 # Check if empty, then seed sample historical data
                 cur.execute("SELECT COUNT(*) as cnt FROM system_signals")
@@ -449,14 +461,38 @@ class SignalTracker:
                             return ""
                         else:
                             # Cooldown elapsed: expire prior opposite signal cleanly before activating new reversal
+                            prior_sig_id = active_same_sym["signal_id"]
+                            prior_dict = dict(active_same_sym)
+                            prior_price = prior_dict.get("current_price") or prior_dict.get("entry_price") or 0.0
+                            now_iso = now.isoformat()
                             cur.execute(
-                                """UPDATE system_signals SET status = 'EXPIRED'
+                                """UPDATE system_signals
+                                   SET status = 'EXPIRED',
+                                       first_touch = CASE WHEN first_touch IS NULL OR first_touch = '' THEN 'EXPIRED' ELSE first_touch END,
+                                       first_touch_at = CASE WHEN first_touch_at IS NULL OR first_touch_at = '' THEN ? ELSE first_touch_at END,
+                                       first_touch_price = CASE WHEN first_touch_price IS NULL OR first_touch_price = 0 THEN ? ELSE first_touch_price END,
+                                       outcome_confidence = CASE WHEN outcome_confidence IS NULL OR outcome_confidence = '' OR outcome_confidence = 'UNKNOWN' THEN 'EXACT_OBSERVATION' ELSE outcome_confidence END
                                    WHERE signal_id = ? AND status = 'ACTIVE'""",
-                                (active_same_sym["signal_id"],)
+                                (now_iso, prior_price, prior_sig_id)
                             )
+                            cur.execute(
+                                """UPDATE user_deliveries SET status = 'EXPIRED' WHERE signal_id = ? AND status = 'ACTIVE'""",
+                                (prior_sig_id,)
+                            )
+                            cur.execute(
+                                """SELECT event_id FROM signal_outcome_events WHERE signal_id = ? AND transition_note LIKE '%reversal%'""",
+                                (prior_sig_id,)
+                            )
+                            if not cur.fetchone():
+                                cur.execute(
+                                    """INSERT INTO signal_outcome_events
+                                       (signal_id, observed_at, observed_price, hit_sl, hit_t1, hit_t2, transition_note)
+                                       VALUES (?, ?, ?, 0, 0, 0, ?)""",
+                                    (prior_sig_id, now_iso, prior_price, f"Expired on qualified opposite-direction reversal to {direction}")
+                                )
                             _log.info(
                                 "[SIGNAL_LIFECYCLE] Expired prior active %s %s (%s) upon qualified reversal to %s",
-                                sym, active_dir, active_same_sym["signal_id"], direction
+                                sym, active_dir, prior_sig_id, direction
                             )
 
                 sig_id = f"SIG-{now.strftime('%Y%m%d%H%M%S')}-{sym}-{uuid.uuid4().hex[:6]}"

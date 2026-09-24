@@ -334,19 +334,25 @@
 <script nonce="{{ nonce }}">
         // Password visibility controls for Create User and Reset Password.
         document.querySelectorAll('.opb-password-toggle').forEach(button => {
-            button.addEventListener('click', () => {
-                const wrapper = button.closest('.opb-password-wrapper');
-                const input = wrapper
-                    ? wrapper.querySelector('input[type="password"], input[type="text"]')
-                    : null;
-                if (!input) return;
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (typeof togglePasswordField === 'function') {
+                    togglePasswordField(button);
+                } else {
+                    const wrapper = button.closest('.opb-password-wrapper');
+                    const input = wrapper
+                        ? wrapper.querySelector('input[type="password"], input[type="text"]')
+                        : null;
+                    if (!input) return;
 
-                const showing = input.type === 'text';
-                input.type = showing ? 'password' : 'text';
-                button.setAttribute(
-                    'aria-label',
-                    showing ? 'Show password' : 'Hide password'
-                );
+                    const showing = input.type === 'text';
+                    input.type = showing ? 'password' : 'text';
+                    button.setAttribute(
+                        'aria-label',
+                        showing ? 'Show password' : 'Hide password'
+                    );
+                }
             });
         });
 

@@ -1273,3 +1273,41 @@ textarea:disabled,
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   OPB v2.59.4 CONTENT SCROLL CONTAINMENT & STICKY TABLE HEADERS (DEF-24)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Scroll containment for table wrappers and inner content panels */
+.opb-table-container,
+.table-responsive,
+.grid-container,
+.opb-scroll-container,
+.opb-content-panel {
+    max-height: calc(100vh - 220px);
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+}
+
+/* Sticky table headers with opaque theme backgrounds */
+table thead th,
+.opb-table thead th,
+.table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    background-color: var(--bg-card, #0f172a) !important;
+    color: var(--text-primary, #f8fafc) !important;
+    box-shadow: 0 1px 0 var(--border-color, #334155) !important;
+}
+
+/* Multi-row or filter header rows */
+table thead tr:nth-child(2) th,
+.opb-table thead tr:nth-child(2) th,
+.table thead tr.table-filter-row th {
+    top: 38px !important;
+    z-index: 19 !important;
+    background-color: var(--bg-card, #0f172a) !important;
+}
+

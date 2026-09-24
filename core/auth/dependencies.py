@@ -105,7 +105,9 @@ class AuthDependencies:
 
         async def _check_role(user: AuthUser = Depends(self.require_auth)) -> AuthUser:
             actual_role = user.role.lower()
-            # super_admin is the root administrative role and satisfies admin gates.
+            # super_admin is the root administrative role and satisfies admin and super_admin gates.
+            if is_super_admin_identity(user.username, actual_role):
+                return user
             if actual_role == "super_admin" and "admin" in allowed:
                 return user
             if actual_role not in allowed:

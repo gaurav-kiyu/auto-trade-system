@@ -68,9 +68,15 @@ class TestSignalOutcomeTracker:
         order_placed: int = 0,
         recipients_count: int = 0,
         raw_data: str = "",
-        created_date: str = "2026-09-17",
-        timestamp: str = "2026-09-17 10:00:00",
+        created_date: str | None = None,
+        timestamp: str | None = None,
     ) -> dict[str, Any]:
+        from core.datetime_ist import now_ist
+        _now = now_ist()
+        if created_date is None:
+            created_date = _now.strftime("%Y-%m-%d")
+        if timestamp is None:
+            timestamp = _now.strftime("%Y-%m-%d 10:00:00")
         conn = tracker._get_conn()
         cur = conn.cursor()
         cur.execute("""

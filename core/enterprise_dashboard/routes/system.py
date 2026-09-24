@@ -50,42 +50,91 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
         if is_weekend:
             status = "CLOSED"
             label = "MARKET CLOSED"
+            session_label = "WEEKEND (CLOSED)"
+            session_color = "var(--text-muted, #94a3b8)"
+            regime_label = "REGIME: WEEKEND PAUSE"
+            regime_color = "var(--text-muted, #94a3b8)"
+            regime_bg = "var(--bg-secondary, #0f172a)"
+            regime_border = "var(--border-color, #334155)"
+            regime_icon = "fas fa-moon"
             is_open = False
             state_color = "var(--text-muted, #94a3b8)"
             pulse_class = "pulse-muted"
         elif is_holiday:
             status = "HOLIDAY"
             label = "NSE HOLIDAY"
+            session_label = "NSE HOLIDAY (CLOSED)"
+            session_color = "var(--accent-purple, #a855f7)"
+            regime_label = "REGIME: NSE HOLIDAY"
+            regime_color = "var(--accent-purple, #a855f7)"
+            regime_bg = "rgba(168, 85, 247, 0.12)"
+            regime_border = "rgba(168, 85, 247, 0.35)"
+            regime_icon = "fas fa-calendar-times"
             is_open = False
             state_color = "var(--accent-purple, #a855f7)"
             pulse_class = "pulse-warning"
         elif curr_time < t_0900:
             status = "PRE_MARKET"
             label = "PRE-MARKET (09:15)"
+            session_label = "PRE-MARKET (OPENS 09:15 IST)"
+            session_color = "var(--warning-color, #f59e0b)"
+            regime_label = "REGIME: PRE-MARKET"
+            regime_color = "var(--warning-color, #f59e0b)"
+            regime_bg = "var(--market-warning-bg, rgba(217, 119, 6, 0.12))"
+            regime_border = "var(--warning-color, #f59e0b)"
+            regime_icon = "fas fa-clock"
             is_open = False
             state_color = "var(--warning-color, #f59e0b)"
             pulse_class = "pulse-warning"
         elif t_0900 <= curr_time < t_0915:
             status = "PRE_OPEN"
             label = "PRE-OPEN"
+            session_label = "PRE-OPEN (09:00–09:15 IST)"
+            session_color = "var(--warning-color, #f59e0b)"
+            regime_label = "REGIME: ORDER DISCOVERY"
+            regime_color = "var(--warning-color, #f59e0b)"
+            regime_bg = "var(--market-warning-bg, rgba(217, 119, 6, 0.12))"
+            regime_border = "var(--warning-color, #f59e0b)"
+            regime_icon = "fas fa-compass"
             is_open = True
             state_color = "var(--warning-color, #f59e0b)"
             pulse_class = "pulse-warning"
         elif t_0915 <= curr_time < t_1530:
             status = "LIVE"
             label = "MARKET OPEN"
+            session_label = "NORMAL (09:15–15:30 IST)"
+            session_color = "var(--market-buy, #10b981)"
+            regime_label = "REGIME: ACTIVE SESSION"
+            regime_color = "var(--market-buy, #10b981)"
+            regime_bg = "var(--market-buy-bg, rgba(16, 185, 129, 0.12))"
+            regime_border = "var(--market-buy-border, rgba(16, 185, 129, 0.35))"
+            regime_icon = "fas fa-arrow-trend-up"
             is_open = True
             state_color = "var(--market-buy, #10b981)"
             pulse_class = "pulse-live"
         elif t_1530 <= curr_time < t_1600:
             status = "POST_MARKET"
             label = "POST-MARKET"
+            session_label = "POST-MARKET (15:30–16:00 IST)"
+            session_color = "var(--warning-color, #f59e0b)"
+            regime_label = "REGIME: POST-MARKET RECONCILIATION"
+            regime_color = "var(--warning-color, #f59e0b)"
+            regime_bg = "var(--market-warning-bg, rgba(217, 119, 6, 0.12))"
+            regime_border = "var(--warning-color, #f59e0b)"
+            regime_icon = "fas fa-clock"
             is_open = False
             state_color = "var(--warning-color, #f59e0b)"
             pulse_class = "pulse-warning"
         else:
             status = "CLOSED"
             label = "MARKET CLOSED"
+            session_label = "OFF-HOURS (CLOSED)"
+            session_color = "var(--text-muted, #94a3b8)"
+            regime_label = "REGIME: MARKET CLOSED"
+            regime_color = "var(--text-muted, #94a3b8)"
+            regime_bg = "var(--bg-secondary, #0f172a)"
+            regime_border = "var(--border-color, #334155)"
+            regime_icon = "fas fa-moon"
             is_open = False
             state_color = "var(--text-muted, #94a3b8)"
             pulse_class = "pulse-muted"
@@ -96,6 +145,13 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
             "is_open": is_open,
             "status": status,
             "label": label,
+            "session_label": session_label,
+            "session_color": session_color,
+            "regime_label": regime_label,
+            "regime_color": regime_color,
+            "regime_bg": regime_bg,
+            "regime_border": regime_border,
+            "regime_icon": regime_icon,
             "color": state_color,
             "pulse_class": pulse_class,
             "time_ist": now.strftime("%H:%M:%S"),

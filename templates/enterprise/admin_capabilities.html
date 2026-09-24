@@ -172,7 +172,7 @@
                     <i class="far fa-clock" style="color: #38bdf8; margin-right: 0.3rem;"></i> Market Session Radar
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;">
-                    <div class="stat-value" id="hudSessionState" style="font-size: 1.15rem; color: #facc15;">--</div>
+                    <div class="stat-value" id="hudSessionState" style="font-size: 1.15rem; color: var(--warning-color, #d97706);">--</div>
                     <span id="hudTradingDay" class="badge badge-unavailable" style="font-size: 0.65rem;">--</span>
                 </div>
                 <div style="font-size: 0.7rem; color: var(--text-muted, #94a3b8); margin-top: 0.35rem;" id="hudSessionDetail">
@@ -239,7 +239,7 @@
             <div class="stat-label">Safely Gated (Unavailable)</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value" id="kpiDegraded" style="color: #f59e0b;">
+            <div class="stat-value" id="kpiDegraded" style="color: var(--warning-color, #d97706);">
                 {{ capability_report.summary.DEGRADED if capability_report else 0 }}
             </div>
             <div class="stat-label">Degraded (Partial)</div>

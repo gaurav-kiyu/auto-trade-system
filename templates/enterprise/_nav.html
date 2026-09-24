@@ -36,8 +36,12 @@
             flex-direction: column;
             gap: 0.75rem;
             margin-bottom: 1.25rem;
-            position: relative;
-            z-index: 1000;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 1000 !important;
+            background: var(--bg-primary, #080c14) !important;
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
         }
 
         .opb-nav-top {
@@ -176,9 +180,9 @@
             border-radius: 0.75rem;
             margin-bottom: 0.75rem;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            position: sticky;
-            top: 0.5rem;
-            z-index: 999;
+            position: sticky !important;
+            top: 0.5rem !important;
+            z-index: 1000 !important;
         }
 
         .mobile-hamburger-btn {
@@ -433,14 +437,18 @@ body[data-theme="midnight-slate"] {
     --nav-active-text: #ffffff;
 }
 
-/* Emerald: teal accent uses white. */
+/* Emerald: teal accent uses dark high-contrast text. */
 body[data-theme="emerald-matrix"] {
-    --nav-active-text: #ffffff;
+    --nav-active-text: #020d07;
 }
 
-.opb-desktop-nav .opb-nav-item.active,
-.opb-desktop-nav .opb-ws-item.active {
+.opb-desktop-nav .opb-nav-item.active {
     color: var(--nav-active-text, #0f172a);
+}
+.opb-desktop-nav .opb-ws-item.active {
+    background: var(--bg-card-hover) !important;
+    color: var(--accent-color) !important;
+    font-weight: 700 !important;
 }
 .opb-mobile-drawer .drawer-nav-item,
 .opb-mobile-drawer .drawer-section-title,
@@ -537,9 +545,14 @@ body[data-theme="emerald-matrix"] {
     color: var(--accent-color, #38bdf8) !important;
 }
 
-.opb-desktop-nav .opb-nav-item.active,
-.opb-desktop-nav .opb-ws-item.active {
+.opb-desktop-nav .opb-nav-item.active {
     color: var(--nav-active-text, var(--text-primary, #0f172a)) !important;
+}
+
+.opb-desktop-nav .opb-ws-item.active {
+    background: var(--bg-card-hover) !important;
+    color: var(--accent-color) !important;
+    font-weight: 700 !important;
 }
 
 /* ------------------------------------------------------------
@@ -815,7 +828,7 @@ body[data-theme="midnight-slate"] {
 }
 
 body[data-theme="emerald-matrix"] {
-    --nav-active-text: #ffffff;
+    --nav-active-text: #020d07;
 }
 
 </style>
@@ -847,12 +860,12 @@ body[data-theme="emerald-matrix"] {
             <!-- Execution Mode Indicator (PAPER / LIVE) -->
             {% set _desktop_mode = (execution_mode or (config.EXECUTION_MODE if config else 'PAPER') or 'PAPER')|upper %}
             {% if _desktop_mode == 'LIVE' %}
-            <span class="desktop-status-pill" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#ef4444;height:34px;padding:0 0.65rem;border-radius:0.4rem;font-size:0.75rem;font-weight:800;display:inline-flex;align-items:center;gap:0.4rem;flex-shrink:0;white-space:nowrap;box-sizing:border-box;">
-                <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;"></span> LIVE
+            <span class="desktop-status-pill" style="background:rgba(239,68,68,0.15);border:1px solid var(--danger-color,#ef4444);color:var(--danger-color,#ef4444);height:34px;padding:0 0.65rem;border-radius:0.4rem;font-size:0.75rem;font-weight:800;display:inline-flex;align-items:center;gap:0.4rem;flex-shrink:0;white-space:nowrap;box-sizing:border-box;">
+                <span style="width:7px;height:7px;border-radius:50%;background:var(--danger-color,#ef4444);display:inline-block;"></span> LIVE
             </span>
             {% else %}
-            <span class="desktop-status-pill" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;height:34px;padding:0 0.65rem;border-radius:0.4rem;font-size:0.75rem;font-weight:800;display:inline-flex;align-items:center;gap:0.4rem;flex-shrink:0;white-space:nowrap;box-sizing:border-box;">
-                <span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> {{ _desktop_mode }}
+            <span class="desktop-status-pill" style="background:var(--market-warning-bg,rgba(217,119,6,0.14));border:1px solid var(--warning-color,#d97706);color:var(--warning-color,#d97706);height:34px;padding:0 0.65rem;border-radius:0.4rem;font-size:0.75rem;font-weight:800;display:inline-flex;align-items:center;gap:0.4rem;flex-shrink:0;white-space:nowrap;box-sizing:border-box;">
+                <span style="width:7px;height:7px;border-radius:50%;background:var(--warning-color,#d97706);display:inline-block;"></span> {{ _desktop_mode }}
             </span>
             {% endif %}
 
@@ -978,17 +991,19 @@ body[data-theme="emerald-matrix"] {
     <div style="display:flex;align-items:center;gap:0.45rem;flex-shrink:0;">
         {% set _mobile_mode = (execution_mode or (config.EXECUTION_MODE if config else 'PAPER') or 'PAPER')|upper %}
         {% if _mobile_mode == 'LIVE' %}
-        <span class="mobile-status-pill" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#ef4444;font-weight:800;padding:0.25rem 0.5rem;border-radius:0.45rem;font-size:0.7rem;display:flex;align-items:center;gap:0.3rem;white-space:nowrap;">
-            <span style="width:6px;height:6px;border-radius:50%;background:#ef4444;display:inline-block;"></span> LIVE
+        <span class="mobile-status-pill" style="background:rgba(239,68,68,0.15);border:1px solid var(--danger-color,#ef4444);color:var(--danger-color,#ef4444);font-weight:800;padding:0.25rem 0.5rem;border-radius:0.45rem;font-size:0.7rem;display:flex;align-items:center;gap:0.3rem;white-space:nowrap;">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--danger-color,#ef4444);display:inline-block;"></span> LIVE
         </span>
         {% else %}
-        <span class="mobile-status-pill" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;font-weight:800;padding:0.25rem 0.5rem;border-radius:0.45rem;font-size:0.7rem;display:flex;align-items:center;gap:0.3rem;white-space:nowrap;">
-            <span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> {{ _mobile_mode }}
+        <span class="mobile-status-pill" style="background:var(--market-warning-bg,rgba(217,119,6,0.14));border:1px solid var(--warning-color,#d97706);color:var(--warning-color,#d97706);font-weight:800;padding:0.25rem 0.5rem;border-radius:0.45rem;font-size:0.7rem;display:flex;align-items:center;gap:0.3rem;white-space:nowrap;">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--warning-color,#d97706);display:inline-block;"></span> {{ _mobile_mode }}
         </span>
         {% endif %}
+        {% if can_halt_trading %}
         <a href="/admin/kill-switch" class="mobile-kill-btn" title="Emergency Kill Switch" style="display:inline-flex;align-items:center;gap:0.25rem;background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);color:#ffffff!important;border:1px solid #b91c1c;padding:0.25rem 0.6rem;border-radius:0.45rem;font-size:0.72rem;font-weight:800;letter-spacing:0.03em;text-decoration:none;white-space:nowrap;box-shadow:0 2px 6px rgba(220,38,38,0.4);">
             🚨 KILL
         </a>
+        {% endif %}
     </div>
 </div>
 
