@@ -840,6 +840,7 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         analyzer = get_admin_portfolio_analyzer()
         holdings = analyzer.fetch_broker_holdings(broker_code, credentials=credentials)
         broker_info = analyzer.get_broker_info(broker_code)
+        is_sample = any(h.get("is_sample_data", False) for h in holdings)
         return {
             "status": "success",
             "broker_code": broker_code,
@@ -847,6 +848,9 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
             "holdings": holdings,
             "count": len(holdings),
             "total_value": sum(h.get("quantity", 0) * h.get("current_price", 0) for h in holdings),
+            "is_sample_data": is_sample,
+            "capability_status": "adapter_ready" if broker_info.get("supports_oauth") else "manual_only",
+            "message": "Sample portfolio data loaded for demonstration" if is_sample else "Live broker positions imported successfully",
         }
 
     @app.post("/api/v1/admin/analyze-portfolio")
@@ -1041,13 +1045,19 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         content_type = request.headers.get("content-type", "")
 
         if "multipart/form-data" in content_type:
-            form = await request.form()
-            upload = form.get("scanner_file") or form.get("file")
-            if upload is not None and hasattr(upload, "read"):
-                file_bytes = await upload.read()
-                filename = getattr(upload, "filename", "scanner.png") or "scanner.png"
-            elif upload is not None and isinstance(upload, (bytes, bytearray)):
-                file_bytes = bytes(upload)
+            try:
+                form = await request.form()
+                upload = form.get("scanner_file") or form.get("file")
+                if upload is not None and hasattr(upload, "read"):
+                    file_bytes = await upload.read()
+                    filename = getattr(upload, "filename", "scanner.png") or "scanner.png"
+                elif upload is not None and isinstance(upload, (bytes, bytearray)):
+                    file_bytes = bytes(upload)
+            except Exception as e:
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "message": f"Multipart upload parsing error: {e}"},
+                )
         else:
             try:
                 body = await request.json()

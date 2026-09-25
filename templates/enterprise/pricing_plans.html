@@ -23,7 +23,7 @@
         .plan-features li i { color: var(--success-color, #16a34a); }
         .btn-pay { width: 100%; padding: 0.6rem; border-radius: 0.5rem; background: #3b82f6; color: #fff; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; transition: background 0.2s; }
         .btn-pay:hover { background: #2563eb; }
-        .qr-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 50; align-items: center; justify-content: center; }
+        .qr-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000000; align-items: center; justify-content: center; }
     </style>    {% include "_pwa_head.html" %}
     <!-- Fonts & Design System Tokens -->
 <link rel="stylesheet" href="/static/fontawesome.min.css">
@@ -64,7 +64,7 @@
     <!-- Direct UPI QR Payment Modal -->
     <div class="qr-modal" id="qrModal">
         <div style="background:var(--bg-card, #111827);border:1px solid var(--border-color, rgba(148,163,184,0.2));border-radius:1rem;padding:2rem;max-width:440px;width:92%;text-align:center;position:relative;max-height:92vh;overflow-y:auto;">
-            <button id="cspfix-1" style="position:absolute;top:15px;right:15px;background:transparent;border:none;color: var(--text-muted, #94a3b8);font-size:1.2rem;cursor:pointer;" type="button">×</button>
+            <button id="cspfix-1" class="opb-modal-close-btn" style="position:sticky;top:0;float:right;margin-top:-1rem;margin-right:-1rem;background:transparent;border:none;color: var(--text-muted, #94a3b8);font-size:1.4rem;cursor:pointer;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;z-index:50;" aria-label="Close modal" type="button">×</button>
             <h3 id="modalPlanTitle" style="font-weight:700;font-size:1.15rem;margin-bottom:0.25rem;">Plan Title</h3>
             <p style="color: var(--text-muted, #94a3b8);font-size:0.8rem;margin-bottom:0.6rem;">Scan with PhonePe, Google Pay, Paytm, or BHIM</p>
 
@@ -120,7 +120,7 @@
     <!-- Super Admin UPI Scanner Customization Modal -->
     <div class="qr-modal" id="superAdminModal">
         <div style="background:var(--bg-card, #111827);border:1px solid var(--border-color, #1e293b);border-radius:1rem;padding:1.75rem;max-width:480px;width:92%;text-align:left;position:relative;max-height:92vh;overflow-y:auto;">
-            <button id="closeAdminModalBtn" style="position:absolute;top:15px;right:15px;background:transparent;border:none;color:var(--text-muted, #94a3b8);font-size:1.2rem;cursor:pointer;" type="button">×</button>
+            <button id="closeAdminModalBtn" class="opb-modal-close-btn" style="position:sticky;top:0;float:right;margin-top:-0.75rem;margin-right:-0.75rem;background:transparent;border:none;color:var(--text-muted, #94a3b8);font-size:1.4rem;cursor:pointer;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;z-index:50;" aria-label="Close modal" type="button">×</button>
             <h3 style="font-weight:700;font-size:1.15rem;margin-bottom:0.35rem;color:var(--text-primary, #ffffff);display:flex;align-items:center;gap:0.5rem;">
                 <i class="fas fa-qrcode" style="color:var(--accent-color, #38bdf8);"></i> Customize UPI Scanner &amp; VPA
             </h3>
@@ -373,7 +373,14 @@
                     credentials: 'include',
                     body: formData
                 });
-                const data = await res.json();
+                let data;
+                const contentType = res.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    data = await res.json();
+                } else {
+                    const text = await res.text();
+                    throw new Error(res.status + ' ' + res.statusText + (text ? ': ' + text.substring(0, 100) : ''));
+                }
                 if (data.success) {
                     showAdminAlert('✅ ' + data.message, true);
                     fileInput.value = '';

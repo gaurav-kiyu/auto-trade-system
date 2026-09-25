@@ -260,7 +260,7 @@ class DataEngine:
             return {}
         try:
             snap = self._websocket_snapshot_fn()
-        except (TypeError, ValueError, OSError):
+        except (TypeError, ValueError, OSError, RuntimeError):
             return {}
         return dict(snap or {})
 
@@ -270,7 +270,7 @@ class DataEngine:
             return MarketDataSnapshot(source="websocket", healthy=True, frames=ws)
         try:
             frames = self.fetch_all_frames(indices)
-        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError) as exc:
+        except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, RuntimeError) as exc:
             return MarketDataSnapshot(
                 source="fallback",
                 healthy=False,

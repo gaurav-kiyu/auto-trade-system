@@ -12,6 +12,7 @@
 <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 2rem; }
+        @media (max-width: 640px) { body { padding: 1rem 0.75rem; } }
         h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
         .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
         .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
@@ -22,8 +23,46 @@
         .input-field:focus { border-color: #3b82f6; }
         select.input-field { cursor: pointer; }
         table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        .options-table-container {
+            max-height: min(520px, calc(100vh - 200px));
+            min-height: 380px;
+            overflow-y: auto;
+            overflow-x: auto;
+            position: relative;
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 0.5rem;
+            width: 100%;
+            max-width: 100%;
+        }
+        #chainTable {
+            display: table !important;
+            overflow: visible !important;
+            width: 100%;
+            min-width: 960px;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.75rem;
+            font-variant-numeric: tabular-nums;
+        }
+        #chainTable thead {
+            position: static;
+            z-index: 20;
+        }
+        #chainTable thead tr:first-child th {
+            position: sticky;
+            top: 0;
+            z-index: 22;
+            background: var(--bg-card, #1a1f2e);
+        }
+        #chainTable thead tr:nth-child(2) th {
+            position: sticky;
+            top: 37px;
+            z-index: 21;
+            background: var(--bg-card, #1a1f2e);
+            border-bottom: 2px solid var(--border-color, rgba(148,163,184,0.2));
+        }
         th { text-align: center; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #94a3b8); padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(148,163,184,0.08); }
-        td { text-align: center; padding: 0.4rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); }
+        td { text-align: center; padding: 0.4rem; border-bottom: 1px solid rgba(148,163,184,0.05); color: var(--text-secondary, #cbd5e1); font-variant-numeric: tabular-nums; }
         .ce { color: var(--success-color, #16a34a); }
         .pe { color: var(--danger-color, #dc2626); }
         .atm { background: rgba(59,130,246,0.12); }
@@ -103,7 +142,7 @@
 <span id="ltpDisplay" style="color: var(--text-primary, #e2e8f0);font-weight:700;font-size:1.05rem;"></span>
 <span id="timestampDisplay" style="color: var(--text-muted, #94a3b8);font-size:0.75rem;"></span>
 </div>
-<div style="overflow-x:auto;">
+<div class="options-table-container">
 <table id="chainTable">
 <thead>
 <tr style="border-bottom: 2px solid rgba(148,163,184,0.15);">

@@ -105,9 +105,9 @@ class EnterpriseDashboard:
         # exercising _apply_config_change()/_rollback_config() (which call
         # _log_config_audit()) wrote real entries into the live project's
         # json/config_audit.jsonl, polluting the audit trail an admin now
-        # sees in the UI with test-run noise.
         self._config_audit_log_path = Path(self._cfg.get("config_audit_log_path", "json/config_audit.jsonl"))
-        self._db_path = str(db_path or self._cfg.get("trades_db", "db/trades.db"))
+        resolved_db = db_path if db_path != "db/trades.db" else (self._cfg.get("TRADES_DB_PATH") or self._cfg.get("trades_db") or os.getenv("TRADES_DB_PATH") or "db/trades.db")
+        self._db_path = str(resolved_db)
         self._auth = auth_handler or AuthHandler(
             db_path=self._cfg.get("auth_db_path", "db/auth.db"),
             token_ttl=int(self._cfg.get("auth_token_ttl_seconds", 3600)),
@@ -1676,8 +1676,26 @@ class EnterpriseDashboard:
                 for t in trades:
                     t.setdefault("is_demo_data", False)
                 return trades[-n:]
+            is_prod = (
+                os.getenv("PRODUCTION_MODE", "").lower() in ("1", "true", "yes")
+                or self._cfg.get("PRODUCTION_MODE", False)
+                or str(self._cfg.get("EXECUTION_MODE", "")).upper() in ("LIVE", "SIGNAL_ONLY")
+                or self._cfg.get("suppress_demo_trades", False)
+                or os.getenv("SUPPRESS_DEMO_TRADES", "").lower() in ("1", "true", "yes")
+                or Path(self._db_path).exists()
+            )
+            if is_prod:
+                return []
         except (ImportError, ValueError, RuntimeError, OSError) as e:
             _log.debug("[DASH] load_trades failed: %s", e)
+            if (
+                os.getenv("PRODUCTION_MODE", "").lower() in ("1", "true", "yes")
+                or self._cfg.get("PRODUCTION_MODE", False)
+                or str(self._cfg.get("EXECUTION_MODE", "")).upper() in ("LIVE", "SIGNAL_ONLY")
+                or self._cfg.get("suppress_demo_trades", False)
+                or os.getenv("SUPPRESS_DEMO_TRADES", "").lower() in ("1", "true", "yes")
+            ):
+                return []
 
         # Sample trade records shown only when the real trades DB has no
         # history yet (fresh install / no trades executed) - never real data.

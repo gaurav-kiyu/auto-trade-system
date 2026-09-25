@@ -479,7 +479,7 @@
 <div style="font-size:0.75rem;color:var(--text-muted);">Broadcast authentic production trade signals across Telegram, Email &amp; In-App DB</div>
 </div>
 </div>
-<button data-action="close-signal-test-modal" style="background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;padding:0.25rem;" type="button"><i class="fas fa-times"></i></button>
+<button class="opb-modal-close-btn" data-action="close-signal-test-modal" aria-label="Close modal" style="background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:0.85rem;">
 <div>
@@ -741,13 +741,13 @@
 </script>
 
 <!-- Signal Explainability Modal -->
-<div id="signalExplainModal" class="opb-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+<div id="signalExplainModal" class="opb-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:1rem;transform:none !important;">
     <div class="card opb-card" style="max-width:650px;width:100%;max-height:90vh;overflow-y:auto;border:1px solid var(--border-color, #334155);box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);">
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-color, #334155);padding-bottom:0.75rem;margin-bottom:1rem;">
             <h3 style="margin:0;font-size:1.1rem;font-weight:700;color:var(--text-primary, #f8fafc);display:flex;align-items:center;gap:0.5rem;">
                 <i class="fas fa-microscope" style="color:#38bdf8;"></i> Signal Explainability Breakdown
             </h3>
-            <button type="button" data-action="close-signal-explain-modal" style="background:none;border:none;color:var(--text-muted, #94a3b8);font-size:1.25rem;cursor:pointer;">&times;</button>
+            <button type="button" class="opb-modal-close-btn" data-action="close-signal-explain-modal" aria-label="Close modal" style="background:none;border:none;color:var(--text-muted, #94a3b8);font-size:1.25rem;cursor:pointer;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;margin:0;box-sizing:border-box;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;">&times;</button>
         </div>
         <div id="signalExplainContent" style="font-size:0.875rem;">
             <div style="text-align:center;padding:2rem;color:var(--text-muted, #94a3b8);">

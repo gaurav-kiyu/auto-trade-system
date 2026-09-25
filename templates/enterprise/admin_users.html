@@ -167,7 +167,7 @@
 <div class="modal" style="max-width:720px;">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
 <h3 style="font-size:1.1rem;font-weight:700;"><i class="fas fa-eye" style="color:#60a5fa;margin-right:0.5rem;"></i> User Details</h3>
-<button class="btn btn-ghost btn-sm" id="closeViewUserBtn" type="button"><i class="fas fa-times"></i></button>
+<button class="btn btn-ghost btn-sm opb-modal-close-btn" id="closeViewUserBtn" aria-label="Close modal" style="min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
 </div>
 <div id="viewUserContent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.75rem;"></div>
 </div>
@@ -177,7 +177,7 @@
 <div class="modal">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
 <h3 style="font-size:1.1rem;font-weight:600;"><i class="fas fa-sliders-h" style="color:#3b82f6;margin-right:0.5rem;"></i> Edit User Signal Permissions</h3>
-<button class="btn btn-ghost btn-sm" id="closePermModalBtn" type="button"><i class="fas fa-times"></i></button>
+<button class="btn btn-ghost btn-sm opb-modal-close-btn" id="closePermModalBtn" aria-label="Close modal" style="min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
 </div>
 <form id="permForm" style="display:flex;flex-direction:column;gap:1rem;">
 <!-- Basic Info -->
@@ -291,7 +291,10 @@
 <!-- Create User Modal -->
 <div class="modal-overlay" id="createModal">
 <div class="modal" style="max-width:480px;">
-<h3 style="font-size:1rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-user-plus" style="color:#3b82f6;margin-right:0.5rem;"></i> Create New User</h3>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+<h3 style="font-size:1rem;font-weight:600;margin:0;"><i class="fas fa-user-plus" style="color:#3b82f6;margin-right:0.5rem;"></i> Create New User</h3>
+<button class="btn btn-ghost btn-sm opb-modal-close-btn" id="closeCreateModalHeaderBtn" aria-label="Close modal" style="min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
+</div>
 <form id="createForm" style="display:flex;flex-direction:column;gap:0.75rem;">
 <input class="input-field" id="newUsername" placeholder="Username" required="" type="text"/>
 <input class="input-field" id="newEmail" placeholder="Email Address (for signal alerts)" type="email"/>
@@ -304,11 +307,11 @@
 </select>
 <div class="input-password-wrapper opb-password-wrapper">
 <input class="input-field" id="newPassword" placeholder="Password" required="" style="width:100%;padding-right:2.5rem;" type="password"/>
-<button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+<button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
 </div>
 <div id="createError" style="color: var(--danger-color, #dc2626);font-size:0.8rem;display:none;"></div>
 <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:0.5rem;">
-<button class="btn btn-sm btn-ghost" id="closeCreateBtn" type="button">Cancel</button>
+<button class="btn btn-sm btn-ghost" id="closeCreateBtn" style="min-height:44px;min-width:70px;" type="button">Cancel</button>
 <button class="btn btn-primary btn-sm" type="submit">Create User</button>
 </div>
 </form>
@@ -317,46 +320,24 @@
 <!-- Reset Password Modal -->
 <div class="modal-overlay" id="resetModal">
 <div class="modal" style="max-width:480px;">
-<h3 style="font-size:1rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-key" style="color:#f59e0b;margin-right:0.5rem;"></i> Reset Password</h3>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+<h3 style="font-size:1rem;font-weight:600;margin:0;"><i class="fas fa-key" style="color:#f59e0b;margin-right:0.5rem;"></i> Reset Password</h3>
+<button class="btn btn-ghost btn-sm opb-modal-close-btn" id="closeResetModalHeaderBtn" aria-label="Close modal" style="min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
+</div>
 <p style="font-size:0.85rem;color: var(--text-muted, #94a3b8);margin-bottom:1rem;">Reset password for <strong id="resetUsername" style="color: var(--text-primary, #e2e8f0);"></strong></p>
 <div class="input-password-wrapper opb-password-wrapper">
 <input class="input-field" id="resetPassword" placeholder="New password (min 8 chars)" required="" style="width:100%;padding-right:2.5rem;" type="password"/>
-<button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+<button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
 </div>
 <div id="resetError" style="color: var(--danger-color, #dc2626);font-size:0.8rem;display:none;"></div>
 <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem;">
-<button class="btn btn-sm btn-ghost" id="closeResetBtn" type="button">Cancel</button>
+<button class="btn btn-sm btn-ghost" id="closeResetBtn" style="min-height:44px;min-width:70px;" type="button">Cancel</button>
 <button class="btn btn-primary btn-sm" id="executeResetBtn" type="button">Reset Password</button>
 </div>
 </div>
 </div>
 <div class="toast-container" id="toastContainer"></div>
 <script nonce="{{ nonce }}">
-        // Password visibility controls for Create User and Reset Password.
-        document.querySelectorAll('.opb-password-toggle').forEach(button => {
-            button.addEventListener('click', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                if (typeof togglePasswordField === 'function') {
-                    togglePasswordField(button);
-                } else {
-                    const wrapper = button.closest('.opb-password-wrapper');
-                    const input = wrapper
-                        ? wrapper.querySelector('input[type="password"], input[type="text"]')
-                        : null;
-                    if (!input) return;
-
-                    const showing = input.type === 'text';
-                    input.type = showing ? 'password' : 'text';
-                    button.setAttribute(
-                        'aria-label',
-                        showing ? 'Show password' : 'Hide password'
-                    );
-                }
-            });
-        });
-
-
         let allCategories = [];
         let permissionsList = [];
         let editingUsername = null;
