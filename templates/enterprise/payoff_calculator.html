@@ -19,7 +19,10 @@
         .field { display: flex; flex-direction: column; gap: 0.25rem; }
         .field label { font-size: 0.7rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
         .field input, .field select { background: #131a29; border: 1px solid rgba(148,163,184,0.2); border-radius: 0.35rem; color: var(--text-primary, #e2e8f0); font-size: 0.82rem; padding: 0.45rem 0.6rem; outline: none; }
+        #legsContainer { min-width: 620px; }
         .leg-row { display: grid; grid-template-columns: 1.1fr 0.8fr 0.8fr 0.8fr 1fr auto; gap: 0.6rem; align-items: end; margin-bottom: 0.6rem; }
+        .leg-row .field { min-width: 0; }
+        .leg-row .field input, .leg-row .field select { width: 100%; min-width: 0; }
         .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 0.4rem; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s ease; }
         .btn-primary { background: #3b82f6; color: #fff; }
         .btn-primary:hover { background: #2563eb; }
@@ -31,7 +34,7 @@
         .stat-value { font-size: 1.4rem; font-weight: 800; color: #38bdf8; margin-top: 0.25rem; font-family: monospace; }
         .stat-label { font-size: 0.7rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
         .empty-note { color: var(--text-muted, #94a3b8); font-size: 0.8rem; text-align: center; padding: 2rem 0; }
-        .chart-wrap { position: relative; height: 360px; }
+        .chart-wrap { position: relative; height: 360px; max-width: 100%; }
     </style>
     {% include "_pwa_head.html" %}
     <!-- Fonts & Design System Tokens -->
@@ -58,7 +61,9 @@
 <input id="priceRangePct" max="100" min="1" step="1" style="width:110px;" type="number" value="20"/>
 </div>
 </div>
-<div id="legsContainer"></div>
+<div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+<div id="legsContainer" style="min-width: 620px;"></div>
+</div>
 <div style="display:flex;gap:0.6rem;margin-top:0.5rem;">
 <button class="btn btn-ghost" id="addLegBtn" type="button"><i class="fas fa-plus"></i> Add Leg</button>
 <button class="btn btn-primary" id="calculateBtn" type="button"><i class="fas fa-calculator"></i> Calculate Payoff</button>
