@@ -1,9 +1,31 @@
 # OPB Index Options Buying Bot v2.59.2
 # ─────────────────────────────────────────────────────────────────────────────
 # Multi-stage build:
+#   release  — canonical incremental build from cached runtime base
 #   builder  — installs heavy ML/science deps into a venv
 #   runtime  — slim image that copies the venv + source
 # ─────────────────────────────────────────────────────────────────────────────
+
+# ── Stage 0: release (canonical incremental build from cached runtime base) ──
+ARG PREBUILT_RUNTIME_IMAGE=ghcr.io/gaurav-kiyu/auto-trade-system@sha256:4eb1a05d0022266dccb83b7d4aa1a70c9504b6e8c0717c1931fa9b611f86325a
+FROM ${PREBUILT_RUNTIME_IMAGE} AS release
+
+USER root
+WORKDIR /app
+
+COPY requirements.txt .
+RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+COPY --chown=opb:opb . .
+COPY supervisord.conf /etc/supervisor/conf.d/opb.conf
+
+USER opb
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD ["python", "scripts/docker_healthcheck.py"]
+
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/opb.conf", "-n"]
+
 
 # ── Stage 1: builder ──────────────────────────────────────────────────────────
 FROM python:3.11-slim AS builder
@@ -91,25 +113,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD ["python", "scripts/docker_healthcheck.py"]
 
 # Default: run via supervisord (manages bot + optional dashboard)
-CMD ["supervisord", "-c", "/etc/supervisor/conf.d/opb.conf", "-n"]
-
-
-# ── Stage 3: release (canonical incremental build from cached runtime base) ──
-ARG PREBUILT_RUNTIME_IMAGE=ghcr.io/gaurav-kiyu/auto-trade-system@sha256:4eb1a05d0022266dccb83b7d4aa1a70c9504b6e8c0717c1931fa9b611f86325a
-FROM ${PREBUILT_RUNTIME_IMAGE} AS release
-
-USER root
-WORKDIR /app
-
-COPY requirements.txt .
-RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
-
-COPY --chown=opb:opb . .
-COPY supervisord.conf /etc/supervisor/conf.d/opb.conf
-
-USER opb
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD ["python", "scripts/docker_healthcheck.py"]
-
 CMD ["supervisord", "-c", "/etc/supervisor/conf.d/opb.conf", "-n"]
