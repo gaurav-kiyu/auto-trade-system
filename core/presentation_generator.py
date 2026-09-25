@@ -75,7 +75,7 @@ except ImportError:
 
 _DEFAULTS: dict[str, Any] = {
     "PRESENTATION_GENERATOR_ENABLED": True,
-    "PRESENTATION_GENERATOR_OUTPUT_DIR": "reports/presentations",
+    "PRESENTATION_GENERATOR_OUTPUT_DIR": "/data/reports/presentations" if Path("/data/reports").exists() else "reports/presentations",
     "PRESENTATION_GENERATOR_DEFAULT_TEMPLATE": "executive",
     "PRESENTATION_GENERATOR_AUTO_SAVE": True,
 }
@@ -953,7 +953,14 @@ class PresentationGenerator:
         # Auto-save
         if self._cfg.auto_save:
             output_dir = Path(self._cfg.output_dir)
-            output_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                output_dir.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                if Path("/data/reports").exists():
+                    output_dir = Path("/data/reports/presentations")
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                else:
+                    raise
 
             version = str(data.get("version", "unknown"))
             timestamp = time.strftime("%Y%m%d_%H%M%S")
