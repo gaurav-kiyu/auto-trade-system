@@ -35,6 +35,12 @@ log = logging.getLogger(__name__)
 
 # Attempt pptx import — graceful degradation if not installed
 try:
+    import sys
+    from pathlib import Path
+    for _extra_path in ["/data/reports/packages", str(Path(__file__).resolve().parent.parent / "data" / "reports" / "packages")]:
+        if Path(_extra_path).exists() and _extra_path not in sys.path:
+            sys.path.insert(0, _extra_path)
+
     from pptx import Presentation
     from pptx.dml.color import RGBColor
     from pptx.enum.shapes import MSO_SHAPE
