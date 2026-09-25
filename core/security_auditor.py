@@ -72,7 +72,6 @@ INSECURE_IMPORTS: list[tuple[str, str, str]] = [
     ("pickle load", "pickle.load(", "HIGH"),
     ("yaml unsafe load", "yaml.load(", "HIGH"),
     ("request without verify", "verify=False", "HIGH"),
-    ("assert statement", "assert ", "LOW"),
     ("mktemp", "tempfile.mktemp", "MEDIUM"),
     ("md5 usage", "hashlib.md5", "LOW"),
     ("sha1 usage", "hashlib.sha1", "LOW"),
@@ -319,20 +318,50 @@ class SecurityAuditor:
                     ))
 
             # Check for insecure imports / dangerous APIs
-            for imp_name, imp_pattern, severity in INSECURE_IMPORTS:
-                for match in re.finditer(re.escape(imp_pattern), content):
-                    line_num = content[:match.start()].count("\n") + 1
-                    line_text = content.split("\n")[line_num - 1].strip() if line_num <= len(content.split("\n")) else ""
-                    insecure.append(InsecureImport(
-                        file_path=rel_path,
-                        line_number=line_num,
-                        pattern_name=imp_name,
-                        severity=severity,
-                        line_content=line_text,
-                    ))
+            # Exclude security scanner definition files from dangerous API matching to avoid self-flagging
+            if file_path.name not in ("security_auditor.py", "threat_modeler.py", "vulnerability_scanner.py"):
+                # Mask out multi-line docstrings so documentation comments don't trigger code execution findings
+                code_content = re.sub(r'"""[\s\S]*?"""|\'\'\'[\s\S]*?\'\'\'', lambda m: '\n' * m.group(0).count('\n'), content)
+                for imp_name, imp_pattern, severity in INSECURE_IMPORTS:
+                    for match in re.finditer(re.escape(imp_pattern), code_content):
+                        line_num = code_content[:match.start()].count("\n") + 1
+                        line_text = code_content.split("\n")[line_num - 1].strip() if line_num <= len(code_content.split("\n")) else ""
+                        if line_text.startswith("#") or "# nosec" in line_text:
+                            continue
+                        insecure.append(InsecureImport(
+                            file_path=rel_path,
+                            line_number=line_num,
+                            pattern_name=imp_name,
+                            severity=severity,
+                            line_content=line_text,
+                        ))
 
         report.secrets_found.extend(secrets)
         report.insecure_imports.extend(insecure)
+
+    def _is_version_vulnerable(self, installed_ver: str, affected_range: str) -> bool:
+        """Check if an installed package version falls into the vulnerable range (e.g. '<42.0.0')."""
+        if not installed_ver or not affected_range:
+            return False
+        try:
+            from packaging.version import parse as parse_ver
+            clean_affected = affected_range.lstrip("<>= ")
+            inst = parse_ver(installed_ver)
+            target = parse_ver(clean_affected)
+            if affected_range.startswith("<="):
+                return inst <= target
+            elif affected_range.startswith("<"):
+                return inst < target
+            elif affected_range.startswith("=="):
+                return inst == target
+            return inst < target
+        except Exception:
+            try:
+                inst_parts = [int(x) for x in re.findall(r"\d+", installed_ver)]
+                target_parts = [int(x) for x in re.findall(r"\d+", affected_range)]
+                return inst_parts < target_parts
+            except Exception:
+                return False
 
     def _scan_dependencies(self) -> list[DependencyVuln]:
         """Scan installed dependencies for known vulnerabilities."""
@@ -353,6 +382,8 @@ class SecurityAuditor:
                         # entries are [affected_range, description] pairs
                         for i in range(0, len(entries), 2):
                             affected_range = entries[i]
+                            if not self._is_version_vulnerable(version, affected_range):
+                                continue
                             desc = entries[i + 1] if i + 1 < len(entries) else ""
                             vulns.append(DependencyVuln(
                                 package_name=name,

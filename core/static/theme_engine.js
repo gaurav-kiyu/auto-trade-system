@@ -516,6 +516,33 @@
                 background: rgba(255, 255, 255, 0.08);
             }
 
+            .opb-modal-close-btn, #opb-modal-close-btn {
+                background: transparent;
+                border: none;
+                color: var(--text-muted, #94a3b8);
+                cursor: pointer;
+                font-size: 1.15rem;
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
+                min-height: 44px;
+                flex-shrink: 0;
+                box-sizing: border-box;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 0.5rem;
+                padding: 0;
+                margin: -0.5rem -0.5rem -0.5rem 0;
+                line-height: 1;
+                transition: color 0.2s, background-color 0.2s;
+            }
+
+            .opb-modal-close-btn:hover, #opb-modal-close-btn:hover {
+                color: var(--text-primary, #ffffff);
+                background: rgba(255, 255, 255, 0.1);
+            }
+
             .opb-toast-progress {
                 position: absolute;
                 bottom: 0;
@@ -576,7 +603,8 @@
                 transition: opacity 0.25s ease;
             }
 
-            .opb-modal-backdrop.opb-modal-active {
+            .opb-modal-backdrop.opb-modal-active,
+            .opb-modal-backdrop.active {
                 display: flex !important;
                 opacity: 1 !important;
                 pointer-events: auto !important;
@@ -596,8 +624,16 @@
                 transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             }
 
-            .opb-modal-backdrop.opb-modal-active .opb-modal {
+            .opb-modal-backdrop.opb-modal-active .opb-modal,
+            .opb-modal.active,
+            .opb-modal.opb-modal-active,
+            .opb-modal.show {
                 transform: scale(1) translateY(0);
+            }
+
+            .opb-modal[style*="position: fixed"],
+            .opb-modal[style*="position:fixed"] {
+                transform: none !important;
             }
 
             .opb-modal-header {
@@ -778,7 +814,7 @@
                         <i class="fas ${iconClass}" style="color: ${iconColor}; font-size: 1.25rem;"></i>
                         <span class="opb-modal-title">${escapeHtml(title)}</span>
                     </div>
-                    <button class="opb-toast-close" id="opb-modal-close-btn" aria-label="Close">
+                    <button class="opb-modal-close-btn" id="opb-modal-close-btn" aria-label="Close">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -1006,8 +1042,20 @@
 
 
     // Expose Global API with full backwards compatibility and case-insensitivity
-    
-    // ══════════════════════════════════════════════════════════════════════════
+    window.applyTheme = applyTheme;
+    window.setTheme = applyTheme;
+    window.showModal = showModal;
+    window.showToast = showToast;
+    window.OPBTheme = {
+        applyTheme: applyTheme,
+        setTheme: applyTheme,
+        getTheme: getSavedTheme,
+        getThemes: () => THEMES,
+        setDensity: setDensity,
+        showToast: showToast,
+        showModal: showModal
+    };
+
     // OPB UNIVERSAL INTERACTIVE ENGINE (Eye Toggles, Mobile Drawer, Themes)
     // ══════════════════════════════════════════════════════════════════════════
     
@@ -1242,6 +1290,7 @@
         }
         toggleBtn.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
         toggleBtn.setAttribute('title', isCurrentlyPassword ? 'Hide password' : 'Show password');
+        toggleBtn.setAttribute('aria-pressed', isCurrentlyPassword ? 'true' : 'false');
     }
     window.togglePasswordField = togglePasswordField;
 
@@ -1258,11 +1307,16 @@
                 toggleBtn.setAttribute('data-toggle', 'password');
                 toggleBtn.setAttribute('aria-label', 'Show password');
                 toggleBtn.setAttribute('title', 'Show password');
-                toggleBtn.tabIndex = -1;
+                toggleBtn.setAttribute('aria-pressed', 'false');
                 toggleBtn.innerHTML = EYE_SVG_OPEN;
                 wrapper.appendChild(toggleBtn);
-            } else if (!toggleBtn.querySelector('svg') && !toggleBtn.querySelector('i')) {
-                toggleBtn.innerHTML = EYE_SVG_OPEN;
+            } else {
+                if (!toggleBtn.hasAttribute('aria-pressed')) {
+                    toggleBtn.setAttribute('aria-pressed', 'false');
+                }
+                if (!toggleBtn.querySelector('svg') && !toggleBtn.querySelector('i')) {
+                    toggleBtn.innerHTML = EYE_SVG_OPEN;
+                }
             }
         });
     }
@@ -1274,6 +1328,16 @@
             togglePasswordField(btn);
         }
     }, { passive: false });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            const btn = e.target.closest('.opb-password-toggle, .password-toggle-btn, [data-toggle="password"], [data-toggle-password]');
+            if (btn && btn.tagName !== 'BUTTON') {
+                e.preventDefault();
+                togglePasswordField(btn);
+            }
+        }
+    });
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initUniversalPasswordToggles);
@@ -1302,3 +1366,42 @@
     } else {
         resetAllMobileOverlays();
     }
+
+    // Global Accessible Modal Controller (OPB-MODAL-2026 Invariant)
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            // Dismiss global dynamic modal
+            const globalBackdrop = document.getElementById('opb-global-modal-backdrop');
+            if (globalBackdrop && globalBackdrop.classList.contains('opb-modal-active')) {
+                globalBackdrop.classList.remove('opb-modal-active');
+            }
+            // Dismiss open custom modals across templates
+            document.querySelectorAll('.modal, .opb-modal, .qr-modal, .modal-overlay, .modal-backdrop, .opb-modal-backdrop, [id$="Modal"], [id*="-modal"]').forEach(modal => {
+                if (modal.id === 'opb-global-modal-backdrop') return;
+                if (modal.style.display !== 'none' && modal.style.display !== '') {
+                    modal.style.display = 'none';
+                }
+                if (modal.classList.contains('active') || modal.classList.contains('visible') || modal.classList.contains('show')) {
+                    modal.classList.remove('active', 'visible', 'show');
+                }
+            });
+        }
+    });
+
+    // Universal backdrop click and close button handler
+    document.addEventListener('click', function(e) {
+        // Universal close button dismissal
+        const closeBtn = e.target.closest('.opb-modal-close-btn, [data-action="close-signal-test-modal"], [data-action="close-signal-explain-modal"], [id^="closeViewUser"], [id^="closePermModal"], [id^="closeHistoryHeader"]');
+        if (closeBtn) {
+            const modalWrapper = closeBtn.closest('.modal-overlay, .modal-backdrop, .opb-modal-backdrop, .opb-modal, .qr-modal, [id$="Modal"], [id*="-modal"]');
+            if (modalWrapper) {
+                modalWrapper.style.display = 'none';
+                modalWrapper.classList.remove('active', 'visible', 'show');
+            }
+        }
+        // Universal backdrop click dismissal (when clicking directly on the backdrop/overlay)
+        if (e.target.matches && e.target.matches('.modal-overlay, .modal-backdrop, .opb-modal-backdrop, .qr-modal, .opb-modal')) {
+            e.target.style.display = 'none';
+            e.target.classList.remove('active', 'visible', 'show');
+        }
+    });

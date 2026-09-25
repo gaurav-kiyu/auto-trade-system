@@ -340,7 +340,9 @@ def _check_holiday_non_json_fixture_regression() -> str:
 
         module._nse_session.get = lambda *args, **kwargs: FakeResponse()
         module._fetch_nse_holidays_dynamic()
-        assert module.NSE_HOLIDAYS == fallback
+        from index_app.domains.market.holidays import _NSE_HOLIDAYS_FALLBACK
+        expected = fallback | _NSE_HOLIDAYS_FALLBACK
+        assert module.NSE_HOLIDAYS == expected
         assert module._HOLIDAY_FETCH_META["fallback"] is True
         assert module._HOLIDAY_FETCH_META["note"] == "non-json"
         return "holiday non-json fallback ok"
@@ -404,16 +406,18 @@ def _check_last_close_fixture_regression() -> str:
                 assert interval == "1d"
                 return frame.copy()
 
-        original_ticker = module.yf.Ticker
+        from core import yf_data_provider as _yf_provider
+        original_ticker = _yf_provider.yf.Ticker
         original_map = module.INDEX_MAP
         try:
-            module.yf.Ticker = FakeTicker
+            _yf_provider.yf.Ticker = FakeTicker
             module.INDEX_MAP = {"NIFTY": {"yf": "^NSEI"}}
             module._last_close_cache = {}
             module._last_close_cache_ts = 0
+            _yf_provider.invalidate_cache()
             summary = module.fetch_last_close_summary()
         finally:
-            module.yf.Ticker = original_ticker
+            _yf_provider.yf.Ticker = original_ticker
             module.INDEX_MAP = original_map
 
         assert summary["NIFTY"]["close"] == 22680.0

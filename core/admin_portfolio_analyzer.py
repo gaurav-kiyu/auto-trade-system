@@ -22,7 +22,7 @@ INDIAN_BROKERS: dict[str, dict[str, Any]] = {
         "code": "zerodha",
         "icon": "fa-paper-plane",
         "color": "#387ed1",
-        "auth_url": "https://kite.zerodha.com/connect/login?v=3&api_key=DEMO_KEY",
+        "auth_url": "https://kite.zerodha.com/",
         "supports_oauth": True,
         "supports_iframe": True
     },
@@ -31,7 +31,7 @@ INDIAN_BROKERS: dict[str, dict[str, Any]] = {
         "code": "angelone",
         "icon": "fa-chart-line",
         "color": "#eb1c24",
-        "auth_url": "https://smartapi.angelbroking.com/publisher-login?api_key=DEMO_KEY",
+        "auth_url": "https://smartapi.angelbroking.com/",
         "supports_oauth": True,
         "supports_iframe": True
     },
@@ -40,7 +40,7 @@ INDIAN_BROKERS: dict[str, dict[str, Any]] = {
         "code": "iifl",
         "icon": "fa-university",
         "color": "#00529b",
-        "auth_url": "https://ttblaze.iifl.com/OpenAPILogin",
+        "auth_url": "https://trade.iifl.com/",
         "supports_oauth": True,
         "supports_iframe": True
     },
@@ -266,10 +266,35 @@ class AdminPortfolioAnalyzer:
                 {"symbol": "MOSL", "quantity": 300, "buy_price": 620.0, "current_price": 750.0, "sector": "Banking & Finance"},
                 {"symbol": "RELIANCE", "quantity": 150, "buy_price": 2850.0, "current_price": 3050.0, "sector": "Energy & Oil"},
                 {"symbol": "BAJFINANCE", "quantity": 80, "buy_price": 6800.0, "current_price": 7350.0, "sector": "Banking & Finance"},
+            ],
+            "hdfcsecurities": [
+                {"symbol": "HDFCBANK", "quantity": 250, "buy_price": 1620.0, "current_price": 1420.0, "sector": "Banking & Finance"},
+                {"symbol": "TCS", "quantity": 90, "buy_price": 3900.0, "current_price": 4250.0, "sector": "Information Technology"},
+                {"symbol": "TITAN", "quantity": 60, "buy_price": 3200.0, "current_price": 3450.0, "sector": "Consumer Goods"},
+            ],
+            "sharekhan": [
+                {"symbol": "TATAPOWER", "quantity": 500, "buy_price": 380.0, "current_price": 440.0, "sector": "Energy & Power"},
+                {"symbol": "COALINDIA", "quantity": 400, "buy_price": 420.0, "current_price": 490.0, "sector": "Metals & Mining"},
+                {"symbol": "ITC", "quantity": 350, "buy_price": 430.0, "current_price": 490.0, "sector": "FMCG"},
+            ],
+            "paytmmoney": [
+                {"symbol": "PAYTM", "quantity": 200, "buy_price": 410.0, "current_price": 680.0, "sector": "Fintech"},
+                {"symbol": "ZOMATO", "quantity": 800, "buy_price": 190.0, "current_price": 245.0, "sector": "Consumer Tech"},
+                {"symbol": "POLICYBZR", "quantity": 150, "buy_price": 1150.0, "current_price": 1680.0, "sector": "Fintech"},
+            ],
+            "mstock": [
+                {"symbol": "RELIANCE", "quantity": 120, "buy_price": 2880.0, "current_price": 3050.0, "sector": "Energy & Oil"},
+                {"symbol": "SBIN", "quantity": 300, "buy_price": 740.0, "current_price": 810.0, "sector": "Banking & Finance"},
+                {"symbol": "AXISBANK", "quantity": 180, "buy_price": 1080.0, "current_price": 1180.0, "sector": "Banking & Finance"},
             ]
         }
-
-        return broker_portfolios.get(code, broker_portfolios["zerodha"])
+        portfolio = broker_portfolios.get(code, broker_portfolios["zerodha"])
+        tagged_positions = []
+        for p in portfolio:
+            item = dict(p)
+            item.setdefault("is_sample_data", True)
+            tagged_positions.append(item)
+        return tagged_positions
 
     def parse_portfolio(self, raw_data: list[dict[str, Any]]) -> list[PortfolioPosition]:
         """Parse raw broker JSON or CSV payload into normalized PortfolioPosition objects."""

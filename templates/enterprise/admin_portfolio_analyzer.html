@@ -147,7 +147,7 @@
 <div class="broker-card" id="cspfix-4">
 <div class="broker-icon" style="color: #00529b;"><i class="fas fa-university"></i></div>
 <div style="font-weight: 700; font-size: 0.85rem;">IIFL Markets</div>
-<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Blaze API</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Portal / API</div>
 </div>
 <div class="broker-card" id="cspfix-5">
 <div class="broker-icon" style="color: #7b2cbf;"><i class="fas fa-bolt"></i></div>
@@ -178,6 +178,31 @@
 <div class="broker-icon" style="color: #002f6c;"><i class="fas fa-chart-pie"></i></div>
 <div style="font-weight: 700; font-size: 0.85rem;">m.Stock (Mirae)</div>
 <div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Mirae Connect</div>
+</div>
+<div class="broker-card" id="cspfix-broker-hdfc">
+<div class="broker-icon" style="color: #004b87;"><i class="fas fa-shield-alt"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">HDFC Securities</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Securities Portal</div>
+</div>
+<div class="broker-card" id="cspfix-broker-kotak">
+<div class="broker-icon" style="color: #ed1c24;"><i class="fas fa-coins"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">Kotak Neo</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Neo Trade API</div>
+</div>
+<div class="broker-card" id="cspfix-broker-mosl">
+<div class="broker-icon" style="color: #e65100;"><i class="fas fa-award"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">Motilal Oswal</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">MO Investor</div>
+</div>
+<div class="broker-card" id="cspfix-broker-sharekhan">
+<div class="broker-icon" style="color: #0088cc;"><i class="fas fa-chart-area"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">Sharekhan</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Trade Tiger</div>
+</div>
+<div class="broker-card" id="cspfix-broker-paytm">
+<div class="broker-icon" style="color: #00b9f1;"><i class="fas fa-wallet"></i></div>
+<div style="font-weight: 700; font-size: 0.85rem;">Paytm Money</div>
+<div style="font-size: 0.7rem; color: var(--text-muted, #6b7280);">Developer API</div>
 </div>
 </div>
 </div>
@@ -271,7 +296,7 @@
 <h3 id="modal-broker-title" style="margin:0; font-size:1.2rem; color:var(--text-primary);">
 <i class="fas fa-lock" style="color:var(--accent-color);"></i> Broker Secure Connection Panel
                 </h3>
-<button id="cspfix-13" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer;" type="button">×</button>
+<button class="opb-modal-close-btn" id="cspfix-13" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;" aria-label="Close modal" type="button">×</button>
 </div>
 <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1.2rem; line-height: 1.4;">
                 Authenticate with your Indian broker to securely import your live holdings and execute the 16-strategy deep scan.
@@ -298,7 +323,7 @@
                         Access Token / API Key (Optional):
                     </label>
 <div style="position:relative;display:flex;align-items:center;">
-<div class="opb-password-wrapper"><input id="broker-access-token" placeholder="Auto-managed via session or enter token" style="width: 100%; padding: 0.5rem 2.5rem 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; box-sizing: border-box;" type="password"/><button aria-label="Show password" class="opb-password-toggle" data-toggle="password" tabindex="-1" title="Show/Hide password" type="button"><svg class="eye-svg-open" viewbox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div>
+<div class="opb-password-wrapper"><input id="broker-access-token" placeholder="Auto-managed via session or enter token" style="width: 100%; padding: 0.5rem 2.5rem 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; box-sizing: border-box;" type="password"/><button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" viewbox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div>
 </div>
 </div>
 </div>
@@ -314,7 +339,10 @@
 <h3 style="margin:0; font-size:1.2rem; color:var(--text-primary);">
 <i class="fas fa-check-circle" style="color:#10b981;"></i> Confirm Imported Portfolio Data
                 </h3>
-<button id="cspfix-14" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer;" type="button">×</button>
+<button class="opb-modal-close-btn" id="cspfix-14" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;" aria-label="Close modal" type="button">×</button>
+</div>
+<div id="confirm-sample-alert" style="display:none;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:0.5rem;padding:0.6rem 0.85rem;margin-bottom:1rem;font-size:0.78rem;color:#fbbf24;">
+    <i class="fas fa-info-circle"></i> <strong>Sample Demonstration Data:</strong> No live API token was provided. Displaying sample positions for 16-strategy diagnostic demonstration.
 </div>
 <div id="confirm-summary-banner" style="background: rgba(6, 182, 212, 0.1); border: 1px solid var(--accent-color); border-radius: 0.5rem; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center;">
 <div>
@@ -365,7 +393,7 @@
 <h3 id="proof-modal-title" style="margin:0; font-size:1.2rem; color:var(--text-primary);">
 <i class="fas fa-microscope" style="color:var(--accent-color);"></i> Quantitative Proof &amp; Reasoning Breakdown
                 </h3>
-<button id="cspfix-18" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>
+<button class="opb-modal-close-btn" id="cspfix-18" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;" aria-label="Close modal" type="button">×</button>
 </div>
 <div id="proof-modal-body">
 <!-- Injected via JS -->
@@ -379,7 +407,7 @@
 <h3 style="margin:0; font-size:1.2rem; color:var(--text-primary);">
 <i class="fas fa-bolt" style="color:#8b5cf6;"></i> Auto-Hedge Approval Gate
                 </h3>
-<button id="cspfix-19" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>
+<button class="opb-modal-close-btn" id="cspfix-19" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;" aria-label="Close modal" type="button">×</button>
 </div>
 <p id="hedge-modal-text" style="font-size:0.85rem; color:var(--text-secondary);"></p>
 <div style="margin-top:1.5rem; display:flex; justify-content:flex-end; gap:1rem;">
@@ -397,7 +425,7 @@
 <h3 style="margin:0; font-size:1.2rem; color:var(--text-primary);">
 <i class="fas fa-leaf" style="color:#3b82f6;"></i> Tax-Loss Harvesting Opportunities
                 </h3>
-<button id="cspfix-21" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>
+<button class="opb-modal-close-btn" id="cspfix-21" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;" aria-label="Close modal" type="button">×</button>
 </div>
 <div id="taxloss-results" style="font-size:0.85rem; color:var(--text-secondary);">
                 Scanning portfolio...
@@ -411,7 +439,7 @@
 <h3 style="margin:0; font-size:1.2rem; color:var(--text-primary);">
 <i class="fas fa-file-pdf" style="color:#8b5cf6;"></i> Generated Client Report
                 </h3>
-<button id="cspfix-22" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer;" type="button">×</button>
+<button class="opb-modal-close-btn" id="cspfix-22" style="background:none; border:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;" aria-label="Close modal" type="button">×</button>
 </div>
 <div id="report-content" style="font-size:0.85rem; color:var(--text-secondary); white-space: pre-wrap; line-height: 1.5; background: var(--bg-primary); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
                 Generating...
@@ -516,6 +544,11 @@
             const badgeEl = document.getElementById('confirm-broker-badge');
             const totalEl = document.getElementById('confirm-total-val');
             const tbody = document.getElementById('confirm-positions-table');
+            const sampleAlert = document.getElementById('confirm-sample-alert');
+
+            if (sampleAlert) {
+                sampleAlert.style.display = (resp && (resp.is_sample_data || resp.is_sample)) ? 'block' : 'none';
+            }
 
             if (countEl) countEl.innerText = importedPositions.length;
             if (badgeEl) badgeEl.innerText = selectedBroker.name;
@@ -821,6 +854,11 @@
         document.getElementById('cspfix-8')?.addEventListener('click', function(event) { openBrokerPanel('dhan', 'Dhan', '#2c7be5') });
         document.getElementById('cspfix-9')?.addEventListener('click', function(event) { openBrokerPanel('fyers', 'Fyers', '#ff4d4f') });
         document.getElementById('cspfix-10')?.addEventListener('click', function(event) { openBrokerPanel('mstock', 'm.Stock (Mirae Asset)', '#002f6c') });
+        document.getElementById('cspfix-broker-hdfc')?.addEventListener('click', function(event) { openBrokerPanel('hdfcsecurities', 'HDFC Securities', '#004b87') });
+        document.getElementById('cspfix-broker-kotak')?.addEventListener('click', function(event) { openBrokerPanel('kotak', 'Kotak Neo', '#ed1c24') });
+        document.getElementById('cspfix-broker-mosl')?.addEventListener('click', function(event) { openBrokerPanel('motilaloswal', 'Motilal Oswal', '#e65100') });
+        document.getElementById('cspfix-broker-sharekhan')?.addEventListener('click', function(event) { openBrokerPanel('sharekhan', 'Sharekhan', '#0088cc') });
+        document.getElementById('cspfix-broker-paytm')?.addEventListener('click', function(event) { openBrokerPanel('paytmmoney', 'Paytm Money', '#00b9f1') });
         document.getElementById('cspfix-11')?.addEventListener('click', function(event) { openTaxLossModal() });
         document.getElementById('cspfix-12')?.addEventListener('click', function(event) { generateGenAIReport() });
         document.getElementById('cspfix-13')?.addEventListener('click', function(event) { closeModal('broker-modal') });
