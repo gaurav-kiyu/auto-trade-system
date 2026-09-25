@@ -113,10 +113,24 @@ table tr:hover td, .opb-table tr:hover td {
     background: var(--bg-card-hover, rgba(255, 255, 255, 0.03)) !important;
 }
 
-/* Nav Item Hover */
-.nav-link:hover, .opb-nav-item:hover, .drawer-nav-item:hover {
+/* Nav Item Hover & Active Contrast Protection */
+.nav-link:not(.active):hover, .opb-nav-item:not(.active):hover, .drawer-nav-item:not(.active):hover {
     background: var(--bg-card-hover, rgba(255, 255, 255, 0.06)) !important;
     color: var(--accent-color, #38bdf8) !important;
+}
+.opb-nav-item.active,
+.opb-nav-item.active:hover,
+.opb-ws-group:hover > .opb-nav-item.active,
+.opb-ws-group.menu-pinned > .opb-nav-item.active {
+    background: var(--accent-color, #38bdf8) !important;
+    color: var(--nav-active-text, #082f49) !important;
+    opacity: 1 !important;
+}
+.opb-ws-group:hover > .opb-nav-item:not(.active),
+.opb-ws-group.menu-pinned > .opb-nav-item:not(.active) {
+    background: var(--bg-card-hover, rgba(56, 189, 248, 0.14)) !important;
+    color: var(--accent-color, #38bdf8) !important;
+    opacity: 1 !important;
 }
 
 /**
@@ -1309,5 +1323,35 @@ table thead tr:nth-child(2) th,
     top: 38px !important;
     z-index: 19 !important;
     background-color: var(--bg-card, #0f172a) !important;
+}
+
+/* Canonical 44x44 Modal Close Button (OBS-01 / DEF-33) */
+.opb-modal-close-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: var(--bg-secondary, #1e293b) !important;
+    border: 1px solid var(--border-color, #334155) !important;
+    border-radius: 0.5rem !important;
+    color: var(--text-primary, #f8fafc) !important;
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease !important;
+}
+.opb-modal-close-btn:hover,
+.opb-modal-close-btn:focus-visible {
+    background: var(--danger-color, #ef4444) !important;
+    border-color: var(--danger-color, #ef4444) !important;
+    color: #ffffff !important;
 }
 

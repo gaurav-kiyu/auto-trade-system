@@ -610,19 +610,23 @@
         // ── Paper Execution Trigger ────────────────────────────────────────────────
         async function triggerPaperTrade(sym, direction, score) {
             try {
+                const m = document.cookie.match(/(?:^|;\s*)opb_csrf=([^;]+)/);
+                const csrfToken = m ? decodeURIComponent(m[1]) : '';
+                const headers = {'Content-Type': 'application/json'};
+                if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
                 const res = await fetch('/api/v1/trade/paper-trade', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: headers,
                     credentials: 'include',
                     body: JSON.stringify({symbol: sym, direction: direction, score: score})
                 });
                 const d = await res.json();
                 if (d && d.success) {
-                    if (window.showSuccess) window.showSuccess(`Queued paper trade for ${sym} (Signal #${d.signal_id})`, 'Trade Executed');
+                    if (window.showSuccess) window.showSuccess(`Queued paper trade for ${sym} (Signal #${d.signal_id}) — paper queue only, zero live broker orders.`, 'Paper Trade Queued');
                     else alert(`⚡ ${sym} queued for paper execution`);
                 } else {
-                    if (window.showError) window.showError(d?.error || res.statusText, 'Order Placement Failed');
-                    else alert(`Could not queue paper trade: ${d?.error || res.statusText}`);
+                    if (window.showError) window.showError(d?.error || d?.detail || res.statusText, 'Order Placement Failed');
+                    else alert(`Could not queue paper trade: ${d?.error || d?.detail || res.statusText}`);
                 }
             } catch (e) {
                 if (window.showError) window.showError(String(e), 'Execution Network Error');

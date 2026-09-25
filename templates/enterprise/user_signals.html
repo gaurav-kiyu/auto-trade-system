@@ -152,10 +152,10 @@
 <script nonce="{{ nonce }}">
         let signalsCache = [];
 
-        function statusBadge(status) {
-            if (status === 'TARGET_2_HIT') return '<span class="badge badge-t2"><i class="fas fa-check-double"></i> TARGET 2 HIT (+8%)</span>';
-            if (status === 'TARGET_1_HIT') return '<span class="badge badge-t1"><i class="fas fa-check"></i> TARGET 1 HIT (+4%)</span>';
-            if (status === 'SL_HIT') return '<span class="badge badge-sl"><i class="fas fa-times"></i> SL HIT (-3%)</span>';
+        function statusBadge(status, t1PctStr, t2PctStr, slPctStr) {
+            if (status === 'TARGET_2_HIT') return `<span class="badge badge-t2"><i class="fas fa-check-double"></i> TARGET 2 HIT ${t2PctStr || ''}</span>`;
+            if (status === 'TARGET_1_HIT') return `<span class="badge badge-t1"><i class="fas fa-check"></i> TARGET 1 HIT ${t1PctStr || ''}</span>`;
+            if (status === 'SL_HIT') return `<span class="badge badge-sl"><i class="fas fa-times"></i> SL HIT ${slPctStr || ''}</span>`;
             if (status === 'AMBIGUOUS' || status === 'AMBIGUOUS_SAME_BAR') return '<span class="badge" style="background:var(--market-warning-bg, rgba(217,119,6,0.14));color:var(--warning-color, #d97706);border:1px solid var(--warning-color, #d97706);font-weight:700;"><i class="fas fa-question-circle"></i> AMBIGUOUS</span>';
             if (status === 'EXPIRED') return '<span class="badge" style="background:rgba(148,163,184,0.15);color:var(--text-muted, #94a3b8);border:1px solid rgba(148,163,184,0.3);"><i class="fas fa-clock"></i> EXPIRED</span>';
             return '<span class="badge badge-active"><i class="fas fa-circle-notch fa-spin"></i> ACTIVE</span>';
@@ -172,20 +172,27 @@
 
         async function triggerPaperTrade(sym, direction, score) {
             try {
+                const m = document.cookie.match(/(?:^|;\s*)opb_csrf=([^;]+)/);
+                const csrfToken = m ? decodeURIComponent(m[1]) : '';
+                const headers = {'Content-Type': 'application/json'};
+                if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
                 const res = await fetch('/api/v1/trade/paper-trade', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: headers,
                     credentials: 'include',
                     body: JSON.stringify({symbol: sym, direction: direction, score: score})
                 });
                 const d = await res.json();
                 if (d && d.success) {
-                    alert(`⚡ ${sym} queued for paper execution (signal ${d.signal_id}) - the trading loop will pick it up on its next scan cycle.`);
+                    if (window.showSuccess) window.showSuccess(`Queued paper trade for ${sym} (Signal #${d.signal_id}) — paper queue only, zero live broker orders.`, 'Paper Trade Queued');
+                    else alert(`⚡ ${sym} queued for paper execution (signal ${d.signal_id}) - the trading loop will pick it up on its next scan cycle.`);
                 } else {
-                    alert(`Could not queue paper trade for ${sym}: ${d?.error || res.statusText}`);
+                    if (window.showError) window.showError(d?.error || d?.detail || res.statusText, 'Order Placement Failed');
+                    else alert(`Could not queue paper trade for ${sym}: ${d?.error || d?.detail || res.statusText}`);
                 }
             } catch (e) {
-                alert(`Could not queue paper trade for ${sym}: ${e}`);
+                if (window.showError) window.showError(String(e), 'Execution Network Error');
+                else alert(`Could not queue paper trade for ${sym}: ${e}`);
             }
         }
 
@@ -357,7 +364,7 @@
                     <td>
                         <span style="font-family:monospace;font-size:0.75rem;color:var(--warning-color, #d97706);font-weight:700;">1 : ${rr}</span>
                     </td>
-                    <td>${statusBadge(s.status)}</td>
+                    <td>${statusBadge(s.status, t1PctStr, t2PctStr, slPctStr)}</td>
                     <td>
                         <div style="display:flex;gap:4px;">
                             <button data-action="open-signal-plan-modal" data-idx="${idx}" class="btn btn-ghost" style="padding:3px 7px;font-size:0.7rem;" title="View Plan & Exit Steps" type="button">

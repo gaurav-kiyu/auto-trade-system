@@ -160,9 +160,13 @@
             const qty = parseInt(document.getElementById('tradeQty').value);
             const price = parseFloat(document.getElementById('tradePrice').value);
 
+            const m = document.cookie.match(/(?:^|;\s*)opb_csrf=([^;]+)/);
+            const csrfToken = m ? decodeURIComponent(m[1]) : '';
+            const headers = {'Content-Type': 'application/json'};
+            if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
             const res = await fetch('/api/copier/execute', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: headers,
                 body: JSON.stringify({symbol: sym, direction: dir, master_quantity: qty, entry_price: price}),
                 credentials: 'include',
             });

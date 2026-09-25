@@ -1045,6 +1045,21 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         content_type = request.headers.get("content-type", "")
 
         if "multipart/form-data" in content_type:
+            import re as _re
+            raw_body = await request.body()
+            boundary_match = _re.search(r'boundary=(?:"([^"]+)"|([^;\s]+))', content_type, _re.I)
+            if not boundary_match:
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "message": "Multipart upload parsing error: Missing multipart boundary"},
+                )
+            boundary_str = boundary_match.group(1) or boundary_match.group(2)
+            boundary_marker = f"--{boundary_str}".encode("latin-1", errors="ignore")
+            if boundary_marker not in raw_body:
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "message": "Multipart upload parsing error: Malformed multipart boundary"},
+                )
             try:
                 form = await request.form()
                 upload = form.get("scanner_file") or form.get("file")
@@ -1054,10 +1069,32 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
                 elif upload is not None and isinstance(upload, (bytes, bytearray)):
                     file_bytes = bytes(upload)
             except Exception as e:
-                return JSONResponse(
-                    status_code=400,
-                    content={"success": False, "message": f"Multipart upload parsing error: {e}"},
-                )
+                if "python-multipart" in str(e):
+                    for part in raw_body.split(boundary_marker):
+                        if not part or part in (b"--\r\n", b"--", b"\r\n"):
+                            continue
+                        if part.startswith(b"\r\n"):
+                            part = part[2:]
+                        sep = b"\r\n\r\n" if b"\r\n\r\n" in part else (b"\n\n" if b"\n\n" in part else None)
+                        if not sep:
+                            continue
+                        hdr_bytes, body_part = part.split(sep, 1)
+                        hdr_text = hdr_bytes.decode("utf-8", errors="replace")
+                        if 'name="scanner_file"' in hdr_text or 'name="file"' in hdr_text:
+                            fn_m = _re.search(r'filename="([^"]*)"', hdr_text)
+                            if fn_m and fn_m.group(1):
+                                filename = fn_m.group(1)
+                            if body_part.endswith(b"\r\n"):
+                                body_part = body_part[:-2]
+                            elif body_part.endswith(b"\n"):
+                                body_part = body_part[:-1]
+                            file_bytes = body_part
+                            break
+                else:
+                    return JSONResponse(
+                        status_code=400,
+                        content={"success": False, "message": f"Multipart upload parsing error: {e}"},
+                    )
         else:
             try:
                 body = await request.json()

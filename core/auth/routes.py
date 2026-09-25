@@ -246,7 +246,14 @@ def create_auth_router(
                 username = str(form.get("username", "")).strip()
                 password = str(form.get("password", "")).strip()
             except Exception:
-                raise HTTPException(status_code=400, detail="Invalid request body")
+                try:
+                    import urllib.parse as _up
+                    raw_qs = (await request.body()).decode("utf-8", errors="replace")
+                    parsed_qs = _up.parse_qs(raw_qs)
+                    username = str((parsed_qs.get("username") or [""])[0]).strip()
+                    password = str((parsed_qs.get("password") or [""])[0]).strip()
+                except Exception:
+                    raise HTTPException(status_code=400, detail="Invalid request body")
 
         ip = get_client_ip(request)
         ua = request.headers.get("user-agent", "")

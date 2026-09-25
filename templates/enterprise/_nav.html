@@ -82,8 +82,16 @@
             transition: all 0.15s ease;
             white-space: nowrap;
         }
-        .opb-nav-item:hover, .opb-nav-item.active {
-            background: var(--accent-color, #38bdf8);
+        .opb-nav-item:not(.active):hover {
+            background: var(--bg-card-hover, rgba(56, 189, 248, 0.14));
+            color: var(--accent-color, #38bdf8) !important;
+            font-weight: 800;
+        }
+        .opb-nav-item.active,
+        .opb-nav-item.active:hover,
+        .opb-ws-group:hover > .opb-nav-item.active,
+        .opb-ws-group.menu-pinned > .opb-nav-item.active {
+            background: var(--accent-color, #38bdf8) !important;
             color: var(--nav-active-text, #ffffff) !important;
             font-weight: 800;
         }
@@ -540,12 +548,19 @@ body[data-theme="emerald-matrix"] {
     text-decoration: none !important;
 }
 
-.opb-desktop-nav .opb-nav-item:hover,
+.opb-desktop-nav .opb-nav-item:not(.active):hover,
+.opb-desktop-nav .opb-ws-group:hover > .opb-nav-item:not(.active),
+.opb-desktop-nav .opb-ws-group.menu-pinned > .opb-nav-item:not(.active),
 .opb-desktop-nav .opb-ws-item:hover {
+    background: var(--bg-card-hover, rgba(56, 189, 248, 0.14)) !important;
     color: var(--accent-color, #38bdf8) !important;
 }
 
-.opb-desktop-nav .opb-nav-item.active {
+.opb-desktop-nav .opb-nav-item.active,
+.opb-desktop-nav .opb-nav-item.active:hover,
+.opb-desktop-nav .opb-ws-group:hover > .opb-nav-item.active,
+.opb-desktop-nav .opb-ws-group.menu-pinned > .opb-nav-item.active {
+    background: var(--accent-color, #38bdf8) !important;
     color: var(--nav-active-text, var(--text-primary, #0f172a)) !important;
 }
 
@@ -921,7 +936,7 @@ body[data-theme="emerald-matrix"] {
         </div>
 
         <div class="opb-ws-group">
-            <a href="/live-pnl" class="opb-nav-item {% if current_page in ('live_pnl', 'trade_journal', 'trade_copier', 'payoff_calculator', 'performance') %}active{% endif %}">
+            <a href="/live-pnl" class="opb-nav-item {% if current_page in ('live_pnl', 'trade_journal', 'trade_copier', 'payoff_calculator', 'performance', 'reports') %}active{% endif %}">
                 📈 Execution & PnL ▾
             </a>
             <div class="opb-ws-dropdown">
@@ -948,7 +963,7 @@ body[data-theme="emerald-matrix"] {
 
         {% if is_admin and (can_modify_config or can_modify_risk or can_toggle_strategies or can_deploy_models or can_view_logs or can_manage_brokers) %}
         <div class="opb-ws-group" tabindex="0">
-            <a href="/admin/config" class="opb-nav-item {% if current_page in ('admin_config', 'admin_signals', 'admin_capabilities', 'admin_portfolio_analyzer', 'governance', 'security', 'observability', 'system_health', 'data_quality', 'capacity', 'event_store', 'pricing_plans', 'whats_new', 'presentation', 'kill_switch') %}active{% endif %}">
+            <a href="/admin/config" class="opb-nav-item {% if current_page in ('admin_config', 'admin_users', 'admin_signals', 'admin_capabilities', 'admin_portfolio_analyzer', 'governance', 'security', 'observability', 'system_health', 'data_quality', 'capacity', 'event_store', 'pricing_plans', 'whats_new', 'presentation', 'kill_switch') %}active{% endif %}">
                 ⚙️ Admin & Governance ▾
             </a>
             <div class="opb-ws-dropdown" style="min-width: 320px; max-height: 80vh; overflow-y: auto;">

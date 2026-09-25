@@ -169,9 +169,13 @@
 
             let data;
             try {
+                const m = document.cookie.match(/(?:^|;\s*)opb_csrf=([^;]+)/);
+                const csrfToken = m ? decodeURIComponent(m[1]) : '';
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
                 const res = await fetch('/api/payoff-calculator/compute', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     credentials: 'include',
                     body: JSON.stringify({ spot_price: spotPrice, price_range_pct: priceRangePct, legs: legs }),
                 });

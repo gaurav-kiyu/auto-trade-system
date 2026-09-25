@@ -20,14 +20,13 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
+from core.billing.upi_billing_engine import UpiBillingEngine
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
-
-from core.billing.upi_billing_engine import UpiBillingEngine
 
 
 def make_valid_png(size=(64, 64), color="white") -> bytes:
@@ -101,7 +100,7 @@ def test_authoritative_config_store_precedence_and_restart(tmp_path):
             assert UpiBillingEngine.get_payee_name() == "Authoritative Master Desk"
 
         # 3. RESTART: Simulate process restart by reloading directly from config.json
-        with open(test_cfg, "r", encoding="utf-8") as f:
+        with open(test_cfg, encoding="utf-8") as f:
             disk_data = json.load(f)
         assert disk_data["UPI_VPA"] == "admin.authoritative@icici"
         assert disk_data["UPI_PAYEE_NAME"] == "Authoritative Master Desk"
@@ -286,9 +285,9 @@ def test_generate_upi_qr_string_includes_custom_state(clean_qr_storage):
 @pytest.fixture
 def mock_dashboard_app(clean_qr_storage):
     """Create lightweight test client with dashboard routes mounted."""
-    from fastapi import FastAPI, Depends, Request
-    from fastapi.responses import JSONResponse
     from core.enterprise_dashboard.routes.admin import register_admin_routes
+    from fastapi import Request
+    from fastapi.responses import JSONResponse
 
     app = FastAPI()
 
@@ -477,3 +476,132 @@ def test_admin_config_template_upi_contracts():
     assert 'id="adminConfigUploadQrBtn"' in content
     assert 'id="adminConfigDeleteQrBtn"' in content
     assert "loadAdminBillingConfig" in content
+
+
+def test_multipart_form_data_upload_matrix(mock_dashboard_app, clean_qr_storage):
+    """OBS-05: Verify real browser-equivalent multipart/form-data upload matrix."""
+    admin = mock_dashboard_app["admin_client"]
+    viewer = mock_dashboard_app["viewer_client"]
+
+    # 1. Valid JPEG via multipart/form-data (Anju_UPI-Scanner.jpeg)
+    jpeg_bytes = make_valid_jpeg()
+    res_jpeg = admin.post(
+        "/api/admin/billing/upload-qr",
+        files={"scanner_file": ("Anju_UPI-Scanner.jpeg", jpeg_bytes, "image/jpeg")},
+    )
+    assert res_jpeg.status_code == 200
+    assert res_jpeg.json()["success"] is True
+    assert res_jpeg.json()["details"]["has_custom_qr"] is True
+
+    # 2. Valid PNG via multipart/form-data
+    png_bytes = make_valid_png()
+    res_png = admin.post(
+        "/api/admin/billing/upload-qr",
+        files={"scanner_file": ("scanner.png", png_bytes, "image/png")},
+    )
+    assert res_png.status_code == 200
+    assert res_png.json()["success"] is True
+
+    # 3. Valid WebP via multipart/form-data
+    webp_bytes = make_valid_webp()
+    res_webp = admin.post(
+        "/api/admin/billing/upload-qr",
+        files={"scanner_file": ("scanner.webp", webp_bytes, "image/webp")},
+    )
+    assert res_webp.status_code == 200
+    assert res_webp.json()["success"] is True
+
+    # 4. Valid SVG via multipart/form-data
+    svg_bytes = b"<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='64' fill='#000'/></svg>"
+    res_svg = admin.post(
+        "/api/admin/billing/upload-qr",
+        files={"scanner_file": ("scanner.svg", svg_bytes, "image/svg+xml")},
+    )
+    assert res_svg.status_code == 200
+    assert res_svg.json()["success"] is True
+
+    # 5. Negative multipart cases
+    # Corrupt PNG
+    res_corrupt = admin.post(
+        "/api/admin/billing/upload-qr",
+        files={"scanner_file": ("corrupt.png", b"\x89PNG\r\n\x1a\nCORRUPT", "image/png")},
+    )
+    assert res_corrupt.status_code == 400
+    assert res_corrupt.json()["success"] is False
+
+    # MIME mismatch (PNG bytes as .jpg)
+    res_mismatch = admin.post(
+        "/api/admin/billing/upload-qr",
+        files={"scanner_file": ("mismatch.jpg", png_bytes, "image/jpeg")},
+    )
+    assert res_mismatch.status_code == 400
+    assert res_mismatch.json()["success"] is False
+
+    # Zero-byte file
+    res_empty = admin.post(
+        "/api/admin/billing/upload-qr",
+        files={"scanner_file": ("empty.png", b"", "image/png")},
+    )
+    assert res_empty.status_code == 400
+    assert res_empty.json()["success"] is False
+
+    # Malicious SVG
+    res_evil_svg = admin.post(
+        "/api/admin/billing/upload-qr",
+        files={"scanner_file": ("evil.svg", b"<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>", "image/svg+xml")},
+    )
+    assert res_evil_svg.status_code == 400
+    assert res_evil_svg.json()["success"] is False
+
+    # Malformed multipart boundary
+    res_malformed = admin.post(
+        "/api/admin/billing/upload-qr",
+        content=b"not a valid multipart body",
+        headers={"Content-Type": "multipart/form-data; boundary=---missing"},
+    )
+    assert res_malformed.status_code == 400
+    assert res_malformed.json()["success"] is False
+
+    # Non-super-admin RBAC rejection on multipart upload
+    res_viewer = viewer.post(
+        "/api/admin/billing/upload-qr",
+        files={"scanner_file": ("Anju_UPI-Scanner.jpeg", jpeg_bytes, "image/jpeg")},
+    )
+    assert res_viewer.status_code == 403
+
+
+def test_obs01_to_obs04_ui_and_csrf_contracts():
+    """OBS-01..OBS-04: Verify modal overlay, nav contrast, CSRF headers, and dynamic signal badges."""
+    root = Path(__file__).resolve().parents[1]
+
+    # OBS-01 & OBS-04: admin_signals.html
+    admin_signals = (root / "templates" / "enterprise" / "admin_signals.html").read_text(encoding="utf-8")
+    assert 'id="signalExplainModal" class="modal-overlay"' in admin_signals
+    assert 'id="signalExplainModal" class="opb-modal"' not in admin_signals
+    assert "(+4%)" not in admin_signals
+    assert "(+8%)" not in admin_signals
+    assert "(-3%)" not in admin_signals
+    assert "1,327" not in admin_signals
+    assert "X-CSRF-Token" in admin_signals
+
+    # OBS-04 & OBS-03: user_signals.html & dashboard.html
+    user_signals = (root / "templates" / "enterprise" / "user_signals.html").read_text(encoding="utf-8")
+    assert "(+4%)" not in user_signals
+    assert "(+8%)" not in user_signals
+    assert "(-3%)" not in user_signals
+    assert "X-CSRF-Token" in user_signals
+
+    dashboard_html = (root / "templates" / "enterprise" / "dashboard.html").read_text(encoding="utf-8")
+    assert "X-CSRF-Token" in dashboard_html
+    assert "Paper Trade Queued" in dashboard_html
+
+    # OBS-02: _nav.html and opb_design_system.css
+    nav_html = (root / "templates" / "enterprise" / "_nav.html").read_text(encoding="utf-8")
+    assert ".opb-desktop-nav .opb-nav-item:not(.active):hover" in nav_html
+    assert ".opb-desktop-nav .opb-ws-group:hover > .opb-nav-item.active" in nav_html
+    assert "'admin_users'" in nav_html
+    assert "'reports'" in nav_html
+
+    design_css = (root / "static" / "opb_design_system.css").read_text(encoding="utf-8")
+    assert ".opb-nav-item:not(.active):hover" in design_css
+    assert ".opb-modal-close-btn" in design_css

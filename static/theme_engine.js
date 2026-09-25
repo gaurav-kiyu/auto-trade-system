@@ -517,30 +517,39 @@
             }
 
             .opb-modal-close-btn, #opb-modal-close-btn {
-                background: transparent;
-                border: none;
-                color: var(--text-muted, #94a3b8);
-                cursor: pointer;
-                font-size: 1.15rem;
-                width: 44px;
-                height: 44px;
-                min-width: 44px;
-                min-height: 44px;
-                flex-shrink: 0;
-                box-sizing: border-box;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 0.5rem;
-                padding: 0;
-                margin: -0.5rem -0.5rem -0.5rem 0;
-                line-height: 1;
-                transition: color 0.2s, background-color 0.2s;
+                background: var(--bg-secondary, #1e293b) !important;
+                border: 1px solid var(--border-color, #334155) !important;
+                color: var(--text-primary, #f8fafc) !important;
+                cursor: pointer !important;
+                font-size: 1.25rem !important;
+                font-weight: 700 !important;
+                width: 44px !important;
+                height: 44px !important;
+                min-width: 44px !important;
+                min-height: 44px !important;
+                flex-shrink: 0 !important;
+                box-sizing: border-box !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 0.5rem !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                line-height: 1 !important;
+                transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease !important;
             }
 
-            .opb-modal-close-btn:hover, #opb-modal-close-btn:hover {
-                color: var(--text-primary, #ffffff);
-                background: rgba(255, 255, 255, 0.1);
+            .opb-modal-close-btn:hover, #opb-modal-close-btn:hover,
+            .opb-modal-close-btn:focus-visible, #opb-modal-close-btn:focus-visible {
+                color: #ffffff !important;
+                background: var(--danger-color, #ef4444) !important;
+                border-color: var(--danger-color, #ef4444) !important;
+            }
+
+            .opb-ws-group.menu-closed .opb-ws-dropdown {
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
             }
 
             .opb-toast-progress {
@@ -1014,7 +1023,10 @@
                         cancelText: 'Resume Session',
                         onConfirm: async () => {
                             try {
-                                const res = await fetch('/api/system/kill', { method: 'POST' });
+                                const m = document.cookie.match(/(?:^|;\s*)opb_csrf=([^;]+)/);
+                                const csrf = m ? decodeURIComponent(m[1]) : '';
+                                const headers = csrf ? { 'X-CSRF-Token': csrf } : {};
+                                const res = await fetch('/api/system/kill', { method: 'POST', headers: headers, credentials: 'include' });
                                 if (res.ok) {
                                     window.showSuccess('Kill Switch Active: Trading Halted', 'Halted');
                                 } else {
@@ -1161,19 +1173,34 @@
         const group = trigger.closest('.opb-ws-group');
         if (!group) return;
 
-        // First click pins the submenu so the pointer cannot outrun it.
-        // A second click follows the parent link normally.
         const alreadyPinned = group.classList.contains('menu-pinned');
-        document.querySelectorAll('.opb-ws-group.menu-pinned').forEach(function(other) {
-            if (other !== group) other.classList.remove('menu-pinned');
+        document.querySelectorAll('.opb-ws-group').forEach(function(other) {
+            if (other !== group) {
+                other.classList.remove('menu-pinned', 'menu-closed');
+            }
         });
+        e.preventDefault();
         if (alreadyPinned) {
             group.classList.remove('menu-pinned');
+            group.classList.add('menu-closed');
+            if (document.activeElement && group.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+            group.blur?.();
             return;
         }
-        e.preventDefault();
+        group.classList.remove('menu-closed');
         group.classList.add('menu-pinned');
     }
+
+    document.addEventListener('mouseover', function(e) {
+        const group = e.target.closest && e.target.closest('.opb-ws-group');
+        if (!group) {
+            document.querySelectorAll('.opb-ws-group.menu-closed').forEach(function(g) {
+                g.classList.remove('menu-closed');
+            });
+        }
+    }, { capture: false, passive: true });
 
     document.addEventListener('click', function(e) {
         handleDesktopWorkspaceMenuClick(e);
@@ -1183,8 +1210,11 @@
 
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.opb-ws-group')) {
-            document.querySelectorAll('.opb-ws-group.menu-pinned').forEach(function(group) {
-                group.classList.remove('menu-pinned');
+            document.querySelectorAll('.opb-ws-group').forEach(function(group) {
+                group.classList.remove('menu-pinned', 'menu-closed');
+                if (document.activeElement && group.contains(document.activeElement)) {
+                    document.activeElement.blur();
+                }
             });
         }
     }, { capture: false, passive: true });
@@ -1370,6 +1400,14 @@
     // Global Accessible Modal Controller (OPB-MODAL-2026 Invariant)
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' || e.keyCode === 27) {
+            // Dismiss desktop workspace dropdowns cleanly
+            document.querySelectorAll('.opb-ws-group').forEach(group => {
+                group.classList.remove('menu-pinned');
+                group.classList.add('menu-closed');
+                if (document.activeElement && group.contains(document.activeElement)) {
+                    document.activeElement.blur();
+                }
+            });
             // Dismiss global dynamic modal
             const globalBackdrop = document.getElementById('opb-global-modal-backdrop');
             if (globalBackdrop && globalBackdrop.classList.contains('opb-modal-active')) {
@@ -1393,15 +1431,47 @@
         // Universal close button dismissal
         const closeBtn = e.target.closest('.opb-modal-close-btn, [data-action="close-signal-test-modal"], [data-action="close-signal-explain-modal"], [id^="closeViewUser"], [id^="closePermModal"], [id^="closeHistoryHeader"]');
         if (closeBtn) {
-            const modalWrapper = closeBtn.closest('.modal-overlay, .modal-backdrop, .opb-modal-backdrop, .opb-modal, .qr-modal, [id$="Modal"], [id*="-modal"]');
+            const modalWrapper = closeBtn.closest('.modal-overlay, .modal-backdrop, .opb-modal-backdrop, .qr-modal, [id$="Modal"], [id*="-modal"]');
             if (modalWrapper) {
                 modalWrapper.style.display = 'none';
                 modalWrapper.classList.remove('active', 'visible', 'show');
             }
         }
         // Universal backdrop click dismissal (when clicking directly on the backdrop/overlay)
-        if (e.target.matches && e.target.matches('.modal-overlay, .modal-backdrop, .opb-modal-backdrop, .qr-modal, .opb-modal')) {
+        if (e.target.matches && e.target.matches('.modal-overlay, .modal-backdrop, .opb-modal-backdrop, .qr-modal, #signalExplainModal, #signalTestModal')) {
             e.target.style.display = 'none';
             e.target.classList.remove('active', 'visible', 'show');
         }
     });
+
+    // Universal Same-Origin CSRF Header Attachment for State-Changing Fetch Calls (OBS-03)
+    if (typeof window !== 'undefined' && typeof window.fetch === 'function' && !window.__opbCsrfFetchWrapped) {
+        const _origFetch = window.fetch.bind(window);
+        window.fetch = function(input, init) {
+            try {
+                const method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+                if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+                    const urlStr = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+                    const isSameOrigin = !urlStr || urlStr.startsWith('/') || urlStr.startsWith(window.location.origin);
+                    if (isSameOrigin) {
+                        const m = document.cookie.match(/(?:^|;\s*)opb_csrf=([^;]+)/);
+                        const csrf = m ? decodeURIComponent(m[1]) : '';
+                        if (csrf) {
+                            init = Object.assign({}, init || {});
+                            if (!init.credentials) init.credentials = 'include';
+                            if (init.headers instanceof Headers) {
+                                if (!init.headers.has('X-CSRF-Token')) init.headers.set('X-CSRF-Token', csrf);
+                            } else {
+                                init.headers = Object.assign({}, init.headers || {});
+                                if (!init.headers['X-CSRF-Token'] && !init.headers['x-csrf-token']) {
+                                    init.headers['X-CSRF-Token'] = csrf;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (_e) {}
+            return _origFetch(input, init);
+        };
+        window.__opbCsrfFetchWrapped = true;
+    }
