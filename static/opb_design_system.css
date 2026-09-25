@@ -415,11 +415,11 @@ body {
 /* ══════════════════════════════════════════════════════════════════════════
    Universal Mobile & Tablet Alignment Architecture (< 1024px)
    ══════════════════════════════════════════════════════════════════════════ */
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
     body {
         padding: 0.5rem 0.65rem 4.5rem 0.65rem !important;
         max-width: 100% !important;
-        overflow-x: hidden !important;
+        overflow-x: clip !important;
     }
 
     .opb-container, .container, main {
@@ -461,7 +461,7 @@ body {
 /* ══════════════════════════════════════════════════════════════════════════
    Mobile Screen Layout Stabilization & Anti-Scattering Rules (< 1024px)
    ══════════════════════════════════════════════════════════════════════════ */
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
     * {
         box-sizing: border-box !important;
     }
@@ -471,7 +471,7 @@ body {
         padding: 0.5rem 0.5rem 4.75rem 0.5rem !important;
         width: 100% !important;
         max-width: 100% !important;
-        overflow-x: hidden !important;
+        overflow-x: clip !important;
     }
 
     /* Prevent all containers from overflowing viewport */
@@ -858,7 +858,7 @@ label:has(input[type="radio"]) {
    ══════════════════════════════════════════════════════════════════════════ */
 html, body {
     max-width: 100% !important;
-    overflow-x: hidden !important;
+    overflow-x: clip !important;
 }
 
 .ambient-glow {
