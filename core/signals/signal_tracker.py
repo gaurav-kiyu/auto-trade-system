@@ -332,6 +332,60 @@ class SignalTracker:
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_pred_snapshot_sym_time ON signal_prediction_snapshots(symbol, captured_at)")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_pred_snapshot_captured_at ON signal_prediction_snapshots(captured_at)")
 
+                # 8. Analytical Outcome Measurements (Phase B)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS signal_outcome_measurements (
+                        signal_id TEXT PRIMARY KEY,
+                        prediction_snapshot_id TEXT NOT NULL,
+                        symbol TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        direction TEXT NOT NULL,
+                        entry_price REAL NOT NULL,
+                        stop_loss REAL NOT NULL,
+                        target_1 REAL NOT NULL,
+                        target_2 REAL NOT NULL,
+                        initial_risk REAL,
+                        observed_from TEXT NOT NULL,
+                        observed_until TEXT,
+                        outcome TEXT NOT NULL,
+                        raw_lifecycle_state TEXT NOT NULL,
+                        first_touch TEXT,
+                        first_touch_at TEXT,
+                        first_touch_price REAL,
+                        target_1_hit INTEGER NOT NULL DEFAULT 0,
+                        target_1_hit_at TEXT,
+                        target_1_hit_price REAL,
+                        target_2_hit INTEGER NOT NULL DEFAULT 0,
+                        target_2_hit_at TEXT,
+                        target_2_hit_price REAL,
+                        stop_loss_hit INTEGER NOT NULL DEFAULT 0,
+                        stop_loss_hit_at TEXT,
+                        stop_loss_hit_price REAL,
+                        mfe REAL,
+                        mae REAL,
+                        mfe_pct REAL,
+                        mae_pct REAL,
+                        mfe_r REAL,
+                        mae_r REAL,
+                        time_to_first_event_seconds REAL,
+                        time_to_t1_seconds REAL,
+                        time_to_t2_seconds REAL,
+                        time_to_sl_seconds REAL,
+                        realized_r REAL,
+                        exit_price REAL,
+                        exit_at TEXT,
+                        observation_count INTEGER NOT NULL DEFAULT 0,
+                        data_quality_status TEXT NOT NULL DEFAULT 'VALID_DATA',
+                        outcome_confidence TEXT DEFAULT 'UNKNOWN',
+                        calculation_version TEXT NOT NULL DEFAULT 'OUTCOME_MEASUREMENT_V1',
+                        calculated_at TEXT NOT NULL,
+                        FOREIGN KEY (signal_id) REFERENCES signal_prediction_snapshots(signal_id)
+                    )
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_outcome_meas_sym ON signal_outcome_measurements(symbol)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_outcome_meas_outcome ON signal_outcome_measurements(outcome)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_outcome_meas_calc_at ON signal_outcome_measurements(calculated_at)")
+
                 # Check if empty, then seed sample historical data
                 cur.execute("SELECT COUNT(*) as cnt FROM system_signals")
                 row = cur.fetchone()
@@ -909,6 +963,39 @@ class SignalTracker:
                 return dict(row) if row else None
             finally:
                 conn.close()
+
+    def build_signal_outcome_measurement(self, signal_id: str) -> dict[str, Any] | None:
+        """Calculate and materialize analytical outcome measurement for a signal."""
+        from core.signals.signal_outcome_dataset import SignalOutcomeDatasetService
+        svc = SignalOutcomeDatasetService.get_instance(db_path=self._db_path)
+        return svc.build_signal_outcome_measurement(signal_id)
+
+    def build_signal_outcome_dataset(
+        self,
+        limit: int = 1000,
+        category: str = "all",
+        include_seed_samples: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Materialize outcome measurements for all eligible prediction snapshots."""
+        from core.signals.signal_outcome_dataset import SignalOutcomeDatasetService
+        svc = SignalOutcomeDatasetService.get_instance(db_path=self._db_path)
+        return svc.build_signal_outcome_dataset(
+            limit=limit, category=category, include_seed_samples=include_seed_samples
+        )
+
+    def get_outcome_measurement(self, signal_id: str) -> dict[str, Any] | None:
+        """Retrieve stored analytical outcome measurement for a signal."""
+        from core.signals.signal_outcome_dataset import SignalOutcomeDatasetService
+        svc = SignalOutcomeDatasetService.get_instance(db_path=self._db_path)
+        return svc.get_outcome_measurement(signal_id)
+
+    def get_outcome_measurements(
+        self, limit: int = 100, symbol: str | None = None, outcome: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Retrieve stored analytical outcome measurements with optional filters."""
+        from core.signals.signal_outcome_dataset import SignalOutcomeDatasetService
+        svc = SignalOutcomeDatasetService.get_instance(db_path=self._db_path)
+        return svc.get_outcome_measurements(limit=limit, symbol=symbol, outcome=outcome)
 
     def count_generated_today(self) -> int:
         """Return the number of real generated signals for the current IST date."""
