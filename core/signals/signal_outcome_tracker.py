@@ -203,9 +203,105 @@ class SignalOutcomeTracker:
                         cur.execute(f"ALTER TABLE system_signals ADD COLUMN {col} {col_type}")
                     except sqlite3.OperationalError:
                         pass
+
+                # 7. Ensure prediction snapshots table exists
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS signal_prediction_snapshots (
+                        signal_id TEXT PRIMARY KEY,
+                        captured_at TEXT NOT NULL,
+                        snapshot_schema_version TEXT NOT NULL DEFAULT 'v1.0',
+                        engine_version TEXT NOT NULL DEFAULT '2.60.0',
+                        strategy_version TEXT DEFAULT '',
+                        model_version TEXT DEFAULT '',
+                        calibration_version TEXT DEFAULT 'UNCALIBRATED',
+                        feature_schema_version TEXT DEFAULT '',
+                        symbol TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        direction TEXT NOT NULL,
+                        strategy TEXT DEFAULT '',
+                        score INTEGER NOT NULL,
+                        raw_score REAL,
+                        normalized_score REAL,
+                        score_saturated INTEGER DEFAULT 0,
+                        tier TEXT NOT NULL,
+                        entry_price REAL NOT NULL,
+                        stop_loss REAL NOT NULL,
+                        target_1 REAL NOT NULL,
+                        target_2 REAL NOT NULL,
+                        market_regime TEXT DEFAULT '',
+                        regime_confidence REAL,
+                        composite_score REAL,
+                        p_t1 REAL,
+                        p_t2 REAL,
+                        p_sl REAL,
+                        p_timeout REAL,
+                        expected_value_r REAL,
+                        net_rr_t1 REAL,
+                        net_rr_t2 REAL,
+                        features_json TEXT,
+                        score_components_json TEXT,
+                        raw_signal_json TEXT,
+                        snapshot_hash TEXT NOT NULL,
+                        source TEXT DEFAULT 'GENERATION',
+                        created_at TEXT NOT NULL,
+                        FOREIGN KEY (signal_id) REFERENCES system_signals(signal_id)
+                    )
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_pred_snapshot_sym_time ON signal_prediction_snapshots(symbol, captured_at)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_pred_snapshot_captured_at ON signal_prediction_snapshots(captured_at)")
+
                 conn.commit()
             except Exception as ex:
                 _log.error("Failed to ensure outcome tracker schema: %s", ex)
+            finally:
+                conn.close()
+
+    def get_signal_prediction_and_outcome(self, signal_id: str) -> dict[str, Any] | None:
+        """Retrieve joined prediction snapshot and current outcome record without mutating snapshot."""
+        with self._io_lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT
+                        s.signal_id,
+                        p.captured_at,
+                        p.snapshot_schema_version,
+                        p.engine_version,
+                        p.strategy_version,
+                        p.model_version,
+                        p.calibration_version,
+                        p.symbol,
+                        p.category,
+                        p.direction,
+                        p.strategy,
+                        p.score as pred_score,
+                        p.raw_score as pred_raw_score,
+                        p.entry_price as pred_entry_price,
+                        p.stop_loss as pred_stop_loss,
+                        p.target_1 as pred_target_1,
+                        p.target_2 as pred_target_2,
+                        p.market_regime,
+                        p.p_t1,
+                        p.p_t2,
+                        p.p_sl,
+                        p.p_timeout,
+                        p.net_rr_t1,
+                        p.net_rr_t2,
+                        p.snapshot_hash,
+                        s.status as outcome_status,
+                        s.current_price,
+                        s.pnl_pct,
+                        s.first_touch,
+                        s.first_touch_at,
+                        s.first_touch_price,
+                        s.outcome_confidence
+                    FROM signal_prediction_snapshots p
+                    LEFT JOIN system_signals s ON p.signal_id = s.signal_id
+                    WHERE p.signal_id = ?
+                """, (signal_id,))
+                row = cur.fetchone()
+                return dict(row) if row else None
             finally:
                 conn.close()
 

@@ -9,6 +9,7 @@ Manages:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import sqlite3
@@ -24,6 +25,17 @@ from core.datetime_ist import now_ist
 _log = logging.getLogger("SIGNAL_TRACKER")
 _ROOT = Path(__file__).resolve().parent.parent.parent
 _DB_PATH = _ROOT / "db" / "signals_history.db"
+
+
+def compute_prediction_snapshot_hash(payload: dict[str, Any]) -> str:
+    """Compute deterministic SHA-256 hash over canonical JSON of the prediction payload.
+
+    Excludes mutable outcome, lifecycle, delivery, and self-referential hash fields.
+    Sorts keys, uses compact separators (',', ':'), and UTF-8 encoding.
+    """
+    clean = {k: v for k, v in payload.items() if k != "snapshot_hash"}
+    canonical = json.dumps(clean, sort_keys=True, separators=(",", ":"), ensure_ascii=True, default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 class SignalTracker:
@@ -273,6 +285,53 @@ class SignalTracker:
                 except sqlite3.OperationalError:
                     pass
 
+                # 7. Immutable Prediction Snapshots (Phase A Signal Quality)
+                # Captured strictly at signal generation time; immutable historical truth.
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS signal_prediction_snapshots (
+                        signal_id TEXT PRIMARY KEY,
+                        captured_at TEXT NOT NULL,
+                        snapshot_schema_version TEXT NOT NULL DEFAULT 'v1.0',
+                        engine_version TEXT NOT NULL DEFAULT '2.60.0',
+                        strategy_version TEXT DEFAULT '',
+                        model_version TEXT DEFAULT '',
+                        calibration_version TEXT DEFAULT 'UNCALIBRATED',
+                        feature_schema_version TEXT DEFAULT '',
+                        symbol TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        direction TEXT NOT NULL,
+                        strategy TEXT DEFAULT '',
+                        score INTEGER NOT NULL,
+                        raw_score REAL,
+                        normalized_score REAL,
+                        score_saturated INTEGER DEFAULT 0,
+                        tier TEXT NOT NULL,
+                        entry_price REAL NOT NULL,
+                        stop_loss REAL NOT NULL,
+                        target_1 REAL NOT NULL,
+                        target_2 REAL NOT NULL,
+                        market_regime TEXT DEFAULT '',
+                        regime_confidence REAL,
+                        composite_score REAL,
+                        p_t1 REAL,
+                        p_t2 REAL,
+                        p_sl REAL,
+                        p_timeout REAL,
+                        expected_value_r REAL,
+                        net_rr_t1 REAL,
+                        net_rr_t2 REAL,
+                        features_json TEXT,
+                        score_components_json TEXT,
+                        raw_signal_json TEXT,
+                        snapshot_hash TEXT NOT NULL,
+                        source TEXT DEFAULT 'GENERATION',
+                        created_at TEXT NOT NULL,
+                        FOREIGN KEY (signal_id) REFERENCES system_signals(signal_id)
+                    )
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_pred_snapshot_sym_time ON signal_prediction_snapshots(symbol, captured_at)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_pred_snapshot_captured_at ON signal_prediction_snapshots(captured_at)")
+
                 # Check if empty, then seed sample historical data
                 cur.execute("SELECT COUNT(*) as cnt FROM system_signals")
                 row = cur.fetchone()
@@ -517,6 +576,169 @@ class SignalTracker:
                     opportunity_key, "POLLING"
                 ))
 
+                # --- Capture Immutable Prediction Snapshot (Phase A) ---
+                snapshot_schema_ver = str(signal_dict.get("snapshot_schema_version") or "v1.0")
+                engine_ver = str(signal_dict.get("engine_version") or "2.60.0")
+                strategy_ver = str(signal_dict.get("strategy_version") or "")
+                model_ver = str(signal_dict.get("model_version") or "")
+                feature_schema_ver = str(signal_dict.get("feature_schema_version") or "")
+                market_regime = str(signal_dict.get("market_regime") or signal_dict.get("regime") or "")
+                regime_conf: float | None = None
+                if signal_dict.get("regime_confidence") is not None:
+                    try:
+                        regime_conf = float(signal_dict["regime_confidence"])
+                    except (ValueError, TypeError):
+                        pass
+
+                comp_score: float | None = None
+                if signal_dict.get("composite_score") is not None:
+                    try:
+                        comp_score = float(signal_dict["composite_score"])
+                    except (ValueError, TypeError):
+                        pass
+
+                # PROBABILITY RULE: DO NOT invent probabilities.
+                # If uncalibrated / unavailable at generation, store NULL (None)
+                # and mark calibration_version as UNCALIBRATED.
+                p_t1: float | None = None
+                p_t2: float | None = None
+                p_sl: float | None = None
+                p_timeout: float | None = None
+                if signal_dict.get("p_t1") is not None:
+                    try:
+                        p_t1 = float(signal_dict["p_t1"])
+                    except (ValueError, TypeError):
+                        pass
+                if signal_dict.get("p_t2") is not None:
+                    try:
+                        p_t2 = float(signal_dict["p_t2"])
+                    except (ValueError, TypeError):
+                        pass
+                if signal_dict.get("p_sl") is not None:
+                    try:
+                        p_sl = float(signal_dict["p_sl"])
+                    except (ValueError, TypeError):
+                        pass
+                if signal_dict.get("p_timeout") is not None:
+                    try:
+                        p_timeout = float(signal_dict["p_timeout"])
+                    except (ValueError, TypeError):
+                        pass
+
+                calib_ver = str(signal_dict.get("calibration_version") or "")
+                if not calib_ver:
+                    if p_t1 is None and p_t2 is None and p_sl is None and p_timeout is None:
+                        calib_ver = "UNCALIBRATED"
+                    else:
+                        calib_ver = "EMPIRICAL_PROVISIONAL"
+
+                exp_val_r: float | None = None
+                if signal_dict.get("expected_value_r") is not None:
+                    try:
+                        exp_val_r = float(signal_dict["expected_value_r"])
+                    except (ValueError, TypeError):
+                        pass
+
+                # Calculate net Risk:Reward if not already provided
+                net_rr_t1: float | None = None
+                net_rr_t2: float | None = None
+                if signal_dict.get("net_rr_t1") is not None:
+                    try:
+                        net_rr_t1 = float(signal_dict["net_rr_t1"])
+                    except (ValueError, TypeError):
+                        pass
+                if signal_dict.get("net_rr_t2") is not None:
+                    try:
+                        net_rr_t2 = float(signal_dict["net_rr_t2"])
+                    except (ValueError, TypeError):
+                        pass
+
+                if net_rr_t1 is None or net_rr_t2 is None:
+                    is_call_dir = direction in ("CALL", "BUY", "LONG")
+                    if entry_price > 0:
+                        risk_amt = (entry_price - sl_price) if is_call_dir else (sl_price - entry_price)
+                        if risk_amt > 0:
+                            if net_rr_t1 is None and t1_price > 0:
+                                rew_1 = (t1_price - entry_price) if is_call_dir else (entry_price - t1_price)
+                                if rew_1 > 0:
+                                    net_rr_t1 = round(rew_1 / risk_amt, 4)
+                            if net_rr_t2 is None and t2_price > 0:
+                                rew_2 = (t2_price - entry_price) if is_call_dir else (entry_price - t2_price)
+                                if rew_2 > 0:
+                                    net_rr_t2 = round(rew_2 / risk_amt, 4)
+
+                features_raw = signal_dict.get("features") or signal_dict.get("feature_snapshot") or {}
+                features_clean = dict(features_raw) if isinstance(features_raw, dict) else {}
+                features_json = json.dumps(features_clean, sort_keys=True, separators=(",", ":"), default=str)
+
+                components_raw = signal_dict.get("score_components") or signal_dict.get("components") or {}
+                components_clean = dict(components_raw) if isinstance(components_raw, dict) else {}
+                score_components_json = json.dumps(components_clean, sort_keys=True, separators=(",", ":"), default=str)
+
+                raw_signal_json = json.dumps(signal_dict, sort_keys=True, separators=(",", ":"), default=str)
+                captured_at = now.isoformat()
+                source_str = str(signal_dict.get("source") or "GENERATION")
+
+                hash_payload = {
+                    "signal_id": sig_id,
+                    "captured_at": captured_at,
+                    "snapshot_schema_version": snapshot_schema_ver,
+                    "engine_version": engine_ver,
+                    "strategy_version": strategy_ver,
+                    "model_version": model_ver,
+                    "calibration_version": calib_ver,
+                    "feature_schema_version": feature_schema_ver,
+                    "symbol": sym,
+                    "category": cat,
+                    "direction": direction,
+                    "strategy": strategy,
+                    "score": score,
+                    "raw_score": raw_score,
+                    "normalized_score": normalized_score,
+                    "score_saturated": saturated,
+                    "tier": tier,
+                    "entry_price": entry_price,
+                    "stop_loss": sl_price,
+                    "target_1": t1_price,
+                    "target_2": t2_price,
+                    "market_regime": market_regime,
+                    "regime_confidence": regime_conf,
+                    "composite_score": comp_score,
+                    "p_t1": p_t1,
+                    "p_t2": p_t2,
+                    "p_sl": p_sl,
+                    "p_timeout": p_timeout,
+                    "expected_value_r": exp_val_r,
+                    "net_rr_t1": net_rr_t1,
+                    "net_rr_t2": net_rr_t2,
+                    "features": features_clean,
+                    "score_components": components_clean,
+                    "source": source_str,
+                }
+                snapshot_hash = compute_prediction_snapshot_hash(hash_payload)
+
+                cur.execute("""
+                    INSERT OR IGNORE INTO signal_prediction_snapshots (
+                        signal_id, captured_at, snapshot_schema_version, engine_version,
+                        strategy_version, model_version, calibration_version, feature_schema_version,
+                        symbol, category, direction, strategy, score, raw_score, normalized_score,
+                        score_saturated, tier, entry_price, stop_loss, target_1, target_2,
+                        market_regime, regime_confidence, composite_score, p_t1, p_t2, p_sl,
+                        p_timeout, expected_value_r, net_rr_t1, net_rr_t2, features_json,
+                        score_components_json, raw_signal_json, snapshot_hash, source, created_at
+                    ) VALUES (
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    )
+                """, (
+                    sig_id, captured_at, snapshot_schema_ver, engine_ver,
+                    strategy_ver, model_ver, calib_ver, feature_schema_ver,
+                    sym, cat, direction, strategy, score, raw_score, normalized_score,
+                    saturated, tier, entry_price, sl_price, t1_price, t2_price,
+                    market_regime, regime_conf, comp_score, p_t1, p_t2, p_sl,
+                    p_timeout, exp_val_r, net_rr_t1, net_rr_t2, features_json,
+                    score_components_json, raw_signal_json, snapshot_hash, source_str, captured_at
+                ))
+
                 if eligible_users:
                     for u in eligible_users:
                         uname = getattr(u, "username", str(u))
@@ -585,6 +807,106 @@ class SignalTracker:
                 return str(row["signal_id"] or "").strip() if row else ""
             except Exception:
                 return ""
+            finally:
+                conn.close()
+
+    def get_prediction_snapshot(self, signal_id: str) -> dict[str, Any] | None:
+        """Retrieve the immutable prediction snapshot for a given signal_id."""
+        with self._io_lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("SELECT * FROM signal_prediction_snapshots WHERE signal_id = ?", (signal_id,))
+                row = cur.fetchone()
+                if not row:
+                    return None
+                res = dict(row)
+                for json_field in ("features_json", "score_components_json", "raw_signal_json"):
+                    if res.get(json_field):
+                        try:
+                            clean_key = json_field[:-5] if json_field.endswith("_json") else json_field
+                            res[clean_key] = json.loads(res[json_field])
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                return res
+            finally:
+                conn.close()
+
+    def get_prediction_snapshots(self, limit: int = 100, symbol: str | None = None) -> list[dict[str, Any]]:
+        """Retrieve recent prediction snapshots."""
+        with self._io_lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                if symbol:
+                    cur.execute(
+                        "SELECT * FROM signal_prediction_snapshots WHERE symbol = ? ORDER BY captured_at DESC LIMIT ?",
+                        (symbol.upper(), max(1, limit)),
+                    )
+                else:
+                    cur.execute(
+                        "SELECT * FROM signal_prediction_snapshots ORDER BY captured_at DESC LIMIT ?",
+                        (max(1, limit),),
+                    )
+                rows = [dict(r) for r in cur.fetchall()]
+                for res in rows:
+                    for json_field in ("features_json", "score_components_json", "raw_signal_json"):
+                        if res.get(json_field):
+                            try:
+                                clean_key = json_field[:-5] if json_field.endswith("_json") else json_field
+                                res[clean_key] = json.loads(res[json_field])
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+                return rows
+            finally:
+                conn.close()
+
+    def get_signal_prediction_and_outcome(self, signal_id: str) -> dict[str, Any] | None:
+        """Retrieve joined prediction snapshot and current outcome record without mutating snapshot."""
+        with self._io_lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT
+                        s.signal_id,
+                        p.captured_at,
+                        p.snapshot_schema_version,
+                        p.engine_version,
+                        p.strategy_version,
+                        p.model_version,
+                        p.calibration_version,
+                        p.symbol,
+                        p.category,
+                        p.direction,
+                        p.strategy,
+                        p.score as pred_score,
+                        p.raw_score as pred_raw_score,
+                        p.entry_price as pred_entry_price,
+                        p.stop_loss as pred_stop_loss,
+                        p.target_1 as pred_target_1,
+                        p.target_2 as pred_target_2,
+                        p.market_regime,
+                        p.p_t1,
+                        p.p_t2,
+                        p.p_sl,
+                        p.p_timeout,
+                        p.net_rr_t1,
+                        p.net_rr_t2,
+                        p.snapshot_hash,
+                        s.status as outcome_status,
+                        s.current_price,
+                        s.pnl_pct,
+                        s.first_touch,
+                        s.first_touch_at,
+                        s.first_touch_price,
+                        s.outcome_confidence
+                    FROM signal_prediction_snapshots p
+                    LEFT JOIN system_signals s ON p.signal_id = s.signal_id
+                    WHERE p.signal_id = ?
+                """, (signal_id,))
+                row = cur.fetchone()
+                return dict(row) if row else None
             finally:
                 conn.close()
 
