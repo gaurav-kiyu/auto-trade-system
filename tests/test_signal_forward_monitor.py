@@ -247,10 +247,15 @@ def test_01_empty_dataset_n0_summary(monitor_db: Path):
 
     gates = svc.get_readiness_gate_status()
     assert gates["G1"]["passed"] is False
+    assert gates["G1"]["status"] == "NOT SATISFIED / PENDING"
+    assert "No active bucket currently has observations" in gates["G1"]["reason"]
     assert gates["G2"]["passed"] is False
+    assert gates["G2"]["status"] == "NOT SATISFIED"
     assert gates["G3"]["passed"] is False
+    assert gates["G3"]["status"] == "NOT SATISFIED"
     # G4 passes because dq_error_rate (0.0) <= 0.05 and stale_rate (0.0) <= 0.02
     assert gates["G4"]["passed"] is True
+    assert gates["G4"]["status"] == "PASS"
     assert gates["overall"]["is_ready_for_review"] is False
 
 
@@ -267,6 +272,13 @@ def test_02_empty_dataset_n0_live_db():
     assert summary["total_resolved"] == 0
     assert summary["overall_readiness"] == "INSUFFICIENT_SAMPLE"
     assert summary["blocking_gates"] == ["G1", "G2", "G3"]
+
+    gates = svc.get_readiness_gate_status()
+    assert gates["G1"]["passed"] is False
+    assert gates["G1"]["status"] == "NOT SATISFIED / PENDING"
+    assert gates["G2"]["status"] == "NOT SATISFIED"
+    assert gates["G3"]["status"] == "NOT SATISFIED"
+    assert gates["G4"]["status"] == "PASS"
 
 
 def test_03_canonical_buckets_structure(monitor_db: Path):
@@ -829,6 +841,10 @@ def test_21_daily_report_text_generation(monitor_db: Path):
     assert "PHASE D FORWARD OBSERVATION REPORT" in rep_text
     assert "OVERALL" in rep_text
     assert "READINESS" in rep_text
+    assert "G1 (Bucket maturity >= 100):  NOT SATISFIED / PENDING" in rep_text
+    assert "G2 (Total resolved >= 300):   NOT SATISFIED" in rep_text
+    assert "G3 (Multi-period >= 2 mos):   NOT SATISFIED" in rep_text
+    assert "G4 (DQ <= 5%, Stale <= 2%):   PASS" in rep_text
     assert "BUCKETS" in rep_text
     assert "MONTHLY COVERAGE" in rep_text
     assert "SAFETY" in rep_text
@@ -1011,3 +1027,125 @@ def test_27_terminal_daily_report_formatting(monitor_db: Path):
     assert "Current cohort: FWD_2026-10" in report
     assert "75-79 : Registered=1   Resolved=1   Target=1   SL=0   Timeout=0   Status=INSUFFICIENT_SAMPLE" in report
     assert "FWD_2026-10 : Registered=1   Resolved=1   Qualifies_G3=NO" in report
+
+
+def test_28_gate_3_timeout_and_authoritative_resolution_semantics(monitor_db: Path):
+    """Test 28: Explicit regression test proving Gate 3 resolved population rules.
+
+    Specifically verifies:
+    - TIMEOUT + is_resolved=1 is INCLUDED in Gate-3 resolved count.
+    - TIMEOUT + is_resolved=0 is EXCLUDED from Gate-3 resolved count.
+    - Gate 3 counts the authoritative is_resolved == 1 population rather than
+      deriving eligibility from observation_status or terminal_outcome.
+    """
+    # In cohort FWD_2026-10:
+    # 15 standard RESOLVED records with is_resolved=1
+    for i in range(15):
+        _insert_forward_obs(
+            monitor_db,
+            forward_id=f"FWD_28_STD_RES_{i}",
+            signal_id=f"SIG_28_STD_RES_{i}",
+            cohort_id="FWD_2026-10",
+            observation_status="RESOLVED",
+            terminal_outcome="TARGET_FIRST",
+            is_resolved=1,
+            market_date="2026-10-02",
+        )
+
+    # 16 TIMEOUT records that ARE authoritatively resolved (is_resolved=1)
+    for i in range(16):
+        _insert_forward_obs(
+            monitor_db,
+            forward_id=f"FWD_28_TO_RES_{i}",
+            signal_id=f"SIG_28_TO_RES_{i}",
+            cohort_id="FWD_2026-10",
+            observation_status="TIMEOUT",
+            terminal_outcome="TIMEOUT",
+            is_resolved=1,
+            market_date="2026-10-02",
+        )
+
+    # 10 TIMEOUT records that are UNRESOLVED (is_resolved=0)
+    for i in range(10):
+        _insert_forward_obs(
+            monitor_db,
+            forward_id=f"FWD_28_TO_UNRES_{i}",
+            signal_id=f"SIG_28_TO_UNRES_{i}",
+            cohort_id="FWD_2026-10",
+            observation_status="TIMEOUT",
+            terminal_outcome="TIMEOUT",
+            is_resolved=0,
+            market_date="2026-10-02",
+        )
+
+    # 5 OBSERVING records (is_resolved=0)
+    for i in range(5):
+        _insert_forward_obs(
+            monitor_db,
+            forward_id=f"FWD_28_OBS_{i}",
+            signal_id=f"SIG_28_OBS_{i}",
+            cohort_id="FWD_2026-10",
+            observation_status="OBSERVING",
+            terminal_outcome=None,
+            is_resolved=0,
+            market_date="2026-10-02",
+        )
+
+    # 3 AMBIGUOUS records with is_resolved=0
+    for i in range(3):
+        _insert_forward_obs(
+            monitor_db,
+            forward_id=f"FWD_28_AMB_{i}",
+            signal_id=f"SIG_28_AMB_{i}",
+            cohort_id="FWD_2026-10",
+            observation_status="AMBIGUOUS",
+            terminal_outcome="AMBIGUOUS",
+            is_resolved=0,
+            market_date="2026-10-02",
+        )
+
+    # 2 NO_DATA records with is_resolved=0
+    for i in range(2):
+        _insert_forward_obs(
+            monitor_db,
+            forward_id=f"FWD_28_NODATA_{i}",
+            signal_id=f"SIG_28_NODATA_{i}",
+            cohort_id="FWD_2026-10",
+            observation_status="NO_DATA",
+            terminal_outcome="NO_DATA",
+            is_resolved=0,
+            market_date="2026-10-02",
+        )
+
+    # 1 INVALIDATED record with is_resolved=0
+    _insert_forward_obs(
+        monitor_db,
+        forward_id="FWD_28_INVAL_1",
+        signal_id="SIG_28_INVAL_1",
+        cohort_id="FWD_2026-10",
+        observation_status="INVALIDATED",
+        terminal_outcome="INVALIDATED",
+        is_resolved=0,
+        market_date="2026-10-02",
+    )
+
+    svc = SignalForwardMonitorService(db_path=monitor_db)
+    monthly = svc.get_monthly_summary()
+    assert len(monthly) == 1
+    m = monthly[0]
+
+    # Total registered in cohort: 15 + 16 + 10 + 5 + 3 + 2 + 1 = 52
+    assert m["registered"] == 52
+
+    # Authoritative resolved count MUST BE EXACTLY 31 (15 standard + 16 TIMEOUT with is_resolved=1)
+    # Proves:
+    # 1) TIMEOUT + is_resolved=1 IS included in Gate-3 resolved population.
+    # 2) TIMEOUT + is_resolved=0 IS excluded from Gate-3 resolved population.
+    # 3) Gate 3 qualifies because 31 >= 30. (If TIMEOUT had a blanket exclusion, count would be 15 < 30).
+    assert m["resolved"] == 31
+    assert m["qualifies_for_monthly_gate"] is True
+
+    # Also verify summary level consistency
+    summary = svc.get_forward_summary(cohort_id="FWD_2026-10")
+    assert summary["total_registered"] == 52
+    assert summary["total_resolved"] == 31

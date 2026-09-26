@@ -131,6 +131,11 @@ class GateStatusItem:
     actual: Any
     required: Any
     reason: str
+    status: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.status:
+            self.status = "PASS" if self.passed else "FAIL"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -475,11 +480,13 @@ class SignalForwardMonitorService:
         active_buckets = [b for b in bucket_items if b["is_active"]]
         if not active_buckets:
             g1_passed = False
+            g1_status = "NOT SATISFIED / PENDING"
             g1_actual = {b["bucket"]: b["total_resolved"] for b in bucket_items}
-            g1_reason = "No active canonical score buckets have accumulated forward observations."
+            g1_reason = "No active bucket currently has observations; therefore no bucket has yet demonstrated >= 100 resolved observations."
         else:
             unmet_buckets = [b["bucket"] for b in active_buckets if b["total_resolved"] < GATE_MIN_RESOLVED_PER_ACTIVE_BUCKET]
             g1_passed = len(unmet_buckets) == 0
+            g1_status = "PASS" if g1_passed else "FAIL"
             g1_actual = {b["bucket"]: b["total_resolved"] for b in active_buckets}
             if g1_passed:
                 g1_reason = f"All active buckets meet threshold of >= {GATE_MIN_RESOLVED_PER_ACTIVE_BUCKET} resolved observations."
@@ -489,23 +496,32 @@ class SignalForwardMonitorService:
         # Gate 2: Overall N_resolved >= 300
         total_resolved = sum(1 for r in all_obs if r.get("is_resolved") == 1)
         g2_passed = total_resolved >= GATE_MIN_TOTAL_RESOLVED
-        g2_reason = (
-            f"Total resolved observations ({total_resolved}) >= {GATE_MIN_TOTAL_RESOLVED} requirement."
-            if g2_passed else
-            f"Total resolved observations ({total_resolved}) < {GATE_MIN_TOTAL_RESOLVED} requirement."
-        )
+        if total_resolved == 0:
+            g2_status = "NOT SATISFIED"
+            g2_reason = f"Total resolved observations (0) < {GATE_MIN_TOTAL_RESOLVED} requirement."
+        elif g2_passed:
+            g2_status = "PASS"
+            g2_reason = f"Total resolved observations ({total_resolved}) >= {GATE_MIN_TOTAL_RESOLVED} requirement."
+        else:
+            g2_status = "FAIL"
+            g2_reason = f"Total resolved observations ({total_resolved}) < {GATE_MIN_TOTAL_RESOLVED} requirement."
 
         # Gate 3: >= 2 distinct calendar months with >= 30 resolved each
         qualifying_months = [m for m in monthly_items if m["qualifies_for_monthly_gate"]]
         g3_passed = len(qualifying_months) >= GATE_MIN_DISTINCT_MONTHS
-        g3_reason = (
-            f"Qualifying calendar months with >= {GATE_MIN_RESOLVED_PER_MONTH} resolved ({len(qualifying_months)}) meets >= {GATE_MIN_DISTINCT_MONTHS} requirement."
-            if g3_passed else
-            f"Qualifying calendar months with >= {GATE_MIN_RESOLVED_PER_MONTH} resolved ({len(qualifying_months)}) < {GATE_MIN_DISTINCT_MONTHS} requirement."
-        )
+        if len(qualifying_months) == 0:
+            g3_status = "NOT SATISFIED"
+            g3_reason = f"Qualifying calendar months with >= {GATE_MIN_RESOLVED_PER_MONTH} resolved (0) < {GATE_MIN_DISTINCT_MONTHS} requirement."
+        elif g3_passed:
+            g3_status = "PASS"
+            g3_reason = f"Qualifying calendar months with >= {GATE_MIN_RESOLVED_PER_MONTH} resolved ({len(qualifying_months)}) meets >= {GATE_MIN_DISTINCT_MONTHS} requirement."
+        else:
+            g3_status = "FAIL"
+            g3_reason = f"Qualifying calendar months with >= {GATE_MIN_RESOLVED_PER_MONTH} resolved ({len(qualifying_months)}) < {GATE_MIN_DISTINCT_MONTHS} requirement."
 
         # Gate 4: DQ error rate <= 5% and stale rate <= 2%
         g4_passed = dq_summary["dq_gate_passed"] and dq_summary["stale_gate_passed"]
+        g4_status = "PASS" if g4_passed else "FAIL"
         g4_actual = {
             "dq_error_rate": dq_summary["data_quality_error_rate"],
             "stale_rate": dq_summary["stale_unresolved_rate"],
@@ -559,6 +575,7 @@ class SignalForwardMonitorService:
                 actual=g1_actual,
                 required=GATE_MIN_RESOLVED_PER_ACTIVE_BUCKET,
                 reason=g1_reason,
+                status=g1_status,
             ).to_dict(),
             "G2": GateStatusItem(
                 gate_id="G2",
@@ -567,6 +584,7 @@ class SignalForwardMonitorService:
                 actual=total_resolved,
                 required=GATE_MIN_TOTAL_RESOLVED,
                 reason=g2_reason,
+                status=g2_status,
             ).to_dict(),
             "G3": GateStatusItem(
                 gate_id="G3",
@@ -575,6 +593,7 @@ class SignalForwardMonitorService:
                 actual=len(qualifying_months),
                 required=GATE_MIN_DISTINCT_MONTHS,
                 reason=g3_reason,
+                status=g3_status,
             ).to_dict(),
             "G4": GateStatusItem(
                 gate_id="G4",
@@ -583,6 +602,7 @@ class SignalForwardMonitorService:
                 actual=g4_actual,
                 required=g4_required,
                 reason=g4_reason,
+                status=g4_status,
             ).to_dict(),
             "overall": {
                 "status": overall_status,
@@ -637,10 +657,10 @@ class SignalForwardMonitorService:
             "",
             "READINESS",
             "---------",
-            f"G1 (Bucket maturity >= 100):  {'PASS' if g1['passed'] else 'FAIL'} -- {g1['reason']}",
-            f"G2 (Total resolved >= 300):   {'PASS' if g2['passed'] else 'FAIL'} -- {g2['reason']}",
-            f"G3 (Multi-period >= 2 mos):   {'PASS' if g3['passed'] else 'FAIL'} -- {g3['reason']}",
-            f"G4 (DQ <= 5%, Stale <= 2%):   {'PASS' if g4['passed'] else 'FAIL'} -- {g4['reason']}",
+            f"G1 (Bucket maturity >= 100):  {g1.get('status') or ('PASS' if g1['passed'] else 'FAIL')} -- {g1['reason']}",
+            f"G2 (Total resolved >= 300):   {g2.get('status') or ('PASS' if g2['passed'] else 'FAIL')} -- {g2['reason']}",
+            f"G3 (Multi-period >= 2 mos):   {g3.get('status') or ('PASS' if g3['passed'] else 'FAIL')} -- {g3['reason']}",
+            f"G4 (DQ <= 5%, Stale <= 2%):   {g4.get('status') or ('PASS' if g4['passed'] else 'FAIL')} -- {g4['reason']}",
             "",
             f"Overall:        {overall['status']}",
             f"Blocking gates: {', '.join(overall['blocking_gates']) if overall['blocking_gates'] else 'NONE'}",
