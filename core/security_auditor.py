@@ -270,7 +270,7 @@ class SecurityAuditor:
 
         # Compute score
         report.score = self._compute_score(report)
-        report.overall_risk = self._compute_risk(report.score)
+        report.overall_risk = self._compute_risk(report.score, report)
 
         # Generate recommendations
         report.recommendations = self._generate_recommendations(report)
@@ -435,15 +435,33 @@ class SecurityAuditor:
 
         return max(0.0, min(10.0, score))
 
-    def _compute_risk(self, score: float) -> str:
-        """Convert score to risk level."""
+    def _compute_risk(self, score: float, report: SecurityReport | None = None) -> str:
+        """Convert score and finding severities to risk level."""
         if score >= 8.0:
-            return "LOW"
+            risk = "LOW"
         elif score >= 6.0:
-            return "MEDIUM"
+            risk = "MEDIUM"
         elif score >= 4.0:
-            return "HIGH"
-        return "CRITICAL"
+            risk = "HIGH"
+        else:
+            risk = "CRITICAL"
+
+        if report is not None:
+            severities = (
+                [s.severity for s in report.secrets_found]
+                + [i.severity for i in report.insecure_imports]
+                + [d.severity for d in report.dependency_vulns]
+            )
+            rank = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
+            inv_rank = {0: "LOW", 1: "MEDIUM", 2: "HIGH", 3: "CRITICAL"}
+            floor = 0
+            if "CRITICAL" in severities:
+                floor = max(floor, 2)
+            if "HIGH" in severities:
+                floor = max(floor, 1)
+            risk = inv_rank[max(rank.get(risk, 0), floor)]
+
+        return risk
 
     def _generate_recommendations(self, report: SecurityReport) -> list[str]:
         """Generate actionable security recommendations."""

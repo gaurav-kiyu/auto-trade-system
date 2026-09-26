@@ -24,61 +24,89 @@ INDIAN_BROKERS: dict[str, dict[str, Any]] = {
         "color": "#387ed1",
         "auth_url": "https://kite.zerodha.com/",
         "supports_oauth": True,
-        "supports_iframe": True
+        "supports_iframe": False,
+        "adapter_implemented": True,
+        "live_oauth_sync": False,
+        "capability_state": "ADAPTER_READY_NOT_LIVE_CREDENTIAL_VERIFIED",
+        "capability_label": "Adapter Ready • Sample / Manual Import",
     },
     "angelone": {
         "name": "Angel One (SmartAPI)",
         "code": "angelone",
         "icon": "fa-chart-line",
         "color": "#eb1c24",
-        "auth_url": "https://smartapi.angelbroking.com/",
+        "auth_url": "https://www.angelone.in/login/",
         "supports_oauth": True,
-        "supports_iframe": True
+        "supports_iframe": False,
+        "adapter_implemented": True,
+        "live_oauth_sync": False,
+        "capability_state": "ADAPTER_READY_NOT_LIVE_CREDENTIAL_VERIFIED",
+        "capability_label": "Adapter Ready • Sample / Manual Import",
     },
     "iifl": {
         "name": "IIFL Markets",
         "code": "iifl",
         "icon": "fa-university",
         "color": "#00529b",
-        "auth_url": "https://trade.iifl.com/",
+        "auth_url": "https://markets.iiflcapital.com/",
         "supports_oauth": True,
-        "supports_iframe": True
+        "supports_iframe": False,
+        "adapter_implemented": True,
+        "live_oauth_sync": False,
+        "capability_state": "ADAPTER_READY_NOT_LIVE_CREDENTIAL_VERIFIED",
+        "capability_label": "Adapter Ready • Sample / Manual Import",
     },
     "upstox": {
         "name": "Upstox",
         "code": "upstox",
         "icon": "fa-bolt",
         "color": "#7b2cbf",
-        "auth_url": "https://api.upstox.com/v2/login/authorization/dialog",
+        "auth_url": "https://login.upstox.com/",
         "supports_oauth": True,
-        "supports_iframe": True
+        "supports_iframe": False,
+        "adapter_implemented": True,
+        "live_oauth_sync": False,
+        "capability_state": "ADAPTER_READY_NOT_LIVE_CREDENTIAL_VERIFIED",
+        "capability_label": "Adapter Ready • Sample / Manual Import",
     },
     "groww": {
         "name": "Groww",
         "code": "groww",
         "icon": "fa-seedling",
         "color": "#00d09c",
-        "auth_url": "https://groww.in/trade/auth",
+        "auth_url": "https://groww.in/",
         "supports_oauth": True,
-        "supports_iframe": True
+        "supports_iframe": False,
+        "adapter_implemented": True,
+        "live_oauth_sync": False,
+        "capability_state": "ADAPTER_READY_NOT_LIVE_CREDENTIAL_VERIFIED",
+        "capability_label": "Adapter Ready • Sample / Manual Import",
     },
     "icicidirect": {
         "name": "ICICI Direct (Breeze)",
         "code": "icicidirect",
         "icon": "fa-building",
         "color": "#f37021",
-        "auth_url": "https://api.icicidirect.com/api/v2/login",
+        "auth_url": "https://secure.icicidirect.com/customer/login",
         "supports_oauth": True,
-        "supports_iframe": True
+        "supports_iframe": False,
+        "adapter_implemented": True,
+        "live_oauth_sync": False,
+        "capability_state": "ADAPTER_READY_NOT_LIVE_CREDENTIAL_VERIFIED",
+        "capability_label": "Adapter Ready • Sample / Manual Import",
     },
     "hdfcsecurities": {
         "name": "HDFC Securities",
         "code": "hdfcsecurities",
         "icon": "fa-shield-alt",
         "color": "#004b87",
-        "auth_url": "https://www.hdfcsec.com/login",
-        "supports_oauth": True,
-        "supports_iframe": True
+        "auth_url": "https://www.hdfcsec.com/",
+        "supports_oauth": False,
+        "supports_iframe": False,
+        "adapter_implemented": False,
+        "live_oauth_sync": False,
+        "capability_state": "PORTAL_PARTNER_SAMPLE_WORKFLOW",
+        "capability_label": "Official Portal • Sample / Manual Import",
     },
     "kotak": {
         "name": "Kotak Neo",
@@ -86,62 +114,90 @@ INDIAN_BROKERS: dict[str, dict[str, Any]] = {
         "icon": "fa-coins",
         "color": "#ed1c24",
         "auth_url": "https://neo.kotaksecurities.com/login",
-        "supports_oauth": True,
-        "supports_iframe": True
+        "supports_oauth": False,
+        "supports_iframe": False,
+        "adapter_implemented": False,
+        "live_oauth_sync": False,
+        "capability_state": "PORTAL_PARTNER_SAMPLE_WORKFLOW",
+        "capability_label": "Official Portal • Sample / Manual Import",
     },
     "dhan": {
         "name": "Dhan (HQ API)",
         "code": "dhan",
         "icon": "fa-gem",
         "color": "#2c7be5",
-        "auth_url": "https://api.dhan.co/login",
+        "auth_url": "https://web.dhan.co/",
         "supports_oauth": True,
-        "supports_iframe": True
+        "supports_iframe": False,
+        "adapter_implemented": True,
+        "live_oauth_sync": False,
+        "capability_state": "ADAPTER_READY_NOT_LIVE_CREDENTIAL_VERIFIED",
+        "capability_label": "Adapter Ready • Sample / Manual Import",
     },
     "fyers": {
         "name": "Fyers",
         "code": "fyers",
         "icon": "fa-fire",
         "color": "#ff4d4f",
-        "auth_url": "https://api-v3.fyers.in/api/v3/generate-authcode",
-        "supports_oauth": True,
-        "supports_iframe": True
+        "auth_url": "https://login.fyers.in/",
+        "supports_oauth": False,
+        "supports_iframe": False,
+        "adapter_implemented": False,
+        "live_oauth_sync": False,
+        "capability_state": "PORTAL_PARTNER_SAMPLE_WORKFLOW",
+        "capability_label": "Official Portal • Sample / Manual Import",
     },
     "motilaloswal": {
         "name": "Motilal Oswal",
         "code": "motilaloswal",
         "icon": "fa-award",
         "color": "#e65100",
-        "auth_url": "https://www.motilaloswal.com/login",
-        "supports_oauth": True,
-        "supports_iframe": True
+        "auth_url": "https://invest.motilaloswal.com/",
+        "supports_oauth": False,
+        "supports_iframe": False,
+        "adapter_implemented": False,
+        "live_oauth_sync": False,
+        "capability_state": "PORTAL_PARTNER_SAMPLE_WORKFLOW",
+        "capability_label": "Official Portal • Sample / Manual Import",
     },
     "sharekhan": {
         "name": "Sharekhan",
         "code": "sharekhan",
         "icon": "fa-chart-area",
         "color": "#0088cc",
-        "auth_url": "https://www.sharekhan.com/login",
-        "supports_oauth": True,
-        "supports_iframe": True
+        "auth_url": "https://newtrade.sharekhan.com/",
+        "supports_oauth": False,
+        "supports_iframe": False,
+        "adapter_implemented": False,
+        "live_oauth_sync": False,
+        "capability_state": "PORTAL_PARTNER_SAMPLE_WORKFLOW",
+        "capability_label": "Official Portal • Sample / Manual Import",
     },
     "paytmmoney": {
         "name": "Paytm Money",
         "code": "paytmmoney",
         "icon": "fa-wallet",
         "color": "#00b9f1",
-        "auth_url": "https://developer.paytmmoney.com/tokens/login",
-        "supports_oauth": True,
-        "supports_iframe": True
+        "auth_url": "https://www.paytmmoney.com/",
+        "supports_oauth": False,
+        "supports_iframe": False,
+        "adapter_implemented": False,
+        "live_oauth_sync": False,
+        "capability_state": "PORTAL_PARTNER_SAMPLE_WORKFLOW",
+        "capability_label": "Official Portal • Sample / Manual Import",
     },
     "mstock": {
         "name": "m.Stock (Mirae Asset)",
         "code": "mstock",
         "icon": "fa-chart-pie",
         "color": "#002f6c",
-        "auth_url": "https://www.mstock.com/api/login",
+        "auth_url": "https://trade.mstock.com/",
         "supports_oauth": True,
-        "supports_iframe": True
+        "supports_iframe": False,
+        "adapter_implemented": True,
+        "live_oauth_sync": False,
+        "capability_state": "ADAPTER_READY_NOT_LIVE_CREDENTIAL_VERIFIED",
+        "capability_label": "Adapter Ready • Sample / Manual Import",
     }
 }
 
@@ -173,12 +229,10 @@ class StockGuidance:
     detailed_reasoning: list[str]
     strategies_evaluated: list[str]
     shap_attribution: list[dict[str, Any]] = field(default_factory=list)
-    # Real values from the source PortfolioPosition - the frontend previously
-    # had no way to show the real per-row quantity/P&L (this response object
-    # didn't carry them at all) and fell back to a page-wide aggregate count
-    # and two hardcoded -15.4%/+18.2% literals for every single row.
     quantity: int = 0
     pnl_pct: float = 0.0
+    buy_price: float = 0.0
+    current_price: float = 0.0
 
 
 class AdminPortfolioAnalyzer:
@@ -188,7 +242,7 @@ class AdminPortfolioAnalyzer:
         pass
 
     def get_broker_info(self, broker_code: str) -> dict[str, Any]:
-        """Get broker metadata and OAuth redirection URL."""
+        """Get broker metadata and official login portal URL."""
         return INDIAN_BROKERS.get(broker_code.lower(), INDIAN_BROKERS["zerodha"])
 
     def fetch_broker_holdings(
@@ -509,7 +563,9 @@ class AdminPortfolioAnalyzer:
             strategies_evaluated=strategies,
             shap_attribution=shap,
             quantity=p.quantity,
-            pnl_pct=p.pnl_pct,
+            pnl_pct=round(p.pnl_pct, 2),
+            buy_price=round(p.buy_price, 2),
+            current_price=round(p.current_price, 2),
         )
 
 

@@ -696,7 +696,7 @@
             system: ['PUBLIC_BASE_URL_ADMIN_OVERRIDE','BASE_CAPITAL','DAILY_TARGET','GUI_REFRESH_MS','web_dashboard_enabled','web_dashboard_port','web_dashboard_host','admin_control_plane_enabled','metrics_port','AUDIT_LOG_ENABLED','RETENTION_ENABLED','STRUCTURED_EVENTS_ENABLED','ENVIRONMENT','WATCHDOG_TIMEOUT','loop_watchdog_enabled','EXCEPTION_ALERT_THRESHOLD','timeseries_lake_enabled','signal_outcome_tracking_enabled'],
         };
 
-        async function loadConfig() {
+        async function loadConfig(showNotice = false) {
             const data = await apiFetch('/api/config');
             if (data && data.config) {
                 configData = {...data.config};
@@ -721,7 +721,9 @@
                     };
                 }
                 if (effectiveEl) effectiveEl.value = publicUrl.effective_url || '';
-                showToast('Configuration loaded', 'info');
+                if (showNotice === true) {
+                    showToast('Configuration reloaded from disk.', 'info', 'Configuration Reloaded');
+                }
             }
         }
 
@@ -795,7 +797,7 @@
                 changedKeys = {};
                 isDirty = false;
                 document.getElementById('previewBox').style.display = 'none';
-                await loadConfig();
+                await loadConfig(false);
             } else {
                 showToast(res?.error || 'Failed to save config', 'error');
             }
@@ -812,7 +814,7 @@
             } else {
                 list.innerHTML = history.map(h => {
                     const age = h.age > 86400 ? `${Math.floor(h.age/86400)}d ago` : h.age > 3600 ? `${Math.floor(h.age/3600)}h ago` : `${Math.floor(h.age/60)}m ago`;
-                    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;background:#0f1319;border-radius:0.35rem;"><span style="font-family:monospace;">${h.file}</span><span style="color: var(--text-muted, #94a3b8);">${age}</span><button data-action="rollback-config" data-file="${h.file}" class="btn btn-ghost btn-sm" style="padding:0.15rem 0.5rem;font-size:0.7rem;" type="button"><i class="fas fa-undo"></i> Restore</button></div>`;
+                    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;background:var(--bg-secondary, #0f1319);border-radius:0.35rem;"><span style="font-family:monospace;">${h.file}</span><span style="color: var(--text-muted, #94a3b8);">${age}</span><button data-action="rollback-config" data-file="${h.file}" class="btn btn-ghost btn-sm" style="padding:0.15rem 0.5rem;font-size:0.7rem;" type="button"><i class="fas fa-undo"></i> Restore</button></div>`;
                 }).join('');
             }
             const auditList = document.getElementById('auditLogList');
@@ -823,7 +825,7 @@
                     const when = new Date(a.timestamp * 1000).toLocaleString();
                     const actionLabel = a.action === 'config_rollback' ? 'ROLLED BACK' : 'CHANGED';
                     const keys = (a.keys || []).join(', ');
-                    return `<div style="padding:0.5rem;background:#0f1319;border-radius:0.35rem;">
+                    return `<div style="padding:0.5rem;background:var(--bg-secondary, #0f1319);border-radius:0.35rem;">
                         <div style="display:flex;justify-content:space-between;"><span style="font-weight:600;color: var(--text-primary, #e2e8f0);">${a.username}</span><span style="color: var(--text-muted, #94a3b8);font-size:0.7rem;">${when}</span></div>
                         <div style="color: var(--text-muted, #94a3b8);margin-top:0.15rem;">${actionLabel}: <span style="font-family:monospace;">${keys}</span></div>
                     </div>`;
@@ -838,7 +840,7 @@
             if (res && res.success) {
                 showToast(`Restored ${res.keys_restored} keys from ${res.restored_from}`, 'success');
                 document.getElementById('historyModal').style.display = 'none';
-                await loadConfig();
+                await loadConfig(false);
             } else {
                 showToast(res?.error || 'Rollback failed', 'error');
             }
@@ -869,7 +871,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('saveConfigBtn').addEventListener('click', saveConfig);
             document.getElementById('previewBtn').addEventListener('click', previewChanges);
-            document.getElementById('reloadBtn').addEventListener('click', loadConfig);
+            document.getElementById('reloadBtn').addEventListener('click', () => loadConfig(true));
             document.getElementById('historyBtn').addEventListener('click', showHistory);
 
             document.querySelectorAll('.tab[data-tab]').forEach(function(tab) {
@@ -902,7 +904,7 @@
             if (isDirty) { e.preventDefault(); e.returnValue = 'You have unsaved config changes.'; }
         });
 
-        loadConfig();
+        loadConfig(false);
     
 async function triggerTestEmail() {
     const btn = document.getElementById('testEmailBtn');
@@ -911,15 +913,14 @@ async function triggerTestEmail() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending Test Email...';
     }
     try {
-        const res = await fetch('/api/v1/admin/test-email', { method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-            alert('✅ ' + data.message);
+        const data = await apiFetch('/api/v1/admin/test-email', { method: 'POST' });
+        if (data && data.success) {
+            showToast(data.message || 'Test email dispatched successfully.', 'success', 'Test Email Dispatched');
         } else {
-            alert('❌ Failed to send test email: ' + (data.error || 'Unknown error'));
+            showToast('Failed to send test email: ' + (data?.error || 'Unknown error'), 'error', 'Test Email Failed');
         }
     } catch (err) {
-        alert('❌ Network error sending test email: ' + err);
+        showToast('Network error sending test email: ' + (err.message || err), 'error', 'Test Email Network Error');
     } finally {
         if (btn) {
             btn.disabled = false;

@@ -1171,8 +1171,11 @@ body[data-theme="emerald-matrix"] {
             if (labelEl && data.label) {
                 labelEl.textContent = data.label;
             }
-            if (pulseEl && data.color) {
-                pulseEl.style.background = data.color;
+            if (pulseEl) {
+                pulseEl.className = data.is_open ? 'opb-latency-pulse pulse-live' : 'opb-latency-pulse pulse-muted';
+                if (data.color) {
+                    pulseEl.style.background = data.color;
+                }
             }
         } catch (_) {}
     }

@@ -257,17 +257,20 @@
                 });
                 if (!res.ok) {
                     checkboxEl.checked = !placed;
-                    alert('Failed to update order-placed status. Please try again.');
+                    if (window.showToast) window.showToast('Failed to update order-placed status. Please try again.', 'error', 'Order Status Update Failed');
                     return;
                 }
                 const labelEl = checkboxEl.parentElement.querySelector('.orderPlacedLabel');
                 if (labelEl) {
                     labelEl.textContent = placed ? 'by you' : '';
                 }
+                if (window.showToast) {
+                    window.showToast(placed ? `Signal ${signalId} marked as order placed.` : `Cleared order-placed status for ${signalId}.`, 'success', 'Order Status Updated');
+                }
                 await loadSignalAnalytics();
             } catch (err) {
                 checkboxEl.checked = !placed;
-                alert('Failed to update order-placed status. Please try again.');
+                if (window.showToast) window.showToast('Failed to update order-placed status. Please try again.', 'error', 'Order Status Update Failed');
             } finally {
                 checkboxEl.disabled = false;
             }

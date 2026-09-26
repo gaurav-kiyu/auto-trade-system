@@ -186,9 +186,9 @@
             display: inline-flex;
             align-items: center;
             gap: 0.45rem;
-            background: var(--accent-color, #38bdf8);
-            color: var(--bg-primary, #0a0e17);
-            border: 1px solid var(--accent-color, #38bdf8);
+            background: var(--accent-color, #0284c7);
+            color: var(--btn-primary-text, #ffffff);
+            border: 1px solid var(--accent-color, #0284c7);
             padding: 0.55rem 1.25rem;
             border-radius: 0.45rem;
             font-size: 0.82rem;
@@ -207,15 +207,16 @@
             display: inline-flex;
             align-items: center;
             gap: 0.45rem;
-            background: var(--warning-color, #f59e0b);
-            color: #000000;
-            border: 1px solid var(--warning-color, #f59e0b);
+            background: var(--accent-color, #0284c7);
+            color: var(--btn-primary-text, #ffffff);
+            border: 1px solid var(--accent-color, #0284c7);
             padding: 0.55rem 1.25rem;
             border-radius: 0.45rem;
             font-size: 0.82rem;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
 
         .profile-btn-warning:hover {
@@ -440,7 +441,7 @@
                             </div>
                         </div>
 
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
                             <div class="form-group">
                                 <label class="form-label">New Password</label>
                                 <div class="input-password-wrapper opb-password-wrapper">
@@ -458,7 +459,7 @@
                         </div>
 
                         <div style="margin-top:1rem;display:flex;justify-content:flex-end;">
-                            <button type="submit" class="profile-btn-warning" id="changePasswordBtn">
+                            <button type="submit" class="profile-btn-primary" id="changePasswordBtn">
                                 <i class="fas fa-lock"></i> Update Password
                             </button>
                         </div>

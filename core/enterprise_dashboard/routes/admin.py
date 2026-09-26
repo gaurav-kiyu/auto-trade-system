@@ -860,8 +860,13 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
             "count": len(holdings),
             "total_value": sum(h.get("quantity", 0) * h.get("current_price", 0) for h in holdings),
             "is_sample_data": is_sample,
-            "capability_status": "adapter_ready" if broker_info.get("supports_oauth") else "manual_only",
-            "message": "Sample portfolio data loaded for demonstration" if is_sample else "Live broker positions imported successfully",
+            "data_source": "sample_broker_portfolio" if is_sample else "custom_positions",
+            "adapter_implemented": bool(broker_info.get("adapter_implemented", False)),
+            "live_oauth_sync": False,
+            "capability_state": broker_info.get("capability_state", "PORTAL_PARTNER_SAMPLE_WORKFLOW"),
+            "capability_label": broker_info.get("capability_label", "Official Portal • Sample / Manual Import"),
+            "capability_status": "adapter_ready" if broker_info.get("adapter_implemented") else "manual_only",
+            "message": "Sample portfolio data loaded for 16-strategy diagnostic demonstration" if is_sample else "Custom portfolio positions imported for 16-strategy analysis",
         }
 
     @app.post("/api/v1/admin/analyze-portfolio")

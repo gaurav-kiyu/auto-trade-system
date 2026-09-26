@@ -542,8 +542,14 @@
                 document.getElementById('kpiSbReturn').textContent = `+${data.total_return_pct}%`;
                 document.getElementById('kpiSbDd').textContent = `-${data.max_drawdown_pct}%`;
                 document.getElementById('kpiSbSharpe').textContent = data.sharpe_ratio;
+                if (window.showToast) {
+                    window.showToast(`Simulated backtest complete: Win Rate ${data.win_rate_pct}%, Profit Factor ${data.profit_factor}, Sharpe ${data.sharpe_ratio}.`, 'success', 'Sandbox Backtest Complete');
+                }
             } catch(e) {
                 console.error("Sandbox run error:", e);
+                if (window.showToast) {
+                    window.showToast('Failed to execute strategy sandbox simulation: ' + (e.message || e), 'error', 'Sandbox Simulation Error');
+                }
             }
         }
     </script>    {% include "_pwa_sw_reg.html" %}

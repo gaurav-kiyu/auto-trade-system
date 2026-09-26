@@ -14,7 +14,7 @@
         .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
         .card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 1rem; text-align: center; }
+        .stat-card { background: var(--bg-secondary, #0f1319); border: 1px solid var(--border-color, rgba(148,163,184,0.08)); border-radius: 0.5rem; padding: 1rem; text-align: center; }
         .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #e2e8f0); }
         .stat-label { font-size: 0.75rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 0.25rem; }
         .badge { display: inline-flex; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 500; }
@@ -43,8 +43,8 @@
         .toast.error { background: #7f1d1d; border-left: 3px solid #ef4444; }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; }
         .modal-overlay.visible { display: flex; }
-        .modal { background: #1a1f2e; border: 1px solid var(--border-color, #1e293b); border-radius: 1rem; padding: 1.5rem; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
-        .input-field { width: 100%; padding: 0.5rem 0.7rem; background: #0f1319; border: 1px solid var(--border-color, #1e293b); border-radius: 0.35rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; outline: none; }
+        .modal { background: var(--bg-card, #1a1f2e); border: 1px solid var(--border-color, #1e293b); border-radius: 1rem; padding: 1.5rem; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .input-field { width: 100%; padding: 0.5rem 0.7rem; background: var(--input-bg, #0f1319); border: 1px solid var(--border-color, #1e293b); border-radius: 0.35rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; outline: none; }
         .input-field:focus { border-color: #3b82f6; }
         select.input-field { cursor: pointer; }
         .section { display: none; }

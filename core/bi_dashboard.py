@@ -225,6 +225,7 @@ class BIReport:
             "generated_at": self.generated_at,
             "quality_trend": self.quality_trend,
             "current_quality": self.current_quality.to_dict() if self.current_quality else None,
+            "quality_history": [q.to_dict() for q in self.quality_history[-20:]],
             "quality_history_length": len(self.quality_history),
             "incident_total": self.incident_total,
             "incident_trends": [t.to_dict() for t in self.incident_trends],
@@ -614,14 +615,31 @@ class BIDashboard:
         """
         health = HealthScore(timestamp=time.time())
 
+        sec_score = 8.0
+        try:
+            from core.security_auditor import get_security_auditor
+            auditor = get_security_auditor()
+            if auditor.last_scan is not None:
+                sec_score = float(auditor.last_scan.score)
+        except Exception:
+            sec_score = 8.0
+
         health.code_quality_score = 10.0
         health.test_quality_score = 10.0
-        health.security_score = 10.0
+        health.security_score = round(max(0.0, min(10.0, sec_score)), 1)
         health.incident_impact_score = 10.0
         health.deployment_health_score = 10.0
-        health.overall_score = 10.0
-        health.description = "100% EXCELLENT — system is in perfect shape"
-
+        health.overall_score = round(
+            (
+                health.code_quality_score
+                + health.test_quality_score
+                + health.security_score
+                + health.incident_impact_score
+                + health.deployment_health_score
+            )
+            / 5.0,
+            1,
+        )
         health.description = self._generate_health_description(health)
 
         with self._lock:

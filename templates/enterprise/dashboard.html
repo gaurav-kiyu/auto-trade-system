@@ -275,8 +275,8 @@
                 <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.02em;color:var(--text-primary);">
                     <i class="fas fa-tachometer-alt" style="color:var(--accent-color);margin-right:0.4rem;"></i> Command Center
                 </h1>
-                <span class="opb-badge badge-buy" title="Trading engine running in safe paper mode">
-                    <i class="fas fa-shield-alt"></i> PAPER SIMULATED
+                <span class="opb-badge badge-buy" id="opbExecutionModeBadge" title="Trading engine running in safe signal-only / paper simulation mode">
+                    <i class="fas fa-shield-alt"></i> {{ execution_mode|default('SIGNAL_ONLY') }} • PAPER SIMULATED
                 </span>
                 <span class="opb-regime-pill" id="opbMarketRegimeBadge" style="background:var(--market-buy-bg);color:var(--market-buy);border:1px solid var(--market-buy-border);">
                     <i class="fas fa-arrow-trend-up"></i> REGIME: ACTIVE SESSION
@@ -314,9 +314,9 @@
     </div>
 
         <div class="mobile-status-strip">
-            <span class="status-strip-item"><span class="opb-latency-pulse pulse-live"></span> PAPER SIMULATED</span>
-            <span class="status-strip-item"><i class="fas fa-chart-line" style="color:var(--market-buy);"></i> NSE: NORMAL</span>
-            <span class="status-strip-item" id="mobileMarketRegime"><i class="fas fa-arrow-trend-up" style="color:var(--accent-color);"></i> BULLISH</span>
+            <span class="status-strip-item" id="mobileExecutionModeItem"><span class="opb-latency-pulse pulse-live" id="mobileSessionPulse"></span> {{ execution_mode|default('SIGNAL_ONLY') }} • PAPER</span>
+            <span class="status-strip-item" id="mobileNseSessionItem"><i class="fas fa-chart-line" style="color:var(--market-buy);"></i> NSE: NORMAL</span>
+            <span class="status-strip-item" id="mobileMarketRegime"><i class="fas fa-arrow-trend-up" style="color:var(--accent-color);"></i> STANDBY</span>
         </div>
     </div>
 
@@ -369,7 +369,7 @@
         <div class="opb-stat-card">
             <div class="opb-stat-label"><i class="fas fa-trophy" style="color:#a855f7;margin-right:0.3rem;"></i> System Win Rate</div>
             <div class="opb-stat-value opb-num stat-positive" id="winRate">—</div>
-            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem;">Profit Factor: <span style="color:var(--market-buy);font-weight:700;">2.41</span></div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem;">Profit Factor: <span id="profitFactorDisplay" style="color:var(--text-secondary);font-weight:700;">— (Paper Standby)</span></div>
         </div>
     </div>
 
@@ -384,7 +384,7 @@
                         <i class="fas fa-chart-area" style="color:var(--accent-color);"></i> Session Equity & P&L Trajectory
                     </div>
                     <div style="display:flex;gap:0.35rem;">
-                        <span class="opb-badge badge-buy">LIVE INTRADAY</span>
+                        <span class="opb-badge badge-buy" id="opbEquityTrajectoryBadge">{{ execution_mode|default('SIGNAL_ONLY') }} • PAPER BASELINE</span>
                     </div>
                 </div>
                 <div class="chart-container">
@@ -472,10 +472,10 @@
             <div id="section-health" class="section" style="display:none;">
                 <div class="opb-card">
                     <div class="opb-kpi-grid">
-                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive">HEALTHY</div><div class="opb-stat-label">Core Engine Loop</div></div>
-                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive">CONNECTED</div><div class="opb-stat-label">NSE Tick Feed</div></div>
-                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive">ONLINE</div><div class="opb-stat-label">Risk Shield Guard</div></div>
-                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive">SYNCHRONIZED</div><div class="opb-stat-label">2,553 NSE Stocks</div></div>
+                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive" id="healthEngineLoopValue">HEALTHY</div><div class="opb-stat-label">Core Engine Loop</div></div>
+                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive" id="healthNseFeedValue">STANDBY</div><div class="opb-stat-label">NSE Tick Feed</div></div>
+                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive" id="healthRiskShieldValue">GUARDED</div><div class="opb-stat-label">Risk Shield Guard</div></div>
+                        <div class="opb-stat-card"><div class="opb-stat-value stat-positive" id="healthUniverseSyncValue">SYNCHRONIZED</div><div class="opb-stat-label">2,553 NSE Stocks</div></div>
                     </div>
                 </div>
             </div>
@@ -539,16 +539,16 @@
                     <div class="opb-section-title">
                         <i class="fas fa-network-wired" style="color:var(--accent-color);"></i> Execution Telemetry
                     </div>
-                    <span class="opb-badge badge-buy">0 LATENCY SPIKES</span>
+                    <span class="opb-badge badge-buy" id="execLatencyBadge">PAPER SIMULATED</span>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.78rem;">
                     <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border-subtle);padding-bottom:0.35rem;">
                         <span style="color:var(--text-muted);">Broker Gateway</span>
-                        <span style="color:var(--market-buy);font-weight:700;">Paper Engine (Active)</span>
+                        <span style="color:var(--market-buy);font-weight:700;" id="execGatewayValue">{{ execution_mode|default('SIGNAL_ONLY') }} • Paper Engine</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border-subtle);padding-bottom:0.35rem;">
-                        <span style="color:var(--text-muted);">NSE Feed Latency</span>
-                        <span class="opb-num" style="color:var(--text-primary);font-weight:700;">42 ms</span>
+                        <span style="color:var(--text-muted);">NSE Feed Status</span>
+                        <span class="opb-num" style="color:var(--text-primary);font-weight:700;" id="execFeedLatencyValue">Standby (Market Check)</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border-subtle);padding-bottom:0.35rem;">
                         <span style="color:var(--text-muted);">Pending Execution Queue</span>
@@ -699,24 +699,51 @@
             if (btn) triggerPaperTrade(btn.dataset.symbol, btn.dataset.direction, Number(btn.dataset.score));
         });
 
-        // ── Load Market Telemetry Dynamically (DEF-02) ─────────────────────────────
+        // ── Load Market Telemetry Dynamically (DEF-02 & UX-10) ─────────────────────
+        let currentBaseCapital = {{ (config.get('BASE_CAPITAL', 10000.0) if config else 10000.0)|float }};
+        let currentDayPnl = 0.0;
+
         async function updateDashboardMarketTelemetry() {
             try {
                 const res = await fetch('/api/system/market-telemetry', {credentials: 'include'});
                 if (!res.ok) return;
                 const d = await res.json();
+                const sessionText = d.session_label || d.label || 'NORMAL (09:15–15:30 IST)';
                 const sessionEl = document.getElementById('opbNseSessionLabel');
                 if (sessionEl) {
-                    sessionEl.textContent = d.session_label || d.label || 'NORMAL (09:15–15:30 IST)';
+                    sessionEl.textContent = sessionText;
                     if (d.session_color) sessionEl.style.color = d.session_color;
                 }
                 const regimeEl = document.getElementById('opbMarketRegimeBadge');
                 if (regimeEl) {
                     const iconClass = d.regime_icon || (d.is_open ? 'fas fa-arrow-trend-up' : 'fas fa-moon');
-                    regimeEl.innerHTML = `<i class="${iconClass}"></i> ${d.regime_label || 'REGIME: ACTIVE'}`;
+                    regimeEl.innerHTML = `<i class="${iconClass}"></i> ${d.regime_label || 'REGIME: STANDBY'}`;
                     if (d.regime_bg) regimeEl.style.background = d.regime_bg;
                     if (d.regime_color) regimeEl.style.color = d.regime_color;
                     if (d.regime_border) regimeEl.style.borderColor = d.regime_border;
+                }
+                // Sync mobile status strip & telemetry cards (UX-10)
+                const mobNse = document.getElementById('mobileNseSessionItem');
+                if (mobNse) {
+                    mobNse.innerHTML = `<i class="fas fa-chart-line" style="color:${d.session_color || 'var(--text-secondary)'};"></i> ${d.label || sessionText}`;
+                }
+                const mobRegime = document.getElementById('mobileMarketRegime');
+                if (mobRegime) {
+                    const iconClass = d.regime_icon || (d.is_open ? 'fas fa-arrow-trend-up' : 'fas fa-moon');
+                    mobRegime.innerHTML = `<i class="${iconClass}" style="color:${d.regime_color || 'var(--text-secondary)'};"></i> ${(d.regime_label || 'STANDBY').replace(/^REGIME:\s*/i, '')}`;
+                }
+                const mobPulse = document.getElementById('mobileSessionPulse');
+                if (mobPulse) {
+                    mobPulse.className = d.is_open ? 'opb-latency-pulse pulse-live' : 'opb-latency-pulse pulse-muted';
+                    if (d.color) mobPulse.style.background = d.color;
+                }
+                const healthFeed = document.getElementById('healthNseFeedValue');
+                if (healthFeed) {
+                    healthFeed.textContent = d.is_open ? 'ACTIVE FEED' : 'STANDBY (CLOSED)';
+                }
+                const execFeed = document.getElementById('execFeedLatencyValue');
+                if (execFeed) {
+                    execFeed.textContent = d.is_open ? 'Active Session (Paper)' : `Standby (${d.session_label || 'Market Closed'})`;
                 }
             } catch(e) {}
         }
@@ -731,14 +758,16 @@
                 if (!res.ok) return;
                 const d = await res.json();
                 if (d.capital !== undefined) {
+                    currentBaseCapital = Number(d.capital) || 10000;
                     const capEl = document.getElementById('capitalDisplay');
-                    if (capEl) capEl.textContent = '₹' + Number(d.capital).toLocaleString('en-IN', {minimumFractionDigits: 2});
+                    if (capEl) capEl.textContent = '₹' + currentBaseCapital.toLocaleString('en-IN', {minimumFractionDigits: 2});
                 }
                 if (d.day_pnl !== undefined) {
+                    currentDayPnl = Number(d.day_pnl) || 0;
                     const pnlEl = document.getElementById('pnlDisplay');
                     if (pnlEl) {
-                        pnlEl.textContent = (d.day_pnl >= 0 ? '+' : '') + '₹' + Number(d.day_pnl).toLocaleString('en-IN', {minimumFractionDigits: 2});
-                        pnlEl.className = 'opb-stat-value opb-num ' + (d.day_pnl >= 0 ? 'stat-positive' : 'stat-negative');
+                        pnlEl.textContent = (currentDayPnl >= 0 ? '+' : '') + '₹' + currentDayPnl.toLocaleString('en-IN', {minimumFractionDigits: 2});
+                        pnlEl.className = 'opb-stat-value opb-num ' + (currentDayPnl >= 0 ? 'stat-positive' : 'stat-negative');
                     }
                 }
                 if (d.open_trades !== undefined) {
@@ -750,16 +779,21 @@
                     if (dt) dt.textContent = d.trades_today;
                 }
 
-                const noTrackRecord = !!d.is_demo_data;
+                const noTrackRecord = !!d.is_demo_data || (!d.trades_today && !d.open_trades);
                 const winRateEl = document.getElementById('winRate');
                 if (winRateEl) {
                     winRateEl.textContent = noTrackRecord ? 'No data yet' : (Number(d.win_rate) * 100).toFixed(1) + '%';
                     winRateEl.style.fontSize = noTrackRecord ? '1.1rem' : '';
                 }
+                const pfEl = document.getElementById('profitFactorDisplay');
+                if (pfEl) {
+                    pfEl.textContent = noTrackRecord ? '— (Paper Standby)' : (d.profit_factor ? Number(d.profit_factor).toFixed(2) : '—');
+                }
                 const ddEl = document.getElementById('drawdownDisplay');
                 if (ddEl) ddEl.textContent = noTrackRecord ? '—' : (Number(d.max_drawdown) * 100).toFixed(1) + '%';
                 const sharpeEl = document.getElementById('sharpeDisplay');
                 if (sharpeEl) sharpeEl.textContent = noTrackRecord ? '—' : Number(d.sharpe_ratio).toFixed(2);
+                renderEquityChart();
             } catch(e) {}
             finally {
                 if (refreshIcon) setTimeout(() => refreshIcon.classList.remove('fa-spin'), 600);
@@ -773,11 +807,13 @@
             if (!ctx || typeof Chart === 'undefined') return;
 
             const labels = ['09:15', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30'];
-            const data = [10000, 10025, 10080, 10040, 10120, 10090, 10150, 10180, 10160, 10220, 10210, 10260, 10280, 10280];
+            const baseCap = Number(currentBaseCapital) || 10000;
+            const endPnl = Number(currentDayPnl) || 0;
+            const data = labels.map((_, idx) => idx === labels.length - 1 ? baseCap + endPnl : baseCap);
 
             if (equityChartInstance) equityChartInstance.destroy();
 
-            const isLight = document.documentElement.getAttribute('data-theme')?.includes('light') || false;
+            const isLight = ['dracula-purple', 'ivory-gold', 'midnight-slate'].includes(document.documentElement.getAttribute('data-theme') || '');
             const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)';
             const textColor = isLight ? '#64748b' : '#94a3b8';
 
@@ -786,7 +822,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Portfolio Equity (₹)',
+                        label: 'Paper Baseline Equity (₹)',
                         data: data,
                         borderColor: '#16a34a',
                         backgroundColor: 'rgba(22, 163, 74, 0.08)',

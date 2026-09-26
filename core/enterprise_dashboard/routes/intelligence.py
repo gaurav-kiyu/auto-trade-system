@@ -1158,14 +1158,31 @@ def register_intelligence_routes(app, dashboard, admin_only, operator_or_admin) 
             brier = compute_brier_score(days=30)
             calib = compute_calibration(n_bins=n_bins)
             importances = get_feature_importance_trend(n_last=100)
+            live_samples = sum(int(b.get("count", 0)) for b in (calib or []))
+            is_live_tracker = brier is not None and live_samples >= 5
             final_brier = round(brier, 4) if brier is not None else 0.1425
+            data_source = "LIVE_TRACKER" if is_live_tracker else "WALK_FORWARD_BENCHMARK_CALIBRATION"
+            provenance_label = (
+                f"Live Tracker ({live_samples} resolved predictions)"
+                if is_live_tracker
+                else f"Walk-Forward Benchmark Baseline ({live_samples} live resolved trades in Paper/Signal mode)"
+            )
             return {
                 "status": "ok",
-                "message": "ML Classifier walk-forward evaluation and calibration complete",
+                "message": (
+                    f"ML Classifier walk-forward evaluation and calibration complete "
+                    f"({provenance_label})"
+                ),
+                "data_source": data_source,
+                "live_resolved_samples": live_samples,
+                "provenance_label": provenance_label,
                 "metrics": {
                     "brier_score": final_brier,
                     "brier_target": brier_target,
                     "accuracy": 0.764,
+                    "data_source": data_source,
+                    "live_resolved_samples": live_samples,
+                    "provenance_label": provenance_label,
                     "calibration_bins": calib,
                     "feature_importances": importances or {
                         "vix_iv_rank": 0.28,

@@ -821,36 +821,47 @@
     }
 
     const CANONICAL_SEVERITY_UI = {
-        'INFO':            { type: 'info',    badge: 'INFO',            icon: 'fa-info-circle',          emoji: 'ℹ️', token: 'var(--notification-info)' },
-        'SUCCESS':         { type: 'success', badge: 'SUCCESS',         icon: 'fa-check-circle',         emoji: '✅', token: 'var(--notification-success)' },
-        'WARNING':         { type: 'warning', badge: 'WARNING',         icon: 'fa-exclamation-triangle', emoji: '⚠️', token: 'var(--notification-warning)' },
-        'ERROR':           { type: 'error',   badge: 'ERROR',           icon: 'fa-exclamation-circle',   emoji: '🚨', token: 'var(--notification-danger)' },
-        'CRITICAL':        { type: 'error',   badge: 'CRITICAL',        icon: 'fa-radiation',            emoji: '🛑', token: 'var(--notification-danger)' },
-        'SIGNAL_MODERATE': { type: 'warning', badge: 'MODERATE SIGNAL', icon: 'fa-bolt',                 emoji: '🟡', token: 'var(--notification-warning)' },
-        'SIGNAL_STRONG':   { type: 'success', badge: 'STRONG SIGNAL',   icon: 'fa-gem',                  emoji: '💎', token: 'var(--notification-signal)' },
-        'SECURITY':        { type: 'warning', badge: 'SECURITY AUDIT',  icon: 'fa-shield-alt',           emoji: '🛡️', token: 'var(--notification-warning)' },
-        'ACTION_REQUIRED': { type: 'warning', badge: 'ACTION REQUIRED', icon: 'fa-bolt',                 emoji: '⚡', token: 'var(--notification-warning)' }
+        'INFO':            { type: 'info',    badge: 'INFO',            defaultTitle: 'System Notification',   defaultMessage: 'System telemetry and operational state synchronized.', icon: 'fa-info-circle',          emoji: 'ℹ️', token: 'var(--notification-info)' },
+        'SUCCESS':         { type: 'success', badge: 'SUCCESS',         defaultTitle: 'Action Completed',      defaultMessage: 'Changes saved and applied successfully.',              icon: 'fa-check-circle',         emoji: '✅', token: 'var(--notification-success)' },
+        'WARNING':         { type: 'warning', badge: 'WARNING',         defaultTitle: 'Attention Required',    defaultMessage: 'Please review the current configuration or state.',    icon: 'fa-exclamation-triangle', emoji: '⚠️', token: 'var(--notification-warning)' },
+        'ERROR':           { type: 'error',   badge: 'ERROR',           defaultTitle: 'Action Failed',         defaultMessage: 'An error occurred while processing the request.',      icon: 'fa-exclamation-circle',   emoji: '🚨', token: 'var(--notification-danger)' },
+        'CRITICAL':        { type: 'error',   badge: 'CRITICAL',        defaultTitle: 'Critical Alert',        defaultMessage: 'Immediate operator attention required.',               icon: 'fa-radiation',            emoji: '🛑', token: 'var(--notification-danger)' },
+        'SIGNAL_MODERATE': { type: 'warning', badge: 'MODERATE SIGNAL', defaultTitle: 'Moderate Signal Alert', defaultMessage: 'New moderate conviction signal detected.',             icon: 'fa-bolt',                 emoji: '🟡', token: 'var(--notification-warning)' },
+        'SIGNAL_STRONG':   { type: 'success', badge: 'STRONG SIGNAL',   defaultTitle: 'Strong Signal Alert',   defaultMessage: 'New high-conviction institutional signal detected.',   icon: 'fa-gem',                  emoji: '💎', token: 'var(--notification-signal)' },
+        'SECURITY':        { type: 'warning', badge: 'SECURITY AUDIT',  defaultTitle: 'Security Notice',       defaultMessage: 'Security telemetry event recorded.',                   icon: 'fa-shield-alt',           emoji: '🛡️', token: 'var(--notification-warning)' },
+        'ACTION_REQUIRED': { type: 'warning', badge: 'ACTION REQUIRED', defaultTitle: 'Action Required',       defaultMessage: 'Operator confirmation or input required.',             icon: 'fa-bolt',                 emoji: '⚡', token: 'var(--notification-warning)' }
     };
 
     function normalizeToastOptions(optionsOrMessage, typeArg, titleArg, durationArg) {
-        if (typeof optionsOrMessage === 'string' || typeof optionsOrMessage === 'number') {
-            const rawType = String(typeArg || 'info').toLowerCase();
-            const sevMap = {
-                'success': 'SUCCESS',
-                'ok': 'SUCCESS',
-                'error': 'ERROR',
-                'danger': 'ERROR',
-                'critical': 'CRITICAL',
-                'warning': 'WARNING',
-                'warn': 'WARNING',
-                'security': 'SECURITY',
-                'action_required': 'ACTION_REQUIRED',
-                'signal_strong': 'SIGNAL_STRONG',
-                'signal_moderate': 'SIGNAL_MODERATE',
-                'info': 'INFO'
-            };
+        const sevMap = {
+            'success': 'SUCCESS',
+            'ok': 'SUCCESS',
+            'error': 'ERROR',
+            'danger': 'ERROR',
+            'critical': 'CRITICAL',
+            'warning': 'WARNING',
+            'warn': 'WARNING',
+            'security': 'SECURITY',
+            'action_required': 'ACTION_REQUIRED',
+            'signal_strong': 'SIGNAL_STRONG',
+            'signal_moderate': 'SIGNAL_MODERATE',
+            'info': 'INFO'
+        };
+        const isPrimitiveOrEmpty = (
+            optionsOrMessage === null ||
+            optionsOrMessage === undefined ||
+            typeof optionsOrMessage === 'string' ||
+            typeof optionsOrMessage === 'number' ||
+            typeof optionsOrMessage === 'boolean'
+        );
+        if (isPrimitiveOrEmpty) {
+            const rawType = String(typeArg || 'info').toLowerCase().trim();
             const sev = sevMap[rawType] || 'INFO';
             const ui = CANONICAL_SEVERITY_UI[sev] || CANONICAL_SEVERITY_UI['INFO'];
+            const rawTitle = (titleArg !== null && titleArg !== undefined) ? String(titleArg).trim() : '';
+            const rawMessage = (optionsOrMessage !== null && optionsOrMessage !== undefined) ? String(optionsOrMessage).trim() : '';
+            const resolvedTitle = (rawTitle && rawTitle.toUpperCase() !== ui.badge) ? rawTitle : ui.defaultTitle;
+            const resolvedMessage = rawMessage || (rawTitle && rawTitle !== resolvedTitle ? rawTitle : ui.defaultMessage);
             return {
                 type: ui.type,
                 severity: sev,
@@ -859,22 +870,48 @@
                 iconClass: ui.icon,
                 token: ui.token,
                 categoryLabel: 'OPB QUANTITATIVE ENGINE',
-                title: titleArg || ui.badge,
-                message: String(optionsOrMessage),
+                title: resolvedTitle,
+                message: resolvedMessage,
                 keyValues: [],
                 primaryAction: null,
                 duration: durationArg !== undefined ? durationArg : 5000
             };
         }
-        const opts = optionsOrMessage || {};
-        const rawSev = String(opts.severity || opts.type || 'INFO').toUpperCase();
+        const isDomEvent = (
+            (typeof Event !== 'undefined' && optionsOrMessage instanceof Event) ||
+            (optionsOrMessage && typeof optionsOrMessage === 'object' && 'target' in optionsOrMessage && 'preventDefault' in optionsOrMessage)
+        );
+        const opts = isDomEvent ? {} : (optionsOrMessage || {});
+        const rawSev = String(opts.severity || opts.canonical_severity || opts.type || typeArg || 'INFO').toUpperCase().trim();
         const aliasMap = {
             'DANGER': 'ERROR',
+            'ERROR': 'ERROR',
             'WARN': 'WARNING',
-            'OK': 'SUCCESS'
+            'WARNING': 'WARNING',
+            'OK': 'SUCCESS',
+            'SUCCESS': 'SUCCESS',
+            'INFO': 'INFO',
+            'CRITICAL': 'CRITICAL',
+            'SECURITY': 'SECURITY',
+            'ACTION_REQUIRED': 'ACTION_REQUIRED',
+            'SIGNAL_MODERATE': 'SIGNAL_MODERATE',
+            'SIGNAL_STRONG': 'SIGNAL_STRONG'
         };
         const sev = CANONICAL_SEVERITY_UI[rawSev] ? rawSev : (aliasMap[rawSev] || 'INFO');
         const ui = CANONICAL_SEVERITY_UI[sev] || CANONICAL_SEVERITY_UI['INFO'];
+        const rawTitle = String(opts.title || titleArg || '').trim();
+        const rawMessage = String(
+            opts.summary ||
+            opts.message ||
+            opts.detail ||
+            opts.error ||
+            opts.text ||
+            opts.body ||
+            opts.description ||
+            ''
+        ).trim();
+        const resolvedTitle = (rawTitle && rawTitle.toUpperCase() !== ui.badge) ? rawTitle : ui.defaultTitle;
+        const resolvedMessage = rawMessage || (rawTitle && rawTitle !== resolvedTitle ? rawTitle : ui.defaultMessage);
         return {
             type: ui.type,
             severity: sev,
@@ -883,13 +920,13 @@
             iconClass: ui.icon,
             token: opts.accent_token || ui.token,
             categoryLabel: opts.category_label || opts.categoryLabel || 'OPB QUANTITATIVE ENGINE',
-            title: opts.title || ui.badge,
-            message: opts.summary || opts.message || '',
+            title: resolvedTitle,
+            message: resolvedMessage,
             keyValues: opts.key_values || opts.keyValues || [],
             primaryAction: opts.primary_action || opts.primaryAction || null,
             notificationId: opts.notification_id || opts.id || '',
             timestampIst: opts.timestamp_ist || opts.timestamp_human || '',
-            duration: opts.duration !== undefined ? opts.duration : 5000
+            duration: opts.duration !== undefined ? opts.duration : (durationArg !== undefined ? durationArg : 5000)
         };
     }
 

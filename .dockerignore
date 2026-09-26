@@ -67,10 +67,19 @@ coverage.xml
 .DS_Store
 Thumbs.db
 
-# Documentation and notebooks
-docs/
+# Documentation and notebooks (keep governance registers & constitutional docs)
 *.ipynb
 *.md
+!CONSTITUTION.md
+!AGENTS.md
+!GEMINI.md
+!CLAUDE.md
+!README.md
+!CHANGELOG.md
+!RELEASE_NOTES.md
+!docs/
+!docs/*.md
+!docs/**/*.md
 
 # CI
 .github/

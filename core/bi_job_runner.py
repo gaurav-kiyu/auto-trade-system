@@ -24,7 +24,7 @@ class BIJobRunner:
     _instance: BIJobRunner | None = None
     _lock = threading.Lock()
 
-    def __init__(self, max_workers: int = 2) -> None:
+    def __init__(self, max_workers: int = 4) -> None:
         self._executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=max_workers,
             thread_name_prefix="bi_isolated_worker",

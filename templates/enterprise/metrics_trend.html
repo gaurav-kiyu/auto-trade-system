@@ -415,7 +415,12 @@
             }
         }
 
-        document.getElementById('refresh-btn').addEventListener('click', () => { loadTrend(); loadAudits(); });
+        document.getElementById('refresh-btn').addEventListener('click', async () => {
+            await Promise.all([loadTrend(), loadAudits()]);
+            if (typeof window.showToast === 'function') {
+                window.showToast('Success metrics trend & release audit telemetry refreshed.', 'info', 'Telemetry Refreshed');
+            }
+        });
         loadTrend();
         loadAudits();
     </script>

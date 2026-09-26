@@ -197,7 +197,7 @@
       "captured_at_iso": "2026-09-14T20:35:22.444808+00:00",
       "release_label": "v2.59.4-post-merge.2",
       "indicators": {
-        "dead_code_findings": 49578.0,
+        "dead_code_findings": 50180.0,
         "duplicate_code": 498.0,
         "config_drift": 25.0,
         "doc_drift": 0.0,
@@ -206,6 +206,22 @@
         "evidence_items": 1894.0,
         "commits_30d": 64.0,
         "engineering_velocity": 0.0
+      }
+    },
+    {
+      "captured_at": 1790429038.4177165,
+      "captured_at_iso": "2026-09-26T13:23:58.417717+00:00",
+      "release_label": "v2.59.4-final-pass",
+      "indicators": {
+        "dead_code_findings": 50180.0,
+        "duplicate_code": 436.0,
+        "config_drift": 25.0,
+        "doc_drift": 0.0,
+        "open_regressions": 0.0,
+        "test_files": 829.0,
+        "evidence_items": 1903.0,
+        "commits_30d": 87.0,
+        "engineering_velocity": 233.33333333333334
       }
     }
   ]

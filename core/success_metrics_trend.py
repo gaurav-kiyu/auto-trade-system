@@ -474,9 +474,17 @@ class SuccessMetricsTrend:
 
     # ── Persistence ───────────────────────────────────────────────────────
 
+    def _resolve_storage_path(self) -> Path:
+        path = Path(self._storage_path)
+        if not path.is_absolute() and not path.exists():
+            alt = Path(__file__).resolve().parent.parent / self._storage_path
+            if alt.exists() or alt.parent.exists():
+                return alt
+        return path
+
     def _save(self) -> None:
         try:
-            path = Path(self._storage_path)
+            path = self._resolve_storage_path()
             path.parent.mkdir(parents=True, exist_ok=True)
             data = {"snapshots": [s.to_dict() for s in self._snapshots]}
             path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
@@ -484,7 +492,7 @@ class SuccessMetricsTrend:
             _log.warning("[TREND] Failed to save: %s", exc)
 
     def _load(self) -> None:
-        path = Path(self._storage_path)
+        path = self._resolve_storage_path()
         if not path.is_file():
             return
         try:

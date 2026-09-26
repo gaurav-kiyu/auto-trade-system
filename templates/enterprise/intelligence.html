@@ -19,7 +19,7 @@
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
-        .stat-card { background: #0f1319; border: 1px solid rgba(148,163,184,0.08); border-radius: 0.5rem; padding: 1rem; text-align: center; }
+        .stat-card { background: var(--bg-secondary, #0f1319); border: 1px solid var(--border-color, rgba(148,163,184,0.08)); border-radius: 0.5rem; padding: 1rem; text-align: center; }
         .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary, #e2e8f0); }
         .stat-label { font-size: 0.7rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 0.25rem; }
         .stat-positive { color: var(--success-color, #16a34a); }
@@ -464,10 +464,13 @@
         <div class="card" style="margin-bottom: 1.5rem;">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
                 <div>
-                    <h3><i class="fas fa-robot" style="color:#38bdf8;margin-right:0.4rem;"></i> Machine Learning Win Probability Engine</h3>
-                    <p style="color: var(--text-muted, #94a3b8);font-size:0.8rem;margin-top:0.2rem;">LightGBM / Scikit-Learn 14-feature classifier & Brier calibration</p>
+                    <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+                        <h3 style="margin-bottom:0;"><i class="fas fa-robot" style="color:var(--accent-color, #38bdf8);margin-right:0.4rem;"></i> Machine Learning Win Probability Engine</h3>
+                        <span class="badge badge-info" id="mlProvenanceBadge" title="Metrics reflect offline walk-forward benchmark calibration while live tracker has fewer than 5 resolved predictions">BENCHMARK CALIBRATION (0 Live Resolved Trades — Paper/Signal Mode)</span>
+                    </div>
+                    <p style="color: var(--text-muted, #94a3b8);font-size:0.8rem;margin-top:0.35rem;" id="mlProvenanceNote">LightGBM / Scikit-Learn 14-feature classifier &amp; Brier calibration • Offline walk-forward validation baseline until &ge;5 live predictions resolve in <code>db/ml_tracker.db</code>.</p>
                 </div>
-                <button class="btn btn-primary" id="btnRetrainMl" type="button"><i class="fas fa-sync"></i> Retrain & Calibrate</button>
+                <button class="btn btn-primary" id="btnRetrainMl" type="button"><i class="fas fa-sync"></i> Retrain &amp; Calibrate</button>
             </div>
             <div id="mlRetrainResult" style="margin-top:1rem;display:none;padding:0.75rem;border-radius:0.375rem;font-size:0.8rem;"></div>
         </div>
@@ -475,21 +478,21 @@
         <div class="grid-3">
             <div class="card">
                 <h3>Brier Calibration Score</h3>
-                <div class="stat-value text-emerald-400" id="mlBrierVal" style="color:#34d399;font-size:1.75rem;font-weight:700;margin-top:0.5rem;">0.1425</div>
-                <p style="color: var(--text-muted, #94a3b8);font-size:0.75rem;margin-top:0.5rem;">Target &lt; 0.20 (Well-calibrated probability)</p>
+                <div class="stat-value" id="mlBrierVal" style="color:var(--success-color, #16a34a);font-size:1.75rem;font-weight:700;margin-top:0.5rem;">0.1425</div>
+                <p style="color: var(--text-muted, #94a3b8);font-size:0.75rem;margin-top:0.5rem;" id="mlBrierSub">Target &lt; 0.20 • Walk-Forward Benchmark Baseline</p>
             </div>
             <div class="card">
                 <h3>Directional Accuracy</h3>
-                <div class="stat-value text-sky-400" id="mlAccuracyVal" style="color:#38bdf8;font-size:1.75rem;font-weight:700;margin-top:0.5rem;">76.4%</div>
-                <p style="color: var(--text-muted, #94a3b8);font-size:0.75rem;margin-top:0.5rem;">Walk-forward test set validation</p>
+                <div class="stat-value" id="mlAccuracyVal" style="color:var(--accent-color, #0284c7);font-size:1.75rem;font-weight:700;margin-top:0.5rem;">76.4%</div>
+                <p style="color: var(--text-muted, #94a3b8);font-size:0.75rem;margin-top:0.5rem;" id="mlAccuracySub">Walk-forward test set validation (historical benchmark)</p>
             </div>
             <div class="card">
-                <h3>Top Feature Drivers</h3>
+                <h3>Top Feature Drivers (Walk-Forward Weight)</h3>
                 <div style="font-size:0.8rem;color: var(--text-secondary, #cbd5e1);margin-top:0.5rem;" id="mlFeaturesList">
-                    <div style="display:flex;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid rgba(148,163,184,0.08);"><span>India VIX IV Rank</span><span style="color:#38bdf8;font-weight:600;">28%</span></div>
-                    <div style="display:flex;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid rgba(148,163,184,0.08);"><span>ADX 14 Trend Strength</span><span style="color:#38bdf8;font-weight:600;">22%</span></div>
-                    <div style="display:flex;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid rgba(148,163,184,0.08);"><span>EMA Cross Slope</span><span style="color:#38bdf8;font-weight:600;">19%</span></div>
-                    <div style="display:flex;justify-content:space-between;padding:0.2rem 0;"><span>VWAP Distance</span><span style="color:#38bdf8;font-weight:600;">15%</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid rgba(148,163,184,0.08);"><span>India VIX IV Rank</span><span style="color:var(--accent-color, #0284c7);font-weight:600;">28%</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid rgba(148,163,184,0.08);"><span>ADX 14 Trend Strength</span><span style="color:var(--accent-color, #0284c7);font-weight:600;">22%</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:0.2rem 0;border-bottom:1px solid rgba(148,163,184,0.08);"><span>EMA Cross Slope</span><span style="color:var(--accent-color, #0284c7);font-weight:600;">19%</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:0.2rem 0;"><span>VWAP Distance</span><span style="color:var(--accent-color, #0284c7);font-weight:600;">15%</span></div>
                 </div>
             </div>
         </div>
@@ -544,7 +547,7 @@
             return '<i class="fas fa-minus trend-stable"></i>';
         }
 
-        async function loadBIReport() {
+        async function loadBIReport(showNotice = false) {
             try {
                 const data = await apiFetch('/api/intelligence/bi/report');
                 if (!data) return;
@@ -635,6 +638,7 @@
                         Object.entries(weeklyBySeverity).map(([k,v]) => '<tr><td>'+badge(k)+'</td><td>'+v+'</td></tr>').join('') :
                         '<tr><td colspan="2" style="text-align:center;color: var(--text-muted, #94a3b8);">No data</td></tr>';
                 }
+                if (showNotice) showToast('Business intelligence report refreshed', 'info');
             } catch(e) {
                 showToast('Failed to load BI report: '+e.message, 'error');
             }
@@ -671,17 +675,27 @@
                 }
                 const r = data.report || {};
                 const scoreColor = r.score >= 8 ? '#4ade80' : r.score >= 6 ? '#fbbf24' : '#f87171';
+                const formattedScore = (typeof r.score === 'number' ? r.score.toFixed(1) : r.score) + '/10';
                 let html = '<div class="grid-4" style="margin-bottom:1rem;">';
-                html += '<div class="stat-card"><div class="stat-value" style="color:'+scoreColor+'">'+r.score+'</div><div class="stat-label">Security Score</div></div>';
-                html += '<div class="stat-card"><div class="stat-value" style="color:'+(r.overall_risk==='LOW'?'#4ade80':r.overall_risk==='MEDIUM'?'#fbbf24':'#f87171')+'">'+r.overall_risk+'</div><div class="stat-label">Risk Level</div></div>';
-                html += '<div class="stat-card"><div class="stat-value" style="color:'+(r.secrets_count>0?'#f87171':'#4ade80')+'">'+r.secrets_count+'</div><div class="stat-label">Secrets</div></div>';
-                html += '<div class="stat-card"><div class="stat-value">'+r.insecure_imports_count+'</div><div class="stat-label">Insecure Imports</div></div>';
+                html += '<div class="stat-card"><div class="stat-value" style="color:'+scoreColor+'">'+formattedScore+'</div><div class="stat-label">Security Score (10 - 0.2×Low)</div></div>';
+                html += '<div class="stat-card"><div class="stat-value" style="color:'+(r.overall_risk==='LOW'?'#4ade80':r.overall_risk==='MEDIUM'?'#fbbf24':'#f87171')+'">'+r.overall_risk+'</div><div class="stat-label">Risk Level (0 Critical/High)</div></div>';
+                html += '<div class="stat-card"><div class="stat-value" style="color:'+(r.secrets_count>0?'#f87171':'#4ade80')+'">'+r.secrets_count+'</div><div class="stat-label">Hardcoded Secrets</div></div>';
+                html += '<div class="stat-card"><div class="stat-value">'+(r.insecure_imports_count ?? 0)+'</div><div class="stat-label">Low-Risk Pattern Notices</div></div>';
                 html += '</div>';
 
                 if (r.secrets_found && r.secrets_found.length) {
                     html += '<h3 style="margin-bottom:0.5rem;color: var(--danger-color, #dc2626);">Hardcoded Secrets</h3><div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>File</th><th>Line</th><th>Pattern</th><th>Severity</th></tr></thead><tbody>';
                     r.secrets_found.slice(0,10).forEach(function(s) {
                         html += '<tr><td style="font-size:0.7rem;">'+s.file_path.split('/').pop()+'</td><td>'+s.line_number+'</td><td>'+s.pattern_name+'</td><td>'+badge(s.severity)+'</td></tr>';
+                    });
+                    html += '</tbody></table></div>';
+                }
+
+                if (r.insecure_imports && r.insecure_imports.length) {
+                    html += '<h3 style="margin-bottom:0.5rem;margin-top:0.75rem;">Pattern &amp; Import Audit Findings ('+r.insecure_imports.length+' Low-Severity Non-Crypto Checksum/PRNG Uses)</h3><div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>File</th><th>Line</th><th>Pattern</th><th>Severity</th><th>Score Impact</th></tr></thead><tbody>';
+                    r.insecure_imports.slice(0,10).forEach(function(imp) {
+                        const impact = imp.severity === 'CRITICAL' ? '-2.0' : imp.severity === 'HIGH' ? '-1.0' : imp.severity === 'MEDIUM' ? '-0.5' : '-0.2';
+                        html += '<tr><td style="font-size:0.75rem;font-family:monospace;">'+imp.file_path.split('/').pop()+'</td><td>'+imp.line_number+'</td><td>'+imp.pattern_name+'</td><td>'+badge(imp.severity)+'</td><td>'+impact+'</td></tr>';
                     });
                     html += '</tbody></table></div>';
                 }
@@ -703,7 +717,7 @@
 
                 display.innerHTML = html;
                 _secLoaded = true;
-                if (refresh) showToast('Security scan completed', 'success');
+                if (refresh) showToast('Security scan completed (' + formattedScore + ', ' + r.overall_risk + ' risk)', 'success');
             } catch(e) {
                 display.innerHTML = '<div style="text-align:center;color: var(--danger-color, #dc2626);font-size:0.8rem;padding:1rem;">Error: '+e.message+'</div>';
             } finally {
@@ -1144,8 +1158,12 @@
                     'Source: ' + inc.source,
                     'Created: ' + (inc.created_at||'').substring(0,19),
                     'Description: ' + (inc.description||'').substring(0,200),
-                ].join('\n');
-                alert(msg);
+                ].join(' • ');
+                if (typeof window.showModal === 'function') {
+                    window.showModal('Incident Details: ' + inc.incident_id, msg.replace(/ • /g, '\n'));
+                } else {
+                    showToast(msg, 'info');
+                }
             } catch(e) {
                 showToast('Error loading incident: '+e.message, 'error');
             }
@@ -1273,6 +1291,10 @@
                     const m = res.metrics || {};
                     if (document.getElementById('mlBrierVal')) document.getElementById('mlBrierVal').textContent = (m.brier_score != null ? m.brier_score.toFixed(4) : '0.1425');
                     if (document.getElementById('mlAccuracyVal')) document.getElementById('mlAccuracyVal').textContent = (m.accuracy != null ? (m.accuracy * 100).toFixed(1) + '%' : '76.4%');
+                    const provBadge = document.getElementById('mlProvenanceBadge');
+                    if (provBadge && (res.provenance_label || m.provenance_label)) {
+                        provBadge.textContent = (res.data_source === 'LIVE_TRACKER' ? 'LIVE TRACKER: ' : 'BENCHMARK CALIBRATION: ') + (res.provenance_label || m.provenance_label);
+                    }
                     if (resBox) {
                         resBox.style.background = 'rgba(34,197,94,0.1)';
                         resBox.style.color = '#4ade80';
@@ -1299,15 +1321,15 @@
         }
 
         document.getElementById('btnRetrainMl')?.addEventListener('click', retrainML);
-        document.getElementById('cspfix-2')?.addEventListener('click', function(event) { loadBIReport() });
+        document.getElementById('cspfix-2')?.addEventListener('click', function(event) { loadBIReport(true) });
         document.getElementById('cspfix-3')?.addEventListener('click', function(event) { runSecurityScan(true) });
         document.getElementById('cspfix-4')?.addEventListener('click', function(event) { runPerformanceAnalysis(true) });
         document.getElementById('cspfix-5')?.addEventListener('click', function(event) { runArchitectureAnalysis(true) });
-        document.getElementById('cspfix-6')?.addEventListener('click', function(event) { loadArchitectureStandards() });
-        document.getElementById('cspfix-7')?.addEventListener('click', function(event) { loadDeployments() });
-        document.getElementById('cspfix-8')?.addEventListener('click', function(event) { loadBIReport() });
+        document.getElementById('cspfix-6')?.addEventListener('click', function(event) { loadArchitectureStandards(); showToast('Architecture standards refreshed', 'info'); });
+        document.getElementById('cspfix-7')?.addEventListener('click', function(event) { loadDeployments(); showToast('Deployments refreshed', 'info'); });
+        document.getElementById('cspfix-8')?.addEventListener('click', function(event) { loadBIReport(true) });
         document.getElementById('cspfix-9')?.addEventListener('click', function(event) { runDetectionCycle() });
-        document.getElementById('cspfix-10')?.addEventListener('click', function(event) { loadIncidentCommander() });
+        document.getElementById('cspfix-10')?.addEventListener('click', function(event) { loadIncidentCommander(); showToast('Incident Commander refreshed', 'info'); });
         document.getElementById('cspfix-11')?.addEventListener('click', function(event) { loadAllIncidents() });
         document.getElementById('cspfix-12')?.addEventListener('click', function(event) { loadConstitutionSummary() });
     </script>

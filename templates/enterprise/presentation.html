@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html class="h-full bg-gray-900" lang="en">
+<html class="h-full" lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
@@ -12,8 +12,83 @@
         tailwind.config = { theme: { extend: { colors: { primary: { '50': '#eff6ff', '100': '#dbeafe', '200': '#bfdbfe', '300': '#93c5fd', '400': '#60a5fa', '500': '#3b82f6', '600': '#2563eb', '700': '#1d4ed8', '800': '#1e40af', '900': '#1e3a8a' } } } } }
     </script>
 <style nonce="{{ nonce }}">
-        .card-hover { transition: all 0.2s ease; }
-        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        html, body {
+            background: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+        }
+        .pg-card {
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-primary) !important;
+            border-radius: 0.75rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.2s ease;
+        }
+        .pg-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-color-hover, var(--accent-color)) !important;
+        }
+        .pg-subcard {
+            background: var(--bg-secondary) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-secondary) !important;
+            border-radius: 0.5rem;
+        }
+        .pg-heading {
+            color: var(--text-primary) !important;
+        }
+        .pg-section-label {
+            color: var(--text-secondary) !important;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+        }
+        .pg-field-label {
+            color: var(--text-secondary) !important;
+            font-weight: 600;
+        }
+        .pg-muted {
+            color: var(--text-muted) !important;
+        }
+        .pg-input {
+            background: var(--input-bg, var(--bg-secondary)) !important;
+            border: 1px solid var(--input-border, var(--border-color)) !important;
+            color: var(--text-primary) !important;
+            border-radius: 0.45rem;
+        }
+        .pg-input::placeholder {
+            color: var(--text-muted) !important;
+            opacity: 0.75;
+        }
+        .pg-input:focus {
+            outline: none;
+            border-color: var(--accent-color) !important;
+            box-shadow: 0 0 0 2px var(--accent-subtle, rgba(56, 189, 248, 0.2));
+        }
+        .pg-btn-primary {
+            background: var(--accent-color) !important;
+            color: var(--btn-primary-text, #ffffff) !important;
+            border: 1px solid var(--accent-color) !important;
+            font-weight: 700;
+        }
+        .pg-btn-primary:hover:not(:disabled) {
+            filter: brightness(1.08);
+        }
+        .pg-btn-secondary {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+            font-weight: 600;
+        }
+        .pg-btn-secondary:hover:not(:disabled) {
+            background: var(--bg-card-hover, var(--bg-card)) !important;
+            border-color: var(--accent-color) !important;
+        }
+        .pg-badge {
+            background: var(--bg-secondary) !important;
+            color: var(--text-secondary) !important;
+            border: 1px solid var(--border-color) !important;
+            font-variant-numeric: tabular-nums;
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { animation: spin 0.8s linear infinite; }
         .slide-in { animation: slideIn 0.3s ease-out; }
@@ -22,31 +97,31 @@
     {% include "_pwa_head.html" %}
     <link rel="stylesheet" href="/static/fontawesome.min.css">
 </head>
-<body class="h-full bg-gray-900 text-gray-100">
+<body class="h-full">
     {% include '_nav.html' %}
     <div class="min-h-full has-mobile-nav">
 <main class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
 <div class="px-4 py-6 sm:px-0">
 <!-- Header -->
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
 <div>
-<h1 class="text-2xl font-bold text-white">Presentation Generator</h1>
-<p class="text-sm text-gray-400 mt-1">Generate professional PPTX presentations from repository data</p>
+<h1 class="text-2xl font-bold pg-heading">Presentation Generator</h1>
+<p class="text-sm pg-muted mt-1">Generate professional PPTX presentations from repository data</p>
 </div>
 <div class="flex items-center space-x-2">
-<button class="bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs px-3 py-1.5 rounded transition-all active:scale-95" id="refresh-templates" type="button">Reload</button>
+<button class="pg-btn-secondary text-xs px-3 py-1.5 rounded transition-all active:scale-95" id="refresh-templates" type="button"><i class="fas fa-sync-alt mr-1"></i> Reload</button>
 </div>
 </div>
 <!-- Generator Form -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 <!-- Settings Panel -->
 <div class="lg:col-span-1">
-<div class="bg-gray-800 rounded-lg p-5 card-hover space-y-4">
-<h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Settings</h3>
+<div class="pg-card p-5 space-y-4">
+<h3 class="text-sm uppercase tracking-wider pg-section-label">Settings</h3>
 <!-- Template Select -->
 <div>
-<label class="block text-xs text-gray-400 mb-1">Template</label>
-<select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="template-select">
+<label class="block text-xs pg-field-label mb-1" for="template-select">Template</label>
+<select class="w-full pg-input px-3 py-2 text-sm" id="template-select">
 <option value="executive">Executive (10 slides)</option>
 <option value="developer">Developer (12 slides)</option>
 <option value="client">Client (11 slides)</option>
@@ -54,79 +129,79 @@
 </div>
 <!-- Auto Fetch Toggle -->
 <div class="flex items-center justify-between">
-<span class="text-sm text-gray-300">Auto-fetch data</span>
-<button aria-pressed="true" class="relative w-10 h-5 rounded-full bg-blue-600 transition-colors focus:outline-none" id="auto-fetch-toggle" type="button">
+<span class="text-sm pg-heading font-medium">Auto-fetch data</span>
+<button aria-pressed="true" aria-label="Toggle auto-fetch repository data" class="relative w-10 h-5 rounded-full bg-blue-600 transition-colors focus:outline-none" id="auto-fetch-toggle" type="button">
 <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 translate-x-5"></span>
 </button>
 </div>
-<p class="text-xs text-gray-500">Automatically pulls version, file counts, and coverage data from the repository.</p>
+<p class="text-xs pg-muted">Automatically pulls version, file counts, and coverage data from the repository.</p>
 <!-- Action Buttons -->
 <div class="space-y-2 pt-2">
-<button class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2" id="generate-btn" type="button">
+<button class="w-full pg-btn-primary text-sm px-4 py-2.5 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2" id="generate-btn" type="button">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
 <span id="generate-text">Generate</span>
 </button>
-<button class="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2" id="generate-all-btn" type="button">
+<button class="w-full pg-btn-secondary text-sm px-4 py-2 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2" id="generate-all-btn" type="button">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 11H5m14 0l-3-3m3 3l-3 3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
 <span>Generate All Templates</span>
 </button>
 </div>
 </div>
 <!-- Templates Info -->
-<div class="bg-gray-800 rounded-lg p-5 card-hover mt-4">
-<h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Available Templates</h3>
+<div class="pg-card p-5 mt-4">
+<h3 class="text-sm uppercase tracking-wider pg-section-label mb-3">Available Templates</h3>
 <div class="space-y-3" id="templates-info">
-<div class="text-sm text-gray-400">Loading...</div>
+<div class="text-sm pg-muted">Loading...</div>
 </div>
 </div>
 </div>
 <!-- Custom Data Panel -->
 <div class="lg:col-span-2">
-<div class="bg-gray-800 rounded-lg p-5 card-hover">
-<div class="flex items-center justify-between mb-4">
-<h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Custom Data Overrides</h3>
-<span class="text-xs text-gray-500">Optional — leave blank for auto-fetch defaults</span>
+<div class="pg-card p-5">
+<div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+<h3 class="text-sm uppercase tracking-wider pg-section-label">Custom Data Overrides</h3>
+<span class="text-xs pg-muted">Optional — leave blank for auto-fetch defaults</span>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div>
-<label class="block text-xs text-gray-400 mb-1">Version</label>
-<input class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-version" placeholder="2.59.4" type="text"/>
+<label class="block text-xs pg-field-label mb-1" for="data-version">Version</label>
+<input class="w-full pg-input px-3 py-2 text-sm" id="data-version" placeholder="2.59.4" type="text"/>
 </div>
 <div>
-<label class="block text-xs text-gray-400 mb-1">Score</label>
-<input class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-score" placeholder="9.6/10" type="text"/>
+<label class="block text-xs pg-field-label mb-1" for="data-score">Score</label>
+<input class="w-full pg-input px-3 py-2 text-sm" id="data-score" placeholder="9.6/10" type="text"/>
 </div>
 <div>
-<label class="block text-xs text-gray-400 mb-1">Verdict</label>
-<input class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-verdict" placeholder="Production Certified" type="text"/>
+<label class="block text-xs pg-field-label mb-1" for="data-verdict">Verdict</label>
+<input class="w-full pg-input px-3 py-2 text-sm" id="data-verdict" placeholder="Production Certified" type="text"/>
 </div>
 <div>
-<label class="block text-xs text-gray-400 mb-1">Verdict Subtitle</label>
-<input class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-verdict-sub" placeholder="with Minor Recommendations" type="text"/>
+<label class="block text-xs pg-field-label mb-1" for="data-verdict-sub">Verdict Subtitle</label>
+<input class="w-full pg-input px-3 py-2 text-sm" id="data-verdict-sub" placeholder="with Minor Recommendations" type="text"/>
 </div>
 <div class="md:col-span-2">
-<label class="block text-xs text-gray-400 mb-1">Custom Strengths (one per line)</label>
-<textarea class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-strengths" placeholder="Capital preservation
+<label class="block text-xs pg-field-label mb-1" for="data-strengths">Custom Strengths (one per line)</label>
+<textarea class="w-full pg-input px-3 py-2 text-sm" id="data-strengths" placeholder="Capital preservation
 15+ risk gates
 2600+ tests" rows="3"></textarea>
 </div>
 <div class="md:col-span-2">
-<label class="block text-xs text-gray-400 mb-1">Custom KPIs (key:value, one per line)</label>
-<textarea class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" id="data-kpis" placeholder="Total Tests: 2600+
+<label class="block text-xs pg-field-label mb-1" for="data-kpis">Custom KPIs (key:value, one per line)</label>
+<textarea class="w-full pg-input px-3 py-2 text-sm" id="data-kpis" placeholder="Total Tests: 2600+
 Benchmark Win Rate: 54.5%
 Benchmark Sharpe: 6.99" rows="3"></textarea>
 </div>
 </div>
 </div>
 <!-- Results -->
-<div class="hidden bg-gray-800 rounded-lg p-5 card-hover mt-4 slide-in" id="results-panel">
-<h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Generated</h3>
+<div class="hidden pg-card p-5 mt-4 slide-in" id="results-panel">
+<h3 class="text-sm uppercase tracking-wider pg-section-label mb-3">Generated</h3>
 <div class="space-y-2" id="results-list"></div>
 </div>
 <!-- Auto-Fetched Data Preview -->
-<div class="bg-gray-800/50 rounded-lg p-4 mt-4 border border-gray-700" id="auto-fetch-preview">
-<h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Auto-Fetched Data</h3>
-<div class="text-xs text-gray-500 space-y-1" id="auto-fetch-content">
+<div class="pg-subcard p-4 mt-4" id="auto-fetch-preview">
+<h3 class="text-xs uppercase tracking-wider pg-section-label mb-2">Auto-Fetched Data</h3>
+<div class="text-xs pg-muted space-y-1" id="auto-fetch-content">
 <p>Loading repository data...</p>
 </div>
 </div>
@@ -153,10 +228,10 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
                 autoFetch = !autoFetch;
                 toggle.setAttribute('aria-pressed', autoFetch);
                 toggle.querySelector('span').style.transform = autoFetch ? 'translateX(1.25rem)' : 'translateX(0.125rem)';
-                toggle.className = autoFetch ? 'relative w-10 h-5 rounded-full bg-blue-600 transition-colors focus:outline-none' : 'relative w-10 h-5 rounded-full bg-gray-600 transition-colors focus:outline-none';
+                toggle.className = autoFetch ? 'relative w-10 h-5 rounded-full bg-blue-600 transition-colors focus:outline-none' : 'relative w-10 h-5 rounded-full bg-gray-500 transition-colors focus:outline-none';
                 if (autoFetch) loadAutoFetchPreview();
                 else {
-                    $('auto-fetch-content').innerHTML = '<p class="text-gray-500">Auto-fetch disabled</p>';
+                    $('auto-fetch-content').innerHTML = '<p class="pg-muted">Auto-fetch disabled</p>';
                 }
             });
 
@@ -180,8 +255,8 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
                         info.innerHTML = (data.templates || []).map(t => {
                             const c = counts[t] || '?';
                             return `<div class="flex items-center justify-between text-sm">
-                                <span class="text-gray-300 capitalize">${t}</span>
-                                <span class="text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded">${c} slides</span>
+                                <span class="pg-heading capitalize font-medium">${t}</span>
+                                <span class="text-xs pg-badge px-2 py-0.5 rounded">${c} slides</span>
                             </div>`;
                         }).join('');
                     }
@@ -190,51 +265,43 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
 
             // ── Auto-Fetch Preview ───────────────────────────────────────────
             async function loadAutoFetchPreview() {
-                $('auto-fetch-content').innerHTML = '<p class="text-blue-400">Fetching...</p>';
+                $('auto-fetch-content').innerHTML = '<p class="pg-muted">Fetching...</p>';
                 try {
                     const r = await fetch('/api/intelligence/summary');
                     if (r.ok) {
                         const data = await r.json();
                         const pg = data.presentation_generator || {};
                         const html = [
-                            `<p>Version: <span class="text-gray-300">${data.bi_dashboard?.version || '2.59.4'}</span></p>`,
-                            `<p>Templates: <span class="text-gray-300">${(pg.templates || ['executive']).join(', ')}</span></p>`,
-                            `<p>Output: <span class="text-gray-300">${pg.output_dir || 'reports/presentations/'}</span></p>`,
-                            `<p>Default: <span class="text-gray-300">${pg.default_template || 'executive'}</span></p>`,
-                            `<p>Enabled: <span class="${pg.enabled ? 'text-green-400' : 'text-red-400'}">${pg.enabled ? 'Yes' : 'No'}</span></p>`,
-                            `<p class="text-gray-600 mt-1">Overview from /api/intelligence/summary</p>`,
+                            `<p>Version: <span class="pg-heading font-semibold">${data.bi_dashboard?.version || '2.59.4'}</span></p>`,
+                            `<p>Templates: <span class="pg-heading font-semibold">${(pg.templates || ['executive']).join(', ')}</span></p>`,
+                            `<p>Output: <span class="pg-heading font-semibold">${pg.output_dir || 'reports/presentations/'}</span></p>`,
+                            `<p>Default: <span class="pg-heading font-semibold">${pg.default_template || 'executive'}</span></p>`,
+                            `<p>Enabled: <span style="color:${pg.enabled ? 'var(--success-color)' : 'var(--danger-color)'};font-weight:700;">${pg.enabled ? 'Yes' : 'No'}</span></p>`,
+                            `<p class="pg-muted mt-1">Overview from /api/intelligence/summary</p>`,
                         ].join('');
                         $('auto-fetch-content').innerHTML = html;
                     } else {
-                        // Fallback: direct fetch
                         const vR = await fetch('/api/system/state');
                         if (vR.ok) {
                             const vData = await vR.json();
                             $('auto-fetch-content').innerHTML = `
-                                <p>Version: <span class="text-gray-300">${vData.version || '2.59.4'}</span></p>
-                                <p>System: <span class="text-gray-300">${vData.paused ? 'PAUSED' : 'RUNNING'}</span></p>
-                                <p>Capital: <span class="text-gray-300">₹${(vData.capital || 0).toLocaleString()}</span></p>
-                                <p class="text-gray-600 mt-1">Auto-detected from system state</p>
+                                <p>Version: <span class="pg-heading font-semibold">${vData.version || '2.59.4'}</span></p>
+                                <p>System: <span class="pg-heading font-semibold">${vData.paused ? 'PAUSED' : 'RUNNING'}</span></p>
+                                <p>Capital: <span class="pg-heading font-semibold">₹${(vData.capital || 0).toLocaleString()}</span></p>
+                                <p class="pg-muted mt-1">Auto-detected from system state</p>
                             `;
                         }
                     }
                 } catch(e) {
-                    $('auto-fetch-content').innerHTML = '<p class="text-gray-500">Auto-fetch unavailable</p>';
+                    $('auto-fetch-content').innerHTML = '<p class="pg-muted">Auto-fetch unavailable</p>';
                 }
             }
 
             // ── Build Data from Form ─────────────────────────────────────────
             function buildData() {
                 const data = {};
-                if (!autoFetch) {
-                    // When auto-fetch is off, user must provide version
-                    const ver = $('data-version').value.trim();
-                    if (ver) data.version = ver;
-                } else {
-                    // When auto-fetch is on, user overrides take precedence
-                    const ver = $('data-version').value.trim();
-                    if (ver) data.version = ver;
-                }
+                const ver = $('data-version').value.trim();
+                if (ver) data.version = ver;
                 const score = $('data-score').value.trim();
                 if (score) data.score = score;
                 const verdict = $('data-verdict').value.trim();
@@ -263,19 +330,12 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
                 const text = $('generate-text');
 
                 btn.disabled = true;
-                text.innerHTML = '<span class="spinner inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> Generating...';
-                btn.className = 'w-full bg-blue-500 text-white text-sm font-medium px-4 py-2.5 rounded opacity-75 cursor-not-allowed flex items-center justify-center space-x-2';
+                text.innerHTML = '<span class="spinner inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span> Generating...';
 
                 try {
-                    const headers = {
-                        'Content-Type': 'application/json'
-                    };
-
+                    const headers = { 'Content-Type': 'application/json' };
                     const csrfToken = getCookie('opb_csrf');
-
-                    if (csrfToken) {
-                        headers['X-CSRF-Token'] = csrfToken;
-                    }
+                    if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
 
                     const r = await fetch('/api/intelligence/presentation/generate', {
                         method: 'POST',
@@ -289,32 +349,41 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
                     if (result.status === 'ok' && result.path) {
                         const filename = result.path.split(/[/\\\\]/).pop();
                         list.innerHTML = `
-                            <div class="flex items-center justify-between bg-gray-700/50 rounded px-3 py-2">
+                            <div class="flex items-center justify-between pg-subcard px-3 py-2">
                                 <div class="flex items-center space-x-2">
-                                    <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    <span class="text-sm text-green-400">${result.template || template}</span>
-                                    <span class="text-xs text-gray-500">${filename}</span>
+                                    <i class="fas fa-check-circle" style="color:var(--success-color);"></i>
+                                    <span class="text-sm font-semibold pg-heading capitalize">${result.template || template}</span>
+                                    <span class="text-xs pg-muted">${filename}</span>
                                 </div>
-                                <span class="text-xs text-gray-500">Done</span>
+                                <span class="text-xs font-semibold" style="color:var(--success-color);">Done</span>
                             </div>
                         `;
+                        if (window.showToast) {
+                            window.showToast(`Generated ${result.template || template} presentation (${filename}).`, 'success', 'Presentation Generated');
+                        }
                     } else {
-                        list.innerHTML = `<div class="flex items-center space-x-2 text-yellow-400 text-sm">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
-                            <span>${result.detail || result.message || 'Generation returned no path'}</span>
+                        const errMsg = result.detail || result.message || 'Generation returned no path';
+                        list.innerHTML = `<div class="flex items-center space-x-2 text-sm" style="color:var(--warning-color);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>${errMsg}</span>
                         </div>`;
+                        if (window.showToast) {
+                            window.showToast(errMsg, 'warning', 'Presentation Generation');
+                        }
                     }
                 } catch(e) {
                     $('results-panel').classList.remove('hidden');
                     $('results-list').innerHTML =
-                        `<div class="flex items-center space-x-2 text-red-400 text-sm">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        `<div class="flex items-center space-x-2 text-sm" style="color:var(--danger-color);">
+                            <i class="fas fa-times-circle"></i>
                             <span>Error: ${e.message}</span>
                         </div>`;
+                    if (window.showToast) {
+                        window.showToast(`Presentation generation failed: ${e.message}`, 'error', 'Generation Failed');
+                    }
                 } finally {
                     btn.disabled = false;
                     text.textContent = 'Generate';
-                    btn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2';
                 }
             }
 
@@ -324,18 +393,11 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
                 const btn = $('generate-all-btn');
                 btn.disabled = true;
                 btn.querySelector('span').textContent = 'Generating...';
-                btn.className = 'w-full bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded opacity-75 cursor-not-allowed';
 
                 try {
-                    const headers = {
-                        'Content-Type': 'application/json'
-                    };
-
+                    const headers = { 'Content-Type': 'application/json' };
                     const csrfToken = getCookie('opb_csrf');
-
-                    if (csrfToken) {
-                        headers['X-CSRF-Token'] = csrfToken;
-                    }
+                    if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
 
                     const r = await fetch('/api/intelligence/presentation/generate-all', {
                         method: 'POST',
@@ -347,26 +409,37 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
                     $('results-panel').classList.remove('hidden');
                     const list = $('results-list');
                     if (result.status === 'ok') {
-                        list.innerHTML = Object.entries(result.results || {}).map(([tpl, path]) => {
+                        const entries = Object.entries(result.results || {});
+                        list.innerHTML = entries.map(([tpl, path]) => {
                             const filename = path ? path.split(/[/\\\\]/).pop() : 'failed';
                             const ok = !!path;
-                            return `<div class="flex items-center justify-between bg-gray-700/50 rounded px-3 py-2">
+                            return `<div class="flex items-center justify-between pg-subcard px-3 py-2">
                                 <div class="flex items-center space-x-2">
-                                    <svg class="w-4 h-4 ${ok ? 'text-green-400' : 'text-red-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${ok ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M6 18L18 6M6 6l12 12'}"></path></svg>
-                                    <span class="text-sm capitalize ${ok ? 'text-green-400' : 'text-red-400'}">${tpl}</span>
-                                    <span class="text-xs text-gray-500">${filename}</span>
+                                    <i class="fas ${ok ? 'fa-check-circle' : 'fa-times-circle'}" style="color:${ok ? 'var(--success-color)' : 'var(--danger-color)'};"></i>
+                                    <span class="text-sm capitalize font-semibold pg-heading">${tpl}</span>
+                                    <span class="text-xs pg-muted">${filename}</span>
                                 </div>
-                                <span class="text-xs text-gray-500">${ok ? 'Done' : 'Failed'}</span>
+                                <span class="text-xs font-semibold" style="color:${ok ? 'var(--success-color)' : 'var(--danger-color)'};">${ok ? 'Done' : 'Failed'}</span>
                             </div>`;
                         }).join('');
+                        if (window.showToast) {
+                            window.showToast(`Generated ${entries.length} PPTX template decks successfully.`, 'success', 'All Presentations Generated');
+                        }
+                    } else {
+                        const errMsg = result.detail || result.message || 'Batch generation failed';
+                        if (window.showToast) {
+                            window.showToast(errMsg, 'error', 'Batch Generation Failed');
+                        }
                     }
                 } catch(e) {
                     $('results-panel').classList.remove('hidden');
-                    $('results-list').innerHTML = `<div class="flex items-center space-x-2 text-red-400 text-sm"><span>Error: ${e.message}</span></div>`;
+                    $('results-list').innerHTML = `<div class="flex items-center space-x-2 text-sm" style="color:var(--danger-color);"><span>Error: ${e.message}</span></div>`;
+                    if (window.showToast) {
+                        window.showToast(`Batch presentation generation failed: ${e.message}`, 'error', 'Generation Failed');
+                    }
                 } finally {
                     btn.disabled = false;
                     btn.querySelector('span').textContent = 'Generate All Templates';
-                    btn.className = 'w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded transition-all hover:shadow-lg active:scale-95 flex items-center justify-center space-x-2';
                 }
             }
 
@@ -386,6 +459,9 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
                     const lastUpdated = $('last-updated');
                     if (lastUpdated) {
                         lastUpdated.textContent = 'Updated: ' + new Date().toLocaleTimeString();
+                    }
+                    if (window.showToast) {
+                        window.showToast('Presentation templates and repository metadata refreshed.', 'info', 'Templates Reloaded');
                     }
                 });
                 setInterval(() => { if (autoFetch) loadAutoFetchPreview(); }, 60000);

@@ -219,7 +219,10 @@
             currentSelectedPlan = planId;
             const res = await fetch(`/api/billing/generate-qr?plan_id=${planId}&username={{ user.username or 'guest' }}`, {credentials: 'include'});
             const data = await res.json();
-            if (data.error) return alert(data.error);
+            if (data.error) {
+                if (window.showToast) window.showToast(data.error, 'error', 'QR Generation Error');
+                return;
+            }
 
             document.getElementById('modalPlanTitle').textContent = data.plan_name;
             document.getElementById('modalPrice').textContent = `₹${data.price_inr.toLocaleString('en-IN')}`;
@@ -262,6 +265,7 @@
                 const btn = document.getElementById('btnCopyVpa');
                 btn.innerHTML = '<i class="fas fa-check" style="color:var(--success-color, #22c55e);"></i>';
                 setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 2000);
+                if (window.showToast) window.showToast(`Copied UPI ID (${currentUpiVpa}) to clipboard.`, 'info', 'UPI VPA Copied');
             } catch (err) {
                 prompt('Copy UPI VPA:', currentUpiVpa);
             }
@@ -285,10 +289,10 @@
             });
             const data = await res.json();
             if (data.success) {
-                alert(data.message);
-                window.location.href = '/my-signals';
+                if (window.showToast) window.showToast(data.message || 'UPI payment verification recorded.', 'success', 'Payment Submitted');
+                setTimeout(() => { window.location.href = '/my-signals'; }, 800);
             } else {
-                alert(data.message || 'Payment verification failed');
+                if (window.showToast) window.showToast(data.message || 'Payment verification failed.', 'error', 'Payment Verification Failed');
             }
         }
 
