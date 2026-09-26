@@ -71,12 +71,28 @@ class EmailAlerter:
             return False
 
         try:
-            msg = MIMEMultipart()
+            from core.notifications.rich_signal_formatter import RichSignalFormatter
+
+            sev = "CRITICAL" if any(k in subject.upper() for k in ("CRITICAL", "HALT", "KILL", "EMERGENCY")) else (
+                "ERROR" if any(k in subject.upper() for k in ("ERROR", "FAIL", "BREACH")) else "WARNING"
+            )
+            canonical = RichSignalFormatter.build_canonical_event_notification(
+                notification_type="SYSTEM_ALERT_ROUTER",
+                severity=sev,
+                category_label="ALERT ROUTER • GOVERNANCE",
+                title=subject,
+                summary=body,
+                primary_action={"label": "Open OPB Cockpit", "url": "/observability"},
+                source="OPB Alert Router",
+                subject_override=subject,
+            )
+            msg = MIMEMultipart("alternative")
             msg["From"] = self.username
             msg["To"] = ", ".join(self.recipients)
             msg["Subject"] = subject
 
-            msg.attach(MIMEText(body, "plain"))
+            msg.attach(MIMEText(body, "plain", "utf-8"))
+            msg.attach(MIMEText(canonical["email_html"], "html", "utf-8"))
 
             server = smtplib.SMTP(self.smtp_server, self.smtp_port)
             server.starttls()

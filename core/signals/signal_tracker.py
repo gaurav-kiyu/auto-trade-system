@@ -1016,14 +1016,30 @@ class SignalTracker:
         week: str = "all",
         day: str = "all",
         category: str = "all",
+        period: str = "all",
     ) -> dict[str, Any]:
-        """Fetch personalized historical signal deliveries for a specific user."""
+        """Fetch personalized historical signal deliveries for a specific user with canonical period filters and outcome metrics."""
         with self._io_lock:
             conn = self._get_conn()
             try:
                 cur = conn.cursor()
+                now = now_ist()
                 conditions = ["ud.username = ?"]
                 params: list[Any] = [username]
+
+                norm_period = (period or "all").strip().lower()
+                if norm_period in ("daily", "today", "day"):
+                    conditions.append("ud.delivery_date = ?")
+                    params.append(now.date().isoformat())
+                elif norm_period in ("weekly", "week"):
+                    conditions.append("ud.delivery_week = ?")
+                    params.append(f"{now.year}-W{now.isocalendar()[1]}")
+                elif norm_period in ("monthly", "month"):
+                    conditions.append("ud.delivery_month = ?")
+                    params.append(f"{now.year}-{now.month:02d}")
+                elif norm_period in ("yearly", "year"):
+                    conditions.append("ud.delivery_year = ?")
+                    params.append(str(now.year))
 
                 if year != "all":
                     conditions.append("ud.delivery_year = ?")
@@ -1043,47 +1059,140 @@ class SignalTracker:
 
                 where_clause = " AND ".join(conditions)
 
-                # LEFT JOIN system_signals to surface raw_data's
-                # is_seed_sample marker (see _seed_sample_history) - the
-                # feed previously showed the same 12 hardcoded demo signals
-                # to every fresh install with zero indication they weren't
-                # real received signals.
+                # LEFT JOIN system_signals to surface canonical outcome status,
+                # first_touch, outcome_confidence, and raw_data's is_seed_sample marker.
                 cur.execute(f"""
-                    SELECT ud.*, ss.raw_data AS _signal_raw_data FROM user_deliveries ud
+                    SELECT
+                        ud.*,
+                        ss.status AS _ss_status,
+                        ss.first_touch AS _ss_first_touch,
+                        ss.outcome_confidence AS _ss_outcome_confidence,
+                        ss.current_price AS _ss_current_price,
+                        ss.pnl_pct AS _ss_pnl_pct,
+                        ss.raw_data AS _signal_raw_data
+                    FROM user_deliveries ud
                     LEFT JOIN system_signals ss ON ud.signal_id = ss.signal_id
                     WHERE {where_clause}
                     ORDER BY ud.timestamp DESC
                 """, params)
-                rows = []
+                rows: list[dict[str, Any]] = []
+                seen_signal_keys: set[str] = set()
                 any_demo = False
                 for r in cur.fetchall():
                     row = dict(r)
                     raw = row.pop("_signal_raw_data", None)
+                    ss_status = row.pop("_ss_status", None)
+                    ss_ft = row.pop("_ss_first_touch", None)
+                    ss_conf = row.pop("_ss_outcome_confidence", None)
+                    ss_price = row.pop("_ss_current_price", None)
+                    ss_pnl = row.pop("_ss_pnl_pct", None)
+
+                    # Deduplicate by signal_id so multi-channel deliveries are never double-counted
+                    dedup_key = str(row.get("signal_id") or f"{row.get('symbol')}:{row.get('timestamp')}")
+                    if dedup_key in seen_signal_keys:
+                        continue
+                    seen_signal_keys.add(dedup_key)
+
+                    if ss_status:
+                        row["status"] = ss_status
+                    if ss_price is not None:
+                        row["current_price"] = ss_price
+                    if ss_pnl is not None:
+                        row["pnl_pct"] = ss_pnl
+                    row["first_touch"] = ss_ft or ""
+                    row["outcome_confidence"] = ss_conf or "UNKNOWN"
+
                     is_demo = bool(raw and "is_seed_sample" in raw)
                     row["is_demo_data"] = is_demo
                     any_demo = any_demo or is_demo
                     rows.append(row)
 
+                # Compute canonical outcome summary counts (quarantining AMBIGUOUS and EXPIRED)
+                t1_hit_count = 0
+                t2_hit_count = 0
+                sl_hit_count = 0
+                active_count = 0
+                ambiguous_count = 0
+                expired_count = 0
+
+                for row in rows:
+                    st = str(row.get("status") or "ACTIVE").strip().upper()
+                    ft = str(row.get("first_touch") or "").strip().upper()
+                    conf = str(row.get("outcome_confidence") or "").strip().upper()
+
+                    is_ambig = (
+                        st in ("AMBIGUOUS", "AMBIGUOUS_SAME_BAR", "AMBIGUOUS_SAME_OBSERVATION")
+                        or ft in ("AMBIGUOUS", "AMBIGUOUS_SAME_BAR", "AMBIGUOUS_SAME_OBSERVATION")
+                        or conf == "AMBIGUOUS"
+                    )
+                    if is_ambig:
+                        row["status"] = "AMBIGUOUS"
+                        ambiguous_count += 1
+                    elif st in ("TARGET_2_HIT", "T2_HIT"):
+                        t2_hit_count += 1
+                    elif st in ("TARGET_1_HIT", "T1_HIT"):
+                        t1_hit_count += 1
+                    elif st in ("SL_HIT", "STOP_LOSS_HIT"):
+                        sl_hit_count += 1
+                    elif st == "EXPIRED" or ft == "EXPIRED":
+                        expired_count += 1
+                    else:
+                        active_count += 1
+
                 # Available filter options for the user
                 cur.execute("SELECT DISTINCT delivery_year FROM user_deliveries WHERE username = ?", (username,))
-                years = [r["delivery_year"] for r in cur.fetchall()]
+                years = [r["delivery_year"] for r in cur.fetchall() if r["delivery_year"]]
                 cur.execute("SELECT DISTINCT delivery_month FROM user_deliveries WHERE username = ?", (username,))
-                months = [r["delivery_month"] for r in cur.fetchall()]
+                months = [r["delivery_month"] for r in cur.fetchall() if r["delivery_month"]]
                 cur.execute("SELECT DISTINCT category FROM user_deliveries WHERE username = ?", (username,))
-                categories = [r["category"] for r in cur.fetchall()]
+                db_categories = [r["category"] for r in cur.fetchall() if r["category"]]
+
+                canonical_categories = [
+                    "INDEX_OPTIONS",
+                    "STOCK_OPTIONS",
+                    "EQUITY_SWING_DELIVERY",
+                    "LARGE_CAP_EQUITY",
+                    "MID_SMALL_CAP",
+                    "PENNY_SME",
+                    "COMMODITIES",
+                    "CURRENCIES",
+                    "FUTURES",
+                    "ETFS_REITS",
+                ]
+                available_categories = list(dict.fromkeys(db_categories + canonical_categories))
 
                 return {
                     "username": username,
+                    "period": norm_period,
+                    "category": category,
                     "total_received": len(rows),
+                    "target_1_hit": t1_hit_count,
+                    "target_2_hit": t2_hit_count,
+                    "stop_loss_hit": sl_hit_count,
+                    "active_count": active_count,
+                    "ambiguous_count": ambiguous_count,
+                    "expired_count": expired_count,
                     "signals": rows,
                     "available_years": sorted(years, reverse=True),
                     "available_months": sorted(months, reverse=True),
-                    "available_categories": categories,
+                    "available_categories": available_categories,
                     "contains_demo_data": any_demo,
                 }
             except Exception as ex:
                 _log.error("Failed to fetch user signals for %s: %s", username, ex)
-                return {"username": username, "total_received": 0, "signals": []}
+                return {
+                    "username": username,
+                    "period": period,
+                    "category": category,
+                    "total_received": 0,
+                    "target_1_hit": 0,
+                    "target_2_hit": 0,
+                    "stop_loss_hit": 0,
+                    "active_count": 0,
+                    "ambiguous_count": 0,
+                    "expired_count": 0,
+                    "signals": [],
+                }
             finally:
                 conn.close()
 

@@ -878,6 +878,7 @@ def create_auth_router(
 
     @router.get("/signals/my-history")
     async def get_my_signal_history(
+        period: str = "all",
         year: str = "all",
         month: str = "all",
         week: str = "all",
@@ -885,7 +886,7 @@ def create_auth_router(
         category: str = "all",
         current_user: AuthUser = Depends(auth_deps.require_auth),
     ) -> dict:
-        """Personalized received signal feed for the authenticated user with time filters."""
+        """Personalized received signal feed for the authenticated user with canonical period filters and outcome metrics."""
         from core.signals.signal_tracker import SignalTracker
         tracker = SignalTracker.get_instance()
         return tracker.get_user_received_signals(
@@ -895,6 +896,7 @@ def create_auth_router(
             week=week,
             day=day,
             category=category,
+            period=period,
         )
 
     @router.post("/signals/{signal_id}/mark-order-placed")

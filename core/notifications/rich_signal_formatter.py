@@ -7,10 +7,17 @@ and professional portfolio risk limits.
 
 from __future__ import annotations
 
+import html
 import logging
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
+
+from core.notifications.url_resolver import (
+    build_action_url,
+    get_external_notification_base_url,
+    get_public_base_url,
+)
 
 _log = logging.getLogger("RICH_SIGNAL_FORMATTER")
 
@@ -112,6 +119,26 @@ class RichSignalFormatter:
                 continue
             added += 1
         return current
+
+    @classmethod
+    def _format_ist_timestamp(cls, timestamp_str: str | None = None) -> str:
+        """Format a timestamp string or current IST time into canonical 'DD Mon YYYY, HH:MM:SS IST'."""
+        from core.datetime_ist import now_ist
+
+        if timestamp_str and str(timestamp_str).strip():
+            raw = str(timestamp_str).strip()
+            if "IST" in raw:
+                return raw
+            try:
+                cleaned = raw.replace("Z", "+00:00")
+                parsed = datetime.fromisoformat(cleaned)
+                if parsed.tzinfo is not None:
+                    ist_tz = timezone(timedelta(hours=5, minutes=30))
+                    parsed = parsed.astimezone(ist_tz).replace(tzinfo=None)
+                return parsed.strftime("%d %b %Y, %H:%M:%S IST")
+            except Exception:
+                return raw
+        return now_ist().strftime("%d %b %Y, %H:%M:%S IST")
 
     @classmethod
     def get_holding_horizon_info(cls, category: str, timestamp_str: str = "") -> dict[str, Any]:
@@ -450,7 +477,7 @@ class RichSignalFormatter:
                                 💡 WHAT THIS SIGNAL MEANS
                             </div>
                             <div style="background:#131a29;border:1px solid #1e293b;border-radius:8px;padding:14px;font-size:13px;color:#cbd5e1;line-height:1.7;">
-                                <p style="margin:0 0 8px 0;">Our quantitative model currently identifies the <strong>{human_sym['display_title']}</strong> as a strong {'bullish' if is_buy else 'bearish'} setup for a <strong>{horizon['short_horizon'].lower()}</strong> trade.</p>
+                                <p style="margin:0 0 8px 0;">Our quantitative model currently identifies the <strong>{human_sym['display_title']}</strong> as a {tier_norm.lower()} {'bullish' if is_buy else 'bearish'} setup for a <strong>{horizon['short_horizon'].lower()}</strong> trade.</p>
                                 <div><strong>Target 1 Potential:</strong> <span style="color:#4ade80;font-weight:700;">{t1_sign}{t1_pct}%</span></div>
                                 <div><strong>Target 2 Potential:</strong> <span style="color:#22c55e;font-weight:700;">{t2_sign}{t2_pct}%</span></div>
                                 <div style="margin-top:4px;"><strong>Maximum Planned Loss at Stop Loss:</strong> <span style="color:#f87171;font-weight:700;">{sl_sign}{sl_pct}% of {asset_type_label}</span></div>
@@ -602,8 +629,10 @@ class RichSignalFormatter:
             lines.append(f"• <b>Step 2:</b> Hold remaining 50% for Target 2 (<code>₹{target_2:,.2f}</code>).")
             lines.append(f"• <b>Step 3:</b> Exit remaining by <code>{horizon['valid_until']}</code> if Target 2 is untouched.")
 
+        cockpit_link = build_action_url("/my-signals", base_url=get_external_notification_base_url())
         lines.extend([
             "━━━━━━━━━━━━━━━━━━━━━",
+            f"🔗 <b>Cockpit:</b> <a href=\"{cockpit_link}\">Execute in OPB Cockpit →</a>",
             "⚡ <i>PAPER / SIGNAL_ONLY (No live trade executed)</i>",
             "⚠️ <i>Position Sizing: Size according to your defined risk budget.</i>",
             "🏛️ <b>OPB Quantitative Engine</b>"
@@ -669,7 +698,12 @@ class RichSignalFormatter:
         price = float(_get_val("price") or _get_val("entry_price") or 0.0)
         score = int(_get_val("score") if _get_val("score") is not None else 80)
         raw_score = float(_get_val("raw_score") or score)
-        tier = str(_get_val("tier") or ("STRONG" if score >= 85 else "MODERATE")).strip().upper()
+        from core.tier_engine import classify_tier
+
+        raw_tier = _get_val("tier") or _get_val("strength")
+        tier = str(raw_tier if raw_tier else classify_tier(score)).strip().upper()
+        if tier == "NONE":
+            tier = "IGNORE"
         regime = str(_get_val("regime") or "TRENDING").strip()
         rsi = float(_get_val("rsi") or 50.0)
         adx = float(_get_val("adx") or 25.0)
@@ -747,7 +781,7 @@ class RichSignalFormatter:
         t2_pct = abs(round(((target_2 - price) / price) * 100.0, 1)) if price > 0 else 8.0
 
         dir_emoji = "🟢" if is_buy else "🔴"
-        tier_emoji = "💎" if tier == "STRONG" else "🟡"
+        tier_emoji = "💎" if tier == "STRONG" else ("🟡" if tier == "MODERATE" else "⚪")
         sep = "─" * 32
         plain_text = (
             f"{sep}\n"
@@ -770,11 +804,59 @@ class RichSignalFormatter:
             f"{sep}"
         )
 
+        if tier == "STRONG":
+            severity_code = "SIGNAL_STRONG"
+        elif tier == "MODERATE":
+            severity_code = "SIGNAL_MODERATE"
+        else:
+            severity_code = "INFO"
+        notif_id = signal_id or f"SIG-{sym}-{cls._format_ist_timestamp(timestamp_str).replace(' ', '').replace(':', '')[-10:]}"
+        resolved_base = (base_url or get_external_notification_base_url()).rstrip("/")
+        sig_param = f"&signal_id={html.escape(signal_id, quote=True)}" if signal_id else ""
+        primary_url = build_action_url(
+            f"/my-signals?symbol={html.escape(sym, quote=True)}&action=paper_trade{sig_param}",
+            base_url=resolved_base,
+        )
+        secondary_url = build_action_url("/signals", base_url=resolved_base)
+
+        in_app_payload = {
+            "notification_id": notif_id,
+            "notification_type": "TRADING_SIGNAL",
+            "severity": severity_code,
+            "status": f"{tier} {direction}",
+            "category_label": f"SIGNAL • {category}",
+            "title": f"{sym} — {tier} {direction} @ ₹{price:,.2f}",
+            "subtitle": f"{company_name} ({series}) • Score {score}/100",
+            "summary": f"Entry ₹{price:,.2f} | SL ₹{stop_loss:,.2f} ({sl_sign}{sl_pct}%) | T1 ₹{target_1:,.2f} ({t1_sign}{t1_pct}%) | T2 ₹{target_2:,.2f} ({t2_sign}{t2_pct}%)",
+            "primary_icon": dir_emoji,
+            "severity_badge": f"{tier} SIGNAL ({score}/100)",
+            "accent_token": "var(--notification-signal)",
+            "key_values": [
+                {"label": "Symbol", "value": sym, "mono": True},
+                {"label": "Direction", "value": direction, "mono": True},
+                {"label": "Entry Price", "value": f"₹{price:,.2f}", "mono": True},
+                {"label": "Conviction", "value": f"{score}/100 ({tier})", "mono": True},
+                {"label": "Stop Loss", "value": f"₹{stop_loss:,.2f} ({sl_sign}{sl_pct}%)", "mono": True},
+                {"label": "Target 1", "value": f"₹{target_1:,.2f} ({t1_sign}{t1_pct}%)", "mono": True},
+                {"label": "Target 2", "value": f"₹{target_2:,.2f} ({t2_sign}{t2_pct}%)", "mono": True},
+                {"label": "Execution Mode", "value": "PAPER / SIGNAL_ONLY", "mono": True},
+            ],
+            "primary_action": {"label": "Execute Paper Trade", "url": primary_url},
+            "secondary_action": {"label": "Open Signal Radar", "url": secondary_url},
+            "timestamp_ist": cls._format_ist_timestamp(timestamp_str),
+            "source": strategy,
+            "footer_note": "OPB v2.59.4 Canonical Signal Engine • Paper / Signal-Only Mode",
+        }
+
         return {
+            "notification_id": notif_id,
+            "notification_type": "TRADING_SIGNAL",
+            "severity": severity_code,
             "subject": subject,
             "telegram_html": telegram_html,
             "email_html": email_html,
             "plain_text": plain_text,
+            "in_app": in_app_payload,
             "metadata": {
                 "symbol": sym,
                 "category": category,
@@ -789,4 +871,1159 @@ class RichSignalFormatter:
                 "signal_id": signal_id,
             },
         }
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # CANONICAL MULTI-CHANNEL NOTIFICATION DESIGN SYSTEM (ALL EVENT FAMILIES)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    NOTIFICATION_SEVERITY_SPECS: dict[str, dict[str, str]] = {
+        "INFO": {
+            "label": "INFO",
+            "icon": "ℹ️",
+            "accent": "#38bdf8",
+            "accent_bright": "#7dd3fc",
+            "badge_bg": "#0c2d48",
+            "badge_border": "#0284c7",
+            "header_grad": "linear-gradient(135deg, #091e34 0%, #0d121c 100%)",
+            "cta_grad": "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)",
+            "cta_shadow": "rgba(56, 189, 248, 0.28)",
+            "css_token": "var(--notification-info)",
+        },
+        "SUCCESS": {
+            "label": "SUCCESS",
+            "icon": "✅",
+            "accent": "#10b981",
+            "accent_bright": "#34d399",
+            "badge_bg": "#063626",
+            "badge_border": "#059669",
+            "header_grad": "linear-gradient(135deg, #062f23 0%, #0d121c 100%)",
+            "cta_grad": "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+            "cta_shadow": "rgba(16, 185, 129, 0.28)",
+            "css_token": "var(--notification-success)",
+        },
+        "WARNING": {
+            "label": "WARNING",
+            "icon": "⚠️",
+            "accent": "#f59e0b",
+            "accent_bright": "#fbbf24",
+            "badge_bg": "#3b2506",
+            "badge_border": "#d97706",
+            "header_grad": "linear-gradient(135deg, #332007 0%, #0d121c 100%)",
+            "cta_grad": "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)",
+            "cta_shadow": "rgba(245, 158, 11, 0.28)",
+            "css_token": "var(--notification-warning)",
+        },
+        "ERROR": {
+            "label": "ERROR",
+            "icon": "🚨",
+            "accent": "#ef4444",
+            "accent_bright": "#f87171",
+            "badge_bg": "#3b0d11",
+            "badge_border": "#dc2626",
+            "header_grad": "linear-gradient(135deg, #380d12 0%, #0d121c 100%)",
+            "cta_grad": "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)",
+            "cta_shadow": "rgba(239, 68, 68, 0.28)",
+            "css_token": "var(--notification-danger)",
+        },
+        "CRITICAL": {
+            "label": "CRITICAL",
+            "icon": "🛑",
+            "accent": "#f43f5e",
+            "accent_bright": "#fb7185",
+            "badge_bg": "#450a18",
+            "badge_border": "#e11d48",
+            "header_grad": "linear-gradient(135deg, #420916 0%, #0d121c 100%)",
+            "cta_grad": "linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)",
+            "cta_shadow": "rgba(244, 63, 94, 0.34)",
+            "css_token": "var(--notification-danger)",
+        },
+        "SIGNAL_MODERATE": {
+            "label": "MODERATE SIGNAL",
+            "icon": "🟡",
+            "accent": "#f59e0b",
+            "accent_bright": "#fbbf24",
+            "badge_bg": "#3b2506",
+            "badge_border": "#d97706",
+            "header_grad": "linear-gradient(135deg, #332007 0%, #0d121c 100%)",
+            "cta_grad": "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)",
+            "cta_shadow": "rgba(245, 158, 11, 0.28)",
+            "css_token": "var(--notification-signal)",
+        },
+        "SIGNAL_STRONG": {
+            "label": "STRONG SIGNAL",
+            "icon": "💎",
+            "accent": "#10b981",
+            "accent_bright": "#34d399",
+            "badge_bg": "#063626",
+            "badge_border": "#059669",
+            "header_grad": "linear-gradient(135deg, #062f23 0%, #0d121c 100%)",
+            "cta_grad": "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+            "cta_shadow": "rgba(16, 185, 129, 0.28)",
+            "css_token": "var(--notification-signal)",
+        },
+        "SECURITY": {
+            "label": "SECURITY AUDIT",
+            "icon": "🛡️",
+            "accent": "#a855f7",
+            "accent_bright": "#c084fc",
+            "badge_bg": "#2b124c",
+            "badge_border": "#9333ea",
+            "header_grad": "linear-gradient(135deg, #251042 0%, #0d121c 100%)",
+            "cta_grad": "linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)",
+            "cta_shadow": "rgba(168, 85, 247, 0.28)",
+            "css_token": "var(--notification-warning)",
+        },
+        "ACTION_REQUIRED": {
+            "label": "ACTION REQUIRED",
+            "icon": "⚡",
+            "accent": "#f59e0b",
+            "accent_bright": "#fbbf24",
+            "badge_bg": "#3b2506",
+            "badge_border": "#d97706",
+            "header_grad": "linear-gradient(135deg, #332007 0%, #0d121c 100%)",
+            "cta_grad": "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+            "cta_shadow": "rgba(16, 185, 129, 0.28)",
+            "css_token": "var(--notification-warning)",
+        },
+    }
+
+    @classmethod
+    def normalize_severity(cls, severity: str | None) -> str:
+        """Normalize any severity string into one of the 9 canonical OPB severities."""
+        if not severity:
+            return "INFO"
+        raw = str(severity).strip().upper()
+        if raw in cls.NOTIFICATION_SEVERITY_SPECS:
+            return raw
+        aliases = {
+            "WARN": "WARNING",
+            "DANGER": "ERROR",
+            "ERR": "ERROR",
+            "FATAL": "CRITICAL",
+            "EMERGENCY": "CRITICAL",
+            "HIGH": "WARNING",
+            "MEDIUM": "INFO",
+            "LOW": "INFO",
+            "OK": "SUCCESS",
+            "COMPLETED": "SUCCESS",
+            "STRONG": "SIGNAL_STRONG",
+            "MODERATE": "SIGNAL_MODERATE",
+            "SIGNAL": "SIGNAL_STRONG",
+            "AUTH": "SECURITY",
+            "AUDIT": "SECURITY",
+            "PENDING": "ACTION_REQUIRED",
+            "APPROVAL": "ACTION_REQUIRED",
+        }
+        return aliases.get(raw, "INFO")
+
+    @classmethod
+    def build_canonical_event_notification(
+        cls,
+        *,
+        title: str,
+        summary: str,
+        notification_type: str = "SYSTEM_EVENT",
+        severity: str = "INFO",
+        status: str | None = None,
+        category_label: str | None = None,
+        subtitle: str | None = None,
+        primary_icon: str | None = None,
+        key_values: list[dict[str, Any] | tuple[str, Any]] | None = None,
+        sections: list[dict[str, Any]] | None = None,
+        primary_action: dict[str, str] | None = None,
+        secondary_action: dict[str, str] | None = None,
+        notification_id: str | None = None,
+        timestamp_str: str | None = None,
+        source: str = "OPB Quantitative Engine",
+        footer_note: str | None = None,
+        subject_override: str | None = None,
+        base_url: str | None = None,
+        channel_targets: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Build a canonical multi-channel OPB notification (Email HTML, Telegram HTML, Plain Text, In-App).
+
+        Uses the exact Reference B dark institutional design system across all notification families.
+        """
+        norm_sev = cls.normalize_severity(severity)
+        spec = cls.NOTIFICATION_SEVERITY_SPECS[norm_sev]
+        ts_ist = cls._format_ist_timestamp(timestamp_str)
+        resolved_base = (base_url or get_external_notification_base_url()).rstrip("/")
+
+        import hashlib
+        if not notification_id:
+            digest = hashlib.sha256(f"{notification_type}:{title}:{ts_ist}".encode("utf-8")).hexdigest()[:8].upper()
+            notification_id = f"OPB-{digest}"
+
+        icon = primary_icon or spec["icon"]
+        cat_label = (category_label or notification_type.replace("_", " ")).strip().upper()
+        status_label = (status or spec["label"]).strip().upper()
+        sub_text = (subtitle or f"{cat_label} • {ts_ist}").strip()
+        foot_text = (
+            footer_note
+            or "OPB Quantitative Engine v2.59.4 • Institutional Multi-Asset Cockpit • Paper / Signal-Only Governance"
+        )
+        targets = channel_targets or ["email", "telegram", "in_app"]
+
+        # Normalize key_values into list of dicts: {"label": str, "value": str, "mono": bool, "accent": str|None}
+        norm_kvs: list[dict[str, Any]] = []
+        for item in key_values or []:
+            if isinstance(item, (tuple, list)) and len(item) >= 2:
+                norm_kvs.append({
+                    "label": str(item[0]),
+                    "value": str(item[1]),
+                    "mono": True,
+                    "accent": item[2] if len(item) > 2 else None,
+                })
+            elif isinstance(item, dict):
+                norm_kvs.append({
+                    "label": str(item.get("label") or item.get("key") or ""),
+                    "value": str(item.get("value") if item.get("value") is not None else ""),
+                    "mono": bool(item.get("mono", True)),
+                    "accent": item.get("accent"),
+                })
+
+        # Normalize actions with canonical public base_url via url_resolver
+        def _norm_action(act: dict[str, str] | None) -> dict[str, str] | None:
+            if not act or not act.get("label"):
+                return None
+            raw_url = str(act.get("url") or "/").strip()
+            if raw_url.startswith("/"):
+                full_url = build_action_url(raw_url, base_url=resolved_base)
+            elif not raw_url.startswith(("http://", "https://")):
+                full_url = build_action_url(f"/{raw_url.lstrip('/')}", base_url=resolved_base)
+            else:
+                import urllib.parse
+                parsed = urllib.parse.urlparse(raw_url)
+                host = (parsed.hostname or "").lower()
+                if host in {"localhost", "127.0.0.1", "0.0.0.0", "::1"} or host.endswith(".localhost") or "nip.io" in host:
+                    path_and_query = parsed.path or "/"
+                    if parsed.query:
+                        path_and_query = f"{path_and_query}?{parsed.query}"
+                    full_url = build_action_url(path_and_query, base_url=get_external_notification_base_url())
+                else:
+                    full_url = raw_url
+            return {
+                "label": str(act["label"]).strip(),
+                "url": full_url,
+            }
+
+        norm_primary = _norm_action(primary_action)
+        norm_secondary = _norm_action(secondary_action)
+        norm_sections = list(sections or [])
+
+        subject = subject_override or f"{icon} [OPB {spec['label']}] {title}"
+
+        email_html = cls._render_canonical_event_email_html(
+            notification_id=notification_id,
+            notification_type=notification_type,
+            severity=norm_sev,
+            spec=spec,
+            status_label=status_label,
+            category_label=cat_label,
+            title=title,
+            subtitle=sub_text,
+            summary=summary,
+            primary_icon=icon,
+            key_values=norm_kvs,
+            sections=norm_sections,
+            primary_action=norm_primary,
+            secondary_action=norm_secondary,
+            timestamp_ist=ts_ist,
+            source=source,
+            footer_note=foot_text,
+        )
+
+        telegram_html = cls._render_canonical_event_telegram_html(
+            notification_id=notification_id,
+            severity=norm_sev,
+            spec=spec,
+            status_label=status_label,
+            category_label=cat_label,
+            title=title,
+            subtitle=sub_text,
+            summary=summary,
+            primary_icon=icon,
+            key_values=norm_kvs,
+            sections=norm_sections,
+            primary_action=norm_primary,
+            secondary_action=norm_secondary,
+            timestamp_ist=ts_ist,
+            source=source,
+        )
+
+        plain_text = cls._render_canonical_event_plain_text(
+            notification_id=notification_id,
+            severity=norm_sev,
+            spec=spec,
+            status_label=status_label,
+            category_label=cat_label,
+            title=title,
+            subtitle=sub_text,
+            summary=summary,
+            key_values=norm_kvs,
+            sections=norm_sections,
+            primary_action=norm_primary,
+            secondary_action=norm_secondary,
+            timestamp_ist=ts_ist,
+            source=source,
+            footer_note=foot_text,
+        )
+
+        in_app = {
+            "notification_id": notification_id,
+            "notification_type": notification_type,
+            "severity": norm_sev,
+            "status": status_label,
+            "category_label": cat_label,
+            "title": title,
+            "subtitle": sub_text,
+            "summary": summary,
+            "primary_icon": icon,
+            "severity_badge": spec["label"],
+            "accent_token": spec["css_token"],
+            "accent_hex": spec["accent"],
+            "key_values": norm_kvs,
+            "sections": norm_sections,
+            "primary_action": norm_primary,
+            "secondary_action": norm_secondary,
+            "timestamp_ist": ts_ist,
+            "source": source,
+            "channel_targets": targets,
+            "footer_note": foot_text,
+        }
+
+        return {
+            "notification_id": notification_id,
+            "notification_type": notification_type,
+            "severity": norm_sev,
+            "status": status_label,
+            "category_label": cat_label,
+            "title": title,
+            "subtitle": sub_text,
+            "summary": summary,
+            "primary_icon": icon,
+            "key_values": norm_kvs,
+            "sections": norm_sections,
+            "primary_action": norm_primary,
+            "secondary_action": norm_secondary,
+            "timestamp_ist": ts_ist,
+            "source": source,
+            "channel_targets": targets,
+            "footer_note": foot_text,
+            "subject": subject,
+            "email_html": email_html,
+            "telegram_html": telegram_html,
+            "plain_text": plain_text,
+            "in_app": in_app,
+        }
+
+    @classmethod
+    def _render_canonical_event_email_html(
+        cls,
+        *,
+        notification_id: str,
+        notification_type: str,
+        severity: str,
+        spec: dict[str, str],
+        status_label: str,
+        category_label: str,
+        title: str,
+        subtitle: str,
+        summary: str,
+        primary_icon: str,
+        key_values: list[dict[str, Any]],
+        sections: list[dict[str, Any]],
+        primary_action: dict[str, str] | None,
+        secondary_action: dict[str, str] | None,
+        timestamp_ist: str,
+        source: str,
+        footer_note: str,
+    ) -> str:
+        """Render the canonical OPB dark institutional HTML email shell (Reference B standard)."""
+        esc_id = html.escape(notification_id)
+        esc_cat = html.escape(category_label)
+        esc_status = html.escape(status_label)
+        esc_title = html.escape(title)
+        esc_sub = html.escape(subtitle)
+        esc_summary = html.escape(summary).replace("\n", "<br/>")
+        esc_icon = html.escape(primary_icon)
+        esc_ts = html.escape(timestamp_ist)
+        esc_source = html.escape(source)
+        esc_footer = html.escape(footer_note)
+
+        accent = spec["accent"]
+        accent_bright = spec["accent_bright"]
+        badge_bg = spec["badge_bg"]
+        badge_border = spec["badge_border"]
+        header_grad = spec["header_grad"]
+        cta_grad = spec["cta_grad"]
+        cta_shadow = spec["cta_shadow"]
+
+        # Build Key-Value table section if key_values present
+        kv_block_html = ""
+        if key_values:
+            kv_rows = []
+            for idx, kv in enumerate(key_values):
+                lbl = html.escape(str(kv.get("label", "")))
+                val = html.escape(str(kv.get("value", "")))
+                val_accent = kv.get("accent") or "#f1f5f9"
+                font_family = (
+                    "'JetBrains Mono','Fira Code',Consolas,monospace"
+                    if kv.get("mono", True)
+                    else "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif"
+                )
+                border_bottom = "border-bottom:1px solid #1e293b;" if idx < len(key_values) - 1 else ""
+                kv_rows.append(
+                    f"<tr>"
+                    f"<td style='padding:10px 14px;{border_bottom}font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;width:40%;vertical-align:top;'>{lbl}</td>"
+                    f"<td style='padding:10px 14px;{border_bottom}font-size:13px;font-weight:700;color:{val_accent};font-family:{font_family};font-variant-numeric:tabular-nums;text-align:right;vertical-align:top;word-break:break-word;'>{val}</td>"
+                    f"</tr>"
+                )
+            kv_block_html = f"""
+          <div style="background:#131a29;border:1px solid #1e293b;border-radius:12px;margin-bottom:16px;overflow:hidden;">
+            <div style="padding:10px 14px;background:#0f172a;border-bottom:1px solid #1e293b;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">
+              📋 TELEMETRY &amp; EVENT DETAILS
+            </div>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              {''.join(kv_rows)}
+            </table>
+          </div>"""
+
+        # Build additional structured sections
+        sections_html_list = []
+        for sec in sections:
+            sec_title = html.escape(str(sec.get("title") or "DETAILS"))
+            sec_badge = html.escape(str(sec.get("badge") or ""))
+            sec_body = html.escape(str(sec.get("body") or "")).replace("\n", "<br/>")
+            sec_rows = sec.get("rows") or []
+            sec_style = str(sec.get("callout_style") or "").upper()
+            sec_border = "#1e293b"
+            sec_bg = "#131a29"
+            sec_title_color = "#94a3b8"
+            if sec_style in cls.NOTIFICATION_SEVERITY_SPECS:
+                s_spec = cls.NOTIFICATION_SEVERITY_SPECS[sec_style]
+                sec_border = s_spec["badge_border"]
+                sec_title_color = s_spec["accent_bright"]
+
+            rows_markup = ""
+            if sec_rows:
+                r_items = []
+                for r_idx, r in enumerate(sec_rows):
+                    if isinstance(r, (tuple, list)) and len(r) >= 2:
+                        rk, rv = html.escape(str(r[0])), html.escape(str(r[1]))
+                    elif isinstance(r, dict):
+                        rk = html.escape(str(r.get("label") or r.get("key") or ""))
+                        rv = html.escape(str(r.get("value") or ""))
+                    else:
+                        continue
+                    bb = "border-bottom:1px solid #1e293b;" if r_idx < len(sec_rows) - 1 else ""
+                    r_items.append(
+                        f"<tr>"
+                        f"<td style='padding:8px 14px;{bb}font-size:12px;color:#94a3b8;font-weight:600;'>{rk}</td>"
+                        f"<td style='padding:8px 14px;{bb}font-size:12px;color:#f8fafc;font-weight:700;font-family:monospace;font-variant-numeric:tabular-nums;text-align:right;'>{rv}</td>"
+                        f"</tr>"
+                    )
+                rows_markup = (
+                    f"<table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='border-collapse:collapse;'>"
+                    f"{''.join(r_items)}</table>"
+                )
+
+            badge_span = (
+                f"<span style='float:right;background:{badge_bg};border:1px solid {badge_border};color:{accent_bright};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:800;'>{sec_badge}</span>"
+                if sec_badge
+                else ""
+            )
+            body_div = (
+                f"<div style='padding:12px 14px;font-size:13px;color:#cbd5e1;line-height:1.6;'>{sec_body}</div>"
+                if sec_body
+                else ""
+            )
+            sections_html_list.append(
+                f"""
+          <div style="background:{sec_bg};border:1px solid {sec_border};border-radius:12px;margin-bottom:16px;overflow:hidden;">
+            <div style="padding:10px 14px;background:#0f172a;border-bottom:1px solid #1e293b;font-size:11px;font-weight:700;color:{sec_title_color};text-transform:uppercase;letter-spacing:1px;">
+              {sec_title}{badge_span}
+            </div>
+            {body_div}
+            {rows_markup}
+          </div>"""
+            )
+
+        # Build CTA Buttons block
+        cta_html = ""
+        if primary_action or secondary_action:
+            btn_cells = []
+            if primary_action:
+                p_lbl = html.escape(primary_action["label"])
+                p_url = html.escape(primary_action["url"], quote=True)
+                btn_cells.append(
+                    f"<td align='center' style='padding:6px;'>"
+                    f"<a href='{p_url}' style='display:inline-block;background:{cta_grad};color:#ffffff;text-decoration:none;font-weight:800;font-size:13px;padding:12px 24px;border-radius:8px;letter-spacing:0.4px;box-shadow:0 4px 14px {cta_shadow};'>"
+                    f"{p_lbl} &rarr;</a></td>"
+                )
+            if secondary_action:
+                s_lbl = html.escape(secondary_action["label"])
+                s_url = html.escape(secondary_action["url"], quote=True)
+                btn_cells.append(
+                    f"<td align='center' style='padding:6px;'>"
+                    f"<a href='{s_url}' style='display:inline-block;background:#1e293b;border:1px solid #334155;color:#38bdf8;text-decoration:none;font-weight:700;font-size:13px;padding:11px 20px;border-radius:8px;letter-spacing:0.3px;'>"
+                    f"{s_lbl}</a></td>"
+                )
+            cta_html = f"""
+          <div style="background:#131a29;border:1px solid #1e293b;border-radius:12px;padding:16px;text-align:center;margin-bottom:16px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
+              <tr>{''.join(btn_cells)}</tr>
+            </table>
+          </div>"""
+
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{esc_title}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#080b10;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#e2e8f0;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#080b10;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background-color:#0d121c;border:1px solid #1e293b;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.6);">
+
+          <!-- 1. TOP BRAND BAR -->
+          <tr>
+            <td style="background:linear-gradient(90deg,#0f172a 0%,#1e293b 100%);padding:14px 24px;border-bottom:1px solid #1e293b;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="font-size:12px;font-weight:800;letter-spacing:1.2px;color:#38bdf8;text-transform:uppercase;">
+                    🎯 OPB QUANTITATIVE ENGINE
+                  </td>
+                  <td align="right" style="font-size:11px;font-weight:700;color:#94a3b8;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;">
+                    <span style="background:{badge_bg};border:1px solid {badge_border};color:{accent_bright};padding:3px 9px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:0.6px;">{esc_cat}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- 2. HERO STATUS & TITLE BANNER -->
+          <tr>
+            <td style="padding:24px 24px 18px 24px;background:{header_grad};border-bottom:1px solid #1e293b;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td valign="top">
+                    <div style="margin-bottom:10px;">
+                      <span style="display:inline-block;background:{badge_bg};border:1px solid {badge_border};color:{accent_bright};font-size:11px;font-weight:800;padding:4px 10px;border-radius:6px;letter-spacing:0.8px;text-transform:uppercase;">
+                        {esc_icon} {esc_status}
+                      </span>
+                      <span style="display:inline-block;margin-left:6px;background:#1e293b;color:#94a3b8;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;font-family:monospace;font-variant-numeric:tabular-nums;">
+                        ID: {esc_id}
+                      </span>
+                    </div>
+                    <div style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.3px;line-height:1.25;">
+                      {esc_title}
+                    </div>
+                    <div style="font-size:12px;color:#94a3b8;margin-top:6px;font-weight:500;">
+                      {esc_sub}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- 3. EXECUTIVE SUMMARY & CONTENT CARDS -->
+          <tr>
+            <td style="padding:20px 24px 8px 24px;">
+              <div style="background:#131a29;border-left:4px solid {accent};border-top:1px solid #1e293b;border-right:1px solid #1e293b;border-bottom:1px solid #1e293b;border-radius:10px;padding:16px 18px;margin-bottom:16px;">
+                <div style="font-size:10px;font-weight:800;color:{accent_bright};text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
+                  EXECUTIVE SUMMARY
+                </div>
+                <div style="font-size:14px;color:#e2e8f0;line-height:1.6;font-weight:500;">
+                  {esc_summary}
+                </div>
+              </div>
+
+              {kv_block_html}
+              {''.join(sections_html_list)}
+              {cta_html}
+            </td>
+          </tr>
+
+          <!-- 4. GOVERNANCE FOOTER -->
+          <tr>
+            <td style="background-color:#090d14;padding:16px 24px;border-top:1px solid #1e293b;font-size:11px;color:#64748b;line-height:1.6;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="color:#94a3b8;font-weight:600;">
+                    🕒 {esc_ts} &nbsp;|&nbsp; 📡 Source: <span style="color:#cbd5e1;font-family:monospace;">{esc_source}</span>
+                  </td>
+                  <td align="right" style="font-family:monospace;color:#64748b;font-variant-numeric:tabular-nums;">
+                    {esc_id}
+                  </td>
+                </tr>
+              </table>
+              <div style="margin-top:8px;padding-top:8px;border-top:1px solid #131a29;color:#475569;font-size:10px;">
+                {esc_footer}
+              </div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+    @classmethod
+    def _render_canonical_event_telegram_html(
+        cls,
+        *,
+        notification_id: str,
+        severity: str,
+        spec: dict[str, str],
+        status_label: str,
+        category_label: str,
+        title: str,
+        subtitle: str,
+        summary: str,
+        primary_icon: str,
+        key_values: list[dict[str, Any]],
+        sections: list[dict[str, Any]],
+        primary_action: dict[str, str] | None,
+        secondary_action: dict[str, str] | None,
+        timestamp_ist: str,
+        source: str,
+    ) -> str:
+        """Render the canonical OPB Telegram HTML message with strict HTML entity escaping."""
+        esc_id = html.escape(notification_id)
+        esc_cat = html.escape(category_label)
+        esc_status = html.escape(status_label)
+        esc_title = html.escape(title)
+        esc_summary = html.escape(summary)
+        esc_icon = html.escape(primary_icon)
+        esc_ts = html.escape(timestamp_ist)
+        esc_source = html.escape(source)
+
+        lines = [
+            "🎯 <b>OPB QUANTITATIVE ENGINE</b>",
+            f"{esc_icon} <b>[{esc_status}] {esc_cat}</b>",
+            f"<b>{esc_title}</b>",
+            "━━━━━━━━━━━━━━━━━━━━━",
+            f"{esc_summary}",
+        ]
+
+        if key_values:
+            lines.append("")
+            lines.append("📋 <b>Telemetry &amp; Details:</b>")
+            for kv in key_values:
+                lbl = html.escape(str(kv.get("label", "")))
+                val = html.escape(str(kv.get("value", "")))
+                lines.append(f"• <b>{lbl}:</b> <code>{val}</code>")
+
+        for sec in sections:
+            sec_title = html.escape(str(sec.get("title") or "Details"))
+            sec_body = html.escape(str(sec.get("body") or ""))
+            sec_rows = sec.get("rows") or []
+            lines.append("")
+            lines.append(f"🔹 <b>{sec_title}</b>")
+            if sec_body:
+                lines.append(sec_body)
+            for r in sec_rows:
+                if isinstance(r, (tuple, list)) and len(r) >= 2:
+                    rk, rv = html.escape(str(r[0])), html.escape(str(r[1]))
+                elif isinstance(r, dict):
+                    rk = html.escape(str(r.get("label") or r.get("key") or ""))
+                    rv = html.escape(str(r.get("value") or ""))
+                else:
+                    continue
+                lines.append(f"  • <b>{rk}:</b> <code>{rv}</code>")
+
+        if primary_action or secondary_action:
+            lines.append("")
+            act_parts = []
+            if primary_action:
+                p_url = html.escape(primary_action["url"], quote=True)
+                p_lbl = html.escape(primary_action["label"])
+                act_parts.append(f"🔗 <a href=\"{p_url}\"><b>{p_lbl}</b></a>")
+            if secondary_action:
+                s_url = html.escape(secondary_action["url"], quote=True)
+                s_lbl = html.escape(secondary_action["label"])
+                act_parts.append(f"🧭 <a href=\"{s_url}\">{s_lbl}</a>")
+            lines.append("  |  ".join(act_parts))
+
+        lines.extend([
+            "━━━━━━━━━━━━━━━━━━━━━",
+            f"🕒 <i>{esc_ts}</i>  |  📡 <code>{esc_source}</code>",
+            f"🆔 <code>{esc_id}</code>",
+        ])
+        return "\n".join(lines)
+
+    @classmethod
+    def _render_canonical_event_plain_text(
+        cls,
+        *,
+        notification_id: str,
+        severity: str,
+        spec: dict[str, str],
+        status_label: str,
+        category_label: str,
+        title: str,
+        subtitle: str,
+        summary: str,
+        key_values: list[dict[str, Any]],
+        sections: list[dict[str, Any]],
+        primary_action: dict[str, str] | None,
+        secondary_action: dict[str, str] | None,
+        timestamp_ist: str,
+        source: str,
+        footer_note: str,
+    ) -> str:
+        """Render clean plain-text fallback for any canonical OPB notification."""
+        sep = "─" * 44
+        lines = [
+            sep,
+            f"🎯 OPB QUANTITATIVE ENGINE | [{status_label}] {category_label}",
+            sep,
+            f"{title}",
+            f"{subtitle}",
+            "",
+            f"{summary}",
+        ]
+        if key_values:
+            lines.append("")
+            for kv in key_values:
+                lines.append(f"• {kv.get('label', '')}: {kv.get('value', '')}")
+        for sec in sections:
+            lines.append("")
+            lines.append(f"[{sec.get('title', 'DETAILS')}]")
+            if sec.get("body"):
+                lines.append(str(sec["body"]))
+            for r in sec.get("rows") or []:
+                if isinstance(r, (tuple, list)) and len(r) >= 2:
+                    lines.append(f"  - {r[0]}: {r[1]}")
+                elif isinstance(r, dict):
+                    lines.append(f"  - {r.get('label') or r.get('key')}: {r.get('value')}")
+        if primary_action:
+            lines.append("")
+            lines.append(f"Action — {primary_action['label']}: {primary_action['url']}")
+        if secondary_action:
+            lines.append(f"Link   — {secondary_action['label']}: {secondary_action['url']}")
+        lines.extend([
+            sep,
+            f"ID: {notification_id} | Time: {timestamp_ist} | Source: {source}",
+            f"{footer_note}",
+            sep,
+        ])
+        return "\n".join(lines)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # CANONICAL FACTORY HELPERS FOR ALL 10 REPRESENTATIVE NOTIFICATION FAMILIES
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @classmethod
+    def build_registration_welcome_notification(
+        cls,
+        *,
+        username: str,
+        email: str,
+        full_name: str = "",
+        role: str = "viewer",
+        created_by: str = "self-register",
+        status: str = "PENDING_APPROVAL",
+        registered_at: str | None = None,
+        base_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Family A1: Canonical User Registration Confirmation / Pending Approval Notification."""
+        display_name = full_name.strip() or username.strip()
+        return cls.build_canonical_event_notification(
+            notification_type="USER_REGISTRATION_WELCOME",
+            severity="INFO",
+            status=status.replace("_", " "),
+            category_label="IDENTITY & ACCESS",
+            title=f"Welcome to OPB, {display_name} — Registration Received",
+            subtitle=f"Account @{username} is queued for Super Admin verification",
+            summary=(
+                f"Thank you for registering on the OPB Quantitative Trading Platform. "
+                f"Your account ({username}) has been created with the {role} role and status {status}, and is currently "
+                f"awaiting administrator authorization. You will receive an activation confirmation as soon as your access is enabled."
+            ),
+            primary_icon="🛡️",
+            key_values=[
+                {"label": "Username", "value": username, "mono": True},
+                {"label": "Display Name", "value": display_name, "mono": False},
+                {"label": "Registered Email", "value": email, "mono": True},
+                {"label": "Assigned Role", "value": role, "mono": True, "accent": "#38bdf8"},
+                {"label": "Account Status", "value": status, "mono": True, "accent": "#fbbf24"},
+                {"label": "Submitted At", "value": cls._format_ist_timestamp(registered_at), "mono": True},
+            ],
+            sections=[
+                {
+                    "title": "NEXT STEPS & SECURITY NOTICE",
+                    "badge": "GOVERNANCE",
+                    "callout_style": "INFO",
+                    "body": (
+                        "OPB enforces strict institutional access control. Once a Super Admin verifies your registration "
+                        "and assigns permitted menus, signal categories, conviction levels, and quotas, "
+                        "your cockpit credentials will be activated for Paper / Signal-Only analytics."
+                    ),
+                }
+            ],
+            primary_action={"label": "Open OPB Login Portal", "url": "/login"},
+            secondary_action={"label": "Platform Documentation", "url": "/help"},
+            timestamp_str=registered_at,
+            source="OPB Identity & Registration Service",
+            subject_override="Welcome to OPB Super-Platform — Authorization Pending",
+            base_url=base_url,
+        )
+
+    @classmethod
+    def build_registration_admin_notification(
+        cls,
+        *,
+        username: str,
+        email: str,
+        full_name: str = "",
+        role: str = "viewer",
+        created_by: str = "self-register",
+        status: str = "PENDING_APPROVAL",
+        registered_at: str | None = None,
+        base_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Family A2: Canonical Admin Alert for New User Registration (Replaces Reference A plain white email)."""
+        display_name = full_name.strip() or username.strip() or "—"
+        return cls.build_canonical_event_notification(
+            notification_type="ADMIN_USER_REGISTRATION_ALERT",
+            severity="ACTION_REQUIRED",
+            status="PENDING APPROVAL",
+            category_label="ADMIN GOVERNANCE • USER ONBOARDING",
+            title=f"New OPB User Registration — {username}",
+            subtitle="A new user has registered and requires permission review",
+            summary=(
+                f"A new operator account (@{username}) has registered on the OPB Super-Platform and requires "
+                f"Super Admin review in User Authorization & Controls before restricted features become available."
+            ),
+            primary_icon="👤",
+            key_values=[
+                {"label": "Username", "value": username, "mono": True, "accent": "#38bdf8"},
+                {"label": "Display Name", "value": display_name, "mono": False},
+                {"label": "Email", "value": email or "-", "mono": True},
+                {"label": "Role", "value": role, "mono": True, "accent": "#c084fc"},
+                {"label": "Created By", "value": created_by, "mono": True},
+                {"label": "Approval Status", "value": status, "mono": True, "accent": "#fbbf24"},
+                {"label": "Registered At", "value": cls._format_ist_timestamp(registered_at), "mono": True},
+            ],
+            sections=[
+                {
+                    "title": "USER AUTHORIZATION & CONTROLS WORKFLOW",
+                    "badge": "ACTION REQUIRED",
+                    "callout_style": "ACTION_REQUIRED",
+                    "body": (
+                        "Please review the account in User Authorization & Controls and explicitly assign "
+                        "the required privileges, permitted menus, signal categories, and conviction tiers "
+                        "before the user begins using restricted features."
+                    ),
+                }
+            ],
+            primary_action={"label": "Open User Controls", "url": "/admin/users"},
+            secondary_action={"label": "Open Security Audit Log", "url": "/security"},
+            timestamp_str=registered_at,
+            source="OPB Identity & Registration Service",
+            subject_override=f"OPB: New User Registration — {username}",
+            base_url=base_url,
+        )
+
+    @classmethod
+    def build_security_notification(
+        cls,
+        *,
+        event_title: str,
+        summary: str,
+        username: str = "admin",
+        actor: str = "SYSTEM",
+        ip_address: str = "—",
+        role_change: str | None = None,
+        severity: str = "SECURITY",
+        timestamp_str: str | None = None,
+        base_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Family D: Security / Login / Role / Permission Change Alert."""
+        kvs = [
+            {"label": "Target Account", "value": username, "mono": True, "accent": "#38bdf8"},
+            {"label": "Initiated By", "value": actor, "mono": True},
+            {"label": "Source IP", "value": ip_address, "mono": True},
+        ]
+        if role_change:
+            kvs.append({"label": "Permission / Role Delta", "value": role_change, "mono": True, "accent": "#c084fc"})
+        return cls.build_canonical_event_notification(
+            notification_type="SECURITY_AUDIT_ALERT",
+            severity=severity,
+            status="SECURITY TELEMETRY",
+            category_label="SECURITY & ACCESS CONTROL",
+            title=event_title,
+            subtitle=f"Account @{username} • Actor: {actor}",
+            summary=summary,
+            primary_icon="🛡️",
+            key_values=kvs,
+            primary_action={"label": "Inspect Security Console", "url": "/security"},
+            secondary_action={"label": "Manage Users", "url": "/admin/users"},
+            timestamp_str=timestamp_str,
+            source="OPB Security & RBAC Guard",
+            base_url=base_url,
+        )
+
+    @classmethod
+    def build_password_notification(
+        cls,
+        *,
+        username: str,
+        email: str,
+        event_subtype: str = "PASSWORD_CHANGED",
+        reset_link: str | None = None,
+        ip_address: str = "—",
+        timestamp_str: str | None = None,
+        base_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Family E: Password Reset / Password Changed Notification."""
+        is_reset = "RESET" in event_subtype.upper()
+        title = f"Password Reset Requested — @{username}" if is_reset else f"Password Updated — @{username}"
+        sev = "ACTION_REQUIRED" if is_reset else "SECURITY"
+        status = "RESET REQUESTED" if is_reset else "CREDENTIALS UPDATED"
+        summary = (
+            f"A password reset was requested for OPB account @{username} ({email}). Use the secure action link below to complete your credential update."
+            if is_reset
+            else f"The password for OPB account @{username} ({email}) was updated. If you did not authorize this change, contact your Super Admin immediately."
+        )
+        primary_act = (
+            {"label": "Complete Password Reset", "url": reset_link or "/profile"}
+            if is_reset
+            else {"label": "Review Account Security", "url": "/profile"}
+        )
+        return cls.build_canonical_event_notification(
+            notification_type=event_subtype.upper(),
+            severity=sev,
+            status=status,
+            category_label="CREDENTIAL SECURITY",
+            title=title,
+            subtitle=f"Account: {email}",
+            summary=summary,
+            primary_icon="🔐",
+            key_values=[
+                {"label": "Username", "value": username, "mono": True},
+                {"label": "Email", "value": email, "mono": True},
+                {"label": "Event Type", "value": status, "mono": True, "accent": "#fbbf24" if is_reset else "#34d399"},
+                {"label": "Origin IP", "value": ip_address, "mono": True},
+            ],
+            primary_action=primary_act,
+            secondary_action={"label": "Security Center", "url": "/security"},
+            timestamp_str=timestamp_str,
+            source="OPB Auth & Credential Service",
+            base_url=base_url,
+        )
+
+    @classmethod
+    def build_paper_trade_notification(
+        cls,
+        *,
+        symbol: str,
+        side: str = "BUY",
+        quantity: int | float = 1,
+        price: float = 0.0,
+        status: str = "QUEUED",
+        order_id: str = "PAPER-001",
+        strategy: str = "OPB Signal Radar",
+        timestamp_str: str | None = None,
+        base_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Family F: Paper Trade Queued / Completed Notification."""
+        norm_status = status.strip().upper()
+        sev = "SUCCESS" if norm_status in ("COMPLETED", "FILLED", "EXECUTED", "QUEUED") else "INFO"
+        notional = float(quantity) * float(price)
+        return cls.build_canonical_event_notification(
+            notification_type="PAPER_TRADE_EXECUTION",
+            severity=sev,
+            status=f"PAPER {norm_status}",
+            category_label="PAPER TRADING ENGINE",
+            title=f"Paper Trade {norm_status.title()} — {side.upper()} {symbol.upper()}",
+            subtitle=f"Order {order_id} • Simulated Execution Only (Zero Live Capital Risk)",
+            summary=(
+                f"Simulated paper order {order_id} for {quantity} qty of {symbol.upper()} ({side.upper()}) "
+                f"at ₹{price:,.2f} (Notional ₹{notional:,.2f}) is now {norm_status}."
+            ),
+            primary_icon="🧾",
+            key_values=[
+                {"label": "Order ID", "value": order_id, "mono": True},
+                {"label": "Symbol", "value": symbol.upper(), "mono": True, "accent": "#38bdf8"},
+                {"label": "Side / Action", "value": side.upper(), "mono": True, "accent": "#34d399" if side.upper() in ("BUY", "LONG", "CALL") else "#f87171"},
+                {"label": "Quantity", "value": f"{quantity}", "mono": True},
+                {"label": "Reference Price", "value": f"₹{price:,.2f}", "mono": True},
+                {"label": "Simulated Notional", "value": f"₹{notional:,.2f}", "mono": True},
+                {"label": "Execution Mode", "value": "PAPER / SIGNAL_ONLY", "mono": True, "accent": "#fbbf24"},
+            ],
+            primary_action={"label": "View Paper Portfolio", "url": "/paper-ledger"},
+            secondary_action={"label": "Open My Signals", "url": "/my-signals"},
+            timestamp_str=timestamp_str,
+            source=strategy,
+            base_url=base_url,
+        )
+
+    @classmethod
+    def build_system_alert_notification(
+        cls,
+        *,
+        title: str,
+        summary: str,
+        severity: str = "CRITICAL",
+        subsystem: str = "Risk & Kill-Switch Engine",
+        metric_label: str = "System State",
+        metric_value: str = "HALTED / GUARD ACTIVE",
+        action_url: str = "/kill-switch",
+        timestamp_str: str | None = None,
+        base_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Family G: System / Risk / Kill-Switch Alert."""
+        norm_sev = cls.normalize_severity(severity)
+        return cls.build_canonical_event_notification(
+            notification_type="SYSTEM_RISK_ALERT",
+            severity=norm_sev,
+            status=f"{norm_sev} GUARD",
+            category_label="RISK & KILL-SWITCH GOVERNANCE",
+            title=title,
+            subtitle=f"Subsystem: {subsystem}",
+            summary=summary,
+            primary_icon="🛑" if norm_sev == "CRITICAL" else "⚠️",
+            key_values=[
+                {"label": "Subsystem", "value": subsystem, "mono": False},
+                {"label": metric_label, "value": metric_value, "mono": True, "accent": "#fb7185" if norm_sev == "CRITICAL" else "#fbbf24"},
+                {"label": "Severity Tier", "value": norm_sev, "mono": True},
+                {"label": "Live Execution", "value": "DISABLED (PAPER / SIGNAL_ONLY)", "mono": True},
+            ],
+            primary_action={"label": "Open Kill-Switch & Risk Console", "url": action_url},
+            secondary_action={"label": "System Observability", "url": "/observability"},
+            timestamp_str=timestamp_str,
+            source=subsystem,
+            base_url=base_url,
+        )
+
+    @classmethod
+    def build_billing_notification(
+        cls,
+        *,
+        title: str,
+        summary: str,
+        username: str = "trader",
+        plan_name: str = "OPB Pro Institutional",
+        amount_inr: float = 0.0,
+        payment_reference: str = "UPI-REF-001",
+        status: str = "VERIFICATION_PENDING",
+        severity: str = "ACTION_REQUIRED",
+        timestamp_str: str | None = None,
+        base_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Family H: Billing / UPI / Subscription Notification."""
+        return cls.build_canonical_event_notification(
+            notification_type="BILLING_SUBSCRIPTION_EVENT",
+            severity=severity,
+            status=status.replace("_", " "),
+            category_label="BILLING & SUBSCRIPTION",
+            title=title,
+            subtitle=f"Account @{username} • Plan: {plan_name}",
+            summary=summary,
+            primary_icon="💳",
+            key_values=[
+                {"label": "Subscriber", "value": username, "mono": True},
+                {"label": "Subscription Tier", "value": plan_name, "mono": False, "accent": "#38bdf8"},
+                {"label": "Amount (INR)", "value": f"₹{amount_inr:,.2f}", "mono": True, "accent": "#34d399"},
+                {"label": "UPI / Payment Ref", "value": payment_reference, "mono": True},
+                {"label": "Billing Status", "value": status, "mono": True},
+            ],
+            primary_action={"label": "Open Subscription & UPI Settings", "url": "/admin/config"},
+            secondary_action={"label": "View Account Profile", "url": "/profile"},
+            timestamp_str=timestamp_str,
+            source="OPB Billing & UPI Settlement Service",
+            base_url=base_url,
+        )
+
+    @classmethod
+    def build_broker_notification(
+        cls,
+        *,
+        broker_name: str,
+        status: str = "DISCONNECTED",
+        summary: str = "",
+        error_code: str = "SESSION_EXPIRED",
+        latency_ms: float | None = None,
+        severity: str = "ERROR",
+        timestamp_str: str | None = None,
+        base_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Family I: Broker Connection / Failure Notification."""
+        norm_sev = cls.normalize_severity(severity)
+        kvs = [
+            {"label": "Broker Adapter", "value": broker_name, "mono": True, "accent": "#38bdf8"},
+            {"label": "Connection State", "value": status.upper(), "mono": True, "accent": "#f87171" if norm_sev in ("ERROR", "CRITICAL") else "#34d399"},
+            {"label": "Diagnostic Code", "value": error_code, "mono": True},
+        ]
+        if latency_ms is not None:
+            kvs.append({"label": "Heartbeat Latency", "value": f"{latency_ms:.1f} ms", "mono": True})
+        return cls.build_canonical_event_notification(
+            notification_type="BROKER_CONNECTIVITY_EVENT",
+            severity=norm_sev,
+            status=f"BROKER {status.upper()}",
+            category_label="BROKER & FEED CONNECTIVITY",
+            title=f"Broker Adapter {status.title()} — {broker_name}",
+            subtitle=f"Diagnostic Code: {error_code}",
+            summary=summary or f"Broker adapter {broker_name} transitioned to state {status.upper()} ({error_code}).",
+            primary_icon="🔌",
+            key_values=kvs,
+            primary_action={"label": "Inspect Broker Connectivity", "url": "/observability"},
+            secondary_action={"label": "Open Admin Configuration", "url": "/admin/config"},
+            timestamp_str=timestamp_str,
+            source=f"OPB Broker Gateway ({broker_name})",
+            base_url=base_url,
+        )
+
+    @classmethod
+    def build_delivery_failure_notification(
+        cls,
+        *,
+        failed_channel: str,
+        recipient: str,
+        error_reason: str,
+        retry_count: int = 1,
+        dlq_status: str = "QUEUED_FOR_RETRY",
+        original_notification_id: str = "OPB-0000",
+        severity: str = "WARNING",
+        timestamp_str: str | None = None,
+        base_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Family J: Notification Delivery Failure / Retry / DLQ Alert."""
+        norm_sev = cls.normalize_severity(severity)
+        return cls.build_canonical_event_notification(
+            notification_type="NOTIFICATION_DELIVERY_FAILURE",
+            severity=norm_sev,
+            status=dlq_status.replace("_", " "),
+            category_label="NOTIFICATION DISPATCH & DLQ",
+            title=f"Channel Delivery Alert — {failed_channel.upper()}",
+            subtitle=f"Original Notification {original_notification_id} • Retry #{retry_count}",
+            summary=(
+                f"Delivery over channel {failed_channel.upper()} to recipient {recipient} encountered a transport error: "
+                f"{error_reason}. Current dispatch state: {dlq_status}."
+            ),
+            primary_icon="📬",
+            key_values=[
+                {"label": "Failed Channel", "value": failed_channel.upper(), "mono": True, "accent": "#fbbf24"},
+                {"label": "Target Recipient", "value": recipient, "mono": True},
+                {"label": "Original Event ID", "value": original_notification_id, "mono": True},
+                {"label": "Retry Attempt", "value": f"#{retry_count}", "mono": True},
+                {"label": "DLQ / Dispatch Status", "value": dlq_status, "mono": True},
+                {"label": "Transport Diagnostic", "value": error_reason, "mono": True, "accent": "#f87171"},
+            ],
+            primary_action={"label": "Inspect Notification Telemetry", "url": "/admin/config"},
+            secondary_action={"label": "Open System Logs", "url": "/observability"},
+            timestamp_str=timestamp_str,
+            source="OPB Multi-Channel Notification Dispatcher",
+            base_url=base_url,
+        )
+
 

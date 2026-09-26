@@ -2,7 +2,7 @@
 /* Excel-like report column filters */
 .report-column-filter-row th {
   padding: .25rem .35rem;
-  background: var(--surface-2, #0b1220);
+  background: var(--bg-secondary, #0f172a);
   position: sticky;
   top: 2.5rem;
   z-index: 2;
@@ -12,13 +12,13 @@
   min-width: 70px;
   box-sizing: border-box;
   padding: .3rem .4rem;
-  border: 1px solid var(--border-color, #334155);
+  border: 1px solid var(--input-border, var(--border-color, #334155));
   border-radius: .25rem;
-  background: var(--surface-1, #111827);
-  color: var(--text-primary, #e5e7eb);
+  background: var(--input-bg, var(--bg-secondary, #0f172a));
+  color: var(--text-primary, #e2e8f0);
   font-size: .72rem;
 }
 .report-column-filter:focus {
-  outline: 2px solid rgba(56,189,248,.35);
-  border-color: #38bdf8;
+  outline: 2px solid var(--border-color-hover, rgba(56,189,248,.35));
+  border-color: var(--accent-color, #38bdf8);
 }

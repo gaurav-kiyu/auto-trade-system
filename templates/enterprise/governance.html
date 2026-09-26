@@ -156,9 +156,12 @@
         }
 
         function showToast(msg, type='info') {
+            if (window.OPBTheme && typeof window.OPBTheme.showToast === 'function') {
+                return window.OPBTheme.showToast(msg, type);
+            }
             const c=document.getElementById('toastContainer');
             const t=document.createElement('div');
-            t.className=`toast ${type} visible`;
+            t.className=`toast ${type} visible opb-notification-card`;
             t.textContent=msg;
             c.appendChild(t);
             setTimeout(()=>{t.classList.remove('visible');setTimeout(()=>t.remove(),300);},3500);

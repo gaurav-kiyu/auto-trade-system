@@ -544,9 +544,12 @@
 
     <script nonce="{{ nonce }}">
         function showToast(message, type = 'success') {
+            if (window.OPBTheme && typeof window.OPBTheme.showToast === 'function') {
+                return window.OPBTheme.showToast(message, type);
+            }
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
+            toast.className = `toast toast-${type} opb-notification-card`;
             toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
             container.appendChild(toast);
             setTimeout(() => {

@@ -341,37 +341,50 @@ class EmailNotificationAdapter(NotificationPort):
         return f"{prefix}OPB Trading Notification - {summary}"
 
     def _to_html(self, body: str, notification: Notification) -> str:
-        """Convert plain text body to a simple HTML email."""
-        # Escape HTML entities
-        html_body = (
-            body.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\n", "<br>\n")
-        )
+        """Convert plain text body to a canonical OPB institutional HTML email."""
+        from core.notifications.rich_signal_formatter import RichSignalFormatter
 
-        priority_colors = {
-            NotificationPriority.CRITICAL: "#dc3545",
-            NotificationPriority.HIGH: "#fd7e14",
-            NotificationPriority.NORMAL: "#0d6efd",
-            NotificationPriority.LOW: "#6c757d",
+        meta = notification.metadata or {}
+        priority_to_severity = {
+            NotificationPriority.CRITICAL: "CRITICAL",
+            NotificationPriority.HIGH: "WARNING",
+            NotificationPriority.NORMAL: "INFO",
+            NotificationPriority.LOW: "INFO",
         }
-        border_color = priority_colors.get(notification.priority, "#0d6efd")
+        sev = str(meta.get("severity") or priority_to_severity.get(notification.priority, "INFO"))
+        lines = [ln.strip() for ln in (body or "").splitlines() if ln.strip()]
+        default_title = lines[0][:90] if lines else "OPB Platform Notification"
+        title = str(meta.get("title") or meta.get("subject") or default_title)
+        cat_label = str(meta.get("category_label") or meta.get("category") or "PLATFORM TELEMETRY")
+        kvs = meta.get("key_values")
+        if not kvs:
+            # Extract structured key-values from metadata if present
+            skip_keys = {
+                "subject", "title", "html_content", "severity", "category",
+                "category_label", "key_values", "sections", "primary_action",
+                "secondary_action", "notification_id",
+            }
+            extracted = []
+            for k, v in meta.items():
+                if k not in skip_keys and v is not None and isinstance(v, (str, int, float, bool)):
+                    extracted.append({"label": k.replace("_", " ").title(), "value": str(v), "mono": True})
+            kvs = extracted
 
-        return f"""<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-<div style="max-width:600px;margin:20px auto;border:1px solid #ddd;border-top:3px solid {border_color};border-radius:6px;overflow:hidden;">
-<div style="padding:16px 24px;background:#f8f9fa;border-bottom:1px solid #eee;">
-<h2 style="margin:0;font-size:16px;color:#333;">OPB Trading Bot</h2>
-</div>
-<div style="padding:20px 24px;font-size:14px;line-height:1.6;color:#333;">
-{html_body}
-</div>
-<div style="padding:12px 24px;background:#f8f9fa;border-top:1px solid #eee;font-size:11px;color:#888;text-align:center;">
-This is an automated notification from your Options Buying Bot. Do not reply.
-</div>
-</div>
-</body>
-</html>"""
+        payload = RichSignalFormatter.build_canonical_event_notification(
+            title=title,
+            summary=body or title,
+            notification_type=str(meta.get("notification_type") or "PLATFORM_NOTIFICATION"),
+            severity=sev,
+            status=meta.get("status"),
+            category_label=cat_label,
+            subtitle=meta.get("subtitle"),
+            primary_icon=meta.get("primary_icon"),
+            key_values=kvs,
+            sections=meta.get("sections"),
+            primary_action=meta.get("primary_action") or {"label": "Open OPB Cockpit", "url": "/"},
+            secondary_action=meta.get("secondary_action"),
+            notification_id=meta.get("notification_id"),
+            source=str(meta.get("source") or "OPB Notification Service"),
+        )
+        return payload["email_html"]
+

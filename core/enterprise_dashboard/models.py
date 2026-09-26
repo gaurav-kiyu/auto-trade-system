@@ -44,16 +44,41 @@ class Notification:
         self.acknowledged = False
 
     def to_dict(self) -> dict:
+        from core.notifications.rich_signal_formatter import RichSignalFormatter
+
+        norm_sev = RichSignalFormatter.normalize_severity(self.severity)
+        spec = RichSignalFormatter.NOTIFICATION_SEVERITY_SPECS.get(
+            norm_sev, RichSignalFormatter.NOTIFICATION_SEVERITY_SPECS["INFO"]
+        )
+        det = self.details or {}
+        kvs = det.get("key_values") or [
+            {"label": str(k).replace("_", " ").title(), "value": str(v), "mono": True}
+            for k, v in det.items()
+            if k not in ("title", "subtitle", "primary_action", "secondary_action", "key_values")
+            and isinstance(v, (str, int, float, bool))
+        ]
         return {
             "id": self.id,
+            "notification_id": f"OPB-{self.id[:8].upper()}",
             "message": self.message,
+            "title": str(det.get("title") or self.message.split("\n")[0][:90]),
+            "subtitle": str(det.get("subtitle") or f"{self.category.upper()} • {self.source}"),
             "severity": self.severity,
+            "canonical_severity": norm_sev,
+            "severity_badge": spec["label"],
+            "primary_icon": str(det.get("primary_icon") or spec["icon"]),
+            "accent_token": spec["css_token"],
+            "accent_hex": spec["accent"],
             "category": self.category,
+            "category_label": f"OPB • {self.category.upper()}",
             "source": self.source,
             "timestamp": self.timestamp,
             "timestamp_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.timestamp)),
             "timestamp_human": time.strftime("%H:%M:%S", time.localtime(self.timestamp)),
             "acknowledged": self.acknowledged,
+            "details": det,
+            "key_values": kvs,
+            "primary_action": det.get("primary_action"),
         }
 
 

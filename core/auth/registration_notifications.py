@@ -78,66 +78,56 @@ def notify_new_registration(
     email: str,
     role: str,
     created_by: str,
-) -> dict[str, bool]:
-    """Send welcome/pending-approval email and administrator notification.
+) -> dict[str, Any]:
+    """Send welcome/pending-approval email and administrator notification using the canonical OPB design system.
 
     Delivery failures are intentionally non-fatal: account creation must not be
     rolled back merely because SMTP is temporarily unavailable.
     """
-    base = build_action_url("/login")
+    from core.notifications.rich_signal_formatter import RichSignalFormatter
+
     safe_name = display_name or username
-    # Registration fields are user-controlled; escape them before embedding in HTML mail.
-    html_username = html.escape(username, quote=True)
-    html_display_name = html.escape(safe_name, quote=True)
-    html_email = html.escape(email or "-", quote=True)
-    html_role = html.escape(role, quote=True)
-    html_created_by = html.escape(created_by, quote=True)
     user_sent = False
     admin_sent = False
 
+    user_payload = RichSignalFormatter.build_registration_welcome_notification(
+        username=username,
+        email=email or "-",
+        full_name=safe_name,
+        role=role,
+        created_by=created_by,
+        status="PENDING_APPROVAL",
+    )
+    admin_payload = RichSignalFormatter.build_registration_admin_notification(
+        username=username,
+        email=email or "-",
+        full_name=safe_name,
+        role=role,
+        created_by=created_by,
+        status="PENDING_APPROVAL",
+    )
+
     if email:
-        user_html = f"""
-        <html><body style='font-family:Arial,sans-serif;color:#1f2937'>
-        <h2>Welcome to OPB Super-Platform</h2>
-        <p>Hello <b>{html_display_name}</b>,</p>
-        <p>Your OPB account <b>{html_username}</b> has been created with the <b>{html_role}</b> role.</p>
-        <p><b>Your account is pending administrator authorization.</b> Until the required permissions are granted, restricted signal and administration features will remain unavailable.</p>
-        <h3>What happens next?</h3>
-        <ol><li>An administrator reviews your account.</li><li>They assign the permitted menus, signal categories, conviction level and quotas.</li><li>You can then use the features authorized for your account.</li></ol>
-        <p><a href='{base}' style='display:inline-block;padding:10px 16px;background:#2563eb;color:white;text-decoration:none;border-radius:6px'>Open OPB Login</a></p>
-        <p style='font-size:12px;color:#6b7280'>This is an automated security notification. Please contact your OPB administrator if you did not request this account.</p>
-        </body></html>
-        """
-        user_plain = (
-            f"Welcome to OPB Super-Platform, {safe_name}.\n\n"
-            f"Account: {username}\nRole: {role}\n\n"
-            "Your account is pending administrator authorization. An administrator must assign the permissions, menus, signal categories, conviction level and quotas before restricted features become available.\n\n"
-            f"Login: {base}\n"
+        user_sent = _send(
+            [email],
+            user_payload["subject"],
+            user_payload["email_html"],
+            user_payload["plain_text"],
         )
-        user_sent = _send([email], "Welcome to OPB Super-Platform — Authorization Pending", user_html, user_plain)
 
     _, _, _, _, _, admin_recipients = _smtp_settings()
     if admin_recipients:
-        admin_html = f"""
-        <html><body style='font-family:Arial,sans-serif;color:#1f2937'>
-        <h2>New OPB User Registration</h2>
-        <p>A new user has registered and requires permission review.</p>
-        <table cellpadding='6' cellspacing='0' border='1' style='border-collapse:collapse'>
-        <tr><td><b>Username</b></td><td>{html_username}</td></tr>
-        <tr><td><b>Display Name</b></td><td>{html_display_name}</td></tr>
-        <tr><td><b>Email</b></td><td>{html_email}</td></tr>
-        <tr><td><b>Role</b></td><td>{html_role}</td></tr>
-        <tr><td><b>Created By</b></td><td>{html_created_by}</td></tr>
-        </table>
-        <p>Please review the account in <b>User Authorization & Controls</b> and explicitly assign the required privileges before the user begins using restricted features.</p>
-        <p><a href='{build_action_url('/admin/users')}' style='display:inline-block;padding:10px 16px;background:#2563eb;color:white;text-decoration:none;border-radius:6px'>Open User Controls</a></p>
-        </body></html>
-        """
-        admin_plain = (
-            "New OPB user registration requires review.\n\n"
-            f"Username: {username}\nDisplay Name: {safe_name}\nEmail: {email or '-'}\nRole: {role}\nCreated By: {created_by}\n\n"
-            f"Review: {build_action_url('/admin/users')}\n"
+        admin_sent = _send(
+            admin_recipients,
+            admin_payload["subject"],
+            admin_payload["email_html"],
+            admin_payload["plain_text"],
         )
-        admin_sent = _send(admin_recipients, f"OPB: New User Registration — {username}", admin_html, admin_plain)
 
-    return {"user_email_sent": user_sent, "admin_email_sent": admin_sent}
+    return {
+        "user_email_sent": user_sent,
+        "admin_email_sent": admin_sent,
+        "user_notification": user_payload,
+        "admin_notification": admin_payload,
+    }
+

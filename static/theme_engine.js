@@ -27,11 +27,20 @@
                 '--nav-active-text': '#082f49',
                 '--success-color': '#22c55e',
                 '--warning-color': '#f59e0b',
-                '--danger-color': '#ef4444',
+                '--danger-color': '#f87171',
                 '--card-shadow': '0 20px 40px -15px rgba(0, 0, 0, 0.7)',
                 '--input-bg': '#0b1120',
                 '--input-border': '#1e293b',
-                '--header-glow': 'rgba(56, 189, 248, 0.15)'
+                '--header-glow': 'rgba(56, 189, 248, 0.15)',
+                '--notification-success': '#10b981',
+                '--notification-warning': '#f59e0b',
+                '--notification-danger': '#ef4444',
+                '--notification-info': '#38bdf8',
+                '--notification-neutral': '#94a3b8',
+                '--notification-signal': '#10b981',
+                '--notification-border': '#1e293b',
+                '--notification-surface': '#131e33',
+                '--notification-muted-text': '#94a3b8'
             }
         },
         'dracula-purple': {
@@ -57,7 +66,16 @@
                 '--card-shadow': '0 4px 20px -4px rgba(76, 58, 87, 0.08), 0 0 0 1px #e3d9ea',
                 '--input-bg': '#ffffff',
                 '--input-border': '#a78bb8',
-                '--header-glow': 'rgba(124, 58, 237, 0.10)'
+                '--header-glow': 'rgba(124, 58, 237, 0.10)',
+                '--notification-success': '#15803d',
+                '--notification-warning': '#b45309',
+                '--notification-danger': '#b91c1c',
+                '--notification-info': '#7c3aed',
+                '--notification-neutral': '#6b5a75',
+                '--notification-signal': '#15803d',
+                '--notification-border': '#d8cbe2',
+                '--notification-surface': '#ffffff',
+                '--notification-muted-text': '#6b5a75'
             }
         },
         'ivory-gold': {
@@ -83,7 +101,16 @@
                 '--card-shadow': '0 4px 20px -2px rgba(68, 64, 60, 0.08), 0 0 0 1px #d6cbba',
                 '--input-bg': '#ffffff',
                 '--input-border': '#a89f91',
-                '--header-glow': 'rgba(217, 119, 6, 0.1)'
+                '--header-glow': 'rgba(217, 119, 6, 0.1)',
+                '--notification-success': '#15803d',
+                '--notification-warning': '#b45309',
+                '--notification-danger': '#b91c1c',
+                '--notification-info': '#92400e',
+                '--notification-neutral': '#57534e',
+                '--notification-signal': '#15803d',
+                '--notification-border': '#d6cbba',
+                '--notification-surface': '#ffffff',
+                '--notification-muted-text': '#57534e'
             }
         },
         'midnight-slate': {
@@ -109,7 +136,16 @@
                 '--card-shadow': '0 4px 18px -4px rgba(15, 23, 42, 0.08), 0 0 0 1px #dbe3ec',
                 '--input-bg': '#ffffff',
                 '--input-border': '#94a3b8',
-                '--header-glow': 'rgba(29, 78, 216, 0.10)'
+                '--header-glow': 'rgba(29, 78, 216, 0.10)',
+                '--notification-success': '#15803d',
+                '--notification-warning': '#b45309',
+                '--notification-danger': '#b91c1c',
+                '--notification-info': '#1d4ed8',
+                '--notification-neutral': '#54667a',
+                '--notification-signal': '#15803d',
+                '--notification-border': '#cbd5e1',
+                '--notification-surface': '#ffffff',
+                '--notification-muted-text': '#54667a'
             }
         },
         'emerald-matrix': {
@@ -135,7 +171,16 @@
                 '--card-shadow': '0 20px 40px -15px rgba(3, 18, 11, 0.7)',
                 '--input-bg': '#051b11',
                 '--input-border': '#14533a',
-                '--header-glow': 'rgba(16, 185, 129, 0.15)'
+                '--header-glow': 'rgba(16, 185, 129, 0.15)',
+                '--notification-success': '#34d399',
+                '--notification-warning': '#fbbf24',
+                '--notification-danger': '#f87171',
+                '--notification-info': '#10b981',
+                '--notification-neutral': '#6ee7b7',
+                '--notification-signal': '#34d399',
+                '--notification-border': '#14533a',
+                '--notification-surface': '#0a2c1d',
+                '--notification-muted-text': '#6ee7b7'
             }
         }
     };
@@ -724,6 +769,40 @@
                 filter: brightness(1.1);
                 transform: translateY(-1px);
             }
+
+            /* ── Universal Filter Bar & Signal Metric Strip (OPB-FILTER-2026) ── */
+            .filter-bar, .opb-filter-bar {
+                background: var(--bg-card, #111726) !important;
+                border: 1px solid var(--border-color, #1e293b) !important;
+                color: var(--text-primary, #f8fafc) !important;
+                box-shadow: var(--card-shadow) !important;
+            }
+            .timeframe-btn, .opb-timeframe-btn {
+                background: var(--bg-secondary, #0f172a) !important;
+                color: var(--text-secondary, #94a3b8) !important;
+                border: 1px solid var(--border-color, #1e293b) !important;
+            }
+            .timeframe-btn:hover, .opb-timeframe-btn:hover {
+                background: var(--bg-card-hover, #182238) !important;
+                color: var(--text-primary, #f8fafc) !important;
+                border-color: var(--border-color-hover, #38bdf8) !important;
+            }
+            .timeframe-btn.active, .opb-timeframe-btn.active {
+                background: var(--accent-color, #0284c7) !important;
+                color: var(--btn-primary-text, #ffffff) !important;
+                border-color: var(--accent-color, #0284c7) !important;
+                font-weight: 700 !important;
+            }
+            .filter-select, .opb-filter-select, .column-filter, .opb-column-filter {
+                background: var(--input-bg, #0d1322) !important;
+                color: var(--text-primary, #f8fafc) !important;
+                border: 1px solid var(--input-border, var(--border-color, #1e293b)) !important;
+            }
+            .opb-signal-metric-card {
+                background: var(--bg-card, #111726) !important;
+                border: 1px solid var(--border-color, #1e293b) !important;
+                box-shadow: var(--card-shadow) !important;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -741,35 +820,156 @@
         return container;
     }
 
-    function showToast(options) {
-        const type = options.type || 'info'; // 'error' | 'success' | 'warning' | 'info'
-        const title = options.title || (type.charAt(0).toUpperCase() + type.slice(1));
-        const message = options.message || '';
-        const duration = options.duration !== undefined ? options.duration : 5000;
+    const CANONICAL_SEVERITY_UI = {
+        'INFO':            { type: 'info',    badge: 'INFO',            icon: 'fa-info-circle',          emoji: 'ℹ️', token: 'var(--notification-info)' },
+        'SUCCESS':         { type: 'success', badge: 'SUCCESS',         icon: 'fa-check-circle',         emoji: '✅', token: 'var(--notification-success)' },
+        'WARNING':         { type: 'warning', badge: 'WARNING',         icon: 'fa-exclamation-triangle', emoji: '⚠️', token: 'var(--notification-warning)' },
+        'ERROR':           { type: 'error',   badge: 'ERROR',           icon: 'fa-exclamation-circle',   emoji: '🚨', token: 'var(--notification-danger)' },
+        'CRITICAL':        { type: 'error',   badge: 'CRITICAL',        icon: 'fa-radiation',            emoji: '🛑', token: 'var(--notification-danger)' },
+        'SIGNAL_MODERATE': { type: 'warning', badge: 'MODERATE SIGNAL', icon: 'fa-bolt',                 emoji: '🟡', token: 'var(--notification-warning)' },
+        'SIGNAL_STRONG':   { type: 'success', badge: 'STRONG SIGNAL',   icon: 'fa-gem',                  emoji: '💎', token: 'var(--notification-signal)' },
+        'SECURITY':        { type: 'warning', badge: 'SECURITY AUDIT',  icon: 'fa-shield-alt',           emoji: '🛡️', token: 'var(--notification-warning)' },
+        'ACTION_REQUIRED': { type: 'warning', badge: 'ACTION REQUIRED', icon: 'fa-bolt',                 emoji: '⚡', token: 'var(--notification-warning)' }
+    };
 
+    function normalizeToastOptions(optionsOrMessage, typeArg, titleArg, durationArg) {
+        if (typeof optionsOrMessage === 'string' || typeof optionsOrMessage === 'number') {
+            const rawType = String(typeArg || 'info').toLowerCase();
+            const sevMap = {
+                'success': 'SUCCESS',
+                'ok': 'SUCCESS',
+                'error': 'ERROR',
+                'danger': 'ERROR',
+                'critical': 'CRITICAL',
+                'warning': 'WARNING',
+                'warn': 'WARNING',
+                'security': 'SECURITY',
+                'action_required': 'ACTION_REQUIRED',
+                'signal_strong': 'SIGNAL_STRONG',
+                'signal_moderate': 'SIGNAL_MODERATE',
+                'info': 'INFO'
+            };
+            const sev = sevMap[rawType] || 'INFO';
+            const ui = CANONICAL_SEVERITY_UI[sev] || CANONICAL_SEVERITY_UI['INFO'];
+            return {
+                type: ui.type,
+                severity: sev,
+                badge: ui.badge,
+                emoji: ui.emoji,
+                iconClass: ui.icon,
+                token: ui.token,
+                categoryLabel: 'OPB QUANTITATIVE ENGINE',
+                title: titleArg || ui.badge,
+                message: String(optionsOrMessage),
+                keyValues: [],
+                primaryAction: null,
+                duration: durationArg !== undefined ? durationArg : 5000
+            };
+        }
+        const opts = optionsOrMessage || {};
+        const rawSev = String(opts.severity || opts.type || 'INFO').toUpperCase();
+        const aliasMap = {
+            'DANGER': 'ERROR',
+            'WARN': 'WARNING',
+            'OK': 'SUCCESS'
+        };
+        const sev = CANONICAL_SEVERITY_UI[rawSev] ? rawSev : (aliasMap[rawSev] || 'INFO');
+        const ui = CANONICAL_SEVERITY_UI[sev] || CANONICAL_SEVERITY_UI['INFO'];
+        return {
+            type: ui.type,
+            severity: sev,
+            badge: opts.severity_badge || opts.badge || ui.badge,
+            emoji: opts.primary_icon || ui.emoji,
+            iconClass: ui.icon,
+            token: opts.accent_token || ui.token,
+            categoryLabel: opts.category_label || opts.categoryLabel || 'OPB QUANTITATIVE ENGINE',
+            title: opts.title || ui.badge,
+            message: opts.summary || opts.message || '',
+            keyValues: opts.key_values || opts.keyValues || [],
+            primaryAction: opts.primary_action || opts.primaryAction || null,
+            notificationId: opts.notification_id || opts.id || '',
+            timestampIst: opts.timestamp_ist || opts.timestamp_human || '',
+            duration: opts.duration !== undefined ? opts.duration : 5000
+        };
+    }
+
+    function renderCanonicalNotificationCard(payload) {
+        const norm = normalizeToastOptions(payload);
+        let kvHtml = '';
+        if (Array.isArray(norm.keyValues) && norm.keyValues.length > 0) {
+            const items = norm.keyValues.slice(0, 6).map(kv => {
+                const lbl = escapeHtml(String(kv.label || kv.key || (Array.isArray(kv) ? kv[0] : '')));
+                const val = escapeHtml(String(kv.value !== undefined ? kv.value : (Array.isArray(kv) ? kv[1] : '')));
+                return `<div class="opb-notification-kv-item"><span class="opb-notification-kv-label">${lbl}</span><span class="opb-notification-kv-value">${val}</span></div>`;
+            }).join('');
+            kvHtml = `<div class="opb-notification-kv-grid">${items}</div>`;
+        }
+        let actionHtml = '';
+        if (norm.primaryAction && norm.primaryAction.label && norm.primaryAction.url) {
+            actionHtml = `<div style="margin-top:0.65rem;"><a href="${escapeHtml(norm.primaryAction.url)}" class="btn btn-primary" style="padding:0.35rem 0.75rem;font-size:0.75rem;">${escapeHtml(norm.primaryAction.label)} &rarr;</a></div>`;
+        }
+        return `
+            <div class="opb-notification-card" data-severity="${escapeHtml(norm.severity)}" style="padding:1rem 1.15rem;">
+                <div class="opb-notification-header">
+                    <span>🎯 ${escapeHtml(norm.categoryLabel)}</span>
+                    <span class="opb-notification-badge" style="border-color:${norm.token};color:${norm.token};">${escapeHtml(norm.emoji)} ${escapeHtml(norm.badge)}</span>
+                </div>
+                <div class="opb-toast-title" style="font-size:0.95rem;font-weight:800;margin-bottom:0.25rem;">${escapeHtml(norm.title)}</div>
+                <div class="opb-toast-message" style="font-size:0.82rem;">${escapeHtml(norm.message)}</div>
+                ${kvHtml}
+                ${actionHtml}
+            </div>
+        `;
+    }
+
+    function showToast(optionsOrMessage, typeArg, titleArg, durationArg) {
+        const norm = normalizeToastOptions(optionsOrMessage, typeArg, titleArg, durationArg);
         const container = ensureToastContainer();
         const toast = document.createElement('div');
-        toast.className = `opb-toast opb-toast-${type}`;
-        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        toast.className = `opb-toast opb-toast-${norm.type} opb-notification-card`;
+        toast.setAttribute('data-severity', norm.severity);
+        toast.setAttribute('role', norm.type === 'error' ? 'alert' : 'status');
 
-        let iconClass = 'fa-info-circle';
-        if (type === 'error') iconClass = 'fa-exclamation-circle';
-        else if (type === 'success') iconClass = 'fa-check-circle';
-        else if (type === 'warning') iconClass = 'fa-exclamation-triangle';
+        let kvHtml = '';
+        if (Array.isArray(norm.keyValues) && norm.keyValues.length > 0) {
+            const items = norm.keyValues.slice(0, 4).map(kv => {
+                const lbl = escapeHtml(String(kv.label || kv.key || (Array.isArray(kv) ? kv[0] : '')));
+                const val = escapeHtml(String(kv.value !== undefined ? kv.value : (Array.isArray(kv) ? kv[1] : '')));
+                return `<div class="opb-notification-kv-item"><span class="opb-notification-kv-label">${lbl}</span><span class="opb-notification-kv-value">${val}</span></div>`;
+            }).join('');
+            kvHtml = `<div class="opb-notification-kv-grid">${items}</div>`;
+        }
 
         toast.innerHTML = `
-            <div class="opb-toast-icon"><i class="fas ${iconClass}"></i></div>
+            <div class="opb-toast-icon" style="color:${norm.token};"><i class="fas ${norm.iconClass}"></i></div>
             <div class="opb-toast-content">
-                <div class="opb-toast-title">${escapeHtml(title)}</div>
-                <div class="opb-toast-message">${escapeHtml(message)}</div>
+                <div class="opb-notification-header">
+                    <span>🎯 ${escapeHtml(norm.categoryLabel)}</span>
+                    <span class="opb-notification-badge" style="border-color:${norm.token};color:${norm.token};">${escapeHtml(norm.emoji)} ${escapeHtml(norm.badge)}</span>
+                </div>
+                <div class="opb-toast-title">${escapeHtml(norm.title)}</div>
+                <div class="opb-toast-message">${escapeHtml(norm.message)}</div>
+                ${kvHtml}
             </div>
             <button class="opb-toast-close" title="Dismiss" aria-label="Dismiss">
                 <i class="fas fa-times"></i>
             </button>
-            ${duration > 0 ? `<div class="opb-toast-progress" style="transition: transform ${duration}ms linear; transform: scaleX(1);"></div>` : ''}
+            ${norm.duration > 0 ? `<div class="opb-toast-progress" style="transition: transform ${norm.duration}ms linear; transform: scaleX(1);"></div>` : ''}
         `;
 
         container.appendChild(toast);
+
+        // Also mirror into legacy #toastContainer if present on page for backwards DOM compatibility
+        const legacyContainer = document.getElementById('toastContainer');
+        let legacyToast = null;
+        if (legacyContainer) {
+            legacyToast = document.createElement('div');
+            legacyToast.className = `toast ${norm.type} visible opb-notification-card`;
+            legacyToast.setAttribute('data-severity', norm.severity);
+            legacyToast.style.display = 'none';
+            legacyToast.textContent = norm.message || norm.title;
+            legacyContainer.appendChild(legacyToast);
+        }
 
         const closeBtn = toast.querySelector('.opb-toast-close');
         const removeToast = () => {
@@ -777,17 +977,18 @@
             toast.classList.add('opb-toast-leaving');
             setTimeout(() => {
                 if (toast.parentNode) toast.parentNode.removeChild(toast);
+                if (legacyToast && legacyToast.parentNode) legacyToast.parentNode.removeChild(legacyToast);
             }, 300);
         };
 
         if (closeBtn) closeBtn.onclick = removeToast;
 
-        if (duration > 0) {
+        if (norm.duration > 0) {
             const progressBar = toast.querySelector('.opb-toast-progress');
             requestAnimationFrame(() => {
                 if (progressBar) progressBar.style.transform = 'scaleX(0)';
             });
-            setTimeout(removeToast, duration);
+            setTimeout(removeToast, norm.duration);
         }
 
         return toast;
@@ -875,6 +1076,9 @@
     }
 
     function applyTheme(themeKey) {
+        if (!document.getElementById('opb-rich-styles')) {
+            injectRichStyles();
+        }
         const theme = THEMES[themeKey] || THEMES['dark-cyber'];
         const effectiveKey = THEMES[themeKey] ? themeKey : 'dark-cyber';
         const root = document.documentElement;
@@ -913,10 +1117,14 @@
             document.body.setAttribute('data-theme-type', theme.type || 'dark');
         }
 
-        // 5. Persistence
-        localStorage.setItem('opb_app_theme', effectiveKey);
-        localStorage.setItem('opb_theme', effectiveKey);
-        document.cookie = "opb_theme=" + effectiveKey + "; path=/; max-age=31536000";
+        // 5. Persistence (guarded against sandboxed iframe / restricted storage SecurityError)
+        try {
+            localStorage.setItem('opb_app_theme', effectiveKey);
+            localStorage.setItem('opb_theme', effectiveKey);
+        } catch (_e) {}
+        try {
+            document.cookie = "opb_theme=" + effectiveKey + "; path=/; max-age=31536000";
+        } catch (_e) {}
 
         // 6. Sync all dropdown selectors across desktop and mobile
         const THEME_SELECTORS = '.opb-theme-selector, #global-theme-select, #admin-theme-select, .opb-top-theme-select, #opb-theme-select-nav, #drawerThemeSelect, #desktopThemeSelect, select[data-theme-select], select[data-theme-selector]';
@@ -934,7 +1142,9 @@
         const validDensities = ['compact', 'comfortable', 'spacious'];
         const selected = validDensities.includes(density) ? density : 'comfortable';
         document.documentElement.setAttribute('data-density', selected);
-        localStorage.setItem('opb_app_density', selected);
+        try {
+            localStorage.setItem('opb_app_density', selected);
+        } catch (_e) {}
         
         const densitySelects = document.querySelectorAll('.opb-density-select');
         densitySelects.forEach(sel => {
@@ -943,25 +1153,39 @@
     }
 
     function getSavedTheme() {
-        const ls = localStorage.getItem('opb_app_theme') || localStorage.getItem('opb_theme');
-        if (ls && THEMES[ls]) return ls;
-        const cookieMatch = document.cookie.match(/(?:^|;\s*)opb_theme=([^;]+)/);
-        if (cookieMatch && THEMES[cookieMatch[1]]) return cookieMatch[1];
+        try {
+            const ls = localStorage.getItem('opb_app_theme') || localStorage.getItem('opb_theme');
+            if (ls && THEMES[ls]) return ls;
+        } catch (_e) {}
+        try {
+            const cookieMatch = document.cookie.match(/(?:^|;\s*)opb_theme=([^;]+)/);
+            if (cookieMatch && THEMES[cookieMatch[1]]) return cookieMatch[1];
+        } catch (_e) {}
+        const attrTheme = document.documentElement && document.documentElement.getAttribute('data-theme');
+        if (attrTheme && THEMES[attrTheme]) return attrTheme;
         return 'dark-cyber';
+    }
+
+    function getSavedDensity() {
+        try {
+            return localStorage.getItem('opb_app_density') || 'comfortable';
+        } catch (_e) {
+            return 'comfortable';
+        }
     }
 
     function initThemeEngine() {
         injectRichStyles();
         const savedTheme = getSavedTheme();
         applyTheme(savedTheme);
-        const savedDensity = localStorage.getItem('opb_app_density') || 'comfortable';
+        const savedDensity = getSavedDensity();
         setDensity(savedDensity);
 
         function setupListeners() {
             injectRichStyles();
             const currentTheme = getSavedTheme();
             applyTheme(currentTheme);
-            setDensity(localStorage.getItem('opb_app_density') || 'comfortable');
+            setDensity(getSavedDensity());
 
             const THEME_SELECTORS = '.opb-theme-selector, #global-theme-select, #admin-theme-select, .opb-top-theme-select, #opb-theme-select-nav, #drawerThemeSelect, #desktopThemeSelect, select[data-theme-select], select[data-theme-selector]';
             const selectElements = document.querySelectorAll(THEME_SELECTORS);
@@ -981,7 +1205,7 @@
             const densitySelects = document.querySelectorAll('.opb-density-select');
             densitySelects.forEach(sel => {
                 if (sel) {
-                    sel.value = localStorage.getItem('opb_app_density') || 'comfortable';
+                    sel.value = getSavedDensity();
                     sel.onchange = function(e) {
                         setDensity(this.value);
                     };
@@ -1058,6 +1282,13 @@
     window.setTheme = applyTheme;
     window.showModal = showModal;
     window.showToast = showToast;
+    window.renderCanonicalNotificationCard = renderCanonicalNotificationCard;
+    window.OPBNotify = {
+        toast: showToast,
+        modal: showModal,
+        renderCard: renderCanonicalNotificationCard,
+        severities: CANONICAL_SEVERITY_UI
+    };
     window.OPBTheme = {
         applyTheme: applyTheme,
         setTheme: applyTheme,
@@ -1065,7 +1296,8 @@
         getThemes: () => THEMES,
         setDensity: setDensity,
         showToast: showToast,
-        showModal: showModal
+        showModal: showModal,
+        renderCanonicalNotificationCard: renderCanonicalNotificationCard
     };
 
     // OPB UNIVERSAL INTERACTIVE ENGINE (Eye Toggles, Mobile Drawer, Themes)
@@ -1261,7 +1493,7 @@
 
     // Universal binder for all theme select elements
     function bindAllThemeSelectors() {
-        const savedTheme = localStorage.getItem('opb_theme') || 'dark-cyber';
+        const savedTheme = getSavedTheme();
         const selectors = document.querySelectorAll('select#opb-theme-select-nav, select#drawerThemeSelect, select.opb-theme-select, select[data-theme-select]');
         selectors.forEach(function(sel) {
             sel.value = savedTheme;

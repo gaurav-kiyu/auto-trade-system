@@ -135,7 +135,11 @@ class TestUpdateActiveSignalOutcomes:
         assert rows[0]["status"] == "ACTIVE"
         assert rows[0]["current_price"] == 105.0
 
-    def test_stale_prior_day_signal_expires_without_hitting_either(self, tmp_path):
+    def test_stale_prior_day_signal_expires_without_hitting_either(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "core.exchange_calendar_engine.ExchangeCalendarEngine.is_market_day",
+            lambda self, d=None: True,
+        )
         tracker = self._tracker(tmp_path)
         self._insert_active(tracker, direction="CALL", entry=100.0, sl=92.0, t1=130.0, t2=180.0, created_date="2000-01-01")
         result = tracker.update_active_signal_outcomes(lambda sym: 105.0)

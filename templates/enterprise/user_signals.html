@@ -13,23 +13,26 @@
         body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 1.5rem 2rem 3rem 2rem; }
         h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem; }
         .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.85rem; margin-bottom: 1.5rem; }
-        .card { background: var(--bg-card, linear-gradient(135deg, #131926 0%, #0d121c 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--card-shadow); }
-        .filter-bar { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; background: #0f1523; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color, #1e293b); }
-        .filter-select { background: #131a29; border: 1px solid rgba(148,163,184,0.2); border-radius: 0.35rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; padding: 0.4rem 0.6rem; outline: none; }
+        .card { background: var(--bg-card, #111726); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--card-shadow); }
+        .filter-bar { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.15rem; background: var(--bg-card, #111726); padding: 0.8rem 1rem; border-radius: 0.65rem; border: 1px solid var(--border-color, #1e293b); box-shadow: var(--card-shadow); }
+        .filter-select { background: var(--input-bg, #0d1322); border: 1px solid var(--input-border, var(--border-color, #1e293b)); border-radius: 0.4rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; font-weight: 600; padding: 0.42rem 0.68rem; outline: none; }
+        .timeframe-btn { padding: 0.38rem 0.78rem; border-radius: 0.4rem; font-size: 0.76rem; cursor: pointer; border: 1px solid var(--border-color, #1e293b); background: var(--bg-secondary, #0f172a); color: var(--text-secondary, #94a3b8); font-weight: 600; transition: all 0.15s ease; }
+        .timeframe-btn:hover { background: var(--bg-card-hover, #182238); color: var(--text-primary, #f8fafc); border-color: var(--border-color-hover, #38bdf8); }
+        .timeframe-btn.active { background: var(--accent-color, #0284c7); color: var(--btn-primary-text, #ffffff); border-color: var(--accent-color, #0284c7); font-weight: 700; }
         .table { width: 100%; border-collapse: collapse; }
-        .table th { text-align: left; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted, #94a3b8); padding: 0.75rem 0.8rem; border-bottom: 1px solid rgba(148,163,184,0.15); }
-        .table td { font-size: 0.8rem; padding: 0.75rem 0.8rem; border-bottom: 1px solid rgba(148,163,184,0.08); color: var(--text-secondary, #cbd5e1); vertical-align: middle; }
-        .table tr:hover td { background: rgba(56,189,248,0.03); }
+        .table th { text-align: left; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted, #94a3b8); padding: 0.75rem 0.8rem; border-bottom: 1px solid var(--border-color, rgba(148,163,184,0.15)); }
+        .table td { font-size: 0.8rem; padding: 0.75rem 0.8rem; border-bottom: 1px solid var(--border-color, rgba(148,163,184,0.08)); color: var(--text-secondary, #cbd5e1); vertical-align: middle; }
+        .table tr:hover td { background: var(--bg-card-hover, rgba(56,189,248,0.05)); }
         .badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; }
-        .badge-buy { background: rgba(34,197,94,0.15); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.3); }
-        .badge-sell { background: rgba(239,68,68,0.15); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.3); }
-        .badge-t1 { background: rgba(34,197,94,0.15); color: var(--success-color, #16a34a); border: 1px solid rgba(34,197,94,0.3); font-weight: 700; }
-        .badge-t2 { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); font-weight: 800; }
-        .badge-sl { background: rgba(239,68,68,0.15); color: var(--danger-color, #dc2626); border: 1px solid rgba(239,68,68,0.3); }
-        .badge-active { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }
+        .badge-buy { background: var(--market-bull-bg, rgba(34,197,94,0.15)); color: var(--success-color, #16a34a); border: 1px solid var(--success-color, rgba(34,197,94,0.3)); }
+        .badge-sell { background: var(--market-bear-bg, rgba(239,68,68,0.15)); color: var(--danger-color, #dc2626); border: 1px solid var(--danger-color, rgba(239,68,68,0.3)); }
+        .badge-t1 { background: var(--market-bull-bg, rgba(34,197,94,0.15)); color: var(--success-color, #16a34a); border: 1px solid var(--success-color, rgba(34,197,94,0.3)); font-weight: 700; }
+        .badge-t2 { background: var(--market-bull-bg, rgba(16,185,129,0.15)); color: var(--success-color, #16a34a); border: 1px solid var(--success-color, rgba(16,185,129,0.35)); font-weight: 800; }
+        .badge-sl { background: var(--market-bear-bg, rgba(239,68,68,0.15)); color: var(--danger-color, #dc2626); border: 1px solid var(--danger-color, rgba(239,68,68,0.3)); }
+        .badge-active { background: var(--bg-card-hover, rgba(56,189,248,0.15)); color: var(--accent-color, #0284c7); border: 1px solid var(--accent-color, rgba(56,189,248,0.3)); }
         .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border-radius: 0.4rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s ease; }
-        .btn-ghost { background: transparent; color: var(--text-muted, #94a3b8); border: 1px solid rgba(148,163,184,0.2); }
-        .btn-ghost:hover { background: rgba(148,163,184,0.1); color: var(--text-primary, #ffffff); }
+        .btn-ghost { background: var(--bg-secondary, transparent); color: var(--text-secondary, #94a3b8); border: 1px solid var(--border-color, rgba(148,163,184,0.2)); }
+        .btn-ghost:hover { background: var(--bg-card-hover, rgba(148,163,184,0.1)); color: var(--text-primary, #ffffff); border-color: var(--border-color-hover, #38bdf8); }
 
         /* Modal styling */
         .opb-modal-backdrop {
@@ -44,15 +47,15 @@
             padding: 1.5rem;
         }
         .opb-modal-box {
-            background: #0d121c;
-            border: 1px solid rgba(56, 189, 248, 0.35);
+            background: var(--bg-card, #111726);
+            border: 1px solid var(--border-color-hover, rgba(56, 189, 248, 0.35));
             border-radius: 1rem;
             max-width: 600px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
             padding: 1.5rem;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.85);
+            box-shadow: var(--card-shadow, 0 25px 50px rgba(0,0,0,0.85));
             animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
         @keyframes modalFadeIn {
@@ -71,39 +74,57 @@
 
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
 <div>
-<h1><i class="fas fa-bell" style="margin-right:0.5rem;color:#38bdf8;"></i> My Received Signals Feed</h1>
+<h1><i class="fas fa-bell" style="margin-right:0.5rem;color:var(--accent-color, #38bdf8);"></i> My Received Signals Feed</h1>
 <p class="subtitle">Complete personalized history of all trade signals delivered based on your category access and subscription tier</p>
 </div>
 <button class="btn btn-ghost" id="refreshBtn" type="button"><i class="fas fa-sync-alt"></i> Refresh Feed</button>
 </div>
-<div id="demoDataBanner" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:0.5rem;padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:#fbbf24;">
+<div id="demoDataBanner" style="display:none;background:var(--market-warning-bg, rgba(245,158,11,0.1));border:1px solid var(--warning-color, rgba(245,158,11,0.3));border-radius:0.5rem;padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--warning-color, #d97706);">
 <i class="fas fa-info-circle"></i> Sample data — this account hasn't received any real signals yet. The rows below are example content shown so this screen isn't empty, not genuine trade signals.
     </div>
-<!-- Filters Bar: Year, Month, Week, Category -->
-<div class="filter-bar">
-<div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
-<div>
-<label style="font-size:0.7rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.2rem;font-weight:600;">Year</label>
-<select class="filter-select" id="filterYear">
-<option value="all">All Years</option>
-</select>
+<!-- Canonical Period & Category Filter Bar -->
+<div class="filter-bar" id="userSignalsFilterBar">
+<div class="timeframe-group" role="group" aria-label="Signal period filter">
+<span style="font-size:0.75rem;color: var(--text-muted, #94a3b8);margin-right:0.25rem;font-weight:700;">Period:</span>
+<button class="timeframe-btn" data-period="daily" type="button">Daily</button>
+<button class="timeframe-btn" data-period="weekly" type="button">Weekly</button>
+<button class="timeframe-btn" data-period="monthly" type="button">Monthly</button>
+<button class="timeframe-btn" data-period="yearly" type="button">Yearly</button>
+<button class="timeframe-btn active" data-period="all" type="button">All Time</button>
 </div>
-<div>
-<label style="font-size:0.7rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.2rem;font-weight:600;">Month</label>
-<select class="filter-select" id="filterMonth">
-<option value="all">All Months</option>
-</select>
-</div>
-<div>
-<label style="font-size:0.7rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.2rem;font-weight:600;">Category</label>
-<select class="filter-select" id="filterCategory">
+<div style="display:flex;gap:0.65rem;align-items:center;flex-wrap:wrap;margin-left:auto;">
+<div style="display:flex;align-items:center;gap:0.4rem;">
+<label for="filterCategory" style="font-size:0.75rem;color: var(--text-muted, #94a3b8);font-weight:700;">Category:</label>
+<select class="filter-select" id="filterCategory" aria-label="Filter by subscribed category">
 <option value="all">All Subscribed Categories</option>
 </select>
 </div>
+<select class="filter-select" id="filterYear" style="display:none;" aria-hidden="true">
+<option value="all">All Years</option>
+</select>
+<select class="filter-select" id="filterMonth" style="display:none;" aria-hidden="true">
+<option value="all">All Months</option>
+</select>
 </div>
-<div style="margin-left:auto;font-size:0.82rem;color: var(--text-muted, #94a3b8);">
-            Total Received: <strong id="totalCount" style="color:#38bdf8;font-weight:800;">0</strong> signals
-        </div>
+</div>
+<!-- Canonical Received Signals Outcome Summary Strip -->
+<div class="opb-signal-metrics-strip" id="userSignalsMetricsStrip" aria-label="Received signals outcome summary">
+<div class="opb-signal-metric-card">
+<div class="opb-signal-metric-label"><i class="fas fa-satellite-dish" style="color:var(--accent-color, #0284c7);"></i> Total Received:</div>
+<div class="opb-signal-metric-value" style="color:var(--accent-color, #0284c7);"><span id="totalCount">0</span> <span style="font-size:0.82rem;font-weight:700;color:var(--text-secondary, #64748b);">Signals</span></div>
+</div>
+<div class="opb-signal-metric-card">
+<div class="opb-signal-metric-label"><i class="fas fa-check-circle" style="color:var(--success-color, #16a34a);"></i> Target 1 Hit:</div>
+<div class="opb-signal-metric-value" id="metricT1Hit" style="color:var(--success-color, #16a34a);">0</div>
+</div>
+<div class="opb-signal-metric-card">
+<div class="opb-signal-metric-label"><i class="fas fa-check-double" style="color:var(--success-color, #16a34a);"></i> Target 2 Hit:</div>
+<div class="opb-signal-metric-value" id="metricT2Hit" style="color:var(--success-color, #16a34a);">0</div>
+</div>
+<div class="opb-signal-metric-card">
+<div class="opb-signal-metric-label"><i class="fas fa-shield-alt" style="color:var(--danger-color, #dc2626);"></i> Stop Loss Hit:</div>
+<div class="opb-signal-metric-value" id="metricSlHit" style="color:var(--danger-color, #dc2626);">0</div>
+</div>
 </div>
 <!-- Signals Feed Table -->
 <div class="card">
@@ -134,7 +155,7 @@
 <!-- Interactive Trade Plan & Exit Strategy Modal -->
 <div class="opb-modal-backdrop" id="signalDetailModal">
 <div class="opb-modal-box" id="cspfix-1">
-<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:0.75rem;margin-bottom:1rem;">
+<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-color, #1e293b);padding-bottom:0.75rem;margin-bottom:1rem;">
 <div id="mTitle" style="font-size:1.1rem;font-weight:800;color: var(--text-primary, #ffffff);display:flex;align-items:center;gap:0.5rem;">
                     Signal Details
                 </div>
@@ -143,21 +164,22 @@
 <div id="mBody" style="font-size:0.85rem;color: var(--text-secondary, #cbd5e1);line-height:1.6;">
 <!-- Dynamically populated -->
 </div>
-<div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem;border-top:1px solid #1e293b;padding-top:0.75rem;">
+<div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem;border-top:1px solid var(--border-color, #1e293b);padding-top:0.75rem;">
 <button class="btn btn-ghost" id="cspfix-3" type="button">Close</button>
-<button class="btn" id="mExecBtn" style="background:linear-gradient(90deg,#0284c7,#2563eb);color:#fff;" type="button">⚡ Execute Paper Trade</button>
+<button class="btn btn-primary" id="mExecBtn" style="background:var(--accent-gradient, linear-gradient(90deg,#0284c7,#2563eb));color:var(--btn-primary-text, #fff);" type="button">⚡ Execute Paper Trade</button>
 </div>
 </div>
 </div>
 <script nonce="{{ nonce }}">
         let signalsCache = [];
+        let currentPeriod = 'all';
 
         function statusBadge(status, t1PctStr, t2PctStr, slPctStr) {
             if (status === 'TARGET_2_HIT') return `<span class="badge badge-t2"><i class="fas fa-check-double"></i> TARGET 2 HIT ${t2PctStr || ''}</span>`;
             if (status === 'TARGET_1_HIT') return `<span class="badge badge-t1"><i class="fas fa-check"></i> TARGET 1 HIT ${t1PctStr || ''}</span>`;
             if (status === 'SL_HIT') return `<span class="badge badge-sl"><i class="fas fa-times"></i> SL HIT ${slPctStr || ''}</span>`;
             if (status === 'AMBIGUOUS' || status === 'AMBIGUOUS_SAME_BAR') return '<span class="badge" style="background:var(--market-warning-bg, rgba(217,119,6,0.14));color:var(--warning-color, #d97706);border:1px solid var(--warning-color, #d97706);font-weight:700;"><i class="fas fa-question-circle"></i> AMBIGUOUS</span>';
-            if (status === 'EXPIRED') return '<span class="badge" style="background:rgba(148,163,184,0.15);color:var(--text-muted, #94a3b8);border:1px solid rgba(148,163,184,0.3);"><i class="fas fa-clock"></i> EXPIRED</span>';
+            if (status === 'EXPIRED') return '<span class="badge" style="background:var(--bg-secondary, rgba(148,163,184,0.15));color:var(--text-muted, #94a3b8);border:1px solid var(--border-color, rgba(148,163,184,0.3));"><i class="fas fa-clock"></i> EXPIRED</span>';
             return '<span class="badge badge-active"><i class="fas fa-circle-notch fa-spin"></i> ACTIVE</span>';
         }
 
@@ -201,7 +223,7 @@
             if (!s) return;
 
             const isBuy = s.direction === 'CALL' || s.direction === 'BUY';
-            const tierLabel = (s.tier || (s.score >= 85 ? 'STRONG' : 'MODERATE')).toUpperCase();
+            const tierLabel = (s.tier || (s.score >= 80 ? 'STRONG' : (s.score >= 70 ? 'MODERATE' : 'WEAK'))).toUpperCase();
             const actionLabel = `${isBuy ? '🟢' : '🔴'} ${tierLabel} ${isBuy ? 'BUY' : 'SELL'} SIGNAL`;
             const humanTitle = formatHumanName(s.symbol, s.category);
             const isOpt = s.category && (s.category.includes('OPTION') || s.category.includes('0DTE'));
@@ -219,18 +241,18 @@
             }
 
             document.getElementById('mBody').innerHTML = `
-                <div style="background:#131a29;border: 1px solid var(--border-color, #1e293b);border-radius:8px;padding:12px;margin-bottom:12px;">
+                <div style="background:var(--bg-secondary, #0f172a);border: 1px solid var(--border-color, #1e293b);border-radius:8px;padding:12px;margin-bottom:12px;">
                     <div style="font-size:0.8rem;color: var(--text-muted, #94a3b8);margin-bottom:6px;"><strong>Contract:</strong> <code>${s.symbol}</code> &nbsp;|&nbsp; <strong>Score:</strong> <span style="color: var(--success-color, #16a34a);font-weight:700;">${s.score}/100 (${s.tier})</span></div>
                     <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;font-size:0.8rem;">
-                        <div>📌 Entry: <strong style="color:#38bdf8;">₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></div>
+                        <div>📌 Entry: <strong style="color:var(--accent-color, #0284c7);">₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></div>
                         <div>🛡️ Stop Loss: <strong style="color: var(--danger-color, #dc2626);">₹${s.stop_loss.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></div>
                         <div>🎯 Target 1: <strong style="color: var(--success-color, #16a34a);">₹${s.target_1.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></div>
                         <div>🚀 Target 2: <strong style="color: var(--success-color, #16a34a);">₹${s.target_2.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></div>
                         <div style="grid-column:span 2;">⚖️ Risk : Reward to Target 2: <strong style="color:var(--warning-color, #d97706);">1 : ${rr}</strong></div>
                     </div>
                 </div>
-                <div style="font-size:0.82rem;font-weight:700;color:#38bdf8;margin-bottom:6px;">🎯 STEP-BY-STEP EXIT STRATEGY:</div>
-                <div style="background:#131a29;border-left:3px solid #22c55e;border-radius:0 6px 6px 0;padding:10px 12px;font-size:0.78rem;line-height:1.5;">
+                <div style="font-size:0.82rem;font-weight:700;color:var(--accent-color, #0284c7);margin-bottom:6px;">🎯 STEP-BY-STEP EXIT STRATEGY:</div>
+                <div style="background:var(--bg-secondary, #0f172a);border-left:3px solid var(--success-color, #16a34a);border-radius:0 6px 6px 0;padding:10px 12px;font-size:0.78rem;line-height:1.5;">
                     <div style="margin-bottom:6px;">• <strong>Step 1:</strong> Book 50% of your position at Target 1 (₹${s.target_1.toLocaleString('en-IN', {minimumFractionDigits:2})}) and move Stop Loss to Entry Price (₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits:2})}) for a risk-free trade.</div>
                     <div style="margin-bottom:6px;">• <strong>Step 2:</strong> Hold the remaining 50% position for Target 2 (₹${s.target_2.toLocaleString('en-IN', {minimumFractionDigits:2})}).</div>
                     <div>• <strong>Step 3:</strong> If neither Target 2 nor SL is hit, exit remaining position by ${isOpt ? '15:15 IST' : 'end of Max Horizon'}.</div>
@@ -248,20 +270,28 @@
         }
 
         async function loadUserSignals() {
-            const y = document.getElementById('filterYear').value;
-            const m = document.getElementById('filterMonth').value;
-            const cat = document.getElementById('filterCategory').value;
+            const y = document.getElementById('filterYear')?.value || 'all';
+            const m = document.getElementById('filterMonth')?.value || 'all';
+            const cat = document.getElementById('filterCategory')?.value || 'all';
 
-            const res = await fetch(`/api/auth/signals/my-history?year=${y}&month=${m}&category=${cat}`, {credentials: 'include'});
+            const url = `/api/auth/signals/my-history?period=${encodeURIComponent(currentPeriod)}&year=${encodeURIComponent(y)}&month=${encodeURIComponent(m)}&category=${encodeURIComponent(cat)}`;
+            const res = await fetch(url, {credentials: 'include'});
             if (res.status === 401) { window.location.href = '/login'; return; }
             const data = await res.json();
             if (!data) return;
 
             document.getElementById('totalCount').textContent = data.total_received ?? 0;
+            const t1El = document.getElementById('metricT1Hit');
+            if (t1El) t1El.textContent = data.target_1_hit ?? 0;
+            const t2El = document.getElementById('metricT2Hit');
+            if (t2El) t2El.textContent = data.target_2_hit ?? 0;
+            const slEl = document.getElementById('metricSlHit');
+            if (slEl) slEl.textContent = data.stop_loss_hit ?? 0;
+
             document.getElementById('demoDataBanner').style.display = data.contains_demo_data ? 'block' : 'none';
 
             const ySel = document.getElementById('filterYear');
-            if (ySel.options.length === 1 && data.available_years) {
+            if (ySel && ySel.options.length === 1 && data.available_years) {
                 data.available_years.forEach(yr => {
                     const opt = document.createElement('option');
                     opt.value = yr; opt.textContent = yr;
@@ -270,7 +300,7 @@
             }
 
             const mSel = document.getElementById('filterMonth');
-            if (mSel.options.length === 1 && data.available_months) {
+            if (mSel && mSel.options.length === 1 && data.available_months) {
                 data.available_months.forEach(mo => {
                     const opt = document.createElement('option');
                     opt.value = mo; opt.textContent = mo;
@@ -279,7 +309,7 @@
             }
 
             const cSel = document.getElementById('filterCategory');
-            if (cSel.options.length === 1 && data.available_categories) {
+            if (cSel && cSel.options.length === 1 && data.available_categories) {
                 data.available_categories.forEach(c => {
                     const opt = document.createElement('option');
                     opt.value = c; opt.textContent = c;
@@ -290,17 +320,18 @@
             const tb = document.getElementById('userSignalsBody');
             signalsCache = data.signals || [];
             if (signalsCache.length === 0) {
-                tb.innerHTML = '<tr><td colspan="12" style="text-align:center;color: var(--text-muted, #94a3b8);">No signals received for selected timeframe</td></tr>';
+                tb.innerHTML = '<tr><td colspan="12" style="text-align:center;color: var(--text-muted, #94a3b8);padding:1.25rem;">No signals received for selected timeframe and category</td></tr>';
                 return;
             }
 
             tb.innerHTML = signalsCache.map((s, idx) => {
                 const isBuy = s.direction === 'CALL' || s.direction === 'BUY';
+                const tierLabel = (s.tier || (s.score >= 80 ? 'STRONG' : (s.score >= 70 ? 'MODERATE' : 'WEAK'))).toUpperCase();
                 const dirBadge = isBuy
-                    ? '<span class="badge badge-buy"><i class="fas fa-arrow-up"></i> STRONG BUY</span>'
-                    : '<span class="badge badge-sell"><i class="fas fa-arrow-down"></i> STRONG SELL</span>';
+                    ? `<span class="badge badge-buy"><i class="fas fa-arrow-up"></i> ${tierLabel} BUY</span>`
+                    : `<span class="badge badge-sell"><i class="fas fa-arrow-down"></i> ${tierLabel} SELL</span>`;
 
-                const scoreColor = s.score >= 80 ? '#22c55e' : (s.score >= 68 ? '#eab308' : '#94a3b8');
+                const scoreColor = s.score >= 80 ? 'var(--success-color, #16a34a)' : (s.score >= 70 ? 'var(--warning-color, #d97706)' : 'var(--text-muted, #64748b)');
                 const humanTitle = formatHumanName(s.symbol, s.category);
 
                 const risk = Math.abs(s.entry_price - s.stop_loss);
@@ -330,35 +361,35 @@
                         <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);font-family:monospace;"><code>${s.symbol}</code></div>
                     </td>
                     <td>
-                        <span style="display:inline-block;padding:2px 8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:6px;font-size:0.7rem;color:#93c5fd;font-weight:600;">
+                        <span style="display:inline-block;padding:2px 8px;background:var(--bg-secondary, rgba(59,130,246,0.1));border:1px solid var(--border-color, rgba(59,130,246,0.25));border-radius:6px;font-size:0.7rem;color:var(--accent-color, #0284c7);font-weight:700;">
                             ${s.category}
                         </span>
                     </td>
                     <td>
                         ${(s.category && (s.category.includes('OPTION') || s.category.includes('0DTE'))) 
                             ? '<span style="color:var(--warning-color, #d97706);font-weight:700;font-size:0.75rem;"><i class="fas fa-bolt"></i> Intraday (<15:15)</span>' 
-                            : '<span style="color:#38bdf8;font-weight:700;font-size:0.75rem;"><i class="far fa-calendar-alt"></i> 1–5 Days (Swing)</span>'}
+                            : '<span style="color:var(--accent-color, #0284c7);font-weight:700;font-size:0.75rem;"><i class="far fa-calendar-alt"></i> 1–5 Days (Swing)</span>'}
                     </td>
                     <td>${dirBadge}</td>
                     <td>
                         <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="font-weight:800;color:${scoreColor};font-size:0.9rem;">${s.score}</span>
+                            <span style="font-weight:800;color:${scoreColor};font-size:0.9rem;font-variant-numeric:tabular-nums;">${s.score}</span>
                             <span style="font-size:0.65rem;color: var(--text-muted, #94a3b8);">/100</span>
-                            <span style="font-size:0.65rem;padding:2px 6px;background: var(--bg-card-hover, #1e293b);border-radius:4px;color: var(--text-secondary, #cbd5e1);font-weight:600;">${s.tier}</span>
+                            <span style="font-size:0.65rem;padding:2px 6px;background: var(--bg-secondary, #1e293b);border:1px solid var(--border-color, #1e293b);border-radius:4px;color: var(--text-secondary, #cbd5e1);font-weight:700;">${s.tier}</span>
                         </div>
                     </td>
-                    <td style="font-family:monospace;font-weight:700;color:#38bdf8;font-size:0.85rem;">₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td style="font-family:monospace;font-weight:700;color:var(--accent-color, #0284c7);font-size:0.85rem;">₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td>
                         <div style="font-family:monospace;font-size:0.75rem;color: var(--success-color, #16a34a);">
-                            <strong style="color: var(--success-color, #16a34a);">T1:</strong> ₹${s.target_1.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#86efac;">${t1PctStr}</span>
+                            <strong style="color: var(--success-color, #16a34a);">T1:</strong> ₹${s.target_1.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--success-color, #16a34a);">${t1PctStr}</span>
                         </div>
-                        <div style="font-family:monospace;font-size:0.75rem;color:#34d399;margin-top:2px;">
-                            <strong style="color:#10b981;">T2:</strong> ₹${s.target_2.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#6ee7b7;">${t2PctStr}</span>
+                        <div style="font-family:monospace;font-size:0.75rem;color:var(--success-color, #16a34a);margin-top:2px;">
+                            <strong style="color:var(--success-color, #16a34a);">T2:</strong> ₹${s.target_2.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--success-color, #16a34a);">${t2PctStr}</span>
                         </div>
                     </td>
                     <td>
                         <div style="font-family:monospace;font-size:0.75rem;color: var(--danger-color, #dc2626);font-weight:600;">
-                            ₹${s.stop_loss.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:#fca5a5;">${slPctStr}</span>
+                            ₹${s.stop_loss.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--danger-color, #dc2626);">${slPctStr}</span>
                         </div>
                     </td>
                     <td>
@@ -370,7 +401,7 @@
                             <button data-action="open-signal-plan-modal" data-idx="${idx}" class="btn btn-ghost" style="padding:3px 7px;font-size:0.7rem;" title="View Plan & Exit Steps" type="button">
                                 📋 Plan
                             </button>
-                            <button data-action="trigger-paper-trade" data-symbol="${s.symbol}" class="btn" style="padding:3px 7px;font-size:0.7rem;background:linear-gradient(90deg,#0284c7,#2563eb);color:#fff;" title="Queue Manual Paper Trade (Simulation)" type="button">
+                            <button data-action="trigger-paper-trade" data-symbol="${s.symbol}" class="btn btn-primary" style="padding:3px 7px;font-size:0.7rem;background:var(--accent-gradient, linear-gradient(90deg,#0284c7,#2563eb));color:var(--btn-primary-text, #fff);" title="Queue Manual Paper Trade (Simulation)" type="button">
                                 ⚡ Manual Paper Trade
                             </button>
                             <a href="https://in.tradingview.com/chart/?symbol=NSE:${s.symbol}" target="_blank" class="btn btn-ghost" style="padding:3px 7px;font-size:0.7rem;text-decoration:none;" title="Open Chart">
@@ -381,6 +412,15 @@
                 </tr>`;
             }).join('');
         }
+
+        document.querySelectorAll('#userSignalsFilterBar .timeframe-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#userSignalsFilterBar .timeframe-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentPeriod = btn.dataset.period || 'all';
+                loadUserSignals();
+            });
+        });
 
         document.getElementById('userSignalsBody').addEventListener('click', (e) => {
             const btn = e.target.closest('[data-action]');
@@ -399,10 +439,10 @@
                 btn.disabled = false;
             }
         });
-        document.getElementById('filterYear').addEventListener('change', loadUserSignals);
-        document.getElementById('filterMonth').addEventListener('change', loadUserSignals);
-        document.getElementById('filterCategory').addEventListener('change', loadUserSignals);
-        document.getElementById('refreshBtn').addEventListener('click', loadUserSignals);
+        document.getElementById('filterYear')?.addEventListener('change', loadUserSignals);
+        document.getElementById('filterMonth')?.addEventListener('change', loadUserSignals);
+        document.getElementById('filterCategory')?.addEventListener('change', loadUserSignals);
+        document.getElementById('refreshBtn')?.addEventListener('click', loadUserSignals);
 
         loadUserSignals();
     </script>    {% include "_pwa_sw_reg.html" %}

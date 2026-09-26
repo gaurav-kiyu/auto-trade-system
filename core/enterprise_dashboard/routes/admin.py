@@ -347,30 +347,41 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         now = now_ist()
         time_str = now.strftime("%Y-%m-%d %H:%M:%S IST")
 
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:20px;">
-            <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;max-width:550px;margin:0 auto;">
-                <h2 style="color:#38bdf8;margin-top:0;">⚡ OPB Signal Notification Test</h2>
-                <p>This is a live test notification verifying your SMTP credentials and multi-recipient routing.</p>
-                <div style="background:#0f172a;padding:12px;border-radius:6px;margin:15px 0;">
-                    <div><b>Timestamp:</b> {time_str}</div>
-                    <div><b>Sender:</b> {email_user}</div>
-                    <div><b>Recipients:</b> {', '.join(recipients)}</div>
-                    <div><b>Status:</b> <span style="color:#10b981;font-weight:bold;">SMTP TLS Connected OK</span></div>
-                </div>
-                <div style="font-size:12px;color:#94a3b8;">OPB Trading System • 2026 Production Tier</div>
-            </div>
-        </body>
-        </html>
-        """
+        from core.notifications.rich_signal_formatter import RichSignalFormatter
+
+        canonical_test = RichSignalFormatter.build_canonical_event_notification(
+            notification_type="SMTP_DIAGNOSTIC_TEST",
+            severity="SUCCESS",
+            status="SMTP TLS CONNECTED OK",
+            category_label="ADMIN DIAGNOSTICS • EMAIL TRANSPORT",
+            title="OPB Signal Notification Delivery Test",
+            subtitle=f"Live SMTP credential & multi-recipient routing verification ({time_str})",
+            summary=(
+                "This is a live diagnostic notification verifying your OPB SMTP credentials, "
+                "TLS transport security, and multi-recipient institutional routing."
+            ),
+            primary_icon="⚡",
+            key_values=[
+                {"label": "Timestamp (IST)", "value": time_str, "mono": True},
+                {"label": "SMTP Host / Port", "value": f"{smtp_host}:{smtp_port}", "mono": True},
+                {"label": "Sender Identity", "value": email_user, "mono": True},
+                {"label": "Target Recipients", "value": ", ".join(recipients), "mono": True},
+                {"label": "Transport Status", "value": "SMTP TLS Connected OK", "mono": True, "accent": "#34d399"},
+            ],
+            primary_action={"label": "Open Admin Configuration", "url": "/admin/config"},
+            secondary_action={"label": "Open Signal Radar", "url": "/signals"},
+            timestamp_str=time_str,
+            source="OPB Admin SMTP Diagnostic Service",
+            subject_override=f"⚡ [OPB LIVE TEST] Signal Notification Delivery Test ({now.strftime('%H:%M:%S')} IST)",
+        )
+        html_content = canonical_test["email_html"]
 
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"⚡ [OPB LIVE TEST] Signal Notification Delivery Test ({now.strftime('%H:%M:%S')} IST)"
+        msg["Subject"] = canonical_test["subject"]
         msg["From"] = f"OPB Trading Signals <{email_user}>"
         msg["To"] = ", ".join(recipients)
-        msg.attach(MIMEText(html_content, "html"))
+        msg.attach(MIMEText(canonical_test["plain_text"], "plain", "utf-8"))
+        msg.attach(MIMEText(html_content, "html", "utf-8"))
 
         try:
             with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
