@@ -392,6 +392,17 @@ class SignalOutcomeTracker:
         svc = SignalOutcomeDatasetService.get_instance(db_path=self._db_path)
         return svc.get_outcome_measurements(limit=limit, symbol=symbol, outcome=outcome)
 
+    def analyze_score_discrimination(
+        self,
+        category: str = "all",
+        include_seed_samples: bool = False,
+    ) -> dict[str, Any]:
+        """Perform statistical score bucket discrimination analysis (Phase C)."""
+        from core.signals.signal_score_discrimination import SignalScoreDiscriminationService
+        svc = SignalScoreDiscriminationService.get_instance(db_path=self._db_path)
+        report = svc.analyze_score_buckets(category=category, include_seed_samples=include_seed_samples)
+        return report.to_dict()
+
     def evaluate_bar(
         self,
         signal: dict[str, Any],

@@ -997,6 +997,17 @@ class SignalTracker:
         svc = SignalOutcomeDatasetService.get_instance(db_path=self._db_path)
         return svc.get_outcome_measurements(limit=limit, symbol=symbol, outcome=outcome)
 
+    def analyze_score_discrimination(
+        self,
+        category: str = "all",
+        include_seed_samples: bool = False,
+    ) -> dict[str, Any]:
+        """Perform statistical score bucket discrimination analysis (Phase C)."""
+        from core.signals.signal_score_discrimination import SignalScoreDiscriminationService
+        svc = SignalScoreDiscriminationService.get_instance(db_path=self._db_path)
+        report = svc.analyze_score_buckets(category=category, include_seed_samples=include_seed_samples)
+        return report.to_dict()
+
     def count_generated_today(self) -> int:
         """Return the number of real generated signals for the current IST date."""
         with self._io_lock:
