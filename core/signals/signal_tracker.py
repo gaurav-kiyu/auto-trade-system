@@ -386,6 +386,47 @@ class SignalTracker:
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_outcome_meas_outcome ON signal_outcome_measurements(outcome)")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_outcome_meas_calc_at ON signal_outcome_measurements(calculated_at)")
 
+                # 9. Forward Observations (Phase D)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS signal_forward_observations (
+                        forward_id TEXT PRIMARY KEY,
+                        signal_id TEXT UNIQUE NOT NULL,
+                        cohort_id TEXT NOT NULL,
+                        observation_source TEXT NOT NULL DEFAULT 'FORWARD_LIVE_SCAN',
+                        forward_cutoff_version TEXT NOT NULL DEFAULT 'PHASE_D_V1_20260926',
+                        registered_at TEXT NOT NULL,
+                        market_date TEXT NOT NULL,
+                        session_name TEXT DEFAULT '',
+                        score INTEGER NOT NULL,
+                        score_bucket TEXT NOT NULL,
+                        direction TEXT NOT NULL,
+                        symbol TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        entry_price REAL NOT NULL,
+                        stop_loss REAL NOT NULL,
+                        target_1 REAL NOT NULL,
+                        target_2 REAL NOT NULL,
+                        prediction_hash TEXT NOT NULL,
+                        snapshot_captured_at TEXT NOT NULL,
+                        observation_status TEXT NOT NULL,
+                        terminal_outcome TEXT,
+                        is_resolved INTEGER NOT NULL DEFAULT 0,
+                        resolution_timestamp TEXT,
+                        mfe_r REAL,
+                        mae_r REAL,
+                        realized_r REAL,
+                        data_quality_status TEXT NOT NULL DEFAULT 'VALID_DATA',
+                        observation_version TEXT NOT NULL DEFAULT 'FORWARD_OBSERVATION_V1',
+                        last_updated_at TEXT NOT NULL,
+                        FOREIGN KEY (signal_id) REFERENCES signal_prediction_snapshots(signal_id)
+                    )
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_fwd_obs_cohort ON signal_forward_observations(cohort_id)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_fwd_obs_bucket ON signal_forward_observations(score_bucket)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_fwd_obs_status ON signal_forward_observations(observation_status)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_fwd_obs_date ON signal_forward_observations(market_date)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_fwd_obs_resolved ON signal_forward_observations(is_resolved)")
+
                 # Check if empty, then seed sample historical data
                 cur.execute("SELECT COUNT(*) as cnt FROM system_signals")
                 row = cur.fetchone()
@@ -1007,6 +1048,42 @@ class SignalTracker:
         svc = SignalScoreDiscriminationService.get_instance(db_path=self._db_path)
         report = svc.analyze_score_buckets(category=category, include_seed_samples=include_seed_samples)
         return report.to_dict()
+
+    def register_forward_signal(
+        self,
+        signal_id: str,
+        cohort_id: str | None = None,
+        observation_source: str = "FORWARD_LIVE_SCAN",
+        cutoff_iso: str | None = None,
+        session_name: str = "",
+        registered_at: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Register a newly generated signal as a forward observation (Phase D)."""
+        from core.signals.signal_forward_observation import SignalForwardObservationService
+        svc = SignalForwardObservationService.get_instance(db_path=self._db_path)
+        return svc.register_forward_signal(
+            signal_id=signal_id,
+            cohort_id=cohort_id,
+            observation_source=observation_source,
+            cutoff_iso=cutoff_iso,
+            session_name=session_name,
+            registered_at=registered_at,
+        )
+
+    def sync_forward_outcomes(self, cohort_id: str | None = None, limit: int = 1000) -> int:
+        """Synchronize in-flight forward observations with Phase-B outcome measurements."""
+        from core.signals.signal_forward_observation import SignalForwardObservationService
+        svc = SignalForwardObservationService.get_instance(db_path=self._db_path)
+        return svc.sync_forward_outcomes(cohort_id=cohort_id, limit=limit)
+
+    def get_forward_observation_report(
+        self, market_date: str | None = None, cohort_id: str | None = None
+    ) -> dict[str, Any]:
+        """Generate deterministic daily forward observation report (Phase D)."""
+        from core.signals.signal_forward_observation import SignalForwardObservationService
+        svc = SignalForwardObservationService.get_instance(db_path=self._db_path)
+        rep = svc.generate_daily_observation_report(market_date=market_date, cohort_id=cohort_id)
+        return rep.to_dict()
 
     def count_generated_today(self) -> int:
         """Return the number of real generated signals for the current IST date."""
