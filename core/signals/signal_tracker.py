@@ -1085,6 +1085,20 @@ class SignalTracker:
         rep = svc.generate_daily_observation_report(market_date=market_date, cohort_id=cohort_id)
         return rep.to_dict()
 
+    def get_forward_monitor_summary(self, cohort_id: str | None = None) -> dict[str, Any]:
+        """Return operational forward monitoring summary (Phase D Ops)."""
+        from core.signals.signal_forward_monitor import SignalForwardMonitorService
+        svc = SignalForwardMonitorService.get_instance(db_path=self._db_path)
+        return svc.get_forward_summary(cohort_id=cohort_id)
+
+    def build_forward_daily_report(
+        self, market_date: str | None = None, cohort_id: str | None = None
+    ) -> str:
+        """Build deterministic terminal/CI forward observation and readiness report (Phase D Ops)."""
+        from core.signals.signal_forward_monitor import SignalForwardMonitorService
+        svc = SignalForwardMonitorService.get_instance(db_path=self._db_path)
+        return svc.build_daily_report(market_date=market_date, cohort_id=cohort_id)
+
     def count_generated_today(self) -> int:
         """Return the number of real generated signals for the current IST date."""
         with self._io_lock:
