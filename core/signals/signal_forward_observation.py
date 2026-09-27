@@ -365,6 +365,18 @@ class SignalForwardObservationService:
             finally:
                 conn.close()
 
+    def get_forward_observation(self, signal_id: str) -> dict[str, Any] | None:
+        """Retrieve a forward observation record by signal_id."""
+        with self._io_lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("SELECT * FROM signal_forward_observations WHERE signal_id = ?", (signal_id,))
+                row = cur.fetchone()
+                return dict(row) if row else None
+            finally:
+                conn.close()
+
     def sync_forward_outcomes(self, cohort_id: str | None = None, limit: int = 1000) -> int:
         """Synchronize in-flight forward observations with Phase-B outcome measurements.
 

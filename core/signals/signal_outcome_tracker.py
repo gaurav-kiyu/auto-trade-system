@@ -998,6 +998,12 @@ class SignalOutcomeTracker:
             finally:
                 conn.close()
 
+        # --- Automatic Forward Outcome Synchronization (Phase D.3) ---
+        try:
+            self.sync_forward_outcomes()
+        except Exception as sync_ex:
+            _log.error("Failed to automatically synchronize forward outcomes: %s", sync_ex, exc_info=True)
+
         return {"checked": checked, "resolved": resolved, "expired": expired}
 
     def check_signal_expiry(
@@ -1304,7 +1310,7 @@ class SignalOutcomeTracker:
                 cur.execute("SELECT count(*) as cnt FROM signal_outcome_events")
                 events_after = cur.fetchone()["cnt"]
 
-                return {
+                result = {
                     "status": "ok",
                     "transitioned": transitioned,
                     "skipped": len(candidates_to_expire) - transitioned,
@@ -1317,6 +1323,15 @@ class SignalOutcomeTracker:
                 }
             finally:
                 conn.close()
+
+        # --- Automatic Forward Outcome Synchronization (Phase D.3) ---
+        if result.get("transitioned", 0) > 0:
+            try:
+                self.sync_forward_outcomes()
+            except Exception as sync_ex:
+                _log.error("Failed to automatically synchronize forward outcomes after expiry: %s", sync_ex, exc_info=True)
+
+        return result
 
     @classmethod
     def sweep_stale_signals(

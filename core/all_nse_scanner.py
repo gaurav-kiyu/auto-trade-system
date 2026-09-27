@@ -89,6 +89,9 @@ class ScannedStockSignal:
     ml_probability: float = 0.5
     score_components: dict[str, int] = field(default_factory=dict)
     timestamp: str = field(default_factory=lambda: now_ist().isoformat())
+    atr: float | None = None
+    vol_ratio: float | None = None
+    features: dict[str, Any] = field(default_factory=dict)
 
 
 class AllNSEScanner:
@@ -586,6 +589,19 @@ class AllNSEScanner:
             self._record_evaluation_state(sym, "SIGNAL_QUALIFIED", f"Qualified {sig.direction} signal: score {sig.score} ({sig.tier})", category=category, score=sig.score)
             with self._stats_lock:
                 self._scan_stats["accepted"] += 1
+            feat_dict: dict[str, Any] = {
+                "rsi": float(sig.rsi),
+                "adx": float(sig.adx),
+                "vwap": float(sig.vwap),
+                "price": float(sig.price),
+            }
+            atr_val = getattr(sig, "atr", None)
+            if atr_val is not None:
+                feat_dict["atr"] = float(atr_val)
+            vol_val = getattr(sig, "vol_ratio", None)
+            if vol_val is not None:
+                feat_dict["vol_ratio"] = float(vol_val)
+
             return ScannedStockSignal(
                 symbol=sym,
                 company_name=stock_info.get("name", sym),
@@ -602,6 +618,9 @@ class AllNSEScanner:
                 confidence=sig.confidence,
                 ml_probability=sig.ml_probability,
                 score_components=dict(sig.score_components),
+                atr=float(atr_val) if atr_val is not None else None,
+                vol_ratio=float(vol_val) if vol_val is not None else None,
+                features=feat_dict,
             )
         except Exception as ex:
             with self._stats_lock:
@@ -1000,6 +1019,27 @@ class AllNSEScanner:
         try:
             from core.signals.signal_tracker import SignalTracker
             tracker = SignalTracker.get_instance()
+
+            # Contemporaneous point-in-time features for Phase-A prediction snapshot
+            signal_features = dict(signal.features) if getattr(signal, "features", None) else {
+                "rsi": float(signal.rsi),
+                "adx": float(signal.adx),
+                "vwap": float(signal.vwap),
+                "price": float(signal.price),
+            }
+            if getattr(signal, "atr", None) is not None and "atr" not in signal_features:
+                signal_features["atr"] = float(signal.atr)
+            if getattr(signal, "vol_ratio", None) is not None and "vol_ratio" not in signal_features:
+                signal_features["vol_ratio"] = float(signal.vol_ratio)
+
+            # Defensive outcome exclusion: never leak outcome or post-signal metrics
+            forbidden_outcome_keys = {
+                "outcome", "first_touch", "target_1_hit", "target_2_hit", "stop_loss_hit",
+                "mfe_r", "mae_r", "realized_r", "is_resolved", "resolution_time",
+                "pnl_pct", "exit_price", "exit_at", "terminal_outcome",
+            }
+            signal_features = {k: v for k, v in signal_features.items() if k not in forbidden_outcome_keys and not k.startswith("outcome")}
+
             signal_id = tracker.record_generated_signal({
                 "symbol": signal.symbol,
                 "company_name": signal.company_name,
@@ -1013,6 +1053,7 @@ class AllNSEScanner:
                 "confidence": signal.confidence,
                 "ml_probability": signal.ml_probability,
                 "score_components": signal.score_components,
+                "features": signal_features,
                 "tier": signal.tier,
                 "regime": signal.regime,
                 "category": category,
@@ -1185,6 +1226,25 @@ class AllNSEScanner:
             fut_direction = "BUY" if parent_signal.direction in ("CALL", "BUY") else "SELL"
             fut_symbol = contract.canonical_symbol
 
+            # Inherit parent's point-in-time features
+            fut_features = dict(parent_signal.features) if getattr(parent_signal, "features", None) else {
+                "rsi": float(parent_signal.rsi),
+                "adx": float(parent_signal.adx),
+                "vwap": float(parent_signal.vwap),
+                "price": float(parent_signal.price),
+            }
+            if getattr(parent_signal, "atr", None) is not None and "atr" not in fut_features:
+                fut_features["atr"] = float(parent_signal.atr)
+            if getattr(parent_signal, "vol_ratio", None) is not None and "vol_ratio" not in fut_features:
+                fut_features["vol_ratio"] = float(parent_signal.vol_ratio)
+
+            forbidden_outcome_keys = {
+                "outcome", "first_touch", "target_1_hit", "target_2_hit", "stop_loss_hit",
+                "mfe_r", "mae_r", "realized_r", "is_resolved", "resolution_time",
+                "pnl_pct", "exit_price", "exit_at", "terminal_outcome",
+            }
+            fut_features = {k: v for k, v in fut_features.items() if k not in forbidden_outcome_keys and not k.startswith("outcome")}
+
             fut_signal = ScannedStockSignal(
                 symbol=fut_symbol,
                 company_name=f"{parent_signal.symbol} Futures ({fut_symbol})",
@@ -1201,6 +1261,9 @@ class AllNSEScanner:
                 confidence=parent_signal.confidence,
                 ml_probability=parent_signal.ml_probability,
                 score_components=dict(parent_signal.score_components),
+                atr=getattr(parent_signal, "atr", None),
+                vol_ratio=getattr(parent_signal, "vol_ratio", None),
+                features=fut_features,
             )
 
             # Persist and check recipient eligibility
@@ -1246,6 +1309,7 @@ class AllNSEScanner:
                 "confidence": fut_signal.confidence,
                 "ml_probability": fut_signal.ml_probability,
                 "score_components": fut_signal.score_components,
+                "features": fut_features,
                 "tier": fut_signal.tier,
                 "regime": fut_signal.regime,
                 "category": fut_category,

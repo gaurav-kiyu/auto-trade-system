@@ -536,6 +536,7 @@ class SignalTracker:
         before persistence/delivery.  The opportunity key is persisted so
         deduplication survives process restarts.
         """
+        persisted_sig_id = ""
         with self._io_lock:
             conn = self._get_conn()
             try:
@@ -858,12 +859,30 @@ class SignalTracker:
                 conn.commit()
                 _log.info("[SIGNAL_TRACKER] Logged signal %s for %s (%s, Recipients: %d)",
                           sig_id, sym, cat, recipients_count)
-                return sig_id
+                persisted_sig_id = sig_id
             except Exception as ex:
                 _log.error("Failed to record generated signal: %s", ex)
                 return ""
             finally:
                 conn.close()
+
+        if persisted_sig_id:
+            # --- Automatic Forward Observation Registration (Phase D.1) ---
+            try:
+                from core.signals.signal_forward_observation import SignalForwardObservationService
+                fwd_service = SignalForwardObservationService.get_instance(db_path=self._db_path)
+                obs_source = str(signal_dict.get("observation_source") or "FORWARD_LIVE_SCAN")
+                fwd_obs = fwd_service.register_forward_signal(persisted_sig_id, observation_source=obs_source)
+                if fwd_obs:
+                    _log.info("[SIGNAL_TRACKER] Registered forward observation %s for signal %s",
+                              fwd_obs.get("forward_id"), persisted_sig_id)
+                else:
+                    _log.debug("[SIGNAL_TRACKER] Signal %s not registered in forward cohort (rejected by policy/cutoff)", persisted_sig_id)
+            except Exception as fwd_ex:
+                _log.error("[SIGNAL_TRACKER] Forward observation registration failed for signal %s: %s",
+                           persisted_sig_id, fwd_ex, exc_info=True)
+
+        return persisted_sig_id
 
     def get_active_signal_id(
         self, opportunity_key: str, cooldown_secs: int = 900
