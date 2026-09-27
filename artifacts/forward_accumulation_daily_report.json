@@ -1,0 +1,132 @@
+{
+  "anomaly_bucket_count": 0,
+  "bucket_counts": {
+    "70-74": {
+      "observing": 0,
+      "registered": 0,
+      "resolved": 0
+    },
+    "75-79": {
+      "observing": 0,
+      "registered": 0,
+      "resolved": 0
+    },
+    "80-84": {
+      "observing": 0,
+      "registered": 0,
+      "resolved": 0
+    },
+    "85+": {
+      "observing": 0,
+      "registered": 0,
+      "resolved": 0
+    }
+  },
+  "data_quality": {
+    "dq_error_rate": 0.0,
+    "dq_gate_passed": true,
+    "stale_rate": 0.0
+  },
+  "forward_counts": {
+    "ambiguous": 0,
+    "invalidated": 0,
+    "no_data": 0,
+    "observing": 0,
+    "registered": 0,
+    "resolved": 0,
+    "stale": 0,
+    "timeout": 0
+  },
+  "forward_cutoff": "2026-09-26T00:00:00+05:30",
+  "forward_cutoff_version": "PHASE_D_V1_20260926",
+  "gates": {
+    "G1": {
+      "actual": {
+        "70-74": 0,
+        "75-79": 0,
+        "80-84": 0,
+        "85+": 0
+      },
+      "gate_id": "G1",
+      "gate_name": "Active Bucket Sample Maturity (n_resolved >= 100)",
+      "passed": false,
+      "reason": "No active bucket currently has observations; therefore no bucket has yet demonstrated >= 100 resolved observations.",
+      "required": 100,
+      "status": "NOT SATISFIED / PENDING"
+    },
+    "G2": {
+      "actual": 0,
+      "gate_id": "G2",
+      "gate_name": "Overall System Sample Size (N_resolved >= 300)",
+      "passed": false,
+      "reason": "Total resolved observations (0) < 300 requirement.",
+      "required": 300,
+      "status": "NOT SATISFIED"
+    },
+    "G3": {
+      "actual": 0,
+      "gate_id": "G3",
+      "gate_name": "Multi-Period Longitudinal Coverage (>= 2 months with >= 30 resolved)",
+      "passed": false,
+      "reason": "Qualifying calendar months with >= 30 resolved (0) < 2 requirement.",
+      "required": 2,
+      "status": "NOT SATISFIED"
+    },
+    "G4": {
+      "actual": {
+        "dq_error_rate": 0.0,
+        "stale_rate": 0.0
+      },
+      "gate_id": "G4",
+      "gate_name": "Data Quality & Stale Backlog Hygiene (DQ <= 5%, Stale <= 2%)",
+      "passed": true,
+      "reason": "Data quality error rate and stale rate within permissible boundaries.",
+      "required": {
+        "max_dq_error_rate": 0.05,
+        "max_stale_rate": 0.02
+      },
+      "status": "PASS"
+    },
+    "overall": {
+      "blocking_gates": [
+        "G1",
+        "G2",
+        "G3"
+      ],
+      "explanation": "Zero forward observations registered. Collecting forward cohort data. Live trading remains locked out.",
+      "is_ready_for_review": false,
+      "status": "INSUFFICIENT_SAMPLE"
+    }
+  },
+  "integrity": {
+    "duplicate_signal_ids": 0,
+    "feature_leakage_count": 0,
+    "historical_contamination_count": 0,
+    "is_clean": true,
+    "pre_cutoff_count": 0,
+    "probability_leakage_count": 0,
+    "score_conversion_count": 0,
+    "seed_contamination_count": 0,
+    "synthetic_count": 0,
+    "violations": []
+  },
+  "is_trading_day": false,
+  "market_date": "2026-09-27",
+  "operational_explanation": "NSE market is currently closed (WEEKEND_CLOSED, Sunday). Awaiting next genuine market session to accumulate forward cohort.",
+  "operational_state": "WAITING_FOR_MARKET_SESSION",
+  "safety": {
+    "broker_execution_calls": 0,
+    "calibration_status": "UNCALIBRATED",
+    "deployment_status": "OFFLINE / LOCAL ONLY",
+    "execution_mode": "SIGNAL_ONLY",
+    "full_auto_allowed": false,
+    "is_safe": true,
+    "live_orders_count": 0,
+    "live_trading_lockout": true,
+    "model_training_status": "BLOCKED / NONE",
+    "signal_only": true,
+    "violations": []
+  },
+  "session_status": "WEEKEND_CLOSED",
+  "timestamp": "2026-09-27T13:01:36.832032"
+}
