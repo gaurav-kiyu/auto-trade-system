@@ -550,7 +550,8 @@ class TestSignalScoreDiscrimination:
         assert hasattr(so_tracker, "analyze_score_discrimination")
 
     # 25. Live-trading safety invariants remain unchanged
-    def test_25_live_trading_safety_invariants_intact(self):
+    def test_25_live_trading_safety_invariants_intact(self, monkeypatch):
+        monkeypatch.delenv("OPBUYING_SL_PCT", raising=False)
         from core.config_bootstrap import get_effective_config
         cfg = get_effective_config()
         assert cfg.get("EXECUTION_MODE") == "SIGNAL_ONLY"

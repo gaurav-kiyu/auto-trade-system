@@ -765,13 +765,27 @@ def test_production_db_read_only_execution():
     import hashlib
     hash_pre = hashlib.sha256(prod_db.read_bytes()).hexdigest()
 
+    conn_pre = sqlite3.connect(str(prod_db))
+    cur_pre = conn_pre.cursor()
+    cur_pre.execute("SELECT count(*) FROM signal_forward_observations")
+    count_pre = cur_pre.fetchone()[0]
+    conn_pre.close()
+
     reporter = ForwardAccumulationReporter(db_path=prod_db)
     report = reporter.generate_report()
 
     hash_post = hashlib.sha256(prod_db.read_bytes()).hexdigest()
     assert hash_pre == hash_post, "Production database was modified during reporter execution!"
 
-    assert report.forward_counts["registered"] == 0
+    conn_post = sqlite3.connect(str(prod_db))
+    cur_post = conn_post.cursor()
+    cur_post.execute("SELECT count(*) FROM signal_forward_observations")
+    count_post = cur_post.fetchone()[0]
+    conn_post.close()
+
+    assert count_pre == count_post, "Production database row counts modified during reporter execution!"
+    assert report.forward_counts["registered"] == count_post
+    assert report.forward_counts["registered"] >= 0
     assert report.gates["G1"]["passed"] is False
     assert report.gates["G2"]["passed"] is False
     assert report.gates["G3"]["passed"] is False

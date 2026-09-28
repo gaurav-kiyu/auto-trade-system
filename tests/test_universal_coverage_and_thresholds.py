@@ -81,6 +81,15 @@ from core.pure_index_signal import classify_strength
 from core.signals.signal_tracker import SignalTracker
 
 
+@pytest.fixture(autouse=True)
+def _isolate_signal_tracker_for_universal_coverage(tmp_path: Path):
+    test_db = tmp_path / "test_signals_history.db"
+    tracker = SignalTracker(db_path=test_db)
+    with patch.object(SignalTracker, "get_instance", return_value=tracker):
+        yield
+    SignalTracker.reset_instance()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. test_index_futures_full_coverage
 # ─────────────────────────────────────────────────────────────────────────────
@@ -846,9 +855,10 @@ def test_signal_lineage():
 # ─────────────────────────────────────────────────────────────────────────────
 # 42. test_duplicate_futures_signal_prevention
 # ─────────────────────────────────────────────────────────────────────────────
-def test_duplicate_futures_signal_prevention():
+def test_duplicate_futures_signal_prevention(tmp_path: Path):
     """Verify duplicate futures signals for same contract within cooldown are suppressed."""
-    tracker = SignalTracker.get_instance()
+    test_db = tmp_path / "test_dup_futures.db"
+    tracker = SignalTracker(db_path=test_db)
     opp_key = f"TEST-DUP-FUT-{time.time()}"
     sig_data = {
         "symbol": "SBIN26SEPFUT",
