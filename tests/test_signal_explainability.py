@@ -106,3 +106,48 @@ def test_analytics_attaches_score_components(temp_tracker):
     found = next((s for s in analytics["signals"] if s["signal_id"] == sig_id), None)
     assert found is not None
     assert found["score_components"] == components
+
+    # Verify category breakdown includes active, expired, ambiguous
+    cat_entry = analytics["category_breakdown"]["LARGE_CAP_EQUITY"]
+    assert "active" in cat_entry
+    assert "expired" in cat_entry
+    assert "ambiguous" in cat_entry
+    assert cat_entry["total"] == cat_entry["active"] + cat_entry["t1_hits"] + cat_entry["sl_hits"] + cat_entry["expired"] + cat_entry["ambiguous"]
+
+
+def test_api_signals_explain_alias():
+    """Verify /api/signals/{signal_id}/explain alias returns 404 cleanly when missing."""
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from unittest.mock import MagicMock
+    from core.enterprise_dashboard.routes.admin import register_admin_routes
+
+    app = FastAPI()
+
+    class MockUser:
+        username = "admin"
+        role = "super_admin"
+
+    class MockAuthDeps:
+        def require_auth(self):
+            return lambda: MockUser()
+
+        def require_permission(self, perm):
+            return lambda: MockUser()
+
+        def require_role(self, role):
+            return lambda: MockUser()
+
+    class MockDashboard:
+        _auth_deps = MockAuthDeps()
+        _cfg = {}
+        _auth = MagicMock()
+        _db_path = ":memory:"
+
+    register_admin_routes(app, MockDashboard(), lambda: None, lambda: None)
+    client = TestClient(app)
+
+    res = client.get("/api/signals/NONEXISTENT_SIG/explain")
+    assert res.status_code == 404
+    assert res.json() == {"error": "Signal explanation not found"}
+

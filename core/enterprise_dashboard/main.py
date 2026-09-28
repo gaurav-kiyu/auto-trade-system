@@ -1710,7 +1710,14 @@ class EnterpriseDashboard:
             t["is_demo_data"] = True
         return demo_trades[-n:]
 
-    _HEALTH_STATUS_MAP = {"OK": "healthy", "WARN": "degraded", "FAIL": "down"}
+    _HEALTH_STATUS_MAP = {
+        "OK": "healthy",
+        "WARN": "degraded",
+        "FAIL": "down",
+        "INSUFFICIENT_DATA": "insufficient_data",
+        "INACTIVE": "inactive",
+        "INFO": "info",
+    }
 
     async def _check_health(self) -> dict:
         """Real system health, via core.health_checker.run_full_health_check().
@@ -1732,10 +1739,19 @@ class EnterpriseDashboard:
             from core.health_checker import run_full_health_check
             report = run_full_health_check(cfg=dict(self._cfg), db_path=self._db_path)
             now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+
+            def _resolve_check_status(result: Any) -> str:
+                msg = (result.message or "").lower()
+                if result.status == "INSUFFICIENT_DATA" or "no ml predictions recorded yet" in msg or "insufficient data" in msg:
+                    return "insufficient_data"
+                if result.status == "INACTIVE" or ("no trades in last" in msg and "inactivity" in msg):
+                    return "inactive"
+                return self._HEALTH_STATUS_MAP.get(result.status, "down")
+
             checks = [
                 {
                     "component": f"{r.category}: {r.name}",
-                    "status": self._HEALTH_STATUS_MAP.get(r.status, "down"),
+                    "status": _resolve_check_status(r),
                     "detail": r.message or (f"value={r.value}" if r.value is not None else r.status),
                     "last_check": now_str,
                 }

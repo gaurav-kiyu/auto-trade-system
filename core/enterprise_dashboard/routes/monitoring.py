@@ -638,7 +638,16 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
         from core.billing.upi_billing_engine import UpiBillingEngine
         body = await request.json()
         pid = body.get("plan_id", "plan_options_vip")
-        ref = body.get("ref", "UPI-DIRECT")
+        ref = (body.get("ref") or "").strip()
+        if not ref or ref == "UPI-DIRECT":
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error_code": "UTR_REQUIRED",
+                    "message": "Valid UPI Transaction ID / UTR is required to record payment confirmation.",
+                },
+            )
         result = UpiBillingEngine.confirm_and_provision_user(
             username=user.username, plan_id=pid, transaction_ref=ref,
         )

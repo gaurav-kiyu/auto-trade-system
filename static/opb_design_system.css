@@ -1535,7 +1535,7 @@ table thead tr:nth-child(2) th,
     position: fixed;
     top: 1.5rem;
     right: 1.5rem;
-    z-index: 999999;
+    z-index: 10000001;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -1697,3 +1697,29 @@ table thead tr:nth-child(2) th,
     font-feature-settings: "tnum" 1, "zero" 1;
     color: var(--text-primary, #f8fafc);
 }
+
+/* System Health & Status Badges (Theme-Aware) */
+.badge-insufficient_data,
+.badge-inactive,
+.badge-info,
+.badge-standby {
+    background: rgba(56, 189, 248, 0.12) !important;
+    color: var(--accent-color, #38bdf8) !important;
+    border: 1px solid rgba(56, 189, 248, 0.25) !important;
+}
+
+.opb-sample-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0.65rem;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #fbbf24;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+

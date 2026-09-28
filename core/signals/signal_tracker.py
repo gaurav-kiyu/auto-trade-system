@@ -1398,13 +1398,28 @@ class SignalTracker:
                 for r in rows:
                     c = r["category"]
                     if c not in cat_breakdown:
-                        cat_breakdown[c] = {"total": 0, "t1_hits": 0, "sl_hits": 0, "avg_score": 0, "sum_score": 0}
+                        cat_breakdown[c] = {
+                            "total": 0,
+                            "t1_hits": 0,
+                            "sl_hits": 0,
+                            "active": 0,
+                            "expired": 0,
+                            "ambiguous": 0,
+                            "avg_score": 0,
+                            "sum_score": 0,
+                        }
                     cat_breakdown[c]["total"] += 1
                     cat_breakdown[c]["sum_score"] += r["score"]
                     if r["status"] in ("TARGET_1_HIT", "TARGET_2_HIT"):
                         cat_breakdown[c]["t1_hits"] += 1
                     elif r["status"] == "SL_HIT":
                         cat_breakdown[c]["sl_hits"] += 1
+                    elif r["status"] == "EXPIRED":
+                        cat_breakdown[c]["expired"] += 1
+                    elif r["status"] == "AMBIGUOUS" or "AMBIGUOUS" in str(r.get("first_touch") or ""):
+                        cat_breakdown[c]["ambiguous"] += 1
+                    else:
+                        cat_breakdown[c]["active"] += 1
 
                 for c, stats in cat_breakdown.items():
                     stats["avg_score"] = round(stats["sum_score"] / max(stats["total"], 1), 1)

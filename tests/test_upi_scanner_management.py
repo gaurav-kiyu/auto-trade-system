@@ -605,3 +605,58 @@ def test_obs01_to_obs04_ui_and_csrf_contracts():
     design_css = (root / "static" / "opb_design_system.css").read_text(encoding="utf-8")
     assert ".opb-nav-item:not(.active):hover" in design_css
     assert ".opb-modal-close-btn" in design_css
+
+    # UPI & Pricing Remediation
+    pricing_html = (root / "templates" / "enterprise" / "pricing_plans.html").read_text(encoding="utf-8")
+    assert "paymentModalAlert" in pricing_html
+    assert "adminUpiSaveAlert" in pricing_html
+    assert "* (Required)" in pricing_html
+    assert "var(--btn-primary-text, #0f172a)" in pricing_html
+
+
+def test_upi_payment_confirmation_requires_utr():
+    """Verify /api/billing/confirm-upi-payment strictly requires valid UTR reference."""
+    from fastapi import FastAPI, Depends
+    from fastapi.testclient import TestClient
+    from unittest.mock import MagicMock
+    from core.enterprise_dashboard.routes.monitoring import register_monitoring_routes
+
+    app = FastAPI()
+
+    class MockUser:
+        username = "test_trader"
+        role = "operator"
+
+    class MockDeps:
+        def require_auth(self):
+            return MockUser()
+
+        def require_auth_optional(self):
+            return MockUser()
+
+        def require_role(self, *roles):
+            return lambda: MockUser()
+
+    class MockDashboard:
+        _auth_deps = MockDeps()
+        _cfg = {}
+        _auth = MagicMock()
+        _db_path = ":memory:"
+
+    dash = MockDashboard()
+    register_monitoring_routes(app, dash, lambda: None, lambda: None)
+    client = TestClient(app)
+
+    # 1. Blank ref returns 400
+    res_blank = client.post("/api/billing/confirm-upi-payment", json={"plan_id": "plan_options_vip", "ref": ""})
+    assert res_blank.status_code == 400
+    data_blank = res_blank.json()
+    assert data_blank["success"] is False
+    assert data_blank["error_code"] == "UTR_REQUIRED"
+
+    # 2. UPI-DIRECT default placeholder returns 400
+    res_direct = client.post("/api/billing/confirm-upi-payment", json={"plan_id": "plan_options_vip", "ref": "UPI-DIRECT"})
+    assert res_direct.status_code == 400
+    assert res_direct.json()["error_code"] == "UTR_REQUIRED"
+
+

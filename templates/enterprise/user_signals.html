@@ -114,6 +114,10 @@
 <div class="opb-signal-metric-value" style="color:var(--accent-color, #0284c7);"><span id="totalCount">0</span> <span style="font-size:0.82rem;font-weight:700;color:var(--text-secondary, #64748b);">Signals</span></div>
 </div>
 <div class="opb-signal-metric-card">
+<div class="opb-signal-metric-label"><i class="fas fa-clock" style="color:var(--accent-color, #0284c7);"></i> Active / Open:</div>
+<div class="opb-signal-metric-value" id="metricActive" style="color:var(--accent-color, #0284c7);">0</div>
+</div>
+<div class="opb-signal-metric-card">
 <div class="opb-signal-metric-label"><i class="fas fa-check-circle" style="color:var(--success-color, #16a34a);"></i> Target 1 Hit:</div>
 <div class="opb-signal-metric-value" id="metricT1Hit" style="color:var(--success-color, #16a34a);">0</div>
 </div>
@@ -124,6 +128,14 @@
 <div class="opb-signal-metric-card">
 <div class="opb-signal-metric-label"><i class="fas fa-shield-alt" style="color:var(--danger-color, #dc2626);"></i> Stop Loss Hit:</div>
 <div class="opb-signal-metric-value" id="metricSlHit" style="color:var(--danger-color, #dc2626);">0</div>
+</div>
+<div class="opb-signal-metric-card">
+<div class="opb-signal-metric-label"><i class="fas fa-hourglass-end" style="color:var(--text-muted, #94a3b8);"></i> Expired:</div>
+<div class="opb-signal-metric-value" id="metricExpired" style="color:var(--text-muted, #94a3b8);">0</div>
+</div>
+<div class="opb-signal-metric-card">
+<div class="opb-signal-metric-label"><i class="fas fa-question-circle" style="color:var(--warning-color, #d97706);"></i> Ambiguous:</div>
+<div class="opb-signal-metric-value" id="metricAmbiguous" style="color:var(--warning-color, #d97706);">0</div>
 </div>
 </div>
 <!-- Signals Feed Table -->
@@ -281,12 +293,18 @@
             if (!data) return;
 
             document.getElementById('totalCount').textContent = data.total_received ?? 0;
+            const activeEl = document.getElementById('metricActive');
+            if (activeEl) activeEl.textContent = data.active_count ?? 0;
             const t1El = document.getElementById('metricT1Hit');
             if (t1El) t1El.textContent = data.target_1_hit ?? 0;
             const t2El = document.getElementById('metricT2Hit');
             if (t2El) t2El.textContent = data.target_2_hit ?? 0;
             const slEl = document.getElementById('metricSlHit');
             if (slEl) slEl.textContent = data.stop_loss_hit ?? 0;
+            const expEl = document.getElementById('metricExpired');
+            if (expEl) expEl.textContent = data.expired_count ?? 0;
+            const ambEl = document.getElementById('metricAmbiguous');
+            if (ambEl) ambEl.textContent = data.ambiguous_count ?? 0;
 
             document.getElementById('demoDataBanner').style.display = data.contains_demo_data ? 'block' : 'none';
 

@@ -45,7 +45,7 @@
                 <div style="font-size:0.75rem;color:var(--text-muted, #94a3b8);">Upload custom QR scanner, configure VPA ID, and manage instant subscriber checkout settings.</div>
             </div>
         </div>
-        <button id="btnOpenSuperAdminModal" class="btn-pay" style="width:auto;padding:0.45rem 1rem;background:var(--accent-color, #38bdf8);color:#0f172a;font-weight:700;" type="button">
+        <button id="btnOpenSuperAdminModal" class="btn-pay" style="width:auto;padding:0.45rem 1rem;background:var(--accent-color, #38bdf8);color:var(--btn-primary-text, #0f172a);font-weight:700;" type="button">
             <i class="fas fa-sliders-h"></i> Customize Scanner &amp; VPA
         </button>
     </div>
@@ -107,12 +107,15 @@
             </button>
 
             <!-- Transaction Reference Input -->
-            <div style="text-align:left;margin-bottom:1rem;">
-                <label for="txnRefInput" style="display:block;font-size:0.72rem;color:var(--text-muted, #94a3b8);margin-bottom:0.25rem;">UPI Transaction ID / UTR (Optional for instant record):</label>
-                <input id="txnRefInput" placeholder="e.g. 423456789012" style="width:100%;padding:0.5rem 0.75rem;background:var(--bg-secondary, #080b10);border:1px solid var(--border-color, #1e293b);border-radius:0.4rem;color:var(--text-primary, #fff);font-size:0.82rem;font-family:monospace;" type="text" />
+            <div style="text-align:left;margin-bottom:0.85rem;">
+                <label for="txnRefInput" style="display:block;font-size:0.75rem;color:var(--text-secondary, #cbd5e1);font-weight:600;margin-bottom:0.35rem;">UPI Transaction ID / UTR <span style="color:var(--danger-color, #ef4444);">* (Required)</span>:</label>
+                <input id="txnRefInput" placeholder="Enter 12-digit UTR from payment receipt" required style="width:100%;padding:0.55rem 0.75rem;background:var(--bg-secondary, #080b10);border:1px solid var(--border-color, #1e293b);border-radius:0.4rem;color:var(--text-primary, #fff);font-size:0.82rem;font-family:monospace;" type="text" />
             </div>
 
-            <button class="btn-pay" id="cspfix-2" style="background:#22c55e;" type="button">✅ Submit Payment Confirmation</button>
+            <!-- In-Modal Feedback Alert Box -->
+            <div id="paymentModalAlert" style="display:none;font-size:0.75rem;padding:0.6rem 0.85rem;border-radius:0.45rem;margin-bottom:0.85rem;text-align:left;line-height:1.4;"></div>
+
+            <button class="btn-pay" id="cspfix-2" style="background:var(--success-color, #22c55e);color:#ffffff;font-weight:700;" type="button">✅ Submit Payment Confirmation</button>
         </div>
     </div>
 
@@ -155,9 +158,10 @@
                 <input id="adminPayeeNameInput" placeholder="e.g. OPB Trading Technologies" style="width:100%;padding:0.5rem 0.75rem;background:var(--bg-secondary, #080b10);border:1px solid var(--border-color, #1e293b);border-radius:0.4rem;color:var(--text-primary, #fff);font-size:0.82rem;" type="text" />
             </div>
 
-            <button id="btnSaveUpiConfig" class="btn-pay" style="background:var(--accent-color, #38bdf8);color:#0f172a;font-weight:700;margin-bottom:1.25rem;" type="button">
+            <button id="btnSaveUpiConfig" class="btn-pay" style="background:var(--accent-color, #38bdf8);color:var(--btn-primary-text, #0f172a);font-weight:700;margin-bottom:0.75rem;" type="button">
                 💾 Save UPI Details
             </button>
+            <div id="adminUpiSaveAlert" style="display:none;font-size:0.75rem;padding:0.5rem 0.75rem;border-radius:0.35rem;margin-bottom:1rem;line-height:1.4;"></div>
 
             <hr style="border:none;border-top:1px solid var(--border-color, #1e293b);margin:0.85rem 0 1rem 0;" />
 
@@ -168,10 +172,10 @@
                 <input id="adminQrFileInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="width:100%;font-size:0.78rem;color:var(--text-muted, #94a3b8);margin-bottom:0.75rem;" type="file" />
 
                 <div style="display:flex;gap:0.5rem;">
-                    <button id="btnUploadScanner" class="btn-pay" style="flex:1;background:#22c55e;" type="button" disabled>
+                    <button id="btnUploadScanner" class="btn-pay" style="flex:1;background:var(--success-color, #22c55e);color:#ffffff;font-weight:600;" type="button" disabled>
                         📤 Upload Image
                     </button>
-                    <button id="btnDeleteScanner" class="btn-pay" style="flex:1;background:#ef4444;" type="button">
+                    <button id="btnDeleteScanner" class="btn-pay" style="flex:1;background:var(--danger-color, #ef4444);color:#ffffff;font-weight:600;" type="button">
                         🗑️ Use Dynamic QR
                     </button>
                 </div>
@@ -273,26 +277,75 @@
 
         async function confirmPayment() {
             if (!currentSelectedPlan) return;
-            const txnRef = (document.getElementById('txnRefInput')?.value || '').trim();
+            const txnRefInput = document.getElementById('txnRefInput');
+            const txnRef = (txnRefInput?.value || '').trim();
+            const alertBox = document.getElementById('paymentModalAlert');
+
+            if (!txnRef) {
+                if (txnRefInput) {
+                    txnRefInput.style.borderColor = 'var(--danger-color, #ef4444)';
+                    txnRefInput.focus();
+                }
+                if (alertBox) {
+                    alertBox.style.display = 'block';
+                    alertBox.style.background = 'rgba(239,68,68,0.15)';
+                    alertBox.style.color = 'var(--danger-color, #ef4444)';
+                    alertBox.style.border = '1px solid rgba(239,68,68,0.3)';
+                    alertBox.innerHTML = '<i class="fas fa-exclamation-circle"></i> <strong>UTR Required:</strong> Please enter the 12-digit UPI Transaction ID / UTR from your payment app receipt.';
+                }
+                if (window.showToast) window.showToast('Please enter the 12-digit UPI Transaction ID / UTR.', 'warning', 'Transaction Reference Required');
+                return;
+            }
+            if (txnRefInput) {
+                txnRefInput.style.borderColor = 'var(--border-color, #1e293b)';
+            }
+            if (alertBox) alertBox.style.display = 'none';
+
             const csrfToken = getCookie('opb_csrf');
             const headers = {'Content-Type': 'application/json'};
             if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
-            const res = await fetch('/api/billing/confirm-upi-payment', {
-                method: 'POST',
-                headers: headers,
-                credentials: 'include',
-                body: JSON.stringify({
-                    plan_id: currentSelectedPlan,
-                    username: '{{ user.username or "admin" }}',
-                    ref: txnRef || ('UPI-DIRECT-' + Date.now())
-                })
-            });
-            const data = await res.json();
-            if (data.success) {
-                if (window.showToast) window.showToast(data.message || 'UPI payment verification recorded.', 'success', 'Payment Submitted');
-                setTimeout(() => { window.location.href = '/my-signals'; }, 800);
-            } else {
-                if (window.showToast) window.showToast(data.message || 'Payment verification failed.', 'error', 'Payment Verification Failed');
+            try {
+                const res = await fetch('/api/billing/confirm-upi-payment', {
+                    method: 'POST',
+                    headers: headers,
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        plan_id: currentSelectedPlan,
+                        username: '{{ user.username or "admin" }}',
+                        ref: txnRef
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    if (alertBox) {
+                        alertBox.style.display = 'block';
+                        alertBox.style.background = 'rgba(34,197,94,0.15)';
+                        alertBox.style.color = 'var(--success-color, #22c55e)';
+                        alertBox.style.border = '1px solid rgba(34,197,94,0.3)';
+                        alertBox.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message || 'Payment recorded successfully.'}`;
+                    }
+                    if (window.showToast) window.showToast(data.message || 'UPI payment verification recorded.', 'success', 'Payment Submitted');
+                    setTimeout(() => { window.location.href = '/my-signals'; }, 1000);
+                } else {
+                    const errMsg = data.message || data.detail || 'Payment verification failed.';
+                    if (alertBox) {
+                        alertBox.style.display = 'block';
+                        alertBox.style.background = 'rgba(239,68,68,0.15)';
+                        alertBox.style.color = 'var(--danger-color, #ef4444)';
+                        alertBox.style.border = '1px solid rgba(239,68,68,0.3)';
+                        alertBox.innerHTML = `<i class="fas fa-shield-alt"></i> <strong>Payment Verification Notice:</strong> ${errMsg}`;
+                    }
+                    if (window.showToast) window.showToast(errMsg, 'error', 'Payment Verification Failed');
+                }
+            } catch (err) {
+                if (alertBox) {
+                    alertBox.style.display = 'block';
+                    alertBox.style.background = 'rgba(239,68,68,0.15)';
+                    alertBox.style.color = 'var(--danger-color, #ef4444)';
+                    alertBox.style.border = '1px solid rgba(239,68,68,0.3)';
+                    alertBox.innerHTML = `<i class="fas fa-wifi"></i> <strong>Network Error:</strong> ${err.message || err}`;
+                }
+                if (window.showToast) window.showToast('Network error while verifying payment.', 'error', 'Network Error');
             }
         }
 
@@ -326,13 +379,16 @@
         }
 
         function showAdminAlert(msg, isSuccess) {
-            const alertBox = document.getElementById('adminQrAlert');
-            alertBox.style.display = 'block';
-            alertBox.style.background = isSuccess ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)';
-            alertBox.style.color = isSuccess ? '#22c55e' : '#ef4444';
-            alertBox.style.border = `1px solid ${isSuccess ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`;
-            alertBox.textContent = msg;
-            setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+            const boxes = [document.getElementById('adminQrAlert'), document.getElementById('adminUpiSaveAlert')].filter(Boolean);
+            boxes.forEach(alertBox => {
+                alertBox.style.display = 'block';
+                alertBox.style.background = isSuccess ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)';
+                alertBox.style.color = isSuccess ? 'var(--success-color, #22c55e)' : 'var(--danger-color, #ef4444)';
+                alertBox.style.border = `1px solid ${isSuccess ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`;
+                alertBox.textContent = msg;
+                setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+            });
+            if (window.showToast) window.showToast(msg, isSuccess ? 'success' : 'error', isSuccess ? 'UPI Config Saved' : 'UPI Config Error');
         }
 
         async function saveUpiConfig() {

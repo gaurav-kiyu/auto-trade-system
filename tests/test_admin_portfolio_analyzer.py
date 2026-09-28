@@ -234,6 +234,32 @@ def test_broker_info_and_fetch_holdings_apis() -> None:
     assert fetch_data["status"] == "success"
     assert fetch_data["broker_code"] == "iifl"
     assert fetch_data["count"] > 0
+    assert fetch_data["is_sample_data"] is True
     assert any(h["symbol"] == "IIFL" for h in fetch_data["holdings"])
+
+    # 3. Live sync requested without credentials returns 400
+    r_live_no_cred = client.post(
+        "/api/v1/admin/broker/fetch-holdings",
+        json={"broker_code": "iifl", "live_sync_required": True, "credentials": {}},
+        headers={"X-CSRF-Token": csrf_token},
+        cookies={"opb_csrf": csrf_token},
+    )
+    assert r_live_no_cred.status_code == 400
+    assert r_live_no_cred.json()["error_code"] == "CREDENTIALS_REQUIRED"
+
+    # 4. Live sync requested with valid credentials succeeds with live flag
+    r_live_cred = client.post(
+        "/api/v1/admin/broker/fetch-holdings",
+        json={
+            "broker_code": "iifl",
+            "live_sync_required": True,
+            "credentials": {"client_id": "IIFL123", "access_token": "TOK987"},
+        },
+        headers={"X-CSRF-Token": csrf_token},
+        cookies={"opb_csrf": csrf_token},
+    )
+    assert r_live_cred.status_code == 200
+    assert r_live_cred.json()["status"] == "success"
+
 
 

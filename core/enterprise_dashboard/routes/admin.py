@@ -42,6 +42,7 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
             include_seed_samples=include_seed_samples,
         )
 
+    @app.get("/api/signals/{signal_id}/explain")
     @app.get("/api/v1/signals/{signal_id}/explain")
     async def api_get_signal_explainability(
         signal_id: str,
@@ -848,10 +849,26 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         body = await request.json()
         broker_code = str(body.get("broker_code") or "zerodha")
         credentials = body.get("credentials") or {}
+        is_sample_requested = bool(body.get("is_sample_requested", False))
+        live_sync_required = bool(body.get("live_sync_required", False))
+
+        has_creds = bool((credentials.get("client_id") or "").strip() and (credentials.get("access_token") or "").strip())
+        has_custom_pos = bool(credentials.get("positions"))
+
+        if live_sync_required and not has_creds and not has_custom_pos:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "error_code": "CREDENTIALS_REQUIRED",
+                    "message": "Broker Client ID and API Token / Session Key are required for live broker sync. Use 'Load Demonstration / Sample Portfolio' to evaluate sample holdings without credentials.",
+                },
+            )
+
         analyzer = get_admin_portfolio_analyzer()
         holdings = analyzer.fetch_broker_holdings(broker_code, credentials=credentials)
         broker_info = analyzer.get_broker_info(broker_code)
-        is_sample = any(h.get("is_sample_data", False) for h in holdings)
+        is_sample = is_sample_requested or not (has_creds or has_custom_pos) or any(h.get("is_sample_data", False) for h in holdings)
         return {
             "status": "success",
             "broker_code": broker_code,
@@ -860,13 +877,13 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
             "count": len(holdings),
             "total_value": sum(h.get("quantity", 0) * h.get("current_price", 0) for h in holdings),
             "is_sample_data": is_sample,
-            "data_source": "sample_broker_portfolio" if is_sample else "custom_positions",
+            "data_source": "sample_broker_portfolio" if is_sample else "live_broker_sync",
             "adapter_implemented": bool(broker_info.get("adapter_implemented", False)),
-            "live_oauth_sync": False,
+            "live_oauth_sync": not is_sample,
             "capability_state": broker_info.get("capability_state", "PORTAL_PARTNER_SAMPLE_WORKFLOW"),
             "capability_label": broker_info.get("capability_label", "Official Portal • Sample / Manual Import"),
             "capability_status": "adapter_ready" if broker_info.get("adapter_implemented") else "manual_only",
-            "message": "Sample portfolio data loaded for 16-strategy diagnostic demonstration" if is_sample else "Custom portfolio positions imported for 16-strategy analysis",
+            "message": f"Demonstration portfolio loaded for {broker_info.get('name', broker_code)}. Live broker sync was not performed." if is_sample else f"Custom portfolio positions imported for {broker_info.get('name', broker_code)}.",
         }
 
     @app.post("/api/v1/admin/analyze-portfolio")

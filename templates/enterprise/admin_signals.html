@@ -123,15 +123,15 @@
 <div class="stat-value" id="statTotalSignals">-</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">First-Touch Win Rate (T1)</div>
+<div class="stat-label">First-Touch Win Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(T1 / [T1 + SL])</span></div>
 <div class="stat-value" id="statWinRate" style="color: var(--success-color, #16a34a);">-%</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">Target 1 Hit Rate</div>
+<div class="stat-label">Target 1 Hit Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(T1 / Total Generated)</span></div>
 <div class="stat-value" id="statT1Rate" style="color: var(--success-color, #16a34a);">-%</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">Target 2 Hit Rate</div>
+<div class="stat-label">Target 2 Hit Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(T2 / Total Generated)</span></div>
 <div class="stat-value" id="statT2Rate" style="color: var(--success-color, #16a34a);">-%</div>
 </div>
 <div class="stat-card">
@@ -159,15 +159,18 @@
 <thead>
 <tr>
 <th>Category</th>
-<th>Signals Generated</th>
+<th>Signals Total</th>
+<th>Active / Open</th>
 <th>Target 1 Hits</th>
 <th>Stop Loss Hits</th>
-<th>Category Win Rate</th>
+<th>Expired</th>
+<th>Ambiguous</th>
+<th>Win Rate (Resolved)</th>
 <th>Average Score</th>
 </tr>
 </thead>
 <tbody id="categoryTableBody">
-<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading category analytics...</td></tr>
+<tr><td colspan="9" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading category analytics...</td></tr>
 </tbody>
 </table>
 </div>
@@ -344,18 +347,21 @@
             const catTb = document.getElementById('categoryTableBody');
             const cats = data.category_breakdown || {};
             if (Object.keys(cats).length === 0) {
-                catTb.innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">No category data for selected filter</td></tr>';
+                catTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color: var(--text-muted, #94a3b8);">No category data for selected filter</td></tr>';
             } else {
                 catTb.innerHTML = Object.entries(cats).map(([cname, stats]) => {
                     const winDisplay = (stats.t1_hits + stats.sl_hits > 0 && stats.win_rate !== null && stats.win_rate !== undefined) ? `${stats.win_rate}%` : (stats.win_rate_display || 'N/A (0 resolved)');
                     return `
                     <tr>
                         <td><strong>${cname}</strong></td>
-                        <td>${stats.total}</td>
-                        <td style="color: var(--success-color, #16a34a);font-weight:600;">${stats.t1_hits}</td>
-                        <td style="color: var(--danger-color, #dc2626);font-weight:600;">${stats.sl_hits}</td>
-                        <td><strong style="color: var(--success-color, #16a34a);">${winDisplay}</strong></td>
-                        <td>${stats.avg_score}/100</td>
+                        <td style="font-variant-numeric:tabular-nums;font-weight:700;">${stats.total}</td>
+                        <td style="color:var(--accent-color, #0284c7);font-variant-numeric:tabular-nums;">${stats.active ?? 0}</td>
+                        <td style="color: var(--success-color, #16a34a);font-weight:600;font-variant-numeric:tabular-nums;">${stats.t1_hits}</td>
+                        <td style="color: var(--danger-color, #dc2626);font-weight:600;font-variant-numeric:tabular-nums;">${stats.sl_hits}</td>
+                        <td style="color:var(--text-muted, #94a3b8);font-variant-numeric:tabular-nums;">${stats.expired ?? 0}</td>
+                        <td style="color:var(--warning-color, #d97706);font-variant-numeric:tabular-nums;">${stats.ambiguous ?? 0}</td>
+                        <td><strong style="color: var(--success-color, #16a34a);font-variant-numeric:tabular-nums;">${winDisplay}</strong></td>
+                        <td style="font-variant-numeric:tabular-nums;">${stats.avg_score}/100</td>
                     </tr>
                 `;}).join('');
             }
@@ -667,6 +673,25 @@
         content.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted, #94a3b8);"><i class="fas fa-spinner fa-spin"></i> Loading canonical signal components...</div>';
         try {
             const res = await fetch(`/api/auth/signals/${encodeURIComponent(signalId)}/explain`, { credentials: 'include' });
+            if (res.status === 401) {
+                window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+                return;
+            }
+            if (res.status === 404) {
+                content.innerHTML = `
+                    <div style="background:var(--bg-secondary, #0b1120);border:1px solid var(--border-color, #1e293b);border-radius:0.75rem;padding:2rem 1.5rem;text-align:center;">
+                        <div style="font-size:2rem;color:var(--text-muted, #94a3b8);margin-bottom:0.75rem;"><i class="fas fa-microchip"></i></div>
+                        <h4 style="font-size:1rem;font-weight:700;color:var(--text-primary, #ffffff);margin-bottom:0.5rem;">Score Breakdown Unavailable</h4>
+                        <p style="font-size:0.82rem;color:var(--text-muted, #94a3b8);max-width:400px;margin:0 auto 1.25rem auto;line-height:1.5;">
+                            This signal does not contain stored sub-component weights in its raw snapshot. Granular sub-components are only available for signals generated with deep feature attribution.
+                        </p>
+                        <div style="display:inline-block;padding:0.35rem 0.75rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:0.35rem;font-size:0.75rem;color:var(--accent-color, #38bdf8);font-family:monospace;">
+                            Signal ID: ${signalId}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
             if (!res.ok) {
                 content.innerHTML = `<div style="color:var(--danger-color, #ef4444);padding:1rem;"><i class="fas fa-exclamation-triangle"></i> Failed to load explanation for ${signalId} (HTTP ${res.status}).</div>`;
                 return;

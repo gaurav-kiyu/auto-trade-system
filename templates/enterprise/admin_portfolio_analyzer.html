@@ -315,21 +315,25 @@
                     </a>
 </div>
 <div style="border-top: 1px dashed var(--border-color); padding-top: 1rem; text-align: left;">
-<label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">
-                        Client / User ID Reference (Optional):
-                    </label>
-<input id="broker-client-id" placeholder="e.g. GK9821 or Reference Tag" style="width: 100%; padding: 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; margin-bottom: 0.75rem; box-sizing: border-box;" type="text"/>
-<label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">
-                        API Token / Session Reference (Optional — Leave blank for sample portfolio):
-                    </label>
-<div style="position:relative;display:flex;align-items:center;">
-<div class="opb-password-wrapper"><input id="broker-access-token" placeholder="Leave blank for sample portfolio or enter reference" style="width: 100%; padding: 0.5rem 2.5rem 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; box-sizing: border-box;" type="password"/><button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" viewbox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div>
+<label for="broker-client-id" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.4rem; font-weight:600;">
+    Client / User ID Reference <span style="color:var(--danger-color, #ef4444);">* (Required for Live Sync)</span>:
+</label>
+<input id="broker-client-id" placeholder="e.g. GK9821 or Client ID" style="width: 100%; padding: 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; margin-bottom: 0.75rem; box-sizing: border-box;" type="text"/>
+<label for="broker-access-token" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.4rem; font-weight:600;">
+    API Access Token / Session Key <span style="color:var(--danger-color, #ef4444);">* (Required for Live Sync)</span>:
+</label>
+<div style="position:relative;display:flex;align-items:center;margin-bottom:0.75rem;">
+<div class="opb-password-wrapper" style="width:100%;"><input id="broker-access-token" placeholder="Enter API access token for live portfolio sync" style="width: 100%; padding: 0.5rem 2.5rem 0.5rem 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.375rem; color: var(--text-primary); font-size: 0.85rem; box-sizing: border-box;" type="password"/><button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" viewbox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div>
 </div>
+<div id="broker-connect-error" style="display:none; color:var(--danger-color, #ef4444); background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); border-radius:0.375rem; padding:0.55rem 0.75rem; font-size:0.78rem; margin-bottom:0.85rem; line-height:1.4;"></div>
 </div>
 </div>
 <button class="btn-accent" id="btn-fetch-holdings" style="width:100%; padding:0.85rem; font-size:0.95rem; font-weight:600; cursor:pointer;" type="button">
-<i class="fas fa-sync-alt"></i> Load &amp; Review Portfolio Holdings
-            </button>
+<i class="fas fa-plug"></i> Connect &amp; Fetch Live Holdings
+</button>
+<button class="btn-secondary" id="btn-load-sample" style="width:100%; margin-top:0.6rem; padding:0.65rem; font-size:0.85rem; font-weight:600; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); color:#fbbf24; cursor:pointer; border-radius:0.375rem;" type="button">
+<i class="fas fa-vial"></i> Load Demonstration / Sample Portfolio
+</button>
 </div>
 </div>
 <!-- Portfolio Confirmation Modal -->
@@ -505,24 +509,44 @@
         }
 
         async function fetchBrokerHoldings() {
+            const errBox = document.getElementById('broker-connect-error');
+            const clientInput = document.getElementById('broker-client-id');
+            const tokenInput = document.getElementById('broker-access-token');
+            const clientId = clientInput?.value?.trim() || '';
+            const accessToken = tokenInput?.value?.trim() || '';
+
+            if (!clientId || !accessToken) {
+                if (errBox) {
+                    errBox.style.display = 'block';
+                    errBox.innerHTML = '<i class="fas fa-exclamation-circle"></i> <strong>Credentials Required:</strong> Enter Broker Client ID and API Token for live sync, or click <em>Load Demonstration / Sample Portfolio</em> below.';
+                }
+                if (!clientId && clientInput) clientInput.style.borderColor = 'var(--danger-color, #ef4444)';
+                if (!accessToken && tokenInput) tokenInput.style.borderColor = 'var(--danger-color, #ef4444)';
+                if (window.showToast) {
+                    window.showToast("Broker Client ID and API Token are required for live sync.", 'warning', 'Credentials Required');
+                }
+                return;
+            }
+            if (clientInput) clientInput.style.borderColor = 'var(--border-color)';
+            if (tokenInput) tokenInput.style.borderColor = 'var(--border-color)';
+            if (errBox) errBox.style.display = 'none';
+
             const btn = document.getElementById('btn-fetch-holdings');
             const originalText = btn ? btn.innerHTML : '';
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Loading ${selectedBroker.name} Portfolio Holdings...`;
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Connecting to ${selectedBroker.name}...`;
             }
 
             try {
-                const clientId = document.getElementById('broker-client-id')?.value?.trim();
-                const accessToken = document.getElementById('broker-access-token')?.value?.trim();
-
                 const resp = await apiFetch('/api/v1/admin/broker/fetch-holdings', {
                     method: 'POST',
                     body: JSON.stringify({
                         broker_code: selectedBroker.code,
+                        live_sync_required: true,
                         credentials: {
-                            client_id: clientId || undefined,
-                            access_token: accessToken || undefined
+                            client_id: clientId,
+                            access_token: accessToken
                         }
                     })
                 });
@@ -534,20 +558,70 @@
                     if (window.showToast) {
                         window.showToast(
                             resp.message || `Loaded ${importedPositions.length} positions for ${selectedBroker.name}.`,
-                            resp.is_sample_data ? 'info' : 'success',
+                            resp.is_sample_data ? 'warning' : 'success',
                             `${selectedBroker.name} Portfolio Loaded`
                         );
                     }
                 } else {
+                    const msg = (resp && (resp.message || resp.detail)) || "Could not connect to broker gateway with provided credentials.";
+                    if (errBox) {
+                        errBox.style.display = 'block';
+                        errBox.innerHTML = `<i class="fas fa-times-circle"></i> <strong>Live Sync Failed:</strong> ${msg}`;
+                    }
                     if (window.showToast) {
-                        window.showToast("Could not load holdings from broker gateway.", 'error', 'Holdings Load Failed');
+                        window.showToast(msg, 'error', 'Broker Sync Failed');
                     }
                 }
             } catch (err) {
                 console.error("Error fetching holdings:", err);
-                if (window.showToast) {
-                    window.showToast("Holdings load failed: " + err.message, 'error', 'Holdings Load Error');
+                if (errBox) {
+                    errBox.style.display = 'block';
+                    errBox.innerHTML = `<i class="fas fa-wifi"></i> <strong>Connection Error:</strong> ${err.message || err}`;
                 }
+                if (window.showToast) {
+                    window.showToast("Holdings sync error: " + err.message, 'error', 'Connection Error');
+                }
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
+        }
+
+        async function loadSampleHoldings() {
+            const errBox = document.getElementById('broker-connect-error');
+            if (errBox) errBox.style.display = 'none';
+            const btn = document.getElementById('btn-load-sample');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Loading Demonstration Portfolio...`;
+            }
+
+            try {
+                const resp = await apiFetch('/api/v1/admin/broker/fetch-holdings', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        broker_code: selectedBroker.code,
+                        is_sample_requested: true,
+                    })
+                });
+
+                if (resp && resp.holdings) {
+                    importedPositions = resp.holdings;
+                    closeModal('broker-modal');
+                    renderConfirmationModal(resp);
+                    if (window.showToast) {
+                        window.showToast(
+                            `Demonstration portfolio loaded (${importedPositions.length} sample positions). Live broker sync was not performed.`,
+                            'info',
+                            'Sample Portfolio Loaded'
+                        );
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading sample holdings:", err);
             } finally {
                 if (btn) {
                     btn.disabled = false;
@@ -914,6 +988,7 @@
         document.getElementById('cspfix-12')?.addEventListener('click', function(event) { generateGenAIReport() });
         document.getElementById('cspfix-13')?.addEventListener('click', function(event) { closeModal('broker-modal') });
         document.getElementById('btn-fetch-holdings')?.addEventListener('click', function(event) { fetchBrokerHoldings() });
+        document.getElementById('btn-load-sample')?.addEventListener('click', function(event) { loadSampleHoldings() });
         document.getElementById('cspfix-14')?.addEventListener('click', function(event) { closeModal('confirm-modal') });
         document.getElementById('cspfix-15')?.addEventListener('click', function(event) { addManualPosition() });
         document.getElementById('cspfix-16')?.addEventListener('click', function(event) { closeModal('confirm-modal') });
