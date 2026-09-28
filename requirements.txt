@@ -37,7 +37,7 @@ pypdf>=6.16.1
 # click: transitive (Flask/uvicorn/etc). 8.4.1 fixes CVE-2026-7246
 click>=8.4.1
 # soupsieve: transitive via beautifulsoup4. 2.8.4 fixes GHSA-836r-79rf-4m37
-soupsieve>=2.8.4
+soupsieve>=2.9
 # setuptools: build tooling. 83.0.0 fixes GHSA-h35f-9h28-mq5c
 setuptools>=83.0.0
 
@@ -64,7 +64,7 @@ uvicorn>=0.27.0
 jinja2>=3.1.0
 authlib>=1.7.2
 httpx>=0.28.0
-python-multipart>=0.0.12
+python-multipart>=0.0.31
 
 # ── Live broker execution (optional — NOT needed for paper/manual trading) ────
 # kiteconnect>=5.0.0
