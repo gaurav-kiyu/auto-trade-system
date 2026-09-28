@@ -421,7 +421,7 @@ class SignalForwardObservationService:
                 finally:
                     conn.close()
 
-            if not meas:
+            if not meas or str(meas.get("outcome") or "UNRESOLVED").upper() == "UNRESOLVED":
                 meas = phase_b_service.build_signal_outcome_measurement(sig_id)
 
             if not meas:
