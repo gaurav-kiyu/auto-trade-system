@@ -1,10 +1,10 @@
 # OPB v2.60
 # Forward Accumulation Daily Report
 
-**Timestamp**: 2026-09-27T13:01:36.832032
-**Market Date**: 2026-09-27
-**Trading Day**: No
-**Session Status**: WEEKEND_CLOSED
+**Timestamp**: 2026-09-28T10:27:51.432205
+**Market Date**: 2026-09-28
+**Trading Day**: Yes
+**Session Status**: SESSION_ACTIVE
 
 ---
 
@@ -73,5 +73,5 @@
 ---
 
 ### Final Operational State
-**State**: `WAITING_FOR_MARKET_SESSION`  
-**Details**: NSE market is currently closed (WEEKEND_CLOSED, Sunday). Awaiting next genuine market session to accumulate forward cohort.
+**State**: `ACCUMULATION_ACTIVE`  
+**Details**: Forward observation accumulation is active. Pipeline operating normally.
