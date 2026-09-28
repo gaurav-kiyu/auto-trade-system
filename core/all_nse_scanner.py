@@ -487,23 +487,50 @@ class AllNSEScanner:
                 df5 = ticker.history(period="1mo", interval="1d")
             if df15 is None or df15.empty:
                 df15 = df5
-            if df1 is None or df1.empty or len(df1) < 5:
-                # If 1m intraday is sparse (e.g., off-market hours or initial pre-market), use df5 as primary frame
-                df1 = df5
-            else:
-                # Check 1m data for zero-volume rows on cash equities; if drops would occur, fallback to clean df5
-                from core.signal_utils import validate_ohlcv
-                is_index = sym in {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX"}
-                v_clean, v_dropped = validate_ohlcv(df1, interval="1m", allow_zero_volume=is_index)
-                if v_clean is None or v_dropped > 0:
-                    df1 = df5
+            from core.signal_utils import validate_ohlcv
+            is_index = sym in {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX"}
 
-            if df1 is None or df1.empty or df5 is None or df5.empty or df15 is None or df15.empty:
+            # INVARIANT: Preserve genuine 1m data identity. Never masquerade df5 as df1.
+            # Dropping early/auction zero-volume rows must NOT cause a valid 1m frame to be discarded.
+            if df1 is not None and not df1.empty and len(df1) >= 5:
+                v_clean, v_dropped = validate_ohlcv(df1, interval="1m", allow_zero_volume=is_index)
+                if v_clean is not None and not v_clean.empty and len(v_clean) >= 5:
+                    df1 = v_clean
+                else:
+                    df1 = None
+            else:
+                df1 = None
+
+            # Validate higher-timeframe reference frames
+            if df5 is not None and not df5.empty:
+                v_clean5, _ = validate_ohlcv(df5, interval="5m", allow_zero_volume=is_index)
+                if v_clean5 is not None and not v_clean5.empty:
+                    df5 = v_clean5
+                else:
+                    df5 = None
+
+            if df15 is not None and not df15.empty:
+                v_clean15, _ = validate_ohlcv(df15, interval="15m", allow_zero_volume=is_index)
+                if v_clean15 is not None and not v_clean15.empty:
+                    df15 = v_clean15
+                else:
+                    df15 = None
+
+            # df5 and df15 are mandatory higher-timeframe reference frames
+            if df5 is None or df5.empty or df15 is None or df15.empty:
                 self._record_evaluation_state(sym, "DATA_UNAVAILABLE", "Empty OHLCV data from data provider", category=category)
                 return None
 
+            # Construct frames_to_eval without frame identity masquerading:
+            # - When genuine 1m data is available, include "df1m"
+            # - When genuine 1m data is unavailable, omit "df1m" so DataFreshnessGuard
+            #   applies its existing sparse-1m fallback and evaluates 5m data under
+            #   the appropriate 5-minute freshness rule (300s limit).
             from core.data_freshness_guard import check_data_freshness
-            frames_to_eval = {"df1m": df1, "df5m": df5, "df15m": df15}
+            frames_to_eval: dict[str, Any] = {"df5m": df5, "df15m": df15}
+            if df1 is not None and not df1.empty:
+                frames_to_eval["df1m"] = df1
+
             fresh_res = check_data_freshness(
                 frames=frames_to_eval,
                 vix_ts=time.time(),
@@ -517,6 +544,11 @@ class AllNSEScanner:
                     "[FRESHNESS_GATE] Filtered %s: %s (code=%s)",
                     sym, fresh_res.reject_reason, fresh_res.reject_code,
                 )
+                return None
+
+            # 1m data is required for strategy indicator calculation
+            if df1 is None or df1.empty:
+                self._record_evaluation_state(sym, "DATA_UNAVAILABLE", "1m OHLCV data unavailable for strategy evaluation", category=category)
                 return None
 
             sig, reason = self._evaluator.evaluate(
