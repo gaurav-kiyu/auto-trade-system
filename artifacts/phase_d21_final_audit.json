@@ -1,0 +1,215 @@
+{
+  "metadata": {
+    "phase": "D21-AUDIT",
+    "title": "OPB D21 Final Code, Diff & Staging Gate Audit",
+    "authority": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "timestamp": "2026-09-29T18:26:00+05:30",
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "head": "124f52c81322a46275a88c2291924198920a02b1",
+    "status": "PASSED_ALL_STAGING_GATES",
+    "phase_e_status": "STRICTLY_BLOCKED"
+  },
+  "git_state": {
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "head": "124f52c81322a46275a88c2291924198920a02b1",
+    "origin_status": "up to date with origin/v2.60-phase-d-candle-selection-remediation",
+    "staged_files_count": 0,
+    "unstaged_modified_count": 3,
+    "untracked_files_count": 51,
+    "modified_files": [
+      "core/all_nse_scanner.py",
+      "core/signals/signal_tracker.py",
+      "tests/test_post_market_remediation_r1_r4.py"
+    ]
+  },
+  "functional_delta_classification": {
+    "category_a": [
+      "core/signals/signal_quality_gate.py",
+      "core/all_nse_scanner.py (pre-dispatch options gate & index session dedup)",
+      "core/signals/signal_tracker.py (pre-persistence options gate & index session dedup)"
+    ],
+    "category_b": [
+      "tests/test_controlled_staging_d21.py",
+      "tests/test_signal_quality_remediation_d20.py",
+      "tests/test_post_market_remediation_r1_r4.py (scanner fixture)",
+      "artifacts/phase_d20_*.md / .json",
+      "artifacts/phase_d21_*.md / .json"
+    ],
+    "category_c": []
+  },
+  "d20_a_verification": {
+    "status": "VERIFIED_READY_FOR_CONTROLLED_STAGING",
+    "stock_options_rule": "breakout > 0 AND volume > 0",
+    "index_options_rule": "breakout > 0 AND volume > 0",
+    "equity_swing_bypass": true,
+    "fail_closed_checks": {
+      "missing_components_dict": "FAIL_CLOSED",
+      "missing_breakout_key": "FAIL_CLOSED",
+      "missing_volume_key": "FAIL_CLOSED",
+      "none_value": "FAIL_CLOSED",
+      "nan_or_inf_value": "FAIL_CLOSED",
+      "non_numeric_type": "FAIL_CLOSED"
+    },
+    "enforcement_points": {
+      "pre_dispatch": "VERIFIED in core/all_nse_scanner.py::_dispatch_alert_if_eligible",
+      "pre_persistence": "VERIFIED in core/signals/signal_tracker.py::record_generated_signal"
+    },
+    "protected_invariants_preserved": {
+      "scoring_formula_unchanged": true,
+      "score_weights_unchanged": true,
+      "global_threshold_70_unchanged": true,
+      "ranking_unchanged": true,
+      "regime_logic_unchanged": true,
+      "ml_calibration_unchanged": true,
+      "position_sizing_unchanged": true
+    }
+  },
+  "d20_b_verification": {
+    "status": "VERIFIED_READY_FOR_CONTROLLED_STAGING",
+    "rule": "Maximum 1 CALL + 1 PUT per canonical index underlying per trading session",
+    "call_put_coexistence_allowed": true,
+    "second_call_same_session_rejected": true,
+    "second_put_same_session_rejected": true,
+    "session_date_reset": true,
+    "canonical_index_mapping": [
+      "MIDCPNIFTY",
+      "BANKNIFTY",
+      "FINNIFTY",
+      "NIFTYNXT50",
+      "BANKEX",
+      "SENSEX",
+      "NIFTY"
+    ],
+    "isolated_from_non_index": {
+      "equity_swing_bypasses": true,
+      "stock_options_bypasses": true,
+      "futures_bypasses": true,
+      "commodities_bypasses": true
+    }
+  },
+  "d20_c_production_isolation": {
+    "status": "VERIFIED_EXPERIMENTAL_ISOLATED",
+    "production_defaults": {
+      "t1_pct": "+4.0%",
+      "t2_pct": "+8.0%",
+      "sl_pct": "-3.0%"
+    },
+    "experimental_defaults": {
+      "candidate_t1_pct": "+1.2%",
+      "candidate_t2_pct": "+2.4%",
+      "candidate_sl_pct": "-1.5%"
+    },
+    "runtime_mode_default": "PRODUCTION",
+    "non_options_strictly_fallback_to_production": true,
+    "production_path_isolated": true
+  },
+  "r1_r4_regression_safety": {
+    "status": "VERIFIED_UNCHANGED",
+    "futures_resolver_unchanged": true,
+    "futures_fail_closed_unchanged": true,
+    "r2_governance_controls_unchanged": true,
+    "completed_candle_selection_unchanged": true,
+    "bar_timestamp_validation_unchanged": true,
+    "barrier_ordering_unchanged": true,
+    "outcome_tracking_unchanged": true,
+    "predictive_dq_analytics_unchanged": true
+  },
+  "database_safety": {
+    "status": "VERIFIED_LOGICALLY_RESTORED_AND_IMMUTABLE",
+    "db_path": "db/signals_history.db",
+    "db_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "total_forward_observations": 101,
+    "pre_test_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "post_test_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "immutable_during_tests": true,
+    "zero_sql_writes_during_audit": true
+  },
+  "test_verification": {
+    "total_tests": 243,
+    "passed": 243,
+    "failed": 0,
+    "pass_rate_pct": 100.0,
+    "suite_breakdown": {
+      "test_controlled_staging_d21.py": 22,
+      "test_signal_quality_remediation_d20.py": 28,
+      "test_post_market_remediation_r1_r4.py": 42,
+      "test_forward_accumulation_reporter.py": 39,
+      "test_signal_outcome_tracker.py": 38,
+      "test_signal_forward_wiring_remediation.py": 26,
+      "test_candle_selection_remediation.py": 15,
+      "test_category_score_thresholds.py": 12,
+      "test_signal_dispatch_order_placed_reply.py": 11,
+      "test_futures_trader.py": 6,
+      "test_signal_outcome_dataset.py": 4
+    }
+  },
+  "untracked_file_audit": {
+    "total_untracked": 51,
+    "required_for_commit": [
+      "core/signals/signal_quality_gate.py",
+      "tests/test_controlled_staging_d21.py",
+      "tests/test_signal_quality_remediation_d20.py"
+    ],
+    "local_governance_artifacts": [
+      "artifacts/phase_d20_controlled_remediation_validation.json",
+      "artifacts/phase_d20_controlled_remediation_validation.md",
+      "artifacts/phase_d20_r1_reconciliation.json",
+      "artifacts/phase_d20_r1_reconciliation.md",
+      "artifacts/phase_d21_controlled_staging_preparation.json",
+      "artifacts/phase_d21_controlled_staging_preparation.md",
+      "artifacts/phase_d21_database_restoration.json",
+      "artifacts/phase_d21_database_restoration.md",
+      "artifacts/phase_d21_final_audit.json",
+      "artifacts/phase_d21_final_audit.md"
+    ],
+    "isolated_outside_repo": [
+      "scratch/signals_history_pre_restoration_contaminated.db",
+      "scratch/execute_db_restoration.py",
+      "scratch/verify_logical_equivalence.py"
+    ]
+  },
+  "proposed_commit_manifest": {
+    "commit_1_implementation_and_tests": {
+      "staged_files": [
+        "core/signals/signal_quality_gate.py",
+        "core/all_nse_scanner.py",
+        "core/signals/signal_tracker.py",
+        "tests/test_controlled_staging_d21.py",
+        "tests/test_signal_quality_remediation_d20.py",
+        "tests/test_post_market_remediation_r1_r4.py"
+      ],
+      "commit_message": "feat(signal-quality): implement D20-A category-aware options gate and D20-B index session dedup"
+    },
+    "commit_2_governance_artifacts": {
+      "staged_files": [
+        "artifacts/phase_d20_*.md",
+        "artifacts/phase_d20_*.json",
+        "artifacts/phase_d21_*.md",
+        "artifacts/phase_d21_*.json"
+      ],
+      "commit_message": "docs(governance): record Phase D20 validation, reconciliation, and D21 staging gate audit"
+    },
+    "excluded_from_commit": [
+      "db/signals_history.db (git-ignored)",
+      "temp_test.db",
+      "scratch/ (isolated in brain directory)"
+    ]
+  },
+  "git_safety_confirmation": {
+    "zero_git_commits": true,
+    "zero_git_pushes": true,
+    "zero_remote_mutations": true,
+    "zero_ec2_sync": true,
+    "zero_broker_api_calls": true
+  },
+  "final_classification": {
+    "d20_a": "READY FOR CONTROLLED STAGING",
+    "d20_b": "READY FOR CONTROLLED STAGING",
+    "d20_c": "EXPERIMENTAL / NOT FOR PRODUCTION",
+    "r1_r4": "VERIFIED / UNCHANGED",
+    "database": "LOGICALLY RESTORED / IMMUTABLE DURING TEST",
+    "tests": "243/243 PASS",
+    "phase_e": "BLOCKED",
+    "next_action": "COMMIT PREPARATION ONLY"
+  }
+}

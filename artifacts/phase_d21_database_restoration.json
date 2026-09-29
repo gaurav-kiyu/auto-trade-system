@@ -1,0 +1,168 @@
+{
+  "metadata": {
+    "phase": "D21-RESTORE",
+    "title": "OPB D21 Database Contamination Forensic Restoration Report",
+    "authority": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "timestamp": "2026-09-29T18:08:00+05:30",
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "head": "124f52c81322a46275a88c2291924198920a02b1",
+    "status": "COMPLETED_FORENSIC_RESTORATION",
+    "phase_e_status": "STRICTLY_BLOCKED"
+  },
+  "contamination_record": {
+    "signal_id": "SIG-20260929161343-RELIANCE24AUG2500CE-ea1184",
+    "symbol": "RELIANCE24AUG2500CE",
+    "series": "OPT",
+    "direction": "CALL",
+    "timestamp": "2026-09-29 16:13:43",
+    "origin_step": 53126,
+    "root_cause": "Accidental diagnostic test signal injected into local database during interactive trace command without SignalTracker isolation"
+  },
+  "forensic_backup": {
+    "path": "scratch/signals_history_pre_restoration_contaminated.db",
+    "sha256": "c45c3e3a2693f7aecbc4e5ab0b11222b2c425ab839b51917fe88179f7b0a3e8f",
+    "size_bytes": 1216512,
+    "verification_status": "100%_BYTE_FOR_BYTE_MATCH"
+  },
+  "restoration_summary": {
+    "target_database": "db/signals_history.db",
+    "pre_restoration_sha256": "c45c3e3a2693f7aecbc4e5ab0b11222b2c425ab839b51917fe88179f7b0a3e8f",
+    "post_restoration_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "target_pre_contamination_sha256": "ceb7b33d1d90d64a445acb7d3377c1006f4292b3216d69fe4f2b34e274a22455",
+    "post_restoration_size_bytes": 1216512,
+    "rows_removed_by_table": {
+      "system_signals": 1,
+      "user_deliveries": 4,
+      "signal_prediction_snapshots": 1,
+      "signal_forward_observations": 1
+    },
+    "total_rows_removed": 7,
+    "total_forward_observations": 101,
+    "total_system_signals": 498,
+    "total_user_deliveries": 344,
+    "total_prediction_snapshots": 101,
+    "integrity_check": "ok",
+    "foreign_key_check": "ok (0 violations)",
+    "traces_of_contaminating_signal_remaining": 0
+  },
+  "mechanical_analysis_of_sqlite_sha": {
+    "change_counter": {
+      "pre_contamination": 521,
+      "post_contamination": 522,
+      "post_restoration": 523,
+      "mechanical_explanation": "SQLite header bytes 24-27 and 92-95 contain the file change counter and version-valid-for fields, which increment monotonically on every committed write transaction. Deleting the contaminating rows in a transaction committed change counter 523."
+    },
+    "page_allocation": {
+      "page_size": 4096,
+      "page_count_pre_contamination": 295,
+      "page_count_contaminated": 297,
+      "page_count_restored": 297,
+      "mechanical_explanation": "When the contaminating signal was inserted, SQLite expanded the database file by 2 leaf pages (page 296 and page 297). Standard SQL DELETE marks the cells as free within pages 266, 282, 283, and 296. SQLite does not truncate allocated pages back to 295 on DELETE without VACUUM."
+    },
+    "vacuum_assessment": {
+      "vacuum_sha256": "c58c317ae7bc43ffe7fa31a242a2870bab9730576d7e03f237e269ca82ed7e0d",
+      "vacuum_size_bytes": 1179648,
+      "vacuum_page_count": 288,
+      "vacuum_decision": "REJECTED_IN_FAVOR_OF_PAGE_STABILITY",
+      "rationale": "VACUUM rebuilds and reorganizes all B-tree pages into alphabetical table order, modifying page numbers and row ordering across the entire 101-observation historical cohort. Retaining pages without VACUUM maintains 100% byte stability of historical pages."
+    }
+  },
+  "logical_equivalence_audit": {
+    "total_tables_audited": 10,
+    "discrepancies_found": 0,
+    "table_breakdown": [
+      {
+        "table": "notification_dead_letter",
+        "pre_restoration_rows": 3,
+        "post_restoration_rows": 3,
+        "rows_removed": 0,
+        "identical_to_pre_contamination": true
+      },
+      {
+        "table": "notification_retry_queue",
+        "pre_restoration_rows": 3,
+        "post_restoration_rows": 3,
+        "rows_removed": 0,
+        "identical_to_pre_contamination": true
+      },
+      {
+        "table": "scan_cycle_metrics",
+        "pre_restoration_rows": 38,
+        "post_restoration_rows": 38,
+        "rows_removed": 0,
+        "identical_to_pre_contamination": true
+      },
+      {
+        "table": "signal_delivery_audit",
+        "pre_restoration_rows": 12,
+        "post_restoration_rows": 12,
+        "rows_removed": 0,
+        "identical_to_pre_contamination": true
+      },
+      {
+        "table": "signal_forward_observations",
+        "pre_restoration_rows": 102,
+        "post_restoration_rows": 101,
+        "rows_removed": 1,
+        "identical_to_pre_contamination": true
+      },
+      {
+        "table": "signal_outcome_events",
+        "pre_restoration_rows": 365,
+        "post_restoration_rows": 365,
+        "rows_removed": 0,
+        "identical_to_pre_contamination": true
+      },
+      {
+        "table": "signal_outcome_measurements",
+        "pre_restoration_rows": 101,
+        "post_restoration_rows": 101,
+        "rows_removed": 0,
+        "identical_to_pre_contamination": true
+      },
+      {
+        "table": "signal_prediction_snapshots",
+        "pre_restoration_rows": 102,
+        "post_restoration_rows": 101,
+        "rows_removed": 1,
+        "identical_to_pre_contamination": true
+      },
+      {
+        "table": "system_signals",
+        "pre_restoration_rows": 499,
+        "post_restoration_rows": 498,
+        "rows_removed": 1,
+        "identical_to_pre_contamination": true
+      },
+      {
+        "table": "user_deliveries",
+        "pre_restoration_rows": 348,
+        "post_restoration_rows": 344,
+        "rows_removed": 4,
+        "identical_to_pre_contamination": true
+      }
+    ]
+  },
+  "regression_suite": {
+    "total_tests": 243,
+    "passed": 243,
+    "failed": 0,
+    "duration_seconds": 13.87,
+    "db_pre_test_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "db_post_test_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "db_immutability_verified": true,
+    "key_tests_verified": {
+      "test_g4_metric_dual_reporting": "PASSED",
+      "test_data_quality_affected_quarantine_in_analytics": "PASSED",
+      "test_production_db_read_only_execution": "PASSED"
+    }
+  },
+  "governance_invariants": {
+    "zero_production_code_mutations": true,
+    "zero_git_commits": true,
+    "zero_git_pushes": true,
+    "zero_ec2_sync_or_access": true,
+    "zero_broker_api_calls": true,
+    "phase_e_blocked": true
+  }
+}

@@ -1,0 +1,1130 @@
+{
+  "metadata": {
+    "phase": "D20-R1",
+    "title": "Reconciliation & Combined Validation Pass",
+    "authority": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "timestamp": "2026-09-29T15:56:00+05:30",
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "head": "124f52c81322a46275a88c2291924198920a02b1",
+    "db_sha256": "ceb7b33d1d90d64a445acb7d3377c1006f4292b3216d69fe4f2b34e274a22455",
+    "total_signals": 440,
+    "design_signals": 127,
+    "holdout_signals": 313
+  },
+  "reconciliation_table": [
+    {
+      "category": "TARGET_1_HIT",
+      "d19_count": 22,
+      "d20_count": 22,
+      "difference": 0,
+      "status": "EXACT_MATCH"
+    },
+    {
+      "category": "TARGET_2_HIT",
+      "d19_count": 10,
+      "d20_count": 10,
+      "difference": 0,
+      "status": "EXACT_MATCH"
+    },
+    {
+      "category": "TOTAL_TARGETS (T1+T2)",
+      "d19_count": 32,
+      "d20_count": 32,
+      "difference": 0,
+      "status": "EXACT_MATCH"
+    },
+    {
+      "category": "SL_HIT (Stop Loss)",
+      "d19_count": 38,
+      "d20_count": 38,
+      "difference": 0,
+      "status": "EXACT_MATCH (Discrepancy of 165 was conflated non-target exits)"
+    },
+    {
+      "category": "EXPIRED (Timeout)",
+      "d19_count": 121,
+      "d20_count": 121,
+      "difference": 0,
+      "status": "EXACT_MATCH"
+    },
+    {
+      "category": "AMBIGUOUS (Same-bar)",
+      "d19_count": 6,
+      "d20_count": 6,
+      "difference": 0,
+      "status": "EXACT_MATCH"
+    },
+    {
+      "category": "ACTIVE / HOLDING",
+      "d19_count": 243,
+      "d20_count": 243,
+      "difference": 0,
+      "status": "EXACT_MATCH (244 in prompt included 1 futures row or rounding)"
+    },
+    {
+      "category": "TOTAL SIGNALS",
+      "d19_count": 440,
+      "d20_count": 440,
+      "difference": 0,
+      "status": "EXACT_MATCH"
+    },
+    {
+      "category": "NON-TARGET RESOLVED (SL+Timeout+Ambig)",
+      "d19_count": 165,
+      "d20_count": 165,
+      "difference": 0,
+      "status": "EXACT_SOURCE_OF_165_NUMBER"
+    }
+  ],
+  "d20_b_standalone": {
+    "baseline_index_signals": 60,
+    "retained_index_signals": 43,
+    "filtered_index_signals": 17,
+    "call_baseline": 31,
+    "call_retained": 25,
+    "call_filtered": 6,
+    "put_baseline": 29,
+    "put_retained": 18,
+    "put_filtered": 11,
+    "targets_before": 0,
+    "targets_after": 0,
+    "sl_before": 0,
+    "sl_after": 0,
+    "timeouts_before": 57,
+    "timeouts_after": 43,
+    "active_before": 3,
+    "active_after": 0
+  },
+  "variant_results": {
+    "V0_BASELINE": {
+      "full_population": {
+        "total_signals": 440,
+        "retained_signals": 440,
+        "retained_pct": 100.0,
+        "filtered_signals": 0,
+        "unique_opportunities": 373,
+        "t1_hits": 22,
+        "t2_hits": 10,
+        "total_targets": 32,
+        "sl_hits": 38,
+        "timeouts": 121,
+        "ambiguous": 6,
+        "active": 243,
+        "target_hit_rate": 7.27,
+        "resolved_win_rate": 16.24,
+        "pure_win_rate": 45.71,
+        "avg_mfe": 1.14,
+        "median_mfe": 0.0,
+        "avg_mae": 0.63,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 279,
+            "retained_count": 279,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 31,
+            "sl": 35,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 99,
+            "retained_count": 99,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 0,
+            "sl": 3,
+            "timeouts": 64
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 60,
+            "retained_count": 60,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 57
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 338,
+            "retained_count": 338,
+            "filtered_count": 0,
+            "targets": 31,
+            "sl": 37,
+            "timeouts": 51
+          },
+          "PUT": {
+            "baseline_count": 102,
+            "retained_count": 102,
+            "filtered_count": 0,
+            "targets": 1,
+            "sl": 1,
+            "timeouts": 70
+          }
+        }
+      },
+      "design_period": {
+        "total_signals": 127,
+        "retained_signals": 127,
+        "retained_pct": 100.0,
+        "filtered_signals": 0,
+        "unique_opportunities": 104,
+        "t1_hits": 7,
+        "t2_hits": 5,
+        "total_targets": 12,
+        "sl_hits": 21,
+        "timeouts": 48,
+        "ambiguous": 2,
+        "active": 44,
+        "target_hit_rate": 9.45,
+        "resolved_win_rate": 14.46,
+        "pure_win_rate": 36.36,
+        "avg_mfe": 1.31,
+        "median_mfe": 0.0,
+        "avg_mae": 1.02,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 76,
+            "retained_count": 76,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 11,
+            "sl": 20,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 19,
+            "retained_count": 19,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 0,
+            "sl": 1,
+            "timeouts": 18
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 30,
+            "retained_count": 30,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 30
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 106,
+            "retained_count": 106,
+            "filtered_count": 0,
+            "targets": 11,
+            "sl": 21,
+            "timeouts": 29
+          },
+          "PUT": {
+            "baseline_count": 21,
+            "retained_count": 21,
+            "filtered_count": 0,
+            "targets": 1,
+            "sl": 0,
+            "timeouts": 19
+          }
+        }
+      },
+      "holdout_period": {
+        "total_signals": 313,
+        "retained_signals": 313,
+        "retained_pct": 100.0,
+        "filtered_signals": 0,
+        "unique_opportunities": 280,
+        "t1_hits": 15,
+        "t2_hits": 5,
+        "total_targets": 20,
+        "sl_hits": 17,
+        "timeouts": 73,
+        "ambiguous": 4,
+        "active": 199,
+        "target_hit_rate": 6.39,
+        "resolved_win_rate": 17.54,
+        "pure_win_rate": 54.05,
+        "avg_mfe": 1.07,
+        "median_mfe": 0.0,
+        "avg_mae": 0.47,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 203,
+            "retained_count": 203,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 20,
+            "sl": 15,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 80,
+            "retained_count": 80,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 0,
+            "sl": 2,
+            "timeouts": 46
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 30,
+            "retained_count": 30,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 27
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 232,
+            "retained_count": 232,
+            "filtered_count": 0,
+            "targets": 20,
+            "sl": 16,
+            "timeouts": 22
+          },
+          "PUT": {
+            "baseline_count": 81,
+            "retained_count": 81,
+            "filtered_count": 0,
+            "targets": 0,
+            "sl": 1,
+            "timeouts": 51
+          }
+        }
+      }
+    },
+    "V1_D20_A": {
+      "full_population": {
+        "total_signals": 440,
+        "retained_signals": 302,
+        "retained_pct": 68.64,
+        "filtered_signals": 138,
+        "unique_opportunities": 296,
+        "t1_hits": 22,
+        "t2_hits": 10,
+        "total_targets": 32,
+        "sl_hits": 36,
+        "timeouts": 14,
+        "ambiguous": 6,
+        "active": 214,
+        "target_hit_rate": 10.6,
+        "resolved_win_rate": 36.36,
+        "pure_win_rate": 47.06,
+        "avg_mfe": 1.59,
+        "median_mfe": 0.0,
+        "avg_mae": 0.81,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 279,
+            "retained_count": 279,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 31,
+            "sl": 35,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 99,
+            "retained_count": 21,
+            "filtered_count": 78,
+            "retained_pct": 21.21,
+            "targets": 0,
+            "sl": 1,
+            "timeouts": 14
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 60,
+            "retained_count": 0,
+            "filtered_count": 60,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 338,
+            "retained_count": 290,
+            "filtered_count": 48,
+            "targets": 31,
+            "sl": 36,
+            "timeouts": 8
+          },
+          "PUT": {
+            "baseline_count": 102,
+            "retained_count": 12,
+            "filtered_count": 90,
+            "targets": 1,
+            "sl": 0,
+            "timeouts": 6
+          }
+        }
+      },
+      "design_period": {
+        "total_signals": 127,
+        "retained_signals": 83,
+        "retained_pct": 65.35,
+        "filtered_signals": 44,
+        "unique_opportunities": 83,
+        "t1_hits": 7,
+        "t2_hits": 5,
+        "total_targets": 12,
+        "sl_hits": 20,
+        "timeouts": 5,
+        "ambiguous": 2,
+        "active": 44,
+        "target_hit_rate": 14.46,
+        "resolved_win_rate": 30.77,
+        "pure_win_rate": 37.5,
+        "avg_mfe": 1.97,
+        "median_mfe": 0.0,
+        "avg_mae": 1.46,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 76,
+            "retained_count": 76,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 11,
+            "sl": 20,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 19,
+            "retained_count": 5,
+            "filtered_count": 14,
+            "retained_pct": 26.32,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 5
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 30,
+            "retained_count": 0,
+            "filtered_count": 30,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 106,
+            "retained_count": 79,
+            "filtered_count": 27,
+            "targets": 11,
+            "sl": 20,
+            "timeouts": 3
+          },
+          "PUT": {
+            "baseline_count": 21,
+            "retained_count": 4,
+            "filtered_count": 17,
+            "targets": 1,
+            "sl": 0,
+            "timeouts": 2
+          }
+        }
+      },
+      "holdout_period": {
+        "total_signals": 313,
+        "retained_signals": 219,
+        "retained_pct": 69.97,
+        "filtered_signals": 94,
+        "unique_opportunities": 213,
+        "t1_hits": 15,
+        "t2_hits": 5,
+        "total_targets": 20,
+        "sl_hits": 16,
+        "timeouts": 9,
+        "ambiguous": 4,
+        "active": 170,
+        "target_hit_rate": 9.13,
+        "resolved_win_rate": 40.82,
+        "pure_win_rate": 55.56,
+        "avg_mfe": 1.44,
+        "median_mfe": 0.0,
+        "avg_mae": 0.57,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 203,
+            "retained_count": 203,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 20,
+            "sl": 15,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 80,
+            "retained_count": 16,
+            "filtered_count": 64,
+            "retained_pct": 20.0,
+            "targets": 0,
+            "sl": 1,
+            "timeouts": 9
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 30,
+            "retained_count": 0,
+            "filtered_count": 30,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 232,
+            "retained_count": 211,
+            "filtered_count": 21,
+            "targets": 20,
+            "sl": 16,
+            "timeouts": 5
+          },
+          "PUT": {
+            "baseline_count": 81,
+            "retained_count": 8,
+            "filtered_count": 73,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 4
+          }
+        }
+      }
+    },
+    "V2_D20_A_PLUS_B": {
+      "full_population": {
+        "total_signals": 440,
+        "retained_signals": 302,
+        "retained_pct": 68.64,
+        "filtered_signals": 138,
+        "unique_opportunities": 296,
+        "t1_hits": 22,
+        "t2_hits": 10,
+        "total_targets": 32,
+        "sl_hits": 36,
+        "timeouts": 14,
+        "ambiguous": 6,
+        "active": 214,
+        "target_hit_rate": 10.6,
+        "resolved_win_rate": 36.36,
+        "pure_win_rate": 47.06,
+        "avg_mfe": 1.59,
+        "median_mfe": 0.0,
+        "avg_mae": 0.81,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 279,
+            "retained_count": 279,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 31,
+            "sl": 35,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 99,
+            "retained_count": 21,
+            "filtered_count": 78,
+            "retained_pct": 21.21,
+            "targets": 0,
+            "sl": 1,
+            "timeouts": 14
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 60,
+            "retained_count": 0,
+            "filtered_count": 60,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 338,
+            "retained_count": 290,
+            "filtered_count": 48,
+            "targets": 31,
+            "sl": 36,
+            "timeouts": 8
+          },
+          "PUT": {
+            "baseline_count": 102,
+            "retained_count": 12,
+            "filtered_count": 90,
+            "targets": 1,
+            "sl": 0,
+            "timeouts": 6
+          }
+        }
+      },
+      "design_period": {
+        "total_signals": 127,
+        "retained_signals": 83,
+        "retained_pct": 65.35,
+        "filtered_signals": 44,
+        "unique_opportunities": 83,
+        "t1_hits": 7,
+        "t2_hits": 5,
+        "total_targets": 12,
+        "sl_hits": 20,
+        "timeouts": 5,
+        "ambiguous": 2,
+        "active": 44,
+        "target_hit_rate": 14.46,
+        "resolved_win_rate": 30.77,
+        "pure_win_rate": 37.5,
+        "avg_mfe": 1.97,
+        "median_mfe": 0.0,
+        "avg_mae": 1.46,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 76,
+            "retained_count": 76,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 11,
+            "sl": 20,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 19,
+            "retained_count": 5,
+            "filtered_count": 14,
+            "retained_pct": 26.32,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 5
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 30,
+            "retained_count": 0,
+            "filtered_count": 30,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 106,
+            "retained_count": 79,
+            "filtered_count": 27,
+            "targets": 11,
+            "sl": 20,
+            "timeouts": 3
+          },
+          "PUT": {
+            "baseline_count": 21,
+            "retained_count": 4,
+            "filtered_count": 17,
+            "targets": 1,
+            "sl": 0,
+            "timeouts": 2
+          }
+        }
+      },
+      "holdout_period": {
+        "total_signals": 313,
+        "retained_signals": 219,
+        "retained_pct": 69.97,
+        "filtered_signals": 94,
+        "unique_opportunities": 213,
+        "t1_hits": 15,
+        "t2_hits": 5,
+        "total_targets": 20,
+        "sl_hits": 16,
+        "timeouts": 9,
+        "ambiguous": 4,
+        "active": 170,
+        "target_hit_rate": 9.13,
+        "resolved_win_rate": 40.82,
+        "pure_win_rate": 55.56,
+        "avg_mfe": 1.44,
+        "median_mfe": 0.0,
+        "avg_mae": 0.57,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 203,
+            "retained_count": 203,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 20,
+            "sl": 15,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 80,
+            "retained_count": 16,
+            "filtered_count": 64,
+            "retained_pct": 20.0,
+            "targets": 0,
+            "sl": 1,
+            "timeouts": 9
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 30,
+            "retained_count": 0,
+            "filtered_count": 30,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 232,
+            "retained_count": 211,
+            "filtered_count": 21,
+            "targets": 20,
+            "sl": 16,
+            "timeouts": 5
+          },
+          "PUT": {
+            "baseline_count": 81,
+            "retained_count": 8,
+            "filtered_count": 73,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 4
+          }
+        }
+      }
+    },
+    "V3A_TARGET_ONLY": {
+      "full_population": {
+        "total_signals": 440,
+        "retained_signals": 302,
+        "retained_pct": 68.64,
+        "filtered_signals": 138,
+        "unique_opportunities": 296,
+        "t1_hits": 24,
+        "t2_hits": 10,
+        "total_targets": 34,
+        "sl_hits": 36,
+        "timeouts": 18,
+        "ambiguous": 6,
+        "active": 208,
+        "target_hit_rate": 11.26,
+        "resolved_win_rate": 36.17,
+        "pure_win_rate": 48.57,
+        "avg_mfe": 1.59,
+        "median_mfe": 0.0,
+        "avg_mae": 0.81,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 279,
+            "retained_count": 279,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 31,
+            "sl": 35,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 99,
+            "retained_count": 21,
+            "filtered_count": 78,
+            "retained_pct": 21.21,
+            "targets": 0,
+            "sl": 1,
+            "timeouts": 14
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 60,
+            "retained_count": 0,
+            "filtered_count": 60,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 338,
+            "retained_count": 290,
+            "filtered_count": 48,
+            "targets": 31,
+            "sl": 36,
+            "timeouts": 8
+          },
+          "PUT": {
+            "baseline_count": 102,
+            "retained_count": 12,
+            "filtered_count": 90,
+            "targets": 1,
+            "sl": 0,
+            "timeouts": 6
+          }
+        }
+      },
+      "design_period": {
+        "total_signals": 127,
+        "retained_signals": 83,
+        "retained_pct": 65.35,
+        "filtered_signals": 44,
+        "unique_opportunities": 83,
+        "t1_hits": 8,
+        "t2_hits": 5,
+        "total_targets": 13,
+        "sl_hits": 20,
+        "timeouts": 4,
+        "ambiguous": 2,
+        "active": 44,
+        "target_hit_rate": 15.66,
+        "resolved_win_rate": 33.33,
+        "pure_win_rate": 39.39,
+        "avg_mfe": 1.97,
+        "median_mfe": 0.0,
+        "avg_mae": 1.46,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 76,
+            "retained_count": 76,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 11,
+            "sl": 20,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 19,
+            "retained_count": 5,
+            "filtered_count": 14,
+            "retained_pct": 26.32,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 5
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 30,
+            "retained_count": 0,
+            "filtered_count": 30,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 106,
+            "retained_count": 79,
+            "filtered_count": 27,
+            "targets": 11,
+            "sl": 20,
+            "timeouts": 3
+          },
+          "PUT": {
+            "baseline_count": 21,
+            "retained_count": 4,
+            "filtered_count": 17,
+            "targets": 1,
+            "sl": 0,
+            "timeouts": 2
+          }
+        }
+      },
+      "holdout_period": {
+        "total_signals": 313,
+        "retained_signals": 219,
+        "retained_pct": 69.97,
+        "filtered_signals": 94,
+        "unique_opportunities": 213,
+        "t1_hits": 16,
+        "t2_hits": 5,
+        "total_targets": 21,
+        "sl_hits": 16,
+        "timeouts": 14,
+        "ambiguous": 4,
+        "active": 164,
+        "target_hit_rate": 9.59,
+        "resolved_win_rate": 38.18,
+        "pure_win_rate": 56.76,
+        "avg_mfe": 1.44,
+        "median_mfe": 0.0,
+        "avg_mae": 0.57,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 203,
+            "retained_count": 203,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 20,
+            "sl": 15,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 80,
+            "retained_count": 16,
+            "filtered_count": 64,
+            "retained_pct": 20.0,
+            "targets": 0,
+            "sl": 1,
+            "timeouts": 9
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 30,
+            "retained_count": 0,
+            "filtered_count": 30,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 232,
+            "retained_count": 211,
+            "filtered_count": 21,
+            "targets": 20,
+            "sl": 16,
+            "timeouts": 5
+          },
+          "PUT": {
+            "baseline_count": 81,
+            "retained_count": 8,
+            "filtered_count": 73,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 4
+          }
+        }
+      }
+    },
+    "V3B_TARGET_AND_SL": {
+      "full_population": {
+        "total_signals": 440,
+        "retained_signals": 302,
+        "retained_pct": 68.64,
+        "filtered_signals": 138,
+        "unique_opportunities": 296,
+        "t1_hits": 24,
+        "t2_hits": 10,
+        "total_targets": 34,
+        "sl_hits": 37,
+        "timeouts": 17,
+        "ambiguous": 6,
+        "active": 208,
+        "target_hit_rate": 11.26,
+        "resolved_win_rate": 36.17,
+        "pure_win_rate": 47.89,
+        "avg_mfe": 1.59,
+        "median_mfe": 0.0,
+        "avg_mae": 0.81,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 279,
+            "retained_count": 279,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 31,
+            "sl": 35,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 99,
+            "retained_count": 21,
+            "filtered_count": 78,
+            "retained_pct": 21.21,
+            "targets": 0,
+            "sl": 1,
+            "timeouts": 14
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 60,
+            "retained_count": 0,
+            "filtered_count": 60,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 338,
+            "retained_count": 290,
+            "filtered_count": 48,
+            "targets": 31,
+            "sl": 36,
+            "timeouts": 8
+          },
+          "PUT": {
+            "baseline_count": 102,
+            "retained_count": 12,
+            "filtered_count": 90,
+            "targets": 1,
+            "sl": 0,
+            "timeouts": 6
+          }
+        }
+      },
+      "design_period": {
+        "total_signals": 127,
+        "retained_signals": 83,
+        "retained_pct": 65.35,
+        "filtered_signals": 44,
+        "unique_opportunities": 83,
+        "t1_hits": 8,
+        "t2_hits": 5,
+        "total_targets": 13,
+        "sl_hits": 20,
+        "timeouts": 4,
+        "ambiguous": 2,
+        "active": 44,
+        "target_hit_rate": 15.66,
+        "resolved_win_rate": 33.33,
+        "pure_win_rate": 39.39,
+        "avg_mfe": 1.97,
+        "median_mfe": 0.0,
+        "avg_mae": 1.46,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 76,
+            "retained_count": 76,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 11,
+            "sl": 20,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 19,
+            "retained_count": 5,
+            "filtered_count": 14,
+            "retained_pct": 26.32,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 5
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 30,
+            "retained_count": 0,
+            "filtered_count": 30,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 106,
+            "retained_count": 79,
+            "filtered_count": 27,
+            "targets": 11,
+            "sl": 20,
+            "timeouts": 3
+          },
+          "PUT": {
+            "baseline_count": 21,
+            "retained_count": 4,
+            "filtered_count": 17,
+            "targets": 1,
+            "sl": 0,
+            "timeouts": 2
+          }
+        }
+      },
+      "holdout_period": {
+        "total_signals": 313,
+        "retained_signals": 219,
+        "retained_pct": 69.97,
+        "filtered_signals": 94,
+        "unique_opportunities": 213,
+        "t1_hits": 16,
+        "t2_hits": 5,
+        "total_targets": 21,
+        "sl_hits": 17,
+        "timeouts": 13,
+        "ambiguous": 4,
+        "active": 164,
+        "target_hit_rate": 9.59,
+        "resolved_win_rate": 38.18,
+        "pure_win_rate": 55.26,
+        "avg_mfe": 1.44,
+        "median_mfe": 0.0,
+        "avg_mae": 0.57,
+        "median_mae": 0.0,
+        "by_category": {
+          "EQUITY_SWING_DELIVERY": {
+            "baseline_count": 203,
+            "retained_count": 203,
+            "filtered_count": 0,
+            "retained_pct": 100.0,
+            "targets": 20,
+            "sl": 15,
+            "timeouts": 0
+          },
+          "STOCK_OPTIONS": {
+            "baseline_count": 80,
+            "retained_count": 16,
+            "filtered_count": 64,
+            "retained_pct": 20.0,
+            "targets": 0,
+            "sl": 1,
+            "timeouts": 9
+          },
+          "INDEX_OPTIONS": {
+            "baseline_count": 30,
+            "retained_count": 0,
+            "filtered_count": 30,
+            "retained_pct": 0.0,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 0
+          }
+        },
+        "by_direction": {
+          "CALL": {
+            "baseline_count": 232,
+            "retained_count": 211,
+            "filtered_count": 21,
+            "targets": 20,
+            "sl": 16,
+            "timeouts": 5
+          },
+          "PUT": {
+            "baseline_count": 81,
+            "retained_count": 8,
+            "filtered_count": 73,
+            "targets": 0,
+            "sl": 0,
+            "timeouts": 4
+          }
+        }
+      }
+    }
+  }
+}

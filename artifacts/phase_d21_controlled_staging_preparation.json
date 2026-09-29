@@ -1,0 +1,108 @@
+{
+  "metadata": {
+    "phase": "D21",
+    "title": "Controlled Staging Preparation & Safety Gate Audit",
+    "authority": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "execution_timestamp": "2026-09-29T17:05:00+05:30",
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "head": "124f52c81322a46275a88c2291924198920a02b1",
+    "governance_status": "BLOCKED_ON_HARD_STOP_DB_HASH_CHANGE"
+  },
+  "candidate_status": {
+    "D20_A": {
+      "name": "Category-Aware Options Quality Gate",
+      "classification": "READY FOR CONTROLLED STAGING",
+      "rule": "breakout > 0 AND volume > 0 for STOCK_OPTIONS and INDEX_OPTIONS; fail-closed; EQUITY_SWING_DELIVERY 100% unaffected",
+      "retained_signals": "302 / 440 (68.64%)",
+      "filtered_signals": "138 / 440 (31.36%)",
+      "target_preservation": "32 / 32 (100.0%)",
+      "timeout_reduction": "121 -> 14 (-88.4%)",
+      "resolved_win_rate": "36.36% (vs baseline 16.24%)",
+      "holdout_resolved_win_rate": "40.82% (vs baseline 17.54%)",
+      "unit_test_coverage": "10 dedicated unit tests + 2 integration tests (100% pass)"
+    },
+    "D20_B": {
+      "name": "Canonical Index Options Session Deduplication",
+      "classification": "READY FOR CONTROLLED STAGING",
+      "rule": "Max 1 CALL + 1 PUT per canonical index underlying per trading session (IST); CALL + PUT coexist; midnight rollover resets quota",
+      "standalone_index_retained": "43 / 60 (71.67%)",
+      "standalone_index_filtered": "17 / 60 (28.33%)",
+      "target_preservation": "0 / 0 lost (100% preserved)",
+      "timeout_reduction": "57 -> 43 (-14 timeouts eliminated)",
+      "active_reduction": "3 -> 0 (-3 redundant active eliminated)",
+      "unit_test_coverage": "6 dedicated unit tests + 1 integration test (100% pass)"
+    },
+    "D20_C": {
+      "name": "Experimental Target Model Scaffolding",
+      "classification": "EXPERIMENTAL / NOT FOR PRODUCTION",
+      "rule": "Production path remains strictly +4% T1, +8% T2, -3% SL; experimental +1.2%/+2.4%/-1.0% hard-disabled from production runtime",
+      "isolation_verified": true,
+      "production_defaults_verified": true
+    },
+    "PHASE_E": {
+      "classification": "BLOCKED",
+      "full_auto_allowed": false,
+      "broker_auto_routing": "DISCONNECTED",
+      "execution_mode": "SIGNAL_ONLY / PAPER"
+    }
+  },
+  "database_safety_audit": {
+    "expected_baseline_sha256": "ceb7b33d1d90d64a445acb7d3377c1006f4292b3216d69fe4f2b34e274a22455",
+    "current_sha256": "c45c3e3a2693f7aecbc4e5ab0b11222b2c425ab839b51917fe88179f7b0a3e8f",
+    "match": false,
+    "hard_stop_condition_triggered": true,
+    "incident_investigation": {
+      "cause": "Diagnostic terminal execution of AllNSEScanner._dispatch_alert_if_eligible without mocking tracker persistence wrote 1 diagnostic signal",
+      "stray_signal_id": "SIG-20260929161343-RELIANCE24AUG2500CE-ea1184",
+      "inserted_timestamp": "2026-09-29 16:13:43",
+      "affected_tables": {
+        "system_signals": 1,
+        "user_deliveries": 4,
+        "signal_prediction_snapshots": 1,
+        "signal_forward_observations": 1
+      },
+      "impact_on_tests": "signal_forward_observations increased from 101 to 102, causing 2 G4 analytics regression tests to fail assertion (expected 101, got 102)",
+      "action_taken": "Immediate stop under Section 6 & 11; no unauthorized row deletion or repair attempted; reporting exact state for operator decision"
+    }
+  },
+  "regression_suite_results": {
+    "total_tests": 243,
+    "passed": 241,
+    "failed": 2,
+    "failed_tests": [
+      "tests/test_post_market_remediation_r1_r4.py::test_g4_metric_dual_reporting",
+      "tests/test_post_market_remediation_r1_r4.py::test_data_quality_affected_quarantine_in_analytics"
+    ],
+    "failure_root_cause": "Database observation count is 102 instead of 101 due to stray diagnostic row SIG-20260929161343-RELIANCE24AUG2500CE-ea1184",
+    "d21_dedicated_suite": "22 / 22 PASS (100.0%)",
+    "d20_dedicated_suite": "28 / 28 PASS (100.0%)"
+  },
+  "diff_audit": {
+    "category_a_functional": [
+      "core/signals/signal_quality_gate.py",
+      "core/signals/signal_tracker.py",
+      "core/all_nse_scanner.py"
+    ],
+    "category_b_tests_and_reports": [
+      "tests/test_controlled_staging_d21.py",
+      "tests/test_signal_quality_remediation_d20.py",
+      "tests/test_post_market_remediation_r1_r4.py",
+      "artifacts/phase_d21_controlled_staging_preparation.md",
+      "artifacts/phase_d21_controlled_staging_preparation.json",
+      "artifacts/phase_d20_r1_reconciliation.md",
+      "artifacts/phase_d20_r1_reconciliation.json",
+      "artifacts/phase_d20_controlled_remediation_validation.md",
+      "artifacts/phase_d20_controlled_remediation_validation.json"
+    ],
+    "category_c_unrelated": []
+  },
+  "runtime_safety_state": {
+    "execution_mode": "SIGNAL_ONLY",
+    "paper_mode": true,
+    "full_auto_allowed": false,
+    "broker_routing_disconnected": true,
+    "live_lockout_enabled": true,
+    "remote_github_touched": false,
+    "remote_ec2_touched": false
+  }
+}
