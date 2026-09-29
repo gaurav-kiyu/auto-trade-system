@@ -528,6 +528,10 @@ class ForwardAccumulationReporter:
             "dq_error_rate": fwd_summary.get("data_quality_error_rate", 0.0),
             "stale_rate": fwd_summary.get("stale_unresolved_rate", 0.0),
             "dq_gate_passed": g4_pass,
+            "predictive_usable_count": fwd_summary.get("predictive_usable_count", 0),
+            "data_quality_affected_count": fwd_summary.get("data_quality_affected_count", 0),
+            "predictive_usable_percentage": fwd_summary.get("predictive_usable_percentage", 0.0),
+            "data_quality_affected_percentage": fwd_summary.get("data_quality_affected_percentage", 0.0),
         }
 
         return DailyAccumulationReport(
@@ -614,6 +618,8 @@ class ForwardAccumulationReporter:
 ### Data Quality
 - **DQ Error Rate**: {dq.get('dq_error_rate', 0.0):.1%}
 - **Stale Rate**: {dq.get('stale_rate', 0.0):.1%}
+- **Predictive Usable**: {dq.get('predictive_usable_count', 0)} ({dq.get('predictive_usable_percentage', 0.0):.1f}%)
+- **DQ Affected**: {dq.get('data_quality_affected_count', 0)} ({dq.get('data_quality_affected_percentage', 0.0):.1f}%)
 
 ---
 

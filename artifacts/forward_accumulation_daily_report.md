@@ -1,8 +1,8 @@
 # OPB v2.60
 # Forward Accumulation Daily Report
 
-**Timestamp**: 2026-09-28T10:27:51.432205
-**Market Date**: 2026-09-28
+**Timestamp**: 2026-09-29T10:32:24.739756
+**Market Date**: 2026-09-29
 **Trading Day**: Yes
 **Session Status**: SESSION_ACTIVE
 
@@ -14,10 +14,10 @@
 ---
 
 ### Forward Cohort
-- **Registered**: 0
-- **Observing**: 0
-- **Resolved**: 0
-- **Timeout**: 0
+- **Registered**: 101
+- **Observing**: 69
+- **Resolved**: 32
+- **Timeout**: 32
 - **Ambiguous**: 0
 - **No Data**: 0
 - **Invalidated**: 0
@@ -26,10 +26,10 @@
 ---
 
 ### Score Buckets
-- **70-74**: 0 registered / 0 resolved
-- **75-79**: 0 registered / 0 resolved
-- **80-84**: 0 registered / 0 resolved
-- **85+**: 0 registered / 0 resolved
+- **70-74**: 3 registered / 0 resolved
+- **75-79**: 4 registered / 0 resolved
+- **80-84**: 14 registered / 0 resolved
+- **85+**: 80 registered / 0 resolved
 - **<70**: 0 (anomaly)
 
 ---
@@ -45,6 +45,8 @@
 ### Data Quality
 - **DQ Error Rate**: 0.0%
 - **Stale Rate**: 0.0%
+- **Predictive Usable**: 63 (62.4%)
+- **DQ Affected**: 38 (37.6%)
 
 ---
 

@@ -112,6 +112,7 @@ class SignalOutcomeTracker:
         self._db_path = Path(db_path) if db_path is not None else _DEFAULT_DB_PATH
         self._calendar_engine = calendar_engine or ExchangeCalendarEngine()
         self._io_lock = threading.Lock()
+        self._evaluated_candles: set[str] = set()
         self._last_sweep_ts: float = 0.0
         self._sweep_min_interval: float = 60.0
         self._ensure_schema()
@@ -558,20 +559,29 @@ class SignalOutcomeTracker:
         if bar.high < bar.low or bar.open <= 0 or bar.close <= 0 or bar.high <= 0 or bar.low <= 0:
             return no_op_result
 
-        # Stale bar validation: if bar timestamp is older than 15m from evaluation time
-        if check_staleness:
-            bar_dt = bar.timestamp
-            if isinstance(bar_dt, str):
-                try:
-                    bar_dt = datetime.datetime.fromisoformat(bar_dt)
-                except Exception:
-                    bar_dt = None
-            if isinstance(bar_dt, datetime.datetime):
-                if bar_dt.tzinfo is None and now.tzinfo is not None:
-                    bar_dt = bar_dt.replace(tzinfo=now.tzinfo)
-                if (now - bar_dt).total_seconds() > 900:  # > 15 minutes
-                    _log.debug("Stale bar rejected for %s (age > 15m)", symbol)
-                    return no_op_result
+        # Candle timestamp parsing, timezone validation & freshness checks (Check 4)
+        bar_dt = bar.timestamp
+        if isinstance(bar_dt, str):
+            try:
+                bar_dt = datetime.datetime.fromisoformat(bar_dt.replace("Z", "+00:00"))
+            except Exception:
+                bar_dt = None
+
+        if isinstance(bar_dt, datetime.datetime):
+            if bar_dt.tzinfo is None and now.tzinfo is not None:
+                bar_dt = bar_dt.replace(tzinfo=now.tzinfo)
+            elif bar_dt.tzinfo is not None and now.tzinfo is not None:
+                bar_dt = bar_dt.astimezone(now.tzinfo)
+
+            # Check future-dated candle (clock-skew tolerance: 30s)
+            if (bar_dt - now).total_seconds() > 30:
+                _log.warning("[INVALID_CANDLE_TIME] Future-dated candle rejected for %s: %s > %s", symbol, bar_dt, now)
+                return no_op_result
+
+            # Stale bar validation: if bar timestamp is older than 15m from evaluation time
+            if check_staleness and (now - bar_dt).total_seconds() > 900:  # > 15 minutes
+                _log.debug("Stale bar rejected for %s (age > 15m)", symbol)
+                return no_op_result
 
         # Determine price barrier hits based on direction
         is_call = direction in ("CALL", "BUY", "LONG")
@@ -835,6 +845,11 @@ class SignalOutcomeTracker:
                 for row in active_rows:
                     checked += 1
                     symbol = row["symbol"]
+                    sig_id = str(row["signal_id"])
+                    is_futures = (str(row.get("category") or "").upper() == "FUTURES")
+                    from core.futures_contract_resolver import parse_canonical_symbol, resolve_futures_market_bar, resolve_futures_market_price
+                    if parse_canonical_symbol(symbol) is not None:
+                        is_futures = True
 
                     # Lookup price / bar
                     eval_result: SignalEvaluationResult | None = None
@@ -842,16 +857,47 @@ class SignalOutcomeTracker:
                         try:
                             bar = bar_lookup_fn(symbol)
                             if bar is not None:
+                                ts_key = f"{sig_id}::{bar.timestamp}"
+                                if ts_key in self._evaluated_candles:
+                                    continue
                                 eval_result = self.evaluate_bar(row, bar, current_time=now)
+                                if eval_result is not None:
+                                    self._evaluated_candles.add(ts_key)
+                                    if len(self._evaluated_candles) > 10000:
+                                        self._evaluated_candles.clear()
                         except Exception as ex:
                             _log.debug("Bar lookup failed for %s: %s", symbol, ex)
 
+                    # R1 Wiring: If symbol is a futures contract and bar wasn't resolved by bar_lookup_fn,
+                    # resolve via FuturesContractResolver directly (fail-closed, never spot substitution)
+                    if eval_result is None and is_futures:
+                        try:
+                            f_bar = resolve_futures_market_bar(symbol)
+                            if f_bar is not None:
+                                ts_key = f"{sig_id}::{f_bar.timestamp}"
+                                if ts_key not in self._evaluated_candles:
+                                    eval_result = self.evaluate_bar(row, f_bar, current_time=now)
+                                    if eval_result is not None:
+                                        self._evaluated_candles.add(ts_key)
+                                        if len(self._evaluated_candles) > 10000:
+                                            self._evaluated_candles.clear()
+                        except Exception as ex:
+                            _log.debug("Futures bar resolution failed for %s: %s", symbol, ex)
+
                     if eval_result is None:
                         try:
-                            price = price_lookup_fn(symbol)
+                            price = price_lookup_fn(symbol) if price_lookup_fn is not None else None
                         except Exception as ex:
                             _log.debug("Price lookup failed for %s: %s", symbol, ex)
                             price = None
+
+                        # R1 Wiring: If price wasn't resolved by lookup and symbol is futures,
+                        # resolve via FuturesContractResolver directly (fail-closed, never spot substitution)
+                        if (price is None or price <= 0) and is_futures:
+                            try:
+                                price = resolve_futures_market_price(symbol)
+                            except Exception as ex:
+                                _log.debug("Futures price resolution failed for %s: %s", symbol, ex)
 
                         if price is None or price <= 0:
                             # RCA Fix: Do not skip horizon evaluation when price is None or off-market!

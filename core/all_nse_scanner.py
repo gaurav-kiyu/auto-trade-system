@@ -143,6 +143,9 @@ class AllNSEScanner:
         self._evaluation_states_lock = threading.Lock()
         self._evaluation_states: dict[str, dict[str, Any]] = {}
 
+        self._bars_lock = threading.Lock()
+        self._latest_completed_bars: dict[str, Any] = {}
+
         self._reload_config_credentials()
 
     def _record_evaluation_state(
@@ -551,6 +554,30 @@ class AllNSEScanner:
                 self._record_evaluation_state(sym, "DATA_UNAVAILABLE", "1m OHLCV data unavailable for strategy evaluation", category=category)
                 return None
 
+            # R3: Extract latest completed 1m SignalBar for observational outcome evaluation
+            # Check 3 Fail-Closed Invariant: strictly require len(df1) >= 2 so df1.iloc[-2] is the completed candle.
+            # df1.iloc[-1] is currently forming and must never be evaluated as a completed candle.
+            if len(df1) >= 2:
+                try:
+                    from core.signals.signal_outcome_tracker import SignalBar
+                    bar_row = df1.iloc[-2]
+                    bar_idx = df1.index[-2]
+                    ts_str = bar_idx.isoformat() if hasattr(bar_idx, "isoformat") else str(bar_idx)
+                    bar_obj = SignalBar(
+                        open=float(bar_row["Open"]),
+                        high=float(bar_row["High"]),
+                        low=float(bar_row["Low"]),
+                        close=float(bar_row["Close"]),
+                        timestamp=ts_str,
+                        volume=float(bar_row.get("Volume", 0.0)),
+                    )
+                    with self._bars_lock:
+                        self._latest_completed_bars[sym] = bar_obj
+                except Exception as bar_ex:
+                    _log.debug("Failed to record completed 1m SignalBar for %s: %s", sym, bar_ex)
+            else:
+                _log.debug("Insufficient 1m bars for %s (len=%d < 2); no completed candle available.", sym, len(df1))
+
             sig, reason = self._evaluator.evaluate(
                 name=sym,
                 frames=frames_to_eval,
@@ -759,11 +786,42 @@ class AllNSEScanner:
             SignalTracker.get_instance().record_scan_cycle(
                 stats, symbols_scanned=len(stocks), timestamp=now_ist().isoformat()
             )
-            # Observational outcome tracking: grade active signals against latest prices discovered in this scan
+            # Observational outcome tracking: grade active signals against latest prices & completed 1m bars discovered in this scan
             latest_prices = {s.symbol: s.price for s in detected_signals}
-            if latest_prices:
+            with self._bars_lock:
+                completed_bars = dict(self._latest_completed_bars)
+
+            if latest_prices or completed_bars:
+                from core.futures_contract_resolver import parse_canonical_symbol, resolve_futures_market_bar, resolve_futures_market_price
+
+                def _lookup_bar(sym: str):
+                    # 1. Cash completed bar from scan
+                    with self._bars_lock:
+                        b = completed_bars.get(sym)
+                    if b is not None:
+                        return b
+                    # 2. Futures completed bar from resolver (never fall back to cash spot)
+                    if parse_canonical_symbol(sym) is not None:
+                        broker = getattr(self, "_broker_adapter", None)
+                        return resolve_futures_market_bar(sym, broker_adapter=broker)
+                    return None
+
+                def _lookup_price(sym: str) -> float | None:
+                    # 1. Cash price from scan
+                    p = latest_prices.get(sym)
+                    if p is not None and p > 0:
+                        return p
+                    # 2. Futures price from resolver (never fall back to cash spot)
+                    if parse_canonical_symbol(sym) is not None:
+                        broker = getattr(self, "_broker_adapter", None)
+                        return resolve_futures_market_price(sym, broker_adapter=broker)
+                    return None
+
                 from core.signals.signal_outcome_tracker import SignalOutcomeTracker
-                SignalOutcomeTracker.get_instance().update_active_signal_outcomes(lambda sym: latest_prices.get(sym))
+                SignalOutcomeTracker.get_instance().update_active_signal_outcomes(
+                    price_lookup_fn=_lookup_price,
+                    bar_lookup_fn=_lookup_bar,
+                )
 
             # Persist 16-state evaluation telemetry snapshot for operators and monitoring
             eval_states_snapshot = {
@@ -1257,6 +1315,40 @@ class AllNSEScanner:
 
             fut_direction = "BUY" if parent_signal.direction in ("CALL", "BUY") else "SELL"
             fut_symbol = contract.canonical_symbol
+
+            # R2: Cooldown gate for derived futures symbol
+            now_ts = time.time()
+            last_sent = self._last_alert_time.get(fut_symbol, 0.0)
+            if (now_ts - last_sent) < self._cooldown_secs:
+                _log.info("[COOLDOWN] Suppressed futures alert for %s (cooldown %ds active)",
+                          fut_symbol, self._cooldown_secs)
+                self._record_evaluation_state(
+                    fut_symbol, "COOLDOWN_SUPPRESSED",
+                    f"Cooldown {self._cooldown_secs}s active",
+                    category=fut_category, score=parent_signal.score
+                )
+                return
+
+            if not self._rate_limit_allows_dispatch():
+                _log.warning("[RATE_LIMIT] Suppressed futures %s: maximum %d alerts per %ds window",
+                             fut_symbol, self._max_alerts_per_window, self._alert_window_secs)
+                self._record_evaluation_state(
+                    fut_symbol, "FILTERED",
+                    f"Rate limit: max {self._max_alerts_per_window} per window",
+                    category=fut_category, score=parent_signal.score
+                )
+                return
+
+            if not self._daily_signal_limit_allows_dispatch():
+                self._record_evaluation_state(
+                    fut_symbol, "FILTERED",
+                    "Daily signal limit reached",
+                    category=fut_category, score=parent_signal.score
+                )
+                return
+
+            # Commit the in-memory cooldown once all pre-dispatch gates have passed
+            self._last_alert_time[fut_symbol] = now_ts
 
             # Inherit parent's point-in-time features
             fut_features = dict(parent_signal.features) if getattr(parent_signal, "features", None) else {

@@ -118,6 +118,10 @@ class DataQualityReport:
     max_permitted_stale_rate: float
     dq_gate_passed: bool
     stale_gate_passed: bool
+    predictive_usable_count: int = 0
+    data_quality_affected_count: int = 0
+    predictive_usable_percentage: float = 0.0
+    data_quality_affected_percentage: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -162,6 +166,10 @@ class ForwardSummary:
     data_quality_error_rate: float
     overall_readiness: str
     blocking_gates: list[str]
+    predictive_usable_count: int = 0
+    data_quality_affected_count: int = 0
+    predictive_usable_percentage: float = 0.0
+    data_quality_affected_percentage: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -272,6 +280,19 @@ class SignalForwardMonitorService:
 
         readiness_info = self.get_readiness_status(cohort_id=cohort_id)
 
+        # Predictive validity usability separation (R4)
+        dq_affected_count = sum(
+            1 for r in all_obs
+            if r.get("data_quality_status") == "DATA_QUALITY_AFFECTED"
+            or (str(r.get("category", "")).upper() == "FUTURES" and (
+                (r.get("mfe_r") == 0.0 and r.get("mae_r") == 0.0 and r.get("is_resolved") == 0)
+                or (r.get("terminal_outcome") in (None, "", "UNRESOLVED", "TIMEOUT") and r.get("mfe_r") == 0.0)
+            ))
+        )
+        predictive_usable = total_registered - dq_affected_count
+        predictive_usable_pct = round((predictive_usable / total_registered) * 100.0, 2) if total_registered > 0 else 0.0
+        dq_affected_pct = round((dq_affected_count / total_registered) * 100.0, 2) if total_registered > 0 else 0.0
+
         summary = ForwardSummary(
             report_version=MONITOR_REPORT_VERSION,
             generated_at=now_dt_iso,
@@ -292,6 +313,10 @@ class SignalForwardMonitorService:
             data_quality_error_rate=dq_error_rate,
             overall_readiness=readiness_info["status"],
             blocking_gates=readiness_info["blocking_gates"],
+            predictive_usable_count=predictive_usable,
+            data_quality_affected_count=dq_affected_count,
+            predictive_usable_percentage=predictive_usable_pct,
+            data_quality_affected_percentage=dq_affected_pct,
         )
         return summary.to_dict()
 
@@ -451,6 +476,19 @@ class SignalForwardMonitorService:
         dq_gate_passed = dq_error_rate <= GATE_MAX_DATA_QUALITY_ERROR_RATE
         stale_gate_passed = stale_rate <= GATE_MAX_STALE_RATE
 
+        # Predictive validity usability separation (R4)
+        dq_affected_count = sum(
+            1 for r in all_obs
+            if r.get("data_quality_status") == "DATA_QUALITY_AFFECTED"
+            or (str(r.get("category", "")).upper() == "FUTURES" and (
+                (r.get("mfe_r") == 0.0 and r.get("mae_r") == 0.0 and r.get("is_resolved") == 0)
+                or (r.get("terminal_outcome") in (None, "", "UNRESOLVED", "TIMEOUT") and r.get("mfe_r") == 0.0)
+            ))
+        )
+        predictive_usable = total_obs - dq_affected_count
+        predictive_usable_pct = round((predictive_usable / total_obs) * 100.0, 2) if total_obs > 0 else 0.0
+        dq_affected_pct = round((dq_affected_count / total_obs) * 100.0, 2) if total_obs > 0 else 0.0
+
         rep = DataQualityReport(
             total_observations=total_obs,
             valid_data_count=valid_data,
@@ -466,6 +504,10 @@ class SignalForwardMonitorService:
             max_permitted_stale_rate=GATE_MAX_STALE_RATE,
             dq_gate_passed=dq_gate_passed,
             stale_gate_passed=stale_gate_passed,
+            predictive_usable_count=predictive_usable,
+            data_quality_affected_count=dq_affected_count,
+            predictive_usable_percentage=predictive_usable_pct,
+            data_quality_affected_percentage=dq_affected_pct,
         )
         return rep.to_dict()
 
@@ -654,6 +696,8 @@ class SignalForwardMonitorService:
             f"Invalidated:      {summary['total_invalidated']}",
             f"Stale unresolved: {summary['stale_unresolved_count']} ({summary['stale_unresolved_rate']:.1%})",
             f"DQ error rate:    {summary['data_quality_error_rate']:.1%}",
+            f"Predictive usable: {summary.get('predictive_usable_count', 0)} ({summary.get('predictive_usable_percentage', 0.0):.1f}%)",
+            f"DQ affected:       {summary.get('data_quality_affected_count', 0)} ({summary.get('data_quality_affected_percentage', 0.0):.1f}%)",
             "",
             "READINESS",
             "---------",

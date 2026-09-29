@@ -26,6 +26,7 @@ import calendar
 import datetime
 import logging
 import math
+import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -94,6 +95,119 @@ _MONTH_CODE_MAP = {
     1: "JAN", 2: "FEB", 3: "MAR", 4: "APR", 5: "MAY", 6: "JUN",
     7: "JUL", 8: "AUG", 9: "SEP", 10: "OCT", 11: "NOV", 12: "DEC",
 }
+
+_MONTH_NAME_TO_NUM = {v: k for k, v in _MONTH_CODE_MAP.items()}
+
+_CANONICAL_FUT_REGEX = re.compile(
+    r"^([A-Z0-9_\-&]+?)(\d{2})([A-Z]{3})FUT$",
+    re.IGNORECASE,
+)
+
+
+def parse_canonical_symbol(canonical_symbol: str) -> dict[str, Any] | None:
+    """Decompose canonical futures symbol (e.g., DIXON26SEPFUT, NIFTY26SEPFUT) into component parts.
+
+    Returns dict with keys:
+    - 'canonical_symbol': sanitized canonical symbol string
+    - 'underlying': underlying asset ticker (e.g. 'DIXON', 'NIFTY')
+    - 'expiry_year': 4-digit year (e.g. 2026)
+    - 'expiry_month': month integer 1-12
+    - 'expiry_month_str': 3-letter month code (e.g. 'SEP')
+    - 'instrument_type': 'FUTIDX' or 'FUTSTK'
+    Returns None if canonical_symbol does not conform to standard format.
+    """
+    if not canonical_symbol or not isinstance(canonical_symbol, str):
+        return None
+    sym = canonical_symbol.strip().upper().replace(".NS", "").replace(".BO", "")
+    m = _CANONICAL_FUT_REGEX.match(sym)
+    if not m:
+        return None
+    underlying = m.group(1)
+    yy = int(m.group(2))
+    year = 2000 + yy
+    month_str = m.group(3)
+    if month_str not in _MONTH_NAME_TO_NUM:
+        return None
+    month = _MONTH_NAME_TO_NUM[month_str]
+
+    from core.fno_universe import FNO_INDICES
+    is_idx = underlying in FNO_INDICES or underlying in _AUTHORITATIVE_INDEX_LOT_SIZES
+    instrument_type = "FUTIDX" if is_idx else "FUTSTK"
+
+    return {
+        "canonical_symbol": sym,
+        "underlying": underlying,
+        "expiry_year": year,
+        "expiry_month": month,
+        "expiry_month_str": month_str,
+        "instrument_type": instrument_type,
+    }
+
+
+def resolve_futures_market_price(symbol: str, broker_adapter: Any = None) -> float | None:
+    """Safely resolve live futures contract market price.
+
+    FAIL-CLOSED INVARIANTS:
+    1. Never silently substitute cash equity price for a futures contract.
+    2. Never fabricate a synthetic price or return estimated fair value as live LTP.
+    3. If broker adapter is None, offline, or returns no quote, logs fail-safe
+       telemetry and returns None.
+    """
+    clean_sym = (symbol or "").strip().upper().replace(".NS", "").replace(".BO", "")
+    if not clean_sym:
+        return None
+
+    # Broker adapter quote retrieval if connected
+    if broker_adapter is not None:
+        try:
+            for method_name in ("get_futures_ltp", "get_ltp", "get_quote", "get_market_data"):
+                method = getattr(broker_adapter, method_name, None)
+                if callable(method):
+                    val = method(clean_sym)
+                    if isinstance(val, (int, float)) and val > 0:
+                        return float(val)
+                    if isinstance(val, dict):
+                        for k in ("ltp", "last_price", "price", "close"):
+                            if k in val and isinstance(val[k], (int, float)) and val[k] > 0:
+                                return float(val[k])
+        except Exception as ex:
+            _log.debug("[FUTURES_RESOLVER] Broker adapter quote retrieval exception for %s: %s", clean_sym, ex)
+
+    # Fail closed: no synthetic fallback or cash substitution
+    _log.warning(
+        "[FUTURES_FEED_UNAVAILABLE] Market data adapter lacks live quote feed for futures contract '%s'. Failing closed (no synthetic fallback).",
+        clean_sym,
+    )
+    return None
+
+
+def resolve_futures_market_bar(symbol: str, broker_adapter: Any = None) -> Any | None:
+    """Safely resolve live 1m futures OHLC candle bar.
+
+    FAIL-CLOSED INVARIANTS:
+    1. Returns None if live contract bar feed is unavailable.
+    2. Never manufactures bars from underlying spot equity.
+    """
+    clean_sym = (symbol or "").strip().upper().replace(".NS", "").replace(".BO", "")
+    if not clean_sym:
+        return None
+
+    if broker_adapter is not None:
+        try:
+            for method_name in ("get_futures_bar", "get_bar", "get_latest_candle"):
+                method = getattr(broker_adapter, method_name, None)
+                if callable(method):
+                    bar = method(clean_sym)
+                    if bar is not None:
+                        return bar
+        except Exception as ex:
+            _log.debug("[FUTURES_RESOLVER] Broker adapter bar retrieval exception for %s: %s", clean_sym, ex)
+
+    _log.warning(
+        "[FUTURES_FEED_UNAVAILABLE] Market data adapter lacks live bar feed for futures contract '%s'. Failing closed (no synthetic fallback).",
+        clean_sym,
+    )
+    return None
 
 
 @dataclass
@@ -488,3 +602,7 @@ class FuturesContractResolver:
 
         _log.info("[FUTURES_RESOLVER] Refreshed universe: %d symbols resolved.", len(universe))
         return universe
+
+    parse_canonical_symbol = staticmethod(parse_canonical_symbol)
+    resolve_futures_market_price = staticmethod(resolve_futures_market_price)
+    resolve_futures_market_bar = staticmethod(resolve_futures_market_bar)
