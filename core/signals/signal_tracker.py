@@ -44,13 +44,17 @@ class SignalTracker:
     _instance: SignalTracker | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: Path | None = None) -> None:
+    def __init__(self, db_path: Path | None = None, cfg: dict[str, Any] | None = None) -> None:
         self._db_path = db_path or _DB_PATH
+        self._cfg = cfg or {}
+        self._options_quality_gate_enabled = bool(self._cfg.get("D20_OPTIONS_QUALITY_GATE_ENABLED", False))
+        self._index_session_dedup_enabled = bool(self._cfg.get("D20_INDEX_SESSION_DEDUP_ENABLED", False))
+        self._target_model_mode = str(self._cfg.get("D20_TARGET_MODEL_MODE", "PRODUCTION")).upper()
         self._io_lock = threading.Lock()
         self._init_db()
 
     @classmethod
-    def get_instance(cls, db_path: Path | str | None = None) -> SignalTracker:
+    def get_instance(cls, db_path: Path | str | None = None, cfg: dict[str, Any] | None = None) -> SignalTracker:
         """Process-wide singleton. *db_path* only matters on first
         construction (same convention as this codebase's other cfg-driven
         singletons, e.g. get_intraday_monitor()) - pass it once, early
@@ -58,7 +62,10 @@ class SignalTracker:
         previously hardcoded db/signals_history.db path for isolation."""
         with cls._lock:
             if cls._instance is None:
-                cls._instance = SignalTracker(db_path=Path(db_path) if db_path is not None else None)
+                cls._instance = SignalTracker(
+                    db_path=Path(db_path) if db_path is not None else None,
+                    cfg=cfg,
+                )
             return cls._instance
 
     @classmethod
@@ -545,16 +552,54 @@ class SignalTracker:
                 sym = str(signal_dict.get("symbol", "UNKNOWN")).upper()
                 direction = str(signal_dict.get("direction", "CALL")).upper()
                 cat = str(signal_dict.get("category", "LARGE_CAP_EQUITY")).upper()
+
+                # OPB Phase D20-A: Category-Aware Options Quality Gate
+                options_gate_on = bool(signal_dict.get("options_quality_gate_enabled", getattr(self, "_options_quality_gate_enabled", False)))
+                if options_gate_on:
+                    from core.signals.signal_quality_gate import validate_options_quality_gate
+                    gate_ok, gate_reason = validate_options_quality_gate(signal_dict)
+                    if not gate_ok:
+                        _log.info("[OPTIONS_QUALITY_GATE_REJECT] %s (%s) rejected: %s", sym, cat, gate_reason)
+                        return ""
+
+                # OPB Phase D20-B: Index Call/Put Session Deduplication
+                index_dedup_on = bool(signal_dict.get("index_session_dedup_enabled", getattr(self, "_index_session_dedup_enabled", False)))
+                if index_dedup_on and cat == "INDEX_OPTIONS":
+                    from core.signals.signal_quality_gate import check_index_session_dedup
+                    session_date = now.strftime("%Y-%m-%d")
+                    idx_ok, idx_reason = check_index_session_dedup(cur, sym, cat, direction, session_date)
+                    if not idx_ok:
+                        _log.info("[INDEX_SESSION_DEDUP] %s (%s) rejected: %s", sym, cat, idx_reason)
+                        return ""
+
                 strategy = str(signal_dict.get("strategy") or signal_dict.get("strategy_name") or "default").lower()
                 entry_price = float(signal_dict.get("price", 0.0))
-                from core.signal_utils import calculate_directional_levels
-                sl_price, t1_price, t2_price = calculate_directional_levels(
-                    entry_price=entry_price,
-                    direction=direction,
-                    stop_loss=signal_dict.get("stop_loss"),
-                    target_1=signal_dict.get("target_1"),
-                    target_2=signal_dict.get("target_2"),
-                )
+
+                # OPB Phase D20-C: Experimental Target Calculation (defaults to PRODUCTION)
+                target_mode = str(signal_dict.get("target_model_mode", getattr(self, "_target_model_mode", "PRODUCTION"))).upper()
+                if target_mode != "PRODUCTION":
+                    from core.signals.signal_quality_gate import calculate_experimental_target_levels
+                    feat_dict = signal_dict.get("features", {}) if isinstance(signal_dict.get("features"), dict) else {}
+                    atr_val = feat_dict.get("atr")
+                    sl_price, t1_price, t2_price = calculate_experimental_target_levels(
+                        entry_price=entry_price,
+                        direction=direction,
+                        category=cat,
+                        mode=target_mode,
+                        atr=atr_val,
+                        stop_loss=signal_dict.get("stop_loss"),
+                        target_1=signal_dict.get("target_1"),
+                        target_2=signal_dict.get("target_2"),
+                    )
+                else:
+                    from core.signal_utils import calculate_directional_levels
+                    sl_price, t1_price, t2_price = calculate_directional_levels(
+                        entry_price=entry_price,
+                        direction=direction,
+                        stop_loss=signal_dict.get("stop_loss"),
+                        target_1=signal_dict.get("target_1"),
+                        target_2=signal_dict.get("target_2"),
+                    )
                 score = int(signal_dict.get("score", 80))
                 raw_score = float(signal_dict.get("raw_score", score))
                 normalized_score = float(signal_dict.get("normalized_score", score))

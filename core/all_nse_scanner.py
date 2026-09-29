@@ -125,6 +125,9 @@ class AllNSEScanner:
             cfg.get("ENABLE_TELEGRAM_EXECUTE_BUTTON", False)
             and str(cfg.get("EXECUTION_MODE", "SIGNAL_ONLY")).upper() in {"AUTO", "PAPER"}
         )
+        self._options_quality_gate_enabled = bool(cfg.get("D20_OPTIONS_QUALITY_GATE_ENABLED", False))
+        self._index_session_dedup_enabled = bool(cfg.get("D20_INDEX_SESSION_DEDUP_ENABLED", False))
+        self._target_model_mode = str(cfg.get("D20_TARGET_MODEL_MODE", "PRODUCTION")).upper()
         # IV-rank multiplier boosts scores by up to 1.2x based on option premium
         # cost (VIX). This scanner trades cash equities / stock options, not index
         # options, so the premium-cost boost would inflate every score to the 100
@@ -918,6 +921,57 @@ class AllNSEScanner:
         from core.fno_universe import classify_instrument_market
         category = classify_instrument_market(signal.symbol, signal.series)
 
+        # OPB Phase D20-A: Category-Aware Options Quality Gate
+        if self._options_quality_gate_enabled and category in ("STOCK_OPTIONS", "INDEX_OPTIONS"):
+            from core.signals.signal_quality_gate import validate_options_quality_gate
+            gate_ok, gate_reason = validate_options_quality_gate(signal, category=category)
+            if not gate_ok:
+                _log.info("[OPTIONS_QUALITY_GATE] Filtered %s (%s): %s", signal.symbol, category, gate_reason)
+                self._record_evaluation_state(
+                    signal.symbol,
+                    "FILTERED",
+                    f"Options quality gate rejected: {gate_reason}",
+                    category=category,
+                    score=signal.score,
+                )
+                self._log_signal_audit_record(
+                    signal=signal,
+                    category=category,
+                    threshold_applied=self.get_min_score_for_category(category),
+                    decision="NO_TRADE",
+                    rejection_reason=f"Options quality gate: {gate_reason}",
+                )
+                return
+
+        # OPB Phase D20-B: Index Call/Put Session Deduplication Pre-Dispatch Check
+        if self._index_session_dedup_enabled and category == "INDEX_OPTIONS":
+            from core.signals.signal_quality_gate import check_index_session_dedup
+            from core.signals.signal_tracker import SignalTracker
+            session_date = now_ist().strftime("%Y-%m-%d")
+            tracker = SignalTracker.get_instance()
+            conn = tracker._get_conn()
+            try:
+                idx_ok, idx_reason = check_index_session_dedup(conn, signal.symbol, category, signal.direction, session_date)
+            finally:
+                conn.close()
+            if not idx_ok:
+                _log.info("[INDEX_SESSION_DEDUP] Filtered %s (%s): %s", signal.symbol, category, idx_reason)
+                self._record_evaluation_state(
+                    signal.symbol,
+                    "DEDUP_SUPPRESSED",
+                    f"Index session duplicate suppressed: {idx_reason}",
+                    category=category,
+                    score=signal.score,
+                )
+                self._log_signal_audit_record(
+                    signal=signal,
+                    category=category,
+                    threshold_applied=self.get_min_score_for_category(category),
+                    decision="NO_TRADE",
+                    rejection_reason=f"Index session duplicate: {idx_reason}",
+                )
+                return
+
         # Cooldown gate - at most one alert per symbol per cooldown window
         now = time.time()
         last_sent = self._last_alert_time.get(signal.symbol, 0.0)
@@ -946,11 +1000,21 @@ class AllNSEScanner:
         from core.notifications.url_resolver import get_public_base_url
         base_url = get_public_base_url(self._cfg)
 
-        from core.signal_utils import calculate_directional_levels
-        sl_price, t1_price, t2_price = calculate_directional_levels(
-            entry_price=signal.price,
-            direction=signal.direction,
-        )
+        if self._target_model_mode != "PRODUCTION":
+            from core.signals.signal_quality_gate import calculate_experimental_target_levels
+            sl_price, t1_price, t2_price = calculate_experimental_target_levels(
+                entry_price=signal.price,
+                direction=signal.direction,
+                category=category,
+                mode=self._target_model_mode,
+                atr=signal.atr,
+            )
+        else:
+            from core.signal_utils import calculate_directional_levels
+            sl_price, t1_price, t2_price = calculate_directional_levels(
+                entry_price=signal.price,
+                direction=signal.direction,
+            )
 
         rich_html_email = RichSignalFormatter.build_rich_html_email(
             symbol=signal.symbol,
@@ -1152,6 +1216,9 @@ class AllNSEScanner:
                 "stop_loss": sl_price,
                 "target_1": t1_price,
                 "target_2": t2_price,
+                "options_quality_gate_enabled": self._options_quality_gate_enabled,
+                "index_session_dedup_enabled": self._index_session_dedup_enabled,
+                "target_model_mode": self._target_model_mode,
             }, eligible_users=eligible_users) or ""
         except Exception as trk_ex:
             _log.warning("Signal tracking log exception: %s", trk_ex)

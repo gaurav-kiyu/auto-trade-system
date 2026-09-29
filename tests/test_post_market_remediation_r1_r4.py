@@ -134,6 +134,7 @@ def test_scanner():
             "MAX_ALERTS_PER_DAY": 10,
             "FUTURES_ENABLED": True,
             "MIN_SCORE_THRESHOLD": 70,
+            "ALLOW_AFTER_HOURS_SCANNING": True,
         }
         scanner = AllNSEScanner(cfg=cfg)
         scanner._bot_token = ""
