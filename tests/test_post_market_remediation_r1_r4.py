@@ -232,8 +232,10 @@ def test_derived_futures_dispatches_when_limits_allow(test_scanner):
     fut_symbol = contract.canonical_symbol
 
     with patch("core.fno_universe.is_fno_symbol", return_value=True), \
+         patch("core.futures_contract_resolver.resolve_futures_market_price", return_value=3025.0), \
          patch("core.auth.user_signal_permissions.UserPermissionManager.get_instance") as mock_perm, \
          patch("core.signals.signal_tracker.SignalTracker.get_instance") as mock_tracker:
+
 
         mock_user = MagicMock(telegram_enabled=False, email_enabled=False)
         mock_perm.return_value.get_eligible_recipients.return_value = [mock_user]

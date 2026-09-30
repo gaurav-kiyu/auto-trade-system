@@ -1360,7 +1360,7 @@ class AllNSEScanner:
         """Evaluate and dispatch distinct Futures contract signal for F&O eligible instruments."""
         if getattr(parent_signal, "series", "") == "FUT":
             return
-        if not bool(self._cfg.get("FUTURES_ENABLED", True)):
+        if not bool(self._cfg.get("FUTURES_ENABLED", False)):
             return
 
         try:
@@ -1414,16 +1414,33 @@ class AllNSEScanner:
                 )
                 return
 
-            # Commit the in-memory cooldown once all pre-dispatch gates have passed
+            # Resolve actual futures contract market price (Fail-Closed Invariant)
+            from core.futures_contract_resolver import resolve_futures_market_price
+            broker = getattr(self, "_broker_adapter", None)
+            fut_price = resolve_futures_market_price(fut_symbol, broker_adapter=broker)
+
+            if fut_price is None or fut_price <= 0:
+                _log.warning(
+                    "[FUTURES_FEED_UNAVAILABLE] Live futures quote unavailable for contract '%s'. Failing closed (no spot cash fallback).",
+                    fut_symbol,
+                )
+                self._record_evaluation_state(
+                    fut_symbol, "FILTERED",
+                    "Futures feed unavailable (fail closed - no cash fallback)",
+                    category=fut_category, score=parent_signal.score
+                )
+                return
+
+            # Commit the in-memory cooldown once all pre-dispatch gates and price verification have passed
             self._last_alert_time[fut_symbol] = now_ts
 
-            # Inherit parent's point-in-time features
+            # Inherit parent's point-in-time features with futures contract price
             fut_features = dict(parent_signal.features) if getattr(parent_signal, "features", None) else {
                 "rsi": float(parent_signal.rsi),
                 "adx": float(parent_signal.adx),
                 "vwap": float(parent_signal.vwap),
-                "price": float(parent_signal.price),
             }
+            fut_features["price"] = float(fut_price)
             if getattr(parent_signal, "atr", None) is not None and "atr" not in fut_features:
                 fut_features["atr"] = float(parent_signal.atr)
             if getattr(parent_signal, "vol_ratio", None) is not None and "vol_ratio" not in fut_features:
@@ -1445,7 +1462,7 @@ class AllNSEScanner:
                 raw_score=parent_signal.raw_score,
                 tier=parent_signal.tier,
                 regime=parent_signal.regime,
-                price=parent_signal.price,
+                price=float(fut_price),
                 rsi=parent_signal.rsi,
                 adx=parent_signal.adx,
                 vwap=parent_signal.vwap,
@@ -1480,13 +1497,23 @@ class AllNSEScanner:
             tracker = SignalTracker.get_instance()
 
             # Separate theoretical fair value from actual price
-            _fv_info = resolver.calculate_fair_value(parent_signal.price, contract.expiry_date)
+            _fv_info = resolver.calculate_fair_value(
+                parent_signal.price,
+                contract.expiry_date,
+                actual_futures_price=float(fut_price),
+            )
+            if _fv_info:
+                tfv = _fv_info.get("theoretical_fair_value")
+                fut_features["fair_value"] = float(tfv) if tfv is not None else float(fut_price)
+                if _fv_info.get("basis") is not None:
+                    fut_features["basis"] = float(_fv_info["basis"])
 
             from core.signal_utils import calculate_directional_levels
             sl_price, t1_price, t2_price = calculate_directional_levels(
-                entry_price=parent_signal.price,
+                entry_price=float(fut_price),
                 direction=fut_direction,
             )
+
 
             sig_id = tracker.record_generated_signal({
                 "symbol": fut_symbol,

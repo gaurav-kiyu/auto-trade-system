@@ -210,8 +210,9 @@ class TestCanonicalMarketTaxonomy:
     def test_canonical_taxonomy_classification(self):
         assert classify_instrument_market("NIFTY") == "INDEX_OPTIONS"
         assert classify_instrument_market("BANKNIFTY") == "INDEX_OPTIONS"
-        assert classify_instrument_market("RELIANCE") == "STOCK_OPTIONS"
-        assert classify_instrument_market("INFY") == "STOCK_OPTIONS"
+        assert classify_instrument_market("RELIANCE") == "LARGE_CAP_EQUITY"
+        assert classify_instrument_market("INFY") == "LARGE_CAP_EQUITY"
+        assert classify_instrument_market("RELIANCE24OCT2900CE") == "STOCK_OPTIONS"
         assert classify_instrument_market("SHREE_SME", series="SM") == "PENNY_SME"
         assert classify_instrument_market("ALPHA_ST", series="ST") == "PENNY_SME"
         assert classify_instrument_market("NIFTY-FUT") == "FUTURES"
@@ -232,8 +233,9 @@ class TestCanonicalMarketTaxonomy:
         assert classify_instrument_market("NIFTY24DEC25000CE") == "INDEX_OPTIONS"
         assert classify_instrument_market("BANKNIFTY", series="EQ") == "INDEX_OPTIONS"
         # 2. STOCK_OPTIONS
-        assert classify_instrument_market("RELIANCE") == "STOCK_OPTIONS"
+        assert classify_instrument_market("RELIANCE24OCT2900CE") == "STOCK_OPTIONS"
         assert classify_instrument_market("TCS", series="EQ", instrument_type="OPTSTK") == "STOCK_OPTIONS"
+
         # 3. FUTURES
         assert classify_instrument_market("NIFTY-FUT") == "FUTURES"
         assert classify_instrument_market("RELIANCE", instrument_type="FUTSTK") == "FUTURES"

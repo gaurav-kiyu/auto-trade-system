@@ -1,0 +1,174 @@
+{
+  "governance": {
+    "constitution": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "timestamp": "2026-09-30T01:45:00+05:30",
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "git_head": "2769e6154728b6519c4cfa7d25478f7eb38a6d76",
+    "baseline": "d4271...",
+    "mode": "PRODUCTION / PAPER / SIGNAL_ONLY",
+    "safety_invariants": {
+      "full_auto_allowed": false,
+      "broker_routing": "DISCONNECTED",
+      "live_trading_lockout": true,
+      "orders": 0,
+      "d20_c": "OFF",
+      "phase_e": "BLOCKED",
+      "futures_enabled": false
+    }
+  },
+  "d26_a_taxonomy_purity": {
+    "status": "COMPLETED",
+    "root_cause": "clean_sym in FNO_EQUITY_STOCKS was evaluated before series check, erroneously tagging F&O cash equities as STOCK_OPTIONS and triggering false intraday timeouts in SignalOutcomeTracker.",
+    "resolution": "Enforce explicit derivative contract format/itype checks for STOCK_OPTIONS first, classify cash equities with series EQ/BE into LARGE_CAP_EQUITY (NIFTY 50) and MID_SMALL_CAP (non-NIFTY 50), preserve exactly 10 canonical categories.",
+    "canonical_categories_count": 10,
+    "sample_classifications": [
+      {
+        "symbol": "RELIANCE",
+        "series": "EQ",
+        "previous_category": "STOCK_OPTIONS",
+        "remediated_category": "LARGE_CAP_EQUITY"
+      },
+      {
+        "symbol": "TCS",
+        "series": "EQ",
+        "previous_category": "STOCK_OPTIONS",
+        "remediated_category": "LARGE_CAP_EQUITY"
+      },
+      {
+        "symbol": "INFY",
+        "series": "EQ",
+        "previous_category": "STOCK_OPTIONS",
+        "remediated_category": "LARGE_CAP_EQUITY"
+      },
+      {
+        "symbol": "TATAPOWER",
+        "series": "EQ",
+        "previous_category": "STOCK_OPTIONS",
+        "remediated_category": "MID_SMALL_CAP"
+      },
+      {
+        "symbol": "IDEA",
+        "series": "EQ",
+        "previous_category": "STOCK_OPTIONS",
+        "remediated_category": "MID_SMALL_CAP"
+      },
+      {
+        "symbol": "RELIANCE24OCT2900CE",
+        "series": "OPT",
+        "previous_category": "EQUITY_SWING_DELIVERY",
+        "remediated_category": "STOCK_OPTIONS"
+      },
+      {
+        "symbol": "TCS24OCT3500PE",
+        "series": "OPT",
+        "previous_category": "EQUITY_SWING_DELIVERY",
+        "remediated_category": "STOCK_OPTIONS"
+      },
+      {
+        "symbol": "NIFTY",
+        "series": "INDEX",
+        "previous_category": "INDEX_OPTIONS",
+        "remediated_category": "INDEX_OPTIONS",
+        "presentation_label": "Index Spot Directional"
+      }
+    ],
+    "presentation_truth": {
+      "spot_indices_email_subject_call": "🟢 BULLISH (INDEX SPOT DIRECTIONAL)",
+      "spot_indices_email_subject_put": "🔴 BEARISH (INDEX SPOT DIRECTIONAL)",
+      "spot_indices_telegram_action_call": "🟢 🎯 INDEX SPOT DIRECTIONAL: BULLISH (CALL)",
+      "spot_indices_telegram_action_put": "🔴 🎯 INDEX SPOT DIRECTIONAL: BEARISH (PUT)",
+      "is_option_flag_for_spot": false
+    }
+  },
+  "d26_b_futures_contract_parity": {
+    "status": "COMPLETED",
+    "root_cause": "AllNSEScanner._dispatch_futures_alert_if_eligible previously inherited parent cash spot price and computed levels from cash spot rather than live futures quotes.",
+    "resolution": "Wired resolve_futures_market_price with strict fail-closed gate. If quote unavailable, log warning and exit immediately with zero cash spot fallback. Derive entry, SL, T1, T2 strictly from fut_price.",
+    "fail_closed_invariant": true,
+    "quote_source": "resolve_futures_market_price",
+    "fallback_cash_price_allowed": false,
+    "price_levels_derived_from": "fut_price",
+    "cooldown_enforcement": "R2 verified before pricing, timestamp committed only after valid quote",
+    "futures_enabled_fallback": false
+  },
+  "test_execution": {
+    "total_tests_passed": 68,
+    "test_suites": [
+      {
+        "suite": "tests/test_d26_taxonomy_futures_parity.py",
+        "passed": 13,
+        "failed": 0,
+        "duration_seconds": 2.68
+      },
+      {
+        "suite": "tests/test_signal_quality_remediation_d20.py",
+        "passed": 28,
+        "failed": 0,
+        "duration_seconds": 3.68
+      },
+      {
+        "suite": "tests/test_post_market_remediation_r1_r4.py",
+        "passed": 24,
+        "failed": 0,
+        "duration_seconds": 2.76
+      },
+      {
+        "suite": "tests/test_remediation_p1_p2_p3.py -k test_instrument_classification",
+        "passed": 1,
+        "failed": 0,
+        "duration_seconds": 1.49
+      },
+      {
+        "suite": "tests/test_product_integrity_remediation.py -k test_canonical_taxonomy",
+        "passed": 2,
+        "failed": 0,
+        "duration_seconds": 1.82
+      }
+    ]
+  },
+  "database_integrity": {
+    "db_file": "db/signals_history.db",
+    "baseline_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "post_test_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "sha256_match": true,
+    "integrity_check": "ok",
+    "foreign_key_violations": 0,
+    "table_counts": {
+      "notification_dead_letter": 3,
+      "notification_retry_queue": 3,
+      "scan_cycle_metrics": 38,
+      "signal_delivery_audit": 12,
+      "signal_forward_observations": 101,
+      "signal_outcome_events": 365,
+      "signal_outcome_measurements": 101,
+      "signal_prediction_snapshots": 101,
+      "sqlite_sequence": 4,
+      "system_signals": 498,
+      "user_deliveries": 344
+    },
+    "table_deltas": {
+      "notification_dead_letter": 0,
+      "notification_retry_queue": 0,
+      "scan_cycle_metrics": 0,
+      "signal_delivery_audit": 0,
+      "signal_forward_observations": 0,
+      "signal_outcome_events": 0,
+      "signal_outcome_measurements": 0,
+      "signal_prediction_snapshots": 0,
+      "sqlite_sequence": 0,
+      "system_signals": 0,
+      "user_deliveries": 0
+    }
+  },
+  "zero_mutation_compliance": {
+    "ec2_modified": 0,
+    "git_commits": 0,
+    "git_pushes": 0,
+    "broker_calls": 0,
+    "orders_placed": 0,
+    "config_mutations": 0,
+    "historical_db_mutations": 0,
+    "equity_swing_targets_mutated": false,
+    "hard_stop_at_local_engineering": true
+  }
+}

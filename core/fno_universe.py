@@ -11,6 +11,8 @@ Provides authoritative categorization between:
 
 from __future__ import annotations
 
+import re
+
 # Official Indices with Active Derivative Contracts
 FNO_INDICES: set[str] = {
     "NIFTY",
@@ -121,42 +123,47 @@ def classify_instrument_market(
         return "PENNY_SME"
 
     # 5. Futures
-    if clean_sym.endswith(("-FUT", "_FUT", "FUT")) or clean_sym.endswith("FUTURES") or itype_up in ("FUTIDX", "FUTSTK", "FUTURES"):
+    if clean_sym.endswith(("-FUT", "_FUT", "FUT")) or clean_sym.endswith("FUTURES") or itype_up in ("FUTIDX", "FUTSTK", "FUTURES") or ser_up == "FUT":
         return "FUTURES"
 
     # 6. Index Options
-    if clean_sym in FNO_INDICES or clean_sym in {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX"}:
+    if clean_sym in FNO_INDICES or clean_sym in {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX", "NIFTYNXT50"}:
         return "INDEX_OPTIONS"
-    if (clean_sym.startswith(("NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX")) and
+    if (clean_sym.startswith(("NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX", "NIFTYNXT50")) and
             (clean_sym.endswith(("CE", "PE")) or itype_up in ("OPTIDX", "INDEX_OPTIONS"))):
         return "INDEX_OPTIONS"
 
+    # 7. Stock Options (genuine derivative contracts on F&O listed stocks)
+    if itype_up in ("OPTSTK", "STOCK_OPTIONS", "OPT"):
+        return "STOCK_OPTIONS"
+    if ser_up in ("OPT", "OPTION") and clean_sym not in FNO_INDICES:
+        return "STOCK_OPTIONS"
+    if (re.match(r"^([A-Z0-9_\-&]+?)(\d{2}[A-Z]{3})(\d+)(CE|PE)$", clean_sym, re.IGNORECASE) or
+        clean_sym.endswith(("_CE", "-CE", "_PE", "-PE")) or
+        (clean_sym.endswith(("CE", "PE")) and any(c.isdigit() for c in clean_sym))) and clean_sym not in FNO_INDICES:
+        return "STOCK_OPTIONS"
+
+
     # Boundary handling: Cash Equity vs Derivatives vs Swing/Delivery
-    # 7. Explicit Equity Swing & Delivery (Delivery / CNC / Swing Strategy)
+    # 8. Explicit Equity Swing & Delivery (Delivery / CNC / Swing Strategy)
     if ser_up in ("SWING", "DELIVERY", "CNC") or itype_up in ("SWING", "DELIVERY", "CNC"):
         return "EQUITY_SWING_DELIVERY"
 
-    # 8. Explicit Large-Cap Equity
+    # 9. Explicit Large-Cap Equity
     if ser_up in ("LC", "LARGE_CAP") or mcap_up in ("LARGE_CAP", "LARGE"):
         return "LARGE_CAP_EQUITY"
 
-    # 9. Explicit Mid/Small-Cap
+    # 10. Explicit Mid/Small-Cap
     if ser_up in ("SMC", "MID_CAP", "SMALL_CAP") or mcap_up in ("MID_CAP", "SMALL_CAP", "MID_SMALL"):
         return "MID_SMALL_CAP"
 
-    # 10. Cash Equity Instruments (explicit CASH / EQUITY instrument type)
-    if itype_up in ("CASH", "EQUITY"):
+    # 11. Cash Equity Instruments (explicit CASH / EQUITY or standard EQ / BE series)
+    if itype_up in ("CASH", "EQUITY") or ser_up in ("EQ", "BE"):
         if clean_sym in NIFTY_50_STOCKS:
             return "LARGE_CAP_EQUITY"
-        if clean_sym in FNO_EQUITY_STOCKS or ser_up == "EQ":
+        if clean_sym in FNO_EQUITY_STOCKS:
             return "MID_SMALL_CAP"
         return "EQUITY_SWING_DELIVERY"
 
-    # Stock options (derivatives on F&O listed stocks)
-    if clean_sym in FNO_EQUITY_STOCKS or itype_up in ("OPTSTK", "STOCK_OPTIONS"):
-        return "STOCK_OPTIONS"
-
     # Default fallback for cash equity
     return "EQUITY_SWING_DELIVERY"
-
-

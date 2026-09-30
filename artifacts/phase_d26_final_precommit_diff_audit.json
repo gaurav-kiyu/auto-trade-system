@@ -1,0 +1,146 @@
+{
+  "audit": {
+    "title": "OPB D26-A/B Final Pre-Commit Diff & Integrity Audit",
+    "governance": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "timestamp": "2026-09-30T09:20:00+05:30",
+    "execution_mode": "READ-ONLY AUDIT — NO COMMIT / NO PUSH / NO EC2",
+    "gate_conclusion": "D26-A/B PRE-COMMIT AUDIT PASSED — READY FOR HUMAN REVIEW"
+  },
+  "git_baseline": {
+    "repository": "d:\\AI_APPs\\TRADING_APP\\OPB_V2_59_4_CANONICAL",
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "starting_head": "2769e6154728b6519c4cfa7d25478f7eb38a6d76",
+    "current_head": "2769e6154728b6519c4cfa7d25478f7eb38a6d76",
+    "baseline": "d4271ff",
+    "commits_ahead": 0,
+    "diff_check_clean": true
+  },
+  "file_categorization": {
+    "category_a_implementation": [
+      "core/all_nse_scanner.py",
+      "core/fno_universe.py",
+      "core/notifications/rich_signal_formatter.py"
+    ],
+    "category_b_tests": [
+      "tests/test_d26_taxonomy_futures_parity.py",
+      "tests/test_post_market_remediation_r1_r4.py",
+      "tests/test_product_integrity_remediation.py",
+      "tests/test_remediation_p1_p2_p3.py",
+      "tests/test_signal_quality_remediation_d20.py"
+    ],
+    "category_c_governance_artifacts": [
+      "artifacts/phase_d26_a_b_taxonomy_futures_audit.md",
+      "artifacts/phase_d26_a_b_taxonomy_futures_audit.json",
+      "artifacts/phase_d26_final_precommit_diff_audit.md",
+      "artifacts/phase_d26_final_precommit_diff_audit.json"
+    ],
+    "category_d_untracked_historical_do_not_commit": [
+      "OPB_V2594_FINAL_HISTORICAL_TRACEABILITY_CORRECTION_REPORT.md",
+      "OPB_V2594_FINAL_MASTER_FORENSIC_REGRESSION_AND_ACCEPTANCE_REPORT.md",
+      "OPB_V2594_FINAL_SUCCESS_METRICS_DOCS_RECONCILIATION_REPORT.md",
+      "OPB_V2594_PHASE_J_TO_N_PRODUCTION_ACCEPTANCE_REPORT.md",
+      "artifacts/phase_d4_... to phase_d25_...",
+      "artifacts/post_market_remediation_r1_r4_report.md",
+      "artifacts/post_market_remediation_r1_r4_wiring_gate_report.md"
+    ]
+  },
+  "d26_a_taxonomy_audit": {
+    "canonical_category_count": 10,
+    "equity_intraday_created": false,
+    "test_matrix_passed": true,
+    "sample_verifications": {
+      "RELIANCE_cash": "LARGE_CAP_EQUITY",
+      "TCS_cash": "LARGE_CAP_EQUITY",
+      "INFY_cash": "LARGE_CAP_EQUITY",
+      "TATAPOWER_cash": "MID_SMALL_CAP",
+      "IDEA_cash": "MID_SMALL_CAP",
+      "RELIANCE_option": "STOCK_OPTIONS",
+      "TCS_option": "STOCK_OPTIONS",
+      "NIFTY_spot": "INDEX_OPTIONS",
+      "BANKNIFTY_spot": "INDEX_OPTIONS",
+      "NIFTY_option": "INDEX_OPTIONS",
+      "BANKNIFTY_option": "INDEX_OPTIONS",
+      "RELIANCE_futures": "FUTURES"
+    },
+    "index_presentation_truth": {
+      "spot_symbol_is_option": false,
+      "spot_title": "NIFTY Index Spot Directional",
+      "spot_email_subject": "BULLISH (INDEX SPOT DIRECTIONAL)",
+      "spot_telegram_action": "🎯 INDEX SPOT DIRECTIONAL: BULLISH (CALL)",
+      "false_buy_ce_eliminated": true
+    }
+  },
+  "d26_b_futures_audit": {
+    "fail_closed_cases": {
+      "case_a_valid_quote": "PASSED (Uses futures LTP 3025.0)",
+      "case_b_no_quote": "PASSED (Filtered, cooldown slot preserved)",
+      "case_c_zero_quote": "PASSED (Filtered)",
+      "case_d_negative_quote": "PASSED (Filtered)",
+      "case_e_resolver_exception": "PASSED (Filtered)",
+      "case_f_cash_exists_futures_missing": "PASSED (Fail closed, zero spot cash fallback)"
+    },
+    "price_source": "resolve_futures_market_price",
+    "spot_cash_fallback_forbidden": true,
+    "t1_t2_sl_source": "actual_futures_contract_entry_price",
+    "r2_governance_enforced": true,
+    "futures_enabled_production_fallback": false
+  },
+  "database_integrity": {
+    "db_file": "db/signals_history.db",
+    "baseline_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "post_test_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "sha_equality": true,
+    "integrity_check": "ok",
+    "foreign_key_violations": 0,
+    "table_counts": {
+      "system_signals": 498,
+      "signal_outcome_events": 365,
+      "signal_forward_observations": 101,
+      "signal_outcome_measurements": 101,
+      "signal_prediction_snapshots": 101,
+      "user_deliveries": 344,
+      "scan_cycle_metrics": 38,
+      "signal_delivery_audit": 12,
+      "notification_dead_letter": 3,
+      "notification_retry_queue": 3,
+      "sqlite_sequence": 4
+    },
+    "table_deltas_all_zero": true
+  },
+  "protected_subsystems": {
+    "scoring_weights": "PASS",
+    "scoring_thresholds": "PASS",
+    "ml_calibration": "PASS",
+    "regime_logic": "PASS",
+    "equity_swing_t1": "PASS (+4%)",
+    "equity_swing_t2": "PASS (+8%)",
+    "equity_swing_sl": "PASS (-3%)",
+    "position_sizing": "PASS",
+    "broker_routing": "PASS (Disconnected)",
+    "order_execution": "PASS (Blocked)",
+    "auth_security": "PASS",
+    "db_schema": "PASS",
+    "production_live_controls": "PASS",
+    "d20_a_options_gate": "PASS",
+    "d20_b_session_dedup": "PASS",
+    "d20_c_production_defaults": "PASS (OFF)",
+    "r1_futures_resolver": "PASS",
+    "r3_reconciliation": "PASS",
+    "r4_outcome_evaluator": "PASS"
+  },
+  "safety_metrics": {
+    "historical_db_writes": 0,
+    "historical_rows_modified": 0,
+    "historical_rows_deleted": 0,
+    "synthetic_data": 0,
+    "broker_calls": 0,
+    "orders": 0,
+    "ec2_modifications": 0,
+    "github_pushes": 0,
+    "production_config_changes": 0,
+    "futures_enabled_activation": 0,
+    "d20_c_activation": 0,
+    "phase_e_activation": 0,
+    "git_commits": 0
+  }
+}

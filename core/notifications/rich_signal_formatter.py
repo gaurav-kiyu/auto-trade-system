@@ -52,6 +52,15 @@ class RichSignalFormatter:
 
         # Fallback for simple option symbols like NIFTY_24500_CE
         if "OPTION" in cat_upper or "0DTE" in cat_upper:
+            from core.fno_universe import FNO_INDICES
+            if cat_upper == "INDEX_OPTIONS" and (sym_clean in FNO_INDICES or sym_clean in {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX", "NIFTYNXT50"}):
+                return {
+                    "display_title": f"{sym_clean} Index Spot Directional",
+                    "subject_instrument": f"{sym_clean} (Spot)",
+                    "contract_code": sym_clean,
+                    "instrument_type": "Index Spot Directional",
+                    "is_option": False,
+                }
             return {
                 "display_title": f"{sym_clean} Option",
                 "subject_instrument": sym_clean,
@@ -270,7 +279,13 @@ class RichSignalFormatter:
         is_buy = direction.upper() in ("CALL", "BUY")
         cat_upper = category.upper()
 
-        if "OPTION" in cat_upper or "0DTE" in cat_upper or "INDEX" in cat_upper:
+        from core.fno_universe import FNO_INDICES
+        is_spot_index = (cat_upper == "INDEX_OPTIONS" or symbol.strip() in FNO_INDICES) and not bool(re.match(r"^([A-Z]+)(\d{2}[A-Z]{3})(\d+)(CE|PE)$", symbol.strip(), re.IGNORECASE))
+
+        if is_spot_index:
+            action_emoji = "🟢" if is_buy else "🔴"
+            action_name = "BULLISH (INDEX SPOT DIRECTIONAL)" if is_buy else "BEARISH (INDEX SPOT DIRECTIONAL)"
+        elif "OPTION" in cat_upper or "0DTE" in cat_upper or "INDEX" in cat_upper:
             if is_buy:
                 action_emoji = "🟢"
                 action_name = "BUY CE (CALL)"
@@ -280,6 +295,7 @@ class RichSignalFormatter:
         else:
             action_emoji = "📈"
             action_name = "BUY (CNC / DELIVERY)"
+
 
         human_sym = cls.format_human_friendly_symbol(symbol, category)
         horizon = cls.get_holding_horizon_info(category, timestamp_str=timestamp_str)
@@ -557,13 +573,24 @@ class RichSignalFormatter:
         is_buy = direction.upper() in ("CALL", "BUY", "LONG")
         cat_upper = category.upper()
 
-        if "OPTION" in cat_upper or "0DTE" in cat_upper or "INDEX" in cat_upper:
+        from core.fno_universe import FNO_INDICES
+        is_spot_index = (cat_upper == "INDEX_OPTIONS" or symbol.strip() in FNO_INDICES) and not bool(re.match(r"^([A-Z]+)(\d{2}[A-Z]{3})(\d+)(CE|PE)$", symbol.strip(), re.IGNORECASE))
+
+        if is_spot_index:
+            if is_buy:
+                action_emoji = "🟢"
+                action_text = "🎯 INDEX SPOT DIRECTIONAL: BULLISH (CALL)"
+            else:
+                action_emoji = "🔴"
+                action_text = "🎯 INDEX SPOT DIRECTIONAL: BEARISH (PUT)"
+        elif "OPTION" in cat_upper or "0DTE" in cat_upper or "INDEX" in cat_upper:
             if is_buy:
                 action_emoji = "🟢"
                 action_text = "🎯 OPTION BUYING: BUY CE (CALL)"
             else:
                 action_emoji = "🔴"
                 action_text = "🎯 OPTION BUYING: BUY PE (PUT)"
+
         elif "FUTURES" in cat_upper:
             if is_buy:
                 action_emoji = "📈"

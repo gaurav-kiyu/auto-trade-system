@@ -311,7 +311,10 @@ class TestMultiAssetUniverseAndTelemetry:
         assert classify_instrument_market("EURINR", "CURRENCY") == "CURRENCIES"
         assert classify_instrument_market("NIFTY", "INDEX") == "INDEX_OPTIONS"
         assert classify_instrument_market("TCS", instrument_type="CASH") == "LARGE_CAP_EQUITY"
-        assert classify_instrument_market("TCS") == "STOCK_OPTIONS"
+        assert classify_instrument_market("TCS") == "LARGE_CAP_EQUITY"
+        assert classify_instrument_market("TCS24OCT3500CE") == "STOCK_OPTIONS"
+        assert classify_instrument_market("TCS", instrument_type="OPTSTK") == "STOCK_OPTIONS"
+
 
     def test_18_state_evaluation_telemetry_recording(self):
         """Scanner records 18-state evaluation/delivery lifecycle and generates category summaries."""

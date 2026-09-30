@@ -29,8 +29,14 @@ def temp_db(tmp_path: Path):
     db_file = tmp_path / "test_signals_history.db"
     SignalTracker.reset_instance()
     tracker = SignalTracker(db_path=db_file)
+    with tracker._io_lock:
+        conn = tracker._get_conn()
+        conn.execute("DELETE FROM system_signals")
+        conn.commit()
+        conn.close()
     yield tracker, db_file
     SignalTracker.reset_instance()
+
 
 
 # =============================================================================
