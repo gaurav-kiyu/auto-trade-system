@@ -39,6 +39,21 @@
     <h1><i class="fas fa-book" style="color: var(--success-color, #16a34a);margin-right:0.5rem;"></i> Trade Journal</h1>
     <p class="subtitle">Execution quality tracking — slippage, fill rates, latency</p>
 
+    <!-- Operational State Banner -->
+    <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:0.75rem;padding:0.85rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+            <span class="badge" style="background:rgba(59,130,246,0.15);color:var(--accent-color, #60a5fa);border:1px solid rgba(59,130,246,0.3);font-weight:700;padding:0.2rem 0.6rem;border-radius:0.4rem;font-size:0.75rem;">
+                <i class="fas fa-shield-alt"></i> SIGNAL_ONLY / PAPER MODE
+            </span>
+            <span style="font-size:0.8rem;color:var(--text-secondary);">
+                Broker Routing: <strong style="color:var(--warning-color, #f59e0b);">DISCONNECTED</strong> | Execution Entries: <strong style="color:var(--text-primary);">0</strong>
+            </span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">
+            Execution quality metrics are recorded when live/paper broker orders execute. Signal analytics are tracked in <a href="/admin/signals" style="color:var(--accent-color, #60a5fa);font-weight:700;text-decoration:none;">Signal Intelligence</a>.
+        </div>
+    </div>
+
     <div class="grid-4" id="summaryCards">
         <div class="stat-card"><div class="stat-value" id="totalEntries">-</div><div class="stat-label">Total Entries</div></div>
         <div class="stat-card"><div class="stat-value" id="fillRate">-</div><div class="stat-label">Fill Rate</div></div>
@@ -74,8 +89,8 @@
 
             const entries = Array.isArray(data) ? data : (data.entries || []);
             const tb = document.getElementById('journalBody');
-            if (!entries.length) { tb.innerHTML = '<tr><td colspan="9" style="text-align:center;color: var(--text-muted, #94a3b8);">No journal entries</td></tr>'; return; }
-            tb.innerHTML = entries.map(e => '<tr><td style="font-size:0.75rem;white-space:nowrap;color: var(--text-muted, #94a3b8);">'+(e.timestamp||'').substring(0,19).replace('T',' ')+'</td><td><strong style="color: var(--text-primary, #f8fafc);">'+e.symbol+'</strong></td><td>'+(e.direction||'')+'</td><td>'+e.quantity+'</td><td>₹'+(e.expected_price||0).toFixed(2)+'</td><td>₹'+(e.filled_price||0).toFixed(2)+'</td><td style="color:'+(e.slippage<=0.5?'#4ade80':'#fbbf24')+'">₹'+(e.slippage||0).toFixed(2)+'</td><td>'+(e.latency_ms||0).toFixed(0)+'ms</td><td>'+qualityBadge(e.quality)+'</td></tr>').join('');
+            if (!entries.length) { tb.innerHTML = '<tr><td colspan="9" style="text-align:center;color: var(--text-muted, #94a3b8);padding:1.5rem;">NO EXECUTION ENTRIES &mdash; CURRENT MODE: SIGNAL_ONLY / PAPER (Broker routing DISCONNECTED)</td></tr>'; return; }
+            tb.innerHTML = entries.map(e => '<tr><td style="font-size:0.75rem;white-space:nowrap;color: var(--text-muted, #94a3b8);font-variant-numeric:tabular-nums;">'+(e.timestamp||'').substring(0,19).replace('T',' ')+'</td><td><strong style="color: var(--text-primary, #f8fafc);">'+e.symbol+'</strong></td><td>'+(e.direction||'')+'</td><td style="font-variant-numeric:tabular-nums;">'+e.quantity+'</td><td style="font-variant-numeric:tabular-nums;">₹'+(e.expected_price||0).toFixed(2)+'</td><td style="font-variant-numeric:tabular-nums;">₹'+(e.filled_price||0).toFixed(2)+'</td><td style="font-variant-numeric:tabular-nums;color:'+(e.slippage<=0.5?'var(--success-color, #4ade80)':'var(--warning-color, #fbbf24)')+'">₹'+(e.slippage||0).toFixed(2)+'</td><td style="font-variant-numeric:tabular-nums;">'+(e.latency_ms||0).toFixed(0)+'ms</td><td>'+qualityBadge(e.quality)+'</td></tr>').join('');
         }
 
         document.addEventListener('DOMContentLoaded', ()=>{load();document.querySelectorAll('.tab[data-tab]').forEach(t=>t.addEventListener('click',function(){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('section-'+this.dataset.tab).classList.add('active');}));setInterval(load,15000);});

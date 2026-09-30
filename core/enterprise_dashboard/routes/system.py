@@ -974,47 +974,72 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
             if db_file.exists():
                 conn = _gconn(str(db_file), timeout=2, row_factory=False)
                 try:
-                    sql = (
-                        "SELECT event_id, event_type, priority, timestamp, source, "
-                        "aggregate_id, correlation_id, causation_id, version, "
-                        "intent_id, client_order_id, broker_order_id, symbol, direction, "
-                        "quantity, price, metadata_json, previous_hash, sha256 "
-                        "FROM events"
-                    )
+                    cursor = conn.execute("PRAGMA table_info(events)")
+                    col_names = {row[1] for row in cursor.fetchall()}
+                    
+                    sql = "SELECT * FROM events"
                     conditions: list[str] = []
                     params: list[Any] = []
                     if event_type:
                         conditions.append("event_type = ?")
                         params.append(event_type)
-                    if aggregate_id:
+                    if aggregate_id and "aggregate_id" in col_names:
                         conditions.append("aggregate_id = ?")
                         params.append(aggregate_id)
                     if conditions:
                         sql += " WHERE " + " AND ".join(conditions)
-                    sql += " ORDER BY sequence_number DESC LIMIT ?"
+                    if "sequence_number" in col_names:
+                        sql += " ORDER BY sequence_number DESC LIMIT ?"
+                    else:
+                        sql += " ORDER BY rowid DESC LIMIT ?"
                     params.append(n)
+
+                    conn.row_factory = sqlite3.Row
                     cursor = conn.execute(sql, params)
-                    for row in cursor:
+                    for r in cursor:
+                        r_dict = dict(r)
+                        data_json = r_dict.get("data_json") or "{}"
+                        meta_json = r_dict.get("metadata_json") or "{}"
+                        try:
+                            data = json.loads(data_json) if isinstance(data_json, str) else (data_json or {})
+                        except Exception:
+                            data = {}
+                        try:
+                            meta = json.loads(meta_json) if isinstance(meta_json, str) else (meta_json or {})
+                        except Exception:
+                            meta = {}
+
+                        event_id = r_dict.get("event_id") or ""
+                        e_type = r_dict.get("event_type") or ""
+                        prev_h = r_dict.get("previous_hash") or r_dict.get("previous_event_hash") or ""
+                        curr_h = r_dict.get("sha256") or r_dict.get("event_hash") or ""
+
                         events.append({
-                            "event_id": row[0],
-                            "event_type": row[1],
-                            "priority": row[2],
-                            "timestamp": row[3],
-                            "source": row[4],
-                            "aggregate_id": row[5],
-                            "correlation_id": row[6],
-                            "causation_id": row[7],
-                            "version": row[8],
-                            "intent_id": row[9],
-                            "client_order_id": row[10],
-                            "broker_order_id": row[11],
-                            "symbol": row[12],
-                            "direction": row[13],
-                            "quantity": row[14],
-                            "price": row[15],
-                            "metadata": json.loads(row[16] or "{}") if row[16] else {},
-                            "previous_hash": row[17],
-                            "sha256": row[18],
+                            "event_id": event_id,
+                            "id": event_id,
+                            "event_type": e_type,
+                            "type": e_type,
+                            "stream": r_dict.get("stream", "default"),
+                            "priority": r_dict.get("priority") or data.get("priority") or meta.get("priority", 2),
+                            "timestamp": r_dict.get("timestamp", ""),
+                            "source": r_dict.get("source", ""),
+                            "aggregate_id": r_dict.get("aggregate_id") or "",
+                            "correlation_id": r_dict.get("correlation_id") or "",
+                            "causation_id": r_dict.get("causation_id") or "",
+                            "version": r_dict.get("version", 1),
+                            "intent_id": r_dict.get("intent_id") or data.get("intent_id") or meta.get("intent_id"),
+                            "client_order_id": r_dict.get("client_order_id") or data.get("client_order_id") or meta.get("client_order_id"),
+                            "broker_order_id": r_dict.get("broker_order_id") or data.get("broker_order_id") or meta.get("broker_order_id"),
+                            "symbol": r_dict.get("symbol") or data.get("symbol") or meta.get("symbol"),
+                            "direction": r_dict.get("direction") or data.get("direction") or meta.get("direction"),
+                            "quantity": r_dict.get("quantity") or data.get("quantity") or data.get("qty") or meta.get("quantity"),
+                            "price": r_dict.get("price") or data.get("price") or meta.get("price"),
+                            "metadata": meta,
+                            "data": data,
+                            "previous_hash": prev_h,
+                            "previous_event_hash": prev_h,
+                            "sha256": curr_h,
+                            "event_hash": curr_h,
                         })
                 finally:
                     conn.close()

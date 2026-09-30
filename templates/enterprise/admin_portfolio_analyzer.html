@@ -783,25 +783,25 @@
                 let actionBtnHTML = '';
                 if (item.action === 'REBALANCE_HEDGE') {
                     actionBtnHTML = `
-                        <button data-action="execute-hedge" data-symbol="${item.symbol}" data-hedge-action="BUY_PUT" style="margin-top:0.4rem; background:#8b5cf6; border:none; color:#fff; padding:0.3rem 0.6rem; border-radius:0.375rem; cursor:pointer; font-size:0.7rem; font-weight:600; width:100%;" type="button">
+                        <button data-action="execute-hedge" data-symbol="${item.symbol}" data-hedge-action="BUY_PUT" style="margin-top:0.4rem; background:var(--accent-color); border:none; color:var(--btn-primary-text, #fff); padding:0.3rem 0.6rem; border-radius:0.375rem; cursor:pointer; font-size:0.7rem; font-weight:600; width:100%;" type="button">
                             <i class="fas fa-bolt"></i> Auto-Hedge (Paper)
                         </button>
                     `;
                 }
-                const buyPrice = (item.buy_price !== undefined && item.buy_price > 0) ? item.buy_price : item.target_price;
-                const curPrice = (item.current_price !== undefined && item.current_price > 0) ? item.current_price : item.target_price;
+                const buyPrice = (item.buy_price !== undefined && item.buy_price !== null && item.buy_price > 0) ? Number(item.buy_price).toFixed(2) : (item.current_price !== undefined && item.current_price > 0 ? Number(item.current_price).toFixed(2) : '—');
+                const curPrice = (item.current_price !== undefined && item.current_price !== null && item.current_price > 0) ? Number(item.current_price).toFixed(2) : (item.buy_price !== undefined && item.buy_price > 0 ? Number(item.buy_price).toFixed(2) : '—');
                 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><strong>${item.symbol}</strong></td>
-                    <td>${item.symbol} Qty: ${item.quantity}<br><span style="font-size:0.75rem;color:var(--text-muted, #9ca3af);">Buy: ₹${Number(buyPrice).toFixed(2)}</span></td>
-                    <td>₹${Number(curPrice).toFixed(2)}</td>
-                    <td style="color: ${item.pnl_pct < 0 ? 'var(--danger-color, #ef4444)' : 'var(--success-color, #10b981)'}; font-weight:700;">
+                    <td style="font-variant-numeric: tabular-nums;">${item.symbol} Qty: ${item.quantity}<br><span style="font-size:0.75rem;color:var(--text-muted, #9ca3af);">Buy: ₹${buyPrice}</span></td>
+                    <td style="font-variant-numeric: tabular-nums;">₹${curPrice}</td>
+                    <td style="color: ${item.pnl_pct < 0 ? 'var(--danger-color, #ef4444)' : 'var(--success-color, #10b981)'}; font-weight:700; font-variant-numeric: tabular-nums;">
                         ${item.pnl_pct >= 0 ? '+' : ''}${item.pnl_pct}%
                     </td>
                     <td><span class="badge-action" style="background: ${item.badge_color};">${item.action_label}</span></td>
                     <td><i class="far fa-clock"></i> ${item.holding_period}</td>
-                    <td>Target: <strong>₹${item.target_price}</strong><br><span style="font-size:0.75rem;color: var(--danger-color, #dc2626);">SL: ₹${item.stop_loss_price}</span></td>
+                    <td style="font-variant-numeric: tabular-nums;">Target: <strong>₹${item.target_price}</strong><br><span style="font-size:0.75rem;color: var(--danger-color, #dc2626);">SL: ₹${item.stop_loss_price}</span></td>
                     <td>
                         <button data-action="show-proof-modal" data-idx="${index}" style="background:rgba(6,182,212,0.15); border:1px solid rgba(6,182,212,0.4); color:var(--accent-color, #06b6d4); padding:0.3rem 0.6rem; border-radius:0.375rem; cursor:pointer; font-size:0.75rem; font-weight:600; width:100%;" type="button">
                             <i class="fas fa-microscope"></i> View Proof (${item.confidence_score}%)

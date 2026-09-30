@@ -554,7 +554,8 @@
                 const r = data.report || {};
 
                 // Overview stats
-                document.getElementById('healthScore').innerHTML = r.current_health ? '<span style="color:'+(r.current_health.overall_score>=7?'#4ade80':r.current_health.overall_score>=5?'#fbbf24':'#f87171')+'">'+r.current_health.overall_score.toFixed(1)+'/10</span>' : '-';
+                const healthColor = r.current_health ? (r.current_health.overall_score >= 7 ? 'var(--success-color)' : r.current_health.overall_score >= 5 ? 'var(--warning-color)' : 'var(--danger-color)') : 'var(--text-muted)';
+                document.getElementById('healthScore').innerHTML = r.current_health ? '<span style="color:'+healthColor+';font-variant-numeric:tabular-nums;">'+r.current_health.overall_score.toFixed(1)+'/10</span>' : '-';
                 document.getElementById('qualityTrend').innerHTML = badge(r.quality_trend);
                 document.getElementById('incidentCount').textContent = r.incident_total ?? '-';
                 document.getElementById('deployFreq').textContent = r.deployment_frequency_weekly != null ? r.deployment_frequency_weekly.toFixed(1) : '-';
@@ -562,7 +563,7 @@
                 // Health gauge
                 const h = r.current_health || {};
                 const hScore = h.overall_score || 0;
-                const gaugeColor = hScore >= 7 ? '#4ade80' : hScore >= 5 ? '#fbbf24' : '#f87171';
+                const gaugeColor = hScore >= 7 ? 'var(--success-color)' : hScore >= 5 ? 'var(--warning-color)' : 'var(--danger-color)';
                 const gauge = document.getElementById('healthGauge');
                 gauge.style.borderColor = gaugeColor;
                 document.getElementById('healthGaugeValue').textContent = hScore.toFixed(1);
@@ -750,17 +751,22 @@
                     return;
                 }
                 const r = data.report || {};
-                const scoreColor = r.overall_score >= 8 ? '#4ade80' : r.overall_score >= 6 ? '#fbbf24' : '#f87171';
+                const hasValidScore = typeof r.overall_score === 'number' && r.overall_score > 0;
+                const scoreDisplay = hasValidScore ? r.overall_score : 'N/A';
+                const scoreSub = hasValidScore ? 'Performance Score' : 'Score Unavailable';
+                const scoreColor = r.overall_score >= 8 ? 'var(--success-color)' : r.overall_score >= 6 ? 'var(--warning-color)' : (hasValidScore ? 'var(--danger-color)' : 'var(--text-muted)');
                 let html = '<div class="grid-3" style="margin-bottom:1rem;">';
-                html += '<div class="stat-card"><div class="stat-value" style="color:'+scoreColor+'">'+r.overall_score+'</div><div class="stat-label">Performance Score</div></div>';
-                html += '<div class="stat-card"><div class="stat-value">'+r.findings_count+'</div><div class="stat-label">Issues Found</div></div>';
-                html += '<div class="stat-card"><div class="stat-value" style="color:'+(r.cache_opportunities_count>0?'#60a5fa':'#4ade80')+'">'+r.cache_opportunities_count+'</div><div class="stat-label">Cache Ops</div></div>';
+                html += '<div class="stat-card"><div class="stat-value" style="color:'+scoreColor+';font-variant-numeric:tabular-nums;">'+scoreDisplay+'</div><div class="stat-label">'+scoreSub+'</div></div>';
+                html += '<div class="stat-card"><div class="stat-value" style="font-variant-numeric:tabular-nums;">'+(r.findings_count ?? 0)+'</div><div class="stat-label">Issues Found</div></div>';
+                html += '<div class="stat-card"><div class="stat-value" style="color:'+(r.cache_opportunities_count>0?'var(--accent-color)':'var(--success-color)')+';font-variant-numeric:tabular-nums;">'+(r.cache_opportunities_count ?? 0)+'</div><div class="stat-label">Cache Ops</div></div>';
                 html += '</div>';
 
                 if (r.findings && r.findings.length) {
-                    html += '<h3 style="margin-bottom:0.5rem;">Findings</h3><div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>File</th><th>Issue</th><th>Severity</th></tr></thead><tbody>';
+                    html += '<h3 style="margin-bottom:0.25rem;">STATIC CODE ANALYSIS FINDINGS</h3>';
+                    html += '<p style="margin:0 0 0.5rem 0;font-size:0.75rem;color:var(--text-muted);">(AST / Static Code Scan — Zero Runtime Impact)</p>';
+                    html += '<div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>File</th><th>Issue</th><th>Severity</th></tr></thead><tbody>';
                     r.findings.slice(0,10).forEach(function(f) {
-                        html += '<tr><td style="font-size:0.7rem;">'+f.file_path.split('/').pop()+'</td><td>'+f.pattern_name+'</td><td>'+badge(f.severity)+'</td></tr>';
+                        html += '<tr><td style="font-size:0.7rem;font-family:monospace;">'+f.file_path.split('/').pop()+'</td><td>'+f.pattern_name+'</td><td>'+badge(f.severity)+'</td></tr>';
                     });
                     html += '</tbody></table></div>';
                 }

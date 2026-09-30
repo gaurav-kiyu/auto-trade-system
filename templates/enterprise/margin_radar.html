@@ -39,14 +39,15 @@
 
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
 <div>
-<h1><i class="fas fa-shield-alt" style="margin-right:0.5rem;color:#f59e0b;"></i> Unified Multi-Broker Margin &amp; Collateral Radar</h1>
+<h1><i class="fas fa-shield-alt" style="margin-right:0.5rem;color:var(--warning-color, #f59e0b);"></i> Unified Multi-Broker Margin &amp; Collateral Radar</h1>
 <p class="subtitle">Aggregated real-time cash, pledged liquid collateral, used margin, and 75% peak margin safety warning shield across 11 Indian brokers</p>
 </div>
 <button class="btn btn-ghost" id="cspfix-1" style="background:transparent;color: var(--text-muted, #94a3b8);border: 1px solid var(--border-color, #1e293b);padding:0.4rem 0.8rem;border-radius:0.4rem;cursor:pointer;" type="button"><i class="fas fa-sync-alt"></i> Refresh Margins</button>
 </div>
-<div style="background:#422006;border:1px solid #b45309;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:#fcd34d;font-size:0.85rem;">
+<div style="background:var(--market-warning-bg, rgba(217,119,6,0.14));border:1px solid var(--warning-color, #d97706);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:var(--warning-color, #d97706);font-size:0.85rem;">
+<span class="badge" style="background:var(--warning-color, #d97706);color:#000;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">SAMPLE / DEMO DATA</span>
 <i class="fas fa-triangle-exclamation" style="margin-right:0.4rem;"></i>
-<strong>Sample data only.</strong> The margin figures below are a static hardcoded sample - no real broker margin API is connected. Nothing here reflects an actual account balance.
+<strong>Static demonstration dataset:</strong> The margin figures below are a static sample dataset — live broker margin feeds are disconnected in SIGNAL_ONLY / PAPER mode. None of these figures reflect real account balances.
     </div>
 <!-- Alert Box for Peak Margin -->
 <div id="peakMarginAlertBox" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:1.5rem;color: var(--danger-color, #dc2626);font-size:0.85rem;">
@@ -57,28 +58,28 @@
 <div class="stats-grid">
 <div class="stat-card">
 <div class="stat-label">Total Available Cash</div>
-<div class="stat-value" id="kpiCash" style="color:#38bdf8;">-</div>
+<div class="stat-value" id="kpiCash" style="color:var(--accent-color, #38bdf8);font-variant-numeric:tabular-nums;">-</div>
 </div>
 <div class="stat-card">
 <div class="stat-label">Pledged Collateral</div>
-<div class="stat-value" id="kpiCollat" style="color:#818cf8;">-</div>
+<div class="stat-value" id="kpiCollat" style="color:var(--accent-secondary, #818cf8);font-variant-numeric:tabular-nums;">-</div>
 </div>
 <div class="stat-card">
 <div class="stat-label">Total Purchasing Power</div>
-<div class="stat-value" id="kpiTotal" style="color:#34d399;">-</div>
+<div class="stat-value" id="kpiTotal" style="color:var(--success-color, #34d399);font-variant-numeric:tabular-nums;">-</div>
 </div>
 <div class="stat-card">
 <div class="stat-label">Used Margin</div>
-<div class="stat-value" id="kpiUsed" style="color: var(--danger-color, #dc2626);">-</div>
+<div class="stat-value" id="kpiUsed" style="color: var(--danger-color, #dc2626);font-variant-numeric:tabular-nums;">-</div>
 </div>
 <div class="stat-card">
 <div class="stat-label">Overall Utilization</div>
-<div class="stat-value" id="kpiUtil" style="color:#fbbf24;">-%</div>
+<div class="stat-value" id="kpiUtil" style="color:var(--warning-color, #fbbf24);font-variant-numeric:tabular-nums;">-%</div>
 </div>
 </div>
 <!-- Broker Breakdown Table -->
 <div class="card">
-<h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-university" style="color:#60a5fa;margin-right:0.5rem;"></i> Live Broker Margin Breakdown</h3>
+<h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-university" style="color:var(--accent-color, #60a5fa);margin-right:0.5rem;"></i> Live Broker Margin Breakdown</h3>
 <div style="overflow-x:auto;">
 <table class="table">
 <thead>
@@ -125,12 +126,12 @@
 
                 return `<tr>
                     <td><strong>${b.broker_name}</strong></td>
-                    <td style="font-family:monospace;">₹${b.available_cash.toLocaleString('en-IN')}</td>
-                    <td style="font-family:monospace;">₹${b.collateral_margin.toLocaleString('en-IN')}</td>
-                    <td style="font-family:monospace;font-weight:600;">₹${b.total_margin.toLocaleString('en-IN')}</td>
-                    <td style="font-family:monospace;color: var(--danger-color, #dc2626);">₹${b.used_margin.toLocaleString('en-IN')}</td>
+                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${b.available_cash.toLocaleString('en-IN')}</td>
+                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${b.collateral_margin.toLocaleString('en-IN')}</td>
+                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:600;">₹${b.total_margin.toLocaleString('en-IN')}</td>
+                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;color: var(--danger-color, #dc2626);">₹${b.used_margin.toLocaleString('en-IN')}</td>
                     <td>
-                        <div style="display:flex;justify-content:space-between;font-size:0.7rem;margin-bottom:0.2rem;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.7rem;margin-bottom:0.2rem;font-variant-numeric:tabular-nums;">
                             <span>${b.utilization_pct}%</span>
                             <span style="color: var(--text-muted, #94a3b8);">Limit 75%</span>
                         </div>

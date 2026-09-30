@@ -316,19 +316,28 @@
 <div style="font-size:0.75rem;color: var(--text-muted, #94a3b8);">Set independent score limits for Index Options vs. Stock Options vs. Cash Delivery</div>
 </div>
 </div>
+<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.78rem;line-height:1.5;color:var(--text-secondary);">
+  <strong style="color:var(--text-primary);"><i class="fas fa-info-circle" style="color:var(--accent-color);"></i> Threshold Governance Architecture:</strong>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0.5rem;margin-top:0.5rem;">
+    <div><span class="badge" style="background:rgba(56,189,248,0.15);color:var(--accent-color);">1. Execution Gates</span><br><code style="font-size:0.7rem;">AI_THRESHOLD</code> (Order conversion floor) &amp; <code style="font-size:0.7rem;">TIER_STRONG_MIN</code>.</div>
+    <div><span class="badge" style="background:rgba(34,197,94,0.15);color:var(--success-color);">2. Scanner Category Gates</span><br><code style="font-size:0.7rem;">CATEGORY_SCORE_THRESHOLDS</code>, <code style="font-size:0.7rem;">INDEX_MIN_SCORE</code>, <code style="font-size:0.7rem;">MIN_SCORE_THRESHOLD</code>.</div>
+    <div><span class="badge" style="background:rgba(245,158,11,0.15);color:var(--warning-color);">3. Notification Gates</span><br><code style="font-size:0.7rem;">TG_ALERT_MIN_SCORE</code> (Alert consistency) &amp; cooldowns.</div>
+    <div><span class="badge" style="background:rgba(168,85,247,0.15);color:#c084fc);">4. UI Display Labels</span><br><code style="font-size:0.7rem;">STRONG_THRESHOLD</code>, <code style="font-size:0.7rem;">MODERATE_THRESHOLD</code> (Visual labels only).</div>
+  </div>
+</div>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;">
 <div style="background:var(--bg-secondary);border: 1px solid var(--border-color);border-radius:0.75rem;padding:1rem;">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
-<span style="font-weight:600;color:#38bdf8;font-size:0.85rem;"><i class="fas fa-bullseye"></i> Index Options</span>
-<span class="badge" style="background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);">CE / PE Options</span>
+<span style="font-weight:600;color:var(--accent-color, #38bdf8);font-size:0.85rem;"><i class="fas fa-bullseye"></i> Index Options</span>
+<span class="badge" style="background:rgba(56,189,248,0.15);color:var(--accent-color, #38bdf8);border:1px solid rgba(56,189,248,0.3);">CE / PE Options</span>
 </div>
 <div style="font-size:0.75rem;color: var(--text-muted, #94a3b8);margin-bottom:0.75rem;">NIFTY, SENSEX, BANKNIFTY, FINNIFTY</div>
 <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Key: <code>CATEGORY_SCORE_THRESHOLDS.INDEX_OPTIONS</code> (Default: 80) — falls back to <code>INDEX_MIN_SCORE</code> if unset</div>
 </div>
 <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:0.75rem;padding:1rem;">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
-<span style="font-weight:600;color:#f59e0b;font-size:0.85rem;"><i class="fas fa-bolt"></i> Stock Options (F&amp;O)</span>
-<span class="badge" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);">~185 F&amp;O Stocks</span>
+<span style="font-weight:600;color:var(--warning-color, #f59e0b);font-size:0.85rem;"><i class="fas fa-bolt"></i> Stock Options (F&amp;O)</span>
+<span class="badge" style="background:rgba(245,158,11,0.15);color:var(--warning-color, #f59e0b);border:1px solid rgba(245,158,11,0.3);">~185 F&amp;O Stocks</span>
 </div>
 <div style="font-size:0.75rem;color: var(--text-muted, #94a3b8);margin-bottom:0.75rem;">Reliance, TCS, HDFC Bank, Tata Motors</div>
 <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Key: <code>CATEGORY_SCORE_THRESHOLDS.STOCK_OPTIONS</code> (Default: 85) — independent of the Index/Cash Equities gates, falls back to <code>MIN_SCORE_THRESHOLD</code> if unset</div>

@@ -35,18 +35,19 @@
 
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
 <div>
-<h1><i class="fas fa-clone" style="margin-right:0.5rem;color:#3b82f6;"></i> Master Multi-Account Trade Copier</h1>
+<h1><i class="fas fa-clone" style="margin-right:0.5rem;color:var(--accent-color, #38bdf8);"></i> Master Multi-Account Trade Copier</h1>
 <p class="subtitle">Execute master orders with automatic parallel prorating and sub-second replication across all connected client broker accounts</p>
 </div>
 <button class="btn btn-ghost" id="cspfix-1" type="button"><i class="fas fa-sync-alt"></i> Refresh Accounts</button>
 </div>
-<div style="background:#422006;border:1px solid #b45309;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:#fcd34d;font-size:0.85rem;">
+<div style="background:var(--market-warning-bg, rgba(217,119,6,0.14));border:1px solid var(--warning-color, #d97706);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:var(--warning-color, #d97706);font-size:0.85rem;">
+<span class="badge" style="background:var(--warning-color, #d97706);color:#000;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">SAMPLE / DEMO DATA</span>
 <i class="fas fa-triangle-exclamation" style="margin-right:0.4rem;"></i>
-<strong>Sample data only.</strong> The accounts below are seeded demo accounts, not real linked broker connections - no broker account-linking flow exists yet. Every replication is simulated regardless of an account's configured mode; nothing here places a real order.
+<strong>Static demonstration accounts:</strong> The accounts below are seeded demo accounts, not real linked broker connections — live broker routing is DISCONNECTED in SIGNAL_ONLY / PAPER mode. Every replication is simulated.
     </div>
 <!-- Master Trade Trigger Box -->
-<div class="card" style="border-left: 4px solid #3b82f6;">
-<h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-bolt" style="color:#60a5fa;margin-right:0.5rem;"></i> Execute Master Trade (Replicate to All Accounts)</h3>
+<div class="card" style="border-left: 4px solid var(--accent-color, #38bdf8);">
+<h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-bolt" style="color:var(--accent-color, #38bdf8);margin-right:0.5rem;"></i> Execute Master Trade (Replicate to All Accounts)</h3>
 <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
 <div>
 <label style="font-size:0.75rem;color: var(--text-muted, #94a3b8);display:block;margin-bottom:0.25rem;">Symbol</label>
@@ -124,11 +125,11 @@
             const accTb = document.getElementById('accountsTableBody');
             accTb.innerHTML = (data.accounts || []).map(a => `
                 <tr>
-                    <td style="font-family:monospace;color:#60a5fa;">${a.account_id}</td>
+                    <td style="font-family:monospace;color:var(--accent-color, #38bdf8);">${a.account_id}</td>
                     <td><strong>${a.client_name}</strong></td>
                     <td style="text-transform:uppercase;font-size:0.75rem;font-weight:600;">${a.broker_code}</td>
-                    <td style="font-weight:600;color:var(--warning-color, #d97706);">${a.risk_multiplier}x</td>
-                    <td style="font-family:monospace;">₹${a.max_capital_per_trade.toLocaleString('en-IN')}</td>
+                    <td style="font-weight:600;font-variant-numeric:tabular-nums;color:var(--warning-color, #d97706);">${a.risk_multiplier}x</td>
+                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${a.max_capital_per_trade.toLocaleString('en-IN')}</td>
                     <td><span class="badge ${a.mode === 'LIVE' ? 'badge-live' : 'badge-paper'}">${a.mode}</span></td>
                     <td><span class="badge badge-live">ACTIVE</span></td>
                 </tr>
@@ -141,13 +142,13 @@
             } else {
                 execTb.innerHTML = history.map(e => `
                     <tr>
-                        <td style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">${new Date(e.timestamp * 1000).toLocaleTimeString()}</td>
+                        <td style="font-size:0.7rem;font-variant-numeric:tabular-nums;color: var(--text-muted, #94a3b8);">${new Date(e.timestamp * 1000).toLocaleTimeString()}</td>
                         <td style="font-family:monospace;font-size:0.7rem;">${e.execution_id}</td>
                         <td><strong>${e.username}</strong> <span style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">(${e.broker_code})</span></td>
                         <td style="font-weight:600;">${e.symbol}</td>
                         <td><span class="badge ${e.direction === 'BUY' ? 'badge-live' : 'badge-paper'}">${e.direction}</span></td>
-                        <td style="font-family:monospace;font-weight:600;">${e.copied_quantity}</td>
-                        <td style="font-family:monospace;">₹${e.executed_price.toFixed(2)}</td>
+                        <td style="font-family:monospace;font-weight:600;font-variant-numeric:tabular-nums;">${e.copied_quantity}</td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${e.executed_price.toFixed(2)}</td>
                         <td><span class="badge badge-live">${e.status}</span></td>
                     </tr>
                 `).join('');
@@ -171,7 +172,12 @@
                 credentials: 'include',
             });
             const resData = await res.json();
-            alert(`✅ Master trade dispatched! Successfully replicated across ${resData.total_replications} client accounts.`);
+            const msg = `Master trade dispatched! Replicated across ${resData.total_replications || 0} simulated accounts.`;
+            if (window.showToast) {
+                window.showToast(msg, 'success', 'Trade Copier (Simulated)');
+            } else {
+                alert(`✅ ${msg}`);
+            }
             loadCopierData();
         }
 

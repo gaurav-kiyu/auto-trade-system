@@ -32,15 +32,16 @@
 
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
         <div>
-            <h1><i class="fas fa-landmark" style="margin-right:0.5rem;color:#3b82f6;"></i> FII / DII Smart Money Positioning Radar</h1>
+            <h1><i class="fas fa-landmark" style="margin-right:0.5rem;color:var(--accent-color, #3b82f6);"></i> FII / DII Smart Money Positioning Radar</h1>
             <p class="subtitle">NSE Participant-wise Open Interest positioning (FII, DII, Pro, Retail) and institutional divergence trap alerts</p>
         </div>
         <button id="cspfix-1" class="btn btn-ghost" style="background:transparent;color: var(--text-muted, #94a3b8);border: 1px solid var(--border-color, #1e293b);padding:0.4rem 0.8rem;border-radius:0.4rem;cursor:pointer;" type="button"><i class="fas fa-sync-alt"></i> Refresh Positioning</button>
     </div>
 
-    <div style="background:#422006;border:1px solid #b45309;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:#fcd34d;font-size:0.85rem;">
+    <div style="background:var(--market-warning-bg, rgba(217,119,6,0.14));border:1px solid var(--warning-color, #d97706);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:var(--warning-color, #d97706);font-size:0.85rem;">
+        <span class="badge" style="background:var(--warning-color, #d97706);color:#000;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">SAMPLE / DEMO DATA</span>
         <i class="fas fa-triangle-exclamation" style="margin-right:0.4rem;"></i>
-        <strong>Sample data only.</strong> The participant positioning below is a static hardcoded sample dataset - no real institutional-flow data feed is connected. Nothing here reflects actual FII/DII/Pro/Retail open interest.
+        <strong>Static demonstration dataset:</strong> The participant positioning below is a static sample dataset — live institutional participant-wise OI feed is currently disconnected. None of these values reflect live market positioning.
     </div>
 
     <!-- Smart Money Trap Alert Box -->
@@ -81,7 +82,7 @@
                     <div style="background:var(--market-warning-bg, rgba(217,119,6,0.14));border:1px solid var(--warning-color, #d97706);border-radius:0.5rem;padding:1rem;color:var(--warning-color, #d97706);">
                         <h4 style="font-weight:700;font-size:0.9rem;margin-bottom:0.25rem;">${t.title}</h4>
                         <p style="font-size:0.8rem;color: var(--text-primary, #e2e8f0);margin-bottom:0.5rem;">${t.description}</p>
-                        <div style="font-size:0.75rem;font-weight:600;color:#60a5fa;">👉 Recommendation: ${t.recommended_action}</div>
+                        <div style="font-size:0.75rem;font-weight:600;color:var(--accent-color, #38bdf8);">👉 Recommendation: ${t.recommended_action}</div>
                     </div>
                 `).join('');
             } else {
@@ -92,14 +93,14 @@
             const tb = document.getElementById('participantTableBody');
             tb.innerHTML = (data.participants || []).map(p => {
                 const badgeClass = p.net_bias === 'BULLISH' ? 'badge-bull' : (p.net_bias === 'BEARISH' ? 'badge-bear' : 'badge-neu');
-                const formatNet = (val) => `<span style="font-family:monospace;font-weight:600;color:${val >= 0 ? '#4ade80' : '#f87171'};">${val >= 0 ? '+' : ''}${val.toLocaleString('en-IN')}</span>`;
+                const formatNet = (val) => `<span style="font-family:monospace;font-weight:600;font-variant-numeric:tabular-nums;color:${val >= 0 ? 'var(--success-color, #22c55e)' : 'var(--danger-color, #ef4444)'};">${val >= 0 ? '+' : ''}${val.toLocaleString('en-IN')}</span>`;
 
                 return `<tr>
                     <td><strong>${p.display_name}</strong></td>
-                    <td>${formatNet(p.index_fut_net)}</td>
-                    <td>${formatNet(p.index_call_net)}</td>
-                    <td>${formatNet(p.index_put_net)}</td>
-                    <td>${formatNet(p.stock_fut_net)}</td>
+                    <td style="font-variant-numeric:tabular-nums;">${formatNet(p.index_fut_net)}</td>
+                    <td style="font-variant-numeric:tabular-nums;">${formatNet(p.index_call_net)}</td>
+                    <td style="font-variant-numeric:tabular-nums;">${formatNet(p.index_put_net)}</td>
+                    <td style="font-variant-numeric:tabular-nums;">${formatNet(p.stock_fut_net)}</td>
                     <td><span class="badge ${badgeClass}">${p.net_bias}</span></td>
                 </tr>`;
             }).join('');

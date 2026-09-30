@@ -82,24 +82,37 @@
             const data = await apiFetch(url);
             if (!data) return;
             const events = Array.isArray(data) ? data : (data.events || []);
-            document.getElementById('totalEvents').textContent = data.total || events.length || '-';
-            if (!events.length) { document.getElementById('eventsBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);font-family:sans-serif;">No events found</td></tr>'; return; }
+            const count = (typeof data.total === 'number') ? data.total : events.length;
+            document.getElementById('totalEvents').textContent = count;
+            if (!events.length) { 
+                document.getElementById('eventsBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);font-family:sans-serif;padding:1.5rem;">No events recorded in event store (current execution mode: SIGNAL_ONLY / PAPER)</td></tr>'; 
+                return; 
+            }
             document.getElementById('eventsBody').innerHTML = events.map(e => '<tr><td>'+(e.event_id||e.id||'-')+'</td><td>'+(e.event_type||e.type||'-')+'</td><td class="hash-cell" title="'+(e.aggregate_id||'')+'">'+(e.aggregate_id||'-')+'</td><td style="font-size:0.7rem;">'+((e.timestamp||'').substring(0,19).replace('T',' ')||'-')+'</td><td class="hash-cell" title="'+(e.event_hash||'')+'">'+truncate(e.event_hash)+'</td><td class="hash-cell" title="'+(e.previous_event_hash||'')+'">'+truncate(e.previous_event_hash)+'</td></tr>').join('');
         }
 
-        async function verifyChain() {
+        async function verifyChain(interactive = true) {
             const data = await apiFetch('/api/system/events/verify');
             if (!data) return;
             const valid = data.is_valid === true || data.valid === true || data.integrity === 'INTACT';
             document.getElementById('chainStatus').innerHTML = valid ? '<span class="badge badge-ok" style="font-size:1rem;">INTACT</span>' : '<span class="badge badge-critical" style="font-size:1rem;">TAMPERED</span>';
-            if (!valid) {
-                alert('⚠️ Chain integrity violation detected! Events may have been tampered with: ' + (data.message || data.error || ''));
-            } else {
-                alert('✅ Event Chain Verified: Integrity is INTACT (Checked ' + (data.events_checked || 0) + ' events).');
+            if (interactive) {
+                const msg = valid 
+                    ? '✅ Event Chain Verified: Integrity is INTACT (Checked ' + (data.events_checked || 0) + ' events).'
+                    : '⚠️ Chain integrity violation detected! Events may have been tampered with: ' + (data.message || data.error || '');
+                if (typeof window.showToast === 'function') {
+                    window.showToast(msg, valid ? 'success' : 'error');
+                } else {
+                    alert(msg);
+                }
             }
         }
 
-        document.addEventListener('DOMContentLoaded', ()=>{loadEvents();document.querySelectorAll('.tab[data-tab]').forEach(t=>t.addEventListener('click',function(){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('section-'+this.dataset.tab).classList.add('active');}));});
+        document.addEventListener('DOMContentLoaded', ()=>{
+            loadEvents();
+            verifyChain(false);
+            document.querySelectorAll('.tab[data-tab]').forEach(t=>t.addEventListener('click',function(){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('section-'+this.dataset.tab).classList.add('active');}));
+        });
     </script>    {% include "_pwa_sw_reg.html" %}
     <script nonce="{{ nonce }}">
         // Wired via addEventListener, not inline attributes - CSP's script-src

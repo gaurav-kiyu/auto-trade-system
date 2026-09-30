@@ -39,8 +39,23 @@
 <body>
     {% include '_nav.html' %}
     
-    <h1><i class="fas fa-chart-bar" style="color:#3b82f6;margin-right:0.5rem;"></i> Performance Dashboard</h1>
+    <h1><i class="fas fa-chart-bar" style="color:var(--accent-color, #3b82f6);margin-right:0.5rem;"></i> Performance Dashboard</h1>
     <p class="subtitle">Trade statistics, risk metrics, and benchmark comparison</p>
+
+    <!-- Operational State Banner -->
+    <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:0.75rem;padding:0.85rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+            <span class="badge" style="background:rgba(59,130,246,0.15);color:var(--accent-color, #60a5fa);border:1px solid rgba(59,130,246,0.3);font-weight:700;padding:0.2rem 0.6rem;border-radius:0.4rem;font-size:0.75rem;">
+                <i class="fas fa-shield-alt"></i> SIGNAL_ONLY / PAPER MODE
+            </span>
+            <span style="font-size:0.8rem;color:var(--text-secondary);">
+                Broker Routing: <strong style="color:var(--warning-color, #f59e0b);">DISCONNECTED</strong> | Executed Orders: <strong style="color:var(--text-primary);">0</strong>
+            </span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">
+            Signal analytics &amp; prediction tracking are available in <a href="/admin/signals" style="color:var(--accent-color, #60a5fa);font-weight:700;text-decoration:none;">Signal Intelligence</a>.
+        </div>
+    </div>
 
     <div class="grid-5" id="statsCards">
         <div class="stat-card"><div class="stat-value" id="totalTrades">-</div><div class="stat-label">Total Trades</div></div>
@@ -112,11 +127,11 @@
             document.getElementById('consecWins').textContent = perf.consecutive_wins ?? '-';
 
             const trades = Array.isArray(perf.recent_trades) ? perf.recent_trades : [];
-            document.getElementById('recentTrades').innerHTML = trades.length ? trades.map((t,i)=>'<tr><td>'+(i+1)+'</td><td style="font-weight:600;color: var(--text-primary, #f8fafc);">'+t.symbol+'</td><td class="'+(t.direction==='BUY'?'stat-positive':'stat-negative')+'">'+t.direction+'</td><td class="'+(t.net_pnl>=0?'stat-positive':'stat-negative')+'">₹'+t.net_pnl.toFixed(2)+'</td><td>'+t.exit_reason+'</td><td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);white-space:nowrap;">'+((t.exit_time||'').length>=10?(t.exit_time).substring(0,10):(t.exit_time||'-'))+'</td></tr>').join('') : '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">No trades</td></tr>';
+            document.getElementById('recentTrades').innerHTML = trades.length ? trades.map((t,i)=>'<tr><td>'+(i+1)+'</td><td style="font-weight:600;color: var(--text-primary, #f8fafc);">'+t.symbol+'</td><td class="'+(t.direction==='BUY'?'stat-positive':'stat-negative')+'">'+t.direction+'</td><td class="'+(t.net_pnl>=0?'stat-positive':'stat-negative')+'">₹'+t.net_pnl.toFixed(2)+'</td><td>'+t.exit_reason+'</td><td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);white-space:nowrap;">'+((t.exit_time||'').length>=10?(t.exit_time).substring(0,10):(t.exit_time||'-'))+'</td></tr>').join('') : '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);padding:1.5rem;">No executed trades &mdash; Running in SIGNAL_ONLY / PAPER mode with broker routing DISCONNECTED.</td></tr>';
 
             const compData = perf.comparison || (comp && comp.comparison) || comp || {};
             if (Object.keys(compData).length) {
-                document.getElementById('benchmarkTable').innerHTML = Object.entries(compData).map(([k,v])=>'<tr><td><strong>'+k+'</strong></td><td>'+(v.strategy??'-')+'</td><td>'+(v.benchmark??'-')+'</td><td style="color:'+(String(v.alpha||'').includes('-')?'#f87171':'#4ade80')+'">'+(v.alpha??'-')+'</td></tr>').join('');
+                document.getElementById('benchmarkTable').innerHTML = Object.entries(compData).map(([k,v])=>'<tr><td><strong>'+k+'</strong></td><td>'+(v.strategy??'-')+'</td><td>'+(v.benchmark??'-')+'</td><td style="color:'+(String(v.alpha||'').includes('-')?'var(--danger-color, #f87171)':'var(--success-color, #4ade80)')+'">'+(v.alpha??'-')+'</td></tr>').join('');
             } else {
                 document.getElementById('benchmarkTable').innerHTML = '<tr><td colspan="4" style="text-align:center;color: var(--text-muted, #94a3b8);">No comparison data</td></tr>';
             }

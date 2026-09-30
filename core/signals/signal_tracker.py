@@ -1549,6 +1549,43 @@ class SignalTracker:
                     if "regime" in parsed_raw:
                         components["regime_multiplier"] = parsed_raw["regime"]
 
+                cur.execute("SELECT * FROM signal_outcome_measurements WHERE signal_id = ?", (signal_id,))
+                m_row = cur.fetchone()
+                measurements = dict(m_row) if m_row else None
+
+                lifecycle = {
+                    "start_from": r.get("timestamp"),
+                    "entry_range": "NOT PARAMETERIZED (EXACT LEVEL)",
+                    "entry_by": "NOT PARAMETERIZED",
+                    "exit_by": measurements.get("observed_until") if measurements else "OBSERVATION HORIZON",
+                    "observed_from": measurements.get("observed_from") if measurements else None,
+                    "observed_until": measurements.get("observed_until") if measurements else None,
+                    "first_touch": measurements.get("first_touch") if measurements else r.get("first_touch"),
+                    "first_touch_at": measurements.get("first_touch_at") if measurements else None,
+                    "first_touch_price": measurements.get("first_touch_price") if measurements else None,
+                    "exit_price": measurements.get("exit_price") if measurements else None,
+                    "exit_at": measurements.get("exit_at") if measurements else None,
+                    "outcome": measurements.get("outcome") if measurements else r.get("status"),
+                    "raw_lifecycle_state": measurements.get("raw_lifecycle_state") if measurements else None,
+                    "observation_count": measurements.get("observation_count") if measurements else None,
+                }
+
+                excursion = {
+                    "mfe": measurements.get("mfe") if measurements else None,
+                    "mae": measurements.get("mae") if measurements else None,
+                    "mfe_pct": measurements.get("mfe_pct") if measurements else None,
+                    "mae_pct": measurements.get("mae_pct") if measurements else None,
+                    "mfe_r": measurements.get("mfe_r") if measurements else None,
+                    "mae_r": measurements.get("mae_r") if measurements else None,
+                    "realized_r": measurements.get("realized_r") if measurements else None,
+                    "target_1_hit": bool(measurements.get("target_1_hit")) if measurements else False,
+                    "target_1_hit_at": measurements.get("target_1_hit_at") if measurements else None,
+                    "target_2_hit": bool(measurements.get("target_2_hit")) if measurements else False,
+                    "target_2_hit_at": measurements.get("target_2_hit_at") if measurements else None,
+                    "stop_loss_hit": bool(measurements.get("stop_loss_hit")) if measurements else False,
+                    "stop_loss_hit_at": measurements.get("stop_loss_hit_at") if measurements else None,
+                }
+
                 return {
                     "signal_id": r["signal_id"],
                     "symbol": r["symbol"],
@@ -1564,14 +1601,17 @@ class SignalTracker:
                     "target_2": r["target_2"],
                     "status": r["status"],
                     "score_components": components,
+                    "lifecycle": lifecycle,
+                    "excursion": excursion,
+                    "outcome_measurements": measurements,
                     "metadata": {
                         "raw_score": r.get("raw_score", r["score"]),
                         "normalized_score": r.get("normalized_score", r["score"]),
                         "saturated": bool(r.get("score_saturated", 0)),
                         "opportunity_key": r.get("opportunity_key", ""),
                         "strategy": parsed_raw.get("strategy") or parsed_raw.get("strategy_name") or "default",
-                        "first_touch": r.get("first_touch", ""),
-                        "outcome_confidence": r.get("outcome_confidence", "UNKNOWN"),
+                        "first_touch": measurements.get("first_touch") if measurements else r.get("first_touch", ""),
+                        "outcome_confidence": measurements.get("outcome_confidence") if measurements else r.get("outcome_confidence", "UNKNOWN"),
                     },
                 }
             except Exception as ex:

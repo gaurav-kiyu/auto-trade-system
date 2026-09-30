@@ -398,6 +398,10 @@
         background: var(--market-buy, #10b981) !important;
         box-shadow: 0 0 8px var(--market-buy, #10b981) !important;
     }
+    .opb-latency-pulse.pulse-muted {
+        background: var(--text-muted, #94a3b8) !important;
+        box-shadow: none !important;
+    }
 
 /* OPB v2.59.4 FINAL THEME-AWARE NAV TYPOGRAPHY */
 .opb-desktop-nav .opb-nav-item,
@@ -1173,8 +1177,12 @@ body[data-theme="emerald-matrix"] {
             }
             if (pulseEl) {
                 pulseEl.className = data.is_open ? 'opb-latency-pulse pulse-live' : 'opb-latency-pulse pulse-muted';
-                if (data.color) {
+                if (!data.is_open) {
+                    pulseEl.style.boxShadow = 'none';
+                    pulseEl.style.background = data.color || 'var(--text-muted, #94a3b8)';
+                } else if (data.color) {
                     pulseEl.style.background = data.color;
+                    pulseEl.style.boxShadow = `0 0 8px ${data.color}`;
                 }
             }
         } catch (_) {}

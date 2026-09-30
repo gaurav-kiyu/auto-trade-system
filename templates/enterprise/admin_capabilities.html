@@ -360,23 +360,27 @@
                     }
                 }
 
-                if (data.signals_summary) {
-                    const sig = data.signals_summary;
+                const sig = data.signals_summary || data.signals_today;
+                if (sig) {
                     const sigTotEl = document.getElementById('hudSignalsToday');
-                    if (sigTotEl) sigTotEl.textContent = sig.total_signals_today ?? 0;
+                    if (sigTotEl) sigTotEl.textContent = sig.total_signals_today ?? sig.total ?? 0;
                     const winEl = document.getElementById('hudWinRate');
                     if (winEl) {
-                        if (sig.resolved_signals > 0 && sig.win_rate_pct !== null) {
-                            winEl.textContent = `Win Rate: ${sig.win_rate_pct.toFixed(1)}%`;
-                            winEl.style.color = sig.win_rate_pct >= 60 ? '#22c55e' : (sig.win_rate_pct >= 45 ? '#f59e0b' : '#ef4444');
+                        const winPct = (sig.win_rate_pct !== undefined && sig.win_rate_pct !== null) ? Number(sig.win_rate_pct) : null;
+                        const resCnt = sig.resolved_signals ?? sig.resolved ?? 0;
+                        if (resCnt > 0 && winPct !== null && !isNaN(winPct)) {
+                            winEl.textContent = `Win Rate: ${winPct.toFixed(1)}%`;
+                            winEl.style.color = winPct >= 60 ? 'var(--success-color, #22c55e)' : (winPct >= 45 ? 'var(--warning-color, #f59e0b)' : 'var(--danger-color, #ef4444)');
                         } else {
                             winEl.textContent = 'Win Rate: N/A';
-                            winEl.style.color = '#94a3b8';
+                            winEl.style.color = 'var(--text-muted, #94a3b8)';
                         }
                     }
                     const sigDetEl = document.getElementById('hudSignalsDetail');
                     if (sigDetEl) {
-                        sigDetEl.textContent = `Active: ${sig.active_signals || 0} | Resolved: ${sig.resolved_signals || 0}`;
+                        const actCnt = sig.active_signals ?? sig.active ?? 0;
+                        const resCnt = sig.resolved_signals ?? sig.resolved ?? 0;
+                        sigDetEl.textContent = `Active: ${actCnt} | Resolved: ${resCnt}`;
                     }
                 }
 
