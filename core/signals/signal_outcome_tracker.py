@@ -1635,6 +1635,7 @@ class SignalOutcomeTracker:
                 def _calc_segment(sub_rows: list[dict[str, Any]]) -> dict[str, Any]:
                     sub_total = len(sub_rows)
                     sub_t1 = sum(1 for r in sub_rows if r.get("first_touch") in ("T1", "T2") or (not r.get("first_touch") and r.get("status") in ("TARGET_1_HIT", "TARGET_2_HIT")))
+                    sub_t2 = sum(1 for r in sub_rows if r.get("status") == "TARGET_2_HIT" or r.get("first_touch") == "T2")
                     sub_sl = sum(1 for r in sub_rows if r.get("first_touch") == "SL" or (not r.get("first_touch") and r.get("status") == "SL_HIT"))
                     sub_res = sub_t1 + sub_sl
                     sub_win = round((sub_t1 / sub_res) * 100, 2) if sub_res > 0 else None
@@ -1666,6 +1667,8 @@ class SignalOutcomeTracker:
                         "total_signals": sub_total,
                         "resolved_signals": sub_res,
                         "t1_hits": sub_t1,
+                        "t1_or_better": sub_t1,
+                        "t2_hits": sub_t2,
                         "sl_hits": sub_sl,
                         "win_rate_pct": sub_win,
                         "loss_rate_pct": sub_loss,

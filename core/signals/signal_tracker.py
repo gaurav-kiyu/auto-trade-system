@@ -1420,14 +1420,18 @@ class SignalTracker:
                 else:
                     rows = all_raw_rows
 
+                is_t1_fn = lambda r: (r["status"] in ("TARGET_1_HIT", "TARGET_2_HIT")) or (r.get("first_touch") in ("T1", "T2"))
+                is_t2_fn = lambda r: (r["status"] == "TARGET_2_HIT") or (r.get("first_touch") == "T2") or (str(r.get("target_2_hit") or "").strip().lower() in ("1", "true", "t2", "target_2_hit"))
+                is_sl_fn = lambda r: (r["status"] == "SL_HIT") or (r.get("first_touch") == "SL")
+
                 total_signals = len(rows)
                 open_signals = sum(1 for r in rows if r["status"] in ("ACTIVE", "OPEN"))
-                t1_hits = sum(1 for r in rows if r["status"] in ("TARGET_1_HIT", "TARGET_2_HIT"))
-                t2_hits = sum(1 for r in rows if r["status"] == "TARGET_2_HIT")
-                sl_hits = sum(1 for r in rows if r["status"] == "SL_HIT")
-                active_signals = sum(1 for r in rows if r["status"] == "ACTIVE")
+                t1_hits = sum(1 for r in rows if is_t1_fn(r))
+                t2_hits = sum(1 for r in rows if is_t2_fn(r))
+                sl_hits = sum(1 for r in rows if is_sl_fn(r))
+                active_signals = sum(1 for r in rows if r["status"] == "ACTIVE" and not is_t1_fn(r) and not is_sl_fn(r))
                 ambiguous_count = sum(1 for r in rows if r["status"] == "AMBIGUOUS" or "AMBIGUOUS" in str(r.get("first_touch") or ""))
-                expired_count = sum(1 for r in rows if r["status"] == "EXPIRED")
+                expired_count = sum(1 for r in rows if (r["status"] == "EXPIRED" or r.get("first_touch") == "EXPIRED") and not is_t1_fn(r) and not is_sl_fn(r))
                 resolved_signals = t1_hits + sl_hits
 
                 if resolved_signals > 0:
@@ -1437,8 +1441,8 @@ class SignalTracker:
                     win_rate = 0.0
                     win_rate_display = "N/A (0 resolved real signals)" if not include_seed_samples else "N/A (0 resolved)"
 
-                winning_pnl = sum(r["pnl_pct"] for r in rows if r["status"] in ("TARGET_1_HIT", "TARGET_2_HIT") and r["pnl_pct"] > 0)
-                losing_pnl = abs(sum(r["pnl_pct"] for r in rows if r["status"] == "SL_HIT" and r["pnl_pct"] < 0))
+                winning_pnl = sum(r["pnl_pct"] for r in rows if is_t1_fn(r) and r["pnl_pct"] > 0)
+                losing_pnl = abs(sum(r["pnl_pct"] for r in rows if is_sl_fn(r) and r["pnl_pct"] < 0))
                 profit_factor = round(winning_pnl / losing_pnl, 2) if losing_pnl > 0 else (999.99 if winning_pnl > 0 else 0.0)
 
                 contains_demo_data = any(bool(r.get("raw_data") and "is_seed_sample" in r["raw_data"]) for r in rows)
@@ -1455,35 +1459,51 @@ class SignalTracker:
                         cat_breakdown[c] = {
                             "total": 0,
                             "t1_hits": 0,
+                            "t1_or_better": 0,
+                            "t2_hits": 0,
+                            "t1_only": 0,
                             "sl_hits": 0,
                             "active": 0,
                             "expired": 0,
                             "ambiguous": 0,
+                            "resolved": 0,
                             "avg_score": 0,
                             "sum_score": 0,
                         }
                     cat_breakdown[c]["total"] += 1
                     cat_breakdown[c]["sum_score"] += r["score"]
-                    if r["status"] in ("TARGET_1_HIT", "TARGET_2_HIT"):
+                    is_t1 = is_t1_fn(r)
+                    is_t2 = is_t2_fn(r)
+                    is_sl = is_sl_fn(r)
+                    is_amb = (r["status"] == "AMBIGUOUS") or ("AMBIGUOUS" in str(r.get("first_touch") or ""))
+
+                    if is_t1:
                         cat_breakdown[c]["t1_hits"] += 1
-                    elif r["status"] == "SL_HIT":
+                        cat_breakdown[c]["t1_or_better"] += 1
+                        if is_t2:
+                            cat_breakdown[c]["t2_hits"] += 1
+                        else:
+                            cat_breakdown[c]["t1_only"] += 1
+                    elif is_sl:
                         cat_breakdown[c]["sl_hits"] += 1
-                    elif r["status"] == "EXPIRED":
-                        cat_breakdown[c]["expired"] += 1
-                    elif r["status"] == "AMBIGUOUS" or "AMBIGUOUS" in str(r.get("first_touch") or ""):
+                    elif is_amb:
                         cat_breakdown[c]["ambiguous"] += 1
+                    elif r["status"] == "EXPIRED" or r.get("first_touch") == "EXPIRED":
+                        cat_breakdown[c]["expired"] += 1
                     else:
                         cat_breakdown[c]["active"] += 1
 
                 for c, stats in cat_breakdown.items():
                     stats["avg_score"] = round(stats["sum_score"] / max(stats["total"], 1), 1)
-                    res_c = stats["t1_hits"] + stats["sl_hits"]
+                    res_c = stats["t1_or_better"] + stats["sl_hits"]
+                    stats["resolved"] = res_c
                     if res_c > 0:
-                        stats["win_rate"] = round((stats["t1_hits"] / res_c) * 100, 1)
+                        stats["win_rate"] = round((stats["t1_or_better"] / res_c) * 100, 1)
                         stats["win_rate_display"] = f"{stats['win_rate']}%"
                     else:
                         stats["win_rate"] = 0.0
                         stats["win_rate_display"] = "N/A (0 resolved)"
+
 
                 return {
                     "timeframe": timeframe,
@@ -1898,14 +1918,19 @@ class SignalTracker:
                         or ft in ("AMBIGUOUS", "AMBIGUOUS_SAME_BAR", "AMBIGUOUS_SAME_OBSERVATION")
                         or conf == "AMBIGUOUS"
                     )
+                    is_t2 = (st in ("TARGET_2_HIT", "T2_HIT")) or (ft == "T2") or (str(row.get("target_2_hit") or "").strip().lower() in ("1", "true", "t2", "target_2_hit"))
+                    is_t1 = (st in ("TARGET_1_HIT", "T1_HIT")) or (ft in ("T1", "T2")) or is_t2
+                    is_sl = (st in ("SL_HIT", "STOP_LOSS_HIT")) or (ft == "SL")
+
                     if is_ambig:
                         row["status"] = "AMBIGUOUS"
                         ambiguous_count += 1
-                    elif st in ("TARGET_2_HIT", "T2_HIT"):
+                    elif is_t2:
                         t2_hit_count += 1
-                    elif st in ("TARGET_1_HIT", "T1_HIT"):
                         t1_hit_count += 1
-                    elif st in ("SL_HIT", "STOP_LOSS_HIT"):
+                    elif is_t1:
+                        t1_hit_count += 1
+                    elif is_sl:
                         sl_hit_count += 1
                     elif st == "EXPIRED" or ft == "EXPIRED":
                         expired_count += 1

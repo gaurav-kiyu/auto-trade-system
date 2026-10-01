@@ -155,14 +155,22 @@ def _dimension(rows: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
     for name, items in sorted(buckets.items()):
         resolved = _canonical_resolved_rows(items)
         wins = [r for r in resolved if _canonical_outcome(r) == "T1"]
+        t2_wins = [
+            r for r in items
+            if str(r.get("target_2_hit") or "").strip().lower() in {"1", "true", "t2", "target_2_hit"}
+            or str(r.get("status") or "").strip().upper() == "TARGET_2_HIT"
+            or str(r.get("first_touch") or "").strip().upper() == "T2"
+        ]
         losses = [r for r in resolved if _canonical_outcome(r) == "SL"]
         result.append({
             "bucket": name,
             "signals": len(items),
             "resolved": len(resolved),
             "t1_or_better": len(wins),
+            "t2_hits": len(t2_wins),
             "sl_before_t1_recorded": len(losses),
             "t1_rate_pct": round(len(wins) / len(items) * 100, 2) if items else 0.0,
+            "t2_rate_pct": round(len(t2_wins) / len(items) * 100, 2) if items else 0.0,
             "resolved_win_rate_pct": round(len(wins) / len(resolved) * 100, 2) if resolved else 0.0,
             "wilson_lower_95_pct": round(_wilson_lower(len(wins), len(resolved)) * 100, 2) if resolved else 0.0,
             "avg_pnl_pct": round(sum(float(r.get("pnl_pct") or 0) for r in items) / len(items), 3) if items else 0.0,
@@ -204,7 +212,12 @@ def build_signal_intelligence_report(
 
     resolved = _canonical_resolved_rows(rows)
     t1 = [r for r in rows if _canonical_outcome(r) == "T1"]
-    t2 = [r for r in rows if r.get("status") == "TARGET_2_HIT"]
+    t2 = [
+        r for r in rows
+        if str(r.get("status") or "").strip().upper() == "TARGET_2_HIT"
+        or str(r.get("target_2_hit") or "").strip().lower() in {"1", "true", "t2", "target_2_hit"}
+        or str(r.get("first_touch") or "").strip().upper() == "T2"
+    ]
     sl = [r for r in rows if _canonical_outcome(r) == "SL"]
     active = [r for r in rows if r.get("status") == "ACTIVE"]
     expired = [r for r in rows if r.get("status") == "EXPIRED"]
@@ -247,12 +260,21 @@ def build_signal_intelligence_report(
         items = sbuckets.get(bucket, [])
         rr = _canonical_resolved_rows(items)
         ww = [x for x in rr if _canonical_outcome(x) == "T1"]
+        t2_ww = [
+            x for x in items
+            if str(x.get("target_2_hit") or "").strip().lower() in {"1", "true", "t2", "target_2_hit"}
+            or str(x.get("status") or "").strip().upper() == "TARGET_2_HIT"
+            or str(x.get("first_touch") or "").strip().upper() == "T2"
+        ]
         score_breakdown.append({
             "bucket": bucket,
             "signals": len(items),
             "resolved": len(rr),
             "t1_or_better": len(ww),
+            "t2_hits": len(t2_ww),
             "sl_before_t1_recorded": len(rr) - len(ww),
+            "t1_rate_pct": round(len(ww) / len(items) * 100, 2) if items else 0.0,
+            "t2_rate_pct": round(len(t2_ww) / len(items) * 100, 2) if items else 0.0,
             "resolved_win_rate_pct": round(len(ww) / len(rr) * 100, 2) if rr else 0.0,
             "wilson_lower_95_pct": round(_wilson_lower(len(ww), len(rr)) * 100, 2) if rr else 0.0,
         })

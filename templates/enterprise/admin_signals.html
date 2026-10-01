@@ -123,11 +123,11 @@
 <div class="stat-value" id="statTotalSignals">-</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">First-Touch Win Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(T1 / [T1 + SL])</span></div>
+<div class="stat-label">First-Touch Win Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(≥T1 / [≥T1 + SL])</span></div>
 <div class="stat-value" id="statWinRate" style="color: var(--success-color, #16a34a);">-%</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">Target 1 Hit Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(T1 / Total Generated)</span></div>
+<div class="stat-label">Target 1 Hit Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(≥T1 / Total Generated)</span></div>
 <div class="stat-value" id="statT1Rate" style="color: var(--success-color, #16a34a);">-%</div>
 </div>
 <div class="stat-card">
@@ -161,16 +161,18 @@
 <th>Category</th>
 <th>Signals Total</th>
 <th>Active / Open</th>
-<th>Target 1 Hits</th>
+<th>T1 / Better Hits</th>
+<th>T2 Hits</th>
 <th>Stop Loss Hits</th>
 <th>Expired</th>
 <th>Ambiguous</th>
+<th>Resolved</th>
 <th>Win Rate (Resolved)</th>
 <th>Average Score</th>
 </tr>
 </thead>
 <tbody id="categoryTableBody">
-<tr><td colspan="9" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading category analytics...</td></tr>
+<tr><td colspan="11" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading category analytics...</td></tr>
 </tbody>
 </table>
 </div>
@@ -347,19 +349,24 @@
             const catTb = document.getElementById('categoryTableBody');
             const cats = data.category_breakdown || {};
             if (Object.keys(cats).length === 0) {
-                catTb.innerHTML = '<tr><td colspan="9" style="text-align:center;color: var(--text-muted, #94a3b8);">No category data for selected filter</td></tr>';
+                catTb.innerHTML = '<tr><td colspan="11" style="text-align:center;color: var(--text-muted, #94a3b8);">No category data for selected filter</td></tr>';
             } else {
                 catTb.innerHTML = Object.entries(cats).map(([cname, stats]) => {
-                    const winDisplay = (stats.t1_hits + stats.sl_hits > 0 && stats.win_rate !== null && stats.win_rate !== undefined) ? `${stats.win_rate}%` : (stats.win_rate_display || 'N/A (0 resolved)');
+                    const resolvedCount = stats.resolved !== undefined ? stats.resolved : ((stats.t1_or_better ?? stats.t1_hits ?? 0) + (stats.sl_hits ?? 0));
+                    const winDisplay = (resolvedCount > 0 && stats.win_rate !== null && stats.win_rate !== undefined) ? `${stats.win_rate}%` : (stats.win_rate_display || 'N/A (0 resolved)');
+                    const t1Count = stats.t1_or_better !== undefined ? stats.t1_or_better : (stats.t1_hits ?? 0);
+                    const t2Count = stats.t2_hits ?? 0;
                     return `
                     <tr>
                         <td><strong>${cname}</strong></td>
                         <td style="font-variant-numeric:tabular-nums;font-weight:700;">${stats.total}</td>
                         <td style="color:var(--accent-color, #0284c7);font-variant-numeric:tabular-nums;">${stats.active ?? 0}</td>
-                        <td style="color: var(--success-color, #16a34a);font-weight:600;font-variant-numeric:tabular-nums;">${stats.t1_hits}</td>
-                        <td style="color: var(--danger-color, #dc2626);font-weight:600;font-variant-numeric:tabular-nums;">${stats.sl_hits}</td>
+                        <td style="color: var(--success-color, #16a34a);font-weight:600;font-variant-numeric:tabular-nums;">${t1Count}</td>
+                        <td style="color: var(--success-color, #16a34a);font-weight:600;font-variant-numeric:tabular-nums;">${t2Count}</td>
+                        <td style="color: var(--danger-color, #dc2626);font-weight:600;font-variant-numeric:tabular-nums;">${stats.sl_hits ?? 0}</td>
                         <td style="color:var(--text-muted, #94a3b8);font-variant-numeric:tabular-nums;">${stats.expired ?? 0}</td>
                         <td style="color:var(--warning-color, #d97706);font-variant-numeric:tabular-nums;">${stats.ambiguous ?? 0}</td>
+                        <td style="color:var(--text-secondary, #cbd5e1);font-variant-numeric:tabular-nums;font-weight:600;">${resolvedCount}</td>
                         <td><strong style="color: var(--success-color, #16a34a);font-variant-numeric:tabular-nums;">${winDisplay}</strong></td>
                         <td style="font-variant-numeric:tabular-nums;">${stats.avg_score}/100</td>
                     </tr>

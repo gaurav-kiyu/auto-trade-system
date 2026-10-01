@@ -298,6 +298,8 @@
             const slEl = document.getElementById('metricSlHit');
             if (slEl) slEl.textContent = data.stop_loss_hit ?? 0;
             const expEl = document.getElementById('metricExpired');
+            if (expEl) expEl.textContent = data.expired_count ?? 0;
+            const ambEl = document.getElementById('metricAmbiguous');
             if (ambEl) ambEl.textContent = data.ambiguous_count ?? 0;
 
             const ySel = document.getElementById('filterYear');
