@@ -1,15 +1,39 @@
 [
   {
+    "timestamp": 1790839801.0,
+    "date": "2026-10-01T13:00:01",
+    "version": "2.60.0",
+    "commit_hash": "4a829fc014b8",
+    "commit_message": "fix(reporting): reconcile T1 T2 semantics and report analytics",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "production"
+  },
+  {
+    "timestamp": 1790830523.0,
+    "date": "2026-10-01T10:25:23",
+    "version": "",
+    "commit_hash": "4863fd3b5dc5",
+    "commit_message": "feat(release): OPB v2.60 master historical remediation, live-market validation, ",
+    "author": "Gaurav Yadav",
+    "files_changed": 0,
+    "lines_added": 0,
+    "lines_deleted": 0,
+    "environment": "staging"
+  },
+  {
     "timestamp": 1790793866.0,
     "date": "2026-10-01T00:14:26",
-    "version": "2.60.0",
+    "version": "",
     "commit_hash": "b2f5b568e7de",
     "commit_message": "fix(ui): remediate enterprise dashboard data wiring, DEF-01 explainability, and ",
     "author": "Gaurav Yadav",
     "files_changed": 0,
     "lines_added": 0,
     "lines_deleted": 0,
-    "environment": "production"
+    "environment": "staging"
   },
   {
     "timestamp": 1790740780.0,
@@ -329,30 +353,6 @@
     "version": "",
     "commit_hash": "6e67d49a38ab",
     "commit_message": "Merge pull request #49 from gaurav-kiyu/fix/def26-def34-remediation",
-    "author": "Gaurav Yadav",
-    "files_changed": 0,
-    "lines_added": 0,
-    "lines_deleted": 0,
-    "environment": "staging"
-  },
-  {
-    "timestamp": 1790327745.0,
-    "date": "2026-09-25T14:45:45",
-    "version": "",
-    "commit_hash": "13a30f6628ab",
-    "commit_message": "fix(remediation): resolve DEF-26 through DEF-34 production defect items",
-    "author": "Gaurav Yadav",
-    "files_changed": 0,
-    "lines_added": 0,
-    "lines_deleted": 0,
-    "environment": "staging"
-  },
-  {
-    "timestamp": 1790308105.0,
-    "date": "2026-09-25T09:18:25",
-    "version": "",
-    "commit_hash": "7e8e6e9498fa",
-    "commit_message": "docs(audit): record official DEF-24 production acceptance verification artifact ",
     "author": "Gaurav Yadav",
     "files_changed": 0,
     "lines_added": 0,

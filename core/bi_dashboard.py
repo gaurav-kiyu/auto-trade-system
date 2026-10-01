@@ -533,7 +533,7 @@ class BIDashboard:
             deployments.append(DeploymentRecord(
                 timestamp=time.time(),
                 version=cur_version,
-                commit_hash="b2f5b568e7de4be5aa0a04b0a100160b0b431cf5",
+                commit_hash="4a829fc014b89f324740ba010962c21d9b35f7ee",
                 commit_message="OPB v2.60 Canonical Release",
                 author="OPB Core Team",
                 environment="production",

@@ -183,9 +183,9 @@
         let currentPeriod = 'all';
 
         function statusBadge(status, t1PctStr, t2PctStr, slPctStr) {
-            if (status === 'TARGET_2_HIT') return `<span class="badge badge-t2"><i class="fas fa-check-double"></i> TARGET 2 HIT ${t2PctStr || ''}</span>`;
-            if (status === 'TARGET_1_HIT') return `<span class="badge badge-t1"><i class="fas fa-check"></i> TARGET 1 HIT ${t1PctStr || ''}</span>`;
-            if (status === 'SL_HIT') return `<span class="badge badge-sl"><i class="fas fa-times"></i> SL HIT ${slPctStr || ''}</span>`;
+            if (status === 'TARGET_2_HIT') return `<span class="badge badge-t2"><i class="fas fa-check-double"></i> Target-2 Hit ${t2PctStr || ''}</span>`;
+            if (status === 'TARGET_1_HIT') return `<span class="badge badge-t1"><i class="fas fa-check"></i> Target-1 Hit ${t1PctStr || ''}</span>`;
+            if (status === 'SL_HIT') return `<span class="badge badge-sl"><i class="fas fa-times"></i> Stop Loss Hit ${slPctStr || ''}</span>`;
             if (status === 'AMBIGUOUS' || status === 'AMBIGUOUS_SAME_BAR') return '<span class="badge" style="background:var(--market-warning-bg, rgba(217,119,6,0.14));color:var(--warning-color, #d97706);border:1px solid var(--warning-color, #d97706);font-weight:700;"><i class="fas fa-question-circle"></i> AMBIGUOUS</span>';
             if (status === 'EXPIRED') return '<span class="badge" style="background:var(--bg-secondary, rgba(148,163,184,0.15));color:var(--text-muted, #94a3b8);border:1px solid var(--border-color, rgba(148,163,184,0.3));"><i class="fas fa-clock"></i> EXPIRED</span>';
             return '<span class="badge badge-active"><i class="fas fa-circle-notch fa-spin"></i> ACTIVE</span>';
@@ -393,10 +393,10 @@
                     <td style="font-family:monospace;font-weight:700;color:var(--accent-color, #0284c7);font-size:0.85rem;">₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td>
                         <div style="font-family:monospace;font-size:0.75rem;color: var(--success-color, #16a34a);">
-                            <strong style="color: var(--success-color, #16a34a);">T1:</strong> ₹${s.target_1.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--success-color, #16a34a);">${t1PctStr}</span>
+                            <strong style="color: var(--success-color, #16a34a);">Target-1:</strong> ₹${s.target_1.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--success-color, #16a34a);">${t1PctStr}</span>
                         </div>
                         <div style="font-family:monospace;font-size:0.75rem;color:var(--success-color, #16a34a);margin-top:2px;">
-                            <strong style="color:var(--success-color, #16a34a);">T2:</strong> ₹${s.target_2.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--success-color, #16a34a);">${t2PctStr}</span>
+                            <strong style="color:var(--success-color, #16a34a);">Target-2:</strong> ₹${s.target_2.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--success-color, #16a34a);">${t2PctStr}</span>
                         </div>
                     </td>
                     <td>

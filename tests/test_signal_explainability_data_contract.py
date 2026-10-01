@@ -403,3 +403,61 @@ def test_authoritative_expiry(temp_tracker):
     assert exp["exit_by"] == "2026-10-08"
     assert exp["lifecycle"]["exit_by"] == "2026-10-08"
     assert exp["holding_horizon"] == "Intraday (<15:15 IST)"
+
+
+# ── Scenario 16: Valid From & IST formatting ──────────────────────────────────
+def test_valid_from_and_ist_formatting(temp_tracker):
+    sig_id = "SIG-TEST-016"
+    _insert_signal(temp_tracker, sig_id, timestamp="2026-10-01 10:30:00")
+    exp = temp_tracker.get_signal_explanation(sig_id)
+    assert exp["valid_from"] == "2026-10-01 10:30:00 IST"
+    assert exp["lifecycle"]["valid_from"] == "2026-10-01 10:30:00 IST"
+
+
+# ── Scenario 17: Max Exit Time derivation ─────────────────────────────────────
+def test_max_exit_time_derivation(temp_tracker):
+    # With explicit expiry in raw_data
+    sig_id1 = "SIG-TEST-017A"
+    raw1 = {
+        "symbol": "BANKNIFTY",
+        "category": "INDEX_OPTIONS",
+        "expiry_date": "2026-10-08 15:30:00",
+        "score_components": {"vwap": 20},
+    }
+    _insert_signal(temp_tracker, sig_id1, category="INDEX_OPTIONS", raw_data=raw1)
+    exp1 = temp_tracker.get_signal_explanation(sig_id1)
+    assert "2026-10-08" in exp1["max_exit_time"]
+    assert exp1["max_exit_time"].endswith("IST")
+    assert exp1["lifecycle"]["max_exit_time"] == exp1["max_exit_time"]
+
+    # Without explicit expiry (horizon fallback)
+    sig_id2 = "SIG-TEST-017B"
+    _insert_signal(temp_tracker, sig_id2, category="INTRADAY_EQUITY", timestamp="2026-10-01 11:00:00")
+    exp2 = temp_tracker.get_signal_explanation(sig_id2)
+    assert exp2["max_exit_time"] != "Not parameterized"
+    assert "IST" in exp2["max_exit_time"]
+
+
+# ── Scenario 18: Outcome Status explicit human-readable values ────────────────
+def test_outcome_status_explicit_values(temp_tracker):
+    mappings = [
+        ("TARGET_FIRST", 0, "Target-1"),
+        ("TARGET_FIRST", 1, "Target-2"),
+        ("SL_FIRST", 0, "Stop Loss"),
+        ("TIMEOUT", 0, "Expired"),
+        ("AMBIGUOUS", 0, "Ambiguous"),
+        ("UNRESOLVED", 0, "Unresolved"),
+    ]
+    for idx, (m_outcome, t2_hit, expected_status) in enumerate(mappings):
+        sig_id = f"SIG-TEST-018-{idx}"
+        _insert_signal(temp_tracker, sig_id)
+        _insert_measurements(
+            temp_tracker, sig_id,
+            outcome=m_outcome,
+            target_2_hit=t2_hit,
+            observation_count=5,
+        )
+        exp = temp_tracker.get_signal_explanation(sig_id)
+        assert exp["outcome_status"] == expected_status, f"Failed for outcome {m_outcome} / t2={t2_hit}"
+        assert exp["lifecycle"]["outcome_status"] == expected_status
+

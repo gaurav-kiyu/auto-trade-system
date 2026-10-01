@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.60 (2026-10-01)
+
+- **OPB v2.60 Canonical Release:** Final T1/T2 semantic reconciliation, forward-validation data integrity, distinct signal-ID accounting, and multi-surface data-truthfulness.
+- **Signal Explainability Contract:** Replaced ambiguous compound lifecycle labels with deterministic canonical fields: `Valid From`, `Max Exit Time`, `Holding Horizon`, and explicit `Outcome Status`.
+- **Lifecycle Clutter Elimination:** Removed obsolete non-parameterized fields (`Entry Range`, `Entry By`, and `Observation Window`) from user-facing explainability interfaces.
+- **Target Terminology Normalization:** Standardized explicit `Target-1`, `Target-2`, and `Stop Loss` terminology across all UI dashboards, reports, and export engines.
+- **Production Safety Governance:** Verified absolute safety invariants (PRODUCTION / PAPER / SIGNAL_ONLY, live trading lockout active, zero live orders/trades, Phase E blocked).
+
 ## v2.59.4 (2026-09-09)
 
 - Fixed canonical market-data dependency injection and NSE option-chain/OI provenance so certification-sensitive OI uses the centralized MarketDataService with explicit NSE sourcing and fail-closed provider behavior.

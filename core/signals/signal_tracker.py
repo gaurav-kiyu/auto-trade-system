@@ -1646,6 +1646,43 @@ class SignalTracker:
                     or normalized_outcome in ("ACTIVE", "UNRESOLVED", "OBSERVING")
                 )
 
+                # Authoritative valid_from:
+                created_raw = r.get("timestamp") or parsed_raw.get("timestamp") or ""
+                if created_raw and "IST" not in str(created_raw):
+                    valid_from = f"{str(created_raw).strip()} IST"
+                else:
+                    valid_from = str(created_raw).strip()
+
+                # Authoritative max_exit_time:
+                max_exit_time = authoritative_exit_by
+                if not max_exit_time and created_ts_str:
+                    try:
+                        from core.notifications.rich_signal_formatter import RichSignalFormatter
+                        horizon_info = RichSignalFormatter.get_holding_horizon_info(cat_upper, created_ts_str)
+                        max_exit_time = horizon_info.get("valid_until")
+                    except Exception:
+                        pass
+                if not max_exit_time:
+                    max_exit_time = "Not parameterized"
+                elif "IST" not in str(max_exit_time):
+                    max_exit_time = f"{str(max_exit_time).strip()} IST"
+
+                # Authoritative human-readable outcome_status:
+                if normalized_outcome == "TARGET_1":
+                    outcome_status = "Target-1"
+                elif normalized_outcome == "TARGET_2":
+                    outcome_status = "Target-2"
+                elif normalized_outcome in ("STOP_LOSS", "SL_HIT", "SL"):
+                    outcome_status = "Stop Loss"
+                elif normalized_outcome in ("ACTIVE", "PENDING", "OBSERVING", "UNRESOLVED"):
+                    outcome_status = "Unresolved"
+                elif normalized_outcome in ("TIMEOUT", "EXPIRED"):
+                    outcome_status = "Expired"
+                elif normalized_outcome in ("AMBIGUOUS", "CONFLICT"):
+                    outcome_status = "Ambiguous"
+                else:
+                    outcome_status = normalized_outcome.replace("_", " ").title()
+
                 # Barrier and excursion metrics: strictly gated by observation_count > 0
                 if obs_count > 0:
                     observed_from = measurements.get("observed_from") if measurements else None
@@ -1694,11 +1731,14 @@ class SignalTracker:
                     evaluated = False
 
                 lifecycle = {
-                    "start_from": r.get("timestamp"),
+                    "valid_from": valid_from,
+                    "max_exit_time": max_exit_time,
+                    "holding_horizon": holding_horizon,
+                    "outcome_status": outcome_status,
+                    "start_from": valid_from,
                     "entry_range": entry_range,
                     "entry_by": entry_by,
                     "exit_by": authoritative_exit_by,
-                    "holding_horizon": holding_horizon,
                     "observed_from": observed_from,
                     "observed_until": observed_until,
                     "first_touch": first_touch,
@@ -1740,6 +1780,9 @@ class SignalTracker:
                     "tier": r["tier"],
                     "timestamp": r["timestamp"],
                     "created_at": r["timestamp"],
+                    "valid_from": valid_from,
+                    "max_exit_time": max_exit_time,
+                    "outcome_status": outcome_status,
                     "entry_price": r["entry_price"],
                     "stop_loss": r["stop_loss"],
                     "target_1": r["target_1"],

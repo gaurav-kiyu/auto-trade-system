@@ -341,7 +341,7 @@ def build_signal_intelligence_report(
                 "severity": "HIGH",
                 "parameter": "TARGET_PCT",
                 "recommendation": "Review T1 distance versus observed volatility and entry quality; do not automatically move the target.",
-                "reason": f"T1-or-better rate is {t1_rate:.1f}% across {total} generated signals.",
+                "reason": f"Target-1 rate is {t1_rate:.1f}% across {total} generated signals.",
                 "requires_approval": True,
             })
         if t2_rate >= 35 and t1_rate > 0:

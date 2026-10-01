@@ -123,15 +123,15 @@
 <div class="stat-value" id="statTotalSignals">-</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">First-Touch Win Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(≥T1 / [≥T1 + SL])</span></div>
+<div class="stat-label">Target-1 Win Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(Target-1 / [Target-1 + Stop Loss])</span></div>
 <div class="stat-value" id="statWinRate" style="color: var(--success-color, #16a34a);">-%</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">Target 1 Hit Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(≥T1 / Total Generated)</span></div>
+<div class="stat-label">Target-1 Hit Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(Target-1 / Total Generated)</span></div>
 <div class="stat-value" id="statT1Rate" style="color: var(--success-color, #16a34a);">-%</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">Target 2 Hit Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(T2 / Total Generated)</span></div>
+<div class="stat-label">Target-2 Hit Rate <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(Target-2 / Total Generated)</span></div>
 <div class="stat-value" id="statT2Rate" style="color: var(--success-color, #16a34a);">-%</div>
 </div>
 <div class="stat-card">
@@ -161,8 +161,8 @@
 <th>Category</th>
 <th>Signals Total</th>
 <th>Active / Open</th>
-<th>T1 / Better Hits</th>
-<th>T2 Hits</th>
+<th>Target-1 Hits</th>
+<th>Target-2 Hits</th>
 <th>Stop Loss Hits</th>
 <th>Expired</th>
 <th>Ambiguous</th>
@@ -239,9 +239,9 @@
         }
 
         function statusBadge(status, t1PctStr, t2PctStr, slPctStr) {
-            if (status === 'TARGET_2_HIT') return `<span class="badge badge-t2"><i class="fas fa-check-double"></i> TARGET 2 HIT ${t2PctStr || ''}</span>`;
-            if (status === 'TARGET_1_HIT') return `<span class="badge badge-t1"><i class="fas fa-check"></i> TARGET 1 HIT ${t1PctStr || ''}</span>`;
-            if (status === 'SL_HIT') return `<span class="badge badge-sl"><i class="fas fa-times"></i> SL HIT ${slPctStr || ''}</span>`;
+            if (status === 'TARGET_2_HIT') return `<span class="badge badge-t2"><i class="fas fa-check-double"></i> Target-2 Hit ${t2PctStr || ''}</span>`;
+            if (status === 'TARGET_1_HIT') return `<span class="badge badge-t1"><i class="fas fa-check"></i> Target-1 Hit ${t1PctStr || ''}</span>`;
+            if (status === 'SL_HIT') return `<span class="badge badge-sl"><i class="fas fa-times"></i> Stop Loss Hit ${slPctStr || ''}</span>`;
             if (status === 'AMBIGUOUS' || status === 'AMBIGUOUS_SAME_BAR') return '<span class="badge" style="background:var(--market-warning-bg, rgba(217,119,6,0.14));color:var(--warning-color, #d97706);border:1px solid var(--warning-color, #d97706);font-weight:700;"><i class="fas fa-question-circle"></i> AMBIGUOUS</span>';
             if (status === 'EXPIRED') return '<span class="badge" style="background:rgba(148,163,184,0.15);color:var(--text-muted, #94a3b8);border:1px solid rgba(148,163,184,0.3);"><i class="fas fa-clock"></i> EXPIRED</span>';
             return '<span class="badge badge-active"><i class="fas fa-circle-notch fa-spin"></i> ACTIVE</span>';
@@ -439,10 +439,10 @@
                     <td style="font-family:monospace;font-weight:700;color:var(--accent-color, #0284c7);font-size:0.85rem;">₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td>
                         <div style="font-family:monospace;font-size:0.75rem;color: var(--success-color, #16a34a);">
-                            <strong style="color: var(--success-color, #16a34a);">T1:</strong> ₹${s.target_1.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--success-color, #16a34a);">${t1PctStr}</span>
+                            <strong style="color: var(--success-color, #16a34a);">Target-1:</strong> ₹${s.target_1.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--success-color, #16a34a);">${t1PctStr}</span>
                         </div>
                         <div style="font-family:monospace;font-size:0.75rem;color:var(--success-color, #16a34a);margin-top:2px;">
-                            <strong style="color:var(--success-color, #16a34a);">T2:</strong> ₹${s.target_2.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--success-color, #16a34a);">${t2PctStr}</span>
+                            <strong style="color:var(--success-color, #16a34a);">Target-2:</strong> ₹${s.target_2.toLocaleString('en-IN')} <span style="font-size:0.65rem;color:var(--success-color, #16a34a);">${t2PctStr}</span>
                         </div>
                     </td>
                     <td>
@@ -759,9 +759,27 @@
                 ? `<span style="font-variant-numeric:tabular-nums;font-weight:700;">${Number(exc.realized_r).toFixed(2)}R</span>` 
                 : '—';
 
+            const rawStatus = (data.outcome_status || lc.outcome_status || lc.outcome || data.status || 'Unresolved').toString();
+            let outcomeStatusDisplay = 'Unresolved';
+            if (rawStatus === 'TARGET_1' || rawStatus === 'Target-1') outcomeStatusDisplay = 'Target-1';
+            else if (rawStatus === 'TARGET_2' || rawStatus === 'Target-2') outcomeStatusDisplay = 'Target-2';
+            else if (rawStatus === 'STOP_LOSS' || rawStatus === 'SL_HIT' || rawStatus === 'SL' || rawStatus === 'Stop Loss') outcomeStatusDisplay = 'Stop Loss';
+            else if (rawStatus === 'TIMEOUT' || rawStatus === 'EXPIRED' || rawStatus === 'Expired') outcomeStatusDisplay = 'Expired';
+            else if (rawStatus === 'AMBIGUOUS' || rawStatus === 'CONFLICT' || rawStatus === 'Ambiguous') outcomeStatusDisplay = 'Ambiguous';
+            else if (rawStatus === 'ACTIVE' || rawStatus === 'PENDING' || rawStatus === 'OBSERVING' || rawStatus === 'UNRESOLVED' || rawStatus === 'Unresolved') outcomeStatusDisplay = 'Unresolved';
+            else outcomeStatusDisplay = rawStatus.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+            const validFromStr = data.valid_from || lc.valid_from || lc.start_from || data.created_at || data.timestamp || 'Not available';
+            const maxExitStr = data.max_exit_time || lc.max_exit_time || data.exit_by || lc.exit_by || 'Not parameterized';
+
             let firstTouchStr = '<span style="color:var(--text-muted, #94a3b8);">Pending</span>';
-            if (obsCount > 0 && lc.first_touch && lc.first_touch !== 'None' && lc.first_touch !== 'Pending') {
-                firstTouchStr = `<strong>${lc.first_touch}</strong>${lc.first_touch_at ? ' (' + lc.first_touch_at + ')' : ''}`;
+            const rawFt = lc.first_touch || data.first_touch;
+            if (obsCount > 0 && rawFt && rawFt !== 'None' && rawFt !== 'Pending') {
+                let ftDisplay = rawFt;
+                if (rawFt === 'T1' || rawFt === 'TARGET_1') ftDisplay = 'Target-1';
+                else if (rawFt === 'T2' || rawFt === 'TARGET_2') ftDisplay = 'Target-2';
+                else if (rawFt === 'SL' || rawFt === 'STOP_LOSS') ftDisplay = 'Stop Loss';
+                firstTouchStr = `<strong>${ftDisplay}</strong>${lc.first_touch_at ? ' (' + lc.first_touch_at + ')' : ''}`;
             }
 
             let exitPriceStr = '<span style="color:var(--text-muted, #94a3b8);">Not exited</span>';
@@ -769,43 +787,23 @@
                 exitPriceStr = `<span style="font-variant-numeric:tabular-nums;font-weight:700;">₹${Number(lc.exit_price).toFixed(2)}</span>${lc.exit_at ? ' (' + lc.exit_at + ')' : ''}`;
             }
 
-            let obsWindowStr = '<span style="color:var(--text-muted, #94a3b8);">Awaiting first observation</span>';
-            if (obsCount > 0 && (lc.observed_from || data.observation_start)) {
-                const startTs = lc.observed_from || data.observation_start;
-                const endTs = lc.observed_until || data.observation_end;
-                if (isObserving) {
-                    obsWindowStr = `${startTs} → <span style="color:var(--accent-color, #38bdf8);font-weight:600;">Awaiting latest observation</span>`;
-                } else if (endTs) {
-                    obsWindowStr = `${startTs} → ${endTs}`;
-                } else {
-                    obsWindowStr = `${startTs} → ongoing`;
-                }
-            }
-
-            let t1Str = '<span style="color:var(--text-muted, #94a3b8);">Not evaluated</span>';
-            let t2Str = '<span style="color:var(--text-muted, #94a3b8);">Not evaluated</span>';
-            let slStr = '<span style="color:var(--text-muted, #94a3b8);">Not evaluated</span>';
+            let t1Str = '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
+            let t2Str = '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
+            let slStr = '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
             if (isEvaluated) {
-                t1Str = exc.target_1_hit ? '<span style="color:var(--success-color, #22c55e);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
-                t2Str = exc.target_2_hit ? '<span style="color:var(--success-color, #22c55e);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
-                slStr = exc.stop_loss_hit ? '<span style="color:var(--danger-color, #ef4444);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
+                t1Str = (exc.target_1_hit || data.target_1_hit) ? '<span style="color:var(--success-color, #22c55e);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
+                t2Str = (exc.target_2_hit || data.target_2_hit) ? '<span style="color:var(--success-color, #22c55e);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
+                slStr = (exc.stop_loss_hit || data.stop_loss_hit) ? '<span style="color:var(--danger-color, #ef4444);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
+            } else if (obsCount === 0) {
+                t1Str = '<span style="color:var(--text-muted, #94a3b8);">NO / Not evaluated</span>';
+                t2Str = '<span style="color:var(--text-muted, #94a3b8);">NO / Not evaluated</span>';
+                slStr = '<span style="color:var(--text-muted, #94a3b8);">NO / Not evaluated</span>';
             }
-
-            const exitByVal = data.exit_by || lc.exit_by;
-            const exitByStr = exitByVal 
-                ? exitByVal 
-                : '<span style="color:var(--text-muted, #94a3b8);">Not available</span>';
 
             const horizonVal = data.holding_horizon || lc.holding_horizon || (data.category && (data.category.includes('OPTION') || data.category.includes('0DTE')) ? 'Intraday (<15:15 IST)' : '1–5 Days (Swing)');
             const horizonStr = horizonVal.includes('Intraday') 
                 ? `<span style="color:var(--warning-color, #d97706);font-weight:700;"><i class="fas fa-bolt"></i> ${horizonVal}</span>` 
                 : `<span style="color:var(--accent-color, #38bdf8);font-weight:700;"><i class="far fa-calendar-alt"></i> ${horizonVal}</span>`;
-
-            const entryRangeVal = data.entry_range || lc.entry_range || (data.entry_price ? '₹' + Number(data.entry_price).toFixed(2) : '<span style="color:var(--text-muted, #94a3b8);">Not specified</span>');
-            const entryByVal = data.entry_by || lc.entry_by;
-            const entryByHtml = entryByVal 
-                ? `<div><span style="color:var(--text-muted, #94a3b8);">Entry By:</span> ${entryByVal}</div>` 
-                : `<div><span style="color:var(--text-muted, #94a3b8);">Entry By:</span> <span style="color:var(--text-muted, #94a3b8);">Not specified</span></div>`;
 
             content.innerHTML = `
                 <div style="background:var(--bg-secondary, rgba(15,23,42,0.6));border:1px solid var(--border-color, #334155);border-radius:8px;padding:0.875rem;margin-bottom:0.75rem;">
@@ -832,20 +830,16 @@
                     </div>
                 </div>
 
-                <!-- Lifecycle & Window Feasibility -->
+                <!-- Lifecycle -->
                 <div style="background:var(--bg-secondary, rgba(15,23,42,0.4));border:1px solid var(--border-color, #334155);border-radius:8px;padding:0.75rem 0.875rem;margin-bottom:0.75rem;">
                     <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary, #ffffff);margin-bottom:0.4rem;display:flex;align-items:center;gap:0.4rem;">
-                        <i class="fas fa-clock-rotate-left" style="color:var(--accent-color, #38bdf8);"></i> Lifecycle &amp; Feasibility Window
+                        <i class="fas fa-clock-rotate-left" style="color:var(--accent-color, #38bdf8);"></i> Lifecycle
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:0.4rem 0.75rem;font-size:0.75rem;color:var(--text-secondary, #cbd5e1);font-variant-numeric:tabular-nums;">
-                        <div><span style="color:var(--text-muted, #94a3b8);">Start From / Created:</span> ${lc.start_from || data.created_at || data.timestamp}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Entry Range:</span> ${entryRangeVal}</div>
-                        ${entryByHtml}
-                        <div><span style="color:var(--text-muted, #94a3b8);">Exit By / Expiry:</span> ${exitByStr}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Valid From:</span> ${validFromStr}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Max Exit Time:</span> ${maxExitStr}</div>
                         <div><span style="color:var(--text-muted, #94a3b8);">Holding Horizon:</span> ${horizonStr}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Outcome Status:</span> <strong>${lc.outcome || data.status}</strong></div>
-                        <div style="grid-column: 1 / -1;"><span style="color:var(--text-muted, #94a3b8);">Observation Window:</span> ${obsWindowStr}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Observations:</span> <span style="font-variant-numeric:tabular-nums;font-weight:700;">${obsCount}</span></div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Outcome Status:</span> <strong>${outcomeStatusDisplay}</strong></div>
                     </div>
                 </div>
 
@@ -855,14 +849,14 @@
                         <i class="fas fa-chart-line" style="color:var(--accent-color, #38bdf8);"></i> Outcome Excursion Path (MFE / MAE)
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:0.4rem 0.75rem;font-size:0.75rem;color:var(--text-secondary, #cbd5e1);font-variant-numeric:tabular-nums;">
+                        <div><span style="color:var(--text-muted, #94a3b8);">Target-1 Hit:</span> ${t1Str}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Target-2 Hit:</span> ${t2Str}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Stop Loss Hit:</span> ${slStr}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">First Touch:</span> ${firstTouchStr}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Exit Price:</span> ${exitPriceStr}</div>
                         <div><span style="color:var(--text-muted, #94a3b8);">MFE (Max Gain):</span> ${mfeStr}</div>
                         <div><span style="color:var(--text-muted, #94a3b8);">MAE (Max Drawdown):</span> ${maeStr}</div>
                         <div><span style="color:var(--text-muted, #94a3b8);">Realized R:</span> ${realizedRStr}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">First Touch:</span> ${firstTouchStr}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Exit Price:</span> ${exitPriceStr}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Target 1 Hit:</span> ${t1Str}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Target 2 Hit:</span> ${t2Str}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Stop Loss Hit:</span> ${slStr}</div>
                     </div>
                 </div>
 
