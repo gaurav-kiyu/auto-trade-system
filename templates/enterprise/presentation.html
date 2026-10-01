@@ -165,15 +165,15 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div>
 <label class="block text-xs pg-field-label mb-1" for="data-version">Version</label>
-<input class="w-full pg-input px-3 py-2 text-sm" id="data-version" placeholder="2.59.4" type="text"/>
+<input class="w-full pg-input px-3 py-2 text-sm" id="data-version" placeholder="2.60.0" type="text"/>
 </div>
 <div>
-<label class="block text-xs pg-field-label mb-1" for="data-score">Score</label>
-<input class="w-full pg-input px-3 py-2 text-sm" id="data-score" placeholder="9.6/10" type="text"/>
+<label class="block text-xs pg-field-label mb-1" for="data-score">Score / Benchmark Reference</label>
+<input class="w-full pg-input px-3 py-2 text-sm" id="data-score" placeholder="Architecture Benchmark" type="text"/>
 </div>
 <div>
-<label class="block text-xs pg-field-label mb-1" for="data-verdict">Verdict</label>
-<input class="w-full pg-input px-3 py-2 text-sm" id="data-verdict" placeholder="Production Certified" type="text"/>
+<label class="block text-xs pg-field-label mb-1" for="data-verdict">Operational Status</label>
+<input class="w-full pg-input px-3 py-2 text-sm" id="data-verdict" placeholder="Institutional Architecture (Paper Validation Mode)" type="text"/>
 </div>
 <div>
 <label class="block text-xs pg-field-label mb-1" for="data-verdict-sub">Verdict Subtitle</label>
@@ -272,7 +272,7 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
                         const data = await r.json();
                         const pg = data.presentation_generator || {};
                         const html = [
-                            `<p>Version: <span class="pg-heading font-semibold">${data.bi_dashboard?.version || '2.59.4'}</span></p>`,
+                            `<p>Version: <span class="pg-heading font-semibold">${data.bi_dashboard?.version || '2.60.0'}</span></p>`,
                             `<p>Templates: <span class="pg-heading font-semibold">${(pg.templates || ['executive']).join(', ')}</span></p>`,
                             `<p>Output: <span class="pg-heading font-semibold">${pg.output_dir || 'reports/presentations/'}</span></p>`,
                             `<p>Default: <span class="pg-heading font-semibold">${pg.default_template || 'executive'}</span></p>`,
@@ -285,7 +285,7 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
                         if (vR.ok) {
                             const vData = await vR.json();
                             $('auto-fetch-content').innerHTML = `
-                                <p>Version: <span class="pg-heading font-semibold">${vData.version || '2.59.4'}</span></p>
+                                <p>Version: <span class="pg-heading font-semibold">${vData.version || '2.60.0'}</span></p>
                                 <p>System: <span class="pg-heading font-semibold">${vData.paused ? 'PAUSED' : 'RUNNING'}</span></p>
                                 <p>Capital: <span class="pg-heading font-semibold">₹${(vData.capital || 0).toLocaleString()}</span></p>
                                 <p class="pg-muted mt-1">Auto-detected from system state</p>

@@ -87,8 +87,14 @@
 <a class="btn" href="#strategies-breakdown" style="background: var(--bg-card-hover, #1e293b);color:#38bdf8;border: 1px solid var(--border-color, #334155);">
 <i class="fas fa-list"></i> View All 16 Strategies
             </a>
-<button class="btn btn-primary" id="cspfix-1" type="button"><i class="fas fa-play"></i> Run Live Backtest</button>
+<button class="btn btn-primary" id="cspfix-1" type="button"><i class="fas fa-play"></i> Run Simulation Backtest</button>
 </div>
+</div>
+
+<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:var(--text-primary, #e2e8f0);font-size:0.85rem;">
+<span class="badge" style="background:#3b82f6;color:#fff;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">BACKTEST / SIMULATION — NOT LIVE PERFORMANCE</span>
+<i class="fas fa-chart-line" style="margin-right:0.4rem;color:#60a5fa;"></i>
+<strong>Historical Simulation Environment:</strong> The metrics, parameter tuning, and historical returns displayed below are quantitative simulation results and theoretical models. They do NOT reflect live execution, forward cohort measurements, or actual production trading results.
 </div>
 <!-- Parameter Tuning Controls -->
 <div class="card">
@@ -138,26 +144,36 @@
 </div>
 </div>
 </div>
+<!-- Simulated Backtest Benchmark Notice (Institutional Honesty & Regulatory Compliance) -->
+<div class="card" style="border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); padding: 0.85rem 1.25rem; margin-bottom: 1.25rem; border-radius: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+<i class="fas fa-triangle-exclamation" style="color: #f59e0b; font-size: 1.25rem; flex-shrink: 0;"></i>
+<div style="font-size: 0.8rem; color: var(--text-primary, #e2e8f0); line-height: 1.4;">
+<strong style="color: #fbbf24; text-transform: uppercase; letter-spacing: 0.03em;">Simulated Backtest Benchmark — Not Live Forward Performance (Phase D Paper Validation Active)</strong>
+<div style="color: var(--text-secondary, #cbd5e1); font-size: 0.75rem; margin-top: 2px;">
+The metrics below are algorithmic backtest simulations and parameter sensitivity estimates. The active production deployment operates in Phase D Paper Validation mode (orders=0, broker disconnected, futures disabled).
+</div>
+</div>
+</div>
 <!-- Backtest Performance KPIs -->
 <div class="stats-grid">
 <div class="stat-card">
-<div class="stat-label">Backtest Win Rate</div>
+<div class="stat-label">Simulated Backtest Win Rate</div>
 <div class="stat-value" id="kpiSbWin" style="color:var(--success-color, #16a34a);">87.5%</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">Profit Factor</div>
+<div class="stat-label">Simulated Profit Factor</div>
 <div class="stat-value" id="kpiSbPf" style="color:#38bdf8;">16.21</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">Total 1-Yr Return</div>
+<div class="stat-label">Simulated 1-Yr Return</div>
 <div class="stat-value" id="kpiSbReturn" style="color:#34d399;">+1560.6%</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">Max Drawdown</div>
+<div class="stat-label">Simulated Max Drawdown</div>
 <div class="stat-value" id="kpiSbDd" style="color: var(--danger-color, #dc2626);">-2.9%</div>
 </div>
 <div class="stat-card">
-<div class="stat-label">Sharpe Ratio</div>
+<div class="stat-label">Simulated Sharpe Ratio</div>
 <div class="stat-value" id="kpiSbSharpe" style="color:#c084fc;">64.58</div>
 </div>
 </div>
@@ -205,7 +221,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>1m Exec / 5m Trend</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">89.2%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">89.2%</strong></span>
 </div>
 </div>
 <!-- Strategy 2 -->
@@ -224,7 +240,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>5m Pullback / 15m Anchor</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">86.8%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">86.8%</strong></span>
 </div>
 </div>
 <!-- Strategy 3 -->
@@ -243,7 +259,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>Real-time Tick / 1m Delta</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">91.4%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">91.4%</strong></span>
 </div>
 </div>
 <!-- Strategy 4 -->
@@ -262,7 +278,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>5m Option Chain Matrix</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">92.5%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">92.5%</strong></span>
 </div>
 </div>
 <!-- Strategy 5 -->
@@ -281,7 +297,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>Daily Open &amp; 15m Rolling</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">84.7%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">84.7%</strong></span>
 </div>
 </div>
 <!-- Strategy 6 -->
@@ -300,7 +316,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>1m + 5m + 15m Synchronous</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">88.0%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">88.0%</strong></span>
 </div>
 </div>
 <!-- Strategy 7 -->
@@ -319,7 +335,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>5m &amp; 15m RSI(14)</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">83.2%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">83.2%</strong></span>
 </div>
 </div>
 <!-- Strategy 8 -->
@@ -338,7 +354,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>15m &amp; 5m ADX</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">85.1%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">85.1%</strong></span>
 </div>
 </div>
 <!-- Strategy 9 -->
@@ -357,7 +373,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>EOD Clearing + Intraday OI</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">87.9%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">87.9%</strong></span>
 </div>
 </div>
 <!-- Strategy 10 -->
@@ -376,7 +392,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>1m Intraday Expiry</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">93.6%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">93.6%</strong></span>
 </div>
 </div>
 <!-- Strategy 11 -->
@@ -395,7 +411,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>5m &amp; 15m Bands</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">85.5%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">85.5%</strong></span>
 </div>
 </div>
 <!-- Strategy 12 -->
@@ -414,7 +430,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>5m Zero-Lag Frame</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">81.9%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">81.9%</strong></span>
 </div>
 </div>
 <!-- Strategy 13 -->
@@ -433,7 +449,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>15m &amp; 5m ATR Bands</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">89.0%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">89.0%</strong></span>
 </div>
 </div>
 <!-- Strategy 14 -->
@@ -452,7 +468,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>5m Reversal Pin Bars</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">88.4%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">88.4%</strong></span>
 </div>
 </div>
 <!-- Strategy 15 -->
@@ -471,7 +487,7 @@
                 </div>
 <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted, #94a3b8);margin-top:0.75rem;">
 <span>Timeframe: <strong>10-Year Vector Pipeline</strong></span>
-<span>Historical Win Rate: <strong style="color:var(--success-color, #16a34a);">94.2%</strong></span>
+<span>Simulated Backtest Win Rate: <strong style="color:var(--success-color, #16a34a);">94.2%</strong></span>
 </div>
 </div>
 <!-- Strategy 16 -->

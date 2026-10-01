@@ -1,0 +1,101 @@
+{
+  "phase": "D.16.1",
+  "document_id": "OPB-V260-PHASE-D16-1-PRE-MARKET-CLOSURE-AUDIT-20260928",
+  "timestamp": "2026-09-28T20:32:00+05:30",
+  "market_date": "2026-09-28",
+  "day_of_week": "Monday",
+  "session_status": "SESSION_COMPLETED",
+  "is_trading_day": true,
+  "verdict": "A. ENGINEERING READY — LIVE MARKET OBSERVATION ONLY REMAINS",
+  "operational_state": "ACCUMULATION_ACTIVE",
+  "statement": "NO OFFLINE ENGINEERING DEPENDENCY REMAINS. ONLY GENUINE NSE MARKET-SESSION PROGRESSION REMAINS.",
+  "git": {
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "head_commit": "96b525aaa42151c735f250c712ac3535d9a2b58c",
+    "base_commit": "abcce53bb16f1d0aa5918fd2c72dd731f8f2e332",
+    "frozen_production_baseline": "d4271ffb75376e404e9d6e28fae2a5f8c0a8e2a4",
+    "status": "CLEAN_WORKING_TREE"
+  },
+  "canonical_db": {
+    "db_path": "db/signals_history.db",
+    "db_sha256": "bbc3ec3432c383140865e66c2771d5e418bbd42dc994acdb0dfa69523889adaf",
+    "table_counts": {
+      "system_signals": 498,
+      "signal_prediction_snapshots": 101,
+      "signal_outcome_measurements": 101,
+      "signal_forward_observations": 101,
+      "scan_cycle_metrics": 24
+    }
+  },
+  "forward_cohort": {
+    "total_registered": 101,
+    "observing": 69,
+    "resolved": 32,
+    "terminal_breakdown": {
+      "TIMEOUT": 32,
+      "UNRESOLVED": 69,
+      "TARGET_FIRST": 0,
+      "SL_FIRST": 0,
+      "AMBIGUOUS": 0,
+      "NO_DATA": 0,
+      "INVALIDATED": 0
+    },
+    "score_buckets": {
+      "70-74": { "registered": 3, "observing": 3, "resolved": 0 },
+      "75-79": { "registered": 4, "observing": 4, "resolved": 0 },
+      "80-84": { "registered": 14, "observing": 9, "resolved": 5 },
+      "85+": { "registered": 80, "observing": 53, "resolved": 27 }
+    }
+  },
+  "resolution_audit": {
+    "resolved_count": 32,
+    "mfe_coverage": "32/32 (100.0%)",
+    "mae_coverage": "32/32 (100.0%)",
+    "realized_r_coverage": "32/32 (100.0%)",
+    "terminal_immutability_verified": true,
+    "terminal_records_immutable_count": 32
+  },
+  "runtime_pipeline_trace": {
+    "all_nse_scanner": "ACTIVE (core/all_nse_scanner.py)",
+    "signal_tracker": "ACTIVE (core/signals/signal_tracker.py)",
+    "prediction_snapshots": "ACTIVE (core/signals/signal_prediction_snapshots.py)",
+    "forward_observation_service": "ACTIVE (core/signals/signal_forward_observation.py)",
+    "outcome_dataset_service": "ACTIVE (core/signals/signal_outcome_dataset.py)",
+    "outcome_tracker": "ACTIVE (core/signals/signal_outcome_tracker.py)",
+    "pipeline_status": "COMPLETE_AND_UNBROKEN"
+  },
+  "market_data_integrity": {
+    "timeframe_1m_verified": true,
+    "timeframe_5m_verified": true,
+    "timeframe_15m_verified": true,
+    "masquerading_events": 0,
+    "freshness_guards_active": true,
+    "zero_volume_handling_active": true,
+    "rate_limit_backoff_active": true
+  },
+  "safety_status": {
+    "execution_mode": "SIGNAL_ONLY",
+    "signal_only": true,
+    "live_trading_lockout": true,
+    "full_auto_allowed": false,
+    "live_orders_count": 0,
+    "broker_execution_calls": 0,
+    "production_ec2_contact": 0,
+    "remote_git_pushes": 0,
+    "model_training_status": "BLOCKED / NONE",
+    "calibration_status": "UNCALIBRATED"
+  },
+  "readiness_gates": {
+    "G1": { "status": "NOT SATISFIED", "detail": "0/4 active score buckets have >= 100 resolved observations" },
+    "G2": { "status": "NOT SATISFIED", "detail": "32 / 300 total resolved observations" },
+    "G3": { "status": "NOT SATISFIED", "detail": "1 / 2 distinct qualifying calendar months" },
+    "G4": { "status": "PASS", "detail": "DQ error rate 0.0%, Stale rate 0.0%, 0 live orders, 0 broker calls" }
+  },
+  "phase_e_decision": "STRICTLY BLOCKED / DO NOT MOVE TO PHASE E",
+  "tomorrow_startup_schedule": {
+    "pre_market_check_window": "08:45 - 09:14 IST",
+    "market_open_startup": "09:15:00 IST",
+    "first_scan_cycle": "09:15:30 IST",
+    "market_close_standby": "15:30:00 IST"
+  }
+}

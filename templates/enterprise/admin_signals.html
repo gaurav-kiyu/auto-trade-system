@@ -154,7 +154,7 @@
 <!-- Category Accuracy Matrix -->
 <div class="card">
 <h3 style="font-size:0.95rem;font-weight:700;margin-bottom:1rem;color: var(--text-primary, #e2e8f0);"><i class="fas fa-layer-group" style="color:var(--accent-color, #38bdf8);margin-right:0.5rem;"></i> Category Performance &amp; Accuracy Breakdown</h3>
-<div class="opb-table-container table-responsive">
+<div class="opb-table-container table-responsive" tabindex="0" role="region" aria-label="Category performance breakdown table">
 <table class="table">
 <thead>
 <tr>
@@ -178,7 +178,7 @@
 <!-- Live System Signals Audit Table -->
 <div class="card">
 <h3 style="font-size:0.95rem;font-weight:700;margin-bottom:1rem;color: var(--text-primary, #e2e8f0);"><i class="fas fa-list-alt" style="color:var(--accent-color, #38bdf8);margin-right:0.5rem;"></i> System Signal Audit Log &amp; Live Outcomes</h3>
-<div class="opb-table-container table-responsive">
+<div class="opb-table-container table-responsive" tabindex="0" role="region" aria-label="Signal candidates and outcomes table">
 <table class="table">
 <thead>
 <tr class="table-header-row">
@@ -724,23 +724,81 @@
 
             const lc = data.lifecycle || {};
             const exc = data.excursion || {};
+            const obsCount = (data.observation_count !== undefined && data.observation_count !== null) 
+                ? Number(data.observation_count) 
+                : Number(lc.observation_count ?? 0);
+            const isObserving = data.is_observing !== undefined ? Boolean(data.is_observing) : Boolean(lc.is_observing);
+            const isEvaluated = exc.evaluated === true || (obsCount > 0 && exc.evaluated !== false);
 
-            // Excursion formatting
-            const mfeStr = (exc.mfe !== null && exc.mfe !== undefined) 
-                ? `₹${Number(exc.mfe).toFixed(2)} (${exc.mfe_pct >= 0 ? '+' : ''}${Number(exc.mfe_pct).toFixed(2)}% | ${Number(exc.mfe_r).toFixed(2)}R)` 
-                : '<span style="color:var(--text-muted, #94a3b8);">Active / Unmeasured</span>';
-            const maeStr = (exc.mae !== null && exc.mae !== undefined) 
-                ? `₹${Number(exc.mae).toFixed(2)} (${Number(exc.mae_pct).toFixed(2)}% | ${Number(exc.mae_r).toFixed(2)}R)` 
-                : '<span style="color:var(--text-muted, #94a3b8);">Active / Unmeasured</span>';
+            // Excursion formatting: strictly gated by valid observations
+            let mfeStr = '<span style="color:var(--text-muted, #94a3b8);">Not available — no observations yet</span>';
+            if (obsCount > 0 && exc.mfe !== null && exc.mfe !== undefined) {
+                const sign = (exc.mfe_pct !== null && exc.mfe_pct !== undefined && exc.mfe_pct >= 0) ? '+' : '';
+                const pctStr = (exc.mfe_pct !== null && exc.mfe_pct !== undefined) ? `${sign}${Number(exc.mfe_pct).toFixed(2)}%` : '';
+                const rStr = (exc.mfe_r !== null && exc.mfe_r !== undefined) ? ` | ${Number(exc.mfe_r).toFixed(2)}R` : '';
+                const extra = (pctStr || rStr) ? ` (${pctStr}${rStr})` : '';
+                mfeStr = `<strong style="color:var(--success-color, #22c55e);font-variant-numeric:tabular-nums;">₹${Number(exc.mfe).toFixed(2)}${extra}</strong>`;
+            }
+
+            let maeStr = '<span style="color:var(--text-muted, #94a3b8);">Not available — no observations yet</span>';
+            if (obsCount > 0 && exc.mae !== null && exc.mae !== undefined) {
+                const pctStr = (exc.mae_pct !== null && exc.mae_pct !== undefined) ? `${Number(exc.mae_pct).toFixed(2)}%` : '';
+                const rStr = (exc.mae_r !== null && exc.mae_r !== undefined) ? ` | ${Number(exc.mae_r).toFixed(2)}R` : '';
+                const extra = (pctStr || rStr) ? ` (${pctStr}${rStr})` : '';
+                maeStr = `<strong style="color:var(--danger-color, #ef4444);font-variant-numeric:tabular-nums;">₹${Number(exc.mae).toFixed(2)}${extra}</strong>`;
+            }
+
             const realizedRStr = (exc.realized_r !== null && exc.realized_r !== undefined) 
-                ? `${Number(exc.realized_r).toFixed(2)}R` 
+                ? `<span style="font-variant-numeric:tabular-nums;font-weight:700;">${Number(exc.realized_r).toFixed(2)}R</span>` 
                 : '—';
-            const firstTouchStr = lc.first_touch 
-                ? `${lc.first_touch} ${lc.first_touch_at ? '(' + lc.first_touch_at + ')' : ''}` 
-                : 'Pending / None';
-            const obsWindowStr = lc.observed_from 
-                ? `${lc.observed_from} → ${lc.observed_until || 'ongoing'}` 
-                : 'Pending / None';
+
+            let firstTouchStr = '<span style="color:var(--text-muted, #94a3b8);">Pending</span>';
+            if (obsCount > 0 && lc.first_touch && lc.first_touch !== 'None' && lc.first_touch !== 'Pending') {
+                firstTouchStr = `<strong>${lc.first_touch}</strong>${lc.first_touch_at ? ' (' + lc.first_touch_at + ')' : ''}`;
+            }
+
+            let exitPriceStr = '<span style="color:var(--text-muted, #94a3b8);">Not exited</span>';
+            if (lc.exit_price !== null && lc.exit_price !== undefined) {
+                exitPriceStr = `<span style="font-variant-numeric:tabular-nums;font-weight:700;">₹${Number(lc.exit_price).toFixed(2)}</span>${lc.exit_at ? ' (' + lc.exit_at + ')' : ''}`;
+            }
+
+            let obsWindowStr = '<span style="color:var(--text-muted, #94a3b8);">Awaiting first observation</span>';
+            if (obsCount > 0 && (lc.observed_from || data.observation_start)) {
+                const startTs = lc.observed_from || data.observation_start;
+                const endTs = lc.observed_until || data.observation_end;
+                if (isObserving) {
+                    obsWindowStr = `${startTs} → <span style="color:var(--accent-color, #38bdf8);font-weight:600;">Awaiting latest observation</span>`;
+                } else if (endTs) {
+                    obsWindowStr = `${startTs} → ${endTs}`;
+                } else {
+                    obsWindowStr = `${startTs} → ongoing`;
+                }
+            }
+
+            let t1Str = '<span style="color:var(--text-muted, #94a3b8);">Not evaluated</span>';
+            let t2Str = '<span style="color:var(--text-muted, #94a3b8);">Not evaluated</span>';
+            let slStr = '<span style="color:var(--text-muted, #94a3b8);">Not evaluated</span>';
+            if (isEvaluated) {
+                t1Str = exc.target_1_hit ? '<span style="color:var(--success-color, #22c55e);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
+                t2Str = exc.target_2_hit ? '<span style="color:var(--success-color, #22c55e);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
+                slStr = exc.stop_loss_hit ? '<span style="color:var(--danger-color, #ef4444);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>';
+            }
+
+            const exitByVal = data.exit_by || lc.exit_by;
+            const exitByStr = exitByVal 
+                ? exitByVal 
+                : '<span style="color:var(--text-muted, #94a3b8);">Not available</span>';
+
+            const horizonVal = data.holding_horizon || lc.holding_horizon || (data.category && (data.category.includes('OPTION') || data.category.includes('0DTE')) ? 'Intraday (<15:15 IST)' : '1–5 Days (Swing)');
+            const horizonStr = horizonVal.includes('Intraday') 
+                ? `<span style="color:var(--warning-color, #d97706);font-weight:700;"><i class="fas fa-bolt"></i> ${horizonVal}</span>` 
+                : `<span style="color:var(--accent-color, #38bdf8);font-weight:700;"><i class="far fa-calendar-alt"></i> ${horizonVal}</span>`;
+
+            const entryRangeVal = data.entry_range || lc.entry_range || (data.entry_price ? '₹' + Number(data.entry_price).toFixed(2) : '<span style="color:var(--text-muted, #94a3b8);">Not specified</span>');
+            const entryByVal = data.entry_by || lc.entry_by;
+            const entryByHtml = entryByVal 
+                ? `<div><span style="color:var(--text-muted, #94a3b8);">Entry By:</span> ${entryByVal}</div>` 
+                : `<div><span style="color:var(--text-muted, #94a3b8);">Entry By:</span> <span style="color:var(--text-muted, #94a3b8);">Not specified</span></div>`;
 
             content.innerHTML = `
                 <div style="background:var(--bg-secondary, rgba(15,23,42,0.6));border:1px solid var(--border-color, #334155);border-radius:8px;padding:0.875rem;margin-bottom:0.75rem;">
@@ -773,14 +831,14 @@
                         <i class="fas fa-clock-rotate-left" style="color:var(--accent-color, #38bdf8);"></i> Lifecycle &amp; Feasibility Window
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:0.4rem 0.75rem;font-size:0.75rem;color:var(--text-secondary, #cbd5e1);font-variant-numeric:tabular-nums;">
-                        <div><span style="color:var(--text-muted, #94a3b8);">Start From / Created:</span> ${lc.start_from || data.timestamp}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Entry Range:</span> ${lc.entry_range || 'NOT PARAMETERIZED (EXACT LEVEL)'}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Entry By:</span> ${lc.entry_by || 'NOT PARAMETERIZED'}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Exit By / Expiry:</span> ${lc.exit_by || 'OBSERVATION HORIZON'}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Holding Horizon:</span> ${(data.category && (data.category.includes('OPTION') || data.category.includes('0DTE'))) ? '<span style="color:var(--warning-color, #d97706);font-weight:700;"><i class="fas fa-bolt"></i> Intraday (<15:15 IST)</span>' : '<span style="color:var(--accent-color, #38bdf8);font-weight:700;"><i class="far fa-calendar-alt"></i> 1–5 Days (Swing)</span>'}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Start From / Created:</span> ${lc.start_from || data.created_at || data.timestamp}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Entry Range:</span> ${entryRangeVal}</div>
+                        ${entryByHtml}
+                        <div><span style="color:var(--text-muted, #94a3b8);">Exit By / Expiry:</span> ${exitByStr}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Holding Horizon:</span> ${horizonStr}</div>
                         <div><span style="color:var(--text-muted, #94a3b8);">Outcome Status:</span> <strong>${lc.outcome || data.status}</strong></div>
                         <div style="grid-column: 1 / -1;"><span style="color:var(--text-muted, #94a3b8);">Observation Window:</span> ${obsWindowStr}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Observations:</span> ${lc.observation_count ?? '—'}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Observations:</span> <span style="font-variant-numeric:tabular-nums;font-weight:700;">${obsCount}</span></div>
                     </div>
                 </div>
 
@@ -790,14 +848,14 @@
                         <i class="fas fa-chart-line" style="color:var(--accent-color, #38bdf8);"></i> Outcome Excursion Path (MFE / MAE)
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:0.4rem 0.75rem;font-size:0.75rem;color:var(--text-secondary, #cbd5e1);font-variant-numeric:tabular-nums;">
-                        <div><span style="color:var(--text-muted, #94a3b8);">MFE (Max Gain):</span> <strong style="color:var(--success-color, #22c55e);">${mfeStr}</strong></div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">MAE (Max Drawdown):</span> <strong style="color:var(--danger-color, #ef4444);">${maeStr}</strong></div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">MFE (Max Gain):</span> ${mfeStr}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">MAE (Max Drawdown):</span> ${maeStr}</div>
                         <div><span style="color:var(--text-muted, #94a3b8);">Realized R:</span> ${realizedRStr}</div>
                         <div><span style="color:var(--text-muted, #94a3b8);">First Touch:</span> ${firstTouchStr}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Exit Price:</span> ${lc.exit_price ? '₹' + Number(lc.exit_price).toFixed(2) : '—'}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Target 1 Hit:</span> ${exc.target_1_hit ? '<span style="color:var(--success-color, #22c55e);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>'}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Target 2 Hit:</span> ${exc.target_2_hit ? '<span style="color:var(--success-color, #22c55e);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>'}</div>
-                        <div><span style="color:var(--text-muted, #94a3b8);">Stop Loss Hit:</span> ${exc.stop_loss_hit ? '<span style="color:var(--danger-color, #ef4444);font-weight:bold;">YES</span>' : '<span style="color:var(--text-muted, #94a3b8);">NO</span>'}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Exit Price:</span> ${exitPriceStr}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Target 1 Hit:</span> ${t1Str}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Target 2 Hit:</span> ${t2Str}</div>
+                        <div><span style="color:var(--text-muted, #94a3b8);">Stop Loss Hit:</span> ${slStr}</div>
                     </div>
                 </div>
 
@@ -806,10 +864,10 @@
                         <i class="fas fa-list-check" style="color:var(--accent-color, #38bdf8);"></i> Component Contributions &amp; Scoring Attribution
                     </h4>
                     <div style="font-size:0.75rem;font-family:var(--font-mono, monospace);color:var(--text-muted, #94a3b8);font-variant-numeric:tabular-nums;">
-                        RAW: <strong style="color:var(--text-primary);">${data.metadata?.raw_score ?? data.score}</strong> | FINAL: <strong style="color:${scoreColor};">${data.score}/100</strong>
+                        RAW: <strong style="color:var(--text-primary);">${data.raw_score ?? data.metadata?.raw_score ?? data.score}</strong> | FINAL: <strong style="color:${scoreColor};">${data.final_score ?? data.metadata?.normalized_score ?? data.score}/100</strong>
                     </div>
                 </div>
-                <div class="opb-table-container" style="max-height:180px;overflow-y:auto;margin-bottom:0.75rem;">
+                <div class="opb-table-container" tabindex="0" role="region" aria-label="Component contributions table" style="max-height:180px;overflow-y:auto;margin-bottom:0.75rem;">
                     <table class="table" style="width:100%;font-size:0.8rem;">
                         <thead>
                             <tr class="table-header-row">

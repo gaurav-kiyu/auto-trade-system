@@ -1647,8 +1647,8 @@ class EnterpriseDashboard:
             "execution_mode": st.get("execution_mode", "PAPER"),
             "status": st.get("status", "RUNNING"),
             "hard_halt": st.get("hard_halt", False),
-            "version": "2.59.4",
-            "release_tag": "v2.59.4-post-merge.3",
+            "version": "2.60.0",
+            "release_tag": "v2.60.0",
         }
 
     def _load_recent_trades(self, days: int = 30, n: int = 100) -> list:
@@ -1798,7 +1798,7 @@ class EnterpriseDashboard:
             "open_positions": state.get("open_positions", 0),
             "hard_halt": state.get("hard_halt", False),
             "uptime": uptime_secs,
-            "uptime_human": f"{int(uptime_secs//3600)}h{int(uptime_secs%3600//60)}m",
+            "uptime_human": f"{int(uptime_secs//3600)}h {int(uptime_secs%3600//60)}m {int(uptime_secs%60)}s",
             "capital": float(state.get("capital", state.get("base_capital", self._cfg.get("BASE_CAPITAL", 10000.0)))),
             "base_capital": float(state.get("base_capital", self._cfg.get("BASE_CAPITAL", 10000.0))),
             "execution_mode": state.get("execution_mode", self._cfg.get("execution_mode", "paper")),

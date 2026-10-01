@@ -263,7 +263,7 @@
     </div>
 
     <!-- Managed Capabilities Table -->
-    <div class="card" style="padding: 0; overflow-x: auto;">
+    <div class="card" style="padding: 0; overflow-x: auto;" tabindex="0" role="region" aria-label="Managed capabilities table">
         <table>
             <thead>
                 <tr>
@@ -299,9 +299,6 @@
                                 <span class="badge badge-degraded"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span> DEGRADED</span>
                             {% else %}
                                 <span class="badge badge-unavailable"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span> UNAVAILABLE</span>
-                                {% if cap.is_demo_only %}
-                                    <span class="badge badge-demo" style="margin-left: 0.25rem;">Sample Only</span>
-                                {% endif %}
                             {% endif %}
                         </td>
                         <td>
@@ -464,9 +461,6 @@
                             badgeHtml = '<span class="badge badge-degraded"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span> DEGRADED</span>';
                         } else {
                             badgeHtml = '<span class="badge badge-unavailable"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span> UNAVAILABLE</span>';
-                            if (cap.is_demo_only) {
-                                badgeHtml += '<span class="badge badge-demo" style="margin-left:0.25rem;">Sample Only</span>';
-                            }
                         }
 
                         const verified = cap.last_verified_at ? cap.last_verified_at.substring(0, 19).replace('T', ' ') : 'N/A';

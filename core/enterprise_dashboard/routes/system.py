@@ -206,12 +206,14 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
                         "sharpe_ratio": 0.0, "max_drawdown_pct": 0.0,
                         "total_trades": 0, "net_pnl": 0.0,
                         "wins": 0, "losses": 0,
+                        "score": "Not available — no executed-trade dataset",
                         "mean_reversion": "No trade data",
                         "ma_crossover": "No trade data",
                         "primary_signal": "No trade data",
                         "recent_trades": [],
                         "breakdown": {},
                         "comparison": {},
+                        "note": "Not available — no executed-trade dataset",
                     }
                 trades = dashboard._load_recent_trades(days=90, n=500)
 
@@ -221,12 +223,14 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
                     "sharpe_ratio": 0.0, "max_drawdown_pct": 0.0,
                     "total_trades": 0, "net_pnl": 0.0,
                     "wins": 0, "losses": 0,
+                    "score": "Not available — no executed-trade dataset",
                     "mean_reversion": "No trade data",
                     "ma_crossover": "No trade data",
                     "primary_signal": "No trade data",
                     "recent_trades": [],
                     "breakdown": {},
                     "comparison": {},
+                    "note": "Not available — no executed-trade dataset",
                 }
             pnls = [float(t.get("net_pnl", t.get("pnl", 0))) for t in trades]
             wins = sum(1 for p in pnls if p > 0)
@@ -338,116 +342,242 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
         try:
             sym = index_name.upper()
             from pathlib import Path as _P
-            snap_path = _P("db/oi_snapshots.db")
+            snap_path = _P(dashboard._cfg.get("oi_snapshot_db_path", dashboard._cfg.get("OI_SNAPSHOT_DB_PATH", "db/oi_snapshots.db")))
 
-            if not demo and snap_path.is_file():
-                import sqlite3
-                conn = sqlite3.connect(str(snap_path))
-                conn.row_factory = sqlite3.Row
-                try:
-                    cur = conn.cursor()
-                    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='snapshots'")
-                    if cur.fetchone():
-                        cur.execute(
-                            "SELECT * FROM snapshots WHERE index_name = ? ORDER BY timestamp DESC, strike ASC",
-                            (sym,),
-                        )
-                        rows = cur.fetchall()
-                        if rows:
-                            latest_ts = rows[0]["timestamp"]
-                            latest_rows = [r for r in rows if r["timestamp"] == latest_ts]
-                            if n and n > 0:
-                                latest_rows = latest_rows[:n]
+            if not demo:
+                if snap_path.is_file():
+                    import sqlite3
+                    conn = sqlite3.connect(str(snap_path))
+                    conn.row_factory = sqlite3.Row
+                    try:
+                        cur = conn.cursor()
+                        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('snapshots', 'oi_snapshots')")
+                        found_tables = {r[0] for r in cur.fetchall()}
 
-                            spot = latest_rows[0]["spot_price"] if latest_rows else 0.0
-                            tot_call_oi = sum(r["call_oi"] or 0 for r in latest_rows)
-                            tot_put_oi = sum(r["put_oi"] or 0 for r in latest_rows)
-                            total_oi = tot_call_oi + tot_put_oi
-                            pcr = round(tot_put_oi / tot_call_oi, 2) if tot_call_oi else 0.0
+                        if "snapshots" in found_tables:
+                            cur.execute(
+                                "SELECT * FROM snapshots WHERE index_name = ? ORDER BY timestamp DESC, strike ASC",
+                                (sym,),
+                            )
+                            rows = cur.fetchall()
+                            if rows:
+                                latest_ts = rows[0]["timestamp"]
+                                latest_rows = [r for r in rows if r["timestamp"] == latest_ts]
+                                if n and n > 0:
+                                    latest_rows = latest_rows[:n]
 
-                            strikes_out = []
-                            for r in latest_rows:
-                                strike = float(r["strike"])
-                                call_oi = int(r["call_oi"] or 0)
-                                put_oi = int(r["put_oi"] or 0)
-                                is_atm = abs(strike - spot) <= 50 if spot else False
-                                strikes_out.append({
-                                    "strike": strike,
-                                    "strike_price": strike,
-                                    "call": {
-                                        "oi": call_oi, "vol": int(r["call_vol"] or 0),
-                                        "iv": float(r["call_iv"] or 0), "ltp": float(r["call_ltp"] or 0),
-                                    },
-                                    "put": {
-                                        "oi": put_oi, "vol": int(r["put_vol"] or 0),
-                                        "iv": float(r["put_iv"] or 0), "ltp": float(r["put_ltp"] or 0),
-                                    },
-                                    "call_oi": call_oi, "CE_oi": call_oi,
-                                    "put_oi": put_oi, "PE_oi": put_oi,
-                                    "call_vol": int(r["call_vol"] or 0), "CE_volume": int(r["call_vol"] or 0),
-                                    "put_vol": int(r["put_vol"] or 0), "PE_volume": int(r["put_vol"] or 0),
-                                    "call_iv": float(r["call_iv"] or 0), "CE_iv": float(r["call_iv"] or 0),
-                                    "put_iv": float(r["put_iv"] or 0), "PE_iv": float(r["put_iv"] or 0),
-                                    "call_ltp": float(r["call_ltp"] or 0), "CE_ltp": float(r["call_ltp"] or 0),
-                                    "put_ltp": float(r["put_ltp"] or 0), "PE_ltp": float(r["put_ltp"] or 0),
-                                    "is_atm": is_atm,
-                                })
+                                spot = latest_rows[0]["spot_price"] if latest_rows else 0.0
+                                tot_call_oi = sum(r["call_oi"] or 0 for r in latest_rows)
+                                tot_put_oi = sum(r["put_oi"] or 0 for r in latest_rows)
+                                total_oi = tot_call_oi + tot_put_oi
+                                pcr = round(tot_put_oi / tot_call_oi, 2) if tot_call_oi else 0.0
 
-                            # Max pain calculation
-                            min_pain = float("inf")
-                            max_pain_strike = strikes_out[0]["strike"] if strikes_out else spot
-                            for candidate in strikes_out:
-                                c_str = candidate["strike"]
-                                pain = sum(
-                                    max(0.0, c_str - s["strike"]) * s["call_oi"] +
-                                    max(0.0, s["strike"] - c_str) * s["put_oi"]
-                                    for s in strikes_out
-                                )
-                                if pain < min_pain:
-                                    min_pain = pain
-                                    max_pain_strike = c_str
+                                strikes_out = []
+                                for r in latest_rows:
+                                    strike = float(r["strike"])
+                                    call_oi = int(r["call_oi"] or 0)
+                                    put_oi = int(r["put_oi"] or 0)
+                                    is_atm = abs(strike - spot) <= 50 if spot else False
+                                    strikes_out.append({
+                                        "strike": strike,
+                                        "strike_price": strike,
+                                        "call": {
+                                            "oi": call_oi, "vol": int(r["call_vol"] or 0),
+                                            "iv": float(r["call_iv"] or 0), "ltp": float(r["call_ltp"] or 0),
+                                        },
+                                        "put": {
+                                            "oi": put_oi, "vol": int(r["put_vol"] or 0),
+                                            "iv": float(r["put_iv"] or 0), "ltp": float(r["put_ltp"] or 0),
+                                        },
+                                        "call_oi": call_oi, "CE_oi": call_oi,
+                                        "put_oi": put_oi, "PE_oi": put_oi,
+                                        "call_vol": int(r["call_vol"] or 0), "CE_volume": int(r["call_vol"] or 0),
+                                        "put_vol": int(r["put_vol"] or 0), "PE_volume": int(r["put_vol"] or 0),
+                                        "call_iv": float(r["call_iv"] or 0), "CE_iv": float(r["call_iv"] or 0),
+                                        "put_iv": float(r["put_iv"] or 0), "PE_iv": float(r["put_iv"] or 0),
+                                        "call_ltp": float(r["call_ltp"] or 0), "CE_ltp": float(r["call_ltp"] or 0),
+                                        "put_ltp": float(r["put_ltp"] or 0), "PE_ltp": float(r["put_ltp"] or 0),
+                                        "is_atm": is_atm,
+                                    })
 
-                            # Compute GEX metrics
-                            gex_data = {"net_gex": 0.0, "gamma_flip": spot, "regime": "NEUTRAL", "top_strikes": []}
-                            try:
-                                from core.gex_analyzer import compute_gex
-                                chain_dict = {
-                                    "calls": {s["strike"]: {"oi": s["call_oi"], "premium": s["call_ltp"]} for s in strikes_out},
-                                    "puts": {s["strike"]: {"oi": s["put_oi"], "premium": s["put_ltp"]} for s in strikes_out},
-                                }
-                                gex_cfg = {
-                                    "gex_enabled": True,
-                                    "risk_free_rate": dashboard._cfg.get("GEX_RISK_FREE_RATE", 0.065),
-                                    "gex_lot_size": dashboard._cfg.get("gex_lot_size", 50),
-                                    "gex_dte": dashboard._cfg.get("gex_dte", 7),
-                                    "gex_vix_proxy": 14.5,
-                                }
-                                g_res = compute_gex(chain_dict, spot, gex_cfg)
-                                if g_res:
-                                    net_gex_cr = round(g_res.net_gex / 1e7, 2)
-                                    flip_level = g_res.gamma_flip if g_res.gamma_flip > 0 else spot
-                                    gex_data = {
-                                        "net_gex": net_gex_cr,
-                                        "gamma_flip": round(flip_level, 2),
-                                        "regime": g_res.regime,
-                                        "top_strikes": [{"strike": s.strike, "gex": round(s.gex / 1e7, 2)} for s in g_res.top_strikes],
+                                # Max pain calculation
+                                min_pain = float("inf")
+                                max_pain_strike = strikes_out[0]["strike"] if strikes_out else spot
+                                for candidate in strikes_out:
+                                    c_str = candidate["strike"]
+                                    pain = sum(
+                                        max(0.0, c_str - s["strike"]) * s["call_oi"] +
+                                        max(0.0, s["strike"] - c_str) * s["put_oi"]
+                                        for s in strikes_out
+                                    )
+                                    if pain < min_pain:
+                                        min_pain = pain
+                                        max_pain_strike = c_str
+
+                                # Compute GEX metrics
+                                gex_data = {"net_gex": 0.0, "gamma_flip": spot, "regime": "NEUTRAL", "top_strikes": []}
+                                try:
+                                    from core.gex_analyzer import compute_gex
+                                    chain_dict = {
+                                        "calls": {s["strike"]: {"oi": s["call_oi"], "premium": s["call_ltp"]} for s in strikes_out},
+                                        "puts": {s["strike"]: {"oi": s["put_oi"], "premium": s["put_ltp"]} for s in strikes_out},
                                     }
-                            except Exception:
-                                pass
+                                    gex_cfg = {
+                                        "gex_enabled": True,
+                                        "risk_free_rate": dashboard._cfg.get("GEX_RISK_FREE_RATE", 0.065),
+                                        "gex_lot_size": dashboard._cfg.get("gex_lot_size", 50),
+                                        "gex_dte": dashboard._cfg.get("gex_dte", 7),
+                                        "gex_vix_proxy": 14.5,
+                                    }
+                                    g_res = compute_gex(chain_dict, spot, gex_cfg)
+                                    if g_res:
+                                        net_gex_cr = round(g_res.net_gex / 1e7, 2)
+                                        flip_level = g_res.gamma_flip if g_res.gamma_flip > 0 else spot
+                                        gex_data = {
+                                            "net_gex": net_gex_cr,
+                                            "gamma_flip": round(flip_level, 2),
+                                            "regime": g_res.regime,
+                                            "top_strikes": [{"strike": s.strike, "gex": round(s.gex / 1e7, 2)} for s in g_res.top_strikes],
+                                        }
+                                except Exception:
+                                    pass
 
-                            return {
-                                "symbol": sym,
-                                "underlying_price": spot,
-                                "spot": spot,
-                                "timestamp": latest_ts,
-                                "strikes": strikes_out,
-                                "option_chain": strikes_out,
-                                "pcr": pcr,
-                                "iv": 14.8,
-                                "total_oi": total_oi,
-                                "max_pain": max_pain_strike,
-                                "gex": gex_data,
-                            }
+                                return {
+                                    "symbol": sym,
+                                    "underlying_price": spot,
+                                    "spot": spot,
+                                    "timestamp": latest_ts,
+                                    "strikes": strikes_out,
+                                    "option_chain": strikes_out,
+                                    "pcr": pcr,
+                                    "iv": 14.8,
+                                    "total_oi": total_oi,
+                                    "max_pain": max_pain_strike,
+                                    "gex": gex_data,
+                                }
+                            else:
+                                return {
+                                    "symbol": sym,
+                                    "underlying_price": None,
+                                    "spot": None,
+                                    "timestamp": None,
+                                    "strikes": [],
+                                    "option_chain": [],
+                                    "pcr": 0.0,
+                                    "iv": None,
+                                    "total_oi": 0,
+                                    "max_pain": None,
+                                    "note": f"No data found for {sym}",
+                                }
+
+                        elif "oi_snapshots" in found_tables:
+                            import datetime
+                            cur.execute(
+                                "SELECT * FROM oi_snapshots WHERE index_name = ? AND strike IS NOT NULL ORDER BY ts DESC, strike ASC",
+                                (sym,),
+                            )
+                            strike_rows = cur.fetchall()
+                            if strike_rows:
+                                latest_ts = strike_rows[0]["ts"]
+                                latest_rows = [r for r in strike_rows if r["ts"] == latest_ts]
+                                if n and n > 0:
+                                    latest_rows = latest_rows[:n]
+
+                                tot_call_oi = sum(r["call_oi"] or 0 for r in latest_rows)
+                                tot_put_oi = sum(r["put_oi"] or 0 for r in latest_rows)
+                                total_oi = tot_call_oi + tot_put_oi
+                                pcr = round(tot_put_oi / tot_call_oi, 2) if tot_call_oi else 0.0
+
+                                if isinstance(latest_ts, (int, float)):
+                                    ts_str = datetime.datetime.fromtimestamp(latest_ts).strftime("%Y-%m-%d %H:%M:%S")
+                                else:
+                                    ts_str = str(latest_ts)
+
+                                strikes_out = []
+                                for r in latest_rows:
+                                    strike = float(r["strike"])
+                                    call_oi = int(r["call_oi"] or 0)
+                                    put_oi = int(r["put_oi"] or 0)
+                                    c_vol = int(r["call_volume"] or 0)
+                                    p_vol = int(r["put_volume"] or 0)
+                                    strikes_out.append({
+                                        "strike": strike,
+                                        "strike_price": strike,
+                                        "call": {"oi": call_oi, "vol": c_vol, "iv": 0.0, "ltp": 0.0},
+                                        "put": {"oi": put_oi, "vol": p_vol, "iv": 0.0, "ltp": 0.0},
+                                        "call_oi": call_oi, "CE_oi": call_oi,
+                                        "put_oi": put_oi, "PE_oi": put_oi,
+                                        "call_vol": c_vol, "CE_volume": c_vol,
+                                        "put_vol": p_vol, "PE_volume": p_vol,
+                                        "call_iv": 0.0, "CE_iv": 0.0,
+                                        "put_iv": 0.0, "PE_iv": 0.0,
+                                        "call_ltp": 0.0, "CE_ltp": 0.0,
+                                        "put_ltp": 0.0, "PE_ltp": 0.0,
+                                        "is_atm": False,
+                                    })
+                                return {
+                                    "symbol": sym,
+                                    "underlying_price": None,
+                                    "spot": None,
+                                    "timestamp": ts_str,
+                                    "strikes": strikes_out,
+                                    "option_chain": strikes_out,
+                                    "pcr": pcr,
+                                    "iv": None,
+                                    "total_oi": total_oi,
+                                    "max_pain": None,
+                                    "gex": {"net_gex": 0.0, "gamma_flip": None, "regime": "NEUTRAL", "top_strikes": []},
+                                }
+                            else:
+                                cur.execute(
+                                    "SELECT * FROM oi_snapshots WHERE index_name = ? ORDER BY ts DESC LIMIT 1",
+                                    (sym,),
+                                )
+                                agg_row = cur.fetchone()
+                                if agg_row:
+                                    ts_val = agg_row["ts"]
+                                    if isinstance(ts_val, (int, float)):
+                                        ts_str = datetime.datetime.fromtimestamp(ts_val).strftime("%Y-%m-%d %H:%M:%S")
+                                    else:
+                                        ts_str = str(ts_val)
+                                    tot_call_oi = int(agg_row["call_oi"] or 0)
+                                    tot_put_oi = int(agg_row["put_oi"] or 0)
+                                    call_vol = int(agg_row["call_volume"] or 0)
+                                    put_vol = int(agg_row["put_volume"] or 0)
+                                    total_oi = int(agg_row["total_oi"] or (tot_call_oi + tot_put_oi))
+                                    pcr_val = float(agg_row["pcr_ratio"]) if agg_row["pcr_ratio"] is not None else (round(tot_put_oi / tot_call_oi, 4) if tot_call_oi else 0.0)
+                                    return {
+                                        "symbol": sym,
+                                        "underlying_price": None,
+                                        "spot": None,
+                                        "timestamp": ts_str,
+                                        "strikes": [],
+                                        "option_chain": [],
+                                        "pcr": round(pcr_val, 4),
+                                        "iv": None,
+                                        "total_oi": total_oi,
+                                        "call_oi": tot_call_oi,
+                                        "put_oi": tot_put_oi,
+                                        "call_volume": call_vol,
+                                        "put_volume": put_vol,
+                                        "max_pain": None,
+                                        "gex": {"net_gex": 0.0, "gamma_flip": None, "regime": "NEUTRAL", "top_strikes": []},
+                                        "note": f"Aggregated index OI snapshot from NSE recorder for {sym} (strike-level breakdown not recorded).",
+                                    }
+                                else:
+                                    return {
+                                        "symbol": sym,
+                                        "underlying_price": None,
+                                        "spot": None,
+                                        "timestamp": None,
+                                        "strikes": [],
+                                        "option_chain": [],
+                                        "pcr": 0.0,
+                                        "iv": None,
+                                        "total_oi": 0,
+                                        "max_pain": None,
+                                        "note": f"No data found for {sym}",
+                                    }
                         else:
                             return {
                                 "symbol": sym,
@@ -456,13 +586,13 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
                                 "timestamp": None,
                                 "strikes": [],
                                 "option_chain": [],
-                                "pcr": 0.0,
+                                "pcr": None,
                                 "iv": None,
                                 "total_oi": 0,
                                 "max_pain": None,
-                                "note": f"No data found for {sym}",
+                                "note": "oi_snapshots.db not found. Start NSE recorder to collect data.",
                             }
-                    else:
+                    except sqlite3.Error:
                         return {
                             "symbol": sym,
                             "underlying_price": None,
@@ -476,13 +606,10 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
                             "max_pain": None,
                             "note": "oi_snapshots.db not found. Start NSE recorder to collect data.",
                         }
-                except sqlite3.Error:
-                    pass
-                finally:
-                    conn.close()
+                    finally:
+                        conn.close()
 
-            # When snap_path does not exist and demo=False and in test environment:
-            if not demo and (not snap_path.is_file() and not _P("db/oi_snapshots.db").exists()):
+                # When snap_path does not exist or DB has no data:
                 return {
                     "symbol": sym,
                     "underlying_price": None,
@@ -494,173 +621,41 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
                     "iv": None,
                     "total_oi": 0,
                     "max_pain": None,
-                    "note": "oi_snapshots.db not found. Start NSE recorder to collect data.",
+                    "gex": None,
+                    "note": f"oi_snapshots.db not found — Live Options Chain data currently unavailable / waiting for market feed for {sym}",
                 }
 
-            # Live index spot prices accurately mapped to current market values
-            spot_map = {
-                # Major Indian Benchmark Indices
-                "NIFTY": 24062.0,
-                "NIFTY 50": 24062.0,
-                "BANKNIFTY": 51200.0,
-                "BANK NIFTY": 51200.0,
-                "FINNIFTY": 23850.0,
-                "FIN NIFTY": 23850.0,
-                "NIFTY_FIN_SERVICE": 23850.0,
-                "SENSEX": 79200.0,
-                "BSE SENSEX": 79200.0,
-                "MIDCPNIFTY": 12850.0,
-                "BANKEX": 58400.0,
-                "NIFTYNEXT50": 68500.0,
-                # Key High-Volume F&O Equities
-                "RELIANCE": 2980.0,
-                "HDFCBANK": 1650.0,
-                "ICICIBANK": 1220.0,
-                "INFY": 1840.0,
-                "TCS": 4250.0,
-                "SBIN": 820.0,
-                "TATAMOTORS": 1020.0,
-                "BHARTIARTL": 1540.0,
-                "ITC": 490.0,
-                "LT": 3680.0,
-                "KOTAKBANK": 1780.0,
-                "AXISBANK": 1180.0,
-                "BAJFINANCE": 6950.0,
-                "MARUTI": 12400.0,
-            }
-            base_spot = spot_map.get(sym, 24062.0)
-
-            if sym in ("BANKNIFTY", "BANK NIFTY", "SENSEX", "BANKEX"):
-                step = 100
-                lot = 15 if sym in ("BANKNIFTY", "BANK NIFTY", "BANKEX") else 10
-            elif sym in ("MIDCPNIFTY", "RELIANCE", "INFY", "BHARTIARTL"):
-                step = 20 if sym in ("RELIANCE", "INFY", "BHARTIARTL") else 25
-                lot = 50 if sym == "MIDCPNIFTY" else 250
-            elif sym in ("TCS", "LT", "BAJFINANCE", "MARUTI"):
-                step = 50 if sym in ("TCS", "LT") else 100
-                lot = 175 if sym == "TCS" else (150 if sym == "LT" else 125)
-            elif sym in ("SBIN", "ITC"):
-                step = 5
-                lot = 750 if sym == "SBIN" else 1600
-            elif sym in ("HDFCBANK", "ICICIBANK", "TATAMOTORS", "KOTAKBANK", "AXISBANK"):
-                step = 10
-                lot = 550 if sym == "HDFCBANK" else 700
-            else:
-                step = 50
-                lot = 75
-
-            atm_strike = round(base_spot / step) * step
-            strikes_list = []
-            chain_rows = []
-
-            import datetime
-            now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            count = min(n, 21) if n and n > 0 else 21
-            half = count // 2
-            for i in range(-half, half + 1):
-                strike = atm_strike + (i * step)
-                call_oi = max(1000, int(150000 - abs(i) * 9000))
-                put_oi = max(1000, int(140000 - abs(i) * 8500))
-                call_vol = max(500, int(45000 - abs(i) * 3000))
-                put_vol = max(500, int(42000 - abs(i) * 2800))
-
-                # Realistic pricing with intrinsic value + extrinsic curve
-                call_intrinsic = max(0.0, base_spot - strike)
-                put_intrinsic = max(0.0, strike - base_spot)
-                atm_extrinsic = step * 2.8
-                call_ltp = round(max(2.0, call_intrinsic + max(5.0, atm_extrinsic - abs(i) * (step * 0.22))), 2)
-                put_ltp = round(max(2.0, put_intrinsic + max(5.0, atm_extrinsic - abs(i) * (step * 0.22))), 2)
-
-                delta_c = round(max(0.05, min(0.95, 0.50 - i * 0.04)), 2)
-                delta_p = round(max(-0.95, min(-0.05, -0.50 - i * 0.04)), 2)
-
-                item = {
-                    "strike": strike,
-                    "strike_price": strike,
-                    "call": {"oi": call_oi, "vol": call_vol, "iv": 14.5, "ltp": call_ltp},
-                    "put": {"oi": put_oi, "vol": put_vol, "iv": 15.2, "ltp": put_ltp},
-                    "call_oi": call_oi,
-                    "CE_oi": call_oi,
-                    "put_oi": put_oi,
-                    "PE_oi": put_oi,
-                    "call_vol": call_vol,
-                    "CE_volume": call_vol,
-                    "put_vol": put_vol,
-                    "PE_volume": put_vol,
-                    "call_iv": 14.5,
-                    "CE_iv": 14.5,
-                    "put_iv": 15.2,
-                    "PE_iv": 15.2,
-                    "call_ltp": call_ltp,
-                    "CE_ltp": call_ltp,
-                    "put_ltp": put_ltp,
-                    "PE_ltp": put_ltp,
-                    "call_delta": delta_c,
-                    "CE_delta": delta_c,
-                    "call_gamma": 0.0012,
-                    "CE_gamma": 0.0012,
-                    "call_theta": -8.5,
-                    "CE_theta": -8.5,
-                    "call_vega": 12.4,
-                    "CE_vega": 12.4,
-                    "put_delta": delta_p,
-                    "PE_delta": delta_p,
-                    "put_gamma": 0.0012,
-                    "PE_gamma": 0.0012,
-                    "put_theta": -8.2,
-                    "PE_theta": -8.2,
-                    "put_vega": 12.1,
-                    "PE_vega": 12.1,
-                    "is_atm": i == 0
-                }
-                strikes_list.append(item)
-                chain_rows.append(item)
-
-            # Compute GEX metrics
-            gex_data = {"net_gex": 0.0, "gamma_flip": base_spot, "regime": "NEUTRAL", "top_strikes": []}
-            try:
-                from core.gex_analyzer import compute_gex
-                chain_dict = {
-                    "calls": {s["strike"]: {"oi": s["call_oi"], "premium": s["call_ltp"]} for s in strikes_list},
-                    "puts": {s["strike"]: {"oi": s["put_oi"], "premium": s["put_ltp"]} for s in strikes_list},
-                }
-                gex_cfg = {
-                    "gex_enabled": True,
-                    "risk_free_rate": dashboard._cfg.get("GEX_RISK_FREE_RATE", 0.065),
-                    "gex_lot_size": lot,
-                    "gex_dte": dashboard._cfg.get("gex_dte", 7),
-                    "gex_vix_proxy": 14.5,
-                }
-                g_res = compute_gex(chain_dict, base_spot, gex_cfg)
-                if g_res:
-                    net_gex_cr = round(g_res.net_gex / 1e7, 2)
-                    flip_level = g_res.gamma_flip if g_res.gamma_flip > 0 else base_spot
-                    gex_data = {
-                        "net_gex": net_gex_cr,
-                        "gamma_flip": round(flip_level, 2),
-                        "regime": g_res.regime,
-                        "top_strikes": [{"strike": s.strike, "gex": round(s.gex / 1e7, 2)} for s in g_res.top_strikes],
-                    }
-            except Exception:
-                pass
-
+            # If live data is unavailable, return honest unavailable state (zero synthetic data permitted)
             return {
                 "symbol": sym,
-                "underlying_price": base_spot,
-                "spot": base_spot,
-                "timestamp": now_str,
-                "strikes": strikes_list,
-                "option_chain": chain_rows,
-                "pcr": 1.08,
-                "iv": 14.8,
-                "total_oi": 2500000,
-                "max_pain": atm_strike,
-                "gex": gex_data,
+                "underlying_price": None,
+                "spot": None,
+                "timestamp": None,
+                "strikes": [],
+                "option_chain": [],
+                "pcr": None,
+                "iv": None,
+                "total_oi": 0,
+                "max_pain": None,
+                "gex": None,
+                "note": f"Live Options Chain data currently unavailable / waiting for market feed for {sym}",
             }
         except (ImportError, ValueError, OSError, AttributeError, Exception) as exc:
             _log.debug("[DASH] Options chain error: %s", exc)
-            return {"symbol": index_name.upper(), "strikes": [], "option_chain": [], "underlying_price": 24500.0, "error": str(exc)}
+            return {
+                "symbol": index_name.upper(),
+                "underlying_price": None,
+                "spot": None,
+                "timestamp": None,
+                "strikes": [],
+                "option_chain": [],
+                "pcr": None,
+                "iv": None,
+                "total_oi": 0,
+                "max_pain": None,
+                "gex": None,
+                "note": f"Live Options Chain unavailable ({exc})",
+            }
 
     @app.get("/api/system/ws-status")
     async def api_ws_status(user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
@@ -730,9 +725,9 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
         uptime_secs = time.time() - dashboard._startup_ts if hasattr(dashboard, "_startup_ts") else 0
         return {
             "status": "healthy" if (db_ok and auth_db_ok and not state.get("hard_halt")) else "degraded",
-            "version": "2.54.0",
+            "version": "2.60.0",
             "uptime_seconds": uptime_secs,
-            "uptime_human": f"{int(uptime_secs//3600)}h{int(uptime_secs%3600//60)}m",
+            "uptime_human": f"{int(uptime_secs//3600)}h {int(uptime_secs%3600//60)}m {int(uptime_secs%60)}s",
             "db_connected": db_ok,
             "auth_db_connected": auth_db_ok,
             "paused": dashboard._pause_event.is_set() if dashboard._pause_event is not None else False,
@@ -747,7 +742,7 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
         return {
             "started_at": dashboard._startup_ts,
             "uptime_seconds": uptime_secs,
-            "uptime_human": f"{int(uptime_secs//3600)}h{int(uptime_secs%3600//60)}m",
+            "uptime_human": f"{int(uptime_secs//3600)}h {int(uptime_secs%3600//60)}m {int(uptime_secs%60)}s",
             "server_time": time.time(),
             "server_time_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }

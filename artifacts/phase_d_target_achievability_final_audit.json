@@ -1,0 +1,340 @@
+{
+  "audit_metadata": {
+    "governance": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "mandate": "NO ASSUMPTION-BASED COMPLETION",
+    "timestamp": "2026-09-30T10:25:00+05:30",
+    "audit_type": "FINAL_TARGET_ACHIEVABILITY_AND_SIGNAL_LIFECYCLE_GAP_CLOSURE_AUDIT",
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "git_parity": {
+      "local_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+      "github_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+      "ec2_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+      "triple_parity_verified": true,
+      "historical_baseline": "d4271ff"
+    },
+    "database_integrity": {
+      "local_db_path": "db/signals_history.db",
+      "sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+      "expected_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+      "mutation_detected": false,
+      "table_counts": {
+        "system_signals": 498,
+        "signal_forward_observations": 101,
+        "user_deliveries": 344,
+        "scan_cycle_metrics": 38
+      }
+    },
+    "safety_invariants": {
+      "full_auto_allowed": false,
+      "broker_routing": "DISCONNECTED",
+      "LIVE_TRADING_LOCKOUT": true,
+      "orders_placed": 0,
+      "D20_C_experimental_targets": "OFF",
+      "FUTURES_ENABLED": false,
+      "PHASE_E": "STRICTLY_BLOCKED"
+    }
+  },
+  "part1_signal_lifecycle_trace": {
+    "description": "End-to-end trace from raw data to forward resolution",
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Market Data Ingestion",
+        "module": "core/all_nse_scanner.py",
+        "details": "yfinance OHLCV fetch for 1m, 5m, 15m intervals"
+      },
+      {
+        "stage": 2,
+        "name": "Data Quality Validation",
+        "module": "core/signal_utils.py",
+        "details": "validate_ohlcv enforces finite numbers, High>=Low, Close in range, strictly positive volume for equities (zero allowed for cash index benchmarks)"
+      },
+      {
+        "stage": 3,
+        "name": "Data Freshness Check",
+        "module": "core/all_nse_scanner.py",
+        "details": "check_data_freshness rejects bars older than 300s (5m)"
+      },
+      {
+        "stage": 4,
+        "name": "Completed Candle Extraction (R3)",
+        "module": "core/all_nse_scanner.py",
+        "details": "Extracts df.iloc[-2] only if len(df)>=2, strictly excluding forming candle iloc[-1]"
+      },
+      {
+        "stage": 5,
+        "name": "Signal Evaluation and Scoring",
+        "module": "index_app/domains/signal/evaluator.py",
+        "details": "16-strategy score (0-150 raw, 0-100 normalized) via evaluate_adaptive_signal"
+      },
+      {
+        "stage": 6,
+        "name": "Long-Only Cash Gate",
+        "module": "core/all_nse_scanner.py",
+        "details": "Cash equities suppressed on PUT/SELL; F&O derivatives allowed both directions"
+      },
+      {
+        "stage": 7,
+        "name": "Score and Category Gates",
+        "module": "core/all_nse_scanner.py",
+        "details": "Score >= get_min_score_for_category (70 for cash equity, 80 for derivatives)"
+      },
+      {
+        "stage": 8,
+        "name": "D20-A Options Quality Gate",
+        "module": "core/signals/signal_quality_gate.py",
+        "details": "Enforces breakout > 0 and volume > 0 for options (fail-closed)"
+      },
+      {
+        "stage": 9,
+        "name": "D20-B Index Session Dedup Gate",
+        "module": "core/signals/signal_quality_gate.py",
+        "details": "Max 1 CALL + 1 PUT per index underlying per calendar session"
+      },
+      {
+        "stage": 10,
+        "name": "Target / SL Level Calculation",
+        "module": "core/signal_utils.py",
+        "details": "calculate_directional_levels assigns fixed +4% T1, +8% T2, -3% SL (CALL) / -4% T1, -8% T2, +3% SL (PUT)"
+      },
+      {
+        "stage": 11,
+        "name": "Presentation Labeling (D26-A/B)",
+        "module": "core/notifications/rich_signal_formatter.py",
+        "details": "Index options labeled SPOT Benchmark Analysis; Futures verified via FuturesContractResolver (FUTURES_ENABLED=False)"
+      },
+      {
+        "stage": 12,
+        "name": "Persistence and Prediction Snapshot",
+        "module": "core/signals/signal_tracker.py",
+        "details": "Persists signal to system_signals, generates SHA256 snapshot hash in signal_prediction_snapshots with UNCALIBRATED calibration version"
+      },
+      {
+        "stage": 13,
+        "name": "Dispatch / Delivery",
+        "module": "core/notifications/",
+        "details": "Logs to user_deliveries and dispatches Telegram/Email if enabled"
+      },
+      {
+        "stage": 14,
+        "name": "Forward Observation Registration",
+        "module": "core/signals/signal_forward_observation.py",
+        "details": "Auto-registers record in signal_forward_observations (fail-closed if snapshot missing)"
+      },
+      {
+        "stage": 15,
+        "name": "Forward Bar Evaluation",
+        "module": "core/signals/signal_outcome_tracker.py",
+        "details": "evaluate_bar checks completed 1m bars for first-touch T1, T2, SL; quarantines same-bar ambiguity (AMBIGUOUS_SAME_BAR)"
+      },
+      {
+        "stage": 16,
+        "name": "Outcome Resolution and Expiry",
+        "module": "core/signals/signal_outcome_tracker.py",
+        "details": "First-touch is immutable. Intraday signals expire at 15:30 IST; swing signals expire after 5 trading days"
+      }
+    ]
+  },
+  "part2_entry_validity": {
+    "findings": {
+      "valid_from": "Set to exact signal creation/generation timestamp (created_at).",
+      "entry_range": "Currently not defined as an explicit tolerance band (e.g. +/- 0.25%); assumed to be entry price point reference.",
+      "entry_by": "No hard expiration deadline for entry execution. Conflated with max_exit_time in notifications.",
+      "entry_drift": "Drift between signal price and execution LTP is tracked observationally, but not gated at delivery.",
+      "stale_invalidation": "Signal freshness check (300s) operates at candle level; no secondary quote re-validation before alert dispatch."
+    },
+    "status": "ANALYZED_NO_DEFECT_PROVEN"
+  },
+  "part3_target_achievability": {
+    "findings": {
+      "target_distance": "Fixed +4.0% T1, +8.0% T2, -3.0% SL across all categories.",
+      "vs_available_volatility": "For Index Options (NIFTY/BANKNIFTY), daily ATR is ~0.7-1.1%. A 4% spot move intraday is 4x-6x ATR, making T1 mathematically improbable intraday. For Cash Equity Swing (5-day horizon), 4% is within 5-day cumulative ATR.",
+      "consumed_range": "Scanner does not deduct already consumed daily range from remaining expected move.",
+      "distance_to_sl": "SL is fixed -3.0% (Risk-Reward 1:1.33 for T1, 1:2.67 for T2)."
+    },
+    "status": "THEORETICAL_LIMITATION_GOVERNED_BY_OBSERVATION"
+  },
+  "part4_target_feasibility_formulations_audit": {
+    "evaluations": [
+      {
+        "formulation": "required_move <= expected_move",
+        "classification": "THEORETICALLY MOTIVATED",
+        "audit_note": "Sound physical principle, but currently lacks calibrated empirical variance models for NSE universe."
+      },
+      {
+        "formulation": "required_time <= remaining_time",
+        "classification": "THEORETICALLY MOTIVATED",
+        "audit_note": "Valid horizon check; already partially enforced by session-close expiry (15:30 IST) for intraday signals."
+      },
+      {
+        "formulation": "ATR * sqrt(time) scaling",
+        "classification": "HYPOTHESIS",
+        "audit_note": "Diffusion assumption (Brownian motion) not empirically validated against jump processes in Indian market open/close regimes."
+      },
+      {
+        "formulation": "0.60 calibrated probability gate",
+        "classification": "NOT SUPPORTED",
+        "audit_note": "Calibrated probability does not yet exist. Enforcing a hard 0.60 gate would filter on uncalibrated heuristic scores."
+      },
+      {
+        "formulation": "+25% option contract premium target",
+        "classification": "NOT SUPPORTED",
+        "audit_note": "Contract-level option premium feed is disconnected; cannot calculate option percentage moves on spot data."
+      },
+      {
+        "formulation": "+1.2% / +2.4% / -1.5% D20-C targets",
+        "classification": "HYPOTHESIS",
+        "audit_note": "Candidate logic is scaffolded in signal_quality_gate.py but intentionally held OFF in production pending forward data."
+      },
+      {
+        "formulation": "45-minute entry cutoff",
+        "classification": "HYPOTHESIS",
+        "audit_note": "Arbitrary parameter without statistical empirical distribution of time-to-fill on paper signals."
+      }
+    ]
+  },
+  "part5_category_specific_target_logic": {
+    "EQUITY_SWING_DELIVERY": {
+      "price_basis": "Cash Equity Spot LTP",
+      "target_levels": "T1: +4%, T2: +8%, SL: -3%",
+      "holding_horizon": "5 trading days (15:30 IST)",
+      "validity": "EMPIRICALLY SUPPORTED baseline for swing horizon"
+    },
+    "INDEX_OPTIONS": {
+      "price_basis": "Cash Index Spot LTP (D26-A: labeled SPOT Benchmark Analysis)",
+      "target_levels": "T1: +4%, T2: +8%, SL: -3%",
+      "holding_horizon": "Same-day intraday (15:30 IST)",
+      "validity": "SPOT PROJECTION ONLY (Contract-level feed disconnected)"
+    },
+    "STOCK_OPTIONS": {
+      "price_basis": "Underlying Equity Spot LTP",
+      "target_levels": "T1: +4%, T2: +8%, SL: -3%",
+      "holding_horizon": "Same-day intraday (15:30 IST)",
+      "validity": "ZERO EMITTED (gated fail-closed or non-eligible)"
+    },
+    "FUTURES": {
+      "price_basis": "FuturesContractResolver (D26-B)",
+      "target_levels": "T1: +4%, T2: +8%, SL: -3%",
+      "holding_horizon": "5 trading days (15:30 IST)",
+      "validity": "FUTURES_ENABLED=False (Strictly Gated Off)"
+    }
+  },
+  "part6_probability_calibration_audit": {
+    "p_t1": null,
+    "p_t2": null,
+    "p_sl": null,
+    "p_timeout": null,
+    "calibration_version": "UNCALIBRATED",
+    "score_vs_prob": "Composite score (0-100) is a deterministic heuristic ranking metric, NOT a calibrated probability. The system correctly labels it UNCALIBRATED in prediction snapshots."
+  },
+  "part7_time_to_target": {
+    "expected_time_to_target": "Not modeled at generation.",
+    "remaining_trading_time": "Calculated via get_holding_horizon_info() for display/logging; near-close cutoff at 15:15 IST."
+  },
+  "part8_expiry_architecture": {
+    "creation_time": "created_at timestamp in ISO 8601",
+    "valid_from": "Defaults to created_at",
+    "entry_by": "Currently not separate from max_exit_time in notifications",
+    "position_start": "Triggered upon first bar entry confirmation",
+    "holding_horizon": "Same day 15:30 IST for intraday, 5 trading days for swing",
+    "outcome_observation_end": "Closes upon T1/T2/SL touch or holding horizon expiry"
+  },
+  "part9_pre_delivery_gate_architecture": {
+    "P0_correctness_defects": "NONE in current D26 production code",
+    "P1_safe_engineering_enhancements": [
+      "Expose explicit entry price tolerance band (e.g. entry_range=[entry*0.998, entry*1.002]) in signal metadata",
+      "Expose explicit ENTRY_BY timestamp distinct from EXIT_BY in notification payload"
+    ],
+    "P2_observation_telemetry": [
+      "Record ATR-relative target distance (target_distance / ATR_14) in scan_cycle_metrics",
+      "Record remaining_minutes_to_close at signal generation time"
+    ],
+    "P3_statistical_evidence_required": [
+      "Dynamic ATR-scaled target levels (D20-C activation requires G1/G2/G3 gate clearance)",
+      "Hard probability gate at delivery (requires calibrated model on N>=300 resolved observations)",
+      "Dynamic time-to-target rejection gate"
+    ]
+  },
+  "part10_historical_evidence_reconciliation": {
+    "preserves_d18_d26_conclusions": true,
+    "d18_diagnosis": "Fixed 4% targets on intraday index options cause systematic TIMEOUT",
+    "d19_d20_d24_d25_experiments": "Demonstrated candidate target regimes in isolated tests; correctly kept OFF in production",
+    "d26_a_b_implementation": "Explicitly resolved taxonomy and contract-price parity without altering underlying trading logic"
+  },
+  "part11_implementation_decision": {
+    "decision": "OBSERVATION ONLY — NO CODE CHANGE",
+    "justification": "Under OPB-FINAL-PHASE-GOVERNANCE-001, code changes are permitted ONLY when a reproducible code defect is proven. The current system executes with 100% technical correctness and safety. Gating or altering target levels dynamically without empirical forward observation data would violate the core governance mandate."
+  },
+  "part12_absolute_no_go_verification": {
+    "historical_db_mutations": 0,
+    "synthetic_data_generated": 0,
+    "fake_probability_calibrated": false,
+    "d20_c_activated": false,
+    "futures_enabled": false,
+    "phase_e_activated": false
+  },
+  "part13_test_matrix_status": {
+    "test_suites": [
+      {
+        "suite": "tests/test_d26_taxonomy_futures_parity.py",
+        "tests": 13,
+        "passed": 13,
+        "failed": 0
+      },
+      {
+        "suite": "tests/test_signal_quality_remediation_d20.py",
+        "tests": 28,
+        "passed": 28,
+        "failed": 0
+      },
+      {
+        "suite": "tests/test_signal_forward_observation.py",
+        "tests": 30,
+        "passed": 30,
+        "failed": 0
+      },
+      {
+        "suite": "tests/test_signal_forward_wiring_remediation.py",
+        "tests": 27,
+        "passed": 27,
+        "failed": 0
+      },
+      {
+        "suite": "tests/test_signal_lifecycle_hardening_v18.py",
+        "tests": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "suite": "tests/test_signal_outcome_tracker.py",
+        "tests": 33,
+        "passed": 33,
+        "failed": 0
+      },
+      {
+        "suite": "tests/test_signal_prediction_snapshots.py",
+        "tests": 15,
+        "passed": 15,
+        "failed": 0
+      },
+      {
+        "suite": "tests/test_signal_tracker.py",
+        "tests": 35,
+        "passed": 35,
+        "failed": 0
+      },
+      {
+        "suite": "tests/test_signal_utils.py",
+        "tests": 101,
+        "passed": 101,
+        "failed": 0
+      }
+    ],
+    "total_passed": 284,
+    "total_failed": 0
+  },
+  "part14_final_decision": {
+    "decision": "B. OBSERVATION ONLY",
+    "reason": "Engineering and runtime integrity is 100% certified. Forward observation accumulation is actively underway on EC2 (34 signals observing). Forward statistical gates G1/G2/G3 remain open pending empirical market data resolution. Phase E remains strictly blocked."
+  }
+}

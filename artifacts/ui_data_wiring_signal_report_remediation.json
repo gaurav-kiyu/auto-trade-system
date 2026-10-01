@@ -1,0 +1,197 @@
+{
+  "governance": "OPB-FINAL-PHASE-GOVERNANCE-001",
+  "audit_type": "UI / DATA-WIRING / SIGNAL-REPORT COMPLETENESS REMEDIATION",
+  "timestamp": "2026-09-30T22:05:00+05:30",
+  "git_branch": "v2.60-phase-d-candle-selection-remediation",
+  "approved_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+  "baseline": "d4271ff",
+  "operational_mode": {
+    "environment": "PRODUCTION application",
+    "trading_mode": "PAPER trading",
+    "execution_routing": "SIGNAL_ONLY / MANUAL",
+    "full_auto_allowed": false,
+    "broker_routing": "DISCONNECTED",
+    "live_lockout": true,
+    "futures_enabled": false,
+    "d20_c_state": "OFF",
+    "phase_e_state": "BLOCKED"
+  },
+  "database_integrity": {
+    "db_file": "db/signals_history.db",
+    "sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "mutations": 0,
+    "byte_for_byte_parity": true
+  },
+  "screen_audit_inventory": [
+    {
+      "screen_id": "1",
+      "screen_name": "Signal Report / Signal Intelligence",
+      "template": "templates/enterprise/admin_signals.html",
+      "api_endpoint": "/api/auth/signals/:id/explain, /api/auth/signals",
+      "service": "SignalTracker.get_signal_explanation, SignalTracker.get_admin_signal_analytics",
+      "source_tables": ["system_signals", "signal_outcome_measurements"],
+      "classification": "B. HISTORICAL DATA WORKING / F. DATA-WIRING ENRICHED",
+      "remediation": "Enriched get_signal_explanation to query signal_outcome_measurements for MFE/MAE excursions, realized R, first touch, lifecycle timing, and score component attribution. Expanded modal layout to 760px with dedicated lifecycle and excursion path cards."
+    },
+    {
+      "screen_id": "2",
+      "screen_name": "System Signal Audit Log & Live Outcomes",
+      "template": "templates/enterprise/admin_signals.html",
+      "api_endpoint": "/api/auth/signals",
+      "service": "SignalTracker.get_admin_signal_analytics",
+      "source_tables": ["system_signals", "signal_outcome_measurements"],
+      "classification": "B. HISTORICAL DATA WORKING",
+      "remediation": "Verified live forward accumulation cohort (42 post-D26 forward signals accurately queried). Added tabular numerals and CSS variable tokens across table cells."
+    },
+    {
+      "screen_id": "3",
+      "screen_name": "Performance Dashboard",
+      "template": "templates/enterprise/performance.html",
+      "api_endpoint": "/api/metrics/executive",
+      "service": "MetricsService",
+      "source_tables": ["executions", "trades"],
+      "classification": "D. INTENTIONALLY EMPTY BECAUSE SIGNAL_ONLY/PAPER",
+      "remediation": "Added prominent operational state banner clarifying SIGNAL_ONLY mode (broker routing DISCONNECTED, executed orders = 0), provided link to Signal Intelligence for generated signals, updated empty state to avoid user confusion, and eliminated hardcoded hex colors."
+    },
+    {
+      "screen_id": "4",
+      "screen_name": "Trade Journal",
+      "template": "templates/enterprise/trade_journal.html",
+      "api_endpoint": "/api/journal/trades",
+      "service": "JournalService",
+      "source_tables": ["journal_trades"],
+      "classification": "D. INTENTIONALLY EMPTY BECAUSE SIGNAL_ONLY/PAPER",
+      "remediation": "Added operational status callout banner and explicit empty state (NO EXECUTION ENTRIES — CURRENT MODE: SIGNAL_ONLY / PAPER). Replaced hardcoded hex colors with CSS design system tokens and enforced tabular numbers."
+    },
+    {
+      "screen_id": "5",
+      "screen_name": "Event Store",
+      "template": "templates/enterprise/event_store.html",
+      "api_endpoint": "/api/system/events, /api/system/events/verify",
+      "service": "core.enterprise_dashboard.routes.system.list_events",
+      "source_tables": ["db/event_store.db: events"],
+      "classification": "F. DATA-WIRING BUG -> RESOLVED",
+      "remediation": "Fixed SQLite OperationalError by replacing legacy hardcoded column queries with dynamic PRAGMA table_info schema inspection, mapped JSON payload fields, fixed 0 count evaluation to '-' bug, triggered automatic chain integrity verification on load, and replaced raw alert() with showToast."
+    },
+    {
+      "screen_id": "6",
+      "screen_name": "Sector Rotation Radar",
+      "template": "templates/enterprise/sector_radar.html",
+      "api_endpoint": "/api/market/sector-rotation",
+      "service": "MarketDataService",
+      "source_tables": ["Hardcoded mock sector dataset"],
+      "classification": "C. SAMPLE/DEMO DATA — CORRECTLY LABELLED",
+      "remediation": "Modernized sample banner using OPB design system variables (var(--market-warning-bg), var(--warning-color)), added prominent SAMPLE / DEMO DATA badge, eliminated hardcoded hex colors in card lists/tables, and enforced tabular numerals."
+    },
+    {
+      "screen_id": "7",
+      "screen_name": "Institutional FII/DII Radar",
+      "template": "templates/enterprise/fii_dii_radar.html",
+      "api_endpoint": "/api/market/fii-dii-positioning",
+      "service": "MarketDataService",
+      "source_tables": ["Static mock participant OI dataset"],
+      "classification": "C. SAMPLE/DEMO DATA — CORRECTLY LABELLED",
+      "remediation": "Replaced legacy brown hex styling with OPB design system tokens, added SAMPLE / DEMO DATA badge, enforced tabular numbers across contract quantities, and linked recommendation colors to CSS variables."
+    },
+    {
+      "screen_id": "8",
+      "screen_name": "Broker Margin Matrix",
+      "template": "templates/enterprise/margin_radar.html",
+      "api_endpoint": "/api/portfolio/margin-radar",
+      "service": "PortfolioService",
+      "source_tables": ["Static mock margin dataset"],
+      "classification": "C. SAMPLE/DEMO DATA — CORRECTLY LABELLED",
+      "remediation": "Replaced hardcoded hex colors on KPIs and tables with CSS variables, added prominent SAMPLE / DEMO DATA badge, and enforced tabular numerals across all balance and margin figures."
+    },
+    {
+      "screen_id": "9",
+      "screen_name": "Multi-Account Trade Copier",
+      "template": "templates/enterprise/trade_copier.html",
+      "api_endpoint": "/api/copier/accounts, /api/copier/execute",
+      "service": "CopierService",
+      "source_tables": ["In-memory mock accounts"],
+      "classification": "C. SAMPLE/DEMO DATA — CORRECTLY LABELLED",
+      "remediation": "Added SAMPLE / DEMO DATA badge, replaced hardcoded hex colors with CSS design system tokens, enforced tabular numbers on risk multipliers and capital caps, and replaced raw alert() with showToast notification."
+    },
+    {
+      "screen_id": "10",
+      "screen_name": "0DTE Expiry Day Harvester",
+      "template": "templates/enterprise/expiry_harvester.html",
+      "api_endpoint": "/api/strategy/0dte-status",
+      "service": "StrategyService",
+      "source_tables": ["Static mock straddle dataset"],
+      "classification": "C. SAMPLE/DEMO DATA — CORRECTLY LABELLED",
+      "remediation": "Modernized sample warning banner to OPB tokens with explicit sample badge, enforced tabular numbers on premiums/strikes, and replaced hardcoded hex colors with CSS variables."
+    },
+    {
+      "screen_id": "11",
+      "screen_name": "Performance Analysis",
+      "template": "templates/enterprise/intelligence.html",
+      "api_endpoint": "/api/intelligence/performance/report",
+      "service": "Static Code / Performance Scanner",
+      "source_tables": ["AST / Static AST rule results"],
+      "classification": "B. HISTORICAL DATA WORKING / G. UI PRESENTATION ENRICHED",
+      "remediation": "Handled uncomputed score as 'N/A — Score Unavailable' when overall_score === 0, explicitly labelled findings as 'STATIC CODE ANALYSIS FINDINGS (AST / Static Code Scan — Zero Runtime Impact)', replaced hardcoded hex colors with CSS variables, and enforced tabular numbers."
+    },
+    {
+      "screen_id": "12",
+      "screen_name": "Super Admin / Live Control Center",
+      "template": "templates/enterprise/admin_capabilities.html",
+      "api_endpoint": "/api/v1/admin/capabilities",
+      "service": "core.enterprise_dashboard.routes.admin.admin_capabilities",
+      "source_tables": ["system_signals", "signal_outcome_measurements", "system_state"],
+      "classification": "F. DATA-WIRING BUG -> RESOLVED",
+      "remediation": "Mounted both signals_today and signals_summary payloads in admin.py with complete field aliases, resolved key mismatch where total signals today read 0, and updated template to safely parse win rate and use CSS variables."
+    },
+    {
+      "screen_id": "13",
+      "screen_name": "Notifications",
+      "template": "templates/enterprise/admin_config.html",
+      "api_endpoint": "/api/config",
+      "service": "ConfigService",
+      "source_tables": ["config.json"],
+      "classification": "A. LIVE DATA WORKING",
+      "remediation": "Verified Telegram and Email configuration keys and cooldown filters; documented notification gates vs scanner score gates."
+    },
+    {
+      "screen_id": "14",
+      "screen_name": "Category-Aware Strong Conviction Score Gates",
+      "template": "templates/enterprise/admin_config.html",
+      "api_endpoint": "/api/config",
+      "service": "ConfigService",
+      "source_tables": ["config.json: CATEGORY_SCORE_THRESHOLDS"],
+      "classification": "A. LIVE DATA WORKING / ARCHITECTURALLY CLARIFIED",
+      "remediation": "Added 4-layer threshold governance architecture banner (Execution Gates vs Scanner Category Gates vs Notification Gates vs UI Display Labels), replaced hardcoded hex codes with CSS variables."
+    },
+    {
+      "screen_id": "15",
+      "screen_name": "Reports / Report Center",
+      "template": "templates/enterprise/reports.html",
+      "api_endpoint": "/api/reports/catalog",
+      "service": "ReportService",
+      "source_tables": ["Report catalog registry"],
+      "classification": "A. LIVE DATA WORKING",
+      "remediation": "Standardized inline styles to use OPB design system variables (var(--border-color), var(--bg-secondary), var(--text-primary), var(--bg-card-hover), var(--accent-color))."
+    },
+    {
+      "screen_id": "16",
+      "screen_name": "Theme Selector & Market Telemetry Pulse",
+      "template": "templates/enterprise/_nav.html",
+      "api_endpoint": "/api/system/market-telemetry",
+      "service": "core.enterprise_dashboard.routes.system.get_market_telemetry",
+      "source_tables": ["Market schedule logic"],
+      "classification": "A. LIVE DATA WORKING / UI REFINED",
+      "remediation": "Added .opb-latency-pulse.pulse-muted CSS definition (clears box-shadow, sets muted color), ensured pulse stops glowing and turns muted when market is closed, verified 5 supported themes."
+    }
+  ],
+  "verification_results": {
+    "pytest_ui_theme_asset": "37 passed in 8.55s",
+    "pytest_dynamic_ui_contract": "5 passed in 1.16s",
+    "pytest_routes": "23 passed in 20.82s",
+    "total_tests_passed": 65,
+    "total_tests_failed": 0,
+    "authoritative_db_hash_before": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "authoritative_db_hash_after": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "db_verified_identical": true
+  }
+}

@@ -224,14 +224,80 @@ class TestApiPerformance:
 class TestApiOptionsChain:
     """Test the /api/chain/{index_name} endpoint."""
 
-    def test_chain_no_db(self, client: TestClient):
+    def test_chain_no_db(self, tmp_path: Path, state_file: str):
         """When oi_snapshots.db doesn't exist, returns empty with helpful note."""
-        resp = client.get("/api/chain/NIFTY", headers={"accept": "application/json"})
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["strikes"] == []
-        assert "note" in data
-        assert "oi_snapshots.db not found" in data["note"]
+        from core.enterprise_dashboard import EnterpriseDashboard
+
+        orig_cwd = Path.cwd()
+        import os
+        os.chdir(tmp_path)
+        try:
+            db = EnterpriseDashboard(config={
+                "web_dashboard_host": "127.0.0.1",
+                "trader_state_path": state_file,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            })
+            c = TestClient(db.app)
+            resp = c.get("/api/chain/NIFTY", headers={"accept": "application/json"})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["strikes"] == []
+            assert "note" in data
+            assert "oi_snapshots.db not found" in data["note"]
+        finally:
+            os.chdir(orig_cwd)
+
+    def test_chain_with_oi_snapshots_table(self, tmp_path: Path, state_file: str):
+        """When oi_snapshots.db uses canonical oi_snapshots table format with aggregate rows."""
+        from core.enterprise_dashboard import EnterpriseDashboard
+
+        (tmp_path / "db").mkdir(exist_ok=True)
+        snap_path = tmp_path / "db" / "oi_snapshots.db"
+        conn = sqlite3.connect(str(snap_path))
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS oi_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts REAL NOT NULL,
+                index_name TEXT NOT NULL,
+                strike INTEGER,
+                expiry_date TEXT,
+                call_oi INTEGER,
+                put_oi INTEGER,
+                call_volume INTEGER,
+                put_volume INTEGER,
+                pcr_ratio REAL,
+                total_oi INTEGER,
+                snapshot_source TEXT
+            )
+        """)
+        conn.execute("""
+            INSERT INTO oi_snapshots (ts, index_name, strike, expiry_date, call_oi, put_oi, call_volume, put_volume, pcr_ratio, total_oi, snapshot_source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (1789120183.0, "NIFTY", None, None, 3000000, 3300000, 60000000, 45000000, 1.10, 6300000, "nse_recorder"))
+        conn.commit()
+        conn.close()
+
+        orig_cwd = Path.cwd()
+        import os
+        os.chdir(tmp_path)
+        try:
+            db = EnterpriseDashboard(config={
+                "web_dashboard_host": "127.0.0.1",
+                "trader_state_path": state_file,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            })
+            c = TestClient(db.app)
+            resp = c.get("/api/chain/NIFTY", headers={"accept": "application/json"})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["symbol"] == "NIFTY"
+            assert data["pcr"] == 1.1
+            assert data["total_oi"] == 6300000
+            assert data["call_oi"] == 3000000
+            assert data["put_oi"] == 3300000
+            assert "Aggregated index OI snapshot from NSE recorder" in data["note"]
+        finally:
+            os.chdir(orig_cwd)
 
     def test_chain_with_empty_db(self, tmp_path: Path, state_file: str):
         """When oi_snapshots.db exists but has no data, returns empty strikes."""

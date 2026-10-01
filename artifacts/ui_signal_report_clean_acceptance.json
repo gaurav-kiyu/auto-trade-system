@@ -1,0 +1,173 @@
+{
+  "git_state": {},
+  "db_safety": {
+    "initial_sha": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "final_sha": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "delta_bytes": 0,
+    "intact": true
+  },
+  "signals_tested": {},
+  "theme_token_reconciliation": {
+    "dark-cyber": {
+      "theme_attr": "dark-cyber",
+      "body_bg": "rgb(8, 12, 20)",
+      "body_color": "rgb(248, 250, 252)",
+      "card_bg": "rgb(19, 30, 51)",
+      "card_border": "rgb(30, 41, 59)",
+      "btn_bg": "rgba(239, 68, 68, 0.15)",
+      "th_bg": "rgb(19, 30, 51)",
+      "th_color": "rgb(248, 250, 252)",
+      "vars": {
+        "bg_primary": "#080c14",
+        "bg_card": "#131e33",
+        "bg_secondary": "#0f172a",
+        "text_primary": "#f8fafc",
+        "text_secondary": "#cbd5e1",
+        "border_color": "#1e293b",
+        "success_color": "#22c55e",
+        "warning_color": "#f59e0b",
+        "danger_color": "#f87171",
+        "accent_color": "#38bdf8",
+        "btn_primary_text": "#080c14"
+      }
+    },
+    "dracula-purple": {
+      "theme_attr": "dracula-purple",
+      "body_bg": "rgb(249, 246, 251)",
+      "body_color": "rgb(37, 24, 44)",
+      "card_bg": "rgb(255, 255, 255)",
+      "card_border": "rgb(216, 203, 226)",
+      "btn_bg": "rgba(239, 68, 68, 0.15)",
+      "th_bg": "rgb(255, 255, 255)",
+      "th_color": "rgb(36, 23, 43)",
+      "vars": {
+        "bg_primary": "#faf7fc",
+        "bg_card": "#ffffff",
+        "bg_secondary": "#f2ecf8",
+        "text_primary": "#24172b",
+        "text_secondary": "#4c3a57",
+        "border_color": "#d8cbe2",
+        "success_color": "#15803d",
+        "warning_color": "#92400e",
+        "danger_color": "#b91c1c",
+        "accent_color": "#7c3aed",
+        "btn_primary_text": "#ffffff"
+      }
+    },
+    "ivory-gold": {
+      "theme_attr": "ivory-gold",
+      "body_bg": "rgb(245, 240, 230)",
+      "body_color": "rgb(28, 25, 23)",
+      "card_bg": "rgb(255, 255, 255)",
+      "card_border": "rgb(214, 203, 186)",
+      "btn_bg": "rgba(239, 68, 68, 0.15)",
+      "th_bg": "rgb(255, 255, 255)",
+      "th_color": "rgb(28, 25, 23)",
+      "vars": {
+        "bg_primary": "#f5f0e6",
+        "bg_card": "#ffffff",
+        "bg_secondary": "#ede4d4",
+        "text_primary": "#1c1917",
+        "text_secondary": "#292524",
+        "border_color": "#d6cbba",
+        "success_color": "#15803d",
+        "warning_color": "#92400e",
+        "danger_color": "#b91c1c",
+        "accent_color": "#92400e",
+        "btn_primary_text": "#ffffff"
+      }
+    },
+    "midnight-slate": {
+      "theme_attr": "midnight-slate",
+      "body_bg": "rgb(246, 248, 250)",
+      "body_color": "rgb(15, 23, 41)",
+      "card_bg": "rgb(255, 255, 255)",
+      "card_border": "rgb(203, 213, 225)",
+      "btn_bg": "rgba(239, 68, 68, 0.15)",
+      "th_bg": "rgb(255, 255, 255)",
+      "th_color": "rgb(15, 23, 42)",
+      "vars": {
+        "bg_primary": "#f6f8fb",
+        "bg_card": "#ffffff",
+        "bg_secondary": "#eaf0f6",
+        "text_primary": "#0f172a",
+        "text_secondary": "#334155",
+        "border_color": "#cbd5e1",
+        "success_color": "#15803d",
+        "warning_color": "#92400e",
+        "danger_color": "#b91c1c",
+        "accent_color": "#1d4ed8",
+        "btn_primary_text": "#ffffff"
+      }
+    },
+    "emerald-matrix": {
+      "theme_attr": "emerald-matrix",
+      "body_bg": "rgb(13, 24, 18)",
+      "body_color": "rgb(226, 243, 236)",
+      "card_bg": "rgb(10, 44, 29)",
+      "card_border": "rgb(21, 84, 59)",
+      "btn_bg": "rgba(239, 68, 68, 0.15)",
+      "th_bg": "rgb(10, 44, 29)",
+      "th_color": "rgb(236, 253, 245)",
+      "vars": {
+        "bg_primary": "#020d07",
+        "bg_card": "#0a2c1d",
+        "bg_secondary": "#061d13",
+        "text_primary": "#ecfdf5",
+        "text_secondary": "#a7f3d0",
+        "border_color": "#14533a",
+        "success_color": "#34d399",
+        "warning_color": "#fbbf24",
+        "danger_color": "#f87171",
+        "accent_color": "#10b981",
+        "btn_primary_text": "#020d07"
+      }
+    }
+  },
+  "def_01_verification": {
+    "active_signal": {
+      "signal_id": "SIG-20260928153049-GODREJPROP26SEPFUT-619194",
+      "signal_id_visible": true,
+      "holding_horizon_visible": true,
+      "target_2_hit_visible": true,
+      "stop_loss_hit_visible": true,
+      "raw_score_visible": true,
+      "final_score_visible": true,
+      "start_from_visible": true,
+      "entry_by_visible": true,
+      "entry_range_visible": true,
+      "exit_by_visible": true,
+      "entry_price_visible": true,
+      "t1_visible": true,
+      "t2_visible": true,
+      "sl_visible": true,
+      "mfe_visible": true,
+      "mae_visible": true,
+      "realized_r_visible": true
+    },
+    "t1_signal": {
+      "signal_id": "SIG-20260905-TCS-100",
+      "signal_id_visible": true,
+      "first_touch_visible": true,
+      "holding_horizon_visible": true,
+      "raw_score_visible": true,
+      "final_score_visible": true
+    },
+    "sl_signal": {
+      "signal_id": "SIG-20260903-BANKNIFTY24AUG52000CE-103",
+      "signal_id_visible": true,
+      "first_touch_visible": true,
+      "holding_horizon_visible": true,
+      "raw_score_visible": true,
+      "final_score_visible": true
+    }
+  },
+  "timestamps": {},
+  "console_errors": [
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED"
+  ],
+  "failed_requests": []
+}

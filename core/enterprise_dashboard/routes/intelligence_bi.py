@@ -87,7 +87,7 @@ def register_bi_routes(app, dashboard, admin_only, operator_or_admin) -> None:  
             freq = bi.get_deployment_frequency()
             return {
                 "status": "ok",
-                "deployments": [d.to_dict() for d in deployments[-20:]],
+                "deployments": [d.to_dict() for d in deployments[:20]],
                 "frequency_weekly": round(freq, 2),
                 "total": len(deployments),
                 "timestamp": time.time(),
@@ -274,7 +274,13 @@ def register_bi_routes(app, dashboard, admin_only, operator_or_admin) -> None:  
                 "signals": [{"score": 85, "direction": "CALL", "instrument": "NIFTY", "confidence": 0.85}],
             }
             report = engine.generate(analytics)
-            return {"status": "ok", "report": report.to_dict(), "total_recommendations": report.total_recommendations, "timestamp": time.time()}
+            return {
+                "status": "ok",
+                "report": report.to_dict(),
+                "total_recommendations": report.total_recommendations,
+                "timestamp": time.time(),
+                "is_demo_data": True,
+            }
         except (ImportError, ValueError, OSError, RuntimeError, TypeError) as exc:
             _log.warning("[INTEL] Recommendations demo error: %s", exc)
             return {"status": "error", "detail": str(exc)}

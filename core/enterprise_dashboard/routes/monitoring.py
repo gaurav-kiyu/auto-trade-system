@@ -357,7 +357,7 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
                 return {
                     "status": "ok",
                     "trades_count": 0,
-                    "note": "No trades found in the specified period",
+                    "note": "Benchmark comparison unavailable — no executed-trade dataset",
                     "overall": {},
                     "by_regime": {},
                     "by_score_bin": {},
@@ -397,39 +397,98 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
 
     @app.get("/api/market/sector-radar")
     async def api_sector_radar(user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
-        """Static sample 12 NSE Sector Rotation, Relative Strength (RS) & Quadrants (not derived from real market data)."""
+        """NSE Sector Rotation, Relative Strength (RS) & Quadrants."""
         from core.market.sector_rotation_radar import SectorRotationRadar
+        matrix = SectorRotationRadar.get_live_sector_matrix()
+        has_real_data = any(not r.get("is_demo_data") for r in matrix) if matrix else False
+        if has_real_data:
+            return {
+                "status": "available",
+                "sectors": matrix,
+                "timestamp": time.time(),
+            }
         return {
-            "sectors": SectorRotationRadar.get_live_sector_matrix(),
+            "status": "unavailable",
+            "message": "Live production feed not connected",
+            "sectors": [],
             "timestamp": time.time(),
         }
 
     @app.get("/api/options/gex-analysis")
     async def api_options_gex(symbol: str = "NIFTY", spot: float = 24500.0):  # type: ignore[no-untyped-def]
-        """Institutional Gamma Exposure (GEX), IV Percentile & Volatility Flip."""
+        """Institutional Gamma Exposure (GEX), IV Percentile & Volatility Flip from real options data."""
+        from pathlib import Path as _P
+        import sqlite3
         from core.options.gex_iv_engine import GammaExposureEngine
-        # Generate sample strike data around spot for institutional visualization
-        strikes_data = []
-        base_strike = round(spot / 50.0) * 50
-        for offset in range(-10, 11):
-            stk = base_strike + (offset * 50)
-            call_oi = max(50000 - abs(offset) * 3500, 5000)
-            put_oi = max(48000 - abs(offset) * 3200, 5000)
-            if offset > 2:
-                call_oi += 18000  # Call wall above
-            if offset < -2:
-                put_oi += 22000  # Put wall below
-            strikes_data.append({
-                "strike": stk,
-                "call_oi": call_oi,
-                "put_oi": put_oi,
-                "call_iv": 14.5 + abs(offset) * 0.3,
-                "put_iv": 15.2 + abs(offset) * 0.35,
-                "dte": 4.0,
-            })
-        result = GammaExposureEngine.analyze_options_chain(spot_price=spot, options_data=strikes_data)
         from dataclasses import asdict
-        return asdict(result)
+
+        sym = symbol.upper()
+        snap_path = _P(dashboard._cfg.get("oi_snapshot_db_path", dashboard._cfg.get("OI_SNAPSHOT_DB_PATH", "db/oi_snapshots.db")))
+        strikes_data = []
+
+        if snap_path.is_file():
+            try:
+                conn = sqlite3.connect(str(snap_path))
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+                cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('snapshots', 'oi_snapshots')")
+                tables = {r[0] for r in cur.fetchall()}
+                if "snapshots" in tables:
+                    cur.execute("SELECT * FROM snapshots WHERE index_name = ? ORDER BY timestamp DESC, strike ASC", (sym,))
+                    rows = cur.fetchall()
+                    if rows:
+                        latest_ts = rows[0]["timestamp"]
+                        latest_rows = [r for r in rows if r["timestamp"] == latest_ts]
+                        spot = float(latest_rows[0]["spot_price"] or spot)
+                        for r in latest_rows:
+                            strikes_data.append({
+                                "strike": float(r["strike"]),
+                                "call_oi": int(r["call_oi"] or 0),
+                                "put_oi": int(r["put_oi"] or 0),
+                                "call_iv": float(r["call_iv"] or 15.0),
+                                "put_iv": float(r["put_iv"] or 15.0),
+                                "dte": 4.0,
+                            })
+                elif "oi_snapshots" in tables:
+                    cur.execute("SELECT * FROM oi_snapshots WHERE index_name = ? AND strike IS NOT NULL ORDER BY ts DESC, strike ASC", (sym,))
+                    rows = cur.fetchall()
+                    if rows:
+                        latest_ts = rows[0]["ts"]
+                        latest_rows = [r for r in rows if r["ts"] == latest_ts]
+                        for r in latest_rows:
+                            strikes_data.append({
+                                "strike": float(r["strike"]),
+                                "call_oi": int(r["call_oi"] or 0),
+                                "put_oi": int(r["put_oi"] or 0),
+                                "call_iv": 15.0,
+                                "put_iv": 15.0,
+                                "dte": 4.0,
+                            })
+                conn.close()
+            except sqlite3.Error:
+                pass
+
+        if strikes_data:
+            result = GammaExposureEngine.analyze_options_chain(spot_price=spot, options_data=strikes_data)
+            res = asdict(result)
+            res["is_demo_data"] = False
+            return res
+
+        return {
+            "status": "unavailable",
+            "message": f"Live Options Chain strike data currently unavailable / waiting for market feed for {sym}",
+            "spot_price": spot,
+            "total_net_gex_cr": 0.0,
+            "zero_gamma_flip": None,
+            "call_wall_strike": None,
+            "put_wall_strike": None,
+            "market_regime": "NEUTRAL",
+            "strikes_gex": [],
+            "iv_rank_pct": 0.0,
+            "iv_percentile_pct": 0.0,
+            "iv_status": "UNAVAILABLE",
+            "is_demo_data": False,
+        }
 
     @app.get("/api/v1/journal/ai-debrief")
     async def api_journal_ai_debrief(date: str | None = None):  # type: ignore[no-untyped-def]
@@ -484,9 +543,12 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
         """Get linked client accounts and copied orders history."""
         from core.execution.trade_copier import MasterTradeCopier
         copier = MasterTradeCopier.get_instance()
+        accounts = [a for a in copier.get_linked_accounts() if not a.get("is_demo_data")]
         return {
-            "accounts": copier.get_linked_accounts(),
-            "history": copier.get_execution_history(50),
+            "status": "available" if accounts else "unavailable",
+            "message": "Active linked accounts" if accounts else "Live production feed not connected",
+            "accounts": accounts,
+            "history": copier.get_execution_history(50) if accounts else [],
             "timestamp": time.time(),
         }
 
@@ -513,9 +575,21 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
 
     @app.get("/api/portfolio/margin-radar")
     async def api_portfolio_margin_radar(user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
-        """Sample Multi-Broker Margin & Collateral Radar with Peak Margin Warning (no real broker margin API is connected)."""
+        """Broker Margin & Collateral Radar."""
         from core.portfolio.margin_radar import MultiBrokerMarginRadar
-        return MultiBrokerMarginRadar.get_consolidated_margins()
+        margins = MultiBrokerMarginRadar.get_consolidated_margins()
+        is_demo = bool(margins.get("is_demo_data", True))
+        if not is_demo and margins.get("brokers"):
+            return margins
+        return {
+            "status": "unavailable",
+            "message": "Live production feed not connected",
+            "brokers": [],
+            "total_collateral": 0.0,
+            "total_used": 0.0,
+            "total_available": 0.0,
+            "peak_margin_alert": False,
+        }
 
     @app.get("/api/backtest/run-sandbox")
     async def api_backtest_run_sandbox(
@@ -550,15 +624,37 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
 
     @app.get("/api/market/fii-dii-positioning")
     async def api_fii_dii_positioning(user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
-        """Static sample FII / DII & Participant-wise Open Interest Positioning & Trap Alerts (no real institutional-flow data feed is connected)."""
+        """NSE Participant-wise Open Interest Positioning & Trap Alerts."""
         from core.market.fii_dii_flow_radar import FiiDiiFlowRadar
-        return FiiDiiFlowRadar.get_participant_positioning()
+        data = FiiDiiFlowRadar.get_participant_positioning()
+        is_demo = bool(data.get("is_demo_data", True))
+        if not is_demo and data.get("participants"):
+            return data
+        return {
+            "status": "unavailable",
+            "message": "Live production feed not connected",
+            "participants": [],
+            "smart_money_traps": [],
+            "institutional_sentiment": "UNAVAILABLE",
+            "timestamp": time.time(),
+        }
 
     @app.get("/api/strategy/0dte-status")
     async def api_0dte_status(symbol: str = "NIFTY", spot: float = 24520.0, user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
-        """Static sample 0DTE Expiry Day Straddle / Delta-Neutral Harvester status (no real active position is tracked)."""
+        """0DTE Expiry Day Straddle / Delta-Neutral Harvester status."""
         from core.strategy.expiry_0dte_harvester import Expiry0DTEHarvester
-        return Expiry0DTEHarvester.get_live_harvest_status(index_symbol=symbol, spot=spot)
+        status = Expiry0DTEHarvester.get_live_harvest_status(index_symbol=symbol, spot=spot)
+        is_demo = bool(status.get("is_demo_data", True))
+        if not is_demo and status.get("legs"):
+            return status
+        return {
+            "status": "unavailable",
+            "message": "Live production feed not connected",
+            "active": False,
+            "legs": [],
+            "total_pnl": 0.0,
+            "delta_neutrality": "UNAVAILABLE",
+        }
 
     @app.post("/api/execution/iceberg-slice")
     async def api_iceberg_slice(request: Request):  # type: ignore[no-untyped-def]
@@ -638,7 +734,7 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
         from core.billing.upi_billing_engine import UpiBillingEngine
         body = await request.json()
         pid = body.get("plan_id", "plan_options_vip")
-        ref = (body.get("ref") or "").strip()
+        ref = (body.get("ref") or body.get("transaction_ref") or "").strip()
         if not ref or ref == "UPI-DIRECT":
             return JSONResponse(
                 status_code=400,

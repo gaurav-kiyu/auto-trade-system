@@ -1,0 +1,140 @@
+{
+  "phase": "D.16",
+  "document_id": "OPB-V260-PHASE-D16-FORWARD-ACCUMULATION-RESOLUTION-20260928",
+  "timestamp": "2026-09-28T20:20:00+05:30",
+  "market_date": "2026-09-28",
+  "day_of_week": "Monday",
+  "session_status": "SESSION_COMPLETED",
+  "is_trading_day": true,
+  "verdict": "ACCUMULATION_ACTIVE / FURTHER OBSERVATION REQUIRED",
+  "operational_state": "ACCUMULATION_ACTIVE",
+  "git": {
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "head_commit": "96b525aaa42151c735f250c712ac3535d9a2b58c",
+    "base_commit": "abcce53bb16f1d0aa5918fd2c72dd731f8f2e332",
+    "frozen_production_baseline": "d4271ffb75376e404e9d6e28fae2a5f8c0a8e2a4",
+    "remote_pushed": false,
+    "merged": false
+  },
+  "scanner_cycle": {
+    "cycle_id": "SCAN-20260928T201624-CYCLE24",
+    "cumulative_cycles_in_db": 24,
+    "symbols_scanned": 2616,
+    "evaluated": 2616,
+    "detected_signals": 2,
+    "delivered_candidates": 0,
+    "errors": 0
+  },
+  "cohort_census": {
+    "total_registered": 101,
+    "observing": 69,
+    "resolved": 32,
+    "terminal_breakdown": {
+      "TIMEOUT": 32,
+      "UNRESOLVED": 69,
+      "TARGET_FIRST": 0,
+      "SL_FIRST": 0,
+      "AMBIGUOUS": 0,
+      "NO_DATA": 0,
+      "INVALIDATED": 0
+    },
+    "score_buckets": {
+      "70-74": { "registered": 3, "observing": 3, "resolved": 0 },
+      "75-79": { "registered": 4, "observing": 4, "resolved": 0 },
+      "80-84": { "registered": 14, "observing": 9, "resolved": 5 },
+      "85+": { "registered": 80, "observing": 53, "resolved": 27 }
+    },
+    "score_anomalies_sub_70": 0
+  },
+  "coverage_metrics": {
+    "resolved_count": 32,
+    "mfe_coverage_count": 32,
+    "mfe_coverage_pct": 100.0,
+    "mae_coverage_count": 32,
+    "mae_coverage_pct": 100.0,
+    "realized_r_coverage_count": 32,
+    "realized_r_coverage_pct": 100.0
+  },
+  "cryptographic_integrity": {
+    "db_sha256_pre": "b14c26bcf2116cb500a6d7d2244c5f7c35b0df063e763d950ac2acdeb3794c7d",
+    "db_sha256_post": "bbc3ec3432c383140865e66c2771d5e418bbd42dc994acdb0dfa69523889adaf",
+    "cohort_45_hash_pre": "bb9bfa89bf4b29d9206ac7ead384c62f51fe8d3ebe22d115d9b1ac290f0ab9a8",
+    "cohort_45_hash_post": "2dbd02e1c08afcb0ff81c07b4a0414e509a39b93a94f85f6a5b81db3af6e6bee",
+    "cohort_71_hash_pre": "a1c02d746ec583c7dcfa25a36e6b2678530edff5d133cd1b66cdad8323358fd9",
+    "cohort_71_hash_post": "9fa3d966cf319dfe05298fcacb95cbfc6145003aab75ae35d5cef42f83426f00",
+    "cohort_99_hash_pre": "296635bab62c9c3a22bb5b6e528842e9da22e685531b49bc6fe71ab447e6bcd5",
+    "cohort_99_hash_post": "b188d2002d8b0e7c0e770988eb00668c62e7c441cb185c73989c84b5db943f54",
+    "cohort_101_hash_pre": "a1330442919d991466b6a78ae5a87d77cdddf9d4c60796d85793ff16adc89ddb",
+    "cohort_101_hash_post": "238c0b0db39940b0f6ce439bfbbdf5ebbb23c1991a2eea1f19050c30c982a3a0"
+  },
+  "referential_parity": {
+    "system_signals_count": 498,
+    "prediction_snapshots_count": 101,
+    "outcome_measurements_count": 101,
+    "forward_observations_count": 101,
+    "scan_cycle_metrics_count": 24,
+    "missing_snapshots": 0,
+    "missing_measurements": 0,
+    "missing_signals": 0,
+    "orphan_observations": 0,
+    "duplicate_observations": 0
+  },
+  "contamination_audit": {
+    "pre_cutoff_contamination": 0,
+    "synthetic_mock_contamination": 0,
+    "non_forward_live_scan_source": 0,
+    "probability_leakage": 0
+  },
+  "data_quality": {
+    "dq_error_rate_pct": 0.0,
+    "stale_rate_pct": 0.0,
+    "rate_limit_429_events": 0,
+    "scanner_exceptions": 0,
+    "timeframe_masquerading_events": 0
+  },
+  "readiness_gates": {
+    "G1": {
+      "status": "NOT SATISFIED",
+      "required_per_bucket": 100,
+      "actual_per_bucket": { "70-74": 0, "75-79": 0, "80-84": 5, "85+": 27 }
+    },
+    "G2": {
+      "status": "NOT SATISFIED",
+      "required_overall": 300,
+      "actual_overall": 32
+    },
+    "G3": {
+      "status": "NOT SATISFIED",
+      "required_calendar_months": 2,
+      "actual_calendar_months": 1,
+      "months_breakdown": { "2026-09": 32 }
+    },
+    "G4": {
+      "status": "PASS",
+      "dq_error_rate_pct": 0.0,
+      "stale_rate_pct": 0.0,
+      "zero_fatal_errors": true,
+      "zero_live_executions": true
+    }
+  },
+  "safety_invariants": {
+    "execution_mode": "SIGNAL_ONLY",
+    "signal_only": true,
+    "live_trading_lockout": true,
+    "full_auto_allowed": false,
+    "live_orders_count": 0,
+    "broker_execution_calls": 0,
+    "ec2_contacts": 0,
+    "remote_pushes": 0,
+    "model_training_status": "BLOCKED / NONE",
+    "calibration_status": "UNCALIBRATED"
+  },
+  "regression_tests": {
+    "remediation_tests_passed": 6,
+    "full_suite_tests_passed": 214,
+    "tests_failed": 0,
+    "exit_code": 0
+  },
+  "phase_e_decision": "STRICTLY BLOCKED / DO NOT MOVE TO PHASE E",
+  "exact_next_operation": "Continue natural forward observation during Tuesday 2026-09-29 09:15 IST active market session to accumulate additional natural resolutions toward G1/G2/G3."
+}

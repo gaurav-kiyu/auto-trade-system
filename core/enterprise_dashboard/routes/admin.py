@@ -85,7 +85,7 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
 
         return {
             "app": {
-                "version": "v2.59.4",
+                "version": "v2.60.0",
                 "status": "HEALTHY",
                 "mode": "SIGNAL_ONLY / PAPER",
                 "timestamp": now.strftime("%Y-%m-%d %H:%M:%S IST"),

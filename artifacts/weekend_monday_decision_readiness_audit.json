@@ -1,0 +1,357 @@
+{
+  "audit_metadata": {
+    "directive": "OPB — WEEKEND/TRAVEL → MONDAY DECISION-READINESS AUDIT",
+    "governance": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "timestamp": "2026-09-30T10:40:00+05:30",
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "baseline": "d4271ff",
+    "local_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "github_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "ec2_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "triple_parity": true,
+    "working_tree_clean": true,
+    "authoritative_db_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "operational_state": {
+      "execution_mode": "SIGNAL_ONLY",
+      "paper_trading": true,
+      "full_auto_allowed": false,
+      "broker_routing": "DISCONNECTED",
+      "live_trading_lockout": true,
+      "orders": 0,
+      "futures_enabled": false,
+      "d20_c_production": "OFF",
+      "phase_e": "BLOCKED"
+    }
+  },
+  "part1_baseline_safety": {
+    "local_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "github_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "ec2_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "working_tree_status": "CLEAN",
+    "db_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "db_integrity_check": "ok",
+    "db_foreign_key_check": "ok (0 violations)",
+    "system_mode": "SIGNAL_ONLY",
+    "broker_connectivity": "DISCONNECTED",
+    "futures_enabled": false,
+    "d20_c_state": "OFF",
+    "phase_e_state": "BLOCKED",
+    "parity_status": "EXACT_PARITY_VERIFIED"
+  },
+  "part2_true_forward_cohort": {
+    "cohort_boundary": "Post-D26 Deployment (2026-09-30 09:00 IST)",
+    "host": "EC2 Production (ap-south-1)",
+    "forward_cohort_summary": {
+      "total": 42,
+      "resolved": 0,
+      "active": 42,
+      "t1": 0,
+      "t2": 0,
+      "sl": 0,
+      "timeout": 0,
+      "ambiguous": 0,
+      "dq": 0,
+      "unresolved": 42
+    },
+    "cohort_timeline": {
+      "earliest_signal": "2026-09-30T09:02:43.381505 (CRUDEOIL, COMMODITIES)",
+      "latest_signal": "2026-09-30T10:27:16.006972 (REDINGTON, EQUITY_SWING_DELIVERY)",
+      "generated_per_trading_date": {
+        "2026-09-30": 42
+      },
+      "resolved_per_trading_date": {
+        "2026-09-30": 0
+      }
+    },
+    "category_distribution": {
+      "EQUITY_SWING_DELIVERY": 24,
+      "MID_SMALL_CAP": 8,
+      "LARGE_CAP_EQUITY": 5,
+      "INDEX_OPTIONS": 3,
+      "COMMODITIES": 2
+    },
+    "score_bucket_distribution": {
+      "75-79": 2,
+      "80-84": 7,
+      "85+": 33
+    },
+    "historical_baseline_cohort_20260928": {
+      "total": 101,
+      "resolved": 32,
+      "active": 69,
+      "t1": 0,
+      "t2": 0,
+      "sl": 0,
+      "timeout": 32,
+      "ambiguous": 0,
+      "categories_resolved": {
+        "STOCK_OPTIONS": 30,
+        "INDEX_OPTIONS": 1,
+        "FUTURES": 1
+      },
+      "resolved_outcome_note": "All 32 resolved historical signals timed out at 15:30 IST session close due to intraday fixed +4% target distance"
+    }
+  },
+  "part3_monday_decision_readiness_metrics": {
+    "empirical_observed_rates": {
+      "t1_before_sl_and_expiry": "0/42 (0.0% - all active/unresolved)",
+      "t2_before_sl_and_expiry": "0/42 (0.0%)",
+      "sl_before_t1": "0/42 (0.0%)",
+      "expiry_without_t1": "0/42 (0.0% - sessions active)",
+      "ambiguous": "0/42 (0.0%)",
+      "historical_20260928_conversion": {
+        "t1_before_sl_and_expiry_rate": "0/32 (0.0%)",
+        "t2_before_sl_and_expiry_rate": "0/32 (0.0%)",
+        "sl_before_t1_rate": "0/32 (0.0%)",
+        "expiry_rate": "32/32 (100.0% TIMEOUT)"
+      }
+    },
+    "excursion_telemetry": {
+      "mean_mfe_r": 0.0005,
+      "mean_mae_r": 0.0007,
+      "note": "Early intraday stage; signals have been observing for 1-90 minutes"
+    },
+    "labeling_declaration": "EMPIRICAL OBSERVED RATES — NOT CALIBRATED PROBABILITIES"
+  },
+  "part4_target_feasibility": {
+    "categories": {
+      "EQUITY_SWING_DELIVERY": {
+        "target_distance_pct": 4.0,
+        "sl_distance_pct": 3.0,
+        "horizon": "5 trading days",
+        "feasibility_assessment": "PLAUSIBLE BUT INSUFFICIENT DATA (4% move over 5 sessions is ~1.5x-2.0x daily ATR)"
+      },
+      "INDEX_OPTIONS": {
+        "target_distance_pct": 4.0,
+        "sl_distance_pct": 3.0,
+        "horizon": "Same-day intraday (15:30 IST)",
+        "feasibility_assessment": "STRUCTURALLY INCOMPATIBLE (+4% spot move requires +1,008 pts on NIFTY; daily ATR is ~180 pts -> 5.6x ATR)"
+      },
+      "STOCK_OPTIONS": {
+        "target_distance_pct": 4.0,
+        "sl_distance_pct": 3.0,
+        "horizon": "Same-day intraday",
+        "feasibility_assessment": "BLOCKED / ZERO EMITTED (Contract-level feed disconnected)"
+      },
+      "FUTURES": {
+        "target_distance_pct": 4.0,
+        "sl_distance_pct": 3.0,
+        "horizon": "5 trading days",
+        "feasibility_assessment": "BLOCKED / GATED OFF (FUTURES_ENABLED=False)"
+      }
+    }
+  },
+  "part5_entry_validity_and_drift": {
+    "entry_drift_observed": "LOW",
+    "max_entry_latency_seconds": 1.2,
+    "quote_revalidation_status": "Valid at bar completion; no secondary quote rejector",
+    "time_remaining_to_expiry": "Active: 5 days for swing; ~5 hours for intraday index",
+    "statistical_significance": "INSUFFICIENT SAMPLE (Descriptive telemetry only)"
+  },
+  "part6_score_vs_outcome": {
+    "bucket_analysis": {
+      "70-79": {
+        "total_n": 2,
+        "resolved_n": 0,
+        "t1": 0,
+        "t2": 0,
+        "sl": 0,
+        "timeout": 0,
+        "active": 2,
+        "observed_t1_before_sl_rate": "0/0 (INSUFFICIENT SAMPLE)"
+      },
+      "80-84": {
+        "total_n": 7,
+        "resolved_n": 0,
+        "t1": 0,
+        "t2": 0,
+        "sl": 0,
+        "timeout": 0,
+        "active": 7,
+        "observed_t1_before_sl_rate": "0/0 (INSUFFICIENT SAMPLE)"
+      },
+      "85+": {
+        "total_n": 33,
+        "resolved_n": 0,
+        "t1": 0,
+        "t2": 0,
+        "sl": 0,
+        "timeout": 0,
+        "active": 33,
+        "observed_t1_before_sl_rate": "0/0 (INSUFFICIENT SAMPLE)"
+      }
+    },
+    "score_predictive_conclusion": "INSUFFICIENT SAMPLE (Zero resolved observations in post-D26 cohort)"
+  },
+  "part7_category_analysis": {
+    "EQUITY_SWING_DELIVERY": {
+      "emitted_n": 24,
+      "resolved_n": 0,
+      "active_n": 24,
+      "target_distance": "+4.0% T1, +8.0% T2, -3.0% SL",
+      "horizon": "5 trading days",
+      "data_quality": "100% VALID_DATA"
+    },
+    "INDEX_OPTIONS": {
+      "emitted_n": 3,
+      "resolved_n": 0,
+      "active_n": 3,
+      "target_distance": "+4.0% T1, +8.0% T2, -3.0% SL (SPOT Benchmark Analysis)",
+      "horizon": "Same-day 15:30 IST",
+      "data_quality": "100% VALID_DATA"
+    },
+    "MID_SMALL_CAP": {
+      "emitted_n": 8,
+      "resolved_n": 0,
+      "active_n": 8,
+      "target_distance": "+4.0% T1, +8.0% T2, -3.0% SL",
+      "horizon": "5 trading days",
+      "data_quality": "100% VALID_DATA"
+    },
+    "LARGE_CAP_EQUITY": {
+      "emitted_n": 5,
+      "resolved_n": 0,
+      "active_n": 5,
+      "target_distance": "+4.0% T1, +8.0% T2, -3.0% SL",
+      "horizon": "5 trading days",
+      "data_quality": "100% VALID_DATA"
+    },
+    "COMMODITIES": {
+      "emitted_n": 2,
+      "resolved_n": 0,
+      "active_n": 2,
+      "target_distance": "+4.0% T1, +8.0% T2, -3.0% SL",
+      "horizon": "Intraday session close (23:30 IST)",
+      "data_quality": "100% VALID_DATA"
+    },
+    "STOCK_OPTIONS": {
+      "emitted_n": 0,
+      "resolved_n": 0,
+      "active_n": 0,
+      "status": "GATED OFF / FEED DISCONNECTED"
+    },
+    "FUTURES": {
+      "emitted_n": 0,
+      "resolved_n": 0,
+      "active_n": 0,
+      "status": "GATED OFF / FUTURES_ENABLED=False"
+    }
+  },
+  "part8_target_expiry_compatibility": {
+    "EQUITY_SWING_DELIVERY": "PLAUSIBLE BUT INSUFFICIENT DATA",
+    "INDEX_OPTIONS": "STRUCTURALLY INCOMPATIBLE (+4% spot move is 5.6x daily ATR)",
+    "STOCK_OPTIONS": "UNKNOWN (Feed disconnected)",
+    "FUTURES": "UNKNOWN (Disabled)",
+    "structural_condition_detected": {
+      "affected_category": "INDEX_OPTIONS",
+      "condition": "Required move (+4.0%) >> historically observed intraday ATR (0.7%-1.1%)",
+      "quantification": "Required move is 5.6x the expected intraday range"
+    }
+  },
+  "part9_forward_evidence_quality": {
+    "Q1_is_target_reachable": "INSUFFICIENT SAMPLE (Equity Swing) / STRUCTURALLY INCOMPATIBLE (Index Options)",
+    "Q2_is_sl_placement_reasonable": "INSUFFICIENT SAMPLE",
+    "Q3_is_score_predictive": "INSUFFICIENT SAMPLE",
+    "Q4_is_category_predictive": "INSUFFICIENT SAMPLE",
+    "Q5_is_volatility_predictive": "INSUFFICIENT SAMPLE",
+    "Q6_is_entry_drift_material": "NO (Observed drift is low, <0.2%)",
+    "Q7_can_t1_prob_be_calibrated": "NO (Requires N>=300 resolved observations; currently N=0 post-D26)",
+    "Q8_can_feasibility_gate_be_safely_introduced": "NO (Requires G1-G3 statistical evidence)",
+    "Q9_can_prob_threshold_be_safely_introduced": "NO (Calibrated model does not exist)"
+  },
+  "part10_monday_decision_engine": {
+    "decision": "DECISION A — KEEP OBSERVING",
+    "rationale": "The forward observation cohort running on EC2 is actively accumulating (42 signals generated today), but 0 outcomes have resolved yet. Engineering execution is 100% certified. In the absence of resolved outcomes, no empirical pattern or defect exists to justify changing signal logic. Continuing SIGNAL_ONLY observation over the weekend and into Monday is the only constitutionally valid action.",
+    "action": "NO CODE CHANGE. Continue SIGNAL_ONLY observation."
+  },
+  "part11_monday_action_triggers": [
+    {
+      "trigger": "Current target is systematically unreachable within expiry (TIMEOUT rate > 90% across N>=50 resolved)",
+      "action": "Investigate target/expiry architecture in controlled research branch (do not mutate production directly)"
+    },
+    {
+      "trigger": "A category exhibits materially higher T1-before-SL rate (e.g. Swing Equity > 50% vs Index Options < 10%)",
+      "action": "Investigate category-specific target and horizon rules"
+    },
+    {
+      "trigger": "Score does not discriminate outcomes across buckets (T1 rate flat across 75-79, 80-84, 85+)",
+      "action": "Investigate feature weights and multi-strategy composite scoring"
+    },
+    {
+      "trigger": "Target feasibility strongly predicts outcomes (high MFE correlates with lower target/ATR ratio)",
+      "action": "Prepare controlled target feasibility experiment"
+    },
+    {
+      "trigger": "N >= 300 resolved observations accumulate across 3 qualifying months",
+      "action": "Prepare probability calibration experiment"
+    },
+    {
+      "trigger": "No statistically meaningful pattern or sample size remains small (N < 50)",
+      "action": "KEEP OBSERVING"
+    }
+  ],
+  "part12_gate_readiness": {
+    "g1_resolved_per_bucket": {},
+    "g2_resolved_overall": 0,
+    "g3_qualified_months": 0,
+    "g4_dq_pct": 0.0,
+    "g4_stale_pct": 0.0,
+    "phase_e_status": "BLOCKED"
+  },
+  "part13_weekend_operational_safety": {
+    "paper_trading": true,
+    "signal_only": true,
+    "full_auto_allowed": false,
+    "broker_routing": "DISCONNECTED",
+    "live_trading_lockout": true,
+    "futures_enabled": false,
+    "d20_c_production": "OFF",
+    "live_orders_count": 0,
+    "scanner_autonomous_health": "Scanner runs 2,607 symbols per cycle every ~10 mins with 0 errors. Forward observation service auto-registers signals and evaluates bars without human intervention."
+  },
+  "part14_authoritative_monday_snapshot": {
+    "forward_total": 42,
+    "forward_resolved": 0,
+    "forward_active": 42,
+    "t1": 0,
+    "t2": 0,
+    "sl": 0,
+    "timeout": 0,
+    "ambiguous": 0,
+    "dq": 0,
+    "g1_resolved": 0,
+    "g2_resolved": 0,
+    "g3_months": 0,
+    "g4_dq_pct": 0.0,
+    "g4_stale_pct": 0.0,
+    "target_probability_calibrated": false,
+    "target_feasibility_empirically_validated": false,
+    "options_contract_feed_available": false,
+    "futures_enabled": false,
+    "d20c_enabled": false,
+    "phase_e_allowed": false,
+    "monday_decision": "KEEP_OBSERVING"
+  },
+  "part16_final_safety_accounting": {
+    "code_changes": 0,
+    "db_inserts": 0,
+    "db_updates": 0,
+    "db_deletes": 0,
+    "historical_rows_modified": 0,
+    "synthetic_signals": 0,
+    "broker_calls": 0,
+    "live_orders": 0,
+    "config_changes": 0,
+    "service_restarts": 0,
+    "commits": 0,
+    "pushes": 0,
+    "ec2_deployments": 0,
+    "local_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "github_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "ec2_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "triple_parity": true,
+    "db_sha_before": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "db_sha_after": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "db_sha_identical": true
+  }
+}

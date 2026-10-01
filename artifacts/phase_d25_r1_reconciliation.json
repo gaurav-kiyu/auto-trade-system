@@ -1,0 +1,236 @@
+{
+  "metadata": {
+    "report_id": "OPB-PHASE-D25-R1-RECONCILIATION",
+    "governance": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "timestamp": "2026-09-30T01:15:00+05:30",
+    "git_branch": "v2.60-phase-d-candle-selection-remediation",
+    "git_head": "2769e6154728b6519c4cfa7d25478f7eb38a6d76",
+    "operational_mode": "PRODUCTION / PAPER / SIGNAL_ONLY",
+    "safety_status": {
+      "code_changes": 0,
+      "config_changes": 0,
+      "db_writes": 0,
+      "git_commits": 0,
+      "git_pushes": 0,
+      "ec2_deployment": 0,
+      "service_restart": 0,
+      "broker_calls": 0,
+      "d20_c_activation": 0,
+      "phase_e_activation": 0,
+      "canonical_db_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a"
+    }
+  },
+  "evidence_classification_table": [
+    {
+      "evidence": "Equity Swing Signals (N=279)",
+      "population": 279,
+      "source": "EC2 Production Database (system_signals)",
+      "real_market_data": true,
+      "real_production_signal": true,
+      "real_resolved_outcome": true,
+      "safe_for_predictive_inference": true,
+      "classification": "GENUINE_EC2_PRODUCTION_OBSERVATIONS",
+      "reason": "Emitted by live scanner on EC2 against live NSE cash ticks; 76 signals resolved under 5-day horizon."
+    },
+    {
+      "evidence": "Stock Option Signals (N=99)",
+      "population": 99,
+      "source": "EC2 Production Database (system_signals)",
+      "real_market_data": true,
+      "real_production_signal": true,
+      "real_resolved_outcome": false,
+      "safe_for_predictive_inference": false,
+      "classification": "CORRUPTED_PRODUCTION_OBSERVATIONS",
+      "reason": "Cash equities tagged as options; evaluated against spot cash with +4% intraday target; outcome reflects spot mismatch, not option performance."
+    },
+    {
+      "evidence": "Index Option Signals (N=60)",
+      "population": 60,
+      "source": "EC2 Production Database (system_signals)",
+      "real_market_data": true,
+      "real_production_signal": true,
+      "real_resolved_outcome": false,
+      "safe_for_predictive_inference": false,
+      "classification": "CORRUPTED_PRODUCTION_OBSERVATIONS",
+      "reason": "Cash spot indices tagged as options; evaluated against spot cash with +4% intraday target; 100% timeout reflects spot target infeasibility, not option performance."
+    },
+    {
+      "evidence": "Commodity Signals (N=2)",
+      "population": 2,
+      "source": "EC2 Production Database (system_signals)",
+      "real_market_data": true,
+      "real_production_signal": true,
+      "real_resolved_outcome": false,
+      "safe_for_predictive_inference": false,
+      "classification": "INSUFFICIENT_SAMPLE_OBSERVATIONS",
+      "reason": "N=2 is statistically unrepresentative; observation only."
+    },
+    {
+      "evidence": "Futures Signals (N=386)",
+      "population": 386,
+      "source": "Local SQLite Database (system_signals)",
+      "real_market_data": false,
+      "real_production_signal": false,
+      "real_resolved_outcome": false,
+      "safe_for_predictive_inference": false,
+      "classification": "ENGINEERING_VALIDATION_ONLY",
+      "reason": "Generated in local development test runs (Phases D14-D21) to validate R1 contract resolver; FUTURES_ENABLED=false on EC2; DB shows 212 Expired, 73 SL, 0 T1."
+    },
+    {
+      "evidence": "Options Proposed Targets (+25% / +50% / -20%)",
+      "population": 0,
+      "source": "D24 / D25 Architectural Proposal",
+      "real_market_data": false,
+      "real_production_signal": false,
+      "real_resolved_outcome": false,
+      "safe_for_predictive_inference": false,
+      "classification": "PROPOSED_ARCHITECTURE_VALUES",
+      "reason": "Theoretical rules of thumb; no option-contract tick or candle dataset exists in repository."
+    },
+    {
+      "evidence": "Proposed 'Entry By' Durations (15m, 5m, 10m)",
+      "population": 0,
+      "source": "D25 Hypothesis",
+      "real_market_data": false,
+      "real_production_signal": false,
+      "real_resolved_outcome": false,
+      "safe_for_predictive_inference": false,
+      "classification": "PROPOSED_ARCHITECTURE_VALUES",
+      "reason": "Architectural hypothesis based on candle intervals and momentum decay; zero empirical fill telemetry exists."
+    }
+  ],
+  "equity_swing_reconciliation": {
+    "total_population": 279,
+    "status_breakdown": {
+      "ACTIVE": 203,
+      "SL_HIT": 35,
+      "TARGET_1_HIT": 23,
+      "TARGET_2_HIT": 11,
+      "AMBIGUOUS": 7
+    },
+    "first_touch_breakdown": {
+      "EMPTY_ACTIVE": 203,
+      "SL": 35,
+      "T1": 34,
+      "AMBIGUOUS_SAME_OBSERVATION": 7
+    },
+    "resolved_outcomes": {
+      "total_resolved": 76,
+      "t1_first_touch": 34,
+      "sl_first_touch": 35,
+      "ambiguous": 7
+    },
+    "discrepancy_explanation": {
+      "34_target_hits": "Derived from `system_signals.first_touch == 'T1'` (23 TARGET_1_HIT + 11 TARGET_2_HIT).",
+      "43_t1_hits": "Derived from counting all raw occurrences of `hit_t1 == 1` in `signal_outcome_events`. Includes 34 valid first-touch T1s + 2 signals that hit SL first then bounced + 7 ambiguous same-observation signals.",
+      "35_sl_hits": "Exact match across both `system_signals.first_touch == 'SL'` and `signal_outcome_events`.",
+      "201_timeouts": "RECONCILIATION ERROR in D25. In reality, exactly 203 signals are ACTIVE with unexpired 5-day holding horizons; 0 signals have timed out.",
+      "49_28_win_rate": "Calculated as 34 T1 hits / (34 T1 + 35 SL) = 34 / 69 = 49.28% on unambiguous resolved trades.",
+      "44_74_conservative_win_rate": "Calculated as 34 T1 hits / (34 T1 + 35 SL + 7 Ambiguous) = 34 / 76 = 44.74%."
+    }
+  },
+  "option_adapter_runtime_readiness": {
+    "index_options": {
+      "can_resolve_contract_today": false,
+      "blockers": [
+        "core/option_chain_json.py only parses existing dict; has no fetch logic",
+        "core/live_option_quotes.py relies on broker get_quote(), but broker_routing=DISCONNECTED and PaperBroker lacks NFO feed",
+        "core/options_greeks_engine.py is pure math solver, not quote provider",
+        "core/bse_option_chain.py does NOT exist"
+      ],
+      "field_readiness": {
+        "contract_symbol": "AVAILABLE_BUT_UNVERIFIED",
+        "underlying": "AVAILABLE",
+        "option_type": "AVAILABLE",
+        "strike": "AVAILABLE_BUT_UNVERIFIED",
+        "expiry": "AVAILABLE_BUT_UNVERIFIED",
+        "LTP": "NOT_AVAILABLE",
+        "bid": "NOT_AVAILABLE",
+        "ask": "NOT_AVAILABLE",
+        "spread": "NOT_AVAILABLE",
+        "OI": "NOT_AVAILABLE",
+        "volume": "NOT_AVAILABLE",
+        "IV": "NOT_AVAILABLE",
+        "delta": "NOT_AVAILABLE",
+        "gamma": "NOT_AVAILABLE",
+        "theta": "NOT_AVAILABLE",
+        "vega": "NOT_AVAILABLE"
+      }
+    },
+    "stock_options": {
+      "can_resolve_contract_today": false,
+      "blockers": [
+        "build_option_symbol() in core/live_option_quotes.py only supports index names",
+        "No stock strike step table exists in repository",
+        "core/fno_universe.py misclassifies cash stocks as STOCK_OPTIONS",
+        "No live option chain feed exists for equities"
+      ],
+      "field_readiness": {
+        "contract_symbol": "REQUIRES_IMPLEMENTATION",
+        "underlying": "AVAILABLE",
+        "option_type": "AVAILABLE",
+        "strike": "REQUIRES_IMPLEMENTATION",
+        "expiry": "AVAILABLE_BUT_UNVERIFIED",
+        "LTP": "NOT_AVAILABLE",
+        "bid": "NOT_AVAILABLE",
+        "ask": "NOT_AVAILABLE",
+        "spread": "NOT_AVAILABLE",
+        "OI": "NOT_AVAILABLE",
+        "volume": "NOT_AVAILABLE",
+        "IV": "NOT_AVAILABLE",
+        "delta": "NOT_AVAILABLE",
+        "gamma": "NOT_AVAILABLE",
+        "theta": "NOT_AVAILABLE",
+        "vega": "NOT_AVAILABLE"
+      }
+    }
+  },
+  "futures_n386_audit": {
+    "population": 386,
+    "classification": "ENGINEERING_VALIDATION_ONLY",
+    "ec2_production_count": 0,
+    "local_db_status_counts": {
+      "EXPIRED": 212,
+      "ACTIVE": 101,
+      "SL_HIT": 73,
+      "T1_HIT": 0
+    },
+    "d25_simulation_discrepancy": "D25 simulation script hardcoded 'prod_t1_hit': True for all 386 local futures records as an illustrative assumption. The real database contains 0 T1 hits for futures.",
+    "inference_validity": "UNSAFE FOR PREDICTIVE INFERENCE. Must not be used as proof of futures profitability."
+  },
+  "implementation_gate": {
+    "list_a_approved_now": [
+      "A-1: Fix core/fno_universe.py classify_instrument_market() to stop misclassifying cash equities as STOCK_OPTIONS",
+      "A-2: Correct AllNSEScanner._dispatch_futures_alert_if_eligible() so entry price uses canonical contract LTP instead of cash spot price",
+      "A-3: Correct UI/Telegram alert presentation to label Index Options as 'INDEX SPOT DIRECTIONAL' until genuine option contracts are wired",
+      "A-4: Decouple Active signals (N=203) from Timeouts in all outcome reporting"
+    ],
+    "list_b_experimental_validation_required": [
+      "B-1: Option Premium Targets (+25% T1, +50% T2, -20% SL) - EXPERIMENTAL CANDIDATE",
+      "B-2: Strict Entry By durations (15m, 5m, 10m) - PROPOSED HYPOTHESIS",
+      "B-3: Feasibility mathematical coefficients (0.80x 5-day ATR, Theta <= 20% target) - THEORETICALLY MOTIVATED",
+      "B-4: Automated Strike Selection Optimization - REQUIRES TICK DATA",
+      "B-5: Calibrated Target Probability Engine - REQUIRES N >= 150 TRUTHFUL OUTCOMES",
+      "B-6: BSE SENSEX / BANKEX Option Chain - REQUIRES ADAPTER IMPLEMENTATION"
+    ],
+    "list_c_must_remain_untouched": [
+      "C-1: EQUITY_SWING_DELIVERY +4% T1, +8% T2, -3% SL levels and scoring weights",
+      "C-2: R1 Futures Contract Resolver architecture",
+      "C-3: R3 Completed Candle outcome measurement engine",
+      "C-4: D20-A and D20-B deployed candle selection remediation",
+      "C-5: Broker safety invariants (full_auto_allowed=False, broker_routing=DISCONNECTED, live_lockout=True)",
+      "C-6: Phase E blocked status",
+      "C-7: Low-sample categories (Commodities, Currencies, ETFs, Penny/SME) trading parameters"
+    ]
+  },
+  "d26_recommended_phasing": {
+    "order": [
+      "D26-A: Instrument Truth & Taxonomy Correction (Non-trading data purity)",
+      "D26-B: Futures Generator Contract Price Correction (Keep disabled on EC2)",
+      "D26-C: Entry Validity & Drift Observation Telemetry (Observation-only)",
+      "D26-D: Genuine Option Quote Feed Adapter Engineering (Build live NFO feed)",
+      "D26-E: Controlled Forward Validation & Target Feasibility Calibration (14-day holdout)"
+    ],
+    "readiness_verdict": "OPB is ready for D26-A and D26-B (Truth & Taxonomy fixes). OPB is NOT ready for live option trading or automated gating until real NFO quote feeds and forward validation data are established."
+  }
+}

@@ -45,9 +45,9 @@
 <button class="btn btn-ghost" id="cspfix-1" style="background:transparent;color: var(--text-muted, #94a3b8);border: 1px solid var(--border-color, #1e293b);padding:0.4rem 0.8rem;border-radius:0.4rem;cursor:pointer;" type="button"><i class="fas fa-sync-alt"></i> Refresh Margins</button>
 </div>
 <div style="background:var(--market-warning-bg, rgba(217,119,6,0.14));border:1px solid var(--warning-color, #d97706);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:var(--warning-color, #d97706);font-size:0.85rem;">
-<span class="badge" style="background:var(--warning-color, #d97706);color:#000;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">SAMPLE / DEMO DATA</span>
-<i class="fas fa-triangle-exclamation" style="margin-right:0.4rem;"></i>
-<strong>Static demonstration dataset:</strong> The margin figures below are a static sample dataset — live broker margin feeds are disconnected in SIGNAL_ONLY / PAPER mode. None of these figures reflect real account balances.
+<span class="badge" style="background:var(--warning-color, #d97706);color:#000;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">UNAVAILABLE</span>
+<i class="fas fa-circle-exclamation" style="margin-right:0.4rem;"></i>
+<strong>Live production feed not connected:</strong> Broker margin feeds are disconnected in SIGNAL_ONLY / PAPER mode. No live broker balance or margin data is available.
     </div>
 <!-- Alert Box for Peak Margin -->
 <div id="peakMarginAlertBox" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:1.5rem;color: var(--danger-color, #dc2626);font-size:0.85rem;">
@@ -80,7 +80,7 @@
 <!-- Broker Breakdown Table -->
 <div class="card">
 <h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-university" style="color:var(--accent-color, #60a5fa);margin-right:0.5rem;"></i> Live Broker Margin Breakdown</h3>
-<div style="overflow-x:auto;">
+<div tabindex="0" role="region" aria-label="Broker margin breakdown table" style="overflow-x:auto;">
 <table class="table">
 <thead>
 <tr>
@@ -105,16 +105,27 @@
             const data = await res.json();
             if (!data) return;
 
-            document.getElementById('kpiCash').textContent = `₹${(data.total_available_cash / 100000).toFixed(2)}L`;
-            document.getElementById('kpiCollat').textContent = `₹${(data.total_collateral_margin / 100000).toFixed(2)}L`;
-            document.getElementById('kpiTotal').textContent = `₹${(data.total_purchasing_power / 100000).toFixed(2)}L`;
-            document.getElementById('kpiUsed').textContent = `₹${(data.total_used_margin / 100000).toFixed(2)}L`;
-            document.getElementById('kpiUtil').textContent = `${data.overall_utilization_pct}%`;
+            if (data.status === 'unavailable' || !data.brokers || data.brokers.length === 0) {
+                document.getElementById('kpiCash').textContent = '--';
+                document.getElementById('kpiCollat').textContent = '--';
+                document.getElementById('kpiTotal').textContent = '--';
+                document.getElementById('kpiUsed').textContent = '--';
+                document.getElementById('kpiUtil').textContent = '--';
+                document.getElementById('peakMarginAlertBox').style.display = 'none';
+                document.getElementById('marginTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2rem;"><i class="fas fa-info-circle mr-2"></i> Live production feed not connected — no broker margin data available</td></tr>';
+                return;
+            }
+
+            document.getElementById('kpiCash').textContent = `₹${((data.total_available_cash || 0) / 100000).toFixed(2)}L`;
+            document.getElementById('kpiCollat').textContent = `₹${((data.total_collateral_margin || 0) / 100000).toFixed(2)}L`;
+            document.getElementById('kpiTotal').textContent = `₹${((data.total_purchasing_power || 0) / 100000).toFixed(2)}L`;
+            document.getElementById('kpiUsed').textContent = `₹${((data.total_used_margin || 0) / 100000).toFixed(2)}L`;
+            document.getElementById('kpiUtil').textContent = `${data.overall_utilization_pct || 0}%`;
 
             const alertBox = document.getElementById('peakMarginAlertBox');
             if (data.peak_margin_alert) {
                 alertBox.style.display = 'block';
-                document.getElementById('warningBrokersText').textContent = data.warning_brokers.join(', ');
+                document.getElementById('warningBrokersText').textContent = (data.warning_brokers || []).join(', ');
             } else {
                 alertBox.style.display = 'none';
             }
@@ -126,17 +137,17 @@
 
                 return `<tr>
                     <td><strong>${b.broker_name}</strong></td>
-                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${b.available_cash.toLocaleString('en-IN')}</td>
-                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${b.collateral_margin.toLocaleString('en-IN')}</td>
-                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:600;">₹${b.total_margin.toLocaleString('en-IN')}</td>
-                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;color: var(--danger-color, #dc2626);">₹${b.used_margin.toLocaleString('en-IN')}</td>
+                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${(b.available_cash || 0).toLocaleString('en-IN')}</td>
+                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${(b.collateral_margin || 0).toLocaleString('en-IN')}</td>
+                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:600;">₹${(b.total_margin || 0).toLocaleString('en-IN')}</td>
+                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;color: var(--danger-color, #dc2626);">₹${(b.used_margin || 0).toLocaleString('en-IN')}</td>
                     <td>
                         <div style="display:flex;justify-content:space-between;font-size:0.7rem;margin-bottom:0.2rem;font-variant-numeric:tabular-nums;">
-                            <span>${b.utilization_pct}%</span>
+                            <span>${b.utilization_pct || 0}%</span>
                             <span style="color: var(--text-muted, #94a3b8);">Limit 75%</span>
                         </div>
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width:${b.utilization_pct}%;background:${fillColor};"></div>
+                            <div class="progress-fill" style="width:${b.utilization_pct || 0}%;background:${fillColor};"></div>
                         </div>
                     </td>
                     <td><span class="badge ${badgeClass}">${b.status}</span></td>

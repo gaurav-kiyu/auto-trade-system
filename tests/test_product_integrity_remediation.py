@@ -311,10 +311,10 @@ class TestPresentationGeneratorIntegrity:
 
     def test_presentation_generator_v2594_and_benchmark_labels(self):
         version = pres_gen.PresentationGenerator._fetch_version()
-        assert version == "2.59.4"
+        assert version == "2.60.0"
 
         pres_html = Path("templates/enterprise/presentation.html").read_text(encoding="utf-8")
-        assert 'placeholder="2.59.4"' in pres_html
+        assert 'placeholder="2.60.0"' in pres_html
         assert "Benchmark Win Rate" in pres_html
 
         core_py = Path("core/presentation_generator.py").read_text(encoding="utf-8")
@@ -327,7 +327,7 @@ class TestPresentationGeneratorIntegrity:
         data: dict[str, Any] = {}
         # Execute generate_report logic checks
         ver = gen._fetch_version()
-        assert ver == "2.59.4"
+        assert ver == "2.60.0"
         counts = gen._fetch_file_counts()
         assert counts["core"] > 0
         assert counts["tests"] > 0
@@ -414,8 +414,8 @@ class TestCrossScreenCanonicalConsistency:
         state_file.write_text(json.dumps({"execution_mode": "PAPER", "base_capital": 3000}), encoding="utf-8")
         d = EnterpriseDashboard(config={"trader_state_path": str(state_file), "BASE_CAPITAL": 3000})
         st = d._read_state()
-        assert st["version"] == "2.59.4"
-        assert st["release_tag"] == "v2.59.4-post-merge.3"
+        assert st["version"] == "2.60.0"
+        assert st["release_tag"] == "v2.60.0"
         assert st["execution_mode"] == "PAPER"
         assert st["base_capital"] == 3000.0
 

@@ -1,0 +1,186 @@
+{
+  "governance": "OPB-FINAL-PHASE-GOVERNANCE-001",
+  "certification_version": "1.0.0-FINAL",
+  "timestamp_ist": "2026-09-30T10:00:00+05:30",
+  "branch": "v2.60-phase-d-candle-selection-remediation",
+  "baseline_commit": "d4271ff",
+  "pre_d26_head": "2769e6154728b6519c4cfa7d25478f7eb38a6d76",
+  "approved_d26_commit": "5ced3170cf01b135327316e81bfc577f8e68d739",
+  "git_parity": {
+    "local_sha": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "github_sha": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "ec2_sha": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "parity_status": "EXACT_TRIPLE_PARITY_MATCH",
+    "local_working_tree": "CLEAN",
+    "ec2_working_tree": "CLEAN"
+  },
+  "runtime_provenance": {
+    "container_name": "opb_bot",
+    "base_image": "ghcr.io/gaurav-kiyu/auto-trade-system:2.59.4-d4271ff",
+    "mount_mechanism": "DOCKER_READONLY_BIND_MOUNT",
+    "mounted_paths": {
+      "/app/core": "/home/ubuntu/auto-trade-system/core",
+      "/app/templates": "/home/ubuntu/auto-trade-system/templates",
+      "/app/static": "/home/ubuntu/auto-trade-system/static",
+      "/etc/supervisor/conf.d/opb.conf": "/home/ubuntu/auto-trade-system/supervisord.conf",
+      "/data/db": "/home/ubuntu/opb-production-state/db"
+    },
+    "runtime_code_execution_verified": true,
+    "runtime_checks": {
+      "classify_instrument_market_reliance": "LARGE_CAP_EQUITY",
+      "classify_instrument_market_cipla": "LARGE_CAP_EQUITY",
+      "classify_instrument_market_nifty": "INDEX_OPTIONS",
+      "resolve_futures_market_price_wired": true,
+      "futures_enabled": false,
+      "d20_c_enabled": false
+    }
+  },
+  "database_integrity": {
+    "local_db_path": "db/signals_history.db",
+    "local_db_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "local_db_post_test_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "local_db_delta_bytes": 0,
+    "ec2_pre_deploy_backup_path": "/home/ubuntu/opb-production-state/backups/db_snapshot_20260930_pre_d26/signals_history.db",
+    "ec2_pre_deploy_backup_sha256": "f3f47076fda220000040b9985e70d431cb5342dbda51964ed5e181c0807439aa",
+    "ec2_live_db_integrity": "ok",
+    "ec2_live_db_fk_check": "ok",
+    "historical_misclassified_records_intact": 99,
+    "historical_records_mutated": 0
+  },
+  "forward_cohort_accounting": {
+    "boundary_clarification": "Market session separated between MCX commodity pre-open and official NSE 09:15 IST opening bell",
+    "pre_0915_commodity_cohort": {
+      "count": 2,
+      "signals": [
+        {"signal_id": "SIG-20260930090243-CRUDEOIL-efcde4", "symbol": "CRUDEOIL", "category": "COMMODITIES", "timestamp": "2026-09-30 09:02:43"},
+        {"signal_id": "SIG-20260930090655-COPPER-7dbc89", "symbol": "COPPER", "category": "COMMODITIES", "timestamp": "2026-09-30 09:06:55"}
+      ]
+    },
+    "post_0915_clean_forward_cohort": {
+      "count": 10,
+      "signals": [
+        {"signal_id": "SIG-20260930094539-NIFTY-2685b8", "symbol": "NIFTY", "category": "INDEX_OPTIONS", "timestamp": "2026-09-30 09:45:39"},
+        {"signal_id": "SIG-20260930094642-FINNIFTY-fa91cb", "symbol": "FINNIFTY", "category": "INDEX_OPTIONS", "timestamp": "2026-09-30 09:46:42"},
+        {"signal_id": "SIG-20260930095117-ACC-c92d14", "symbol": "ACC", "category": "MID_SMALL_CAP", "timestamp": "2026-09-30 09:51:17"},
+        {"signal_id": "SIG-20260930095122-AEGISLOG-467687", "symbol": "AEGISLOG", "category": "EQUITY_SWING_DELIVERY", "timestamp": "2026-09-30 09:51:22"},
+        {"signal_id": "SIG-20260930095126-CIPLA-e55ad4", "symbol": "CIPLA", "category": "LARGE_CAP_EQUITY", "timestamp": "2026-09-30 09:51:26"},
+        {"signal_id": "SIG-20260930095131-MCX-ef30cf", "symbol": "MCX", "category": "MID_SMALL_CAP", "timestamp": "2026-09-30 09:51:31"},
+        {"signal_id": "SIG-20260930095136-COALINDIA-799fe9", "symbol": "COALINDIA", "category": "LARGE_CAP_EQUITY", "timestamp": "2026-09-30 09:51:36"},
+        {"signal_id": "SIG-20260930095140-DELTACORP-8c2a9a", "symbol": "DELTACORP", "category": "EQUITY_SWING_DELIVERY", "timestamp": "2026-09-30 09:51:40"},
+        {"signal_id": "SIG-20260930095145-HOMEFIRST-4647a1", "symbol": "HOMEFIRST", "category": "EQUITY_SWING_DELIVERY", "timestamp": "2026-09-30 09:51:45"},
+        {"signal_id": "SIG-20260930095149-WABAG-238d6f", "symbol": "WABAG", "category": "EQUITY_SWING_DELIVERY", "timestamp": "2026-09-30 09:51:49"}
+      ]
+    },
+    "forward_misclassifications": 0,
+    "forward_cash_stocks_as_stock_options": 0,
+    "forward_invented_categories": 0,
+    "total_signals_today": 12,
+    "total_system_signals_db": 452
+  },
+  "d26_report_correction": {
+    "section": "Section 4.2 Futures Case C",
+    "previous_text": "Case C: Zero Quote (0.0) -> No",
+    "corrected_text": "Case C: Zero Quote (0.0) -> PASS (Fail-Closed, signal rejected, 0 alerts dispatched)",
+    "verification_evidence": "Empirically verified by tests/test_d26_taxonomy_futures_parity.py::test_futures_zero_quote_rejected. Application code unmodified."
+  },
+  "test_matrix": {
+    "total_tests_run": 148,
+    "passed": 146,
+    "failed": 2,
+    "pre_existing_failures": [
+      {
+        "test": "tests/test_remediation_p1_p2_p3.py::TestDefP3001ProfilePasswordEye::test_profile_template_contains_eye_svg_closed",
+        "reason": "Pre-existing UX template asset check (profile.html eye icon SVG)",
+        "regression_status": "PRE_EXISTING_BASELINE_UNAFFECTED"
+      },
+      {
+        "test": "tests/test_product_integrity_remediation.py::TestPaymentFailClosed::test_api_billing_endpoint_fail_closed_and_audited",
+        "reason": "Pre-existing endpoint test asserting error code 'PAYMENT_GATEWAY_UNAVAILABLE' while implementation returns 'UTR_REQUIRED'",
+        "regression_status": "PRE_EXISTING_BASELINE_UNAFFECTED"
+      }
+    ],
+    "suites": {
+      "test_d26_taxonomy_futures_parity.py": {"passed": 13, "failed": 0},
+      "test_signal_quality_remediation_d20.py": {"passed": 28, "failed": 0},
+      "test_signal_forward_observation.py": {"passed": 30, "failed": 0},
+      "test_signal_forward_wiring_remediation.py": {"passed": 27, "failed": 0},
+      "test_remediation_p1_p2_p3.py": {"passed": 27, "failed": 1},
+      "test_product_integrity_remediation.py": {"passed": 21, "failed": 1}
+    }
+  },
+  "historical_defect_closure_matrix": {
+    "total_items": 32,
+    "items_closed": 24,
+    "items_observation_only": 4,
+    "items_blocked": 3,
+    "items_insufficient_sample": 1
+  },
+  "gate_evaluations": {
+    "G1_min_100_resolved_per_bucket": {
+      "required": 100,
+      "actual": 0,
+      "status": "NOT_YET_SATISFIED",
+      "verdict": "COLLECTING"
+    },
+    "G2_min_300_resolved_overall": {
+      "required": 300,
+      "actual": 0,
+      "status": "NOT_YET_SATISFIED",
+      "verdict": "COLLECTING"
+    },
+    "G3_min_2_months_with_30_obs": {
+      "required": 2,
+      "actual": 0,
+      "status": "NOT_YET_SATISFIED",
+      "verdict": "COLLECTING"
+    },
+    "G4_data_quality_stale_rate": {
+      "required": "DQ <= 5%, Stale <= 2%",
+      "actual": "DQ = 0.0%, Stale = 0.0%",
+      "status": "PASS",
+      "verdict": "SATISFIED"
+    }
+  },
+  "phase_e_decision": {
+    "status": "STRICTLY_BLOCKED",
+    "blockers": [
+      {
+        "gate": "G1",
+        "description": "Requires >= 100 resolved forward observations per active score bucket (currently 0/100)."
+      },
+      {
+        "gate": "G2",
+        "description": "Requires >= 300 resolved forward observations overall (currently 0/300)."
+      },
+      {
+        "gate": "G3",
+        "description": "Requires >= 2 distinct calendar months with >= 30 observations/month (currently 0/2)."
+      },
+      {
+        "gate": "Probability Calibration",
+        "description": "Target probability models remain uncalibrated; empirical P(T1) cannot be estimated without resolved samples."
+      },
+      {
+        "gate": "Option Contract Feed",
+        "description": "True contract-level option pricing and Greeks feeds are not connected."
+      }
+    ],
+    "what_must_happen_next": "Continue live market forward accumulation in SIGNAL_ONLY paper mode until G1-G3 observation thresholds are met."
+  },
+  "safety_invariants": {
+    "EXECUTION_MODE": "SIGNAL_ONLY",
+    "SIGNAL_ONLY": true,
+    "PAPER_TRADING": true,
+    "full_auto_allowed": false,
+    "broker_routing": "DISCONNECTED",
+    "LIVE_TRADING_LOCKOUT": true,
+    "orders_placed": 0,
+    "broker_api_calls": 0,
+    "D20_C": "OFF",
+    "FUTURES_ENABLED": false,
+    "synthetic_signals_generated": 0,
+    "historical_rows_deleted": 0,
+    "historical_rows_updated": 0
+  },
+  "final_verdict": "PHASE_D_SYSTEM_CODE_AND_PARITY_100_PERCENT_CERTIFIED_FORWARD_GATES_OPEN_PHASE_E_STRICTLY_BLOCKED"
+}

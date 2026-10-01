@@ -41,9 +41,9 @@
 <button class="btn btn-ghost" id="cspfix-1" type="button"><i class="fas fa-sync-alt"></i> Refresh Accounts</button>
 </div>
 <div style="background:var(--market-warning-bg, rgba(217,119,6,0.14));border:1px solid var(--warning-color, #d97706);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:var(--warning-color, #d97706);font-size:0.85rem;">
-<span class="badge" style="background:var(--warning-color, #d97706);color:#000;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">SAMPLE / DEMO DATA</span>
-<i class="fas fa-triangle-exclamation" style="margin-right:0.4rem;"></i>
-<strong>Static demonstration accounts:</strong> The accounts below are seeded demo accounts, not real linked broker connections — live broker routing is DISCONNECTED in SIGNAL_ONLY / PAPER mode. Every replication is simulated.
+<span class="badge" style="background:var(--warning-color, #d97706);color:#000;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">UNAVAILABLE</span>
+<i class="fas fa-circle-exclamation" style="margin-right:0.4rem;"></i>
+<strong>Live production feed not connected:</strong> Multi-Account Trade Copier is currently unavailable — live broker order routing is DISCONNECTED in SIGNAL_ONLY / PAPER mode.
     </div>
 <!-- Master Trade Trigger Box -->
 <div class="card" style="border-left: 4px solid var(--accent-color, #38bdf8);">
@@ -74,7 +74,7 @@
 <!-- Linked Client Accounts Table -->
 <div class="card">
 <h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-users" style="color:#10b981;margin-right:0.5rem;"></i> Linked Client Broker Accounts (Multi-Tenant Mirroring)</h3>
-<div style="overflow-x:auto;">
+<div tabindex="0" role="region" aria-label="Linked client broker accounts table" style="overflow-x:auto;">
 <table class="table">
 <thead>
 <tr>
@@ -96,7 +96,7 @@
 <!-- Live Replicated Execution Log -->
 <div class="card">
 <h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-history" style="color:#60a5fa;margin-right:0.5rem;"></i> Real-Time Copied Orders History</h3>
-<div style="overflow-x:auto;">
+<div tabindex="0" role="region" aria-label="Real-time copied orders history table" style="overflow-x:auto;">
 <table class="table">
 <thead>
 <tr>
@@ -123,19 +123,26 @@
             if (!data) return;
 
             const accTb = document.getElementById('accountsTableBody');
-            accTb.innerHTML = (data.accounts || []).map(a => `
+            const execTb = document.getElementById('executionsTableBody');
+
+            if (data.status === 'unavailable' || !data.accounts || data.accounts.length === 0) {
+                accTb.innerHTML = '<tr><td colspan="7" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2rem;"><i class="fas fa-info-circle mr-2"></i> Live production feed not connected — no linked client accounts</td></tr>';
+                execTb.innerHTML = '<tr><td colspan="8" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2rem;"><i class="fas fa-info-circle mr-2"></i> Live production feed not connected — no copied orders</td></tr>';
+                return;
+            }
+
+            accTb.innerHTML = data.accounts.map(a => `
                 <tr>
                     <td style="font-family:monospace;color:var(--accent-color, #38bdf8);">${a.account_id}</td>
                     <td><strong>${a.client_name}</strong></td>
                     <td style="text-transform:uppercase;font-size:0.75rem;font-weight:600;">${a.broker_code}</td>
                     <td style="font-weight:600;font-variant-numeric:tabular-nums;color:var(--warning-color, #d97706);">${a.risk_multiplier}x</td>
-                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${a.max_capital_per_trade.toLocaleString('en-IN')}</td>
+                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${(a.max_capital_per_trade || 0).toLocaleString('en-IN')}</td>
                     <td><span class="badge ${a.mode === 'LIVE' ? 'badge-live' : 'badge-paper'}">${a.mode}</span></td>
                     <td><span class="badge badge-live">ACTIVE</span></td>
                 </tr>
             `).join('');
 
-            const execTb = document.getElementById('executionsTableBody');
             const history = data.history || [];
             if (history.length === 0) {
                 execTb.innerHTML = '<tr><td colspan="8" style="text-align:center;color: var(--text-muted, #94a3b8);">No recent copied orders</td></tr>';

@@ -872,7 +872,7 @@ class RichSignalFormatter:
             "secondary_action": {"label": "Open Signal Radar", "url": secondary_url},
             "timestamp_ist": cls._format_ist_timestamp(timestamp_str),
             "source": strategy,
-            "footer_note": "OPB v2.59.4 Canonical Signal Engine • Paper / Signal-Only Mode",
+            "footer_note": "OPB v2.60 Canonical Signal Engine • Paper / Signal-Only Mode",
         }
 
         return {
@@ -1087,7 +1087,7 @@ class RichSignalFormatter:
         sub_text = (subtitle or f"{cat_label} • {ts_ist}").strip()
         foot_text = (
             footer_note
-            or "OPB Quantitative Engine v2.59.4 • Institutional Multi-Asset Cockpit • Paper / Signal-Only Governance"
+            or "OPB Quantitative Engine v2.60 • Institutional Multi-Asset Cockpit • Paper / Signal-Only Governance"
         )
         targets = channel_targets or ["email", "telegram", "in_app"]
 

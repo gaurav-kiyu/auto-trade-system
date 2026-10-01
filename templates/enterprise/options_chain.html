@@ -142,7 +142,7 @@
 <span id="ltpDisplay" style="color: var(--text-primary, #e2e8f0);font-weight:700;font-size:1.05rem;"></span>
 <span id="timestampDisplay" style="color: var(--text-muted, #94a3b8);font-size:0.75rem;"></span>
 </div>
-<div class="options-table-container">
+<div class="options-table-container" tabindex="0" role="region" aria-label="Options chain table">
 <table id="chainTable">
 <thead>
 <tr style="border-bottom: 2px solid rgba(148,163,184,0.15);">
@@ -217,13 +217,26 @@
 
         async function loadChain() {
             const index = document.getElementById('indexSelect').value;
-            const data = await apiFetch(`/api/chain/${index}?demo=true`);
+            const data = await apiFetch(`/api/chain/${index}`);
             if (!data) return;
             const spot = data.underlying_price || data.spot || 0;
-            document.getElementById('ltpDisplay').textContent = spot ? '₹' + fmt(spot) : '';
-            document.getElementById('spotVal').textContent = spot ? '₹' + fmt(spot) : '--';
+            const pcrInfo = (data.pcr != null && data.total_oi > 0) ? `PCR: ${data.pcr} | Total OI: ${fmt(data.total_oi)}` : '';
+            document.getElementById('ltpDisplay').textContent = spot ? '₹' + fmt(spot) : pcrInfo;
+            document.getElementById('spotVal').textContent = spot ? '₹' + fmt(spot) : (pcrInfo ? pcrInfo : '--');
             document.getElementById('timestampDisplay').textContent = data.timestamp ? 'Updated: ' + data.timestamp.substring(0,19).replace('T',' ') : '';
             document.getElementById('updateTime').textContent = data.timestamp ? (data.timestamp.length >= 19 ? data.timestamp.substring(11,19) : data.timestamp) : 'Live';
+
+            const rows = data.option_chain || data.records || data.strikes || [];
+            if (!rows.length) {
+                if (gexChartInstance) { gexChartInstance.destroy(); gexChartInstance = null; }
+                const noteText = data.note || `Live Options Chain data currently unavailable / waiting for market feed for ${index}`;
+                document.getElementById('chainBody').innerHTML = '<tr><td colspan="19" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2rem;"><i class="fas fa-info-circle mr-2"></i> ' + noteText + '</td></tr>';
+                document.getElementById('flipVal').textContent = '--';
+                document.getElementById('netGexVal').textContent = '--';
+                document.getElementById('regimeBadge').innerHTML = '<span class="badge badge-amber"><i class="fas fa-satellite-dish mr-1"></i> WAITING FOR LIVE STRIKES</span>';
+                document.getElementById('regimeDesc').textContent = data.note || 'Strike-level market feed not connected';
+                return;
+            }
 
             if (data.gex) {
                 document.getElementById('flipVal').textContent = data.gex.gamma_flip ? '₹' + fmt(data.gex.gamma_flip) : '₹' + fmt(spot);
@@ -233,12 +246,6 @@
                     ? '<span class="badge badge-green"><i class="fas fa-shield-alt mr-1"></i> LONG GAMMA (DAMPENED)</span>'
                     : '<span class="badge badge-amber"><i class="fas fa-bolt mr-1"></i> SHORT GAMMA (VOLATILE)</span>';
                 document.getElementById('regimeDesc').textContent = isLong ? 'Dealers buy dips / sell rallies' : 'Dealers amplify trend momentum';
-            }
-
-            const rows = data.option_chain || data.records || data.strikes || [];
-            if (!rows.length) {
-                document.getElementById('chainBody').innerHTML = '<tr><td colspan="19" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2rem;">No chain data available for ' + index + '</td></tr>';
-                return;
             }
 
             try {

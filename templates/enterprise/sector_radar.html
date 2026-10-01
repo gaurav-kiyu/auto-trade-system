@@ -45,16 +45,10 @@
 </div>
 <button class="btn btn-ghost" id="cspfix-1" style="background:transparent;color: var(--text-muted, #94a3b8);border: 1px solid var(--border-color, #1e293b);padding:0.4rem 0.8rem;border-radius:0.4rem;cursor:pointer;" type="button"><i class="fas fa-sync-alt"></i> Refresh Radar</button>
 </div>
-<div style="background:var(--market-warning-bg, rgba(217, 119, 6, 0.12));border:1px solid var(--warning-color, #f59e0b);border-radius:8px;padding:0.85rem 1.25rem;margin-bottom:1.5rem;color:var(--text-primary, #f8fafc);font-size:0.85rem;line-height:1.5;">
-    <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.35rem;flex-wrap:wrap;">
-        <span class="badge" style="background:var(--warning-color, #f59e0b);color:var(--btn-primary-text, #ffffff);font-weight:800;padding:0.2rem 0.65rem;border-radius:0.4rem;font-size:0.72rem;letter-spacing:0.04em;">
-            <i class="fas fa-triangle-exclamation"></i> SAMPLE / DEMO DATA — LIVE FEED UNAVAILABLE
-        </span>
-        <span style="font-weight:700;color:var(--warning-color, #f59e0b);font-size:0.82rem;">Capability Status: DEMO_ONLY / SIMULATED</span>
-    </div>
-    <div style="color:var(--text-secondary, #cbd5e1);font-size:0.8rem;">
-        The sector rows below are a static reference matrix. No live NSE sector price or turnover feed is currently connected. Values do not reflect active market movements.
-    </div>
+<div style="background:var(--market-warning-bg, rgba(217, 119, 6, 0.14));border:1px solid var(--warning-color, #d97706);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:var(--warning-color, #d97706);font-size:0.85rem;">
+    <span class="badge" style="background:var(--warning-color, #d97706);color:#000;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">UNAVAILABLE</span>
+    <i class="fas fa-circle-exclamation" style="margin-right:0.4rem;"></i>
+    <strong>Live production feed not connected:</strong> NSE sector rotation &amp; relative strength feed is currently disconnected. No live sector movement data is available.
 </div>
 <!-- 4-Quadrant Visual Summary Grid -->
 <div class="quadrant-grid">
@@ -82,7 +76,7 @@
 <!-- Complete Sector Matrix Table -->
 <div class="card">
 <h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-table-list" style="color:var(--accent-color, #60a5fa);margin-right:0.5rem;"></i> 12 NSE Sectors Performance Matrix</h3>
-<div style="overflow-x:auto;">
+<div tabindex="0" role="region" aria-label="12 NSE sectors performance matrix table" style="overflow-x:auto;">
 <table class="table">
 <thead>
 <tr>
@@ -112,9 +106,22 @@
         async function loadSectorRadar() {
             const res = await fetch('/api/market/sector-radar', {credentials: 'include'});
             const data = await res.json();
-            if (!data || !data.sectors) return;
+            if (!data) return;
 
             const sectors = data.sectors;
+            const tb = document.getElementById('sectorTableBody');
+
+            if (data.status === 'unavailable' || !sectors || sectors.length === 0) {
+                const emptyMsg = '<span style="font-size:0.75rem;color: var(--text-muted, #94a3b8);">No live sector feed</span>';
+                document.getElementById('leadingSectors').innerHTML = emptyMsg;
+                document.getElementById('improvingSectors').innerHTML = emptyMsg;
+                document.getElementById('weakeningSectors').innerHTML = emptyMsg;
+                document.getElementById('laggingSectors').innerHTML = emptyMsg;
+                if (tb) {
+                    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2rem;"><i class="fas fa-info-circle mr-2"></i> Live production feed not connected — no sector matrix data available</td></tr>';
+                }
+                return;
+            }
 
             // Group into quadrants
             const quadMap = { LEADING: [], IMPROVING: [], WEAKENING: [], LAGGING: [] };
@@ -140,19 +147,21 @@
             document.getElementById('laggingSectors').innerHTML = renderCardList(quadMap.LAGGING);
 
             // Table
-            document.getElementById('sectorTableBody').innerHTML = sectors.map(s => `
-                <tr>
-                    <td><strong>${s.sector}</strong></td>
-                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:600;">${s.rs_ratio.toFixed(1)}</td>
-                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;color:${s.rs_momentum >= 100 ? 'var(--success-color, #4ade80)' : 'var(--danger-color, #f87171)'};">${s.rs_momentum.toFixed(1)}</td>
-                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:600;color:${s.day_change_pct >= 0 ? 'var(--success-color, #4ade80)' : 'var(--danger-color, #f87171)'};">
-                        ${s.day_change_pct >= 0 ? '+' : ''}${s.day_change_pct}%
-                    </td>
-                    <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${s.turnover_cr.toLocaleString('en-IN')} Cr</td>
-                    <td>${quadrantBadge(s.quadrant)}</td>
-                    <td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);">${s.commentary}</td>
-                </tr>
-            `).join('');
+            if (tb) {
+                tb.innerHTML = sectors.map(s => `
+                    <tr>
+                        <td><strong>${s.sector}</strong></td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:600;">${s.rs_ratio.toFixed(1)}</td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;color:${s.rs_momentum >= 100 ? 'var(--success-color, #4ade80)' : 'var(--danger-color, #f87171)'};">${s.rs_momentum.toFixed(1)}</td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:600;color:${s.day_change_pct >= 0 ? 'var(--success-color, #4ade80)' : 'var(--danger-color, #f87171)'};">
+                            ${s.day_change_pct >= 0 ? '+' : ''}${s.day_change_pct}%
+                        </td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;">₹${s.turnover_cr.toLocaleString('en-IN')} Cr</td>
+                        <td>${quadrantBadge(s.quadrant)}</td>
+                        <td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);">${s.commentary}</td>
+                    </tr>
+                `).join('');
+            }
         }
 
         loadSectorRadar();

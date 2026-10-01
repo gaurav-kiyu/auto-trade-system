@@ -1,0 +1,95 @@
+{
+  "governance": {
+    "constitution": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "timestamp": "2026-09-30T09:40:00+05:30",
+    "mode": "PRODUCTION application / PAPER trading / SIGNAL_ONLY",
+    "triple_head_parity": {
+      "local_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+      "github_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+      "ec2_head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+      "exact_match": true
+    },
+    "parent_head": "2769e6154728b6519c4cfa7d25478f7eb38a6d76",
+    "baseline": "d4271ff"
+  },
+  "d26_a_taxonomy": {
+    "status": "CLOSED",
+    "canonical_category_count": 10,
+    "equity_intraday_created": false,
+    "cash_equities_in_stock_options": 0,
+    "spot_indices_presentation": "Index Spot Directional (is_option=False)"
+  },
+  "d26_b_futures": {
+    "status": "CLOSED",
+    "price_source": "resolve_futures_market_price",
+    "fail_closed_gate": true,
+    "spot_cash_fallback": false,
+    "t1_t2_sl_derived_from": "fut_price",
+    "futures_enabled_production": false
+  },
+  "deployment_verification": {
+    "host": "13.235.226.207",
+    "container": "opb_bot",
+    "status": "healthy",
+    "processes": {
+      "opb_bot": "RUNNING (PID 7)",
+      "opb_scanner": "RUNNING (PID 8)"
+    },
+    "endpoints": {
+      "/health": 200,
+      "/api/health": 200,
+      "/login": 200
+    },
+    "safety_invariants": {
+      "execution_mode": "SIGNAL_ONLY",
+      "futures_enabled": false,
+      "full_auto_allowed": false,
+      "live_trading_lockout": true,
+      "broker_calls": 0,
+      "orders": 0
+    }
+  },
+  "live_session_evidence": {
+    "session_date": "2026-09-30",
+    "market_status": "OPEN",
+    "scan_cycles": 16,
+    "total_signals_today": 2,
+    "categories_today": {
+      "COMMODITIES": 2,
+      "STOCK_OPTIONS": 0,
+      "LARGE_CAP_EQUITY": 0,
+      "MID_SMALL_CAP": 0,
+      "FUTURES": 0
+    },
+    "cash_misclassification_count": 0,
+    "d20_a_filtering": "Active (filtered 3 sub-threshold/breakout index setups)",
+    "d20_b_filtering": "Active (0 duplicate alerts dispatched)"
+  },
+  "decision_tree": {
+    "taxonomy_purity_d26_a": "CLOSED",
+    "futures_pricing_parity_d26_b": "CLOSED",
+    "d20_a_options_gate": "CLOSED",
+    "d20_b_index_session_dedup": "CLOSED",
+    "ec2_deployment_parity": "CLOSED",
+    "entry_validity_observation": "OBSERVATION ONLY",
+    "target_feasibility_options": "BLOCKED BY MISSING DATA",
+    "futures_production_generation": "REQUIRES SEPARATE APPROVAL",
+    "target_probability_calibration": "INSUFFICIENT SAMPLE (< 150 forward observations)",
+    "phase_e": "STRICTLY BLOCKED"
+  },
+  "safety_accounting": {
+    "historical_db_writes": 0,
+    "historical_rows_modified": 0,
+    "historical_rows_deleted": 0,
+    "synthetic_data": 0,
+    "broker_calls": 0,
+    "orders": 0,
+    "ec2_modifications": "Authorized D26 Git pull only (0 manual patches, 0 config mutations, 0 DB edits)",
+    "github_pushes": 1,
+    "production_config_changes": 0,
+    "futures_enabled_activation": 0,
+    "d20_c_activation": 0,
+    "phase_e_activation": 0,
+    "git_commits": 1
+  }
+}

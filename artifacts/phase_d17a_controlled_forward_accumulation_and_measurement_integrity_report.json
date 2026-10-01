@@ -1,0 +1,146 @@
+{
+  "audit_version": "v2.60-D17A-20260929",
+  "audit_date": "2026-09-29",
+  "session_status": "SESSION_ACTIVE",
+  "operational_mode": "PRODUCTION_PAPER_SIGNAL_ONLY",
+  "git": {
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "head_sha": "96b525aaa42151c735f250c712ac3535d9a2b58c",
+    "production_baseline_sha": "d4271ffb75376e404e9d6e28fae2a5f8c0a8e2a4",
+    "clean_core": true
+  },
+  "safety": {
+    "execution_mode": "SIGNAL_ONLY",
+    "signal_only": true,
+    "live_trading_lockout": true,
+    "full_auto_allowed": false,
+    "broker_api_enabled": false,
+    "broker_driver": "GENERIC",
+    "broker_routing_disconnected": true,
+    "live_orders_placed": 0,
+    "broker_calls": 0,
+    "is_safe": true,
+    "violations": []
+  },
+  "cohort_census": {
+    "total_registered": 101,
+    "resolved": 32,
+    "observing": 69,
+    "terminal_outcomes": {
+      "TIMEOUT": 32,
+      "UNRESOLVED": 69
+    },
+    "by_category": {
+      "EQUITY_SWING_DELIVERY": {
+        "total": 31,
+        "resolved": 0,
+        "observing": 31,
+        "classification": "VALID_OBSERVING"
+      },
+      "STOCK_OPTIONS": {
+        "total": 31,
+        "resolved": 30,
+        "observing": 1,
+        "classification": "VALID_UNDERLYING_DIRECTIONAL"
+      },
+      "INDEX_OPTIONS": {
+        "total": 1,
+        "resolved": 1,
+        "observing": 0,
+        "classification": "VALID_RESOLVED"
+      },
+      "FUTURES": {
+        "total": 38,
+        "resolved": 1,
+        "observing": 37,
+        "classification": "DATA_QUALITY_AFFECTED",
+        "affected_count": 38,
+        "defect_reason": "Missing contract price feed in scanner price loop; entry_price == current_price (100% affected)"
+      },
+      "COMMODITIES": {
+        "total": 0,
+        "resolved": 0,
+        "observing": 0,
+        "classification": "NONE"
+      }
+    }
+  },
+  "signal_funnel": {
+    "scanned_universe": 2602,
+    "strategy_candidates_accepted": 260,
+    "selected_ranked": 89,
+    "persisted_signals": 101,
+    "parent_cash_signals": 62,
+    "derived_futures_signals": 38,
+    "derived_index_options": 1,
+    "rate_governance_bypass": true,
+    "bypass_root_cause": "_dispatch_futures_alert_if_eligible() does not evaluate _rate_limit_allows_dispatch() or _daily_signal_limit_allows_dispatch()"
+  },
+  "score_distribution": {
+    "n": 101,
+    "bands": {
+      "<60": 0,
+      "60-69": 0,
+      "70-79": 7,
+      "80-89": 43,
+      "90-99": 32,
+      "100": 19
+    },
+    "saturation_rate_pct": 18.8,
+    "average_raw_score": 91.85,
+    "median_raw_score": 91.0,
+    "average_final_score": 90.66,
+    "median_final_score": 90.0,
+    "min_score": 72,
+    "max_score": 100
+  },
+  "regime_transition": {
+    "evaluated": 101,
+    "positive_adjustments": 0,
+    "zero_adjustments": 101,
+    "negative_adjustments": 0,
+    "finding": "Regime was constant during session; zero adjustment is expected behavior"
+  },
+  "measurement_pipeline_audits": {
+    "futures_defect": {
+      "confirmed": true,
+      "defect_id": "DEF-PHASE-D17-FUTURES-PRICE-FEED-DISCONNECT",
+      "affected_records": 38,
+      "description": "Scanner polls cash equities only; futures contract symbols receive no price ticks or bars; entry == current price"
+    },
+    "stock_options_semantics": {
+      "classification": "TYPE_B_UNDERLYING_DIRECTIONAL",
+      "symbol_level": "EQUITY_SPOT",
+      "pricing_basis": "UNDERLYING_CASH_SPOT_LTP",
+      "is_option_premium": false
+    },
+    "first_touch_sampling": {
+      "mechanism": "TICK_EVALUATION_SAMPLED_LTP",
+      "bar_high_low_used_in_scanner": false,
+      "risk": "Intra-cycle wick touches may be missed between 60s polls"
+    }
+  },
+  "gates": {
+    "G1": {
+      "passed": false,
+      "actual": {"70-74": 0, "75-79": 0, "80-84": 5, "85+": 27},
+      "required": 100
+    },
+    "G2": {
+      "passed": false,
+      "actual": 32,
+      "required": 300
+    },
+    "G3": {
+      "passed": false,
+      "actual": 1,
+      "required": 2
+    },
+    "G4": {
+      "passed": true,
+      "actual": {"dq_error_rate": 0.0, "stale_rate": 0.0}
+    }
+  },
+  "decision_classification": "CASE_B_AND_CASE_C",
+  "verdict": "MEASUREMENT DEFECT IN DERIVED FUTURES QUOTES & DUPLICATE RATE-LIMIT BYPASS IDENTIFIED — NO MODEL CHANGES MADE — BASELINE PRESERVED"
+}

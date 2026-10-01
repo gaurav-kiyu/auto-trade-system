@@ -86,5 +86,5 @@ def test_diagnostic_report_structure(clean_registry):
 
     sector = report["capabilities"]["sector_radar"]
     assert sector["route"] == "/sector-radar"
-    assert sector["is_demo_only"] is True
-    assert "sample data only" in sector["reason"]
+    assert sector["is_demo_only"] is False
+    assert "Live production feed not connected" in sector["reason"]

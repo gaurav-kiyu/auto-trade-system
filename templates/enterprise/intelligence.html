@@ -198,7 +198,7 @@
                 <h3>Code Quality History</h3>
                 <button id="cspfix-2" class="btn" type="button"><i class="fas fa-sync"></i> Refresh</button>
             </div>
-            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Code quality history table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
 <table>
                 <thead><tr><th>Date</th><th>Modules</th><th>Symbols</th><th>Lines</th><th>Smells</th><th>Coverage</th><th>Complexity</th></tr></thead>
                 <tbody id="qualityHistoryBody"><tr><td colspan="7" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
@@ -289,13 +289,13 @@
         <div class="grid-2">
             <div class="card">
                 <h3>By Type</h3>
-                <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+                <div class="table-responsive" tabindex="0" role="region" aria-label="Incidents by type table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
 <table><thead><tr><th>Type</th><th>Count</th></tr></thead><tbody id="incidentByType"><tr><td colspan="2" style="text-align:center;color: var(--text-muted, #94a3b8);">No data</td></tr></tbody></table>
 </div>
             </div>
             <div class="card">
                 <h3>By Severity</h3>
-                <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+                <div class="table-responsive" tabindex="0" role="region" aria-label="Incidents by severity table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
 <table><thead><tr><th>Severity</th><th>Count</th></tr></thead><tbody id="incidentBySeverity"><tr><td colspan="2" style="text-align:center;color: var(--text-muted, #94a3b8);">No data</td></tr></tbody></table>
 </div>
             </div>
@@ -316,7 +316,7 @@
                 <h3>Recent Deployments</h3>
                 <button id="cspfix-7" class="btn" type="button"><i class="fas fa-sync"></i> Refresh</button>
             </div>
-            <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Recent deployments table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
 <table><thead><tr><th>Date</th><th>Hash</th><th>Message</th><th>Files</th><th>Added</th><th>Deleted</th></tr></thead>
                 <tbody id="deploymentsBody"><tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading...</td></tr></tbody>
             </table>
@@ -378,7 +378,7 @@
                     <h3>Open Incidents</h3>
                     <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Click buttons to manage</div>
                 </div>
-                <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+                <div class="table-responsive" tabindex="0" role="region" aria-label="Open incidents table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
 <table>
                     <thead>
                         <tr>
@@ -405,7 +405,7 @@
                     <h3>Recent Incident History</h3>
                     <button id="cspfix-11" class="btn" type="button"><i class="fas fa-sync"></i> Refresh</button>
                 </div>
-                <div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
+                <div class="table-responsive" tabindex="0" role="region" aria-label="Recent incident history table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;">
 <table>
                     <thead>
                         <tr>
@@ -685,7 +685,7 @@
                 html += '</div>';
 
                 if (r.secrets_found && r.secrets_found.length) {
-                    html += '<h3 style="margin-bottom:0.5rem;color: var(--danger-color, #dc2626);">Hardcoded Secrets</h3><div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>File</th><th>Line</th><th>Pattern</th><th>Severity</th></tr></thead><tbody>';
+                    html += '<h3 style="margin-bottom:0.5rem;color: var(--danger-color, #dc2626);">Hardcoded Secrets</h3><div class="table-responsive" tabindex="0" role="region" aria-label="Hardcoded secrets table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>File</th><th>Line</th><th>Pattern</th><th>Severity</th></tr></thead><tbody>';
                     r.secrets_found.slice(0,10).forEach(function(s) {
                         html += '<tr><td style="font-size:0.7rem;">'+s.file_path.split('/').pop()+'</td><td>'+s.line_number+'</td><td>'+s.pattern_name+'</td><td>'+badge(s.severity)+'</td></tr>';
                     });
@@ -693,7 +693,7 @@
                 }
 
                 if (r.insecure_imports && r.insecure_imports.length) {
-                    html += '<h3 style="margin-bottom:0.5rem;margin-top:0.75rem;">Pattern &amp; Import Audit Findings ('+r.insecure_imports.length+' Low-Severity Non-Crypto Checksum/PRNG Uses)</h3><div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>File</th><th>Line</th><th>Pattern</th><th>Severity</th><th>Score Impact</th></tr></thead><tbody>';
+                    html += '<h3 style="margin-bottom:0.5rem;margin-top:0.75rem;">Pattern &amp; Import Audit Findings ('+r.insecure_imports.length+' Low-Severity Non-Crypto Checksum/PRNG Uses)</h3><div class="table-responsive" tabindex="0" role="region" aria-label="Pattern and import audit findings table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>File</th><th>Line</th><th>Pattern</th><th>Severity</th><th>Score Impact</th></tr></thead><tbody>';
                     r.insecure_imports.slice(0,10).forEach(function(imp) {
                         const impact = imp.severity === 'CRITICAL' ? '-2.0' : imp.severity === 'HIGH' ? '-1.0' : imp.severity === 'MEDIUM' ? '-0.5' : '-0.2';
                         html += '<tr><td style="font-size:0.75rem;font-family:monospace;">'+imp.file_path.split('/').pop()+'</td><td>'+imp.line_number+'</td><td>'+imp.pattern_name+'</td><td>'+badge(imp.severity)+'</td><td>'+impact+'</td></tr>';
@@ -702,7 +702,7 @@
                 }
 
                 if (r.dependency_vulns && r.dependency_vulns.length) {
-                    html += '<h3 style="margin-bottom:0.5rem;margin-top:1rem;color:#fbbf24;">Dependency Vulns</h3><div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>Package</th><th>Version</th><th>Description</th></tr></thead><tbody>';
+                    html += '<h3 style="margin-bottom:0.5rem;margin-top:1rem;color:#fbbf24;">Dependency Vulns</h3><div class="table-responsive" tabindex="0" role="region" aria-label="Dependency vulnerabilities table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>Package</th><th>Version</th><th>Description</th></tr></thead><tbody>';
                     r.dependency_vulns.slice(0,5).forEach(function(d) {
                         html += '<tr><td>'+d.package_name+'</td><td>'+d.installed_version+'</td><td>'+d.description+'</td></tr>';
                     });
@@ -757,14 +757,14 @@
                 const scoreColor = r.overall_score >= 8 ? 'var(--success-color)' : r.overall_score >= 6 ? 'var(--warning-color)' : (hasValidScore ? 'var(--danger-color)' : 'var(--text-muted)');
                 let html = '<div class="grid-3" style="margin-bottom:1rem;">';
                 html += '<div class="stat-card"><div class="stat-value" style="color:'+scoreColor+';font-variant-numeric:tabular-nums;">'+scoreDisplay+'</div><div class="stat-label">'+scoreSub+'</div></div>';
-                html += '<div class="stat-card"><div class="stat-value" style="font-variant-numeric:tabular-nums;">'+(r.findings_count ?? 0)+'</div><div class="stat-label">Issues Found</div></div>';
-                html += '<div class="stat-card"><div class="stat-value" style="color:'+(r.cache_opportunities_count>0?'var(--accent-color)':'var(--success-color)')+';font-variant-numeric:tabular-nums;">'+(r.cache_opportunities_count ?? 0)+'</div><div class="stat-label">Cache Ops</div></div>';
+                html += '<div class="stat-card"><div class="stat-value" style="font-variant-numeric:tabular-nums;">'+(r.findings_count ?? 0)+'</div><div class="stat-label">Static AST Findings</div></div>';
+                html += '<div class="stat-card"><div class="stat-value" style="color:'+(r.cache_opportunities_count>0?'var(--accent-color)':'var(--success-color)')+';font-variant-numeric:tabular-nums;">'+(r.cache_opportunities_count ?? 0)+'</div><div class="stat-label">Cache Opportunities (Static AST)</div></div>';
                 html += '</div>';
 
                 if (r.findings && r.findings.length) {
                     html += '<h3 style="margin-bottom:0.25rem;">STATIC CODE ANALYSIS FINDINGS</h3>';
                     html += '<p style="margin:0 0 0.5rem 0;font-size:0.75rem;color:var(--text-muted);">(AST / Static Code Scan — Zero Runtime Impact)</p>';
-                    html += '<div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>File</th><th>Issue</th><th>Severity</th></tr></thead><tbody>';
+                    html += '<div class="table-responsive" tabindex="0" role="region" aria-label="Static code analysis findings table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>File</th><th>Issue</th><th>Severity</th></tr></thead><tbody>';
                     r.findings.slice(0,10).forEach(function(f) {
                         html += '<tr><td style="font-size:0.7rem;font-family:monospace;">'+f.file_path.split('/').pop()+'</td><td>'+f.pattern_name+'</td><td>'+badge(f.severity)+'</td></tr>';
                     });
@@ -828,7 +828,7 @@
 
                 // Check results
                 if (r.check_results) {
-                    html += '<h3 style="margin-bottom:0.5rem;">Check Results</h3><div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>Check</th><th>Status</th><th>Violations</th></tr></thead><tbody>';
+                    html += '<h3 style="margin-bottom:0.5rem;">Check Results</h3><div class="table-responsive" tabindex="0" role="region" aria-label="Architecture check results table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>Check</th><th>Status</th><th>Violations</th></tr></thead><tbody>';
                     Object.entries(r.check_results).forEach(function([name, res]) {
                         const passed = res.passed;
                         html += '<tr><td>'+name+'</td><td>'+(passed ? '<span style="color: var(--success-color, #16a34a);">\u2705 Pass</span>' : '<span style="color: var(--danger-color, #dc2626);">\u274c Fail</span>')+'</td><td>'+res.violations+'</td></tr>';
@@ -837,7 +837,7 @@
                 }
 
                 if (r.violations && r.violations.length) {
-                    html += '<h3 style="margin-bottom:0.5rem;margin-top:1rem;color: var(--danger-color, #dc2626);">Violations</h3><div class="table-responsive" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>Check</th><th>Module</th><th>Message</th><th>Severity</th></tr></thead><tbody>';
+                    html += '<h3 style="margin-bottom:0.5rem;margin-top:1rem;color: var(--danger-color, #dc2626);">Violations</h3><div class="table-responsive" tabindex="0" role="region" aria-label="Architecture violations table" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:0.75rem;"><table><thead><tr><th>Check</th><th>Module</th><th>Message</th><th>Severity</th></tr></thead><tbody>';
                     r.violations.slice(0,8).forEach(function(v) {
                         html += '<tr><td>'+v.check_name+'</td><td style="font-size:0.7rem;">'+v.module+'</td><td style="font-size:0.7rem;">'+v.message+'</td><td>'+badge(v.severity)+'</td></tr>';
                     });

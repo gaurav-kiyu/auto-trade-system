@@ -268,9 +268,9 @@ class _SlideBuilder:
 
 def _build_executive(b: _SlideBuilder, data: dict[str, Any]) -> None:
     """Executive template — 10 slides: title, mission, KPIs, risk, performance, security, deployment, certification, recommendations, final."""
-    version = str(data.get("version", "2.59.4"))
+    version = str(data.get("version", "2.60.0"))
     date = str(data.get("date", time.strftime("%B %Y")))
-    score = str(data.get("score", "9.6/10"))
+    score = str(data.get("score", "Architecture Benchmark"))
     strengths = data.get("strengths", [
         "Capital preservation — Max 1.5% risk per trade",
         "15+ pre-trade risk gates",
@@ -434,7 +434,7 @@ def _build_executive(b: _SlideBuilder, data: dict[str, Any]) -> None:
     p2.text = ""
     p2.font.size = Pt(8)
     p3 = tf.add_paragraph()
-    p3.text = data.get("verdict", "Production Certified")
+    p3.text = data.get("verdict", "Institutional Architecture (Paper Validation Mode)")
     p3.font.size = Pt(28)
     p3.font.bold = True
     p3.font.color.rgb = b._t["accent"]
@@ -460,7 +460,7 @@ def _build_executive(b: _SlideBuilder, data: dict[str, Any]) -> None:
 
 def _build_developer(b: _SlideBuilder, data: dict[str, Any]) -> None:
     """Developer template — 12 slides: title, architecture, components, data flow, stack, coverage, modules, CI/CD, API, testing, observability, next."""
-    version = str(data.get("version", "2.59.4"))
+    version = str(data.get("version", "2.60.0"))
 
     # Slide 1 — Title
     slide = b.new_slide()
@@ -683,7 +683,7 @@ def _build_developer(b: _SlideBuilder, data: dict[str, Any]) -> None:
 
 def _build_client(b: _SlideBuilder, data: dict[str, Any]) -> None:
     """Client template — 11 slides: title, overview, features, security, performance, roadmap, support, pricing, architecture, certification, contact."""
-    version = str(data.get("version", "2.59.4"))
+    version = str(data.get("version", "2.60.0"))
 
     # Slide 1 — Title
     slide = b.new_slide()
@@ -693,7 +693,7 @@ def _build_client(b: _SlideBuilder, data: dict[str, Any]) -> None:
                    font_size=40, bold=True, alignment=PP_ALIGN.CENTER)
     b._add_textbox(slide, 1, 3.3, 11, 0.6, "Automated NSE Index Options Trading — Institutional Grade",
                    font_size=18, color=b._t["muted"], alignment=PP_ALIGN.CENTER)
-    b._add_textbox(slide, 2, 4.5, 9, 0.8, "Product Overview  |  Production Certified",
+    b._add_textbox(slide, 2, 4.5, 9, 0.8, "Product Overview  |  Institutional Architecture (Paper Validation Mode)",
                    font_size=16, color=b._t["accent"], alignment=PP_ALIGN.CENTER)
 
     # Slide 2 — Product Overview
@@ -784,7 +784,7 @@ def _build_client(b: _SlideBuilder, data: dict[str, Any]) -> None:
     b._add_title_bar(slide, "Product Roadmap")
     roadmap_headers = ["Phase", "Features", "Timeline"]
     roadmap_rows = data.get("roadmap_rows", [
-        ["Current (v2.59.4)", "Hardened multi-asset runtime, fail-closed auth/billing, 100% CI pass", "Active Certified"],
+        ["Current (v2.60.0)", "Hardened multi-asset runtime, fail-closed auth/billing, 100% CI pass", "Active Forward Validation"],
         ["Next", "Expanded multi-asset live execution & automated PSP", "Planned"],
         ["Future", "Commodities, Currency direct routing", "Roadmap"],
     ])
@@ -989,7 +989,7 @@ class PresentationGenerator:
                 return ver_file.read_text(encoding="utf-8").strip()
         except (OSError, UnicodeDecodeError) as exc:
             log.debug("[PRESENTATION] Version fetch failed: %s", exc)
-        return "2.59.4"
+        return "2.60.0"
 
     # Simple module-level cache for file counts (30 second TTL)
     _file_count_cache: dict[str, Any] | None = None

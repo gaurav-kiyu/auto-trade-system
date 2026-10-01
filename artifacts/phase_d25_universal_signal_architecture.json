@@ -1,0 +1,311 @@
+{
+  "metadata": {
+    "report_id": "OPB-PHASE-D25-UNIVERSAL-SIGNAL-ARCHITECTURE",
+    "governance": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "timestamp": "2026-09-30T00:30:00+05:30",
+    "git_branch": "v2.60-phase-d-candle-selection-remediation",
+    "git_head": "2769e6154728b6519c4cfa7d25478f7eb38a6d76",
+    "operational_mode": "PRODUCTION / PAPER / SIGNAL_ONLY",
+    "safety_metrics": {
+      "code_changes": 0,
+      "production_config_changes": 0,
+      "db_writes": 0,
+      "git_commits": 0,
+      "git_pushes": 0,
+      "ec2_deployment": 0,
+      "service_restart": 0,
+      "broker_calls": 0,
+      "d20_c_activation": 0,
+      "phase_e_activation": 0
+    }
+  },
+  "universal_lifecycle_stages": [
+    {
+      "step": 1,
+      "stage": "MARKET_DATA",
+      "current_module": "core/all_nse_scanner.py:fetch_live_data",
+      "proposed_module": "core/market_data_engine.py",
+      "contract_inputs": "WebSocket / REST Ticks",
+      "contract_outputs": "Tick / Bar Stream"
+    },
+    {
+      "step": 2,
+      "stage": "CANDIDATE_DISCOVERY",
+      "current_module": "core/all_nse_scanner.py:scan_universe",
+      "proposed_module": "core/scanner/candidate_discovery.py",
+      "contract_inputs": "Universe symbols, 15m/daily bars",
+      "contract_outputs": "Raw Candidate List"
+    },
+    {
+      "step": 3,
+      "stage": "CATEGORY_CLASSIFICATION",
+      "current_module": "core/fno_universe.py:get_category_for_symbol",
+      "proposed_module": "core/taxonomy/category_classifier.py",
+      "contract_inputs": "Symbol, Asset Class",
+      "contract_outputs": "Canonical Category (1 of 10)"
+    },
+    {
+      "step": 4,
+      "stage": "INSTRUMENT_SELECTION",
+      "current_module": "ABSENT (Assumed Spot Symbol)",
+      "proposed_module": "core/derivatives/instrument_resolver.py",
+      "contract_inputs": "Underlying, Direction, Expiry preference",
+      "contract_outputs": "Canonical Tradable Contract"
+    },
+    {
+      "step": 5,
+      "stage": "DIRECTION",
+      "current_module": "core/all_nse_scanner.py:_evaluate_breakout",
+      "proposed_module": "core/strategy/directional_engine.py",
+      "contract_inputs": "Price, EMA9/21, VWAP, Supertrend",
+      "contract_outputs": "BUY / SELL (CALL / PUT)"
+    },
+    {
+      "step": 6,
+      "stage": "SETUP_SCORE",
+      "current_module": "core/signal_utils.py:calculate_setup_score",
+      "proposed_module": "core/scoring/setup_score_engine.py",
+      "contract_inputs": "Technical Indicators, Volume, Trend",
+      "contract_outputs": "Integer Score [0-100]"
+    },
+    {
+      "step": 7,
+      "stage": "ENTRY_VALIDITY",
+      "current_module": "ABSENT (Immediate trigger)",
+      "proposed_module": "core/signals/entry_validity_engine.py",
+      "contract_inputs": "T_CREATE, Current Price, Trigger Price",
+      "contract_outputs": "T_ENTRY_VALID_FROM, T_ENTRY_VALID_UNTIL, Range"
+    },
+    {
+      "step": 8,
+      "stage": "TARGET_FEASIBILITY",
+      "current_module": "ABSENT (Hardcoded +4% / +8%)",
+      "proposed_module": "core/signals/target_feasibility_engine.py",
+      "contract_inputs": "ATR, Volatility, Session Remaining, Spread",
+      "contract_outputs": "PASS / FAIL / INSUFFICIENT_DATA, Reason"
+    },
+    {
+      "step": 9,
+      "stage": "TARGET_SL_CONSTRUCTION",
+      "current_module": "core/all_nse_scanner.py:build_alert",
+      "proposed_module": "core/signals/target_sl_builder.py",
+      "contract_inputs": "Tradable Contract, Category, Feasibility",
+      "contract_outputs": "T1, T2, SL in Tradable Basis"
+    },
+    {
+      "step": 10,
+      "stage": "SIGNAL_DELIVERY",
+      "current_module": "core/all_nse_scanner.py:dispatch_alert",
+      "proposed_module": "core/dispatch/signal_dispatcher.py",
+      "contract_inputs": "Canonical Signal Payload",
+      "contract_outputs": "DB Record, Telegram, WebSocket broadcast"
+    },
+    {
+      "step": 11,
+      "stage": "ENTRY_EXECUTION",
+      "current_module": "infrastructure/adapters/paper_broker.py",
+      "proposed_module": "core/execution/entry_manager.py",
+      "contract_inputs": "Signal ID, Limit Order",
+      "contract_outputs": "Filled Execution / Cancelled Drift"
+    },
+    {
+      "step": 12,
+      "stage": "ACTIVE_POSITION",
+      "current_module": "core/signals/signal_tracker.py",
+      "proposed_module": "core/portfolio/active_position_tracker.py",
+      "contract_inputs": "Filled Position, Live Contract Ticks",
+      "contract_outputs": "Position State (OPEN)"
+    },
+    {
+      "step": 13,
+      "stage": "T1_T2_SL_MONITORING",
+      "current_module": "core/signals/signal_outcome_tracker.py",
+      "proposed_module": "core/signals/outcome_monitor.py",
+      "contract_inputs": "Contract Completed Candles (R3)",
+      "contract_outputs": "First-Touch State, Trailing State"
+    },
+    {
+      "step": 14,
+      "stage": "POSITION_EXPIRY",
+      "current_module": "core/signals/signal_outcome_tracker.py (Hardcoded 15:30)",
+      "proposed_module": "core/signals/expiry_manager.py",
+      "contract_inputs": "T_POSITION_EXPIRY, Category Horizon",
+      "contract_outputs": "Auto-Squareoff / Expiry Event"
+    },
+    {
+      "step": 15,
+      "stage": "OUTCOME_RESOLUTION",
+      "current_module": "core/signals/signal_outcome_tracker.py:_record_outcome",
+      "proposed_module": "core/signals/outcome_resolver.py",
+      "contract_inputs": "Hit Event, Price Parity Verification",
+      "contract_outputs": "T1_HIT / SL_HIT / EXPIRED / CANCELLED"
+    },
+    {
+      "step": 16,
+      "stage": "MFE_MAE_TRACKING",
+      "current_module": "core/signals/signal_outcome_tracker.py",
+      "proposed_module": "core/analytics/excursion_engine.py",
+      "contract_inputs": "High/Low since Entry in Contract Price",
+      "contract_outputs": "MFE %, MAE %, Efficiency Ratio"
+    },
+    {
+      "step": 17,
+      "stage": "ANALYTICS_CALIBRATION",
+      "current_module": "ABSENT (Raw SQL queries)",
+      "proposed_module": "core/analytics/calibration_engine.py",
+      "contract_inputs": "Resolved Forward Observations",
+      "contract_outputs": "Calibrated Target Probability Models"
+    }
+  ],
+  "four_independent_timestamps": {
+    "T_CREATE": "Exact microsecond timestamp when scanner identified candle close pattern and created signal record",
+    "T_ENTRY_VALID_FROM": "Timestamp when signal becomes active for order execution (e.g. at confirmation candle open)",
+    "T_ENTRY_VALID_UNTIL": "Entry By deadline (e.g. T_CREATE + 15 min for Swing, +5 min for Options); order cancels if unfilled",
+    "T_POSITION_EXPIRY": "Absolute position horizon (15:15 IST intraday, 5 trading days for Swing, or contract expiry date)"
+  },
+  "feasibility_engine_specification": {
+    "engine_class": "core.signals.target_feasibility_engine.TargetFeasibilityEngine",
+    "evaluation_rule": "Fail-Closed: If required market data or metrics are missing, returns INSUFFICIENT_DATA and blocks emission",
+    "status_enum": [
+      "PASS",
+      "FAIL",
+      "INSUFFICIENT_DATA"
+    ],
+    "machine_readable_reasons": [
+      "TARGET_TOO_FAR",
+      "INSUFFICIENT_REMAINING_MOVE",
+      "RANGE_ALREADY_CONSUMED",
+      "LOW_LIQUIDITY",
+      "WIDE_SPREAD",
+      "EXPIRY_TOO_CLOSE",
+      "INSUFFICIENT_VOLATILITY",
+      "STALE_DATA",
+      "MISSING_DATA",
+      "CIRCUIT_LIMIT_BREACH"
+    ],
+    "category_logic": {
+      "EQUITY_SWING_DELIVERY": "Passes if Target T1 (4.0%) <= 0.8 * (5 * Daily ATR). Checks that entry price is not extended > 3% from 20 EMA.",
+      "INDEX_OPTIONS": "Evaluates genuine Option Premium Target (+25%). Passes if Underlying Expected Move * Delta >= Target Premium Move and Theta Decay * Expected Hours <= 0.20 * Target Premium.",
+      "STOCK_OPTIONS": "Passes if Stock Expected Move * Delta >= Target Premium Move and Open Interest >= 1,000 contracts.",
+      "FUTURES": "Passes if Contract Target (1.0x ATR) <= Remaining Daily Expected Range.",
+      "LOW_SAMPLE": "Returns INSUFFICIENT_DATA / OBSERVATION_ONLY until sample size >= 100."
+    }
+  },
+  "presentation_contract_payload": {
+    "signal_id": "SIG-20260930093000-NIFTY24SEP25000CE-a1b2c3",
+    "created_at": "2026-09-30T09:30:00.123456+05:30",
+    "category": "INDEX_OPTIONS",
+    "instrument_type": "OPTION_BUYING",
+    "underlying": "NIFTY",
+    "tradable_symbol": "NIFTY24SEP25000CE",
+    "direction": "CALL",
+    "entry_price": 185.5,
+    "entry_range": [
+      185.5,
+      188.25
+    ],
+    "valid_from": "2026-09-30T09:30:00+05:30",
+    "entry_by": "2026-09-30T09:35:00+05:30",
+    "target_basis": "OPTION_PREMIUM_POINTS",
+    "t1": 231.85,
+    "t2": 278.25,
+    "sl": 148.4,
+    "position_expiry": "2026-09-30T15:15:00+05:30",
+    "feasibility_status": "PASS",
+    "feasibility_reason": "FEASIBLE_DELTA_ATR_EXPANSION",
+    "score": 92,
+    "score_bucket": "90-100 (ELITE)",
+    "probability_status": "UNAVAILABLE_SAMPLE_COLLECTION",
+    "probability_t1": null,
+    "liquidity_status": "HIGH (OI: 125,400 lots, Spread: 0.50 INR)",
+    "data_quality_status": "VERIFIED_LIVE_FEED",
+    "outcome_basis": "NIFTY24SEP25000CE_COMPLETED_1M_BARS"
+  },
+  "implementation_readiness_roadmap": {
+    "P0_INSTRUMENT_TRUTH": [
+      {
+        "id": "P0-01",
+        "item": "Index Option Genuine Contract Architecture",
+        "file": "core/all_nse_scanner.py",
+        "target_class_function": "AllNSEScanner._dispatch_index_option_alert",
+        "current_behavior": "Emits synthetic symbol string with cash spot index price (e.g. 23500) and +4% spot target.",
+        "desired_behavior": "Calls core/option_chain_json.py to resolve ATM/1-OTM contract, fetches live premium LTP from core/live_option_quotes.py, sets premium targets (+25%).",
+        "data_contract": "Emits tradable_symbol = contract name, price = option LTP, target_1 = LTP * 1.25.",
+        "test_strategy": "Unit test in tests/test_index_option_truth.py asserting contract LTP and Greeks exist on every emitted alert.",
+        "rollback_strategy": "Feature flag GENUINE_OPTION_RESOLVER_ENABLED = False fallback to disabled state."
+      },
+      {
+        "id": "P0-02",
+        "item": "Stock Option Taxonomy & Contract Parity",
+        "file": "core/fno_universe.py",
+        "target_class_function": "get_category_for_symbol / AllNSEScanner.scan_stocks",
+        "current_behavior": "Tags cash equities in FNO_EQUITY_STOCKS as STOCK_OPTIONS, measuring spot price against +4% intraday.",
+        "desired_behavior": "Reclassifies cash equities to EQUITY_INTRADAY (or EQUITY_SWING_DELIVERY), or resolves genuine stock option chain contract.",
+        "data_contract": "Clear separation: Cash stocks emit cash category; derivative options emit option contract payload.",
+        "test_strategy": "Regression test in tests/test_stock_option_taxonomy.py verifying no cash equity is tagged as STOCK_OPTIONS without contract.",
+        "rollback_strategy": "Revert taxonomy mapping in core/fno_universe.py."
+      },
+      {
+        "id": "P0-03",
+        "item": "Futures Contract Resolution & Generator Price Truth",
+        "file": "core/all_nse_scanner.py",
+        "target_class_function": "AllNSEScanner._dispatch_futures_alert_if_eligible",
+        "current_behavior": "Inherited parent_signal.price (cash spot) while contract resolver tracked futures bars.",
+        "desired_behavior": "Scanner fetches near-month canonical contract quote via FuturesContractResolver.resolve_contract() before alert generation.",
+        "data_contract": "Alert entry_price, target_1, and stop_loss in contract points.",
+        "test_strategy": "Test in tests/test_futures_contract_pricing.py asserting zero spot price contamination in futures alerts.",
+        "rollback_strategy": "Keep FUTURES_ENABLED=false until test pass."
+      }
+    ],
+    "P1_TARGET_FEASIBILITY": [
+      {
+        "id": "P1-01",
+        "item": "Target Feasibility Engine Implementation",
+        "file": "core/signals/target_feasibility_engine.py",
+        "target_class_function": "TargetFeasibilityEngine.evaluate_feasibility",
+        "current_behavior": "No feasibility checks exist; alerts emitted blindly with static percentage targets.",
+        "desired_behavior": "Evaluates volatility, range consumed, session remaining, and liquidity; blocks infeasible signals with machine-readable reasons.",
+        "data_contract": "Returns FeasibilityResult(status=PASS/FAIL/INSUFFICIENT_DATA, reason=str, metrics=dict).",
+        "test_strategy": "Unit tests in tests/test_target_feasibility_engine.py simulating various ATR and range conditions.",
+        "rollback_strategy": "Bypass gate via config FEASIBILITY_GATE_ENABLED=false."
+      },
+      {
+        "id": "P1-02",
+        "item": "Entry Validity & Drift Window Guard ('Entry By')",
+        "file": "core/signals/entry_validity_engine.py",
+        "target_class_function": "EntryValidityEngine.is_entry_valid",
+        "current_behavior": "No entry expiration; delayed orders execute with severe price drift and inverted R:R.",
+        "desired_behavior": "Enforces T_ENTRY_VALID_UNTIL (15 min for swing, 5 min for options) and max drift threshold (0.5%).",
+        "data_contract": "Rejects orders if current_time > T_ENTRY_VALID_UNTIL or abs(price - trigger)/trigger > max_drift.",
+        "test_strategy": "Unit tests in tests/test_entry_validity.py asserting drift cancellation.",
+        "rollback_strategy": "Disable drift guard via config flag."
+      }
+    ],
+    "P2_SIGNAL_QUALITY": [
+      {
+        "id": "P2-01",
+        "item": "Category-Specific Target & SL Models",
+        "file": "core/signals/target_sl_builder.py",
+        "target_class_function": "TargetSLBuilder.build_targets",
+        "current_behavior": "Global +4% T1, +8% T2, -3% SL applied across all instruments.",
+        "desired_behavior": "Applies category-specific models: ATR-based for Futures, Premium-based for Options, preserved +4/+8/-3 for Equity Swing.",
+        "data_contract": "Category-aware target specification object.",
+        "test_strategy": "Parametric tests across all 10 categories in tests/test_target_sl_builder.py.",
+        "rollback_strategy": "Revert to static builder."
+      }
+    ],
+    "P3_FUTURE_CALIBRATION": [
+      {
+        "id": "P3-01",
+        "item": "Calibrated Target Probability Engine",
+        "file": "core/analytics/calibration_engine.py",
+        "target_class_function": "TargetProbabilityEngine.predict_probability",
+        "current_behavior": "Heuristic setup score (e.g. 92) conflated with target probability.",
+        "desired_behavior": "Isotonic regression / calibrated logistic model estimating true P(T1 before SL and Expiry) using point-in-time features.",
+        "data_contract": "Returns probability float [0.0 - 1.0] with calibration confidence interval.",
+        "test_strategy": "Brier score and log-loss evaluation on holdout forward sets (N >= 200).",
+        "rollback_strategy": "Display probability as None / Unsupported until sample gate met."
+      }
+    ]
+  }
+}

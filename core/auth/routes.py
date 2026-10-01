@@ -89,10 +89,19 @@ def create_auth_router(
         from core.auth.sso import SSOAuthenticator
         _sso_authenticator = SSOAuthenticator.from_config(auth_handler, sso_config)
 
+    def _is_request_https(request: Request | None = None) -> bool:
+        if request is None:
+            return bool(_cookie_secure)
+        proto = ""
+        try:
+            proto = request.headers.get("x-forwarded-proto", "").lower()
+        except (AttributeError, Exception):
+            pass
+        scheme = getattr(getattr(request, "url", None), "scheme", "")
+        return bool(_cookie_secure or proto == "https" or scheme == "https")
+
     def _set_session_cookie(response: Response, token_str: str, max_age: int, request: Request | None = None) -> None:
-        secure = _cookie_secure
-        if request is not None:
-            secure = request.url.scheme == "https"
+        secure = _is_request_https(request)
         response.set_cookie(
             key=SESSION_COOKIE_NAME,
             value=token_str,
@@ -105,9 +114,7 @@ def create_auth_router(
         )
 
     def _set_csrf_cookie(response: Response, csrf_token: str, request: Request | None = None) -> None:
-        secure = _cookie_secure
-        if request is not None:
-            secure = request.url.scheme == "https"
+        secure = _is_request_https(request)
         response.set_cookie(
             key=CSRF_COOKIE_NAME,
             value=csrf_token,

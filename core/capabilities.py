@@ -78,9 +78,9 @@ class CapabilityRegistry:
             has_real_data = any(not r.get("is_demo_data") for r in matrix) if matrix else False
             if has_real_data:
                 return CapabilityState.AVAILABLE, "Live NSE sector feed active", False
-            return CapabilityState.UNAVAILABLE, "Live sector data feed inactive (sample data only)", True
+            return CapabilityState.UNAVAILABLE, "Live production feed not connected", False
         except Exception as ex:
-            return CapabilityState.UNAVAILABLE, f"Sector radar probe failed: {ex}", True
+            return CapabilityState.UNAVAILABLE, f"Live production feed not connected: {ex}", False
 
     def _verify_fii_dii_radar(self) -> tuple[CapabilityState, str, bool]:
         """Verify Institutional FII/DII Positioning Radar."""
@@ -90,9 +90,9 @@ class CapabilityRegistry:
             is_demo = bool(data.get("is_demo_data", True))
             if not is_demo and data.get("participants"):
                 return CapabilityState.AVAILABLE, "Live institutional exchange feed active", False
-            return CapabilityState.UNAVAILABLE, "Live institutional feed inactive (sample data only)", True
+            return CapabilityState.UNAVAILABLE, "Live production feed not connected", False
         except Exception as ex:
-            return CapabilityState.UNAVAILABLE, f"FII/DII radar probe failed: {ex}", True
+            return CapabilityState.UNAVAILABLE, f"Live production feed not connected: {ex}", False
 
     def _verify_margin_radar(self) -> tuple[CapabilityState, str, bool]:
         """Verify Broker Margin Matrix."""
@@ -102,9 +102,9 @@ class CapabilityRegistry:
             is_demo = bool(margins.get("is_demo_data", True))
             if not is_demo and margins.get("brokers"):
                 return CapabilityState.AVAILABLE, "Live broker margin APIs connected", False
-            return CapabilityState.UNAVAILABLE, "Broker API disconnected in SIGNAL_ONLY mode (sample data only)", True
+            return CapabilityState.UNAVAILABLE, "Live production feed not connected", False
         except Exception as ex:
-            return CapabilityState.UNAVAILABLE, f"Margin radar probe failed: {ex}", True
+            return CapabilityState.UNAVAILABLE, f"Live production feed not connected: {ex}", False
 
     def _verify_trade_copier(self) -> tuple[CapabilityState, str, bool]:
         """Verify Multi-Account Trade Copier."""
@@ -115,9 +115,9 @@ class CapabilityRegistry:
             has_real_accounts = any(not a.get("is_demo_data") for a in accounts) if accounts else False
             if has_real_accounts:
                 return CapabilityState.AVAILABLE, "Broker multi-account order routing connected", False
-            return CapabilityState.UNAVAILABLE, "Broker auto-order routing disabled in SIGNAL_ONLY mode", True
+            return CapabilityState.UNAVAILABLE, "Live production feed not connected", False
         except Exception as ex:
-            return CapabilityState.UNAVAILABLE, f"Trade copier probe failed: {ex}", True
+            return CapabilityState.UNAVAILABLE, f"Live production feed not connected: {ex}", False
 
     def _verify_expiry_harvester(self) -> tuple[CapabilityState, str, bool]:
         """Verify 0DTE Expiry Harvester."""
@@ -127,9 +127,9 @@ class CapabilityRegistry:
             is_demo = bool(status.get("is_demo_data", True))
             if not is_demo and status.get("legs"):
                 return CapabilityState.AVAILABLE, "Live options straddle engine active", False
-            return CapabilityState.UNAVAILABLE, "Live options data feed inactive (sample data only)", True
+            return CapabilityState.UNAVAILABLE, "Live production feed not connected", False
         except Exception as ex:
-            return CapabilityState.UNAVAILABLE, f"Expiry harvester probe failed: {ex}", True
+            return CapabilityState.UNAVAILABLE, f"Live production feed not connected: {ex}", False
 
     def _verify_payoff_calculator(self) -> tuple[CapabilityState, str, bool]:
         """Verify Multi-Leg Payoff Engine (Pure Math Engine)."""

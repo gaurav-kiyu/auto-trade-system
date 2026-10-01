@@ -1,0 +1,172 @@
+{
+  "document_id": "OPB-V260-PHASE-D13-PRE-MARKET-RESOLUTION-READINESS-20260928",
+  "audit_timestamp": "2026-09-28T18:25:00+05:30",
+  "branch": "v2.60-phase-d-candle-selection-remediation",
+  "head_commit": "e6d1b2c269d43a94f12e671a25864f57c3f2db13",
+  "base_commit": "abcce53bb16f1d0aa5918fd2c72dd731f8f2e332",
+  "frozen_production_baseline": "d4271ffb75376e404e9d6e28fae2a5f8c0a8e2a4",
+  "governance_authority": "OPB-FINAL-PHASE-GOVERNANCE-001",
+  "final_verdict": "B. BLOCKED — ENGINEERING REMEDIATION REQUIRED",
+  "phase_e_readiness": "STRICTLY BLOCKED / DO NOT MOVE TO PHASE E",
+  "safety_invariants": {
+    "execution_mode": "SIGNAL_ONLY",
+    "signal_only": true,
+    "live_trading_lockout": true,
+    "full_auto_allowed": false,
+    "live_orders_count": 0,
+    "broker_execution_calls": 0,
+    "ec2_connections": 0,
+    "remote_pushes_merges": 0,
+    "all_invariants_pass": true
+  },
+  "cohort_census": {
+    "total_registered": 101,
+    "observing": 101,
+    "resolved": 0,
+    "timeout": 0,
+    "ambiguous": 0,
+    "no_data": 0,
+    "invalidated": 0,
+    "stale_gt_48h": 0,
+    "categories": {
+      "EQUITY_SWING_DELIVERY": 31,
+      "FUTURES": 38,
+      "STOCK_OPTIONS": 31,
+      "INDEX_OPTIONS": 1
+    },
+    "score_buckets": {
+      "70-74": { "registered": 3, "observing": 3, "resolved": 0 },
+      "75-79": { "registered": 4, "observing": 4, "resolved": 0 },
+      "80-84": { "registered": 14, "observing": 14, "resolved": 0 },
+      "85+": { "registered": 80, "observing": 80, "resolved": 0 },
+      "sub_70_anomaly": 0
+    }
+  },
+  "resolution_paths_audit": {
+    "target_first": {
+      "state": "BLOCKED",
+      "implementation": "IMPLEMENTED",
+      "wiring": "WIRED",
+      "reachability": "BLOCKED",
+      "blocker_detail": "SignalForwardObservationService.sync_forward_outcomes bypasses phase_b_service.build_signal_outcome_measurement when row exists in signal_outcome_measurements, leaving outcome trapped at UNRESOLVED."
+    },
+    "sl_first": {
+      "state": "BLOCKED",
+      "implementation": "IMPLEMENTED",
+      "wiring": "WIRED",
+      "reachability": "BLOCKED",
+      "blocker_detail": "Same as TARGET_FIRST: in-flight rows with UNRESOLVED measurements never trigger Phase B recalculation."
+    },
+    "timeout": {
+      "state": "BLOCKED",
+      "implementation": "IMPLEMENTED",
+      "wiring": "WIRED",
+      "reachability": "BLOCKED",
+      "blocker_detail": "SignalOutcomeTracker expiry sweep sets system_signals.status=EXPIRED, but sync_forward_outcomes bypasses Phase B remeasurement for existing UNRESOLVED rows."
+    },
+    "ambiguous": {
+      "state": "BLOCKED",
+      "implementation": "IMPLEMENTED",
+      "wiring": "WIRED",
+      "reachability": "BLOCKED",
+      "blocker_detail": "Same bypass mechanism prevents AMBIGUOUS status propagation to signal_forward_observations."
+    },
+    "no_data": {
+      "state": "BLOCKED",
+      "implementation": "IMPLEMENTED",
+      "wiring": "WIRED",
+      "reachability": "BLOCKED",
+      "blocker_detail": "Same bypass mechanism prevents NO_DATA classification."
+    },
+    "invalidated": {
+      "state": "BLOCKED",
+      "implementation": "IMPLEMENTED",
+      "wiring": "WIRED",
+      "reachability": "BLOCKED",
+      "blocker_detail": "Same bypass mechanism prevents INVALIDATED classification."
+    }
+  },
+  "expired_vs_canonical_audit": {
+    "governance_rule_satisfied": true,
+    "direct_expired_leakage_to_phase_d": false,
+    "finding": "system_signals.EXPIRED cannot directly trigger a Phase D forward observation resolution without Phase B materialization. However, Phase B materialization itself is blocked by the sync_forward_outcomes caching defect."
+  },
+  "next_session_readiness": {
+    "total_in_flight": 101,
+    "can_resolve_price_move": 101,
+    "can_resolve_timeout": 32,
+    "swing_cannot_timeout_day_1": 69,
+    "data_quality_dependencies": "Clean 1m/5m price feeds (0 current errors)",
+    "implementation_dependencies": "101 signals blocked by sync_forward_outcomes UNRESOLVED re-evaluation defect"
+  },
+  "score_bucket_analysis": {
+    "natural_production_capability": true,
+    "structural_asymmetry_findings": [
+      "Options and Futures categories enforce MIN_SCORE >= 80, completely preventing contribution to 70-74 and 75-79 buckets.",
+      "Only Equity swing signals (with MIN_SCORE = 70) can populate 70-74 and 75-79 buckets.",
+      "Multi-strategy confluence engine rewards confluence, heavily weighting valid setups to 85+ (80 out of 101 signals).",
+      "Accumulation rate in 70-74 (3) and 75-79 (4) is 20x slower than 85+ (80), representing a significant longitudinal collection risk for Gate G1."
+    ]
+  },
+  "market_data_readiness": {
+    "freshness_guards_active": true,
+    "candle_masquerading_prevented": true,
+    "zero_volume_cleaning_safe": true,
+    "http_429_protection_active": true
+  },
+  "cryptographic_integrity": {
+    "cohort_45_hash": "bb9bfa89bf4b29d9206ac7ead384c62f51fe8d3ebe22d115d9b1ac290f0ab9a8",
+    "cohort_45_match": true,
+    "cohort_71_hash": "a1c02d746ec583c7dcfa25a36e6b2678530edff5d133cd1b66cdad8323358fd9",
+    "cohort_71_match": true,
+    "cohort_99_hash": "296635bab62c9c3a22bb5b6e528842e9da22e685531b49bc6fe71ab447e6bcd5",
+    "cohort_99_match": true,
+    "cohort_101_hash": "a1330442919d991466b6a78ae5a87d77cdddf9d4c60796d85793ff16adc89ddb",
+    "cohort_101_match": true,
+    "parity": {
+      "missing_snapshots": 0,
+      "missing_outcomes": 0,
+      "missing_signals": 0,
+      "referential_mismatches": 0
+    },
+    "contamination": {
+      "synthetic_mock": 0,
+      "seed": 0,
+      "historical_backfill": 0,
+      "pre_cutoff": 0,
+      "populated_probabilities": 0
+    }
+  },
+  "regression_results": {
+    "suite_a_phase_d_tests": { "passed": 110, "failed": 0, "skipped": 0, "duration_seconds": 17.76 },
+    "suite_b_general_tests": { "passed": 98, "failed": 0, "skipped": 0, "duration_seconds": 19.70 },
+    "total_tests": 208,
+    "total_passed": 208,
+    "total_failed": 0,
+    "total_skipped": 0
+  },
+  "database_immutability": {
+    "pre_sha256": "bb64bad5dc0ca581bfa18942997c5d5e23a65f97c783a0ca2d084418573354c0",
+    "post_sha256": "bb64bad5dc0ca581bfa18942997c5d5e23a65f97c783a0ca2d084418573354c0",
+    "exact_match": true,
+    "table_deltas": {
+      "system_signals": 0,
+      "signal_prediction_snapshots": 0,
+      "signal_outcome_measurements": 0,
+      "signal_forward_observations": 0,
+      "scan_cycle_metrics": 0
+    }
+  },
+  "readiness_gates": {
+    "g1": { "target": ">=100 resolved per bucket", "current": "0/100 across all buckets", "verdict": "NOT SATISFIED" },
+    "g2": { "target": ">=300 total resolved", "current": "0/300", "verdict": "NOT SATISFIED" },
+    "g3": { "target": ">=2 calendar months", "current": "0.03/2.0 months", "verdict": "NOT SATISFIED" },
+    "g4": { "target": "Clean data feed / zero gaps", "current": "0.0% error rate, 0 HTTP 429", "verdict": "PASS" }
+  },
+  "concrete_blocker": {
+    "blocker_id": "BLK-PHASE-D13-UNRESOLVED-MEASUREMENT-BYPASS",
+    "location": "core/signals/signal_forward_observation.py:424",
+    "description": "SignalForwardObservationService.sync_forward_outcomes reads existing rows from signal_outcome_measurements without checking if outcome == 'UNRESOLVED'. If a row exists with outcome == 'UNRESOLVED', build_signal_outcome_measurement is skipped, preventing in-flight forward observations from ever resolving when market prices move or signals expire.",
+    "remediation": "Modify line 424 to: if not meas or str(meas.get('outcome') or 'UNRESOLVED').upper() == 'UNRESOLVED': meas = phase_b_service.build_signal_outcome_measurement(sig_id)"
+  }
+}

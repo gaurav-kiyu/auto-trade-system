@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import sqlite3
 import threading
 import uuid
@@ -434,10 +435,18 @@ class SignalTracker:
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_fwd_obs_date ON signal_forward_observations(market_date)")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_fwd_obs_resolved ON signal_forward_observations(is_resolved)")
 
-                # Check if empty, then seed sample historical data
+                # Check if empty, then seed sample historical data only if not in production mode.
+                # In production/SIGNAL_ONLY, fresh databases must remain clean until real scans occur.
+                is_prod = (
+                    os.getenv("PRODUCTION_MODE", "").lower() in ("1", "true", "yes")
+                    or self._cfg.get("PRODUCTION_MODE", False)
+                    or str(self._cfg.get("EXECUTION_MODE", "")).upper() in ("LIVE", "SIGNAL_ONLY")
+                    or self._cfg.get("suppress_demo_signals", False)
+                    or os.getenv("SUPPRESS_DEMO_SIGNALS", "").lower() in ("1", "true", "yes")
+                )
                 cur.execute("SELECT COUNT(*) as cnt FROM system_signals")
                 row = cur.fetchone()
-                if row and row["cnt"] == 0:
+                if not is_prod and row and row["cnt"] == 0:
                     self._seed_sample_history(cur)
 
                 conn.commit()
@@ -1553,37 +1562,152 @@ class SignalTracker:
                 m_row = cur.fetchone()
                 measurements = dict(m_row) if m_row else None
 
+                raw_status = str(r.get("status") or "").upper()
+                obs_count = int(measurements.get("observation_count") or 0) if measurements else 0
+
+                # Authoritative holding horizon derived from category / configuration
+                cat_upper = str(r.get("category") or "").upper()
+                if parsed_raw.get("holding_horizon"):
+                    holding_horizon = str(parsed_raw["holding_horizon"])
+                elif any(k in cat_upper for k in ("OPTION", "0DTE", "INTRADAY")):
+                    holding_horizon = "Intraday (<15:15 IST)"
+                elif "INDEX" in cat_upper and "SWING" not in cat_upper:
+                    holding_horizon = "Intraday (<15:15 IST)"
+                else:
+                    holding_horizon = "1–5 Days (Swing)"
+
+                # Authoritative persisted expiry / exit_by:
+                # Must NEVER silently use created_at / timestamp, and never use observed_until fallback.
+                created_ts = r.get("timestamp") or parsed_raw.get("timestamp")
+                created_ts_str = str(created_ts).strip() if created_ts else ""
+                authoritative_exit_by = None
+                for k in ("expiry_date", "expires_at", "expiry", "valid_until"):
+                    val = parsed_raw.get(k) or r.get(k)
+                    if val and str(val).strip():
+                        val_str = str(val).strip()
+                        if created_ts_str and val_str == created_ts_str:
+                            continue
+                        authoritative_exit_by = val_str
+                        break
+
+                # Authoritative entry representation: exact price level or explicit range
+                entry_p = r.get("entry_price")
+                if parsed_raw.get("entry_range"):
+                    entry_range = str(parsed_raw["entry_range"])
+                elif entry_p is not None and float(entry_p) > 0:
+                    entry_range = f"₹{float(entry_p):.2f}"
+                else:
+                    entry_range = None
+
+                entry_by = None
+                for k in ("entry_by", "entry_deadline", "valid_from"):
+                    val = parsed_raw.get(k) or r.get(k)
+                    if val and str(val).strip():
+                        entry_by = str(val).strip()
+                        break
+
+                # Normalized outcome state
+                if measurements and measurements.get("outcome"):
+                    m_out = str(measurements["outcome"]).upper()
+                    if m_out == "TARGET_FIRST":
+                        normalized_outcome = "TARGET_2" if measurements.get("target_2_hit") else "TARGET_1"
+                    elif m_out == "SL_FIRST":
+                        normalized_outcome = "STOP_LOSS"
+                    else:
+                        normalized_outcome = m_out
+                else:
+                    normalized_outcome = raw_status or "ACTIVE"
+
+                is_resolved = normalized_outcome in (
+                    "TARGET_1", "TARGET_2", "STOP_LOSS", "TIMEOUT", "EXPIRED", "RESOLVED"
+                )
+                is_observing = not is_resolved and (
+                    raw_status in ("ACTIVE", "PENDING", "OBSERVING")
+                    or normalized_outcome in ("ACTIVE", "UNRESOLVED", "OBSERVING")
+                )
+
+                # Barrier and excursion metrics: strictly gated by observation_count > 0
+                if obs_count > 0:
+                    observed_from = measurements.get("observed_from") if measurements else None
+                    observed_until = measurements.get("observed_until") if measurements else None
+                    mfe = measurements.get("mfe") if measurements else None
+                    mae = measurements.get("mae") if measurements else None
+                    mfe_pct = measurements.get("mfe_pct") if measurements else None
+                    mae_pct = measurements.get("mae_pct") if measurements else None
+                    mfe_r = measurements.get("mfe_r") if measurements else None
+                    mae_r = measurements.get("mae_r") if measurements else None
+                    realized_r = measurements.get("realized_r") if measurements else None
+                    first_touch = measurements.get("first_touch") or r.get("first_touch") or None
+                    first_touch_at = measurements.get("first_touch_at") or r.get("first_touch_at") or None
+                    first_touch_price = measurements.get("first_touch_price") or r.get("first_touch_price") or None
+                    exit_price = measurements.get("exit_price") if (is_resolved and measurements) else None
+                    exit_at = measurements.get("exit_at") if (is_resolved and measurements) else None
+                    target_1_hit = bool(measurements.get("target_1_hit")) if measurements else False
+                    target_1_hit_at = measurements.get("target_1_hit_at") if measurements else None
+                    target_2_hit = bool(measurements.get("target_2_hit")) if measurements else False
+                    target_2_hit_at = measurements.get("target_2_hit_at") if measurements else None
+                    stop_loss_hit = bool(measurements.get("stop_loss_hit")) if measurements else False
+                    stop_loss_hit_at = measurements.get("stop_loss_hit_at") if measurements else None
+                    evaluated = True
+                else:
+                    # ZERO observations: never fabricate window, never use fallback MAE/MFE
+                    observed_from = None
+                    observed_until = None
+                    mfe = None
+                    mae = None
+                    mfe_pct = None
+                    mae_pct = None
+                    mfe_r = None
+                    mae_r = None
+                    realized_r = None
+                    first_touch = None
+                    first_touch_at = None
+                    first_touch_price = None
+                    exit_price = None
+                    exit_at = None
+                    target_1_hit = None
+                    target_1_hit_at = None
+                    target_2_hit = None
+                    target_2_hit_at = None
+                    stop_loss_hit = None
+                    stop_loss_hit_at = None
+                    evaluated = False
+
                 lifecycle = {
                     "start_from": r.get("timestamp"),
-                    "entry_range": "NOT PARAMETERIZED (EXACT LEVEL)",
-                    "entry_by": "NOT PARAMETERIZED",
-                    "exit_by": measurements.get("observed_until") if measurements else "OBSERVATION HORIZON",
-                    "observed_from": measurements.get("observed_from") if measurements else None,
-                    "observed_until": measurements.get("observed_until") if measurements else None,
-                    "first_touch": measurements.get("first_touch") if measurements else r.get("first_touch"),
-                    "first_touch_at": measurements.get("first_touch_at") if measurements else None,
-                    "first_touch_price": measurements.get("first_touch_price") if measurements else None,
-                    "exit_price": measurements.get("exit_price") if measurements else None,
-                    "exit_at": measurements.get("exit_at") if measurements else None,
-                    "outcome": measurements.get("outcome") if measurements else r.get("status"),
-                    "raw_lifecycle_state": measurements.get("raw_lifecycle_state") if measurements else None,
-                    "observation_count": measurements.get("observation_count") if measurements else None,
+                    "entry_range": entry_range,
+                    "entry_by": entry_by,
+                    "exit_by": authoritative_exit_by,
+                    "holding_horizon": holding_horizon,
+                    "observed_from": observed_from,
+                    "observed_until": observed_until,
+                    "first_touch": first_touch,
+                    "first_touch_at": first_touch_at,
+                    "first_touch_price": first_touch_price,
+                    "exit_price": exit_price,
+                    "exit_at": exit_at,
+                    "outcome": normalized_outcome,
+                    "raw_lifecycle_state": measurements.get("raw_lifecycle_state") if measurements else raw_status,
+                    "observation_count": obs_count,
+                    "is_observing": is_observing,
+                    "is_resolved": is_resolved,
                 }
 
                 excursion = {
-                    "mfe": measurements.get("mfe") if measurements else None,
-                    "mae": measurements.get("mae") if measurements else None,
-                    "mfe_pct": measurements.get("mfe_pct") if measurements else None,
-                    "mae_pct": measurements.get("mae_pct") if measurements else None,
-                    "mfe_r": measurements.get("mfe_r") if measurements else None,
-                    "mae_r": measurements.get("mae_r") if measurements else None,
-                    "realized_r": measurements.get("realized_r") if measurements else None,
-                    "target_1_hit": bool(measurements.get("target_1_hit")) if measurements else False,
-                    "target_1_hit_at": measurements.get("target_1_hit_at") if measurements else None,
-                    "target_2_hit": bool(measurements.get("target_2_hit")) if measurements else False,
-                    "target_2_hit_at": measurements.get("target_2_hit_at") if measurements else None,
-                    "stop_loss_hit": bool(measurements.get("stop_loss_hit")) if measurements else False,
-                    "stop_loss_hit_at": measurements.get("stop_loss_hit_at") if measurements else None,
+                    "mfe": mfe,
+                    "mae": mae,
+                    "mfe_pct": mfe_pct,
+                    "mae_pct": mae_pct,
+                    "mfe_r": mfe_r,
+                    "mae_r": mae_r,
+                    "realized_r": realized_r,
+                    "target_1_hit": target_1_hit,
+                    "target_1_hit_at": target_1_hit_at,
+                    "target_2_hit": target_2_hit,
+                    "target_2_hit_at": target_2_hit_at,
+                    "stop_loss_hit": stop_loss_hit,
+                    "stop_loss_hit_at": stop_loss_hit_at,
+                    "evaluated": evaluated,
                 }
 
                 return {
@@ -1595,11 +1719,30 @@ class SignalTracker:
                     "score": r["score"],
                     "tier": r["tier"],
                     "timestamp": r["timestamp"],
+                    "created_at": r["timestamp"],
                     "entry_price": r["entry_price"],
                     "stop_loss": r["stop_loss"],
                     "target_1": r["target_1"],
                     "target_2": r["target_2"],
                     "status": r["status"],
+                    "holding_horizon": holding_horizon,
+                    "entry_range": entry_range,
+                    "entry_by": entry_by,
+                    "exit_by": authoritative_exit_by,
+                    "observation_count": obs_count,
+                    "observation_start": observed_from,
+                    "observation_end": observed_until,
+                    "is_observing": is_observing,
+                    "mfe": mfe,
+                    "mae": mae,
+                    "first_touch": first_touch,
+                    "exit_price": exit_price,
+                    "target_1_hit": target_1_hit,
+                    "target_2_hit": target_2_hit,
+                    "stop_loss_hit": stop_loss_hit,
+                    "evaluated": evaluated,
+                    "raw_score": r.get("raw_score", r["score"]),
+                    "final_score": r.get("normalized_score", r["score"]),
                     "score_components": components,
                     "lifecycle": lifecycle,
                     "excursion": excursion,
@@ -1610,7 +1753,7 @@ class SignalTracker:
                         "saturated": bool(r.get("score_saturated", 0)),
                         "opportunity_key": r.get("opportunity_key", ""),
                         "strategy": parsed_raw.get("strategy") or parsed_raw.get("strategy_name") or "default",
-                        "first_touch": measurements.get("first_touch") if measurements else r.get("first_touch", ""),
+                        "first_touch": first_touch or "",
                         "outcome_confidence": measurements.get("outcome_confidence") if measurements else r.get("outcome_confidence", "UNKNOWN"),
                     },
                 }

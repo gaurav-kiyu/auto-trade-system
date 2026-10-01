@@ -1,0 +1,179 @@
+{
+  "governance": {
+    "authority": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "timestamp": "2026-09-30T23:35:00+05:30",
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "head": "5ced3170cf01b135327316e81bfc577f8e68d739",
+    "baseline": "d4271ff",
+    "operational_status": "PRODUCTION application / PAPER trading / SIGNAL_ONLY",
+    "safety_invariants": {
+      "full_auto_allowed": false,
+      "broker_routing": "DISCONNECTED",
+      "LIVE_TRADING_LOCKOUT": true,
+      "orders_placed": 0,
+      "D20_C": "OFF",
+      "FUTURES_ENABLED": false,
+      "phase_e_blocked": true
+    }
+  },
+  "db_integrity": {
+    "expected_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "initial_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "final_sha256": "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a",
+    "byte_delta": 0,
+    "status": "PASS_IMMUTABLE"
+  },
+  "browser_environment": {
+    "engine": "Google Chrome Headless v120+",
+    "executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "automation": "Playwright Sync API",
+    "test_url": "http://127.0.0.1:8088",
+    "pages_loaded_count": 9,
+    "failed_requests_count": 0,
+    "application_console_errors_count": 0
+  },
+  "signal_audit_acceptance": {
+    "active_signal": {
+      "signal_id": "SIG-20260928153049-GODREJPROP26SEPFUT-619194",
+      "symbol": "GODREJPROP26SEPFUT",
+      "category": "FUTURES",
+      "direction": "SELL",
+      "score": 100,
+      "tier": "STRONG",
+      "created_datetime": "2026-09-28 15:30:49 IST",
+      "entry_price": 1667.2,
+      "target_1": 1600.51,
+      "target_2": 1533.82,
+      "stop_loss": 1717.22,
+      "outcome_status": "ACTIVE / UNRESOLVED",
+      "first_touch": "Pending / None",
+      "holding_horizon": "1–5 Days (Swing)",
+      "target_1_hit": false,
+      "target_2_hit": false,
+      "stop_loss_hit": false,
+      "mfe": 0.0,
+      "mae": 0.0,
+      "realized_r": null,
+      "components_count": 26
+    },
+    "t1_resolved_signal": {
+      "signal_id": "SIG-20260905-TCS-100",
+      "symbol": "TCS",
+      "category": "LARGE_CAP_EQUITY",
+      "direction": "CALL",
+      "score": 92,
+      "tier": "STRONG",
+      "created_datetime": "2026-09-05 11:45:12 IST",
+      "entry_price": 2268.0,
+      "target_1": 2358.7,
+      "target_2": 2449.4,
+      "stop_loss": 2200.0,
+      "outcome_status": "EXPIRED",
+      "first_touch": "T1",
+      "holding_horizon": "1–5 Days (Swing)",
+      "target_1_hit": true,
+      "target_2_hit": false,
+      "stop_loss_hit": false,
+      "mfe": null,
+      "mae": null,
+      "realized_r": null
+    },
+    "sl_resolved_signal": {
+      "signal_id": "SIG-20260903-BANKNIFTY24AUG52000CE-103",
+      "symbol": "BANKNIFTY24AUG52000CE",
+      "category": "INDEX_OPTIONS",
+      "direction": "CALL",
+      "score": 95,
+      "tier": "STRONG",
+      "created_datetime": "2026-09-03 09:35:10 IST",
+      "entry_price": 280.0,
+      "target_1": 380.0,
+      "target_2": 490.0,
+      "stop_loss": 195.0,
+      "outcome_status": "SL_HIT",
+      "first_touch": "SL",
+      "holding_horizon": "Intraday (<15:15 IST)",
+      "target_1_hit": false,
+      "target_2_hit": false,
+      "stop_loss_hit": true,
+      "mfe": null,
+      "mae": null,
+      "realized_r": null
+    },
+    "t2_resolved_signal": {
+      "status": "NOT AVAILABLE IN CURRENT DATA",
+      "empirical_count_in_db": 0,
+      "fabricated": false
+    },
+    "ambiguous_signal": {
+      "status": "NOT AVAILABLE IN CURRENT DATA",
+      "empirical_count_in_db": 0,
+      "fabricated": false
+    }
+  },
+  "truthfulness_certification": {
+    "entry_by": "NOT PARAMETERIZED",
+    "entry_range": "NOT PARAMETERIZED (EXACT LEVEL)",
+    "synthetic_intervals_prevented": true,
+    "same_bar_ambiguous_quarantine": true,
+    "missing_data_no_zero_coercion": true
+  },
+  "cohort_acceptance": {
+    "total_system_signals": 486,
+    "post_d26_forward_signals_count": 101,
+    "requirement_threshold": 42,
+    "visible_in_audit_log": true,
+    "date_range": "2026-08-20 to 2026-09-28",
+    "timezone": "IST"
+  },
+  "cockpit_screens_verification": {
+    "signal_report": "PASS",
+    "system_signal_audit_log": "PASS",
+    "performance_dashboard": "PASS",
+    "trade_journal": "PASS",
+    "event_store": "PASS",
+    "sector_rotation_radar": "PASS",
+    "institutional_fii_dii_radar": "PASS",
+    "broker_margin_matrix": "PASS",
+    "multi_account_trade_copier": "PASS",
+    "0dte_expiry_harvester": "PASS",
+    "performance_analysis": "PASS",
+    "super_admin_capabilities": "PASS",
+    "notifications_config": "PASS",
+    "conviction_score_gates": "PASS",
+    "report_center": "PASS",
+    "theme_selector_telemetry": "PASS"
+  },
+  "theme_verification": {
+    "dark-cyber": "PASS",
+    "dracula-purple": "PASS",
+    "ivory-gold": "PASS",
+    "midnight-slate": "PASS",
+    "emerald-matrix": "PASS"
+  },
+  "responsive_viewports": {
+    "desktop_1920x1080": "PASS",
+    "narrow_desktop_1024x768": "PASS",
+    "mobile_375x667": "PASS"
+  },
+  "defects_and_remediations": [
+    {
+      "id": "DEF-01",
+      "file": "templates/enterprise/admin_signals.html",
+      "issue": "Signal ID omitted from rendered card header in explain modal",
+      "remediation": "Added SIGNAL ID: <code>${data.signal_id}</code>, Holding Horizon, Target 2 / SL hit flags, and RAW/FINAL score summary",
+      "status": "VERIFIED_FIXED"
+    }
+  ],
+  "no_trading_mutation_certification": {
+    "scoring_formulas_mutated": false,
+    "candidate_selection_mutated": false,
+    "target_geometry_mutated": false,
+    "stop_loss_mutated": false,
+    "expiry_logic_mutated": false,
+    "db_writes_performed": false,
+    "git_commits_or_pushes": false,
+    "ec2_deployments": false
+  },
+  "final_verdict": "PASS"
+}

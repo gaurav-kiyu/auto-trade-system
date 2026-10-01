@@ -68,13 +68,20 @@ class CSRFProtection:
             or secrets.token_hex(16)
         )
         token = self._generate_token(str(session_id))
+        proto = ""
+        try:
+            proto = request.headers.get("x-forwarded-proto", "").lower()
+        except (AttributeError, Exception):
+            pass
+        scheme = getattr(getattr(request, "url", None), "scheme", "")
+        secure = bool(self._cookie_secure or proto == "https" or scheme == "https")
         response.set_cookie(
             key=CSRF_COOKIE_NAME,
             value=token,
             max_age=86400,
             httponly=False,
             samesite="lax",
-            secure=self._cookie_secure,
+            secure=secure,
             path="/",
         )
 

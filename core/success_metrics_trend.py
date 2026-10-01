@@ -389,6 +389,9 @@ class SuccessMetricsTrend:
         For lower-is-better metrics (MET-07), a fall means DOWN (good).
         For higher-is-better metrics (MET-08), a rise means UP (good).
         """
+        with self._lock:
+            if len(self._snapshots) < MIN_SNAPSHOTS:
+                return "NO_DATA"
         latest = self.get_latest()
         prev = self.get_previous()
         if not latest or not prev:

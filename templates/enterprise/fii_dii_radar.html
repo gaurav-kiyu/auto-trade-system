@@ -39,9 +39,9 @@
     </div>
 
     <div style="background:var(--market-warning-bg, rgba(217,119,6,0.14));border:1px solid var(--warning-color, #d97706);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;color:var(--warning-color, #d97706);font-size:0.85rem;">
-        <span class="badge" style="background:var(--warning-color, #d97706);color:#000;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">SAMPLE / DEMO DATA</span>
-        <i class="fas fa-triangle-exclamation" style="margin-right:0.4rem;"></i>
-        <strong>Static demonstration dataset:</strong> The participant positioning below is a static sample dataset — live institutional participant-wise OI feed is currently disconnected. None of these values reflect live market positioning.
+        <span class="badge" style="background:var(--warning-color, #d97706);color:#000;font-weight:800;margin-right:0.5rem;padding:0.15rem 0.5rem;border-radius:0.25rem;">UNAVAILABLE</span>
+        <i class="fas fa-circle-exclamation" style="margin-right:0.4rem;"></i>
+        <strong>Live production feed not connected:</strong> NSE participant-wise Open Interest positioning feed is currently disconnected. No live institutional participant data is available.
     </div>
 
     <!-- Smart Money Trap Alert Box -->
@@ -50,7 +50,7 @@
     <!-- Participant Overview Table -->
     <div class="card">
         <h3 style="font-size:0.95rem;font-weight:600;margin-bottom:1rem;"><i class="fas fa-users-viewfinder" style="color:#60a5fa;margin-right:0.5rem;"></i> Participant-Wise Net Contracts Positioning</h3>
-        <div style="overflow-x:auto;">
+        <div tabindex="0" role="region" aria-label="Participant-wise net contracts positioning table" style="overflow-x:auto;">
             <table class="table">
                 <thead>
                     <tr>
@@ -91,7 +91,12 @@
 
             // Participant Table
             const tb = document.getElementById('participantTableBody');
-            tb.innerHTML = (data.participants || []).map(p => {
+            if (data.status === 'unavailable' || !data.participants || data.participants.length === 0) {
+                tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2rem;"><i class="fas fa-info-circle mr-2"></i> Live production feed not connected — no participant positioning data available</td></tr>';
+                return;
+            }
+
+            tb.innerHTML = data.participants.map(p => {
                 const badgeClass = p.net_bias === 'BULLISH' ? 'badge-bull' : (p.net_bias === 'BEARISH' ? 'badge-bear' : 'badge-neu');
                 const formatNet = (val) => `<span style="font-family:monospace;font-weight:600;font-variant-numeric:tabular-nums;color:${val >= 0 ? 'var(--success-color, #22c55e)' : 'var(--danger-color, #ef4444)'};">${val >= 0 ? '+' : ''}${val.toLocaleString('en-IN')}</span>`;
 

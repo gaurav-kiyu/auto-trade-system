@@ -1,0 +1,170 @@
+{
+  "audit_metadata": {
+    "title": "OPB Complete Signal Lifecycle + Target / Expiry Feasibility Audit",
+    "governance_authority": "OPB-FINAL-PHASE-GOVERNANCE-001",
+    "audit_type": "STRICT READ-ONLY CODE + CONFIG + TEST + HISTORICAL-EVIDENCE AUDIT",
+    "timestamp_ist": "2026-09-29T23:30:00+05:30",
+    "branch": "v2.60-phase-d-candle-selection-remediation",
+    "git_head": "2769e6154728b6519c4cfa7d25478f7eb38a6d76",
+    "github_remote_head": "2769e6154728b6519c4cfa7d25478f7eb38a6d76",
+    "head_parity": "EXACT",
+    "operational_safety": {
+      "code_changes": 0,
+      "database_writes": 0,
+      "git_commits": 0,
+      "git_pushes": 0,
+      "ec2_deployments": 0,
+      "broker_calls": 0,
+      "configuration_changes": 0,
+      "d20_c_production_activation": 0,
+      "phase_e_activation": 0
+    }
+  },
+  "primary_questions_assessment": {
+    "1_why_generated": "Symbol composite score across 16 technical strategies meets or exceeds category threshold",
+    "2_eligibility_criteria": "Active universe symbol, session calendar open, 1m/5m/15m data fresh, long-only cash check, D20-A options gate (breakout>0 & vol>0), D20-B session dedup for index",
+    "3_strength_criteria": "Score >= category threshold (70-80), tier in ('STRONG', 'MODERATE'), ML probability >= 0.65 or 0.50 uncalibrated neutral fallback in paper/signal-only mode",
+    "4_entry_price": "Cash equity / index spot LTP from the latest bar (signal.price). Futures also uses cash spot price",
+    "5_entry_range": "ABSENT - Single scalar point price only",
+    "6_start_from": "ABSENT - Only 'Valid From' which is the raw generation timestamp formatted to IST",
+    "7_entry_by": "ABSENT - No entry window or entry deadline exists; only holding exit time is displayed",
+    "8_t1": "+4.0% for CALL/BUY, -4.0% for PUT/SELL from entry price",
+    "9_t2": "+8.0% for CALL/BUY, -8.0% for PUT/SELL from entry price",
+    "10_sl": "-3.0% for CALL/BUY, +3.0% for PUT/SELL from entry price",
+    "11_target_determination": "Hardcoded fixed percentages in core/signal_utils.py:calculate_directional_levels",
+    "12_expiry_determination": "Category rule in core/signals/signal_outcome_tracker.py: Options = same day 15:30 IST; Equities/Futures = 5 trading days 15:30 IST",
+    "13_max_holding_time": "Intraday: remaining session hours (1 to 6.25 hrs); Swing: 5 trading days",
+    "14_expiry_before_target_reachable": "YES - High frequency. For Index Options, Nifty requires 1,008 pt move (+4%) intraday against 180 pt ATR. For Stock Options, stock requires +4% intraday move often in <2 hours",
+    "15_expected_move_estimation": "NO - Neither IV expected move nor intraday remaining expected move is calculated",
+    "16_target_distance_vs_volatility": "NO - Fixed percentage targets are decoupled from instrument ATR and volatility",
+    "17_time_to_target_estimation": "NO - No velocity, drift, or duration model exists",
+    "18_probability_t1_before_sl": "NO - p_t1 is None / UNCALIBRATED in prediction snapshots; no probability gate exists",
+    "19_probability_t2_before_sl": "NO - p_t2 is None / UNCALIBRATED",
+    "20_target_feasibility_gate": "TARGET FEASIBILITY GATE = ABSENT",
+    "21_entry_vs_position_expiry_distinction": "NO - Entry validity window is absent; conflated with holding horizon",
+    "22_validity_vs_observation_lifetime_distinction": "NO - Conflated under single holding horizon",
+    "23_category_specific_target_logic": "NO - All categories share identical +4% T1, +8% T2, -3% SL",
+    "24_category_specific_expiry_logic": "YES - Intraday for Options vs 5 days for Swing/Futures",
+    "25_instrument_specific_volatility": "NO - Fixed percentage ignores symbol beta, ATR, and IV",
+    "26_option_greeks_iv_theta_usage": "NO - Zero Greeks used in option pricing, strike selection, or target calculation",
+    "27_monitoring_vs_displayed_target_consistency": "YES - SignalOutcomeTracker evaluates exact target_1, target_2, and stop_loss stored at signal generation"
+  },
+  "category_matrix": {
+    "EQUITY_SWING_DELIVERY": {
+      "instrument_nature": "Cash equity listed shares (non-F&O or F&O equity with delivery series)",
+      "entry_basis": "Cash LTP",
+      "entry_range": "None",
+      "start_from": "Generation timestamp (IST)",
+      "entry_by": "None",
+      "t1": "+4.0%",
+      "t2": "+8.0%",
+      "sl": "-3.0%",
+      "expiry": "5 Trading Days (15:30 IST)",
+      "target_basis": "Underlying Cash Stock Price",
+      "volatility_basis": "None (Fixed %)",
+      "time_basis": "5 Trading Days",
+      "probability_model": "None (Score only, ML uncalibrated)",
+      "outcome_basis": "Cash OHLC completed bars",
+      "feasibility_assessment": "Plausible for 5-day swing horizon on volatile equities"
+    },
+    "STOCK_OPTIONS": {
+      "instrument_nature": "F&O listed stocks classified as STOCK_OPTIONS by classify_instrument_market",
+      "entry_basis": "CASH UNDERLYING SPOT LTP (NOT an option premium)",
+      "entry_range": "None",
+      "start_from": "Generation timestamp (IST)",
+      "entry_by": "None",
+      "t1": "+4.0% (CALL) / -4.0% (PUT) on cash spot",
+      "t2": "+8.0% (CALL) / -8.0% (PUT) on cash spot",
+      "sl": "-3.0% (CALL) / +3.0% (PUT) on cash spot",
+      "expiry": "Same Day 15:30 IST (Intraday)",
+      "target_basis": "Underlying Cash Stock Price (Zero option strike/premium model)",
+      "volatility_basis": "None (Fixed %)",
+      "time_basis": "Intraday session remainder (1-6 hrs)",
+      "probability_model": "None (Score only)",
+      "outcome_basis": "Underlying cash stock OHLC bars",
+      "feasibility_assessment": "Severely Infeasible. Underlying moving 4-8% intraday is rare; option premium dynamics completely unmodeled"
+    },
+    "INDEX_OPTIONS": {
+      "instrument_nature": "Benchmark Indices (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY, SENSEX, BANKEX)",
+      "entry_basis": "CASH INDEX SPOT VALUE (e.g. NIFTY 25,200, NOT option premium)",
+      "entry_range": "None",
+      "start_from": "Generation timestamp (IST)",
+      "entry_by": "None",
+      "t1": "+4.0% (CALL) / -4.0% (PUT) on index spot (+1,008 pts on NIFTY)",
+      "t2": "+8.0% (CALL) / -8.0% (PUT) on index spot (+2,016 pts on NIFTY)",
+      "sl": "-3.0% (CALL) / +3.0% (PUT) on index spot (-756 pts on NIFTY)",
+      "expiry": "Same Day 15:30 IST (Intraday)",
+      "target_basis": "Index Spot Level",
+      "volatility_basis": "None (Fixed %)",
+      "time_basis": "Intraday session remainder",
+      "probability_model": "None (Score only)",
+      "outcome_basis": "Index cash OHLC completed bars",
+      "feasibility_assessment": "Structurally Impossible on normal trading days. Daily Nifty range is ~180 pts (0.7%); T1 requires 1,008 pts (5.6x daily range)"
+    },
+    "FUTURES": {
+      "instrument_nature": "Canonical futures contracts (e.g. RELIANCE26OCTFUT)",
+      "entry_basis": "CASH SPOT LTP of underlying at generation time",
+      "entry_range": "None",
+      "start_from": "Generation timestamp (IST)",
+      "entry_by": "None",
+      "t1": "+4.0% / -4.0% calculated from cash spot",
+      "t2": "+8.0% / -8.0% calculated from cash spot",
+      "sl": "-3.0% / +3.0% calculated from cash spot",
+      "expiry": "5 Trading Days (15:30 IST)",
+      "target_basis": "Cash spot price at generation; monitored against resolved futures prices",
+      "volatility_basis": "None (Fixed %)",
+      "time_basis": "5 Trading Days",
+      "probability_model": "None",
+      "outcome_basis": "Futures market completed bars (via resolve_futures_market_bar)",
+      "feasibility_assessment": "Moderate. Basis risk exists between cash spot entry and futures market price"
+    }
+  },
+  "lifecycle_gaps": [
+    {
+      "priority": "P0",
+      "gap_name": "LIFECYCLE DESIGN GAP: Missing Entry Validity Window",
+      "impact": "Signals have no entry expiration; stale signals remain actionable indefinitely until position expiry"
+    },
+    {
+      "priority": "P0",
+      "gap_name": "TARGET FEASIBILITY GAP: Structurally Impossible Index Option Targets",
+      "impact": "Index options demand 4.0% (+1,000 pt) moves within intraday hours, causing near-universal timeout"
+    },
+    {
+      "priority": "P0",
+      "gap_name": "INSTRUMENT MISMATCH GAP: Stock Options Price & Target on Cash Spot",
+      "impact": "Stock options emit cash equity price as entry and 4% spot move as target with zero strike, premium, or Greeks"
+    },
+    {
+      "priority": "P1",
+      "gap_name": "PROBABILITY GAP: Uncalibrated Neutral Fallback",
+      "impact": "ML win probability defaults to 0.50 without calibrated target-reach probability models (p_t1, p_t2, p_sl are null)"
+    },
+    {
+      "priority": "P1",
+      "gap_name": "EXPIRY GAP: Conflation of Signal Validity and Holding Horizon",
+      "impact": "Signal validity and holding horizon are merged into valid_until; no trade entry invalidation exists"
+    },
+    {
+      "priority": "P2",
+      "gap_name": "FUTURES GENERATION BASIS GAP: Entry calculated from Cash Spot",
+      "impact": "Futures signals use cash spot LTP for entry, SL, and targets rather than contract market LTP at signal time"
+    }
+  ],
+  "executive_answers": {
+    "1_architecture_fundamentally_sound": "PARTIAL - Pipeline plumbing, deduplication, governance, and audit logging are highly mature, but pricing and target calculations are fundamentally flawed for derivatives",
+    "2_optimization_goal": "SIGNAL GENERATION - The system is heavily optimized to generate and broadcast signals, NOT for realistic target achievement",
+    "3_category_specific_targets": "NO - All 4 categories use identical hardcoded +4% T1, +8% T2, -3% SL",
+    "4_entry_validity_window": "NO - Completely absent across all categories",
+    "5_target_feasibility_gate": "NO - TARGET FEASIBILITY GATE = ABSENT",
+    "6_validated_probability_gate": "NO - NO VALIDATED TARGET-PROBABILITY DELIVERY GATE",
+    "7_unrealistic_signals_emitted": "YES - Specifically for Index Options and Stock Options where 4-8% moves cannot occur before 15:30 IST",
+    "8_stale_late_entry_emitted": "YES - Stale setups are not blocked because there is no entry deadline or setup invalidation check",
+    "9_target_monitoring_consistency": "YES - The exact persisted targets and stop-losses are monitored",
+    "10_top_3_required_changes": [
+      "Implement category-appropriate target models: index options (0.8% - 1.2% or ATR-based), stock options (actual premium/strike model)",
+      "Establish an Entry Validity Window (e.g. 5-15 mins) distinct from the Position Holding Horizon",
+      "Implement a Pre-Delivery Target Feasibility Gate comparing target distance to remaining session expected move"
+    ]
+  }
+}
