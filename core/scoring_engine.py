@@ -1,3 +1,17 @@
+"""LEGACY / DEPRECATED SCORING ENGINE.
+
+.. deprecated::
+    This module is legacy/deprecated and superseded by the adaptive multi-timeframe
+    scoring system. Production scoring uses core/adaptive_signal.py
+    (AdaptiveSignalEvaluator / evaluate_adaptive_signal).
+
+Governance & Architecture Notice:
+- This module has ZERO production callers across scanning, trading, and evaluation engines.
+- Retained temporarily for historical reference and test compatibility (tests/test_scoring_engine.py).
+- MUST NOT be used for new production functionality.
+- Physical removal requires a separate governance-approved change under OPB-FINAL-PHASE-GOVERNANCE-001.
+"""
+
 from typing import Any
 
 from core.strategy.strategies import (
