@@ -108,6 +108,10 @@ json/*.jsonl
 # time-series survives CI checkouts and is provable across releases.
 !json/success_metrics_trend.json
 
+# ── Research data isolation (E5 offline datasets & raw payloads) ────────────
+/data/research/
+data/research/
+
 # ── Control plane audit ─────────────────────────────────────────────────────
 logs/control_plane_audit.jsonl
 
