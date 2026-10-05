@@ -572,6 +572,9 @@ class SignalOutcomeTracker:
                 bar_dt = bar_dt.replace(tzinfo=now.tzinfo)
             elif bar_dt.tzinfo is not None and now.tzinfo is not None:
                 bar_dt = bar_dt.astimezone(now.tzinfo)
+            elif bar_dt.tzinfo is not None and now.tzinfo is None:
+                ist_tz = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+                bar_dt = bar_dt.astimezone(ist_tz).replace(tzinfo=None)
 
             # Check future-dated candle (clock-skew tolerance: 30s)
             if (bar_dt - now).total_seconds() > 30:
@@ -616,11 +619,11 @@ class SignalOutcomeTracker:
             # SAME-CANDLE AMBIGUITY: Both Target (T1 or T2) and SL hit in the same bar!
             if hit_sl and (hit_t1 or hit_t2):
                 new_status = "AMBIGUOUS"
-                new_first_touch = "AMBIGUOUS_SAME_BAR"
-                new_first_touch_at = now_str
-                new_first_touch_price = bar.close
+                new_first_touch = ""
+                new_first_touch_at = ""
+                new_first_touch_price = 0.0
                 new_confidence = OutcomeConfidence.AMBIGUOUS.value
-                transition_note = f"Both Target and SL ({sl}) touched in same candle [{bar.low} - {bar.high}]. Quarantined as Ambiguous."
+                transition_note = f"SAME_BAR_BARRIER_CONFLICT: Both Target and SL ({sl}) touched in same candle [{bar.low} - {bar.high}]. Quarantined as Ambiguous."
             elif hit_t2:
                 new_status = "TARGET_2_HIT"
                 new_first_touch = "T1" if hit_t1 else "T2"
@@ -680,17 +683,17 @@ class SignalOutcomeTracker:
                     if created_d < today_date:
                         # From a previous calendar day -> Expired
                         new_status = "EXPIRED"
-                        new_first_touch = "EXPIRED"
-                        new_first_touch_at = now_str
-                        new_first_touch_price = bar.close
+                        new_first_touch = ""
+                        new_first_touch_at = ""
+                        new_first_touch_price = 0.0
                         new_confidence = OutcomeConfidence.UNRESOLVED.value
                         transition_note = f"Intraday signal expired (created {created_date_str}, current {today_date})"
                     elif created_d == today_date and now.time() >= MARKET_CLOSE_TIME and not near_close_created:
                         # Created today before 15:15, and now market is closed (>= 15:30)
                         new_status = "EXPIRED"
-                        new_first_touch = "EXPIRED"
-                        new_first_touch_at = now_str
-                        new_first_touch_price = bar.close
+                        new_first_touch = ""
+                        new_first_touch_at = ""
+                        new_first_touch_price = 0.0
                         new_confidence = OutcomeConfidence.UNRESOLVED.value
                         transition_note = "Intraday signal expired at session close (15:30 IST)"
                 else:
@@ -698,9 +701,9 @@ class SignalOutcomeTracker:
                     trading_days_elapsed = self._count_trading_days(created_d, today_date)
                     if trading_days_elapsed >= 5:
                         new_status = "EXPIRED"
-                        new_first_touch = "EXPIRED"
-                        new_first_touch_at = now_str
-                        new_first_touch_price = bar.close
+                        new_first_touch = ""
+                        new_first_touch_at = ""
+                        new_first_touch_price = 0.0
                         new_confidence = OutcomeConfidence.UNRESOLVED.value
                         transition_note = f"Swing signal expired after {trading_days_elapsed} trading days"
         else:
@@ -903,15 +906,16 @@ class SignalOutcomeTracker:
                             # RCA Fix: Do not skip horizon evaluation when price is None or off-market!
                             expiry_check = self.check_signal_expiry(row, current_time=now)
                             if expiry_check["would_expire"]:
-                                existing_ft = str(row.get("first_touch") or "").strip()
+                                raw_ft = str(row.get("first_touch") or "").strip().upper()
+                                clean_ft = raw_ft if raw_ft in ("T1", "T2", "SL") else None
                                 eval_result = SignalEvaluationResult(
                                     signal_id=str(row["signal_id"]),
                                     symbol=symbol,
                                     new_status="EXPIRED",
-                                    first_touch=existing_ft or "EXPIRED",
-                                    first_touch_at=row.get("first_touch_at") or now_str,
-                                    first_touch_price=float(row.get("first_touch_price") or row.get("current_price") or row.get("entry_price") or 0.0),
-                                    outcome_confidence=row.get("outcome_confidence") if existing_ft else OutcomeConfidence.UNRESOLVED.value,
+                                    first_touch=clean_ft,
+                                    first_touch_at=row.get("first_touch_at") if clean_ft else None,
+                                    first_touch_price=float(row.get("first_touch_price") or 0.0) if clean_ft else 0.0,
+                                    outcome_confidence=row.get("outcome_confidence") if clean_ft else OutcomeConfidence.UNRESOLVED.value,
                                     current_price=float(row.get("current_price") or row.get("entry_price") or 0.0),
                                     pnl_pct=float(row.get("pnl_pct") or 0.0),
                                     is_terminal=True,
@@ -947,8 +951,8 @@ class SignalOutcomeTracker:
                             # assert AMBIGUOUS_SAME_OBSERVATION for single-tick polling if sum > 1:
                             existing_first_touch = str(row.get("first_touch") or "").strip()
                             if not existing_first_touch and sum((hit_sl, hit_t1, hit_t2)) > 1:
-                                eval_result.first_touch = "AMBIGUOUS_SAME_OBSERVATION"
-                                eval_result.first_touch_price = price_flt
+                                eval_result.first_touch = ""
+                                eval_result.first_touch_price = 0.0
                                 eval_result.outcome_confidence = OutcomeConfidence.AMBIGUOUS.value
                                 eval_result.new_status = "AMBIGUOUS"
 
@@ -1173,13 +1177,20 @@ class SignalOutcomeTracker:
                     td_count += 1
             calculated_expiry = f"{d.isoformat()} 15:30:00 IST"
 
-            trading_days_elapsed = self._count_trading_days(created_d, today_d)
-            if trading_days_elapsed >= 5:
-                would_expire = True
-                reason = f"Swing signal exceeded 5 trading days ({trading_days_elapsed} elapsed >= 5)"
-            else:
+            if today_d < d:
                 would_expire = False
-                reason = f"Swing signal within validity ({trading_days_elapsed}/5 trading days elapsed)"
+                td_elapsed = self._count_trading_days(created_d, today_d)
+                reason = f"Swing signal within validity ({td_elapsed}/5 trading sessions; expires {d.isoformat()} 15:30 IST)"
+            elif today_d == d:
+                if self._calendar_engine.is_market_day(d) and now.time() >= MARKET_CLOSE_TIME:
+                    would_expire = True
+                    reason = f"Swing signal expired at session close on 5th trading day ({d.isoformat()} 15:30 IST)"
+                else:
+                    would_expire = False
+                    reason = f"Swing signal active within 5th trading session ({now.strftime('%H:%M')} < 15:30)"
+            else:
+                would_expire = True
+                reason = f"Swing signal exceeded 5 trading days ({today_d.isoformat()} > {d.isoformat()})"
 
         if is_already_terminal:
             classification = "ALREADY_TERMINAL"
@@ -1304,17 +1315,17 @@ class SignalOutcomeTracker:
                     existing_conf = str(row["outcome_confidence"] or "UNKNOWN").strip()
                     curr_price = float(row["current_price"] or row["entry_price"] or 0.0)
 
-                    # FIRST-TOUCH PROTECTION: write-once immutable preservation
-                    if not existing_first_touch:
-                        new_ft = "EXPIRED"
-                        new_ft_at = now_str
-                        new_ft_price = curr_price
-                        new_conf = OutcomeConfidence.UNRESOLVED.value
-                    else:
+                    # FIRST-TOUCH PROTECTION: physical barrier touch only (never write EXPIRED into first_touch)
+                    if existing_first_touch in ("T1", "T2", "SL"):
                         new_ft = existing_first_touch
                         new_ft_at = existing_ft_at or str(row.get("created_date") or now_str)
                         new_ft_price = existing_ft_price or float(row.get("target_1") or curr_price)
                         new_conf = existing_conf if existing_conf != "UNKNOWN" else OutcomeConfidence.EXACT_OBSERVATION.value
+                    else:
+                        new_ft = ""
+                        new_ft_at = ""
+                        new_ft_price = 0.0
+                        new_conf = OutcomeConfidence.UNRESOLVED.value
 
                     cur.execute(
                         """UPDATE system_signals

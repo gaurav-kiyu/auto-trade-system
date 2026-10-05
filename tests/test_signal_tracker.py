@@ -22,8 +22,9 @@ def _reset_singleton():
 
 
 class TestGetInstance:
-    def test_returns_same_instance_on_repeated_calls(self):
-        a = SignalTracker.get_instance()
+    def test_returns_same_instance_on_repeated_calls(self, tmp_path):
+        custom_path = tmp_path / "singleton.db"
+        a = SignalTracker.get_instance(db_path=custom_path)
         b = SignalTracker.get_instance()
         assert a is b
 
@@ -577,7 +578,9 @@ class TestFirstHitLifecycleV174:
 
         row = self._row(tracker, sig_id)
 
-        assert row["first_touch"] == "AMBIGUOUS_SAME_OBSERVATION"
+        # Under OPB v2.60 first_touch invariant, first_touch remains empty (not label)
+        assert row["first_touch"] == ""
+        assert row["status"] == "AMBIGUOUS"
         assert row["outcome_confidence"] == "AMBIGUOUS"
 
         events = self._events(tracker, sig_id)
@@ -700,10 +703,10 @@ class TestOppositeDirectionWhipsawGuard:
         rows = cur.fetchall()
         conn.close()
         assert len(rows) == 2
-        # First signal transitioned from ACTIVE to EXPIRED
+        # First signal transitioned from ACTIVE to CLOSED_ON_REVERSAL
         assert rows[0][0] == sig1
         assert rows[0][1] == "PUT"
-        assert rows[0][2] == "EXPIRED"
+        assert rows[0][2] == "CLOSED_ON_REVERSAL"
         # Second signal is now the single ACTIVE signal
         assert rows[1][0] == sig2
         assert rows[1][1] == "CALL"

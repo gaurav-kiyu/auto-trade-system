@@ -55,11 +55,12 @@ class RichSignalFormatter:
             from core.fno_universe import FNO_INDICES
             if cat_upper == "INDEX_OPTIONS" and (sym_clean in FNO_INDICES or sym_clean in {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "BANKEX", "NIFTYNXT50"}):
                 return {
-                    "display_title": f"{sym_clean} Index Spot Directional",
-                    "subject_instrument": f"{sym_clean} (Spot)",
+                    "display_title": f"{sym_clean} Index Spot Proxy",
+                    "subject_instrument": f"{sym_clean} (Spot Proxy)",
                     "contract_code": sym_clean,
-                    "instrument_type": "Index Spot Directional",
+                    "instrument_type": "INDEX SPOT PROXY",
                     "is_option": False,
+                    "explanatory_note": "Underlying cash index reference levels; trade appropriate strike/expiry or future.",
                 }
             return {
                 "display_title": f"{sym_clean} Option",
@@ -196,8 +197,10 @@ class RichSignalFormatter:
             if is_weekend or is_after_cutoff:
                 exit_dt = cls._add_trading_days(sig_dt, 1)
                 valid_until = exit_dt.strftime("%d %b %Y, 15:15 IST")
+                evaluation_closes = exit_dt.strftime("%d %b %Y, 15:30 IST")
             else:
                 valid_until = sig_dt.strftime("%d %b %Y, 15:15 IST")
+                evaluation_closes = sig_dt.strftime("%d %b %Y, 15:30 IST")
             short_horizon = "Intraday"
             horizon_badge = "⚡ INTRADAY"
             horizon_color = "#f59e0b"
@@ -231,10 +234,11 @@ class RichSignalFormatter:
             "holding_period": holding_period,
             "valid_from": valid_from,
             "valid_until": valid_until,
+            "evaluation_closes": evaluation_closes if is_intraday else valid_until,
             "short_horizon": short_horizon,
             "horizon_badge": horizon_badge,
             "horizon_color": horizon_color,
-            "is_intraday": is_intraday
+            "is_intraday": is_intraday,
         }
 
     @classmethod
@@ -284,7 +288,7 @@ class RichSignalFormatter:
 
         if is_spot_index:
             action_emoji = "🟢" if is_buy else "🔴"
-            action_name = "BULLISH (INDEX SPOT DIRECTIONAL)" if is_buy else "BEARISH (INDEX SPOT DIRECTIONAL)"
+            action_name = "BULLISH (INDEX SPOT PROXY)" if is_buy else "BEARISH (INDEX SPOT PROXY)"
         elif "OPTION" in cat_upper or "0DTE" in cat_upper or "INDEX" in cat_upper:
             if is_buy:
                 action_emoji = "🟢"
@@ -366,13 +370,22 @@ class RichSignalFormatter:
         if horizon["is_intraday"]:
             exit_step_1 = f"Book <strong>50% of the position</strong> at Target 1 (<strong>₹{target_1:,.2f}</strong>). For the remaining 50%, move the stop loss to the entry price of <strong>₹{price:,.2f}</strong>."
             exit_step_2 = f"Hold the remaining <strong>50% position</strong> for Target 2 (<strong>₹{target_2:,.2f}</strong>)."
-            exit_step_3 = "If the targets or stop loss have not been triggered, exit all remaining positions by <strong>15:15 IST</strong>."
-            time_label = "Maximum Exit Time:"
+            exit_step_3 = "If the targets or stop loss have not been triggered, exit all remaining positions by <strong>15:15 IST (Broker RMS Square-off)</strong> before <strong>15:30 IST</strong> exchange close."
+            time_label = "Max Execution Exit:"
+            trade_timing_rows = f"""<div><strong>Max Execution Exit:</strong> <span style="color:#f59e0b;font-weight:700;">{horizon['valid_until']} (Broker RMS Square-off)</span></div>
+                                <div><strong>Evaluation Closes:</strong> <span style="color:#94a3b8;font-weight:600;">{horizon.get('evaluation_closes', horizon['valid_until'])} (Exchange Settlement)</span></div>"""
         else:
             exit_step_1 = f"Book <strong>50% of your position</strong> at Target 1 (<strong>₹{target_1:,.2f}</strong>). For the remaining 50%, move the stop loss to the entry price of <strong>₹{price:,.2f}</strong> for a risk-free trade."
             exit_step_2 = f"Hold the remaining <strong>50% position</strong> for Target 2 (<strong>₹{target_2:,.2f}</strong>)."
             exit_step_3 = f"If neither Target 2 nor the stop loss is reached, exit the remaining position by <strong>{horizon['valid_until']}</strong>."
             time_label = "Exit By:"
+            trade_timing_rows = f"""<div><strong>{time_label}</strong> <span style="color:#f59e0b;font-weight:700;">{horizon['valid_until']}</span></div>"""
+
+        explanatory_note_html = (
+            f'<div style="font-size:12px;color:#38bdf8;margin-top:4px;">ℹ️ {human_sym["explanatory_note"]}</div>'
+            if human_sym.get("explanatory_note")
+            else ""
+        )
 
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -405,6 +418,7 @@ class RichSignalFormatter:
                             <div style="font-size:13px;color:#94a3b8;margin-top:4px;">
                                 <strong>Contract:</strong> <code>{human_sym['contract_code']}</code> &nbsp;•&nbsp; <strong>Instrument:</strong> {human_sym['instrument_type']}
                             </div>
+                            {explanatory_note_html}
                         </td>
                     </tr>
 
@@ -458,7 +472,7 @@ class RichSignalFormatter:
                             <div style="background:#131a29;border:1px solid #1e293b;border-radius:8px;padding:14px;font-size:13px;color:#cbd5e1;line-height:1.7;">
                                 <div><strong>Expected Holding Period:</strong> <span style="color:#ffffff;font-weight:700;">{horizon['holding_period']}</span></div>
                                 <div><strong>Signal Valid From:</strong> <span style="color:#ffffff;">{horizon['valid_from']}</span></div>
-                                <div><strong>{time_label}</strong> <span style="color:#f59e0b;font-weight:700;">{horizon['valid_until']}</span></div>
+                                {trade_timing_rows}
                             </div>
                         </td>
                     </tr>
@@ -579,10 +593,10 @@ class RichSignalFormatter:
         if is_spot_index:
             if is_buy:
                 action_emoji = "🟢"
-                action_text = "🎯 INDEX SPOT DIRECTIONAL: BULLISH (CALL)"
+                action_text = "🎯 INDEX SPOT PROXY: BULLISH (CALL)"
             else:
                 action_emoji = "🔴"
-                action_text = "🎯 INDEX SPOT DIRECTIONAL: BEARISH (PUT)"
+                action_text = "🎯 INDEX SPOT PROXY: BEARISH (PUT)"
         elif "OPTION" in cat_upper or "0DTE" in cat_upper or "INDEX" in cat_upper:
             if is_buy:
                 action_emoji = "🟢"
@@ -627,6 +641,8 @@ class RichSignalFormatter:
             f"<b>{human_sym['display_title']}</b>",
             f"<code>Contract: {human_sym['contract_code']}</code>",
         ]
+        if human_sym.get("explanatory_note"):
+            lines.append(f"<i>ℹ️ {human_sym['explanatory_note']}</i>")
         if signal_id:
             lines.append(f"<code>ID: {signal_id}</code>")
         lines.extend([
@@ -642,19 +658,27 @@ class RichSignalFormatter:
             "📅 <b>TRADE PLAN</b>",
             f"• <b>Expected Holding:</b> <code>{horizon['holding_period']}</code>",
             f"• <b>Valid From:</b> <code>{horizon['valid_from']}</code>",
-            f"• <b>Max Exit Time:</b> <code>{horizon['valid_until']}</code>",
-            "━━━━━━━━━━━━━━━━━━━━━",
-            "🎯 <b>EXIT STRATEGY</b>",
         ])
 
         if horizon["is_intraday"]:
-            lines.append(f"• <b>Step 1:</b> Book 50% at Target 1 (<code>₹{target_1:,.2f}</code>) & move SL to Entry (<code>₹{price:,.2f}</code>).")
-            lines.append(f"• <b>Step 2:</b> Hold remaining 50% for Target 2 (<code>₹{target_2:,.2f}</code>).")
-            lines.append("• <b>Step 3:</b> Exit remaining by <b>15:15 IST</b>.")
+            lines.extend([
+                f"• <b>Max Execution Exit:</b> <code>{horizon['valid_until']} (Broker RMS Square-off)</code>",
+                f"• <b>Evaluation Closes:</b> <code>{horizon.get('evaluation_closes', horizon['valid_until'])} (Exchange Settlement)</code>",
+                "━━━━━━━━━━━━━━━━━━━━━",
+                "🎯 <b>EXIT STRATEGY</b>",
+                f"• <b>Step 1:</b> Book 50% at Target 1 (<code>₹{target_1:,.2f}</code>) & move SL to Entry (<code>₹{price:,.2f}</code>).",
+                f"• <b>Step 2:</b> Hold remaining 50% for Target 2 (<code>₹{target_2:,.2f}</code>).",
+                "• <b>Step 3:</b> Exit remaining by <b>15:15 IST (Broker RMS Square-off)</b> before <b>15:30 IST</b> market close.",
+            ])
         else:
-            lines.append(f"• <b>Step 1:</b> Book 50% at Target 1 (<code>₹{target_1:,.2f}</code>) & move SL to Entry (<code>₹{price:,.2f}</code>).")
-            lines.append(f"• <b>Step 2:</b> Hold remaining 50% for Target 2 (<code>₹{target_2:,.2f}</code>).")
-            lines.append(f"• <b>Step 3:</b> Exit remaining by <code>{horizon['valid_until']}</code> if Target 2 is untouched.")
+            lines.extend([
+                f"• <b>Max Exit Time:</b> <code>{horizon['valid_until']}</code>",
+                "━━━━━━━━━━━━━━━━━━━━━",
+                "🎯 <b>EXIT STRATEGY</b>",
+                f"• <b>Step 1:</b> Book 50% at Target 1 (<code>₹{target_1:,.2f}</code>) & move SL to Entry (<code>₹{price:,.2f}</code>).",
+                f"• <b>Step 2:</b> Hold remaining 50% for Target 2 (<code>₹{target_2:,.2f}</code>).",
+                f"• <b>Step 3:</b> Exit remaining by <code>{horizon['valid_until']}</code> if Target 2 is untouched.",
+            ])
 
         cockpit_link = build_action_url("/my-signals", base_url=get_external_notification_base_url())
         lines.extend([

@@ -127,7 +127,11 @@ def calculate_realized_r(
 
 
 def normalize_outcome_state(
-    first_touch: str, raw_status: str, has_observations: bool, is_valid: bool
+    first_touch: str,
+    raw_status: str,
+    has_observations: bool,
+    is_valid: bool,
+    exit_reason: str = "",
 ) -> str:
     """Classify the normalized analytical outcome from raw lifecycle and touch states.
 
@@ -138,6 +142,7 @@ def normalize_outcome_state(
     - INVALIDATED
     - AMBIGUOUS
     - NO_DATA
+    - REVERSED
     - UNRESOLVED
     """
     if not is_valid:
@@ -147,9 +152,12 @@ def normalize_outcome_state(
 
     ft = (first_touch or "").strip().upper()
     status = (raw_status or "").strip().upper()
+    reason = (exit_reason or "").strip().upper()
 
     if ft in ("AMBIGUOUS", "AMBIGUOUS_SAME_BAR") or status in ("AMBIGUOUS", "AMBIGUOUS_SAME_BAR"):
         return "AMBIGUOUS"
+    if status == "CLOSED_ON_REVERSAL" or "REVERSAL" in reason:
+        return "REVERSED"
     if ft in ("T1", "T2") or status in ("TARGET_1_HIT", "TARGET_2_HIT"):
         return "TARGET_FIRST"
     if ft == "SL" or status == "SL_HIT":
@@ -423,14 +431,15 @@ class SignalOutcomeDatasetService:
 
                 # Check system_signals lifecycle truth if events were summarized
                 raw_lifecycle_state = str(sig_dict.get("status") or "ACTIVE").upper()
-                first_touch = str(sig_dict.get("first_touch") or "").strip() or None
+                raw_ft = str(sig_dict.get("first_touch") or "").strip().upper()
+                first_touch = raw_ft if raw_ft in ("T1", "T2", "SL") else None
                 first_touch_at = str(sig_dict.get("first_touch_at") or "").strip() or None
                 first_touch_price_raw = float(sig_dict.get("first_touch_price") or 0.0)
                 first_touch_price = first_touch_price_raw if first_touch_price_raw > 0 else None
                 outcome_confidence = str(sig_dict.get("outcome_confidence") or "UNKNOWN")
 
-                # If first_touch was T1, ensure t1_hit is flagged
-                if first_touch in ("T1", "T2") or raw_lifecycle_state in ("TARGET_1_HIT", "TARGET_2_HIT"):
+                # If first_touch was T1 or raw status indicates T1 reached:
+                if first_touch == "T1" or raw_lifecycle_state == "TARGET_1_HIT":
                     if t1_hit == 0:
                         t1_hit = 1
                         t1_hit_at = t1_hit_at or first_touch_at
@@ -438,13 +447,21 @@ class SignalOutcomeDatasetService:
                     if target_1 > 0 and target_1 not in obs_prices:
                         obs_prices.append(target_1)
 
-                if first_touch == "T2" or raw_lifecycle_state == "TARGET_2_HIT":
+                # If status progressed to TARGET_2_HIT or first_touch was T2:
+                if raw_lifecycle_state == "TARGET_2_HIT" or first_touch == "T2":
                     if t2_hit == 0:
                         t2_hit = 1
-                        t2_hit_at = t2_hit_at or first_touch_at
-                        t2_hit_price = t2_hit_price or target_2
+                        t2_hit_at = t2_hit_at or (first_touch_at if first_touch == "T2" else latest_obs_at)
+                        t2_hit_price = t2_hit_price or (first_touch_price if first_touch == "T2" else target_2)
                     if target_2 > 0 and target_2 not in obs_prices:
                         obs_prices.append(target_2)
+                    # If lifecycle progressed T1 -> T2 (first_touch was T1), preserve T1 milestone
+                    if first_touch == "T1" and t1_hit == 0:
+                        t1_hit = 1
+                        t1_hit_at = t1_hit_at or first_touch_at
+                        t1_hit_price = t1_hit_price or first_touch_price or target_1
+                        if target_1 > 0 and target_1 not in obs_prices:
+                            obs_prices.append(target_1)
 
                 if first_touch == "SL" or raw_lifecycle_state == "SL_HIT":
                     if sl_hit == 0:
@@ -481,11 +498,13 @@ class SignalOutcomeDatasetService:
                     data_quality_status = "VALID_DATA"
 
                 # 4. Normalized Outcome Classification
+                exit_reason = str(sig_dict.get("exit_reason") or "")
                 outcome = normalize_outcome_state(
                     first_touch=first_touch or "",
                     raw_status=raw_lifecycle_state,
                     has_observations=has_obs,
                     is_valid=is_valid,
+                    exit_reason=exit_reason,
                 )
 
                 # 5. MFE & MAE Calculation
@@ -543,26 +562,32 @@ class SignalOutcomeDatasetService:
                             if diff >= 0:
                                 time_to_sl_seconds = round(diff, 1)
 
-                # 7. Realized R and Exit Price Calculation
+                # 7. Realized R and Terminal Exit Price Calculation
+                # Interim milestone observations must NEVER be repurposed as terminal exit prices
                 exit_price: float | None = None
                 exit_at: str | None = None
 
-                if outcome == "TARGET_FIRST":
-                    if t2_hit and t2_hit_price:
-                        exit_price = t2_hit_price
-                        exit_at = t2_hit_at
-                    elif t1_hit_price:
-                        exit_price = t1_hit_price
-                        exit_at = t1_hit_at
-                    else:
-                        exit_price = target_1
-                        exit_at = first_touch_at
-                elif outcome == "SL_FIRST":
-                    exit_price = sl_hit_price or stop_loss
-                    exit_at = sl_hit_at or first_touch_at
-                elif outcome == "TIMEOUT":
-                    exit_price = first_touch_price or curr_p or None
-                    exit_at = first_touch_at or latest_obs_at
+                is_terminally_closed = raw_lifecycle_state in (
+                    "SL_HIT", "EXPIRED", "CLOSED_ON_REVERSAL", "TARGET_2_HIT"
+                ) or outcome in ("SL_FIRST", "TIMEOUT", "REVERSED")
+
+                if is_terminally_closed:
+                    if raw_lifecycle_state == "TARGET_2_HIT":
+                        exit_price = t2_hit_price or target_2
+                        exit_at = t2_hit_at or latest_obs_at
+                    elif raw_lifecycle_state == "SL_HIT" or outcome == "SL_FIRST":
+                        exit_price = sl_hit_price or stop_loss
+                        exit_at = sl_hit_at or first_touch_at or latest_obs_at
+                    elif raw_lifecycle_state == "EXPIRED" or outcome == "TIMEOUT":
+                        exit_price = curr_p if curr_p > 0 else (first_touch_price or entry_price)
+                        exit_at = sig_dict.get("exit_at") or latest_obs_at or first_touch_at
+                    elif raw_lifecycle_state == "CLOSED_ON_REVERSAL" or outcome == "REVERSED":
+                        exit_price = float(sig_dict.get("exit_price") or curr_p or first_touch_price or entry_price)
+                        exit_at = sig_dict.get("exit_at") or latest_obs_at or first_touch_at
+                else:
+                    # In-flight (e.g. TARGET_1_HIT or ACTIVE): terminal exit remains pending
+                    exit_price = None
+                    exit_at = None
 
                 realized_r: float | None = None
                 if exit_price is not None and is_valid and initial_risk and initial_risk > 0:

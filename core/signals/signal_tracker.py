@@ -132,6 +132,9 @@ class SignalTracker:
                     ("first_touch", "ALTER TABLE system_signals ADD COLUMN first_touch TEXT DEFAULT ''"),
                     ("first_touch_at", "ALTER TABLE system_signals ADD COLUMN first_touch_at TEXT DEFAULT ''"),
                     ("first_touch_price", "ALTER TABLE system_signals ADD COLUMN first_touch_price REAL DEFAULT 0.0"),
+                    ("exit_reason", "ALTER TABLE system_signals ADD COLUMN exit_reason TEXT DEFAULT ''"),
+                    ("exit_price", "ALTER TABLE system_signals ADD COLUMN exit_price REAL DEFAULT NULL"),
+                    ("exit_at", "ALTER TABLE system_signals ADD COLUMN exit_at TEXT DEFAULT ''"),
                 ):
                     try:
                         cur.execute(f"SELECT {col} FROM system_signals LIMIT 1")
@@ -669,23 +672,33 @@ class SignalTracker:
                             )
                             return ""
                         else:
-                            # Cooldown elapsed: expire prior opposite signal cleanly before activating new reversal
+                            # Cooldown elapsed: close prior opposite signal cleanly as a strategy reversal exit
                             prior_sig_id = active_same_sym["signal_id"]
                             prior_dict = dict(active_same_sym)
                             prior_price = prior_dict.get("current_price") or prior_dict.get("entry_price") or 0.0
                             now_iso = now.isoformat()
+                            try:
+                                cur.execute(
+                                    """UPDATE system_signals
+                                       SET status = 'CLOSED_ON_REVERSAL',
+                                           exit_reason = 'OPPOSITE_DIRECTION_REVERSAL',
+                                           exit_price = ?,
+                                           exit_at = ?,
+                                           outcome_confidence = 'EXACT_OBSERVATION'
+                                       WHERE signal_id = ? AND status = 'ACTIVE'""",
+                                    (prior_price, now_iso, prior_sig_id)
+                                )
+                            except sqlite3.OperationalError:
+                                # Fallback if exit_reason/exit_price columns not yet added to this DB connection
+                                cur.execute(
+                                    """UPDATE system_signals
+                                       SET status = 'CLOSED_ON_REVERSAL',
+                                           outcome_confidence = 'EXACT_OBSERVATION'
+                                       WHERE signal_id = ? AND status = 'ACTIVE'""",
+                                    (prior_sig_id,)
+                                )
                             cur.execute(
-                                """UPDATE system_signals
-                                   SET status = 'EXPIRED',
-                                       first_touch = CASE WHEN first_touch IS NULL OR first_touch = '' THEN 'EXPIRED' ELSE first_touch END,
-                                       first_touch_at = CASE WHEN first_touch_at IS NULL OR first_touch_at = '' THEN ? ELSE first_touch_at END,
-                                       first_touch_price = CASE WHEN first_touch_price IS NULL OR first_touch_price = 0 THEN ? ELSE first_touch_price END,
-                                       outcome_confidence = CASE WHEN outcome_confidence IS NULL OR outcome_confidence = '' OR outcome_confidence = 'UNKNOWN' THEN 'EXACT_OBSERVATION' ELSE outcome_confidence END
-                                   WHERE signal_id = ? AND status = 'ACTIVE'""",
-                                (now_iso, prior_price, prior_sig_id)
-                            )
-                            cur.execute(
-                                """UPDATE user_deliveries SET status = 'EXPIRED' WHERE signal_id = ? AND status = 'ACTIVE'""",
+                                """UPDATE user_deliveries SET status = 'CLOSED_ON_REVERSAL' WHERE signal_id = ? AND status = 'ACTIVE'""",
                                 (prior_sig_id,)
                             )
                             cur.execute(
@@ -697,10 +710,10 @@ class SignalTracker:
                                     """INSERT INTO signal_outcome_events
                                        (signal_id, observed_at, observed_price, hit_sl, hit_t1, hit_t2, transition_note)
                                        VALUES (?, ?, ?, 0, 0, 0, ?)""",
-                                    (prior_sig_id, now_iso, prior_price, f"Expired on qualified opposite-direction reversal to {direction}")
+                                    (prior_sig_id, now_iso, prior_price, f"Closed on qualified opposite-direction reversal to {direction}")
                                 )
                             _log.info(
-                                "[SIGNAL_LIFECYCLE] Expired prior active %s %s (%s) upon qualified reversal to %s",
+                                "[SIGNAL_LIFECYCLE] Closed prior active %s %s (%s) upon qualified reversal to %s",
                                 sym, active_dir, prior_sig_id, direction
                             )
 
@@ -1694,9 +1707,10 @@ class SignalTracker:
                     mfe_r = measurements.get("mfe_r") if measurements else None
                     mae_r = measurements.get("mae_r") if measurements else None
                     realized_r = measurements.get("realized_r") if measurements else None
-                    first_touch = measurements.get("first_touch") or r.get("first_touch") or None
-                    first_touch_at = measurements.get("first_touch_at") or r.get("first_touch_at") or None
-                    first_touch_price = measurements.get("first_touch_price") or r.get("first_touch_price") or None
+                    raw_ft = str(measurements.get("first_touch") or r.get("first_touch") or "").strip().upper()
+                    first_touch = raw_ft if raw_ft in ("T1", "T2", "SL") else None
+                    first_touch_at = (measurements.get("first_touch_at") or r.get("first_touch_at") or None) if first_touch else None
+                    first_touch_price = (measurements.get("first_touch_price") or r.get("first_touch_price") or None) if first_touch else None
                     exit_price = measurements.get("exit_price") if (is_resolved and measurements) else None
                     exit_at = measurements.get("exit_at") if (is_resolved and measurements) else None
                     target_1_hit = bool(measurements.get("target_1_hit")) if measurements else False
@@ -1707,7 +1721,7 @@ class SignalTracker:
                     stop_loss_hit_at = measurements.get("stop_loss_hit_at") if measurements else None
                     evaluated = True
                 else:
-                    # ZERO observations: never fabricate window, never use fallback MAE/MFE
+                    # ZERO forward observations: never fabricate window, never use fallback MAE/MFE
                     observed_from = None
                     observed_until = None
                     mfe = None
@@ -1717,18 +1731,46 @@ class SignalTracker:
                     mfe_r = None
                     mae_r = None
                     realized_r = None
-                    first_touch = None
-                    first_touch_at = None
-                    first_touch_price = None
                     exit_price = None
                     exit_at = None
-                    target_1_hit = None
-                    target_1_hit_at = None
-                    target_2_hit = None
-                    target_2_hit_at = None
-                    stop_loss_hit = None
-                    stop_loss_hit_at = None
                     evaluated = False
+
+                    raw_ft = str(r.get("first_touch") or "").strip().upper()
+                    first_touch = raw_ft if raw_ft in ("T1", "T2", "SL") else None
+                    first_touch_at = r.get("first_touch_at") if first_touch else None
+                    first_touch_price = r.get("first_touch_price") if first_touch else None
+
+                    # Canonical status proof for historical signals without forward telemetry
+                    if raw_status == "SL_HIT" or first_touch == "SL":
+                        stop_loss_hit = True
+                        stop_loss_hit_at = r.get("first_touch_at")
+                        target_1_hit = None
+                        target_1_hit_at = None
+                        target_2_hit = None
+                        target_2_hit_at = None
+                        first_touch = "SL"
+                    elif raw_status == "TARGET_2_HIT" or first_touch == "T2":
+                        stop_loss_hit = False
+                        stop_loss_hit_at = None
+                        target_1_hit = True if (first_touch == "T1" or r.get("first_touch") == "T1") else None
+                        target_1_hit_at = r.get("first_touch_at") if target_1_hit else None
+                        target_2_hit = True
+                        target_2_hit_at = r.get("first_touch_at") if first_touch == "T2" else None
+                    elif raw_status == "TARGET_1_HIT" or first_touch == "T1":
+                        stop_loss_hit = False
+                        stop_loss_hit_at = None
+                        target_1_hit = True
+                        target_1_hit_at = r.get("first_touch_at")
+                        target_2_hit = None
+                        target_2_hit_at = None
+                        first_touch = "T1"
+                    else:
+                        stop_loss_hit = None
+                        stop_loss_hit_at = None
+                        target_1_hit = None
+                        target_1_hit_at = None
+                        target_2_hit = None
+                        target_2_hit_at = None
 
                 lifecycle = {
                     "valid_from": valid_from,

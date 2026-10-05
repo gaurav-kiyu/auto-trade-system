@@ -391,12 +391,25 @@ class SignalForwardObservationService:
                 cur = conn.cursor()
                 if cohort_id:
                     cur.execute(
-                        "SELECT signal_id, observation_status FROM signal_forward_observations WHERE cohort_id = ? AND is_resolved = 0 LIMIT ?",
+                        """SELECT f.signal_id, f.observation_status, s.status as sig_status, s.first_touch as sig_first_touch
+                           FROM signal_forward_observations f
+                           LEFT JOIN system_signals s ON f.signal_id = s.signal_id
+                           WHERE f.cohort_id = ?
+                             AND (f.is_resolved = 0
+                                  OR (s.status = 'TARGET_2_HIT' AND f.observation_status != 'RESOLVED')
+                                  OR (s.status IN ('SL_HIT', 'EXPIRED', 'CLOSED_ON_REVERSAL') AND f.is_resolved = 0))
+                           LIMIT ?""",
                         (cohort_id, limit),
                     )
                 else:
                     cur.execute(
-                        "SELECT signal_id, observation_status FROM signal_forward_observations WHERE is_resolved = 0 LIMIT ?",
+                        """SELECT f.signal_id, f.observation_status, s.status as sig_status, s.first_touch as sig_first_touch
+                           FROM signal_forward_observations f
+                           LEFT JOIN system_signals s ON f.signal_id = s.signal_id
+                           WHERE f.is_resolved = 0
+                              OR (s.status = 'TARGET_2_HIT' AND f.observation_status != 'RESOLVED')
+                              OR (s.status IN ('SL_HIT', 'EXPIRED', 'CLOSED_ON_REVERSAL') AND f.is_resolved = 0)
+                           LIMIT ?""",
                         (limit,),
                     )
                 in_flight_rows = [dict(r) for r in cur.fetchall()]
@@ -408,6 +421,7 @@ class SignalForwardObservationService:
 
         for item in in_flight_rows:
             sig_id = item["signal_id"]
+            sig_status = str(item.get("sig_status") or "").upper()
             # 1. Consume Phase-B outcome measurement: read existing record first to guarantee read-only immutability
             meas: dict[str, Any] | None = None
             with self._io_lock:
@@ -421,7 +435,26 @@ class SignalForwardObservationService:
                 finally:
                     conn.close()
 
-            if not meas or str(meas.get("outcome") or "UNRESOLVED").upper() == "UNRESOLVED":
+            # Lifecycle progression check: Rematerialize when state advances
+            needs_rematerialize = False
+            if not meas:
+                needs_rematerialize = True
+            else:
+                meas_outcome = str(meas.get("outcome") or "UNRESOLVED").upper()
+                if meas_outcome == "UNRESOLVED":
+                    needs_rematerialize = True
+                elif sig_status == "TARGET_2_HIT" and int(meas.get("target_2_hit") or 0) == 0:
+                    needs_rematerialize = True
+                elif sig_status == "SL_HIT" and int(meas.get("stop_loss_hit") or 0) == 0:
+                    needs_rematerialize = True
+                elif sig_status == "TARGET_1_HIT" and meas.get("exit_price") is not None:
+                    needs_rematerialize = True
+                elif sig_status in ("SL_HIT", "EXPIRED", "CLOSED_ON_REVERSAL", "TARGET_2_HIT") and meas.get("exit_price") is None:
+                    needs_rematerialize = True
+                elif sig_status in ("TARGET_1_HIT", "TARGET_2_HIT") and int(meas.get("target_1_hit") or 0) == 0:
+                    needs_rematerialize = True
+
+            if needs_rematerialize:
                 meas = phase_b_service.build_signal_outcome_measurement(sig_id)
 
             if not meas:
@@ -429,11 +462,23 @@ class SignalForwardObservationService:
 
             outcome_val = str(meas.get("outcome") or "UNRESOLVED").upper()
             dq_val = str(meas.get("data_quality_status") or "VALID_DATA").upper()
+            raw_lifecycle = str(meas.get("raw_lifecycle_state") or sig_status or "").upper()
 
             # 2. Map Phase-B outcome to forward observation status
             is_resolved = 0
             res_timestamp = None
-            if outcome_val in ("TARGET_FIRST", "SL_FIRST"):
+            if outcome_val == "TARGET_FIRST":
+                if raw_lifecycle in ("TARGET_1_HIT", "ACTIVE", "OPEN"):
+                    # Interim milestone hit: position remains in-flight towards Target 2 / trailing stop
+                    obs_status = "OBSERVING"
+                    is_resolved = 0
+                    res_timestamp = None
+                else:
+                    # Target 2 hit or terminal resolution reached
+                    obs_status = "RESOLVED"
+                    is_resolved = 1
+                    res_timestamp = meas.get("exit_at") or meas.get("target_2_hit_at") or meas.get("first_touch_at") or now_ts
+            elif outcome_val == "SL_FIRST":
                 obs_status = "RESOLVED"
                 is_resolved = 1
                 res_timestamp = meas.get("exit_at") or meas.get("first_touch_at") or now_ts
@@ -441,7 +486,7 @@ class SignalForwardObservationService:
                 obs_status = "TIMEOUT"
                 is_resolved = 1
                 res_timestamp = meas.get("exit_at") or meas.get("first_touch_at") or now_ts
-            elif outcome_val == "AMBIGUOUS" or dq_val == "AMBIGUOUS_BAR":
+            elif outcome_val in ("AMBIGUOUS", "AMBIGUOUS_SAME_BAR") or dq_val in ("AMBIGUOUS_BAR", "AMBIGUOUS_DATA"):
                 obs_status = "AMBIGUOUS"
                 is_resolved = 0
             elif outcome_val == "NO_DATA" or dq_val == "NO_DATA":

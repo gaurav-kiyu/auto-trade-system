@@ -186,12 +186,17 @@
             if (status === 'TARGET_2_HIT') return `<span class="badge badge-t2"><i class="fas fa-check-double"></i> Target-2 Hit ${t2PctStr || ''}</span>`;
             if (status === 'TARGET_1_HIT') return `<span class="badge badge-t1"><i class="fas fa-check"></i> Target-1 Hit ${t1PctStr || ''}</span>`;
             if (status === 'SL_HIT') return `<span class="badge badge-sl"><i class="fas fa-times"></i> Stop Loss Hit ${slPctStr || ''}</span>`;
+            if (status === 'CLOSED_ON_REVERSAL') return '<span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);font-weight:700;"><i class="fas fa-arrows-rotate"></i> REVERSED</span>';
             if (status === 'AMBIGUOUS' || status === 'AMBIGUOUS_SAME_BAR') return '<span class="badge" style="background:var(--market-warning-bg, rgba(217,119,6,0.14));color:var(--warning-color, #d97706);border:1px solid var(--warning-color, #d97706);font-weight:700;"><i class="fas fa-question-circle"></i> AMBIGUOUS</span>';
             if (status === 'EXPIRED') return '<span class="badge" style="background:var(--bg-secondary, rgba(148,163,184,0.15));color:var(--text-muted, #94a3b8);border:1px solid var(--border-color, rgba(148,163,184,0.3));"><i class="fas fa-clock"></i> EXPIRED</span>';
             return '<span class="badge badge-active"><i class="fas fa-circle-notch fa-spin"></i> ACTIVE</span>';
         }
 
         function formatHumanName(sym, cat) {
+            if (!sym) return '-';
+            if (cat === 'INDEX_OPTIONS' || ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'NIFTYNXT50'].includes(sym)) {
+                return `${sym} Index Spot Proxy`;
+            }
             const m = sym.match(/^([A-Z]+)(\d{2}[A-Z]{3})(\d+)(CE|PE)$/i);
             if (m) {
                 const optType = m[4].toUpperCase() === 'CE' ? 'Call' : 'Put';
@@ -263,7 +268,7 @@
                 <div style="background:var(--bg-secondary, #0f172a);border-left:3px solid var(--success-color, #16a34a);border-radius:0 6px 6px 0;padding:10px 12px;font-size:0.78rem;line-height:1.5;">
                     <div style="margin-bottom:6px;">• <strong>Step 1:</strong> Book 50% of your position at Target 1 (₹${s.target_1.toLocaleString('en-IN', {minimumFractionDigits:2})}) and move Stop Loss to Entry Price (₹${s.entry_price.toLocaleString('en-IN', {minimumFractionDigits:2})}) for a risk-free trade.</div>
                     <div style="margin-bottom:6px;">• <strong>Step 2:</strong> Hold the remaining 50% position for Target 2 (₹${s.target_2.toLocaleString('en-IN', {minimumFractionDigits:2})}).</div>
-                    <div>• <strong>Step 3:</strong> If neither Target 2 nor SL is hit, exit remaining position by ${isOpt ? '15:15 IST' : 'end of Max Horizon'}.</div>
+                    <div>• <strong>Step 3:</strong> If neither Target 2 nor SL is hit, exit remaining position by ${isOpt ? '15:15 IST (Broker RMS Square-off) before 15:30 IST market close' : 'end of Max Horizon'}.</div>
                 </div>
                 <div style="margin-top:10px;font-size:0.75rem;color: var(--text-muted, #94a3b8);">
                     <strong>Position Sizing:</strong> Size according to your predefined portfolio risk limit.
@@ -374,12 +379,12 @@
                     </td>
                     <td>
                         <span style="display:inline-block;padding:2px 8px;background:var(--bg-secondary, rgba(59,130,246,0.1));border:1px solid var(--border-color, rgba(59,130,246,0.25));border-radius:6px;font-size:0.7rem;color:var(--accent-color, #0284c7);font-weight:700;">
-                            ${s.category}
+                            ${(s.category === 'INDEX_OPTIONS' || ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'NIFTYNXT50'].includes(s.symbol)) ? 'INDEX SPOT PROXY' : s.category}
                         </span>
                     </td>
                     <td>
                         ${(s.category && (s.category.includes('OPTION') || s.category.includes('0DTE'))) 
-                            ? '<span style="color:var(--warning-color, #d97706);font-weight:700;font-size:0.75rem;"><i class="fas fa-bolt"></i> Intraday (<15:15)</span>' 
+                            ? '<span style="color:var(--warning-color, #d97706);font-weight:700;font-size:0.75rem;"><i class="fas fa-bolt"></i> Intraday (RMS 15:15 | Close 15:30)</span>' 
                             : '<span style="color:var(--accent-color, #0284c7);font-weight:700;font-size:0.75rem;"><i class="far fa-calendar-alt"></i> 1–5 Days (Swing)</span>'}
                     </td>
                     <td>${dirBadge}</td>

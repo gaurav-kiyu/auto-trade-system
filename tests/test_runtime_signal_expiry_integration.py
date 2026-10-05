@@ -124,7 +124,8 @@ def test_runtime_sweep_expires_stale_intraday_signal(temp_tracker):
         cur.execute("SELECT * FROM system_signals WHERE signal_id = ?", ("SIG-20260918141102-NIFTY-f9a67e",))
         row = dict(cur.fetchone())
         assert row["status"] == "EXPIRED"
-        assert row["first_touch"] == "EXPIRED"
+        # OPB v2.60 invariant: first_touch ∈ {NULL / '', T1, T2, SL}; never writes 'EXPIRED'
+        assert row["first_touch"] == ""
 
         cur.execute("SELECT * FROM user_deliveries WHERE signal_id = ?", ("SIG-20260918141102-NIFTY-f9a67e",))
         del_row = dict(cur.fetchone())

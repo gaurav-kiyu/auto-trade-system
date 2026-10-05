@@ -27,6 +27,7 @@ to the present moment in a single unified execution:
 from __future__ import annotations
 
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -98,11 +99,20 @@ def run_all_20_sections():
     # Section 7: Signal Tracker & Historical Accuracy
     _log.info("🧪 [7/20] Signal Tracker & Accuracy Analytics Engine...")
     from core.signals.signal_tracker import SignalTracker
-    tracker = SignalTracker.get_instance()
-    analytics = tracker.get_admin_signal_analytics()
-    assert analytics["total_signals"] >= 10 and analytics["win_rate_pct"] > 0
-    _log.info("✅ [7/20 PASSED] Signal Tracker: %d historical signals, Win Rate: %.1f%%",
-              analytics["total_signals"], analytics["win_rate_pct"])
+    from core.signals.audit_db_safety import create_isolated_audit_db_copy
+    temp_audit_db = create_isolated_audit_db_copy("db/signals_history.db")
+    try:
+        tracker = SignalTracker(db_path=temp_audit_db)
+        analytics = tracker.get_admin_signal_analytics(include_seed_samples=True)
+        assert analytics["total_signals"] >= 10 and analytics["win_rate_pct"] > 0
+        _log.info("✅ [7/20 PASSED] Signal Tracker: %d historical signals, Win Rate: %.1f%% (isolated sandbox)",
+                  analytics["total_signals"], analytics["win_rate_pct"])
+    finally:
+        if os.path.exists(temp_audit_db):
+            try:
+                os.remove(temp_audit_db)
+            except Exception:
+                pass
 
     # Section 8: Institutional Gamma Exposure (GEX) & Volatility Skew
     _log.info("🧪 [8/20] Institutional Gamma Exposure (GEX) Engine...")
