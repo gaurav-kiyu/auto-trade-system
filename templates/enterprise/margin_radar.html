@@ -130,8 +130,8 @@
                 alertBox.style.display = 'none';
             }
 
-            const tb = document.getElementById('marginTableBody');
-            tb.innerHTML = (data.brokers || []).map(b => {
+            const brokers = data.brokers || [];
+            const rowsHtml = brokers.map(b => {
                 const badgeClass = b.status === 'WARNING_PEAK' ? 'badge-warn' : (b.status === 'MODERATE' ? 'badge-mod' : 'badge-safe');
                 const fillColor = b.utilization_pct >= 75 ? 'var(--danger-color, #ef4444)' : (b.utilization_pct >= 60 ? 'var(--warning-color, #d97706)' : 'var(--success-color, #22c55e)');
 
@@ -153,6 +153,40 @@
                     <td><span class="badge ${badgeClass}">${b.status}</span></td>
                 </tr>`;
             }).join('');
+
+            if (brokers.length > 0) {
+                const totCash = brokers.reduce((sum, b) => sum + (Number(b.available_cash) || 0), 0);
+                const totCollateral = brokers.reduce((sum, b) => sum + (Number(b.collateral_margin) || 0), 0);
+                const totMargin = brokers.reduce((sum, b) => sum + (Number(b.total_margin) || 0), 0);
+                const totUsed = brokers.reduce((sum, b) => sum + (Number(b.used_margin) || 0), 0);
+                const aggUtilPct = totMargin > 0 ? ((totUsed / totMargin) * 100).toFixed(1) : '0';
+                const aggBadgeClass = Number(aggUtilPct) >= 75 ? 'badge-warn' : (Number(aggUtilPct) >= 60 ? 'badge-mod' : 'badge-safe');
+                const aggStatus = Number(aggUtilPct) >= 75 ? 'WARNING_PEAK' : (Number(aggUtilPct) >= 60 ? 'MODERATE' : 'OPTIMAL_SAFE');
+                const aggFillColor = Number(aggUtilPct) >= 75 ? 'var(--danger-color, #ef4444)' : (Number(aggUtilPct) >= 60 ? 'var(--warning-color, #d97706)' : 'var(--success-color, #22c55e)');
+
+                const totalRowHtml = `
+                    <tr class="opb-table-total-row" title="Total for current filters">
+                        <td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:700;">₹${totCash.toLocaleString('en-IN')}</td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:700;">₹${totCollateral.toLocaleString('en-IN')}</td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:800;color:var(--text-primary);">₹${totMargin.toLocaleString('en-IN')}</td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:800;color:var(--danger-color, #dc2626);">₹${totUsed.toLocaleString('en-IN')}</td>
+                        <td>
+                            <div style="display:flex;justify-content:space-between;font-size:0.7rem;margin-bottom:0.2rem;font-variant-numeric:tabular-nums;font-weight:700;">
+                                <span>${aggUtilPct}%</span>
+                                <span style="color: var(--text-muted, #94a3b8);">Aggregated</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width:${aggUtilPct}%;background:${aggFillColor};"></div>
+                            </div>
+                        </td>
+                        <td><span class="badge ${aggBadgeClass}">${aggStatus}</span></td>
+                    </tr>
+                `;
+                tb.innerHTML = rowsHtml + totalRowHtml;
+            } else {
+                tb.innerHTML = rowsHtml;
+            }
         }
 
         loadMarginRadar();

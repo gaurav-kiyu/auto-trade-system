@@ -297,7 +297,16 @@
                 if (findings.length === 0) {
                     tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">No findings — all data sources are healthy</td></tr>';
                 } else {
-                    tb.innerHTML = findings.map(f => '<tr><td>'+f.source+'</td><td>'+f.category+'</td><td>'+badgeForHealth(f.severity)+'</td><td>'+f.finding+'</td><td>'+f.count+'</td></tr>').join('');
+                    const rowsHtml = findings.map(f => '<tr><td>'+f.source+'</td><td>'+f.category+'</td><td>'+badgeForHealth(f.severity)+'</td><td>'+f.finding+'</td><td style="font-variant-numeric:tabular-nums;">'+f.count+'</td></tr>').join('');
+                    const totCount = findings.reduce((sum, f) => sum + (Number(f.count) || 0), 0);
+                    const totalRowHtml = `
+                        <tr class="opb-table-total-row" title="Total for current filters">
+                            <td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td>
+                            <td colspan="3" style="color:var(--text-muted, #94a3b8);">${findings.length} Quality Finding Records</td>
+                            <td style="font-variant-numeric:tabular-nums;font-weight:700;">${totCount}</td>
+                        </tr>
+                    `;
+                    tb.innerHTML = rowsHtml + totalRowHtml;
                 }
             } catch(e) {
                 document.getElementById('findingsTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--danger-color, #dc2626);">Error: '+e.message+'</td></tr>';

@@ -163,15 +163,37 @@
                 if (!data.forecasts || data.forecasts.length === 0) {
                     ftbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color: var(--text-muted, #94a3b8);">No forecast data available</td></tr>';
                 } else {
-                    ftbody.innerHTML = data.forecasts.map(f => `<tr>
+                    const rowsHtml = data.forecasts.map(f => `<tr>
                         <td><strong>${f.resource}</strong></td>
-                        <td>${f.current_size_mb.toFixed(1)} MB</td>
-                        <td>${f.daily_growth_mb.toFixed(2)} MB</td>
-                        <td>${f.forecast_30d_mb.toFixed(1)} MB</td>
-                        <td>${f.forecast_90d_mb.toFixed(1)} MB</td>
-                        <td>${f.days_until_capacity != null ? f.days_until_capacity : '-'}</td>
+                        <td style="font-variant-numeric:tabular-nums;">${f.current_size_mb.toFixed(1)} MB</td>
+                        <td style="font-variant-numeric:tabular-nums;">${f.daily_growth_mb.toFixed(2)} MB</td>
+                        <td style="font-variant-numeric:tabular-nums;">${f.forecast_30d_mb.toFixed(1)} MB</td>
+                        <td style="font-variant-numeric:tabular-nums;">${f.forecast_90d_mb.toFixed(1)} MB</td>
+                        <td style="font-variant-numeric:tabular-nums;">${f.days_until_capacity != null ? f.days_until_capacity : '-'}</td>
                         <td>${badgeForStatus(f.status)}</td>
                     </tr>`).join('');
+
+                    const totCurrentSize = data.forecasts.reduce((sum, f) => sum + (Number(f.current_size_mb) || 0), 0);
+                    const totDailyGrowth = data.forecasts.reduce((sum, f) => sum + (Number(f.daily_growth_mb) || 0), 0);
+                    const totForecast30 = data.forecasts.reduce((sum, f) => sum + (Number(f.forecast_30d_mb) || 0), 0);
+                    const totForecast90 = data.forecasts.reduce((sum, f) => sum + (Number(f.forecast_90d_mb) || 0), 0);
+                    const validDays = data.forecasts.filter(f => f.days_until_capacity != null).map(f => Number(f.days_until_capacity));
+                    const minDays = validDays.length > 0 ? Math.min(...validDays) : null;
+                    const aggStatus = data.overall_status || 'OK';
+
+                    const totalRowHtml = `
+                        <tr class="opb-table-total-row" title="Total for current filters">
+                            <td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td>
+                            <td style="font-variant-numeric:tabular-nums;font-weight:700;">${totCurrentSize.toFixed(1)} MB</td>
+                            <td style="font-variant-numeric:tabular-nums;font-weight:700;">${totDailyGrowth.toFixed(2)} MB</td>
+                            <td style="font-variant-numeric:tabular-nums;font-weight:700;">${totForecast30.toFixed(1)} MB</td>
+                            <td style="font-variant-numeric:tabular-nums;font-weight:700;">${totForecast90.toFixed(1)} MB</td>
+                            <td style="font-variant-numeric:tabular-nums;font-weight:700;">${minDays !== null ? minDays + 'd (Min)' : '—'}</td>
+                            <td>${badgeForStatus(aggStatus)}</td>
+                        </tr>
+                    `;
+
+                    ftbody.innerHTML = rowsHtml + totalRowHtml;
                 }
             } catch (e) {
                 console.error('Load report error:', e);

@@ -629,15 +629,31 @@
 
                     // By type
                     const weeklyByType = weekly.by_type || {};
-                    document.getElementById('incidentByType').innerHTML = Object.keys(weeklyByType).length ?
-                        Object.entries(weeklyByType).map(([k,v]) => '<tr><td>'+k+'</td><td>'+v+'</td></tr>').join('') :
-                        '<tr><td colspan="2" style="text-align:center;color: var(--text-muted, #94a3b8);">No data</td></tr>';
+                    if (Object.keys(weeklyByType).length) {
+                        let totType = 0;
+                        const rows = Object.entries(weeklyByType).map(([k,v]) => {
+                            totType += Number(v) || 0;
+                            return '<tr><td>'+k+'</td><td style="font-variant-numeric:tabular-nums;">'+v+'</td></tr>';
+                        }).join('');
+                        const totRow = '<tr class="opb-table-total-row" title="Total for current filters"><td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td><td style="font-variant-numeric:tabular-nums;font-weight:700;">'+totType+'</td></tr>';
+                        document.getElementById('incidentByType').innerHTML = rows + totRow;
+                    } else {
+                        document.getElementById('incidentByType').innerHTML = '<tr><td colspan="2" style="text-align:center;color: var(--text-muted, #94a3b8);">No data</td></tr>';
+                    }
 
                     // By severity
                     const weeklyBySeverity = weekly.by_severity || {};
-                    document.getElementById('incidentBySeverity').innerHTML = Object.keys(weeklyBySeverity).length ?
-                        Object.entries(weeklyBySeverity).map(([k,v]) => '<tr><td>'+badge(k)+'</td><td>'+v+'</td></tr>').join('') :
-                        '<tr><td colspan="2" style="text-align:center;color: var(--text-muted, #94a3b8);">No data</td></tr>';
+                    if (Object.keys(weeklyBySeverity).length) {
+                        let totSev = 0;
+                        const rows = Object.entries(weeklyBySeverity).map(([k,v]) => {
+                            totSev += Number(v) || 0;
+                            return '<tr><td>'+badge(k)+'</td><td style="font-variant-numeric:tabular-nums;">'+v+'</td></tr>';
+                        }).join('');
+                        const totRow = '<tr class="opb-table-total-row" title="Total for current filters"><td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td><td style="font-variant-numeric:tabular-nums;font-weight:700;">'+totSev+'</td></tr>';
+                        document.getElementById('incidentBySeverity').innerHTML = rows + totRow;
+                    } else {
+                        document.getElementById('incidentBySeverity').innerHTML = '<tr><td colspan="2" style="text-align:center;color: var(--text-muted, #94a3b8);">No data</td></tr>';
+                    }
                 }
                 if (showNotice) showToast('Business intelligence report refreshed', 'info');
             } catch(e) {

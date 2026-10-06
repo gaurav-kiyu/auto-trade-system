@@ -297,6 +297,38 @@ body {
     background: var(--bg-card-hover);
 }
 
+/* Universal OPB Table Total Row Component (OPB v2.60 Golden Rule) */
+.opb-table-total-row,
+table tr.opb-table-total-row,
+.table tr.opb-table-total-row,
+.opb-table tr.opb-table-total-row,
+tfoot tr.opb-table-total-row {
+    background: var(--bg-card-hover) !important;
+    border-top: 2px solid var(--border-color) !important;
+    border-bottom: 2px solid var(--border-color) !important;
+    font-weight: var(--fw-bold, 700) !important;
+}
+
+.opb-table-total-row td,
+table tr.opb-table-total-row td,
+.table tr.opb-table-total-row td,
+.opb-table tr.opb-table-total-row td,
+tfoot tr.opb-table-total-row td {
+    font-weight: var(--fw-bold, 700) !important;
+    color: var(--text-primary) !important;
+    border-top: 2px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color);
+    padding: 0.85rem 1rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.opb-table-total-row td strong.total-label {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-color, var(--text-primary));
+}
+
 .opb-badge {
     display: inline-flex;
     align-items: center;

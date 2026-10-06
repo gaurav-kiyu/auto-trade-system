@@ -195,8 +195,9 @@ class TestSignalOutcomeDataset:
         assert meas["outcome"] == "TARGET_FIRST"
         assert meas["first_touch"] == "T1"
         assert meas["target_1_hit"] == 1
-        assert meas["realized_r"] is not None
-        assert meas["realized_r"] >= 1.5
+        assert meas["mfe_r"] is not None
+        assert meas["mfe_r"] >= 1.5
+        assert meas["realized_r"] is None
 
     def test_08_sl_first_touch_preserved(self, isolated_db):
         """Req 8: SL first-touch produces SL_FIRST outcome."""
@@ -243,7 +244,7 @@ class TestSignalOutcomeDataset:
 
         res = outcome_tracker.evaluate_bar(row, ambig_bar)
         assert res.new_status == "AMBIGUOUS"
-        assert res.first_touch == "AMBIGUOUS_SAME_BAR"
+        assert res.first_touch is None
 
         # Apply state to DB
         conn = tracker._get_conn()

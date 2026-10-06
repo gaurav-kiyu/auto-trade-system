@@ -148,7 +148,7 @@
 
             // Table
             if (tb) {
-                tb.innerHTML = sectors.map(s => `
+                const rowsHtml = sectors.map(s => `
                     <tr>
                         <td><strong>${s.sector}</strong></td>
                         <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:600;">${s.rs_ratio.toFixed(1)}</td>
@@ -161,6 +161,26 @@
                         <td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);">${s.commentary}</td>
                     </tr>
                 `).join('');
+
+                const totTurnover = sectors.reduce((sum, s) => sum + (Number(s.turnover_cr) || 0), 0);
+                const weightedDayChangeSum = sectors.reduce((sum, s) => sum + ((Number(s.turnover_cr) || 0) * (Number(s.day_change_pct) || 0)), 0);
+                const avgDayChange = totTurnover > 0 ? (weightedDayChangeSum / totTurnover).toFixed(2) : (sectors.reduce((sum, s) => sum + (Number(s.day_change_pct) || 0), 0) / sectors.length).toFixed(2);
+
+                const totalRowHtml = `
+                    <tr class="opb-table-total-row" title="Total for current filters">
+                        <td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td>
+                        <td style="font-family:monospace;color:var(--text-muted, #94a3b8);">—</td>
+                        <td style="font-family:monospace;color:var(--text-muted, #94a3b8);">—</td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:700;color:${Number(avgDayChange) >= 0 ? 'var(--success-color, #4ade80)' : 'var(--danger-color, #f87171)'};">
+                            ${Number(avgDayChange) >= 0 ? '+' : ''}${avgDayChange}% (Weighted)
+                        </td>
+                        <td style="font-family:monospace;font-variant-numeric:tabular-nums;font-weight:700;">₹${totTurnover.toLocaleString('en-IN')} Cr</td>
+                        <td><span class="badge" style="background:var(--bg-card);border:1px solid var(--border-color);font-weight:700;">${sectors.length} Sectors</span></td>
+                        <td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);">Market-wide aggregate turnover & weighted change</td>
+                    </tr>
+                `;
+
+                tb.innerHTML = rowsHtml + totalRowHtml;
             }
         }
 

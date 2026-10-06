@@ -620,10 +620,17 @@ def test_terminal_t1_synchronizes_to_forward_observation(temp_db: Path):
     assert obs_before["observation_status"] == "OBSERVING"
     assert obs_before["is_resolved"] == 0
 
-    # Simulate price touching T1 (3350 >= 3300)
+    # Simulate price touching T1 (3350 >= 3300): in-flight milestone reached
     res = outcome_tracker.update_active_signal_outcomes(price_lookup_fn=lambda sym: 3350.0)
     assert res["resolved"] >= 1
 
+    # Under RFC-OPB-V260-LIFECYCLE-001: T1 milestone keeps forward observation in-flight (OBSERVING)
+    obs_t1 = fwd_service.get_forward_observation(sig_id)
+    assert obs_t1["is_resolved"] == 0
+    assert obs_t1["observation_status"] == "OBSERVING"
+
+    # Simulate price touching T2 (3450 >= 3400): terminal target resolution reached
+    outcome_tracker.update_active_signal_outcomes(price_lookup_fn=lambda sym: 3450.0)
     obs_after = fwd_service.get_forward_observation(sig_id)
     assert obs_after["is_resolved"] == 1
     assert obs_after["observation_status"] == "RESOLVED"
@@ -799,8 +806,9 @@ def test_repeated_synchronization_is_idempotent(temp_db: Path):
     }
     sig_id = tracker.record_generated_signal(sig_data)
 
-    # First resolve to T1
+    # First reach T1, then T2 to achieve terminal target resolution
     outcome_tracker.update_active_signal_outcomes(price_lookup_fn=lambda sym: 1550.0)
+    outcome_tracker.update_active_signal_outcomes(price_lookup_fn=lambda sym: 1590.0)
 
     fwd_service = SignalForwardObservationService(db_path=temp_db)
     obs_1 = fwd_service.get_forward_observation(sig_id)

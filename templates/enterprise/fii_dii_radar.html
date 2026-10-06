@@ -96,9 +96,10 @@
                 return;
             }
 
-            tb.innerHTML = data.participants.map(p => {
+            const formatNet = (val) => `<span style="font-family:monospace;font-weight:600;font-variant-numeric:tabular-nums;color:${val >= 0 ? 'var(--success-color, #22c55e)' : 'var(--danger-color, #ef4444)'};">${val >= 0 ? '+' : ''}${val.toLocaleString('en-IN')}</span>`;
+
+            const rowsHtml = data.participants.map(p => {
                 const badgeClass = p.net_bias === 'BULLISH' ? 'badge-bull' : (p.net_bias === 'BEARISH' ? 'badge-bear' : 'badge-neu');
-                const formatNet = (val) => `<span style="font-family:monospace;font-weight:600;font-variant-numeric:tabular-nums;color:${val >= 0 ? 'var(--success-color, #22c55e)' : 'var(--danger-color, #ef4444)'};">${val >= 0 ? '+' : ''}${val.toLocaleString('en-IN')}</span>`;
 
                 return `<tr>
                     <td><strong>${p.display_name}</strong></td>
@@ -109,6 +110,27 @@
                     <td><span class="badge ${badgeClass}">${p.net_bias}</span></td>
                 </tr>`;
             }).join('');
+
+            const totIndexFut = data.participants.reduce((sum, p) => sum + (Number(p.index_fut_net) || 0), 0);
+            const totIndexCall = data.participants.reduce((sum, p) => sum + (Number(p.index_call_net) || 0), 0);
+            const totIndexPut = data.participants.reduce((sum, p) => sum + (Number(p.index_put_net) || 0), 0);
+            const totStockFut = data.participants.reduce((sum, p) => sum + (Number(p.stock_fut_net) || 0), 0);
+            const totNetOverall = totIndexFut + totIndexCall - totIndexPut + totStockFut;
+            const aggBias = totNetOverall > 0 ? 'BULLISH' : (totNetOverall < 0 ? 'BEARISH' : 'NEUTRAL');
+            const aggBadgeClass = aggBias === 'BULLISH' ? 'badge-bull' : (aggBias === 'BEARISH' ? 'badge-bear' : 'badge-neu');
+
+            const totalRowHtml = `
+                <tr class="opb-table-total-row" title="Total for current filters">
+                    <td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td>
+                    <td style="font-variant-numeric:tabular-nums;font-weight:700;">${formatNet(totIndexFut)}</td>
+                    <td style="font-variant-numeric:tabular-nums;font-weight:700;">${formatNet(totIndexCall)}</td>
+                    <td style="font-variant-numeric:tabular-nums;font-weight:700;">${formatNet(totIndexPut)}</td>
+                    <td style="font-variant-numeric:tabular-nums;font-weight:700;">${formatNet(totStockFut)}</td>
+                    <td><span class="badge ${aggBadgeClass}">${aggBias}</span></td>
+                </tr>
+            `;
+
+            tb.innerHTML = rowsHtml + totalRowHtml;
         }
 
         loadFiiDiiData();

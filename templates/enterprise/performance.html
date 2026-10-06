@@ -139,7 +139,22 @@
             // By-regime breakdown
             const regimeData = perf.breakdown || (comp && comp.by_regime) || {};
             if (Object.keys(regimeData).length) {
-                document.getElementById('regimeTable').innerHTML = Object.entries(regimeData).map(([r,s])=>'<tr><td><strong>'+r+'</strong></td><td>'+(s.trades||s.count||'-')+'</td><td>'+(s.win_rate!=null?(s.win_rate*100).toFixed(1)+'%':'-')+'</td><td class="'+((s.total_pnl||s.pnl||0)>=0?'stat-positive':'stat-negative')+'">₹'+(s.total_pnl||s.pnl||0).toFixed(2)+'</td><td>'+(s.avg_pnl!=null?'₹'+s.avg_pnl.toFixed(2):'-')+'</td></tr>').join('');
+                let totTrades = 0, totWins = 0, totPnlSum = 0;
+                const rows = Object.entries(regimeData).map(([r,s]) => {
+                    const trCount = Number(s.trades || s.count || 0);
+                    const pnlVal = Number(s.total_pnl || s.pnl || 0);
+                    const wr = s.win_rate != null ? Number(s.win_rate) : null;
+                    if (wr != null && trCount > 0) {
+                        totWins += Math.round(wr * trCount);
+                    }
+                    totTrades += trCount;
+                    totPnlSum += pnlVal;
+                    return '<tr><td><strong>'+r+'</strong></td><td style="font-variant-numeric:tabular-nums;">'+(s.trades||s.count||'-')+'</td><td style="font-variant-numeric:tabular-nums;">'+(s.win_rate!=null?(s.win_rate*100).toFixed(1)+'%':'-')+'</td><td class="'+((s.total_pnl||s.pnl||0)>=0?'stat-positive':'stat-negative')+'" style="font-variant-numeric:tabular-nums;">₹'+(s.total_pnl||s.pnl||0).toFixed(2)+'</td><td style="font-variant-numeric:tabular-nums;">'+(s.avg_pnl!=null?'₹'+s.avg_pnl.toFixed(2):'-')+'</td></tr>';
+                }).join('');
+                const aggWinRate = totTrades > 0 ? (totWins / totTrades * 100).toFixed(1) + '%' : '-';
+                const aggAvgPnl = totTrades > 0 ? (totPnlSum / totTrades).toFixed(2) : '0.00';
+                const totalRow = '<tr class="opb-table-total-row" title="Total for current filters"><td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td><td style="font-variant-numeric:tabular-nums;font-weight:700;">'+totTrades+'</td><td style="font-variant-numeric:tabular-nums;font-weight:700;">'+aggWinRate+'</td><td class="'+(totPnlSum>=0?'stat-positive':'stat-negative')+'" style="font-variant-numeric:tabular-nums;font-weight:700;">₹'+totPnlSum.toFixed(2)+'</td><td style="font-variant-numeric:tabular-nums;font-weight:700;">₹'+aggAvgPnl+'</td></tr>';
+                document.getElementById('regimeTable').innerHTML = rows + totalRow;
             } else {
                 document.getElementById('regimeTable').innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--text-muted, #94a3b8);">No regime breakdown data</td></tr>';
             }

@@ -377,7 +377,7 @@
                 return;
             }
 
-            tb.innerHTML = signalsCache.map((s, idx) => {
+            const rowsHtml = signalsCache.map((s, idx) => {
                 const isBuy = s.direction === 'CALL' || s.direction === 'BUY';
                 const tierLabel = (s.tier || (s.score >= 80 ? 'STRONG' : (s.score >= 70 ? 'MODERATE' : 'WEAK'))).toUpperCase();
                 const dirBadge = isBuy
@@ -464,6 +464,22 @@
                     </td>
                 </tr>`;
             }).join('');
+
+            const totSigCount = signalsCache.length;
+            const avgScoreVal = (signalsCache.reduce((sum, s) => sum + (Number(s.score) || 0), 0) / totSigCount).toFixed(1);
+
+            const totalRowHtml = `
+                <tr class="opb-table-total-row" title="Total for current filters">
+                    <td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td>
+                    <td colspan="4" style="font-weight:700;color:var(--text-primary);"><span style="font-variant-numeric:tabular-nums;">${totSigCount} Signals</span> (${active} Active · ${t1} T1 · ${sl} SL · ${exp} Exp)</td>
+                    <td><strong style="color:var(--accent-color, #0284c7);font-variant-numeric:tabular-nums;">Avg ${avgScoreVal}/100</strong></td>
+                    <td colspan="4" style="color:var(--text-muted, #94a3b8);font-size:0.75rem;">Aggregated user feed</td>
+                    <td><span class="badge badge-active" style="font-variant-numeric:tabular-nums;">${t1} Hits (${t2} T2) / ${sl} SL</span></td>
+                    <td style="color:var(--text-muted, #94a3b8);font-size:0.75rem;">—</td>
+                </tr>
+            `;
+
+            tb.innerHTML = rowsHtml + totalRowHtml;
         }
 
         document.querySelectorAll('#userSignalsFilterBar .timeframe-btn').forEach(btn => {

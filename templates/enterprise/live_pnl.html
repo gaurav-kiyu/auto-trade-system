@@ -124,7 +124,8 @@
             if (!dict || !Object.keys(dict).length) {
                 return '<tr><td colspan="7" style="color: var(--text-muted, #94a3b8);text-align:center;">No attribution data available</td></tr>';
             }
-            return Object.entries(dict).map(([k, v]) => {
+            let totTrades = 0, totWins = 0, totLosses = 0, totPnlSum = 0;
+            const rowsHtml = Object.entries(dict).map(([k, v]) => {
                 let label = k;
                 if (isDir) {
                     label = k === 'BUY' ? '<span class="badge badge-buy">BUY</span>' : '<span class="badge badge-sell">SELL</span>';
@@ -138,16 +139,36 @@
                 const totPnl = v.total_pnl != null ? v.total_pnl : (v.pnl || 0);
                 const avgPnl = v.avg_pnl != null ? v.avg_pnl : (trades ? totPnl / trades : 0);
 
+                totTrades += trades;
+                totWins += wins;
+                totLosses += losses;
+                totPnlSum += totPnl;
+
                 return `<tr>
                     <td>${label}</td>
-                    <td>${trades}</td>
-                    <td style="color: var(--success-color, #16a34a);font-weight:500;">${wins}</td>
-                    <td style="color: var(--danger-color, #dc2626);font-weight:500;">${losses}</td>
-                    <td>${fmtRate(winRate)}</td>
-                    <td>${fmtPnl(totPnl)}</td>
-                    <td>${fmtPnl(avgPnl)}</td>
+                    <td style="font-variant-numeric:tabular-nums;">${trades}</td>
+                    <td style="color: var(--success-color, #16a34a);font-weight:500;font-variant-numeric:tabular-nums;">${wins}</td>
+                    <td style="color: var(--danger-color, #dc2626);font-weight:500;font-variant-numeric:tabular-nums;">${losses}</td>
+                    <td style="font-variant-numeric:tabular-nums;">${fmtRate(winRate)}</td>
+                    <td style="font-variant-numeric:tabular-nums;">${fmtPnl(totPnl)}</td>
+                    <td style="font-variant-numeric:tabular-nums;">${fmtPnl(avgPnl)}</td>
                 </tr>`;
             }).join('');
+
+            const aggWinRate = totTrades > 0 ? (totWins / totTrades) : 0;
+            const aggAvgPnl = totTrades > 0 ? (totPnlSum / totTrades) : 0;
+
+            const totalRowHtml = `<tr class="opb-table-total-row" title="Total for current filters">
+                <td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td>
+                <td style="font-variant-numeric:tabular-nums;font-weight:700;">${totTrades}</td>
+                <td style="color: var(--success-color, #16a34a);font-weight:700;font-variant-numeric:tabular-nums;">${totWins}</td>
+                <td style="color: var(--danger-color, #dc2626);font-weight:700;font-variant-numeric:tabular-nums;">${totLosses}</td>
+                <td style="font-variant-numeric:tabular-nums;font-weight:700;">${fmtRate(aggWinRate)}</td>
+                <td style="font-variant-numeric:tabular-nums;font-weight:700;">${fmtPnl(totPnlSum)}</td>
+                <td style="font-variant-numeric:tabular-nums;font-weight:700;">${fmtPnl(aggAvgPnl)}</td>
+            </tr>`;
+
+            return rowsHtml + totalRowHtml;
         }
 
         async function load() {

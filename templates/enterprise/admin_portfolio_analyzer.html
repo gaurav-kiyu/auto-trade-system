@@ -812,6 +812,26 @@
                 tbody.appendChild(tr);
             });
 
+            if (data.stock_guidance && data.stock_guidance.length > 0) {
+                const totalQty = data.stock_guidance.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+                const totTr = document.createElement('tr');
+                totTr.className = 'opb-table-total-row';
+                totTr.title = 'Total for current filters';
+                totTr.innerHTML = `
+                    <td><strong class="total-label"><i class="fas fa-sigma" style="margin-right:4px;"></i>TOTAL</strong></td>
+                    <td style="font-variant-numeric: tabular-nums; font-weight: 700;">Total Qty: ${totalQty}<br><span style="font-size:0.75rem;color:var(--text-muted, #9ca3af);">Portfolio: ₹${data.total_portfolio_value.toLocaleString('en-IN')}</span></td>
+                    <td style="font-variant-numeric: tabular-nums; color: var(--text-muted, #9ca3af);">—</td>
+                    <td style="color: ${data.total_unrealized_pnl < 0 ? 'var(--danger-color, #ef4444)' : 'var(--success-color, #10b981)'}; font-weight:800; font-variant-numeric: tabular-nums;">
+                        ${data.total_unrealized_pnl >= 0 ? '+' : ''}₹${data.total_unrealized_pnl.toLocaleString('en-IN')} (${data.total_pnl_pct}%)
+                    </td>
+                    <td><strong>${data.stock_guidance.length} Holdings</strong></td>
+                    <td style="color: var(--text-muted, #9ca3af);">—</td>
+                    <td style="color: var(--text-muted, #9ca3af);">—</td>
+                    <td style="color: var(--text-muted, #9ca3af); font-size:0.75rem;">Aggregated portfolio guidance</td>
+                `;
+                tbody.appendChild(totTr);
+            }
+
             document.getElementById('results-container').style.display = 'block';
         }
 

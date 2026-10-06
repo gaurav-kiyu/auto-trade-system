@@ -419,12 +419,12 @@ class TestSignalForwardObservation:
         conn = sqlite3.connect(str(temp_db))
         conn.execute("""
             UPDATE system_signals
-            SET status = 'TARGET_1_HIT', first_touch = 'T1', first_touch_at = '2026-09-26T10:15:00+05:30', first_touch_price = 520.0
+            SET status = 'TARGET_2_HIT', first_touch = 'T1', first_touch_at = '2026-09-26T10:15:00+05:30', first_touch_price = 520.0
             WHERE signal_id = 'SIG-FWD-09'
         """)
         conn.execute("""
             INSERT INTO signal_outcome_events (signal_id, observed_at, observed_price, hit_sl, hit_t1, hit_t2)
-            VALUES ('SIG-FWD-09', '2026-09-26T10:15:00+05:30', 520.0, 0, 1, 0)
+            VALUES ('SIG-FWD-09', '2026-09-26T10:15:00+05:30', 520.0, 0, 1, 1)
         """)
         conn.commit()
         conn.close()
