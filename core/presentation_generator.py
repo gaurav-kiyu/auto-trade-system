@@ -12,7 +12,7 @@ real repository data or file I/O.
 
 Usage:
     gen = get_presentation_generator(output_dir="reports/")
-    gen.generate("executive", data={"version": "2.56.0", ...})
+    gen.generate("executive", data={"version": "2.60.0", ...})
     gen.generate("developer", data={...})
 
 Config keys (all under PRESENTATION_GENERATOR in config.json):
@@ -893,7 +893,7 @@ class PresentationGenerator:
 
     Usage:
         gen = PresentationGenerator(PresentationConfig(output_dir="reports/"))
-        gen.generate("executive", data={"version": "2.56.0", ...})
+        gen.generate("executive", data={"version": "2.60.0", ...})
         gen.generate("developer", data={...})
 
     Templates:

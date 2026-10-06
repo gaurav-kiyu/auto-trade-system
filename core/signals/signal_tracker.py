@@ -1992,6 +1992,7 @@ class SignalTracker:
                 active_count = 0
                 ambiguous_count = 0
                 expired_count = 0
+                closed_on_reversal_count = 0
 
                 for row in rows:
                     st = str(row.get("status") or "ACTIVE").strip().upper()
@@ -2006,6 +2007,7 @@ class SignalTracker:
                     is_t2 = (st in ("TARGET_2_HIT", "T2_HIT")) or (ft == "T2") or (str(row.get("target_2_hit") or "").strip().lower() in ("1", "true", "t2", "target_2_hit"))
                     is_t1 = (st in ("TARGET_1_HIT", "T1_HIT")) or (ft in ("T1", "T2")) or is_t2
                     is_sl = (st in ("SL_HIT", "STOP_LOSS_HIT")) or (ft == "SL")
+                    is_rev = (st in ("CLOSED_ON_REVERSAL", "REVERSED")) or (ft in ("CLOSED_ON_REVERSAL", "REVERSED"))
 
                     if is_ambig:
                         row["status"] = "AMBIGUOUS"
@@ -2019,6 +2021,8 @@ class SignalTracker:
                         sl_hit_count += 1
                     elif st == "EXPIRED" or ft == "EXPIRED":
                         expired_count += 1
+                    elif is_rev:
+                        closed_on_reversal_count += 1
                     else:
                         active_count += 1
 
@@ -2050,11 +2054,14 @@ class SignalTracker:
                     "category": category,
                     "total_received": len(rows),
                     "target_1_hit": t1_hit_count,
+                    "target_1_only": max(0, t1_hit_count - t2_hit_count),
+                    "target_1_or_better": t1_hit_count,
                     "target_2_hit": t2_hit_count,
                     "stop_loss_hit": sl_hit_count,
                     "active_count": active_count,
                     "ambiguous_count": ambiguous_count,
                     "expired_count": expired_count,
+                    "closed_on_reversal_count": closed_on_reversal_count,
                     "signals": rows,
                     "available_years": sorted(years, reverse=True),
                     "available_months": sorted(months, reverse=True),

@@ -66,6 +66,10 @@
     <div>
         <i class="fas fa-shield-alt" style="color:var(--accent-color, #38bdf8);margin-right:0.4rem;"></i>
         <span>Real system signals present (<span id="bannerSignalCount" style="font-weight:700;">0</span> generated; <span id="bannerResolvedCount" style="font-weight:700;">0</span> terminal resolutions). Production performance metrics strictly exclude sample/seed records.</span>
+        <div style="font-size:0.73rem;color:var(--text-muted, #94a3b8);margin-top:0.35rem;">
+            <i class="fas fa-info-circle" style="color:var(--accent-color, #38bdf8);margin-right:0.3rem;"></i>
+            <strong>Population Context:</strong> Metrics reflect total system-wide signals generated across all market classes. User-facing Signals Radar displays delivered signals filtered by individual subscribed categories.
+        </div>
     </div>
     <div style="display:flex;align-items:center;gap:0.5rem;">
         <label style="font-size:0.75rem;color:var(--text-secondary, #94a3b8);display:flex;align-items:center;gap:0.35rem;cursor:pointer;">
@@ -120,7 +124,7 @@
 <!-- Accuracy & Performance KPI Cards -->
 <div class="stats-grid">
 <div class="stat-card">
-<div class="stat-label">Total Signals Generated</div>
+<div class="stat-label">Total Signals Generated <span style="font-size:0.65rem;color:var(--text-muted, #94a3b8);display:block;text-transform:none;font-weight:normal;">(System-wide detections)</span></div>
 <div class="stat-value" id="statTotalSignals">-</div>
 </div>
 <div class="stat-card">

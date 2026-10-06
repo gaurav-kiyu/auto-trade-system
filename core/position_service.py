@@ -813,7 +813,7 @@ class PositionService:
                         mode="PAPER" if not self._broker_api_enabled else "LIVE",
                         regime=pos.get("regime"),
                         score=int(pos.get("score")) if pos.get("score") is not None else None,
-                        version=str(self._cfg.get("VERSION", "v2.59.0")),
+                        version=str(self._cfg.get("VERSION", "v2.60.0")),
                     )
             except (ValueError, TypeError, KeyError, AttributeError, IndexError, OSError):
                 pass

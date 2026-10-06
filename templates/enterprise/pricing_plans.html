@@ -14,15 +14,17 @@
         h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
         .subtitle { color: var(--text-muted, #94a3b8); font-size: 0.875rem; margin-bottom: 2rem; }
         .plans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .plan-card { background: var(--bg-card, linear-gradient(135deg, #1a1f2e 0%, #0f1319 100%)); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: all 0.2s ease; }
-        .plan-card:hover { border-color: rgba(96,165,250,0.4); transform: translateY(-3px); }
-        .plan-badge { position: absolute; top: -10px; right: 20px; background: #3b82f6; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 1rem; text-transform: uppercase; }
-        .plan-price { font-size: 2rem; font-weight: 800; color: #fff; margin: 1rem 0; }
+        .plan-card { background: var(--bg-card, #111827); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: all 0.2s ease; box-shadow: var(--card-shadow); color: var(--text-primary, #ffffff); }
+        .plan-card:hover { border-color: var(--accent-color, rgba(96,165,250,0.4)); transform: translateY(-3px); }
+        .plan-card h3 { color: var(--text-primary, #ffffff); }
+        .plan-badge { position: absolute; top: -10px; right: 20px; background: var(--accent-color, #3b82f6); color: var(--btn-primary-text, #ffffff); font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 1rem; text-transform: uppercase; }
+        .plan-price { font-size: 2rem; font-weight: 800; color: var(--text-primary, #ffffff); margin: 1rem 0; font-variant-numeric: tabular-nums; }
+        .plan-price span { font-size: 0.85rem; color: var(--text-muted, #94a3b8); font-weight: 500; }
         .plan-features { list-style: none; margin-bottom: 1.5rem; }
-        .plan-features li { font-size: 0.8rem; color: var(--text-muted, #94a3b8); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .plan-features li { font-size: 0.82rem; color: var(--text-secondary, #cbd5e1); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
         .plan-features li i { color: var(--success-color, #16a34a); }
-        .btn-pay { width: 100%; padding: 0.6rem; border-radius: 0.5rem; background: #3b82f6; color: #fff; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; transition: background 0.2s; }
-        .btn-pay:hover { background: #2563eb; }
+        .btn-pay { width: 100%; padding: 0.65rem; border-radius: 0.5rem; background: var(--accent-gradient, linear-gradient(135deg, #0284c7 0%, #2563eb 100%)); color: var(--btn-primary-text, #ffffff); font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; transition: all 0.2s ease; }
+        .btn-pay:hover { filter: brightness(1.1); transform: translateY(-1px); }
         .qr-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000000; align-items: center; justify-content: center; }
     </style>    {% include "_pwa_head.html" %}
     <!-- Fonts & Design System Tokens -->
@@ -65,7 +67,7 @@
     <div class="qr-modal" id="qrModal">
         <div style="background:var(--bg-card, #111827);border:1px solid var(--border-color, rgba(148,163,184,0.2));border-radius:1rem;padding:2rem;max-width:440px;width:92%;text-align:center;position:relative;max-height:92vh;overflow-y:auto;">
             <button id="cspfix-1" class="opb-modal-close-btn" style="position:sticky;top:0;float:right;margin-top:-1rem;margin-right:-1rem;background:transparent;border:none;color: var(--text-muted, #94a3b8);font-size:1.4rem;cursor:pointer;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;z-index:50;" aria-label="Close modal" type="button">×</button>
-            <h3 id="modalPlanTitle" style="font-weight:700;font-size:1.15rem;margin-bottom:0.25rem;">Plan Title</h3>
+            <h3 id="modalPlanTitle" style="font-weight:700;font-size:1.15rem;margin-bottom:0.25rem;color:var(--text-primary, #ffffff);">Plan Title</h3>
             <p style="color: var(--text-muted, #94a3b8);font-size:0.8rem;margin-bottom:0.6rem;">Scan with PhonePe, Google Pay, Paytm, or BHIM</p>
 
             <div id="modalMerchantBadge" style="display:none;align-items:center;justify-content:center;gap:0.4rem;font-size:0.75rem;color:var(--success-color, #22c55e);background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:0.35rem;padding:0.25rem 0.65rem;margin:0 auto 0.75rem auto;width:fit-content;font-weight:600;">
@@ -204,8 +206,8 @@
                 <div class="plan-card">
                     <div class="plan-badge">${p.badge}</div>
                     <div>
-                        <h3 style="font-weight:700;font-size:1.1rem;">${p.name}</h3>
-                        <div class="plan-price">₹${p.price_inr.toLocaleString('en-IN')}<span style="font-size:0.8rem;color: var(--text-muted, #94a3b8);font-weight:400;"> / month</span></div>
+                        <h3 style="font-weight:700;font-size:1.1rem;color:var(--text-primary, #ffffff);">${p.name}</h3>
+                        <div class="plan-price">₹${p.price_inr.toLocaleString('en-IN')}<span style="font-size:0.8rem;color: var(--text-muted, #94a3b8);font-weight:500;"> / month</span></div>
                         <ul class="plan-features">
                             ${p.features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
                         </ul>

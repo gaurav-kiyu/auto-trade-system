@@ -24,6 +24,7 @@ from core.signals.signal_quality_gate import (
 from core.signals.signal_tracker import SignalTracker
 from core.all_nse_scanner import AllNSEScanner, ScannedStockSignal
 from core.signal_utils import calculate_directional_levels
+from core.datetime_ist import now_ist
 
 
 @pytest.fixture
@@ -179,6 +180,7 @@ def test_11_first_call_for_index_session_allowed(temp_db):
 def test_12_second_call_same_index_session_rejected(temp_db):
     """12. Second CALL same index/session -> rejected."""
     tracker, db_file = temp_db
+    session_date = now_ist().date().isoformat()
     # Record first CALL
     sig1_id = tracker.record_generated_signal({
         "symbol": "NIFTY",
@@ -194,7 +196,7 @@ def test_12_second_call_same_index_session_rejected(temp_db):
 
     conn = tracker._get_conn()
     cur = conn.cursor()
-    ok, reason = check_index_session_dedup(cur, "NIFTY 24500 CE", "INDEX_OPTIONS", "CALL", "2026-09-29")
+    ok, reason = check_index_session_dedup(cur, "NIFTY 24500 CE", "INDEX_OPTIONS", "CALL", session_date)
     conn.close()
 
     assert ok is False
@@ -204,6 +206,7 @@ def test_12_second_call_same_index_session_rejected(temp_db):
 def test_13_first_put_same_index_session_allowed(temp_db):
     """13. First PUT same index/session (coexisting with CALL) -> allowed."""
     tracker, db_file = temp_db
+    session_date = now_ist().date().isoformat()
     # Record first CALL
     sig1_id = tracker.record_generated_signal({
         "symbol": "NIFTY",
@@ -220,7 +223,7 @@ def test_13_first_put_same_index_session_allowed(temp_db):
     conn = tracker._get_conn()
     cur = conn.cursor()
     # First PUT should be accepted even though CALL exists
-    ok, reason = check_index_session_dedup(cur, "NIFTY 24500 PE", "INDEX_OPTIONS", "PUT", "2026-09-29")
+    ok, reason = check_index_session_dedup(cur, "NIFTY 24500 PE", "INDEX_OPTIONS", "PUT", session_date)
     conn.close()
 
     assert ok is True
@@ -230,6 +233,7 @@ def test_13_first_put_same_index_session_allowed(temp_db):
 def test_14_second_put_same_index_session_rejected(temp_db):
     """14. Second PUT same index/session -> rejected."""
     tracker, db_file = temp_db
+    session_date = now_ist().date().isoformat()
     # Record first PUT
     sig1_id = tracker.record_generated_signal({
         "symbol": "NIFTY",
@@ -245,7 +249,7 @@ def test_14_second_put_same_index_session_rejected(temp_db):
 
     conn = tracker._get_conn()
     cur = conn.cursor()
-    ok, reason = check_index_session_dedup(cur, "NIFTY 24400 PE", "INDEX_OPTIONS", "PUT", "2026-09-29")
+    ok, reason = check_index_session_dedup(cur, "NIFTY 24400 PE", "INDEX_OPTIONS", "PUT", session_date)
     conn.close()
 
     assert ok is False
@@ -278,6 +282,7 @@ def test_15_next_session_call_allowed(temp_db):
 def test_16_different_canonical_index_independently_allowed(temp_db):
     """16. Different canonical index -> independently allowed."""
     tracker, db_file = temp_db
+    session_date = now_ist().date().isoformat()
     # Record NIFTY CALL
     sig1_id = tracker.record_generated_signal({
         "symbol": "NIFTY",
@@ -294,7 +299,7 @@ def test_16_different_canonical_index_independently_allowed(temp_db):
     conn = tracker._get_conn()
     cur = conn.cursor()
     # BANKNIFTY is independent of NIFTY
-    ok, reason = check_index_session_dedup(cur, "BANKNIFTY 52000 CE", "INDEX_OPTIONS", "CALL", "2026-09-29")
+    ok, reason = check_index_session_dedup(cur, "BANKNIFTY 52000 CE", "INDEX_OPTIONS", "CALL", session_date)
     conn.close()
 
     assert ok is True

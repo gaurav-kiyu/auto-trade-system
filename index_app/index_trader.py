@@ -1,5 +1,5 @@
 # ================================================================
-# 🚀  TRADER BRAIN - PRODUCTION v2.59.0  (₹5 000 Capital Edition)
+# 🚀  TRADER BRAIN - PRODUCTION v2.60.0  (₹5 000 Capital Edition)
 #     v2.42: ExecutionRouter (AUTO + optional PAPER→adapter), chunked Yahoo quarter backtest, HOW_TO_USE refresh.
 #     v2.40: Final QA pass - pytest tests/test_smoke + --selftest OK; find dialog F3 + safer
 #            Unicode selection end index (chars not c).

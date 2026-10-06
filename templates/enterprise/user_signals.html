@@ -113,13 +113,13 @@
 <div class="opb-signal-metric-label"><i class="fas fa-clock" style="color:var(--accent-color, #0284c7);"></i> Active / Open:</div>
 <div class="opb-signal-metric-value" id="metricActive" style="color:var(--accent-color, #0284c7);">0</div>
 </div>
-<div class="opb-signal-metric-card">
-<div class="opb-signal-metric-label"><i class="fas fa-check-circle" style="color:var(--success-color, #16a34a);"></i> Target 1 Hit:</div>
-<div class="opb-signal-metric-value" id="metricT1Hit" style="color:var(--success-color, #16a34a);">0</div>
+<div class="opb-signal-metric-card" title="Signals achieving Target-1 or better (inclusive of Target-2)">
+<div class="opb-signal-metric-label"><i class="fas fa-check-circle" style="color:var(--success-color, #16a34a);"></i> Target 1 Hit: <span style="font-size:0.75rem;font-weight:600;opacity:0.85;">(T1+)</span></div>
+<div class="opb-signal-metric-value" style="color:var(--success-color, #16a34a);"><span id="metricT1Hit">0</span> <span id="metricT1Sub" style="font-size:0.68rem;font-weight:600;color:var(--text-muted, #94a3b8);display:block;margin-top:2px;">(incl. T2)</span></div>
 </div>
-<div class="opb-signal-metric-card">
+<div class="opb-signal-metric-card" title="Subset of Target-1 signals that reached Target-2">
 <div class="opb-signal-metric-label"><i class="fas fa-check-double" style="color:var(--success-color, #16a34a);"></i> Target 2 Hit:</div>
-<div class="opb-signal-metric-value" id="metricT2Hit" style="color:var(--success-color, #16a34a);">0</div>
+<div class="opb-signal-metric-value" style="color:var(--success-color, #16a34a);"><span id="metricT2Hit">0</span> <span style="font-size:0.68rem;font-weight:600;color:var(--text-muted, #94a3b8);display:block;margin-top:2px;">(subset of T1)</span></div>
 </div>
 <div class="opb-signal-metric-card">
 <div class="opb-signal-metric-label"><i class="fas fa-shield-alt" style="color:var(--danger-color, #dc2626);"></i> Stop Loss Hit:</div>
@@ -133,6 +133,16 @@
 <div class="opb-signal-metric-label"><i class="fas fa-question-circle" style="color:var(--warning-color, #d97706);"></i> Ambiguous:</div>
 <div class="opb-signal-metric-value" id="metricAmbiguous" style="color:var(--warning-color, #d97706);">0</div>
 </div>
+</div>
+<!-- Canonical Arithmetic Reconciliation Banner -->
+<div class="opb-reconciliation-bar" style="font-size:0.75rem;color:var(--text-muted, #94a3b8);margin:-0.65rem 0 1.25rem 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;padding:0.45rem 0.85rem;background:var(--bg-card, #111726);border:1px solid var(--border-color, #1e293b);border-radius:0.5rem;box-shadow:var(--card-shadow);">
+    <div style="display:flex;align-items:center;gap:0.4rem;">
+        <i class="fas fa-calculator" style="color:var(--accent-color, #0284c7);"></i>
+        <span><strong>Outcome Arithmetic Reconciliation:</strong> <span id="recActive">0</span> Active + <span id="recT1Only">0</span> T1 Only + <span id="recT2">0</span> T2 + <span id="recSl">0</span> SL + <span id="recExp">0</span> Expired + <span id="recAmb">0</span> Ambiguous<span id="recRevSpan" style="display:none;"> + <span id="recRev">0</span> Reversed</span> = <strong style="color:var(--accent-color, #0284c7);"><span id="recTotal">0</span> Distinct Received</strong></span>
+    </div>
+    <div style="font-size:0.7rem;color:var(--text-secondary, #cbd5e1);font-weight:600;">
+        <i class="fas fa-info-circle" style="color:var(--accent-color, #0284c7);"></i> Target-2 is a natural subset of Target-1 (<span id="recT1Better">0</span> reached Target-1+)
+    </div>
 </div>
 <!-- Signals Feed Table -->
 <div class="card">
@@ -293,19 +303,45 @@
             const data = await res.json();
             if (!data) return;
 
-            document.getElementById('totalCount').textContent = data.total_received ?? 0;
+            const t1 = data.target_1_hit ?? 0;
+            const t2 = data.target_2_hit ?? 0;
+            const t1Only = data.target_1_only !== undefined ? data.target_1_only : Math.max(0, t1 - t2);
+            const active = data.active_count ?? 0;
+            const sl = data.stop_loss_hit ?? 0;
+            const exp = data.expired_count ?? 0;
+            const amb = data.ambiguous_count ?? 0;
+            const rev = data.closed_on_reversal_count ?? 0;
+            const total = data.total_received ?? 0;
+
+            document.getElementById('totalCount').textContent = total;
             const activeEl = document.getElementById('metricActive');
-            if (activeEl) activeEl.textContent = data.active_count ?? 0;
+            if (activeEl) activeEl.textContent = active;
             const t1El = document.getElementById('metricT1Hit');
-            if (t1El) t1El.textContent = data.target_1_hit ?? 0;
+            if (t1El) t1El.textContent = t1;
             const t2El = document.getElementById('metricT2Hit');
-            if (t2El) t2El.textContent = data.target_2_hit ?? 0;
+            if (t2El) t2El.textContent = t2;
             const slEl = document.getElementById('metricSlHit');
-            if (slEl) slEl.textContent = data.stop_loss_hit ?? 0;
+            if (slEl) slEl.textContent = sl;
             const expEl = document.getElementById('metricExpired');
-            if (expEl) expEl.textContent = data.expired_count ?? 0;
+            if (expEl) expEl.textContent = exp;
             const ambEl = document.getElementById('metricAmbiguous');
-            if (ambEl) ambEl.textContent = data.ambiguous_count ?? 0;
+            if (ambEl) ambEl.textContent = amb;
+
+            const t1Sub = document.getElementById('metricT1Sub');
+            if (t1Sub) t1Sub.textContent = `(${t1Only} T1 only · ${t2} T2)`;
+
+            if (document.getElementById('recActive')) document.getElementById('recActive').textContent = active;
+            if (document.getElementById('recT1Only')) document.getElementById('recT1Only').textContent = t1Only;
+            if (document.getElementById('recT2')) document.getElementById('recT2').textContent = t2;
+            if (document.getElementById('recSl')) document.getElementById('recSl').textContent = sl;
+            if (document.getElementById('recExp')) document.getElementById('recExp').textContent = exp;
+            if (document.getElementById('recAmb')) document.getElementById('recAmb').textContent = amb;
+            if (document.getElementById('recTotal')) document.getElementById('recTotal').textContent = total;
+            if (document.getElementById('recT1Better')) document.getElementById('recT1Better').textContent = t1;
+            if (rev > 0 && document.getElementById('recRevSpan')) {
+                document.getElementById('recRevSpan').style.display = 'inline';
+                if (document.getElementById('recRev')) document.getElementById('recRev').textContent = rev;
+            }
 
             const ySel = document.getElementById('filterYear');
             if (ySel && ySel.options.length === 1 && data.available_years) {

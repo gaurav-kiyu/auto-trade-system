@@ -44,7 +44,7 @@ _NSE_EQUITY_CSV_URL = "https://archives.nseindia.com/content/equities/EQUITY_L.c
 _CACHE_PATH = Path("/tmp/nse_equities.csv") if os.path.exists("/tmp") and os.access("/tmp", os.W_OK) else (_ROOT / "data" / "nse_equities.csv")
 
 # ==============================================================================
-# 18-State Evaluation & Delivery Lifecycle Model (OPB v2.59.4)
+# 18-State Evaluation & Delivery Lifecycle Model (OPB v2.60.0)
 # ==============================================================================
 CANONICAL_LIFECYCLE_STATES: tuple[str, ...] = (
     "NOT_EVALUATED",
@@ -125,8 +125,8 @@ class AllNSEScanner:
             cfg.get("ENABLE_TELEGRAM_EXECUTE_BUTTON", False)
             and str(cfg.get("EXECUTION_MODE", "SIGNAL_ONLY")).upper() in {"AUTO", "PAPER"}
         )
-        self._options_quality_gate_enabled = bool(cfg.get("D20_OPTIONS_QUALITY_GATE_ENABLED", False))
-        self._index_session_dedup_enabled = bool(cfg.get("D20_INDEX_SESSION_DEDUP_ENABLED", False))
+        self._options_quality_gate_enabled = bool(cfg.get("D20_OPTIONS_QUALITY_GATE_ENABLED", True))
+        self._index_session_dedup_enabled = bool(cfg.get("D20_INDEX_SESSION_DEDUP_ENABLED", True))
         self._target_model_mode = str(cfg.get("D20_TARGET_MODEL_MODE", "PRODUCTION")).upper()
         # IV-rank multiplier boosts scores by up to 1.2x based on option premium
         # cost (VIX). This scanner trades cash equities / stock options, not index
@@ -425,7 +425,7 @@ class AllNSEScanner:
         category = classify_instrument_market(sym, stock_info.get("series", "EQ"))
         is_fno = is_fno_symbol(sym)
 
-        # Single evaluation owner per category governance (OPB v2.59.4):
+        # Single evaluation owner per category governance (OPB v2.60.0):
         # opb_bot (index_trader.py) is the primary dedicated evaluation & execution owner for INDEX_OPTIONS.
         # When running under supervisor alongside opb_bot, AllNSEScanner skips INDEX_OPTIONS to guarantee
         # exactly one evaluation owner and zero duplicate evaluation/alerts.

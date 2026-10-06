@@ -537,10 +537,12 @@ def test_signal_tracker_get_user_received_signals_period_filters_and_outcome_met
     finally:
         conn.close()
 
-    # 1. All Time: should have 5 deduplicated signals (1 T1, 1 T2, 1 SL, 1 AMBIGUOUS quarantined, 1 ACTIVE)
+    # 1. All Time: should have 5 deduplicated signals (1 T1-only, 1 T2, 1 SL, 1 AMBIGUOUS quarantined, 1 ACTIVE)
     res_all = tracker.get_user_received_signals("trader1", period="all")
     assert res_all["total_received"] == 5
-    assert res_all["target_1_hit"] == 1
+    assert res_all["target_1_hit"] == 2  # Cumulative: 1 T1-only + 1 T2
+    assert res_all["target_1_only"] == 1
+    assert res_all["target_1_or_better"] == 2
     assert res_all["target_2_hit"] == 1
     assert res_all["stop_loss_hit"] == 1
     assert res_all["ambiguous_count"] == 1
@@ -550,7 +552,9 @@ def test_signal_tracker_get_user_received_signals_period_filters_and_outcome_met
     for p in ("daily", "weekly", "monthly", "yearly"):
         res_p = tracker.get_user_received_signals("trader1", period=p)
         assert res_p["total_received"] == 4, f"Period {p} expected 4 signals"
-        assert res_p["target_1_hit"] == 1
+        assert res_p["target_1_hit"] == 2  # Cumulative: 1 T1-only + 1 T2
+        assert res_p["target_1_only"] == 1
+        assert res_p["target_1_or_better"] == 2
         assert res_p["target_2_hit"] == 1
         assert res_p["stop_loss_hit"] == 1
         assert res_p["ambiguous_count"] == 1
@@ -558,7 +562,9 @@ def test_signal_tracker_get_user_received_signals_period_filters_and_outcome_met
     # 3. Category filter: INDEX_OPTIONS should have 2 signals (1 T1, 1 T2, 0 SL)
     res_opt = tracker.get_user_received_signals("trader1", period="daily", category="INDEX_OPTIONS")
     assert res_opt["total_received"] == 2
-    assert res_opt["target_1_hit"] == 1
+    assert res_opt["target_1_hit"] == 2  # Cumulative: 1 T1-only + 1 T2
+    assert res_opt["target_1_only"] == 1
+    assert res_opt["target_1_or_better"] == 2
     assert res_opt["target_2_hit"] == 1
     assert res_opt["stop_loss_hit"] == 0
 
