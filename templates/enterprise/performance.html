@@ -115,16 +115,17 @@
         async function load() {
             const [perf, comp] = await Promise.all([apiFetch('/api/system/performance'), apiFetch('/api/performance/comparison')]);
             if (!perf) return;
-            document.getElementById('totalTrades').textContent = perf.total_trades ?? '-';
-            document.getElementById('winRate').textContent = perf.win_rate != null ? (perf.win_rate*100).toFixed(1)+'%' : '-';
-            document.getElementById('avgPnL').innerHTML = perf.avg_pnl != null ? '<span class="'+(perf.avg_pnl>=0?'stat-positive':'stat-negative')+'">₹'+(perf.avg_pnl).toFixed(2)+'</span>' : '-';
-            document.getElementById('sharpe').textContent = perf.sharpe_ratio != null ? perf.sharpe_ratio.toFixed(2) : '-';
-            document.getElementById('totalPnL').innerHTML = perf.total_pnl != null ? '<span class="'+(perf.total_pnl>=0?'stat-positive':'stat-negative')+'">₹'+perf.total_pnl.toFixed(2)+'</span>' : '-';
-            document.getElementById('profitFactor').textContent = perf.profit_factor != null ? perf.profit_factor.toFixed(2) : '-';
-            document.getElementById('maxDrawdown').textContent = perf.max_drawdown != null ? (perf.max_drawdown*100).toFixed(1)+'%' : '-';
-            document.getElementById('avgWin').textContent = perf.avg_win != null ? '₹'+perf.avg_win.toFixed(2) : '-';
-            document.getElementById('avgLoss').textContent = perf.avg_loss != null ? '₹'+perf.avg_loss.toFixed(2) : '-';
-            document.getElementById('consecWins').textContent = perf.consecutive_wins ?? '-';
+            const isZeroTrades = !perf.total_trades || perf.total_trades === 0;
+            document.getElementById('totalTrades').innerHTML = isZeroTrades ? '0 <span style="font-size:0.75rem;color:var(--text-muted);">(PAPER)</span>' : perf.total_trades;
+            document.getElementById('winRate').textContent = perf.win_rate != null ? (perf.win_rate*100).toFixed(1)+'%' : (isZeroTrades ? 'N/A' : '-');
+            document.getElementById('avgPnL').innerHTML = perf.avg_pnl != null ? '<span class="'+(perf.avg_pnl>=0?'stat-positive':'stat-negative')+'">₹'+(perf.avg_pnl).toFixed(2)+'</span>' : (isZeroTrades ? '₹0.00' : '-');
+            document.getElementById('sharpe').textContent = perf.sharpe_ratio != null ? perf.sharpe_ratio.toFixed(2) : (isZeroTrades ? '0.00' : '-');
+            document.getElementById('totalPnL').innerHTML = perf.total_pnl != null ? '<span class="'+(perf.total_pnl>=0?'stat-positive':'stat-negative')+'">₹'+perf.total_pnl.toFixed(2)+'</span>' : (isZeroTrades ? '₹0.00' : '-');
+            document.getElementById('profitFactor').textContent = perf.profit_factor != null ? perf.profit_factor.toFixed(2) : (isZeroTrades ? 'N/A' : '-');
+            document.getElementById('maxDrawdown').textContent = perf.max_drawdown != null ? (perf.max_drawdown*100).toFixed(1)+'%' : (isZeroTrades ? '0.0%' : '-');
+            document.getElementById('avgWin').textContent = perf.avg_win != null ? '₹'+perf.avg_win.toFixed(2) : (isZeroTrades ? '₹0.00' : '-');
+            document.getElementById('avgLoss').textContent = perf.avg_loss != null ? '₹'+perf.avg_loss.toFixed(2) : (isZeroTrades ? '₹0.00' : '-');
+            document.getElementById('consecWins').textContent = perf.consecutive_wins ?? (isZeroTrades ? '0' : '-');
 
             const trades = Array.isArray(perf.recent_trades) ? perf.recent_trades : [];
             document.getElementById('recentTrades').innerHTML = trades.length ? trades.map((t,i)=>'<tr><td>'+(i+1)+'</td><td style="font-weight:600;color: var(--text-primary, #f8fafc);">'+t.symbol+'</td><td class="'+(t.direction==='BUY'?'stat-positive':'stat-negative')+'">'+t.direction+'</td><td class="'+(t.net_pnl>=0?'stat-positive':'stat-negative')+'">₹'+t.net_pnl.toFixed(2)+'</td><td>'+t.exit_reason+'</td><td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);white-space:nowrap;">'+((t.exit_time||'').length>=10?(t.exit_time).substring(0,10):(t.exit_time||'-'))+'</td></tr>').join('') : '<tr><td colspan="6" style="text-align:center;color: var(--text-muted, #94a3b8);padding:1.5rem;">No executed trades &mdash; Running in SIGNAL_ONLY / PAPER mode with broker routing DISCONNECTED.</td></tr>';

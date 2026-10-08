@@ -229,12 +229,16 @@
             const rows = data.option_chain || data.records || data.strikes || [];
             if (!rows.length) {
                 if (gexChartInstance) { gexChartInstance.destroy(); gexChartInstance = null; }
-                const noteText = data.note || `Live Options Chain data currently unavailable / waiting for market feed for ${index}`;
-                document.getElementById('chainBody').innerHTML = '<tr><td colspan="19" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2rem;"><i class="fas fa-info-circle mr-2"></i> ' + noteText + '</td></tr>';
-                document.getElementById('flipVal').textContent = '--';
-                document.getElementById('netGexVal').textContent = '--';
-                document.getElementById('regimeBadge').innerHTML = '<span class="badge badge-amber"><i class="fas fa-satellite-dish mr-1"></i> WAITING FOR LIVE STRIKES</span>';
-                document.getElementById('regimeDesc').textContent = data.note || 'Strike-level market feed not connected';
+                const noteText = data.note || `Live Options Chain feed currently unavailable outside market session for ${index} (PAPER / SIGNAL_ONLY mode)`;
+                document.getElementById('chainBody').innerHTML = '<tr><td colspan="19" style="text-align:center;color: var(--text-muted, #94a3b8);padding:2.5rem;"><div style="font-weight:700;font-size:0.95rem;margin-bottom:0.4rem;color:var(--text-secondary);"><i class="fas fa-satellite-dish" style="margin-right:0.5rem;color:var(--warning-color, #f59e0b);"></i>OPTIONS CHAIN DISCONNECTED</div><div style="font-size:0.8rem;color:var(--text-muted);">' + noteText + '</div></td></tr>';
+                if (!spot) {
+                    document.getElementById('spotVal').innerHTML = '<span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">DISCONNECTED</span>';
+                    document.getElementById('updateTime').textContent = 'PAPER / SIGNAL_ONLY MODE';
+                }
+                document.getElementById('flipVal').innerHTML = '<span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">AWAITING MARKET</span>';
+                document.getElementById('netGexVal').innerHTML = '<span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">DISCONNECTED</span>';
+                document.getElementById('regimeBadge').innerHTML = '<span class="badge badge-amber"><i class="fas fa-satellite-dish mr-1"></i> MARKET FEED DISCONNECTED</span>';
+                document.getElementById('regimeDesc').textContent = data.note || 'Options recorder inactive outside trading session';
                 return;
             }
 

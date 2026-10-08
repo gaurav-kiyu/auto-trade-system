@@ -37,15 +37,22 @@ _DASHBOARD_REF = None
 
 
 def _page_context(user, nonce: str, current_page: str) -> dict:
-    """Shared authenticated-page context, including effective RBAC flags."""
+    """Shared authenticated-page context, including effective RBAC flags and canonical version."""
     from core.auth.permissions import Permission, Role, get_role_permissions, is_super_admin_identity
     from core.auth.user_signal_permissions import UserPermissionManager
+    from core.version import get_app_version, get_app_version_tag
+
+    app_ver = get_app_version()
+    app_ver_tag = get_app_version_tag()
     user_dict = user.to_dict() if hasattr(user, "to_dict") else dict(user or {})
     if not user_dict or not user:
         return {
             "user": None,
             "nonce": nonce,
             "current_page": current_page,
+            "app_version": app_ver,
+            "version": app_ver,
+            "version_tag": app_ver_tag,
             "is_admin": False,
             "is_super_admin": False,
             "can_view_state": False,
@@ -86,6 +93,9 @@ def _page_context(user, nonce: str, current_page: str) -> dict:
         "user": user_dict,
         "nonce": nonce,
         "current_page": current_page,
+        "app_version": app_ver,
+        "version": app_ver,
+        "version_tag": app_ver_tag,
         "is_admin": role in (Role.ADMIN.value, Role.SUPER_ADMIN.value) or is_super_admin_identity(username, role),
         "is_super_admin": is_super_admin_identity(username, role),
         "can_view_state": Permission.VIEW_STATE.value in effective,

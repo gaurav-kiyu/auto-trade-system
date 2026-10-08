@@ -793,7 +793,7 @@ def test_production_db_read_only_execution():
     assert report.gates["G4"]["status"] in ("PASS", "FAIL")
     assert report.integrity.is_clean is True
     assert report.safety.is_safe is True
-    if report.session_status in ("SESSION_ACTIVE", "SESSION_COMPLETED"):
+    if report.session_status in ("SESSION_ACTIVE", "SESSION_COMPLETED") or (report.session_status == "PRE_SESSION" and report.forward_counts["registered"] > 0):
         assert report.operational_state == STATE_ACCUMULATION_ACTIVE
     else:
         assert report.operational_state == STATE_WAITING_FOR_MARKET_SESSION

@@ -295,7 +295,7 @@
 <h3 style="font-size:1rem;font-weight:600;margin:0;"><i class="fas fa-user-plus" style="color:#3b82f6;margin-right:0.5rem;"></i> Create New User</h3>
 <button class="btn btn-ghost btn-sm opb-modal-close-btn" id="closeCreateModalHeaderBtn" aria-label="Close modal" style="min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
 </div>
-<form id="createForm" style="display:flex;flex-direction:column;gap:0.75rem;">
+<form id="createForm" novalidate style="display:flex;flex-direction:column;gap:0.75rem;">
 <input class="input-field" id="newUsername" placeholder="Username" required="" type="text"/>
 <input class="input-field" id="newEmail" placeholder="Email Address (for signal alerts)" type="email"/>
 <input class="input-field" id="newDisplayName" placeholder="Display Name" type="text"/>
@@ -307,7 +307,7 @@
 </select>
 <div class="input-password-wrapper opb-password-wrapper">
 <input class="input-field" id="newPassword" placeholder="Password" required="" style="width:100%;padding-right:2.5rem;" type="password"/>
-<button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+<button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg class="eye-svg-closed is-hidden" style="display:none;" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></button>
 </div>
 <div id="createError" style="color: var(--danger-color, #dc2626);font-size:0.8rem;display:none;"></div>
 <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:0.5rem;">
@@ -327,7 +327,7 @@
 <p style="font-size:0.85rem;color: var(--text-muted, #94a3b8);margin-bottom:1rem;">Reset password for <strong id="resetUsername" style="color: var(--text-primary, #e2e8f0);"></strong></p>
 <div class="input-password-wrapper opb-password-wrapper">
 <input class="input-field" id="resetPassword" placeholder="New password (min 8 chars)" required="" style="width:100%;padding-right:2.5rem;" type="password"/>
-<button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+<button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg class="eye-svg-closed is-hidden" style="display:none;" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></button>
 </div>
 <div id="resetError" style="color: var(--danger-color, #dc2626);font-size:0.8rem;display:none;"></div>
 <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem;">

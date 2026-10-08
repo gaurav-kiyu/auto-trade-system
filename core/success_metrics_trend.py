@@ -478,12 +478,25 @@ class SuccessMetricsTrend:
     # ── Persistence ───────────────────────────────────────────────────────
 
     def _resolve_storage_path(self) -> Path:
-        path = Path(self._storage_path)
-        if not path.is_absolute() and not path.exists():
+        primary = Path(self._storage_path)
+        if primary.is_file():
+            return primary
+        candidates = [
+            primary,
+            Path(__file__).resolve().parent.parent / self._storage_path,
+            Path("/home/ubuntu/auto-trade-system/json/success_metrics_trend.json"),
+            Path(__file__).resolve().parent.parent / "data" / "success_metrics_trend.json",
+            Path("data/success_metrics_trend.json"),
+            Path("/data/json/success_metrics_trend.json"),
+        ]
+        for c in candidates:
+            if c.is_file():
+                return c
+        if not primary.is_absolute():
             alt = Path(__file__).resolve().parent.parent / self._storage_path
             if alt.exists() or alt.parent.exists():
                 return alt
-        return path
+        return primary
 
     def _save(self) -> None:
         try:

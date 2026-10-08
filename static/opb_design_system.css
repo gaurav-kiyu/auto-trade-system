@@ -213,6 +213,28 @@ table tr:hover td, .opb-table tr:hover td {
 
     /* 6. Strict Tabular Numerals */
     --font-tabular:           "Inter", -apple-system, sans-serif;
+
+    /* 7. Canonical --opb-* Design System Semantic Tokens */
+    --opb-bg:                 var(--bg-primary, #080c14);
+    --opb-surface:            var(--bg-card, #131e33);
+    --opb-surface-alt:        var(--bg-secondary, #0f172a);
+    --opb-text:               var(--text-primary, #f8fafc);
+    --opb-text-primary:       var(--text-primary, #f8fafc);
+    --opb-text-secondary:     var(--text-secondary, #cbd5e1);
+    --opb-text-muted:         var(--text-muted, #94a3b8);
+    --opb-text-inverse:       var(--btn-primary-text, #080c14);
+    --opb-border:             var(--border-color, #1e293b);
+    --opb-border-hover:       var(--border-color-hover, #38bdf8);
+    --opb-accent:             var(--accent-color, #38bdf8);
+    --opb-accent-gradient:    var(--accent-gradient, linear-gradient(135deg, #0284c7 0%, #2563eb 100%));
+    --opb-success:            var(--success-color, #22c55e);
+    --opb-warning:            var(--warning-color, #f59e0b);
+    --opb-danger:             var(--danger-color, #ef4444);
+    --opb-input-bg:           var(--input-bg, #0b1120);
+    --opb-input-text:         var(--text-primary, #f8fafc);
+    --opb-placeholder:        var(--text-muted, #94a3b8);
+    --opb-disabled-text:      var(--text-muted, #64748b);
+    --opb-disabled-bg:        var(--bg-primary, #0a0e17);
 }
 
 /* Universal High-Contrast Base Styles */
@@ -650,6 +672,33 @@ tfoot tr.opb-table-total-row td {
     stroke-width: 2 !important;
     stroke-linecap: round !important;
     stroke-linejoin: round !important;
+    pointer-events: none !important;
+}
+
+/* Explicit anti-collision visibility states for password eye SVGs */
+.opb-password-toggle svg.is-hidden,
+.password-toggle-btn svg.is-hidden,
+.opb-password-toggle svg[style*="display: none"],
+.password-toggle-btn svg[style*="display: none"],
+.opb-password-toggle svg[style*="display:none"],
+.password-toggle-btn svg[style*="display:none"],
+.opb-password-toggle svg[hidden],
+.password-toggle-btn svg[hidden],
+.opb-password-toggle:not([data-showing="true"]):not([aria-pressed="true"]) .eye-svg-closed,
+.password-toggle-btn:not([data-showing="true"]):not([aria-pressed="true"]) .eye-svg-closed,
+.opb-password-toggle[data-showing="true"] .eye-svg-open,
+.opb-password-toggle[aria-pressed="true"] .eye-svg-open,
+.password-toggle-btn[data-showing="true"] .eye-svg-open,
+.password-toggle-btn[aria-pressed="true"] .eye-svg-open {
+    display: none !important;
+}
+
+.opb-password-toggle:not([data-showing="true"]):not([aria-pressed="true"]) .eye-svg-open,
+.password-toggle-btn:not([data-showing="true"]):not([aria-pressed="true"]) .eye-svg-open,
+.opb-password-toggle[data-showing="true"] .eye-svg-closed,
+.opb-password-toggle[aria-pressed="true"] .eye-svg-closed,
+.password-toggle-btn[data-showing="true"] .eye-svg-closed,
+.password-toggle-btn[aria-pressed="true"] .eye-svg-closed {
     display: block !important;
 }
 
@@ -1412,6 +1461,27 @@ table thead tr:nth-child(2) th,
     --notification-border:     #1e293b;
     --notification-surface:    #131e33;
     --notification-muted-text: #94a3b8;
+
+    --opb-bg:                 #080c14;
+    --opb-surface:            #131e33;
+    --opb-surface-alt:        #0f172a;
+    --opb-text:               #f8fafc;
+    --opb-text-primary:       #f8fafc;
+    --opb-text-secondary:     #cbd5e1;
+    --opb-text-muted:         #94a3b8;
+    --opb-text-inverse:       #080c14;
+    --opb-border:             #1e293b;
+    --opb-border-hover:       #38bdf8;
+    --opb-accent:             #38bdf8;
+    --opb-accent-gradient:    linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #7c3aed 100%);
+    --opb-success:            #22c55e;
+    --opb-warning:            #f59e0b;
+    --opb-danger:             #ef4444;
+    --opb-input-bg:           #0b1120;
+    --opb-input-text:         #f8fafc;
+    --opb-placeholder:        #94a3b8;
+    --opb-disabled-text:      #64748b;
+    --opb-disabled-bg:        #0a0e17;
 }
 
 [data-theme="dracula-purple"] {
@@ -1424,6 +1494,27 @@ table thead tr:nth-child(2) th,
     --notification-border:     #d8cbe2;
     --notification-surface:    #ffffff;
     --notification-muted-text: #6b5a75;
+
+    --opb-bg:                 #faf7fc;
+    --opb-surface:            #ffffff;
+    --opb-surface-alt:        #f2ecf8;
+    --opb-text:               #24172b;
+    --opb-text-primary:       #24172b;
+    --opb-text-secondary:     #4c3a57;
+    --opb-text-muted:         #6b5a75;
+    --opb-text-inverse:       #ffffff;
+    --opb-border:             #d8cbe2;
+    --opb-border-hover:       #7c3aed;
+    --opb-accent:             #7c3aed;
+    --opb-accent-gradient:    linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+    --opb-success:            #15803d;
+    --opb-warning:            #92400e;
+    --opb-danger:             #b91c1c;
+    --opb-input-bg:           #ffffff;
+    --opb-input-text:         #24172b;
+    --opb-placeholder:        #6b5a75;
+    --opb-disabled-text:      #94a3b8;
+    --opb-disabled-bg:        #f2ecf8;
 }
 
 [data-theme="ivory-gold"] {
@@ -1436,6 +1527,27 @@ table thead tr:nth-child(2) th,
     --notification-border:     #d6cbba;
     --notification-surface:    #ffffff;
     --notification-muted-text: #57534e;
+
+    --opb-bg:                 #f5f0e6;
+    --opb-surface:            #ffffff;
+    --opb-surface-alt:        #ede4d4;
+    --opb-text:               #1c1917;
+    --opb-text-primary:       #1c1917;
+    --opb-text-secondary:     #292524;
+    --opb-text-muted:         #57534e;
+    --opb-text-inverse:       #ffffff;
+    --opb-border:             #d6cbba;
+    --opb-border-hover:       #92400e;
+    --opb-accent:             #92400e;
+    --opb-accent-gradient:    linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    --opb-success:            #15803d;
+    --opb-warning:            #92400e;
+    --opb-danger:             #b91c1c;
+    --opb-input-bg:           #ffffff;
+    --opb-input-text:         #1c1917;
+    --opb-placeholder:        #57534e;
+    --opb-disabled-text:      #8c827a;
+    --opb-disabled-bg:        #ede4d4;
 }
 
 [data-theme="midnight-slate"] {
@@ -1448,6 +1560,27 @@ table thead tr:nth-child(2) th,
     --notification-border:     #cbd5e1;
     --notification-surface:    #ffffff;
     --notification-muted-text: #54667a;
+
+    --opb-bg:                 #f6f8fb;
+    --opb-surface:            #ffffff;
+    --opb-surface-alt:        #eaf0f6;
+    --opb-text:               #0f172a;
+    --opb-text-primary:       #0f172a;
+    --opb-text-secondary:     #334155;
+    --opb-text-muted:         #54667a;
+    --opb-text-inverse:       #ffffff;
+    --opb-border:             #cbd5e1;
+    --opb-border-hover:       #1d4ed8;
+    --opb-accent:             #1d4ed8;
+    --opb-accent-gradient:    linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%);
+    --opb-success:            #15803d;
+    --opb-warning:            #92400e;
+    --opb-danger:             #b91c1c;
+    --opb-input-bg:           #ffffff;
+    --opb-input-text:         #0f172a;
+    --opb-placeholder:        #54667a;
+    --opb-disabled-text:      #94a3b8;
+    --opb-disabled-bg:        #eaf0f6;
 }
 
 [data-theme="emerald-matrix"] {
@@ -1460,6 +1593,27 @@ table thead tr:nth-child(2) th,
     --notification-border:     #14533a;
     --notification-surface:    #0a2c1d;
     --notification-muted-text: #6ee7b7;
+
+    --opb-bg:                 #020d07;
+    --opb-surface:            #0a2c1d;
+    --opb-surface-alt:        #061d13;
+    --opb-text:               #ecfdf5;
+    --opb-text-primary:       #ecfdf5;
+    --opb-text-secondary:     #a7f3d0;
+    --opb-text-muted:         #6ee7b7;
+    --opb-text-inverse:       #020d07;
+    --opb-border:             #14533a;
+    --opb-border-hover:       #10b981;
+    --opb-accent:             #10b981;
+    --opb-accent-gradient:    linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --opb-success:            #34d399;
+    --opb-warning:            #fbbf24;
+    --opb-danger:             #f87171;
+    --opb-input-bg:           #051b11;
+    --opb-input-text:         #ecfdf5;
+    --opb-placeholder:        #6ee7b7;
+    --opb-disabled-text:      #047857;
+    --opb-disabled-bg:        #020d07;
 }
 
 /* Canonical In-App Notification Card & Toast Shell */

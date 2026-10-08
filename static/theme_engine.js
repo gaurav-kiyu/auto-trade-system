@@ -206,7 +206,7 @@
             ::-webkit-scrollbar-thumb:hover { background: var(--accent-color, #38bdf8); }
 
             /* ── Core Container & Card Tokens ────────────────────────────── */
-            .card, .login-card, div[class*="stat-card"], .stat-card {
+            .card, .login-card, div[class*="stat-card"], .stat-card, .opb-card, .profile-card, .cockpit-card, .opb-panel, .opb-stat-card {
                 background-color: var(--bg-card, #131e33) !important;
                 border: 1px solid var(--border-color, #1e293b) !important;
                 color: var(--text-primary, #f8fafc) !important;
@@ -214,13 +214,13 @@
             }
 
             /* ── Form Inputs & Controls ─────────────────────────────────── */
-            .input-control, .input-field, input[type="text"], input[type="password"], input[type="number"], select, textarea, .reason-input {
+            .input-control, .input-field, .form-input, input[type="text"], input[type="password"], input[type="number"], input[type="email"], input[type="search"], input[type="tel"], select, textarea, .reason-input {
                 background-color: var(--input-bg, #0b1120) !important;
                 border: 1px solid var(--input-border, #1e293b) !important;
                 color: var(--text-primary, #f8fafc) !important;
             }
 
-            .input-control:focus, .input-field:focus, input:focus, select:focus, textarea:focus, .reason-input:focus {
+            .input-control:focus, .input-field:focus, .form-input:focus, input:focus, select:focus, textarea:focus, .reason-input:focus {
                 border-color: var(--accent-color, #38bdf8) !important;
             }
 
@@ -1139,6 +1139,33 @@
             root.style.setProperty(key, val);
         });
 
+        // 3b. Canonical --opb-* design system tokens
+        const opbVars = {
+            '--opb-bg': theme.vars['--bg-primary'],
+            '--opb-surface': theme.vars['--bg-card'],
+            '--opb-surface-alt': theme.vars['--bg-secondary'],
+            '--opb-text': theme.vars['--text-primary'],
+            '--opb-text-primary': theme.vars['--text-primary'],
+            '--opb-text-secondary': theme.vars['--text-secondary'],
+            '--opb-text-muted': theme.vars['--text-muted'],
+            '--opb-text-inverse': theme.vars['--btn-primary-text'],
+            '--opb-border': theme.vars['--border-color'],
+            '--opb-border-hover': theme.vars['--border-color-hover'],
+            '--opb-accent': theme.vars['--accent-color'],
+            '--opb-accent-gradient': theme.vars['--accent-gradient'],
+            '--opb-success': theme.vars['--success-color'],
+            '--opb-warning': theme.vars['--warning-color'],
+            '--opb-danger': theme.vars['--danger-color'],
+            '--opb-input-bg': theme.vars['--input-bg'],
+            '--opb-input-text': theme.vars['--text-primary'],
+            '--opb-placeholder': theme.vars['--text-muted'],
+            '--opb-disabled-text': isDark ? '#64748b' : '#94a3b8',
+            '--opb-disabled-bg': isDark ? '#0a0e17' : (effectiveKey === 'ivory-gold' ? '#ede4d4' : '#f2ecf8')
+        };
+        Object.entries(opbVars).forEach(([key, val]) => {
+            root.style.setProperty(key, val);
+        });
+
         // 4. Synchronize body
         if (document.body) {
             if (isDark) {
@@ -1342,23 +1369,18 @@
     
     // 1. Universal Password / Token Eye Icon Visibility Toggle
     function handleGlobalEyeToggle(e) {
-        const eyeTarget = e.target.closest('[data-toggle="password"], [data-toggle-password], .password-toggle-btn, .eye-toggle-btn, #eyeIconLogin, #eyeIconPassword, #eyeIconConfirmPassword, #eyeIconCurrent, #eyeIconNew, #eyeIconConfirm, #eyeIconToken, #eyeIconCreate, #eyeIconReset, #eyeIconRecKey, #eyeIconNewEmg, #eyeIconConfEmg');
+        const eyeTarget = e.target.closest('[data-toggle="password"], [data-toggle-password], .password-toggle-btn, .eye-toggle-btn, .opb-password-toggle, #eyeIconLogin, #eyeIconPassword, #eyeIconConfirmPassword, #eyeIconCurrent, #eyeIconNew, #eyeIconConfirm, #eyeIconToken, #eyeIconCreate, #eyeIconReset, #eyeIconRecKey, #eyeIconNewEmg, #eyeIconConfEmg');
         if (!eyeTarget) {
             // Check if it's an eye icon inside a password input group
             const isEyeIcon = e.target.classList.contains('fa-eye') || e.target.classList.contains('fa-eye-slash');
             if (!isEyeIcon) return;
-            const pwGroup = e.target.closest('.form-group, .input-group, .opb-input-group, .password-wrapper, div');
+            const pwGroup = e.target.closest('.form-group, .input-group, .opb-input-group, .password-wrapper, .input-password-wrapper, .opb-password-wrapper, div');
             if (!pwGroup || !pwGroup.querySelector('input[type="password"], input[data-password="true"]')) return;
         }
 
-        // Find the icon element
-        let icon = eyeTarget.tagName.toLowerCase() === 'i' ? eyeTarget : eyeTarget.querySelector('i.fa-eye, i.fa-eye-slash');
-        if (!icon && eyeTarget.classList.contains('fa-eye')) icon = eyeTarget;
-        if (!icon && eyeTarget.classList.contains('fa-eye-slash')) icon = eyeTarget;
-
         // Find the input element (look in parent container or by ID)
         let input = null;
-        const container = eyeTarget.closest('.form-group, .input-group, .opb-input-group, div, fieldset') || eyeTarget.parentElement;
+        const container = eyeTarget.closest('.form-group, .input-group, .opb-input-group, .password-wrapper, .input-password-wrapper, .opb-password-wrapper, div, fieldset') || eyeTarget.parentElement;
         if (container) {
             input = container.querySelector('input[type="password"], input[type="text"]');
         }
@@ -1367,10 +1389,41 @@
         }
 
         if (input) {
+            e.preventDefault();
             const isPassword = input.type === 'password';
             input.type = isPassword ? 'text' : 'password';
+            const showing = !isPassword;
+
+            eyeTarget.setAttribute('aria-pressed', showing ? 'true' : 'false');
+            eyeTarget.setAttribute('data-showing', showing ? 'true' : 'false');
+            eyeTarget.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+            eyeTarget.setAttribute('title', showing ? 'Hide password' : 'Show password');
+
+            // Handle SVG open/closed icons
+            const openSvg = eyeTarget.querySelector('.eye-svg-open');
+            let closedSvg = eyeTarget.querySelector('.eye-svg-closed');
+
+            if (openSvg) {
+                if (!closedSvg) {
+                    const closedElem = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    closedElem.setAttribute('viewBox', '0 0 24 24');
+                    closedElem.setAttribute('class', 'eye-svg-closed is-hidden');
+                    closedElem.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+                    eyeTarget.appendChild(closedElem);
+                    closedSvg = closedElem;
+                }
+                openSvg.classList.toggle('is-hidden', showing);
+                openSvg.style.setProperty('display', showing ? 'none' : 'block', 'important');
+                closedSvg.classList.toggle('is-hidden', !showing);
+                closedSvg.style.setProperty('display', showing ? 'block' : 'none', 'important');
+            }
+
+            // Handle FontAwesome icons
+            let icon = eyeTarget.tagName.toLowerCase() === 'i' ? eyeTarget : eyeTarget.querySelector('i.fa-eye, i.fa-eye-slash');
+            if (!icon && eyeTarget.classList.contains('fa-eye')) icon = eyeTarget;
+            if (!icon && eyeTarget.classList.contains('fa-eye-slash')) icon = eyeTarget;
             if (icon) {
-                if (isPassword) {
+                if (showing) {
                     icon.classList.remove('fa-eye');
                     icon.classList.add('fa-eye-slash');
                 } else {
@@ -1472,6 +1525,7 @@
     }, { capture: false, passive: true });
 
     document.addEventListener('click', function(e) {
+        handleGlobalEyeToggle(e);
         handleDesktopWorkspaceMenuClick(e);
         handleGlobalDrawerClick(e);
         handleGlobalThemeSelect(e);

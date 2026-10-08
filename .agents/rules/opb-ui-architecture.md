@@ -17,4 +17,4 @@ Before creating new CSS, component styling, colors, spacing, shadows, radii, typ
 - **Zero Hardcoded Colors**: Never hardcode theme-specific hex values (e.g. `#1e293b`, `#ffffff`, `#3b82f6`) inside business templates or components. Always use `var(--opb-surface-card)`, `var(--market-buy)`, `var(--text-primary)`, etc.
 - **No Duplicate Components for Themes**: Never create theme-specific duplicates of components (e.g., `card-dark.css`, `card-light.css`). The component markup must remain identical; only tokens vary.
 - **Zero Mutation of Backend Logic**: Never modify trading, risk, execution, broker, or portfolio logic while performing a UI-only task.
-- **Mandatory Verification**: Every UI change must be verified across ALL 9 themes.
+- **Mandatory Verification**: Every UI change must be verified across all 5 supported themes (`dark-cyber`, `dracula-purple`, `ivory-gold`, `midnight-slate`, `emerald-matrix`).

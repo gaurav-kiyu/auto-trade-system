@@ -99,8 +99,15 @@ def get_latest_changelog_entry() -> dict:
             version, date = m.group(1), m.group(2)
             break
 
+    from core.version import get_app_version
+
+    canonical_ver = get_app_version()
     if start_idx is None:
-        return {"status": "unavailable", "detail": "No version heading found in CHANGELOG.md"}
+        return {
+            "status": "unavailable",
+            "version": canonical_ver,
+            "detail": "No version heading found in CHANGELOG.md",
+        }
 
     end_idx = len(lines)
     for j in range(start_idx + 1, len(lines)):
@@ -113,7 +120,8 @@ def get_latest_changelog_entry() -> dict:
 
     return {
         "status": "ok",
-        "version": version,
-        "date": date,
+        "version": version or canonical_ver,
+        "canonical_version": canonical_ver,
+        "date": date or "Current Release",
         "html": body_html or "<p>No details recorded for this release.</p>",
     }
