@@ -38,15 +38,22 @@ jobs:
       - name: Ruff lint (release-touched Python files)
         shell: bash
         run: |
-          # Tag runs point HEAD at the release tag itself, so origin/main...HEAD
-          # cannot identify release-touched files reliably. Use the first-parent
-          # merge baseline from the release PR instead.
-          BASE=$(git log --first-parent --merges -1 --format='%H^1' HEAD)
+          # Determine release baseline: for merge commits use the first-parent
+          # merge baseline (HEAD^1); for linear release commits use HEAD~1.
+          PARENTS=$(git rev-list --parents -n 1 HEAD)
+          NUM_PARENTS=$(echo "$PARENTS" | wc -w)
+          if [ "$NUM_PARENTS" -gt 2 ]; then
+            # HEAD is a merge commit
+            BASE=$(git rev-parse HEAD^1)
+          else
+            # HEAD is a normal linear commit
+            BASE=$(git rev-parse HEAD~1)
+          fi
           if [ -z "$BASE" ]; then
             echo "ERROR: unable to determine release baseline"
             exit 1
           fi
-          echo "Ruff baseline: $BASE"
+          echo "Ruff baseline: $BASE (parent count: $((NUM_PARENTS - 1)))"
           CHANGED=$(git diff --name-only "$BASE" HEAD -- '*.py')
           if [ -z "$CHANGED" ]; then
             echo "No release-touched Python files; Ruff gate passed"

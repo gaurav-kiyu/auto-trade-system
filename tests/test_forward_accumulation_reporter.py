@@ -18,22 +18,15 @@ import datetime
 import json
 import sqlite3
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import pytest
-
 from core.datetime_ist import now_ist
-
 from core.signals.forward_accumulation_reporter import (
     STATE_ACCUMULATION_ACTIVE,
     STATE_ACCUMULATION_BLOCKED,
     STATE_PHASE_E_EMPIRICAL_EXECUTION_READY,
     STATE_WAITING_FOR_MARKET_SESSION,
-    DailyAccumulationReport,
     ForwardAccumulationReporter,
-    IntegrityAuditResult,
-    MarketSessionInfo,
-    SafetyAuditResult,
     audit_forward_integrity,
     audit_production_safety,
     get_market_session_info,
@@ -43,10 +36,10 @@ from core.signals.signal_forward_monitor import (
     SignalForwardMonitorService,
 )
 
-
 # ============================================================================
 # Helpers & Isolated Database Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def isolated_db(tmp_path: Path) -> Path:
@@ -140,6 +133,7 @@ def isolated_config(tmp_path: Path) -> Path:
 # 1. Market Calendar & Session Analysis Tests (5 tests)
 # ============================================================================
 
+
 def test_session_weekend_detected_closed():
     # Sunday: 2026-09-27 12:00:00 IST
     sunday_dt = datetime.datetime(2026, 9, 27, 12, 0, 0)
@@ -186,6 +180,7 @@ def test_session_weekday_completed():
 # 2. Forward Cohort Accounting Tests (5 tests)
 # ============================================================================
 
+
 def test_forward_cohort_zero_state(isolated_db: Path):
     reporter = ForwardAccumulationReporter(db_path=isolated_db)
     report = reporter.generate_report()
@@ -203,7 +198,7 @@ def test_forward_cohort_observing_and_resolved(isolated_db: Path):
     INSERT INTO signal_forward_observations (
         signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
         observation_source, observation_status, is_resolved, terminal_outcome
-    ) VALUES 
+    ) VALUES
     ('SIG-01', 'FWD_2026-09', '2026-09-28T10:00:00+05:30', '2026-09-28T10:00:00+05:30', 82.0, '80-84', 'FORWARD_LIVE_SCAN', 'OBSERVING', 0, NULL),
     ('SIG-02', 'FWD_2026-09', '2026-09-28T10:05:00+05:30', '2026-09-28T10:05:00+05:30', 76.0, '75-79', 'FORWARD_LIVE_SCAN', 'RESOLVED', 1, 'TARGET_FIRST'),
     ('SIG-03', 'FWD_2026-09', '2026-09-28T10:10:00+05:30', '2026-09-28T10:10:00+05:30', 71.0, '70-74', 'FORWARD_LIVE_SCAN', 'TIMEOUT', 1, 'TIMEOUT');
@@ -226,7 +221,7 @@ def test_forward_cohort_ambiguous_and_invalidated(isolated_db: Path):
     INSERT INTO signal_forward_observations (
         signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
         observation_source, observation_status, is_resolved, terminal_outcome
-    ) VALUES 
+    ) VALUES
     ('SIG-01', 'FWD_2026-09', '2026-09-28T10:00:00+05:30', '2026-09-28T10:00:00+05:30', 82.0, '80-84', 'FORWARD_LIVE_SCAN', 'AMBIGUOUS', 0, 'AMBIGUOUS_SAME_BAR'),
     ('SIG-02', 'FWD_2026-09', '2026-09-28T10:05:00+05:30', '2026-09-28T10:05:00+05:30', 76.0, '75-79', 'FORWARD_LIVE_SCAN', 'INVALIDATED', 0, 'INVALIDATED_GAP');
     """)
@@ -244,12 +239,15 @@ def test_forward_cohort_stale_detection(isolated_db: Path):
     cur = conn.cursor()
     # Registered 72 hours ago, still OBSERVING
     old_ts = (now_ist() - datetime.timedelta(hours=72)).isoformat()
-    cur.execute("""
+    cur.execute(
+        """
     INSERT INTO signal_forward_observations (
         signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
         observation_source, observation_status, is_resolved
     ) VALUES ('SIG-OLD', 'FWD_2026-09', ?, ?, 80.0, '80-84', 'FORWARD_LIVE_SCAN', 'OBSERVING', 0);
-    """, (old_ts, old_ts))
+    """,
+        (old_ts, old_ts),
+    )
     conn.commit()
     conn.close()
 
@@ -280,6 +278,7 @@ def test_forward_cohort_no_data_accounting(isolated_db: Path):
 # 3. Score Bucket Auditing Tests (3 tests)
 # ============================================================================
 
+
 def test_canonical_score_buckets_distribution(isolated_db: Path):
     conn = sqlite3.connect(str(isolated_db))
     cur = conn.cursor()
@@ -287,7 +286,7 @@ def test_canonical_score_buckets_distribution(isolated_db: Path):
     INSERT INTO signal_forward_observations (
         signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
         observation_source, observation_status, is_resolved
-    ) VALUES 
+    ) VALUES
     ('SIG-70', 'FWD_2026-09', '2026-09-28T10:00:00+05:30', '2026-09-28T10:00:00+05:30', 72.0, '70-74', 'FORWARD_LIVE_SCAN', 'RESOLVED', 1),
     ('SIG-75', 'FWD_2026-09', '2026-09-28T10:05:00+05:30', '2026-09-28T10:05:00+05:30', 77.0, '75-79', 'FORWARD_LIVE_SCAN', 'RESOLVED', 1),
     ('SIG-80', 'FWD_2026-09', '2026-09-28T10:10:00+05:30', '2026-09-28T10:10:00+05:30', 82.0, '80-84', 'FORWARD_LIVE_SCAN', 'RESOLVED', 1),
@@ -311,7 +310,7 @@ def test_anomaly_bucket_under_70_detected(isolated_db: Path):
     INSERT INTO signal_forward_observations (
         signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
         observation_source, observation_status, is_resolved
-    ) VALUES 
+    ) VALUES
     ('SIG-SUB70', 'FWD_2026-09', '2026-09-28T10:00:00+05:30', '2026-09-28T10:00:00+05:30', 65.0, '<70', 'FORWARD_LIVE_SCAN', 'OBSERVING', 0);
     """)
     conn.commit()
@@ -329,7 +328,7 @@ def test_anomaly_bucket_not_counted_toward_g1(isolated_db: Path):
     INSERT INTO signal_forward_observations (
         signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
         observation_source, observation_status, is_resolved
-    ) VALUES 
+    ) VALUES
     ('SIG-SUB70', 'FWD_2026-09', '2026-09-28T10:00:00+05:30', '2026-09-28T10:00:00+05:30', 65.0, '<70', 'FORWARD_LIVE_SCAN', 'RESOLVED', 1);
     """)
     conn.commit()
@@ -346,6 +345,7 @@ def test_anomaly_bucket_not_counted_toward_g1(isolated_db: Path):
 # ============================================================================
 # 4. Gate Status Evaluation Tests (4 tests)
 # ============================================================================
+
 
 def test_gates_fail_when_sample_size_zero(isolated_db: Path):
     reporter = ForwardAccumulationReporter(db_path=isolated_db)
@@ -401,12 +401,15 @@ def test_all_gates_pass_in_controlled_fixture(tmp_path: Path):
             cohort = "FWD_2026-09" if i < 50 else "FWD_2026-10"
             m_date = "2026-09-28" if i < 50 else "2026-10-15"
             ts = f"{m_date}T10:00:00+05:30"
-            cur.execute("""
+            cur.execute(
+                """
             INSERT INTO signal_forward_observations (
                 signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
                 observation_source, observation_status, data_quality_status, is_resolved, terminal_outcome
             ) VALUES (?, ?, ?, ?, 80.0, ?, 'FORWARD_LIVE_SCAN', 'RESOLVED', 'VALID_DATA', 1, 'TARGET_FIRST')
-            """, (f"SIG-{sig_idx:04d}", cohort, ts, ts, b))
+            """,
+                (f"SIG-{sig_idx:04d}", cohort, ts, ts, b),
+            )
 
     conn.commit()
     conn.close()
@@ -425,12 +428,15 @@ def test_partial_gates_state_g2_fail_g1_fail(isolated_db: Path):
     cur = conn.cursor()
     # 50 resolved in 85+ (not enough for 100, and total 50 < 300)
     for i in range(50):
-        cur.execute("""
+        cur.execute(
+            """
         INSERT INTO signal_forward_observations (
             signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
             observation_source, observation_status, data_quality_status, is_resolved, terminal_outcome
         ) VALUES (?, 'FWD_2026-09', '2026-09-28T10:00:00+05:30', '2026-09-28T10:00:00+05:30', 88.0, '85+', 'FORWARD_LIVE_SCAN', 'RESOLVED', 'VALID_DATA', 1, 'TARGET_FIRST')
-        """, (f"SIG-{i}",))
+        """,
+            (f"SIG-{i}",),
+        )
     conn.commit()
     conn.close()
 
@@ -445,19 +451,25 @@ def test_gate_4_fails_when_dq_error_exceeds_threshold(isolated_db: Path):
     cur = conn.cursor()
     # 10 observations, 2 are NO_DATA (20% > 5%)
     for i in range(8):
-        cur.execute("""
+        cur.execute(
+            """
         INSERT INTO signal_forward_observations (
             signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
             observation_source, observation_status, is_resolved
         ) VALUES (?, 'FWD_2026-09', '2026-09-28T10:00:00+05:30', '2026-09-28T10:00:00+05:30', 80.0, '80-84', 'FORWARD_LIVE_SCAN', 'RESOLVED', 1);
-        """, (f"SIG-OK-{i}",))
+        """,
+            (f"SIG-OK-{i}",),
+        )
     for i in range(2):
-        cur.execute("""
+        cur.execute(
+            """
         INSERT INTO signal_forward_observations (
             signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
             observation_source, observation_status, is_resolved
         ) VALUES (?, 'FWD_2026-09', '2026-09-28T10:00:00+05:30', '2026-09-28T10:00:00+05:30', 80.0, '80-84', 'FORWARD_LIVE_SCAN', 'NO_DATA', 0);
-        """, (f"SIG-BAD-{i}",))
+        """,
+            (f"SIG-BAD-{i}",),
+        )
     conn.commit()
     conn.close()
 
@@ -469,6 +481,7 @@ def test_gate_4_fails_when_dq_error_exceeds_threshold(isolated_db: Path):
 # ============================================================================
 # 5. Integrity Audit Tests (6 tests)
 # ============================================================================
+
 
 def test_integrity_clean_when_empty(isolated_db: Path):
     audit = audit_forward_integrity(db_path=isolated_db)
@@ -540,10 +553,13 @@ def test_integrity_detects_forbidden_feature_leakage(isolated_db: Path):
     conn = sqlite3.connect(str(isolated_db))
     cur = conn.cursor()
     bad_features = json.dumps({"rsi": 55.0, "target_1_hit": 1})
-    cur.execute("""
+    cur.execute(
+        """
     INSERT INTO signal_prediction_snapshots (signal_id, captured_at, score, features_json)
     VALUES ('SIG-SNAP-01', '2026-09-28T10:00:00+05:30', 80.0, ?);
-    """, (bad_features,))
+    """,
+        (bad_features,),
+    )
     conn.commit()
     conn.close()
 
@@ -572,6 +588,7 @@ def test_integrity_detects_probability_leakage(isolated_db: Path):
 # ============================================================================
 # 6. Safety Audit Tests (3 tests)
 # ============================================================================
+
 
 def test_safety_audit_passes_on_compliant_config(isolated_config: Path):
     res = audit_production_safety(config_path=isolated_config)
@@ -615,6 +632,7 @@ def test_safety_audit_fails_on_lockout_disabled(tmp_path: Path):
 # ============================================================================
 # 7. Operational State / Verdict Mapping Tests (4 tests)
 # ============================================================================
+
 
 def test_verdict_waiting_for_market_session_on_weekend(isolated_db: Path, isolated_config: Path):
     reporter = ForwardAccumulationReporter(db_path=isolated_db, config_path=isolated_config)
@@ -691,12 +709,15 @@ def test_verdict_phase_e_ready_when_all_gates_pass(tmp_path: Path, isolated_conf
             cohort = "FWD_2026-09" if i < 50 else "FWD_2026-10"
             m_date = "2026-09-28" if i < 50 else "2026-10-15"
             ts = f"{m_date}T10:00:00+05:30"
-            cur.execute("""
+            cur.execute(
+                """
             INSERT INTO signal_forward_observations (
                 signal_id, cohort_id, registered_at, snapshot_captured_at, score, score_bucket,
                 observation_source, observation_status, data_quality_status, is_resolved, terminal_outcome
             ) VALUES (?, ?, ?, ?, 80.0, ?, 'FORWARD_LIVE_SCAN', 'RESOLVED', 'VALID_DATA', 1, 'TARGET_FIRST')
-            """, (f"SIG-{sig_idx:04d}", cohort, ts, ts, b))
+            """,
+                (f"SIG-{sig_idx:04d}", cohort, ts, ts, b),
+            )
 
     conn.commit()
     conn.close()
@@ -709,6 +730,7 @@ def test_verdict_phase_e_ready_when_all_gates_pass(tmp_path: Path, isolated_conf
 # ============================================================================
 # 8. Report Serialization & Artifact Generation Tests (3 tests)
 # ============================================================================
+
 
 def test_markdown_report_rendering(isolated_db: Path, isolated_config: Path):
     reporter = ForwardAccumulationReporter(db_path=isolated_db, config_path=isolated_config)
@@ -756,6 +778,7 @@ def test_cli_execution_returns_zero(tmp_path: Path, isolated_db: Path, isolated_
 # 9. Production Database Read-Only Integration Test (1 test)
 # ============================================================================
 
+
 def test_production_db_read_only_execution():
     """Verify that the reporter executes against db/signals_history.db strictly read-only."""
     prod_db = Path("db/signals_history.db")
@@ -763,6 +786,7 @@ def test_production_db_read_only_execution():
         pytest.skip("Production database db/signals_history.db not found.")
 
     import hashlib
+
     hash_pre = hashlib.sha256(prod_db.read_bytes()).hexdigest()
 
     conn_pre = sqlite3.connect(str(prod_db))
@@ -793,7 +817,9 @@ def test_production_db_read_only_execution():
     assert report.gates["G4"]["status"] in ("PASS", "FAIL")
     assert report.integrity.is_clean is True
     assert report.safety.is_safe is True
-    if report.session_status in ("SESSION_ACTIVE", "SESSION_COMPLETED") or (report.session_status == "PRE_SESSION" and report.forward_counts["registered"] > 0):
+    if report.session_status in ("SESSION_ACTIVE", "SESSION_COMPLETED") or (
+        report.session_status == "PRE_SESSION" and report.forward_counts["registered"] > 0
+    ):
         assert report.operational_state == STATE_ACCUMULATION_ACTIVE
     else:
         assert report.operational_state == STATE_WAITING_FOR_MARKET_SESSION

@@ -12,11 +12,7 @@ Verifies:
 8. Metrics trend state file path resolution resilience across bind-mount variants
 """
 
-import json
-import os
-import re
 from pathlib import Path
-import pytest
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
@@ -60,6 +56,7 @@ def test_page_context_injects_canonical_version():
         id = "u1"
         username = "trader1"
         role = "trader"
+
         def to_dict(self):
             return {"id": self.id, "username": self.username, "role": self.role}
 
@@ -134,7 +131,7 @@ def test_form_validation_novalidate_ux():
     """Verify forms in profile, login, change_password, and admin_users utilize novalidate."""
     forms_to_check = [
         ("templates/enterprise/profile.html", ['id="profileForm" novalidate', 'id="passwordForm" novalidate']),
-        ("templates/enterprise/login.html", ['id="loginForm"', 'novalidate']),
+        ("templates/enterprise/login.html", ['id="loginForm"', "novalidate"]),
         ("templates/enterprise/change_password.html", ['id="passwordForm" novalidate']),
         ("templates/enterprise/admin_users.html", ['id="createForm" novalidate']),
     ]
