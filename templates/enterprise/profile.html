@@ -736,31 +736,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.opb-password-toggle').forEach(button => {
-                if (button.dataset.opbToggleBound === '1') return;
-                button.dataset.opbToggleBound = '1';
-                button.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    const wrapper = this.closest('.opb-password-wrapper');
-                    if (!wrapper) return;
-                    const input = wrapper.querySelector('input');
-                    if (!input) return;
-                    const showing = input.type === 'text';
-                    input.type = showing ? 'password' : 'text';
-                    this.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-                    this.setAttribute('title', showing ? 'Show password' : 'Hide password');
-                    this.setAttribute('aria-pressed', showing ? 'false' : 'true');
-                    const openIcon = this.querySelector('.eye-svg-open');
-                    const closedIcon = this.querySelector('.eye-svg-closed');
-                    if (openIcon) {
-                        openIcon.style.display = showing ? '' : 'none';
-                    }
-                    if (closedIcon) {
-                        closedIcon.style.display = showing ? 'none' : '';
-                    }
-                });
-            });
             document.getElementById('profileForm')?.addEventListener('submit', handleProfileSubmit);
             document.getElementById('passwordForm')?.addEventListener('submit', handlePasswordSubmit);
             loadProfile();

@@ -206,7 +206,7 @@
             ::-webkit-scrollbar-thumb:hover { background: var(--accent-color, #38bdf8); }
 
             /* ── Core Container & Card Tokens ────────────────────────────── */
-            .card, .login-card, div[class*="stat-card"], .stat-card {
+            .card, .login-card, div[class*="stat-card"], .stat-card, .opb-card, .profile-card, .cockpit-card, .opb-panel, .opb-stat-card {
                 background-color: var(--bg-card, #131e33) !important;
                 border: 1px solid var(--border-color, #1e293b) !important;
                 color: var(--text-primary, #f8fafc) !important;
@@ -214,13 +214,13 @@
             }
 
             /* ── Form Inputs & Controls ─────────────────────────────────── */
-            .input-control, .input-field, input[type="text"], input[type="password"], input[type="number"], select, textarea, .reason-input {
+            .input-control, .input-field, .form-input, input[type="text"], input[type="password"], input[type="number"], input[type="email"], input[type="search"], input[type="tel"], select, textarea, .reason-input {
                 background-color: var(--input-bg, #0b1120) !important;
                 border: 1px solid var(--input-border, #1e293b) !important;
                 color: var(--text-primary, #f8fafc) !important;
             }
 
-            .input-control:focus, .input-field:focus, input:focus, select:focus, textarea:focus, .reason-input:focus {
+            .input-control:focus, .input-field:focus, .form-input:focus, input:focus, select:focus, textarea:focus, .reason-input:focus {
                 border-color: var(--accent-color, #38bdf8) !important;
             }
 
@@ -1139,6 +1139,33 @@
             root.style.setProperty(key, val);
         });
 
+        // 3b. Canonical --opb-* design system tokens
+        const opbVars = {
+            '--opb-bg': theme.vars['--bg-primary'],
+            '--opb-surface': theme.vars['--bg-card'],
+            '--opb-surface-alt': theme.vars['--bg-secondary'],
+            '--opb-text': theme.vars['--text-primary'],
+            '--opb-text-primary': theme.vars['--text-primary'],
+            '--opb-text-secondary': theme.vars['--text-secondary'],
+            '--opb-text-muted': theme.vars['--text-muted'],
+            '--opb-text-inverse': theme.vars['--btn-primary-text'],
+            '--opb-border': theme.vars['--border-color'],
+            '--opb-border-hover': theme.vars['--border-color-hover'],
+            '--opb-accent': theme.vars['--accent-color'],
+            '--opb-accent-gradient': theme.vars['--accent-gradient'],
+            '--opb-success': theme.vars['--success-color'],
+            '--opb-warning': theme.vars['--warning-color'],
+            '--opb-danger': theme.vars['--danger-color'],
+            '--opb-input-bg': theme.vars['--input-bg'],
+            '--opb-input-text': theme.vars['--text-primary'],
+            '--opb-placeholder': theme.vars['--text-muted'],
+            '--opb-disabled-text': isDark ? '#64748b' : '#94a3b8',
+            '--opb-disabled-bg': isDark ? '#0a0e17' : (effectiveKey === 'ivory-gold' ? '#ede4d4' : '#f2ecf8')
+        };
+        Object.entries(opbVars).forEach(([key, val]) => {
+            root.style.setProperty(key, val);
+        });
+
         // 4. Synchronize body
         if (document.body) {
             if (isDark) {
@@ -1342,40 +1369,27 @@
     
     // 1. Universal Password / Token Eye Icon Visibility Toggle
     function handleGlobalEyeToggle(e) {
-        const eyeTarget = e.target.closest('[data-toggle="password"], [data-toggle-password], .password-toggle-btn, .eye-toggle-btn, #eyeIconLogin, #eyeIconPassword, #eyeIconConfirmPassword, #eyeIconCurrent, #eyeIconNew, #eyeIconConfirm, #eyeIconToken, #eyeIconCreate, #eyeIconReset, #eyeIconRecKey, #eyeIconNewEmg, #eyeIconConfEmg');
-        if (!eyeTarget) {
-            // Check if it's an eye icon inside a password input group
-            const isEyeIcon = e.target.classList.contains('fa-eye') || e.target.classList.contains('fa-eye-slash');
-            if (!isEyeIcon) return;
-            const pwGroup = e.target.closest('.form-group, .input-group, .opb-input-group, .password-wrapper, div');
-            if (!pwGroup || !pwGroup.querySelector('input[type="password"], input[data-password="true"]')) return;
+        const eyeTarget = e.target.closest && e.target.closest('[data-toggle="password"], [data-toggle-password], .password-toggle-btn, .eye-toggle-btn, .opb-password-toggle, #eyeIconLogin, #eyeIconPassword, #eyeIconConfirmPassword, #eyeIconCurrent, #eyeIconNew, #eyeIconConfirm, #eyeIconToken, #eyeIconCreate, #eyeIconReset, #eyeIconRecKey, #eyeIconNewEmg, #eyeIconConfEmg');
+        if (eyeTarget) {
+            e.preventDefault();
+            if (typeof togglePasswordField === 'function') {
+                togglePasswordField(eyeTarget);
+            } else if (typeof window.togglePasswordField === 'function') {
+                window.togglePasswordField(eyeTarget);
+            }
+            return;
         }
 
-        // Find the icon element
-        let icon = eyeTarget.tagName.toLowerCase() === 'i' ? eyeTarget : eyeTarget.querySelector('i.fa-eye, i.fa-eye-slash');
-        if (!icon && eyeTarget.classList.contains('fa-eye')) icon = eyeTarget;
-        if (!icon && eyeTarget.classList.contains('fa-eye-slash')) icon = eyeTarget;
-
-        // Find the input element (look in parent container or by ID)
-        let input = null;
-        const container = eyeTarget.closest('.form-group, .input-group, .opb-input-group, div, fieldset') || eyeTarget.parentElement;
-        if (container) {
-            input = container.querySelector('input[type="password"], input[type="text"]');
-        }
-        if (!input && eyeTarget.getAttribute('data-target')) {
-            input = document.getElementById(eyeTarget.getAttribute('data-target'));
-        }
-
-        if (input) {
-            const isPassword = input.type === 'password';
-            input.type = isPassword ? 'text' : 'password';
-            if (icon) {
-                if (isPassword) {
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                } else {
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
+        // Check if it's an eye icon inside a password input group
+        const isEyeIcon = e.target.classList && (e.target.classList.contains('fa-eye') || e.target.classList.contains('fa-eye-slash'));
+        if (isEyeIcon) {
+            const pwGroup = e.target.closest && e.target.closest('.form-group, .input-group, .opb-input-group, .password-wrapper, .input-password-wrapper, .opb-password-wrapper, div');
+            if (pwGroup && pwGroup.querySelector('input[type="password"], input[data-password="true"]')) {
+                e.preventDefault();
+                if (typeof togglePasswordField === 'function') {
+                    togglePasswordField(e.target);
+                } else if (typeof window.togglePasswordField === 'function') {
+                    window.togglePasswordField(e.target);
                 }
             }
         }
@@ -1472,6 +1486,7 @@
     }, { capture: false, passive: true });
 
     document.addEventListener('click', function(e) {
+        handleGlobalEyeToggle(e);
         handleDesktopWorkspaceMenuClick(e);
         handleGlobalDrawerClick(e);
         handleGlobalThemeSelect(e);
@@ -1502,19 +1517,18 @@
     };
     window.OpbThemeEngine = window.OPBThemeEngine;
     window.togglePasswordVisibility = function(inputId, iconId) {
-        const input = document.getElementById(inputId);
-        const icon = document.getElementById(iconId);
-        if (input) {
-            const isPassword = input.type === 'password';
-            input.type = isPassword ? 'text' : 'password';
-            if (icon) {
-                if (isPassword) {
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                } else {
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                }
+        if (typeof togglePasswordField === 'function') {
+            togglePasswordField(inputId);
+        } else if (typeof window.togglePasswordField === 'function') {
+            window.togglePasswordField(inputId);
+        }
+        if (iconId) {
+            const icon = document.getElementById(iconId);
+            const input = document.getElementById(inputId);
+            if (icon && input) {
+                const showing = input.type === 'text';
+                icon.classList.toggle('fa-eye', !showing);
+                icon.classList.toggle('fa-eye-slash', showing);
             }
         }
     };
@@ -1561,40 +1575,122 @@
 
 
     // ── Universal Password & Secret Visibility Controller (OPB 2026 Invariant) ──
-    const EYE_SVG_OPEN = `<svg viewBox="0 0 24 24" class="eye-svg-open"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-    const EYE_SVG_CLOSED = `<svg viewBox="0 0 24 24" class="eye-svg-closed"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+    const EYE_SVG_OPEN = `<svg viewBox="0 0 24 24" class="eye-svg-open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    const EYE_SVG_CLOSED = `<svg viewBox="0 0 24 24" class="eye-svg-closed is-hidden" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
 
-    function togglePasswordField(toggleBtn) {
-        if (!toggleBtn) return;
-        const wrapper = toggleBtn.closest('.opb-password-wrapper, .input-password-wrapper, .form-group, div');
-        if (!wrapper) return;
-        const input = wrapper.querySelector('input[type="password"], input[type="text"]');
-        if (!input) return;
+    function togglePasswordField(toggleBtnOrId) {
+        if (!toggleBtnOrId) return;
+        let toggleBtn = null;
+        let input = null;
 
-        const isCurrentlyPassword = input.type === 'password';
-        input.type = isCurrentlyPassword ? 'text' : 'password';
-        
-        // Update SVG / FontAwesome Icon
-        const svgContainer = toggleBtn.querySelector('svg');
-        if (svgContainer) {
-            toggleBtn.innerHTML = isCurrentlyPassword ? EYE_SVG_CLOSED : EYE_SVG_OPEN;
-        } else {
-            const faIcon = toggleBtn.querySelector('.fa-eye, .fa-eye-slash');
-            if (faIcon) {
-                faIcon.classList.toggle('fa-eye', !isCurrentlyPassword);
-                faIcon.classList.toggle('fa-eye-slash', isCurrentlyPassword);
-            } else {
-                toggleBtn.innerHTML = isCurrentlyPassword ? EYE_SVG_CLOSED : EYE_SVG_OPEN;
+        if (typeof toggleBtnOrId === 'string') {
+            const el = document.getElementById(toggleBtnOrId);
+            if (el) {
+                if (el.tagName === 'INPUT') {
+                    input = el;
+                    const wrapper = el.closest ? el.closest('.opb-password-wrapper, .input-password-wrapper, .form-group, .input-group, div') : el.parentElement;
+                    if (wrapper) {
+                        toggleBtn = wrapper.querySelector('.opb-password-toggle, .password-toggle-btn, [data-toggle="password"]');
+                    }
+                    if (!toggleBtn) {
+                        toggleBtn = document.querySelector(`[data-target="${toggleBtnOrId}"], [aria-controls="${toggleBtnOrId}"]`);
+                    }
+                } else {
+                    toggleBtn = el;
+                }
+            }
+        } else if (toggleBtnOrId.nodeType === 1) {
+            toggleBtn = toggleBtnOrId.closest ? toggleBtnOrId.closest('.opb-password-toggle, .password-toggle-btn, .eye-toggle-btn, [data-toggle="password"], [data-toggle-password]') : null;
+            if (!toggleBtn) {
+                toggleBtn = toggleBtnOrId;
             }
         }
-        toggleBtn.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
-        toggleBtn.setAttribute('title', isCurrentlyPassword ? 'Hide password' : 'Show password');
-        toggleBtn.setAttribute('aria-pressed', isCurrentlyPassword ? 'true' : 'false');
+
+        if (!toggleBtn && !input) return;
+
+        if (toggleBtn && !input) {
+            const targetId = toggleBtn.getAttribute('data-target') || toggleBtn.getAttribute('aria-controls');
+            if (targetId) {
+                input = document.getElementById(targetId);
+            }
+            if (!input && toggleBtn.closest) {
+                const wrapper = toggleBtn.closest('.opb-password-wrapper, .input-password-wrapper, .form-group, .input-group, div, fieldset');
+                if (wrapper) {
+                    input = wrapper.querySelector('input[type="password"], input[type="text"]');
+                }
+            }
+            if (!input) {
+                let sib = toggleBtn.previousElementSibling;
+                while (sib) {
+                    if (sib.tagName === 'INPUT') { input = sib; break; }
+                    sib = sib.previousElementSibling;
+                }
+            }
+            if (!input) {
+                let sib = toggleBtn.nextElementSibling;
+                while (sib) {
+                    if (sib.tagName === 'INPUT') { input = sib; break; }
+                    sib = sib.nextElementSibling;
+                }
+            }
+        }
+
+        if (!input) return;
+
+        const isCurrentlyText = input.type === 'text';
+        const willShow = !isCurrentlyText;
+        input.type = willShow ? 'text' : 'password';
+
+        if (toggleBtn) {
+            toggleBtn.setAttribute('aria-label', willShow ? 'Hide password' : 'Show password');
+            toggleBtn.setAttribute('title', willShow ? 'Hide password' : 'Show password');
+            toggleBtn.setAttribute('aria-pressed', willShow ? 'true' : 'false');
+            toggleBtn.setAttribute('data-showing', willShow ? 'true' : 'false');
+
+            // Handle SVG open/closed icons
+            const openSvg = toggleBtn.querySelector('.eye-svg-open');
+            let closedSvg = toggleBtn.querySelector('.eye-svg-closed');
+
+            if (openSvg) {
+                if (!closedSvg) {
+                    const closedElem = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    closedElem.setAttribute('viewBox', '0 0 24 24');
+                    closedElem.setAttribute('class', 'eye-svg-closed is-hidden');
+                    closedElem.setAttribute('width', '18');
+                    closedElem.setAttribute('height', '18');
+                    closedElem.setAttribute('fill', 'none');
+                    closedElem.setAttribute('stroke', 'currentColor');
+                    closedElem.setAttribute('stroke-width', '2');
+                    closedElem.setAttribute('stroke-linecap', 'round');
+                    closedElem.setAttribute('stroke-linejoin', 'round');
+                    closedElem.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+                    toggleBtn.appendChild(closedElem);
+                    closedSvg = closedElem;
+                }
+                openSvg.classList.toggle('is-hidden', willShow);
+                openSvg.style.display = willShow ? 'none' : 'block';
+                closedSvg.classList.toggle('is-hidden', !willShow);
+                closedSvg.style.display = willShow ? 'block' : 'none';
+            } else if (!toggleBtn.querySelector('i')) {
+                toggleBtn.innerHTML = willShow ? EYE_SVG_CLOSED : EYE_SVG_OPEN;
+                const newSvg = toggleBtn.querySelector('svg');
+                if (newSvg) newSvg.style.display = 'block';
+            }
+
+            // Handle FontAwesome icons
+            let faIcon = toggleBtn.tagName && toggleBtn.tagName.toLowerCase() === 'i' ? toggleBtn : toggleBtn.querySelector('i.fa-eye, i.fa-eye-slash');
+            if (!faIcon && toggleBtn.classList && toggleBtn.classList.contains('fa-eye')) faIcon = toggleBtn;
+            if (!faIcon && toggleBtn.classList && toggleBtn.classList.contains('fa-eye-slash')) faIcon = toggleBtn;
+            if (faIcon) {
+                faIcon.classList.toggle('fa-eye', !willShow);
+                faIcon.classList.toggle('fa-eye-slash', willShow);
+            }
+        }
     }
     window.togglePasswordField = togglePasswordField;
 
     function initUniversalPasswordToggles() {
-        document.querySelectorAll('input[type="password"]').forEach(input => {
+        document.querySelectorAll('input[type="password"], input[data-password="true"]').forEach(input => {
             const wrapper = input.parentElement;
             if (!wrapper) return;
             wrapper.classList.add('opb-password-wrapper');
@@ -1607,30 +1703,48 @@
                 toggleBtn.setAttribute('aria-label', 'Show password');
                 toggleBtn.setAttribute('title', 'Show password');
                 toggleBtn.setAttribute('aria-pressed', 'false');
-                toggleBtn.innerHTML = EYE_SVG_OPEN;
+                toggleBtn.setAttribute('data-showing', 'false');
+                toggleBtn.innerHTML = EYE_SVG_OPEN + EYE_SVG_CLOSED;
+                const closed = toggleBtn.querySelector('.eye-svg-closed');
+                if (closed) closed.style.display = 'none';
                 wrapper.appendChild(toggleBtn);
             } else {
                 if (!toggleBtn.hasAttribute('aria-pressed')) {
                     toggleBtn.setAttribute('aria-pressed', 'false');
                 }
-                if (!toggleBtn.querySelector('svg') && !toggleBtn.querySelector('i')) {
-                    toggleBtn.innerHTML = EYE_SVG_OPEN;
+                if (!toggleBtn.hasAttribute('data-showing')) {
+                    toggleBtn.setAttribute('data-showing', 'false');
+                }
+                const hasOpen = toggleBtn.querySelector('.eye-svg-open');
+                const hasClosed = toggleBtn.querySelector('.eye-svg-closed');
+                const hasFa = toggleBtn.querySelector('i.fa-eye, i.fa-eye-slash');
+                if (!hasOpen && !hasFa) {
+                    toggleBtn.innerHTML = EYE_SVG_OPEN + EYE_SVG_CLOSED;
+                    const closed = toggleBtn.querySelector('.eye-svg-closed');
+                    if (closed) closed.style.display = 'none';
+                } else if (hasOpen && !hasClosed) {
+                    const closedElem = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    closedElem.setAttribute('viewBox', '0 0 24 24');
+                    closedElem.setAttribute('class', 'eye-svg-closed is-hidden');
+                    closedElem.setAttribute('width', '18');
+                    closedElem.setAttribute('height', '18');
+                    closedElem.setAttribute('fill', 'none');
+                    closedElem.setAttribute('stroke', 'currentColor');
+                    closedElem.setAttribute('stroke-width', '2');
+                    closedElem.setAttribute('stroke-linecap', 'round');
+                    closedElem.setAttribute('stroke-linejoin', 'round');
+                    closedElem.style.display = 'none';
+                    closedElem.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+                    toggleBtn.appendChild(closedElem);
                 }
             }
+            toggleBtn.dataset.opbToggleReady = '1';
         });
     }
 
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('.opb-password-toggle, .password-toggle-btn, [data-toggle="password"], [data-toggle-password]');
-        if (btn) {
-            e.preventDefault();
-            togglePasswordField(btn);
-        }
-    }, { passive: false });
-
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' || e.key === ' ') {
-            const btn = e.target.closest('.opb-password-toggle, .password-toggle-btn, [data-toggle="password"], [data-toggle-password]');
+            const btn = e.target.closest && e.target.closest('.opb-password-toggle, .password-toggle-btn, [data-toggle="password"], [data-toggle-password]');
             if (btn && btn.tagName !== 'BUTTON') {
                 e.preventDefault();
                 togglePasswordField(btn);

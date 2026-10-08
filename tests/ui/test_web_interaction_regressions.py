@@ -1,6 +1,6 @@
 """Regression guards for canonical web interaction wiring."""
-from pathlib import Path
 import re
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 
@@ -31,3 +31,24 @@ def test_password_inputs_have_one_canonical_eye_control() -> None:
 
 def test_theme_engine_fallback_is_byte_identical_to_canonical_asset() -> None:
     assert (ROOT / "static/theme_engine.js").read_bytes() == (ROOT / "core/static/theme_engine.js").read_bytes()
+
+
+def test_theme_engine_has_no_duplicate_eye_click_listeners() -> None:
+    """Verify theme_engine.js delegates eye toggles through handleGlobalEyeToggle without duplicate listeners."""
+    content = (ROOT / "static/theme_engine.js").read_text(encoding="utf-8")
+
+    # 1. Exactly one handleGlobalEyeToggle declaration and exactly one invocation
+    assert content.count("function handleGlobalEyeToggle(e)") == 1
+    assert content.count("handleGlobalEyeToggle(e);") == 1
+    # 2. No duplicate document.addEventListener('click') calling togglePasswordField directly
+    assert "document.addEventListener('click', function(e) {\n        const btn = e.target.closest('.opb-password-toggle" not in content
+    # 3. Canonical exports present
+    assert "window.togglePasswordField = togglePasswordField;" in content
+    assert "window.togglePasswordVisibility = function" in content
+
+
+def test_profile_template_has_no_page_level_redundant_toggle_binding() -> None:
+    """OPB UI Golden Rule: profile.html must rely on universal theme_engine without page-level click handlers."""
+    profile_content = (ROOT / "templates/enterprise/profile.html").read_text(encoding="utf-8")
+    assert "button.dataset.opbToggleBound" not in profile_content
+    assert "document.querySelectorAll('.opb-password-toggle').forEach" not in profile_content
