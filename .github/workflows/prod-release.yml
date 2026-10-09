@@ -185,7 +185,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: master
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
@@ -206,12 +206,12 @@ jobs:
             echo "No trend changes to commit — snapshot already up to date"
           else
             git commit -m "chore: capture success metrics trend snapshot for ${GITHUB_REF_NAME}"
-            # Push to main (long-lived branch) so the tracked history survives
+            # Push to master (long-lived branch) so the tracked history survives
             # future CI checkouts. Tag refs are immutable and cannot receive
             # the new commit; branch protection may reject the push, which is
             # acceptable — the snapshot is best-effort evidence.
-            git push origin HEAD:main || \
-              echo "WARNING: push to main failed (branch protection?) — snapshot retained in workspace"
+            git push origin HEAD:master || \
+              echo "WARNING: push to master failed (branch protection?) — snapshot retained in workspace"
           fi
 
   docker-build:
