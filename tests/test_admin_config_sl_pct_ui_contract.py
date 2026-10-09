@@ -44,8 +44,10 @@ def test_admin_config_save_uses_flat_changed_keys_and_validate_apply_flow():
     assert "/api/config/validate" in text
     assert "/api/config/apply" in text
 
-    # A successful apply must reload the canonical config state.
-    assert "loadConfig()" in text
+    # A successful apply must clear dirty state and reload canonical config state.
+    assert "changedKeys = {};" in text
+    assert "isDirty = false;" in text
+    assert "await loadConfig(false);" in text
 
 
 def test_admin_config_validation_errors_render_structured_objects():

@@ -10,7 +10,7 @@ D26-A:
 2. Cash equities in F&O universe -> existing cash-equity classification (LARGE_CAP_EQUITY / MID_SMALL_CAP)
 3. Non-F&O cash equities -> EQUITY_SWING_DELIVERY
 4. Canonical 10-category taxonomy invariance (0 new categories)
-5. Index Options presentation truthfulness (Spot index labeled as Index Spot Directional)
+5. Index Options presentation truthfulness (Spot index labeled as Index Spot Proxy)
 
 D26-B:
 6. Valid Futures contract -> Futures LTP accepted
@@ -25,21 +25,16 @@ D26-B:
 
 import time
 from unittest.mock import MagicMock, patch
-import pytest
 
+import pytest
+from core.all_nse_scanner import AllNSEScanner, ScannedStockSignal
 from core.fno_universe import (
     classify_instrument_market,
-    FNO_INDICES,
-    FNO_EQUITY_STOCKS,
-    NIFTY_50_STOCKS,
 )
 from core.futures_contract_resolver import (
     FuturesContractResolver,
-    resolve_futures_market_price,
 )
 from core.notifications.rich_signal_formatter import RichSignalFormatter
-from core.all_nse_scanner import AllNSEScanner, ScannedStockSignal
-
 
 CANONICAL_10_CATEGORIES = {
     "INDEX_OPTIONS",
@@ -136,11 +131,11 @@ class TestD26ATaxonomyPurity:
         )
 
     def test_index_options_presentation_truthfulness(self):
-        """Index Options based on spot data must be presented truthfully as 'Index Spot Directional'."""
+        """Index Options based on spot data must be presented truthfully as 'Index Spot Proxy'."""
         # Spot index signal (evaluated on spot index level 24,850.00)
         spot_meta = RichSignalFormatter.format_human_friendly_symbol("NIFTY", "INDEX_OPTIONS")
-        assert spot_meta["display_title"] == "NIFTY Index Spot Directional"
-        assert spot_meta["instrument_type"] == "Index Spot Directional"
+        assert spot_meta["display_title"] == "NIFTY Index Spot Proxy"
+        assert spot_meta["instrument_type"] == "INDEX SPOT PROXY"
         assert spot_meta["is_option"] is False
 
         # Subject line for spot index
@@ -148,14 +143,14 @@ class TestD26ATaxonomyPurity:
             symbol="NIFTY", category="INDEX_OPTIONS", direction="CALL",
             price=24850.0, score=90, tier="STRONG", target_1=25000.0, target_2=25200.0,
         )
-        assert "BULLISH (INDEX SPOT DIRECTIONAL)" in subj_call
+        assert "BULLISH (INDEX SPOT PROXY)" in subj_call
         assert "BUY CE" not in subj_call
 
         subj_put = RichSignalFormatter.build_rich_email_subject(
             symbol="BANKNIFTY", category="INDEX_OPTIONS", direction="PUT",
             price=52000.0, score=90, tier="STRONG", target_1=51500.0, target_2=51000.0,
         )
-        assert "BEARISH (INDEX SPOT DIRECTIONAL)" in subj_put
+        assert "BEARISH (INDEX SPOT PROXY)" in subj_put
         assert "BUY PE" not in subj_put
 
         # Telegram card for spot index
@@ -164,8 +159,8 @@ class TestD26ATaxonomyPurity:
             price=24850.0, score=90, tier="STRONG", stop_loss=24700.0,
             target_1=25000.0, target_2=25200.0,
         )
-        assert "INDEX SPOT DIRECTIONAL: BULLISH (CALL)" in tg_card
-        assert "NIFTY Index Spot Directional" in tg_card
+        assert "INDEX SPOT PROXY: BULLISH (CALL)" in tg_card
+        assert "NIFTY Index Spot Proxy" in tg_card
 
         # Genuine option contract (e.g. NIFTY24AUG24500CE at premium 142.50)
         contract_meta = RichSignalFormatter.format_human_friendly_symbol("NIFTY24AUG24500CE", "INDEX_OPTIONS")
