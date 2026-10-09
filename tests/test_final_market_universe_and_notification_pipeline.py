@@ -302,11 +302,13 @@ def test_email_notification_for_qualifying_signal(isolated_tracker):
             email_enabled=True,
             email="admin@tradingcorp.com",
             signals_enabled=True,
-            allowed_categories=["STOCK_OPTIONS", "MID_SMALL_CAP", "EQUITY_SWING_DELIVERY"],
+            allowed_categories=["LARGE_CAP_EQUITY", "STOCK_OPTIONS", "MID_SMALL_CAP", "EQUITY_SWING_DELIVERY"],
             min_signal_tier="MODERATE_AND_STRONG",
         )
 
-        with patch("core.signals.signal_tracker.SignalTracker.get_instance", return_value=tracker),              patch("core.auth.user_signal_permissions.UserPermissionManager.get_instance") as mock_pm,              patch("smtplib.SMTP") as mock_smtp_cls:
+        with patch("core.signals.signal_tracker.SignalTracker.get_instance", return_value=tracker), \
+             patch("core.auth.user_signal_permissions.UserPermissionManager.get_instance") as mock_pm, \
+             patch("smtplib.SMTP") as mock_smtp_cls:
 
             mock_pm.return_value.get_eligible_recipients.side_effect = lambda category, **kw: [mock_recipient] if category in mock_recipient.allowed_categories else []
             mock_smtp = MagicMock()
@@ -328,6 +330,15 @@ def test_email_notification_for_qualifying_signal(isolated_tracker):
             )
             assert "INFY" in decoded_body
             assert "SIG-" in decoded_body
+
+            # Negative authorization boundary: no authorized recipients -> suppress sendmail
+            mock_smtp.reset_mock()
+            mock_pm.return_value.get_eligible_recipients.side_effect = None
+            mock_pm.return_value.get_eligible_recipients.return_value = []
+            scanner._cooldown_secs = 0
+            scanner._last_alert_time.clear()
+            scanner._dispatch_alert_if_eligible(sig)
+            mock_smtp.sendmail.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
