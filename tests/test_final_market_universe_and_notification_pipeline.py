@@ -25,12 +25,10 @@ from __future__ import annotations
 
 import email
 import json
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-
 from core.all_nse_scanner import AllNSEScanner, ScannedStockSignal
 from core.auth.user_signal_permissions import UserPermissionManager, UserSignalPermission
 from core.fno_universe import (
@@ -41,7 +39,6 @@ from core.fno_universe import (
     is_fno_symbol,
     is_index_symbol,
 )
-from core.ports.execution.execution_port import ExecutionMode, OrderStatus
 from core.position_service import PositionService, TradeBlockError
 from core.signals.signal_tracker import SignalTracker
 
@@ -142,10 +139,14 @@ def test_all_supported_options():
     assert classify_instrument_market("BANKNIFTY24DEC52000PE") == "INDEX_OPTIONS"
     assert classify_instrument_market("FINNIFTY", instrument_type="OPTIDX") == "INDEX_OPTIONS"
 
-    # Stock options (underlying in F&O universe or instrument_type OPTSTK)
-    assert classify_instrument_market("RELIANCE") == "STOCK_OPTIONS"
+    # Stock options (genuine derivative contracts, explicit series/instrument_type)
+    assert classify_instrument_market("RELIANCE24OCT2900CE") == "STOCK_OPTIONS"
+    assert classify_instrument_market("RELIANCE", series="OPT") == "STOCK_OPTIONS"
     assert classify_instrument_market("TCS", instrument_type="OPTSTK") == "STOCK_OPTIONS"
     assert classify_instrument_market("INFY", instrument_type="STOCK_OPTIONS") == "STOCK_OPTIONS"
+
+    # Explicit taxonomy boundary: underlying cash equity vs derivative stock option
+    assert classify_instrument_market("RELIANCE") == "LARGE_CAP_EQUITY"
 
 
 # ---------------------------------------------------------------------------
