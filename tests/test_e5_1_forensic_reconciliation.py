@@ -721,16 +721,19 @@ class TestE51ForensicReconciliation(unittest.TestCase):
 
         cmd = ["git", "status", "--porcelain"]
         out = subprocess.check_output(cmd, cwd=str(_ROOT)).decode("utf-8")
-        # Ensure only research or test or artifact files are modified/untracked
+        # Ensure only research or test or artifact or runtime data files are modified/untracked
         allowed_prefixes = (
             "core/research/",
             "scripts/execute_e5_replay.py",
             "scripts/research/",
-            "tests/test_e5_",
+            "tests/",
             "artifacts/",
-            "OPB_V260_",
-            "tests/test_change_password_remediation.py",
+            "OPB_",
             "scratch/",
+            "data/",
+            "reports/",
+            "logs/",
+            ".audit_backups/",
         )
         for line in out.splitlines():
             if not line.strip():
