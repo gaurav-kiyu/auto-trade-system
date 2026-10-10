@@ -327,6 +327,33 @@ class TestSafetyInvariants:
 class TestPostPhase21Hardening:
     """Verify Post-Phase-2.1 hardening fixes."""
 
+    def setup_method(self):
+        """Ensure market calendar holiday cache is not polluted by preceding tests."""
+        import core.event_calendar as ec
+        import core.exchange_calendar_engine as ece
+
+        self._old_holidays = ec._LIVE_HOLIDAYS
+        self._old_failure_ts = ec._LIVE_HOLIDAYS_FAILURE_TS
+        self._old_ts = ec._LIVE_HOLIDAYS_TS
+        ec._LIVE_HOLIDAYS = None
+        ec._LIVE_HOLIDAYS_FAILURE_TS = 0.0
+        ec._LIVE_HOLIDAYS_TS = 0.0
+        with ece._engine_cache_lock:
+            self._old_engine_cache = dict(ece._engine_cache)
+            ece._engine_cache.clear()
+
+    def teardown_method(self):
+        """Restore market calendar holiday cache and engine cache state."""
+        import core.event_calendar as ec
+        import core.exchange_calendar_engine as ece
+
+        ec._LIVE_HOLIDAYS = self._old_holidays
+        ec._LIVE_HOLIDAYS_FAILURE_TS = self._old_failure_ts
+        ec._LIVE_HOLIDAYS_TS = self._old_ts
+        with ece._engine_cache_lock:
+            ece._engine_cache.clear()
+            ece._engine_cache.update(self._old_engine_cache)
+
     def test_market_session_holiday_gating(self):
         """_market_session_is_open and is_market_hours must block on weekday exchange holidays."""
         import datetime
