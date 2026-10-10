@@ -88,7 +88,7 @@ class TestDataFreshnessEdgeCases:
         assert result.passed is False
 
     def test_fresh_data_passes(self):
-        now_ts = pd.Timestamp.now()
+        now_ts = pd.Timestamp.now(tz="Asia/Kolkata")
         df = pd.DataFrame({"close": [22000]}, index=[now_ts])
         frames = {"1m": df, "5m": df, "15m": df}
         result = check_data_freshness(
