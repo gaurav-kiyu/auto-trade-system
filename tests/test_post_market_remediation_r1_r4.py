@@ -660,18 +660,23 @@ def test_check1_futures_never_substitutes_spot_cash_price(tmp_path):
             first_touch_at TEXT DEFAULT '', first_touch_price REAL DEFAULT 0.0, outcome_confidence TEXT DEFAULT 'UNKNOWN'
         )
     """)
-    now_str = now_ist().strftime("%Y-%m-%d %H:%M:%S")
+    now = now_ist()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    created_date = now.strftime("%Y-%m-%d")
+    created_week = f"W{now.isocalendar()[1]}"
+    created_month = f"{now.month:02d}"
+    created_year = str(now.year)
     cur.execute("""
         INSERT INTO system_signals (
             signal_id, timestamp, created_date, created_week, created_month, created_year,
             symbol, company_name, category, direction, score, tier,
             entry_price, stop_loss, target_1, target_2, current_price, status, pnl_pct, channels_sent
         ) VALUES (
-            'SIG-FUT-002', ?, '2026-09-29', 'W39', '09', '2026',
+            'SIG-FUT-002', ?, ?, ?, ?, ?,
             'DIXON26SEPFUT', 'Dixon Futures', 'FUTURES', 'CALL', 85, 'STRONG',
             14500.0, 14000.0, 15000.0, 15500.0, 14500.0, 'ACTIVE', 0.0, 'TELEGRAM'
         )
-    """, (now_str,))
+    """, (now_str, created_date, created_week, created_month, created_year))
     conn.commit()
     conn.close()
 
