@@ -21,19 +21,40 @@ EXPECTED_DB_SHA = "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6
 # ── Safety & Governance Invariants ──────────────────────────────────────────
 
 def test_01_production_db_immutability():
-    """Verify production database has not been mutated when canonical baseline is present."""
+    """Verify historical production database has not been mutated when canonical baseline is present."""
     if not _DB_PATH.exists():
-        pytest.skip("Canonical production database db/signals_history.db not present in repository checkout (gitignored).")
+        pytest.skip(
+            "Canonical historical production database db/signals_history.db not present in repository checkout (gitignored). "
+            "Production database is intentionally external to CI."
+        )
+    file_size = _DB_PATH.stat().st_size
+    is_ephemeral = False
+    if file_size < 500_000:
+        is_ephemeral = True
+    else:
+        try:
+            conn = sqlite3.connect(f"file:{_DB_PATH}?mode=ro", uri=True)
+            cur = conn.cursor()
+            cur.execute("SELECT count(*) FROM system_signals")
+            cnt = cur.fetchone()[0]
+            conn.close()
+            if cnt == 0:
+                is_ephemeral = True
+        except Exception:
+            is_ephemeral = False
+
+    if is_ephemeral:
+        pytest.skip(
+            f"db/signals_history.db present is an ephemeral test artifact ({file_size} bytes), "
+            f"not the canonical 498-row historical baseline ({EXPECTED_DB_SHA[:16]}...). "
+            "Production database is intentionally external to CI."
+        )
+
     hasher = hashlib.sha256()
     with open(_DB_PATH, "rb") as f:
         while chunk := f.read(65536):
             hasher.update(chunk)
     actual_sha = hasher.hexdigest().lower()
-    if actual_sha != EXPECTED_DB_SHA.lower():
-        pytest.skip(
-            f"db/signals_history.db present is an ephemeral test artifact (SHA {actual_sha[:16]}...), "
-            f"not the canonical 498-row historical baseline ({EXPECTED_DB_SHA[:16]}...)."
-        )
     assert actual_sha == EXPECTED_DB_SHA.lower()
 
 
@@ -234,16 +255,25 @@ def test_20_ui_backend_timestamps_agree():
 def test_21_historical_records_remain_immutable():
     """Verify total record count in system_signals remains 498 when canonical baseline is present."""
     if not _DB_PATH.exists():
-        pytest.skip("Canonical production database db/signals_history.db not present in repository checkout (gitignored).")
+        pytest.skip(
+            "Canonical historical production database db/signals_history.db not present in repository checkout (gitignored). "
+            "Production database is intentionally external to CI."
+        )
+    file_size = _DB_PATH.stat().st_size
+    if file_size < 500_000:
+        pytest.skip(
+            f"db/signals_history.db present is an ephemeral test artifact ({file_size} bytes), "
+            "not the canonical 498-row historical baseline. Production database is intentionally external to CI."
+        )
     conn = sqlite3.connect(f"file:{_DB_PATH}?mode=ro", uri=True)
     cur = conn.cursor()
     cur.execute("SELECT count(*) FROM system_signals")
     cnt = cur.fetchone()[0]
     conn.close()
-    if cnt != 498:
+    if cnt == 0:
         pytest.skip(
-            f"db/signals_history.db contains {cnt} records (ephemeral test artifact), "
-            "not the canonical 498-row historical baseline."
+            "db/signals_history.db contains 0 records (ephemeral test artifact), "
+            "not the canonical 498-row historical baseline. Production database is intentionally external to CI."
         )
     assert cnt == 498
 
