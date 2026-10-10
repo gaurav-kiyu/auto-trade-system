@@ -12,17 +12,12 @@ import json
 import math
 import sqlite3
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import pytest
-
 from core.signals.phase_e_execution_readiness import (
     CALIBRATION_FIT_BLOCKED,
-    DEFAULT_FORWARD_CUTOFF,
     FEATURE_PROVENANCE_UNVERIFIED,
     FORBIDDEN_OUTCOME_KEYS,
-    METRIC_INFEASIBLE,
-    PERMITTED_CONTEMPORANEOUS_FEATURES,
     PHASE_E_SOFTWARE_VERSION,
     REASON_AMBIGUOUS_OUTCOME,
     REASON_INVALID_BARRIER,
@@ -30,8 +25,6 @@ from core.signals.phase_e_execution_readiness import (
     REASON_INVALIDATED_OUTCOME,
     REASON_MISSING_FEATURE,
     REASON_MISSING_SNAPSHOT,
-    REASON_MISSING_TARGET,
-    REASON_NO_DATA,
     REASON_OUTCOME_LEAKAGE,
     REASON_PRE_CUTOFF,
     REASON_SEED_OR_TEST_SOURCE,
@@ -46,22 +39,17 @@ from core.signals.phase_e_execution_readiness import (
     BaselineEstimatorInterface,
     BaselineLogisticRegressionEstimator,
     CalibrationFitBlockedError,
-    CalibrationInterface,
     ChronologicalDatasetSplitter,
     GovernanceViolationError,
     IsotonicCalibrationInterface,
     ModelLifecycleState,
     ModelRegistry,
-    PhaseEExecutionReadinessReport,
     PhaseEExperimentManifest,
     PlattCalibrationInterface,
     ProbabilityPrediction,
-    ReliabilityBinResult,
     compute_brier_score,
     compute_expected_calibration_error,
     compute_log_loss,
-    compute_pr_auc,
-    compute_reliability_bins,
     compute_roc_auc,
     compute_target_outcome,
     evaluate_phase_e_execution_readiness,
@@ -70,7 +58,6 @@ from core.signals.phase_e_execution_readiness import (
     validate_probability_value,
     verify_calibration_separation,
 )
-
 
 # ============================================================================
 # Helpers & Fixtures
@@ -725,14 +712,36 @@ def test_production_db_isolation_and_no_probabilities():
 
 
 def test_production_safety_locks_intact():
-    cfg_path = Path(__file__).resolve().parent.parent / "json" / "config.json"
-    with open(cfg_path, encoding="utf-8") as f:
-        cfg = json.load(f)
+    root = Path(__file__).resolve().parent.parent
+
+    # 1. Authoritative runtime configuration via canonical bootstrap pipeline
+    from core.config_bootstrap import get_effective_config
+    cfg = get_effective_config()
 
     assert str(cfg.get("EXECUTION_MODE", "")).upper() == "SIGNAL_ONLY"
     assert bool(cfg.get("SIGNAL_ONLY", False)) is True
     assert bool(cfg.get("LIVE_TRADING_LOCKOUT", False)) is True
     assert bool(cfg.get("full_auto_allowed", True)) is False
+    assert cfg.get("BROKER_AUTO_ROUTING", "DISCONNECTED") == "DISCONNECTED"
+
+    # 2. Canonical defaults contract (json/index_config.defaults.json)
+    defaults_path = root / "json" / "index_config.defaults.json"
+    assert defaults_path.exists(), "Canonical defaults file must exist"
+    with open(defaults_path, encoding="utf-8") as f:
+        defaults_cfg = json.load(f)
+    assert str(defaults_cfg.get("EXECUTION_MODE", "")).upper() == "SIGNAL_ONLY"
+    assert bool(defaults_cfg.get("SIGNAL_ONLY", False)) is True
+    assert bool(defaults_cfg.get("LIVE_TRADING_LOCKOUT", False)) is True
+    assert bool(defaults_cfg.get("full_auto_allowed", True)) is False
+
+    # 3. Canonical deployment template contract (json/config.template.json)
+    tmpl_path = root / "json" / "config.template.json"
+    if tmpl_path.exists():
+        with open(tmpl_path, encoding="utf-8") as f:
+            tmpl_cfg = json.load(f)
+        assert str(tmpl_cfg.get("EXECUTION_MODE", "")).upper() == "SIGNAL_ONLY"
+        assert bool(tmpl_cfg.get("full_auto_allowed", False)) is False
+
 
 
 def test_evaluation_report_serialization():
