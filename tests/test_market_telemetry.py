@@ -13,11 +13,11 @@ from __future__ import annotations
 
 import datetime
 from unittest.mock import patch
+
 import pytest
+from core.enterprise_dashboard.routes.system import register_system_routes
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-from core.enterprise_dashboard.routes.system import register_system_routes
 
 
 class DummyDashboard:
@@ -26,6 +26,25 @@ class DummyDashboard:
         def require_auth_optional():
             return None
     _auth_deps = AuthDeps()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_market_calendar():
+    """Ensure market calendar holiday cache is not polluted by preceding tests."""
+    import core.event_calendar as ec
+
+    old_holidays = ec._LIVE_HOLIDAYS
+    old_failure_ts = ec._LIVE_HOLIDAYS_FAILURE_TS
+    old_ts = ec._LIVE_HOLIDAYS_TS
+    ec._LIVE_HOLIDAYS = None
+    ec._LIVE_HOLIDAYS_FAILURE_TS = 0.0
+    ec._LIVE_HOLIDAYS_TS = 0.0
+    try:
+        yield
+    finally:
+        ec._LIVE_HOLIDAYS = old_holidays
+        ec._LIVE_HOLIDAYS_FAILURE_TS = old_failure_ts
+        ec._LIVE_HOLIDAYS_TS = old_ts
 
 
 @pytest.fixture
