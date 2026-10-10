@@ -583,7 +583,10 @@ class TestFullTradingLoopFlow:
                 with patch.object(it, "_warmup_manager") as mock_warmup:
                     mock_warmup.can_enter.return_value = True
 
-                    it.enter_trade("NIFTY", sig)
+                    with patch.object(it, "_news_sentinel") as mock_news:
+                        mock_news.get_current_risk.return_value = MagicMock(risk_level="NONE")
+
+                        it.enter_trade("NIFTY", sig)
 
         # Decision log should show EXPIRY_BLOCK
         assert "NIFTY" in it.decision_log
