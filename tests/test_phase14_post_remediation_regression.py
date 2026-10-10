@@ -62,6 +62,37 @@ def authenticated_client(tmp_path: Path) -> tuple[Any, TestClient]:
     return d, client
 
 
+def _populate_test_snapshots_db(db_path: Path) -> None:
+    """Populate deterministic options chain test fixture with strikes for NIFTY, BANKNIFTY, FINNIFTY."""
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            index_name TEXT, strike REAL, call_oi INTEGER, put_oi INTEGER,
+            call_vol INTEGER, put_vol INTEGER, call_iv REAL, put_iv REAL,
+            call_ltp REAL, put_ltp REAL, spot_price REAL, timestamp TEXT
+        )
+    """)
+    now = time.strftime("%Y-%m-%dT%H:%M:%S")
+    for sym, spot, step in [("NIFTY", 24050.0, 50.0), ("BANKNIFTY", 51200.0, 100.0), ("FINNIFTY", 23100.0, 50.0)]:
+        base_strike = round(spot / step) * step
+        for i in range(-6, 6):
+            strike = base_strike + (i * step)
+            call_oi = max(5000, int(150000 - abs(i) * 9000))
+            put_oi = max(5000, int(140000 - abs(i) * 8500))
+            call_vol = max(1000, int(45000 - abs(i) * 3000))
+            put_vol = max(1000, int(42000 - abs(i) * 2800))
+            call_ltp = max(5.0, 120.0 - i * 10.0)
+            put_ltp = max(5.0, 110.0 + i * 10.0)
+            conn.execute("""
+                INSERT INTO snapshots (index_name, strike, call_oi, put_oi, call_vol, put_vol, call_iv, put_iv, call_ltp, put_ltp, spot_price, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (sym, strike, call_oi, put_oi, call_vol, put_vol, 14.2, 15.1, call_ltp, put_ltp, spot, now))
+    conn.commit()
+    conn.close()
+
+
 # ── 1. Options Chain Demo & Live API Regressions ──────────────────────────────
 
 
@@ -69,29 +100,60 @@ class TestOptionsChainRegression:
     """Validate options chain endpoint fixes and fallbacks."""
 
     def test_demo_chain_returns_valid_json_and_no_500(self, authenticated_client):
-        """GET /api/chain/NIFTY?demo=true returns 200 with valid synthetic strikes."""
+        """GET /api/chain/NIFTY?demo=true returns 200 with honest unavailable state (zero synthetic data permitted)."""
         _, client = authenticated_client
         resp = client.get("/api/chain/NIFTY?demo=true", headers={"accept": "application/json"})
         assert resp.status_code == 200, f"Expected 200 but got {resp.status_code}: {resp.text}"
         data = resp.json()
         assert data["symbol"] == "NIFTY"
         assert isinstance(data.get("strikes"), list)
-        assert len(data["strikes"]) >= 10
-        assert data.get("spot") is not None and data["spot"] > 0
-        assert data.get("pcr") is not None
-        assert data.get("total_oi") is not None and data["total_oi"] > 0
-        assert "gex" in data
-        assert "max_pain" in data
+        assert data["strikes"] == []
+        assert data.get("spot") is None
+        assert data.get("total_oi") == 0
+        assert "Live Options Chain data currently unavailable" in data.get("note", "")
 
     def test_demo_chain_different_indices(self, authenticated_client):
-        """Demo chain works seamlessly for BANKNIFTY and FINNIFTY."""
+        """Demo chain returns valid JSON and no HTTP 500 for BANKNIFTY and FINNIFTY."""
         _, client = authenticated_client
         for sym in ("BANKNIFTY", "FINNIFTY"):
             resp = client.get(f"/api/chain/{sym}?demo=true")
             assert resp.status_code == 200
             data = resp.json()
             assert data["symbol"] == sym
-            assert len(data["strikes"]) > 0
+            assert isinstance(data.get("strikes"), list)
+            assert data["strikes"] == []
+
+    def test_live_chain_strike_extraction_with_deterministic_fixture(self, tmp_path: Path, authenticated_client):
+        """When oi_snapshots.db has strike data in 'snapshots' table, it extracts at least 10 strikes and computes GEX/PCR/MaxPain."""
+        d, client = authenticated_client
+        snap_dir = tmp_path / "db"
+        snap_dir.mkdir(parents=True, exist_ok=True)
+        snap_db = snap_dir / "oi_snapshots.db"
+        _populate_test_snapshots_db(snap_db)
+
+        orig_cwd = Path.cwd()
+        os.chdir(tmp_path)
+        try:
+            resp = client.get("/api/chain/NIFTY", headers={"accept": "application/json"})
+            assert resp.status_code == 200, f"Expected 200 but got {resp.status_code}: {resp.text}"
+            data = resp.json()
+            assert data["symbol"] == "NIFTY"
+            assert isinstance(data.get("strikes"), list)
+            assert len(data["strikes"]) >= 10
+            assert data.get("spot") is not None and data["spot"] > 0
+            assert data.get("pcr") is not None
+            assert data.get("total_oi") is not None and data["total_oi"] > 0
+            assert "gex" in data
+            assert "max_pain" in data
+
+            for sym in ("BANKNIFTY", "FINNIFTY"):
+                r_idx = client.get(f"/api/chain/{sym}", headers={"accept": "application/json"})
+                assert r_idx.status_code == 200
+                d_idx = r_idx.json()
+                assert d_idx["symbol"] == sym
+                assert len(d_idx["strikes"]) >= 10
+        finally:
+            os.chdir(orig_cwd)
 
     def test_live_chain_with_populated_snapshots_db(self, tmp_path: Path, authenticated_client):
         """When oi_snapshots.db has data in 'snapshots' table, it formats live rows correctly."""
