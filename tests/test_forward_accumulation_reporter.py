@@ -779,7 +779,7 @@ def test_cli_execution_returns_zero(tmp_path: Path, isolated_db: Path, isolated_
 # ============================================================================
 
 
-def test_production_db_read_only_execution():
+def test_production_db_read_only_execution(isolated_config: Path):
     """Verify that the reporter executes against db/signals_history.db strictly read-only."""
     prod_db = Path("db/signals_history.db")
     if not prod_db.is_file():
@@ -795,7 +795,7 @@ def test_production_db_read_only_execution():
     count_pre = cur_pre.fetchone()[0]
     conn_pre.close()
 
-    reporter = ForwardAccumulationReporter(db_path=prod_db)
+    reporter = ForwardAccumulationReporter(db_path=prod_db, config_path=isolated_config)
     report = reporter.generate_report()
 
     hash_post = hashlib.sha256(prod_db.read_bytes()).hexdigest()
