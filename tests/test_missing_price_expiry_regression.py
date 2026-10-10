@@ -10,16 +10,16 @@ F. expired signal transitions exactly once
 G. repeated sweep is strictly idempotent
 """
 import datetime
-import sqlite3
 import sys
 from pathlib import Path
 
-BASE_DIR = Path(r"D:\AI_APPs\TRADING_APP\OPB_V2_59_4_CANONICAL")
+BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from core.signals.signal_tracker import SignalTracker
 from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+from core.signals.signal_tracker import SignalTracker
+
 
 def run_regression_suite():
     print("=" * 80)
@@ -27,6 +27,7 @@ def run_regression_suite():
     print("=" * 80)
 
     test_db = BASE_DIR / "scratch" / "test_missing_price_regression.db"
+    (BASE_DIR / "scratch").mkdir(parents=True, exist_ok=True)
     if test_db.exists():
         try:
             test_db.unlink()
@@ -36,7 +37,7 @@ def run_regression_suite():
     SignalTracker.reset_instance()
     SignalOutcomeTracker.reset_instance()
 
-    sig_tracker = SignalTracker(db_path=test_db)
+    SignalTracker(db_path=test_db)
     tracker = SignalOutcomeTracker(db_path=test_db)
 
     # --------------------------------------------------------------------------
@@ -61,7 +62,7 @@ def run_regression_suite():
     conn.commit()
 
     # Price moves to 125 (Target 1 hit)
-    res_a = tracker.update_active_signal_outcomes(lambda sym: 125.0)
+    tracker.update_active_signal_outcomes(lambda sym: 125.0)
     row_a = dict(conn.execute("SELECT status, first_touch FROM system_signals WHERE signal_id = 'SIG-A-1'").fetchone())
     assert row_a["status"] == "TARGET_1_HIT", f"Expected TARGET_1_HIT, got {row_a['status']}"
     assert row_a["first_touch"] == "T1", f"Expected first_touch T1, got {row_a['first_touch']}"
@@ -82,7 +83,7 @@ def run_regression_suite():
     """)
     conn.commit()
 
-    res_b = tracker.update_active_signal_outcomes(lambda sym: None)
+    tracker.update_active_signal_outcomes(lambda sym: None)
     row_b = dict(conn.execute("SELECT status FROM system_signals WHERE signal_id = 'SIG-B-1'").fetchone())
     assert row_b["status"] == "ACTIVE", f"Expected ACTIVE, got {row_b['status']}"
     print(f"[PASS] Case B: Unexpired signal with price=None remained {row_b['status']}")
@@ -102,11 +103,12 @@ def run_regression_suite():
     """)
     conn.commit()
 
-    res_c = tracker.update_active_signal_outcomes(lambda sym: None)
+    tracker.update_active_signal_outcomes(lambda sym: None)
     row_c = dict(conn.execute("SELECT status, first_touch FROM system_signals WHERE signal_id = 'SIG-C-1'").fetchone())
     assert row_c["status"] == "EXPIRED", f"Expected EXPIRED, got {row_c['status']}"
-    assert row_c["first_touch"] == "EXPIRED", f"Expected first_touch EXPIRED, got {row_c['first_touch']}"
-    print(f"[PASS] Case C: Expired signal with price=None cleanly transitioned to {row_c['status']}, first_touch={row_c['first_touch']}")
+    # OPB v2.60 invariant B4: first_touch is strictly physical barrier hit ('T1', 'T2', 'SL', ''); never writes 'EXPIRED'
+    assert row_c["first_touch"] == "", f"Expected first_touch empty, got {row_c['first_touch']}"
+    print(f"[PASS] Case C: Expired signal with price=None cleanly transitioned to {row_c['status']}, first_touch={row_c['first_touch']!r}")
 
     # --------------------------------------------------------------------------
     # CASE D: price=None + off-market signal -> transitions cleanly to EXPIRED
@@ -123,7 +125,7 @@ def run_regression_suite():
     """)
     conn.commit()
 
-    res_d = tracker.update_active_signal_outcomes(lambda sym: None)
+    tracker.update_active_signal_outcomes(lambda sym: None)
     row_d = dict(conn.execute("SELECT status, first_touch FROM system_signals WHERE signal_id = 'SIG-D-1'").fetchone())
     assert row_d["status"] == "EXPIRED", f"Expected EXPIRED, got {row_d['status']}"
     print(f"[PASS] Case D: Off-market signal cleanly transitioned to {row_d['status']}")
@@ -152,12 +154,12 @@ def run_regression_suite():
     # CASE G: repeated sweep is strictly idempotent
     # --------------------------------------------------------------------------
     print("\n--- CASE G: Repeated sweep is idempotent ---")
-    sweep_1 = tracker.run_stale_signal_expiry_sweep(force=True)
+    tracker.run_stale_signal_expiry_sweep(force=True)
     sweep_2 = tracker.run_stale_signal_expiry_sweep(force=True)
     assert sweep_2.get("transitioned", 0) == 0, f"Expected 0 transitioned on second sweep, got {sweep_2.get('transitioned')}"
     events_c_after = conn.execute("SELECT COUNT(*) FROM signal_outcome_events WHERE signal_id = 'SIG-C-1'").fetchone()[0]
     assert events_c_after == 1, f"Expected event count to remain 1, got {events_c_after}"
-    print(f"[PASS] Case G: Repeated sweep is strictly idempotent (0 duplicate transitions, 0 duplicate events)")
+    print("[PASS] Case G: Repeated sweep is strictly idempotent (0 duplicate transitions, 0 duplicate events)")
 
     conn.close()
     print("\n--> ALL CASES A THROUGH G VERIFIED EMPIRICALLY!")
