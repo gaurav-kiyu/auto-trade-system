@@ -11,13 +11,11 @@ Tests:
 """
 
 import datetime
-import sqlite3
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.all_nse_scanner import AllNSEScanner, ScannedStockSignal
 from core.datetime_ist import now_ist
 from core.futures_contract_resolver import (
@@ -40,7 +38,6 @@ from core.signals.signal_outcome_tracker import (
     SignalBar,
     SignalOutcomeTracker,
 )
-
 
 # ============================================================================
 # R1 Tests: Futures Market-Data Resolution
@@ -342,7 +339,7 @@ def test_candle_put_inversion():
 
 
 def test_candle_same_bar_ambiguity():
-    """R3: When High touches T1 AND Low touches SL in the same bar, quarantined as AMBIGUOUS_SAME_BAR."""
+    """R3: When High touches T1 AND Low touches SL in the same bar, quarantined as AMBIGUOUS with first_touch None."""
     tracker = SignalOutcomeTracker.get_instance()
     signal = {
         "signal_id": "SIG_TEST_AMBIG_1",
@@ -367,8 +364,22 @@ def test_candle_same_bar_ambiguity():
     assert res.hit_t1 is True
     assert res.hit_sl is True
     assert res.new_status == "AMBIGUOUS"
-    assert res.first_touch == "AMBIGUOUS_SAME_BAR"
+    assert res.first_touch is None
     assert res.outcome_confidence == OutcomeConfidence.AMBIGUOUS.value
+
+    # Boundary verification: Deterministic SL touch sets first_touch == "SL" (not AMBIGUOUS)
+    bar_sl_only = SignalBar(open=100.0, high=101.0, low=95.0, close=96.0, timestamp=now_ist().isoformat())
+    res_sl = tracker.evaluate_bar(signal, bar_sl_only)
+    assert res_sl.new_status != "AMBIGUOUS"
+    assert res_sl.new_status == "SL_HIT"
+    assert res_sl.first_touch == "SL"
+
+    # Boundary verification: Deterministic T1 touch sets first_touch == "T1" (not AMBIGUOUS)
+    bar_t1_only = SignalBar(open=100.0, high=105.0, low=98.0, close=104.5, timestamp=now_ist().isoformat())
+    res_t1 = tracker.evaluate_bar(signal, bar_t1_only)
+    assert res_t1.new_status != "AMBIGUOUS"
+    assert res_t1.new_status == "TARGET_1_HIT"
+    assert res_t1.first_touch == "T1"
 
 
 def test_candle_stale_bar_fails_closed():
@@ -448,46 +459,68 @@ def test_first_touch_immutability_on_subsequent_timeout():
 
 def test_g4_metric_dual_reporting():
     """R4: Test that G4 data quality gate reports schema/hygiene pass while separately exposing predictive usability metrics."""
-    service = SignalForwardMonitorService.get_instance()
-    dq = service.get_data_quality_summary()
+    prod_db = Path("db/signals_history.db")
+    if not prod_db.exists() or prod_db.stat().st_size < 500_000:
+        pytest.skip(
+            "Canonical historical production database db/signals_history.db (101 forward observations) "
+            "not present in repository checkout (gitignored). Production database is intentionally external to CI."
+        )
 
-    # G4 hygiene gate passes
-    assert dq["dq_gate_passed"] is True
-    assert dq["total_error_count"] == 0
-    assert dq["data_quality_error_rate"] == 0.0
+    SignalForwardMonitorService.reset_instance()
+    try:
+        service = SignalForwardMonitorService.get_instance(db_path=prod_db)
+        dq = service.get_data_quality_summary()
 
-    # Predictive usability separation
-    assert "predictive_usable_count" in dq
-    assert "data_quality_affected_count" in dq
-    assert "predictive_usable_percentage" in dq
-    assert "data_quality_affected_percentage" in dq
+        # G4 hygiene gate passes
+        assert dq["dq_gate_passed"] is True
+        assert dq["total_error_count"] == 0
+        assert dq["data_quality_error_rate"] == 0.0
 
-    # In canonical cohort of 101: exactly 63 usable and 38 affected
-    assert dq["total_observations"] == 101
-    assert dq["predictive_usable_count"] == 63
-    assert dq["data_quality_affected_count"] == 38
-    assert dq["predictive_usable_percentage"] == 62.38
-    assert dq["data_quality_affected_percentage"] == 37.62
+        # Predictive usability separation
+        assert "predictive_usable_count" in dq
+        assert "data_quality_affected_count" in dq
+        assert "predictive_usable_percentage" in dq
+        assert "data_quality_affected_percentage" in dq
+
+        # In canonical cohort of 101: exactly 63 usable and 38 affected
+        assert dq["total_observations"] == 101
+        assert dq["predictive_usable_count"] == 63
+        assert dq["data_quality_affected_count"] == 38
+        assert dq["predictive_usable_percentage"] == 62.38
+        assert dq["data_quality_affected_percentage"] == 37.62
+    finally:
+        SignalForwardMonitorService.reset_instance()
 
 
 def test_data_quality_affected_quarantine_in_analytics():
     """R4: Affected records are distinguished without modifying historical cohort ground truth."""
-    service = SignalForwardMonitorService.get_instance()
-    summary = service.get_forward_summary()
+    prod_db = Path("db/signals_history.db")
+    if not prod_db.exists() or prod_db.stat().st_size < 500_000:
+        pytest.skip(
+            "Canonical historical production database db/signals_history.db (101 forward observations) "
+            "not present in repository checkout (gitignored). Production database is intentionally external to CI."
+        )
 
-    assert summary["total_registered"] == 101
-    assert summary["predictive_usable_count"] == 63
-    assert summary["data_quality_affected_count"] == 38
+    SignalForwardMonitorService.reset_instance()
+    try:
+        service = SignalForwardMonitorService.get_instance(db_path=prod_db)
+        summary = service.get_forward_summary()
 
-    # Verify daily report includes the new metrics
-    reporter = ForwardAccumulationReporter()
-    report = reporter.generate_report()
-    assert report.data_quality["predictive_usable_count"] == 63
-    assert report.data_quality["data_quality_affected_count"] == 38
+        assert summary["total_registered"] == 101
+        assert summary["predictive_usable_count"] == 63
+        assert summary["data_quality_affected_count"] == 38
 
-    md = reporter.render_markdown(report)
-    assert "Predictive Usable" in md
-    assert "DQ Affected" in md
+        # Verify daily report includes the new metrics
+        reporter = ForwardAccumulationReporter(db_path=prod_db)
+        report = reporter.generate_report()
+        assert report.data_quality["predictive_usable_count"] == 63
+        assert report.data_quality["data_quality_affected_count"] == 38
+
+        md = reporter.render_markdown(report)
+        assert "Predictive Usable" in md
+        assert "DQ Affected" in md
+    finally:
+        SignalForwardMonitorService.reset_instance()
 
 
 def test_scanner_passes_bar_lookup_fn(test_scanner):
