@@ -154,7 +154,6 @@ def validate_dataset_eligibility(
 
     # 1. Snapshot presence
     snapshot_captured_at = record.get("snapshot_captured_at") or record.get("captured_at")
-    snapshot_hash = record.get("snapshot_hash")
     if not snapshot_captured_at:
         reasons.append(REASON_MISSING_SNAPSHOT)
 
@@ -263,7 +262,6 @@ def compute_target_outcome(
     Returns:
         tuple[y_value, status, list[reasons]]
     """
-    reasons: list[str] = []
     terminal_outcome = observation.get("terminal_outcome")
     is_resolved = observation.get("is_resolved")
 

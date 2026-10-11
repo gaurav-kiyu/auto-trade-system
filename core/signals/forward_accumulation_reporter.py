@@ -443,7 +443,6 @@ class ForwardAccumulationReporter:
         monitor_svc = SignalForwardMonitorService.get_instance(db_path=self.db_path)
         fwd_summary = monitor_svc.get_forward_summary()
         gates_data = monitor_svc.get_readiness_gate_status()
-        dq_report = monitor_svc.get_data_quality_summary()
         bucket_list = monitor_svc.get_bucket_summary()
 
         # 3. Bucket counts formatting

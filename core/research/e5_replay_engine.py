@@ -694,7 +694,6 @@ class E5ReplayEngine:
         window_reached_horizon = last_available_bar_dt >= horizon_end_dt
 
         # Evaluate chronologically
-        first_touch_status: str | None = None
         first_touch_ts: str | None = None
         terminal_status: str | None = None
         evaluation_end_ts: str | None = None
@@ -736,17 +735,14 @@ class E5ReplayEngine:
                 # SAME-CANDLE CONFLICT: Both Target (T1 or T2) and SL breached in the same bar
                 if hit_sl and (hit_t1 or hit_t2):
                     terminal_status = "AMBIGUOUS"
-                    first_touch_status = "AMBIGUOUS"
                     first_touch_ts = bar.timestamp
                     break
                 elif hit_sl:
                     terminal_status = "SL"
-                    first_touch_status = "SL"
                     first_touch_ts = bar.timestamp
                     break
                 elif hit_t1:
                     hit_t1_prior = True
-                    first_touch_status = "T1"
                     first_touch_ts = bar.timestamp
                     # If T2 also hit in this candle without SL
                     if hit_t2:
@@ -939,7 +935,6 @@ class E5ReplayEngine:
 
                 resolved = row["resolved_count"]
                 complete = row["complete_window"]
-                total = row["total_eligible"]
 
                 row["resolution_rate"] = round(resolved / complete * 100, 2) if complete > 0 else 0.0
                 row["t1_or_better_rate_resolved"] = round(row["t1_or_better_count"] / resolved * 100, 2) if resolved > 0 else 0.0

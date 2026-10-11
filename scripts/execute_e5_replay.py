@@ -70,21 +70,6 @@ def run_e5_offline_replay() -> dict[str, Any]:
         """)
         raw_snapshots = [dict(r) for r in cur_ro.fetchall()]
 
-        # Also load outcome measurements if present for contemporaneous MFE/MAE excursion verification
-        cur_ro.execute("""
-            SELECT
-                m.signal_id,
-                m.mfe,
-                m.mae,
-                m.mfe_pct,
-                m.mae_pct,
-                m.time_to_first_event_seconds,
-                m.time_to_t1_seconds,
-                m.time_to_sl_seconds,
-                m.outcome
-            FROM signal_outcome_measurements m
-        """)
-        measurements_map = {r["signal_id"]: dict(r) for r in cur_ro.fetchall()}
 
         # Load candle/tick event checkpoints from signal_outcome_events if available
         cur_ro.execute("""
