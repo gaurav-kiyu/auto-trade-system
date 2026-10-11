@@ -33,9 +33,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from yfinance.data import YfData
-
 from core.signal_utils import validate_ohlcv
+from yfinance.data import YfData
 
 _log = logging.getLogger("yahoo_batch_benchmark")
 _ROOT = Path(__file__).resolve().parent.parent.parent

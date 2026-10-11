@@ -18,7 +18,6 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-
 PRODUCTION_DB_BASENAME = "signals_history.db"
 PRODUCTION_DB_REL_PATH = os.path.normpath("db/signals_history.db")
 

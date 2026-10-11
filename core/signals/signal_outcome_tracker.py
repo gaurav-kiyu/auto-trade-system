@@ -850,7 +850,11 @@ class SignalOutcomeTracker:
                     symbol = row["symbol"]
                     sig_id = str(row["signal_id"])
                     is_futures = (str(row.get("category") or "").upper() == "FUTURES")
-                    from core.futures_contract_resolver import parse_canonical_symbol, resolve_futures_market_bar, resolve_futures_market_price
+                    from core.futures_contract_resolver import (
+                        parse_canonical_symbol,
+                        resolve_futures_market_bar,
+                        resolve_futures_market_price,
+                    )
                     if parse_canonical_symbol(symbol) is not None:
                         is_futures = True
 

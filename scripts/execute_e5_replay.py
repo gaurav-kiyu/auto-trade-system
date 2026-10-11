@@ -16,8 +16,8 @@ import json
 import logging
 import sqlite3
 import statistics
-from pathlib import Path
 import sys
+from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:

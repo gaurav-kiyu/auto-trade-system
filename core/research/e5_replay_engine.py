@@ -35,6 +35,7 @@ from typing import Any, Iterable
 
 from core.datetime_ist import now_ist
 from core.exchange_calendar_engine import ExchangeCalendarEngine
+
 # OPB v2.60 E4.2.2 / E5 Specification: Explicit E5 Telemetry Population Definition
 E5_TELEMETRY_POPULATION = "POST-EVALUATOR / SETUP-QUALIFIED CANDIDATES ENTERING scan_universe() AT POINT-A"
 
