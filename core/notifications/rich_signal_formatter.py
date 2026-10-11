@@ -16,7 +16,6 @@ from typing import Any
 from core.notifications.url_resolver import (
     build_action_url,
     get_external_notification_base_url,
-    get_public_base_url,
 )
 
 _log = logging.getLogger("RICH_SIGNAL_FORMATTER")

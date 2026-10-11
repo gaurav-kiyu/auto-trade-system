@@ -10,34 +10,26 @@ Writes results exclusively to db/e5_research_results.db.
 
 from __future__ import annotations
 
-import datetime
 import hashlib
 import json
 import logging
 import sqlite3
-import statistics
 import sys
 from pathlib import Path
+from typing import Any
 
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from core.research.e5_replay_engine import (
-    CATEGORY_AUTHORIZED_HORIZONS,
     DEFAULT_E5_DB_PATH,
-    E5_TELEMETRY_POPULATION,
     PRE_AUTHORIZED_HORIZONS,
     PRE_AUTHORIZED_MODELS,
-    BarrierModel,
     E5DatabaseManager,
     E5ReplayEngine,
-    HorizonSpec,
     ReplayCandle,
-    ReplayEvaluationResult,
-    classify_score_bucket,
     generate_candidate_obs_id,
-    validate_e5_db_path,
 )
 
 _log = logging.getLogger("EXECUTE_E5_REPLAY")

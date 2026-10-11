@@ -12,7 +12,7 @@ This module formally decouples and exposes:
 from __future__ import annotations
 
 import sqlite3
-from typing import Any, Dict, List
+from typing import Any
 
 
 def _get_existing_columns(conn: sqlite3.Connection, table_name: str = "system_signals") -> set[str]:

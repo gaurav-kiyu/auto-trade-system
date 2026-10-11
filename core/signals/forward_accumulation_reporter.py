@@ -40,19 +40,10 @@ from core.signals.phase_e_execution_readiness import (
     FORBIDDEN_OUTCOME_KEYS,
 )
 from core.signals.signal_forward_monitor import (
-    CANONICAL_SCORE_BUCKETS,
     DEFAULT_FORWARD_CUTOFF_ISO,
     FORWARD_CUTOFF_VERSION,
-    GATE_MAX_DATA_QUALITY_ERROR_RATE,
-    GATE_MAX_STALE_RATE,
-    GATE_MIN_DISTINCT_MONTHS,
-    GATE_MIN_RESOLVED_PER_ACTIVE_BUCKET,
-    GATE_MIN_RESOLVED_PER_MONTH,
-    GATE_MIN_TOTAL_RESOLVED,
-    MONITOR_REPORT_VERSION,
     SignalForwardMonitorService,
 )
-from core.signals.signal_outcome_dataset import parse_timestamp
 
 _log = logging.getLogger("FORWARD_ACCUMULATION_REPORTER")
 _ROOT = Path(__file__).resolve().parent.parent.parent

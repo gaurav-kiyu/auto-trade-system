@@ -26,16 +26,14 @@ from __future__ import annotations
 
 import datetime
 import logging
-import math
 import sqlite3
 import threading
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 from core.datetime_ist import now_ist
 from core.signals.signal_outcome_dataset import (
-    CALCULATION_VERSION,
     SignalOutcomeDatasetService,
     parse_timestamp,
 )

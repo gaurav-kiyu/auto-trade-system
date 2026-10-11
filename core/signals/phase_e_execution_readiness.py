@@ -22,13 +22,11 @@ Strict Governance Invariants:
 
 from __future__ import annotations
 
-import datetime
 import hashlib
 import json
 import logging
 import math
 import sqlite3
-import threading
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from enum import Enum
@@ -38,9 +36,6 @@ from typing import Any
 from core.datetime_ist import now_ist
 from core.signals.signal_forward_monitor import (
     DEFAULT_FORWARD_CUTOFF_ISO,
-    FORWARD_CUTOFF_VERSION,
-    GATE_MAX_DATA_QUALITY_ERROR_RATE,
-    GATE_MAX_STALE_RATE,
     GATE_MIN_DISTINCT_MONTHS,
     GATE_MIN_RESOLVED_PER_ACTIVE_BUCKET,
     GATE_MIN_RESOLVED_PER_MONTH,

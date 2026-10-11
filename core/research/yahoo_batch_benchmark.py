@@ -21,16 +21,13 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
-import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 import yfinance as yf
 from core.signal_utils import validate_ohlcv
