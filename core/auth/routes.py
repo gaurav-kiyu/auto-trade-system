@@ -5,6 +5,7 @@ user management, and session management.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 try:
@@ -60,6 +61,22 @@ from core.auth.user_signal_permissions import ALL_CATEGORIES, UserPermissionMana
 from core.notifications.url_resolver import build_action_url
 
 _log = logging.getLogger(__name__)
+
+# Test delivery sink: populated ONLY in test environments, never in production.
+_test_reset_tokens: dict[str, str] = {}
+
+
+def get_test_reset_token(username: str) -> str | None:
+    """Retrieve the last generated reset token for testing purposes only.
+
+    Strictly gated: Returns None in production environments.
+    """
+    env = (os.getenv("OPBUYING_ENVIRONMENT") or os.getenv("ENVIRONMENT") or "").upper()
+    if env == "PRODUCTION":
+        return None
+    if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("OPB_AUTH_TEST_MODE") == "1":
+        return _test_reset_tokens.get(username)
+    return None
 
 
 def create_auth_router(
@@ -1306,21 +1323,61 @@ def create_auth_router(
 
     @router.post("/forgot-password")
     async def forgot_password(request: Request) -> dict:
-        """Request a password reset token for a given username."""
+        """Request a password reset token for a given username.
+
+        Hardened under OPB v2.61 G1:
+        - Plaintext reset tokens and URLs are NEVER returned in the API response.
+        - Returns a generic success message to prevent account enumeration.
+        - Delivers token via configured out-of-band email notifications.
+        - Strictly-gated in-memory test delivery sink enabled only under test execution.
+        """
         body = await request.json()
         username = str(body.get("username", "")).strip()
         if not username:
             raise HTTPException(status_code=400, detail="Username is required")
-        token = auth_handler.create_password_reset_token(username)
-        if not token:
-            # Generic error to prevent username enumeration or specific detail
-            raise HTTPException(status_code=400, detail="Unable to request password reset. Please check username.")
+
+        user = auth_handler.get_user(username)
+        if user and not user.disabled:
+            token = auth_handler.create_password_reset_token(username)
+            if token:
+                # Deliver token via email if email is configured and not suppressed
+                email = (user.metadata or {}).get("email", "")
+                if email:
+                    try:
+                        from core.auth.registration_notifications import _send
+
+                        reset_link = f"/reset-password?token={token}"
+                        display = user.display_name or username
+                        _send(
+                            [email],
+                            subject="OPB — Password Reset Request",
+                            html=(
+                                f"<p>Hello {display},</p>"
+                                f"<p>A password reset request was received for your account.</p>"
+                                f"<p><a href='{reset_link}'>Click here to reset your password</a></p>"
+                                f"<p>This link expires in 1 hour.</p>"
+                            ),
+                            plain=(
+                                f"Hello {display},\n\n"
+                                f"A password reset request was received for your account.\n"
+                                f"Reset link: {reset_link}\n"
+                                f"This link expires in 1 hour.\n"
+                            ),
+                        )
+                    except Exception as exc:
+                        _log.warning("[AUTH] Password reset email dispatch failed: %s", exc)
+
+                # Safe development/test fallback (strictly forbidden in production)
+                env = (os.getenv("OPBUYING_ENVIRONMENT") or os.getenv("ENVIRONMENT") or "").upper()
+                if env != "PRODUCTION" and (
+                    os.getenv("PYTEST_CURRENT_TEST") or os.getenv("OPB_AUTH_TEST_MODE") == "1"
+                ):
+                    _test_reset_tokens[username] = token
+
+        # Universal response: prevents account enumeration, never exposes plaintext token
         return {
             "success": True,
-            "message": "Password reset token generated successfully",
-            "token": token,
-            "reset_url": f"/reset-password?token={token}",
-            "expires_in": 3600
+            "message": "If the account exists, password reset instructions have been dispatched.",
         }
 
     @router.post("/verify-reset-token")
