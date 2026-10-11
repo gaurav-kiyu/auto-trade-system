@@ -6,23 +6,21 @@ Multi-Asset Market Sessions, 16-State Evaluation Telemetry, and Universal Covera
 from __future__ import annotations
 
 import json
-from datetime import datetime, date, time as dtime
+from datetime import date, datetime
+from datetime import time as dtime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-import pytz
 
 import pytest
-
-from core.signal_utils import calculate_directional_levels
-from core.notifications.rich_signal_formatter import RichSignalFormatter
+import pytz
+from core.all_nse_scanner import AllNSEScanner
 from core.exchange_calendar_engine import (
     CATEGORY_SESSION_SCHEDULES,
     is_category_session_open,
-    get_category_session_state,
-    get_calendar_engine,
 )
-from core.fno_universe import classify_instrument_market, is_fno_symbol
-from core.all_nse_scanner import AllNSEScanner, ScannedStockSignal
+from core.fno_universe import classify_instrument_market
+from core.notifications.rich_signal_formatter import RichSignalFormatter
+from core.signal_utils import calculate_directional_levels
 
 _IST = pytz.timezone("Asia/Kolkata")
 
@@ -183,11 +181,19 @@ class TestDefP3001ProfilePasswordEye:
         assert 'class="eye-svg-open"' in content
         assert 'class="eye-svg-closed"' in content
 
-        # Verify JS toggle references both SVGs and updates title/aria-label
-        assert "openIcon.style.display" in content
-        assert "closedIcon.style.display" in content
+        # Verify template wires to canonical toggle control and theme_engine.js
+        assert 'data-toggle="password"' in content
         assert "Show password" in content
-        assert "Hide password" in content
+        assert "/static/theme_engine.js" in content
+
+        # Verify unified theme_engine.js references both SVGs and toggles show/hide password
+        js_path = Path("static/theme_engine.js")
+        assert js_path.exists(), "static/theme_engine.js must exist"
+        js_content = js_path.read_text(encoding="utf-8")
+        assert "openSvg.style.display" in js_content
+        assert "closedSvg.style.display" in js_content
+        assert "Show password" in js_content
+        assert "Hide password" in js_content
 
 
 # ==============================================================================
@@ -318,7 +324,7 @@ class TestMultiAssetUniverseAndTelemetry:
 
     def test_18_state_evaluation_telemetry_recording(self):
         """Scanner records 18-state evaluation/delivery lifecycle and generates category summaries."""
-        from core.all_nse_scanner import CANONICAL_LIFECYCLE_STATES, STATE_ALIASES
+        from core.all_nse_scanner import CANONICAL_LIFECYCLE_STATES
         assert len(CANONICAL_LIFECYCLE_STATES) == 18
 
         with patch.object(AllNSEScanner, "_reload_config_credentials", lambda self: None):
@@ -393,9 +399,9 @@ class TestCanonicalThresholdGovernanceAndNotificationBoundary:
 
     def test_score_67_produces_no_notification(self):
         """Score 67 is WEAK and MUST NOT qualify for publication or notification."""
+        from core.position_service import PositionService
         from core.signal_utils import classify_strength
         from core.tier_engine import classify_tier
-        from core.position_service import PositionService
 
         assert classify_strength(67) == "WEAK"
         assert classify_tier(67) == "WEAK"
@@ -407,9 +413,9 @@ class TestCanonicalThresholdGovernanceAndNotificationBoundary:
 
     def test_score_68_produces_no_notification(self):
         """Score 68 is WEAK and MUST NOT qualify for publication or notification."""
+        from core.position_service import PositionService
         from core.signal_utils import classify_strength
         from core.tier_engine import classify_tier
-        from core.position_service import PositionService
 
         assert classify_strength(68) == "WEAK"
         assert classify_tier(68) == "WEAK"
@@ -425,9 +431,9 @@ class TestCanonicalThresholdGovernanceAndNotificationBoundary:
 
     def test_score_69_produces_no_notification(self):
         """Score 69 is WEAK and MUST NOT qualify for publication or notification."""
+        from core.position_service import PositionService
         from core.signal_utils import classify_strength
         from core.tier_engine import classify_tier
-        from core.position_service import PositionService
 
         assert classify_strength(69) == "WEAK"
         assert classify_tier(69) == "WEAK"
@@ -439,9 +445,9 @@ class TestCanonicalThresholdGovernanceAndNotificationBoundary:
 
     def test_score_70_qualifies_for_notification(self):
         """Score 70 is MODERATE and DOES qualify for publication and notification."""
+        from core.position_service import PositionService
         from core.signal_utils import classify_strength
         from core.tier_engine import classify_tier
-        from core.position_service import PositionService
 
         assert classify_strength(70) == "MODERATE"
         assert classify_tier(70) == "MODERATE"
@@ -453,9 +459,9 @@ class TestCanonicalThresholdGovernanceAndNotificationBoundary:
 
     def test_score_79_qualifies_for_notification(self):
         """Score 79 is MODERATE and DOES qualify for publication and notification."""
+        from core.position_service import PositionService
         from core.signal_utils import classify_strength
         from core.tier_engine import classify_tier
-        from core.position_service import PositionService
 
         assert classify_strength(79) == "MODERATE"
         assert classify_tier(79) == "MODERATE"
@@ -467,9 +473,9 @@ class TestCanonicalThresholdGovernanceAndNotificationBoundary:
 
     def test_score_80_qualifies_for_notification(self):
         """Score 80 is STRONG and DOES qualify for publication and notification."""
+        from core.position_service import PositionService
         from core.signal_utils import classify_strength
         from core.tier_engine import classify_tier
-        from core.position_service import PositionService
 
         assert classify_strength(80) == "STRONG"
         assert classify_tier(80) == "STRONG"
