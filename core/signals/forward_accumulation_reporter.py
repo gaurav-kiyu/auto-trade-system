@@ -638,7 +638,7 @@ class ForwardAccumulationReporter:
 ---
 
 ### Final Operational State
-**State**: `{report.operational_state}`  
+**State**: `{report.operational_state}`
 **Details**: {report.operational_explanation}
 """
         return md
