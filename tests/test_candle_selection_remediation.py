@@ -17,21 +17,14 @@ from __future__ import annotations
 
 import datetime
 import sqlite3
-import time
-from unittest.mock import MagicMock, patch
 
-import numpy as np
 import pandas as pd
-import pytest
-
 from core.data_freshness_guard import (
-    FreshnessResult,
     _parse_bar_timestamp,
     check_data_freshness,
 )
-from core.datetime_ist import now_ist
+from core.datetime_ist import now_ist, now_ist_aware
 from core.signal_utils import validate_ohlcv
-from core.all_nse_scanner import AllNSEScanner
 
 
 def _create_synthetic_ohlcv(
@@ -43,7 +36,7 @@ def _create_synthetic_ohlcv(
 ) -> pd.DataFrame:
     """Helper to generate synthetic OHLCV data."""
     if end_time is None:
-        end_time = now_ist()
+        end_time = now_ist_aware()
     dt_index = pd.date_range(end=end_time, periods=periods, freq=freq)
     df = pd.DataFrame(
         {
@@ -179,7 +172,7 @@ class TestCandleSelectionRemediation:
 
     def test_e_fresh_1m_candle_age_20_seconds_passes_guard(self):
         """TEST E: Fresh 1m candle age 20 seconds -> DataFreshnessGuard passes."""
-        now = now_ist()
+        now = now_ist_aware()
         # Bar closed 20 seconds ago
         bar_time = now - datetime.timedelta(seconds=20)
         df1 = _create_synthetic_ohlcv(30, freq="1min", end_time=bar_time)
@@ -199,7 +192,7 @@ class TestCandleSelectionRemediation:
 
     def test_f_5m_candle_age_140s_not_evaluated_as_1m_candle(self):
         """TEST F: 5m candle age 140 seconds -> must NOT be evaluated as a 1m candle."""
-        now = now_ist()
+        now = now_ist_aware()
         # 5m candle timestamp is 140s ago (within 300s 5m limit, but > 90s 1m limit)
         bar_time = now - datetime.timedelta(seconds=140)
         df5 = _create_synthetic_ohlcv(20, freq="5min", end_time=bar_time)
@@ -230,7 +223,7 @@ class TestCandleSelectionRemediation:
 
     def test_g_5m_fallback_with_genuine_5m_identity_semantics(self):
         """TEST G: 5m fallback with genuine 5m identity -> existing 5m freshness semantics apply (300s limit)."""
-        now = now_ist()
+        now = now_ist_aware()
 
         # Case G.1: 5m candle age 250s (< 300s limit) -> PASSES
         bar_time_fresh = now - datetime.timedelta(seconds=250)
@@ -282,7 +275,7 @@ class TestCandleSelectionRemediation:
 
     def test_i_no_future_timestamp_regression(self):
         """TEST I: No future-timestamp regression (reject timestamps > 60s ahead)."""
-        now = now_ist()
+        now = now_ist_aware()
         future_time = now + datetime.timedelta(seconds=90)
         df1_future = _create_synthetic_ohlcv(10, freq="1min", end_time=future_time)
         df5 = _create_synthetic_ohlcv(10, freq="5min", end_time=now)

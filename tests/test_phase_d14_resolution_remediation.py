@@ -20,7 +20,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from core.datetime_ist import now_ist
 from core.signals.signal_forward_observation import (
     SignalForwardObservationService,
@@ -105,6 +104,9 @@ def test_1_unresolved_to_target_first(temp_db: Path):
     assert obs_initial["is_resolved"] == 0
 
     # 2. Simulate canonical price hit in system_signals with native timestamp
+    # Under v2.60 lifecycle semantics (RFC-OPB-V260-LIFECYCLE-001):
+    # TARGET_1_HIT is an interim milestone (trade in-flight towards T2, terminal exit pending).
+    # TARGET_2_HIT represents canonical terminal target resolution where realized_r is materialized.
     now_str = now_ist().strftime("%Y-%m-%d %H:%M:%S")
     conn = sqlite3.connect(str(temp_db))
     conn.execute("""
@@ -119,7 +121,30 @@ def test_1_unresolved_to_target_first(temp_db: Path):
     conn.commit()
     conn.close()
 
-    # 3. Call sync_forward_outcomes()
+    # Verify interim milestone state: outcome is TARGET_FIRST, but trade is in-flight (realized_r is None)
+    fwd_service.sync_forward_outcomes()
+    meas_interim = phase_b_service.get_outcome_measurement(sig_id)
+    assert meas_interim is not None
+    assert meas_interim["outcome"] == "TARGET_FIRST"
+    assert meas_interim["mfe_r"] is not None and meas_interim["mfe_r"] > 0
+    assert meas_interim["realized_r"] is None
+    obs_interim = fwd_service.get_forward_observation(sig_id)
+    assert obs_interim is not None
+    assert obs_interim["observation_status"] == "OBSERVING"
+    assert obs_interim["is_resolved"] == 0
+
+    # Progress to terminal target (TARGET_2_HIT)
+    conn = sqlite3.connect(str(temp_db))
+    conn.execute("""
+        UPDATE system_signals
+        SET status = 'TARGET_2_HIT',
+            current_price = 1705.0
+        WHERE signal_id = ?
+    """, (sig_id,))
+    conn.commit()
+    conn.close()
+
+    # 3. Call sync_forward_outcomes() for terminal resolution
     updated_cnt = fwd_service.sync_forward_outcomes()
     assert updated_cnt >= 1
 

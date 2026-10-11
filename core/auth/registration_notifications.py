@@ -6,7 +6,6 @@ no credentials are embedded in source code.
 """
 from __future__ import annotations
 
-import html
 import json
 import logging
 import os
@@ -15,8 +14,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Any
-
-from core.notifications.url_resolver import build_action_url
 
 _log = logging.getLogger("AUTH_REGISTRATION_NOTIFICATIONS")
 _ROOT = Path(__file__).resolve().parents[2]

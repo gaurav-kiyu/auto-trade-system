@@ -38,9 +38,6 @@ from typing import Any
 from core.datetime_ist import now_ist
 from core.signals.signal_forward_monitor import (
     DEFAULT_FORWARD_CUTOFF_ISO,
-    FORWARD_CUTOFF_VERSION,
-    GATE_MAX_DATA_QUALITY_ERROR_RATE,
-    GATE_MAX_STALE_RATE,
     GATE_MIN_DISTINCT_MONTHS,
     GATE_MIN_RESOLVED_PER_ACTIVE_BUCKET,
     GATE_MIN_RESOLVED_PER_MONTH,
@@ -49,10 +46,7 @@ from core.signals.signal_forward_monitor import (
 )
 from core.signals.signal_outcome_dataset import parse_timestamp
 from core.signals.signal_score_discrimination import (
-    SCORE_BUCKETS,
     assign_score_bucket,
-    calculate_distribution_stats,
-    wilson_confidence_interval,
 )
 
 _log = logging.getLogger("SIGNAL_CALIBRATION_READINESS")
@@ -263,7 +257,7 @@ def validate_calibration_observation_contract(
 ) -> tuple[bool, list[str], CalibrationObservation | None]:
     """Validate that raw data satisfies the strict calibration data contract."""
     errors: list[str] = []
-    
+
     if isinstance(data, CalibrationObservation):
         raw = data.to_dict()
     elif isinstance(data, dict):

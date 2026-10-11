@@ -22,13 +22,11 @@ Strict Governance Invariants:
 
 from __future__ import annotations
 
-import datetime
 import hashlib
 import json
 import logging
 import math
 import sqlite3
-import threading
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from enum import Enum
@@ -38,9 +36,6 @@ from typing import Any
 from core.datetime_ist import now_ist
 from core.signals.signal_forward_monitor import (
     DEFAULT_FORWARD_CUTOFF_ISO,
-    FORWARD_CUTOFF_VERSION,
-    GATE_MAX_DATA_QUALITY_ERROR_RATE,
-    GATE_MAX_STALE_RATE,
     GATE_MIN_DISTINCT_MONTHS,
     GATE_MIN_RESOLVED_PER_ACTIVE_BUCKET,
     GATE_MIN_RESOLVED_PER_MONTH,
@@ -159,7 +154,6 @@ def validate_dataset_eligibility(
 
     # 1. Snapshot presence
     snapshot_captured_at = record.get("snapshot_captured_at") or record.get("captured_at")
-    snapshot_hash = record.get("snapshot_hash")
     if not snapshot_captured_at:
         reasons.append(REASON_MISSING_SNAPSHOT)
 
@@ -268,7 +262,6 @@ def compute_target_outcome(
     Returns:
         tuple[y_value, status, list[reasons]]
     """
-    reasons: list[str] = []
     terminal_outcome = observation.get("terminal_outcome")
     is_resolved = observation.get("is_resolved")
 

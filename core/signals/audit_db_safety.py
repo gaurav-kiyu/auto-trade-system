@@ -18,7 +18,6 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-
 PRODUCTION_DB_BASENAME = "signals_history.db"
 PRODUCTION_DB_REL_PATH = os.path.normpath("db/signals_history.db")
 
@@ -29,7 +28,7 @@ def is_production_db_path(path_or_uri: str | Path) -> bool:
     if s.startswith("file:"):
         # Strip query parameters
         s = s.split("?")[0].replace("file:", "").strip()
-    
+
     # Check if basename matches production DB
     norm = os.path.normpath(s)
     if os.path.basename(norm).lower() == PRODUCTION_DB_BASENAME.lower():
@@ -94,10 +93,10 @@ def create_isolated_audit_db_copy(src_db_path: str | Path = PRODUCTION_DB_REL_PA
     src_real = os.path.realpath(str(src_db_path))
     if not os.path.exists(src_real):
         raise FileNotFoundError(f"Source database not found: {src_real}")
-    
+
     # Create temp file in system temp or scratch
     fd, tmp_path = tempfile.mkstemp(prefix="isolated_audit_signals_", suffix=".db")
     os.close(fd)
-    
+
     shutil.copy2(src_real, tmp_path)
     return Path(tmp_path)

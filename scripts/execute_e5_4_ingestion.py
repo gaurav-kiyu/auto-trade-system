@@ -12,9 +12,8 @@ from __future__ import annotations
 
 import datetime
 import hashlib
-import json
+import importlib.util
 import logging
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -32,7 +31,6 @@ from core.research.historical_candle_ingestor import (
     E5TemporalObservationGuard,
     IngestionValidationSuite,
     ResearchCandleDatabaseManager,
-    TemporalGuardDecision,
 )
 
 _log = logging.getLogger("EXECUTE_E5_4")
@@ -95,12 +93,7 @@ def run_e5_4_execution(now: datetime.datetime | None = None) -> dict[str, Any]:
     provider_statuses = {}
 
     # Provider 1: Zerodha Kite Connect
-    kite_sdk_installed = False
-    try:
-        import kiteconnect  # type: ignore
-        kite_sdk_installed = True
-    except ImportError:
-        pass
+    kite_sdk_installed = importlib.util.find_spec("kiteconnect") is not None
     provider_statuses["zerodha_kite"] = {
         "priority": 1,
         "sdk_installed": kite_sdk_installed,
@@ -109,12 +102,7 @@ def run_e5_4_execution(now: datetime.datetime | None = None) -> dict[str, Any]:
     }
 
     # Provider 2: Angel One SmartAPI
-    angel_sdk_installed = False
-    try:
-        import SmartApi  # type: ignore
-        angel_sdk_installed = True
-    except ImportError:
-        pass
+    angel_sdk_installed = importlib.util.find_spec("SmartApi") is not None
     provider_statuses["angel_one"] = {
         "priority": 2,
         "sdk_installed": angel_sdk_installed,
@@ -123,12 +111,7 @@ def run_e5_4_execution(now: datetime.datetime | None = None) -> dict[str, Any]:
     }
 
     # Provider 3: Dhan HQ
-    dhan_sdk_installed = False
-    try:
-        import dhanhq  # type: ignore
-        dhan_sdk_installed = True
-    except ImportError:
-        pass
+    dhan_sdk_installed = importlib.util.find_spec("dhanhq") is not None
     provider_statuses["dhan_hq"] = {
         "priority": 3,
         "sdk_installed": dhan_sdk_installed,

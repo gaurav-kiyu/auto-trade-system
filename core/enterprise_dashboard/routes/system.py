@@ -971,7 +971,7 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
                 try:
                     cursor = conn.execute("PRAGMA table_info(events)")
                     col_names = {row[1] for row in cursor.fetchall()}
-                    
+
                     sql = "SELECT * FROM events"
                     conditions: list[str] = []
                     params: list[Any] = []

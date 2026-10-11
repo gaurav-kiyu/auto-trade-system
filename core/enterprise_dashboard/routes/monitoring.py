@@ -417,10 +417,11 @@ def register_monitoring_routes(app, dashboard, admin_only, operator_or_admin) ->
     @app.get("/api/options/gex-analysis")
     async def api_options_gex(symbol: str = "NIFTY", spot: float = 24500.0):  # type: ignore[no-untyped-def]
         """Institutional Gamma Exposure (GEX), IV Percentile & Volatility Flip from real options data."""
-        from pathlib import Path as _P
         import sqlite3
-        from core.options.gex_iv_engine import GammaExposureEngine
         from dataclasses import asdict
+        from pathlib import Path as _P
+
+        from core.options.gex_iv_engine import GammaExposureEngine
 
         sym = symbol.upper()
         snap_path = _P(dashboard._cfg.get("oi_snapshot_db_path", dashboard._cfg.get("OI_SNAPSHOT_DB_PATH", "db/oi_snapshots.db")))

@@ -17,7 +17,7 @@ import hashlib
 import json
 import logging
 import sqlite3
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -402,7 +402,7 @@ def run_forward_validation_analysis(
     # Daily quota interaction (MAX_ALERTS_PER_DAY = 100)
     unique_dates = sorted(list(set(s.market_date for s in records)))
     session_label = unique_dates[0] if len(unique_dates) == 1 else (", ".join(unique_dates) if unique_dates else "NO_SIGNALS")
-    
+
     # Query actual production count across all categories on session date if available
     prod_signals_count = len(records)
     if session_label == "2026-09-28":

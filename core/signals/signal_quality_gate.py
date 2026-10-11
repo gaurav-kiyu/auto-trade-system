@@ -24,8 +24,6 @@ import logging
 import math
 from typing import Any
 
-from core.fno_universe import FNO_INDICES
-
 _log = logging.getLogger("SIGNAL_QUALITY_GATE")
 
 CANONICAL_INDEX_ORDER = (

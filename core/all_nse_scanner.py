@@ -795,7 +795,11 @@ class AllNSEScanner:
                 completed_bars = dict(self._latest_completed_bars)
 
             if latest_prices or completed_bars:
-                from core.futures_contract_resolver import parse_canonical_symbol, resolve_futures_market_bar, resolve_futures_market_price
+                from core.futures_contract_resolver import (
+                    parse_canonical_symbol,
+                    resolve_futures_market_bar,
+                    resolve_futures_market_price,
+                )
 
                 def _lookup_bar(sym: str):
                     # 1. Cash completed bar from scan

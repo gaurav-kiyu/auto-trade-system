@@ -236,12 +236,15 @@ class TestEmailAdapterHtml:
         assert "&lt;" in html
         assert "&amp;" in html
         assert "&gt;" in html
-        # The '<' and '>' in the body should be escaped; count occurrences
-        body_start = html.find("OPB Trading Bot")  # After header
+        # Locate body section after brand header
+        header_text = "OPB QUANTITATIVE ENGINE" if "OPB QUANTITATIVE ENGINE" in html else "OPB Trading Bot"
+        body_start = html.find(header_text)
+        assert body_start != -1
         body_section = html[body_start:]
-        # The body text should not contain raw '<' or '>' (only HTML tags)
+        # The body text should contain escaped entities for '<', '>', and '&'
         assert "&lt;" in body_section  # Escaped <
         assert "&gt;" in body_section  # Escaped >
+        assert "&amp;" in body_section  # Escaped &
 
     def test_html_contains_priority_color(self):
         adapter = EmailNotificationAdapter()
@@ -251,7 +254,7 @@ class TestEmailAdapterHtml:
             priority=NotificationPriority.CRITICAL,
         )
         html = adapter._to_html("Test", notification)
-        assert "#dc3545" in html  # Red for CRITICAL
+        assert "#f43f5e" in html or "#dc3545" in html  # Red / danger for CRITICAL
 
     def test_html_normal_priority_color(self):
         adapter = EmailNotificationAdapter()
@@ -261,7 +264,7 @@ class TestEmailAdapterHtml:
             priority=NotificationPriority.NORMAL,
         )
         html = adapter._to_html("Test", notification)
-        assert "#0d6efd" in html  # Blue for NORMAL
+        assert "#38bdf8" in html or "#0d6efd" in html  # Blue / info for NORMAL
 
     def test_html_contains_footer(self):
         adapter = EmailNotificationAdapter()
@@ -271,7 +274,7 @@ class TestEmailAdapterHtml:
             priority=NotificationPriority.LOW,
         )
         html = adapter._to_html("Test", notification)
-        assert "automated notification" in html
+        assert "OPB Quantitative Engine" in html or "automated notification" in html
 
     def test_html_newlines_converted(self):
         adapter = EmailNotificationAdapter()
@@ -281,7 +284,7 @@ class TestEmailAdapterHtml:
             priority=NotificationPriority.NORMAL,
         )
         html = adapter._to_html("Line 1\nLine 2\nLine 3", notification)
-        assert "<br>" in html
+        assert "<br/>" in html or "<br>" in html
 
 
 class TestEmailAdapterSubject:

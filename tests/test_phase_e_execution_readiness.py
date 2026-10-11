@@ -12,17 +12,12 @@ import json
 import math
 import sqlite3
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import pytest
-
 from core.signals.phase_e_execution_readiness import (
     CALIBRATION_FIT_BLOCKED,
-    DEFAULT_FORWARD_CUTOFF,
     FEATURE_PROVENANCE_UNVERIFIED,
     FORBIDDEN_OUTCOME_KEYS,
-    METRIC_INFEASIBLE,
-    PERMITTED_CONTEMPORANEOUS_FEATURES,
     PHASE_E_SOFTWARE_VERSION,
     REASON_AMBIGUOUS_OUTCOME,
     REASON_INVALID_BARRIER,
@@ -30,8 +25,6 @@ from core.signals.phase_e_execution_readiness import (
     REASON_INVALIDATED_OUTCOME,
     REASON_MISSING_FEATURE,
     REASON_MISSING_SNAPSHOT,
-    REASON_MISSING_TARGET,
-    REASON_NO_DATA,
     REASON_OUTCOME_LEAKAGE,
     REASON_PRE_CUTOFF,
     REASON_SEED_OR_TEST_SOURCE,
@@ -46,22 +39,17 @@ from core.signals.phase_e_execution_readiness import (
     BaselineEstimatorInterface,
     BaselineLogisticRegressionEstimator,
     CalibrationFitBlockedError,
-    CalibrationInterface,
     ChronologicalDatasetSplitter,
     GovernanceViolationError,
     IsotonicCalibrationInterface,
     ModelLifecycleState,
     ModelRegistry,
-    PhaseEExecutionReadinessReport,
     PhaseEExperimentManifest,
     PlattCalibrationInterface,
     ProbabilityPrediction,
-    ReliabilityBinResult,
     compute_brier_score,
     compute_expected_calibration_error,
     compute_log_loss,
-    compute_pr_auc,
-    compute_reliability_bins,
     compute_roc_auc,
     compute_target_outcome,
     evaluate_phase_e_execution_readiness,
@@ -70,7 +58,6 @@ from core.signals.phase_e_execution_readiness import (
     validate_probability_value,
     verify_calibration_separation,
 )
-
 
 # ============================================================================
 # Helpers & Fixtures
@@ -652,22 +639,53 @@ def test_reproducibility_manifest_deterministic_serialization(tmp_path):
 # 11. Production Database Evaluation & Readiness Integration (4 tests)
 # ============================================================================
 
-def test_production_readiness_evaluation_blocked_by_sample():
-    # Evaluate actual production DB
-    report = evaluate_phase_e_execution_readiness()
-    assert report.overall_verdict == VERDICT_PASS_BLOCKED_BY_SAMPLE
-    assert report.readiness_architecture_status == "PASS"
-    assert report.empirical_execution_status == "BLOCKED_BY_SAMPLE"
-    assert report.forward_cohort_size == 0
-    assert report.resolved_count == 0
-    assert report.gate_1_status == "NOT_SATISFIED"
-    assert report.gate_2_status == "NOT_SATISFIED"
-    assert report.gate_3_status == "NOT_SATISFIED"
-    assert report.gate_4_status == "PASS"
-    assert report.probability_source_status == "UNCALIBRATED_NULL"
-    assert report.model_fitting_status == "BLOCKED_BY_READINESS_PHASE"
-    assert report.calibration_status == "UNCALIBRATED"
-    assert any("Genuine forward observations = 0" in r for r in report.blocking_reasons)
+def test_production_readiness_evaluation_blocked_by_sample(tmp_path: Path):
+    from core.signals.signal_forward_monitor import SignalForwardMonitorService
+
+    # Ensure monitor singleton is clean before evaluation
+    SignalForwardMonitorService.reset_instance()
+    try:
+        # 1. Clean / Isolated environment verification (reproduces pristine N=0 forward accumulation)
+        clean_db = tmp_path / "clean_signals_history.db"
+        clean_report = evaluate_phase_e_execution_readiness(db_path=clean_db)
+        assert clean_report.overall_verdict == VERDICT_PASS_BLOCKED_BY_SAMPLE
+        assert clean_report.readiness_architecture_status == "PASS"
+        assert clean_report.empirical_execution_status == "BLOCKED_BY_SAMPLE"
+        assert clean_report.forward_cohort_size == 0
+        assert clean_report.resolved_count == 0
+        assert clean_report.gate_1_status == "NOT_SATISFIED"
+        assert clean_report.gate_2_status == "NOT_SATISFIED"
+        assert clean_report.gate_3_status == "NOT_SATISFIED"
+        assert clean_report.gate_4_status == "PASS"
+        assert clean_report.probability_source_status == "UNCALIBRATED_NULL"
+        assert clean_report.model_fitting_status == "BLOCKED_BY_READINESS_PHASE"
+        assert clean_report.calibration_status == "UNCALIBRATED"
+        assert any("Genuine forward observations = 0" in r for r in clean_report.blocking_reasons)
+
+        # 2. Canonical production database verification (when canonical baseline is present)
+        prod_db = Path("db/signals_history.db")
+        if prod_db.exists() and prod_db.stat().st_size >= 500_000:
+            SignalForwardMonitorService.reset_instance()
+            prod_report = evaluate_phase_e_execution_readiness(db_path=prod_db)
+            assert prod_report.overall_verdict == VERDICT_PASS_BLOCKED_BY_SAMPLE
+            assert prod_report.readiness_architecture_status == "PASS"
+            assert prod_report.empirical_execution_status == "BLOCKED_BY_SAMPLE"
+            assert prod_report.forward_cohort_size == 101
+            assert prod_report.resolved_count == 32
+            assert prod_report.gate_1_status == "NOT_SATISFIED"
+            assert prod_report.gate_2_status == "NOT_SATISFIED"
+            assert prod_report.gate_3_status == "NOT_SATISFIED"
+            assert prod_report.gate_4_status == "FAIL"
+            assert prod_report.probability_source_status == "UNCALIBRATED_NULL"
+            assert prod_report.model_fitting_status == "BLOCKED_BY_READINESS_PHASE"
+            assert prod_report.calibration_status == "UNCALIBRATED"
+            assert any(
+                "Forward Gate 2 not satisfied: 32 total resolved forward observations" in r
+                for r in prod_report.blocking_reasons
+            )
+    finally:
+        SignalForwardMonitorService.reset_instance()
+
 
 
 def test_production_db_isolation_and_no_probabilities():
@@ -694,14 +712,36 @@ def test_production_db_isolation_and_no_probabilities():
 
 
 def test_production_safety_locks_intact():
-    cfg_path = Path(__file__).resolve().parent.parent / "json" / "config.json"
-    with open(cfg_path, encoding="utf-8") as f:
-        cfg = json.load(f)
+    root = Path(__file__).resolve().parent.parent
+
+    # 1. Authoritative runtime configuration via canonical bootstrap pipeline
+    from core.config_bootstrap import get_effective_config
+    cfg = get_effective_config()
 
     assert str(cfg.get("EXECUTION_MODE", "")).upper() == "SIGNAL_ONLY"
     assert bool(cfg.get("SIGNAL_ONLY", False)) is True
     assert bool(cfg.get("LIVE_TRADING_LOCKOUT", False)) is True
     assert bool(cfg.get("full_auto_allowed", True)) is False
+    assert cfg.get("BROKER_AUTO_ROUTING", "DISCONNECTED") == "DISCONNECTED"
+
+    # 2. Canonical defaults contract (json/index_config.defaults.json)
+    defaults_path = root / "json" / "index_config.defaults.json"
+    assert defaults_path.exists(), "Canonical defaults file must exist"
+    with open(defaults_path, encoding="utf-8") as f:
+        defaults_cfg = json.load(f)
+    assert str(defaults_cfg.get("EXECUTION_MODE", "")).upper() == "SIGNAL_ONLY"
+    assert bool(defaults_cfg.get("SIGNAL_ONLY", False)) is True
+    assert bool(defaults_cfg.get("LIVE_TRADING_LOCKOUT", False)) is True
+    assert bool(defaults_cfg.get("full_auto_allowed", True)) is False
+
+    # 3. Canonical deployment template contract (json/config.template.json)
+    tmpl_path = root / "json" / "config.template.json"
+    if tmpl_path.exists():
+        with open(tmpl_path, encoding="utf-8") as f:
+            tmpl_cfg = json.load(f)
+        assert str(tmpl_cfg.get("EXECUTION_MODE", "")).upper() == "SIGNAL_ONLY"
+        assert bool(tmpl_cfg.get("full_auto_allowed", False)) is False
+
 
 
 def test_evaluation_report_serialization():

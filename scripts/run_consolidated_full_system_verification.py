@@ -98,8 +98,8 @@ def run_all_20_sections():
 
     # Section 7: Signal Tracker & Historical Accuracy
     _log.info("🧪 [7/20] Signal Tracker & Accuracy Analytics Engine...")
-    from core.signals.signal_tracker import SignalTracker
     from core.signals.audit_db_safety import create_isolated_audit_db_copy
+    from core.signals.signal_tracker import SignalTracker
     temp_audit_db = create_isolated_audit_db_copy("db/signals_history.db")
     try:
         tracker = SignalTracker(db_path=temp_audit_db)

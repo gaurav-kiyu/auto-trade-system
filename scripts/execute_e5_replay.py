@@ -10,34 +10,26 @@ Writes results exclusively to db/e5_research_results.db.
 
 from __future__ import annotations
 
-import datetime
 import hashlib
 import json
 import logging
 import sqlite3
-import statistics
-from pathlib import Path
 import sys
+from pathlib import Path
+from typing import Any
 
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from core.research.e5_replay_engine import (
-    CATEGORY_AUTHORIZED_HORIZONS,
     DEFAULT_E5_DB_PATH,
-    E5_TELEMETRY_POPULATION,
     PRE_AUTHORIZED_HORIZONS,
     PRE_AUTHORIZED_MODELS,
-    BarrierModel,
     E5DatabaseManager,
     E5ReplayEngine,
-    HorizonSpec,
     ReplayCandle,
-    ReplayEvaluationResult,
-    classify_score_bucket,
     generate_candidate_obs_id,
-    validate_e5_db_path,
 )
 
 _log = logging.getLogger("EXECUTE_E5_REPLAY")
@@ -78,21 +70,6 @@ def run_e5_offline_replay() -> dict[str, Any]:
         """)
         raw_snapshots = [dict(r) for r in cur_ro.fetchall()]
 
-        # Also load outcome measurements if present for contemporaneous MFE/MAE excursion verification
-        cur_ro.execute("""
-            SELECT
-                m.signal_id,
-                m.mfe,
-                m.mae,
-                m.mfe_pct,
-                m.mae_pct,
-                m.time_to_first_event_seconds,
-                m.time_to_t1_seconds,
-                m.time_to_sl_seconds,
-                m.outcome
-            FROM signal_outcome_measurements m
-        """)
-        measurements_map = {r["signal_id"]: dict(r) for r in cur_ro.fetchall()}
 
         # Load candle/tick event checkpoints from signal_outcome_events if available
         cur_ro.execute("""

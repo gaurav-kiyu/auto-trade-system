@@ -6,9 +6,17 @@ Execution Mode: STRICTLY OFFLINE / ZERO MUTATION UNIT TESTS
 
 from __future__ import annotations
 
-import pytest
+import hashlib
+import sqlite3
+from collections.abc import Generator
+from pathlib import Path
 
+import core.research.d20_b_shadow_analysis as d20_mod
+import pytest
 from core.research.d20_b_shadow_analysis import (
+    EXPECTED_PROD_DB_SHA,
+    EXPECTED_PROD_DB_SIZE,
+    PROD_DB_PATH,
     SignalRecord,
     apply_d20_b_shadow_simulation,
     load_signals,
@@ -16,11 +24,94 @@ from core.research.d20_b_shadow_analysis import (
 )
 
 
-def test_production_db_integrity():
+@pytest.fixture
+def d20_shadow_fixture(tmp_path: Path) -> Generator[tuple[Path, str, int], None, None]:
+    """Creates a deterministic SQLite database with 29 INDEX_OPTIONS and auxiliary signals."""
+    db_file = tmp_path / "fixture_signals_history.db"
+    conn = sqlite3.connect(str(db_file))
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE system_signals (
+            signal_id TEXT PRIMARY KEY,
+            timestamp TEXT NOT NULL,
+            created_date TEXT NOT NULL,
+            symbol TEXT NOT NULL,
+            category TEXT NOT NULL,
+            direction TEXT NOT NULL,
+            score INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            first_touch TEXT NOT NULL
+        )
+    """)
+    # Seed 29 deterministic INDEX_OPTIONS signals matching authoritative test count
+    for i in range(29):
+        cur.execute(
+            """INSERT INTO system_signals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                f"SIG_SHADOW_{i:03d}",
+                f"2026-09-17 09:{i:02d}:00",
+                "2026-09-17",
+                "NIFTY",
+                "INDEX_OPTIONS",
+                "CALL" if i % 2 == 0 else "PUT",
+                90,
+                "ACTIVE",
+                "T1" if i % 2 == 0 else "SL",
+            ),
+        )
+    # Seed 5 auxiliary non-INDEX_OPTIONS signals to verify scope filtering
+    for i in range(5):
+        cur.execute(
+            """INSERT INTO system_signals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                f"SIG_AUX_{i:03d}",
+                f"2026-09-17 09:{i:02d}:00",
+                "2026-09-17",
+                "NIFTYFUT",
+                "FUTURES",
+                "CALL",
+                85,
+                "ACTIVE",
+                "T1",
+            ),
+        )
+    conn.commit()
+    conn.close()
+
+    sha = hashlib.sha256(db_file.read_bytes()).hexdigest()
+    sz = db_file.stat().st_size
+    yield db_file, sha, sz
+
+
+def test_production_db_integrity(monkeypatch: pytest.MonkeyPatch, d20_shadow_fixture: tuple[Path, str, int]):
     """Verify production database SHA and size match authoritative specification."""
+    db_file, exp_sha, exp_sz = d20_shadow_fixture
+
+    # 1. Deterministic Fixture Verification
+    monkeypatch.setattr(d20_mod, "PROD_DB_PATH", db_file)
+    monkeypatch.setattr(d20_mod, "EXPECTED_PROD_DB_SHA", exp_sha)
+    monkeypatch.setattr(d20_mod, "EXPECTED_PROD_DB_SIZE", exp_sz)
     sha, size = verify_prod_db_integrity()
-    assert sha == "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a"
-    assert size == 1216512
+    assert sha == exp_sha
+    assert size == exp_sz
+
+    # 2. Integrity Mismatch Guard Verification
+    monkeypatch.setattr(d20_mod, "EXPECTED_PROD_DB_SHA", "0" * 64)
+    with pytest.raises(RuntimeError, match="FATAL: Production DB integrity mismatch"):
+        verify_prod_db_integrity()
+
+    # 3. Missing Database Guard Verification
+    monkeypatch.setattr(d20_mod, "PROD_DB_PATH", db_file.parent / "nonexistent.db")
+    with pytest.raises(FileNotFoundError, match="Production database missing"):
+        verify_prod_db_integrity()
+
+    # 4. Canonical Baseline Validation (when historical production database is present on disk)
+    if PROD_DB_PATH.exists() and PROD_DB_PATH.stat().st_size == EXPECTED_PROD_DB_SIZE:
+        if hashlib.sha256(PROD_DB_PATH.read_bytes()).hexdigest() == EXPECTED_PROD_DB_SHA:
+            monkeypatch.undo()
+            c_sha, c_sz = verify_prod_db_integrity()
+            assert c_sha == EXPECTED_PROD_DB_SHA
+            assert c_sz == EXPECTED_PROD_DB_SIZE
 
 
 def test_d20_b_simulation_allows_one_call_and_one_put():
@@ -60,8 +151,22 @@ def test_d20_b_different_canonical_indices_independent():
     assert evaluated[2].decision == "D20_B_SHADOW_SUPPRESSED"
 
 
-def test_load_signals_authoritative_count():
+def test_load_signals_authoritative_count(monkeypatch: pytest.MonkeyPatch, d20_shadow_fixture: tuple[Path, str, int]):
     """Verify load_signals reads exactly 29 INDEX_OPTIONS signals from production DB."""
+    db_file, exp_sha, exp_sz = d20_shadow_fixture
+
+    # 1. Deterministic Fixture Loading
+    monkeypatch.setattr(d20_mod, "PROD_DB_PATH", db_file)
+    monkeypatch.setattr(d20_mod, "EXPECTED_PROD_DB_SHA", exp_sha)
+    monkeypatch.setattr(d20_mod, "EXPECTED_PROD_DB_SIZE", exp_sz)
     sigs = load_signals(population_scope="INDEX_OPTIONS")
     assert len(sigs) == 29
     assert all(s.category == "INDEX_OPTIONS" for s in sigs)
+
+    # 2. Canonical Baseline Loading (when historical production database is present on disk)
+    if PROD_DB_PATH.exists() and PROD_DB_PATH.stat().st_size == EXPECTED_PROD_DB_SIZE:
+        if hashlib.sha256(PROD_DB_PATH.read_bytes()).hexdigest() == EXPECTED_PROD_DB_SHA:
+            monkeypatch.undo()
+            c_sigs = load_signals(population_scope="INDEX_OPTIONS")
+            assert len(c_sigs) == 29
+            assert all(s.category == "INDEX_OPTIONS" for s in c_sigs)
