@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.60 (2026-10-01)
+## v2.60.0 (2026-10-01)
 
 - **OPB v2.60 Canonical Release:** Final T1/T2 semantic reconciliation, forward-validation data integrity, distinct signal-ID accounting, and multi-surface data-truthfulness.
 - **Signal Explainability Contract:** Replaced ambiguous compound lifecycle labels with deterministic canonical fields: `Valid From`, `Max Exit Time`, `Holding Horizon`, and explicit `Outcome Status`.
