@@ -9,12 +9,26 @@ Covers:
   - maybe_start_dashboard() returns EnterpriseDashboard app when enabled
 """
 import threading
+from pathlib import Path
 
 import pytest
 
 fastapi = pytest.importorskip("fastapi", reason="fastapi not installed")
 
 from core.web_dashboard import SignalLog, maybe_start_dashboard
+
+
+def _make_admin_client(app, tmp_path: Path):
+    """Create an admin-authenticated TestClient for protected dashboard endpoints."""
+    from core.auth.handler import AuthHandler
+    from fastapi.testclient import TestClient
+
+    auth = AuthHandler(db_path=str(tmp_path / "auth.db"))
+    admin = auth.get_user("admin")
+    token = auth.create_session(admin) if admin else None
+    cookies = {"opb_session": token.token} if token else {}
+    return TestClient(app, cookies=cookies)
+
 
 # ── SignalLog (no FastAPI needed) ─────────────────────────────────────────────
 
@@ -212,12 +226,20 @@ class TestMaybeStartDashboard:
     def test_fundamentals_screen_empty(self, tmp_path):
         """Screen endpoint returns error when no symbols provided."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
+            # Unauthenticated request returns 401 Unauthorized
             from fastapi.testclient import TestClient
-            client = TestClient(result)
+            assert TestClient(result).post("/api/fundamentals/screen", json={"symbols": []}).status_code == 401
+
+            client = _make_admin_client(result, tmp_path)
             resp = client.post("/api/fundamentals/screen", json={"symbols": []})
             assert resp.status_code == 200, f'Screen endpoint returned {resp.status_code}: {resp.text[:200]}'
             data = resp.json()
@@ -226,12 +248,16 @@ class TestMaybeStartDashboard:
     def test_fundamentals_screen_returns_results(self, tmp_path):
         """Screen endpoint returns results list."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
-            client = TestClient(result)
+            client = _make_admin_client(result, tmp_path)
             resp = client.post("/api/fundamentals/screen", json={
                 "symbols": ["RELIANCE.NS", "TCS.NS"]
             })
@@ -245,12 +271,16 @@ class TestMaybeStartDashboard:
     def test_fundamentals_screen_truncates_large_lists(self, tmp_path):
         """Screen endpoint truncates symbol lists > 50."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
-            client = TestClient(result)
+            client = _make_admin_client(result, tmp_path)
             symbols = [f"STOCK{i}.NS" for i in range(100)]
             resp = client.post("/api/fundamentals/screen", json={"symbols": symbols})
             assert resp.status_code == 200, f'Screen truncation returned {resp.status_code}: {resp.text[:200]}'
@@ -259,14 +289,17 @@ class TestMaybeStartDashboard:
 
     def test_fundamentals_screen_with_min_score(self, tmp_path):
         """Screen endpoint respects min_score parameter."""
-
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
-            client = TestClient(result)
+            client = _make_admin_client(result, tmp_path)
             resp = client.post("/api/fundamentals/screen", json={
                 "symbols": ["RELIANCE.NS"],
                 "min_score": 0.0
@@ -278,12 +311,16 @@ class TestMaybeStartDashboard:
     def test_fundamentals_screen_force_refresh(self, tmp_path):
         """Screen endpoint accepts force_refresh parameter."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
-            client = TestClient(result)
+            client = _make_admin_client(result, tmp_path)
             resp = client.post("/api/fundamentals/screen", json={
                 "symbols": ["RELIANCE.NS"],
                 "force_refresh": True
@@ -295,12 +332,16 @@ class TestMaybeStartDashboard:
     def test_fundamentals_screen_result_structure(self, tmp_path):
         """Screen results have expected fields."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from fastapi.testclient import TestClient
-            client = TestClient(result)
+            client = _make_admin_client(result, tmp_path)
             resp = client.post("/api/fundamentals/screen", json={
                 "symbols": ["RELIANCE.NS"]
             })
@@ -415,15 +456,23 @@ class TestMaybeStartDashboard:
     def test_fundamentals_weights_put(self, tmp_path):
         """PUT /api/fundamentals/weights accepts new weights."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
-            from core.fundamental_analyzer import reset_fundamental_analyzer
+            # Unauthenticated request returns 401 Unauthorized
             from fastapi.testclient import TestClient
-            reset_fundamental_analyzer()
-            client = TestClient(result)
             new_weights = {"weights": {"value": 0.40, "growth": 0.20, "quality": 0.20, "momentum": 0.20}}
+            assert TestClient(result).put('/api/fundamentals/weights', json=new_weights).status_code == 401
+
+            from core.fundamental_analyzer import reset_fundamental_analyzer
+            reset_fundamental_analyzer()
+            client = _make_admin_client(result, tmp_path)
             resp = client.put('/api/fundamentals/weights', json=new_weights)
             assert resp.status_code == 200, f'Weight PUT returned {resp.status_code}: {resp.text[:200]}'
             data = resp.json()
@@ -436,14 +485,18 @@ class TestMaybeStartDashboard:
     def test_fundamentals_weights_put_invalid(self, tmp_path):
         """PUT with invalid data returns error (not 500)."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
             from core.fundamental_analyzer import reset_fundamental_analyzer
-            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
-            client = TestClient(result)
+            client = _make_admin_client(result, tmp_path)
             # Missing 'weights' key
             resp = client.put('/api/fundamentals/weights', json={"not_weights": {}})
             assert resp.status_code == 200
@@ -455,14 +508,18 @@ class TestMaybeStartDashboard:
     def test_fundamentals_weights_persist(self, tmp_path):
         """PUT updates weights, subsequent GET returns updated values."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
             from core.fundamental_analyzer import reset_fundamental_analyzer
-            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
-            client = TestClient(result)
+            client = _make_admin_client(result, tmp_path)
             # PUT new weights
             new_w = {"weights": {"value": 0.50, "growth": 0.20, "quality": 0.15, "momentum": 0.15}}
             resp = client.put('/api/fundamentals/weights', json=new_w)
@@ -515,14 +572,18 @@ class TestMaybeStartDashboard:
     def test_fundamentals_screen_with_weights(self, tmp_path):
         """Screen endpoint accepts weights in request body."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
             from core.fundamental_analyzer import reset_fundamental_analyzer
-            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
-            client = TestClient(result)
+            client = _make_admin_client(result, tmp_path)
             payload = {
                 "symbols": ["RELIANCE.NS"],
                 "weights": {"value": 0.40, "growth": 0.20, "quality": 0.20, "momentum": 0.20},
@@ -536,14 +597,18 @@ class TestMaybeStartDashboard:
     def test_fundamentals_screen_all_bad(self, tmp_path):
         """Screen with non-existent symbols returns gracefully."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
             from core.fundamental_analyzer import reset_fundamental_analyzer
-            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
-            client = TestClient(result)
+            client = _make_admin_client(result, tmp_path)
             resp = client.post("/api/fundamentals/screen", json={
                 "symbols": ["ZZZ_FAKE_12345", "ABC_DEF_67890"]
             })
@@ -556,14 +621,18 @@ class TestMaybeStartDashboard:
     def test_fundamentals_screen_min_score_filters(self, tmp_path):
         """Screen respects min_score filtering."""
         result = maybe_start_dashboard(
-            {"web_dashboard_enabled": True, "web_dashboard_host": "127.0.0.1", "web_dashboard_port": 0},
+            {
+                "web_dashboard_enabled": True,
+                "web_dashboard_host": "127.0.0.1",
+                "web_dashboard_port": 0,
+                "auth_db_path": str(tmp_path / "auth.db"),
+            },
             db_path=str(tmp_path / "trades.db"),
         )
         if result is not None:
             from core.fundamental_analyzer import reset_fundamental_analyzer
-            from fastapi.testclient import TestClient
             reset_fundamental_analyzer()
-            client = TestClient(result)
+            client = _make_admin_client(result, tmp_path)
             # min_score=10.0 should return fewer or equal results than min_score=0.0
             resp_low = client.post("/api/fundamentals/screen", json={
                 "symbols": ["RELIANCE.NS", "TCS.NS"],
