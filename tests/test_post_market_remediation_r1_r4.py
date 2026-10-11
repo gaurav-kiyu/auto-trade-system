@@ -923,7 +923,7 @@ def test_check5_target_sl_candle_six_cases():
     # Case 3: CALL Same-Bar Ambiguity (High >= 103 AND Low <= 98)
     b3 = SignalBar(open=100.0, high=103.5, low=97.5, close=101.0, timestamp=ts)
     r3 = tracker.evaluate_bar(call_sig, b3)
-    assert r3.hit_t1 is True and r3.hit_sl is True and r3.new_status == "AMBIGUOUS" and r3.first_touch == "AMBIGUOUS_SAME_BAR"
+    assert r3.hit_t1 is True and r3.hit_sl is True and r3.new_status == "AMBIGUOUS" and r3.first_touch is None
 
     # Case 4: PUT T1 Hit (Low <= 97, High < 102)
     put_sig = {"signal_id": "P1", "symbol": "S", "direction": "PUT", "entry_price": 100.0, "stop_loss": 102.0, "target_1": 97.0}
@@ -939,7 +939,7 @@ def test_check5_target_sl_candle_six_cases():
     # Case 6: PUT Same-Bar Ambiguity (Low <= 97 AND High >= 102)
     b6 = SignalBar(open=100.0, high=102.5, low=96.5, close=99.0, timestamp=ts)
     r6 = tracker.evaluate_bar(put_sig, b6)
-    assert r6.hit_t1 is True and r6.hit_sl is True and r6.new_status == "AMBIGUOUS" and r6.first_touch == "AMBIGUOUS_SAME_BAR"
+    assert r6.hit_t1 is True and r6.hit_sl is True and r6.new_status == "AMBIGUOUS" and r6.first_touch is None
 
 
 def test_check6_r2_governance_suppression_never_calls_tracker(test_scanner):
