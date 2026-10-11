@@ -108,7 +108,11 @@ def dashboard(state_file: str, trades_db: str, tmp_path: Path):
 
 @pytest.fixture()
 def client(dashboard) -> TestClient:
-    return TestClient(dashboard.app)
+    user = dashboard._auth.get_user("admin")
+    token = dashboard._auth.create_session(user)
+    c = TestClient(dashboard.app)
+    c.cookies.set("opb_session", token.token)
+    return c
 
 
 # ── Performance API Tests ──────────────────────────────────────────────────────
@@ -116,6 +120,11 @@ def client(dashboard) -> TestClient:
 
 class TestApiPerformance:
     """Test the /api/system/performance endpoint."""
+
+    def test_performance_unauthenticated_returns_401(self, dashboard):
+        c = TestClient(dashboard.app)
+        resp = c.get("/api/system/performance", headers={"accept": "application/json"})
+        assert resp.status_code == 401
 
     def test_performance_shape(self, client: TestClient):
         """Response has all expected fields with correct types."""
@@ -167,7 +176,10 @@ class TestApiPerformance:
             "web_dashboard_host": "127.0.0.1",
             "auth_db_path": str(tmp_path / "auth.db"),
         }, db_path=empty_db)
+        user = db._auth.get_user("admin")
+        token = db._auth.create_session(user)
         c = TestClient(db.app)
+        c.cookies.set("opb_session", token.token)
         resp = c.get("/api/system/performance", headers={"accept": "application/json"})
         assert resp.status_code == 200
         data = resp.json()
@@ -185,7 +197,10 @@ class TestApiPerformance:
             "web_dashboard_host": "127.0.0.1",
             "auth_db_path": str(tmp_path / "auth.db"),
         }, db_path=missing_db)
+        user = db._auth.get_user("admin")
+        token = db._auth.create_session(user)
         c = TestClient(db.app)
+        c.cookies.set("opb_session", token.token)
         resp = c.get("/api/system/performance", headers={"accept": "application/json"})
         assert resp.status_code == 200
         data = resp.json()

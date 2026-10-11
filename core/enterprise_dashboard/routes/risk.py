@@ -189,7 +189,7 @@ def register_risk_routes(app, dashboard, admin_only, operator_or_admin) -> None:
             return {"status": "error", "detail": str(exc)}
 
     @app.get("/api/system/trades/export")
-    async def api_trades_export(user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
+    async def api_trades_export(user: Any = Depends(dashboard._auth_deps.require_auth)):  # type: ignore[no-untyped-def]
         """Export trades as CSV download."""
         trades = dashboard._load_recent_trades(days=90, n=5000)
         output = io.StringIO()

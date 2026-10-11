@@ -343,9 +343,18 @@ class TestApiTradeJournal:
         data = resp.json()
         assert len(data["trades"]) <= 2
 
+    def test_trade_journal_unauthenticated_returns_401(self, dashboard):
+        c = TestClient(dashboard.app)
+        resp = c.get("/api/trade-journal", headers={"accept": "application/json"})
+        assert resp.status_code == 401
+
     @pytest.fixture()
     def client(self, dashboard) -> TestClient:
-        return TestClient(dashboard.app)
+        user = dashboard._auth.get_user("admin")
+        token = dashboard._auth.create_session(user)
+        c = TestClient(dashboard.app)
+        c.cookies.set("opb_session", token.token)
+        return c
 
 
 class TestApiEvents:
