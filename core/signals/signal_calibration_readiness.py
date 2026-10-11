@@ -257,7 +257,7 @@ def validate_calibration_observation_contract(
 ) -> tuple[bool, list[str], CalibrationObservation | None]:
     """Validate that raw data satisfies the strict calibration data contract."""
     errors: list[str] = []
-    
+
     if isinstance(data, CalibrationObservation):
         raw = data.to_dict()
     elif isinstance(data, dict):
