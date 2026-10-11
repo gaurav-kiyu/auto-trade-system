@@ -108,6 +108,15 @@ def register_intelligence_routes(app, dashboard, admin_only, operator_or_admin) 
         operator_or_admin: FastAPI Depends for operator or admin role.
     """
 
+    # Ensure RBAC guards are wrapped in FastAPI Depends instances
+    from fastapi import Depends
+    from fastapi.params import Depends as DependsClass
+
+    if not isinstance(admin_only, DependsClass):
+        admin_only = Depends(admin_only)
+    if not isinstance(operator_or_admin, DependsClass):
+        operator_or_admin = Depends(operator_or_admin)
+
     # Delegate to domain-specific route modules
     from core.enterprise_dashboard.routes.intelligence_analysis import register_analysis_routes
     from core.enterprise_dashboard.routes.intelligence_bi import register_bi_routes
