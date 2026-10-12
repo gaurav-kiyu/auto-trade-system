@@ -124,8 +124,8 @@ class AllNSEScanner:
             )
         )
         if self._db_path:
-            from core.signals.signal_tracker import SignalTracker
             from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+            from core.signals.signal_tracker import SignalTracker
 
             SignalTracker.get_instance(db_path=self._db_path, cfg=self._cfg)
             SignalOutcomeTracker.get_instance(db_path=self._db_path)

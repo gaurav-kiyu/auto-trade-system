@@ -75,8 +75,8 @@ def run_continuous_daemon(
         else (Path(os.getenv("SIGNALS_DB_PATH")).resolve() if os.getenv("SIGNALS_DB_PATH") else None)
     )
     if resolved_db_path:
-        from core.signals.signal_tracker import SignalTracker
         from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+        from core.signals.signal_tracker import SignalTracker
 
         SignalTracker.get_instance(db_path=resolved_db_path)
         SignalOutcomeTracker.get_instance(db_path=resolved_db_path)

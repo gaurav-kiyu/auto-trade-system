@@ -18,17 +18,13 @@ Validates the complete test contract required by Section 10 of G9-SQ-OA6 prompt:
 from __future__ import annotations
 
 import hashlib
-import os
 import sqlite3
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 import pytest
-
-from core.all_nse_scanner import AllNSEScanner, ScannedStockSignal
-from core.market_scanner_daemon import run_continuous_daemon
+from core.all_nse_scanner import AllNSEScanner
 from core.signals.signal_outcome_tracker import SignalOutcomeTracker
 from core.signals.signal_tracker import SignalTracker
 
@@ -59,8 +55,8 @@ def _clean_isolation_environment(monkeypatch):
 class TestObservationDBIsolation:
     def test_a_default_behavior(self):
         """Test A: Without override, application preserves existing default DB contract."""
-        from core.signals.signal_tracker import resolve_signals_db_path, _DB_PATH
-        from core.signals.signal_outcome_tracker import resolve_outcome_db_path, _DEFAULT_DB_PATH
+        from core.signals.signal_outcome_tracker import _DEFAULT_DB_PATH, resolve_outcome_db_path
+        from core.signals.signal_tracker import _DB_PATH, resolve_signals_db_path
         assert resolve_signals_db_path() == _CANONICAL_DB_PATH
         assert resolve_outcome_db_path() == _CANONICAL_DB_PATH
         assert _DB_PATH.resolve() == _CANONICAL_DB_PATH
