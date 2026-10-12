@@ -102,6 +102,7 @@ class AllNSEScanner:
         cfg: dict[str, Any] | None = None,
         max_workers: int = 20,
         cooldown_secs: int = 900,
+        db_path: Path | str | None = None,
     ) -> None:
         if cfg is None:
             cfg_path = _ROOT / "json" / "config.json"
@@ -113,6 +114,22 @@ class AllNSEScanner:
 
         self._cfg = cfg
         self._max_workers = max_workers
+        self._db_path = (
+            Path(db_path).resolve()
+            if db_path is not None and str(db_path).strip()
+            else (
+                Path(cfg.get("SIGNALS_DB_PATH")).resolve()
+                if cfg.get("SIGNALS_DB_PATH")
+                else (Path(os.getenv("SIGNALS_DB_PATH")).resolve() if os.getenv("SIGNALS_DB_PATH") else None)
+            )
+        )
+        if self._db_path:
+            from core.signals.signal_tracker import SignalTracker
+            from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+
+            SignalTracker.get_instance(db_path=self._db_path, cfg=self._cfg)
+            SignalOutcomeTracker.get_instance(db_path=self._db_path)
+
         self._cooldown_secs = int(cfg.get("SIGNAL_DEDUP_COOLDOWN_SECS", cooldown_secs))
         self._max_alerts_per_cycle = max(1, int(cfg.get("MAX_ALERTS_PER_CYCLE", 10)))
         self._max_alerts_per_window = max(1, int(cfg.get("MAX_ALERTS_PER_WINDOW", 20)))
@@ -786,7 +803,7 @@ class AllNSEScanner:
         stats["candidate_pool"] = len(detected_signals)
         try:
             from core.signals.signal_tracker import SignalTracker
-            SignalTracker.get_instance().record_scan_cycle(
+            SignalTracker.get_instance(db_path=self._db_path).record_scan_cycle(
                 stats, symbols_scanned=len(stocks), timestamp=now_ist().isoformat()
             )
             # Observational outcome tracking: grade active signals against latest prices & completed 1m bars discovered in this scan
@@ -825,7 +842,7 @@ class AllNSEScanner:
                     return None
 
                 from core.signals.signal_outcome_tracker import SignalOutcomeTracker
-                SignalOutcomeTracker.get_instance().update_active_signal_outcomes(
+                SignalOutcomeTracker.get_instance(db_path=self._db_path).update_active_signal_outcomes(
                     price_lookup_fn=_lookup_price,
                     bar_lookup_fn=_lookup_bar,
                 )
@@ -908,7 +925,7 @@ class AllNSEScanner:
     def _daily_signal_limit_allows_dispatch(self) -> bool:
         try:
             from core.signals.signal_tracker import SignalTracker
-            count = SignalTracker.get_instance().count_generated_today()
+            count = SignalTracker.get_instance(db_path=self._db_path).count_generated_today()
             if count >= self._max_alerts_per_day:
                 _log.warning("[DAILY_RATE_LIMIT] Suppressed alert: %d/%d signals already generated today",
                              count, self._max_alerts_per_day)
@@ -952,7 +969,7 @@ class AllNSEScanner:
             from core.signals.signal_quality_gate import check_index_session_dedup
             from core.signals.signal_tracker import SignalTracker
             session_date = now_ist().strftime("%Y-%m-%d")
-            tracker = SignalTracker.get_instance()
+            tracker = SignalTracker.get_instance(db_path=self._db_path)
             conn = tracker._get_conn()
             try:
                 idx_ok, idx_reason = check_index_session_dedup(conn, signal.symbol, category, signal.direction, session_date)
@@ -1176,7 +1193,7 @@ class AllNSEScanner:
         signal_id = ""
         try:
             from core.signals.signal_tracker import SignalTracker
-            tracker = SignalTracker.get_instance()
+            tracker = SignalTracker.get_instance(db_path=self._db_path)
 
             # Contemporaneous point-in-time features for Phase-A prediction snapshot
             signal_features = dict(signal.features) if getattr(signal, "features", None) else {
@@ -1498,7 +1515,7 @@ class AllNSEScanner:
 
             # Record in persistent SignalTracker
             from core.signals.signal_tracker import SignalTracker
-            tracker = SignalTracker.get_instance()
+            tracker = SignalTracker.get_instance(db_path=self._db_path)
 
             # Separate theoretical fair value from actual price
             _fv_info = resolver.calculate_fair_value(

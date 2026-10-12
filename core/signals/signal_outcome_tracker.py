@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import os
 import sqlite3
 import threading
 import time
@@ -35,6 +36,20 @@ from core.exchange_calendar_engine import ExchangeCalendarEngine
 _log = logging.getLogger("SIGNAL_OUTCOME_TRACKER")
 _ROOT = Path(__file__).resolve().parent.parent.parent
 _DEFAULT_DB_PATH = _ROOT / "db" / "signals_history.db"
+
+
+def resolve_outcome_db_path(db_path: Path | str | None = None) -> Path:
+    """Resolve outcome database path adhering to strict precedence:
+    1. Explicit db_path argument (if provided and non-empty)
+    2. SIGNALS_DB_PATH environment variable (if set and non-empty)
+    3. Default repository path (db/signals_history.db)
+    """
+    if db_path is not None and str(db_path).strip():
+        return Path(db_path).resolve()
+    env_path = os.getenv("SIGNALS_DB_PATH")
+    if env_path is not None and env_path.strip():
+        return Path(env_path).resolve()
+    return _DEFAULT_DB_PATH.resolve()
 
 MARKET_CLOSE_TIME = datetime.time(15, 30)
 NEAR_CLOSE_THRESHOLD_TIME = datetime.time(15, 15)
@@ -109,7 +124,7 @@ class SignalOutcomeTracker:
         db_path: Path | str | None = None,
         calendar_engine: ExchangeCalendarEngine | None = None,
     ) -> None:
-        self._db_path = Path(db_path) if db_path is not None else _DEFAULT_DB_PATH
+        self._db_path = resolve_outcome_db_path(db_path)
         self._calendar_engine = calendar_engine or ExchangeCalendarEngine()
         self._io_lock = threading.Lock()
         self._evaluated_candles: set[str] = set()
@@ -123,8 +138,16 @@ class SignalOutcomeTracker:
         db_path: Path | str | None = None,
         calendar_engine: ExchangeCalendarEngine | None = None,
     ) -> SignalOutcomeTracker:
-        target_path = Path(db_path or _DEFAULT_DB_PATH).resolve()
         with cls._lock:
+            if db_path is not None and str(db_path).strip():
+                target_path = Path(db_path).resolve()
+            elif os.getenv("SIGNALS_DB_PATH"):
+                target_path = Path(os.getenv("SIGNALS_DB_PATH")).resolve()
+            elif cls._instance is not None:
+                return cls._instance
+            else:
+                target_path = resolve_outcome_db_path(db_path)
+
             if target_path not in cls._instances:
                 cls._instances[target_path] = cls(db_path=target_path, calendar_engine=calendar_engine)
             inst = cls._instances[target_path]

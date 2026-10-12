@@ -36,7 +36,7 @@ if not exist json\config.json (
     )
 )
 
-%PYTHON% -m core.market_scanner_daemon --interval 60 --workers 20
+%PYTHON% -m core.market_scanner_daemon --interval 60 --workers 20 %*
 
 pause
 

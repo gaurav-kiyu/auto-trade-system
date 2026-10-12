@@ -28,6 +28,20 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 _DB_PATH = _ROOT / "db" / "signals_history.db"
 
 
+def resolve_signals_db_path(db_path: Path | str | None = None) -> Path:
+    """Resolve signals database path adhering to strict precedence:
+    1. Explicit db_path argument (if provided and non-empty)
+    2. SIGNALS_DB_PATH environment variable (if set and non-empty)
+    3. Default repository path (db/signals_history.db)
+    """
+    if db_path is not None and str(db_path).strip():
+        return Path(db_path).resolve()
+    env_path = os.getenv("SIGNALS_DB_PATH")
+    if env_path is not None and env_path.strip():
+        return Path(env_path).resolve()
+    return _DB_PATH.resolve()
+
+
 def compute_prediction_snapshot_hash(payload: dict[str, Any]) -> str:
     """Compute deterministic SHA-256 hash over canonical JSON of the prediction payload.
 
@@ -45,8 +59,8 @@ class SignalTracker:
     _instance: SignalTracker | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: Path | None = None, cfg: dict[str, Any] | None = None) -> None:
-        self._db_path = db_path or _DB_PATH
+    def __init__(self, db_path: Path | str | None = None, cfg: dict[str, Any] | None = None) -> None:
+        self._db_path = resolve_signals_db_path(db_path)
         self._cfg = cfg or {}
         self._options_quality_gate_enabled = bool(self._cfg.get("D20_OPTIONS_QUALITY_GATE_ENABLED", False))
         self._index_session_dedup_enabled = bool(self._cfg.get("D20_INDEX_SESSION_DEDUP_ENABLED", False))
@@ -64,7 +78,7 @@ class SignalTracker:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = SignalTracker(
-                    db_path=Path(db_path) if db_path is not None else None,
+                    db_path=resolve_signals_db_path(db_path),
                     cfg=cfg,
                 )
             return cls._instance
