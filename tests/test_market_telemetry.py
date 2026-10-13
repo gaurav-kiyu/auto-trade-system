@@ -25,6 +25,17 @@ class DummyDashboard:
         @staticmethod
         def require_auth_optional():
             return None
+
+        @staticmethod
+        def require_auth():
+            return None
+
+        @staticmethod
+        def require_role(*roles: str):
+            def _dep():
+                return None
+            return _dep
+
     _auth_deps = AuthDeps()
 
 
