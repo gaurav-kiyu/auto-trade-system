@@ -843,11 +843,21 @@ def test_21_daily_report_text_generation(monitor_db: Path):
     assert "LIVE_TRADING_LOCKOUT: PASS" in rep_text
 
 
-def test_22_safety_invariants_verification():
+def test_22_safety_invariants_verification(monkeypatch):
     """Test 22: Live trading lockout and safety configuration invariants."""
     import os
     for k in [k for k in os.environ if k.startswith("OPBUYING_")]:
         os.environ.pop(k, None)
+    monkeypatch.setattr(
+        "core.config_bootstrap.get_effective_config",
+        lambda: {
+            "EXECUTION_MODE": "SIGNAL_ONLY",
+            "LIVE_TRADING_LOCKOUT": True,
+            "full_auto_allowed": False,
+            "BASE_CAPITAL": 3000,
+            "SL_PCT": 0.88,
+        },
+    )
     svc = SignalForwardMonitorService()
     safety = svc.verify_safety_invariants()
 
