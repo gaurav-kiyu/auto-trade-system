@@ -848,16 +848,10 @@ def test_22_safety_invariants_verification(monkeypatch):
     import os
     for k in [k for k in os.environ if k.startswith("OPBUYING_")]:
         os.environ.pop(k, None)
-    monkeypatch.setattr(
-        "core.config_bootstrap.get_effective_config",
-        lambda: {
-            "EXECUTION_MODE": "SIGNAL_ONLY",
-            "LIVE_TRADING_LOCKOUT": True,
-            "full_auto_allowed": False,
-            "BASE_CAPITAL": 3000,
-            "SL_PCT": 0.88,
-        },
-    )
+    from core.config_bootstrap import get_effective_config
+    canonical = dict(get_effective_config())
+    canonical["BASE_CAPITAL"] = 3000
+    monkeypatch.setattr("core.config_bootstrap.get_effective_config", lambda: canonical)
     svc = SignalForwardMonitorService()
     safety = svc.verify_safety_invariants()
 
