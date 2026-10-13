@@ -7,27 +7,19 @@ probability validation, Brier/ECE computation, temporal isolation, readiness gua
 and safety invariants.
 """
 
-import math
 import sqlite3
-from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
-
 from core.signals.signal_calibration_readiness import (
     CALIBRATION_FIT_BLOCKED,
-    DEFAULT_ECE_BINS,
     NO_VALID_PROBABILITY_SOURCE,
     STATUS_BLOCKED,
     STATUS_READY_FOR_REVIEW,
-    BrierResult,
     CalibrationDiagnostics,
     CalibrationObservation,
-    ECEResult,
     PhaseEReadinessReport,
-    ReliabilityBin,
     SignalCalibrationReadinessService,
-    TemporalSplit,
     calculate_brier_score,
     calculate_expected_calibration_error,
     compute_calibration_diagnostics,
@@ -41,7 +33,6 @@ from core.signals.signal_calibration_readiness import (
     validate_probability_source,
 )
 from core.signals.signal_calibration_report import generate_phase_e_readiness_report
-
 
 # ============================================================================
 # Fixtures & Helpers
@@ -445,8 +436,8 @@ def test_temporal_split_invalid_ratio_rejected():
 # 8. Readiness Evaluation Tests
 # ============================================================================
 
-def test_readiness_current_state_returns_blocked():
-    report = evaluate_phase_e_readiness()
+def test_readiness_current_state_returns_blocked(tmp_path):
+    report = evaluate_phase_e_readiness(db_path=tmp_path / "isolated.db")
     assert isinstance(report, PhaseEReadinessReport)
     assert report.overall_status == STATUS_BLOCKED
     assert report.phase_e_status == STATUS_BLOCKED
@@ -458,8 +449,8 @@ def test_readiness_current_state_returns_blocked():
     assert report.is_ready_for_calibration is False
 
 
-def test_readiness_reports_all_required_blocking_reasons():
-    report = evaluate_phase_e_readiness()
+def test_readiness_reports_all_required_blocking_reasons(tmp_path):
+    report = evaluate_phase_e_readiness(db_path=tmp_path / "isolated.db")
     blockers = " ".join(report.blocking_reasons)
     assert "Gate 1 not satisfied" in blockers
     assert "Gate 2 not satisfied" in blockers
