@@ -268,7 +268,7 @@ class _SlideBuilder:
 
 def _build_executive(b: _SlideBuilder, data: dict[str, Any]) -> None:
     """Executive template — 10 slides: title, mission, KPIs, risk, performance, security, deployment, certification, recommendations, final."""
-    version = str(data.get("version", "2.60.0"))
+    version = str(data.get("version", "2.61.0"))
     date = str(data.get("date", time.strftime("%B %Y")))
     score = str(data.get("score", "Architecture Benchmark"))
     strengths = data.get("strengths", [
@@ -460,7 +460,7 @@ def _build_executive(b: _SlideBuilder, data: dict[str, Any]) -> None:
 
 def _build_developer(b: _SlideBuilder, data: dict[str, Any]) -> None:
     """Developer template — 12 slides: title, architecture, components, data flow, stack, coverage, modules, CI/CD, API, testing, observability, next."""
-    version = str(data.get("version", "2.60.0"))
+    version = str(data.get("version", "2.61.0"))
 
     # Slide 1 — Title
     slide = b.new_slide()
@@ -683,7 +683,7 @@ def _build_developer(b: _SlideBuilder, data: dict[str, Any]) -> None:
 
 def _build_client(b: _SlideBuilder, data: dict[str, Any]) -> None:
     """Client template — 11 slides: title, overview, features, security, performance, roadmap, support, pricing, architecture, certification, contact."""
-    version = str(data.get("version", "2.60.0"))
+    version = str(data.get("version", "2.61.0"))
 
     # Slide 1 — Title
     slide = b.new_slide()
@@ -784,7 +784,7 @@ def _build_client(b: _SlideBuilder, data: dict[str, Any]) -> None:
     b._add_title_bar(slide, "Product Roadmap")
     roadmap_headers = ["Phase", "Features", "Timeline"]
     roadmap_rows = data.get("roadmap_rows", [
-        ["Current (v2.60.0)", "Hardened multi-asset runtime, fail-closed auth/billing, 100% CI pass", "Active Forward Validation"],
+        ["Current (v2.61.0)", "Hardened multi-asset runtime, fail-closed auth/billing, 100% CI pass", "Active Forward Validation"],
         ["Next", "Expanded multi-asset live execution & automated PSP", "Planned"],
         ["Future", "Commodities, Currency direct routing", "Roadmap"],
     ])
@@ -981,7 +981,12 @@ class PresentationGenerator:
 
     @staticmethod
     def _fetch_version() -> str:
-        """Read version from VERSION file in project root."""
+        """Read version from canonical version source or VERSION file in project root."""
+        try:
+            from core.version import get_app_version
+            return get_app_version()
+        except Exception:
+            pass
         try:
             root = Path(__file__).resolve().parent.parent
             ver_file = root / "VERSION"
@@ -989,7 +994,7 @@ class PresentationGenerator:
                 return ver_file.read_text(encoding="utf-8").strip()
         except (OSError, UnicodeDecodeError) as exc:
             log.debug("[PRESENTATION] Version fetch failed: %s", exc)
-        return "2.60.0"
+        return "2.61.0"
 
     # Simple module-level cache for file counts (30 second TTL)
     _file_count_cache: dict[str, Any] | None = None

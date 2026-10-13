@@ -27,6 +27,22 @@ from core.presentation_generator import (
 # ── PresentationConfig ──────────────────────────────────────────────────
 
 
+@pytest.fixture(autouse=True)
+def _isolate_presentation_tests(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Isolate PresentationGenerator from touching the canonical production database."""
+    mock_tracker = MagicMock()
+    mock_tracker.get_admin_signal_analytics.return_value = {
+        "total_signals": 0,
+        "resolved_signals": 0,
+        "win_rate_display": "N/A (0 resolved real signals)",
+    }
+    monkeypatch.setattr(
+        "core.signals.signal_tracker.SignalTracker.get_instance",
+        classmethod(lambda cls: mock_tracker),
+    )
+
+
+
 class TestPresentationConfig:
     def test_defaults(self) -> None:
         cfg = PresentationConfig()
@@ -367,6 +383,7 @@ class TestGenerateReport:
         version = gen._fetch_version()
         assert isinstance(version, str)
         assert len(version) > 0
+        assert version == "2.61.0"
 
     def test_fetch_file_counts_returns_dict(self) -> None:
         gen = PresentationGenerator(PresentationConfig(enabled=False))

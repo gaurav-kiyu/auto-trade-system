@@ -3,6 +3,14 @@ from unittest.mock import MagicMock, patch
 
 from core.exchange_calendar_engine import ExchangeCalendarEngine
 from core.signals.signal_tracker import SignalTracker
+from core.services.notification_service import reset_notification_service
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_services():
+    yield
+    reset_notification_service()
+    SignalTracker.reset_instance()
 
 
 def test_control_center_status_structure(tmp_path):
