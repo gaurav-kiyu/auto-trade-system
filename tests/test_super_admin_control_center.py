@@ -1,9 +1,8 @@
-import pytest
 from unittest.mock import MagicMock, patch
 
-from core.exchange_calendar_engine import ExchangeCalendarEngine
-from core.signals.signal_tracker import SignalTracker
+import pytest
 from core.services.notification_service import reset_notification_service
+from core.signals.signal_tracker import SignalTracker
 
 
 @pytest.fixture(autouse=True)
@@ -92,7 +91,6 @@ def test_control_center_status_structure(tmp_path):
 
 def test_control_center_endpoint_live(tmp_path):
     """Test calling the registered endpoint function directly."""
-    from unittest.mock import AsyncMock
     from core.enterprise_dashboard.routes.admin import register_admin_routes
 
     db_file = tmp_path / "test_ctrl_endpoint.db"

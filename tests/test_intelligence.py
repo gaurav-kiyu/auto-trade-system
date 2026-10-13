@@ -37,9 +37,9 @@ def test_register_intelligence_routes_runs():
 
 def test_intelligence_summary_reports_canonical_app_version():
     """GET /api/intelligence/summary must report canonical app version in bi_dashboard."""
+    from core.version import get_app_version
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from core.version import get_app_version
 
     app = FastAPI()
     dashboard = MagicMock()
