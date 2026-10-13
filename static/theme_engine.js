@@ -1832,6 +1832,35 @@
         resetAllMobileOverlays();
     }
 
+    // Universal Modal Body Scroll-Lock & Viewport Anchor Controller (OBS-01 / DEF-33)
+    function updateBodyModalLock() {
+        if (typeof document === 'undefined' || !document.body) return;
+        const hasOpenModal = !!document.querySelector(
+            '.modal-overlay.visible, .modal-overlay[style*="flex"], ' +
+            '.modal-backdrop.active, .modal-backdrop[style*="flex"], ' +
+            '.opb-modal-backdrop[style*="flex"], .qr-modal[style*="flex"], ' +
+            '.opb-modal-active'
+        );
+        if (hasOpenModal) {
+            document.body.classList.add('opb-modal-open');
+        } else {
+            document.body.classList.remove('opb-modal-open');
+        }
+    }
+
+    if (typeof window !== 'undefined' && typeof MutationObserver !== 'undefined' && typeof document !== 'undefined' && document.body) {
+        let lockDebounceTimer = null;
+        const modalObserver = new MutationObserver(function() {
+            if (lockDebounceTimer) cancelAnimationFrame(lockDebounceTimer);
+            lockDebounceTimer = requestAnimationFrame(updateBodyModalLock);
+        });
+        modalObserver.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['class', 'style'],
+            subtree: true
+        });
+    }
+
     // Global Accessible Modal Controller (OPB-MODAL-2026 Invariant)
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' || e.keyCode === 27) {
@@ -1858,6 +1887,7 @@
                     modal.classList.remove('active', 'visible', 'show');
                 }
             });
+            updateBodyModalLock();
         }
     });
 
@@ -1870,12 +1900,14 @@
             if (modalWrapper) {
                 modalWrapper.style.display = 'none';
                 modalWrapper.classList.remove('active', 'visible', 'show');
+                updateBodyModalLock();
             }
         }
         // Universal backdrop click dismissal (when clicking directly on the backdrop/overlay)
         if (e.target.matches && e.target.matches('.modal-overlay, .modal-backdrop, .opb-modal-backdrop, .qr-modal, #signalExplainModal, #signalTestModal')) {
             e.target.style.display = 'none';
             e.target.classList.remove('active', 'visible', 'show');
+            updateBodyModalLock();
         }
     });
 
