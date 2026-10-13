@@ -701,6 +701,11 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
         conn = self._get_conn()
         try:
             self._init_password_reset_table(conn)
+            # Invalidate any prior unused reset tokens for this user
+            conn.execute(
+                "UPDATE password_reset_tokens SET used = 1 WHERE username = ? AND used = 0",
+                (username,),
+            )
             conn.execute(
                 "INSERT INTO password_reset_tokens (token_hash, username, expires_ts, used, created_ts) "
                 "VALUES (?, ?, ?, 0, ?)",

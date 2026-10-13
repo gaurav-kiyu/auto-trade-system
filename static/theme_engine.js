@@ -1533,6 +1533,58 @@
         }
     };
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // Universal Password and Confirm-Password Copy/Paste Restriction
+    // ══════════════════════════════════════════════════════════════════════════
+    function isPasswordOrConfirmField(el) {
+        if (!el || el.tagName !== 'INPUT') return false;
+        const type = (el.getAttribute('type') || el.type || '').toLowerCase();
+        const id = (el.id || '').toLowerCase();
+        const name = (el.name || '').toLowerCase();
+        if (type === 'password' || el.hasAttribute('data-password-field') || el.hasAttribute('data-disable-paste')) {
+            return true;
+        }
+        if (id.includes('password') || id.includes('confirm') || id.includes('recoverykey')) {
+            return true;
+        }
+        if (name.includes('password') || name.includes('confirm')) {
+            return true;
+        }
+        return false;
+    }
+
+    function showPasteDisabledNotice(target) {
+        if (!target || !target.parentElement) return;
+        let notice = target.parentElement.querySelector('.opb-paste-notice');
+        if (!notice) {
+            notice = document.createElement('div');
+            notice.className = 'opb-paste-notice';
+            notice.setAttribute('role', 'alert');
+            notice.setAttribute('aria-live', 'polite');
+            notice.style.cssText = 'font-size:0.75rem;color:var(--warning-color,#d97706);margin-top:0.25rem;transition:opacity 0.25s ease;display:flex;align-items:center;gap:0.3rem;';
+            notice.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Pasting is disabled in password fields for security.';
+            target.parentElement.appendChild(notice);
+            setTimeout(() => {
+                if (notice && notice.parentElement) {
+                    notice.style.opacity = '0';
+                    setTimeout(() => notice.remove(), 250);
+                }
+            }, 3000);
+        }
+    }
+
+    ['paste', 'copy', 'cut', 'drop'].forEach(eventType => {
+        document.addEventListener(eventType, function(e) {
+            const target = e.target;
+            if (isPasswordOrConfirmField(target)) {
+                e.preventDefault();
+                if (eventType === 'paste' || eventType === 'drop') {
+                    showPasteDisabledNotice(target);
+                }
+            }
+        }, true);
+    });
+
     const _DUMMY = {
         THEMES: THEMES,
         applyTheme: applyTheme,

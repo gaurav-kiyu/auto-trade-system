@@ -798,9 +798,9 @@ class TestSignalForwardObservation:
             assert "p_sl" not in b_info
 
     # 29. No model or threshold mutations
-    def test_29_no_model_or_threshold_mutations(self):
+    def test_29_no_model_or_threshold_mutations(self, temp_db: Path):
         from core.signals.signal_tracker import SignalTracker
-        st = SignalTracker.get_instance()
+        st = SignalTracker.get_instance(db_path=temp_db)
         assert hasattr(st, "register_forward_signal")
         assert hasattr(st, "sync_forward_outcomes")
         assert hasattr(st, "get_forward_observation_report")

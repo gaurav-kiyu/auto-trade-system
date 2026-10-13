@@ -2188,7 +2188,10 @@ class SignalTracker:
         self,
         signal_id: str | None = None,
         username: str | None = None,
+        channel: str | None = None,
+        status: str | None = None,
         limit: int = 100,
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
         """Retrieve delivery audit records with optional filtering."""
         with self._lock:
@@ -2203,16 +2206,85 @@ class SignalTracker:
                 if username:
                     conditions.append("username = ?")
                     params.append(username)
+                if channel:
+                    conditions.append("channel = ?")
+                    params.append(channel.upper())
+                if status:
+                    conditions.append("status = ?")
+                    params.append(status.upper())
                 where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
                 cur.execute(f"""
                     SELECT * FROM signal_delivery_audit
                     {where}
                     ORDER BY audit_id DESC
-                    LIMIT ?
-                """, (*params, limit))
+                    LIMIT ? OFFSET ?
+                """, (*params, limit, offset))
                 return [dict(r) for r in cur.fetchall()]
             except Exception as ex:
                 _log.error("Failed to fetch delivery audit: %s", ex)
+                return []
+            finally:
+                conn.close()
+
+    def get_delivery_audit_count(
+        self,
+        signal_id: str | None = None,
+        username: str | None = None,
+        channel: str | None = None,
+        status: str | None = None,
+    ) -> int:
+        """Count delivery audit records matching filters."""
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                conditions = []
+                params = []
+                if signal_id:
+                    conditions.append("signal_id = ?")
+                    params.append(signal_id)
+                if username:
+                    conditions.append("username = ?")
+                    params.append(username)
+                if channel:
+                    conditions.append("channel = ?")
+                    params.append(channel.upper())
+                if status:
+                    conditions.append("status = ?")
+                    params.append(status.upper())
+                where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+                cur.execute(f"SELECT COUNT(*) FROM signal_delivery_audit {where}", params)
+                row = cur.fetchone()
+                return int(row[0]) if row else 0
+            except Exception as ex:
+                _log.error("Failed to count delivery audit: %s", ex)
+                return 0
+            finally:
+                conn.close()
+
+    def get_user_notification_timeline(
+        self,
+        username: str,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """Retrieve a consolidated notification and delivery timeline for an individual user."""
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT a.audit_id, a.signal_id, a.username, a.channel, a.destination,
+                           a.attempted, a.status, a.error_message, a.timestamp,
+                           s.symbol, s.category, s.direction, s.score, s.tier
+                    FROM signal_delivery_audit a
+                    LEFT JOIN system_signals s ON a.signal_id = s.signal_id
+                    WHERE a.username = ?
+                    ORDER BY a.audit_id DESC
+                    LIMIT ?
+                """, (username, limit))
+                return [dict(r) for r in cur.fetchall()]
+            except Exception as ex:
+                _log.error("Failed to fetch notification timeline for %s: %s", username, ex)
                 return []
             finally:
                 conn.close()

@@ -45,6 +45,7 @@ from core.auth.handler import (
     AuthToken,
     AuthUser,
     generate_csrf_token,
+    validate_password_confirmation,
     validate_password_strength,
 )
 from core.auth.mfa import (
@@ -196,6 +197,12 @@ def create_auth_router(
 
         if not username or not password:
             raise HTTPException(status_code=400, detail="Username and password required")
+
+        confirm_password = str(body.get("confirm_password", ""))
+        if confirm_password:
+            valid_match, match_err = validate_password_confirmation(password, confirm_password)
+            if not valid_match:
+                raise HTTPException(status_code=400, detail=match_err)
 
         valid_pw, pw_err = validate_password_strength(password)
         if not valid_pw:
@@ -432,11 +439,17 @@ def create_auth_router(
     ) -> dict:
         """Change password for the current user."""
         body = await request.json()
-        current = str(body.get("current_password", ""))
+        current = str(body.get("current_password") or body.get("old_password") or "")
         new = str(body.get("new_password", ""))
+        confirm_password = str(body.get("confirm_password", ""))
 
         if not current or not new:
             raise HTTPException(status_code=400, detail="Current and new password required")
+
+        if confirm_password:
+            valid_match, match_err = validate_password_confirmation(new, confirm_password)
+            if not valid_match:
+                raise HTTPException(status_code=400, detail=match_err)
 
         result = auth_handler.update_password(current_user.username, current, new)
         if not result["success"]:
@@ -474,6 +487,12 @@ def create_auth_router(
 
         if not username or not password:
             raise HTTPException(status_code=400, detail="Username and password required")
+
+        confirm_password = str(body.get("confirm_password", ""))
+        if confirm_password:
+            valid_match, match_err = validate_password_confirmation(password, confirm_password)
+            if not valid_match:
+                raise HTTPException(status_code=400, detail=match_err)
 
         valid_roles = {"super_admin", "admin", "operator", "viewer", "observer", "developer"}
         if role not in valid_roles:
@@ -611,6 +630,12 @@ def create_auth_router(
         """Admin-forced password reset. Admin only."""
         body = await request.json()
         new_password = str(body.get("new_password", ""))
+        confirm_password = str(body.get("confirm_password", ""))
+
+        if confirm_password:
+            valid_match, match_err = validate_password_confirmation(new_password, confirm_password)
+            if not valid_match:
+                raise HTTPException(status_code=400, detail=match_err)
 
         result = auth_handler.admin_reset_password(username, new_password, admin.username)
         if not result["success"]:
@@ -673,8 +698,8 @@ def create_auth_router(
         """List all users with full signal permissions, quotas, and categories."""
         mgr = UserPermissionManager.get_instance()
         auth_users = auth_handler.list_users()
-        active_unames = {u["username"] for u in auth_users}
-        mgr.prune_stale_users(active_unames)
+        active_unames = {u["username"]: u for u in auth_users}
+        mgr.prune_stale_users(set(active_unames.keys()))
 
         for u in auth_users:
             uname = u["username"]
@@ -701,6 +726,10 @@ def create_auth_router(
                 )
 
         all_perms = mgr.list_all_permissions()
+        for p in all_perms:
+            u_entry = active_unames.get(p.get("username", ""))
+            p["disabled"] = bool(u_entry.get("disabled", False)) if u_entry else False
+
         return {
             "success": True,
             "categories": ALL_CATEGORIES,
@@ -742,6 +771,7 @@ def create_auth_router(
             perm = mgr.get_user_permissions(username)
 
         perm_dict = perm.to_dict() if perm else {}
+        perm_dict["disabled"] = bool(getattr(u, "disabled", False))
         return {"success": True, "categories": ALL_CATEGORIES, "permissions": perm_dict}
 
     @router.post("/users/{username}/permissions")
@@ -784,6 +814,12 @@ def create_auth_router(
             if not role_result.get("success"):
                 raise HTTPException(status_code=400, detail=role_result.get("error", "Role update failed"))
             target_role = requested_role
+
+        if "is_active" in body:
+            is_act = bool(body["is_active"])
+            if username == "admin" and not is_act:
+                raise HTTPException(status_code=400, detail="Cannot deactivate Super Admin")
+            body["is_active"] = is_act
 
         mgr = UserPermissionManager.get_instance()
         ok, msg, updated = mgr.update_user_permissions(username, {**body, "role": target_role}, admin_username=admin.username)
@@ -857,6 +893,171 @@ def create_auth_router(
         if not ok:
             raise HTTPException(status_code=400, detail=msg)
         return {"success": True, "message": msg, "signals_enabled": enabled}
+
+    @router.post("/users/{username}/activate")
+    async def activate_user(
+        username: str,
+        admin: AuthUser = Depends(manage_permissions),
+    ) -> dict:
+        """Explicit administrative approval and activation of registered user for trading signals."""
+        target_user = auth_handler.get_user(username)
+        if target_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        mgr = UserPermissionManager.get_instance()
+        ok, msg, updated = mgr.activate_user(username, admin_username=admin.username)
+        if not ok:
+            raise HTTPException(status_code=400, detail=msg)
+        auth_handler._audit_log(
+            "user_activated",
+            admin.username,
+            "",
+            {"target_user": username, "is_active": True, "signals_enabled": True},
+            success=True,
+        )
+        return {"success": True, "message": msg, "permissions": updated}
+
+    @router.post("/users/{username}/deactivate")
+    async def deactivate_user(
+        username: str,
+        admin: AuthUser = Depends(manage_permissions),
+    ) -> dict:
+        """Administrative deactivation of registered user from trading signals."""
+        target_user = auth_handler.get_user(username)
+        if target_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        if username == "admin":
+            raise HTTPException(status_code=400, detail="Cannot deactivate Super Admin")
+
+        mgr = UserPermissionManager.get_instance()
+        ok, msg, updated = mgr.deactivate_user(username, admin_username=admin.username)
+        if not ok:
+            raise HTTPException(status_code=400, detail=msg)
+        auth_handler._audit_log(
+            "user_deactivated",
+            admin.username,
+            "",
+            {"target_user": username, "is_active": False, "signals_enabled": False},
+            success=True,
+        )
+        return {"success": True, "message": msg, "permissions": updated}
+
+    @router.get("/users/{username}/eligibility")
+    async def get_user_eligibility(
+        username: str,
+        category: str = "LARGE_CAP_EQUITY",
+        tier: str = "STRONG",
+        admin: AuthUser = Depends(manage_permissions),
+    ) -> dict:
+        """Preflight diagnostic endpoint to check user's effective signal delivery eligibility."""
+        target_user = auth_handler.get_user(username)
+        if target_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        mgr = UserPermissionManager.get_instance()
+        report = mgr.get_user_eligibility_report(username, category=category, tier=tier)
+        return {"success": True, "report": report}
+
+    @router.get("/admin/notifications/audit")
+    async def get_admin_notifications_audit(
+        username: str | None = None,
+        signal_id: str | None = None,
+        channel: str | None = None,
+        status: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        admin: AuthUser = Depends(manage_users),
+    ) -> dict:
+        """Query durable notification and email delivery audit trail with filtering. Admin only."""
+        from core.signals.signal_tracker import SignalTracker
+        tracker = SignalTracker.get_instance()
+        safe_limit = max(1, min(limit, 200))
+        safe_offset = max(0, offset)
+        items = tracker.get_delivery_audit(
+            signal_id=signal_id,
+            username=username,
+            channel=channel,
+            status=status,
+            limit=safe_limit,
+            offset=safe_offset,
+        )
+        total = tracker.get_delivery_audit_count(
+            signal_id=signal_id,
+            username=username,
+            channel=channel,
+            status=status,
+        )
+        # Mask sensitive destination details if not super_admin
+        is_super = is_super_admin_identity(admin.username, admin.role)
+        sanitized_items = []
+        for it in items:
+            row = dict(it)
+            dest = str(row.get("destination") or "")
+            if not is_super and "@" in dest:
+                parts = dest.split("@", 1)
+                masked_user = parts[0][:1] + "***" if parts[0] else "***"
+                row["destination"] = f"{masked_user}@{parts[1]}"
+            elif not is_super and dest.isdigit() and len(dest) > 4:
+                row["destination"] = dest[:2] + "***" + dest[-2:]
+            sanitized_items.append(row)
+
+        return {
+            "success": True,
+            "total": total,
+            "items": sanitized_items,
+            "limit": safe_limit,
+            "offset": safe_offset,
+        }
+
+    @router.get("/admin/users/{username}/notification-timeline")
+    async def get_user_notification_timeline(
+        username: str,
+        limit: int = 50,
+        admin: AuthUser = Depends(manage_users),
+    ) -> dict:
+        """Inspect comprehensive notification delivery and eligibility timeline for a registered user."""
+        target_user = auth_handler.get_user(username)
+        if target_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        mgr = UserPermissionManager.get_instance()
+        eligibility = mgr.get_user_eligibility_report(username)
+        user_perm = mgr.get_user_permissions(username)
+
+        from core.signals.signal_tracker import SignalTracker
+        tracker = SignalTracker.get_instance()
+        safe_limit = max(1, min(limit, 100))
+        timeline = tracker.get_user_notification_timeline(username, limit=safe_limit)
+
+        total_attempts = len(timeline)
+        sent_count = sum(1 for t in timeline if t.get("status") in ("SENT", "ACCEPTED", "TRANSMITTED"))
+        failed_count = sum(1 for t in timeline if t.get("status") == "FAILED")
+        suppressed_count = sum(1 for t in timeline if t.get("status") in ("SUPPRESSED", "DISABLED", "NO_DESTINATION"))
+
+        return {
+            "success": True,
+            "username": username,
+            "user_profile": {
+                "is_active": user_perm.is_active if user_perm else False,
+                "signals_enabled": user_perm.signals_enabled if user_perm else False,
+                "email_enabled": user_perm.email_enabled if user_perm else False,
+                "telegram_enabled": user_perm.telegram_enabled if user_perm else False,
+                "email": user_perm.email if user_perm else "",
+                "telegram_chat_id": user_perm.telegram_chat_id if user_perm else "",
+                "allowed_categories": user_perm.allowed_categories if user_perm else [],
+                "min_signal_tier": user_perm.min_signal_tier if user_perm else "STRONG_ONLY",
+                "daily_signals_used": user_perm.daily_signals_used if user_perm else 0,
+                "max_signals_daily": user_perm.max_signals_daily if user_perm else 10,
+                "effective_eligible": eligibility.get("effective_eligible", False),
+                "rejection_reasons": eligibility.get("rejection_reasons", []),
+            },
+            "summary": {
+                "total_events": total_attempts,
+                "sent_count": sent_count,
+                "failed_count": failed_count,
+                "suppressed_count": suppressed_count,
+            },
+            "timeline": timeline,
+        }
 
     # ── Signal Intelligence, Category Accuracy & User Delivery History ────────
 
@@ -1402,8 +1603,13 @@ def create_auth_router(
         body = await request.json()
         token = str(body.get("token", "")).strip()
         new_password = str(body.get("new_password", ""))
+        confirm_password = str(body.get("confirm_password", ""))
         if not token or not new_password:
             raise HTTPException(status_code=400, detail="Token and new password are required")
+        if confirm_password:
+            valid_match, match_err = validate_password_confirmation(new_password, confirm_password)
+            if not valid_match:
+                raise HTTPException(status_code=400, detail=match_err)
         res = auth_handler.reset_password_with_token(token, new_password)
         if not res["success"]:
             raise HTTPException(status_code=400, detail=res.get("error", "Password reset failed"))
@@ -1416,8 +1622,13 @@ def create_auth_router(
         username = str(body.get("username", "")).strip()
         recovery_key = str(body.get("recovery_key", "")).strip()
         new_password = str(body.get("new_password", ""))
+        confirm_password = str(body.get("confirm_password", ""))
         if not username or not recovery_key or not new_password:
             raise HTTPException(status_code=400, detail="Username, recovery key, and new password are required")
+        if confirm_password:
+            valid_match, match_err = validate_password_confirmation(new_password, confirm_password)
+            if not valid_match:
+                raise HTTPException(status_code=400, detail=match_err)
         res = auth_handler.emergency_master_reset_password(username, recovery_key, new_password)
         if not res["success"]:
             raise HTTPException(status_code=400, detail=res.get("error", "Emergency reset failed"))

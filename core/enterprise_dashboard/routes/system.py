@@ -725,7 +725,7 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
         uptime_secs = time.time() - dashboard._startup_ts if hasattr(dashboard, "_startup_ts") else 0
         return {
             "status": "healthy" if (db_ok and auth_db_ok and not state.get("hard_halt")) else "degraded",
-            "version": "2.60.0",
+            "version": "2.61.0",
             "uptime_seconds": uptime_secs,
             "uptime_human": f"{int(uptime_secs//3600)}h {int(uptime_secs%3600//60)}m {int(uptime_secs%60)}s",
             "db_connected": db_ok,

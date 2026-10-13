@@ -17,7 +17,7 @@ _VERSION_FILE = _ROOT / "VERSION"
 
 
 def get_app_version() -> str:
-    """Return the authoritative application version string (e.g. '2.60.0')."""
+    """Return the authoritative application version string (e.g. '2.61.0')."""
     try:
         if _VERSION_FILE.is_file():
             ver = _VERSION_FILE.read_text(encoding="utf-8").strip()
@@ -25,11 +25,11 @@ def get_app_version() -> str:
                 return ver
     except Exception as exc:
         _log.warning("[VERSION] Failed to read VERSION file: %s", exc)
-    return "2.60.0"
+    return "2.61.0"
 
 
 def get_app_version_tag() -> str:
-    """Return the authoritative version tag (e.g. 'v2.60.0')."""
+    """Return the authoritative version tag (e.g. 'v2.61.0')."""
     ver = get_app_version()
     return ver if ver.startswith("v") else f"v{ver}"
 

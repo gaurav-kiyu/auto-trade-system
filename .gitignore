@@ -301,3 +301,7 @@ reports/paper_trading/
 *.p12
 *.pfx
 
+# Runtime test data
+data/contact_inquiries.jsonl
+
+

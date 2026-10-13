@@ -31,7 +31,7 @@ def test_control_center_status_structure(tmp_path):
 
         payload = {
             "app": {
-                "version": "v2.60.0",
+                "version": "v2.61.0",
                 "status": "HEALTHY",
                 "mode": "SIGNAL_ONLY / PAPER",
                 "timestamp": now.strftime("%Y-%m-%d %H:%M:%S IST"),
@@ -82,10 +82,14 @@ def test_control_center_status_structure(tmp_path):
         assert "secret" not in payload_str
 
 
-def test_control_center_endpoint_live():
+def test_control_center_endpoint_live(tmp_path):
     """Test calling the registered endpoint function directly."""
     from unittest.mock import AsyncMock
     from core.enterprise_dashboard.routes.admin import register_admin_routes
+
+    db_file = tmp_path / "test_ctrl_endpoint.db"
+    SignalTracker.reset_instance()
+    tracker = SignalTracker(db_path=db_file)
 
     mock_app = MagicMock()
     mock_dashboard = MagicMock()
@@ -108,10 +112,11 @@ def test_control_center_endpoint_live():
 
     import asyncio
     mock_request = MagicMock()
-    result = asyncio.run(handler(mock_request, user=MagicMock()))
+    with patch("core.signals.signal_tracker.SignalTracker.get_instance", return_value=tracker):
+        result = asyncio.run(handler(mock_request, user=MagicMock()))
 
     assert "app" in result
-    assert result["app"]["version"] == "v2.60.0"
+    assert result["app"]["version"] == "v2.61.0"
     assert result["safety_invariants"]["BASE_CAPITAL"] == 3000
     assert result["safety_invariants"]["SL_PCT"] == 0.88
     assert result["safety_invariants"]["SIGNAL_ONLY"] is True

@@ -526,6 +526,121 @@ class UserPermissionManager:
                 _log.warning("[ADMIN] Audit logging failed for toggle signals: %s", aud_ex)
             return True, f"Signals {'ENABLED' if perm.signals_enabled else 'BLOCKED'} for {username}", perm.signals_enabled
 
+    def activate_user(self, username: str, admin_username: str = "admin") -> tuple[bool, str, dict[str, Any] | None]:
+        """Explicitly approve and activate a registered user for trading signal delivery."""
+        with self._io_lock:
+            perm = self._permissions.get(username)
+            if not perm:
+                return False, f"User {username} not found in permissions registry", None
+            before_dict = perm.to_dict()
+            perm.is_active = True
+            perm.signals_enabled = True
+            perm.updated_by = admin_username
+            perm.updated_at = now_ist().isoformat()
+            self._save_unlocked()
+            _log.info("[ADMIN] SuperAdmin %s approved & activated user %s for signals", admin_username, username)
+            try:
+                from core.auth.audit_service import log_privileged_action
+                log_privileged_action(
+                    action="USER_ACTIVATION_APPROVED",
+                    actor_username=admin_username,
+                    target=username,
+                    route=f"/api/auth/users/{username}/activate",
+                    result="SUCCESS",
+                    before_state=before_dict,
+                    after_state=perm.to_dict(),
+                )
+            except Exception as aud_ex:
+                _log.warning("[ADMIN] Audit logging failed for user activation: %s", aud_ex)
+            return True, f"User {username} successfully approved and activated", perm.to_dict()
+
+    def deactivate_user(self, username: str, admin_username: str = "admin") -> tuple[bool, str, dict[str, Any] | None]:
+        """Deactivate a user from trading signal delivery."""
+        if username == "admin":
+            return False, "Cannot deactivate Super Admin account", None
+        with self._io_lock:
+            perm = self._permissions.get(username)
+            if not perm:
+                return False, f"User {username} not found in permissions registry", None
+            before_dict = perm.to_dict()
+            perm.is_active = False
+            perm.signals_enabled = False
+            perm.updated_by = admin_username
+            perm.updated_at = now_ist().isoformat()
+            self._save_unlocked()
+            _log.info("[ADMIN] SuperAdmin %s deactivated user %s from signals", admin_username, username)
+            try:
+                from core.auth.audit_service import log_privileged_action
+                log_privileged_action(
+                    action="USER_DEACTIVATED",
+                    actor_username=admin_username,
+                    target=username,
+                    route=f"/api/auth/users/{username}/deactivate",
+                    result="SUCCESS",
+                    before_state=before_dict,
+                    after_state=perm.to_dict(),
+                )
+            except Exception as aud_ex:
+                _log.warning("[ADMIN] Audit logging failed for user deactivation: %s", aud_ex)
+            return True, f"User {username} deactivated from trading signals", perm.to_dict()
+
+    def get_user_eligibility_report(
+        self,
+        username: str,
+        category: str = "LARGE_CAP_EQUITY",
+        tier: str = "STRONG",
+    ) -> dict[str, Any]:
+        """Provide a complete diagnostic report of user's effective signal eligibility."""
+        perm = self.get_user_permissions(username)
+        if not perm:
+            return {
+                "username": username,
+                "exists": False,
+                "effective_eligible": False,
+                "rejection_reasons": ["USER_NOT_FOUND"],
+            }
+
+        cat_upper = category.upper()
+        tier_upper = tier.upper()
+        reasons: list[str] = []
+
+        if not perm.is_active:
+            reasons.append("USER_INACTIVE_PENDING_APPROVAL")
+        if not perm.signals_enabled:
+            reasons.append("SIGNALS_DISABLED_BLOCKED")
+        if cat_upper not in [c.upper() for c in perm.allowed_categories]:
+            reasons.append(f"CATEGORY_UNSUBSCRIBED_{cat_upper}")
+        if perm.min_signal_tier == "STRONG_ONLY" and tier_upper != "STRONG":
+            reasons.append("TIER_BELOW_MINIMUM_STRONG_ONLY")
+        elif perm.min_signal_tier == "MODERATE_AND_STRONG" and tier_upper not in ("STRONG", "MODERATE"):
+            reasons.append("TIER_BELOW_MINIMUM_MODERATE")
+
+        if perm.max_signals_daily > 0 and perm.daily_signals_used >= perm.max_signals_daily:
+            reasons.append(f"DAILY_QUOTA_EXHAUSTED_{perm.daily_signals_used}/{perm.max_signals_daily}")
+        if perm.max_signals_weekly > 0 and perm.weekly_signals_used >= perm.max_signals_weekly:
+            reasons.append(f"WEEKLY_QUOTA_EXHAUSTED_{perm.weekly_signals_used}/{perm.max_signals_weekly}")
+        if perm.max_signals_monthly > 0 and perm.monthly_signals_used >= perm.max_signals_monthly:
+            reasons.append(f"MONTHLY_QUOTA_EXHAUSTED_{perm.monthly_signals_used}/{perm.max_signals_monthly}")
+        if perm.max_signals_yearly > 0 and perm.yearly_signals_used >= perm.max_signals_yearly:
+            reasons.append(f"YEARLY_QUOTA_EXHAUSTED_{perm.yearly_signals_used}/{perm.max_signals_yearly}")
+
+        return {
+            "username": username,
+            "exists": True,
+            "is_active": perm.is_active,
+            "signals_enabled": perm.signals_enabled,
+            "allowed_categories": perm.allowed_categories,
+            "min_signal_tier": perm.min_signal_tier,
+            "daily_quota": f"{perm.daily_signals_used}/{perm.max_signals_daily if perm.max_signals_daily > 0 else '∞'}",
+            "weekly_quota": f"{perm.weekly_signals_used}/{perm.max_signals_weekly if perm.max_signals_weekly > 0 else '∞'}",
+            "monthly_quota": f"{perm.monthly_signals_used}/{perm.max_signals_monthly if perm.max_signals_monthly > 0 else '∞'}",
+            "yearly_quota": f"{perm.yearly_signals_used}/{perm.max_signals_yearly if perm.max_signals_yearly > 0 else '∞'}",
+            "telegram_enabled": perm.telegram_enabled and bool(perm.telegram_chat_id),
+            "email_enabled": perm.email_enabled and bool(perm.email),
+            "effective_eligible": len(reasons) == 0,
+            "rejection_reasons": reasons,
+        }
+
     def get_eligible_recipients(
         self,
         category: str,
@@ -535,7 +650,7 @@ class UserPermissionManager:
         """Pre-guard evaluation: returns all users authorized to receive this signal.
 
         Evaluates:
-        1. User is active and signals_enabled == True.
+        1. User is active (approved) and signals_enabled == True.
         2. Category is in user's allowed_categories.
         3. Signal tier satisfies user's min_signal_tier.
         4. User has not exceeded daily, weekly, monthly, or yearly quota.
@@ -551,37 +666,48 @@ class UserPermissionManager:
             for perm in self._permissions.values():
                 self._check_and_reset_quotas(perm)
 
-                if not perm.is_active or not perm.signals_enabled:
+                if not perm.is_active:
+                    _log.debug("[ELIGIBILITY] User %s excluded: account is not active (pending approval)", perm.username)
+                    continue
+
+                if not perm.signals_enabled:
+                    _log.debug("[ELIGIBILITY] User %s excluded: signals_enabled is False (blocked)", perm.username)
                     continue
 
                 # Category check
                 if cat_upper not in [c.upper() for c in perm.allowed_categories]:
+                    _log.debug("[ELIGIBILITY] User %s excluded: category %s not in allowed_categories %s",
+                               perm.username, cat_upper, perm.allowed_categories)
                     continue
 
                 # Tier check
                 if perm.min_signal_tier == "STRONG_ONLY" and tier_upper != "STRONG":
+                    _log.debug("[ELIGIBILITY] User %s excluded: tier %s does not satisfy STRONG_ONLY",
+                               perm.username, tier_upper)
                     continue
                 if perm.min_signal_tier == "MODERATE_AND_STRONG" and tier_upper not in ("STRONG", "MODERATE"):
+                    _log.debug("[ELIGIBILITY] User %s excluded: tier %s does not satisfy MODERATE_AND_STRONG",
+                               perm.username, tier_upper)
                     continue
 
                 # Quota checks (0 = unlimited)
                 if perm.max_signals_daily > 0 and perm.daily_signals_used >= perm.max_signals_daily:
-                    _log.debug("User %s daily signal quota reached (%d/%d)",
+                    _log.debug("[ELIGIBILITY] User %s daily signal quota reached (%d/%d)",
                               perm.username, perm.daily_signals_used, perm.max_signals_daily)
                     continue
 
                 if perm.max_signals_weekly > 0 and perm.weekly_signals_used >= perm.max_signals_weekly:
-                    _log.debug("User %s weekly signal quota reached (%d/%d)",
+                    _log.debug("[ELIGIBILITY] User %s weekly signal quota reached (%d/%d)",
                               perm.username, perm.weekly_signals_used, perm.max_signals_weekly)
                     continue
 
                 if perm.max_signals_monthly > 0 and perm.monthly_signals_used >= perm.max_signals_monthly:
-                    _log.debug("User %s monthly signal quota reached (%d/%d)",
+                    _log.debug("[ELIGIBILITY] User %s monthly signal quota reached (%d/%d)",
                               perm.username, perm.monthly_signals_used, perm.max_signals_monthly)
                     continue
 
                 if perm.max_signals_yearly > 0 and perm.yearly_signals_used >= perm.max_signals_yearly:
-                    _log.debug("User %s yearly signal quota reached (%d/%d)",
+                    _log.debug("[ELIGIBILITY] User %s yearly signal quota reached (%d/%d)",
                               perm.username, perm.yearly_signals_used, perm.max_signals_yearly)
                     continue
 

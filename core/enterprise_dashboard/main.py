@@ -478,11 +478,8 @@ class EnterpriseDashboard:
         csrf_protection.exempt("/api/auth/verify-reset-token")
         csrf_protection.exempt("/api/auth/reset-password")
         csrf_protection.exempt("/api/auth/emergency-reset-password")
-        csrf_protection.exempt("/api/auth/forgot-password")
-        csrf_protection.exempt("/api/auth/verify-reset-token")
-        csrf_protection.exempt("/api/auth/reset-password")
-        csrf_protection.exempt("/api/auth/emergency-reset-password")
         csrf_protection.exempt("/api/auth/logout")
+        csrf_protection.exempt("/api/contact")
         csrf_protection.exempt("/api/system/health/docker")
         csrf_protection.exempt("/signals/inject")
         csrf_protection.exempt("/static")
@@ -1647,8 +1644,8 @@ class EnterpriseDashboard:
             "execution_mode": st.get("execution_mode", "PAPER"),
             "status": st.get("status", "RUNNING"),
             "hard_halt": st.get("hard_halt", False),
-            "version": "2.60.0",
-            "release_tag": "v2.60.0",
+            "version": "2.61.0",
+            "release_tag": "v2.61.0",
         }
 
     def _load_recent_trades(self, days: int = 30, n: int = 100) -> list:
