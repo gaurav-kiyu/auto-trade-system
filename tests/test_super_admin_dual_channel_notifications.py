@@ -39,7 +39,15 @@ def clean_database(tmp_path):
     perm_mgr = UserPermissionManager.get_instance(store_path=perm_store_path)
 
     # Ensure admin has valid destinations by default for positive test cases
-    perm_mgr.update_user_permissions("admin", {"telegram_chat_id": "1148730533", "email": "admin@example.com"})
+    perm_mgr.update_user_permissions(
+        "admin",
+        {
+            "telegram_chat_id": "1148730533",
+            "email": "admin@example.com",
+            "telegram_enabled": True,
+            "email_enabled": True,
+        },
+    )
 
     yield {
         "tracker": tracker,
