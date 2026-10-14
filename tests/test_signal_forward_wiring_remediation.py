@@ -927,9 +927,8 @@ def test_cutoff_boundary_unchanged():
 
 def test_no_trade_execution_occurs():
     """27. Execution mode is strictly SIGNAL_ONLY with 0 orders."""
-    cfg_path = Path(__file__).resolve().parent.parent / "json" / "config.json"
-    with open(cfg_path, encoding="utf-8") as f:
-        cfg = json.load(f)
+    from core.config_bootstrap import get_effective_config
+    cfg = get_effective_config()
 
     assert str(cfg.get("EXECUTION_MODE", "")).upper() == "SIGNAL_ONLY"
     assert bool(cfg.get("SIGNAL_ONLY", False)) is True
