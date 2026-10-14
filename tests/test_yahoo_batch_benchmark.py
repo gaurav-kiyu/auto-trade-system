@@ -6,15 +6,12 @@ Execution Mode: STRICTLY OFFLINE / ZERO-MUTATION UNIT TESTS
 
 from __future__ import annotations
 
-import datetime
 from pathlib import Path
-import numpy as np
+
 import pandas as pd
 import pytest
-
 from core.research.yahoo_batch_benchmark import (
     BENCHMARK_SAMPLE_SYMBOLS,
-    HttpRequestMonitor,
     compute_prod_db_sha,
     evaluate_failure_blast_radius,
     evaluate_symbol_parity,
@@ -46,6 +43,12 @@ def test_map_symbol_to_yf_ticker():
 
 def test_production_db_sha_integrity():
     """Verify production database SHA matches authoritative constant."""
+    prod_db = Path("db/signals_history.db")
+    if not prod_db.exists() or prod_db.stat().st_size < 500_000:
+        pytest.skip(
+            "Canonical historical production database db/signals_history.db "
+            "not present in repository checkout (gitignored). Production database is intentionally external to CI."
+        )
     sha, size = compute_prod_db_sha()
     assert sha == "f12ba2e45e91077dbb3cfde289938aba225bd1669b9d02a7ddc5a49e57cd6e5a"
     assert size == 1216512
