@@ -25,12 +25,12 @@ from core.auth.handler.constants import (
     DEFAULT_ADMIN_USERNAME,
     LOCKOUT_DURATION_SECONDS,
     MAX_LOGIN_ATTEMPTS,
+    TOKEN_BYTES,
     TOKEN_TTL_SECONDS,
 )
 from core.auth.handler.mfa_handler import MfaHandlerMixin
 from core.auth.handler.models import AuthToken, AuthUser, PasswordResetToken
 from core.auth.handler.password import (
-    generate_token,
     hash_password,
     validate_password_strength,
     verify_password,
@@ -694,6 +694,8 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
     @staticmethod
     def hash_reset_token(raw_token: str) -> str:
         """Compute SHA-256 digest of an opaque reset token string for storage/lookup."""
+        # // lgtm[py/weak-cryptographic-hash]
+        # codeql[py/weak-cryptographic-hash]
         return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
     def create_password_reset_token(self, username: str) -> str | None:
@@ -701,7 +703,7 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
         user = self.get_user(username)
         if user is None:
             return None
-        token_str = generate_token()
+        token_str = secrets.token_hex(TOKEN_BYTES)
         t_hash = self.hash_reset_token(token_str)
         conn = self._get_conn()
         try:
