@@ -250,7 +250,7 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
     # In-memory rate limiter for public contact submissions (5 inquiries / 10 minutes per IP)
     _contact_rate_lock = threading.Lock()
     _contact_rate_tracker: dict[str, list[float]] = {}
-    _EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    _EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$")
 
     @app.post("/api/contact", response_class=JSONResponse)
     async def handle_contact_form(request: Request) -> JSONResponse:

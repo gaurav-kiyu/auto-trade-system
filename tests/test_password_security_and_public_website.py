@@ -11,22 +11,18 @@ Covers:
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
-import re
-import sqlite3
 import tempfile
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
+from core.auth.handler.handler import AuthHandler
+from core.auth.handler.password import validate_password_confirmation
+from core.enterprise_dashboard.routes.pages import register_page_routes
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-from core.auth.handler.password import validate_password_confirmation
-from core.auth.handler.handler import AuthHandler
-from core.enterprise_dashboard.routes.pages import register_page_routes
 
 
 class TestPasswordConfirmation:
@@ -99,7 +95,7 @@ class TestPasswordResetTokenSecurity:
         # Verify token1 is currently valid (mark_used=False for inspection)
         assert auth_handler.verify_password_reset_token(token1, mark_used=False) == "testuser"
 
-        t1_hash = hashlib.sha256(token1.encode()).hexdigest()
+        t1_hash = auth_handler.hash_reset_token(token1)
 
         # Check DB state: token1 is unused
         with auth_handler._get_conn() as conn:
@@ -111,7 +107,7 @@ class TestPasswordResetTokenSecurity:
         assert token2 is not None
         assert token2 != token1
 
-        t2_hash = hashlib.sha256(token2.encode()).hexdigest()
+        t2_hash = auth_handler.hash_reset_token(token2)
 
         # Check DB state: token1 MUST have been invalidated (used = 1)
         with auth_handler._get_conn() as conn:
@@ -146,7 +142,7 @@ class TestPasswordResetTokenSecurity:
         token = auth_handler.create_password_reset_token("testuser")
         assert token is not None
 
-        t_hash = hashlib.sha256(token.encode()).hexdigest()
+        t_hash = auth_handler.hash_reset_token(token)
 
         # Manually alter expires_ts in DB to simulate expiration (2 hours in past)
         with auth_handler._get_conn() as conn:
@@ -178,7 +174,7 @@ class TestFrontendPasswordPasteRestriction:
     def test_template_contains_paste_prevention(self, template_name, expected_markers):
         template_path = os.path.join(self.TEMPLATES_DIR, template_name)
         assert os.path.isfile(template_path), f"Template {template_name} missing"
-        with open(template_path, "r", encoding="utf-8") as f:
+        with open(template_path, encoding="utf-8") as f:
             content = f.read()
 
         for marker in expected_markers:
@@ -187,7 +183,7 @@ class TestFrontendPasswordPasteRestriction:
     def test_theme_engine_contains_universal_paste_restriction(self):
         js_path = os.path.join(os.path.dirname(__file__), "..", "static", "theme_engine.js")
         assert os.path.isfile(js_path)
-        with open(js_path, "r", encoding="utf-8") as f:
+        with open(js_path, encoding="utf-8") as f:
             js_content = f.read()
 
         assert "paste" in js_content
@@ -203,7 +199,6 @@ class TestPublicWebsiteAndContactAPI:
 
     @pytest.fixture
     def test_client(self):
-        import jinja2
         from starlette.templating import Jinja2Templates
 
         app = FastAPI()
@@ -276,7 +271,7 @@ class TestPublicWebsiteAndContactAPI:
         # Verify message was persisted to disk
         inq_path = os.path.join(os.path.dirname(__file__), "..", "data", "contact_inquiries.jsonl")
         assert os.path.isfile(inq_path), "Contact inquiries JSONL must exist"
-        with open(inq_path, "r", encoding="utf-8") as f:
+        with open(inq_path, encoding="utf-8") as f:
             lines = f.readlines()
         assert len(lines) > 0
         last_inq = json.loads(lines[-1])
