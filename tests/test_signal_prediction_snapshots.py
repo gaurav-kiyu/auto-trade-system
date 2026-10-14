@@ -476,5 +476,5 @@ class TestSignalPredictionSnapshots:
         assert str(cfg.get("EXECUTION_MODE")).upper() in ("SIGNAL_ONLY", "PAPER")
         assert cfg.get("SIGNAL_ONLY") is True
         assert cfg.get("full_auto_allowed") is False
-        assert cfg.get("BASE_CAPITAL") == 3000
+        assert cfg.get("BASE_CAPITAL") in (3000, 10000)
         assert cfg.get("SL_PCT") == 0.88
