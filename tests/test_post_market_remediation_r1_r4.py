@@ -869,17 +869,18 @@ def test_check4_candle_end_time_freshness_and_deduplication(tmp_path):
         )
     """)
     now_str = now_ist().strftime("%Y-%m-%d %H:%M:%S")
+    today_iso = now_ist().date().isoformat()
     cur.execute("""
         INSERT INTO system_signals (
             signal_id, timestamp, created_date, created_week, created_month, created_year,
             symbol, company_name, category, direction, score, tier,
             entry_price, stop_loss, target_1, target_2, current_price, status, pnl_pct, channels_sent
         ) VALUES (
-            'SIG-DEDUP-001', ?, '2026-09-29', 'W39', '09', '2026',
+            'SIG-DEDUP-001', ?, ?, 'W39', '09', '2026',
             'INFY', 'Infosys Ltd', 'LARGE_CAP_EQUITY', 'CALL', 85, 'STRONG',
             1800.0, 1750.0, 1850.0, 1900.0, 1800.0, 'ACTIVE', 0.0, 'TELEGRAM'
         )
-    """, (now_str,))
+    """, (now_str, today_iso))
     conn.commit()
     conn.close()
 

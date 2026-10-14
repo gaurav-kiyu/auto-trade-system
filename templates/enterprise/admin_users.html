@@ -138,7 +138,7 @@
 <tr>
 <th>User<br/><input class="table-filter-input" id="colFilterUser" placeholder="Filter..."/></th>
 <th>Role<br/><select class="table-filter-input" id="colFilterRole"><option value="">All</option><option value="super_admin">Super Admin</option><option value="admin">Admin</option><option value="operator">Trader</option><option value="viewer">Viewer</option><option value="observer">Observer</option></select></th>
-<th>Signal Status<br/><select class="table-filter-input" id="colFilterSignalStatus"><option value="">All</option><option value="allowed">Allowed</option><option value="blocked">Blocked</option></select></th>
+<th>Signal Status<br/><select class="table-filter-input" id="colFilterSignalStatus"><option value="">All</option><option value="allowed">Allowed</option><option value="pending">Pending Approval</option><option value="blocked">Blocked</option></select></th>
 <th>Conviction Tier<br/><select class="table-filter-input" id="colFilterTier"><option value="">All</option><option value="STRONG_ONLY">Strong</option><option value="MODERATE_AND_STRONG">Moderate+</option><option value="ALL">All</option></select></th>
 <th>Subscribed Categories<br/><select class="table-filter-input" id="colFilterCategory"><option value="">All</option></select></th>
 <th>Quota Usage<br/><input class="table-filter-input" id="colFilterQuota" placeholder="e.g. 2/15"/></th>
@@ -162,10 +162,57 @@
 </table>
 </div>
 </div>
+<!-- Notification & Email Delivery Audit Log -->
+<div class="card" style="margin-top:1.5rem;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:0.75rem;flex-wrap:wrap;">
+  <h3 style="font-size:0.95rem;font-weight:600;"><i class="fas fa-mail-bulk" style="color:#f59e0b;margin-right:0.5rem;"></i> Notification &amp; Email Delivery Audit Trail</h3>
+  <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+    <input class="input-field" id="notifFilterUser" placeholder="Search user..." style="max-width:130px;font-size:0.75rem;padding:0.35rem 0.5rem;"/>
+    <select class="input-field" id="notifFilterChannel" style="max-width:115px;font-size:0.75rem;padding:0.35rem 0.5rem;">
+      <option value="">All Channels</option>
+      <option value="EMAIL">Email</option>
+      <option value="TELEGRAM">Telegram</option>
+    </select>
+    <select class="input-field" id="notifFilterStatus" style="max-width:135px;font-size:0.75rem;padding:0.35rem 0.5rem;">
+      <option value="">All Statuses</option>
+      <option value="SENT">Sent</option>
+      <option value="FAILED">Failed</option>
+      <option value="DISABLED">Disabled</option>
+      <option value="NO_DESTINATION">No Destination</option>
+      <option value="ALREADY_DELIVERED">Deduplicated</option>
+    </select>
+    <button class="btn btn-ghost btn-sm" id="btnRefreshNotifAudit" type="button"><i class="fas fa-sync-alt"></i> Refresh</button>
+  </div>
+</div>
+<div style="font-size:0.72rem;color:var(--text-muted,#94a3b8);margin-bottom:0.6rem;">Full immutable audit trail of every trading signal notification attempt, SMTP provider acceptance, and policy suppression reasons.</div>
+<div style="overflow-x:auto;">
+<table class="table">
+<thead><tr><th>Time (IST)</th><th>User</th><th>Signal ID</th><th>Channel</th><th>Attempted</th><th>Status</th><th>Destination</th><th>Details / Reason</th></tr></thead>
+<tbody id="notifAuditTableBody"><tr><td colspan="8" style="text-align:center;color: var(--text-muted, #94a3b8);">Loading notification delivery audit...</td></tr></tbody>
+</table>
+</div>
+</div>
+<!-- User Notification Timeline Modal -->
+<div class="modal-overlay" id="userNotifTimelineModal">
+<div class="modal" style="max-width:840px;">
+<div class="modal-header opb-modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+<h3 style="font-size:1.1rem;font-weight:700;"><i class="fas fa-envelope-open-text" style="color:#f59e0b;margin-right:0.5rem;"></i> Notification History: <span id="timelineModalUser" style="color:#38bdf8;"></span></h3>
+<button class="btn btn-ghost btn-sm opb-modal-close-btn" id="closeUserTimelineBtn" aria-label="Close modal" style="min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
+</div>
+<div id="userTimelineHeader" style="background:var(--bg-card, #0f1319);border:1px solid var(--border-color, #1e293b);border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;"></div>
+<h4 style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;color:var(--text-primary,#e2e8f0);">Recorded Notification Events &amp; Delivery Outcomes</h4>
+<div style="overflow-x:auto;max-height:360px;">
+<table class="table">
+<thead><tr><th>Time</th><th>Signal</th><th>Symbol</th><th>Channel</th><th>Status</th><th>Destination</th><th>Notes / Reason</th></tr></thead>
+<tbody id="userTimelineTableBody"><tr><td colspan="7" style="text-align:center;color:var(--text-muted,#94a3b8);">Loading timeline...</td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
 <!-- Read-only User Detail Modal -->
 <div class="modal-overlay" id="viewUserModal">
 <div class="modal" style="max-width:720px;">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+<div class="modal-header opb-modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
 <h3 style="font-size:1.1rem;font-weight:700;"><i class="fas fa-eye" style="color:#60a5fa;margin-right:0.5rem;"></i> User Details</h3>
 <button class="btn btn-ghost btn-sm opb-modal-close-btn" id="closeViewUserBtn" aria-label="Close modal" style="min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
 </div>
@@ -175,7 +222,7 @@
 <!-- Edit User Signal Permissions Modal -->
 <div class="modal-overlay" id="editPermModal">
 <div class="modal">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+<div class="modal-header opb-modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
 <h3 style="font-size:1.1rem;font-weight:600;"><i class="fas fa-sliders-h" style="color:#3b82f6;margin-right:0.5rem;"></i> Edit User Signal Permissions</h3>
 <button class="btn btn-ghost btn-sm opb-modal-close-btn" id="closePermModalBtn" aria-label="Close modal" style="min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
 </div>
@@ -191,10 +238,21 @@
 <input class="input-field" id="permDisplayName" type="text"/>
 </div>
 </div>
+<!-- Administrative Account Approval & Activation -->
+<div style="background:var(--bg-card, #0f1319);border: 1px solid var(--border-color, #1e293b);border-radius:0.5rem;padding:0.75rem 1rem;display:flex;justify-content:space-between;align-items:center;">
+<div>
+<div style="font-weight:600;font-size:0.85rem;color: var(--text-primary, #e2e8f0);"><i class="fas fa-user-check" style="color:#22c55e;margin-right:0.35rem;"></i> Account Approval &amp; Activation</div>
+<div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Approve registered user to participate in trading signal distribution</div>
+</div>
+<label class="toggle-switch">
+<input id="permIsActive" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
 <!-- Master Signal Switch -->
 <div style="background:var(--bg-card, #0f1319);border: 1px solid var(--border-color, #1e293b);border-radius:0.5rem;padding:0.75rem 1rem;display:flex;justify-content:space-between;align-items:center;">
 <div>
-<div style="font-weight:600;font-size:0.85rem;color: var(--text-primary, #e2e8f0);">Master Signal Authorization</div>
+<div style="font-weight:600;font-size:0.85rem;color: var(--text-primary, #e2e8f0);"><i class="fas fa-satellite-dish" style="color:#38bdf8;margin-right:0.35rem;"></i> Master Signal Authorization</div>
 <div style="font-size:0.7rem;color: var(--text-muted, #94a3b8);">Allow or completely block trade signals for this user</div>
 </div>
 <label class="toggle-switch">
@@ -291,7 +349,7 @@
 <!-- Create User Modal -->
 <div class="modal-overlay" id="createModal">
 <div class="modal" style="max-width:480px;">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+<div class="modal-header opb-modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
 <h3 style="font-size:1rem;font-weight:600;margin:0;"><i class="fas fa-user-plus" style="color:#3b82f6;margin-right:0.5rem;"></i> Create New User</h3>
 <button class="btn btn-ghost btn-sm opb-modal-close-btn" id="closeCreateModalHeaderBtn" aria-label="Close modal" style="min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
 </div>
@@ -306,7 +364,7 @@
 <option value="admin">Admin</option>
 </select>
 <div class="input-password-wrapper opb-password-wrapper">
-<input class="input-field" id="newPassword" placeholder="Password" required="" style="width:100%;padding-right:2.5rem;" type="password"/>
+<input class="input-field" id="newPassword" placeholder="Password" required="" style="width:100%;padding-right:2.5rem;" type="password" data-disable-paste="true"/>
 <button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg class="eye-svg-closed is-hidden" style="display:none;" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></button>
 </div>
 <div id="createError" style="color: var(--danger-color, #dc2626);font-size:0.8rem;display:none;"></div>
@@ -320,13 +378,13 @@
 <!-- Reset Password Modal -->
 <div class="modal-overlay" id="resetModal">
 <div class="modal" style="max-width:480px;">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+<div class="modal-header opb-modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
 <h3 style="font-size:1rem;font-weight:600;margin:0;"><i class="fas fa-key" style="color:#f59e0b;margin-right:0.5rem;"></i> Reset Password</h3>
 <button class="btn btn-ghost btn-sm opb-modal-close-btn" id="closeResetModalHeaderBtn" aria-label="Close modal" style="min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;" type="button"><i class="fas fa-times"></i></button>
 </div>
 <p style="font-size:0.85rem;color: var(--text-muted, #94a3b8);margin-bottom:1rem;">Reset password for <strong id="resetUsername" style="color: var(--text-primary, #e2e8f0);"></strong></p>
 <div class="input-password-wrapper opb-password-wrapper">
-<input class="input-field" id="resetPassword" placeholder="New password (min 8 chars)" required="" style="width:100%;padding-right:2.5rem;" type="password"/>
+<input class="input-field" id="resetPassword" placeholder="New password (min 8 chars)" required="" style="width:100%;padding-right:2.5rem;" type="password" data-disable-paste="true"/>
 <button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg class="eye-svg-closed is-hidden" style="display:none;" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></button>
 </div>
 <div id="resetError" style="color: var(--danger-color, #dc2626);font-size:0.8rem;display:none;"></div>
@@ -461,9 +519,18 @@
             const hasTelegram = !!(u.telegram_enabled && u.telegram_chat_id);
             const hasEmail = !!(u.email_enabled && u.email);
             const quotaText = `${u.daily_signals_used || 0}/${u.max_signals_daily || 0} ${u.weekly_signals_used || 0}/${u.max_signals_weekly || 0} ${u.monthly_signals_used || 0}/${u.max_signals_monthly || 0} ${u.yearly_signals_used || 0}/${u.max_signals_yearly || 0}`.toLowerCase();
+            let statusMatch = true;
+            if (status === 'allowed') {
+                statusMatch = !!(u.is_active && u.signals_enabled);
+            } else if (status === 'blocked') {
+                statusMatch = !!(u.is_active && !u.signals_enabled);
+            } else if (status === 'pending') {
+                statusMatch = !u.is_active;
+            }
+
             return (!q || username.includes(q) || name.includes(q))
                 && (!role || (role === 'super_admin' ? isSuper : actualRole === role))
-                && (!status || (status === 'allowed' ? !!u.signals_enabled : !u.signals_enabled))
+                && statusMatch
                 && (!tier || String(u.min_signal_tier || '') === tier)
                 && (!category || (u.allowed_categories || []).includes(category))
                 && (!channel || (channel === 'telegram' ? hasTelegram : channel === 'email' ? hasEmail : !hasTelegram && !hasEmail))
@@ -512,9 +579,11 @@
                     </div>
                 `;
 
-                const statusBtn = u.signals_enabled
-                    ? `<button type="button" class="badge badge-ok signal-status-btn cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-check-circle"></i> ALLOWED</button>`
-                    : `<button type="button" class="badge badge-critical signal-status-btn cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}"><i class="fas fa-ban"></i> BLOCKED</button>`;
+                const statusBtn = !u.is_active
+                    ? `<button type="button" class="badge badge-warning signal-status-btn cursor-pointer" data-action="activate-user" data-username="${safeUsername}" title="Pending administrative approval. Click to approve and activate signals."><i class="fas fa-clock"></i> PENDING</button>`
+                    : (u.signals_enabled
+                        ? `<button type="button" class="badge badge-ok signal-status-btn cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}" title="Signals active. Click to block."><i class="fas fa-check-circle"></i> ALLOWED</button>`
+                        : `<button type="button" class="badge badge-critical signal-status-btn cursor-pointer" data-action="toggle-signals" data-username="${safeUsername}" title="Signals blocked. Click to allow."><i class="fas fa-ban"></i> BLOCKED</button>`);
 
                 return `<tr>
                     <td style="min-width:130px;">
@@ -527,10 +596,14 @@
                     <td style="min-width:220px;max-width:300px;">${catsHtml}</td>
                     <td style="min-width:145px;white-space:nowrap;">${quotaHtml}</td>
                     <td style="min-width:75px;">${channelsHtml}</td>
-                    <td class="actions-col" style="min-width:210px;text-align:right;position:sticky;right:0;background:var(--bg-card,#0f172a);z-index:2;">
+                    <td class="actions-col" style="min-width:230px;text-align:right;position:sticky;right:0;background:var(--bg-card,#0f172a);z-index:2;">
                         <div style="display:flex;justify-content:flex-end;gap:0.3rem;">
                             <button type="button" class="btn btn-ghost btn-sm" title="View User" aria-label="View user ${safeUsername}" data-action="view-user" data-username="${safeUsername}"><i class="fas fa-eye" style="color:#38bdf8;"></i> View</button>
                             <button type="button" class="btn btn-ghost btn-sm" title="Edit Permissions & Quotas" data-action="open-edit-modal" data-username="${safeUsername}"><i class="fas fa-sliders-h" style="color:#60a5fa;"></i> Edit</button>
+                            ${!u.is_active
+                                ? `<button type="button" class="btn btn-ghost btn-sm" title="Approve & Activate Signals" data-action="activate-user" data-username="${safeUsername}"><i class="fas fa-user-check" style="color:#22c55e;"></i> Approve</button>`
+                                : ''}
+                            <button type="button" class="btn btn-ghost btn-sm" title="Notification History &amp; Audit" data-action="notif-timeline" data-username="${safeUsername}"><i class="fas fa-envelope-open-text" style="color:#f59e0b;"></i></button>
                             <button type="button" class="btn btn-ghost btn-sm" title="Reset Password" data-action="reset-user-pw" data-username="${safeUsername}"><i class="fas fa-key" style="color:#f59e0b;"></i></button>
                             ${u.disabled
                                 ? `<button type="button" class="btn btn-ghost btn-sm" title="Enable User" data-action="enable-user" data-username="${safeUsername}"><i class="fas fa-user-check" style="color:#22c55e;"></i></button>`
@@ -576,6 +649,123 @@
                 console.error("Error loading audit log:", err);
                 const tb = document.getElementById('auditTableBody');
                 if (tb) tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color: var(--danger-color, #dc2626);">Failed to load audit log</td></tr>';
+            }
+        }
+
+        async function loadNotificationAuditLog() {
+            try {
+                const u = document.getElementById('notifFilterUser')?.value?.trim() || '';
+                const ch = document.getElementById('notifFilterChannel')?.value || '';
+                const st = document.getElementById('notifFilterStatus')?.value || '';
+                let url = '/api/auth/admin/notifications/audit?limit=50';
+                if (u) url += `&username=${encodeURIComponent(u)}`;
+                if (ch) url += `&channel=${encodeURIComponent(ch)}`;
+                if (st) url += `&status=${encodeURIComponent(st)}`;
+
+                const res = await apiFetch(url);
+                const items = res?.items || [];
+                const tb = document.getElementById('notifAuditTableBody');
+                if (!tb) return;
+                if (items.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color: var(--text-muted, #94a3b8);padding:1.5rem;">No notification audit records found matching filters</td></tr>';
+                    return;
+                }
+                tb.innerHTML = items.map(r => {
+                    const statusUpper = (r.status || 'UNKNOWN').toUpperCase();
+                    let badgeClass = 'badge-warning';
+                    if (statusUpper === 'SENT' || statusUpper === 'ACCEPTED') badgeClass = 'badge-ok';
+                    else if (statusUpper === 'FAILED') badgeClass = 'badge-critical';
+                    else if (statusUpper === 'SUPPRESSED') badgeClass = 'badge-warning';
+                    else badgeClass = 'badge-category';
+
+                    const channelIcon = r.channel === 'EMAIL' ? '<i class="fas fa-envelope" style="color:#f59e0b;"></i> EMAIL' : '<i class="fab fa-telegram" style="color:#38bdf8;"></i> TG';
+                    const attemptedText = r.attempted ? '<span style="color:#22c55e;font-weight:600;"><i class="fas fa-check"></i> Yes</span>' : '<span style="color:var(--text-muted,#94a3b8);"><i class="fas fa-minus"></i> No</span>';
+
+                    return `<tr>
+                        <td style="font-size:0.75rem;color: var(--text-muted, #94a3b8);font-family:monospace;">${escapeHtml(r.timestamp || '-')}</td>
+                        <td style="font-weight:600;color: var(--text-primary, #e2e8f0);">${escapeHtml(r.username || '-')}</td>
+                        <td style="font-size:0.75rem;font-family:monospace;color:#60a5fa;">${escapeHtml(r.signal_id || '-')}</td>
+                        <td>${channelIcon}</td>
+                        <td style="font-size:0.75rem;">${attemptedText}</td>
+                        <td><span class="badge ${badgeClass}">${escapeHtml(statusUpper)}</span></td>
+                        <td style="font-size:0.75rem;font-family:monospace;color:var(--text-muted,#94a3b8);">${escapeHtml(r.destination || '-')}</td>
+                        <td style="font-size:0.75rem;color:var(--text-secondary,#cbd5e1);max-width:240px;word-break:break-word;">${escapeHtml(r.error_message || '-')}</td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                console.error("Error loading notification audit:", err);
+                const tb = document.getElementById('notifAuditTableBody');
+                if (tb) tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color: var(--danger-color, #dc2626);">Failed to load notification audit</td></tr>';
+            }
+        }
+
+        async function openUserNotifTimeline(username) {
+            try {
+                document.getElementById('timelineModalUser').textContent = username;
+                document.getElementById('userTimelineHeader').innerHTML = '<div style="color:var(--text-muted,#94a3b8);">Loading user profile...</div>';
+                document.getElementById('userTimelineTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted,#94a3b8);">Loading timeline...</td></tr>';
+                document.getElementById('userNotifTimelineModal').classList.add('visible');
+
+                const res = await apiFetch(`/api/auth/admin/users/${encodeURIComponent(username)}/notification-timeline?limit=50`);
+                if (!res || !res.success) {
+                    document.getElementById('userTimelineTableBody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--danger-color,#dc2626);">${escapeHtml(res?.detail || 'Failed to load timeline')}</td></tr>`;
+                    return;
+                }
+
+                const prof = res.user_profile || {};
+                const sum = res.summary || {};
+                const approvalBadge = prof.is_active ? '<span class="badge badge-ok"><i class="fas fa-check-circle"></i> Approved</span>' : '<span class="badge badge-warning"><i class="fas fa-clock"></i> Pending Approval</span>';
+                const signalToggleBadge = prof.signals_enabled ? '<span class="badge badge-ok">Enabled</span>' : '<span class="badge badge-critical">Blocked</span>';
+                const eligBadge = prof.effective_eligible ? '<span class="badge badge-ok">Eligible</span>' : `<span class="badge badge-critical" title="${escapeHtml((prof.rejection_reasons || []).join('; '))}">Ineligible (${(prof.rejection_reasons || []).length} reasons)</span>`;
+
+                document.getElementById('userTimelineHeader').innerHTML = `
+                    <div>
+                        <div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);">Account Status</div>
+                        <div style="margin-top:0.25rem;">${approvalBadge} ${signalToggleBadge}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);">Effective Dispatch State</div>
+                        <div style="margin-top:0.25rem;">${eligBadge}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);">Daily Quota Used</div>
+                        <div style="font-weight:700;font-size:0.85rem;margin-top:0.25rem;color:var(--text-primary,#e2e8f0);">${prof.daily_signals_used} / ${prof.max_signals_daily > 0 ? prof.max_signals_daily : '∞'}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.7rem;color:var(--text-muted,#94a3b8);">Recorded Events</div>
+                        <div style="font-size:0.8rem;margin-top:0.25rem;"><span style="color:#22c55e;">Sent: <b>${sum.sent_count || 0}</b></span> | <span style="color:#ef4444;">Failed: <b>${sum.failed_count || 0}</b></span> | <span style="color:#f59e0b;">Suppressed: <b>${sum.suppressed_count || 0}</b></span></div>
+                    </div>
+                `;
+
+                const timeline = res.timeline || [];
+                const tb = document.getElementById('userTimelineTableBody');
+                if (timeline.length === 0) {
+                    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted,#94a3b8);padding:1.5rem;">No notification events recorded for this user yet.</td></tr>';
+                    return;
+                }
+
+                tb.innerHTML = timeline.map(t => {
+                    const st = (t.status || 'UNKNOWN').toUpperCase();
+                    let bClass = 'badge-warning';
+                    if (st === 'SENT' || st === 'ACCEPTED') bClass = 'badge-ok';
+                    else if (st === 'FAILED') bClass = 'badge-critical';
+                    else if (st === 'SUPPRESSED') bClass = 'badge-warning';
+
+                    const chIcon = t.channel === 'EMAIL' ? '<i class="fas fa-envelope" style="color:#f59e0b;"></i> Email' : '<i class="fab fa-telegram" style="color:#38bdf8;"></i> TG';
+
+                    return `<tr>
+                        <td style="font-size:0.75rem;font-family:monospace;color:var(--text-muted,#94a3b8);">${escapeHtml(t.timestamp || '-')}</td>
+                        <td style="font-size:0.75rem;font-family:monospace;color:#60a5fa;">${escapeHtml(t.signal_id || '-')}</td>
+                        <td style="font-weight:600;font-size:0.8rem;">${escapeHtml(t.symbol || '-')}</td>
+                        <td style="font-size:0.75rem;">${chIcon}</td>
+                        <td><span class="badge ${bClass}">${escapeHtml(st)}</span></td>
+                        <td style="font-size:0.75rem;font-family:monospace;color:var(--text-muted,#94a3b8);">${escapeHtml(t.destination || '-')}</td>
+                        <td style="font-size:0.75rem;color:var(--text-secondary,#cbd5e1);word-break:break-word;">${escapeHtml(t.error_message || '-')}</td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                console.error("Error loading user timeline:", err);
+                document.getElementById('userTimelineTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger-color,#dc2626);">Failed to load timeline</td></tr>';
             }
         }
 
@@ -630,6 +820,7 @@
             editingUsername = username;
             document.getElementById('permUsername').value = u.username || username;
             document.getElementById('permDisplayName').value = u.display_name || '';
+            document.getElementById('permIsActive').checked = !!u.is_active;
             document.getElementById('permSignalsEnabled').checked = !!u.signals_enabled;
             document.getElementById('permMinTier').value = u.min_signal_tier || 'MODERATE_AND_STRONG';
             document.getElementById('permRole').value = u.role || 'viewer';
@@ -672,7 +863,9 @@
             const cats = (u.allowed_categories || []).map(c => categoryNames[c] || c).join(', ') || 'None';
             document.getElementById('viewUserContent').innerHTML = [
                 ['Username', u.username], ['Display Name', u.display_name || '-'], ['Role', roleLabel],
-                ['Account Status', u.is_active ? 'Active' : 'Disabled'], ['Signals', u.signals_enabled ? 'Allowed' : 'Blocked'],
+                ['Account Approval', u.is_active ? 'Approved / Active' : 'Pending Approval / Inactive'],
+                ['Login Status', u.disabled ? 'Disabled' : 'Enabled'],
+                ['Signal Delivery', (u.is_active && u.signals_enabled) ? 'Allowed' : 'Blocked'],
                 ['Minimum Tier', u.min_signal_tier || '-'], ['Categories', cats],
                 ['Daily Quota', `${u.daily_signals_used || 0} / ${u.max_signals_daily > 0 ? u.max_signals_daily : 'Unlimited'}`],
                 ['Weekly Quota', `${u.weekly_signals_used || 0} / ${u.max_signals_weekly > 0 ? u.max_signals_weekly : 'Unlimited'}`],
@@ -719,6 +912,7 @@
             const selectedCats = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(cb => cb.value);
             const payload = {
                 display_name: document.getElementById('permDisplayName').value,
+                is_active: document.getElementById('permIsActive').checked,
                 signals_enabled: document.getElementById('permSignalsEnabled').checked,
                 allowed_categories: selectedCats,
                 min_signal_tier: document.getElementById('permMinTier').value,
@@ -822,6 +1016,18 @@
             }
         });
 
+        async function activateUser(username) {
+            if (!confirm(`Approve and activate user ${username} for trading signal delivery?`)) return;
+            const res = await apiFetch(`/api/auth/users/${username}/activate`, {method: 'POST'});
+            if (res && res.success) {
+                showToast(res.message || `User ${username} approved and activated`, 'success');
+                await loadPermissions();
+                await loadAuditLog();
+            } else {
+                showToast(res?.detail || 'Failed to activate user', 'error');
+            }
+        }
+
         async function setUserEnabled(username, enabled) {
             const verb = enabled ? 'enable' : 'disable';
             if (!confirm(`Are you sure you want to ${verb} user ${username}?`)) return;
@@ -864,11 +1070,30 @@
             const username = btn.dataset.username;
             if (btn.dataset.action === 'view-user') viewUser(username);
             else if (btn.dataset.action === 'toggle-signals') toggleSignals(username);
+            else if (btn.dataset.action === 'activate-user') activateUser(username);
             else if (btn.dataset.action === 'open-edit-modal') openEditModal(username);
+            else if (btn.dataset.action === 'notif-timeline') openUserNotifTimeline(username);
             else if (btn.dataset.action === 'reset-user-pw') resetUserPw(username);
             else if (btn.dataset.action === 'disable-user') setUserEnabled(username, false);
             else if (btn.dataset.action === 'enable-user') setUserEnabled(username, true);
             else if (btn.dataset.action === 'delete-user') deleteUser(username);
+        });
+
+        document.getElementById('closeUserTimelineBtn')?.addEventListener('click', () => {
+            document.getElementById('userNotifTimelineModal')?.classList.remove('visible');
+        });
+
+        document.getElementById('btnRefreshNotifAudit')?.addEventListener('click', async () => {
+            await loadNotificationAuditLog();
+            showToast('Notification audit log refreshed', 'info');
+        });
+
+        ['notifFilterUser', 'notifFilterChannel', 'notifFilterStatus'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', loadNotificationAuditLog);
+                el.addEventListener('change', loadNotificationAuditLog);
+            }
         });
 
         ['colFilterUser','colFilterRole','colFilterSignalStatus','colFilterTier','colFilterCategory','colFilterQuota','colFilterChannel'].forEach(id => {
@@ -883,6 +1108,7 @@
         // Initialize on load
         loadPermissions();
         loadAuditLog();
+        loadNotificationAuditLog();
     </script>    {% include "_pwa_sw_reg.html" %}
 </body>
 </html>

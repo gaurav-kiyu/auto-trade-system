@@ -176,7 +176,7 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
     @app.get("/api/system/trades")
     async def api_trades(
         n: int = _Query(default=50, le=500, description="Number of trades to return (max 500)"),
-        user: Any = Depends(dashboard._auth_deps.require_auth_optional),
+        user: Any = Depends(dashboard._auth_deps.require_auth),
     ):
         """Get recent trades with optional limit."""
         return dashboard._load_recent_trades(n=n)
@@ -186,11 +186,11 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
         return await dashboard._check_health()
 
     @app.get("/api/system/signals")
-    async def api_signals(user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
+    async def api_signals(user: Any = Depends(dashboard._auth_deps.require_auth)):  # type: ignore[no-untyped-def]
         return dashboard._get_signals()
 
     @app.get("/api/system/performance")
-    async def api_performance(user: Any = Depends(dashboard._auth_deps.require_auth_optional)):  # type: ignore[no-untyped-def]
+    async def api_performance(user: Any = Depends(dashboard._auth_deps.require_auth)):  # type: ignore[no-untyped-def]
         """Get performance metrics summary for the performance dashboard."""
         try:
             from pathlib import Path
@@ -725,7 +725,7 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
         uptime_secs = time.time() - dashboard._startup_ts if hasattr(dashboard, "_startup_ts") else 0
         return {
             "status": "healthy" if (db_ok and auth_db_ok and not state.get("hard_halt")) else "degraded",
-            "version": "2.60.0",
+            "version": "2.61.0",
             "uptime_seconds": uptime_secs,
             "uptime_human": f"{int(uptime_secs//3600)}h {int(uptime_secs%3600//60)}m {int(uptime_secs%60)}s",
             "db_connected": db_ok,
@@ -825,7 +825,7 @@ def register_system_routes(app, dashboard, admin_only, operator_or_admin) -> Non
     @app.get("/api/trade-journal")
     async def api_trade_journal(
         n: int = _Query(default=500, le=1000, description="Number of trades to return (max 1000)"),
-        user: Any = Depends(dashboard._auth_deps.require_auth_optional),
+        user: Any = Depends(dashboard._auth_deps.require_auth),
     ):
         """Get trade journal with detailed trade data for the Trade Journal viewer."""
         try:

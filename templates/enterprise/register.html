@@ -354,7 +354,7 @@ label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary, #94a3
 <div>
 <label for="password"><i class="fas fa-lock" style="margin-right:0.3rem;"></i> Password</label>
 <div class="input-wrapper opb-password-wrapper">
-<input autocomplete="new-password" class="input-field" id="password" minlength="8" placeholder="Minimum 8 characters" required="" type="password"/><button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+<input autocomplete="new-password" class="input-field" id="password" minlength="8" placeholder="Minimum 8 characters" required="" type="password" data-disable-paste="true"/><button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
 
 </div>
 <div class="password-hint" style="font-size:0.75rem;color:var(--text-muted,#94a3b8);margin-top:0.35rem;line-height:1.4;"><i class="fas fa-shield-alt" style="color:var(--accent-color,#38bdf8);"></i> Min 8 chars: uppercase (A-Z), lowercase (a-z), digit (0-9), special char (!@#$%^&*).</div>
@@ -362,7 +362,7 @@ label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary, #94a3
 <div>
 <label for="confirmPassword"><i class="fas fa-lock" style="margin-right:0.3rem;"></i> Confirm Password</label>
 <div class="input-wrapper opb-password-wrapper">
-<input autocomplete="new-password" class="input-field" id="confirmPassword" placeholder="Re-enter password" required="" type="password"/><button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+<input autocomplete="new-password" class="input-field" id="confirmPassword" placeholder="Re-enter password" required="" type="password" data-disable-paste="true"/><button aria-label="Show password" aria-pressed="false" class="opb-password-toggle" data-toggle="password" title="Show/Hide password" type="button"><svg class="eye-svg-open" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
 
 </div>
 </div>
@@ -377,6 +377,12 @@ label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary, #94a3
 </form>
 <div class="footer">
             Already have an account? <a href="/login">Sign in</a>
+            <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color,#1e293b);display:flex;justify-content:center;gap:1rem;font-size:0.78rem;flex-wrap:wrap;">
+                <a href="/about" style="color:var(--text-muted,#94a3b8);text-decoration:none;">About OPB</a>
+                <a href="/contact" style="color:var(--text-muted,#94a3b8);text-decoration:none;">Contact Support</a>
+                <a href="/privacy" style="color:var(--text-muted,#94a3b8);text-decoration:none;">Privacy Policy</a>
+                <a href="/terms" style="color:var(--text-muted,#94a3b8);text-decoration:none;">Terms & Risk Disclosures</a>
+            </div>
 </div>
 </div>
 <script nonce="{{ nonce }}">
@@ -495,6 +501,7 @@ label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary, #94a3
                         display_name: displayName || username,
                         telegram_chat_id: telegramChatId,
                         password,
+                        confirm_password: confirmPassword,
                         role
                     })
                 });
@@ -512,11 +519,19 @@ label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary, #94a3
                 setLoading(false);
             }
         });
+
+        // Explicit paste & copy prevention for password and confirm password fields
+        ['password', 'confirmPassword'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                ['paste', 'copy', 'cut'].forEach(evt => {
+                    input.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        showError('Copying and pasting is disabled in password fields for security.');
+                    });
+                });
+            }
+        });
     </script>    {% include "_pwa_sw_reg.html" %}
-    <script nonce="{{ nonce }}">
-        // Wired via addEventListener, not inline attributes - CSP's script-src
-        // has no 'unsafe-inline', which silently blocks inline event-handler
-        // attributes even though a nonce'd block itself can still run (2026-08-22 fix).
-    </script>
 </body>
 </html>

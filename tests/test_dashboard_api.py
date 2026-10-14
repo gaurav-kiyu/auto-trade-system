@@ -162,9 +162,17 @@ class TestSystemEndpoints:
         data = resp.json()
         assert isinstance(data.get("uptime_seconds"), (int, float))
 
-    def test_trades(self, client: TestClient):
+    def test_trades(self, dashboard, client: TestClient):
+        # Unauthenticated request must return 401
         resp = client.get("/api/system/trades",
                           headers={"accept": "application/json"})
+        assert resp.status_code == 401
+
+        # Authenticated request succeeds
+        user = dashboard._auth.get_user("admin")
+        token = dashboard._auth.create_session(user)
+        resp = client.get("/api/system/trades",
+                          headers={"accept": "application/json", "Authorization": f"Bearer {token.token}"})
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)

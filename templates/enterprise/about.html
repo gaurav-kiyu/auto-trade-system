@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — About Platform & Quantitative Cockpit</title>
+    <script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+    <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <link rel="stylesheet" href="/static/opb_design_system.css">
+    {% include "_pwa_head.html" %}
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-ui, 'Inter', sans-serif);
+            background: var(--bg-primary, #080b10);
+            color: var(--text-primary, #e2e8f0);
+            min-height: 100vh;
+            padding: 1.5rem 1.75rem 3rem 1.75rem;
+        }
+        .about-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .hero-banner {
+            background: var(--bg-card, #101722);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 1rem;
+            padding: 2.25rem 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: color-mix(in srgb, var(--accent-color, #38bdf8) 15%, transparent);
+            border: 1px solid color-mix(in srgb, var(--accent-color, #38bdf8) 35%, transparent);
+            color: var(--accent-color, #38bdf8);
+            font-size: 0.78rem;
+            font-weight: 750;
+            padding: 0.3rem 0.75rem;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 850;
+            line-height: 1.25;
+            color: var(--text-primary, #ffffff);
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.02em;
+        }
+        .hero-subtitle {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-secondary, #94a3b8);
+            max-width: 800px;
+        }
+        .mode-callout {
+            margin-top: 1.25rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--bg-secondary, #131e33);
+            border: 1px solid var(--border-color, #263244);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.82rem;
+        }
+        .section-heading {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-primary, #ffffff);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .section-desc {
+            font-size: 0.88rem;
+            color: var(--text-secondary, #94a3b8);
+            margin-bottom: 1.25rem;
+            line-height: 1.55;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .feature-card {
+            background: var(--bg-card, #101722);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.2s ease;
+        }
+        .feature-card:hover {
+            border-color: var(--border-color-hover, var(--accent-color, #38bdf8));
+            transform: translateY(-2px);
+        }
+        .feature-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 0.5rem;
+            background: color-mix(in srgb, var(--accent-color, #38bdf8) 12%, transparent);
+            border: 1px solid color-mix(in srgb, var(--accent-color, #38bdf8) 25%, transparent);
+            color: var(--accent-color, #38bdf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            margin-bottom: 1rem;
+        }
+        .feature-title {
+            font-size: 1.05rem;
+            font-weight: 750;
+            color: var(--text-primary, #ffffff);
+            margin-bottom: 0.5rem;
+        }
+        .feature-text {
+            font-size: 0.84rem;
+            line-height: 1.6;
+            color: var(--text-secondary, #cbd5e1);
+        }
+        .statutory-box {
+            background: color-mix(in srgb, var(--warning-color, #d97706) 8%, var(--bg-card, #101722));
+            border: 1px solid color-mix(in srgb, var(--warning-color, #d97706) 35%, transparent);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .statutory-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--warning-color, #f59e0b);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .statutory-body {
+            font-size: 0.82rem;
+            line-height: 1.65;
+            color: var(--text-secondary, #cbd5e1);
+        }
+        .public-footer {
+            border-top: 1px solid var(--border-color, #1e293b);
+            padding-top: 1.75rem;
+            margin-top: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.82rem;
+            color: var(--text-muted, #94a3b8);
+        }
+        .footer-links {
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .footer-links a {
+            color: var(--text-secondary, #cbd5e1);
+            text-decoration: none;
+            font-weight: 650;
+        }
+        .footer-links a:hover {
+            color: var(--accent-color, #38bdf8);
+        }
+    </style>
+</head>
+<body>
+    {% include '_nav.html' %}
+
+    <div class="about-container">
+        <!-- Hero Section -->
+        <div class="hero-banner">
+            <div class="hero-badge">
+                <i class="fas fa-microchip"></i> Quantitative Architecture • Indian Markets (NSE / BSE)
+            </div>
+            <h1 class="hero-title">High-Concurrence Quantitative Cockpit & Algorithmic Analytics</h1>
+            <p class="hero-subtitle">
+                OPB (Options & Pairs Bot) is an institutional-grade algorithmic analysis, options flow intelligence, and multi-leg risk modeling platform engineered specifically for the Indian equity and derivatives markets.
+            </p>
+            <div class="mode-callout">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warning-color,#d97706);"></span>
+                <span style="font-weight:700;color:var(--text-primary,#ffffff);">Governed Runtime:</span>
+                <span style="font-family:var(--font-mono,monospace);color:var(--accent-color,#38bdf8);">ENVIRONMENT=PAPER</span>
+                <span style="color:var(--text-muted,#94a3b8);">•</span>
+                <span style="font-family:var(--font-mono,monospace);color:var(--accent-color,#38bdf8);">EXECUTION_MODE=SIGNAL_ONLY</span>
+            </div>
+        </div>
+
+        <!-- Section 1: What OPB Does -->
+        <div style="margin-bottom:2.5rem;">
+            <h2 class="section-heading"><i class="fas fa-layer-group" style="color:var(--accent-color,#38bdf8);"></i> What OPB Does</h2>
+            <p class="section-desc">
+                Designed for quantitative analysts, options traders, and active market participants seeking systematic decision support rather than speculative guessing.
+            </p>
+
+            <div class="grid-3">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                    <h3 class="feature-title">Options Chain Heatmap</h3>
+                    <p class="feature-text">
+                        Dynamic real-time Open Interest (OI) analysis, change in OI, PCR (Put-Call Ratio), Max Pain trajectories, and volatility smiles across NIFTY, BANKNIFTY, and key liquid stock derivatives.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-radar"></i></div>
+                    <h3 class="feature-title">Sector Flow & Radar</h3>
+                    <p class="feature-text">
+                        Continuous cross-sectional momentum tracking across NSE sectoral indices (Nifty IT, Bank, Auto, Pharma, Metal) revealing where institutional capital is accumulating or distributing.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-university"></i></div>
+                    <h3 class="feature-title">Institutional FII / DII Radar</h3>
+                    <p class="feature-text">
+                        Automated reconciliation of Foreign Institutional Investor (FII) and Domestic Institutional Investor (DII) cash and index derivative positions, identifying market sentiment regimes.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-calculator"></i></div>
+                    <h3 class="feature-title">Multi-Leg Payoff Engine</h3>
+                    <p class="feature-text">
+                        Multi-strike payoff graphs, real-time Greeks calculation (Delta, Gamma, Theta, Vega), breakeven boundaries, and probability of profit (POP) for spreads, straddles, iron condors, and custom structures.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-bell"></i></div>
+                    <h3 class="feature-title">Signal Radar & Dispatch</h3>
+                    <p class="feature-text">
+                        High-probability algorithmic signal generation filtered through multi-factor validation gates, dispatched securely to verified user inboxes and live browser interfaces.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                    <h3 class="feature-title">Enterprise Risk Architecture</h3>
+                    <p class="feature-text">
+                        Hard circuit-breaker limits, portfolio drawdown monitoring, broker margin radars, and automated safety lockouts that prevent rogue trades or margin stress.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: How OPB Works -->
+        <div style="margin-bottom:2.5rem;">
+            <h2 class="section-heading"><i class="fas fa-cogs" style="color:var(--accent-color,#38bdf8);"></i> How OPB Works — Algorithmic Pipeline</h2>
+            <p class="section-desc">
+                From raw exchange tick data to deterministic signal verification, OPB operates as an automated 5-stage quantitative pipeline.
+            </p>
+
+            <div class="grid-2">
+                <div class="feature-card">
+                    <div class="feature-title" style="display:flex;align-items:center;gap:0.5rem;">
+                        <span style="background:var(--accent-color,#38bdf8);color:#080c14;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;">1</span>
+                        Market Data Ingestion & Tick Normalization
+                    </div>
+                    <p class="feature-text" style="margin-top:0.5rem;">
+                        Real-time market feeds stream from authorized exchange endpoints and broker feeds. Ingested ticks are timestamped, validated for monotonicity, checked for anomalies, and mapped to standardized financial instrument models.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-title" style="display:flex;align-items:center;gap:0.5rem;">
+                        <span style="background:var(--accent-color,#38bdf8);color:#080c14;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;">2</span>
+                        Feature Engineering & Order Block Analytics
+                    </div>
+                    <p class="feature-text" style="margin-top:0.5rem;">
+                        Data streams are transformed into multi-timeframe quantitative features: exponential moving average convergences, volatility regime classifications, VWAP deviations, option implied volatility surfaces, and institutional order clusters.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-title" style="display:flex;align-items:center;gap:0.5rem;">
+                        <span style="background:var(--accent-color,#38bdf8);color:#080c14;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;">3</span>
+                        Consensus Signal Engine & Tier Gate
+                    </div>
+                    <p class="feature-text" style="margin-top:0.5rem;">
+                        Signals are NOT generated by single indicators. Multiple independent quantitative models must establish consensus (directional trend, volatility confirmation, options flow backing, and risk-reward ratio >= 1:2) before an alert is accepted.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-title" style="display:flex;align-items:center;gap:0.5rem;">
+                        <span style="background:var(--accent-color,#38bdf8);color:#080c14;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;">4</span>
+                        Risk-Checked Dispatch & User Notification
+                    </div>
+                    <p class="feature-text" style="margin-top:0.5rem;">
+                        Approved signals pass through per-user quota checks, administrative activation verification, and risk thresholds before dispatching via WebSockets to the cockpit and email to registered, approved subscribers.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Paper Execution & Safety Invariants -->
+        <div style="margin-bottom:2.5rem;">
+            <h2 class="section-heading"><i class="fas fa-lock" style="color:var(--accent-color,#38bdf8);"></i> Governed Execution Modes & Safety Boundaries</h2>
+            <p class="section-desc">
+                Safety and risk containment are hardcoded into the platform's core governance architecture.
+            </p>
+
+            <div class="feature-card" style="margin-bottom:1.25rem;">
+                <h3 class="feature-title" style="color:var(--warning-color,#f59e0b);">
+                    <i class="fas fa-exclamation-triangle" style="margin-right:0.5rem;"></i> Fail-Closed Execution Invariant
+                </h3>
+                <p class="feature-text" style="margin-top:0.5rem;">
+                    OPB is strictly locked in <strong>PAPER / SIMULATION</strong> mode. The application runs with <code>EXECUTION_MODE=SIGNAL_ONLY</code>, <code>LIVE_TRADING_LOCKOUT=True</code>, and <code>BROKER_AUTO_ROUTING=DISCONNECTED</code>. The platform does not place automated live orders on external exchange accounts without explicit, verified operator override.
+                </p>
+            </div>
+        </div>
+
+        <!-- Section 4: What a Signal Is and Is Not -->
+        <div style="margin-bottom:2.5rem;">
+            <h2 class="section-heading"><i class="fas fa-info-circle" style="color:var(--accent-color,#38bdf8);"></i> Understanding Quantitative Signals</h2>
+            <div class="grid-2">
+                <div class="feature-card" style="border-left: 4px solid var(--success-color,#22c55e);">
+                    <h3 class="feature-title" style="color:var(--success-color,#22c55e);"><i class="fas fa-check-circle" style="margin-right:0.4rem;"></i> What an OPB Signal Is</h3>
+                    <ul style="list-style:none;padding:0;margin-top:0.75rem;font-size:0.84rem;color:var(--text-secondary,#cbd5e1);line-height:1.7;">
+                        <li>✓ A mathematical hypothesis based on statistical market conditions.</li>
+                        <li>✓ A structured analytical scenario with entry reference, stop-loss, and multi-target targets.</li>
+                        <li>✓ An educational and research tool for active market evaluation.</li>
+                        <li>✓ An objective data point to complement a trader's own independent analysis.</li>
+                    </ul>
+                </div>
+                <div class="feature-card" style="border-left: 4px solid var(--danger-color,#ef4444);">
+                    <h3 class="feature-title" style="color:var(--danger-color,#ef4444);"><i class="fas fa-times-circle" style="margin-right:0.4rem;"></i> What an OPB Signal Is NOT</h3>
+                    <ul style="list-style:none;padding:0;margin-top:0.75rem;font-size:0.84rem;color:var(--text-secondary,#cbd5e1);line-height:1.7;">
+                        <li>✗ Not financial advice, investment advisory, or portfolio management.</li>
+                        <li>✗ Not a guarantee of profit or protection from market loss.</li>
+                        <li>✗ Not an instruction or solicitation to execute any transaction.</li>
+                        <li>✗ Not a replacement for your own due diligence and risk assessment.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statutory Box: SEBI Warning -->
+        <div class="statutory-box">
+            <div class="statutory-title">
+                <i class="fas fa-landmark"></i> SEBI Statutory Disclosures & Mandatory Risk Warning
+            </div>
+            <div class="statutory-body">
+                <p style="margin-bottom:0.6rem;">
+                    <strong>Non-Registration Notice:</strong> OPB and its developers/operators are <strong>NOT registered with the Securities and Exchange Board of India (SEBI)</strong> as Research Analysts (RA) under SEBI (Research Analysts) Regulations, 2014, or as Investment Advisers (IA) under SEBI (Investment Advisers) Regulations, 2013. All data, analytics, metrics, and signals provided by OPB are strictly for educational, informational, and research purposes.
+                </p>
+                <p>
+                    <strong>Mandatory SEBI Risk Disclosure on Derivatives (F&amp;O):</strong> 9 out of 10 individual traders in equity Futures and Options Segment incurred net losses. Over and above the net trading losses incurred, loss-makers expended an additional 15% to 28% of net trading losses as transaction costs. Those making net trading profits incurred between 15% to 50% of such profits as transaction cost. Trading in derivatives involves substantial risk of loss.
+                </p>
+            </div>
+        </div>
+
+        <!-- Public Footer Navigation -->
+        <div class="public-footer">
+            <div>
+                © 2026 OPB Quantitative Platform. All rights reserved.
+            </div>
+            <div class="footer-links">
+                <a href="/about">About Us</a>
+                <a href="/contact">Contact Support</a>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/terms">Terms &amp; Disclosures</a>
+                <a href="/login">Sign In</a>
+                <a href="/register">Register</a>
+            </div>
+        </div>
+    </div>
+
+    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

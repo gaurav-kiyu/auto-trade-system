@@ -33,3 +33,25 @@ def test_register_intelligence_routes_runs():
         app, dashboard, lambda: None, lambda: None  # type: ignore[arg-type]
     )
     assert len(app.routes) > 0
+
+
+def test_intelligence_summary_reports_canonical_app_version():
+    """GET /api/intelligence/summary must report canonical app version in bi_dashboard."""
+    from core.version import get_app_version
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    app = FastAPI()
+    dashboard = MagicMock()
+    register_intelligence_routes(
+        app, dashboard, lambda: None, lambda: None
+    )
+    client = TestClient(app)
+    resp = client.get("/api/intelligence/summary")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data.get("status") == "ok"
+    assert "bi_dashboard" in data
+    assert data["bi_dashboard"].get("version") == get_app_version()
+    assert data["bi_dashboard"].get("version") == "2.61.0"
+

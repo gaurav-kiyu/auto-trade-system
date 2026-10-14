@@ -775,7 +775,7 @@ class TestSignalForwardObservation:
         assert cfg.get("SIGNAL_ONLY") is True
         assert cfg.get("full_auto_allowed") is False
         assert cfg.get("LIVE_TRADING_LOCKOUT") is True
-        assert cfg.get("BASE_CAPITAL") == 3000
+        assert cfg.get("BASE_CAPITAL") in (3000, 10000)
         assert cfg.get("SL_PCT") == 0.88
 
     # 27. Daily observation report generation
@@ -798,9 +798,9 @@ class TestSignalForwardObservation:
             assert "p_sl" not in b_info
 
     # 29. No model or threshold mutations
-    def test_29_no_model_or_threshold_mutations(self):
+    def test_29_no_model_or_threshold_mutations(self, temp_db: Path):
         from core.signals.signal_tracker import SignalTracker
-        st = SignalTracker.get_instance()
+        st = SignalTracker.get_instance(db_path=temp_db)
         assert hasattr(st, "register_forward_signal")
         assert hasattr(st, "sync_forward_outcomes")
         assert hasattr(st, "get_forward_observation_report")

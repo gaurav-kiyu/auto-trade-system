@@ -31,6 +31,7 @@ from core.auth.handler.password import (
     generate_csrf_token,
     generate_token,
     hash_password,
+    validate_password_confirmation,
     validate_password_strength,
     verify_password,
 )
@@ -62,6 +63,7 @@ __all__ = [
     "hash_password",
     "verify_password",
     "validate_password_strength",
+    "validate_password_confirmation",
     "generate_token",
     "generate_csrf_token",
     # Mixins
@@ -70,3 +72,4 @@ __all__ = [
     # Main class
     "AuthHandler",
 ]
+

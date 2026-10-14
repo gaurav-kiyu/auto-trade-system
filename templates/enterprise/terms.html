@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — Terms of Service & Financial Risk Disclosures</title>
+    <script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+    <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <link rel="stylesheet" href="/static/opb_design_system.css">
+    {% include "_pwa_head.html" %}
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-ui, 'Inter', sans-serif);
+            background: var(--bg-primary, #080b10);
+            color: var(--text-primary, #e2e8f0);
+            min-height: 100vh;
+            padding: 1.5rem 1.75rem 3rem 1.75rem;
+        }
+        .legal-container {
+            max-width: 950px;
+            margin: 0 auto;
+        }
+        .legal-card {
+            background: var(--bg-card, #101722);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 1rem;
+            padding: 2.5rem 2.25rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+        }
+        .doc-header {
+            border-bottom: 1px solid var(--border-color, #1e293b);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .doc-title {
+            font-size: 2rem;
+            font-weight: 850;
+            color: var(--text-primary, #ffffff);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+        .doc-meta {
+            font-size: 0.82rem;
+            color: var(--text-muted, #94a3b8);
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .statutory-banner {
+            background: color-mix(in srgb, var(--warning-color, #d97706) 12%, var(--bg-card, #101722));
+            border: 1px solid var(--warning-color, #d97706);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2.25rem;
+        }
+        .banner-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--warning-color, #f59e0b);
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .banner-text {
+            font-size: 0.85rem;
+            line-height: 1.7;
+            color: var(--text-secondary, #cbd5e1);
+        }
+        .legal-section {
+            margin-bottom: 2.25rem;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-primary, #ffffff);
+            margin-bottom: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .section-body {
+            font-size: 0.88rem;
+            line-height: 1.75;
+            color: var(--text-secondary, #cbd5e1);
+        }
+        .section-body p {
+            margin-bottom: 0.85rem;
+        }
+        .section-body ul {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 0.85rem;
+        }
+        .section-body li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .section-body li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--accent-color, #38bdf8);
+            font-weight: bold;
+        }
+        .highlight-box {
+            background: var(--bg-secondary, #131e33);
+            border: 1px solid var(--border-color, #263244);
+            border-radius: 0.65rem;
+            padding: 1.25rem;
+            margin: 1rem 0;
+            font-size: 0.84rem;
+            line-height: 1.65;
+        }
+        .public-footer {
+            border-top: 1px solid var(--border-color, #1e293b);
+            padding-top: 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.82rem;
+            color: var(--text-muted, #94a3b8);
+        }
+        .footer-links {
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .footer-links a {
+            color: var(--text-secondary, #cbd5e1);
+            text-decoration: none;
+            font-weight: 650;
+        }
+        .footer-links a:hover {
+            color: var(--accent-color, #38bdf8);
+        }
+    </style>
+</head>
+<body>
+    {% include '_nav.html' %}
+
+    <div class="legal-container">
+        <div class="legal-card">
+            <div class="doc-header">
+                <h1 class="doc-title"><i class="fas fa-file-contract" style="color:var(--accent-color,#38bdf8);margin-right:0.5rem;"></i> Terms of Service &amp; Statutory Risk Disclosures</h1>
+                <div class="doc-meta">
+                    <span><strong>Effective Date:</strong> October 2026</span>
+                    <span><strong>Platform Version:</strong> v2.61</span>
+                    <span><strong>Applicable Laws:</strong> Laws of the Republic of India</span>
+                </div>
+            </div>
+
+            <!-- Prominent Mandatory Statutory Risk Disclosure Banner -->
+            <div class="statutory-banner">
+                <div class="banner-title">
+                    <i class="fas fa-exclamation-triangle"></i> Mandatory SEBI Prescribed Risk Disclosure on Derivatives (F&amp;O)
+                </div>
+                <div class="banner-text">
+                    <p style="margin-bottom:0.6rem;">
+                        <strong>Study by the Securities and Exchange Board of India (SEBI):</strong>
+                    </p>
+                    <ol style="padding-left:1.25rem;margin-bottom:0.75rem;line-height:1.65;">
+                        <li><strong>9 out of 10 individual traders</strong> in equity Futures and Options Segment incurred net losses.</li>
+                        <li>Over and above the net trading losses incurred, loss-makers expended an additional <strong>15% to 28% of net trading losses as transaction costs</strong>.</li>
+                        <li>Those making net trading profits incurred between <strong>15% to 50% of such profits as transaction cost</strong>.</li>
+                    </ol>
+                    <p style="margin-bottom:0;">
+                        Trading in derivative contracts (Futures and Options) involves substantial risk of loss and is not suitable for all investors. You should carefully consider whether trading derivatives is appropriate for you in light of your financial condition, investment experience, and risk tolerance.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Section 1: Agreement to Terms -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">1.</span> Agreement to Terms</h2>
+                <div class="section-body">
+                    <p>
+                        By accessing, browsing, registering for, or using the OPB quantitative platform (the "Service", "Platform", or "Application"), you expressly agree to be bound by these Terms of Service ("Terms") and all applicable statutory regulations in India. If you disagree with any part of these Terms, you are strictly prohibited from using the Platform.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Section 2: SEBI Non-Registration Disclaimer -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">2.</span> SEBI Non-Registration &amp; Non-Advisory Notice</h2>
+                <div class="section-body">
+                    <div class="highlight-box" style="border-left:4px solid var(--accent-color,#38bdf8);">
+                        <p style="margin-bottom:0.5rem;font-weight:750;color:var(--text-primary,#ffffff);">
+                            CRITICAL REGULATORY NOTICE:
+                        </p>
+                        <p style="margin-bottom:0.5rem;">
+                            OPB, its parent entities, developers, and operators are <strong>NOT registered with the Securities and Exchange Board of India (SEBI)</strong> as Research Analysts (RA) under the SEBI (Research Analysts) Regulations, 2014, or as Investment Advisers (IA) under the SEBI (Investment Advisers) Regulations, 2013.
+                        </p>
+                        <p style="margin-bottom:0;">
+                            The Platform is purely a computational tool and software program that calculates quantitative formulas, options Greeks, order flow heatmaps, and statistical indicator metrics. Nothing published, displayed, calculated, or dispatched by OPB constitutes financial advice, investment advice, trading advice, a research report, a stock recommendation, or a solicitation to buy or sell any security.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Educational & Research Nature -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">3.</span> Nature of Services &amp; Research Tooling</h2>
+                <div class="section-body">
+                    <p>
+                        The tools provided on OPB—including the Options Chain Heatmap, Sector Radar, Multi-Leg Payoff Engine, FII/DII positioning analytics, and algorithmic signal radars—are strictly for <strong>educational, analytical, and research purposes</strong>.
+                    </p>
+                    <ul>
+                        <li>Algorithmic signals reflect theoretical quantitative models applying technical indicators to historical and streaming market data.</li>
+                        <li>Past statistical performance, paper backtests, or model simulations do not represent actual trading and do not guarantee future profitability or performance.</li>
+                        <li>You bear sole responsibility for any investment or trading decisions you make. Always consult a SEBI-registered financial advisor before executing trades with real capital.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 4: Paper Simulation Execution Boundary -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">4.</span> Governed Paper Simulation Execution</h2>
+                <div class="section-body">
+                    <p>
+                        In accordance with platform governance, OPB operates with:
+                    </p>
+                    <ul>
+                        <li><code>ENVIRONMENT=PAPER</code> — Trading simulations operate on virtual/paper accounting without real financial risk.</li>
+                        <li><code>EXECUTION_MODE=SIGNAL_ONLY</code> — Signals are dispatched for human review; automatic order placement to external broker endpoints is disabled.</li>
+                        <li><code>LIVE_TRADING_LOCKOUT=True</code> — System fail-closed lock prevents unauthorized live order execution.</li>
+                    </ul>
+                    <p>
+                        Any integration with third-party broker APIs is undertaken solely at your own discretion, risk, and responsibility.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Section 5: Limitation of Liability -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">5.</span> Warranty Disclaimer &amp; Limitation of Liability</h2>
+                <div class="section-body">
+                    <p>
+                        THE PLATFORM AND ALL CONTENTS, DATA, INDICATORS, AND SIGNALS ARE PROVIDED ON AN <strong>"AS IS"</strong> AND <strong>"AS AVAILABLE"</strong> BASIS WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+                    </p>
+                    <p>
+                        Under no circumstances shall OPB, its creators, engineers, or affiliates be liable for any direct, indirect, special, incidental, consequential, or punitive damages, including without limitation:
+                    </p>
+                    <ul>
+                        <li>Trading losses, loss of capital, or financial damages resulting from reliance on signals or analytics.</li>
+                        <li>Data feed delays, network latency, exchange API downtime, broker disconnects, or pricing anomalies.</li>
+                        <li>Software bugs, calculation inaccuracies, slippage discrepancies, or platform unavailability.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 6: User Obligations & Conduct -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">6.</span> User Conduct &amp; Account Security</h2>
+                <div class="section-body">
+                    <p>As a condition of using OPB, you agree that you will NOT:</p>
+                    <ul>
+                        <li>Reverse engineer, decompile, disassemble, or extract source code or proprietary mathematical algorithms from the Platform.</li>
+                        <li>Scrape, crawl, or harvest market data, options heatmaps, or signals using automated bots without express authorization.</li>
+                        <li>Share your account credentials, session cookies, or access privileges with third parties.</li>
+                        <li>Circumvent or attempt to tamper with rate-limiting, honeypots, copy/paste security controls, or RBAC permission gates.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 7: Governing Law & Jurisdiction -->
+            <div class="legal-section" style="margin-bottom:0;">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">7.</span> Governing Law &amp; Dispute Resolution</h2>
+                <div class="section-body">
+                    <p>
+                        These Terms shall be governed by, interpreted, and construed in accordance with the laws of the Republic of India, without regard to conflict of law principles. Any dispute arising out of or related to these Terms or the Platform shall be subject to the exclusive jurisdiction of the competent courts in New Delhi or Maharashtra, India.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Public Footer Navigation -->
+        <div class="public-footer">
+            <div>
+                © 2026 OPB Quantitative Platform. All rights reserved.
+            </div>
+            <div class="footer-links">
+                <a href="/about">About Us</a>
+                <a href="/contact">Contact Support</a>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/terms">Terms &amp; Disclosures</a>
+                <a href="/login">Sign In</a>
+                <a href="/register">Register</a>
+            </div>
+        </div>
+    </div>
+
+    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

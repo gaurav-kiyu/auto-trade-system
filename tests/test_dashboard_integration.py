@@ -12,6 +12,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 from collections.abc import Generator
 from pathlib import Path
 
@@ -21,6 +22,7 @@ fastapi = pytest.importorskip("fastapi", reason="fastapi not installed")
 
 from unittest.mock import MagicMock
 
+from core.auth.handler import AuthHandler
 from core.fundamental_analyzer import reset_fundamental_analyzer
 from core.web_dashboard import maybe_start_dashboard
 from fastapi.testclient import TestClient
@@ -30,6 +32,8 @@ from fastapi.testclient import TestClient
 def client_basic(tmp_path: Path) -> Generator[TestClient, None, None]:
     """Create dashboard TestClient with basics enabled (no webhook, no chain viz)."""
     reset_fundamental_analyzer()
+    os.environ["OPBUYING_DEFAULT_ADMIN_PASSWORD"] = "Admin@123!test"
+    auth_db = str(tmp_path / "auth_basic.db")
     app = maybe_start_dashboard(
         {
             "web_dashboard_enabled": True,
@@ -37,12 +41,19 @@ def client_basic(tmp_path: Path) -> Generator[TestClient, None, None]:
             "chain_viz_enabled": False,
             "web_dashboard_host": "127.0.0.1",
             "web_dashboard_port": 0,
+            "auth_db_path": auth_db,
         },
         db_path=str(tmp_path / "trades.db"),
     )
     if app is None:
         pytest.skip("Dashboard app could not be created")
-    yield TestClient(app)
+    client = TestClient(app)
+    auth = AuthHandler(db_path=auth_db)
+    user = auth.get_user("admin")
+    if user:
+        token = auth.create_session(user).token
+        client.cookies.set("opb_session", token)
+    yield client
     reset_fundamental_analyzer()
 
 
@@ -50,6 +61,8 @@ def client_basic(tmp_path: Path) -> Generator[TestClient, None, None]:
 def client_full(tmp_path: Path) -> Generator[TestClient, None, None]:
     """Create dashboard TestClient with all features enabled."""
     reset_fundamental_analyzer()
+    os.environ["OPBUYING_DEFAULT_ADMIN_PASSWORD"] = "Admin@123!test"
+    auth_db = str(tmp_path / "auth_full.db")
     app = maybe_start_dashboard(
         {
             "web_dashboard_enabled": True,
@@ -57,12 +70,19 @@ def client_full(tmp_path: Path) -> Generator[TestClient, None, None]:
             "chain_viz_enabled": True,
             "web_dashboard_host": "127.0.0.1",
             "web_dashboard_port": 0,
+            "auth_db_path": auth_db,
         },
         db_path=str(tmp_path / "trades_full.db"),
     )
     if app is None:
         pytest.skip("Dashboard app could not be created")
-    yield TestClient(app)
+    client = TestClient(app)
+    auth = AuthHandler(db_path=auth_db)
+    user = auth.get_user("admin")
+    if user:
+        token = auth.create_session(user).token
+        client.cookies.set("opb_session", token)
+    yield client
     reset_fundamental_analyzer()
 
 
@@ -195,6 +215,10 @@ class TestDashboardIntegration:
 
     def test_weights_put(self, client_basic: TestClient) -> None:
         """PUT weights updates and GET reflects changes."""
+        # Unauthenticated request returns 401 per G3 security policy
+        unauth_client = TestClient(client_basic.app)
+        assert unauth_client.put("/api/fundamentals/weights", json={"weights": {"value": 0.40}}).status_code == 401
+
         new_w = {"weights": {"value": 0.40, "growth": 0.20, "quality": 0.20, "momentum": 0.20}}
         resp = client_basic.put("/api/fundamentals/weights", json=new_w)
         assert resp.status_code == 200
@@ -219,6 +243,10 @@ class TestDashboardIntegration:
 
     def test_screen_empty(self, client_basic: TestClient) -> None:
         """Screen with empty symbols list returns validation error."""
+        # Unauthenticated request returns 401 per G3 security policy
+        unauth_client = TestClient(client_basic.app)
+        assert unauth_client.post("/api/fundamentals/screen", json={"symbols": []}).status_code == 401
+
         resp = client_basic.post("/api/fundamentals/screen", json={"symbols": []})
         assert resp.status_code == 200
         data = resp.json()
@@ -287,7 +315,7 @@ class TestDashboardIntegration:
 
     def test_webhook_json_decode_error(self, client_full: TestClient) -> None:
         """Webhook handles malformed JSON gracefully (returns queued)."""
-        resp = client_full.post("/signals/inject", data=b"not valid json", headers={"content-type": "application/json"})
+        resp = client_full.post("/signals/inject", content=b"not valid json", headers={"content-type": "application/json"})
         assert resp.status_code == 200
         data = resp.json()
         # Should fall back to queued on JSON decode error

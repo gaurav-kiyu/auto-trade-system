@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — Privacy Policy & Data Protection</title>
+    <script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+    <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <link rel="stylesheet" href="/static/opb_design_system.css">
+    {% include "_pwa_head.html" %}
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-ui, 'Inter', sans-serif);
+            background: var(--bg-primary, #080b10);
+            color: var(--text-primary, #e2e8f0);
+            min-height: 100vh;
+            padding: 1.5rem 1.75rem 3rem 1.75rem;
+        }
+        .legal-container {
+            max-width: 950px;
+            margin: 0 auto;
+        }
+        .legal-card {
+            background: var(--bg-card, #101722);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 1rem;
+            padding: 2.5rem 2.25rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+        }
+        .doc-header {
+            border-bottom: 1px solid var(--border-color, #1e293b);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .doc-title {
+            font-size: 2rem;
+            font-weight: 850;
+            color: var(--text-primary, #ffffff);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+        .doc-meta {
+            font-size: 0.82rem;
+            color: var(--text-muted, #94a3b8);
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .legal-section {
+            margin-bottom: 2.25rem;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-primary, #ffffff);
+            margin-bottom: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .section-body {
+            font-size: 0.88rem;
+            line-height: 1.75;
+            color: var(--text-secondary, #cbd5e1);
+        }
+        .section-body p {
+            margin-bottom: 0.85rem;
+        }
+        .section-body ul {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 0.85rem;
+        }
+        .section-body li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .section-body li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--accent-color, #38bdf8);
+            font-weight: bold;
+        }
+        .highlight-box {
+            background: var(--bg-secondary, #131e33);
+            border: 1px solid var(--border-color, #263244);
+            border-radius: 0.65rem;
+            padding: 1.25rem;
+            margin: 1rem 0;
+            font-size: 0.84rem;
+            line-height: 1.65;
+        }
+        .public-footer {
+            border-top: 1px solid var(--border-color, #1e293b);
+            padding-top: 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.82rem;
+            color: var(--text-muted, #94a3b8);
+        }
+        .footer-links {
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .footer-links a {
+            color: var(--text-secondary, #cbd5e1);
+            text-decoration: none;
+            font-weight: 650;
+        }
+        .footer-links a:hover {
+            color: var(--accent-color, #38bdf8);
+        }
+    </style>
+</head>
+<body>
+    {% include '_nav.html' %}
+
+    <div class="legal-container">
+        <div class="legal-card">
+            <div class="doc-header">
+                <h1 class="doc-title"><i class="fas fa-user-shield" style="color:var(--accent-color,#38bdf8);margin-right:0.5rem;"></i> Privacy Policy &amp; Data Governance</h1>
+                <div class="doc-meta">
+                    <span><strong>Effective Date:</strong> October 2026</span>
+                    <span><strong>Version:</strong> v2.61</span>
+                    <span><strong>Jurisdiction:</strong> India (DPDPA 2023 Compliant)</span>
+                </div>
+            </div>
+
+            <!-- Section 1: Overview -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">1.</span> Overview &amp; Data Controller</h2>
+                <div class="section-body">
+                    <p>
+                        This Privacy Policy governs how OPB ("Options &amp; Pairs Bot", "we", "us", or "our") collects, processes, encrypts, and protects personal and technical data when you interact with our quantitative trading cockpit, web applications, and notification endpoints.
+                    </p>
+                    <p>
+                        We operate on principles of privacy-by-design, data minimization, and tenant isolation. We collect only what is strictly necessary to authenticate your access, deliver quantitative market signals, and maintain platform security.
+                    </p>
+                    <div class="highlight-box">
+                        <strong>Data Protection &amp; Privacy Contact:</strong><br>
+                        Email: <a href="mailto:privacy@opb.app" style="color:var(--accent-color,#38bdf8);">privacy@opb.app</a><br>
+                        Grievance Redressal Officer: Gaurav Sharma (Principal Architect)<br>
+                        Location: New Delhi / Mumbai, Republic of India
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Data Collection & Cryptography -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">2.</span> Information We Collect &amp; Cryptographic Controls</h2>
+                <div class="section-body">
+                    <p>We process the following categories of information:</p>
+                    <ul>
+                        <li><strong>Account Credentials:</strong> Username, registered email address, and account role. Passwords are <strong>NEVER stored in plaintext</strong>. Passwords are cryptographically salted and hashed using standard <code>PBKDF2-HMAC-SHA256</code> with 100,000 iterations and per-user unique cryptographic salts.</li>
+                        <li><strong>Session Identifiers:</strong> Ephemeral, cryptographically random session tokens stored in secure, HTTPOnly browser cookies with strict expiry.</li>
+                        <li><strong>Notification Preferences:</strong> Configured email destinations, subscribed trading instrument categories (NIFTY, BANKNIFTY, FINNIFTY, Commodities, Stocks), and delivery thresholds.</li>
+                        <li><strong>Security &amp; Audit Telemetry:</strong> Client IP addresses, access timestamps, HTTP user-agents, and authentication logs processed exclusively for brute-force mitigation, DDoS defense, and rate-limiting.</li>
+                    </ul>
+                    <div class="highlight-box" style="border-left:4px solid var(--danger-color,#ef4444);">
+                        <strong>What We NEVER Collect or Store:</strong>
+                        <p style="margin-top:0.35rem;margin-bottom:0;">
+                            We <strong>NEVER</strong> request, collect, or store your bank account passwords, trading terminal master PINs, UPI MPINs, or two-factor OTPs. When broker APIs are configured, tokens are handled strictly within isolated memory and stored under per-tenant encrypted credential stores.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Use of Information -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">3.</span> Purpose of Data Processing</h2>
+                <div class="section-body">
+                    <p>Your information is processed strictly for the following operational purposes:</p>
+                    <ul>
+                        <li>Providing secure user authentication, role-based access control (RBAC), and session management.</li>
+                        <li>Dispatching algorithmic market signals, options analytics alerts, and daily analytical summaries to authorized and approved subscribers.</li>
+                        <li>Preventing credential stuffing, unauthorized API probing, spam submissions, and infrastructure abuse.</li>
+                        <li>Monitoring application uptime, container health, and latency performance across the Indian market trading hours.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 4: Strict Tenant Isolation & Zero Data Monetization -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">4.</span> Tenant Isolation &amp; Zero Data Monetization</h2>
+                <div class="section-body">
+                    <p>
+                        <strong>We DO NOT sell, rent, lease, or monetize your personal data.</strong> Your information is never sold to marketing networks, brokers, advertisement exchanges, or third-party data brokers.
+                    </p>
+                    <p>
+                        OPB employs strict multi-tenant boundary isolation. User configurations, watchlists, permission tiers, and signal history are logically segregated. No user can view or access another user's private preferences or notification configurations.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Section 5: Cookies and Local Storage -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">5.</span> Cookies &amp; Client-Side Storage</h2>
+                <div class="section-body">
+                    <p>We do not use third-party tracking, advertising, or cross-site profiling cookies. We use only essential cookies and local storage tokens:</p>
+                    <ul>
+                        <li><strong><code>opb_session</code> Cookie:</strong> Strictly essential session cookie with <code>HttpOnly</code>, <code>SameSite=Lax</code>, and <code>Secure</code> flags to maintain your authenticated login state.</li>
+                        <li><strong>Browser LocalStorage:</strong> Used exclusively to store your preferred visual theme (e.g. <code>dark-cyber</code>, <code>dracula-purple</code>, <code>ivory-gold</code>, <code>midnight-slate</code>, <code>emerald-matrix</code>) and dashboard UI layout preferences. No sensitive personal data is placed in localStorage.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 6: Data Retention & User Rights -->
+            <div class="legal-section">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">6.</span> Data Retention &amp; Your Rights (DPDPA 2023)</h2>
+                <div class="section-body">
+                    <p>
+                        Under India's Digital Personal Data Protection Act, 2023 (DPDPA) and international data governance frameworks, you maintain the following rights:
+                    </p>
+                    <ul>
+                        <li><strong>Right to Access:</strong> You may request a copy of the personal information stored in your account profile.</li>
+                        <li><strong>Right to Rectification:</strong> You may update or correct your profile data, email address, and notification preferences at any time via <a href="/profile" style="color:var(--accent-color,#38bdf8);">Account Profile</a>.</li>
+                        <li><strong>Right to Erasure &amp; Account Deletion:</strong> You may request complete erasure of your account, preferences, and authentication records by contacting <a href="mailto:support@opb.app" style="color:var(--accent-color,#38bdf8);">support@opb.app</a>.</li>
+                        <li><strong>Automated Session Purge:</strong> Expired session tokens and single-use password reset tokens are automatically purged by automated background cleanup routines every 15 minutes.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 7: Security Measures -->
+            <div class="legal-section" style="margin-bottom:0;">
+                <h2 class="section-title"><span style="color:var(--accent-color,#38bdf8);">7.</span> Security Architecture &amp; Safeguards</h2>
+                <div class="section-body">
+                    <p>
+                        OPB implements rigorous defense-in-depth security:
+                    </p>
+                    <ul>
+                        <li>Strict Content Security Policy (CSP) with dynamic nonces, prohibiting unauthorized inline scripts and external CDNs.</li>
+                        <li>Transport Layer Security (TLS 1.3 / HTTPS) with HTTP Strict Transport Security (HSTS) and anti-clickjacking frame restrictions.</li>
+                        <li>Universal copy/paste and cut restrictions on password and authentication inputs to mitigate clipboard hijackers and credential sniffing.</li>
+                        <li>Automated rate-limiting, honeypot defenses, and anti-abuse safeguards on all public forms and authentication endpoints.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Public Footer Navigation -->
+        <div class="public-footer">
+            <div>
+                © 2026 OPB Quantitative Platform. All rights reserved.
+            </div>
+            <div class="footer-links">
+                <a href="/about">About Us</a>
+                <a href="/contact">Contact Support</a>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/terms">Terms &amp; Disclosures</a>
+                <a href="/login">Sign In</a>
+                <a href="/register">Register</a>
+            </div>
+        </div>
+    </div>
+
+    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

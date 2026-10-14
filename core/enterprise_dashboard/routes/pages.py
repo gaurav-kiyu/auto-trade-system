@@ -7,6 +7,9 @@ Handles: /, /login, /register, /admin/users, /admin/config,
 from __future__ import annotations
 
 import logging
+import re
+import threading
+import time
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -202,6 +205,133 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
             request=request,
             name="register.html",
             context={"nonce": nonce},
+        )
+
+    @app.get("/about", response_class=HTMLResponse)
+    async def about_page(request: Request):  # type: ignore[no-untyped-def]
+        nonce = getattr(request.state, "nonce", "")
+        user = _resolve_session_user(request, dashboard)
+        return dashboard._templates.TemplateResponse(
+            request=request,
+            name="about.html",
+            context=_page_context(user, nonce, "about"),
+        )
+
+    @app.get("/contact", response_class=HTMLResponse)
+    async def contact_page(request: Request):  # type: ignore[no-untyped-def]
+        nonce = getattr(request.state, "nonce", "")
+        user = _resolve_session_user(request, dashboard)
+        return dashboard._templates.TemplateResponse(
+            request=request,
+            name="contact.html",
+            context=_page_context(user, nonce, "contact"),
+        )
+
+    @app.get("/privacy", response_class=HTMLResponse)
+    async def privacy_page(request: Request):  # type: ignore[no-untyped-def]
+        nonce = getattr(request.state, "nonce", "")
+        user = _resolve_session_user(request, dashboard)
+        return dashboard._templates.TemplateResponse(
+            request=request,
+            name="privacy.html",
+            context=_page_context(user, nonce, "privacy"),
+        )
+
+    @app.get("/terms", response_class=HTMLResponse)
+    async def terms_page(request: Request):  # type: ignore[no-untyped-def]
+        nonce = getattr(request.state, "nonce", "")
+        user = _resolve_session_user(request, dashboard)
+        return dashboard._templates.TemplateResponse(
+            request=request,
+            name="terms.html",
+            context=_page_context(user, nonce, "terms"),
+        )
+
+    # In-memory rate limiter for public contact submissions (5 inquiries / 10 minutes per IP)
+    _contact_rate_lock = threading.Lock()
+    _contact_rate_tracker: dict[str, list[float]] = {}
+    _EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$")
+
+    @app.post("/api/contact", response_class=JSONResponse)
+    async def handle_contact_form(request: Request) -> JSONResponse:
+        """Process public contact & support inquiries with rate-limiting and honeypot."""
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.time()
+        with _contact_rate_lock:
+            history = _contact_rate_tracker.get(client_ip, [])
+            history = [t for t in history if now - t < 600]
+            if len(history) >= 5:
+                return JSONResponse(
+                    status_code=429,
+                    content={"status": "error", "detail": "Rate limit exceeded. Please wait a few minutes before submitting another inquiry."}
+                )
+            _contact_rate_tracker[client_ip] = history
+
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"status": "error", "detail": "Invalid JSON payload."})
+
+        if not isinstance(body, dict):
+            return JSONResponse(status_code=400, content={"status": "error", "detail": "Invalid payload format."})
+
+        # Anti-spam honeypot (silent success if filled)
+        if body.get("company_website"):
+            return JSONResponse(status_code=200, content={"status": "ok", "message": "Thank you for reaching out! Your message has been received."})
+
+        name = str(body.get("name") or "").strip()
+        email = str(body.get("email") or "").strip()
+        category = str(body.get("category") or "General Inquiry").strip()
+        subject = str(body.get("subject") or "").strip()
+        message = str(body.get("message") or "").strip()
+
+        if not name or len(name) > 100:
+            return JSONResponse(status_code=400, content={"status": "error", "detail": "Please provide a valid name (up to 100 characters)."})
+
+        if not email or len(email) > 120 or not _EMAIL_REGEX.match(email):
+            return JSONResponse(status_code=400, content={"status": "error", "detail": "Please provide a valid email address."})
+
+        if not subject or len(subject) > 150:
+            return JSONResponse(status_code=400, content={"status": "error", "detail": "Please provide a valid subject (up to 150 characters)."})
+
+        if not message or len(message) < 5 or len(message) > 4000:
+            return JSONResponse(status_code=400, content={"status": "error", "detail": "Please provide a message between 5 and 4000 characters."})
+
+        with _contact_rate_lock:
+            _contact_rate_tracker[client_ip].append(now)
+
+        # Persist inquiry to disk for operational review
+        inquiry_record = {
+            "id": f"inq_{int(now * 1000)}",
+            "timestamp": now,
+            "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
+            "client_ip": client_ip,
+            "name": name,
+            "email": email,
+            "category": category,
+            "subject": subject,
+            "message": message,
+            "status": "PENDING_REVIEW",
+        }
+        try:
+            import json
+            from pathlib import Path
+            inq_path = Path("data/contact_inquiries.jsonl")
+            inq_path.parent.mkdir(parents=True, exist_ok=True)
+            with _contact_rate_lock:
+                with open(inq_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(inquiry_record, default=str) + "\n")
+        except Exception as exc:
+            _log.warning("[CONTACT] Failed to persist inquiry to disk: %s", exc)
+
+        _log.info(
+            "[CONTACT] Inquiry received and recorded from %s <%s> [IP: %s, Category: %s, Subject: %s]",
+            name, email, client_ip, category, subject
+        )
+
+        return JSONResponse(
+            status_code=200,
+            content={"status": "ok", "message": "Thank you for reaching out! Your message has been received. Our team will review and respond shortly."}
         )
 
     @app.get("/admin/users", response_class=HTMLResponse)

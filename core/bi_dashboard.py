@@ -517,13 +517,17 @@ class BIDashboard:
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
             _log.debug("[BI] Git deployment collection: %s", exc)
 
-        cur_version = "2.60.0"
+        cur_version = "2.61.0"
         try:
-            v_file = Path("VERSION")
-            if v_file.is_file():
-                cur_version = v_file.read_text(encoding="utf-8").strip() or "2.60.0"
+            from core.version import get_app_version
+            cur_version = get_app_version()
         except Exception:
-            pass
+            try:
+                v_file = Path("VERSION")
+                if v_file.is_file():
+                    cur_version = v_file.read_text(encoding="utf-8").strip() or "2.61.0"
+            except Exception:
+                pass
 
         deployments.sort(key=lambda d: d.timestamp, reverse=True)
         if deployments:

@@ -1520,8 +1520,15 @@ class TestSystemApi:
         resp = client.get("/api/system/state")
         assert resp.json()["daily_pnl"] == 999.0
 
-    def test_trades(self, client):
+    def test_trades(self, dashboard, client):
+        # Unauthenticated request returns 401
         resp = client.get("/api/system/trades")
+        assert resp.status_code == 401
+
+        # Authenticated request returns 200
+        user = dashboard._auth.get_user("admin")
+        token = dashboard._auth.create_session(user)
+        resp = client.get("/api/system/trades", cookies={"opb_session": token.token})
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
@@ -1534,8 +1541,15 @@ class TestSystemApi:
         assert "paused" in data
         assert "daily_pnl" in data
 
-    def test_signals(self, client):
+    def test_signals(self, dashboard, client):
+        # Unauthenticated request returns 401
         resp = client.get("/api/system/signals")
+        assert resp.status_code == 401
+
+        # Authenticated request returns 200
+        user = dashboard._auth.get_user("admin")
+        token = dashboard._auth.create_session(user)
+        resp = client.get("/api/system/signals", cookies={"opb_session": token.token})
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
@@ -1758,6 +1772,17 @@ class TestRiskConcentration:
 
 
 class TestTradesCsvExport:
+    def test_csv_export_requires_auth(self, dashboard):
+        c = TestClient(dashboard.app)
+        resp = c.get("/api/system/trades/export")
+        assert resp.status_code == 401
+
+    @pytest.fixture(autouse=True)
+    def _auth_client(self, dashboard, client):
+        user = dashboard._auth.get_user("admin")
+        token = dashboard._auth.create_session(user)
+        client.cookies.set("opb_session", token.token)
+
     def test_csv_export_returns_csv(self, dashboard, client):
         with patch.object(
             dashboard,

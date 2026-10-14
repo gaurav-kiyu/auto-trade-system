@@ -38,14 +38,13 @@ Validates all 30 requirements specified in Part P:
 """
 
 import datetime
-import json
 import sqlite3
-import pytest
 from pathlib import Path
 
-from core.signals.signal_outcome_dataset import SignalOutcomeDatasetService
-from core.signals.signal_outcome_tracker import SignalOutcomeTracker, SignalBar
+import pytest
 from core.signals.signal_forward_observation import SignalForwardObservationService
+from core.signals.signal_outcome_dataset import SignalOutcomeDatasetService
+from core.signals.signal_outcome_tracker import SignalBar, SignalOutcomeTracker
 from core.signals.signal_tracker import SignalTracker
 
 IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
@@ -546,7 +545,7 @@ def test_15_no_duplicate_measurement_rows(isolated_db):
 def test_16_no_duplicate_lifecycle_events(isolated_db):
     """Case 16: Tracker does not insert duplicate events for identical price state."""
     tracker = SignalOutcomeTracker.get_instance(db_path=isolated_db)
-    insert_signal_helper(isolated_db, "SIG-DUP-EVT", current_price=100.0)
+    insert_signal_helper(isolated_db, "SIG-DUP-EVT", current_price=100.0, timestamp=f"{datetime.date.today().isoformat()} 09:15:00")
 
     # First poll: hits T1
     tracker.update_active_signal_outcomes(price_lookup_fn=lambda s: 106.0)

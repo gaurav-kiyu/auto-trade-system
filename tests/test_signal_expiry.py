@@ -14,10 +14,10 @@ from __future__ import annotations
 import datetime
 import sqlite3
 from pathlib import Path
-import pytest
 
-from core.signals.signal_tracker import SignalTracker
+import pytest
 from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+from core.signals.signal_tracker import SignalTracker
 
 
 @pytest.fixture
@@ -253,11 +253,11 @@ def test_expire_stale_signals_preserves_first_touch_and_idempotency(temp_tracker
     assert row10[2] == "2026-08-21T11:00:00"
     assert row10[3] == 550.0
 
-    # Check signal 11: status is EXPIRED, and first_touch is "EXPIRED"
+    # Check signal 11: status is EXPIRED, and first_touch is empty/None (no physical barrier hit)
     cur.execute("SELECT status, first_touch FROM system_signals WHERE signal_id = '11'")
     row11 = cur.fetchone()
     assert row11[0] == "EXPIRED"
-    assert row11[1] == "EXPIRED"
+    assert row11[1] in ("", None)
 
     # Verify audit events were created
     cur.execute("SELECT count(*) FROM signal_outcome_events")

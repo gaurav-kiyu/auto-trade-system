@@ -24,7 +24,7 @@ import pytest
 pytestmark = pytest.mark.slow
 
 fastapi = pytest.importorskip("fastapi", reason="fastapi not installed")
-
+from fastapi.testclient import TestClient
 
 # ═════════════════════════════════════════════════════════════════════════
 # 1. Database Adapter Selection
@@ -124,11 +124,16 @@ class TestDashboardApiEndToEnd:
     @pytest.fixture
     def client(self, tmp_path: Path) -> Any:
         """Create a TestClient for the dashboard."""
+        import os
+
+        from core.auth.handler import AuthHandler
         from core.fundamental_analyzer import reset_fundamental_analyzer
         from core.web_dashboard import maybe_start_dashboard
         from fastapi.testclient import TestClient
 
         reset_fundamental_analyzer()
+        os.environ["OPBUYING_DEFAULT_ADMIN_PASSWORD"] = "Admin@123!test"
+        auth_db = str(tmp_path / "auth_e2e.db")
         app = maybe_start_dashboard(
             {
                 "web_dashboard_enabled": True,
@@ -136,12 +141,18 @@ class TestDashboardApiEndToEnd:
                 "chain_viz_enabled": False,
                 "web_dashboard_host": "127.0.0.1",
                 "web_dashboard_port": 0,
+                "auth_db_path": auth_db,
             },
             db_path=str(tmp_path / "e2e_trades.db"),
         )
         if app is None:
             pytest.skip("Dashboard app could not be created")
         client = TestClient(app)
+        auth = AuthHandler(db_path=auth_db)
+        user = auth.get_user("admin")
+        if user:
+            token = auth.create_session(user).token
+            client.cookies.set("opb_session", token)
         yield client
         reset_fundamental_analyzer()
 
@@ -154,8 +165,11 @@ class TestDashboardApiEndToEnd:
         assert "weights" in data
         original = data["weights"]
 
-        # 2. PUT new weights
+        # 2. PUT new weights (verifying unauthenticated returns 401 first)
         new_w = {"weights": {"value": 0.50, "growth": 0.20, "quality": 0.15, "momentum": 0.15}}
+        unauth = TestClient(client.app)
+        assert unauth.put("/api/fundamentals/weights", json=new_w).status_code == 401
+
         resp = client.put("/api/fundamentals/weights", json=new_w)
         assert resp.status_code == 200
         assert resp.json().get("success") is True
@@ -179,7 +193,10 @@ class TestDashboardApiEndToEnd:
         data = resp.json()
         assert "symbol" in data or "error" in data
 
-        # 2. Screen symbols
+        # 2. Screen symbols (verifying unauthenticated returns 401 first)
+        unauth = TestClient(client.app)
+        assert unauth.post("/api/fundamentals/screen", json={"symbols": ["RELIANCE.NS"]}).status_code == 401
+
         resp = client.post("/api/fundamentals/screen", json={
             "symbols": ["RELIANCE.NS", "TCS.NS"],
             "min_score": 0.0,

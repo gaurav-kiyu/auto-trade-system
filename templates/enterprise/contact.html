@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPB — Contact Us & Technical Support</title>
+    <script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+    <script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome.min.css">
+    <link rel="stylesheet" href="/static/opb_design_system.css">
+    {% include "_pwa_head.html" %}
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-ui, 'Inter', sans-serif);
+            background: var(--bg-primary, #080b10);
+            color: var(--text-primary, #e2e8f0);
+            min-height: 100vh;
+            padding: 1.5rem 1.75rem 3rem 1.75rem;
+        }
+        .contact-container {
+            max-width: 1050px;
+            margin: 0 auto;
+        }
+        .header-box {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .header-title {
+            font-size: 1.85rem;
+            font-weight: 850;
+            color: var(--text-primary, #ffffff);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+        .header-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary, #94a3b8);
+            max-width: 650px;
+            margin: 0 auto;
+            line-height: 1.55;
+        }
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.25fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+        @media (max-width: 850px) {
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .info-card {
+            background: var(--bg-card, #101722);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 0.85rem;
+            padding: 1.75rem;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .form-card {
+            background: var(--bg-card, #101722);
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 0.85rem;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        .channel-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .channel-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            background: color-mix(in srgb, var(--accent-color, #38bdf8) 12%, transparent);
+            border: 1px solid color-mix(in srgb, var(--accent-color, #38bdf8) 25%, transparent);
+            color: var(--accent-color, #38bdf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .channel-title {
+            font-size: 0.92rem;
+            font-weight: 750;
+            color: var(--text-primary, #ffffff);
+            margin-bottom: 0.2rem;
+        }
+        .channel-detail {
+            font-size: 0.82rem;
+            color: var(--text-secondary, #94a3b8);
+            line-height: 1.5;
+        }
+        .channel-link {
+            color: var(--accent-color, #38bdf8);
+            text-decoration: none;
+            font-weight: 650;
+        }
+        .channel-link:hover {
+            text-decoration: underline;
+        }
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-secondary, #cbd5e1);
+            margin-bottom: 0.45rem;
+        }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            background: var(--input-bg, #0b1120);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.5rem;
+            padding: 0.65rem 0.85rem;
+            font-size: 0.875rem;
+            color: var(--text-primary, #ffffff);
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            font-family: inherit;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: var(--accent-color, #38bdf8);
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color, #38bdf8) 25%, transparent);
+        }
+        .form-textarea {
+            resize: vertical;
+            min-height: 110px;
+        }
+        .hp-field {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            position: absolute !important;
+            left: -9999px !important;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            background: var(--accent-color, #38bdf8);
+            color: var(--btn-primary-text, #080c14);
+            font-size: 0.9rem;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        .btn-submit:hover:not(:disabled) {
+            filter: brightness(1.12);
+            transform: translateY(-1px);
+        }
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .status-alert {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.84rem;
+            margin-bottom: 1.25rem;
+            display: none;
+            line-height: 1.5;
+        }
+        .status-success {
+            background: color-mix(in srgb, var(--success-color, #22c55e) 15%, var(--bg-secondary, #131e33));
+            border: 1px solid var(--success-color, #22c55e);
+            color: var(--success-color, #22c55e);
+        }
+        .status-error {
+            background: color-mix(in srgb, var(--danger-color, #ef4444) 15%, var(--bg-secondary, #131e33));
+            border: 1px solid var(--danger-color, #ef4444);
+            color: var(--danger-color, #ef4444);
+        }
+        .public-footer {
+            border-top: 1px solid var(--border-color, #1e293b);
+            padding-top: 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.82rem;
+            color: var(--text-muted, #94a3b8);
+        }
+        .footer-links {
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .footer-links a {
+            color: var(--text-secondary, #cbd5e1);
+            text-decoration: none;
+            font-weight: 650;
+        }
+        .footer-links a:hover {
+            color: var(--accent-color, #38bdf8);
+        }
+    </style>
+</head>
+<body>
+    {% include '_nav.html' %}
+
+    <div class="contact-container">
+        <div class="header-box">
+            <h1 class="header-title"><i class="fas fa-headset" style="color:var(--accent-color,#38bdf8);margin-right:0.5rem;"></i> Contact &amp; Technical Support</h1>
+            <p class="header-subtitle">
+                Have an inquiry about platform capabilities, quantitative indicators, or need technical assistance? Our engineering and support team is here to assist.
+            </p>
+        </div>
+
+        <div class="contact-grid">
+            <!-- Left Column: Support Channels & SLAs -->
+            <div class="info-card">
+                <div class="channel-item">
+                    <div class="channel-icon"><i class="fas fa-envelope"></i></div>
+                    <div>
+                        <div class="channel-title">General Support &amp; Assistance</div>
+                        <div class="channel-detail">
+                            For product questions, account assistance, or signal inquiries:<br>
+                            <a href="mailto:support@opb.app" class="channel-link">support@opb.app</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="channel-item">
+                    <div class="channel-icon"><i class="fas fa-shield-virus"></i></div>
+                    <div>
+                        <div class="channel-title">Security &amp; Vulnerability Reporting</div>
+                        <div class="channel-detail">
+                            Responsible disclosures and vulnerability reports:<br>
+                            <a href="mailto:security@opb.app" class="channel-link">security@opb.app</a><br>
+                            <span style="font-size:0.75rem;color:var(--text-muted,#94a3b8);">PGP Key available upon request. Prioritized 4-hr response SLA.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="channel-item">
+                    <div class="channel-icon"><i class="fas fa-clock"></i></div>
+                    <div>
+                        <div class="channel-title">Operating &amp; Market Support Hours</div>
+                        <div class="channel-detail">
+                            <strong>Monday – Friday</strong><br>
+                            09:00 AM – 05:30 PM IST (Indian Standard Time)<br>
+                            <span style="font-size:0.75rem;color:var(--text-muted,#94a3b8);">Aligned with National Stock Exchange (NSE) trading sessions.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="channel-item">
+                    <div class="channel-icon"><i class="fas fa-stopwatch"></i></div>
+                    <div>
+                        <div class="channel-title">Response Time Commitment</div>
+                        <div class="channel-detail">
+                            Standard inquiries are reviewed and answered within <strong>24 to 48 business hours</strong>. Critical technical telemetry alerts are monitored automatically 24x7.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="channel-item">
+                    <div class="channel-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div>
+                        <div class="channel-title">Regulatory Jurisdiction</div>
+                        <div class="channel-detail">
+                            Operations and software systems governed under the laws of the Republic of India.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Interactive Contact Form -->
+            <div class="form-card">
+                <h2 style="font-size:1.15rem;font-weight:750;color:var(--text-primary,#ffffff);margin-bottom:0.35rem;">
+                    Send Us a Message
+                </h2>
+                <p style="font-size:0.82rem;color:var(--text-muted,#94a3b8);margin-bottom:1.5rem;">
+                    Complete the form below and an engineer will respond to your registered email address.
+                </p>
+
+                <div id="contactStatus" class="status-alert"></div>
+
+                <form id="contactForm" autocomplete="off">
+                    <!-- Anti-Spam Honeypot Field (invisible to legitimate users) -->
+                    <div class="hp-field">
+                        <label for="contactHoneypot">Leave blank</label>
+                        <input type="text" id="contactHoneypot" name="company_website" tabindex="-1" autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactName" class="form-label">Full Name *</label>
+                        <input type="text" id="contactName" name="name" class="form-input" placeholder="e.g. Gaurav Sharma" required maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactEmail" class="form-label">Email Address *</label>
+                        <input type="email" id="contactEmail" name="email" class="form-input" placeholder="e.g. gaurav@example.com" required maxlength="120">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactCategory" class="form-label">Inquiry Category *</label>
+                        <select id="contactCategory" name="category" class="form-select">
+                            <option value="General Inquiry">General Platform Inquiry</option>
+                            <option value="Technical Support">Technical &amp; Connectivity Support</option>
+                            <option value="Bug Report">Bug / Issue Report</option>
+                            <option value="Feature Suggestion">Feature Request &amp; Enhancement</option>
+                            <option value="API Integration">API &amp; Data Integration</option>
+                            <option value="Feedback">Platform Feedback</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactSubject" class="form-label">Subject *</label>
+                        <input type="text" id="contactSubject" name="subject" class="form-input" placeholder="Brief summary of your inquiry" required maxlength="150">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactMessage" class="form-label">Detailed Message *</label>
+                        <textarea id="contactMessage" name="message" class="form-textarea" placeholder="Please provide specific details regarding your inquiry, observations, or issue..." required maxlength="4000"></textarea>
+                    </div>
+
+                    <button type="submit" id="btnSubmitContact" class="btn-submit">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Send Message</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Public Footer Navigation -->
+        <div class="public-footer">
+            <div>
+                © 2026 OPB Quantitative Platform. All rights reserved.
+            </div>
+            <div class="footer-links">
+                <a href="/about">About Us</a>
+                <a href="/contact">Contact Support</a>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/terms">Terms &amp; Disclosures</a>
+                <a href="/login">Sign In</a>
+                <a href="/register">Register</a>
+            </div>
+        </div>
+    </div>
+
+    <script nonce="{{ nonce }}">
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('contactForm');
+            const statusEl = document.getElementById('contactStatus');
+            const submitBtn = document.getElementById('btnSubmitContact');
+
+            if (!form) return;
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // Basic validation
+                const name = document.getElementById('contactName')?.value.trim();
+                const email = document.getElementById('contactEmail')?.value.trim();
+                const category = document.getElementById('contactCategory')?.value;
+                const subject = document.getElementById('contactSubject')?.value.trim();
+                const message = document.getElementById('contactMessage')?.value.trim();
+                const honeypot = document.getElementById('contactHoneypot')?.value;
+
+                if (!name || !email || !subject || !message) {
+                    showStatus('Please complete all required fields.', false);
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Sending...</span>';
+
+                try {
+                    const resp = await fetch('/api/contact', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name,
+                            email,
+                            category,
+                            subject,
+                            message,
+                            company_website: honeypot
+                        })
+                    });
+
+                    const data = await resp.json().catch(() => ({}));
+
+                    if (resp.ok && data.status === 'ok') {
+                        showStatus(data.message || 'Thank you for reaching out! Your message has been received. Our team will get back to you shortly.', true);
+                        form.reset();
+                    } else {
+                        showStatus(data.detail || data.message || 'Unable to submit your message at this time. Please try again or email us directly at support@opb.app.', false);
+                    }
+                } catch (err) {
+                    showStatus('Network error connecting to support server. Please check your connection or contact support@opb.app directly.', false);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Send Message</span>';
+                }
+            });
+
+            function showStatus(msg, isSuccess) {
+                if (!statusEl) return;
+                statusEl.textContent = msg;
+                statusEl.className = 'status-alert ' + (isSuccess ? 'status-success' : 'status-error');
+                statusEl.style.display = 'block';
+                statusEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+    </script>
+
+    {% include "_pwa_sw_reg.html" %}
+</body>
+</html>

@@ -1746,16 +1746,26 @@ class TestApiHealth:
 
 
 class TestApiTrades:
-    def test_trades_endpoint(self, client: TestClient):
+    def test_trades_endpoint(self, admin_client: TestClient, client: TestClient):
+        # Unauthenticated request must return 401
         resp = client.get("/api/system/trades", headers={"accept": "application/json"})
+        assert resp.status_code == 401
+
+        # Authenticated request succeeds
+        resp = admin_client.get("/api/system/trades", headers={"accept": "application/json"})
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
 
 
 class TestApiSignals:
-    def test_signals_endpoint(self, client: TestClient):
+    def test_signals_endpoint(self, admin_client: TestClient, client: TestClient):
+        # Unauthenticated request must return 401
         resp = client.get("/api/system/signals", headers={"accept": "application/json"})
+        assert resp.status_code == 401
+
+        # Authenticated request succeeds
+        resp = admin_client.get("/api/system/signals", headers={"accept": "application/json"})
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
@@ -1877,9 +1887,14 @@ class TestApiDockerHealth:
 
 
 class TestApiTradesExport:
-    def test_trades_export_csv(self, client: TestClient, dashboard):
+    def test_trades_export_requires_auth(self, client: TestClient):
         resp = client.get("/api/system/trades/export",
                           headers={"accept": "application/json"})
+        assert resp.status_code == 401
+
+    def test_trades_export_csv(self, admin_client: TestClient, dashboard):
+        resp = admin_client.get("/api/system/trades/export",
+                                headers={"accept": "application/json"})
         assert resp.status_code == 200
         assert "text/csv" in resp.headers.get("content-type", "")
         assert "Content-Disposition" in resp.headers
@@ -1888,9 +1903,9 @@ class TestApiTradesExport:
         assert "symbol" in csv_text.lower()
         assert "," in csv_text
 
-    def test_trades_export_headers(self, client: TestClient, dashboard):
-        resp = client.get("/api/system/trades/export",
-                          headers={"accept": "application/json"})
+    def test_trades_export_headers(self, admin_client: TestClient, dashboard):
+        resp = admin_client.get("/api/system/trades/export",
+                                headers={"accept": "application/json"})
         assert resp.status_code == 200
         lines = resp.text.strip().split("\n")
         assert len(lines) >= 2

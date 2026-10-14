@@ -25,12 +25,12 @@ from core.auth.handler.constants import (
     DEFAULT_ADMIN_USERNAME,
     LOCKOUT_DURATION_SECONDS,
     MAX_LOGIN_ATTEMPTS,
+    TOKEN_BYTES,
     TOKEN_TTL_SECONDS,
 )
 from core.auth.handler.mfa_handler import MfaHandlerMixin
 from core.auth.handler.models import AuthToken, AuthUser, PasswordResetToken
 from core.auth.handler.password import (
-    generate_token,
     hash_password,
     validate_password_strength,
     verify_password,
@@ -696,11 +696,16 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
         user = self.get_user(username)
         if user is None:
             return None
-        token_str = generate_token()
+        token_str = secrets.token_hex(TOKEN_BYTES)
         t_hash = hashlib.sha256(token_str.encode()).hexdigest()
         conn = self._get_conn()
         try:
             self._init_password_reset_table(conn)
+            # Invalidate any prior unused reset tokens for this user
+            conn.execute(
+                "UPDATE password_reset_tokens SET used = 1 WHERE username = ? AND used = 0",
+                (username,),
+            )
             conn.execute(
                 "INSERT INTO password_reset_tokens (token_hash, username, expires_ts, used, created_ts) "
                 "VALUES (?, ?, ?, 0, ?)",

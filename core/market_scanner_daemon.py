@@ -66,16 +66,31 @@ def run_continuous_daemon(
     symbols_limit: int | None = None,
     force_run: bool = False,
     max_workers: int = 20,
+    db_path: Path | str | None = None,
 ) -> None:
     """Run continuous market scanning daemon."""
+    resolved_db_path = (
+        Path(db_path).resolve()
+        if db_path is not None and str(db_path).strip()
+        else (Path(os.getenv("SIGNALS_DB_PATH")).resolve() if os.getenv("SIGNALS_DB_PATH") else None)
+    )
+    if resolved_db_path:
+        from core.signals.signal_outcome_tracker import SignalOutcomeTracker
+        from core.signals.signal_tracker import SignalTracker
+
+        SignalTracker.get_instance(db_path=resolved_db_path)
+        SignalOutcomeTracker.get_instance(db_path=resolved_db_path)
+
     print("=" * 75)
     print("GAURAV REAL-TIME CONTINUOUS NSE MARKET SCANNER DAEMON")
     print(f"Started At: {now_ist().strftime('%Y-%m-%d %H:%M:%S')} IST")
     print(f"Scan Interval: {interval_secs}s | Workers: {max_workers} | Force Run: {force_run}")
+    if resolved_db_path:
+        print(f"Database Path: {resolved_db_path}")
     print("=" * 75)
 
     daemon_cfg = {"SCANNER_FORCE_RUN": True} if force_run else {}
-    scanner = AllNSEScanner(max_workers=max_workers, cfg=daemon_cfg)
+    scanner = AllNSEScanner(max_workers=max_workers, cfg=daemon_cfg, db_path=resolved_db_path)
 
     # Load universe
     universe = scanner.load_nse_universe()
@@ -91,7 +106,7 @@ def run_continuous_daemon(
             _log.info("[STANDBY] All market sessions currently CLOSED (Sessions: Equity 09:15-15:30, Derivatives 09:15-15:40, Currencies 09:00-17:00, Commodities 09:00-23:30 IST). Sleeping for 60s...")
             try:
                 from core.signals.signal_outcome_tracker import SignalOutcomeTracker
-                SignalOutcomeTracker.get_instance().run_stale_signal_expiry_sweep()
+                SignalOutcomeTracker.get_instance(db_path=resolved_db_path).run_stale_signal_expiry_sweep()
             except Exception as e:
                 _log.debug("[STANDBY] Expiry sweep skipped: %s", e)
             time.sleep(60)
@@ -119,6 +134,7 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, default=None, help="Limit number of stocks to scan (e.g. 50, 100)")
     parser.add_argument("--force", action="store_true", help="Force run continuous scan even outside market hours")
     parser.add_argument("--workers", type=int, default=20, help="Number of parallel worker threads (default: 20)")
+    parser.add_argument("--db-path", type=str, default=None, help="Path to signals SQLite database (default: db/signals_history.db or SIGNALS_DB_PATH env var)")
 
     args = parser.parse_args()
     run_continuous_daemon(
@@ -126,4 +142,5 @@ if __name__ == "__main__":
         symbols_limit=args.limit,
         force_run=args.force,
         max_workers=args.workers,
+        db_path=args.db_path,
     )

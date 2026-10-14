@@ -26,7 +26,6 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-
 from core.signals.signal_outcome_tracker import (
     OutcomeConfidence,
     OutcomeState,
@@ -212,7 +211,7 @@ class TestSignalOutcomeTracker:
         res = tracker.evaluate_bar(sig, bar)
 
         assert res.new_status == OutcomeState.AMBIGUOUS.value
-        assert res.first_touch == "AMBIGUOUS_SAME_BAR"
+        assert res.first_touch is None
         assert res.outcome_confidence == OutcomeConfidence.AMBIGUOUS.value
         assert "Quarantined as Ambiguous" in res.transition_note
 
@@ -226,7 +225,7 @@ class TestSignalOutcomeTracker:
         res = tracker.evaluate_bar(sig, bar)
 
         assert res.new_status == OutcomeState.AMBIGUOUS.value
-        assert res.first_touch == "AMBIGUOUS_SAME_BAR"
+        assert res.first_touch is None
         assert res.outcome_confidence == OutcomeConfidence.AMBIGUOUS.value
 
     # 8. First-touch immutability (write-once guarantee)
@@ -355,7 +354,7 @@ class TestSignalOutcomeTracker:
 
         res = tracker.evaluate_bar(sig, bar, current_time=eod_time)
         assert res.new_status == OutcomeState.EXPIRED.value
-        assert res.first_touch == "EXPIRED"
+        assert res.first_touch is None
         assert res.outcome_confidence == OutcomeConfidence.UNRESOLVED.value
 
     # 13. Near-close generation grace period (no premature expiration)
@@ -527,7 +526,7 @@ class TestSignalOutcomeTracker:
         bar = SignalBar(open=99.0, high=110.0, low=93.0, close=101.0, timestamp="2026-09-17T10:05:00")
         res = tracker.evaluate_bar(sig, bar)
         assert res.new_status == OutcomeState.AMBIGUOUS.value
-        assert res.first_touch == "AMBIGUOUS_SAME_BAR"
+        assert res.first_touch is None
         assert res.outcome_confidence == OutcomeConfidence.AMBIGUOUS.value
         assert res.is_terminal is True
 

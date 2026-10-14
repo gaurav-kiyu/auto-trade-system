@@ -18,27 +18,27 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
 def test_canonical_version_engine_synchronization():
-    """Verify core/version.py returns 2.60.0 and synchronizes with VERSION, Dockerfile, docker-compose.yml."""
+    """Verify core/version.py returns 2.61.0 and synchronizes with VERSION, Dockerfile, docker-compose.yml."""
     from core.version import get_app_version, get_app_version_tag
 
     app_ver = get_app_version()
     app_tag = get_app_version_tag()
-    assert app_ver == "2.60.0"
-    assert app_tag == "v2.60.0"
+    assert app_ver == "2.61.0"
+    assert app_tag == "v2.61.0"
 
     version_file = ROOT_DIR / "VERSION"
     assert version_file.is_file()
-    assert version_file.read_text(encoding="utf-8").strip() == "2.60.0"
+    assert version_file.read_text(encoding="utf-8").strip() == "2.61.0"
 
     dockerfile = ROOT_DIR / "Dockerfile"
     assert dockerfile.is_file()
     dockerfile_content = dockerfile.read_text(encoding="utf-8")
-    assert 'version="2.60.0"' in dockerfile_content
+    assert 'version="2.61.0"' in dockerfile_content
 
     compose_file = ROOT_DIR / "docker-compose.yml"
     assert compose_file.is_file()
     compose_content = compose_file.read_text(encoding="utf-8")
-    assert "opb-bot:2.60.0" in compose_content
+    assert "opb-bot:2.61.0" in compose_content
 
 
 def test_page_context_injects_canonical_version():
@@ -47,9 +47,9 @@ def test_page_context_injects_canonical_version():
 
     # Unauthenticated/None user context
     ctx_anon = _page_context(None, nonce="test-nonce", current_page="login")
-    assert ctx_anon["app_version"] == "2.60.0"
-    assert ctx_anon["version"] == "2.60.0"
-    assert ctx_anon["version_tag"] == "v2.60.0"
+    assert ctx_anon["app_version"] == "2.61.0"
+    assert ctx_anon["version"] == "2.61.0"
+    assert ctx_anon["version_tag"] == "v2.61.0"
 
     # Mock user object
     class DummyUser:
@@ -61,9 +61,9 @@ def test_page_context_injects_canonical_version():
             return {"id": self.id, "username": self.username, "role": self.role}
 
     ctx_user = _page_context(DummyUser(), nonce="test-nonce", current_page="profile")
-    assert ctx_user["app_version"] == "2.60.0"
-    assert ctx_user["version"] == "2.60.0"
-    assert ctx_user["version_tag"] == "v2.60.0"
+    assert ctx_user["app_version"] == "2.61.0"
+    assert ctx_user["version"] == "2.61.0"
+    assert ctx_user["version_tag"] == "v2.61.0"
 
 
 def test_design_system_semantic_tokens_and_themes():

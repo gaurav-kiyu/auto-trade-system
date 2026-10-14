@@ -55,6 +55,19 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     return True, ""
 
 
+def validate_password_confirmation(password: str, confirm_password: str) -> tuple[bool, str]:
+    """Validate that password and confirm_password match securely."""
+    if not isinstance(password, str) or not isinstance(confirm_password, str):
+        return False, "Password and confirmation must be strings"
+    if not password:
+        return False, "Password is required"
+    if not confirm_password:
+        return False, "Password confirmation is required"
+    if not hmac.compare_digest(password, confirm_password):
+        return False, "Passwords do not match"
+    return True, ""
+
+
 def generate_token() -> str:
     """Generate a cryptographically secure random token."""
     return secrets.token_hex(TOKEN_BYTES)
@@ -63,3 +76,4 @@ def generate_token() -> str:
 def generate_csrf_token() -> str:
     """Generate a CSRF token."""
     return secrets.token_hex(32)
+

@@ -1,3 +1,19 @@
+# Release v2.61.0
+
+**Date:** 2026-10-14
+**Previous Release:** v2.60.0
+
+---
+
+## OPB v2.61.0 Canonical Release
+
+- **Admin Activation & Quota Remediation:** Implemented admin activation endpoints with secure per-tenant daily email quota limits, reset lifecycle, and robust usage tracking.
+- **Security & Authorization Hardening:** Added strict role-based access control (`admin`, `operator`, `trader`, `observer`) and authentication dependencies to sensitive configuration endpoints.
+- **Observation DB Isolation:** Enabled clean execution of parallel scan and observation suites without mutating canonical signal databases.
+- **UI Architecture & Contrast Remediation:** Modernized modal sticky headers, body scroll locking, and theme typography contrast tokens across all 5 supported color schemes.
+
+---
+
 # Release v2.60.0
 
 **Date:** 2026-10-01
