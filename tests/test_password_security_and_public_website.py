@@ -95,27 +95,29 @@ class TestPasswordResetTokenSecurity:
         # Verify token1 is currently valid (mark_used=False for inspection)
         assert auth_handler.verify_password_reset_token(token1, mark_used=False) == "testuser"
 
-        t1_hash = auth_handler.hash_reset_token(token1)
-
         # Check DB state: token1 is unused
         with auth_handler._get_conn() as conn:
-            row1 = conn.execute("SELECT used FROM password_reset_tokens WHERE token_hash = ?", (t1_hash,)).fetchone()
-            assert row1 is not None and row1["used"] == 0
+            rows = conn.execute(
+                "SELECT used, created_ts FROM password_reset_tokens WHERE username = ? ORDER BY created_ts ASC",
+                ("testuser",),
+            ).fetchall()
+            assert len(rows) == 1
+            assert rows[0]["used"] == 0
 
         # Generate second token for the same user
         token2 = auth_handler.create_password_reset_token("testuser")
         assert token2 is not None
         assert token2 != token1
 
-        t2_hash = auth_handler.hash_reset_token(token2)
-
-        # Check DB state: token1 MUST have been invalidated (used = 1)
+        # Check DB state: token1 MUST have been invalidated (used = 1), token2 unused (used = 0)
         with auth_handler._get_conn() as conn:
-            row1_after = conn.execute("SELECT used FROM password_reset_tokens WHERE token_hash = ?", (t1_hash,)).fetchone()
-            assert row1_after is not None and row1_after["used"] == 1, "Prior token must be marked as used/invalidated"
-
-            row2 = conn.execute("SELECT used FROM password_reset_tokens WHERE token_hash = ?", (t2_hash,)).fetchone()
-            assert row2 is not None and row2["used"] == 0, "New token must be unused"
+            rows = conn.execute(
+                "SELECT used, created_ts FROM password_reset_tokens WHERE username = ? ORDER BY created_ts ASC",
+                ("testuser",),
+            ).fetchall()
+            assert len(rows) == 2
+            assert rows[0]["used"] == 1, "Prior token must be marked as used/invalidated"
+            assert rows[1]["used"] == 0, "New token must be unused"
 
         # Verification of token1 MUST now fail
         assert auth_handler.verify_password_reset_token(token1, mark_used=False) is None
@@ -142,13 +144,11 @@ class TestPasswordResetTokenSecurity:
         token = auth_handler.create_password_reset_token("testuser")
         assert token is not None
 
-        t_hash = auth_handler.hash_reset_token(token)
-
         # Manually alter expires_ts in DB to simulate expiration (2 hours in past)
         with auth_handler._get_conn() as conn:
             conn.execute(
-                "UPDATE password_reset_tokens SET expires_ts = ? WHERE token_hash = ?",
-                (time.time() - 7200, t_hash)
+                "UPDATE password_reset_tokens SET expires_ts = ? WHERE username = ?",
+                (time.time() - 7200, "testuser"),
             )
             conn.commit()
 

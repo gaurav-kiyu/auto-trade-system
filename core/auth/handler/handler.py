@@ -691,20 +691,13 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
             );
         """)
 
-    @staticmethod
-    def hash_reset_token(raw_token: str) -> str:
-        """Compute SHA-256 digest of an opaque reset token string for storage/lookup."""
-        # // lgtm[py/weak-cryptographic-hash]
-        # codeql[py/weak-cryptographic-hash]
-        return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-
     def create_password_reset_token(self, username: str) -> str | None:
         """Create a password reset token (DB-backed). Returns None if user not found."""
         user = self.get_user(username)
         if user is None:
             return None
         token_str = secrets.token_hex(TOKEN_BYTES)
-        t_hash = self.hash_reset_token(token_str)
+        t_hash = hashlib.sha256(token_str.encode()).hexdigest()
         conn = self._get_conn()
         try:
             self._init_password_reset_table(conn)
@@ -731,7 +724,7 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
         """Verify a DB-backed password reset token. Returns username or None."""
         if not token_str:
             return None
-        t_hash = self.hash_reset_token(token_str)
+        t_hash = hashlib.sha256(token_str.encode()).hexdigest()
         conn = self._get_conn()
         try:
             self._init_password_reset_table(conn)
