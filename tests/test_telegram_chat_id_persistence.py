@@ -32,19 +32,14 @@ Covers:
 """
 
 import json
-import os
 import shutil
-import tempfile
 import threading
 import time
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
 from core.auth.user_signal_permissions import (
     UserPermissionManager,
-    UserSignalPermission,
     _resolve_permissions_store_path,
     validate_telegram_chat_id,
 )
@@ -255,8 +250,9 @@ class TestTelegramChatIdPersistence:
         sync_env_file(cfg_updates, env_path=env_file)
 
         assert json.loads(cfg_file.read_text())["CHAT_ID"] == "1148730533"
-        assert os.environ.get("OPBUYING_CHAT_ID") == "1148730533"
-        assert os.environ.get("OPBUYING_TELEGRAM_CHAT_ID") == "1148730533"
+        env_text = env_file.read_text(encoding="utf-8")
+        assert "OPBUYING_CHAT_ID=1148730533" in env_text
+        assert "OPBUYING_TELEGRAM_CHAT_ID=1148730533" in env_text
 
     # Scenario 13: Positive Chat ID
     def test_13_positive_chat_id(self):
@@ -357,7 +353,7 @@ class TestTelegramChatIdPersistence:
 
     # Scenario 22: Non-Admin Authorization Guard
     def test_22_non_admin_authorization(self):
-        from core.auth.permissions import Role, role_has_permission, Permission
+        from core.auth.permissions import Permission, Role, role_has_permission
         assert role_has_permission(Role.VIEWER, Permission.MANAGE_PERMISSIONS) is False
         assert role_has_permission(Role.OPERATOR, Permission.MANAGE_PERMISSIONS) is False
         assert role_has_permission(Role.ADMIN, Permission.MANAGE_PERMISSIONS) is False
