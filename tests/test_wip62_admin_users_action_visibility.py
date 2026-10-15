@@ -1,8 +1,7 @@
 """WIP62 regression tests for Admin Users action visibility and interaction."""
 from pathlib import Path
-import re
 
-ROOT=Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_admin_users_table_has_horizontal_scroll_containment():
@@ -16,6 +15,8 @@ def test_actions_are_sticky_and_clickable():
     assert "th:last-child, .admin-users-table td:last-child" in text
     assert "data-action=\"view-user\"" in text
     assert "data-action=\"open-edit-modal\"" in text
+    assert "data-action=\"activate-user\"" in text
+    assert "data-action=\"deactivate-user\"" in text
     assert "data-action=\"delete-user\"" in text
     assert "data-action=\"view-user\"} viewUser" not in text
 
@@ -24,7 +25,11 @@ def test_dynamic_action_delegation_exists():
     text=(ROOT/"templates/enterprise/admin_users.html").read_text(encoding="utf-8")
     assert "permissionsTableBody').addEventListener('click'" in text
     assert "btn.dataset.action === 'view-user'" in text
+    assert "btn.dataset.action === 'activate-user'" in text
+    assert "btn.dataset.action === 'deactivate-user'" in text
     assert "viewUser(username)" in text
+    assert "activateUser(username)" in text
+    assert "deactivateUser(username)" in text
 
 
 def test_column_header_filters_are_wired():
