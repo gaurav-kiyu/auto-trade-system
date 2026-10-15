@@ -10,8 +10,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-import urllib.error
-import urllib.request
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any
@@ -239,7 +237,15 @@ class NSEAdapter(MarketDataPort):
         Raises:
             Exception: If all retry attempts fail
         """
-        if "nseindia.com" in url and time.time() < self._nse_unavailable_until:
+        _is_nse = False
+        try:
+            import urllib.parse
+            _host = (urllib.parse.urlsplit(url).hostname or "").lower()
+            _is_nse = _host == "nseindia.com" or _host.endswith(".nseindia.com")
+        except Exception:
+            _is_nse = False
+
+        if _is_nse and time.time() < self._nse_unavailable_until:
             raise ConnectionError("NSE endpoint temporarily unavailable (circuit open)")
 
         last_exception = None
@@ -249,13 +255,13 @@ class NSEAdapter(MarketDataPort):
 
                 if REQUESTS_AVAILABLE and self._session:
                     # Auto-init NSE session on first request or if TTL expired
-                    if "nseindia.com" in url:
+                    if _is_nse:
                         self._init_nse_session()
 
                     response = self._session.get(url, params=params, timeout=15)
 
                     # If we get a 404 or 403, the session may have expired - try re-init
-                    if response.status_code in (403, 404) and "nseindia.com" in url:
+                    if response.status_code in (403, 404) and _is_nse:
                         self._logger.info(f"[NSE] Got {response.status_code} - re-initializing session")
                         self._nse_session_initialized = False
                         self._init_nse_session()
@@ -286,7 +292,7 @@ class NSEAdapter(MarketDataPort):
                     wait_time = (2 ** attempt) * 2.0  # Start with 2 seconds
                     time.sleep(wait_time)
                 else:
-                    if "nseindia.com" in url and isinstance(e, (OSError, ConnectionError, TimeoutError)):
+                    if _is_nse and isinstance(e, (OSError, ConnectionError, TimeoutError)):
                         self._nse_unavailable_until = time.time() + self._nse_unavailable_cooldown
                     raise
         raise last_exception

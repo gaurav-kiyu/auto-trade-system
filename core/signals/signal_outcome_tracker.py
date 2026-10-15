@@ -1810,9 +1810,9 @@ class SignalOutcomeTracker:
                     "calculated_at": now.isoformat(),
                 }
             except Exception as ex:
-                _log.error("Failed to compute outcome statistics: %s", ex)
+                _log.error("Failed to compute outcome statistics: %s", ex, exc_info=True)
                 return {
-                    "error": str(ex),
+                    "error": "Internal error occurred computing outcome statistics",
                     "total_signals": 0,
                     "open_signals": 0,
                     "t1_hits": 0,

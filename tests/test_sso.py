@@ -8,6 +8,8 @@ graceful degradation behavior and configuration validation.
 
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
 import pytest
 from core.auth.sso import OAUTH_PROVIDERS, SSOAuthenticator, SSOConfig, SSOUser
 
@@ -25,21 +27,21 @@ class TestSSOConfig:
     def test_google_provider_defaults(self):
         """Google provider should have correct defaults in OAUTH_PROVIDERS."""
         google = OAUTH_PROVIDERS["google"]
-        assert "accounts.google.com" in google["authorize_url"]
-        assert "googleapis.com" in google["token_url"]
+        assert urlsplit(google["authorize_url"]).netloc == "accounts.google.com"
+        assert urlsplit(google["token_url"]).netloc == "oauth2.googleapis.com"
         assert "openid" in google["scope"]
 
     def test_microsoft_provider_defaults(self):
         """Microsoft provider should have correct defaults."""
         ms = OAUTH_PROVIDERS["microsoft"]
-        assert "microsoftonline.com" in ms["authorize_url"]
-        assert "graph.microsoft.com" in ms["userinfo_url"]
+        assert urlsplit(ms["authorize_url"]).netloc == "login.microsoftonline.com"
+        assert urlsplit(ms["userinfo_url"]).netloc == "graph.microsoft.com"
 
     def test_github_provider_defaults(self):
         """GitHub provider should have correct defaults."""
         gh = OAUTH_PROVIDERS["github"]
-        assert "github.com/login/oauth/authorize" in gh["authorize_url"]
-        assert "api.github.com" in gh["userinfo_url"]
+        assert urlsplit(gh["authorize_url"]).netloc == "github.com"
+        assert urlsplit(gh["userinfo_url"]).netloc == "api.github.com"
 
 
 class TestSSOUser:
@@ -103,7 +105,7 @@ class TestSSOAuthenticatorInit:
         assert sso._config.enabled is True
         assert sso._config.provider == "google"
         assert sso._config.client_id == "google-id"
-        assert "googleapis.com" in sso._config.token_url
+        assert urlsplit(sso._config.token_url).netloc == "oauth2.googleapis.com"
 
     def test_from_config_custom_provider(self):
         """from_config should support custom providers."""
