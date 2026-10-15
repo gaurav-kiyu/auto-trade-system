@@ -78,7 +78,7 @@ def run_regression_suite():
             entry_price, stop_loss, target_1, target_2, current_price,
             pnl_pct, status, first_touch, created_date, created_week,
             created_month, created_year, timestamp
-        ) VALUES ('SIG-B-1', 'INFY', 'INDEX_OPTIONS', 'CALL', 75, 'MODERATE',
+        ) VALUES ('SIG-B-1', 'INFY', 'SWING', 'CALL', 75, 'MODERATE',
                   100.0, 80.0, 120.0, 150.0, 100.0, 0.0, 'ACTIVE', '', '{today_str}', 'W38', '09', '2026', '{now_ts}')
     """)
     conn.commit()

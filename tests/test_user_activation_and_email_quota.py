@@ -10,14 +10,13 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
 from core.auth.dependencies import AuthDependencies
 from core.auth.handler import AuthHandler
 from core.auth.handler.password import hash_password
 from core.auth.routes import _register_rate_limiter, create_auth_router
 from core.auth.user_signal_permissions import UserPermissionManager
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -73,7 +72,6 @@ def isolated_env(tmp_path):
 
 def test_self_registration_creates_inactive_user(isolated_env):
     """Phase 1: Self-registration must default is_active=False and signals_enabled=False."""
-    client = isolated_env["client"]
     perm_mgr = isolated_env["perm_mgr"]
 
     _register_rate_limiter.reset("register:testclient")
@@ -490,3 +488,45 @@ def test_admin_user_notification_timeline_endpoint(isolated_env):
     resp_404 = client.get("/api/auth/admin/users/non_existent_user_999/notification-timeline")
     assert resp_404.status_code == 404
 
+
+def test_admin_ui_template_activate_and_deactivate_contract():
+    """Verify that admin_users.html implements complete, auditable controls."""
+    template_path = (
+        Path(__file__).resolve().parents[1]
+        / "templates"
+        / "enterprise"
+        / "admin_users.html"
+    )
+    assert template_path.exists(), "admin_users.html must exist"
+    html = template_path.read_text(encoding="utf-8")
+
+    # 1. UI renders PENDING status button when !u.is_active with activate-user
+    assert 'data-action="activate-user"' in html
+    assert "Pending administrative approval" in html
+
+    # 2. UI renders Approve button when !u.is_active
+    assert 'title="Approve & Activate Signals"' in html
+
+    # 3. UI renders symmetric Deactivate button when u.is_active
+    assert 'data-action="deactivate-user"' in html
+    assert 'title="Deactivate Signal Access"' in html
+    assert "u.username !== 'admin'" in html
+
+    # 4. JS functions activateUser & deactivateUser call endpoints
+    assert "async function activateUser(username)" in html
+    assert "`/api/auth/users/${username}/activate`" in html
+    assert "async function deactivateUser(username)" in html
+    assert "`/api/auth/users/${username}/deactivate`" in html
+
+    # 5. Delegated event listener on permissionsTableBody routes both actions
+    assert "permissionsTableBody" in html
+    assert "btn.dataset.action === 'activate-user'" in html
+    assert "btn.dataset.action === 'deactivate-user'" in html
+
+    # 6. Edit modal contains account approval toggle switch
+    assert 'id="permIsActive"' in html
+    assert "Account Approval &amp; Activation" in html
+
+    # 7. CSRF token is attached to non-GET requests in apiFetch
+    assert "X-CSRF-Token" in html
+    assert "opb_csrf" in html

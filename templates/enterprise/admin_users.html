@@ -602,7 +602,9 @@
                             <button type="button" class="btn btn-ghost btn-sm" title="Edit Permissions & Quotas" data-action="open-edit-modal" data-username="${safeUsername}"><i class="fas fa-sliders-h" style="color:#60a5fa;"></i> Edit</button>
                             ${!u.is_active
                                 ? `<button type="button" class="btn btn-ghost btn-sm" title="Approve & Activate Signals" data-action="activate-user" data-username="${safeUsername}"><i class="fas fa-user-check" style="color:#22c55e;"></i> Approve</button>`
-                                : ''}
+                                : (u.username !== 'admin'
+                                    ? `<button type="button" class="btn btn-ghost btn-sm" title="Deactivate Signal Access" data-action="deactivate-user" data-username="${safeUsername}"><i class="fas fa-user-times" style="color:#ef4444;"></i> Deactivate</button>`
+                                    : '')}
                             <button type="button" class="btn btn-ghost btn-sm" title="Notification History &amp; Audit" data-action="notif-timeline" data-username="${safeUsername}"><i class="fas fa-envelope-open-text" style="color:#f59e0b;"></i></button>
                             <button type="button" class="btn btn-ghost btn-sm" title="Reset Password" data-action="reset-user-pw" data-username="${safeUsername}"><i class="fas fa-key" style="color:#f59e0b;"></i></button>
                             ${u.disabled
@@ -1028,6 +1030,18 @@
             }
         }
 
+        async function deactivateUser(username) {
+            if (!confirm(`Deactivate user ${username} from trading signals? The user will be excluded from all signal deliveries.`)) return;
+            const res = await apiFetch(`/api/auth/users/${username}/deactivate`, {method: 'POST'});
+            if (res && res.success) {
+                showToast(res.message || `User ${username} deactivated from trading signals`, 'info');
+                await loadPermissions();
+                await loadAuditLog();
+            } else {
+                showToast(res?.detail || 'Failed to deactivate user', 'error');
+            }
+        }
+
         async function setUserEnabled(username, enabled) {
             const verb = enabled ? 'enable' : 'disable';
             if (!confirm(`Are you sure you want to ${verb} user ${username}?`)) return;
@@ -1071,6 +1085,7 @@
             if (btn.dataset.action === 'view-user') viewUser(username);
             else if (btn.dataset.action === 'toggle-signals') toggleSignals(username);
             else if (btn.dataset.action === 'activate-user') activateUser(username);
+            else if (btn.dataset.action === 'deactivate-user') deactivateUser(username);
             else if (btn.dataset.action === 'open-edit-modal') openEditModal(username);
             else if (btn.dataset.action === 'notif-timeline') openUserNotifTimeline(username);
             else if (btn.dataset.action === 'reset-user-pw') resetUserPw(username);
