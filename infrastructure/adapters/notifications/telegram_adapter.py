@@ -381,15 +381,15 @@ class _TelegramClient:
                         logger.warning("TG pin parse error (message was sent): %s", e)
                 return True
             elif parse_mode and resp.status_code == 400:
-                logger.warning("TG HTML send rejected (400), falling back to plain text send: %s", redact_credential_urls((resp.text or "")[:200]))
+                logger.warning("TG HTML send rejected (400), falling back to plain text send (reason: %s)", resp.reason or "Bad Request")
                 payload.pop("parse_mode", None)
                 resp_fb = sess.post(url, json=payload, timeout=self.send_timeout)
                 if resp_fb.status_code == 200:
                     return True
-                logger.warning("TG fallback send failed: %d %s", resp_fb.status_code, redact_credential_urls((resp_fb.text or "")[:200]))
+                logger.warning("TG fallback send failed: HTTP %d (%s)", resp_fb.status_code, resp_fb.reason or "Error")
                 return False
             else:
-                logger.warning("TG send failed: %d %s", resp.status_code, redact_credential_urls((resp.text or "")[:200]))
+                logger.warning("TG send failed: HTTP %d (%s)", resp.status_code, resp.reason or "Error")
                 return False
         except Exception as e:
             logger.error("TG send error: %s", redact_credential_urls(str(e)))

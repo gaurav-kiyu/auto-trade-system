@@ -1145,7 +1145,7 @@ class RichSignalFormatter:
                 import urllib.parse
                 parsed = urllib.parse.urlparse(raw_url)
                 host = (parsed.hostname or "").lower()
-                if host in {"localhost", "127.0.0.1", "0.0.0.0", "::1"} or host.endswith(".localhost") or "nip.io" in host:
+                if host in {"localhost", "127.0.0.1", "0.0.0.0", "::1"} or host.endswith(".localhost") or host == "nip.io" or host.endswith(".nip.io"):
                     path_and_query = parsed.path or "/"
                     if parsed.query:
                         path_and_query = f"{path_and_query}?{parsed.query}"

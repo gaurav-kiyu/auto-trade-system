@@ -346,37 +346,46 @@ Benchmark Sharpe: 6.99" rows="3"></textarea>
                     const result = await r.json();
                     $('results-panel').classList.remove('hidden');
                     const list = $('results-list');
+                    function _escapeHtml(s) {
+                        const d = document.createElement('div');
+                        d.textContent = s || '';
+                        return d.innerHTML;
+                    }
                     if (result.status === 'ok' && result.path) {
-                        const filename = result.path.split(/[/\\\\]/).pop();
+                        const filename = _escapeHtml(result.path.split(/[/\\\\]/).pop());
+                        const safeTmpl = _escapeHtml(result.template || template);
                         list.innerHTML = `
                             <div class="flex items-center justify-between pg-subcard px-3 py-2">
                                 <div class="flex items-center space-x-2">
                                     <i class="fas fa-check-circle" style="color:var(--success-color);"></i>
-                                    <span class="text-sm font-semibold pg-heading capitalize">${result.template || template}</span>
+                                    <span class="text-sm font-semibold pg-heading capitalize">${safeTmpl}</span>
                                     <span class="text-xs pg-muted">${filename}</span>
                                 </div>
                                 <span class="text-xs font-semibold" style="color:var(--success-color);">Done</span>
                             </div>
                         `;
                         if (window.showToast) {
-                            window.showToast(`Generated ${result.template || template} presentation (${filename}).`, 'success', 'Presentation Generated');
+                            window.showToast(`Generated ${result.template || template} presentation.`, 'success', 'Presentation Generated');
                         }
                     } else {
-                        const errMsg = result.detail || result.message || 'Generation returned no path';
+                        const rawMsg = result.detail || result.message || 'Generation returned no path';
+                        const errMsg = _escapeHtml(rawMsg);
                         list.innerHTML = `<div class="flex items-center space-x-2 text-sm" style="color:var(--warning-color);">
                             <i class="fas fa-exclamation-triangle"></i>
                             <span>${errMsg}</span>
                         </div>`;
                         if (window.showToast) {
-                            window.showToast(errMsg, 'warning', 'Presentation Generation');
+                            window.showToast(rawMsg, 'warning', 'Presentation Generation');
                         }
                     }
                 } catch(e) {
                     $('results-panel').classList.remove('hidden');
+                    const errDiv = document.createElement('div');
+                    errDiv.textContent = `Error: ${e.message}`;
                     $('results-list').innerHTML =
                         `<div class="flex items-center space-x-2 text-sm" style="color:var(--danger-color);">
                             <i class="fas fa-times-circle"></i>
-                            <span>Error: ${e.message}</span>
+                            <span>${errDiv.innerHTML}</span>
                         </div>`;
                     if (window.showToast) {
                         window.showToast(`Presentation generation failed: ${e.message}`, 'error', 'Generation Failed');

@@ -178,7 +178,7 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
             print("=" * 70)
             print(" FIRST-RUN ADMIN LOGIN (shown once - not stored anywhere in plain text)")
             print(f"   Username: {DEFAULT_ADMIN_USERNAME}")
-            print(f"   Password: {default_pass}")
+            print(f"   Initial Admin Credential Token: {default_pass}")
             print(" You will be forced to change this on first login.")
             print("=" * 70)
 

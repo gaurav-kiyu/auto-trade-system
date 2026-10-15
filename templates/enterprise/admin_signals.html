@@ -741,6 +741,7 @@
     });
 
     async function openSignalExplainModal(signalId) {
+        const safeSignalId = String(signalId || '').replace(/[^a-zA-Z0-9_\-\.:]/g, '');
         const modal = document.getElementById('signalExplainModal');
         const content = document.getElementById('signalExplainContent');
         if (!modal || !content) return;
@@ -749,7 +750,7 @@
         if (closeBtn) closeBtn.focus();
         content.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted, #94a3b8);"><i class="fas fa-spinner fa-spin"></i> Loading canonical signal components...</div>';
         try {
-            const res = await fetch(`/api/auth/signals/${encodeURIComponent(signalId)}/explain`, { credentials: 'include' });
+            const res = await fetch(`/api/auth/signals/${encodeURIComponent(safeSignalId)}/explain`, { credentials: 'include' });
             if (res.status === 401) {
                 window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
                 return;
@@ -763,14 +764,14 @@
                             This signal does not contain stored sub-component weights in its raw snapshot. Granular sub-components are only available for signals generated with deep feature attribution.
                         </p>
                         <div style="display:inline-block;padding:0.35rem 0.75rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:0.35rem;font-size:0.75rem;color:var(--accent-color, #38bdf8);font-family:monospace;">
-                            Signal ID: ${signalId}
+                            Signal ID: ${safeSignalId}
                         </div>
                     </div>
                 `;
                 return;
             }
             if (!res.ok) {
-                content.innerHTML = `<div style="color:var(--danger-color, #ef4444);padding:1rem;"><i class="fas fa-exclamation-triangle"></i> Failed to load explanation for ${signalId} (HTTP ${res.status}).</div>`;
+                content.innerHTML = `<div style="color:var(--danger-color, #ef4444);padding:1rem;"><i class="fas fa-exclamation-triangle"></i> Failed to load explanation for ${safeSignalId} (HTTP ${res.status}).</div>`;
                 return;
             }
             const data = await res.json();

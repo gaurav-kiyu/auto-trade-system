@@ -240,6 +240,10 @@ class UpiBillingEngine:
             if pat.search(svg_text):
                 return False, f"Dangerous SVG pattern detected ({pat.pattern})", b""
 
+        # Block DTD and entity expansion explicitly to prevent XML bombs (CWE-776)
+        if "<!ENTITY" in svg_text or "<!DOCTYPE" in svg_text:
+            return False, "Dangerous DTD or XML entity definitions rejected", b""
+
         # Parse XML securely using defusedxml or fallback
         try:
             if DefusedET is not None:
