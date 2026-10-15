@@ -175,12 +175,15 @@ class AuthHandler(MfaHandlerMixin, SessionManagerMixin):
         conn.commit()
         _log.warning("[AUTH] Default admin user created - FORCE PASSWORD CHANGE REQUIRED")
         if auto_generated:
-            print("=" * 70)
-            print(" FIRST-RUN ADMIN LOGIN (shown once - not stored anywhere in plain text)")
-            print(f"   Username: {DEFAULT_ADMIN_USERNAME}")
-            print(f"   Initial Admin Credential Token: {default_pass}")
-            print(" You will be forced to change this on first login.")
-            print("=" * 70)
+            cred_path = Path(self._db_path).expanduser().parent / ".initial_admin_password"
+            try:
+                cred_path.parent.mkdir(parents=True, exist_ok=True)
+                fd = os.open(str(cred_path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+                with open(fd, "w", encoding="utf-8") as f:
+                    f.write(default_pass + "\n")
+                _log.info("[AUTH] First-run admin credential token securely written to %s", cred_path)
+            except OSError:
+                _log.warning("[AUTH] Could not write initial admin credentials file")
 
     # ── User management ────────────────────────────────────────────────────────
 

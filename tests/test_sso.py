@@ -28,13 +28,13 @@ class TestSSOConfig:
         """Google provider should have correct defaults in OAUTH_PROVIDERS."""
         google = OAUTH_PROVIDERS["google"]
         assert urlsplit(google["authorize_url"]).netloc == "accounts.google.com"
-        assert urlsplit(google["token_url"]).netloc.endswith("googleapis.com")
+        assert urlsplit(google["token_url"]).netloc == "oauth2.googleapis.com"
         assert "openid" in google["scope"]
 
     def test_microsoft_provider_defaults(self):
         """Microsoft provider should have correct defaults."""
         ms = OAUTH_PROVIDERS["microsoft"]
-        assert urlsplit(ms["authorize_url"]).netloc.endswith("microsoftonline.com")
+        assert urlsplit(ms["authorize_url"]).netloc == "login.microsoftonline.com"
         assert urlsplit(ms["userinfo_url"]).netloc == "graph.microsoft.com"
 
     def test_github_provider_defaults(self):
@@ -105,7 +105,7 @@ class TestSSOAuthenticatorInit:
         assert sso._config.enabled is True
         assert sso._config.provider == "google"
         assert sso._config.client_id == "google-id"
-        assert urlsplit(sso._config.token_url).netloc.endswith("googleapis.com")
+        assert urlsplit(sso._config.token_url).netloc == "oauth2.googleapis.com"
 
     def test_from_config_custom_provider(self):
         """from_config should support custom providers."""
