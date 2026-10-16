@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.61.4 (2026-10-16)
+
+- **Technical Debt Remediation & Configuration Drift Closure:** Remediated 12 dead and obsolete configuration keys across `json/config.template.json` and `json/index_config.defaults.json` (CDR-015, CDR-016, CDR-017, CDR-025); synchronized generated schema `schemas/index_config.schema.json`.
+- **Register Reconciliation & Audit Alignment:** Reconciled `docs/config_drift_register.md` preserving 9 active findings while archiving resolved items under CD-RES-### with full audit history; reconciled `docs/dead_code_register.md` (49,867 active findings) and `docs/duplicate_code_register.md` (427 active findings), purging stale temporary artifacts.
+- **Success Metric MET-07 Recovery:** Recorded Snapshot 17 (`v2.61.4-rc1`) in `json/success_metrics_trend.json`, demonstrating genuine composite technical debt score reduction (50,406.33 -> 50,083.50, delta -322.83, direction DOWN); MET-07 and MET-08 verified passing under canonical metric contracts.
+- **Production Safety Invariants & Governance Continuity:** Maintained 100% paper/signal-only operational safeguards, live trading lockout active, zero live orders/trades, user Rishi inactive, G9 signal quality calibration held at `NOT_READY`, public commercialization `BLOCKED`.
+
 ## v2.61.3 (2026-10-16)
 
 - **Version Reporting Divergence Remediated (DEFECT-001):** Updated root `VERSION` to `2.61.3`; dynamic canonical getters wired into dashboard state, system status, health, intelligence, and presentation APIs; 6-test contract suite added.

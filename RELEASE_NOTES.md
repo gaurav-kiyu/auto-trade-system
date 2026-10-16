@@ -1,3 +1,36 @@
+# Release v2.61.4
+
+**Date:** 2026-10-16
+**Previous Release:** v2.61.3
+
+---
+
+## OPB v2.61.4 Technical Debt Remediation, Configuration Cleanup & MET-07 Recovery
+
+- **Configuration Drift Remediation & Schema Synchronization:**
+  - Removed 12 obsolete keys from `json/config.template.json` and `json/index_config.defaults.json` (CDR-015, CDR-016, CDR-017, CDR-025).
+  - Regenerated and validated canonical `schemas/index_config.schema.json`.
+  - Archived resolved configuration drift findings to `CD-RES-001` through `CD-RES-004` in `docs/config_drift_register.md` while preserving 9 active findings.
+
+- **Technical Debt Register Alignment:**
+  - Reconciled `docs/dead_code_register.md` (49,867 active findings) and `docs/duplicate_code_register.md` (427 active findings) to eliminate stray backup and merge-artifact entries.
+  - Verified cross-register consistency via `python -m core.success_metrics_trend --check-registers` (`foreign_ids=[]`).
+
+- **Success Metric Recovery (MET-07):**
+  - Captured Snapshot 17 (`v2.61.4-rc1`) in `json/success_metrics_trend.json`.
+  - Achieved genuine composite score reduction from 50,406.33 to 50,083.50 (delta -322.83), flipping MET-07 from `FAIL` to `PASS` (`DOWN`).
+  - Metric contract, weights, and scoring formulas preserved without modification.
+
+- **Production Safety Invariants & Operational Safeguards:**
+  - Strict `PAPER` and `SIGNAL_ONLY` execution mode preserved.
+  - `LIVE_TRADING_LOCKOUT=True`, `full_auto_allowed=False`, `BROKER_API_ENABLED=False`, `BROKER_AUTO_ROUTING=DISCONNECTED`.
+  - Live trades: 0, live orders: 0, live capital risk: INR 0.
+  - User Rishi remains inactive (`is_active: false`) and blocked from signal delivery.
+  - G9 signal quality calibration status remains `NOT_READY`; strategy score floor maintained at 80.
+  - Public commercialization remains strictly `BLOCKED`.
+
+---
+
 # Release v2.61.3
 
 **Date:** 2026-10-16

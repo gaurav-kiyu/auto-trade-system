@@ -53,5 +53,5 @@ def test_intelligence_summary_reports_canonical_app_version():
     assert data.get("status") == "ok"
     assert "bi_dashboard" in data
     assert data["bi_dashboard"].get("version") == get_app_version()
-    assert data["bi_dashboard"].get("version") == "2.61.3"
+    assert data["bi_dashboard"].get("version") == "2.61.4"
 

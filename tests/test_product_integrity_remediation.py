@@ -15,16 +15,14 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any
 
-import pytest
-from fastapi.testclient import TestClient
-
-from core.billing.upi_billing_engine import UpiBillingEngine
-from core.auth.user_signal_permissions import UserPermissionManager
-from core.signals.signal_tracker import SignalTracker
-from core.fno_universe import classify_instrument_market
 import core.presentation_generator as pres_gen
+import pytest
+from core.auth.user_signal_permissions import UserPermissionManager
+from core.billing.upi_billing_engine import UpiBillingEngine
+from core.fno_universe import classify_instrument_market
+from core.signals.signal_tracker import SignalTracker
+from fastapi.testclient import TestClient
 
 
 class TestPaymentFailClosed:
@@ -267,7 +265,7 @@ class TestCanonicalMarketTaxonomy:
 
     def test_strict_authorization_no_privilege_escalation(self, tmp_path):
         """CRITICAL: Prove remediation did not accidentally broaden user permissions."""
-        from core.auth.user_signal_permissions import UserSignalPermission, UserPermissionManager
+        from core.auth.user_signal_permissions import UserPermissionManager, UserSignalPermission
 
         p = tmp_path / "strict_perms.json"
         mgr = UserPermissionManager(store_path=p)
@@ -311,10 +309,10 @@ class TestPresentationGeneratorIntegrity:
 
     def test_presentation_generator_v2594_and_benchmark_labels(self):
         version = pres_gen.PresentationGenerator._fetch_version()
-        assert version == "2.61.3"
+        assert version == "2.61.4"
 
         pres_html = Path("templates/enterprise/presentation.html").read_text(encoding="utf-8")
-        assert 'placeholder="{{ app_version|default(\'2.61.3\') }}"' in pres_html
+        assert 'placeholder="{{ app_version|default(\'2.61.4\') }}"' in pres_html
         assert "Benchmark Win Rate" in pres_html
 
         core_py = Path("core/presentation_generator.py").read_text(encoding="utf-8")
@@ -325,7 +323,7 @@ class TestPresentationGeneratorIntegrity:
         gen = pres_gen.get_presentation_generator(output_dir=str(tmp_path))
         # Execute generate_report logic checks
         ver = gen._fetch_version()
-        assert ver == "2.61.3"
+        assert ver == "2.61.4"
         counts = gen._fetch_file_counts()
         assert counts["core"] > 0
         assert counts["tests"] > 0
@@ -412,8 +410,8 @@ class TestCrossScreenCanonicalConsistency:
         state_file.write_text(json.dumps({"execution_mode": "PAPER", "base_capital": 3000}), encoding="utf-8")
         d = EnterpriseDashboard(config={"trader_state_path": str(state_file), "BASE_CAPITAL": 3000})
         st = d._read_state()
-        assert st["version"] == "2.61.3"
-        assert st["release_tag"] == "v2.61.3"
+        assert st["version"] == "2.61.4"
+        assert st["release_tag"] == "v2.61.4"
         assert st["execution_mode"] == "PAPER"
         assert st["base_capital"] == 3000.0
 

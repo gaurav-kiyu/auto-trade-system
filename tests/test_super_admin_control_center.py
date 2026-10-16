@@ -38,7 +38,7 @@ def test_control_center_status_structure(tmp_path):
 
         payload = {
             "app": {
-                "version": "v2.61.3",
+                "version": "v2.61.4",
                 "status": "HEALTHY",
                 "mode": "SIGNAL_ONLY / PAPER",
                 "timestamp": now.strftime("%Y-%m-%d %H:%M:%S IST"),
@@ -122,7 +122,7 @@ def test_control_center_endpoint_live(tmp_path):
         result = asyncio.run(handler(mock_request, user=MagicMock()))
 
     assert "app" in result
-    assert result["app"]["version"] == "v2.61.3"
+    assert result["app"]["version"] == "v2.61.4"
     assert result["safety_invariants"]["BASE_CAPITAL"] == 3000
     assert result["safety_invariants"]["SL_PCT"] == 0.88
     assert result["safety_invariants"]["SIGNAL_ONLY"] is True

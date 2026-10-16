@@ -17,9 +17,9 @@ def test_01_version_file_loading():
     version_file = _ROOT / "VERSION"
     assert version_file.is_file(), "Root VERSION file must exist"
     expected = version_file.read_text(encoding="utf-8").strip()
-    assert expected == "2.61.3", "Canonical version must be 2.61.3"
-    assert get_app_version() == "2.61.3"
-    assert get_app_version_tag() == "v2.61.3"
+    assert expected == "2.61.4", "Canonical version must be 2.61.4"
+    assert get_app_version() == "2.61.4"
+    assert get_app_version_tag() == "v2.61.4"
 
 
 def test_02_version_fallback_behavior():
@@ -27,8 +27,8 @@ def test_02_version_fallback_behavior():
     with patch("core.version._VERSION_FILE", _ROOT / "NON_EXISTENT_VERSION_FILE"):
         # When file does not exist, it should return fallback version
         fallback = get_app_version()
-        assert fallback == "2.61.3"
-        assert get_app_version_tag() == "v2.61.3"
+        assert fallback == "2.61.4"
+        assert get_app_version_tag() == "v2.61.4"
 
 
 def test_03_package_and_manifest_version_consistency():
