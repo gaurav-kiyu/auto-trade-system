@@ -731,6 +731,7 @@ class TestE51ForensicReconciliation(unittest.TestCase):
             "OPB_",
             "scratch/",
             "data/",
+            "docs/",
             "reports/",
             "logs/",
             ".audit_backups/",
