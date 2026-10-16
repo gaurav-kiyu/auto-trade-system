@@ -246,7 +246,7 @@ def register_intelligence_routes(app, dashboard, admin_only, operator_or_admin) 
                 from core.version import get_app_version
                 app_ver = get_app_version()
             except ImportError:
-                app_ver = "2.61.0"
+                app_ver = "2.61.3"
             result["bi_dashboard"] = {"error": "not available", "version": app_ver}
 
         # Security Auditor (Vision Module)

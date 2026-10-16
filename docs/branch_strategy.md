@@ -1,7 +1,7 @@
 # Branch Strategy and Release Flow
 
 **Status:** Active
-**Effective version:** 2.61.0
+**Effective version:** 2.61.3
 
 ## Branches
 

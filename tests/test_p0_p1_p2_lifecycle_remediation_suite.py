@@ -58,6 +58,24 @@ def test_01_production_db_immutability():
     assert actual_sha == EXPECTED_DB_SHA.lower()
 
 
+def test_01b_production_db_mutation_detection(tmp_path):
+    """Verify that any unintended modification to database bytes causes hash mismatch."""
+    if not _DB_PATH.exists():
+        pytest.skip("Canonical historical production database not present.")
+    file_size = _DB_PATH.stat().st_size
+    if file_size < 500_000:
+        pytest.skip("Ephemeral test artifact.")
+    copy_path = tmp_path / "signals_history_mutated.db"
+    content = _DB_PATH.read_bytes()
+    mutated = content[:-1] + (b"\x00" if content[-1:] != b"\x00" else b"\xff")
+    copy_path.write_bytes(mutated)
+    hasher = hashlib.sha256()
+    with open(copy_path, "rb") as f:
+        while chunk := f.read(65536):
+            hasher.update(chunk)
+    assert hasher.hexdigest().lower() != EXPECTED_DB_SHA.lower()
+
+
 def test_02_d20_a_remains_off():
     """Verify D20-A quota bypass remains inactive."""
     assert _CONFIG_PATH.exists()

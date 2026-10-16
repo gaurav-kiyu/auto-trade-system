@@ -20,6 +20,7 @@ from types import MappingProxyType
 from typing import Any
 
 from core.notifications.url_resolver import is_production_environment
+from core.version import get_app_version, get_app_version_tag
 
 try:
     from fastapi import FastAPI, HTTPException, Request
@@ -1644,8 +1645,8 @@ class EnterpriseDashboard:
             "execution_mode": st.get("execution_mode", "PAPER"),
             "status": st.get("status", "RUNNING"),
             "hard_halt": st.get("hard_halt", False),
-            "version": "2.61.0",
-            "release_tag": "v2.61.0",
+            "version": get_app_version(),
+            "release_tag": get_app_version_tag(),
         }
 
     def _load_recent_trades(self, days: int = 30, n: int = 100) -> list:

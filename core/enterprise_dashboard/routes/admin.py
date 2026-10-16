@@ -83,9 +83,10 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
         notif_svc = get_notification_service()
         notif_health = notif_svc.get_notification_health()
 
+        from core.version import get_app_version_tag
         return {
             "app": {
-                "version": "v2.61.0",
+                "version": get_app_version_tag(),
                 "status": "HEALTHY",
                 "mode": "SIGNAL_ONLY / PAPER",
                 "timestamp": now.strftime("%Y-%m-%d %H:%M:%S IST"),

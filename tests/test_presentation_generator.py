@@ -383,7 +383,7 @@ class TestGenerateReport:
         version = gen._fetch_version()
         assert isinstance(version, str)
         assert len(version) > 0
-        assert version == "2.61.0"
+        assert version == "2.61.3"
 
     def test_fetch_file_counts_returns_dict(self) -> None:
         gen = PresentationGenerator(PresentationConfig(enabled=False))
