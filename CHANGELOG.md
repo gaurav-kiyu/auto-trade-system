@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.61.3 (2026-10-16)
+
+- **Version Reporting Divergence Remediated (DEFECT-001):** Updated root `VERSION` to `2.61.3`; dynamic canonical getters wired into dashboard state, system status, health, intelligence, and presentation APIs; 6-test contract suite added.
+- **Production Database Immutability Contract Preserved (DEFECT-002):** Schema expansion in unparameterized tests resolved; canonical 32-column baseline file restored; active tampering detection test added.
+- **Security Vulnerability Remediation (PR #103):** Upgraded `python-multipart` to `0.0.31` (resolving 6 CVEs), `anyio` to `4.15.1`, `pypdf` to `6.20.1`, `soupsieve` to `2.10`.
+- **Production Safety Invariants & G9 Signal Calibration:** Confirmed `PAPER` / `SIGNAL_ONLY` execution, live trading lockout, zero live broker orders; User Rishi remains blocked; G9 calibration confirmed `NOT_READY`.
+
 ## v2.61.0 (2026-10-14)
 
 - **Admin Activation & Quota Remediation:** Implemented admin activation endpoints with secure per-tenant daily email quota limits, reset lifecycle, and robust usage tracking.

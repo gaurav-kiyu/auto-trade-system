@@ -1,3 +1,33 @@
+# Release v2.61.3
+
+**Date:** 2026-10-16
+**Previous Release:** v2.61.2
+
+---
+
+## OPB v2.61.3 Defect Remediation, Security Patching & Immutability Certification
+
+- **Version Reporting Divergence Remediated (DEFECT-001):**
+  - Updated root `VERSION` to `2.61.3`.
+  - Replaced hardcoded version literals across core, dashboard routes (`/health`, `/api/state`, `/api/admin/system/status`, `/api/intelligence/summary`, `/api/bi/summary`), presentation generator, templates, and build manifests with dynamic getters (`get_app_version()`, `get_app_version_tag()`).
+  - Added authoritative 6-test contract suite `tests/test_version_contract.py`.
+
+- **Production Database Immutability Contract Preserved (DEFECT-002):**
+  - Resolved implicit schema expansion (`exit_reason`, `exit_price`, `exit_at`) during test runs without an explicit temporary database path.
+  - Restored canonical 32-column baseline fixture (`f12ba2e4...`, 1,216,512 bytes) without altering test assertions.
+  - Added active tampering detection test `test_01b_production_db_mutation_detection`.
+
+- **Security Vulnerability Remediation (PR #103):**
+  - Upgraded `python-multipart` from `0.0.22` to `0.0.31` (resolving 6 CVEs / Dependabot alerts: GHSA-5rvq-cxj2-64vf, GHSA-pp6c-gr5w-3c5g, GHSA-mj87-hwqh-73pj, GHSA-v9pg-7xvm-68hf, GHSA-6jv3-5f52-599m, GHSA-vffw-93wf-4j4q).
+  - Upgraded `anyio` (4.14.2 -> 4.15.1), `pypdf` (6.19.0 -> 6.20.1), and `soupsieve` (2.9.0 -> 2.10).
+
+- **Production Safety Invariants & G9 Signal Calibration:**
+  - Preserved strict `PAPER` / `SIGNAL_ONLY` execution, live trading lockout, zero live broker orders.
+  - User Rishi remains signal-blocked (`is_active: false`).
+  - G9 calibration confirmed `NOT_READY` based on empirical live forward-observation data; score floor preserved at 80.
+
+---
+
 # Release v2.61.0
 
 **Date:** 2026-10-14
