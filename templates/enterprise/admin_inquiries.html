@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OPB — Administrative Inquiry & Support Portal</title>
+<script nonce="{{ nonce }}" src="/static/vendor/tailwind.min.js"></script>
+<script nonce="{{ nonce }}" src="/static/theme_engine.js"></script>
+<link rel="stylesheet" href="/static/fontawesome.min.css">
+<link rel="stylesheet" href="/static/opb_design_system.css">
+{% include "_pwa_head.html" %}
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-ui, 'Inter', sans-serif); background: var(--bg-primary, #080b10); color: var(--text-primary, #e2e8f0); min-height: 100vh; padding: 1.5rem 1.75rem 3rem 1.75rem; }
+    .inquiries-container { max-width: 1300px; margin: 0 auto; }
+    .header-box { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    .header-title { font-size: 1.5rem; font-weight: 800; color: var(--text-primary, #ffffff); letter-spacing: -0.02em; }
+    .header-subtitle { color: var(--text-muted, #94a3b8); font-size: 0.85rem; margin-top: 0.2rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--bg-card, #0f172a); border: 1px solid var(--border-color, #1e293b); border-radius: 0.65rem; padding: 1.1rem; box-shadow: var(--card-shadow); }
+    .stat-label { font-size: 0.72rem; color: var(--text-muted, #94a3b8); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+    .stat-val { font-size: 1.6rem; font-weight: 850; font-family: "JetBrains Mono", monospace; color: var(--text-primary, #ffffff); margin-top: 0.25rem; }
+    .filter-card { background: var(--bg-card, #0f172a); border: 1px solid var(--border-color, #1e293b); border-radius: 0.65rem; padding: 1rem; margin-bottom: 1.25rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+    .filter-select, .filter-input { background: var(--input-bg, #0b1120); border: 1px solid var(--border-color, #334155); border-radius: 0.4rem; color: var(--text-primary, #e2e8f0); font-size: 0.8rem; padding: 0.45rem 0.75rem; outline: none; }
+    .filter-select:focus, .filter-input:focus { border-color: var(--accent-color, #38bdf8); }
+    .table-card { background: var(--bg-card, #0f172a); border: 1px solid var(--border-color, #1e293b); border-radius: 0.75rem; overflow: hidden; box-shadow: var(--card-shadow); }
+    .table { width: 100%; border-collapse: collapse; text-align: left; }
+    .table th { background: rgba(15, 23, 42, 0.75); color: var(--text-muted, #94a3b8); font-size: 0.72rem; text-transform: uppercase; font-weight: 750; letter-spacing: 0.04em; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color, #1e293b); }
+    .table td { padding: 0.85rem 1rem; border-bottom: 1px solid rgba(51, 65, 85, 0.4); font-size: 0.82rem; color: var(--text-secondary, #cbd5e1); vertical-align: middle; }
+    .table tr:hover td { background: rgba(56, 189, 248, 0.04); }
+    .badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.55rem; border-radius: 0.35rem; font-size: 0.7rem; font-weight: 750; letter-spacing: 0.03em; text-transform: uppercase; }
+    .badge-new { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); }
+    .badge-in_progress { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
+    .badge-resolved { background: rgba(34, 197, 94, 0.12); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.25); }
+    .badge-closed { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border: 1px solid #334155; }
+    .badge-notif-dispatched { background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.2); }
+    .badge-notif-failed { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); }
+    .badge-notif-pending { background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
+    .badge-notif-migrated { background: rgba(148, 163, 184, 0.08); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); }
+    .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; border-radius: 0.4rem; font-size: 0.78rem; font-weight: 700; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s ease; }
+    .btn-primary { background: var(--accent-color, #38bdf8); color: var(--btn-primary-text, #080c14); }
+    .btn-ghost { background: transparent; color: var(--text-muted, #94a3b8); border: 1px solid var(--border-color, #334155); }
+    .btn-ghost:hover { background: rgba(56, 189, 248, 0.08); color: var(--text-primary, #ffffff); }
+    .btn-sm { padding: 0.25rem 0.55rem; font-size: 0.72rem; }
+    .mono { font-family: "JetBrains Mono", monospace; font-feature-settings: "tnum" 1, "zero" 1; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; }
+    .modal-overlay.visible { display: flex; }
+    .modal { background: var(--bg-card, #0f172a); border: 1px solid var(--border-color, #334155); border-radius: 0.85rem; padding: 1.75rem; max-width: 720px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, #1e293b); padding-bottom: 1rem; margin-bottom: 1.25rem; }
+    .modal-close { background: transparent; border: none; color: var(--text-muted, #94a3b8); font-size: 1.2rem; cursor: pointer; }
+    .audit-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.75rem; }
+    .audit-table th, .audit-table td { padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border-color, #1e293b); }
+</style>
+</head>
+<body>
+    {% include "_nav.html" %}
+
+    <div class="inquiries-container">
+        <!-- Header -->
+        <div class="header-box">
+            <div>
+                <h1 class="header-title">📬 Contact Inquiries &amp; Support Management</h1>
+                <div class="header-subtitle">
+                    Durable audit trail, email delivery verification, and lifecycle management for platform inquiries.
+                </div>
+            </div>
+            <div>
+                <a href="/admin/users" class="btn btn-ghost btn-sm">👥 User Controls</a>
+                <a href="/admin/config" class="btn btn-ghost btn-sm">⚙️ System Config</a>
+            </div>
+        </div>
+
+        <!-- Statistics Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Inquiries</div>
+                <div class="stat-val" id="statTotal">{{ stats.total }}</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #38bdf8;">
+                <div class="stat-label">New / Pending</div>
+                <div class="stat-val" style="color: #38bdf8;" id="statNew">{{ stats.new }}</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #fbbf24;">
+                <div class="stat-label">In Progress</div>
+                <div class="stat-val" style="color: #fbbf24;" id="statInProgress">{{ stats.in_progress }}</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #4ade80;">
+                <div class="stat-label">Resolved</div>
+                <div class="stat-val" style="color: #4ade80;" id="statResolved">{{ stats.resolved }}</div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-card">
+            <div>
+                <label for="filterStatus" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-right: 0.4rem;">STATUS:</label>
+                <select id="filterStatus" class="filter-select">
+                    <option value="ALL">All Statuses</option>
+                    <option value="NEW" {% if current_status == 'NEW' %}selected{% endif %}>New</option>
+                    <option value="IN_PROGRESS" {% if current_status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                    <option value="RESOLVED" {% if current_status == 'RESOLVED' %}selected{% endif %}>Resolved</option>
+                    <option value="CLOSED" {% if current_status == 'CLOSED' %}selected{% endif %}>Closed</option>
+                </select>
+            </div>
+            <div>
+                <label for="filterCategory" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-right: 0.4rem;">CATEGORY:</label>
+                <select id="filterCategory" class="filter-select">
+                    <option value="ALL">All Categories</option>
+                    <option value="General Inquiry">General Platform Inquiry</option>
+                    <option value="Technical Support">Technical &amp; Connectivity</option>
+                    <option value="Bug Report">Bug / Issue Report</option>
+                    <option value="Feature Suggestion">Feature Request</option>
+                    <option value="API Integration">API &amp; Integration</option>
+                    <option value="Feedback">Feedback</option>
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <input type="text" id="searchInput" class="filter-input" style="width: 100%;" placeholder="🔍 Search Ticket ID, Name, Email, Subject..." value="{{ search or '' }}">
+            </div>
+            <button id="btnApplyFilter" class="btn btn-primary btn-sm">Filter</button>
+            <button id="btnResetFilter" class="btn btn-ghost btn-sm">Reset</button>
+        </div>
+
+        <!-- Inquiries Table Card -->
+        <div class="table-card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Ticket ID</th>
+                        <th>Created (UTC)</th>
+                        <th>Submitter</th>
+                        <th>Category</th>
+                        <th>Subject</th>
+                        <th>Inquiry Status</th>
+                        <th>Notification</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="inquiriesTableBody">
+                    {% if inquiries %}
+                        {% for inq in inquiries %}
+                        <tr data-id="{{ inq.id }}">
+                            <td class="mono" style="font-weight: 700; color: #38bdf8;">{{ inq.id }}</td>
+                            <td class="mono" style="font-size: 0.75rem;">{{ inq.created_at[:16].replace('T', ' ') }}</td>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text-primary,#ffffff);">{{ inq.name }}</div>
+                                <div class="mono" style="font-size: 0.72rem; color: var(--text-muted,#94a3b8);">{{ inq.email }}</div>
+                            </td>
+                            <td><span style="font-size: 0.78rem;">{{ inq.category }}</span></td>
+                            <td style="max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ inq.subject }}">
+                                {{ inq.subject }}
+                            </td>
+                            <td>
+                                {% set st = inq.status|lower %}
+                                <span class="badge badge-{{ st }}">{{ inq.status }}</span>
+                            </td>
+                            <td>
+                                {% set nst = inq.notification_status|lower %}
+                                <span class="badge badge-notif-{{ nst }}">{{ inq.notification_status }}</span>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn btn-ghost btn-sm btn-view-inquiry" data-id="{{ inq.id }}">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                                📭 No contact inquiries found matching criteria.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal for Inquiry Details & Status Management -->
+    <div id="inquiryModalOverlay" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modalTicketId" style="font-size: 1.15rem; font-weight: 800; color: #38bdf8; font-family: monospace;">inq_000000</h2>
+                    <div id="modalMetaSubtitle" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Submitted on ...</div>
+                </div>
+                <button id="btnModalClose" class="modal-close">&times;</button>
+            </div>
+
+            <!-- Detail Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.8rem; margin-bottom: 1rem;">
+                <div><strong style="color:var(--text-muted);">Submitter:</strong> <span id="modalName" style="color:#ffffff;"></span></div>
+                <div><strong style="color:var(--text-muted);">Email:</strong> <span id="modalEmail" class="mono" style="color:#38bdf8;"></span></div>
+                <div><strong style="color:var(--text-muted);">Category:</strong> <span id="modalCategory"></span></div>
+                <div><strong style="color:var(--text-muted);">Client IP:</strong> <span id="modalClientIp" class="mono"></span></div>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.3rem;">Subject</div>
+                <div id="modalSubject" style="font-size: 0.95rem; font-weight: 700; color: #ffffff; background: var(--input-bg,#0b1120); padding: 0.5rem 0.75rem; border-radius: 0.4rem; border: 1px solid var(--border-color,#334155);"></div>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.3rem;">Message Body</div>
+                <div id="modalMessage" style="font-size: 0.85rem; line-height: 1.6; color: #cbd5e1; background: var(--input-bg,#0b1120); padding: 0.85rem; border-radius: 0.4rem; border: 1px solid var(--border-color,#334155); max-height: 200px; overflow-y: auto; white-space: pre-wrap;"></div>
+            </div>
+
+            <!-- Status Transition Form -->
+            <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.25rem;">
+                <h3 style="font-size: 0.85rem; font-weight: 750; color: #ffffff; margin-bottom: 0.6rem;">Update Inquiry Status</h3>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.5rem;">
+                    <select id="modalStatusSelect" class="filter-select" style="min-width: 140px;">
+                        <option value="NEW">NEW</option>
+                        <option value="IN_PROGRESS">IN_PROGRESS</option>
+                        <option value="RESOLVED">RESOLVED</option>
+                        <option value="CLOSED">CLOSED</option>
+                    </select>
+                    <input type="text" id="modalAdminNotes" class="filter-input" style="flex: 1;" placeholder="Resolution or internal notes...">
+                    <button id="btnSaveStatus" class="btn btn-primary btn-sm">Save Status</button>
+                </div>
+            </div>
+
+            <!-- Audit History Table -->
+            <div>
+                <h3 style="font-size: 0.8rem; font-weight: 750; color: var(--text-muted); text-transform: uppercase;">Audit History</h3>
+                <table class="audit-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Actor</th>
+                            <th>Action</th>
+                            <th>Transition</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalAuditHistoryBody">
+                        <tr><td colspan="5" style="text-align:center;">Loading audit history...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script nonce="{{ nonce }}">
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
+            return match ? decodeURIComponent(match[3]) : null;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const modalOverlay = document.getElementById('inquiryModalOverlay');
+            const btnModalClose = document.getElementById('btnModalClose');
+            const btnApplyFilter = document.getElementById('btnApplyFilter');
+            const btnResetFilter = document.getElementById('btnResetFilter');
+            const filterStatus = document.getElementById('filterStatus');
+            const filterCategory = document.getElementById('filterCategory');
+            const searchInput = document.getElementById('searchInput');
+            const btnSaveStatus = document.getElementById('btnSaveStatus');
+
+            let currentActiveInquiryId = null;
+
+            // Filter actions
+            btnApplyFilter.addEventListener('click', () => {
+                const s = filterStatus.value;
+                const c = filterCategory.value;
+                const q = searchInput.value.trim();
+                const params = new URLSearchParams();
+                if (s !== 'ALL') params.set('status', s);
+                if (c !== 'ALL') params.set('category', c);
+                if (q) params.set('search', q);
+                window.location.href = '/admin/inquiries?' + params.toString();
+            });
+
+            btnResetFilter.addEventListener('click', () => {
+                window.location.href = '/admin/inquiries';
+            });
+
+            // View inquiry modal
+            document.querySelectorAll('.btn-view-inquiry').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const id = btn.getAttribute('data-id');
+                    currentActiveInquiryId = id;
+                    openModal(id);
+                });
+            });
+
+            async function openModal(id) {
+                modalOverlay.classList.add('visible');
+                document.getElementById('modalTicketId').textContent = id;
+                document.getElementById('modalAuditHistoryBody').innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading...</td></tr>';
+
+                try {
+                    const resp = await fetch(`/api/v1/admin/inquiries/${id}`);
+                    const data = await resp.json();
+                    if (data.success && data.inquiry) {
+                        const inq = data.inquiry;
+                        document.getElementById('modalName').textContent = inq.name;
+                        document.getElementById('modalEmail').textContent = inq.email;
+                        document.getElementById('modalCategory').textContent = inq.category;
+                        document.getElementById('modalClientIp').textContent = inq.client_ip;
+                        document.getElementById('modalSubject').textContent = inq.subject;
+                        document.getElementById('modalMessage').textContent = inq.message;
+                        document.getElementById('modalMetaSubtitle').textContent = `Submitted: ${inq.created_at} | Status: ${inq.status}`;
+                        document.getElementById('modalStatusSelect').value = inq.status;
+                        document.getElementById('modalAdminNotes').value = inq.admin_notes || '';
+
+                        // Render audit history
+                        const history = data.audit_log || [];
+                        const tbody = document.getElementById('modalAuditHistoryBody');
+                        if (history.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No prior audit events recorded.</td></tr>';
+                        } else {
+                            tbody.innerHTML = history.map(h => `
+                                <tr>
+                                    <td class="mono">${(h.timestamp || '').slice(11, 19)}</td>
+                                    <td><strong>${h.actor_username || 'system'}</strong></td>
+                                    <td>${h.action}</td>
+                                    <td>${h.previous_status || 'NONE'} &rarr; <span style="color:#38bdf8;">${h.new_status || ''}</span></td>
+                                    <td style="color:var(--text-muted);">${h.notes || '-'}</td>
+                                </tr>
+                            `).join('');
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to load inquiry detail:', err);
+                }
+            }
+
+            btnModalClose.addEventListener('click', () => {
+                modalOverlay.classList.remove('visible');
+                currentActiveInquiryId = null;
+            });
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    modalOverlay.classList.remove('visible');
+                    currentActiveInquiryId = null;
+                }
+            });
+
+            // Save status update
+            btnSaveStatus.addEventListener('click', async () => {
+                if (!currentActiveInquiryId) return;
+                const newStatus = document.getElementById('modalStatusSelect').value;
+                const notes = document.getElementById('modalAdminNotes').value.trim();
+
+                btnSaveStatus.disabled = true;
+                btnSaveStatus.textContent = 'Saving...';
+
+                try {
+                    const csrfToken = getCookie('opb_csrf');
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    };
+                    if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
+                    const resp = await fetch(`/api/v1/admin/inquiries/${currentActiveInquiryId}/status`, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({
+                            status: newStatus,
+                            notes: notes
+                        })
+                    });
+                    const res = await resp.json();
+                    if (res.success || res.status === 'ok') {
+                        // Refresh modal view and page
+                        await openModal(currentActiveInquiryId);
+                        // Refresh background row
+                        const row = document.querySelector(`tr[data-id="${currentActiveInquiryId}"]`);
+                        if (row) {
+                            const badge = row.querySelector('.badge');
+                            if (badge) {
+                                badge.className = `badge badge-${newStatus.toLowerCase()}`;
+                                badge.textContent = newStatus;
+                            }
+                        }
+                    } else {
+                        alert(res.error || 'Failed to update status.');
+                    }
+                } catch (err) {
+                    alert('Network error updating status.');
+                } finally {
+                    btnSaveStatus.disabled = false;
+                    btnSaveStatus.textContent = 'Save Status';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

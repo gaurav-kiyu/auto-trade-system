@@ -934,6 +934,7 @@ body[data-theme="emerald-matrix"] {
 
     <!-- Desktop Navigation Row -->
     <div class="opb-nav-bar">
+        {% if user %}
         <a href="/" class="opb-nav-item {% if current_page in ('dashboard', 'home') %}active{% endif %}">🏠 Command Center</a>
         <a href="/my-signals" class="opb-nav-item {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}">⚡ Signals Radar</a>
         
@@ -978,11 +979,12 @@ body[data-theme="emerald-matrix"] {
 
         {% if is_admin and (can_modify_config or can_modify_risk or can_toggle_strategies or can_deploy_models or can_view_logs or can_manage_brokers) %}
         <div class="opb-ws-group" tabindex="0">
-            <a href="/admin/config" class="opb-nav-item {% if current_page in ('admin_config', 'admin_users', 'admin_signals', 'admin_capabilities', 'admin_portfolio_analyzer', 'governance', 'security', 'observability', 'system_health', 'data_quality', 'capacity', 'event_store', 'pricing_plans', 'whats_new', 'presentation', 'kill_switch') %}active{% endif %}">
+            <a href="/admin/config" class="opb-nav-item {% if current_page in ('admin_config', 'admin_users', 'admin_inquiries', 'admin_signals', 'admin_capabilities', 'admin_portfolio_analyzer', 'governance', 'security', 'observability', 'system_health', 'data_quality', 'capacity', 'event_store', 'pricing_plans', 'whats_new', 'presentation', 'kill_switch') %}active{% endif %}">
                 ⚙️ Admin & Governance ▾
             </a>
             <div class="opb-ws-dropdown" style="min-width: 320px; max-height: 80vh; overflow-y: auto;">
                 {% if is_admin %}<a href="/admin/capabilities" class="opb-ws-item {% if current_page == 'admin_capabilities' %}active{% endif %}"><span>⚙️ Capability Diagnostics</span></a>{% endif %}
+                {% if can_manage_permissions or can_manage_users %}<a href="/admin/inquiries" class="opb-ws-item {% if current_page == 'admin_inquiries' %}active{% endif %}"><span>📬 Contact Inquiries & Support</span></a>{% endif %}
                 {% if can_manage_permissions %}<a href="/admin/users" class="opb-ws-item {% if current_page == 'admin_users' %}active{% endif %}"><span>👥 User Authorization & Controls</span></a>{% endif %}
                 {% if can_modify_config %}<a href="/admin/config" class="opb-ws-item {% if current_page == 'admin_config' %}active{% endif %}"><span>⚙️ Core System Configuration</span></a>{% endif %}
                 {% if can_modify_config or can_view_logs %}<a href="/admin/signals" class="opb-ws-item {% if current_page == 'admin_signals' %}active{% endif %}"><span>🎯 Signal Accuracy & Dispatch Matrix</span></a>{% endif %}
@@ -1013,6 +1015,15 @@ body[data-theme="emerald-matrix"] {
                 <a href="/terms" class="opb-ws-item {% if current_page == 'terms' %}active{% endif %}"><span>📜 Terms &amp; Risk Disclosures</span></a>
             </div>
         </div>
+        {% else %}
+        <!-- Public Navigation Row -->
+        <a href="/" class="opb-nav-item {% if current_page in ('dashboard', 'home') %}active{% endif %}">🏠 Overview</a>
+        <a href="/about" class="opb-nav-item {% if current_page == 'about' %}active{% endif %}">ℹ️ About Platform</a>
+        <a href="/pricing-plans" class="opb-nav-item {% if current_page == 'pricing_plans' %}active{% endif %}">💎 Pricing &amp; Plans</a>
+        <a href="/contact" class="opb-nav-item {% if current_page == 'contact' %}active{% endif %}">✉️ Contact &amp; Support</a>
+        <a href="/terms" class="opb-nav-item {% if current_page == 'terms' %}active{% endif %}">📜 Terms &amp; Disclosures</a>
+        <a href="/privacy" class="opb-nav-item {% if current_page == 'privacy' %}active{% endif %}">🛡️ Privacy Policy</a>
+        {% endif %}
     </div>
 </div>
 
@@ -1108,6 +1119,7 @@ body[data-theme="emerald-matrix"] {
 
     <!-- 4. Categorized Navigation List -->
     <div class="drawer-nav-list" id="drawerNavList">
+        {% if user %}
         <div class="drawer-section-title">🏠 Primary Cockpit</div>
         <a href="/" class="drawer-nav-item {% if current_page in ('dashboard', 'home') %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">🏠</span> <span>Home Cockpit</span></a>
         <a href="/my-signals" class="drawer-nav-item {% if current_page in ('user_signals', 'my_signals', 'signals') %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">⚡</span> <span>Signals Radar</span></a>
@@ -1133,6 +1145,7 @@ body[data-theme="emerald-matrix"] {
         {% if is_admin %}
         <div class="drawer-section-title">⚙️ Super Admin & System Governance</div>
         {% if is_admin %}<a href="/admin/capabilities" class="drawer-nav-item {% if current_page == 'admin_capabilities' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚙️</span> <span>Capability Diagnostics</span></a>{% endif %}
+        {% if can_manage_permissions or can_manage_users %}<a href="/admin/inquiries" class="drawer-nav-item {% if current_page == 'admin_inquiries' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📬</span> <span>Contact Inquiries & Support</span></a>{% endif %}
         {% if can_manage_permissions %}<a href="/admin/users" class="drawer-nav-item {% if current_page == 'admin_users' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">👥</span> <span>User Authorization & Access</span></a>{% endif %}
         {% if can_modify_config %}<a href="/admin/config" class="drawer-nav-item {% if current_page == 'admin_config' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">⚙️</span> <span>System Configuration</span></a>{% endif %}
         {% if can_modify_config or can_view_logs %}<a href="/admin/signals" class="drawer-nav-item {% if current_page == 'admin_signals' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🎯</span> <span>Signal Accuracy Matrix</span></a>{% endif %}
@@ -1157,9 +1170,16 @@ body[data-theme="emerald-matrix"] {
         <a href="/privacy" class="drawer-nav-item {% if current_page == 'privacy' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🛡️</span> <span>Privacy Policy</span></a>
         <a href="/terms" class="drawer-nav-item {% if current_page == 'terms' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📜</span> <span>Terms &amp; Risk Disclosures</span></a>
 
-        {% if user %}
         <div class="drawer-section-title">👤 Account &amp; Session</div>
         <a href="/profile" class="drawer-nav-item {% if current_page == 'profile' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">👤</span> <span>Profile Settings</span></a>
+        {% else %}
+        <div class="drawer-section-title">🌐 Platform Overview</div>
+        <a href="/" class="drawer-nav-item {% if current_page in ('dashboard', 'home') %}active{% endif %}"><span style="font-size:1.1rem;margin-right:0.4rem;">🏠</span> <span>Platform Overview</span></a>
+        <a href="/about" class="drawer-nav-item {% if current_page == 'about' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">ℹ️</span> <span>About Platform &amp; Engine</span></a>
+        <a href="/pricing-plans" class="drawer-nav-item {% if current_page == 'pricing_plans' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">💎</span> <span>Subscription &amp; Pricing</span></a>
+        <a href="/contact" class="drawer-nav-item {% if current_page == 'contact' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">✉️</span> <span>Contact &amp; Support</span></a>
+        <a href="/terms" class="drawer-nav-item {% if current_page == 'terms' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">📜</span> <span>Terms &amp; Risk Disclosures</span></a>
+        <a href="/privacy" class="drawer-nav-item {% if current_page == 'privacy' %}active{% endif %}"><span style="font-size:1rem;margin-right:0.4rem;">🛡️</span> <span>Privacy Policy</span></a>
         {% endif %}
     </div>
 
@@ -1175,6 +1195,7 @@ body[data-theme="emerald-matrix"] {
 
 <!-- ── Dedicated Mobile Bottom Navigation Dock (< 1024px) ── -->
 <nav class="opb-mobile-bottom-dock" aria-label="Mobile Quick Routing">
+    {% if user %}
     <a href="/" class="mobile-dock-tab {% if current_page in ('dashboard', 'home') %}active{% endif %}" title="Command Center">
         <span class="dock-icon">🏠</span>
         <span class="dock-label">Home</span>
@@ -1191,6 +1212,24 @@ body[data-theme="emerald-matrix"] {
         <span class="dock-icon">📊</span>
         <span class="dock-label">Markets</span>
     </a>
+    {% else %}
+    <a href="/" class="mobile-dock-tab {% if current_page in ('dashboard', 'home') %}active{% endif %}" title="Platform Overview">
+        <span class="dock-icon">🏠</span>
+        <span class="dock-label">Home</span>
+    </a>
+    <a href="/about" class="mobile-dock-tab {% if current_page == 'about' %}active{% endif %}" title="About Platform">
+        <span class="dock-icon">ℹ️</span>
+        <span class="dock-label">About</span>
+    </a>
+    <a href="/pricing-plans" class="mobile-dock-tab {% if current_page == 'pricing_plans' %}active{% endif %}" title="Pricing &amp; Plans">
+        <span class="dock-icon">💎</span>
+        <span class="dock-label">Plans</span>
+    </a>
+    <a href="/contact" class="mobile-dock-tab {% if current_page == 'contact' %}active{% endif %}" title="Contact Support">
+        <span class="dock-icon">✉️</span>
+        <span class="dock-label">Contact</span>
+    </a>
+    {% endif %}
     <label for="opbMobileDrawerCheckbox" class="mobile-dock-tab" data-drawer="true" id="mobileBottomMenuBtn" title="Full Navigation Menu" style="cursor:pointer;">
         <span class="dock-icon">☰</span>
         <span class="dock-label">Menu</span>

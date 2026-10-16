@@ -1200,3 +1200,111 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
             "details": UpiBillingEngine.get_upi_details(),
         }
 
+    # ── Contact Inquiries & Support Management ──────────────────────────────
+
+    if hasattr(dashboard._auth_deps, "require_any_permission"):
+        _inquiry_read_dep = dashboard._auth_deps.require_any_permission("manage_permissions", "modify_config", "view_logs")
+    elif hasattr(dashboard._auth_deps, "require_permission"):
+        _inquiry_read_dep = dashboard._auth_deps.require_permission("manage_permissions")
+    else:
+        async def _inquiry_read_dep() -> Any: return None
+
+    if hasattr(dashboard._auth_deps, "require_permission"):
+        _inquiry_write_dep = dashboard._auth_deps.require_permission("manage_permissions")
+    else:
+        async def _inquiry_write_dep() -> Any: return None
+
+    @app.get("/api/v1/admin/inquiries")
+    async def api_get_admin_inquiries(
+        request: Request,
+        status: str = "ALL",
+        category: str = "ALL",
+        search: str = "",
+        limit: int = 50,
+        offset: int = 0,
+        user: Any = Depends(_inquiry_read_dep),
+    ) -> dict:
+        """List contact inquiries with filtering, search, and pagination."""
+        from core.storage.inquiry_store import get_inquiry_store
+        store = get_inquiry_store()
+        items, total = store.list_inquiries(
+            status=status,
+            category=category,
+            search=search if search.strip() else None,
+            limit=min(max(1, limit), 200),
+            offset=max(0, offset),
+        )
+        return {
+            "success": True,
+            "status": "ok",
+            "items": items,
+            "total": total,
+            "stats": store.get_stats(),
+        }
+
+    @app.get("/api/v1/admin/inquiries/{inquiry_id}")
+    async def api_get_admin_inquiry_detail(
+        inquiry_id: str,
+        user: Any = Depends(_inquiry_read_dep),
+    ) -> Any:
+        """Retrieve full details and audit log for a single inquiry."""
+        from core.storage.inquiry_store import get_inquiry_store
+        store = get_inquiry_store()
+        inq = store.get_inquiry(inquiry_id)
+        if not inq:
+            return JSONResponse(status_code=404, content={"success": False, "status": "error", "error": f"Inquiry '{inquiry_id}' not found."})
+        audit_log = store.get_audit_log(inquiry_id)
+        return {
+            "success": True,
+            "status": "ok",
+            "inquiry": inq,
+            "audit_log": audit_log,
+        }
+
+    @app.post("/api/v1/admin/inquiries/{inquiry_id}/status")
+    async def api_update_admin_inquiry_status(
+        inquiry_id: str,
+        request: Request,
+        user: Any = Depends(_inquiry_write_dep),
+    ) -> Any:
+        """Transition inquiry lifecycle status and record admin audit log."""
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"success": False, "status": "error", "error": "Invalid JSON payload."})
+
+        new_status = str(body.get("status") or "").strip().upper()
+        notes = str(body.get("notes") or "").strip()
+
+        from core.storage.inquiry_store import get_inquiry_store
+        store = get_inquiry_store()
+        try:
+            success = store.update_inquiry_status(
+                inquiry_id=inquiry_id,
+                new_status=new_status,
+                actor_username=getattr(user, "username", "admin"),
+                notes=notes,
+            )
+        except ValueError as val_err:
+            return JSONResponse(status_code=400, content={"success": False, "status": "error", "error": str(val_err)})
+
+        if not success:
+            return JSONResponse(status_code=404, content={"success": False, "status": "error", "error": f"Inquiry '{inquiry_id}' not found."})
+
+        try:
+            dashboard._auth._audit_log(
+                "inquiry_status_update", getattr(user, "username", "admin"), "",
+                {"inquiry_id": inquiry_id, "status": new_status, "notes": notes},
+                success=True,
+            )
+        except Exception:
+            pass
+
+        return {
+            "success": True,
+            "status": "ok",
+            "message": f"Inquiry status updated to {new_status}.",
+            "inquiry_id": inquiry_id,
+            "new_status": new_status,
+        }
+

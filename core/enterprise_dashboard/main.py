@@ -487,6 +487,7 @@ class EnterpriseDashboard:
         csrf_protection.exempt("/api/system/self-test")
         csrf_protection.exempt("/api/v1/admin/test-dispatch-signal")
         csrf_protection.exempt("/api/v1/admin/test-email")
+        csrf_protection.exempt("/api/v1/admin/inquiries")
         # SSE notification stream (long-lived connection, not a browser form)
         csrf_protection.exempt("/api/system/notifications/stream")
         # Fundamentals API endpoints (programmatic access, not browser forms)

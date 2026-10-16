@@ -300,19 +300,36 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
         with _contact_rate_lock:
             _contact_rate_tracker[client_ip].append(now)
 
-        # Persist inquiry to disk for operational review
-        inquiry_record = {
-            "id": f"inq_{int(now * 1000)}",
-            "timestamp": now,
+        # Persist inquiry to durable SQLite store
+        from core.storage.inquiry_store import get_inquiry_store
+        from core.notifications.inquiry_notifications import dispatch_inquiry_notifications_background
+
+        store = get_inquiry_store()
+        ticket_id = store.save_inquiry(
+            name=name,
+            email=email,
+            subject=subject,
+            message=message,
+            category=category,
+            client_ip=client_ip,
+            metadata={"user_agent": request.headers.get("user-agent", "unknown")},
+        )
+
+        inquiry_dict = {
+            "id": ticket_id,
             "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
-            "client_ip": client_ip,
             "name": name,
             "email": email,
             "category": category,
             "subject": subject,
             "message": message,
-            "status": "PENDING_REVIEW",
+            "client_ip": client_ip,
         }
+
+        # Dispatch asynchronous non-blocking email notifications
+        dispatch_inquiry_notifications_background(inquiry_dict)
+
+        # Legacy JSONL persistence for backward compatibility
         try:
             import json
             from pathlib import Path
@@ -320,18 +337,62 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
             inq_path.parent.mkdir(parents=True, exist_ok=True)
             with _contact_rate_lock:
                 with open(inq_path, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(inquiry_record, default=str) + "\n")
+                    f.write(json.dumps(inquiry_dict, default=str) + "\n")
         except Exception as exc:
-            _log.warning("[CONTACT] Failed to persist inquiry to disk: %s", exc)
+            _log.warning("[CONTACT] Failed to append legacy JSONL inquiry: %s", exc)
 
         _log.info(
-            "[CONTACT] Inquiry received and recorded from %s <%s> [IP: %s, Category: %s, Subject: %s]",
-            name, email, client_ip, category, subject
+            "[CONTACT] Inquiry %s received and recorded from %s <%s> [IP: %s, Category: %s, Subject: %s]",
+            ticket_id, name, email, client_ip, category, subject
         )
 
         return JSONResponse(
             status_code=200,
-            content={"status": "ok", "message": "Thank you for reaching out! Your message has been received. Our team will review and respond shortly."}
+            content={
+                "status": "ok",
+                "ticket_id": ticket_id,
+                "message": f"Thank you for reaching out! Your inquiry has been received (Ticket #{ticket_id}). Our team will review and respond shortly.",
+            }
+        )
+
+    @app.get("/admin/inquiries", response_class=HTMLResponse)
+    async def admin_inquiries_page(
+        request: Request,
+        status: str = "ALL",
+        category: str = "ALL",
+        search: str = "",
+        limit: int = 50,
+        offset: int = 0,
+    ):  # type: ignore[no-untyped-def]
+        nonce = getattr(request.state, "nonce", "")
+        user, err = _require_permission_page(request, dashboard, "manage_users", admin_only=True)
+        if err:
+            return err
+
+        from core.storage.inquiry_store import get_inquiry_store
+        store = get_inquiry_store()
+        items, total = store.list_inquiries(
+            status=status,
+            category=category,
+            search=search if search.strip() else None,
+            limit=min(max(1, limit), 200),
+            offset=max(0, offset),
+        )
+        stats = store.get_stats()
+
+        ctx = _page_context(user, nonce, "admin_inquiries")
+        ctx.update({
+            "inquiries": items,
+            "total": total,
+            "stats": stats,
+            "current_status": status,
+            "current_category": category,
+            "search": search,
+        })
+        return dashboard._templates.TemplateResponse(
+            request=request,
+            name="admin_inquiries.html",
+            context=ctx,
         )
 
     @app.get("/admin/users", response_class=HTMLResponse)
