@@ -191,24 +191,6 @@
     "AUTO_LEARNER_WIN_SCORE_DECAY": {
       "type": "number"
     },
-    "AUTO_TUNER_COOLDOWN_DAYS": {
-      "type": "integer"
-    },
-    "AUTO_TUNER_DRY_RUN": {
-      "type": "boolean"
-    },
-    "AUTO_TUNER_ENABLED": {
-      "type": "boolean"
-    },
-    "AUTO_TUNER_MIN_TRADES": {
-      "type": "integer"
-    },
-    "AUTO_TUNER_MIN_WIN_RATE_POST_TUNE": {
-      "type": "number"
-    },
-    "AUTO_TUNER_POST_TUNE_VALIDATION_DAYS": {
-      "type": "integer"
-    },
     "AUTO_TUNE_COOLDOWN_DAYS": {
       "type": "integer"
     },
@@ -1220,9 +1202,6 @@
     "REAL_TIME_DASHBOARD_ENABLED": {
       "type": "boolean"
     },
-    "REAL_TIME_DASHBOARD_PORT": {
-      "type": "integer"
-    },
     "RECONCILE_HALT_ON_QTY_MISMATCH": {
       "type": "boolean"
     },
@@ -2186,9 +2165,6 @@
     },
     "corp_action_data": {
       "type": "array"
-    },
-    "corp_action_enabled": {
-      "type": "boolean"
     },
     "corp_action_finnifty_symbols": {
       "items": {
@@ -3159,16 +3135,7 @@
     "signal_refiner_enabled": {
       "type": "boolean"
     },
-    "slippage_calibration_days": {
-      "type": "integer"
-    },
-    "slippage_calibration_enabled": {
-      "type": "boolean"
-    },
     "slippage_calibration_min_samples": {
-      "type": "integer"
-    },
-    "slippage_calibration_min_trades": {
       "type": "integer"
     },
     "slippage_model_calibration_enabled": {
@@ -3367,9 +3334,6 @@
     },
     "transition_vix_spike_pct": {
       "type": "number"
-    },
-    "underlying_analysis_enabled": {
-      "type": "boolean"
     },
     "underlying_analyzer_enabled": {
       "type": "boolean"

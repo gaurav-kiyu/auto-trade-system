@@ -255,6 +255,22 @@
         "commits_30d": 159.0,
         "engineering_velocity": 0.0
       }
+    },
+    {
+      "captured_at": 1792147924.0121102,
+      "captured_at_iso": "2026-10-16T10:52:04.012110+00:00",
+      "release_label": "v2.61.4-rc1",
+      "indicators": {
+        "dead_code_findings": 49867.0,
+        "duplicate_code": 427.0,
+        "config_drift": 9.0,
+        "doc_drift": 0.0,
+        "open_regressions": 0.0,
+        "test_files": 868.0,
+        "evidence_items": 1903.0,
+        "commits_30d": 160.0,
+        "engineering_velocity": 136.96666666666667
+      }
     }
   ]
 }
