@@ -239,6 +239,22 @@
         "commits_30d": 156.0,
         "engineering_velocity": 0.0
       }
+    },
+    {
+      "captured_at": 1792142294.2195425,
+      "captured_at_iso": "2026-10-16T09:18:14.219543+00:00",
+      "release_label": "v2.61.3",
+      "indicators": {
+        "dead_code_findings": 50180.0,
+        "duplicate_code": 436.0,
+        "config_drift": 25.0,
+        "doc_drift": 0.0,
+        "open_regressions": 0.0,
+        "test_files": 868.0,
+        "evidence_items": 1894.0,
+        "commits_30d": 159.0,
+        "engineering_velocity": 0.0
+      }
     }
   ]
 }
