@@ -301,8 +301,8 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
             _contact_rate_tracker[client_ip].append(now)
 
         # Persist inquiry to durable SQLite store
-        from core.storage.inquiry_store import get_inquiry_store
         from core.notifications.inquiry_notifications import dispatch_inquiry_notifications_background
+        from core.storage.inquiry_store import get_inquiry_store
 
         store = get_inquiry_store()
         ticket_id = store.save_inquiry(

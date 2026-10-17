@@ -126,7 +126,7 @@ class InquiryStore:
         with self._lock:
             conn = self._get_conn()
             try:
-                with open(target_path, "r", encoding="utf-8", errors="ignore") as f:
+                with open(target_path, encoding="utf-8", errors="ignore") as f:
                     for line in f:
                         line = line.strip()
                         if not line:
@@ -274,7 +274,7 @@ class InquiryStore:
         with self._lock:
             conn = self._get_conn()
             try:
-                count_sql = f"SELECT COUNT(*) FROM inquiries {where_sql}"
+                count_sql = f"SELECT COUNT(*) FROM inquiries {where_sql}"  # nosec B608
                 cur = conn.execute(count_sql, tuple(params))
                 total_count = cur.fetchone()[0]
 
@@ -285,7 +285,7 @@ class InquiryStore:
                     {where_sql}
                     ORDER BY created_at DESC
                     LIMIT ? OFFSET ?
-                """
+                """  # nosec B608
                 query_params = list(params) + [limit, offset]
                 cur = conn.execute(data_sql, tuple(query_params))
                 items = [dict(r) for r in cur.fetchall()]
