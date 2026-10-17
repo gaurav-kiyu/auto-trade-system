@@ -451,6 +451,8 @@ class SignalForwardObservationService:
                     needs_rematerialize = True
                 elif sig_status in ("TARGET_1_HIT", "TARGET_2_HIT") and int(meas.get("target_1_hit") or 0) == 0:
                     needs_rematerialize = True
+                elif sig_status in ("EXPIRED", "CLOSED_ON_REVERSAL") and str(meas.get("raw_lifecycle_state") or "") != sig_status:
+                    needs_rematerialize = True
 
             if needs_rematerialize:
                 meas = phase_b_service.build_signal_outcome_measurement(sig_id)
@@ -466,13 +468,13 @@ class SignalForwardObservationService:
             is_resolved = 0
             res_timestamp = None
             if outcome_val == "TARGET_FIRST":
-                if raw_lifecycle in ("TARGET_1_HIT", "ACTIVE", "OPEN"):
+                if raw_lifecycle in ("TARGET_1_HIT", "ACTIVE", "OPEN") and sig_status not in ("EXPIRED", "CLOSED_ON_REVERSAL"):
                     # Interim milestone hit: position remains in-flight towards Target 2 / trailing stop
                     obs_status = "OBSERVING"
                     is_resolved = 0
                     res_timestamp = None
                 else:
-                    # Target 2 hit or terminal resolution reached
+                    # Target 2 hit or terminal resolution reached (including expired/reversed after T1)
                     obs_status = "RESOLVED"
                     is_resolved = 1
                     res_timestamp = meas.get("exit_at") or meas.get("target_2_hit_at") or meas.get("first_touch_at") or now_ts
@@ -482,6 +484,10 @@ class SignalForwardObservationService:
                 res_timestamp = meas.get("exit_at") or meas.get("first_touch_at") or now_ts
             elif outcome_val == "TIMEOUT":
                 obs_status = "TIMEOUT"
+                is_resolved = 1
+                res_timestamp = meas.get("exit_at") or meas.get("first_touch_at") or now_ts
+            elif outcome_val == "REVERSED":
+                obs_status = "RESOLVED"
                 is_resolved = 1
                 res_timestamp = meas.get("exit_at") or meas.get("first_touch_at") or now_ts
             elif outcome_val in ("AMBIGUOUS", "AMBIGUOUS_SAME_BAR") or dq_val in ("AMBIGUOUS_BAR", "AMBIGUOUS_DATA"):
@@ -639,14 +645,18 @@ class SignalForwardObservationService:
         dq_error_rate = round(total_errors / total_obs_count, 4) if total_obs_count > 0 else 0.0
         dq_passed = dq_error_rate <= GATE_MAX_DATA_QUALITY_ERROR_RATE
 
-        # Stale observations check (> 48 hours in OBSERVING state)
+        # Stale observations check (> 48 hours for intraday, > 7 days for swing delivery)
         stale_count = 0
         now_dt = _normalize_dt(parse_timestamp(now_ist().isoformat()))
         for r in all_obs:
             if r.get("observation_status") == "OBSERVING" and now_dt:
                 reg_dt = _normalize_dt(parse_timestamp(r.get("registered_at")))
-                if reg_dt and (now_dt - reg_dt).total_seconds() > 48 * 3600:
-                    stale_count += 1
+                if reg_dt:
+                    cat = str(r.get("category") or "").upper()
+                    is_swing = ("SWING" in cat) or ("DELIVERY" in cat) or cat in ("MID_SMALL_CAP", "LARGE_CAP_EQUITY")
+                    threshold_hours = (7 * 24) if is_swing else 48
+                    if (now_dt - reg_dt).total_seconds() > threshold_hours * 3600:
+                        stale_count += 1
         stale_rate = round(stale_count / total_obs_count, 4) if total_obs_count > 0 else 0.0
         stale_passed = stale_rate <= GATE_MAX_STALE_RATE
 
