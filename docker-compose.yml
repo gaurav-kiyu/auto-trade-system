@@ -1,7 +1,7 @@
 version: "3.9"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# OPB Index Options Buying Bot v2.61.4 — Docker Compose
+# OPB Index Options Buying Bot v2.61.5 — Docker Compose
 #
 # Usage:
 #   docker compose up -d          # start in paper mode (safe default)
@@ -24,7 +24,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: opb-bot:2.61.4
+    image: opb-bot:2.61.5
     container_name: opb_bot
     restart: unless-stopped
 

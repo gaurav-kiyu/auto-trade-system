@@ -1,3 +1,39 @@
+# Release v2.61.5
+
+**Date:** 2026-10-17
+**Previous Release:** v2.61.4
+
+---
+
+## OPB v2.61.5 Contact Us Email Delivery, Admin Portal & Navigation Hardening
+
+- **Contact Form Email Delivery Remediated (DEF-001):**
+  - Resolved asynchronous dispatch issue in contact submission endpoint by scheduling email delivery in background via `asyncio.create_task`.
+  - Added durable inquiry tracking in `db/inquiries.db` with status lifecycle (`new`, `in_progress`, `resolved`).
+  - Added notification audit record capture to ensure all delivery attempts are recorded with timestamp, recipient, and status.
+
+- **Admin Inquiries Management Portal (DEF-002):**
+  - Implemented super-admin inquiries management interface at `/admin/inquiries`.
+  - Added role-based access control, status filtering, details modal, and state transition actions.
+
+- **Public Navigation and Legal Surfaces Hardened (DEF-003):**
+  - Standardized public header and footer across all 41 templates.
+  - Ensured seamless unauthenticated access to legal/about/contact pages without authenticated menu leakages.
+
+- **Code Hygiene & Security Hardening:**
+  - Satisfied all Ruff linter rules (I001 import sorting, UP015 open mode defaults).
+  - Addressed Bandit B608 static analysis by ensuring all SQL queries use parameterized arguments.
+
+- **Production Safety Invariants & Operational Safeguards:**
+  - Preserved strict `PAPER` and `SIGNAL_ONLY` execution mode.
+  - `LIVE_TRADING_LOCKOUT=True`, `full_auto_allowed=False`, `BROKER_API_ENABLED=False`, `BROKER_AUTO_ROUTING=DISCONNECTED`.
+  - Live trades: 0, live orders: 0, live capital risk: INR 0.
+  - User Rishi remains inactive (`is_active: false`) and blocked from signal delivery.
+  - G9 signal quality calibration status remains `NOT_READY`; strategy score floor maintained at 80.
+  - Public commercialization remains strictly `BLOCKED`.
+
+---
+
 # Release v2.61.4
 
 **Date:** 2026-10-16

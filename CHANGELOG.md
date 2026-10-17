@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.61.5 (2026-10-17)
+
+- **Contact Us Email Delivery Remediated (DEF-001):** Resolved unawaited asynchronous coroutine in contact submission handler by executing background email delivery via `asyncio.create_task` with structured logging and audit capture.
+- **Admin Inquiries Management Portal (DEF-002):** Delivered authenticated super-admin inquiries management portal (`/admin/inquiries`) with multi-status filtering, responsive drawer details, and resolution workflow.
+- **Public Navigation & Legal Route Hardening (DEF-003):** Hardened public-facing header, footer, and brand navigation across all 41 template layouts, preventing unauthorized redirect loops and leaks.
+- **Code Hygiene & Static Analysis Hardening:** Fully satisfied Ruff (I001/UP015) and Bandit (B608 SQL injection immunity via parameterized queries) in contact persistence and inquiry store modules.
+- **Production Safety Invariants & Operational Safeguards:** Preserved strict `PAPER` / `SIGNAL_ONLY` execution, live trading lockout active, zero live orders/trades, user Rishi inactive (`is_active: false`), G9 signal quality calibration held at `NOT_READY`, commercialization `BLOCKED`.
+
 ## v2.61.4 (2026-10-16)
 
 - **Technical Debt Remediation & Configuration Drift Closure:** Remediated 12 dead and obsolete configuration keys across `json/config.template.json` and `json/index_config.defaults.json` (CDR-015, CDR-016, CDR-017, CDR-025); synchronized generated schema `schemas/index_config.schema.json`.

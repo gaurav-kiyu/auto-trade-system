@@ -1,4 +1,4 @@
-# OPB Index Options Buying Bot v2.61.4
+# OPB Index Options Buying Bot v2.61.5
 # ─────────────────────────────────────────────────────────────────────────────
 # Multi-stage build:
 #   release  — canonical incremental build from cached runtime base
@@ -53,7 +53,7 @@ RUN pip install --upgrade pip==24.2 wheel && \
 FROM python:3.11-slim AS runtime
 
 LABEL maintainer="OPB Bot"
-LABEL version="2.61.4"
+LABEL version="2.61.5"
 LABEL org.opencontainers.image.source="https://github.com/opb/index-options-bot"
 LABEL org.opencontainers.image.description="NSE Index Options Buying Bot — automated signal generation, risk management, and trade execution"
 
