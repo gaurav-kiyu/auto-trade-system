@@ -195,6 +195,7 @@ class ForwardSummary:
 class SignalForwardMonitorService:
     """Deterministic read-only operational monitoring and reporting service for Phase D."""
 
+    _instances: dict[Path, SignalForwardMonitorService] = {}
     _instance: SignalForwardMonitorService | None = None
     _lock = threading.Lock()
 
@@ -204,20 +205,25 @@ class SignalForwardMonitorService:
 
     @classmethod
     def get_instance(cls, db_path: Path | str | None = None) -> SignalForwardMonitorService:
+        target_path = Path(db_path).resolve() if db_path else _DEFAULT_DB_PATH.resolve()
         with cls._lock:
-            if cls._instance is None:
-                cls._instance = cls(db_path=db_path)
-            elif db_path and Path(db_path) != cls._instance._db_path:
-                cls._instance = cls(db_path=db_path)
-            return cls._instance
+            if target_path not in cls._instances:
+                cls._instances[target_path] = cls(db_path=target_path)
+            inst = cls._instances[target_path]
+            cls._instance = inst
+            return inst
 
     @classmethod
     def reset_instance(cls) -> None:
         with cls._lock:
+            cls._instances.clear()
             cls._instance = None
 
     def _get_conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self._db_path), timeout=10)
+        if not self._db_path.exists():
+            raise FileNotFoundError(f"Database file does not exist: {self._db_path}")
+        uri = f"file:{self._db_path.resolve().as_posix()}?mode=ro"
+        conn = sqlite3.connect(uri, uri=True, timeout=10)
         conn.row_factory = sqlite3.Row
         return conn
 
