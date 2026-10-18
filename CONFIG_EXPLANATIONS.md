@@ -93,8 +93,8 @@ This document explains the magic numbers and critical values in `json/index_conf
 
 | Key | Default | Explanation |
 |-----|---------|-------------|
-| WALKFORWARD_TRAIN_BARS | 500 | Training window: 500 bars (~8 hours) |
-| WALKFORWARD_TEST_BARS | 100 | Test window: 100 bars (~1.5 hours) |
+| walkforward_train_bars | 200 | Training window: 200 bars |
+| walkforward_test_bars | 50 | Test window: 50 bars |
 | WALKFORWARD_DRIFT_THRESHOLD_PCT | 20 | 20% drift triggers retrain warning |
 | WALKFORWARD_MIN_CONFIDENCE | 0.80 | 80% statistical confidence required |
 

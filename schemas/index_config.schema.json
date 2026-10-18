@@ -1644,15 +1644,6 @@
     "VWAP_RECLAIM_BONUS": {
       "type": "integer"
     },
-    "WALKFORWARD_STEP_BARS": {
-      "type": "integer"
-    },
-    "WALKFORWARD_TEST_BARS": {
-      "type": "integer"
-    },
-    "WALKFORWARD_TRAIN_BARS": {
-      "type": "integer"
-    },
     "WATCHDOG_POLL_SEC": {
       "type": "integer"
     },
