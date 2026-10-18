@@ -40,14 +40,10 @@ from __future__ import annotations
 import datetime
 import sqlite3
 from pathlib import Path
-from typing import Any
 
 import pytest
-
 from core.datetime_ist import now_ist
 from core.signals.signal_forward_observation import (
-    CANONICAL_SCORE_BUCKETS,
-    GATE_MIN_RESOLVED_PER_ACTIVE_BUCKET,
     OBSERVATION_VERSION,
     SignalForwardObservationService,
 )
@@ -402,7 +398,7 @@ class TestSignalForwardObservation:
 
         # Simulate fresh process restart
         SignalForwardObservationService.reset_instance()
-        svc2 = SignalForwardObservationService.get_instance(db_path=temp_db)
+        _ = SignalForwardObservationService.get_instance(db_path=temp_db)
         conn = sqlite3.connect(str(temp_db))
         row = conn.execute("SELECT observation_status FROM signal_forward_observations WHERE signal_id='SIG-FWD-08'").fetchone()
         conn.close()
@@ -814,3 +810,59 @@ class TestSignalForwardObservation:
         assert "WORST_BUCKET" not in rep_str
         assert "RECOMMENDED_ACTION" not in rep_str
         assert "TRADE_SIGNAL" not in rep_str
+
+    # 31. Reversed outcome mapped to resolved
+    def test_31_reversed_outcome_mapped_to_resolved(self, temp_db: Path):
+        t0 = "2026-09-26T10:00:00+05:30"
+        _insert_test_snapshot(temp_db, "SIG-REV-31", score=82, captured_at=t0)
+        conn = sqlite3.connect(str(temp_db))
+        conn.execute("""
+            INSERT INTO signal_outcome_measurements (
+                signal_id, prediction_snapshot_id, symbol, category, direction,
+                entry_price, stop_loss, target_1, target_2, observed_from,
+                outcome, raw_lifecycle_state, data_quality_status, calculated_at, exit_price, exit_at
+            )
+            VALUES ('SIG-REV-31', 'SIG-REV-31', 'TEST_REV', 'EQUITY', 'CALL', 1000, 980, 1020, 1040, ?, 'REVERSED', 'CLOSED_ON_REVERSAL', 'VALID_DATA', ?, 995, ?)
+        """, (t0, t0, t0))
+        conn.commit()
+        conn.close()
+
+        svc = SignalForwardObservationService(db_path=temp_db)
+        svc.register_forward_signal("SIG-REV-31", cutoff_iso="2026-09-26T00:00:00+05:30")
+        svc.sync_forward_outcomes()
+
+        conn = sqlite3.connect(str(temp_db))
+        row = conn.execute("SELECT observation_status, terminal_outcome, is_resolved FROM signal_forward_observations WHERE signal_id='SIG-REV-31'").fetchone()
+        conn.close()
+        assert row[0] == "RESOLVED"
+        assert row[1] == "REVERSED"
+        assert row[2] == 1
+
+    # 32. Target first expired mapped to resolved
+    def test_32_target_first_expired_mapped_to_resolved(self, temp_db: Path):
+        t0 = "2026-09-26T10:00:00+05:30"
+        _insert_test_snapshot(temp_db, "SIG-T1EXP-32", score=82, captured_at=t0)
+        conn = sqlite3.connect(str(temp_db))
+        conn.execute("""
+            INSERT INTO signal_outcome_measurements (
+                signal_id, prediction_snapshot_id, symbol, category, direction,
+                entry_price, stop_loss, target_1, target_2, observed_from,
+                outcome, raw_lifecycle_state, data_quality_status, calculated_at, target_1_hit, exit_price, exit_at
+            )
+            VALUES ('SIG-T1EXP-32', 'SIG-T1EXP-32', 'TEST_T1EXP', 'EQUITY', 'CALL', 1000, 980, 1020, 1040, ?, 'TARGET_FIRST', 'EXPIRED', 'VALID_DATA', ?, 1, 1015, ?)
+        """, (t0, t0, t0))
+        # Update system_signals to EXPIRED as well
+        conn.execute("UPDATE system_signals SET status = 'EXPIRED' WHERE signal_id = 'SIG-T1EXP-32'")
+        conn.commit()
+        conn.close()
+
+        svc = SignalForwardObservationService(db_path=temp_db)
+        svc.register_forward_signal("SIG-T1EXP-32", cutoff_iso="2026-09-26T00:00:00+05:30")
+        svc.sync_forward_outcomes()
+
+        conn = sqlite3.connect(str(temp_db))
+        row = conn.execute("SELECT observation_status, terminal_outcome, is_resolved FROM signal_forward_observations WHERE signal_id='SIG-T1EXP-32'").fetchone()
+        conn.close()
+        assert row[0] == "RESOLVED"
+        assert row[1] == "TARGET_FIRST"
+        assert row[2] == 1

@@ -60,6 +60,19 @@ def _normalize_dt(dt: datetime.datetime | None) -> datetime.datetime | None:
     return dt
 
 
+def is_observation_stale(obs: dict[str, Any], now_dt: datetime.datetime | None) -> bool:
+    """Determine whether an observation in OBSERVING state is past its canonical holding horizon."""
+    if obs.get("observation_status") != "OBSERVING" or not now_dt:
+        return False
+    reg_dt = _normalize_dt(parse_timestamp(obs.get("registered_at")))
+    if not reg_dt:
+        return False
+    cat = str(obs.get("category") or "").upper()
+    is_swing = ("SWING" in cat) or ("DELIVERY" in cat) or cat in ("MID_SMALL_CAP", "LARGE_CAP_EQUITY")
+    threshold_hours = (7 * 24) if is_swing else STALE_THRESHOLD_HOURS
+    return (now_dt - reg_dt).total_seconds() > threshold_hours * 3600
+
+
 # ============================================================================
 # 1. Dataclasses
 # ============================================================================
@@ -260,14 +273,8 @@ class SignalForwardMonitorService:
             if r.get("is_resolved") == 0 and r.get("observation_status") not in ("AMBIGUOUS", "NO_DATA", "INVALIDATED")
         )
 
-        # Stale observations check (> 48 hours in OBSERVING state)
-        stale_count = 0
         now_dt = _normalize_dt(parse_timestamp(now_dt_iso))
-        for r in all_obs:
-            if r.get("observation_status") == "OBSERVING" and now_dt:
-                reg_dt = _normalize_dt(parse_timestamp(r.get("registered_at")))
-                if reg_dt and (now_dt - reg_dt).total_seconds() > STALE_THRESHOLD_HOURS * 3600:
-                    stale_count += 1
+        stale_count = sum(1 for r in all_obs if is_observation_stale(r, now_dt))
         stale_rate = round(stale_count / total_registered, 4) if total_registered > 0 else 0.0
 
         # Data quality errors (reusing Phase-D / Phase-B status semantics)
@@ -344,12 +351,7 @@ class SignalForwardMonitorService:
             )
 
             # Stale count
-            stale_count = 0
-            for r in b_obs:
-                if r.get("observation_status") == "OBSERVING" and now_dt:
-                    reg_dt = _normalize_dt(parse_timestamp(r.get("registered_at")))
-                    if reg_dt and (now_dt - reg_dt).total_seconds() > STALE_THRESHOLD_HOURS * 3600:
-                        stale_count += 1
+            stale_count = sum(1 for r in b_obs if is_observation_stale(r, now_dt))
 
             dq_errors = ambiguous + no_data + invalidated
 
@@ -416,12 +418,7 @@ class SignalForwardMonitorService:
                 or r.get("data_quality_status") not in ("VALID_DATA", None, "")
             )
 
-            stale_count = 0
-            for r in c_obs:
-                if r.get("observation_status") == "OBSERVING" and now_dt:
-                    reg_dt = _normalize_dt(parse_timestamp(r.get("registered_at")))
-                    if reg_dt and (now_dt - reg_dt).total_seconds() > STALE_THRESHOLD_HOURS * 3600:
-                        stale_count += 1
+            stale_count = sum(1 for r in c_obs if is_observation_stale(r, now_dt))
 
             qualifies = resolved >= GATE_MIN_RESOLVED_PER_MONTH
 
@@ -465,12 +462,7 @@ class SignalForwardMonitorService:
         )
         dq_error_rate = round(total_errors / total_obs, 4) if total_obs > 0 else 0.0
 
-        stale_count = 0
-        for r in all_obs:
-            if r.get("observation_status") == "OBSERVING" and now_dt:
-                reg_dt = _normalize_dt(parse_timestamp(r.get("registered_at")))
-                if reg_dt and (now_dt - reg_dt).total_seconds() > STALE_THRESHOLD_HOURS * 3600:
-                    stale_count += 1
+        stale_count = sum(1 for r in all_obs if is_observation_stale(r, now_dt))
         stale_rate = round(stale_count / total_obs, 4) if total_obs > 0 else 0.0
 
         dq_gate_passed = dq_error_rate <= GATE_MAX_DATA_QUALITY_ERROR_RATE

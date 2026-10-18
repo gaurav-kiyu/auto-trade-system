@@ -47,17 +47,22 @@ def parse_timestamp(ts: Any) -> datetime.datetime | None:
         except Exception:
             return None
     s = str(ts).strip()
-    if not s:
-        return None
+    IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
     # Normalize ISO format
     s_iso = s.replace("Z", "+00:00").replace(" ", "T")
     try:
-        return datetime.datetime.fromisoformat(s_iso)
+        dt = datetime.datetime.fromisoformat(s_iso)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=IST)
+        return dt
     except Exception:
         pass
     for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"):
         try:
-            return datetime.datetime.strptime(s, fmt)
+            dt = datetime.datetime.strptime(s, fmt)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=IST)
+            return dt
         except Exception:
             pass
     return None
