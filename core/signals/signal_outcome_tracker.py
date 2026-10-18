@@ -123,20 +123,26 @@ class SignalOutcomeTracker:
         self,
         db_path: Path | str | None = None,
         calendar_engine: ExchangeCalendarEngine | None = None,
+        initialize_schema: bool = True,
+        read_only: bool = False,
     ) -> None:
         self._db_path = resolve_outcome_db_path(db_path)
         self._calendar_engine = calendar_engine or ExchangeCalendarEngine()
+        self._read_only = bool(read_only)
         self._io_lock = threading.Lock()
         self._evaluated_candles: set[str] = set()
         self._last_sweep_ts: float = 0.0
         self._sweep_min_interval: float = 60.0
-        self._ensure_schema()
+        if initialize_schema and not self._read_only:
+            self._ensure_schema()
 
     @classmethod
     def get_instance(
         cls,
         db_path: Path | str | None = None,
         calendar_engine: ExchangeCalendarEngine | None = None,
+        initialize_schema: bool = True,
+        read_only: bool = False,
     ) -> SignalOutcomeTracker:
         with cls._lock:
             if db_path is not None and str(db_path).strip():
@@ -149,7 +155,12 @@ class SignalOutcomeTracker:
                 target_path = resolve_outcome_db_path(db_path)
 
             if target_path not in cls._instances:
-                cls._instances[target_path] = cls(db_path=target_path, calendar_engine=calendar_engine)
+                cls._instances[target_path] = cls(
+                    db_path=target_path,
+                    calendar_engine=calendar_engine,
+                    initialize_schema=initialize_schema,
+                    read_only=read_only,
+                )
             inst = cls._instances[target_path]
             cls._instance = inst
             return inst
@@ -160,9 +171,16 @@ class SignalOutcomeTracker:
             cls._instances.clear()
             cls._instance = None
 
-    def _get_conn(self) -> sqlite3.Connection:
-        self._db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(str(self._db_path), check_same_thread=False)
+    def _get_conn(self, read_only: bool = False) -> sqlite3.Connection:
+        ro = read_only or self._read_only
+        if ro:
+            if not self._db_path.exists():
+                raise FileNotFoundError(f"Database file does not exist for read-only access: {self._db_path}")
+            uri = f"file:{self._db_path.resolve().as_posix()}?mode=ro"
+            conn = sqlite3.connect(uri, uri=True, check_same_thread=False, timeout=30.0)
+        else:
+            self._db_path.parent.mkdir(parents=True, exist_ok=True)
+            conn = sqlite3.connect(str(self._db_path), check_same_thread=False, timeout=30.0)
         conn.row_factory = sqlite3.Row
         return conn
 

@@ -165,18 +165,30 @@ class SignalForwardObservationService:
     _instance: SignalForwardObservationService | None = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: Path | str | None = None) -> None:
+    def __init__(
+        self,
+        db_path: Path | str | None = None,
+        initialize_schema: bool = True,
+        read_only: bool = False,
+    ) -> None:
         self._db_path = Path(db_path) if db_path else _DEFAULT_DB_PATH
+        self._read_only = bool(read_only)
         self._io_lock = threading.Lock()
-        self._init_db()
+        if initialize_schema and not self._read_only:
+            self._init_db()
 
     @classmethod
-    def get_instance(cls, db_path: Path | str | None = None) -> SignalForwardObservationService:
+    def get_instance(
+        cls,
+        db_path: Path | str | None = None,
+        initialize_schema: bool = True,
+        read_only: bool = False,
+    ) -> SignalForwardObservationService:
         with cls._lock:
             if cls._instance is None:
-                cls._instance = cls(db_path=db_path)
+                cls._instance = cls(db_path=db_path, initialize_schema=initialize_schema, read_only=read_only)
             elif db_path and Path(db_path) != cls._instance._db_path:
-                cls._instance = cls(db_path=db_path)
+                cls._instance = cls(db_path=db_path, initialize_schema=initialize_schema, read_only=read_only)
             return cls._instance
 
     @classmethod
@@ -184,8 +196,15 @@ class SignalForwardObservationService:
         with cls._lock:
             cls._instance = None
 
-    def _get_conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self._db_path), timeout=10)
+    def _get_conn(self, read_only: bool = False) -> sqlite3.Connection:
+        ro = read_only or self._read_only
+        if ro:
+            if not self._db_path.exists():
+                raise FileNotFoundError(f"Database file does not exist for read-only access: {self._db_path}")
+            uri = f"file:{self._db_path.resolve().as_posix()}?mode=ro"
+            conn = sqlite3.connect(uri, uri=True, timeout=10)
+        else:
+            conn = sqlite3.connect(str(self._db_path), timeout=10)
         conn.row_factory = sqlite3.Row
         return conn
 

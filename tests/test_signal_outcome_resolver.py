@@ -446,3 +446,93 @@ class TestHistoricalOutcomeResolver:
         assert obs2[0] == "RESOLVED"
         assert obs2[1] == "TARGET_FIRST"
         assert obs2[2] == 1
+
+    def test_06_dry_run_construction_does_not_initialize_schema_or_write(self, tmp_path: Path):
+        """Constructing in dry_run mode does not create missing DB file or execute schema DDL."""
+        missing_db = tmp_path / "non_existent_db.db"
+        assert not missing_db.exists()
+
+        # Construction with dry_run=True should NOT create the file
+        HistoricalOutcomeResolverService.reset_instance()
+        svc = HistoricalOutcomeResolverService.get_instance(db_path=missing_db, dry_run=True)
+        assert svc._dry_run is True
+        assert not missing_db.exists(), "Dry-run constructor must not create missing database file"
+
+    def test_07_dry_run_execution_is_strictly_read_only_and_idempotent(self, temp_db: Path):
+        """Dry-run execution against an existing DB performs zero writes and leaves checksum untouched."""
+        t0 = "2026-10-12T10:00:00+05:30"
+        _insert_test_signal(temp_db, "SIG-DRY-1", symbol="ALPHA", entry_price=100, stop_loss=95, target_1=105, target_2=110, created_date="2026-10-12", timestamp=t0)
+
+        fwd_svc = SignalForwardObservationService(db_path=temp_db)
+        fwd_svc.register_forward_signal("SIG-DRY-1", cutoff_iso="2026-10-12T00:00:00+05:30")
+
+        # Snapshot checksum before
+        def get_db_dump(p: Path) -> str:
+            conn = sqlite3.connect(f"file:{p.resolve().as_posix()}?mode=ro", uri=True)
+            try:
+                return "\n".join(conn.iterdump())
+            finally:
+                conn.close()
+
+        dump_before = get_db_dump(temp_db)
+
+        HistoricalOutcomeResolverService.reset_instance()
+        svc = HistoricalOutcomeResolverService.get_instance(db_path=temp_db, dry_run=True)
+
+        def mock_fetch(symbol: str, category: str = "", start_date: str | None = None) -> list[SignalBar]:
+            return [
+                SignalBar(open=100, high=101, low=98, close=99, timestamp="2026-10-12"),
+                SignalBar(open=99, high=100, low=93, close=94, timestamp="2026-10-13"),  # Low 93 <= 95 (SL hit)
+            ]
+
+        with patch.object(svc, "fetch_daily_bars", side_effect=mock_fetch):
+            res = svc.resolve_all_pending(dry_run=True)
+
+        assert res["status"] == "success"
+        assert res["dry_run"] is True
+        assert res["resolved_barriers"] == 1
+
+        dump_after = get_db_dump(temp_db)
+        assert dump_before == dump_after, "Dry-run execution modified database content!"
+
+    def test_08_read_only_mode_fails_closed_if_missing(self, tmp_path: Path):
+        """Read-only connection fails closed with FileNotFoundError if database does not exist."""
+        missing_db = tmp_path / "never_created.db"
+        HistoricalOutcomeResolverService.reset_instance()
+        svc = HistoricalOutcomeResolverService.get_instance(db_path=missing_db, dry_run=True)
+        with pytest.raises(FileNotFoundError):
+            svc._get_conn()
+
+    def test_09_timeout_is_not_treated_as_predictive_success(self, temp_db: Path):
+        """A TIMEOUT outcome updates is_resolved=1 but is quarantined from predictive_usable if mfe_r=0."""
+        from core.signals.signal_forward_monitor import SignalForwardMonitorService
+
+        t0 = "2026-10-12T10:00:00+05:30"
+        _insert_test_signal(
+            temp_db, "SIG-FUT-TIMEOUT", symbol="TESTFUT", category="FUTURES",
+            entry_price=1000, stop_loss=950, target_1=1050, target_2=1100,
+            created_date="2026-10-12", timestamp=t0
+        )
+        fwd_svc = SignalForwardObservationService(db_path=temp_db)
+        fwd_svc.register_forward_signal("SIG-FUT-TIMEOUT", cutoff_iso="2026-10-12T00:00:00+05:30")
+
+        # Manually set to TIMEOUT with mfe_r = 0.0
+        conn = sqlite3.connect(str(temp_db))
+        conn.execute("""
+            UPDATE signal_forward_observations
+            SET observation_status = 'TIMEOUT', terminal_outcome = 'TIMEOUT', is_resolved = 1, mfe_r = 0.0
+            WHERE signal_id = 'SIG-FUT-TIMEOUT'
+        """)
+        conn.commit()
+        conn.close()
+
+        monitor = SignalForwardMonitorService.get_instance(db_path=temp_db)
+        summary = monitor.get_forward_summary()
+
+        assert summary["total_registered"] == 1
+        assert summary["total_resolved"] == 1
+        assert summary["stale_unresolved_count"] == 0  # Not stale because status is TIMEOUT
+        # BUT quarantined from predictive usable because it's a FUTURES timeout with mfe_r == 0
+        assert summary["data_quality_affected_count"] == 1
+        assert summary["predictive_usable_count"] == 0
+

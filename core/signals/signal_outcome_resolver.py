@@ -39,17 +39,28 @@ class HistoricalOutcomeResolverService:
     _instance: HistoricalOutcomeResolverService | None = None
     _singleton_lock = threading.RLock()
 
-    def __init__(self, db_path: Path | str | None = None) -> None:
+    def __init__(self, db_path: Path | str | None = None, dry_run: bool = False) -> None:
         self._db_path = resolve_outcome_db_path(db_path)
+        self._dry_run = bool(dry_run)
         self._io_lock = threading.RLock()
-        self._tracker = SignalOutcomeTracker.get_instance(db_path=self._db_path)
-        self._fwd_service = SignalForwardObservationService(db_path=self._db_path)
+        self._tracker = SignalOutcomeTracker.get_instance(
+            db_path=self._db_path,
+            initialize_schema=not self._dry_run,
+            read_only=self._dry_run,
+        )
+        self._fwd_service = SignalForwardObservationService(
+            db_path=self._db_path,
+            initialize_schema=not self._dry_run,
+            read_only=self._dry_run,
+        )
 
     @classmethod
-    def get_instance(cls, db_path: Path | str | None = None) -> HistoricalOutcomeResolverService:
+    def get_instance(cls, db_path: Path | str | None = None, dry_run: bool = False) -> HistoricalOutcomeResolverService:
         with cls._singleton_lock:
             if cls._instance is None:
-                cls._instance = cls(db_path=db_path)
+                cls._instance = cls(db_path=db_path, dry_run=dry_run)
+            elif dry_run != cls._instance._dry_run or (db_path and Path(db_path) != cls._instance._db_path):
+                cls._instance = cls(db_path=db_path, dry_run=dry_run)
             return cls._instance
 
     @classmethod
@@ -57,10 +68,17 @@ class HistoricalOutcomeResolverService:
         with cls._singleton_lock:
             cls._instance = None
 
-    def _get_conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self._db_path), timeout=30.0)
+    def _get_conn(self, read_only: bool = False) -> sqlite3.Connection:
+        ro = read_only or self._dry_run
+        if ro:
+            if not self._db_path.exists():
+                raise FileNotFoundError(f"Database file does not exist for read-only access: {self._db_path}")
+            uri = f"file:{self._db_path.resolve().as_posix()}?mode=ro"
+            conn = sqlite3.connect(uri, uri=True, timeout=30.0)
+        else:
+            conn = sqlite3.connect(str(self._db_path), timeout=30.0)
+            conn.execute("PRAGMA journal_mode = WAL")
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
@@ -358,7 +376,7 @@ def main() -> None:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-    svc = HistoricalOutcomeResolverService.get_instance(db_path=args.db_path)
+    svc = HistoricalOutcomeResolverService.get_instance(db_path=args.db_path, dry_run=args.dry_run)
     res = svc.resolve_all_pending(
         dry_run=args.dry_run,
         limit=args.limit,

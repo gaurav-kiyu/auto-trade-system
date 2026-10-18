@@ -217,7 +217,10 @@ class SignalForwardMonitorService:
             cls._instance = None
 
     def _get_conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self._db_path), timeout=10)
+        if not self._db_path.exists():
+            raise FileNotFoundError(f"Database file does not exist: {self._db_path}")
+        uri = f"file:{self._db_path.resolve().as_posix()}?mode=ro"
+        conn = sqlite3.connect(uri, uri=True, timeout=10)
         conn.row_factory = sqlite3.Row
         return conn
 
