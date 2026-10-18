@@ -1265,7 +1265,7 @@ def register_admin_routes(app, dashboard, admin_only, operator_or_admin) -> None
     async def api_update_admin_inquiry_status(
         inquiry_id: str,
         request: Request,
-        user: Any = Depends(_inquiry_write_dep),
+        user: Any = Depends(dashboard._auth_deps.require_permission("manage_permissions")),
     ) -> Any:
         """Transition inquiry lifecycle status and record admin audit log."""
         try:
