@@ -632,7 +632,11 @@ def test_20_first_touch_invariant(isolated_db):
         "created_date": "2026-10-04",  # Prior day
     }
     bar = SignalBar(open=100.0, high=101.0, low=99.0, close=100.0, timestamp="2026-10-05T09:20:00+05:30")
-    res = tracker.evaluate_bar(sig, bar)
+    res = tracker.evaluate_bar(
+        sig,
+        bar,
+        current_time=datetime.datetime(2026, 10, 5, 9, 20, tzinfo=IST),
+    )
 
     assert res.new_status == "EXPIRED"
     assert res.first_touch is None  # EXPIRED is NOT a first touch

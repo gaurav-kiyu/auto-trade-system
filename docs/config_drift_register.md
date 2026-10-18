@@ -17,13 +17,23 @@
 | CDR-019 | Brokerage cost | MANDATE_COST_BROKERAGE real/live. default_brokerage_per_order has zero readers. | MANDATE_COST_BROKERAGE, BROKERAGE_PER_TRADE | default_brokerage_per_order | Needs confirmation of per-trade/per-order semantic. |
 | CDR-020 | Reconciliation intervals | RECONCILIATION_ACTIVE_INTERVAL_SEC real/live. RECONCILE_INTERVAL and RECONCILIATION_INTERVAL_SEC zero live readers. | RECONCILIATION_ACTIVE/IDLE_INTERVAL_SEC | RECONCILE_INTERVAL, RECONCILIATION_INTERVAL_SEC | Safe to deprecate/remove; deferred. |
 | CDR-021 | Session-scoring systems | session_classifier_enabled real/live. TIME_OF_DAY_FILTER_ENABLED has zero live callers. | session_classifier_enabled | TIME_OF_DAY_* | TIME_OF_DAY_* needs either real wiring or removal. |
-| CDR-022 | Walk-forward bars | Neither walkforward_train_bars nor WALKFORWARD_TRAIN_BARS has live reader. | -- (CLI flags) | both key sets | Low priority; both inert. |
-| CDR-023 | ADX thresholds | ADX_PENALTY_THRESHOLD is real/live. indicator.adx_trending_threshold has zero readers. | ADX_PENALTY_THRESHOLD | indicator.adx_trending_threshold, adx_strong_threshold | Low priority; harmless dead pair. |
 | CDR-024 | Spread-strategy config | Flat-key-wins precedence implemented correctly; nested copies identical. | spread_strategy_enabled + flat siblings | indicator.spread_* (identical values) | No fix needed; harmless duplicate. |
 
 ---
 
 ## Resolved Audit Trail (Historical Resolutions Retained with Evidence)
+
+### Batch 3: v2.61.5 Technical Debt Remediation (2026-10-18)
+
+- **CD-RES-022** (Original Finding: Walk-forward bars uppercase keys):
+  - *Finding*: Uppercase keys `WALKFORWARD_TRAIN_BARS`, `WALKFORWARD_TEST_BARS`, `WALKFORWARD_STEP_BARS` existed in defaults and template with zero code readers, duplicating the lowercase keys `walkforward_train_bars`, `walkforward_test_bars`, `walkforward_step_bars` read by `scripts/run_walkforward.py`.
+  - *Fix Applied*: Removed dead uppercase keys `WALKFORWARD_TRAIN_BARS`, `WALKFORWARD_TEST_BARS`, and `WALKFORWARD_STEP_BARS` from `json/config.template.json`, `json/index_config.defaults.json`, and `schemas/index_config.schema.json`.
+  - *Verification*: `generate_config_schemas.py --check` and `validate_config_schema.py --all` passed cleanly.
+
+- **CD-RES-023** (Original Finding: ADX threshold decorative indicator keys):
+  - *Finding*: `indicator.adx_trending_threshold` and `indicator.adx_strong_threshold` existed in defaults and template with zero code readers, while real live system reads top-level `ADX_PENALTY_THRESHOLD` and `ADX_TREND_THRESHOLD`.
+  - *Fix Applied*: Removed dead keys `adx_trending_threshold` and `adx_strong_threshold` from `indicator` dictionary in `json/config.template.json` and `json/index_config.defaults.json`.
+  - *Verification*: `generate_config_schemas.py --check` and `validate_config_schema.py --all` passed cleanly.
 
 ### Batch 2: v2.61.4 Maintenance Remediation (2026-10-16)
 

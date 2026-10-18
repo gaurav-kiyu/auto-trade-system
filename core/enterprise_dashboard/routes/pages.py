@@ -324,6 +324,7 @@ def register_page_routes(app, dashboard, _require_admin_page, _require_operator_
             "subject": subject,
             "message": message,
             "client_ip": client_ip,
+            "status": "PENDING_REVIEW",
         }
 
         # Dispatch asynchronous non-blocking email notifications
