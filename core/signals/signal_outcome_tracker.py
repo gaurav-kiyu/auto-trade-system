@@ -115,7 +115,7 @@ class SignalEvaluationResult:
 class SignalOutcomeTracker:
     """Observational subsystem for tracking and evaluating real-market signal outcomes."""
 
-    _instances: dict[Path, SignalOutcomeTracker] = {}
+    _instances: dict[tuple[Path, bool], SignalOutcomeTracker] = {}
     _instance: SignalOutcomeTracker | None = None
     _lock = threading.Lock()
 
@@ -149,19 +149,20 @@ class SignalOutcomeTracker:
                 target_path = Path(db_path).resolve()
             elif os.getenv("SIGNALS_DB_PATH"):
                 target_path = Path(os.getenv("SIGNALS_DB_PATH")).resolve()
-            elif cls._instance is not None:
+            elif cls._instance is not None and cls._instance._read_only == bool(read_only):
                 return cls._instance
             else:
                 target_path = resolve_outcome_db_path(db_path)
 
-            if target_path not in cls._instances:
-                cls._instances[target_path] = cls(
+            cache_key = (target_path, bool(read_only))
+            if cache_key not in cls._instances:
+                cls._instances[cache_key] = cls(
                     db_path=target_path,
                     calendar_engine=calendar_engine,
                     initialize_schema=initialize_schema,
                     read_only=read_only,
                 )
-            inst = cls._instances[target_path]
+            inst = cls._instances[cache_key]
             cls._instance = inst
             return inst
 

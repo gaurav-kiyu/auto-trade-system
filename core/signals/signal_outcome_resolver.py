@@ -36,6 +36,7 @@ _log = logging.getLogger("HISTORICAL_OUTCOME_RESOLVER")
 class HistoricalOutcomeResolverService:
     """Service to back-evaluate in-flight signals using chronological historical daily bars."""
 
+    _instances: dict[tuple[Path, bool], HistoricalOutcomeResolverService] = {}
     _instance: HistoricalOutcomeResolverService | None = None
     _singleton_lock = threading.RLock()
 
@@ -48,24 +49,31 @@ class HistoricalOutcomeResolverService:
             initialize_schema=not self._dry_run,
             read_only=self._dry_run,
         )
-        self._fwd_service = SignalForwardObservationService(
+        self._fwd_service = SignalForwardObservationService.get_instance(
             db_path=self._db_path,
             initialize_schema=not self._dry_run,
             read_only=self._dry_run,
         )
+        if self._tracker._read_only != self._dry_run:
+            raise RuntimeError(f"Tracker mode mismatch: tracker._read_only={self._tracker._read_only} != dry_run={self._dry_run}")
+        if self._fwd_service._read_only != self._dry_run:
+            raise RuntimeError(f"Forward service mode mismatch: fwd._read_only={self._fwd_service._read_only} != dry_run={self._dry_run}")
 
     @classmethod
     def get_instance(cls, db_path: Path | str | None = None, dry_run: bool = False) -> HistoricalOutcomeResolverService:
+        target_path = resolve_outcome_db_path(db_path)
+        cache_key = (target_path, bool(dry_run))
         with cls._singleton_lock:
-            if cls._instance is None:
-                cls._instance = cls(db_path=db_path, dry_run=dry_run)
-            elif dry_run != cls._instance._dry_run or (db_path and Path(db_path) != cls._instance._db_path):
-                cls._instance = cls(db_path=db_path, dry_run=dry_run)
-            return cls._instance
+            if cache_key not in cls._instances:
+                cls._instances[cache_key] = cls(db_path=target_path, dry_run=dry_run)
+            inst = cls._instances[cache_key]
+            cls._instance = inst
+            return inst
 
     @classmethod
     def reset_instance(cls) -> None:
         with cls._singleton_lock:
+            cls._instances.clear()
             cls._instance = None
 
     def _get_conn(self, read_only: bool = False) -> sqlite3.Connection:

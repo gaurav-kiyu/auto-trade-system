@@ -162,6 +162,7 @@ class DailyObservationReport:
 class SignalForwardObservationService:
     """Automated service managing out-of-sample forward observations and calibration readiness."""
 
+    _instances: dict[tuple[Path, bool], SignalForwardObservationService] = {}
     _instance: SignalForwardObservationService | None = None
     _lock = threading.Lock()
 
@@ -184,16 +185,23 @@ class SignalForwardObservationService:
         initialize_schema: bool = True,
         read_only: bool = False,
     ) -> SignalForwardObservationService:
+        target_path = Path(db_path).resolve() if db_path else _DEFAULT_DB_PATH.resolve()
+        cache_key = (target_path, bool(read_only))
         with cls._lock:
-            if cls._instance is None:
-                cls._instance = cls(db_path=db_path, initialize_schema=initialize_schema, read_only=read_only)
-            elif db_path and Path(db_path) != cls._instance._db_path:
-                cls._instance = cls(db_path=db_path, initialize_schema=initialize_schema, read_only=read_only)
-            return cls._instance
+            if cache_key not in cls._instances:
+                cls._instances[cache_key] = cls(
+                    db_path=target_path,
+                    initialize_schema=initialize_schema,
+                    read_only=read_only,
+                )
+            inst = cls._instances[cache_key]
+            cls._instance = inst
+            return inst
 
     @classmethod
     def reset_instance(cls) -> None:
         with cls._lock:
+            cls._instances.clear()
             cls._instance = None
 
     def _get_conn(self, read_only: bool = False) -> sqlite3.Connection:
