@@ -275,10 +275,13 @@ class TestInquiryNotifications:
 class TestContactAndAdminRoutes:
     @pytest.fixture
     def client(self, temp_db_path):
+        from core.storage.inquiry_store import reset_inquiry_store
+        reset_inquiry_store()
         with patch.dict(os.environ, {"OPBUYING_INQUIRIES_DB": temp_db_path}):
             dash = create_enterprise_dashboard(config={"ENVIRONMENT": "PAPER"})
             client = TestClient(dash.app)
             yield client, dash
+            reset_inquiry_store()
 
     def test_public_contact_form_success(self, client):
         c, dash = client
@@ -397,3 +400,27 @@ class TestContactAndAdminRoutes:
         detail_resp2 = c.get(f"/api/v1/admin/inquiries/{ticket_id}")
         assert detail_resp2.json()["inquiry"]["status"] == "IN_PROGRESS"
         assert detail_resp2.json()["inquiry"]["admin_notes"] == "Investigating log traces"
+
+    def test_inquiry_store_deterministic_tie_breaker_on_same_second(self, temp_db_path):
+        """Verify that inquiries created in the same second are ordered deterministically by id DESC."""
+        from core.storage.inquiry_store import InquiryStore, reset_inquiry_store
+        reset_inquiry_store()
+        store = InquiryStore(db_path=temp_db_path)
+
+        # Force identical created_at timestamps by mocking time
+        frozen_iso = "2026-10-18T12:00:00Z"
+        with patch("time.strftime", return_value=frozen_iso):
+            # Insert first inquiry (lower epoch ms)
+            with patch("time.time", return_value=1792300000.100):
+                id1 = store.save_inquiry(name="First Submitter", email="first@test.com", subject="S1", message="M1")
+            # Insert second inquiry in same second (higher epoch ms)
+            with patch("time.time", return_value=1792300000.200):
+                id2 = store.save_inquiry(name="Second Submitter", email="second@test.com", subject="S2", message="M2")
+
+        items, total = store.list_inquiries()
+        assert total == 2
+        assert items[0]["id"] == id2
+        assert items[0]["name"] == "Second Submitter"
+        assert items[1]["id"] == id1
+        assert items[1]["name"] == "First Submitter"
+
