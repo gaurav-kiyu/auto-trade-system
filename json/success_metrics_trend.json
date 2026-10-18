@@ -303,6 +303,22 @@
         "commits_30d": 158.0,
         "engineering_velocity": 0.0
       }
+    },
+    {
+      "captured_at": 1792307440.5468411,
+      "captured_at_iso": "2026-10-18T07:10:40.546841+00:00",
+      "release_label": "v2.61.5-debt-reduction",
+      "indicators": {
+        "dead_code_findings": 49867.0,
+        "duplicate_code": 427.0,
+        "config_drift": 7.0,
+        "doc_drift": 0.0,
+        "open_regressions": 0.0,
+        "test_files": 870.0,
+        "evidence_items": 1903.0,
+        "commits_30d": 159.0,
+        "engineering_velocity": 101.96666666666667
+      }
     }
   ]
 }
