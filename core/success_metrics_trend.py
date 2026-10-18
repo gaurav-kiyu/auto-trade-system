@@ -434,7 +434,7 @@ class SuccessMetricsTrend:
 
         latest = self.get_latest()
         prev = self.get_previous()
-        good = direction == "DOWN" if _METRIC_LOWER_IS_BETTER.get(metric_id, False) else direction == "UP"
+        good = direction in ("DOWN", "STABLE") if _METRIC_LOWER_IS_BETTER.get(metric_id, False) else direction == "UP"
 
         return {
             "metric_id": metric_id,

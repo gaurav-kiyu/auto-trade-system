@@ -498,3 +498,111 @@ def test_validate_metric_trend_unknown():
     result = v.validate_metric_trend("MET-99")
     assert not result.passed
     assert "trend" in result.detail.lower()
+
+
+# ── Lower-is-Better / Higher-is-Better Matrix Contract (Section 5.2) ──────────
+
+
+class TestMET07LowerIsBetterContract:
+    """Verifies the directional validation contract for MET-07 and MET-08."""
+
+    def test_lower_is_better_decreases_passes(self, tmp_path):
+        """Scenario 1: Lower-is-better metric decreases -> Pass."""
+        trend = _new_trend(tmp_path)
+        _inject(trend, {"dead_code_findings": 100.0, "open_regressions": 1.0}, 1000.0)
+        _inject(trend, {"dead_code_findings": 80.0, "open_regressions": 0.0}, 2000.0)
+        assert trend.compute_direction("MET-07") == "DOWN"
+        v = trend.validate_metric("MET-07")
+        assert v["passed"] is True
+        assert v["direction"] == "DOWN"
+
+    def test_lower_is_better_stable_passes(self, tmp_path):
+        """Scenario 2: Lower-is-better metric remains stable -> Pass."""
+        trend = _new_trend(tmp_path)
+        _inject(trend, {"dead_code_findings": 100.0, "open_regressions": 1.0}, 1000.0)
+        _inject(trend, {"dead_code_findings": 100.0, "open_regressions": 1.0}, 2000.0)
+        assert trend.compute_direction("MET-07") == "STABLE"
+        v = trend.validate_metric("MET-07")
+        assert v["passed"] is True
+        assert v["direction"] == "STABLE"
+
+    def test_lower_is_better_increases_fails(self, tmp_path):
+        """Scenario 3: Lower-is-better metric increases -> Fail."""
+        trend = _new_trend(tmp_path)
+        _inject(trend, {"dead_code_findings": 100.0, "open_regressions": 1.0}, 1000.0)
+        _inject(trend, {"dead_code_findings": 120.0, "open_regressions": 2.0}, 2000.0)
+        assert trend.compute_direction("MET-07") == "UP"
+        v = trend.validate_metric("MET-07")
+        assert v["passed"] is False
+        assert v["direction"] == "UP"
+
+    def test_higher_is_better_increases_passes(self, tmp_path):
+        """Scenario 4: Higher-is-better metric increases -> Pass."""
+        trend = _new_trend(tmp_path)
+        _inject(trend, {"test_files": 100.0, "evidence_items": 1500.0,
+                        "commits_30d": 40.0, "engineering_velocity": 9.0}, 1000.0)
+        _inject(trend, {"test_files": 120.0, "evidence_items": 1600.0,
+                        "commits_30d": 50.0, "engineering_velocity": 10.0}, 2000.0)
+        assert trend.compute_direction("MET-08") == "UP"
+        v = trend.validate_metric("MET-08")
+        assert v["passed"] is True
+        assert v["direction"] == "UP"
+
+    def test_higher_is_better_stable_fails(self, tmp_path):
+        """Scenario 5: Higher-is-better metric remains stable -> Fail."""
+        trend = _new_trend(tmp_path)
+        _inject(trend, {"test_files": 100.0, "evidence_items": 1500.0,
+                        "commits_30d": 40.0, "engineering_velocity": 9.0}, 1000.0)
+        _inject(trend, {"test_files": 100.0, "evidence_items": 1500.0,
+                        "commits_30d": 40.0, "engineering_velocity": 9.0}, 2000.0)
+        assert trend.compute_direction("MET-08") == "STABLE"
+        v = trend.validate_metric("MET-08")
+        assert v["passed"] is False
+        assert v["direction"] == "STABLE"
+
+    def test_higher_is_better_decreases_fails(self, tmp_path):
+        """Scenario 6: Higher-is-better metric decreases -> Fail."""
+        trend = _new_trend(tmp_path)
+        _inject(trend, {"test_files": 100.0, "evidence_items": 1500.0,
+                        "commits_30d": 40.0, "engineering_velocity": 9.0}, 1000.0)
+        _inject(trend, {"test_files": 80.0, "evidence_items": 1200.0,
+                        "commits_30d": 30.0, "engineering_velocity": 5.0}, 2000.0)
+        assert trend.compute_direction("MET-08") == "DOWN"
+        v = trend.validate_metric("MET-08")
+        assert v["passed"] is False
+        assert v["direction"] == "DOWN"
+
+    def test_met08_validation_intact(self, tmp_path):
+        """Scenario 7: MET-08 validation contract remains intact."""
+        trend = _new_trend(tmp_path)
+        _inject(trend, {"test_files": 100.0, "evidence_items": 1500.0,
+                        "commits_30d": 40.0, "engineering_velocity": 9.0}, 1000.0)
+        _inject(trend, {"test_files": 105.0, "evidence_items": 1510.0,
+                        "commits_30d": 42.0, "engineering_velocity": 9.5}, 2000.0)
+        v8 = trend.validate_metric("MET-08")
+        assert v8["passed"] is True
+        assert v8["metric_id"] == "MET-08"
+        assert v8["direction"] == "UP"
+
+    def test_register_consistency_intact(self):
+        """Scenario 8: Canonical register consistency check passes."""
+        from core.success_metrics_trend import check_register_consistency
+        res = check_register_consistency()
+        assert res["ok"] is True
+
+    def test_historical_snapshot_integrity_intact(self):
+        """Scenario 9: Live json/success_metrics_trend.json has >= 19 valid snapshots."""
+        from core.success_metrics_trend import get_metrics_trend
+        t = get_metrics_trend()
+        assert len(t._snapshots) >= 19
+        latest = t.get_latest()
+        prev = t.get_previous()
+        assert latest is not None
+        assert prev is not None
+        assert latest.release_label == "v2.61.5"
+        assert prev.release_label == "v2.61.4"
+        # Validate that MET-07 passes for live repository state
+        v7 = t.validate_metric("MET-07")
+        assert v7["passed"] is True
+        assert v7["direction"] == "STABLE"
+
