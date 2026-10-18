@@ -283,7 +283,7 @@ class InquiryStore:
                            subject, status, notification_status, client_ip
                     FROM inquiries
                     {where_sql}
-                    ORDER BY created_at DESC
+                    ORDER BY created_at DESC, id DESC
                     LIMIT ? OFFSET ?
                 """  # nosec B608
                 query_params = list(params) + [limit, offset]
@@ -382,9 +382,17 @@ _store_lock = threading.Lock()
 def get_inquiry_store(db_path: str | None = None) -> InquiryStore:
     """Singleton accessor for the global InquiryStore."""
     global _global_inquiry_store
+    target_path = db_path or resolve_inquiry_db_path()
     with _store_lock:
-        if _global_inquiry_store is None or (db_path and _global_inquiry_store.db_path != db_path):
-            _global_inquiry_store = InquiryStore(db_path)
+        if _global_inquiry_store is None or _global_inquiry_store.db_path != target_path:
+            _global_inquiry_store = InquiryStore(target_path)
             # Run legacy migration on initialization
             _global_inquiry_store.migrate_legacy_jsonl()
         return _global_inquiry_store
+
+
+def reset_inquiry_store() -> None:
+    """Reset global inquiry store singleton (primarily for test fixture isolation)."""
+    global _global_inquiry_store
+    with _store_lock:
+        _global_inquiry_store = None
