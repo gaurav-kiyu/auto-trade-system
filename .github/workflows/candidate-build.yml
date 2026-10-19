@@ -1,0 +1,164 @@
+name: Candidate Container Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_commit:
+        description: "Exact full 40-character Git commit SHA to build (must be on origin/master and contain PR #114 and PR #115)"
+        required: true
+        type: string
+        default: "aabbedef03f337071bc7834cb03ef004c9e8ae52"
+
+permissions: {}
+
+jobs:
+  validate-and-test:
+    name: Source Validation & Test Gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Validate input format
+        shell: bash
+        env:
+          INPUT_COMMIT: ${{ inputs.target_commit }}
+        run: |
+          if [[ ! "$INPUT_COMMIT" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "ERROR: target_commit must be exactly 40 hexadecimal characters. Received: '$INPUT_COMMIT'"
+            exit 1
+          fi
+          echo "Validated input commit format: $INPUT_COMMIT"
+
+      - name: Check out specified commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_commit }}
+          fetch-depth: 0
+
+      - name: Verify checked out commit, authorized SHA, and PR ancestry
+        shell: bash
+        env:
+          TARGET_COMMIT: ${{ inputs.target_commit }}
+        run: |
+          ACTUAL_HEAD=$(git rev-parse HEAD)
+          if [ "${ACTUAL_HEAD,,}" != "${TARGET_COMMIT,,}" ]; then
+            echo "ERROR: Checked out HEAD ($ACTUAL_HEAD) does not match requested target ($TARGET_COMMIT)"
+            exit 1
+          fi
+
+          # Source authorization: Fail-closed verification of explicit authorized candidate SHA
+          APPROVED_CANDIDATE_SHA="aabbedef03f337071bc7834cb03ef004c9e8ae52"
+          if [ "${TARGET_COMMIT,,}" != "${APPROVED_CANDIDATE_SHA,,}" ]; then
+            echo "ERROR: Target commit $TARGET_COMMIT does not match authorized candidate SHA ($APPROVED_CANDIDATE_SHA)."
+            echo "Under OPB-FINAL-PHASE-GOVERNANCE-001, each candidate release requires separate explicit human authorization."
+            exit 1
+          fi
+
+          git fetch origin master --depth=100
+          if ! git merge-base --is-ancestor "$TARGET_COMMIT" origin/master; then
+            echo "ERROR: Target commit $TARGET_COMMIT is not an ancestor of origin/master"
+            exit 1
+          fi
+
+          # Verify PR #114 commit (f6a15faf79dc8d07751d7f3fc186d303992cbfae)
+          if ! git merge-base --is-ancestor f6a15faf79dc8d07751d7f3fc186d303992cbfae "$ACTUAL_HEAD"; then
+            echo "ERROR: Target commit does not contain PR #114 (f6a15faf)"
+            exit 1
+          fi
+
+          # Verify PR #115 branch head (f25b6c5e3cdadda577d535154c7c4eb5cd1e891b)
+          if ! git merge-base --is-ancestor f25b6c5e3cdadda577d535154c7c4eb5cd1e891b "$ACTUAL_HEAD"; then
+            echo "ERROR: Target commit does not contain PR #115 (f25b6c5e)"
+            exit 1
+          fi
+
+          echo "Target commit $ACTUAL_HEAD verified on origin/master containing PR #114 and PR #115."
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Py-compile source validation
+        run: find . -name "*.py" -path "./*" ! -path "./.git/*" -exec python -m py_compile {} +
+
+      - name: Run mandatory safety test suites
+        run: |
+          pytest tests/test_signal_outcome_resolver.py -q --tb=short
+          pytest tests/test_singleton_lifecycle_safety.py -q --tb=short
+          pytest tests/test_version_contract.py -q --tb=short
+          pytest tests/test_domain_invariants.py tests/test_invariants.py -q --tb=short
+          pytest tests/test_auth_system.py -q --tb=short
+          pytest tests/contract/broker -q --tb=short
+
+  docker-candidate-build:
+    name: Build & Publish Candidate Container
+    runs-on: ubuntu-latest
+    needs: [validate-and-test]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out specified commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_commit }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine collision-free candidate tag
+        id: meta
+        shell: bash
+        env:
+          TARGET_COMMIT: ${{ inputs.target_commit }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          SHORT_SHA=$(echo "$TARGET_COMMIT" | cut -c1-7)
+          TAG="candidate-2.61.5-${SHORT_SHA}-run${RUN_ID}-${RUN_ATTEMPT}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "image=ghcr.io/${{ github.repository }}:${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Build and push candidate image
+        id: docker_build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Record and verify immutable manifest digest
+        shell: bash
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          IMAGE_TAG: ${{ steps.meta.outputs.image }}
+          TARGET_COMMIT: ${{ inputs.target_commit }}
+          RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          # build-push-action outputs digest formatted as sha256:<64 hex chars>
+          if [[ ! "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "ERROR: Returned digest format invalid. Expected 'sha256:<64 hex>', got: '$DIGEST'"
+            exit 1
+          fi
+
+          echo "### Candidate Image Build Provenance" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source Commit:** \`${TARGET_COMMIT}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workflow Run ID:** \`${RUN_ID}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository:** \`ghcr.io/${REPO}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Candidate Tag:** \`${IMAGE_TAG}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Immutable Manifest Digest:** \`${DIGEST}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment Invariant:** Candidate only. Not deployed to production." >> $GITHUB_STEP_SUMMARY
