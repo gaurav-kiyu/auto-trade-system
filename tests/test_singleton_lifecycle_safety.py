@@ -1,3 +1,4 @@
+import hashlib
 import sqlite3
 from pathlib import Path
 from unittest.mock import patch
@@ -376,7 +377,48 @@ def test_14_timeout_is_quarantined_from_predictive_success(tmp_path: Path):
     assert summary["data_quality_affected_count"] == 1
 
 
-def test_15_canonical_db_not_used_as_fixture():
-    """Test 15: Canonical db path is not default in these test suites."""
+def test_15_canonical_db_not_used_as_fixture(tmp_path: Path):
+    """Test 15: Canonical db path is not inadvertently selected as a test fixture.
+
+    Verifies that:
+    1. Singletons instantiated across the test lifecycle bind strictly to their
+       provided fixture paths and never inadvertently resolve or default to the
+       canonical production database path (db/signals_history.db).
+    2. If the canonical database file exists on disk (e.g. on developer workstations),
+       its size and SHA-256 remain completely unmodified by test execution.
+    3. If the canonical database file is absent (e.g. in clean CI checkouts),
+       it is never created as a side effect of running the safety test suite.
+    """
     canonical_path = Path("db/signals_history.db").resolve()
-    assert canonical_path.exists()
+    fixture_db = (tmp_path / "fixture_isolation_check.db").resolve()
+    _init_test_db(fixture_db)
+
+    # Record pre-test canonical state if file is present on disk
+    canonical_existed_before = canonical_path.exists()
+    canonical_hash_before = hashlib.sha256(canonical_path.read_bytes()).hexdigest() if canonical_existed_before else None
+
+    # Instantiate all 4 core outcome services with explicit test fixture
+    tracker = SignalOutcomeTracker.get_instance(db_path=fixture_db)
+    fwd = SignalForwardObservationService.get_instance(db_path=fixture_db)
+    mon = SignalForwardMonitorService.get_instance(db_path=fixture_db)
+    resolver = HistoricalOutcomeResolverService.get_instance(db_path=fixture_db)
+
+    # Invariant A: Services must bind strictly to the fixture and NEVER to canonical DB
+    for service, name in [
+        (tracker, "SignalOutcomeTracker"),
+        (fwd, "SignalForwardObservationService"),
+        (mon, "SignalForwardMonitorService"),
+        (resolver, "HistoricalOutcomeResolverService"),
+    ]:
+        bound_path = getattr(service, "_db_path", None)
+        assert bound_path is not None, f"{name} must have a bound _db_path"
+        assert bound_path == fixture_db, f"{name} bound to {bound_path}, expected fixture {fixture_db}"
+        assert bound_path != canonical_path, f"{name} must NOT bind to canonical path {canonical_path}"
+
+    # Invariant B: Canonical database file must not be created if absent, or altered if present
+    if not canonical_existed_before:
+        assert not canonical_path.exists(), "Test execution must never create canonical db/signals_history.db"
+    else:
+        assert canonical_path.exists(), "Canonical database file must still exist"
+        canonical_hash_after = hashlib.sha256(canonical_path.read_bytes()).hexdigest()
+        assert canonical_hash_after == canonical_hash_before, "Canonical database was mutated during test execution"
