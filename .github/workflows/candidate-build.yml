@@ -7,7 +7,7 @@ on:
         description: "Exact full 40-character Git commit SHA to build (must be on origin/master and contain PR #114 and PR #115)"
         required: true
         type: string
-        default: "aabbedef03f337071bc7834cb03ef004c9e8ae52"
+        default: "717c044031240f7da472371c139a97128fddd0e1"
 
 permissions: {}
 
@@ -47,7 +47,7 @@ jobs:
           fi
 
           # Source authorization: Fail-closed verification of explicit authorized candidate SHA
-          APPROVED_CANDIDATE_SHA="aabbedef03f337071bc7834cb03ef004c9e8ae52"
+          APPROVED_CANDIDATE_SHA="717c044031240f7da472371c139a97128fddd0e1"
           if [ "${TARGET_COMMIT,,}" != "${APPROVED_CANDIDATE_SHA,,}" ]; then
             echo "ERROR: Target commit $TARGET_COMMIT does not match authorized candidate SHA ($APPROVED_CANDIDATE_SHA)."
             echo "Under OPB-FINAL-PHASE-GOVERNANCE-001, each candidate release requires separate explicit human authorization."
